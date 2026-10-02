@@ -230,8 +230,15 @@ def load_spec(path: Path, *, verify: bool = True, require_manifests: bool = True
         config = yaml.safe_load(local_path(base, raw[f"{key}_config"]).read_text(encoding="utf-8-sig"))
         identities[f"{key}_weight_sha256"] = sha256_file(local_path(base, config["weights_path"]))
     identities.update({split: sha256_file(manifest) for split, manifest in manifests.items()})
-    for key in ("teacher_max_epochs", "distill_max_epochs", "effective_batch_size", "seed", "student_init_from", "speaker_balanced_sampling"):
+    for key in ("teacher_max_epochs", "distill_max_epochs", "effective_batch_size", "seed", "student_init_from", "speaker_balanced_sampling",
+                "teacher_max_steps", "distill_max_steps", "teacher_schedule_steps", "distill_schedule_steps",
+                "teacher_ema_decay", "distill_ema_decay", "teacher_learning_rate", "distill_learning_rate",
+                "teacher_warmup_steps", "distill_warmup_steps", "rollout_steps", "rollout_max_wer",
+                "rollout_stop_after_step", "rollout_export_snapshots"):
         identities[key] = raw.get(key)
+    for key in ("student_init_from", "import_teacher_checkpoint", "import_teacher_weights", "import_teacher_receipt"):
+        if raw.get(key):
+            identities[f"{key}_sha256"] = sha256_file(local_path(base, raw[key]))
     reference_data = read_json(local_path(base, raw["reference_manifest"]))
     reference_items = reference_data if isinstance(reference_data, list) else reference_data.get("references", reference_data.get("voices", []))
     if isinstance(reference_items, dict):
@@ -392,6 +399,55 @@ def stage_state(spec: Spec, stage: str, **fields: Any) -> None:
                        "stage": stage, "updated_at": now_iso(), **fields})
 
 
+def import_teacher(spec: Spec) -> None:
+    """Verify and import a selected teacher, retaining its original provenance."""
+    if not spec.raw.get("import_teacher_checkpoint"):
+        return
+    import torch
+    import safetensors.torch
+    import yaml
+
+    checkpoint = spec.asset("import_teacher_checkpoint")
+    weights = spec.asset("import_teacher_weights")
+    receipt = read_json(spec.asset("import_teacher_receipt"))
+    weight_hash = sha256_file(weights)
+    if (receipt.get("source_revision") != PINNED_REVISION or receipt.get("weights") != "ema"
+            or receipt.get("sample_cfg") != 2.0 or receipt.get("model_sha256") != weight_hash
+            or type(receipt.get("selected_step")) is not int or receipt["selected_step"] < 1):
+        raise ValueError("Imported teacher must be an intact selected EMA CFG2 export")
+    config = yaml.safe_load((spec.output / "configs/teacher-inference.yaml").read_text())
+    if sha256_file(Path(config["weights_path"])) != weight_hash:
+        raise ValueError("Imported teacher differs from the staged teacher configuration")
+    destination = spec.output / "teacher/best.pt"
+    existing = read_json(destination.parent / "state.json", {})
+    if existing.get("status") == "imported" and existing.get("input_identity") == spec.identity:
+        origin = existing.get("origin", {})
+        if (origin.get("source_weights_sha256") != weight_hash or not destination.is_file()
+                or origin.get("imported_checkpoint_sha256") != sha256_file(destination)):
+            raise ValueError("Previously imported teacher changed on resume")
+        return
+    payload = torch.load(checkpoint, map_location="cpu", weights_only=True)
+    parent_identity = receipt.get("input_identity")
+    if (payload.get("step") != receipt["selected_step"] or not parent_identity
+            or payload.get("runner", {}).get("input_identity") != parent_identity
+            or not payload.get("ema")):
+        raise ValueError("Imported teacher checkpoint does not match its selected export")
+    combined = {**payload["model"], **payload["ema"]}
+    exported = safetensors.torch.load_file(str(weights))
+    keys = [key for key in exported if key.startswith("flow_lm.")]
+    if not keys or any(key not in combined or not torch.equal(combined[key].float(), exported[key].float()) for key in keys):
+        raise ValueError("Imported teacher checkpoint tensors differ from the accepted export")
+    origin = {"source_input_identity": parent_identity, "source_weights_sha256": weight_hash,
+              "source_checkpoint_sha256": sha256_file(checkpoint), "selected_step": receipt["selected_step"]}
+    payload["runner"] = {**payload["runner"], "input_identity": spec.identity, "imported_teacher": origin}
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    atomic_torch_save(destination, payload, spec)
+    origin["imported_checkpoint_sha256"] = sha256_file(destination)
+    atomic_json(destination.parent / "best.json", {"step": payload["step"], "input_identity": spec.identity,
+                "weights": "ema", "origin": origin, "metrics": payload["runner"].get("selection_metrics", {})})
+    stage_state(spec, "teacher", status="imported", step=payload["step"], origin=origin)
+
+
 def require_gpu() -> Any:
     import torch
 
@@ -447,6 +503,7 @@ def prepare(spec: Spec, stop: Stop) -> int:
                       "student_weight_sha256": sha256_file(Path(student_config["weights_path"])),
                       "tokenizer_sha256": sha256_file(spec.asset("tokenizer"))}
     atomic_json(spec.output / "assets.json", config_receipt)
+    import_teacher(spec)
     rejected = {}
     for split, entries in relocated.items():
         aligned, rejected[split] = align_entries(spec, split, entries, device, stop)
@@ -879,6 +936,99 @@ def save_best(spec: Spec, stage: str, step: int, model: Any, ema: Any, metrics: 
                 "input_identity": spec.identity, "weights": "ema", "selected_at": now_iso()})
 
 
+def run_rollout_checks(spec: Spec, model: Any, mimi: Any, ema: Any, device: Any,
+                       step: int, stop: Stop, rank: int, world: int) -> dict[str, Any] | None:
+    """Check free generation at declared steps; MSE alone cannot qualify speech."""
+    if step not in spec.option("rollout_steps", []):
+        return None
+    import torch
+    from pocket_training.rollout import evaluate_rollout
+    from training.checkpointing import export_pocket_safetensors
+
+    summary = None
+    failed = False
+    if rank == 0:
+        try:
+            summary = {"step": step, "candidates": [], "input_identity": spec.identity}
+            previous_kind = spec.raw.get("rollout_weight_kind")
+            try:
+                for kind in (["ema"] if step == 0 else ["ema", "raw"]):
+                    spec.raw["rollout_weight_kind"] = kind
+                    with (ema_weights(model, ema) if kind == "ema" else nullcontext()):
+                        result = evaluate_rollout(spec, model, mimi, device, step, stop)
+                        aggregate = result["aggregate"]
+                        summary["candidates"].append({"weights": kind, "score": result["score"],
+                            "diagnostic_failure": result["diagnostic_failure"], "aggregate": aggregate})
+                        if stop.requested():
+                            break
+                        eligible = (step > 0 and result["status"] == "completed" and not result["diagnostic_failure"]
+                                    and aggregate["natural_eos_samples"] >= 2 and result["score"] is not None
+                                    and result["score"] <= float(spec.option("rollout_max_wer", 0.5)))
+                        if not eligible:
+                            continue
+                        selected = speech_selection(spec)
+                        # ASR is noisy. Equivalent completeness prefers the
+                        # later adapted EMA; keep every snapshot for listening.
+                        old_score = selected.get("score", float("inf"))
+                        better = result["score"] < old_score - 0.025
+                        tied = abs(result["score"] - old_score) <= 0.025
+                        prefer = tied and (kind == "ema" and (step >= selected.get("step", 0)))
+                        if bool(spec.option("rollout_export_snapshots", False)):
+                            export = spec.output / f"comparisons/rollout-step{step:06d}-{kind}/model.safetensors"
+                            export_pocket_safetensors(export, model.flow_lm, mimi)
+                        if not selected or better or prefer:
+                            checkpoint = spec.output / "distill/speech-best.pt"
+                            checkpoint.parent.mkdir(parents=True, exist_ok=True)
+                            payload = {"step": step, "model": cpu_tree(model.state_dict(), torch), "ema": None,
+                                "runner": {"schema": SCHEMA, "input_identity": spec.identity,
+                                    "selection_weights": kind, "selection_metrics": result,
+                                    "validated_probe_count": aggregate["natural_eos_samples"]}}
+                            atomic_torch_save(checkpoint, payload, spec)
+                            atomic_json(checkpoint.with_suffix(".json"), {"step": step, "weights": kind,
+                                "score": result["score"], "input_identity": spec.identity,
+                                "checkpoint_sha256": sha256_file(checkpoint), "asr_tentative": True,
+                                "listening_qualified": False})
+            finally:
+                if previous_kind is None:
+                    spec.raw.pop("rollout_weight_kind", None)
+                else:
+                    spec.raw["rollout_weight_kind"] = previous_kind
+            best = speech_selection(spec)
+            summary["has_speech_candidate"] = bool(best)
+            summary["best"] = best
+            atomic_json(spec.output / "distill/rollout-state.json", summary)
+        except Exception as exc:
+            failed = True
+            atomic_json(spec.output / "distill/rollout-error.json", {"step": step, "type": type(exc).__name__, "message": str(exc)[:1000]})
+    if distributed_any(torch, failed, device, world):
+        raise RuntimeError("Generated speech check failed; inspect distill/rollout-error.json")
+    if world > 1:
+        values = [summary]
+        torch.distributed.broadcast_object_list(values, src=0)
+        summary = values[0]
+    return summary
+
+
+def speech_selection(spec: Spec) -> dict[str, Any]:
+    checkpoint = spec.output / "distill/speech-best.pt"
+    receipt = read_json(checkpoint.with_suffix(".json"), {})
+    if not receipt and not checkpoint.exists():
+        return {}
+    if (not receipt or receipt.get("input_identity") != spec.identity or not checkpoint.is_file()
+            or receipt.get("checkpoint_sha256") != sha256_file(checkpoint)):
+        raise ValueError("Generated speech checkpoint differs from its exact run/selection receipt")
+    return receipt
+
+
+def selected_checkpoint(spec: Spec, stage: str) -> Path:
+    speech = spec.output / stage / "speech-best.pt"
+    if stage == "distill" and speech.is_file():
+        speech_selection(spec)
+    # With generation checks enabled, rejected speech must never fall back to
+    # the teacher-forced checkpoint that happened to minimize latent MSE.
+    return speech if stage == "distill" and (speech.is_file() or spec.option("rollout_steps", [])) else spec.output / stage / "best.pt"
+
+
 def fixed_validation_indices(rows: list[dict[str, Any]], maximum: int, seed: int) -> list[int]:
     # Deterministic round-robin coverage across cast, then hash order within cast.
     groups: dict[str, list[int]] = {}
@@ -1136,10 +1286,36 @@ def make_training_args(spec: Spec, stage: str, world: int) -> Any:
     if not 1 <= epochs <= 2000:
         raise ValueError("Stage exposure bound must be between 1 and 2000 corpus passes")
     official_ceiling = args.max_steps
-    args.max_steps = min(official_ceiling, max(1, math.ceil(data["counts"]["train"] * epochs / effective)))
+    execution_steps = min(official_ceiling, max(1, math.ceil(data["counts"]["train"] * epochs / effective)))
+    if spec.raw.get(f"{stage}_max_steps") is not None:
+        bound = spec.raw[f"{stage}_max_steps"]
+        if type(bound) is not int or not 1 <= bound <= official_ceiling:
+            raise ValueError("Execution step bound must be a positive integer within the official ceiling")
+        execution_steps = min(execution_steps, bound)
+    schedule_steps = spec.option(f"{stage}_schedule_steps", execution_steps)
+    if type(schedule_steps) is not int or not execution_steps <= schedule_steps <= official_ceiling:
+        raise ValueError("Learning schedule horizon must cover execution and stay within the official ceiling")
+    args.max_steps = schedule_steps
+    args._execution_max_steps = execution_steps
+    for option in ("ema_decay", "learning_rate", "warmup_steps"):
+        value = spec.raw.get(f"{stage}_{option}")
+        if value is None:
+            continue
+        if option == "ema_decay":
+            if not isinstance(value, (int, float)) or not 0 <= value < 1:
+                raise ValueError("EMA decay must be in [0, 1)")
+            args.ema_decay = float(value)
+        elif option == "learning_rate":
+            if not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 < value <= 0.01:
+                raise ValueError("Learning rate must be finite, positive and <= 0.01")
+            args.optim.lr = float(value)
+        else:
+            if type(value) is not int or not 1 <= value <= schedule_steps:
+                raise ValueError("Warm-up steps must be a positive integer within the schedule")
+            args.optim.warmup_steps = value
     if stage == "distill":
         teacher_state = read_json(spec.output / "teacher/state.json", {})
-        if teacher_state.get("status") != "completed" or not (spec.output / "teacher/best.pt").is_file():
+        if teacher_state.get("status") not in ("completed", "imported") or not (spec.output / "teacher/best.pt").is_file():
             raise ValueError("Distillation requires a completed teacher stage and its selected best heldout checkpoint")
         args.distill_teacher_config = str(spec.output / "configs/teacher-inference.yaml")
         args.distill_teacher_overrides = {}
@@ -1171,6 +1347,7 @@ def train(spec: Spec, stage: str, requested_precision: str, stop: Stop) -> int:
     if world > 1:
         torch.distributed.init_process_group("nccl", timeout=timedelta(minutes=25))
     args, args_text, official_ceiling = make_training_args(spec, stage, world)
+    execution_steps = args._execution_max_steps
     if rank == 0:
         atomic_text(args.run_dir / "args.yaml", args_text)
     torch.manual_seed(args.seed + rank)
@@ -1190,6 +1367,9 @@ def train(spec: Spec, stage: str, requested_precision: str, stop: Stop) -> int:
             raise ValueError("Distillation teacher must be frozen")
         if any(p.requires_grad for module in (model.flow_lm.flow_net, model.flow_lm.out_eos, model.flow) for p in module.parameters()):
             raise ValueError("Official depth distillation must freeze flow and EOS heads")
+        for name in ("emb_mean", "emb_std"):
+            if not torch.equal(getattr(model.flow_lm, name), getattr(model.distill_teacher, name)):
+                raise ValueError("Mature student initialization changed the teacher's frozen latent calibration")
     if any(p.dtype != torch.float32 for p in model.parameters()):
         raise ValueError("All trainable master weights must remain FP32")
     optimizer = build_optimizer(model, args, device, rank)
@@ -1199,7 +1379,8 @@ def train(spec: Spec, stage: str, requested_precision: str, stop: Stop) -> int:
     start_step = 0
     state = {"status": "running", "precision": mode, "best_score": None, "best_step": 0,
              "bad_validations": 0, "attempts": 0, "nonfinite_gradient_attempts": 0,
-             "effective_batch_size": 64, "planned_max_steps": args.max_steps,
+             "effective_batch_size": 64, "planned_max_steps": execution_steps,
+             "learning_schedule_steps": args.max_steps, "ema_decay": args.ema_decay,
              "official_max_steps": official_ceiling, "stop_reason": "",
              "latent_calibration": CALIBRATION_POLICY, "objective_weighting": OBJECTIVE_POLICY}
     checkpoint = args.run_dir / "last.pt"
@@ -1245,6 +1426,8 @@ def train(spec: Spec, stage: str, requested_precision: str, stop: Stop) -> int:
     # CFG dropout can remove an entire text/voice prefix in a micro batch of
     # one. Those conditioning parameters are unused on that forward.
     wrapped = DDP(model, device_ids=[local_rank], find_unused_parameters=stage == "teacher") if world > 1 else model
+    if stage == "distill":
+        run_rollout_checks(spec, model, mimi, ema, device, start_step, stop, rank, world)
     if start_step == 0 and not (args.run_dir / "best.pt").exists():
         with ema_weights(model, ema):
             baseline = validate(spec, model, mimi, args, device, rank, world, stop)
@@ -1263,7 +1446,7 @@ def train(spec: Spec, stage: str, requested_precision: str, stop: Stop) -> int:
     last_metrics: dict[str, Any] = {}
     trainable = [p for p in model.parameters() if p.requires_grad]
     try:
-        while step < args.max_steps:
+        while step < execution_steps:
             if distributed_any(torch, stop.requested(), device, world):
                 state.update(status="paused", stop_reason=stop.reason or "other_rank_stop")
                 exit_code = EXIT_PAUSED
@@ -1390,7 +1573,13 @@ def train(spec: Spec, stage: str, requested_precision: str, stop: Stop) -> int:
                             **last_metrics, "best_score": state["best_score"], "best_step": state["best_step"]})
                 stage_state(spec, stage, **state, step=step, corpus_passes=last_metrics["corpus_passes"])
                 print(json.dumps({"stage": stage, "step": step, **last_metrics}, allow_nan=False), flush=True)
-            validation_due = step % args.valid_freq == 0 or step == args.max_steps
+            validation_due = step % args.valid_freq == 0 or step == execution_steps
+            if stage == "distill":
+                speech = run_rollout_checks(spec, model, mimi, ema, device, step, stop, rank, world)
+                if (speech is not None and step >= int(spec.option("rollout_stop_after_step", 2000))
+                        and not speech["has_speech_candidate"]):
+                    state.update(status="rejected", stop_reason="generated_speech_failed")
+                    break
             if validation_due:
                 with ema_weights(model, ema):
                     heldout = validate(spec, model, mimi, args, device, rank, world, stop)
@@ -1417,10 +1606,11 @@ def train(spec: Spec, stage: str, requested_precision: str, stop: Stop) -> int:
                     state.update(status="completed", stop_reason="heldout_plateau")
                     break
             timed_checkpoint = time.monotonic() - checkpoint_time >= float(spec.option("checkpoint_seconds", 600))
-            if step % args.ckpt_freq == 0 or timed_checkpoint or validation_due:
+            checkpoint_due = distributed_any(torch, step % args.ckpt_freq == 0 or timed_checkpoint or validation_due, device, world)
+            if checkpoint_due:
                 save_training(spec, stage, step, model, optimizer, ema, scaler, state, device, world, rank)
                 checkpoint_time = time.monotonic()
-        if step >= args.max_steps:
+        if step >= execution_steps and state.get("status") != "rejected":
             state.update(status="completed", stop_reason="exposure_or_official_step_bound")
         save_training(spec, stage, step, model, optimizer, ema, scaler, state, device, world, rank)
         if rank == 0:
@@ -1496,7 +1686,7 @@ def evaluation_identity(spec: Spec, *, baseline_only: bool = False) -> str:
     selections = {"input_identity": spec.identity, "baseline_only": baseline_only}
     if not baseline_only:
         for stage in ("teacher", "distill"):
-            path = spec.output / stage / "best.pt"
+            path = selected_checkpoint(spec, stage)
             if path.is_file():
                 selections[stage] = sha256_file(path)
     return hashlib.sha256(json.dumps(selections, sort_keys=True).encode()).hexdigest()
@@ -1527,7 +1717,7 @@ def evaluate(spec: Spec, stop: Stop, *, baseline_only: bool = False) -> int:
     labels = [("baseline-teacher-cfg2", "teacher", None, 2.0),
               ("baseline-september-student-cfg1", "student", None, 1.0)]
     for stage, cfg in (() if baseline_only else (("teacher", 2.0), ("distill", 1.0))):
-        checkpoint = spec.output / stage / "best.pt"
+        checkpoint = selected_checkpoint(spec, stage)
         if checkpoint.is_file():
             labels.append((f"adapted-{stage}-cfg{int(cfg)}", "teacher" if stage == "teacher" else "student", checkpoint, cfg))
     for label, config_kind, checkpoint, cfg in labels:
@@ -1547,6 +1737,8 @@ def evaluate(spec: Spec, stop: Stop, *, baseline_only: bool = False) -> int:
                 state.update(payload["ema"])
             model.load_state_dict(state, strict=True)
             selection_step = int(payload["step"])
+            selection_weights = payload.get("runner", {}).get("selection_weights", "ema")
+            validated_probes = payload.get("runner", {}).get("validated_probe_count", 0)
             del payload, state
         else:
             selection_step = 0
@@ -1570,7 +1762,9 @@ def evaluate(spec: Spec, stop: Stop, *, baseline_only: bool = False) -> int:
             config["flow_lm"]["lookup_table"]["tokenizer_path"] = "tokenizer.json"
             shutil.copyfile(spec.asset("tokenizer"), export_dir / "tokenizer.json")
             atomic_text(export_dir / "inference.yaml", yaml.safe_dump(config, sort_keys=False))
-            atomic_json(export_dir / "receipt.json", {"selected_step": selection_step, "weights": "ema",
+            atomic_json(export_dir / "receipt.json", {"selected_step": selection_step, "checkpoint_step": selection_step,
+                "weights": selection_weights, "source_checkpoint_sha256": sha256_file(checkpoint),
+                "validated_probe_count": validated_probes,
                 "model_sha256": sha256_file(export_dir / "model.safetensors"), "input_identity": spec.identity,
                 "source_revision": PINNED_REVISION, "sample_cfg": cfg, "quality_parity_qualified": False,
                 "latent_calibration": CALIBRATION_POLICY, "objective_weighting": OBJECTIVE_POLICY})
@@ -1849,7 +2043,7 @@ def relocate_export(directory: Path) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--spec", type=Path, help="Owner-staged local JSON specification")
-    parser.add_argument("--mode", choices=("plan", "baseline", "prepare", "teacher", "distill", "evaluate", "all", "worker"), default="plan")
+    parser.add_argument("--mode", choices=("plan", "baseline", "prepare", "teacher", "distill", "evaluate", "student", "all", "worker"), default="plan")
     parser.add_argument("--stage", choices=("baseline", "prepare", "teacher", "distill", "evaluate"))
     parser.add_argument("--plan-only", action="store_true", help="Validate local inputs and print a CPU-only plan without starting a worker")
     parser.add_argument("--precision", choices=("auto", "bf16", "fp16", "fp32"))
@@ -1890,5 +2084,10 @@ def main() -> int:
         if arguments.stage == "baseline":
             return evaluate(spec, stop, baseline_only=True)
         return train(spec, arguments.stage, requested_precision, stop)
-    modes = ["prepare", "teacher", "distill", "evaluate"] if arguments.mode == "all" else [arguments.mode]
+    if arguments.mode == "student":
+        if not spec.raw.get("import_teacher_checkpoint"):
+            raise ValueError("Student-only adaptation requires a provenanced imported teacher")
+        modes = ["prepare", "distill", "evaluate"]
+    else:
+        modes = ["prepare", "teacher", "distill", "evaluate"] if arguments.mode == "all" else [arguments.mode]
     return supervise(spec, modes)

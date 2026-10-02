@@ -215,3 +215,29 @@ not substitute raw weights silently or change the teacher selection. The raw
 student is fast, but automated transcripts suggest missing or slurred words;
 keep it experimental until listening confirms quality. The production mod's
 voice choices remain unchanged.
+
+The user subsequently accepted the adapted teacher and rejected the small raw
+student's quality. The corrected student experiment starts from the mature
+released September six-layer backbone (`student_init_from`), preserving the
+accepted teacher's flow/EOS heads and bit-identical latent calibration. It does
+not repeat teacher adaptation. `--mode student` requires an imported selected
+teacher whose checkpoint, EMA export, hashes and parent identity agree.
+
+Execution and learning schedule are separate: `distill_max_steps` bounds work,
+while `distill_schedule_steps` sets the official optimizer's horizon. The current
+experiment uses 6,000 updates, a 200,000-step horizon, learning rate `1e-4`,
+1,000-step warm-up and EMA `0.999`. Initializer bytes and imported teacher assets
+are hashed into the new run identity; resume rejects changed optimization.
+
+Scheduled free-generation checks compare raw and EMA speech at 500, 1,000,
+2,000, 4,000 and 6,000 updates, with an initial diagnostic at zero. Unprocessed
+Johnny/Judy/Panam WAVs and tentative local ASR detect omitted words, early stops
+and missing EOS. Speech candidates are retained separately from the best
+teacher-forced MSE checkpoint, and exports record which weights actually won.
+These automated checks do not establish voice likeness; listening is required.
+
+A separate CPU experiment kept the accepted teacher's CFG2 and original
+reference. Supported dynamic INT8 reduced full generation from 15.82 to
+10.02 seconds on two CPU threads, with resident RAM falling from 2.11 to
+1.75 GiB. Loading still peaked near 3.20 GiB because it first loads FP32.
+The source teacher is unchanged; perceptual INT8 parity remains unconfirmed.
