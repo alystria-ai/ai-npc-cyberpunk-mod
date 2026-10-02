@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {LOCAL_VOICE_KEYS, voiceSteps} from './resident-voice.mjs';
+import {BRIDGE_MODULES, CLIENT_ASSETS} from '../packaging/runtime-layout.mjs';
 
 const plan = JSON.parse(await readFile(new URL('../packaging/release-plan.json', import.meta.url), 'utf8'));
 const development = JSON.parse(await readFile(new URL('../scripts/development-files.json', import.meta.url), 'utf8'));
@@ -65,7 +66,9 @@ test('voice plan preserves current precision, resident model, step options and e
 test('proposal explicitly records missing portability, license and hosting proof', () => {
   assert.equal(plan.status, 'proposal-not-buildable'); assert.equal(plan.publishAuthorized, false);
   assert.equal(runtime.plannedComponents.find(c => c.id === 'python').status, 'existing-venv-not-portable');
-  assert.equal(runtime.plannedComponents.find(c => c.id === 'bootstrap').status, 'not-implemented');
+  const bootstrap = runtime.plannedComponents.find(c => c.id === 'bootstrap');
+  assert.equal(bootstrap.status, 'source-and-isolated-lifecycle-tested');
+  assert(bootstrap.sourceFiles.includes('packaging/Runtime-Service.mjs'));
   assert.equal(plan.licenses.find(l => l.component === 'VoiceStudio adapter').license, 'AGPL-3.0-only');
   assert.match(plan.licenses.find(l => l.component === 'OmniVoice pretrained weights').license, /^CC-BY-NC/);
   assert.equal(plan.licenses.find(l => l.component === 'OmniVoice audio tokenizer').license, 'Boson Higgs Audio 2 Community License');
@@ -88,4 +91,13 @@ test('file-loaded intrinsic history is an explicit runtime data dependency, sepa
   assert.equal(plan.voice.registry.schemaVersion, 2);
   assert.equal(plan.voice.registry.maxCachedProfiles, 8);
   assert.equal(plan.voice.registry.sharedModel, true);
+});
+
+test('runtime plan carries the reviewed bridge import closure and uses the real browser bundle filename', () => {
+  const bridge = runtime.plannedComponents.find(component => component.id === 'bridge');
+  assert.equal(bridge.status, 'source-import-closure-reviewed-not-packaged');
+  assert.deepEqual(bridge.sourceFiles, [...BRIDGE_MODULES,
+    'bridge/resident-voice-worker.py', 'bridge/voice-cuda-graph.py']);
+  const client = runtime.plannedComponents.find(component => component.id === 'browser-client');
+  for (const file of CLIENT_ASSETS) assert(client.selection.includes(file), file);
 });

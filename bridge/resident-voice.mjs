@@ -4,7 +4,7 @@ import {resolve} from 'node:path';
 import {inspectWav} from './speech-audio.mjs';
 import {abortable, throwIfCancelled, cancelled} from './transport-pool.mjs';
 import {createVoiceProfileRegistry, LEGACY_LOCAL_VOICE_KEYS} from './voice-profile-registry.mjs';
-import {absoluteRuntimeOverride} from './runtime-paths.mjs';
+import {absoluteRuntimeOverride, OMNI_RUNTIME_PATHS, omniRuntimeOverrides} from './runtime-paths.mjs';
 
 // Historical accepted-reference fixture/packaging list. Eligibility is always
 // read from the validated registry, never from this compatibility export.
@@ -16,8 +16,13 @@ export const VOICE_WORKER_LIMITS = Object.freeze({startupMs: 180_000, renderMs: 
 export class ResidentVoice {
   constructor(config = {}, {project, configPath, spawnImpl = spawn, onState = () => {}, onLog = () => {},
     setTimer = setTimeout, clearTimer = clearTimeout,
-    pythonExecutable = process.env.CYBERPUNK_CONVAI_PYTHON} = {}) {
+    pythonExecutable = process.env.CYBERPUNK_CONVAI_PYTHON,
+    modelDirectory = process.env.CYBERPUNK_CONVAI_OMNI_MODEL,
+    adapterDirectory = process.env.CYBERPUNK_CONVAI_OMNI_ADAPTER,
+    referenceDirectory = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES,
+    cacheDirectory = process.env.CYBERPUNK_CONVAI_OMNI_CACHE} = {}) {
     this.pythonExecutable = absoluteRuntimeOverride(pythonExecutable, 'CYBERPUNK_CONVAI_PYTHON');
+    this.workerEnvironment = omniRuntimeOverrides({modelDirectory, adapterDirectory, referenceDirectory, cacheDirectory});
     this.registry = createVoiceProfileRegistry(config);
     Object.assign(this, {config: Object.freeze({...config, voices: this.registry.profiles,
       preparation: this.registry.preparation}), project, configPath, spawnImpl, onState, onLog, setTimer, clearTimer});
@@ -89,11 +94,17 @@ export class ResidentVoice {
     this.ready.catch(() => {});
     let child;
     try {
+      const environment = {...process.env, PYTHONUTF8: '1'};
+      // Use the values captured with this owner, even if the parent environment
+      // changes before warm-up. An absent layout keeps the development defaults.
+      for (const name of Object.values(OMNI_RUNTIME_PATHS)) delete environment[name];
+      Object.assign(environment, this.workerEnvironment);
+      if (this.workerEnvironment) environment.PYTHONDONTWRITEBYTECODE = '1';
       child = this.child = this.spawnImpl(this.pythonExecutable
         || resolve(this.project, 'vendor/reference-voicestudio/.venv/Scripts/python.exe'),
         [resolve(this.project, 'bridge/resident-voice-worker.py'), '--config', this.configPath],
         {cwd: this.project, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'],
-          env: {...process.env, PYTHONUTF8: '1'}});
+          env: environment});
     } catch (error) { this.fail(error); return this.ready; }
     let buffer = '';
     child.stdout.setEncoding('utf8');
@@ -138,11 +149,27 @@ export class ResidentVoice {
     }
     if (frame.op === 'ready') {
       if (this.loaded || this.pending.size) throw Error('Unexpected local voice readiness');
+      if (this.workerEnvironment) {
+        const paths = frame.workerPaths;
+        const expected = {applicationDirectory: resolve(this.project),
+          ...Object.fromEntries(Object.entries(OMNI_RUNTIME_PATHS).map(([field, name]) => [field, this.workerEnvironment[name]]))};
+        const normalized = value => {
+          if (typeof value !== 'string') return null;
+          absoluteRuntimeOverride(value, 'Local voice worker path');
+          const path = resolve(value);
+          return process.platform === 'win32' ? path.toLowerCase() : path;
+        };
+        if (!paths || typeof paths !== 'object' || Array.isArray(paths)
+            || Object.keys(paths).length !== Object.keys(expected).length
+            || Object.entries(expected).some(([field, path]) => normalized(paths[field]) !== normalized(path))) {
+          throw Error('Local voice worker did not confirm its portable asset and data paths');
+        }
+      }
       const version = frame.protocolVersion ?? 1;
       const profiles = frame.profiles;
       const prepared = version === 1 ? profiles : frame.preparedProfiles;
       if (!frame.device?.startsWith('cuda') || frame.dtype !== 'torch.float16' || frame.runtime !== 'pytorch'
-          || frame.tensorrt !== false || ![1, 2].includes(version)
+          || frame.tensorrt !== false || ![1, 2].includes(version) || (this.workerEnvironment && version !== 2)
           || !this.validProfiles(profiles) || !this.validProfiles(prepared, this.registry.preparation.maxCachedProfiles)
           || prepared.some(key => !profiles.includes(key))
           || (version === 2 && (!frame.referenceHashes || typeof frame.referenceHashes !== 'object'

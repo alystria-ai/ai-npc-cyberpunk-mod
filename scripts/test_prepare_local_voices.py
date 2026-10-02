@@ -303,6 +303,120 @@ class WorkerProfiles(Fixtures):
         self.assertEqual(frames[-1]['op'], 'error')
         self.assertEqual(frames[-1]['preparedProfiles'], [])
 
+    def alias_session(self, config, adapter=None):
+        registry = worker.validate_config(config, self.root)
+        if adapter is None:
+            original = lambda path, text, preprocess=True, *, passage=None: (
+                os.path.abspath(path), Path(path).stat().st_mtime_ns, text, preprocess, passage)
+            adapter = SimpleNamespace(_prompt_cache=OrderedDict(), _prompt_cache_lock=Lock(),
+                                      _clone_prompt_key=original, original_key=original)
+        else:
+            adapter._clone_prompt_key = adapter.original_key
+        worker.install_cache_identity(adapter, registry)
+        renders, frames = [], []
+        def render(key, text, steps):
+            renders.append((key, text, steps))
+            path, transcript = registry['refs'][key]
+            cache_key = adapter._clone_prompt_key(path, transcript)
+            adapter._prompt_cache[cache_key] = object()
+            adapter._prompt_cache.move_to_end(cache_key)
+            while len(adapter._prompt_cache) > registry['maxCachedProfiles']:
+                adapter._prompt_cache.popitem(last=False)
+            return b'fixture audio', 12
+        session = worker.ProfileSession(registry, render, lambda _: 'AUDIO', frames.append,
+            {}, lambda: {}, prepared_snapshot=lambda: worker.cached_profiles(adapter, registry))
+        return session, frames, renders, adapter
+
+    def test_exact_aliases_prepare_both_keys_and_share_one_real_conditioning_entry(self):
+        config = self.config(['first', 'second'])
+        config['voices']['second'] = copy.deepcopy(config['voices']['first'])
+        config['preparation'] = {'mode': 'lazy', 'startupProfiles': [], 'maxCachedProfiles': 2}
+        session, frames, renders, adapter = self.alias_session(config)
+        session.startup()
+        session.handle({'op': 'prepare', 'id': 1, 'profile': 'first'})
+        self.assertEqual(frames[-1]['op'], 'prepared')
+        self.assertEqual(frames[-1]['preparedProfiles'], ['first'])
+        self.assertEqual(worker.cached_profiles(adapter, session.registry), ['first', 'second'])
+        session.handle({'op': 'prepare', 'id': 2, 'profile': 'second'})
+        self.assertEqual(frames[-1]['op'], 'prepared')
+        self.assertEqual(frames[-1]['generationMs'], 0)
+        self.assertEqual(frames[-1]['preparedProfiles'], ['first', 'second'])
+        self.assertEqual(len(renders), 1)
+        self.assertEqual(len(adapter._prompt_cache), 1)
+        session.handle({'op': 'synthesize', 'id': 3, 'profile': 'second', 'text': 'Its own request.', 'steps': 16})
+        self.assertEqual(frames[-1]['op'], 'audio')
+        self.assertEqual(frames[-1]['profile'], 'second')
+        self.assertEqual(renders[-1], ('second', 'Its own request.', 16))
+        self.assertEqual(len(adapter._prompt_cache), 1)
+        # Sharing the WAV with a different transcript is a different prompt.
+        different = copy.deepcopy(config)
+        different['voices']['second']['transcript'] = 'Different verified conditioning words.'
+        other, other_frames, other_renders, other_adapter = self.alias_session(different)
+        for index, key in enumerate(('first', 'second')):
+            other.handle({'op': 'prepare', 'id': index + 1, 'profile': key})
+        self.assertEqual(other_frames[-1]['preparedProfiles'], ['first', 'second'])
+        self.assertEqual(len(other_renders), 2)
+        self.assertEqual(len(other_adapter._prompt_cache), 2)
+
+    def test_many_aliases_keep_logical_limit_and_follow_actual_physical_evictions(self):
+        aliases = [f'alias-{index}' for index in range(12)]
+        config = self.config([*aliases, 'other', 'last'])
+        for key in aliases[1:]:
+            config['voices'][key] = copy.deepcopy(config['voices'][aliases[0]])
+        config['preparation'] = {'mode': 'lazy', 'startupProfiles': [], 'maxCachedProfiles': 2}
+        session, frames, renders, adapter = self.alias_session(config)
+        session.startup()
+        for index, key in enumerate(aliases):
+            session.handle({'op': 'prepare', 'id': index + 1, 'profile': key})
+            self.assertEqual(frames[-1]['op'], 'prepared')
+            self.assertIn(key, frames[-1]['preparedProfiles'])
+            self.assertLessEqual(len(frames[-1]['preparedProfiles']), 2)
+            self.assertEqual(len(adapter._prompt_cache), 1)
+        self.assertEqual(frames[-1]['preparedProfiles'], ['alias-10', 'alias-11'])
+        self.assertEqual(len(renders), 1)
+        session.handle({'op': 'prepare', 'id': 20, 'profile': 'other'})
+        self.assertEqual(frames[-1]['preparedProfiles'], ['alias-11', 'other'])
+        session.handle({'op': 'prepare', 'id': 21, 'profile': 'alias-0'})
+        self.assertEqual(frames[-1]['preparedProfiles'], ['other', 'alias-0'])
+        self.assertEqual(len(renders), 2)
+        session.handle({'op': 'prepare', 'id': 22, 'profile': 'last'})
+        self.assertEqual(frames[-1]['preparedProfiles'], ['other', 'last'])
+        self.assertFalse(any(key in aliases for key in worker.cached_profiles(adapter, session.registry)))
+        session.handle({'op': 'prepare', 'id': 23, 'profile': 'alias-11'})
+        self.assertEqual(frames[-1]['preparedProfiles'], ['last', 'alias-11'])
+        self.assertEqual([key for key, _, _ in renders], ['alias-0', 'other', 'last', 'alias-11'])
+        self.assertEqual(len(adapter._prompt_cache), 2)
+
+    def test_reference_edit_invalidates_all_aliases_and_new_hash_cannot_reuse_the_old_prompt(self):
+        config = self.config(['first', 'second'])
+        config['voices']['second'] = copy.deepcopy(config['voices']['first'])
+        config['preparation'] = {'mode': 'lazy', 'startupProfiles': [], 'maxCachedProfiles': 2}
+        session, frames, renders, adapter = self.alias_session(config)
+        for index, key in enumerate(('first', 'second')):
+            session.handle({'op': 'prepare', 'id': index + 1, 'profile': key})
+        old_prompt = next(iter(adapter._prompt_cache))
+        path = self.root / config['voices']['first']['reference']
+        stamp = path.stat().st_mtime_ns
+        path.write_bytes(path.read_bytes()[:-2] + b'\x11\x22')
+        os.utime(path, ns=(stamp, stamp))
+        session.handle({'op': 'prepare', 'id': 3, 'profile': 'first'})
+        self.assertEqual(frames[-1]['op'], 'error')
+        self.assertEqual(frames[-1]['preparedProfiles'], [])
+        session.handle({'op': 'synthesize', 'id': 4, 'profile': 'second', 'text': 'Do not use the stale prompt.', 'steps': 32})
+        self.assertEqual(frames[-1]['op'], 'error')
+        self.assertEqual(len(renders), 1)
+        self.assertEqual(list(adapter._prompt_cache), [old_prompt])
+        updated = copy.deepcopy(config)
+        for key in ('first', 'second'):
+            updated['voices'][key]['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+        replacement, replacement_frames, replacement_renders, adapter = self.alias_session(updated, adapter)
+        self.assertEqual(worker.cached_profiles(adapter, replacement.registry), [])
+        for index, key in enumerate(('first', 'second')):
+            replacement.handle({'op': 'prepare', 'id': index + 1, 'profile': key})
+        self.assertEqual(replacement_frames[-1]['preparedProfiles'], ['first', 'second'])
+        self.assertEqual(len(replacement_renders), 1)
+        self.assertNotEqual(next(reversed(adapter._prompt_cache)), old_prompt)
+
 
 class PreparationConfig(Fixtures):
     def write_json(self, relative, value):

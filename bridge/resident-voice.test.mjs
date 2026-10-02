@@ -12,7 +12,8 @@ const config = {provider: 'hybrid', engine: 'omnivoice',
     reference: `runtime/voice-references/${key}.wav`, sha256: 'a'.repeat(64), transcript: 'Ready when you are, V.',
   }]))};
 const tick = () => new Promise(done => setImmediate(done));
-function harness({autoReady = true, timers, settings = config, protocolVersion = 1, pythonExecutable} = {}) {
+function harness({autoReady = true, timers, settings = config, protocolVersion = 1, pythonExecutable,
+  workerOptions = {}, readyFields = {}} = {}) {
   const states = [], requests = [], launches = []; let starts = 0;
   const child = new EventEmitter();
   child.kills = 0; child.kill = () => { child.kills++; return true; };
@@ -29,9 +30,9 @@ function harness({autoReady = true, timers, settings = config, protocolVersion =
       transcriptHashes: Object.fromEntries(Object.entries(settings.voices).filter(([, value]) => !value.status || value.status === 'ready')
         .map(([key, value]) => [key, createHash('sha256').update(value.transcript, 'utf8').digest('hex')]))} : {}), device: 'cuda:0',
     dtype: 'torch.float16', runtime: 'pytorch', tensorrt: false, compiled: false,
-    cudaAllocatedMiB: 1800, cudaReservedMiB: 2208, ...extra});
+    cudaAllocatedMiB: 1800, cudaReservedMiB: 2208, ...readyFields, ...extra});
   const client = new ResidentVoice(settings, {project: process.cwd(), configPath: 'local-config.json',
-    pythonExecutable,
+    pythonExecutable, ...workerOptions,
     ...(timers ? {setTimer: timers.set, clearTimer: timers.clear} : {}),
     onState: state => states.push(state), spawnImpl: (exe, args, options) => {
       starts++; launches.push({exe, args, options});
@@ -120,6 +121,54 @@ test('invalid explicit Python paths fail before a worker can spawn', () => {
       {message: 'CYBERPUNK_CONVAI_PYTHON must be an absolute filesystem path.'});
   }
   assert.equal(spawned, false);
+});
+
+function portablePaths() {
+  return {modelDirectory: resolve(process.cwd(), 'models/omnivoice'),
+    adapterDirectory: resolve(process.cwd(), 'voice/voicestudio/backend'),
+    referenceDirectory: resolve(process.cwd(), '../persistent 模组/voice-references'),
+    cacheDirectory: resolve(process.cwd(), '../persistent 模组/voice-studio-data')};
+}
+
+test('portable asset and data paths are captured once and the worker attests the same layout', async () => {
+  const paths = portablePaths();
+  const h = harness({protocolVersion: 2, workerOptions: paths,
+    readyFields: {workerPaths: {applicationDirectory: process.cwd(), ...paths}}});
+  const name = 'CYBERPUNK_CONVAI_OMNI_REFERENCES', previous = process.env[name];
+  try {
+    process.env[name] = resolve(process.cwd(), 'wrong-reference-root');
+    await h.client.start();
+  } finally {
+    if (previous === undefined) delete process.env[name]; else process.env[name] = previous;
+  }
+  assert.equal(h.launches[0].options.env.CYBERPUNK_CONVAI_OMNI_REFERENCES, paths.referenceDirectory);
+  assert.equal(h.launches[0].options.env.CYBERPUNK_CONVAI_OMNI_MODEL, paths.modelDirectory);
+  assert.equal(h.launches[0].options.env.CYBERPUNK_CONVAI_OMNI_ADAPTER, paths.adapterDirectory);
+  assert.equal(h.launches[0].options.env.CYBERPUNK_CONVAI_OMNI_CACHE, paths.cacheDirectory);
+  assert.equal(h.launches[0].options.env.PYTHONDONTWRITEBYTECODE, '1');
+  assert.equal(h.client.loaded, true);
+  const closed = h.client.close(); h.finish(); await closed;
+});
+
+test('an incomplete portable layout cannot spawn or silently use development assets', () => {
+  let spawned = false;
+  assert.throws(() => new ResidentVoice(config, {modelDirectory: portablePaths().modelDirectory,
+    spawnImpl() { spawned = true; }}), /paths together/);
+  assert.throws(() => new ResidentVoice(config, {...portablePaths(), cacheDirectory: 'data/cache',
+    spawnImpl() { spawned = true; }}), /CYBERPUNK_CONVAI_OMNI_CACHE must be an absolute filesystem path/);
+  assert.equal(spawned, false);
+});
+
+test('a worker with another data root or legacy unattested profiles cannot claim portable readiness', async () => {
+  const paths = portablePaths();
+  for (const [protocolVersion, replacement] of [[2, {cacheDirectory: resolve(process.cwd(), '../other-cache')}], [1, {}]]) {
+    const h = harness({autoReady: false, protocolVersion, workerOptions: paths});
+    const failed = assert.rejects(h.client.start(), /portable asset and data paths|warm all profiles/);
+    h.ready({workerPaths: {applicationDirectory: process.cwd(), ...paths, ...replacement}});
+    await failed;
+    assert.equal(h.client.loaded, false);
+    h.finish(); await h.client.close();
+  }
 });
 
 test('one FP16 CUDA worker warms all references, stays resident, and changes steps without reloading', async () => {

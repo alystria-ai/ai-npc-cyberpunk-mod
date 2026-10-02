@@ -1,10 +1,116 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {EventEmitter} from 'node:events';
+import {PassThrough} from 'node:stream';
+import {mkdtemp, mkdir, readFile, readdir, writeFile, rm, symlink} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join, resolve, dirname} from 'node:path';
 import {silentWav} from './speech-audio.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
-import {validateMouthCues} from './phonetic-lipsync.mjs';
+import {PhoneticLipsync, validateMouthCues} from './phonetic-lipsync.mjs';
 import {phoneticPose} from './phonetic-poses.mjs';
 import {SPEECH_TRACKS} from './facial-timeline.mjs';
+
+function withPaths(executable, work, callback) {
+  const names = ['CYBERPUNK_CONVAI_RHUBARB', 'CYBERPUNK_CONVAI_LIPSYNC_WORK'];
+  const previous = names.map(name => process.env[name]);
+  for (const [index, value] of [executable, work].entries()) {
+    if (value === undefined) delete process.env[names[index]]; else process.env[names[index]] = value;
+  }
+  try { return callback(); }
+  finally {
+    for (const [index, value] of previous.entries()) {
+      if (value === undefined) delete process.env[names[index]]; else process.env[names[index]] = value;
+    }
+  }
+}
+
+async function ownedFixture(t, prefix) {
+  const base = resolve(tmpdir()), root = await mkdtemp(join(base, prefix));
+  assert.equal(dirname(root), base);
+  t.after(() => rm(root, {recursive: true, force: true}));
+  return root;
+}
+
+test('development defaults remain unchanged and portable analysis captures absolute asset/data paths', () => {
+  const project = resolve('relocated 模组 application'), executable = resolve(project, 'tools/rhubarb/rhubarb.exe');
+  const work = resolve(project, '../persistent data/lipsync-work');
+  const local = withPaths(undefined, undefined, () => new PhoneticLipsync({project}));
+  assert.equal(local.executable, resolve(project, 'vendor/rhubarb-1.14.0/Rhubarb-Lip-Sync-1.14.0-Windows/rhubarb.exe'));
+  assert.equal(local.scratch, resolve(project, 'runtime/lipsync-work'));
+  const packaged = withPaths(executable, work, () => new PhoneticLipsync({project}));
+  assert.equal(packaged.executable, executable); assert.equal(packaged.scratch, work);
+  for (const [exe, directory] of [[executable, undefined], [undefined, work], ['rhubarb.exe', work],
+    [executable, 'work'], [executable, resolve(project, 'mutable/cache')], [resolve(work, 'other.exe'), work]]) {
+    assert.throws(() => withPaths(exe, directory, () => new PhoneticLipsync({project})), /absolute|paths together|remain separate/);
+  }
+});
+
+test('relocated phonetic job preserves WAV bytes, uses the owned hidden helper and only removes its scratch files', async t => {
+  const root = await ownedFixture(t, 'convai-phonetic-relocation-');
+  const app = join(root, 'relocated 模组 application'), work = join(root, 'persistent data/lipsync-work');
+  await mkdir(app); await mkdir(work, {recursive: true});
+  await writeFile(join(work, 'preserved-user-file.txt'), 'keep');
+  const executable = join(app, 'tools/rhubarb/rhubarb.exe'), audio = silentWav(), launches = [];
+  const analyser = withPaths(executable, work, () => new PhoneticLipsync({project: app,
+    spawnImpl(exe, args, options) {
+      launches.push({exe, args, options});
+      const child = new EventEmitter(); child.stderr = new PassThrough();
+      child.kill = () => { throw Error('Successful fixture must not be killed'); };
+      queueMicrotask(async () => {
+        try {
+          assert.deepEqual(await readFile(args.at(-1)), audio);
+          await writeFile(args.at(-2), JSON.stringify({metadata: {duration: .1}, mouthCues: [{start: 0, end: .1, value: 'D'}]}));
+          child.emit('close', 0);
+        } catch (error) { child.emit('error', error); child.emit('close', 1); }
+      });
+      return child;
+    }}));
+  const result = await analyser.analyse(audio.toString('base64'));
+  assert.deepEqual(audio, silentWav()); assert.equal(result.mouthCuesFormat, 'rhubarb-phonetic-v1');
+  assert.equal(launches.length, 1); assert.equal(launches[0].exe, executable);
+  assert.deepEqual(launches[0].args.slice(0, 10), ['--quiet', '--threads', '2', '-r', 'phonetic', '-f', 'json', '--extendedShapes', 'GHX', '-o']);
+  assert.equal(launches[0].options.windowsHide, true); assert.equal(launches[0].options.shell, undefined);
+  assert.deepEqual(launches[0].options.stdio, ['ignore', 'ignore', 'pipe']);
+  assert.deepEqual(await readdir(work), ['preserved-user-file.txt']);
+  assert.deepEqual(await readdir(app), []);
+});
+
+test('cancelling relocated analysis retires its exact child before cleanup and allows the next job', async t => {
+  const root = await ownedFixture(t, 'convai-phonetic-cancel-');
+  const app = join(root, 'app'), work = join(root, 'data/lipsync-work'); await mkdir(app);
+  let started, kills = 0, count = 0;
+  const spawning = new Promise(done => { started = done; });
+  const analyser = withPaths(join(app, 'tools/rhubarb/rhubarb.exe'), work, () => new PhoneticLipsync({project: app,
+    spawnImpl(_exe, args) {
+      const child = new EventEmitter(); child.stderr = new PassThrough();
+      child.kill = () => { kills++; setImmediate(() => child.emit('close', 1)); return true; };
+      if (++count === 1) started();
+      else queueMicrotask(async () => {
+        await writeFile(args.at(-2), JSON.stringify({metadata: {duration: .1}, mouthCues: [{start: 0, end: .1, value: 'X'}]}));
+        child.emit('close', 0);
+      });
+      return child;
+    }}));
+  const abort = new AbortController(), first = analyser.analyse(silentWav().toString('base64'), {signal: abort.signal});
+  const rejected = assert.rejects(first, /cancelled/);
+  await spawning; abort.abort(); await rejected; await analyser.tail;
+  assert.equal(kills, 1); assert.deepEqual(await readdir(work), []);
+  await analyser.analyse(silentWav().toString('base64'));
+  assert.equal(count, 2); assert.deepEqual(await readdir(work), []);
+});
+
+test('linked scratch roots cannot redirect audio or helper output', async t => {
+  const root = await ownedFixture(t, 'convai-phonetic-linked-');
+  const app = join(root, 'app'), target = join(root, 'other-owned-directory'), link = join(root, 'scratch-link');
+  await mkdir(app); await mkdir(target);
+  await symlink(target, link, process.platform === 'win32' ? 'junction' : 'dir');
+  let launched = false;
+  const analyser = withPaths(join(app, 'tools/rhubarb/rhubarb.exe'), link,
+    () => new PhoneticLipsync({project: app, spawnImpl() { launched = true; throw Error('must not spawn'); }}));
+  await assert.rejects(analyser.analyse(silentWav().toString('base64')), /Linked lip-sync work/);
+  assert.equal(launched, false); assert.deepEqual(await readdir(target), []);
+});
 
 function sample() {
   const bytes = Buffer.concat([silentWav().subarray(0, 44), Buffer.alloc(24000 * 2 * 1.8)]);

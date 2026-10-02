@@ -32,6 +32,12 @@ MAX_REFERENCE_BYTES = 32 * 1024 * 1024
 WARM_PHRASE = 'Ready when you are, V.'
 MODEL_REVISION = 'c5fdb5ccb189668d56333f77ba2629f4cd7535f4'
 ADAPTER_REVISION = '08a1592e3cb9b4c36beef5fa3185ec2313bb1fea'
+PATH_OVERRIDES = {
+    'modelDirectory': 'CYBERPUNK_CONVAI_OMNI_MODEL',
+    'adapterDirectory': 'CYBERPUNK_CONVAI_OMNI_ADAPTER',
+    'referenceDirectory': 'CYBERPUNK_CONVAI_OMNI_REFERENCES',
+    'cacheDirectory': 'CYBERPUNK_CONVAI_OMNI_CACHE',
+}
 
 
 class ReferenceUnavailable(ValueError):
@@ -63,21 +69,94 @@ def valid_transcript(value):
             and not re.search(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', value))
 
 
-def contained_file(root, relative, prefix, *, suffix=None):
-    """Check spelling and resolved containment; reject symlinks and junctions."""
+def validate_asset_path(relative, prefix, *, suffix=None):
     if (not isinstance(relative, str) or len(relative) > 512
             or re.search(r'[\\:\x00-\x1f\x7f]', relative)
             or not relative.startswith(prefix + '/')
             or any(part in ('', '.', '..') for part in relative.split('/'))
             or (suffix and not relative.endswith(suffix))):
         raise ValueError('Invalid local asset path')
+
+
+def linked_path(path):
+    attributes = getattr(path.lstat(), 'st_file_attributes', 0) if path.exists() else 0
+    return (path.is_symlink() or attributes & getattr(stat, 'FILE_ATTRIBUTE_REPARSE_POINT', 0x400)
+            or (hasattr(path, 'is_junction') and path.is_junction()))
+
+
+def checked_absolute_directory(value, name):
+    """Explicit package paths must be absolute and cannot redirect through links."""
+    if (not isinstance(value, str) or not value or value != value.strip()
+            or re.search(r'[\x00-\x1f\x7f]', value) or not Path(value).is_absolute()):
+        raise ValueError(f'{name} must be an absolute filesystem path')
+    candidate = Path(value)
+    for part in reversed((candidate, *candidate.parents)):
+        if linked_path(part):
+            raise ValueError('Linked runtime directories are not supported')
+    resolved = candidate.resolve()
+    if resolved.exists() and not resolved.is_dir():
+        raise ValueError('Expected a runtime directory')
+    return resolved
+
+
+def validate_portable_source(paths):
+    """An editable developer install is not a portable OmniVoice dependency."""
+    if not paths['portable']:
+        return
+    spec = importlib.util.find_spec('omnivoice')
+    origin = getattr(spec, 'origin', None)
+    if not isinstance(origin, str) or not Path(origin).is_absolute():
+        raise RuntimeError('The packaged OmniVoice source is unavailable')
+    package = checked_absolute_directory(str(Path(origin).parent), 'OmniVoice source directory')
+    if not package.is_relative_to(paths['applicationDirectory']):
+        raise RuntimeError('The packaged OmniVoice source is outside the application directory')
+    asset_file(package, Path(origin).name)
+    asset_file(package, 'models/omnivoice.py')
+
+
+def resolve_worker_paths(root=ROOT, environ=None):
+    """Separate immutable package assets from the user's persistent voice data.
+
+    Configuration references keep their existing logical namespace. Supplying
+    a package layout changes only where those verified bytes are resolved.
+    """
+    environ = os.environ if environ is None else environ
+    values = {field: environ.get(name) for field, name in PATH_OVERRIDES.items()}
+    supplied = [value is not None for value in values.values()]
+    root = root.resolve()
+    if not any(supplied):
+        return {'portable': False, 'applicationDirectory': root,
+                'modelDirectory': None,
+                'adapterDirectory': root / 'vendor/reference-voicestudio/backend',
+                'referenceDirectory': None, 'cacheDirectory': root / 'runtime/voice-studio-data',
+                'hfDirectory': root / 'vendor/voice-models'}
+    if not all(supplied):
+        raise ValueError('Portable OmniVoice requires model, adapter, reference and cache paths together')
+    paths = {field: checked_absolute_directory(value, PATH_OVERRIDES[field])
+             for field, value in values.items()}
+    for field in ('modelDirectory', 'adapterDirectory'):
+        if paths[field] == root or not paths[field].is_relative_to(root):
+            raise ValueError('Portable voice assets must remain in the application directory')
+    for field in ('referenceDirectory', 'cacheDirectory'):
+        if paths[field].is_relative_to(root) or root.is_relative_to(paths[field]):
+            raise ValueError('Persistent voice data must be separate from application files')
+    if (paths['referenceDirectory'].is_relative_to(paths['cacheDirectory'])
+            or paths['cacheDirectory'].is_relative_to(paths['referenceDirectory'])):
+        raise ValueError('Voice references and cache must use separate directories')
+    # Fail before importing any fallback adapter or allocating CUDA. The
+    # complete module/dependency/hash closure is checked by the package launcher.
+    asset_file(paths['adapterDirectory'], 'services/tts_backend.py')
+    return {'portable': True, 'applicationDirectory': root, **paths,
+            'hfDirectory': checked_absolute_directory(str(paths['cacheDirectory'] / 'huggingface'), 'voice hub cache')}
+
+
+def asset_file(root, relative, prefix=''):
+    """Resolve a prevalidated relative asset without following linked children."""
     root = root.resolve()
     candidate = root
     for part in PurePosixPath(relative).parts:
         candidate /= part
-        attributes = getattr(candidate.lstat(), 'st_file_attributes', 0) if candidate.exists() else 0
-        if (candidate.is_symlink() or attributes & getattr(stat, 'FILE_ATTRIBUTE_REPARSE_POINT', 0x400)
-                or (hasattr(candidate, 'is_junction') and candidate.is_junction())):
+        if linked_path(candidate):
             raise ValueError('Linked local assets are not supported')
     resolved = candidate.resolve()
     approved = (root / prefix).resolve()
@@ -88,12 +167,23 @@ def contained_file(root, relative, prefix, *, suffix=None):
     return resolved
 
 
-def validate_reference(root, descriptor):
+def contained_file(root, relative, prefix, *, suffix=None):
+    """Check spelling and resolved containment; reject symlinks and junctions."""
+    validate_asset_path(relative, prefix, suffix=suffix)
+    return asset_file(root, relative, prefix)
+
+
+def validate_reference(root, descriptor, *, reference_root=None):
     if not isinstance(descriptor, dict) or not valid_transcript(descriptor.get('transcript')):
         raise ValueError('Invalid local reference transcript')
     if not isinstance(descriptor.get('sha256'), str) or not re.fullmatch(r'[a-f0-9]{64}', descriptor['sha256']):
         raise ValueError('Invalid local reference hash')
-    path = contained_file(root, descriptor.get('reference'), 'runtime/voice-references', suffix='.wav')
+    relative = descriptor.get('reference')
+    validate_asset_path(relative, 'runtime/voice-references', suffix='.wav')
+    if reference_root is not None:
+        reference_root = checked_absolute_directory(str(reference_root), 'voice reference directory')
+    path = (asset_file(reference_root, relative[len('runtime/voice-references/'):])
+            if reference_root is not None else contained_file(root, relative, 'runtime/voice-references', suffix='.wav'))
     if not 44 <= path.stat().st_size <= MAX_REFERENCE_BYTES:
         raise ReferenceUnavailable('Local reference exceeded supported byte limits')
     with path.open('rb') as handle:
@@ -117,7 +207,7 @@ def validate_reference(root, descriptor):
     return (str(path), descriptor['transcript'])
 
 
-def validate_config(config, root=ROOT):
+def validate_config(config, root=ROOT, *, paths=None):
     """Configuration boundary: no heavyweight imports, inference or writes."""
     if (not isinstance(config, dict) or config.get('provider') != 'hybrid'
             or config.get('engine') != 'omnivoice' or type(config.get('version', 1)) is not int
@@ -140,7 +230,7 @@ def validate_config(config, root=ROOT):
             unavailable[key] = status
             continue
         try:
-            refs[key] = validate_reference(root, descriptor)
+            refs[key] = validate_reference(root, descriptor, reference_root=paths['referenceDirectory'] if paths else None)
         except ReferenceUnavailable:
             unavailable[key] = 'unavailable'
         descriptors[key] = {name: descriptor[name] for name in ('reference', 'sha256', 'transcript')}
@@ -158,11 +248,14 @@ def validate_config(config, root=ROOT):
             or type(limit) is not int or not 1 <= limit <= MAX_CACHED_PROFILES or len(startup) > limit):
         raise ValueError('Invalid voice startup profiles/cache limit')
     relative = config.get('model')
-    model_file = contained_file(root, relative + '/model.safetensors'
-                                if isinstance(relative, str) else None, 'vendor/voice-models')
-    if config.get('revision') != MODEL_REVISION or model_file.parent.name != MODEL_REVISION:
+    model_relative = relative + '/model.safetensors' if isinstance(relative, str) else None
+    validate_asset_path(model_relative, 'vendor/voice-models')
+    if config.get('revision') != MODEL_REVISION or PurePosixPath(relative).name != MODEL_REVISION:
         raise ValueError('Expected the pinned base OmniVoice model')
+    model_file = (asset_file(paths['modelDirectory'], 'model.safetensors')
+                  if paths and paths['portable'] else contained_file(root, model_relative, 'vendor/voice-models'))
     return {'refs': refs, 'descriptors': descriptors, 'root': root,
+            'paths': paths, 'referenceRoot': paths['referenceDirectory'] if paths else None,
             'referenceHashes': {key: descriptors[key]['sha256'] for key in refs},
             'transcriptHashes': {key: hashlib.sha256(descriptors[key]['transcript'].encode('utf-8')).hexdigest() for key in refs},
             'configuredProfiles': sorted(voices), 'unavailableProfiles': unavailable,
@@ -171,10 +264,11 @@ def validate_config(config, root=ROOT):
 
 
 class ProfileSession:
-    """Serial handler with a bounded, successful-preparation LRU.
+    """Serial handler with a bounded LRU of requested, prepared profile keys.
 
-    Eviction never switches the speaker. Reusing an evicted profile prepares its
-    own recording again through the adapter's bounded memory/disk prompt cache.
+    Exact reference/transcript aliases can share one physical prompt. Logical
+    readiness stays bounded and is removed when that actual prompt is evicted;
+    no unrequested alias is advertised merely because another key prepared it.
     """
     def __init__(self, registry, render, encode, send, model_info, memory_info, prepared_snapshot=None):
         self.registry, self.render, self.encode, self.send = registry, render, encode, send
@@ -184,27 +278,43 @@ class ProfileSession:
 
     def sync_prepared(self):
         if self.prepared_snapshot is not None:
-            self.prepared = OrderedDict((key, True) for key in self.prepared_snapshot())
+            resident = set(self.prepared_snapshot())
+            self.prepared = OrderedDict((key, True) for key in self.prepared if key in resident)
+            return resident
 
     def remember(self, key):
         if self.prepared_snapshot is not None:
-            self.sync_prepared()
-            if key not in self.prepared:
+            if key not in self.sync_prepared():
                 raise RuntimeError('Selected reference conditioning did not enter the prompt cache')
-            return
         self.prepared[key] = True
         self.prepared.move_to_end(key)
         while len(self.prepared) > self.registry['maxCachedProfiles']:
             self.prepared.popitem(last=False)
 
+    def validate_profile_reference(self, key):
+        try:
+            validate_reference(self.registry['root'], self.registry['descriptors'][key],
+                               reference_root=self.registry.get('referenceRoot'))
+        except Exception:
+            # A changed/missing recording invalidates every logical alias of
+            # that file. Leave the actual adapter cache under its normal owner.
+            path = self.registry['refs'][key][0]
+            for prepared_key in list(self.prepared):
+                if self.registry['refs'][prepared_key][0] == path:
+                    self.prepared.pop(prepared_key)
+            raise
+
     def prepare(self, key):
         # Revalidate before a cache hit as well, so a file edit cannot appear
         # ready while the adapter is still retaining another conditioning prompt.
-        validate_reference(self.registry['root'], self.registry['descriptors'][key])
-        self.sync_prepared()
+        self.validate_profile_reference(key)
+        resident = self.sync_prepared()
         if key in self.prepared:
             # A cache hit performs no adapter operation, so it must not refresh
             # only the diagnostic LRU and disagree with the physical prompt LRU.
+            return 0
+        if resident is not None and key in resident:
+            self.remember(key)
             return 0
         _, elapsed = self.render(key, WARM_PHRASE, 32)
         self.remember(key)
@@ -219,7 +329,10 @@ class ProfileSession:
                    'unavailableProfiles': self.registry['unavailableProfiles'],
                    'referenceHashes': self.registry['referenceHashes'],
                    'transcriptHashes': self.registry['transcriptHashes'],
-                   'preparedProfiles': list(self.prepared), **self.model_info, **self.memory_info()})
+                   'preparedProfiles': list(self.prepared),
+                   **({'workerPaths': {key: str(paths[key]) for key in ('applicationDirectory', *PATH_OVERRIDES)}}
+                      if (paths := self.registry.get('paths')) and paths['portable'] else {}),
+                   **self.model_info, **self.memory_info()})
 
     def handle(self, request):
         if not isinstance(request, dict):
@@ -240,7 +353,7 @@ class ProfileSession:
                 text, steps = request.get('text'), request.get('steps')
                 if type(steps) is not int or steps not in (16, 32) or not valid_transcript(text):
                     raise ValueError('Invalid local speech text/quality')
-                validate_reference(self.registry['root'], self.registry['descriptors'][key])
+                self.validate_profile_reference(key)
                 values, elapsed = self.render(key, text, steps)
                 audio = self.encode(values)
                 self.remember(key)
@@ -282,37 +395,42 @@ def install_cache_identity(adapter, registry):
 
 
 def cached_profiles(adapter, registry):
-    """Read only the adapter's actual conditioning LRU after serial GPU work."""
-    identity = {(os.path.abspath(ref[0]), ref[1]): key for key, ref in registry['refs'].items()}
+    """All keys eligible through actual prompts; ProfileSession bounds reports.
+
+    One physical prompt can match many exact aliases. Truncating this snapshot
+    by logical key count would hide a valid alias before it can be requested.
+    """
+    identity = {}
+    for key, ref in registry['refs'].items():
+        identity.setdefault((os.path.abspath(ref[0]), ref[1]), []).append(key)
     with adapter._prompt_cache_lock:
         keys = list(adapter._prompt_cache)
     profiles = []
     for cache_key in keys:
         if not isinstance(cache_key, tuple) or len(cache_key) < 4:
             continue
-        profile = identity.get((cache_key[0], cache_key[2]))
-        if profile is not None:
+        for profile in identity.get((cache_key[0], cache_key[2]), []):
             if registry['version'] >= 2 and tuple(cache_key[-5:]) != ('cyberpunk-voice-profile-v2', MODEL_REVISION, ADAPTER_REVISION,
                                       registry['referenceHashes'][profile], registry['transcriptHashes'][profile]):
                 continue
             if profile in profiles:
                 profiles.remove(profile)
             profiles.append(profile)
-    return profiles[-registry['maxCachedProfiles']:]
+    return profiles
 
 
 @contextmanager
-def model_admission(root=ROOT):
+def model_admission(root=ROOT, *, cache_root=None):
     """One OS-owned admission slot shared by bridge and audition workers."""
     root = root.resolve()
-    relative = 'runtime/voice-studio-data/resident-model.lock'
-    candidate = root
+    relative = 'resident-model.lock' if cache_root is not None else 'runtime/voice-studio-data/resident-model.lock'
+    candidate = cache_root if cache_root is not None else root
     for part in relative.split('/'):
         candidate /= part
-        attributes = getattr(candidate.lstat(), 'st_file_attributes', 0) if candidate.exists() else 0
-        if candidate.is_symlink() or attributes & 0x400:
+        if linked_path(candidate):
             raise ValueError('Linked model-admission paths are not supported')
-    if not candidate.resolve().is_relative_to(root / 'runtime'):
+    approved = cache_root if cache_root is not None else root / 'runtime'
+    if not candidate.resolve().is_relative_to(approved):
         raise ValueError('Model-admission path escaped the runtime')
     candidate.parent.mkdir(parents=True, exist_ok=True)
     with candidate.open('a+b') as handle:
@@ -343,9 +461,33 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', type=Path, required=True)
     args = parser.parse_args()
-    registry = validate_config(read_config(args.config))
-    with model_admission():
+    paths = resolve_worker_paths()
+    registry = validate_config(read_config(args.config), paths=paths)
+    with model_admission(cache_root=paths['cacheDirectory'] if paths['portable'] else None):
         run_worker(registry)
+
+
+def voice_environment(registry):
+    paths = registry.get('paths') or resolve_worker_paths(environ={})
+    cache_root = paths['cacheDirectory']
+    if registry['version'] >= 2:
+        cache_root /= f'{MODEL_REVISION[:12]}-{ADAPTER_REVISION[:12]}'
+    if paths['portable']:
+        cache_root = checked_absolute_directory(str(cache_root), 'voice conditioning cache')
+    environment = {'HF_HOME': str(paths['hfDirectory']), 'HF_HUB_OFFLINE': '1',
+        'OMNIVOICE_DATA_DIR': str(cache_root), 'OMNIVOICE_MODEL': str(registry['model']),
+        'OMNIVOICE_TTS_BACKEND': 'omnivoice', 'OMNIVOICE_GPU_WORKERS': '1',
+        'OMNIVOICE_PRELOAD_TTS_ASR': '0', 'OMNIVOICE_ASR_BACKEND': 'pytorch-whisper',
+        'TORCH_COMPILE_DISABLE': '1', 'PYTHONUTF8': '1'}
+    if paths['portable']:
+        # An inherited cache override cannot redirect mutable state to another
+        # installation. Source imports must not write pyc into package assets.
+        environment.update(PYTHONDONTWRITEBYTECODE='1')
+        for name, relative in (('HF_HUB_CACHE', 'huggingface/hub'), ('HUGGINGFACE_HUB_CACHE', 'huggingface/hub'),
+                               ('TRANSFORMERS_CACHE', 'huggingface/hub'), ('HF_ASSETS_CACHE', 'huggingface/assets'),
+                               ('TORCH_HOME', 'torch')):
+            environment[name] = str(checked_absolute_directory(str(paths['cacheDirectory'] / relative), name))
+    return environment
 
 
 def run_worker(registry):
@@ -356,20 +498,19 @@ def run_worker(registry):
     def send(value):
         output.write(json.dumps(value, separators=(',', ':')) + '\n')
         output.flush()
-    cache_root = ROOT / 'runtime/voice-studio-data'
-    if registry['version'] >= 2:
-        cache_root /= f'{MODEL_REVISION[:12]}-{ADAPTER_REVISION[:12]}'
-    os.environ.update(HF_HOME=str(ROOT / 'vendor/voice-models'), HF_HUB_OFFLINE='1',
-        OMNIVOICE_DATA_DIR=str(cache_root), OMNIVOICE_MODEL=str(registry['model']),
-        OMNIVOICE_TTS_BACKEND='omnivoice', OMNIVOICE_GPU_WORKERS='1',
-        OMNIVOICE_PRELOAD_TTS_ASR='0', OMNIVOICE_ASR_BACKEND='pytorch-whisper',
-        TORCH_COMPILE_DISABLE='1', PYTHONUTF8='1')
+    paths = registry.get('paths') or resolve_worker_paths(environ={})
+    if paths['portable']:
+        sys.dont_write_bytecode = True
+    os.environ.update(voice_environment(registry))
     send({'op': 'state', 'state': 'loading'})
-    sys.path.insert(0, str(ROOT / 'vendor/reference-voicestudio/backend'))
+    sys.path.insert(0, str(paths['adapterDirectory']))
+    validate_portable_source(paths)
     import numpy as np
     import soundfile as sf
     import torch
     from services import tts_backend
+    if paths['portable'] and Path(tts_backend.__file__).resolve() != asset_file(paths['adapterDirectory'], 'services/tts_backend.py'):
+        raise RuntimeError('The voice adapter does not belong to the application directory')
     if not torch.cuda.is_available():
         raise RuntimeError('OmniVoice requires CUDA in this installation')
     backend = tts_backend.get_backend_class('omnivoice')()

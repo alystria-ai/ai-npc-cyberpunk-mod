@@ -16,7 +16,7 @@ that requirement explicit while resolving the current runtime setup gaps.
 | `CyberpunkConvai-Runtime.zip` | Every other mod component: catalogs, nine redscript files, facial archive, audio manifest, portable bridge/browser/Python, OmniVoice code and weights, local lip-sync tool, bootstrap and notices | Paths relative to the game directory |
 
 The current shared development manifest contributes 14 known non-Lua files to
-Runtime. **Those 14 files are not a complete runtime package.** The proposed
+Runtime. **Those listed files are not a complete runtime package.** The proposed
 additional components and unresolved requirements are listed in
 [`packaging/release-plan.json`](../packaging/release-plan.json). It deliberately
 has `status: proposal-not-buildable`; it is not an installer or a copy command.
@@ -105,18 +105,19 @@ are not a claim that extracting two ZIPs already supplies it.
    under this developer's `C:\Users\...` workspace. Its
    `_editable_impl_omnivoice.pth` also has an absolute workspace path. Both break
    after relocation. Build and test a proper portable Python layout instead.
-2. `ResidentVoice.start()` currently launches the developer venv path, and the
-   worker validates model/reference paths under the project tree. A release
-   layout needs a central, package-relative path resolver.
-3. The bridge defaults to this machine's `E:` game location. Production bootstrap
-   must discover the root from its installed location and pass explicit paths.
+2. Development defaults still use the existing venv. The worker now accepts
+   explicit app model/adapter paths and separate persistent reference/cache
+   paths, validates its source before CUDA, and confirms the layout in its
+   readiness frame. The actual portable dependency closure remains to be built.
+3. The source bootstrap discovers the game root from its installed app location
+   and passes explicit Python/browser/client/voice/tool paths. Its relocated
+   fixture tests do not qualify a complete portable runtime distribution.
 4. `Start-ConversationBridge.ps1` relies on global Node and a source rebuild. That
    is now safer for development but is not the finished player launcher. The
    release needs a prebuilt, verified client and packaged executable lookup.
-5. The bridge is currently started manually. Pasting two ZIPs does not yet own
-   service startup/shutdown, handle launch races or present first-run setup.
-   Add a supported hidden bootstrap; do not smuggle an autorun task or unrelated
-   persistent service into the package.
+5. The bridge is currently started explicitly. The new hidden bootstrap owns
+   startup, exact-child shutdown, game lifetime and launch races. Missing setup
+   has a clear status, but mod autostart and the full first-run UI remain pending.
 6. The current registry has 75 prepared conditioning references and transcripts,
    including the three startup voices. Current setup reads an ignored registry
    and extracted game dialogue; one model serves the whole catalog. The release

@@ -13,3 +13,25 @@ export function absoluteRuntimeOverride(value, name) {
   }
   return value;
 }
+
+// A portable worker must never combine packaged weights with a development
+// adapter or put its cache back into the immutable application directory.
+export const OMNI_RUNTIME_PATHS = Object.freeze({
+  modelDirectory: 'CYBERPUNK_CONVAI_OMNI_MODEL',
+  adapterDirectory: 'CYBERPUNK_CONVAI_OMNI_ADAPTER',
+  referenceDirectory: 'CYBERPUNK_CONVAI_OMNI_REFERENCES',
+  cacheDirectory: 'CYBERPUNK_CONVAI_OMNI_CACHE',
+});
+
+export function omniRuntimeOverrides(paths) {
+  const result = {};
+  for (const [field, name] of Object.entries(OMNI_RUNTIME_PATHS)) {
+    const path = absoluteRuntimeOverride(paths?.[field], name);
+    if (path !== undefined) result[name] = path;
+  }
+  if (!Object.keys(result).length) return undefined;
+  if (Object.keys(result).length !== Object.keys(OMNI_RUNTIME_PATHS).length) {
+    throw Error('Portable OmniVoice requires model, adapter, reference and cache paths together.');
+  }
+  return Object.freeze(result);
+}
