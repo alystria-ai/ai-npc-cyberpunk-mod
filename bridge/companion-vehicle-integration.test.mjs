@@ -125,6 +125,33 @@ assert(row(saved).equipment.phase~='released','walking resumed with a permanentl
 assert(#active(npc)==1 and active(npc)[1].kind~='AIMountCommand')
 `));
 
+test('a vanished mount link cannot resume walking until the native vehicle exit workspot finishes',()=>run(`
+local npc=spawn(); local serial=companions.list()[1].serial
+selected=primary; update(12); assert(row(serial).transport.phase=='riding')
+local exiting=true
+Game.GetWorkspotSystem=function() return {IsActorInWorkspot=function(_,actor)
+  assert(actor==npc); return exiting
+end} end
+selected=nil; update(20)
+assert(not mounts[npc.id.hash],'fixture did not reproduce early mount-link removal')
+assert(row(serial).transport and row(serial).transport.phase=='waiting-for-native-exit')
+local count=#npc.ai.commands
+update(30); assert(#npc.ai.commands==count,'walking entered an unfinished exit animation')
+exiting=false; update(12)
+assert(not row(serial).transport and #active(npc)==1)
+`));
+
+test('an unavailable exit workspot result retains transport ownership rather than guessing on-foot',()=>run(`
+local npc=spawn(); local serial=companions.list()[1].serial
+selected=primary; update(12)
+Game.GetWorkspotSystem=function() return {IsActorInWorkspot=function() return nil end} end
+selected=nil; update(30)
+assert(row(serial).transport and row(serial).transport.owned)
+assert(row(serial).transport.error:find('unavailable',1,true))
+Game.GetWorkspotSystem=function() return {IsActorInWorkspot=function() return false end} end
+update(12); assert(not row(serial).transport)
+`));
+
 test('a passenger in the actual same car responds to focus without any walking command or walking query',()=>run(`
 local npc=spawn(); local serial=companions.list()[1].serial
 selected=primary; update(12,npc.id.hash)

@@ -609,7 +609,8 @@ function M.list()
             arrivalGoal=p.arrivalGoal and space.copy(p.arrivalGoal),
             operation={ticket=f.ticket,kind=f.kind,state=f.state,stage=f.stage,
                 target=f.target,active=f.active,complete=f.complete,failed=f.failed,
-                stalled=f.stalled,suspended=f.suspended,error=f.error,commands=m.commands,commandID=f.commandID},
+                stalled=f.stalled,suspended=f.suspended,waiting=f.waiting,blocked=f.blocked,
+                rejection=f.rejection,route=f.route,error=f.error,commands=m.commands,commandID=f.commandID},
             commandTrace=m.events,
         }
     end

@@ -370,6 +370,19 @@ world.driveCommand.state='Success';world.routeDistance=4; tick(3)
 assert(phase()=='waiting-for-player-exit' and transport.chauffeurSnapshot(fleet).outcome=='completed')
 actual('player',nil); tick(8); assert(phase()=='completed')
 `));
+test('automatic marker clearing at a stopped native arrival preserves completion',()=>run(`
+driving();world.driveCommand.state='Success';world.routeDistance=4;world.waypoint=nil;tick(3)
+assert(phase()=='waiting-for-player-exit' and transport.chauffeurSnapshot(fleet).outcome=='completed')
+actual('player',nil);tick(8);assert(phase()=='completed')
+`));
+test('clearing a marker while driving or away from its completed endpoint remains cancellation',()=>run(`
+driving();world.routeDistance=4;world.waypoint=nil;tick(3)
+assert(transport.chauffeurSnapshot(fleet).outcome=='cancelled')
+`));
+test('a disappeared marker cannot qualify completion far from the owned endpoint',()=>run(`
+driving();world.driveCommand.state='Success';world.routeDistance=90;world.waypoint=nil;tick(3)
+assert(transport.chauffeurSnapshot(fleet).outcome=='cancelled')
+`));
 test('exiting uses a fresh attempt budget after a third boarding attempt succeeds',()=>run(`
 driving(); fleet.people[1].attempts=3
 transport.cancelChauffeur(fleet); tick(3); actual('player',nil); tick(8)

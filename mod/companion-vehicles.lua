@@ -221,9 +221,17 @@ local function prepare(s,person,hooks)
 end
 local function finish(s,person,hooks)
     if not person.owned then return end
+    if s.api.canResumeWalking then
+        local clear,err=safe(s.api.canResumeWalking,person.entry,person.vehicle,person.seat)
+        if clear~=true then
+            person.phase='waiting-for-native-exit'
+            person.error=err or 'Waiting for the native vehicle exit to finish.'
+            return
+        end
+    end
     local done,err=safe(hooks.resumed,person.entry)
     -- A callback returning nil is an ordinary successful Lua callback.
-    if err then person.error=err; return end
+    if err or done==false then person.error=err or 'Waiting for walking ownership to resume.'; return end
     person.owned=false; person.phase='on-foot'; person.vehicle=nil; person.seat=nil
     emit(s,'walking-resumed',person)
 end

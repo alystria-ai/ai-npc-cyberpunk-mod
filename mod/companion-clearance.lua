@@ -61,14 +61,21 @@ local function overlap(extents,center,rotation)
         if type(hit)~='boolean' then error('Spatial overlap returned no Boolean') end
         -- A trace can be absent for a hit or populated for no hit. Native code
         -- uses this Boolean, so never infer free space from trace contents.
-        if hit then return false,'Scenery or a vehicle is blocking the companion position.' end
+        if hit then
+            return false,'Scenery or a vehicle is blocking the companion position.',nil,
+                {group=group,center={x=center.x,y=center.y,z=center.z},
+                halfExtents={x=extents.x,y=extents.y,z=extents.z},
+                rotation={roll=rotation.roll,pitch=rotation.pitch,yaw=rotation.yaw}}
+        end
     end
     return true
 end
 local function checked(action)
-    local ok,clear,reason,deferred=pcall(action)
-    if not ok then return false,'The game could not verify companion body clearance.' end
-    return clear,reason,deferred
+    local ok,clear,reason,deferred,rejection=pcall(action)
+    if not ok then
+        return false,'The game could not verify companion body clearance.',nil,{unavailable=true}
+    end
+    return clear,reason,deferred,rejection
 end
 function M.body(feet,dimensions)
     return checked(function()
@@ -77,6 +84,19 @@ function M.body(feet,dimensions)
         local half=size.height*.5
         return overlap(Vector4.new(size.radius,size.radius,half,0),
             Vector4.new(feet.x,feet.y,feet.z+half+.1,1),EulerAngles.new(0,0,0))
+    end)
+end
+-- A rejected box is a bounded geometry-change sensor, not a movement permit.
+-- Every successful retry still rebuilds the native route and checks its body.
+function M.recheck(rejection)
+    return checked(function()
+        local center,extents=rejection.center,rejection.halfExtents
+        if not point(center) or not point(extents) or extents.x<=0 or extents.y<=0 or extents.z<=0
+            or extents.x>100 or extents.y>100 or extents.z>10 then error('Invalid rejected box') end
+        local rotation=rejection.rotation or {}
+        return overlap(Vector4.new(extents.x,extents.y,extents.z,0),
+            Vector4.new(center.x,center.y,center.z,1),
+            EulerAngles.new(rotation.roll or 0,rotation.pitch or 0,rotation.yaw or 0))
     end)
 end
 function M.segmentBoxes(from,to)
@@ -109,13 +129,20 @@ function M.segment(from,to,dimensions,progress)
             local top=high+size.height+.1
             local half=(top-bottom)*.5
             local middle=(a+b)*.5
-            local clear,reason,deferred=overlap(Vector4.new(size.radius,length/(2*count)+size.radius,half,0),
+            local clear,reason,deferred,rejection=overlap(Vector4.new(size.radius,length/(2*count)+size.radius,half,0),
                 Vector4.new(from.x+dx*middle,from.y+dy*middle,bottom+half,1),rotation)
             if deferred then
                 if progress then progress.next=index end
                 return nil,nil,true
             end
-            if not clear then return false,reason end
+            if not clear then
+                if rejection then
+                    rejection.box,rejection.boxes=index,count
+                    rejection.from={x=from.x,y=from.y,z=from.z}
+                    rejection.to={x=to.x,y=to.y,z=to.z}
+                end
+                return false,reason,nil,rejection
+            end
         end
         if progress then progress.next=nil end
         return true

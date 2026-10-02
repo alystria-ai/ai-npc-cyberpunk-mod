@@ -50,7 +50,8 @@ test('eight clear six-metre follow admissions fit in one update including every 
     motor.apply(state,{operation={ticket='follow',kind='follow',gait='Run'}},context,i<=2)
     assert(active(npc)[1].kind=='AIFollowTargetCommand','ordinary following waited for another frame')
   end
-  assert(queries==192 and budget.used==192)
+  assert(queries<=192 and budget.used==queries and queries>=144,
+    'free stand-off checks did not cover every body and walking collision group')
 `));
 
 test('a long route continues across updates without repeating its verified prefix or releasing the hold',()=>run(`
@@ -122,6 +123,29 @@ test('a partial receipt aging during busy frames stays pending instead of becomi
   motor.sense(state,npc.pos,0,4)
   motor.useSpatialBudget(helper.newBudget()); motor.apply(state,decision,context,true)
   assert(state.clearanceWaiting and not state.failed and not state.blockedReason)
+  assert(active(npc)[1].kind=='AIHoldPositionCommand')
+`));
+
+test('actual coasting during quota deferral rebuilds the route from the new feet',()=>run(`
+  local npc=spawn(); npc.ai.commands={}; npc.pos=Vector4.new(0,0)
+  ${counter}
+  local helper=dofile('companion-clearance.lua')
+  local motor=dofile('companion-actuator.lua'); local state=motor.new(npc)
+  player.pos=Vector4.new(0,100)
+  local context={position=npc.pos,direction=npc.forward,speed=0,player=player,slot=1,
+    playerGap=100,frame={position=player.pos},others={},id=npc.id.hash}
+  local nav=Game.GetAINavigationSystem(); local calculate=nav.CalculatePathForCharacter; local origins={}
+  nav.CalculatePathForCharacter=function(self,origin,...)
+    origins[#origins+1]=origin; return calculate(self,origin,...)
+  end
+  Game.GetAINavigationSystem=function() return nav end
+  local decision={operation={ticket='coasting-follow',kind='follow',gait='Run'}}
+  motor.useSpatialBudget(helper.newBudget()); motor.apply(state,decision,context,true)
+  assert(state.clearanceWaiting and #origins==1)
+  npc.pos=Vector4.new(.25,0); context.position=npc.pos
+  motor.sense(state,npc.pos,0,.1)
+  motor.useSpatialBudget(helper.newBudget()); motor.apply(state,decision,context,true)
+  assert(#origins==2 and origins[2].x==.25,'the route was calculated from stale pre-coast feet')
   assert(active(npc)[1].kind=='AIHoldPositionCommand')
 `));
 

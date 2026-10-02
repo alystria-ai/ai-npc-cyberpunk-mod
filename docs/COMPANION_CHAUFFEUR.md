@@ -4,6 +4,10 @@ A managed companion can drive V's personally summoned, owned car to the selected
 
 The companion takes the driver seat and waits for V to enter a passenger seat through normal gameplay. The remaining companions fill free seats and use the existing overflow-car controller. The mod never mounts, ejects or switches seats for V, changes garage ownership, or deletes the borrowed lead car.
 
+Routine preparing, boarding, driving and exit popups are shown only with
+**Settings → Development → Developer mode** On. The setting defaults Off.
+Current party always retains the trip status; actionable errors remain visible.
+
 ## Native NPC driving
 
 The lead car uses Cyberpunk 2.31's `AIVehicleDriveToPointAutonomousCommand` on its vehicle AI component. It does not enable AutoDrive, simulate the game's AutoDrive key, or use Delamain mode.
@@ -82,6 +86,12 @@ If a new destination races the old command's native completion, the trip waits f
 
 Native `Success` is necessary for arrival. The car must also be stopped within 7 m of the **current** destination, and no manual cancellation may be pending. AutoDrive arrival/toggle events do not complete an NPC-command trip. Manual stop uses the native failure/retirement path; cancellation cannot fabricate arrival.
 
+When Cyberpunk clears a custom marker on arrival, the owned command's last
+applied target remains available for that terminal distance check. Completion
+still requires `Success`, a stopped car, matching destination/drive revisions,
+and current actor, seat, car and scene ownership. Clearing a marker during an
+executing trip or far from the confirmed target remains cancellation.
+
 Car movement and decreasing local path distance count as progress. A stationary route stops after 35 seconds without progress; total trip time is capped at 30 minutes. Native local path distance may initialize at zero or reset upward when a traffic segment loads.
 
 Combat, driver/actor loss, a changed borrowed car binding, incompatible seat changes, a scene or foreign vehicle activity stop the trip. The exact command can be retired without disabling an unrelated AutoDrive/AI journey. Braking is withheld for V driving, scenes, foreign commands or a different driver. An unavailable observation retains the owner and an error instead of claiming cleanup.
@@ -116,4 +126,11 @@ The installed source root is `E:\SteamLibrary\steamapps\common\Cyberpunk 2077\to
 
 A bounded live prototype with the already seated Johnny/Porsche drove **175.654 m in 30 seconds**, with a maximum-speed setting of 8 m/s. The actual handle ID was verified after submission, and the update constructor name was resolved through live RTTI reflection.
 
-That prototype proves native command movement and the bindings. Full production departure, arrival, map retargeting and reload/fast-travel behavior still require activation and normal gameplay checks. Automated fixtures qualify the transaction rules, not the game's route quality or collision handling.
+The October 3 user check confirmed direct Johnny boarding, manual passenger
+entry, driving and a changed waypoint. The same owned command remained
+Executing while destination/drive revision advanced from 1 to 2. The custom
+marker disappeared on arrival, and Johnny exited; the trace then exposed a
+parked-car navigation obstruction that prevented following. Arrival-marker
+classification and post-exit recovery fixes require their combined live check.
+Overflow convoys, cancellation, reload and fast-travel cleanup remain separate
+acceptance cases. Automated fixtures do not establish the game's route quality.

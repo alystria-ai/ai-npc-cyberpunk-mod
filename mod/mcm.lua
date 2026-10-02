@@ -623,6 +623,10 @@ local function schema()
             setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, true,
                 'Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Battle and loot comments play separately, one after another.'),
         })
+        categories[#categories + 1] = category('development', 'Development', {
+            setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
+                'Show routine companion driving popups, including boarding and exit instructions. Failures and replies to Stop trip remain visible when off.'),
+        })
     end
     if view == 'characters' or view == 'party' or view == 'models' or view == 'settings' then
         table.insert(categories[1].settings, 1, action(view .. ':back', 'Back to Companion Manager', 'Back',
@@ -632,7 +636,7 @@ local function schema()
 end
 
 function M.configure(domain, companions, queueFactory, entryFactory, readiness)
-    manager, queue = domain, queueFactory.new(companions, readiness)
+    manager, queue = domain, queueFactory.new(companions, readiness, {developerMode = domain.developerMode})
     entry = entryFactory.new(function() return ui.t(LABEL) end, function() return api ~= nil end, log, active)
     provider = {
         id = PROVIDER, registrationKey = 'cyberpunk-convai.manager.v1', apiVersion = 2,
@@ -680,7 +684,8 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
             local values, applied = {enabledByKey = {}, relationshipModes = {}}, {}
             for _, change in ipairs(changes) do
                 local key = change.id
-                if key == 'voice' or key == 'subtitles' or key == 'followUpQuestions' or key == 'battleReactions' or key == 'lootReactions' then values[key] = change.value
+                if key == 'voice' or key == 'subtitles' or key == 'followUpQuestions' or key == 'developerMode'
+                    or key == 'battleReactions' or key == 'lootReactions' then values[key] = change.value
                 elseif key == 'subtitleStyle' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose Above speaker or Dialogue HUD.')} end
                     values.subtitleStyle = change.value == 1 and 'overhead' or 'dialogue'

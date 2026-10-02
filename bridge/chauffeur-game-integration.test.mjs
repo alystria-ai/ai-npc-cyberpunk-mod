@@ -174,7 +174,7 @@ companions.abandon();queue.flush()
 assert(not companions.chauffeurSnapshot().active and reads==before)
 `));
 
-test('manager reports the manual passenger boarding phase once without starting or advancing the trip', () => run(`
+test('manager keeps routine passenger boarding quiet without starting or advancing the trip', () => run(`
 spawn();local member=companions.list()[1]
 local queue=(function() ${partySource} end)().new(companions)
 queue.bind('world-one')
@@ -182,11 +182,10 @@ companions.chauffeurSnapshot=function()return {active=true,phase='waiting-for-pl
 companions.queueChauffeur=function()error('manager initiated a trip')end
 queue.flush();queue.flush()
 local notices=queue.takeNotices()
-assert(#notices==1 and notices[1].message=='Your companion is ready. Get in the passenger seat to start the trip.')
-assert(not notices[1].failed and reads==0 and queue.chauffeur().phase=='waiting-for-player')
+assert(#notices==0 and reads==0 and queue.chauffeur().phase=='waiting-for-player')
 `));
 
-test('trip errors are shown once across repeated native-state changes; later instructions and new trips remain visible', () => run(`
+test('Developer mode Off hides routine trip info while real failures and explicit stopping remain visible', () => run(`
 spawn();local member=companions.list()[1]
 local queue=(function() ${partySource} end)().new(companions)
 queue.bind('world-one')
@@ -200,14 +199,49 @@ for cycle=1,8 do
  trip.phase='waiting-for-player-exit';queue.flush()
  trip.error=nil;trip.phase='exiting-driver';queue.flush()
 end
+trip.phase='finished';trip.active=false;queue.flush()
 local notices=queue.takeNotices();local messages={}
 for _,notice in ipairs(notices)do messages[notice.message]=(messages[notice.message]or 0)+1 end
-assert(#notices==3 and messages['The map destination changed.']==1)
+assert(#notices==1 and messages['The map destination changed.']==nil)
 assert(messages['Waiting for confirmed AutoDrive shutdown and a stopped car.']==1)
-assert(messages['The car has stopped. Step out so your companion can leave the driver seat.']==1)
+assert(messages['The car has stopped. Step out so your companion can leave the driver seat.']==nil)
 trip.error='The borrowed car is in use.';queue.flush()
 notices=queue.takeNotices();assert(#notices==1 and notices[1].message=='The borrowed car is in use.' and notices[1].failed)
-trip.error=nil;trip.phase='stopping';trip.generation=18;queue.flush();queue.flush()
-notices=queue.takeNotices();assert(#notices==1 and notices[1].message=='The map destination changed.')
+trip.error=nil;trip.phase='finished';trip.generation=18;queue.flush();queue.flush()
+assert(#queue.takeNotices()==0)
+trip.phase='stopping';trip.outcome='cancelled';trip.reason='The route is blocked. Step out or try a new trip.'
+queue.flush();assert(#queue.takeNotices()==0)
+trip.outcome='failed'
+queue.flush();queue.flush();notices=queue.takeNotices()
+assert(#notices==1 and notices[1].failed and notices[1].message==trip.reason)
+trip.active=true
+companions.cancelChauffeur=function()trip.phase='stopping';return true end
+assert(queue.stopTrip());queue.flush();queue.flush();notices=queue.takeNotices()
+assert(#notices==1 and notices[1].message=='Stopping the trip. Wait for the car to stop before stepping out.')
 assert(reads==0,'notification updates submitted native driving requests')
+`));
+
+test('Developer mode shows each boarding driving and exit notice once, including enabling it mid-trip', () => run(`
+spawn();local member=companions.list()[1]
+local developer=false
+local queue=(function() ${partySource} end)().new(companions,nil,{developerMode=function()return developer end})
+queue.bind('world-one')
+local trip={active=true,generation=20,phase='waiting-for-player',offer={actor={serial=member.serial}}}
+companions.chauffeurSnapshot=function()
+ local state={};for key,value in pairs(trip)do state[key]=value end;return state
+end
+companions.queueChauffeur=function()error('feedback initiated a native trip')end
+queue.flush();queue.flush();assert(#queue.takeNotices()==0)
+developer=true;queue.flush();queue.flush()
+local notices=queue.takeNotices()
+assert(#notices==1 and notices[1].message=='Your companion is ready. Get in the passenger seat to start the trip.')
+developer=false;queue.flush();developer=true;queue.flush();assert(#queue.takeNotices()==0)
+trip.phase='driving';queue.flush();queue.flush()
+notices=queue.takeNotices();assert(#notices==1 and notices[1].message=='Your companion is driving to the selected waypoint.')
+trip.phase='waiting-for-player-exit';queue.flush();queue.flush()
+notices=queue.takeNotices();assert(#notices==1 and notices[1].message=='The car has stopped. Step out so your companion can leave the driver seat.')
+trip.phase='driving';queue.flush();assert(#queue.takeNotices()==0,'phase alternation repeated an old notice')
+trip.generation=21;trip.phase='waiting-for-player';queue.flush();queue.flush()
+notices=queue.takeNotices();assert(#notices==1 and notices[1].message:find('Get in the passenger seat',1,true))
+assert(reads==0,'developer toggle touched native driving admission')
 `));

@@ -267,6 +267,16 @@ assert(not native.retarget(operation,car,changed) and values.updates==1)
 assert(native.stop(operation,car) and not values.stops,'A replacement command was cancelled')
 assert(not native.brake(car,operation) and values.brakes==0)
 `));
+
+test('a cleared arrival marker retains distance to the owned applied command target',()=>run(`
+driver();passenger();local operation=assert(native.start(player,entry,car,pin,'seat_front_right',api))
+operation.handle.state='Success';values.waypoint=false;values.destinationType='None'
+local sample=assert(native.sample(player,entry,car,api,operation))
+assert(sample.waypoint==nil and sample.drive.state=='Success')
+assert(type(sample.drive.distance)=='number' and sample.drive.distance>=0)
+local unknown=assert(native.sample(player,entry,car,api,nil))
+assert(unknown.drive.distance==nil,'a missing native operation invented a remembered destination')
+`));
 test('exact cancellation is sent once, never fabricates Success, and terminal commands retain guarded brake authority',()=>run(`
 driver();passenger();local operation=assert(native.start(player,entry,car,pin,'seat_front_right',api))
 values.cancelBlocked=true;assert(not native.stop(operation,car))

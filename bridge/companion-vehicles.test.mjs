@@ -167,6 +167,19 @@ test('player departure cancels own convoy, unmounts, then deletes only empty spa
   assert(primary.info.seats[1].occupant=='player')
 `));
 
+test('a resume callback declining ownership keeps the native transport handoff',()=>run(`${fixture}
+  party(1); tick(30)
+  local ready=false
+  hooks.resumed=function(entry)
+    if not ready then return false end
+    world.resumes[entry.serial]=(world.resumes[entry.serial] or 0)+1
+  end
+  world.primary=nil; tick(30)
+  assert(transport.owns(fleet,1) and not world.resumes[1])
+  ready=true; tick(30)
+  assert(not transport.owns(fleet,1) and world.resumes[1]==1)
+`));
+
 test('an uncertain mount cancellation prevents unmount and walking handoff',()=>run(`${fixture}
   party(1); world.delayMount=true; tick(1)
   actual(entries[1],primary,'seat_front_right')

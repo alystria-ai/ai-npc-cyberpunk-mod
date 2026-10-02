@@ -144,6 +144,7 @@ export const companionEngine = `
   end
   function system:DeleteEntity(id) entities[tonumber(id.hash)]=nil; return true end
   Game={GetPlayer=function() return player end,GetDynamicEntitySystem=function() return system end,
+    GetWorkspotSystem=function() return {IsActorInWorkspot=function() return false end} end,
     GetMountingFacility=function() return {GetMountingInfoSingleWithObjects=function() return nil end} end,
     GetTargetingSystem=function() return {GetCrosshairData=function() return nil,player.forward end} end,
     CreateEntityReference=function() return {} end}

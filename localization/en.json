@@ -40,7 +40,7 @@
   "counts": {
     "strings": 489,
     "dynamicTemplates": 71,
-    "contexts": 34
+    "contexts": 35
   },
   "strings": {
     "0 results": "0 results",
@@ -71,11 +71,6 @@
     "Auto": "Auto",
     "Auto follows the completed encounter in this save. On uses the intimate profile; Off uses the ordinary profile. This does not imply an ongoing relationship.": "Auto follows the completed encounter in this save. On uses the intimate profile; Off uses the ordinary profile. This does not imply an ongoing relationship.",
     "Auto follows the relationship in this save. On uses the romantic profile; Off uses the ordinary profile. This changes conversations without changing game choices.": "Auto follows the relationship in this save. On uses the romantic profile; Off uses the ordinary profile. This changes conversations without changing game choices.",
-    "AutoDrive cannot use this road or destination. Move the car onto a valid road and try again.": "AutoDrive cannot use this road or destination. Move the car onto a valid road and try again.",
-    "AutoDrive did not accept departure.": "AutoDrive did not accept departure.",
-    "AutoDrive did not start in time.": "AutoDrive did not start in time.",
-    "AutoDrive ended. Step out when ready.": "AutoDrive ended. Step out when ready.",
-    "AutoDrive is no longer available for this trip.": "AutoDrive is no longer available for this trip.",
     "Automatic (game interface language)": "Automatic (game interface language)",
     "Automatic reactions": "Automatic reactions",
     "Back": "Back",
@@ -183,6 +178,8 @@
     "DISMISS QUEUED - CLOSE PHONE": "DISMISS QUEUED - CLOSE PHONE",
     "Default": "Default",
     "Destination reached. Step out when ready.": "Destination reached. Step out when ready.",
+    "Developer mode": "Developer mode",
+    "Development": "Development",
     "Dialogue HUD": "Dialogue HUD",
     "Discovering installed character models. Results appear as they are read.": "Discovering installed character models. Results appear as they are read.",
     "Dismiss": "Dismiss",
@@ -198,7 +195,6 @@
     "Face a nearby NPC within eight metres": "Face a nearby NPC within eight metres",
     "Fast travel cancelled the companion trip.": "Fast travel cancelled the companion trip.",
     "Finish combat before asking for a ride.": "Finish combat before asking for a ride.",
-    "Finish the active AutoDrive journey before your companion gets out.": "Finish the active AutoDrive journey before your companion gets out.",
     "Follow-up questions": "Follow-up questions",
     "Following": "Following",
     "Forget": "Forget",
@@ -345,6 +341,7 @@
     "Shared across your saves": "Shared across your saves",
     "Show companion replies using the selected subtitle display.": "Show companion replies using the selected subtitle display.",
     "Show companion reply subtitles during conversations.": "Show companion reply subtitles during conversations.",
+    "Show routine companion driving popups, including boarding and exit instructions. Failures and replies to Stop trip remain visible when off.": "Show routine companion driving popups, including boarding and exit instructions. Failures and replies to Stop trip remain visible when off.",
     "Some game models have special rigs or roles and may not behave as ordinary companions.": "Some game models have special rigs or roles and may not behave as ordinary companions.",
     "Some model records could not be read.": "Some model records could not be read.",
     "Stand near your summoned car.": "Stand near your summoned car.",
@@ -379,7 +376,6 @@
     "The borrowed car is unavailable.": "The borrowed car is unavailable.",
     "The car has stopped. Step out so your companion can leave the driver seat.": "The car has stopped. Step out so your companion can leave the driver seat.",
     "The car is now in use. The companion trip was cancelled.": "The car is now in use. The companion trip was cancelled.",
-    "The car, seats or destination changed before departure.": "The car, seats or destination changed before departure.",
     "The character count changed. Review Forget all memories again.": "The character count changed. Review Forget all memories again.",
     "The character died before joining.": "The character died before joining.",
     "The character was removed before joining.": "The character was removed before joining.",
@@ -400,7 +396,6 @@
     "The list will refresh in a moment.": "The list will refresh in a moment.",
     "The manager could not be prepared: {reason}": "The manager could not be prepared: {reason}",
     "The manager could not refresh: {reason}": "The manager could not refresh: {reason}",
-    "The map destination changed.": "The map destination changed.",
     "The memory clear request could not be sent. Check the memory service before trying again.": "The memory clear request could not be sent. Check the memory service before trying again.",
     "The memory service could not confirm the clear for {target}. Review the service before choosing Forget again.": "The memory service could not confirm the clear for {target}. Review the service before choosing Forget again.",
     "The memory service is unavailable. Reopen this page after it reconnects.": "The memory service is unavailable. Reopen this page after it reconnects.",
@@ -455,6 +450,7 @@
     "V changed seats or vehicles.": "V changed seats or vehicles.",
     "V left the passenger seat.": "V left the passenger seat.",
     "V or a scene has taken vehicle control.": "V or a scene has taken vehicle control.",
+    "Vehicle exit workspot state is unavailable.": "Vehicle exit workspot state is unavailable.",
     "Vehicle information became unavailable.": "Vehicle information became unavailable.",
     "Vehicle information is not ready.": "Vehicle information is not ready.",
     "Voice playback": "Voice playback",
@@ -465,16 +461,20 @@
     "Wait for your car to stop.": "Wait for your car to stop.",
     "Wait for your previous reply before sending another message.": "Wait for your previous reply before sending another message.",
     "Wait for your summoned car to arrive.": "Wait for your summoned car to arrive.",
-    "Waiting for confirmed AutoDrive shutdown and a stopped car.": "Waiting for confirmed AutoDrive shutdown and a stopped car.",
     "Waiting for current vehicle information.": "Waiting for current vehicle information.",
     "Waiting for party to board": "Waiting for party to board",
     "Waiting for the companion to release the driver seat.": "Waiting for the companion to release the driver seat.",
     "Waiting for the conversation service.": "Waiting for the conversation service.",
+    "Waiting for the existing companion after vehicle exit.": "Waiting for the existing companion after vehicle exit.",
+    "Waiting for the native occupant slot to release.": "Waiting for the native occupant slot to release.",
+    "Waiting for the native vehicle exit animation to finish.": "Waiting for the native vehicle exit animation to finish.",
+    "Waiting for the native vehicle exit to finish.": "Waiting for the native vehicle exit to finish.",
+    "Waiting for the native vehicle mount to release.": "Waiting for the native vehicle mount to release.",
     "Waiting for the native vehicle transition to finish.": "Waiting for the native vehicle transition to finish.",
-    "Waiting for the other AutoDrive activity to finish.": "Waiting for the other AutoDrive activity to finish.",
     "Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.": "Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.",
     "Waiting for the voice service": "Waiting for the voice service",
     "Waiting for voice service": "Waiting for voice service",
+    "Waiting for walking ownership to resume.": "Waiting for walking ownership to resume.",
     "Waiting for you to board": "Waiting for you to board",
     "Waiting for you to step out": "Waiting for you to step out",
     "Waiting for your companion to settle before boarding.": "Waiting for your companion to settle before boarding.",
@@ -547,17 +547,11 @@
       "An AutoDrive journey is already active.",
       "Another AutoDrive activity took control.",
       "Another AutoDrive journey has control.",
-      "AutoDrive cannot use this road or destination. Move the car onto a valid road and try again.",
-      "AutoDrive did not accept departure.",
-      "AutoDrive did not start in time.",
-      "AutoDrive ended. Step out when ready.",
-      "AutoDrive is no longer available for this trip.",
       "Choose a ready companion from your party.",
       "Companion ownership changed; waiting for the companion owner to resolve it.",
       "Destination reached. Step out when ready.",
       "Fast travel cancelled the companion trip.",
       "Finish combat before asking for a ride.",
-      "Finish the active AutoDrive journey before your companion gets out.",
       "Pending departure lost its vehicle binding.",
       "Select a destination on the map first.",
       "Stand near your summoned car.",
@@ -570,7 +564,6 @@
       "The borrowed car is in use.",
       "The borrowed car is unavailable.",
       "The car is now in use. The companion trip was cancelled.",
-      "The car, seats or destination changed before departure.",
       "The companion binding changed.",
       "The companion could not finish entering the driver seat.",
       "The companion left the driver seat.",
@@ -579,7 +572,6 @@
       "The driver seat was not released, so the trip was cancelled.",
       "The driving request could not be cancelled.",
       "The driving request could not be queued.",
-      "The map destination changed.",
       "The party could not finish boarding. The trip was cancelled.",
       "The route is blocked. Step out or try a new trip.",
       "The selected companion is leaving.",
@@ -597,11 +589,9 @@
       "Wait for the current vehicle activity to finish.",
       "Wait for your car to stop.",
       "Wait for your summoned car to arrive.",
-      "Waiting for confirmed AutoDrive shutdown and a stopped car.",
       "Waiting for current vehicle information.",
       "Waiting for the companion to release the driver seat.",
       "Waiting for the native vehicle transition to finish.",
-      "Waiting for the other AutoDrive activity to finish.",
       "Waiting for your companion to settle before boarding.",
       "Waiting for your passenger seat to be released.",
       "Walking commands did not release in time.",
@@ -803,6 +793,7 @@
       "Conversation for {name}",
       "Conversations",
       "Current party",
+      "Development",
       "Installed character models",
       "Interface",
       "Memory",
@@ -942,6 +933,7 @@
       "Choose the mod interface language independently of character voices and conversation language.",
       "Companion voices",
       "Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Battle and loot comments play separately, one after another.",
+      "Developer mode",
       "Eye contact height",
       "Follow-up questions",
       "Head tracking strength",
@@ -953,6 +945,7 @@
       "React to battles",
       "React to collected loot",
       "Show companion replies using the selected subtitle display.",
+      "Show routine companion driving popups, including boarding and exit instructions. Failures and replies to Stop trip remain visible when off.",
       "Subtitle display",
       "Subtitles",
       "Use the regular dialogue HUD by default, or place subtitles above the speaking companion. The Subtitles switch controls both.",
@@ -1033,6 +1026,15 @@
       "The game could not verify companion body clearance.",
       "The game placed this copy away from the verified ground. Invitation cancelled.",
       "The game placed this copy too close to someone. Invitation cancelled."
+    ],
+    "party.vehicle-transition-feedback": [
+      "Vehicle exit workspot state is unavailable.",
+      "Waiting for the existing companion after vehicle exit.",
+      "Waiting for the native occupant slot to release.",
+      "Waiting for the native vehicle exit animation to finish.",
+      "Waiting for the native vehicle exit to finish.",
+      "Waiting for the native vehicle mount to release.",
+      "Waiting for walking ownership to resume."
     ],
     "phone.chat": [
       "Conversation interrupted. Your message is in the draft.",
@@ -1216,7 +1218,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:739"
+        "mod/manager.lua:746"
       ]
     },
     "10 cm higher": {
@@ -1256,7 +1258,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:704"
+        "mod/manager.lua:711"
       ]
     },
     "5 cm higher": {
@@ -1296,7 +1298,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:163"
+        "mod/companion-chauffeur.lua:203"
       ]
     },
     "A memory clear is awaiting its result. It will not be sent again.": {
@@ -1329,7 +1331,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:162"
+        "mod/companion-chauffeur.lua:202"
       ]
     },
     "Above speaker": {
@@ -1345,8 +1347,8 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:677",
-        "mod/manager.lua:685"
+        "mod/manager.lua:684",
+        "mod/manager.lua:692"
       ]
     },
     "Add a copy, then use Party to choose its conversation profile.": {
@@ -1354,7 +1356,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:684"
+        "mod/manager.lua:691"
       ]
     },
     "Add copy ({count})": {
@@ -1381,7 +1383,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:67"
+        "mod/companion-chauffeur.lua:85"
       ]
     },
     "Another AutoDrive activity took control.": {
@@ -1389,9 +1391,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:248",
-        "mod/companion-chauffeur.lua:317",
-        "mod/companion-chauffeur.lua:331"
+        "mod/companion-chauffeur.lua:189",
+        "mod/companion-chauffeur.lua:280"
       ]
     },
     "Another AutoDrive journey has control.": {
@@ -1399,7 +1400,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur-native.lua:145"
+        "mod/companion-chauffeur-native.lua:320"
       ]
     },
     "Applies while OmniVoice is selected. 32 steps gives the preferred quality; 16 steps is faster. One shared model stays loaded until you select Convai or stop the voice service.": {
@@ -1442,46 +1443,6 @@
         "mod/mcm.lua:551"
       ]
     },
-    "AutoDrive cannot use this road or destination. Move the car onto a valid road and try again.": {
-      "contexts": [
-        "chauffeur.feedback"
-      ],
-      "references": [
-        "mod/companion-chauffeur.lua:321"
-      ]
-    },
-    "AutoDrive did not accept departure.": {
-      "contexts": [
-        "chauffeur.feedback"
-      ],
-      "references": [
-        "mod/companion-chauffeur.lua:326"
-      ]
-    },
-    "AutoDrive did not start in time.": {
-      "contexts": [
-        "chauffeur.feedback"
-      ],
-      "references": [
-        "mod/companion-chauffeur.lua:328"
-      ]
-    },
-    "AutoDrive ended. Step out when ready.": {
-      "contexts": [
-        "chauffeur.feedback"
-      ],
-      "references": [
-        "mod/companion-chauffeur.lua:257"
-      ]
-    },
-    "AutoDrive is no longer available for this trip.": {
-      "contexts": [
-        "chauffeur.feedback"
-      ],
-      "references": [
-        "mod/companion-chauffeur.lua:333"
-      ]
-    },
     "Automatic (game interface language)": {
       "contexts": [
         "settings.language"
@@ -1507,7 +1468,7 @@
         "mod/mcm.lua:519",
         "mod/mcm.lua:545",
         "mod/mcm.lua:558",
-        "mod/mcm.lua:628"
+        "mod/mcm.lua:632"
       ]
     },
     "Back to Companion Manager": {
@@ -1515,7 +1476,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:628"
+        "mod/mcm.lua:632"
       ]
     },
     "Back to memory": {
@@ -1532,7 +1493,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/manager.lua:660",
+        "mod/manager.lua:667",
         "mod/mcm.lua:452"
       ]
     },
@@ -1623,7 +1584,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:216"
+        "mod/manager-party.lua:223"
       ]
     },
     "Cancel invitation": {
@@ -1675,7 +1636,7 @@
         "mcm.navigation"
       ],
       "references": [
-        "mod/manager.lua:662",
+        "mod/manager.lua:669",
         "mod/mcm.lua:378",
         "mod/mcm.lua:394"
       ]
@@ -1727,7 +1688,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:609"
+        "mod/manager.lua:616"
       ]
     },
     "Chat on": {
@@ -1735,7 +1696,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:609"
+        "mod/manager.lua:616"
       ]
     },
     "Choose": {
@@ -1752,7 +1713,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:916"
+        "mod/manager.lua:925"
       ]
     },
     "Choose Above speaker or Dialogue HUD.": {
@@ -1762,8 +1723,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:913",
-        "mod/mcm.lua:685"
+        "mod/manager.lua:922",
+        "mod/mcm.lua:690"
       ]
     },
     "Choose Auto, On or Off for each relationship.": {
@@ -1772,9 +1733,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:905",
-        "mod/manager.lua:908",
-        "mod/mcm.lua:709"
+        "mod/manager.lua:914",
+        "mod/manager.lua:917",
+        "mod/mcm.lua:714"
       ]
     },
     "Choose OmniVoice or Convai voices.": {
@@ -1784,8 +1745,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:922",
-        "mod/mcm.lua:697"
+        "mod/manager.lua:931",
+        "mod/mcm.lua:702"
       ]
     },
     "Choose a character": {
@@ -1837,7 +1798,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:814"
+        "mod/manager.lua:821"
       ]
     },
     "Choose a copy from your party first.": {
@@ -1845,7 +1806,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:821"
+        "mod/manager.lua:828"
       ]
     },
     "Choose a head-follow strength from the available settings.": {
@@ -1853,7 +1814,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:928"
+        "mod/manager.lua:937"
       ]
     },
     "Choose a memory clear action from Settings.": {
@@ -1869,7 +1830,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:676"
+        "mod/manager.lua:683"
       ]
     },
     "Choose a profile": {
@@ -1886,8 +1847,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:608",
-        "mod/companions.lua:614"
+        "mod/companions.lua:655",
+        "mod/companions.lua:661"
       ]
     },
     "Choose a voice quality.": {
@@ -1896,7 +1857,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:688"
+        "mod/mcm.lua:693"
       ]
     },
     "Choose an active or invited copy.": {
@@ -1904,7 +1865,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:224"
+        "mod/manager-party.lua:231"
       ]
     },
     "Choose an eye contact option.": {
@@ -1913,7 +1874,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:704"
+        "mod/mcm.lua:709"
       ]
     },
     "Choose an eye-contact height from the available settings.": {
@@ -1921,7 +1882,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:925"
+        "mod/manager.lua:934"
       ]
     },
     "Choose an interface language.": {
@@ -1930,8 +1891,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:919",
-        "mod/mcm.lua:693"
+        "mod/manager.lua:928",
+        "mod/mcm.lua:698"
       ]
     },
     "Choose any character from the catalogue. They do not need to be in your current party.": {
@@ -1965,7 +1926,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:694"
+        "mod/manager.lua:701"
       ]
     },
     "Choose the mod interface language independently of character voices and conversation language.": {
@@ -1992,7 +1953,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:652"
+        "mod/manager.lua:659"
       ]
     },
     "Clear memories about you for all {count} characters you have talked to?": {
@@ -2017,7 +1978,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:655"
+        "mod/manager.lua:662"
       ]
     },
     "Clear {name}’s memories about conversations with you. Review an inline confirmation first.": {
@@ -2088,7 +2049,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:402"
+        "mod/companion-chauffeur.lua:455"
       ]
     },
     "Companion preparation is unavailable.": {
@@ -2097,8 +2058,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/companions.lua:260",
-        "mod/manager-party.lua:46"
+        "mod/companions.lua:261",
+        "mod/manager-party.lua:53"
       ]
     },
     "Companion preparation returned an invalid state.": {
@@ -2107,7 +2068,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:50"
+        "mod/manager-party.lua:57"
       ]
     },
     "Companion voices": {
@@ -2164,7 +2125,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:691"
+        "mod/init.lua:730"
       ]
     },
     "Connecting this character for conversation. This copy has a reserved place. You can change its conversation profile or cancel the invitation.": {
@@ -2242,7 +2203,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:823"
+        "mod/manager.lua:830"
       ]
     },
     "Conversation profile not assigned": {
@@ -2250,7 +2211,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:625"
+        "mod/manager.lua:632"
       ]
     },
     "Conversation profile not assigned.": {
@@ -2258,8 +2219,8 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:683",
-        "mod/manager.lua:691"
+        "mod/manager.lua:690",
+        "mod/manager.lua:698"
       ]
     },
     "Conversation profile set to {name}.": {
@@ -2267,7 +2228,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:816"
+        "mod/manager.lua:823"
       ]
     },
     "Conversation: {state}": {
@@ -2311,7 +2272,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:672"
+        "mod/manager.lua:679"
       ]
     },
     "Creating a copy of {name}. Check Party for its status.": {
@@ -2319,7 +2280,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:777"
+        "mod/manager.lua:784"
       ]
     },
     "Current party": {
@@ -2337,7 +2298,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:699"
+        "mod/manager.lua:706"
       ]
     },
     "Cyberpunk Convai: companion manager": {
@@ -2345,7 +2306,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1140"
+        "mod/init.lua:1179"
       ]
     },
     "Cyberpunk Convai: group text chat": {
@@ -2353,7 +2314,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1136"
+        "mod/init.lua:1175"
       ]
     },
     "Cyberpunk Convai: group voice chat": {
@@ -2361,7 +2322,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1138"
+        "mod/init.lua:1177"
       ]
     },
     "Cyberpunk Convai: talk by text": {
@@ -2369,7 +2330,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1135"
+        "mod/init.lua:1174"
       ]
     },
     "Cyberpunk Convai: talk by voice": {
@@ -2377,7 +2338,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1137"
+        "mod/init.lua:1176"
       ]
     },
     "DETAILS  {page} / {pages}": {
@@ -2410,7 +2371,23 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:257"
+        "mod/companion-chauffeur.lua:381"
+      ]
+    },
+    "Developer mode": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:627"
+      ]
+    },
+    "Development": {
+      "contexts": [
+        "mcm.category"
+      ],
+      "references": [
+        "mod/mcm.lua:626"
       ]
     },
     "Dialogue HUD": {
@@ -2426,7 +2403,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:663"
+        "mod/manager.lua:670"
       ]
     },
     "Dismiss": {
@@ -2442,7 +2419,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:693"
+        "mod/manager.lua:700"
       ]
     },
     "Driver boarding": {
@@ -2466,7 +2443,7 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/companions.lua:178",
+        "mod/companions.lua:179",
         "mod/mcm.lua:405"
       ]
     },
@@ -2515,7 +2492,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:424"
+        "mod/init.lua:463"
       ]
     },
     "Fast travel cancelled the companion trip.": {
@@ -2523,8 +2500,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-vehicles.lua:505",
-        "mod/companion-vehicles.lua:619"
+        "mod/companion-vehicles.lua:513",
+        "mod/companion-vehicles.lua:627"
       ]
     },
     "Finish combat before asking for a ride.": {
@@ -2532,15 +2509,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:66"
-      ]
-    },
-    "Finish the active AutoDrive journey before your companion gets out.": {
-      "contexts": [
-        "chauffeur.feedback"
-      ],
-      "references": [
-        "mod/companion-chauffeur.lua:392"
+        "mod/companion-chauffeur.lua:84"
       ]
     },
     "Follow-up questions": {
@@ -2556,7 +2525,7 @@
         "mcm.party"
       ],
       "references": [
-        "mod/manager.lua:689",
+        "mod/manager.lua:696",
         "mod/mcm.lua:417"
       ]
     },
@@ -2630,7 +2599,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:559"
+        "mod/init.lua:598"
       ]
     },
     "Group chat needs two characters nearby. Use {key} for one person.": {
@@ -2639,7 +2608,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:558"
+        "mod/init.lua:597"
       ]
     },
     "Head tracking strength": {
@@ -2698,7 +2667,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:931"
+        "mod/manager.lua:940"
       ]
     },
     "Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay.": {
@@ -2726,7 +2695,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:643"
+        "mod/mcm.lua:647"
       ]
     },
     "Invite someone from Characters or Model browser.": {
@@ -2750,7 +2719,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:703"
+        "mod/manager.lua:710"
       ]
     },
     "Joining": {
@@ -2774,7 +2743,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:626"
+        "mod/manager.lua:633"
       ]
     },
     "Keep in party": {
@@ -2798,7 +2767,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:596"
+        "mod/manager.lua:603"
       ]
     },
     "Keep {name} as a follower without AI conversations.": {
@@ -2857,7 +2826,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:160"
+        "mod/manager-party.lua:167"
       ]
     },
     "Loading": {
@@ -2865,7 +2834,7 @@
         "mcm.voice-status"
       ],
       "references": [
-        "mod/manager.lua:706",
+        "mod/manager.lua:713",
         "mod/mcm.lua:246"
       ]
     },
@@ -2890,7 +2859,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:709"
+        "mod/manager.lua:716"
       ]
     },
     "Manage": {
@@ -3021,7 +2990,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:662"
+        "mod/manager.lua:669"
       ]
     },
     "Models without a conversation identity can be assigned one in Current party.": {
@@ -3120,7 +3089,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:666"
+        "mod/manager.lua:673"
       ]
     },
     "No entries yet.\nTry another search or tab.": {
@@ -3136,7 +3105,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:666"
+        "mod/manager.lua:673"
       ]
     },
     "No reply arrived. Check that the Convai bridge is running.": {
@@ -3145,7 +3114,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:1453"
+        "mod/init.lua:1492"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -3162,7 +3131,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:893"
+        "mod/manager.lua:901"
       ]
     },
     "Not configured": {
@@ -3170,7 +3139,7 @@
         "mcm.voice-status"
       ],
       "references": [
-        "mod/manager.lua:707",
+        "mod/manager.lua:714",
         "mod/mcm.lua:247"
       ]
     },
@@ -3180,7 +3149,7 @@
         "mcm.voice-status"
       ],
       "references": [
-        "mod/manager.lua:635",
+        "mod/manager.lua:642",
         "mod/mcm.lua:241",
         "mod/mcm.lua:553"
       ]
@@ -3223,7 +3192,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:805"
+        "mod/manager.lua:812"
       ]
     },
     "On": {
@@ -3232,7 +3201,7 @@
         "mcm.voice-status"
       ],
       "references": [
-        "mod/manager.lua:635",
+        "mod/manager.lua:642",
         "mod/mcm.lua:241",
         "mod/mcm.lua:553"
       ]
@@ -3270,7 +3239,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:739"
+        "mod/manager.lua:746"
       ]
     },
     "Party full: dismiss a copy before adding another.": {
@@ -3278,7 +3247,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:713"
+        "mod/manager.lua:720"
       ]
     },
     "Party: {count} / 8": {
@@ -3286,7 +3255,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:747"
+        "mod/manager.lua:754"
       ]
     },
     "Pending departure lost its vehicle binding.": {
@@ -3294,7 +3263,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur-native.lua:152"
+        "mod/companion-chauffeur-native.lua:327"
       ]
     },
     "Phone Chat messages": {
@@ -3310,7 +3279,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:697"
+        "mod/manager.lua:704"
       ]
     },
     "Play voiced replies from your companions.": {
@@ -3326,7 +3295,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:979"
+        "mod/manager.lua:988"
       ]
     },
     "Player memory": {
@@ -3342,7 +3311,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:368"
+        "mod/init.lua:369"
       ]
     },
     "Please wait for the current requests to finish.": {
@@ -3366,7 +3335,7 @@
         "mcm.voice-status"
       ],
       "references": [
-        "mod/manager.lua:706",
+        "mod/manager.lua:713",
         "mod/mcm.lua:246"
       ]
     },
@@ -3400,7 +3369,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:706",
+        "mod/manager.lua:713",
         "mod/mcm.lua:246",
         "mod/mcm.lua:259"
       ]
@@ -3418,7 +3387,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:657"
+        "mod/init.lua:696"
       ]
     },
     "Press your Talk by voice shortcut to finish recording.": {
@@ -3426,7 +3395,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:658"
+        "mod/init.lua:697"
       ]
     },
     "Previous": {
@@ -3499,7 +3468,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:741"
+        "mod/manager.lua:748"
       ]
     },
     "Ready": {
@@ -3507,7 +3476,7 @@
         "mcm.voice-status"
       ],
       "references": [
-        "mod/manager.lua:706",
+        "mod/manager.lua:713",
         "mod/mcm.lua:246",
         "mod/mcm.lua:329"
       ]
@@ -3561,7 +3530,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:651"
+        "mod/mcm.lua:655"
       ]
     },
     "Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.": {
@@ -3585,7 +3554,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:629"
+        "mod/mcm.lua:633"
       ]
     },
     "Return to conversation settings.": {
@@ -3654,7 +3623,7 @@
         "party.placement-feedback"
       ],
       "references": [
-        "mod/companion-clearance.lua:64"
+        "mod/companion-clearance.lua:65"
       ]
     },
     "Search a character by name. Each invitation reserves a place and starts preparation immediately. Your party can have up to eight copies, including pending invitations.": {
@@ -3698,7 +3667,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:76"
+        "mod/companion-chauffeur.lua:100"
       ]
     },
     "Select {name} for memory controls. This does not invite them or change their conversation settings.": {
@@ -3733,7 +3702,7 @@
         "mcm.navigation"
       ],
       "references": [
-        "mod/manager.lua:662",
+        "mod/manager.lua:669",
         "mod/mcm.lua:379"
       ]
     },
@@ -3742,7 +3711,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:487"
+        "mod/manager.lua:494"
       ]
     },
     "Settings saved.": {
@@ -3750,7 +3719,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:955"
+        "mod/manager.lua:964"
       ]
     },
     "Shared across your saves": {
@@ -3774,7 +3743,15 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:698"
+        "mod/manager.lua:705"
+      ]
+    },
+    "Show routine companion driving popups, including boarding and exit instructions. Failures and replies to Stop trip remain visible when off.": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:628"
       ]
     },
     "Some game models have special rigs or roles and may not behave as ordinary companions.": {
@@ -3791,7 +3768,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:562"
+        "mod/manager.lua:569"
       ]
     },
     "Stand near your summoned car.": {
@@ -3799,7 +3776,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:75"
+        "mod/companion-chauffeur.lua:99"
       ]
     },
     "Starting trip": {
@@ -3815,7 +3792,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:689"
+        "mod/manager.lua:696"
       ]
     },
     "Step out and wait for the previous driver cleanup to finish.": {
@@ -3823,8 +3800,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:605",
-        "mod/companions.lua:613"
+        "mod/companions.lua:652",
+        "mod/companions.lua:660"
       ]
     },
     "Step out before starting a new companion trip.": {
@@ -3832,7 +3809,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:58"
+        "mod/companion-chauffeur.lua:76"
       ]
     },
     "Step out of the driver seat before asking your companion to drive.": {
@@ -3840,7 +3817,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:56"
+        "mod/companion-chauffeur.lua:74"
       ]
     },
     "Step out of the driver seat so your companion can get in.": {
@@ -3848,7 +3825,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:292"
+        "mod/companion-chauffeur.lua:322"
       ]
     },
     "Stop requested": {
@@ -3872,7 +3849,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:193"
+        "mod/manager-party.lua:200"
       ]
     },
     "Stop trip": {
@@ -3889,7 +3866,7 @@
         "mcm.voice-status"
       ],
       "references": [
-        "mod/manager.lua:708",
+        "mod/manager.lua:715",
         "mod/mcm.lua:247"
       ]
     },
@@ -3899,7 +3876,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:707",
+        "mod/manager.lua:714",
         "mod/mcm.lua:406"
       ]
     },
@@ -3908,7 +3885,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:263"
+        "mod/manager-party.lua:270"
       ]
     },
     "Subtitle display": {
@@ -3934,7 +3911,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:69"
+        "mod/companion-chauffeur.lua:87"
       ]
     },
     "TALK TO {character}": {
@@ -3960,7 +3937,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:162"
+        "mod/manager-party.lua:169"
       ]
     },
     "That companion is no longer ready to drive.": {
@@ -3968,7 +3945,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companions.lua:616"
+        "mod/companions.lua:663"
       ]
     },
     "That confirmation is no longer active.": {
@@ -3986,8 +3963,8 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:789",
-        "mod/manager.lua:934"
+        "mod/manager.lua:796",
+        "mod/manager.lua:943"
       ]
     },
     "That copy is no longer in your party.": {
@@ -3996,9 +3973,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:189",
-        "mod/manager.lua:783",
-        "mod/manager.lua:808"
+        "mod/manager-party.lua:196",
+        "mod/manager.lua:790",
+        "mod/manager.lua:815"
       ]
     },
     "That dismissal is no longer pending.": {
@@ -4006,7 +3983,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:214"
+        "mod/manager-party.lua:221"
       ]
     },
     "That model is no longer available.": {
@@ -4014,7 +3991,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:773"
+        "mod/manager.lua:780"
       ]
     },
     "That setting is read-only.": {
@@ -4023,7 +4000,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:713"
+        "mod/mcm.lua:718"
       ]
     },
     "The action could not finish: {reason}": {
@@ -4031,7 +4008,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:971"
+        "mod/manager.lua:980"
       ]
     },
     "The borrowed car is in use.": {
@@ -4039,7 +4016,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:395"
+        "mod/companion-chauffeur.lua:448"
       ]
     },
     "The borrowed car is unavailable.": {
@@ -4047,8 +4024,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur-native.lua:160",
-        "mod/companion-chauffeur.lua:161"
+        "mod/companion-chauffeur-native.lua:72",
+        "mod/companion-chauffeur.lua:201"
       ]
     },
     "The car has stopped. Step out so your companion can leave the driver seat.": {
@@ -4056,7 +4033,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:278"
+        "mod/manager-party.lua:291"
       ]
     },
     "The car is now in use. The companion trip was cancelled.": {
@@ -4064,15 +4041,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:287"
-      ]
-    },
-    "The car, seats or destination changed before departure.": {
-      "contexts": [
-        "chauffeur.feedback"
-      ],
-      "references": [
-        "mod/companion-chauffeur-native.lua:135"
+        "mod/companion-chauffeur.lua:317"
       ]
     },
     "The character count changed. Review Forget all memories again.": {
@@ -4088,7 +4057,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:307"
+        "mod/manager-party.lua:323"
       ]
     },
     "The character was removed before joining.": {
@@ -4096,7 +4065,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:307"
+        "mod/manager-party.lua:323"
       ]
     },
     "The companion binding changed.": {
@@ -4104,7 +4073,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:158"
+        "mod/companion-chauffeur.lua:198"
       ]
     },
     "The companion could not finish entering the driver seat.": {
@@ -4112,7 +4081,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:277"
+        "mod/companion-chauffeur.lua:307"
       ]
     },
     "The companion left the driver seat.": {
@@ -4120,7 +4089,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:263"
+        "mod/companion-chauffeur.lua:293"
       ]
     },
     "The companion, car, seat or selected destination changed. Ask again.": {
@@ -4128,7 +4097,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:101"
+        "mod/companion-chauffeur.lua:125"
       ]
     },
     "The copy could not be dismissed.": {
@@ -4136,7 +4105,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:785"
+        "mod/manager.lua:792"
       ]
     },
     "The driver seat is occupied or reserved.": {
@@ -4144,7 +4113,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:77"
+        "mod/companion-chauffeur.lua:101"
       ]
     },
     "The driver seat was not released, so the trip was cancelled.": {
@@ -4152,7 +4121,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:283"
+        "mod/companion-chauffeur.lua:313"
       ]
     },
     "The driving request could not be cancelled.": {
@@ -4160,7 +4129,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:264"
+        "mod/manager-party.lua:271"
       ]
     },
     "The driving request could not be queued.": {
@@ -4168,8 +4137,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/gameplay-actions.lua:120",
-        "mod/init.lua:164"
+        "mod/gameplay-actions.lua:126",
+        "mod/init.lua:165"
       ]
     },
     "The game could not verify a safe companion position.": {
@@ -4186,7 +4155,7 @@
         "party.placement-feedback"
       ],
       "references": [
-        "mod/companion-clearance.lua:70"
+        "mod/companion-clearance.lua:76"
       ]
     },
     "The game placed this copy away from the verified ground. Invitation cancelled.": {
@@ -4195,7 +4164,7 @@
       ],
       "references": [
         "mod/companion-placement.lua:36",
-        "mod/companions.lua:220"
+        "mod/companions.lua:221"
       ]
     },
     "The game placed this copy too close to someone. Invitation cancelled.": {
@@ -4211,7 +4180,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:519"
+        "mod/manager.lua:526"
       ]
     },
     "The list will refresh in a moment.": {
@@ -4227,7 +4196,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:840"
+        "mod/manager.lua:847"
       ]
     },
     "The manager could not refresh: {reason}": {
@@ -4235,15 +4204,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:987"
-      ]
-    },
-    "The map destination changed.": {
-      "contexts": [
-        "chauffeur.feedback"
-      ],
-      "references": [
-        "mod/companion-chauffeur.lua:164"
+        "mod/manager.lua:996"
       ]
     },
     "The memory clear request could not be sent. Check the memory service before trying again.": {
@@ -4277,7 +4238,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:309"
+        "mod/companion-chauffeur.lua:339"
       ]
     },
     "The party list could not be read. Close and reopen the manager.": {
@@ -4285,7 +4246,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:495"
+        "mod/manager.lua:502"
       ]
     },
     "The profile could not be assigned.": {
@@ -4293,7 +4254,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:817"
+        "mod/manager.lua:824"
       ]
     },
     "The profile could not be cleared.": {
@@ -4301,7 +4262,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:824"
+        "mod/manager.lua:831"
       ]
     },
     "The route is blocked. Step out or try a new trip.": {
@@ -4309,7 +4270,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:343"
+        "mod/companion-chauffeur.lua:404"
       ]
     },
     "The selected companion is leaving.": {
@@ -4317,8 +4278,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:196",
-        "mod/companion-vehicles.lua:612"
+        "mod/companion-chauffeur.lua:233",
+        "mod/companion-vehicles.lua:620"
       ]
     },
     "The selected companion is unavailable.": {
@@ -4326,7 +4287,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-vehicles.lua:606"
+        "mod/companion-vehicles.lua:614"
       ]
     },
     "The settings could not be saved. Your changes are still pending.": {
@@ -4334,7 +4295,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:944"
+        "mod/manager.lua:953"
       ]
     },
     "The shared model stays loaded while the voice service runs. Changes apply to the next reply.": {
@@ -4342,7 +4303,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:705"
+        "mod/manager.lua:712"
       ]
     },
     "The trip exceeded its time limit.": {
@@ -4350,7 +4311,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:344"
+        "mod/companion-chauffeur.lua:405"
       ]
     },
     "The trip stopped for combat.": {
@@ -4358,7 +4319,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:160"
+        "mod/companion-chauffeur.lua:200"
       ]
     },
     "The trip will be stopped when you return to gameplay.": {
@@ -4366,7 +4327,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:144"
+        "mod/manager-party.lua:151"
       ]
     },
     "There is no companion trip to cancel.": {
@@ -4374,7 +4335,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:142"
+        "mod/manager-party.lua:149"
       ]
     },
     "This contact has no companion mapping yet.": {
@@ -4390,7 +4351,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:654"
+        "mod/manager.lua:661"
       ]
     },
     "This copy could not be created.": {
@@ -4398,7 +4359,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:778"
+        "mod/manager.lua:785"
       ]
     },
     "This copy could not become ready. Review the error, choose another conversation profile or cancel the invitation.": {
@@ -4414,7 +4375,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:505"
+        "mod/manager.lua:512"
       ]
     },
     "This invitation has a reserved place and will join when you return to gameplay. You can change its conversation profile or cancel it.": {
@@ -4438,7 +4399,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:63"
+        "mod/companion-chauffeur.lua:81"
       ]
     },
     "This manager action is unavailable. Reopen the manager and try again.": {
@@ -4446,7 +4407,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:829"
+        "mod/manager.lua:836"
       ]
     },
     "This setting must be on or off.": {
@@ -4454,7 +4415,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:902"
+        "mod/manager.lua:911"
       ]
     },
     "Trip cancelled from Companion Manager.": {
@@ -4462,7 +4423,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:262"
+        "mod/manager-party.lua:269"
       ]
     },
     "Trip cancelled.": {
@@ -4470,7 +4431,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:119"
+        "mod/companion-chauffeur.lua:145"
       ]
     },
     "Turn chat off": {
@@ -4478,7 +4439,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:679"
+        "mod/manager.lua:686"
       ]
     },
     "Turn chat on": {
@@ -4486,7 +4447,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:679"
+        "mod/manager.lua:686"
       ]
     },
     "Turn off": {
@@ -4494,7 +4455,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:700"
+        "mod/manager.lua:707"
       ]
     },
     "Turn on": {
@@ -4502,7 +4463,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:700"
+        "mod/manager.lua:707"
       ]
     },
     "Type a message first.": {
@@ -4562,7 +4523,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:707"
+        "mod/manager.lua:714"
       ]
     },
     "Undo this pending dismissal.": {
@@ -4578,8 +4539,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:646",
-        "mod/mcm.lua:679"
+        "mod/mcm.lua:650",
+        "mod/mcm.lua:683"
       ]
     },
     "Unknown setting: {setting}": {
@@ -4588,7 +4549,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:938"
+        "mod/manager.lua:947"
       ]
     },
     "Unnamed model {index}": {
@@ -4597,7 +4558,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:545",
+        "mod/manager.lua:552",
         "mod/mcm.lua:495"
       ]
     },
@@ -4614,7 +4575,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:711"
+        "mod/manager.lua:718"
       ]
     },
     "Use 32 steps": {
@@ -4622,7 +4583,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:710"
+        "mod/manager.lua:717"
       ]
     },
     "Use Apply to save changed settings, or Revert to discard them.": {
@@ -4646,7 +4607,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:658"
+        "mod/manager.lua:665"
       ]
     },
     "Use the regular dialogue HUD by default, or place subtitles above the speaking companion. The Subtitles switch controls both.": {
@@ -4662,7 +4623,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:601"
+        "mod/manager.lua:608"
       ]
     },
     "Use {key} to finish this recording.": {
@@ -4671,7 +4632,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/init.lua:655"
+        "mod/init.lua:694"
       ]
     },
     "V changed seats or vehicles.": {
@@ -4679,7 +4640,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:174"
+        "mod/companion-chauffeur.lua:211"
       ]
     },
     "V left the passenger seat.": {
@@ -4687,7 +4648,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:175"
+        "mod/companion-chauffeur.lua:212"
       ]
     },
     "V or a scene has taken vehicle control.": {
@@ -4695,7 +4656,15 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur-native.lua:161"
+        "mod/companion-chauffeur-native.lua:336"
+      ]
+    },
+    "Vehicle exit workspot state is unavailable.": {
+      "contexts": [
+        "party.vehicle-transition-feedback"
+      ],
+      "references": [
+        "mod/companion-vehicle-native.lua:189"
       ]
     },
     "Vehicle information became unavailable.": {
@@ -4703,7 +4672,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:199"
+        "mod/companion-chauffeur.lua:236"
       ]
     },
     "Vehicle information is not ready.": {
@@ -4711,7 +4680,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:52"
+        "mod/companion-chauffeur.lua:70"
       ]
     },
     "Voice playback": {
@@ -4752,8 +4721,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:60",
-        "mod/companion-chauffeur.lua:61"
+        "mod/companion-chauffeur.lua:78",
+        "mod/companion-chauffeur.lua:79"
       ]
     },
     "Wait for your car to stop.": {
@@ -4761,7 +4730,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:74"
+        "mod/companion-chauffeur.lua:98"
       ]
     },
     "Wait for your previous reply before sending another message.": {
@@ -4778,15 +4747,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:72"
-      ]
-    },
-    "Waiting for confirmed AutoDrive shutdown and a stopped car.": {
-      "contexts": [
-        "chauffeur.feedback"
-      ],
-      "references": [
-        "mod/companion-chauffeur.lua:390"
+        "mod/companion-chauffeur.lua:90"
       ]
     },
     "Waiting for current vehicle information.": {
@@ -4794,7 +4755,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:211"
+        "mod/companion-chauffeur.lua:241"
       ]
     },
     "Waiting for party to board": {
@@ -4810,8 +4771,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:359",
-        "mod/companion-chauffeur.lua:381"
+        "mod/companion-chauffeur.lua:424",
+        "mod/companion-chauffeur.lua:434"
       ]
     },
     "Waiting for the conversation service.": {
@@ -4822,21 +4783,53 @@
         "mod/phone-chat-style.lua:34"
       ]
     },
+    "Waiting for the existing companion after vehicle exit.": {
+      "contexts": [
+        "party.vehicle-transition-feedback"
+      ],
+      "references": [
+        "mod/companion-vehicle-native.lua:182"
+      ]
+    },
+    "Waiting for the native occupant slot to release.": {
+      "contexts": [
+        "party.vehicle-transition-feedback"
+      ],
+      "references": [
+        "mod/companion-vehicle-native.lua:196"
+      ]
+    },
+    "Waiting for the native vehicle exit animation to finish.": {
+      "contexts": [
+        "party.vehicle-transition-feedback"
+      ],
+      "references": [
+        "mod/companion-vehicle-native.lua:190"
+      ]
+    },
+    "Waiting for the native vehicle exit to finish.": {
+      "contexts": [
+        "party.vehicle-transition-feedback"
+      ],
+      "references": [
+        "mod/companion-vehicles.lua:228"
+      ]
+    },
+    "Waiting for the native vehicle mount to release.": {
+      "contexts": [
+        "party.vehicle-transition-feedback"
+      ],
+      "references": [
+        "mod/companion-vehicle-native.lua:187"
+      ]
+    },
     "Waiting for the native vehicle transition to finish.": {
       "contexts": [
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:293",
-        "mod/companion-vehicles.lua:314"
-      ]
-    },
-    "Waiting for the other AutoDrive activity to finish.": {
-      "contexts": [
-        "chauffeur.feedback"
-      ],
-      "references": [
-        "mod/companion-chauffeur.lua:362"
+        "mod/companion-chauffeur.lua:323",
+        "mod/companion-vehicles.lua:322"
       ]
     },
     "Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.": {
@@ -4853,7 +4846,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:708"
+        "mod/manager.lua:715"
       ]
     },
     "Waiting for voice service": {
@@ -4864,6 +4857,14 @@
         "mod/mcm.lua:247",
         "mod/mcm.lua:251",
         "mod/mcm.lua:260"
+      ]
+    },
+    "Waiting for walking ownership to resume.": {
+      "contexts": [
+        "party.vehicle-transition-feedback"
+      ],
+      "references": [
+        "mod/companion-vehicles.lua:234"
       ]
     },
     "Waiting for you to board": {
@@ -4895,7 +4896,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:304"
+        "mod/companion-chauffeur.lua:334"
       ]
     },
     "Waiting for your previous message to finish.": {
@@ -4920,7 +4921,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:273"
+        "mod/companion-chauffeur.lua:303"
       ]
     },
     "Write a message...": {
@@ -4953,7 +4954,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:245"
+        "mod/companion-chauffeur.lua:277"
       ]
     },
     "You did not board the car, so the trip was cancelled.": {
@@ -4961,7 +4962,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:302"
+        "mod/companion-chauffeur.lua:332"
       ]
     },
     "You moved away from the car. The trip was cancelled.": {
@@ -4969,7 +4970,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:267"
+        "mod/companion-chauffeur.lua:297"
       ]
     },
     "Your car has no free passenger seat for V.": {
@@ -4977,7 +4978,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:79"
+        "mod/companion-chauffeur.lua:103"
       ]
     },
     "Your companion is driving to the selected waypoint.": {
@@ -4985,7 +4986,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:274"
+        "mod/manager-party.lua:287"
       ]
     },
     "Your companion is preparing to drive.": {
@@ -4993,8 +4994,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:110",
-        "mod/init.lua:164"
+        "mod/companion-chauffeur.lua:135",
+        "mod/init.lua:165"
       ]
     },
     "Your companion is ready. Get in the passenger seat to start the trip.": {
@@ -5002,7 +5003,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:276"
+        "mod/manager-party.lua:289"
       ]
     },
     "Your companion must step out before taking the driver seat.": {
@@ -5010,7 +5011,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-chauffeur.lua:65"
+        "mod/companion-chauffeur.lua:83"
       ]
     },
     "Your companions, character models and conversation settings.": {
@@ -5019,7 +5020,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:631"
+        "mod/mcm.lua:635"
       ]
     },
     "Your group": {
@@ -5035,7 +5036,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:662"
+        "mod/manager.lua:669"
       ]
     },
     "Your party has eight copies. Dismiss one first.": {
@@ -5043,7 +5044,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:163"
+        "mod/manager-party.lua:170"
       ]
     },
     "Your party is empty": {
@@ -5059,7 +5060,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:665"
+        "mod/manager.lua:672"
       ]
     },
     "Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.": {
@@ -5112,7 +5113,7 @@
         "settings.feedback"
       ],
       "references": [
-        "mod/manager.lua:401"
+        "mod/manager.lua:408"
       ]
     },
     "{name} could not join: {reason}": {
@@ -5121,8 +5122,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:305",
-        "mod/manager-party.lua:339"
+        "mod/manager-party.lua:321",
+        "mod/manager-party.lua:355"
       ]
     },
     "{name} could not prepare: {reason}": {
@@ -5131,9 +5132,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:178",
-        "mod/manager-party.lua:245",
-        "mod/manager-party.lua:345"
+        "mod/manager-party.lua:185",
+        "mod/manager-party.lua:252",
+        "mod/manager-party.lua:361"
       ]
     },
     "{name} dismissed.": {
@@ -5142,7 +5143,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:316"
+        "mod/manager-party.lua:332"
       ]
     },
     "{name} does not have a conversation profile configured yet.": {
@@ -5151,7 +5152,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:548"
+        "mod/init.lua:587"
       ]
     },
     "{name} is joining your party.": {
@@ -5160,8 +5161,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:334",
-        "mod/manager-party.lua:89",
+        "mod/manager-party.lua:350",
+        "mod/manager-party.lua:96",
         "mod/mcm.lua:316"
       ]
     },
@@ -5170,7 +5171,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:506"
+        "mod/manager.lua:513"
       ]
     },
     "{name} is not in your group.": {
@@ -5180,7 +5181,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:1113"
+        "mod/init.lua:1152"
       ]
     },
     "{name} is preparing memory and conversation.": {
@@ -5188,7 +5189,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:181"
+        "mod/manager-party.lua:188"
       ]
     },
     "{name} is ready to join when you return to the game.": {
@@ -5196,8 +5197,8 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:182",
-        "mod/manager-party.lua:65"
+        "mod/manager-party.lua:189",
+        "mod/manager-party.lua:72"
       ]
     },
     "{name} is ready. Close the phone to join.": {
@@ -5206,7 +5207,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1126"
+        "mod/init.lua:1165"
       ]
     },
     "{name} joined your group.": {
@@ -5215,7 +5216,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:301"
+        "mod/manager-party.lua:317"
       ]
     },
     "{name} joined your party.": {
@@ -5223,7 +5224,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:504"
+        "mod/manager.lua:511"
       ]
     },
     "{name} selected for memory controls.": {
@@ -5241,7 +5242,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:183"
+        "mod/manager-party.lua:190"
       ]
     },
     "{name} will leave when you return to the game.": {
@@ -5250,7 +5251,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:197"
+        "mod/manager-party.lua:204"
       ]
     },
     "{name} will stay in the party.": {
@@ -5259,7 +5260,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:218"
+        "mod/manager-party.lua:225"
       ]
     },
     "{name} · invited copy": {
@@ -5276,7 +5277,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:795"
+        "mod/manager.lua:802"
       ]
     },
     "{name}: connecting...": {
@@ -5285,7 +5286,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1125"
+        "mod/init.lua:1164"
       ]
     },
     "{name}: conversation profile cleared.": {
@@ -5294,7 +5295,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:253"
+        "mod/manager-party.lua:260"
       ]
     },
     "{name}: conversation set to {profile}.": {
@@ -5303,7 +5304,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:252"
+        "mod/manager-party.lua:259"
       ]
     },
     "{name}: dismiss queued.": {
@@ -5320,7 +5321,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:206"
+        "mod/manager-party.lua:213"
       ]
     },
     "{name}: invite queued.": {
@@ -5337,7 +5338,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1127"
+        "mod/init.lua:1166"
       ]
     },
     "{name}: preparing memory...": {
@@ -5346,7 +5347,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1124"
+        "mod/init.lua:1163"
       ]
     },
     "{status} · After current reply": {
@@ -5477,7 +5478,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:816"
+        "mod/manager.lua:823"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5502,7 +5503,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:672"
+        "mod/manager.lua:679"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5514,7 +5515,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:777"
+        "mod/manager.lua:784"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5526,7 +5527,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:699"
+        "mod/manager.lua:706"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5563,7 +5564,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:558"
+        "mod/init.lua:597"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5599,7 +5600,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:709"
+        "mod/manager.lua:716"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5635,7 +5636,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:805"
+        "mod/manager.lua:812"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5663,7 +5664,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:739"
+        "mod/manager.lua:746"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5675,7 +5676,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:747"
+        "mod/manager.lua:754"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5688,7 +5689,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:741"
+        "mod/manager.lua:748"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5736,7 +5737,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:689"
+        "mod/manager.lua:696"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5760,7 +5761,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:971"
+        "mod/manager.lua:980"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5772,7 +5773,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:840"
+        "mod/manager.lua:847"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5784,7 +5785,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:987"
+        "mod/manager.lua:996"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5808,7 +5809,7 @@
         "settings.feedback"
       ],
       "references": [
-        "mod/manager.lua:938"
+        "mod/manager.lua:947"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5820,7 +5821,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:545"
+        "mod/manager.lua:552"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5832,7 +5833,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/init.lua:655"
+        "mod/init.lua:694"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5892,7 +5893,7 @@
         "settings.feedback"
       ],
       "references": [
-        "mod/manager.lua:401"
+        "mod/manager.lua:408"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5905,8 +5906,8 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:305",
-        "mod/manager-party.lua:339"
+        "mod/manager-party.lua:321",
+        "mod/manager-party.lua:355"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5919,9 +5920,9 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:178",
-        "mod/manager-party.lua:245",
-        "mod/manager-party.lua:345"
+        "mod/manager-party.lua:185",
+        "mod/manager-party.lua:252",
+        "mod/manager-party.lua:361"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5933,7 +5934,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:316"
+        "mod/manager-party.lua:332"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5945,7 +5946,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:548"
+        "mod/init.lua:587"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5957,8 +5958,8 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:334",
-        "mod/manager-party.lua:89"
+        "mod/manager-party.lua:350",
+        "mod/manager-party.lua:96"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5970,7 +5971,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:506"
+        "mod/manager.lua:513"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5982,7 +5983,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1113"
+        "mod/init.lua:1152"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5994,7 +5995,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:181"
+        "mod/manager-party.lua:188"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6006,8 +6007,8 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:182",
-        "mod/manager-party.lua:65"
+        "mod/manager-party.lua:189",
+        "mod/manager-party.lua:72"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6019,7 +6020,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1126"
+        "mod/init.lua:1165"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6031,7 +6032,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:301"
+        "mod/manager-party.lua:317"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6043,7 +6044,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:504"
+        "mod/manager.lua:511"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6067,7 +6068,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:183"
+        "mod/manager-party.lua:190"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6079,7 +6080,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:197"
+        "mod/manager-party.lua:204"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6091,7 +6092,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:218"
+        "mod/manager-party.lua:225"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6116,7 +6117,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:795"
+        "mod/manager.lua:802"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6128,7 +6129,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1125"
+        "mod/init.lua:1164"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6140,7 +6141,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:253"
+        "mod/manager-party.lua:260"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6153,7 +6154,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:252"
+        "mod/manager-party.lua:259"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6177,7 +6178,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:206"
+        "mod/manager-party.lua:213"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6201,7 +6202,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1127"
+        "mod/init.lua:1166"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6213,7 +6214,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1124"
+        "mod/init.lua:1163"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

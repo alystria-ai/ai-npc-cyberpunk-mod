@@ -193,7 +193,7 @@ function M.arrived(s,vehicleId)
     -- and the current destination's physical arrival evidence can complete it.
     return false
 end
-local function binding(c,sample,requirePassenger)
+local function binding(c,sample,requirePassenger,clearedAtArrival)
     if not sample.actorValid or sample.actor.id~=c.offer.actor.id or sample.actor.key~=c.offer.actor.key then
         return false,'The companion binding changed.'
     end
@@ -201,8 +201,10 @@ local function binding(c,sample,requirePassenger)
     if not sample.carValid or not sample.car or sample.car.id~=c.car.id then return false,'The borrowed car is unavailable.' end
     if sample.info.scene then return false,'A scene has taken control of the car.' end
     if sample.summonedId~=c.car.id then return false,'A different car was summoned.' end
-    local route,why=destination(c,sample.waypoint)
-    if not route then return false,why end
+    if not clearedAtArrival then
+        local route,why=destination(c,sample.waypoint)
+        if not route then return false,why end
+    end
     local pm=sample.playerMount
     if pm and (pm.vehicle~=c.car.id or (pm.seat~=c.passengerSeat
         and not (approaching(c.phase) and pm.seat=='seat_front_left')
@@ -278,7 +280,14 @@ function M.update(s,player,entries,hooks,ops)
         stop(s,'Another AutoDrive activity took control.','cancelled')
     end
     if c.phase~='stopping' and c.phase~='waiting-for-player-exit' and c.phase~='exiting-driver' then
-        local ok,reason=binding(c,sample,c.phase=='waiting-for-party' or c.phase=='starting' or c.phase=='driving')
+        -- Custom markers can clear on arrival. The same owned command must
+        -- have finished and physically stopped near its last applied target;
+        -- marker removal while driving still cancels normally.
+        local clearedAtArrival=c.phase=='driving' and not sample.waypoint
+            and drive.known and drive.state=='Success' and stopped
+            and type(drive.distance)=='number' and drive.distance<=ARRIVAL_DISTANCE
+            and c.driveRevision==c.destinationRevision and not c.cancelled
+        local ok,reason=binding(c,sample,c.phase=='waiting-for-party' or c.phase=='starting' or c.phase=='driving',clearedAtArrival)
         if not ok then stop(s,reason,'cancelled') end
         if not approaching(c.phase) and not driverSeated(c,sample) then
             stop(s,'The companion left the driver seat.','cancelled')

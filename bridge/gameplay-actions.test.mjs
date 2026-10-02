@@ -25,7 +25,7 @@ end
 local function publish(value)
  sequence=sequence+1;raw=tostring(sequence);packets[raw]=value
 end
-local nativeRefused,nativeThrow=false,false
+local nativeRefused,nativeThrow,developer=false,false,false
 local q=(function() ${source} end)().new({
  world=function()return world end,clock=function()return now end,
  normalizeOffer=function(value)return normalize(value)end,
@@ -36,6 +36,7 @@ local q=(function() ${source} end)().new({
   return not nativeRefused,nativeRefused and 'Waypoint changed' or 'Driving request queued'
  end,
  read=function()return raw end,decode=function(value)return assert(packets[value])end,
+ developerMode=function()return developer end,
  feedback=function(state,reason)feedback[#feedback+1]={state=state,reason=reason}end})
 `;
 function run(body) {
@@ -143,4 +144,19 @@ test('an older microphone cancellation cannot revoke a newer private action', ()
  publish(packet(input));q.update(true);assert(#queued==1)
  input=context('next-text');q.capture(input,'private-text')
  q.revoke('this-request',input.requestId);assert(not q.inspect().pending)
+`));
+
+test('routine queued feedback uses the saved developer choice without repeating native admission', () => run(`
+ local input=context();assert(q.capture(input,'private-text'))
+ publish(packet(input));q.update(true);q.update(true)
+ assert(#queued==1 and #feedback==0 and q.inspect().state=='queued')
+ developer=true;q.update(true);assert(#queued==1 and #feedback==0)
+ input=context('developer-trip');assert(q.capture(input,'private-text'))
+ publish(packet(input));q.update(true);q.update(true)
+ publish(packet(input));q.update(true)
+ assert(#queued==2 and #feedback==1 and feedback[1].state=='queued')
+ developer=false
+ input=context('rejected-trip');assert(q.capture(input,'private-text'));nativeRefused=true
+ publish(packet(input));q.update(true);q.update(true)
+ assert(#queued==3 and #feedback==2 and feedback[2].state=='rejected')
 `));

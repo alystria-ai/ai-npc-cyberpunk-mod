@@ -158,6 +158,7 @@ gameplayActions = dofile('gameplay-actions.lua').new({
     end,
     offer = function(entity) return companions.chauffeurOffer(entity) end,
     queue = function(serial, offer, entity) return companions.queueChauffeur(serial, offer, entity) end,
+    developerMode = manager.developerMode,
     feedback = function(state, reason)
         local player = Game.GetPlayer()
         if player then player:ConvaiPhoneFeedback(ui.t(reason or (state == 'queued'

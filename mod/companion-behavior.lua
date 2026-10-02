@@ -87,6 +87,30 @@ function M.decide(s,c,dt)
         s.focusFor,s.failures=0,0
     end
 
+    if ours and (motion.blocked or motion.route and motion.route.kind=='waypoints'
+        and (motion.failed or motion.stalled)) then
+        if s.phase~='obstructed' then s.obstructedPhase=s.phase end
+        enter(s,'obstructed',motion.waiting and 'Check a safe detour while holding the current stance'
+            or 'Wait for the rejected geometry or destination to change')
+        -- A rejected route is still owned by the actuator. A new recovery
+        -- ticket would erase its search and retry the same navmesh every six
+        -- seconds. Real departure may move the goal; camera turns may not.
+        if s.operation.kind=='move' and not s.operation.face and c.frame.moving
+            and space.ground(s.operation.goal,c.travelTarget)>2 then
+            s.operation.goal=space.copy(c.travelTarget)
+            s.arrivalGoal=space.copy(c.travelTarget)
+        end
+        return emit(s,glance(c))
+    end
+    if s.phase=='obstructed' then
+        if ours and (motion.waiting or motion.route and motion.route.kind=='waypoints' and not done) then
+            return emit(s,glance(c))
+        end
+        local phase=s.obstructedPhase or 'joining'
+        s.obstructedPhase=nil
+        enter(s,phase,'Resume the original operation after obstruction clearance')
+    end
+
     -- A look behind at a follower cannot create a body-turn operation.
     if c.frame.moving then
         s.focusFor,s.parked=0,nil

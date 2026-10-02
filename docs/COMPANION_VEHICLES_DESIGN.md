@@ -7,7 +7,10 @@ managed companions share additional cars. An unassigned companion with a
 source-backed personal model gets preference as the next driver; the other
 unassigned people fill that car before another is created. Capacity comes from
 the installed vehicle and its current occupants, including seats reserved by
-native AI. The driver seat in V's car is never allocated.
+native AI. Ordinary passenger joining does not allocate the driver seat in V's
+car. An explicitly accepted chauffeur request leases that seat to the selected
+companion and waits for V to enter a passenger seat manually; see
+[Companion chauffeur](COMPANION_CHAUFFEUR.md).
 
 For example, eight companions beside a four-seat car use three seats beside V,
 four seats in the first overflow car, and the driver seat in a second overflow
@@ -39,9 +42,12 @@ ordinary save restoration, death, and unarmed detach discard it.
 vehicle controller owns a person's movement between a successful release of
 walking/equipment commands and the resume callback. It owns only vehicle entity
 IDs created by its adapter, plus each exact mount, unmount, and follow command
-handle. A borrowed primary car never receives a driving, braking, or deletion
-request. V can use a car created by the mod; while V is in it, autonomous driving
-and deletion are prohibited.
+handle. Ordinary passenger joining never drives, brakes or deletes a borrowed
+primary car. The chauffeur controller may drive and retire its exact owned
+vehicle command after an explicit conversation request and fresh seat/route
+checks. It never deletes the borrowed car or moves V between seats. V can use a
+car created by the mod; regular carpool control yields to V, and deletion stays
+prohibited while V occupies it.
 
 ## States and interruption rules
 

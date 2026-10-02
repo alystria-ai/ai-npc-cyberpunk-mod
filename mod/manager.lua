@@ -293,6 +293,7 @@ local function loadSettings()
         end
     end
     if type(settings.followUpQuestions) ~= 'boolean' then settings.followUpQuestions, settingsNeedSave = false, true end
+    if type(settings.developerMode) ~= 'boolean' then settings.developerMode, settingsNeedSave = false, true end
     if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = true, true end
     if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = true, true end
     if not isChoice(settings.eyeContactHeight, eyeContactHeights) then
@@ -355,6 +356,12 @@ end
 function M.followUpQuestions()
     loadSettings()
     return settings.followUpQuestions == true
+end
+
+-- The feedback paths read the already loaded saved choice. Never load files,
+-- query native settings or retain native handles from a menu callback.
+function M.developerMode()
+    return settings ~= nil and settings.developerMode == true
 end
 
 function M.relationshipChoices()
@@ -856,6 +863,7 @@ function M.snapshot(player)
         profiles = profiles, models = models, party = party, feedback = feedback,
         settings = {voice = settings.voice, subtitles = settings.subtitles, subtitleStyle = settings.subtitleStyle,
             followUpQuestions = settings.followUpQuestions,
+            developerMode = settings.developerMode,
             relationshipModes = relationshipModes,
             battleReactions = settings.battleReactions,
             lootReactions = settings.lootReactions,
@@ -898,7 +906,8 @@ function M.applySettings(player, values)
     nextSettings.relationshipModes = {}
     for key, value in pairs(settings.relationshipModes) do nextSettings.relationshipModes[key] = value end
     for key, value in pairs(values) do
-        if key == 'voice' or key == 'subtitles' or key == 'followUpQuestions' or key == 'battleReactions' or key == 'lootReactions' then
+        if key == 'voice' or key == 'subtitles' or key == 'followUpQuestions' or key == 'developerMode'
+            or key == 'battleReactions' or key == 'lootReactions' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'relationshipModes' then

@@ -3,7 +3,8 @@
 local M = {}
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 
-function M.new(companions, readiness)
+function M.new(companions, readiness, options)
+    options = options or {}
     local Q = {}
     local owner, sequence, joins, leaves = nil, 0, {}, {}
     local attaching, notices = {}, {}
@@ -11,6 +12,12 @@ function M.new(companions, readiness)
     local stopIntent, tripFeedback = false, nil
     local tripGeneration, tripNotices = nil, {}
     local preparationId
+
+    local function developerMode()
+        if type(options.developerMode) ~= 'function' then return false end
+        local ok, enabled = pcall(options.developerMode)
+        return ok and enabled == true
+    end
 
     local function report(message, failed, invitationId)
         feedback = message
@@ -267,17 +274,26 @@ function M.new(companions, readiness)
         if trip.generation ~= tripGeneration then
             tripGeneration, tripNotices, tripFeedback = trip.generation, {}, nil
         end
-        local signature = table.concat({trip.phase or '', trip.reason or '', trip.error or ''}, '|')
+        local developer = developerMode()
+        local signature = table.concat({trip.phase or '', trip.reason or '', trip.error or '', trip.outcome or '',
+            developer and 'developer' or 'normal'}, '|')
         if signature ~= tripFeedback then
             tripFeedback = signature
             local message, failed
-            if trip.phase == 'driving' then message = ui.t('Your companion is driving to the selected waypoint.')
-            elseif trip.phase == 'waiting-for-player' then
-                message = ui.t('Your companion is ready. Get in the passenger seat to start the trip.')
-            elseif trip.phase == 'waiting-for-player-exit' then
-                message = ui.t('The car has stopped. Step out so your companion can leave the driver seat.')
-            elseif trip.error then message, failed = ui.t(trip.error), true
-            elseif trip.reason then message, failed = ui.t(trip.reason), trip.outcome == 'failed' end
+            if trip.error then message, failed = ui.t(trip.error), true
+            elseif trip.outcome == 'failed' and trip.reason then
+                message, failed = ui.t(trip.reason), true
+            elseif developer then
+                if trip.phase == 'driving' then message = ui.t('Your companion is driving to the selected waypoint.')
+                elseif trip.phase == 'waiting-for-player' then
+                    message = ui.t('Your companion is ready. Get in the passenger seat to start the trip.')
+                elseif trip.phase == 'waiting-for-player-exit' then
+                    message = ui.t('The car has stopped. Step out so your companion can leave the driver seat.')
+                elseif trip.reason then message = ui.t(trip.reason) end
+            end
+            -- Saved Developer mode controls routine instructions only. Include
+            -- the live choice in the signature so turning it on mid-trip shows
+            -- the current instruction once; never replay already shown text.
             -- Native command polls can alternate an error and a stable stop
             -- reason. A signature change is not a new actionable message.
             -- Keep one notice per text per actual trip; a different later

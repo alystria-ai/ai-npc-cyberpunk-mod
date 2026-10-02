@@ -177,6 +177,28 @@ function M.canBoard(entry)
     end
     return true
 end
+function M.canResumeWalking(entry,vehicle,seat)
+    if not entry.npc or not entry.npc:IsAttached() or entry.npc:IsDeadNoStatPool() then
+        return false,'Waiting for the existing companion after vehicle exit.'
+    end
+    -- A mount link can disappear before the native door/exit workspot ends.
+    -- Source: core/systems/workspotSystem.script; the existing reload cleanup
+    -- uses this same IsActorInWorkspot gate before relinquishing the driver.
+    if M.mounting(entry) then return false,'Waiting for the native vehicle mount to release.' end
+    local inWorkspot=Game.GetWorkspotSystem():IsActorInWorkspot(entry.npc)
+    if type(inWorkspot)~='boolean' then error('Vehicle exit workspot state is unavailable.') end
+    if inWorkspot then return false,'Waiting for the native vehicle exit animation to finish.' end
+    local info=vehicle and vehicle.info
+    if info and info.ready then
+        local actor=id(entry.entityID or entry.npc:GetEntityID())
+        for _,slot in ipairs(info.seats or {}) do
+            if slot.name==seat and slot.occupant==actor then
+                return false,'Waiting for the native occupant slot to release.'
+            end
+        end
+    end
+    return true
+end
 local function stateName(value)
     local label=tostring(value)
     return label:match('^AICommandState%s*:%s*(%w+)%s*%(%d+%)$') or label

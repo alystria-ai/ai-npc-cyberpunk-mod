@@ -27,6 +27,8 @@ The catalog currently contains **79 conversation profiles**: 77 named characters
 - Native combat AI, post-combat holstering, and moving green companion markers on the minimap.
 - Summoned Johnny uses the game's solid appearance, including while seated and viewed up close. His story apparition remains separate.
 - Passenger boarding and seated eye/head attention. The vehicle controller also includes overflow carpooling and fast-travel recovery; their wider gameplay checks are still pending.
+- Ask a nearby companion to drive your summoned car to the selected map waypoint. They take the driver seat and wait for you to enter a passenger seat. You can change the waypoint during the trip; **Current party** shows its status and Stop trip.
+- **Settings → Development → Developer mode** enables routine driving status popups. It defaults Off; important errors remain visible.
 
 Selecting **Invite** reserves a place and immediately prepares memory configuration, the selected voice, and the conversation connection. A talking companion appears only after preparation succeeds and you return to gameplay. Progress reports the current preparation stage. This setup does not send an invented conversation or seed memories.
 
@@ -198,7 +200,7 @@ See the [runtime guide](bridge/README.md) for connection/playback details and th
 
 ## Known development limitations
 
-- **Companion chauffeur:** conversation-driven boarding and a bounded native NPC driving trial have been observed. Complete trips, arrival and changing waypoints still need live qualification of the new controller. The ambient-car Johnny guard is built and verified structurally; its next fresh-entry game check is pending. Asking a companion to drive is the intended entry point; Current party exposes status and Stop trip.
+- **Companion chauffeur:** the user confirmed Johnny boards, waits for V, drives and follows a changed waypoint under the native NPC controller. The arrival-marker classification and post-exit obstruction recovery have source fixes awaiting the combined gameplay check. Complete-trip cleanup, overflow convoys and fast travel still need wider acceptance. Asking a companion to drive is the entry point; Current party exposes status and Stop trip.
 - **Vehicles and travel:** ordinary passenger boarding and seated head attention have been checked. Overflow carpooling, convoy recovery, and fast-travel restoration have implementation/test coverage but need wider live acceptance. Regular save loading does not automatically respawn the party.
 - **Special models and navigation:** different rigs, large bodies, story variants, and unusual combat behavior need individual gameplay checks. Collision/placement checks are installed, but walking around props and vehicles still needs live acceptance. A safe nearby spawn may be refused.
 - **Conversation quality:** biographies, voice references, and current-save mappings have uneven depth. Cloned speech is not guaranteed to match every original performance, and facial animation still varies by rig. Provider availability, local GPU load, and power settings affect latency.

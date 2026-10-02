@@ -202,9 +202,10 @@ function M.sample(player,entry,leasedCar,api,operation)
             and enum(record:Type():Type(),'gamedataVehicleType','Car')
         sample.info=api.inspect(sample.car)
         sample.drive=M.inspectDrive(sample.car,operation)
-        if sample.waypoint then
+        local distanceTarget=sample.waypoint and sample.waypoint.position or operation and operation.target
+        if distanceTarget then
             local position=routePosition(car:GetWorldPosition())
-            local target=sample.waypoint.position
+            local target=distanceTarget
             if position then sample.drive.distance=math.sqrt((position.x-target.x)^2
                 +(position.y-target.y)^2+(position.z-target.z)^2) end
         end

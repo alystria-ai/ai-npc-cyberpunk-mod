@@ -45,6 +45,12 @@ function M.new(options)
     local lease, lastRaw, result, lastAdmission
     local clock = options.clock or function() return os.time() * 1000 end
 
+    local function developerMode()
+        if type(options.developerMode) ~= 'function' then return false end
+        local ok, enabled = pcall(options.developerMode)
+        return ok and enabled == true
+    end
+
     function Q.revoke(reason, requestId)
         if requestId and (not lease or lease.requestId ~= requestId) then return end
         if lease then result = {state = 'revoked', reason = reason or 'cancelled'} end
@@ -118,7 +124,9 @@ function M.new(options)
             copy(admitted.offer), admitted.entity)
         result = {state = called and accepted == true and 'queued' or 'rejected',
             reason = called and reason or 'The driving request could not be queued.'}
-        if options.feedback then pcall(options.feedback, result.state, result.reason) end
+        if options.feedback and (result.state == 'rejected' or developerMode()) then
+            pcall(options.feedback, result.state, result.reason)
+        end
     end
 
     function Q.inspect()

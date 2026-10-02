@@ -806,9 +806,10 @@ const invitationFixture = `
   function readiness.update() readiness.updates = (readiness.updates or 0) + 1 end
   mcm.shutdown()
   local queueFactory = (function() ${queueSource} end)()
-  mcm.configure(manager, api, {new = function(companions, preparation)
+  mcm.configure(manager, api, {new = function(companions, preparation, options)
     assert(companions == api and preparation == readiness, 'MCM dropped the invitation readiness argument')
-    return queueFactory.new(companions, preparation)
+    assert(type(options.developerMode) == 'function', 'MCM dropped the cached developer predicate')
+    return queueFactory.new(companions, preparation, options)
   end}, entryFactory, readiness)
   mcm.install()
   loaded = registered.loadMod('manager')
@@ -1759,6 +1760,9 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(actual.getValue(key .. ':followUpQuestions') == false)
       assert(actual.setDraft(key .. ':followUpQuestions', true))
       assert(not manager.followUpQuestions(), 'draft must not change running conversations')
+      assert(actual.getValue(key .. ':developerMode') == false)
+      assert(actual.setDraft(key .. ':developerMode', true))
+      assert(not manager.developerMode(), 'developer draft must not change runtime feedback')
       assert(actual.invokeAction(key .. ':settings:back') == false)
       assert(actual.invokeAction(key .. ':memory') == false and memoryWrites() == 0)
       assert(mcm.inspect().view == 'settings', 'a pending draft allowed submenu navigation')
@@ -1771,6 +1775,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(actual.getValue(key .. ':subtitleStyle') == 1 and manager.subtitleStyle() == 'overhead')
       assert(not manager.battleReactions() and actual.getValue(key .. ':battleReactions') == false)
       assert(manager.followUpQuestions() and actual.getValue(key .. ':followUpQuestions') == true)
+      assert(manager.developerMode() and actual.getValue(key .. ':developerMode') == true)
       assert(actual.getValue(key .. ':eyeContactHeight') == 5 and actual.getValue(key .. ':headFollowStrength') == 4)
       assert(manager.gazeSettings().eyeContactHeight == 0.10 and manager.gazeSettings().headFollowStrength == 1.5)
       -- Exercise the shipped public draft bus/getValue seam, not a synthetic
@@ -1793,9 +1798,11 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(not json.decode(files['runtime/voice-preview.json']).active)
       assert(actual.setDraft(key .. ':subtitles', false))
       assert(actual.setDraft(key .. ':followUpQuestions', false))
+      assert(actual.setDraft(key .. ':developerMode', false))
       assert(actual.invokeAction(key .. ':permissions') == false)
       assert(actual.revert(key) and actual.getValue(key .. ':subtitles') == true)
       assert(manager.followUpQuestions() and actual.getValue(key .. ':followUpQuestions') == true)
+      assert(manager.developerMode() and actual.getValue(key .. ':developerMode') == true)
       assert(actual.resetDraft(key .. ':eyeContactHeight') and actual.resetDraft(key .. ':headFollowStrength'))
       assert(manager.gazeSettings().eyeContactHeight == 0.10 and manager.gazeSettings().headFollowStrength == 1.5)
       assert(actual.apply(key))
@@ -2031,6 +2038,74 @@ test('owned raw models have no implicit conversation identity; assigning a profi
     local world = {GetEntityID = function() return {hash = 'world-quest-actor'} end}
     assert(companions.identity(world) == nil and not companions.owns(world))
     assert(companions.dismiss(serial) and deleted[1] == '1')
+  `);
+});
+
+test('Developer mode is a cached default-Off choice and persists only after an atomic successful save', () => {
+  run(`${managerFixture}
+    assert(not manager.developerMode())
+    manager.configure(api, profiles)
+    assert(manager.snapshot(nil).settings.developerMode == false)
+    assert(manager.applySettings(nil, {developerMode = false}))
+    local open = io.open
+    io.open = function() error('cached Developer mode attempted filesystem work') end
+    Game = {GetPlayer = function() error('cached Developer mode queried a native handle') end}
+    for i = 1, 20 do assert(not manager.developerMode()) end
+    io.open = open
+    failSave = true
+    assert(not manager.applySettings(nil, {developerMode = true, followUpQuestions = true}))
+    assert(not manager.developerMode() and not manager.followUpQuestions() and not saved.developerMode)
+    failSave = false
+    assert(manager.applySettings(nil, {developerMode = true}))
+    assert(manager.developerMode() and saved.developerMode == true)
+    failSave = true
+    assert(not manager.applySettings(nil, {developerMode = false}))
+    assert(manager.developerMode() and saved.developerMode == true)
+    failSave = false
+    assert(not manager.applySettings(nil, {developerMode = 'on'}))
+    assert(manager.developerMode())
+    manager = (function() ${managerSource} end)()
+    manager.configure(api, profiles)
+    assert(manager.snapshot(nil).settings.developerMode == true and manager.developerMode())
+    assert(manager.applySettings(nil, {developerMode = false}))
+    manager.reset()
+    assert(manager.snapshot(nil).settings.developerMode == false and not manager.developerMode())
+  `);
+});
+
+test('MCM puts Developer mode in Development and changing it updates existing party feedback without native work', () => {
+  run(`${mcmFixture}
+    local trip = {active = true, generation = 4, phase = 'waiting-for-player'}
+    api.chauffeurSnapshot = function()
+      local result = {}; for key, value in pairs(trip) do result[key] = value end; return result
+    end
+    local queue = mcm.party()
+    queue.bind('player-1'); queue.flush(); assert(#queue.takeNotices() == 0)
+    assert(invoke('tab:settings').ok)
+    local item = assert(row('developerMode'))
+    assert(item.label == 'Developer mode' and item.type == 'bool' and item.value == false)
+    assert(item.defaultValue == false and item.capabilities.draft and item.indent == nil)
+    local section
+    for _, category in ipairs(loaded.categories) do if category.id == 'development' then section = category end end
+    assert(section and section.name == 'Development' and section.settings[1].id == 'developerMode')
+    assert(registered.applyBatch('manager', {{id = 'developerMode', value = true}}).ok)
+    local getter = Game.GetPlayer
+    Game.GetPlayer = function() error('Developer feedback queried a native player') end
+    queue.flush(); queue.flush()
+    local notices = queue.takeNotices()
+    assert(#notices == 1 and notices[1].message:find('Get in the passenger seat', 1, true))
+    Game.GetPlayer = getter
+    failSave = true
+    assert(not registered.applyBatch('manager', {{id = 'developerMode', value = false}}).ok)
+    assert(manager.developerMode() and saved.developerMode == true)
+    assert(not registered.applyBatch('manager', {{id = 'developerMode', value = 'true'}}).ok)
+    failSave = false
+    assert(registered.applyBatch('manager', {{id = 'developerMode', value = false}}).ok)
+    trip.phase = 'driving'; queue.flush(); assert(#queue.takeNotices() == 0)
+    assert(registered.applyBatch('manager', {{id = 'developerMode', value = true}}).ok)
+    queue.flush(); queue.flush(); notices = queue.takeNotices()
+    assert(#notices == 1 and notices[1].message:find('driving to the selected waypoint', 1, true))
+    assert(#spawned == 0)
   `);
 });
 
