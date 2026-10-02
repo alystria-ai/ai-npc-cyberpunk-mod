@@ -986,3 +986,14 @@ accept absolute Python/browser executable and prebuilt-client asset paths while
 retaining hidden child ownership, loopback Host checks and the existing asset
 allowlist. Relocation hooks have focused source/loopback coverage. A portable
 Python bundle, player reference extraction and release bootstrap remain pending.
+
+The resumed Johnny driving test exposed a targeting omission before departure:
+a ready managed Johnny stood 1.31 metres away, visibly in front of V, while the
+native NPC target-parts query returned an empty array. His native Head transform
+was available; raw MountingInfo had a defined zero parent and empty seat. Live
+raycasts to torso and head returned Boolean no-hit for all six scenery/vehicle
+groups. The target selector now includes verified owned on-foot copies omitted
+by the native query, retains torso and close-face Head aim, and checks visibility
+through the shared query budget. Ordinary native and same-car seated selection
+retain their existing behavior. Source regressions and native input measurements
+precede activation; live private-chat acceptance is the next check.

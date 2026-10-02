@@ -373,22 +373,37 @@ local function targetAtCrosshair()
     query.includeSecondaryTargets = false
     query.filterObjectByDistance = true
     query.ignoreInstigator = true
-    local candidates, seated = {}, {}
+    local candidates, seated, onFoot, nativeIds = {}, {}, {}, {}
+    local function nativeCandidate(npc)
+        candidates[#candidates + 1] = npc
+        local ok, id = pcall(function() return tostring(npc:GetEntityID().hash) end)
+        if ok then nativeIds[id] = true end
+    end
     local _, parts = targeting:GetTargetParts(player, query)
     for _, part in ipairs(parts or {}) do
         local component = TS_TargetPartInfo.GetComponent(part)
         local entity = component and component:GetEntity()
-        if entity then candidates[#candidates + 1] = entity end
+        if entity then nativeCandidate(entity) end
     end
     local nearest = targeting:GetObjectClosestToCrosshair(player, query)
-    if nearest then candidates[#candidates + 1] = nearest end
+    if nearest then nativeCandidate(nearest) end
     local lookedOk, looked = pcall(function() return targeting:GetLookAtObject(player, true, true) end)
-    if lookedOk and looked then candidates[#candidates + 1] = looked end
+    if lookedOk and looked then nativeCandidate(looked) end
     -- Vehicle occupants can be absent from native target parts. This fallback
     -- admits only actual managed seats in V's current vehicle.
     for _, npc in ipairs(companions.seatedCandidates(player)) do
         candidates[#candidates + 1] = npc
         seated[tostring(npc:GetEntityID().hash)] = true
+    end
+    -- Preserve ordinary native selection and the accepted same-car fallback.
+    -- Only absent managed on-foot copies need our own geometry/visibility gate.
+    local standing = type(companions.onFootCandidates) == 'function' and companions.onFootCandidates() or {}
+    for _, npc in ipairs(standing) do
+        local id = tostring(npc:GetEntityID().hash)
+        if not nativeIds[id] and not seated[id] then
+            candidates[#candidates + 1] = npc
+            onFoot[id] = true
+        end
     end
     local playerPos, forward = targeting:GetCrosshairData(player)
     local forwardLength = math.sqrt(forward.x^2 + forward.y^2 + forward.z^2)
@@ -396,9 +411,10 @@ local function targetAtCrosshair()
     for _, npc in ipairs(candidates) do
         local valid, score = pcall(function()
             if not npc:IsNPC() or not npc:IsAttached() or npc:IsDeadNoStatPool() then return nil end
+            local id = tostring(npc:GetEntityID().hash)
             local pos = npc:GetWorldPosition()
-            local targetZ = pos.z + 1.3
-            if seated[tostring(npc:GetEntityID().hash)] then
+            local points = {{x = pos.x, y = pos.y, z = pos.z + 1.3}}
+            if seated[id] then
                 -- Installed NPCPuppet.HasHeadUnderwater uses the Head slot and
                 -- this world conversion. CET returns its out transform; the
                 -- live seated probe confirms GetSlotTransform takes one input.
@@ -407,17 +423,39 @@ local function targetAtCrosshair()
                 local found, transform = slot:GetSlotTransform(CName.new('Head'))
                 if not found or not transform then return nil end
                 pos = WorldPosition.ToVector4(WorldTransform.GetWorldPosition(transform))
-                targetZ = pos.z
+                points = {pos}
+            elseif onFoot[id] then
+                -- Keep torso aim usable. The actual Head slot is a second aim
+                -- point for close face-to-face conversations, when available.
+                local headOk, head = pcall(function()
+                    local slot = npc:GetSlotComponent()
+                    if not slot then return nil end
+                    local found, transform = slot:GetSlotTransform(CName.new('Head'))
+                    if not found or not transform then return nil end
+                    local point = WorldPosition.ToVector4(WorldTransform.GetWorldPosition(transform))
+                    if not point or type(point.x) ~= 'number' or type(point.y) ~= 'number'
+                        or type(point.z) ~= 'number' then return nil end
+                    return point
+                end)
+                if headOk and head then points[#points + 1] = head end
             end
-            local dx, dy, dz = pos.x - playerPos.x, pos.y - playerPos.y, targetZ - playerPos.z
-            local distance = math.sqrt(dx^2 + dy^2 + dz^2)
-            if distance < 0.1 or distance > 8.0 or forwardLength < 0.1 then return nil end
-            local cosine = (dx * forward.x + dy * forward.y + dz * forward.z) / (distance * forwardLength)
-            cosine = math.max(-1.0, math.min(1.0, cosine))
-            local angle = math.deg(math.acos(cosine))
-            if lookedOk and looked and npc == looked then angle = 0.0 end
-            if angle > 32.0 then return nil end
-            return angle / 32.0 + distance / 8.0
+            local pointScore = math.huge
+            for _, point in ipairs(points) do
+                local dx, dy, dz = point.x - playerPos.x, point.y - playerPos.y, point.z - playerPos.z
+                local distance = math.sqrt(dx^2 + dy^2 + dz^2)
+                if distance >= 0.1 and distance <= 8.0 and forwardLength >= 0.1 then
+                    local cosine = (dx * forward.x + dy * forward.y + dz * forward.z) / (distance * forwardLength)
+                    cosine = math.max(-1.0, math.min(1.0, cosine))
+                    local angle = math.deg(math.acos(cosine))
+                    if not onFoot[id] and lookedOk and looked and npc == looked then angle = 0.0 end
+                    local value = angle / 32.0 + distance / 8.0
+                    if angle <= 32.0 and value < pointScore and value < bestScore
+                        and (not onFoot[id] or companions.visibleFromCrosshair(playerPos, point)) then
+                        pointScore = value
+                    end
+                end
+            end
+            return pointScore < math.huge and pointScore or nil
         end)
         if valid and score and score < bestScore then best, bestScore = npc, score end
     end

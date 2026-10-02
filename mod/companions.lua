@@ -31,6 +31,7 @@ end
 local spatialBudget,externalSpatialFrame
 local function spatialFrame()
     spatialBudget=clearance.newBudget()
+    clearance.useBudget(spatialBudget)
     actuator.useSpatialBudget(spatialBudget)
     placement.useSpatialBudget(spatialBudget)
     vehicleNative.useSpatialBudget(spatialBudget)
@@ -516,6 +517,50 @@ function M.seatedCandidates(player)
         end
     end
     return result
+end
+
+-- Some managed models (including visible Johnny copies) have no native target
+-- parts. A fallback may use only a current owned copy with a KNOWN empty mount.
+-- A nil native MountingInfo is unavailable information, not evidence of on foot.
+function M.onFootCandidates()
+    local result={}
+    for _,entry in ipairs(entries) do
+        local ok,eligible=pcall(function()
+            local npc,owner=entry.npc,entry.system
+            if entry.state~='ready' or not npc or not owner or not owner:IsReady()
+                or not npc:IsNPC() or not npc:IsAttached() or npc:IsDeadNoStatPool()
+                or tostring(npc:GetEntityID().hash)~=tostring(entry.entityID.hash)
+                or not owner:IsManaged(entry.entityID)
+                or not owner:IsTagged(entry.entityID,CName.new('CyberpunkConvaiCompanion')) then return false end
+            local facility=Game.GetMountingFacility()
+            local info=facility and facility:GetMountingInfoSingleWithObjects(npc)
+            local parent=info and info.parentId
+            return parent and parent.hash~=nil and tostring(parent.hash):match('^0+[uUlL]*$')~=nil
+        end)
+        if ok and eligible then result[#result+1]=entry.npc end
+    end
+    return result
+end
+
+local sightGroups={'Static','Dynamic','Terrain','Collider','Destructible','Vehicle'}
+function M.visibleFromCrosshair(from,to)
+    if not spatialBudget or not clearance.isPoint(from) or not clearance.isPoint(to)
+        or not clearance.available(#sightGroups) then return false end
+    local ok,visible=pcall(function()
+        local spatial=Game.GetSpatialQueriesSystem()
+        if not spatial then return false end
+        local start=Vector4.new(from.x,from.y,from.z,1)
+        local finish=Vector4.new(to.x,to.y,to.z,1)
+        for _,group in ipairs(sightGroups) do
+            if not clearance.take(1) then return false end
+            -- CET returns the out TraceResult. Boolean HIT is authoritative;
+            -- nil/non-Boolean responses never certify an unobstructed ray.
+            local hit=spatial:SyncRaycastByCollisionGroup(start,finish,CName.new(group),false,false)
+            if type(hit)~='boolean' or hit then return false end
+        end
+        return true
+    end)
+    return ok and visible==true
 end
 
 
