@@ -176,3 +176,26 @@ optimizer, EMA, scaler and per-rank RNG for bounded-session continuation. Fixed
 development data selects checkpoints; final test data and listening samples
 evaluate the result. Epoch and validation bounds adapt the official presets to
 the smaller cast corpus. No quality-parity claim follows from a lower loss.
+
+After downloading the selected teacher and student exports, run
+`python scripts/Pocket-CompareExports.py --teacher-export <teacher/export> --student-export <distill/export> --output <new-directory> --public-student-stream --plan-only`.
+This verifies the official source digest, matching training identities, selected
+EMA receipts and model hashes without importing a model. Remove `--plan-only`
+to produce the CPU comparison; use the prepared research Python environment.
+Execution rebases each downloaded export's YAML to its local assets through
+`relocate_export`; it does not alter its weights.
+
+The default comparison preserves the cloud sampler settings: teacher CFG2,
+student CFG1, one decode step, temperature 0.3, seed 1337 and the same 22-second
+Johnny reference. The optional public student stream runs separately because
+the public inference API has no CFG2 control. It additionally measures first
+PCM arrival and the observed buffering needed to avoid underruns.
+
+Each model runs in a fresh CPU process, with two threads, one warm repeat,
+a 30-second output cap and a 900-second worker deadline by default. Load,
+reference preparation, first/warm generation, resident RAM and file sizes are
+stored in `comparison.json`; `listen/` contains the generated WAVs alongside
+unchanged original and OmniVoice 32 references. Cold means a fresh worker with
+local assets and the OS disk cache retained. These results do not measure game
+FPS or establish voice quality. The helper hides CUDA, stays offline and never
+reads account credentials or changes the installed voice provider.
