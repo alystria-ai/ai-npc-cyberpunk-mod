@@ -63,6 +63,9 @@ now selects Dialogue HUD when V or the exact speaker occupies a live vehicle.
 Boarding during an existing overhead reply conceals and retires its owned root
 before continuing the same page and playback cursor in the HUD. It does not
 rewrite the saved subtitle style or native Cinematic preference.
+The original page boundaries also remain fixed for that utterance's subsequent
+stream revisions, avoiding skipped words when the two layouts have different
+line-length budgets.
 
 The focused subtitle/continuous/phrase playback gate passes 57 checks; the
 optional installed-source contract check was skipped without its source-path

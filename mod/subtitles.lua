@@ -147,6 +147,7 @@ function M.abandon()
     -- Death/detach destroys the HUD. Release references without native calls.
     M.line, M.controller, M.widgetToken, M.actor, M.entity, M.playerID = nil, nil, nil, nil, nil, nil
     M.pages, M.timed, M.speaker, M.page, M.remaining, M.mode = nil, nil, nil, nil, nil, nil
+    M.paginationStyle = nil
     M.placement = nil
     M.anchor, M.projectionReady, M.pendingProjection, M.rootVisibility = nil, nil, nil, nil
     M.revealAfterFrame = nil
@@ -297,7 +298,8 @@ local function prepare(speaker, text, actor, expected)
         elseif not ok or visible ~= true then M.mode, M.fallback = 'dialogue', 'native-overheads-disabled' end
     end
     if M.mode == 'overhead' then M.anchor = headAnchor(M.actor) end
-    M.pages = M.split(text, M.mode)
+    M.paginationStyle = M.mode
+    M.pages = M.split(text, M.paginationStyle)
     if #M.pages == 0 then M.abandon(); return false end
     M.playerID, M.speaker, M.page = identity(Game.GetPlayer()), speaker, 1
     return true
@@ -327,7 +329,9 @@ function M.reviseTimed(text, duration, position)
         or not finite(position) or position < 0 then return false end
     if M.playerID and identity(Game.GetPlayer()) ~= M.playerID then M.abandon(); return false end
     if not M.enabled() or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return false end
-    local pages = M.split(text, M.mode)
+    -- Switching an ongoing utterance from overhead to the cabin HUD must not
+    -- change page boundaries on the next streamed transcript revision.
+    local pages = M.split(text, M.paginationStyle or M.mode)
     if #pages == 0 then return false end
     local oldText, oldPage = M.pages[M.page], M.page
     local weights, total = {}, 0
