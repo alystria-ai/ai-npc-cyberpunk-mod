@@ -8,32 +8,52 @@ read-only component receipt showed the original `man_average_sermo` graph:
 the prepared face component. A latched readiness flag made accepted feature
 events look successful even though that graph could not consume the feature.
 
-The service now prepares the tagged companion's newly extracted template,
-appearance and custom-appearance component instances through `Entity/Extract`.
-It uses the builder request's entity ID for the dynamic-tag guard and never
-edits shared `.ent`/`.app` definitions. The existing `Entity/Initialize` callback
-remains the initial-spawn fallback and recognizes an already prepared graph.
-No attach-time repair of a running animation graph is performed.
+The service prepares extracted template, appearance and custom-appearance
+component instances when the builder request has a managed entity ID. The
+`Entity/Initialize` callback repeats the dynamic tag check before initial native
+component initialization. The source compiled and its initial 74 focused checks
+passed, but a fresh Johnny game check exposed an important missing case: the
+physical appearance still replaced the prepared component after attachment.
+
+A bounded live `Entity/Extract` trace resolved the cause. Requests for both
+`silverhand_default` and `silverhand_riot__not_blendable` reported entity ID
+`0ULL`, `HasEntity=false`, `HasAppearance=true`, and no dynamic tag. Those
+appearance-only builders provide no authoritative copy identity to this
+callback. Their components remain untouched; matching an appearance name or
+character record would also match original story actors.
+
+Johnny's private spawn record now returns the solid appearance confirmed by
+his template's phantom mapping. `companions.lua` puts
+`silverhand_riot__not_blendable` in the initial `DynamicEntitySpec` before
+`CreateEntity`. Native initialization therefore prepares the final face rig,
+and attachment disables the phantom controller without requesting another
+appearance. Cached record reuse, model-browser aliases and missing-copy
+recreation after fast travel use the same choice. The choice follows the model
+record, so assigning Johnny's conversation profile to another model does not
+change that model's appearance.
 
 `ConvaiFaceReady()` also checks the current `face_rig` graph's load/failure state
 and exact prepared path. Replacing it can no longer leave the old flag sufficient
 for accepting facial frames. The service retains no actor/component handles,
 and speech and expressions still share one writer.
 
-The isolated native compilation and 74 focused facial/expression checks pass.
-The new lifecycle still needs the fresh-Johnny game check: inspect the active
-mod graph after the physical appearance loads, then capture a seated voiced
-reply and its reset. Compilation and frame counts alone do not confirm motion.
+The two new production-Lua regressions failed before the spawn fix and pass
+after it; 51 affected behavior, record, vehicle-integration and facial-graph
+checks pass. The native facial source was unchanged by this correction. Live
+acceptance still requires a fresh Johnny with the prepared active graph, a
+seated voiced reply and its reset. Compilation and frame counts alone do not
+confirm motion.
 Codeware's pinned [builder wrappers](https://github.com/psiberx/cp2077-codeware/blob/v1.20.5/src/App/Entity/EntityBuilderWrapper.hpp)
 expose the extracted component instances used by this preparation.
 
 Independent review of the installed Johnny assets places `face_rig` in each
 relevant `.app` appearance, with obligatory graph/rig dependencies. Official
 Codeware 1.20.5 source confirms that this extraction seam exposes builder-local
-component results before aggregation and initialization. This qualifies the
-chosen seam for the reported replacement; arbitrary engine reuse of a
-template-only component remains outside that source proof. The live request
-ID/tag and prepared graph still need the restart check.
+component results before aggregation and initialization. This qualifies
+preparation only when the builder supplies a managed ID. General ownerless
+appearance rebuilds and arbitrary engine reuse of an initialized component
+remain outside that source proof. `ConvaiFaceReady()` reports false when such
+a rebuild replaces the prepared graph, without rewriting a running component.
 
 ## Historical status — September 29
 

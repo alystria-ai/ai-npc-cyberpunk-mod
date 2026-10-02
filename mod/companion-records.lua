@@ -4,10 +4,14 @@ local M = {}
 local prepared
 local johnnySource = 'Character.Silverhand'
 local johnnyCopy = 'CyberpunkConvai.JohnnyCompanion'
+-- Johnny's template maps both default/riot blendable appearances to this solid
+-- appearance. Select it at creation: changing the appearance after attachment
+-- replaces the prepared face_rig through an ownerless native builder request.
+local johnnyAppearance = 'silverhand_riot__not_blendable'
 
 function M.resolve(source)
     if source ~= TweakDBID.new(johnnySource) then return source end
-    if prepared and TweakDB:GetRecord(prepared) then return prepared, nil, johnnyCopy end
+    if prepared and TweakDB:GetRecord(prepared) then return prepared, nil, johnnyCopy, johnnyAppearance end
 
     local ok, result = pcall(function()
         -- Johnny's quest record has crouch/sprint, but no shooting abilities,
@@ -52,7 +56,7 @@ function M.resolve(source)
     end)
     if not ok then return nil, 'Johnny combat preparation failed: ' .. tostring(result) end
     prepared = result
-    return prepared, nil, johnnyCopy
+    return prepared, nil, johnnyCopy, johnnyAppearance
 end
 
 return M

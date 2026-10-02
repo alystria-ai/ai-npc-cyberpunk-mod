@@ -64,9 +64,46 @@ test('record routing follows the selected model, not an assigned conversation pr
   companions.registerDefinition('browser-alias',{recordID='Character.Silverhand',name='Johnny model'})
   local model=spawn('browser-alias')
   assert(model.spec.recordID=='CyberpunkConvai.JohnnyCompanion')
+  assert(model.spec.appearanceName=='silverhand_riot__not_blendable')
   companions.registerDefinition('judy-with-johnny-profile',{
     id='Character.Judy',name='Judy',profileKey='johnny-silverhand'})
-  assert(spawn('judy-with-johnny-profile').spec.recordID=='Character.Judy')
+  local judy=spawn('judy-with-johnny-profile')
+  assert(judy.spec.recordID=='Character.Judy' and judy.spec.appearanceName==nil)
+`));
+
+test('Johnny is created solid so attachment does not replace his initialized face graph',()=>run(`
+  companions.spawn('johnny-silverhand')
+  local johnny=entities[sequence]
+  assert(johnny.spec.appearanceName=='silverhand_riot__not_blendable',
+    'the solid appearance must be part of the initial native spawn request')
+  local ghost={enabled=true,params={blendableAppearanceMatches={
+    {blendable='silverhand_default',notBlendable='silverhand_riot__not_blendable'}}},
+    IsA=function(_,kind) return kind=='gamePhantomEntityComponent' end,
+    Toggle=function(self,on) self.enabled=on end,IsEnabled=function(self) return self.enabled end}
+  johnny.components={ghost}
+  johnny.GetCurrentAppearanceName=function() return johnny.spec.appearanceName end
+  johnny.ScheduleAppearanceChange=function() error('attachment replaced the initialized face') end
+  tick()
+  assert(not ghost.enabled and companions.list()[1].state=='ready')
+  local second=spawn('johnny-silverhand')
+  assert(second.spec.appearanceName==johnny.spec.appearanceName,'cached private records lost the appearance')
+  local judy=spawn('judy-alvarez')
+  assert(judy.spec.appearanceName==nil,'an ordinary companion received the Silverhand appearance')
+`));
+
+test('Johnny recreation after fast travel keeps his initial solid appearance',()=>run(`
+  local johnny=spawn('johnny-silverhand')
+  local serial=companions.list()[1].serial
+  assert(companions.beginFastTravel())
+  entities[tonumber(johnny.id.hash)]=nil
+  assert(companions.fastTravel())
+  tick(8)
+  local replacement=entities[sequence]
+  assert(replacement and replacement~=johnny,'fast travel did not recreate the missing copy')
+  assert(replacement.spec.recordID=='CyberpunkConvai.JohnnyCompanion','fast travel lost private record routing')
+  assert(replacement.spec.appearanceName=='silverhand_riot__not_blendable','fast travel lost the initial solid appearance')
+  local row=companions.list()[1]
+  assert(row.serial==serial and row.state=='ready')
 `));
 
 test('missing combat donor prevents an incomplete spawn and does not touch shared records',()=>run(`

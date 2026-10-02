@@ -291,10 +291,11 @@ local function spawnCopy(key, invitation, returning)
     local spawnPosition, placementError, deferred = placement.find(player, formationPosition(player, freeLane),occupiedPositions(),body)
     if deferred then return nil,nil,true end
     if not spawnPosition then return nil, placementError end
-    local spawnRecord, recordError, spawnRecordName = spawnRecords.resolve(recordID)
+    local spawnRecord, recordError, spawnRecordName, spawnAppearance = spawnRecords.resolve(recordID)
     if not spawnRecord then return nil, recordError end
     local spec = NewObject('DynamicEntitySpec')
     spec.recordID = spawnRecord
+    if spawnAppearance then spec.appearanceName = CName.new(spawnAppearance) end
     spec.position = spawnPosition
     spec.orientation = player:GetWorldOrientation()
     spec.spawnInView = true
