@@ -150,3 +150,29 @@ local/Convai F8 ordering, and manager acceptance were still pending. Subsequent
 user checks accepted MCM and Judy's local speech; the September 29 provider
 selection check above records the new Convai-only path separately.
 The real-worker report and WAVs are under ignored `runtime/local-voice-check/`.
+
+## Experimental Pocket TTS adaptation
+
+Pocket TTS is being evaluated as a shared CPU voice model. The current in-game
+provider choices are OmniVoice and Convai; Pocket outputs are research artifacts.
+Each character conditions one shared model with an original voice reference.
+
+`scripts/Prepare-PocketCastCorpus.py` builds a private corpus from installed
+dialogue, exact subtitles and authenticated scene/speaker joins. It preserves
+original WAV bytes and separates connected scenes, previous evaluation material
+and reference recordings. Sparse or unavailable speakers are recorded explicitly;
+translated English subtitles are not paired with Japanese speech for training.
+
+`scripts/Pocket-KaggleTrain.py --spec <local-spec.json> --mode all --plan-only`
+checks staged inputs before GPU work. Removing `--plan-only` runs word alignment,
+frozen-codec preparation, 24-layer teacher adaptation, six-layer depth distillation
+and selected-checkpoint evaluation. The runner uses the pinned official source
+revision `41cbc84af539ea78a804ffca5f9c6edc1a22ce44` and local model assets.
+
+Training preserves the released latent calibration and pools variable-length
+losses across the effective batch of 64. The GPU precision probe exercises the
+full JVP loss against FP32 before choosing mixed precision. Checkpoints retain
+optimizer, EMA, scaler and per-rank RNG for bounded-session continuation. Fixed
+development data selects checkpoints; final test data and listening samples
+evaluate the result. Epoch and validation bounds adapt the official presets to
+the smaller cast corpus. No quality-parity claim follows from a lower loss.

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import {createHash} from 'node:crypto';
 import {PassThrough, Writable} from 'node:stream';
+import {resolve} from 'node:path';
 import {ResidentVoice, LOCAL_VOICE_KEYS, VOICE_WORKER_LIMITS} from './resident-voice.mjs';
 import {silentWav} from './speech-audio.mjs';
 
@@ -11,8 +12,8 @@ const config = {provider: 'hybrid', engine: 'omnivoice',
     reference: `runtime/voice-references/${key}.wav`, sha256: 'a'.repeat(64), transcript: 'Ready when you are, V.',
   }]))};
 const tick = () => new Promise(done => setImmediate(done));
-function harness({autoReady = true, timers, settings = config, protocolVersion = 1} = {}) {
-  const states = [], requests = []; let starts = 0;
+function harness({autoReady = true, timers, settings = config, protocolVersion = 1, pythonExecutable} = {}) {
+  const states = [], requests = [], launches = []; let starts = 0;
   const child = new EventEmitter();
   child.kills = 0; child.kill = () => { child.kills++; return true; };
   child.pid = 1234; child.stdout = new PassThrough(); child.stderr = new PassThrough();
@@ -30,9 +31,11 @@ function harness({autoReady = true, timers, settings = config, protocolVersion =
     dtype: 'torch.float16', runtime: 'pytorch', tensorrt: false, compiled: false,
     cudaAllocatedMiB: 1800, cudaReservedMiB: 2208, ...extra});
   const client = new ResidentVoice(settings, {project: process.cwd(), configPath: 'local-config.json',
+    pythonExecutable,
     ...(timers ? {setTimer: timers.set, clearTimer: timers.clear} : {}),
     onState: state => states.push(state), spawnImpl: (exe, args, options) => {
-      starts++; assert.equal(options.windowsHide, true); assert.deepEqual(options.stdio, ['pipe', 'pipe', 'pipe']);
+      starts++; launches.push({exe, args, options});
+      assert.equal(options.windowsHide, true); assert.deepEqual(options.stdio, ['pipe', 'pipe', 'pipe']);
       if (autoReady) queueMicrotask(() => ready()); return child;
     }});
   const finish = code => child.emit('close', code ?? 0);
@@ -43,7 +46,7 @@ function harness({autoReady = true, timers, settings = config, protocolVersion =
         .slice(-client.registry.preparation.maxCachedProfiles)} : {}),
       audio: silentWav().toString('base64'), generationMs: 1400, ...extra});
   };
-  return {client, child, states, requests, ready, reply, finish, send, starts: () => starts};
+  return {client, child, states, requests, ready, reply, finish, send, launches, starts: () => starts};
 }
 
 function clock() {
@@ -70,6 +73,53 @@ test('configured legacy references use local speech; absent or malformed referen
   await assert.rejects(client.synthesize('alex', 'Hi'), /Convai voice/);
   assert.equal(starts(), 0);
   assert.throws(() => new ResidentVoice({...config, version: 2, voices: {...config.voices, alex: {}}}), /Invalid local voice reference/);
+});
+
+test('packaged Python replaces only the executable and preserves hidden worker ownership', async () => {
+  const executable = resolve(process.cwd(), 'relocated 模组 runtime/python/python.exe');
+  const h = harness({pythonExecutable: executable});
+  await h.client.start();
+  assert.equal(h.launches[0].exe, executable);
+  assert.deepEqual(h.launches[0].args, [resolve(process.cwd(), 'bridge/resident-voice-worker.py'),
+    '--config', 'local-config.json']);
+  assert.equal(h.launches[0].options.cwd, process.cwd());
+  assert.equal(h.launches[0].options.env.PYTHONUTF8, '1');
+  assert.equal(h.launches[0].options.shell, undefined);
+  const closed = h.client.close();
+  assert.equal(h.child.stdin.writableEnded, true);
+  h.finish(); await closed;
+  assert.equal(h.client.child, null);
+});
+
+test('Python environment override is captured at construction and missing override preserves the development default', async () => {
+  const previous = process.env.CYBERPUNK_CONVAI_PYTHON;
+  const executable = resolve(process.cwd(), 'packaged python/python.exe');
+  let override, development;
+  try {
+    process.env.CYBERPUNK_CONVAI_PYTHON = executable;
+    override = harness();
+    delete process.env.CYBERPUNK_CONVAI_PYTHON;
+    development = harness();
+  } finally {
+    if (previous === undefined) delete process.env.CYBERPUNK_CONVAI_PYTHON;
+    else process.env.CYBERPUNK_CONVAI_PYTHON = previous;
+  }
+  for (const [h, expected] of [[override, executable], [development,
+    resolve(process.cwd(), 'vendor/reference-voicestudio/.venv/Scripts/python.exe')]]) {
+    await h.client.start(); assert.equal(h.launches[0].exe, expected);
+    const closed = h.client.close(); h.finish(); await closed;
+  }
+});
+
+test('invalid explicit Python paths fail before a worker can spawn', () => {
+  let spawned = false;
+  for (const value of ['', 'python.exe', '../private/python.exe', null, 4, Symbol('private'),
+    resolve(process.cwd(), 'python.exe') + '\n', '"' + resolve(process.cwd(), 'python.exe') + '"',
+    ...(process.platform === 'win32' ? ['C:python.exe', '\\python.exe', '\\\\server'] : [])]) {
+    assert.throws(() => new ResidentVoice(config, {pythonExecutable: value, spawnImpl() { spawned = true; }}),
+      {message: 'CYBERPUNK_CONVAI_PYTHON must be an absolute filesystem path.'});
+  }
+  assert.equal(spawned, false);
 });
 
 test('one FP16 CUDA worker warms all references, stays resident, and changes steps without reloading', async () => {

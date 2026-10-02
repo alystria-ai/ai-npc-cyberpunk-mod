@@ -4,6 +4,7 @@ import {resolve} from 'node:path';
 import {inspectWav} from './speech-audio.mjs';
 import {abortable, throwIfCancelled, cancelled} from './transport-pool.mjs';
 import {createVoiceProfileRegistry, LEGACY_LOCAL_VOICE_KEYS} from './voice-profile-registry.mjs';
+import {absoluteRuntimeOverride} from './runtime-paths.mjs';
 
 // Historical accepted-reference fixture/packaging list. Eligibility is always
 // read from the validated registry, never from this compatibility export.
@@ -14,7 +15,9 @@ export const VOICE_WORKER_LIMITS = Object.freeze({startupMs: 180_000, renderMs: 
 
 export class ResidentVoice {
   constructor(config = {}, {project, configPath, spawnImpl = spawn, onState = () => {}, onLog = () => {},
-    setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
+    setTimer = setTimeout, clearTimer = clearTimeout,
+    pythonExecutable = process.env.CYBERPUNK_CONVAI_PYTHON} = {}) {
+    this.pythonExecutable = absoluteRuntimeOverride(pythonExecutable, 'CYBERPUNK_CONVAI_PYTHON');
     this.registry = createVoiceProfileRegistry(config);
     Object.assign(this, {config: Object.freeze({...config, voices: this.registry.profiles,
       preparation: this.registry.preparation}), project, configPath, spawnImpl, onState, onLog, setTimer, clearTimer});
@@ -86,7 +89,8 @@ export class ResidentVoice {
     this.ready.catch(() => {});
     let child;
     try {
-      child = this.child = this.spawnImpl(resolve(this.project, 'vendor/reference-voicestudio/.venv/Scripts/python.exe'),
+      child = this.child = this.spawnImpl(this.pythonExecutable
+        || resolve(this.project, 'vendor/reference-voicestudio/.venv/Scripts/python.exe'),
         [resolve(this.project, 'bridge/resident-voice-worker.py'), '--config', this.configPath],
         {cwd: this.project, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'],
           env: {...process.env, PYTHONUTF8: '1'}});

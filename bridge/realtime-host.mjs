@@ -1,8 +1,14 @@
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
 import {chromium} from 'playwright';
 import {TransportPool, abortable, cancelled, throwIfCancelled, transportKey, SessionBindings} from './transport-pool.mjs';
 import {CONNECTION_LIMIT} from './party-connections.mjs';
+import {absoluteRuntimeOverride} from './runtime-paths.mjs';
+
+const PCM_MODULES = Object.freeze([
+  'continuous-pcm-player.mjs', 'continuous-pcm-worklet.mjs', 'continuous-pcm-core.mjs',
+]);
 
 const pageKey = transportKey;
 // This is the installed SDK 1.7 default, also used by the captured live trial.
@@ -83,7 +89,13 @@ export async function installCompanionActionBinding(page, {isCurrent, onAction})
 }
 
 export class RealtimeHost {
-  constructor({disconnectTimeoutMs = 2500, onCompanionAction} = {}) {
+  constructor({disconnectTimeoutMs = 2500, onCompanionAction,
+    browserExecutable = process.env.CYBERPUNK_CONVAI_BROWSER,
+    clientAssetsDirectory = process.env.CYBERPUNK_CONVAI_CLIENT_ASSETS,
+    launchBrowser = options => chromium.launch(options)} = {}) {
+    this.browserExecutable = absoluteRuntimeOverride(browserExecutable, 'CYBERPUNK_CONVAI_BROWSER');
+    this.clientAssetsDirectory = absoluteRuntimeOverride(clientAssetsDirectory, 'CYBERPUNK_CONVAI_CLIENT_ASSETS');
+    this.launchBrowser = launchBrowser;
     this.epoch = 0; this.sessions = new SessionBindings(); this.connectOwners = new WeakMap();
     this.disconnects = new WeakMap(); this.disconnectTimeoutMs = disconnectTimeoutMs;
     this.onCompanionAction = onCompanionAction;
@@ -130,11 +142,12 @@ export class RealtimeHost {
     // One hidden browser: eight party private pages plus three optional group
     // pages. No key endpoint, microphone permission or visible user profile.
     const [bundle, ...modules] = await Promise.all([
-      readFile(new URL('../runtime/realtime-client.js', import.meta.url)),
-      ...['continuous-pcm-player.mjs', 'continuous-pcm-worklet.mjs', 'continuous-pcm-core.mjs']
-        .map(name => readFile(new URL(name, import.meta.url))),
+      readFile(this.clientAssetsDirectory ? resolve(this.clientAssetsDirectory, 'realtime-client.js')
+        : new URL('../runtime/realtime-client.js', import.meta.url)),
+      ...PCM_MODULES.map(name => readFile(this.clientAssetsDirectory
+        ? resolve(this.clientAssetsDirectory, name) : new URL(name, import.meta.url))),
     ]);
-    const audioModules = new Map(['continuous-pcm-player.mjs', 'continuous-pcm-worklet.mjs', 'continuous-pcm-core.mjs']
+    const audioModules = new Map(PCM_MODULES
       .map((name, index) => ['/' + name, modules[index]]));
     if (epoch !== this.epoch) throw cancelled('Conversation startup cancelled');
     const server = createServer((req, res) => {
@@ -151,7 +164,8 @@ export class RealtimeHost {
     await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
     let browser;
     try {
-      browser = await chromium.launch({channel: 'msedge', headless: true,
+      browser = await this.launchBrowser({...(this.browserExecutable
+        ? {executablePath: this.browserExecutable} : {channel: 'msedge'}), headless: true,
         ignoreDefaultArgs: ['--mute-audio'],
         args: ['--autoplay-policy=no-user-gesture-required', '--disable-background-timer-throttling']});
       if (epoch !== this.epoch) throw cancelled('Conversation startup cancelled');

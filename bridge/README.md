@@ -53,6 +53,33 @@ The project-side runtime holds bridge logs, account mappings, player identity, a
 
 Start through `scripts/Start-ConversationBridge.ps1` and stop through `scripts/Stop-ConversationBridge.ps1`. The launcher rebuilds the browser client, keeps helpers hidden, and refuses a duplicate bridge. Explicitly set `CYBERPUNK_CONVAI_GAME` when the game is outside the development default path. Preserve the runtime state across restarts.
 
+### Executable and prebuilt asset overrides
+
+Set these environment variables before starting the bridge. Explicit overrides
+must be absolute filesystem paths; Windows paths must include a drive or UNC
+server/share. Empty, relative or control-character values fail validation.
+
+| Variable | Selects | Development default |
+|---|---|---|
+| `CYBERPUNK_CONVAI_PYTHON` | Python executable used for the owned resident voice worker | `vendor/reference-voicestudio/.venv/Scripts/python.exe` under the project |
+| `CYBERPUNK_CONVAI_BROWSER` | Playwright-compatible browser executable; replaces the Edge channel lookup | Installed `msedge` channel |
+| `CYBERPUNK_CONVAI_CLIENT_ASSETS` | Directory containing the prebuilt browser client and continuous PCM modules | Project `runtime/realtime-client.js`, with PCM modules beside `realtime-host.mjs` |
+
+The asset directory must contain these four required files:
+`realtime-client.js`, `continuous-pcm-player.mjs`, `continuous-pcm-core.mjs` and
+`continuous-pcm-worklet.mjs`. Other files may be present but are never served.
+The loopback server retains its existing route allowlist and Host validation;
+the browser remains headless with the same audio arguments and lease teardown.
+Python still receives the same worker/config arguments over its owned pipe, and
+the worker's pinned model, reference hashes and root guards are unchanged.
+
+The choices are captured when each worker/host object is created; restart the
+bridge after changing the environment. This is a partial portability step: it
+does not create a relocatable Python environment, extract player references,
+stage a browser or complete the release bootstrap. The development launcher
+still rebuilds the project client, even when the host uses a separately staged
+prebuilt asset directory.
+
 Run the focused tests appropriate to a bridge change and `npm run build:voice` for browser-client changes; `npm test` is the combined source suite. Installed MCM/native-source checks need their documented environment. Tests should use isolated fixtures rather than live memory deletion, microphone capture, or production dialogue.
 
 For Lua/catalog changes, `scripts/Install-DevelopmentMod.ps1 -LuaOnly` verifies copied files while the game is running. CET's **Reload All Mods** activates them; loading a save does not. Native script/archive/plugin changes require a game restart. A bridge-source change requires a bridge restart, which rebuilds the client. Game diagnostics use the mod's scoped request-file interface.

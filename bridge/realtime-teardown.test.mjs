@@ -1,6 +1,10 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join, resolve, dirname, basename} from 'node:path';
+import {request} from 'node:http';
 import {runInNewContext} from 'node:vm';
 import {RealtimeHost} from './realtime-host.mjs';
 import {TransportPool, endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';
@@ -9,6 +13,7 @@ import {PcmChunkStream} from './convai-audio-stream.mjs';
 import {ConvaiDataAudio} from './convai-data-audio.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
 import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
+import {absoluteRuntimeOverride} from './runtime-paths.mjs';
 
 const deferred = () => {
   let resolve;
@@ -322,4 +327,147 @@ test('a voice finish requested after shutdown starts cannot invoke the page or r
   disconnect.resolve(); await closing;
   await assert.rejects(pending, {name: 'AbortError'});
   assert.deepEqual(host.sessions.owners, owners);
+});
+
+// Exercise the actual local asset server, with an injected browser that cannot
+// create pages, make SDK requests or access audio/microphone devices.
+async function assetFixture(t, {browserExecutable, onLaunch, omitAsset} = {}) {
+  const root = await mkdtemp(join(tmpdir(), 'cyberpunk-host-assets-'));
+  const directory = join(root, '预建 assets with spaces');
+  await mkdir(directory);
+  const assets = new Map(['realtime-client.js', 'continuous-pcm-player.mjs',
+    'continuous-pcm-core.mjs', 'continuous-pcm-worklet.mjs']
+    .map(name => [name, '// offline fixture: ' + name + '\n']));
+  for (const [name, contents] of assets) if (name !== omitAsset)
+    await writeFile(join(directory, name), contents);
+  await writeFile(join(directory, 'convai-key.txt'), 'offline private fixture, never served');
+  const launches = [];
+  const browser = {closed: 0, isConnected: () => true,
+    async close() { this.closed++; },
+    async newPage() { assert.fail('asset tests must never create a conversation page'); }};
+  const previousBrowser = process.env.CYBERPUNK_CONVAI_BROWSER;
+  let host;
+  try {
+    delete process.env.CYBERPUNK_CONVAI_BROWSER;
+    host = new RealtimeHost({browserExecutable, clientAssetsDirectory: directory,
+      launchBrowser: async options => {
+        launches.push(options);
+        return onLaunch ? onLaunch(browser) : browser;
+      }});
+  } finally {
+    if (previousBrowser === undefined) delete process.env.CYBERPUNK_CONVAI_BROWSER;
+    else process.env.CYBERPUNK_CONVAI_BROWSER = previousBrowser;
+  }
+  t.after(async () => {
+    await host.close();
+    // Recursive cleanup is limited to this test's exact mkdtemp directory.
+    assert.equal(dirname(resolve(root)), resolve(tmpdir()));
+    assert(basename(root).startsWith('cyberpunk-host-assets-'));
+    await rm(root, {recursive: true, force: true});
+  });
+  return {host, browser, launches, assets, directory};
+}
+
+const assetRequest = (port, path, host = `127.0.0.1:${port}`) => new Promise((done, fail) => {
+  const call = request({hostname: '127.0.0.1', port, path, method: 'GET',
+    headers: {Host: host, Connection: 'close'}}, response => {
+    let body = '';
+    response.setEncoding('utf8'); response.on('data', chunk => { body += chunk; });
+    response.on('end', () => done({status: response.statusCode, headers: response.headers, body}));
+  });
+  call.on('error', fail); call.end();
+});
+
+test('absolute path overrides reject cwd/PATH lookup, malformed values and Windows drive-relative paths', () => {
+  const name = 'CYBERPUNK_CONVAI_CLIENT_ASSETS';
+  assert.equal(absoluteRuntimeOverride(undefined, name), undefined);
+  const directory = resolve(process.cwd(), '资源 with spaces');
+  assert.equal(absoluteRuntimeOverride(directory, name), directory);
+  for (const value of ['', 'assets', '../private/assets', null, 5, Symbol('private'), {},
+    ' ' + directory, directory + '\t', directory + '\0',
+    ...(process.platform === 'win32' ? ['C:assets', '\\assets', '\\\\server'] : [])]) {
+    assert.throws(() => absoluteRuntimeOverride(value, name),
+      {message: name + ' must be an absolute filesystem path.'});
+  }
+  if (process.platform === 'win32') {
+    assert.equal(absoluteRuntimeOverride('C:\\Packaged Runtime\\assets', name), 'C:\\Packaged Runtime\\assets');
+    assert.equal(absoluteRuntimeOverride('\\\\server\\share\\assets', name), '\\\\server\\share\\assets');
+  }
+  for (const [option, variable] of [['browserExecutable', 'CYBERPUNK_CONVAI_BROWSER'],
+    ['clientAssetsDirectory', name]]) {
+    assert.throws(() => new RealtimeHost({[option]: 'relative/private/path',
+      launchBrowser() { assert.fail('invalid overrides must never launch'); }}),
+    {message: variable + ' must be an absolute filesystem path.'});
+  }
+});
+
+test('browser executable and client asset environment choices are captured at construction', () => {
+  const choices = {CYBERPUNK_CONVAI_BROWSER: resolve(process.cwd(), '浏览器/browser.exe'),
+    CYBERPUNK_CONVAI_CLIENT_ASSETS: resolve(process.cwd(), '预建/assets')};
+  const previous = Object.fromEntries(Object.keys(choices).map(key => [key, process.env[key]]));
+  try {
+    Object.assign(process.env, choices);
+    const host = new RealtimeHost();
+    process.env.CYBERPUNK_CONVAI_BROWSER = 'changed relative value';
+    process.env.CYBERPUNK_CONVAI_CLIENT_ASSETS = 'another relative value';
+    assert.equal(host.browserExecutable, choices.CYBERPUNK_CONVAI_BROWSER);
+    assert.equal(host.clientAssetsDirectory, choices.CYBERPUNK_CONVAI_CLIENT_ASSETS);
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
+});
+
+test('packaged client assets preserve the four-file route allowlist and loopback Host guard', async t => {
+  const executable = resolve(process.cwd(), 'packaged 浏览器/browser.exe');
+  const {host, browser, launches, assets} = await assetFixture(t, {browserExecutable: executable});
+  await host.start();
+  assert.deepEqual(launches, [{executablePath: executable, headless: true,
+    ignoreDefaultArgs: ['--mute-audio'],
+    args: ['--autoplay-policy=no-user-gesture-required', '--disable-background-timer-throttling']}]);
+  const port = host.server.address().port;
+  assert.equal(host.server.address().address, '127.0.0.1');
+  for (const [name, contents] of assets) {
+    const response = await assetRequest(port, name === 'realtime-client.js' ? '/client.js' : '/' + name);
+    assert.equal(response.status, 200); assert.equal(response.body, contents);
+    assert.equal(response.headers['cache-control'], 'no-store');
+    assert.equal(response.headers['content-type'], 'text/javascript');
+  }
+  for (const path of ['/convai-key.txt', '/realtime-client.js', '/../convai-key.txt',
+    '/%2e%2e/convai-key.txt', '/client.js?private=true', '/assets/continuous-pcm-core.mjs']) {
+    const response = await assetRequest(port, path);
+    assert.equal(response.status, 404); assert.equal(response.body, '');
+  }
+  const denied = await assetRequest(port, '/client.js', 'untrusted.invalid');
+  assert.equal(denied.status, 403); assert.equal(denied.body, '');
+  await host.close(); assert.equal(browser.closed, 1);
+  assert.equal(host.pool, null); assert.equal(host.server, null);
+});
+
+test('absent browser executable override retains the installed Edge channel', async t => {
+  const {host, launches} = await assetFixture(t);
+  await host.start();
+  assert.equal(launches[0].channel, 'msedge');
+  assert.equal(Object.hasOwn(launches[0], 'executablePath'), false);
+  assert.equal(launches[0].headless, true);
+});
+
+test('missing packaged PCM module fails before browser launch without using development assets', async t => {
+  const {host, launches} = await assetFixture(t, {omitAsset: 'continuous-pcm-core.mjs'});
+  await assert.rejects(host.start(), {code: 'ENOENT'});
+  assert.equal(launches.length, 0); assert.equal(host.pool, null); assert.equal(host.server, null);
+});
+
+test('closing during overridden browser startup still retires the late owned browser', {timeout: 3000}, async t => {
+  const entered = deferred(), ready = deferred();
+  const {host, browser} = await assetFixture(t, {onLaunch: () => {
+    entered.resolve(); return ready.promise;
+  }});
+  const starting = host.start(); starting.catch(() => {});
+  await entered.promise;
+  const closing = host.close(); ready.resolve(browser);
+  await assert.rejects(starting, {name: 'AbortError'}); await closing;
+  assert.equal(browser.closed, 1);
+  assert.equal(host.pool, null); assert.equal(host.browser, null); assert.equal(host.server, null);
 });

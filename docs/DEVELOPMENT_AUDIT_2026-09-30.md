@@ -958,3 +958,31 @@ code. A compiled or green source test is never the installed motion/visibility
 acceptance gate. These new driving and caption checks remain open until the
 running game confirms them; see the detailed chauffeur/subtitle documents and
 ignored local TODO for the current evidence.
+
+## October 2: shared CPU voice adaptation and runtime paths
+
+The Pocket TTS research follows teacher adaptation and depth distillation using
+pinned upstream source and separately staged private audio/model inputs. Source
+attribution, waveform integrity, scene separation and original-reference fences
+precede training. Model helpers operate independently of the game and reply bridge.
+
+Review identified three accumulation defects before the long run: latent
+calibration updated per microbatch, the precision probe could skip JVP, and
+per-utterance loss means differed from the official pooled frame denominators.
+The corrected runner freezes released calibration, forces both probe branches
+with RNG restoration, and uses global flow/EOS denominators. Actual two-process
+CPU tests cover unequal-length batches; an isolated two-T4 run then exercises
+real FP32/FP16 gradients, optimizer updates, checkpoint selection and export.
+Preserve the distinction between numerical checks and audible improvement.
+
+Model selection uses fixed development data and EMA weights. Test scenes do not
+choose checkpoints. Sessions preserve optimizer/scaler/RNG state and stop before
+their time and disk limits; mixed precision can fall back to FP32. These are
+execution controls for an experiment, not a production Pocket provider.
+
+The release inventory now explicitly includes the bridge's required quest
+catalog and partitions approved dependency Lua into Scripts. Runtime boundaries
+accept absolute Python/browser executable and prebuilt-client asset paths while
+retaining hidden child ownership, loopback Host checks and the existing asset
+allowlist. Relocation hooks have focused source/loopback coverage. A portable
+Python bundle, player reference extraction and release bootstrap remain pending.
