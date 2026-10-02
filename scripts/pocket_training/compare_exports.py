@@ -47,12 +47,14 @@ def cpu_environment(threads: int) -> dict[str, str]:
     return env
 
 
-def inspect_export(directory: Path, role: str) -> dict[str, Any]:
+def inspect_export(directory: Path, role: str, weight_kind: str = "ema") -> dict[str, Any]:
     """Check identity before any model import or configuration mutation."""
     import yaml
 
     if role not in ("teacher", "student"):
         raise ValueError("Export role must be teacher or student")
+    if weight_kind not in ("ema", "raw") or (weight_kind == "raw" and role != "student"):
+        raise ValueError("Raw comparison is an explicit student-only choice")
     directory = directory.resolve()
     for name in ASSETS:
         if not local_path(directory, name).is_file():
@@ -60,13 +62,20 @@ def inspect_export(directory: Path, role: str) -> dict[str, Any]:
     receipt = read_json(directory / "receipt.json")
     if not isinstance(receipt, dict):
         raise ValueError("Export receipt must be an object")
-    step = receipt.get("selected_step")
+    step = receipt.get("selected_step" if weight_kind == "ema" else "checkpoint_step")
     if not isinstance(step, int) or isinstance(step, bool) or step <= 0:
         raise ValueError("A selected trained checkpoint with a positive step is required")
     cfg = 2.0 if role == "teacher" else 1.0
-    if (receipt.get("weights") != "ema" or receipt.get("sample_cfg") != cfg
+    if (receipt.get("weights") != weight_kind or receipt.get("sample_cfg") != cfg
             or receipt.get("source_revision") != PINNED_REVISION):
-        raise ValueError("Export must identify the pinned source and expected EMA/CFG selection")
+        raise ValueError("Export must identify the pinned source and expected weight/CFG selection")
+    if weight_kind == "raw":
+        digest = receipt.get("source_checkpoint_sha256", "")
+        if (not isinstance(digest, str) or len(digest) != 64
+                or any(c not in "0123456789abcdef" for c in digest)
+                or type(receipt.get("validated_probe_count")) is not int
+                or receipt["validated_probe_count"] < 2):
+            raise ValueError("Raw student export needs checkpoint provenance and validated termination probes")
     identity = receipt.get("input_identity", "")
     if not isinstance(identity, str) or len(identity) != 64:
         raise ValueError("Export lacks its training input identity")
@@ -84,7 +93,7 @@ def inspect_export(directory: Path, role: str) -> dict[str, Any]:
     if config["flow_lm"]["transformer"]["num_layers"] != expected_layers:
         raise ValueError(f"Expected {expected_layers} layers for {role}")
     return {
-        "role": role, "directory": str(directory), "selected_step": step,
+        "role": role, "directory": str(directory), "selected_step": step, "weights": weight_kind,
         "input_identity": identity, "sample_cfg": cfg, "layers": expected_layers,
         "weights_bytes": weights.stat().st_size, "weights_sha256": weight_hash,
         "export_bytes": sum((directory / name).stat().st_size for name in ASSETS),
@@ -99,7 +108,7 @@ def make_plan(args: argparse.Namespace) -> dict[str, Any]:
     if actual_digest != PINNED_SOURCE_DIGEST:
         raise ValueError("Local Pocket source differs from the pinned official source")
     exports = [inspect_export(args.teacher_export, "teacher"),
-               inspect_export(args.student_export, "student")]
+               inspect_export(args.student_export, "student", getattr(args, "student_weight_kind", "ema"))]
     if exports[0]["input_identity"] != exports[1]["input_identity"]:
         raise ValueError("Teacher and student belong to different training inputs")
     if args.expected_input_identity and exports[0]["input_identity"] != args.expected_input_identity:
@@ -388,6 +397,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--worker-request", type=Path, help=argparse.SUPPRESS)
     parser.add_argument("--teacher-export", type=Path)
     parser.add_argument("--student-export", type=Path)
+    parser.add_argument("--student-weight-kind", choices=("ema", "raw"), default="ema")
     parser.add_argument("--expected-input-identity")
     parser.add_argument("--source", type=Path, default=ROOT / "vendor/pocket-tts-training/source")
     parser.add_argument("--reference", type=Path,

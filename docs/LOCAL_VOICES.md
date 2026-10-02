@@ -199,3 +199,19 @@ unchanged original and OmniVoice 32 references. Cold means a fresh worker with
 local assets and the OS disk cache retained. These results do not measure game
 FPS or establish voice quality. The helper hides CUDA, stays offline and never
 reads account credentials or changes the installed voice provider.
+
+The completed October 2 run selected teacher EMA at step 1,200 and student EMA
+at step 8,572. The student EMA failed the actual speech check: three of four
+cloud examples reached the 30-second cap, and CPU EOS logits never crossed the
+normal threshold. The final raw student checkpoint ended both Johnny probes
+naturally with identical detector/normalization tensors and unchanged inference
+settings. Its separate export is explicitly labelled raw. The 0.9999 averaging
+schedule retained about 42% of the initial shortened model after this bounded
+run; a lower numerical loss did not qualify the averaged audio.
+
+`Pocket-CompareExports.py --student-weight-kind raw` accepts that separately
+provenanced student candidate after two validated termination probes. It does
+not substitute raw weights silently or change the teacher selection. The raw
+student is fast, but automated transcripts suggest missing or slurred words;
+keep it experimental until listening confirms quality. The production mod's
+voice choices remain unchanged.

@@ -87,6 +87,24 @@ class ExportComparisonTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "different training inputs"):
                 make_plan(self.args())
 
+    def test_raw_student_requires_explicit_choice_and_provenance(self) -> None:
+        path = self.exports['student'] / 'receipt.json'
+        original = json.loads(path.read_text())
+        raw = {**original, 'weights': 'raw', 'checkpoint_step': 100,
+               'source_checkpoint_sha256': 'b' * 64, 'validated_probe_count': 2}
+        raw.pop('selected_step')
+        atomic_json(path, raw)
+        with self.assertRaises(ValueError):
+            inspect_export(self.exports['student'], 'student')
+        accepted = inspect_export(self.exports['student'], 'student', 'raw')
+        self.assertEqual((accepted['weights'], accepted['selected_step']), ('raw', 100))
+        for change in ({'validated_probe_count': 0}, {'source_checkpoint_sha256': 'bad'}):
+            atomic_json(path, {**raw, **change})
+            with self.assertRaises(ValueError):
+                inspect_export(self.exports['student'], 'student', 'raw')
+        with self.assertRaises(ValueError):
+            inspect_export(self.exports['teacher'], 'teacher', 'raw')
+
     def test_owner_can_pin_expected_run(self) -> None:
         args = self.args()
         args.expected_input_identity = "b" * 64
