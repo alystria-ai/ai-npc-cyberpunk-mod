@@ -104,7 +104,7 @@ There is no finished one-click or two-ZIP installation yet. Use the following fl
    ```
 
    Configure the account's `runtime/characters.json` mapping and any relationship profiles. See [character setup](characters/README.md) and [the three-field API contract](docs/CHARACTER_API.md). `npm run profiles:plan` previews provisioning; applying the plan is an explicit account operation.
-4. Prepare the generated facial archive and speech assets. The facial builder requires its documented WolvenKit/.NET tools; [facial animation](docs/FACIAL_ANIMATION.md) describes that setup. Use the local voice preparation tools if you want OmniVoice, or select Convai in Settings. Local reference files are not automatically downloaded by the mod.
+4. Prepare the generated facial archive and speech assets. The facial builder requires its documented WolvenKit/.NET tools; [facial animation](docs/FACIAL_ANIMATION.md) describes that setup. Build the ambient-car Johnny guard from the reviewed 2.31 game resource with `python scripts/Build-AmbientJohnnyDriverGuard.py --game $gameDirectory --stage-development`; it stages a generated archive in this project. Use the local voice preparation tools if you want OmniVoice, or select Convai in Settings. Local reference files are not automatically downloaded by the mod.
 5. With the required generated assets available, prepare the speech bank and install the development adapter:
 
    ```powershell
@@ -198,7 +198,7 @@ See the [runtime guide](bridge/README.md) for connection/playback details and th
 
 ## Known development limitations
 
-- **Companion chauffeur:** the conversation action and animated driver-seat boarding have been observed. Actual departure, route driving, arrival, and the latest entry recovery still await the next live test. Asking a companion to drive is the intended entry point; Current party exposes status and Stop trip, rather than a start-driving button.
+- **Companion chauffeur:** conversation-driven boarding and a bounded native NPC driving trial have been observed. Complete trips, arrival and changing waypoints still need live qualification of the new controller. The ambient-car Johnny guard is built and verified structurally; its next fresh-entry game check is pending. Asking a companion to drive is the intended entry point; Current party exposes status and Stop trip.
 - **Vehicles and travel:** ordinary passenger boarding and seated head attention have been checked. Overflow carpooling, convoy recovery, and fast-travel restoration have implementation/test coverage but need wider live acceptance. Regular save loading does not automatically respawn the party.
 - **Special models and navigation:** different rigs, large bodies, story variants, and unusual combat behavior need individual gameplay checks. Collision/placement checks are installed, but walking around props and vehicles still needs live acceptance. A safe nearby spawn may be refused.
 - **Conversation quality:** biographies, voice references, and current-save mappings have uneven depth. Cloned speech is not guaranteed to match every original performance, and facial animation still varies by rig. Provider availability, local GPU load, and power settings affect latency.
@@ -216,6 +216,7 @@ bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/
 r6/scripts/CyberpunkConvai/
 r6/audioware/CyberpunkConvai/
 archive/pc/mod/convai_facial.archive
+archive/pc/mod/cyberpunk_convai_ambient_driver_guard.archive
 ```
 
 Keep CET, RED4ext, redscript, Codeware, TweakXL, Audioware, and MCM when other mods use them. The project-side runtime and extracted references remain in the development checkout unless you separately remove that checkout.

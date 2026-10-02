@@ -1028,3 +1028,20 @@ Use one reversible native change on the measured copy, inspect the actual game
 window, and keep the correction at spawn preparation rather than enforcing an
 appearance every frame. Temporary state readers are bounded and restored after
 the investigation.
+
+The separate ambient-car overlap has a generated native candidate. The reviewed
+2.31 `thepassenger.questphase` starts its Active scene after V mounts a nonstolen
+car without requiring the driver seat, while the scene's exit condition treats
+V becoming a passenger as an exit. The candidate appends the explicit player
+Driver condition to that existing Active eligibility AND. It does not write
+quest facts, assign story tags to copies, cancel existing scenes, or modify the
+DelamainTaxi branch.
+
+The builder rejects a changed installed source fingerprint, round-trips through
+the pinned native serializer, compares the entire graph after normalizing
+handle numbers, and verifies that the archive decodes to exactly the one edited
+resource. Eleven structural tests and fourteen packaging/development-tool
+checks pass. Optional staging copies only the verified generated archive into
+the project's development inputs; installation remains behind the existing
+game-closed native installer. A fresh vehicle entry after the combined restart
+is still required to validate the native eligibility behavior.

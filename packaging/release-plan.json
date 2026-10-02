@@ -313,6 +313,10 @@
           "target": "archive/pc/mod/convai_facial.archive"
         },
         {
+          "source": "runtime/ambient-driver-guard/package/cyberpunk_convai_ambient_driver_guard.archive",
+          "target": "archive/pc/mod/cyberpunk_convai_ambient_driver_guard.archive"
+        },
+        {
           "source": "characters/manager-characters.json",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/manager-characters.json"
         },

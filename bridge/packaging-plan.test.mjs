@@ -36,7 +36,10 @@ test('package destinations are relative game-root paths and never include a wrap
 
 test('private runtime, conditioning recordings and benchmark data cannot become blanket package includes', () => {
   const sources = plan.archives.flatMap(a => a.files.map(f => f.source));
-  assert.deepEqual(sources.filter(path => path.startsWith('runtime/')), ['runtime/facial-rig/package/convai_facial.archive']);
+  assert.deepEqual(sources.filter(path => path.startsWith('runtime/')), [
+    'runtime/facial-rig/package/convai_facial.archive',
+    'runtime/ambient-driver-guard/package/cyberpunk_convai_ambient_driver_guard.archive',
+  ]);
   assert(!sources.some(path => /(?:convai-key|player-memory|phone-history|phone-sessions|characters-verified|reply-\d+\.wav|benchmark|voice-references)/i.test(path)));
   assert.equal(plan.voice.references.packageExistingAudio, false);
   assert.equal(plan.voice.references.generateFromUserInstalledGame, true);
