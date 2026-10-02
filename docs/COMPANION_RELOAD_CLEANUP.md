@@ -1,126 +1,57 @@
-# Interrupted driver cleanup
+# Retained driver cleanup after CET reload
 
-## Purpose
+CET reload can retire the Lua owner while a companion remains seated or a borrowed car still has a native driving command. This subsystem persists **cleanup authority only**. It never restores the party, starts/updates driving, recreates a waypoint or moves V.
 
-CET Reload All Mods destroys the Lua owner even when the native driver is
-still mounted. Removing that driver while V is a passenger can trigger the
-game's automatic switch into the driver seat. The reload cleanup owner retains
-only authority to finish an interrupted exit and remove the old mod copy.
-It does not restore the party, resume AutoDrive, recreate a waypoint, invite
-an actor, call Convai, seed memory, or create a player identity.
+## Receipt
 
-`mod/companions.lua` owns the helper and calls the policy in
-`mod/companion-reload-cleanup.lua`. `mod/init.lua` loads the disk receipt during
-initialization; native validation and exit work occur later in normal gameplay.
+The ignored runtime file `runtime/companion-chauffeur-cleanup.json` contains a bounded, one-hour receipt. New receipts use version 3 and `backend='npc'`; existing version-2 AutoDrive receipts remain readable for retirement.
 
-## Receipt and native proof
+The receipt identifies:
 
-The ignored runtime file `companion-chauffeur-cleanup.json` contains one
-version 2 `cleanup-only` receipt. It records the exact player, actor and borrowed
-car IDs as strings, their records, the driver seat, a command receipt when
-present, a unique cleanup tag, a bounded attempt count, and a one-hour expiry.
-It contains no voice/profile/provider session, conversation, destination or
-memory data. Reads are capped at 4,097 bytes; writes cannot exceed 4,096 bytes.
+- The actual player entity, managed/tagged driver, NPC record and uniquely assigned cleanup tag.
+- The borrowed owned-car entity/record and actual front-left driver slot.
+- A driver's outstanding `AIMountCommand` or `AIUnmountCommand`, if present.
+- The lead car's `AIVehicleDriveToPointAutonomousCommand` **separately**, including its post-send UInt32 ID and retirement attempts.
+- Bounded unmount/deletion progress.
 
-The shutdown capture proves the copy is currently managed by Codeware and has
-the mod's common companion tag. It assigns a fresh unique native tag and reads
-back exactly one matching tagged ID. Recovery obtains native `EntityID` values
-from that unique tag enumeration. It never converts a serialized UInt64 through
-a Lua number, scans the world's NPCs, or selects a character by display name.
+It contains no conversation profile, memory ID, destination, driving intent, actor handle or AI-component reference. The unassigned ID `4294967295`, unrelated command classes, expired/future/oversized data and malformed IDs are rejected.
 
-Every active recovery checks:
+UInt64 entity identities are not round-tripped through doubles. Native IDs come from Codeware's exact unique-tag enumeration, actual mounts or the summoned-car blackboard.
 
-- The current player binding and a ready dynamic entity system.
-- Exactly one entity with the unique tag, matching the receipt's actor ID.
-- Actual native `IsManaged` plus both common and unique `IsTagged` checks.
-- An attached, non-crowd NPC with the exact record and an `AIFollowerRole`.
-- The exact borrowed, player-owned vehicle and its record, obtained from a
-  native mount parent, a previously validated native ID, or the real summoned
-  vehicle blackboard.
-- The actual driver mount belongs to that car and the front-left driver slot.
+A file alone cannot authorize cleanup. Every pass rechecks the unique native cleanup tag, managed ownership, normal companion tag, actor record/follower role, exact borrowed owned car and actual seats. Deleted entities are polled only through registry metadata.
 
-The unique tag is part of the nonpersistent dynamic copy's native state.
-Codeware clears its native registry at world detach, and these copies have
-`persistState=false` and `persistSpawn=false`. A save load or new game therefore
-cannot turn a stale disk receipt into authority over a different actor. The
-mod's save/death/detach abandonment also erases the receipt and drops references
-without reading or mutating native components.
+## Retirement order
 
-## Exit sequence
+1. Wait for a valid gameplay world and reprove the actor/car binding. Pauses do not advance cleanup.
+2. Reacquire a fresh vehicle-AI handle only when its class/ID matches the stored car-command receipt. Never adopt a replacement or class-wide command.
+3. Retire the exact car command, including while V is still a passenger. Scene/foreign/V-driver guards remain active. No new route is submitted.
+4. Retain its plain fixed-car stop obligation even after native terminal state. A coasting car must receive guarded braking **before** passenger-wait; native command completion is not stopped evidence.
+5. Once the car is physically stopped, retain the driver while V occupies any seat. Never eject or switch V.
+6. When V is outside, retire an outstanding NPC mount handler or allow a legitimate animated unmount to finish. Confirm the actual driver seat and exit workspot have cleared.
+7. Remove only the uniquely proved old managed driver. The borrowed player car is never deleted.
 
-Recovery is completely dormant while V occupies any seat of the borrowed car,
-including its driver seat. It does not mount, unmount, teleport, eject, reseat or
-otherwise control V. Once V is outside:
+If V drives, a scene takes control, a foreign AI/AutoDrive journey owns the vehicle, or a different driver occupies the slot, cleanup does not brake that owner. It retains its receipt and waits. A foreign AutoDrive journey is never disabled by a new NPC-backend receipt.
 
-1. Confirm another AutoDrive journey has not taken control. A matching active
-   journey may receive up to three native disable requests. There is no enable
-   path in this module.
-2. Wait for a car speed of at most 0.25 m/s. At most three borrowed-car brake
-   requests can be issued; a native scene or combat blocks exit work.
-3. Reacquire only the exact previous `AIMountCommand` or `AIUnmountCommand`
-   receipt on this copy. A live handler must still name the same car and
-   driver slot. A foreign class, command, vehicle or slot is rejected.
-4. Retire the old mount command before sending an animated `AIUnmountCommand`
-   through the existing native vehicle adapter. An active unmount is allowed
-   to finish; it is cancelled only after the actual seat link clears or its
-   bounded timeout. Its receipt is persisted for another CET reload.
-5. Confirm no actual mount remains, the owned command is terminal, the exit
-   workspot has ended, and the car's driver slot no longer reports this actor.
-6. Delete only that exact proved dynamic companion. The player-owned car is
-   never passed to a deletion API. After an accepted actor deletion, poll only
-   Codeware registry metadata because the native components may be detaching.
+Version-2 receipts may retire their already-proved legacy AutoDrive lease through the old guarded disable adapter. They do not grant authority over a newly observed vehicle-AI command.
 
-Native polling is limited to two updates per simulation second. Paused frames
-do not advance retries. Unmount attempts are capped at three and persisted
-across CET reloads; command retirement has a 12-second bound. Receipt expiry,
-failed proof or exhausted retries ends the automatic authority without trying
-a forced exit or deleting an uncertain actor.
+## Attempts and failure
 
-## Legacy interrupted copy helper
+Retirement uses the native Bool result and fresh command state. Refusals/exceptions before acknowledgment have at most three exact-ID submissions; accepted pending retirement is not resent. A terminal observation reconciles a throw after its side effect. The attempt count survives reload.
 
-An old CET instance did not write a receipt. For an already seated legacy mod
-copy, a reviewed diagnostic may pass the exact native actor to:
+Vehicle-command warning timeout does not erase the active receipt or license driver deletion. A terminal vehicle command remains recorded until safe stopped evidence, including when V is still a passenger. Braking and NPC unmount attempts have separate bounded allowances.
 
-```lua
-local accepted, reason = companions.captureInterruptedDriver(npc)
-local state = companions.reloadCleanupSnapshot()
-```
+No NPC exit or deletion occurs while a car is moving, an owned command is nonterminal, a native exit workspot remains active, or control is unverified. Transient unavailable probes remain pending; a definitively changed player/tag/record binding rejects the receipt. Save/death/world abandonment makes no native calls and invalidates transient cleanup authority.
 
-The helper checks current native ownership and common tag, an attached matching
-entity/record, its follower role, an actual driver-seat mount, and the exact
-owned car. Only then does it assign/read back the unique tag and persist the
-cleanup receipt. It never adds that actor to the new party or adopts the old
-trip. A tagless, unmanaged, quest, ambient, wrong-seat or foreign-car actor
-cannot be handed off through this helper. Root diagnostics should obtain the
-native actor/ID from the common tag or another already validated native handle,
-not fabricate an ID from a numeric string.
+An accepted driver despawn is polled without resubmission or reads through retiring actor components. There is no companion respawn or trip resume on ordinary save reload.
 
-## Failure and verification boundaries
+## Integration
 
-Capture returns failure when native proof or receipt persistence fails. The
-shutdown log records that failure/pending reason, and driver dismissal stays
-blocked by the live trip owner. It must not be reported as completed cleanup.
-A failed progress write also stops the automatic authority; no forced fallback
-is sent. The unique tag alone does not authorize party restoration.
+`companions.prepareChauffeurShutdown` passes both the driver's mount operation and the car's driving operation to the cleanup capture. The trip remains protected until normal teardown finishes. An explicit handoff of an already interrupted legacy seated copy requires the same native ownership proof; it does not add that copy to the current party.
 
-`bridge/companion-reload-cleanup.test.mjs` executes the real Lua policy and its
-native adapter with explicit registry, mount, command, scene and storage
-fixtures. It covers V-aboard dormancy, wrong/stale receipts, unique-tag proof,
-exact command binding, UInt64 handling, native exit timing, bounded retries,
-and accepted-deletion polling that forbids retired component reads.
+`companion-vehicle-native.lua` supplies exact command receipt/rebinding and animated NPC mount/unmount operations. `companion-chauffeur-native.lua` supplies the current driving observation, exact vehicle-command retirement and guarded braking. The recovered owner is retirement-only.
 
-These checks establish source behavior. Live acceptance still requires a
-parked owned car, a proved driver copy, V's manual exit, an observed animated
-driver exit, and confirmed removal of that copy without a player seat change.
+## Verification
 
-## Native source used
+`bridge/companion-reload-cleanup.test.mjs` covers receipt validation, unique-tag/native binding, exact mount/vehicle-command recovery, coasting with V still aboard, scene/V-driver/foreign-control guards, bounded retirement and unmounting, delayed despawn and world abandonment. `bridge/chauffeur-game-integration.test.mjs` exercises the real companion wrappers and protected old-driver cleanup.
 
-- Codeware `scripts/World/DynamicEntitySystem.reds`: `GetTaggedIDs`,
-  `AssignTag`, `IsManaged`, `IsTagged`, `GetEntity`, `DeleteEntity`.
-- Codeware `src/App/World/DynamicEntitySystem.cpp`: native tag registry,
-  nonpersistent entity save filtering, and registry clearing on world detach.
-- Installed Cyberpunk 2.31 `core/ai/actions/aiActionHelper.script:687-694`:
-  `WorkspotSystem.IsActorInWorkspot`.
-- The mod's existing `companion-vehicle-native.lua`: mount parent IDs,
-  seat inspection, exact command receipts, terminal-state cancellation and
-  animated unmount options.
+The bounded live native driving trial qualifies command movement and bindings. Version-3 production reload retirement and its physical stop/exit behavior remain an installed gameplay check after the combined update is activated.

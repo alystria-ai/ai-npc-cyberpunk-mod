@@ -66,7 +66,8 @@ function api.cancel(command)
   if world.cancelBlocked then return false end
   command.state='Cancelled'; return true
 end
-function api.commandReceipt(command) return command and {id=1,class='AIMountCommand'} end
+function api.commandReceipt(command) return command and {id=command.id or 1,
+  class=command.drive and 'AIVehicleDriveToPointAutonomousCommand' or 'AIMountCommand'} end
 function api.retiredCommand() return nil end
 function api.rebindVehicle(receipt) return world.cars[receipt.id] end
 function api.destroy(vehicle)
@@ -91,7 +92,7 @@ function api.brake(vehicle)
 end
 function api.recover() return true end
 local native={}
-function native.sample(_,value)
+function native.sample(_,value,_,_,operation)
   if world.readError then error('World unavailable') end
   local waypoint=world.waypoint and {id=world.waypoint.id,name=world.waypoint.name,position=world.waypoint.position,
     destinationType=world.destinationType,markerPosition=world.markerPosition}
@@ -101,13 +102,20 @@ function native.sample(_,value)
       and world.mounts.player.seat~='seat_front_left',driverMount=world.mounts[value.serial],
     playerCombat=world.combat,car=not world.detached and car or nil,carValid=world.carValid,
     info=world.detached and {ready=false} or car.info,summonedId=world.summoned,summonEnRoute=world.enRoute,
-    waypoint=waypoint,auto=world.auto}
+    waypoint=waypoint,auto=world.auto,drive={known=not world.driveUnknown,ready=not world.driveUnavailable,
+      reservations=world.reservations or 0,busy=world.foreignDrive or world.driveCommand
+        and (world.driveCommand.state=='Executing' or world.driveCommand.state=='NotExecuting'),
+      foreign=world.foreignDrive==true or world.auto.enabled==true,
+      state=operation and operation.state,ownedActive=operation and operation==world.driveCommand
+        and (operation.state=='Executing' or operation.state=='Enqueued'),
+      commandId=operation and operation.id,remaining=world.auto.remaining,
+      distance=world.routeDistance or 100}}
 end
 function native.mountPlayer()
   world.playerMounts=world.playerMounts+1
   error('The mod must never mount V')
 end
-function native.enable(_,_,_,pin,seat)
+function native.start(_,_,_,pin,seat)
   assert(world.mounts[1] and world.mounts.player and world.mounts.player.seat~='seat_front_left')
   assert(world.mounts.player.seat==seat,'Departure used a stale passenger seat')
   assert(pin.id==world.waypoint.id and pin.destinationType==world.destinationType,'Departure lost logical destination binding')
@@ -116,19 +124,37 @@ function native.enable(_,_,_,pin,seat)
   end
   world.enablePoint={x=pin.position.x,y=pin.position.y,z=pin.position.z}
   world.enableSeat=seat
+  if world.auto.destinationId~=pin.id or not (world.auto.playerTracked or world.auto.questTracked) then
+    return nil,'Stale native destination'
+  end
   world.enables=world.enables+1
-  if world.rejectEnable then return false,'Rejected' end
-  if world.delayEnable then world.enableQueued=true
-  else world.auto.enabled=true; world.auto.vehicleId=car.id end
+  if world.rejectEnable then return nil,'Rejected' end
+  local command={id=100+world.enables,drive=true,carId=car.id,
+    state=world.delayEnable and 'NotExecuting' or 'Executing'}
+  world.driveCommand=command
+  return command
+end
+function native.driveReceipt(command)
+  return command and {id=command.id,class='AIVehicleDriveToPointAutonomousCommand',cancelRequested=command.cancelRequested==true}
+end
+function native.retarget(command,_,pin)
+  assert(command==world.driveCommand,'Foreign driving command was retargeted')
+  world.retargets=(world.retargets or 0)+1
+  world.enablePoint={x=pin.position.x,y=pin.position.y,z=pin.position.z}
   return true
 end
-function native.disable(_,vehicle)
-  assert(not world.auto.enabled or world.auto.vehicleId==vehicle.id,'Foreign AutoDrive cancelled')
+function native.stop(command,vehicle)
+  assert(command==world.driveCommand and vehicle==car,'Foreign driving command was cancelled')
+  if command.state=='Success' or command.state=='Failure' or command.state=='Cancelled' or command.state=='Interrupted' then return true end
+  if command.cancelRequested then return false,'Still retiring' end
   world.disables=world.disables+1
+  command.cancelRequested=true
   if world.disableBlocked then return false,'Still running' end
-  world.auto.enabled=false; world.enableQueued=false; return true
+  command.state='Cancelled'; return true
 end
 function native.brake()
+  if world.auto.enabled or world.foreignDrive or car.info.scene
+      or world.mounts.player and world.mounts.player.seat=='seat_front_left' then return false,'Foreign control' end
   world.brakes=world.brakes+1
   if not world.brakeBlocked then car.info.speed=0 end
   return true
@@ -136,6 +162,7 @@ end
 local hooks={release=function() world.releases=world.releases+1; return not world.releaseBlocked end,
   resumed=function() world.resumes=world.resumes+1 end}
 local fleet=transport.new(api,native)
+world.auto.laneValid=true
 local function tick(count,step)
   for _=1,count or 1 do transport.update(fleet,player,entries,step or 0.1,hooks) end
 end
@@ -195,13 +222,15 @@ actual('player','seat_front_right'); tick(5)
 assert(world.playerMounts==0 and world.enables==0 and phase()=='waiting-for-player')
 world.playerTransition=false; world.delayEnable=true; tick(5)
 assert(world.enables==1 and phase()=='starting')
-world.auto.enabled=true; world.auto.vehicleId=car.id; tick()
-assert(phase()=='driving' and transport.chauffeurSnapshot(fleet).nativeOwned)
+  world.driveCommand.state='Executing'; tick()
+  assert(phase()=='driving' and transport.chauffeurSnapshot(fleet).vehicleCommand.id==world.driveCommand.id)
 `));
-test('waypoint changes cancel preparation without enabling or replacing any map pin',()=>run(`
+test('waypoint changes during preparation update the same trip without moving V or replacing a map pin',()=>run(`
 assert(queue()); tick(1)
-world.waypoint={id='changed',name='Other pin',position={x=8,y=8,z=0}}; tick(15)
-assert(world.enables==0 and not fleet.chauffeur and world.waypoint.id=='changed' and world.deleted==0)
+local generation=fleet.generation
+world.waypoint={id='changed',name='Other pin',position={x=8,y=8,z=0}};world.auto.destinationId='changed';tick(15)
+assert(world.enables==0 and phase()=='waiting-for-player' and fleet.generation==generation and world.deleted==0)
+boardManually();assert(phase()=='driving' and world.enablePoint.x==8 and world.playerMounts==0)
 `));
 test('no waypoint, en-route car, occupied driver, and missing passenger seats fail before movement',()=>run(`
 local pin=world.waypoint; world.waypoint=nil; assert(not queue()); world.waypoint=pin
@@ -217,7 +246,7 @@ assert(world.enables==0 and phase()=='waiting-for-player-exit')
 actual('player',nil); tick(10)
 assert(not fleet.chauffeur and world.deleted==0)
 `));
-test('the selected Quest survives boarding road projection changes and moving markers, but not a new selection',()=>run(`
+test('Quest road projection changes and a new selected destination retarget the same owned command',()=>run(`
 world.auto.playerTracked=false; world.auto.questTracked=true;world.destinationType='Quest'
 world.waypoint.position={x=-1623.8048095703,y=-386.49038696289,z=-13.099999427795}
 world.markerPosition={x=-1624.0823974609,y=-386.62854003906,z=-12.003639221191}
@@ -231,28 +260,31 @@ assert(world.enablePoint.x==world.waypoint.position.x and world.enablePoint.z==w
 assert(fleet.chauffeur.offer.waypoint.position.x==offered.waypoint.position.x,'immutable bridge offer was rewritten')
 world.waypoint.position.z=world.waypoint.position.z+6;world.markerPosition.y=world.markerPosition.y+200;tick(4)
 assert(phase()=='driving' and world.disables==0 and world.enables==1)
+local operation=fleet.chauffeur.operation
 world.waypoint.id='different';world.auto.destinationId='different';tick(4)
-assert(phase()=='waiting-for-player-exit' and world.disables==1 and world.enables==1)
+assert(phase()=='driving' and world.disables==0 and world.enables==1 and fleet.chauffeur.operation==operation)
+assert(world.retargets>=2 and fleet.chauffeur.driveRevision==fleet.chauffeur.destinationRevision)
 `));
-test('same-ID manual marker moves cancel, while new native road projections do not',()=>run(`
+test('manual marker moves and fresh native road projections both retarget without another start',()=>run(`
 assert(queue());tick(12)
 world.waypoint.position={x=101,y=55,z=8};boardManually()
 assert(phase()=='driving' and world.enables==1 and world.enablePoint.z==8)
 world.waypoint.position={x=130,y=155,z=28};tick(4)
 assert(phase()=='driving' and world.disables==0)
 world.markerPosition.x=101;tick(4)
-assert(phase()=='waiting-for-player-exit' and world.disables==1)
+assert(phase()=='driving' and world.disables==0 and world.enables==1 and world.retargets==2)
 `));
-test('manual marker drift is measured from the original pin, not the previous update',()=>run(`
+test('gradual marker movement is measured from the last revision rather than losing accumulated drift',()=>run(`
 driving()
 world.markerPosition.x=100.1;tick();world.markerPosition.x=100.2;tick()
 assert(phase()=='driving')
 world.markerPosition.x=100.3;tick(4)
-assert(phase()=='waiting-for-player-exit' and world.disables==1)
+assert(phase()=='driving' and world.disables==0 and world.retargets==1)
+assert(fleet.chauffeur.offer.waypoint.position.x==100,'immutable initial offer was rewritten')
 `));
-test('switching destination type under the same mappin ID cancels the frozen logical selection',()=>run(`
+test('switching destination type under the same mappin ID advances the destination revision',()=>run(`
 driving();world.destinationType='Quest';world.auto.playerTracked=false;world.auto.questTracked=true;tick(4)
-assert(phase()=='waiting-for-player-exit' and world.disables==1 and world.enables==1)
+assert(phase()=='driving' and world.disables==0 and world.enables==1 and world.retargets==1)
 `));
 test('cancel brakes and disables once, waits for stopped evidence and V exit, then resumes only Judy',()=>run(`
 driving(); car.info.speed=8; world.brakeBlocked=true
@@ -267,15 +299,15 @@ assert(not transport.owns(fleet,1) and not fleet.primary)
 test('blocked native shutdown has bounded submissions and retains ownership',()=>run(`
 driving(); world.disableBlocked=true; car.info.speed=5
 transport.cancelChauffeur(fleet); tick(60,1)
-assert(world.disables==3 and world.brakes==3 and world.unmounts==0 and transport.owns(fleet,1))
+assert(world.disables==1 and world.brakes==3 and world.unmounts==0 and transport.owns(fleet,1))
 assert(phase()=='stopping' and transport.chauffeurSnapshot(fleet).error)
 `));
-test('another AutoDrive vehicle is never disabled or braked by this trip',()=>run(`
-driving(); world.auto.vehicleId='foreign-car'; tick(10)
-assert(world.disables==0 and world.brakes==0 and phase()=='stopping' and world.unmounts==0)
+test('foreign AutoDrive is never disabled or braked while this trip retires only its own NPC command',()=>run(`
+driving(); world.auto.enabled=true;world.auto.vehicleId='foreign-car'; tick(10)
+assert(world.auto.enabled and world.disables==1 and world.brakes==0 and phase()=='stopping' and world.unmounts==0)
 `));
-test('native interruption is never restarted and a subsequent user trip is not claimed',()=>run(`
-driving(); world.auto.enabled=false; tick()
+test('native interruption is stopped without restart and a subsequent user trip is not claimed',()=>run(`
+driving(); world.driveCommand.state='Interrupted'; tick()
 world.auto.enabled=true; world.auto.vehicleId=car.id; tick(8)
 assert(world.enables==1 and world.disables==0 and world.unmounts==0)
 `));
@@ -288,9 +320,9 @@ assert(not fleet.chauffeur and world.unmounts==1 and world.playerMounts==0)
 `));
 test('timed out departure cancels the pending native request without retrying enable',()=>run(`
 world.delayEnable=true; assert(queue()); tick(12); boardManually()
-assert(world.enableQueued and phase()=='starting')
+assert(world.driveCommand.state=='NotExecuting' and phase()=='starting')
 tick(12,1)
-assert(not world.enableQueued and world.enables==1 and world.disables==1 and phase()=='waiting-for-player-exit')
+assert(world.driveCommand.state=='Cancelled' and world.enables==1 and world.disables==1 and phase()=='waiting-for-player-exit')
 `));
 test('ordinary transport activity blocks chauffeur admission',()=>run(`
 fleet.phase='boarding'
@@ -321,20 +353,20 @@ assert(phase()=='driving' and world.disables==0)
 `));
 test('a failed waypoint or UI read still attempts bounded guarded native shutdown',()=>run(`
 driving(); world.readError=true; tick(40,1)
-assert(not world.auto.enabled and world.disables==3 and world.brakes==3)
+assert(not world.auto.enabled and world.disables==1 and world.brakes==3)
 assert(transport.owns(fleet,1) and world.unmounts==0)
 world.readError=false; tick(3); assert(phase()=='waiting-for-player-exit')
 `));
 test('native off-on edges between samples cannot transfer ownership to a new journey',()=>run(`
 driving(); transport.chauffeurAutodriveToggled(fleet,false)
 transport.chauffeurAutodriveToggled(fleet,true); world.auto.enabled=true; tick(5)
-assert(world.disables==0 and world.brakes==0 and world.unmounts==0 and phase()=='stopping')
+assert(world.disables==1 and world.brakes==0 and world.unmounts==0 and phase()=='stopping')
 `));
-test('only the matching native arrival event qualifies a completed trip',()=>run(`
+test('only owned command Success plus a stopped car near the current destination qualifies arrival',()=>run(`
 driving(); transport.chauffeurArrived(fleet,'wrong-car')
 assert(not fleet.chauffeur.arrivalObserved)
-transport.chauffeurArrived(fleet,car.id); world.waypoint=nil; world.auto.enabled=false
-transport.chauffeurAutodriveToggled(fleet,false); tick(3)
+transport.chauffeurArrived(fleet,car.id);tick();assert(phase()=='driving')
+world.driveCommand.state='Success';world.routeDistance=4; tick(3)
 assert(phase()=='waiting-for-player-exit' and transport.chauffeurSnapshot(fleet).outcome=='completed')
 actual('player',nil); tick(8); assert(phase()=='completed')
 `));
@@ -534,21 +566,23 @@ assert(phase()=='stopping' and first.state=='Cancelled' and world.mountsRequeste
 assert(world.auto.enabled and world.brakes==0 and world.disables==0 and world.enables==0)
 assert(world.playerMounts==0 and world.unmounts==0)
 `));
-test('route identity still governs a stopped driver-seat pause, and changed routes never resume the old intent',()=>run(`
+test('a new route during driver-seat grace is retained for the same trip after V releases the driver slot',()=>run(`
 world.delayDriver=true; assert(queue()); tick(5)
 actual('player','seat_front_left'); tick(3)
-world.waypoint.id='new-route'; tick(6)
-assert(phase()=='waiting-for-player-exit' and world.enables==0 and world.mountsRequested==1)
-actual('player',nil); tick(10)
-assert(not fleet.chauffeur and world.brakes==0 and world.disables==0 and world.resumes==1)
+world.waypoint.id='new-route';world.auto.destinationId='new-route';tick(6)
+assert(phase()=='waiting-for-driver-seat' and world.enables==0 and world.mountsRequested==1)
+world.delayDriver=false;actual('player',nil); tick(10)
+assert(phase()=='waiting-for-player' and world.brakes==0 and world.disables==0 and world.resumes==0)
+boardManually();assert(phase()=='driving' and fleet.chauffeur.waypoint.id=='new-route')
 `));
 test('a route or seat race before the first preparation update still releases the exact foot owner',()=>run(`
 assert(queue()); actual('player','seat_front_left'); world.waypoint.id='new-route'; tick()
 assert(world.releases==1 and world.mountsRequested==0 and world.enables==0)
-assert(phase()=='waiting-for-player-exit' and transport.owns(fleet,1))
+assert(phase()=='waiting-for-driver-seat' and transport.owns(fleet,1))
 assert(world.brakes==0 and world.disables==0 and world.playerMounts==0 and world.unmounts==0)
 actual('player',nil); tick(10)
-assert(not fleet.chauffeur and world.resumes==1)
+assert(phase()=='waiting-for-player' and world.resumes==0)
+transport.cancelChauffeur(fleet);tick(8);assert(not fleet.chauffeur and world.resumes==1)
 `));
 test('V taking the driver seat during owned AutoDrive disables that trip without braking against V',()=>run(`
 driving(); actual(entry,nil); actual('player','seat_front_left'); car.info.speed=10
@@ -556,14 +590,42 @@ tick(3)
 assert(not fleet.chauffeur and phase()=='taken-over' and world.disables==1 and world.brakes==0)
 assert(world.mounts.player.seat=='seat_front_left' and world.playerMounts==0 and world.enables==1)
 `));
-test('a destination change while waiting for manual boarding cancels without moving V',()=>run(`
+test('a destination change while waiting for manual boarding preserves the waiting driver without moving V',()=>run(`
 assert(queue()); tick(12); assert(phase()=='waiting-for-player')
-world.waypoint.id='different-destination'; tick(8)
-assert(not fleet.chauffeur and world.enables==0 and world.playerMounts==0 and not world.mounts.player)
-assert(world.unmounts==1 and world.mountsRequested==1)
+world.waypoint.id='different-destination';world.auto.destinationId=world.waypoint.id;tick(8)
+assert(phase()=='waiting-for-player' and world.enables==0 and world.playerMounts==0 and not world.mounts.player)
+assert(world.unmounts==0 and world.mountsRequested==1)
+boardManually();assert(phase()=='driving' and fleet.chauffeur.waypoint.id=='different-destination')
 `));
 test('a driver who gets out while waiting is released without an automatic reseat or departure',()=>run(`
 assert(queue()); tick(12); actual(entry,nil); tick(8)
 assert(not fleet.chauffeur and world.enables==0 and world.playerMounts==0)
 assert(world.mountsRequested==1 and not world.mounts[1] and world.resumes==1)
+`));
+test('an already interrupted command still stops a coasting car without recreating the route',()=>run(`
+driving();world.driveCommand.state='Interrupted';car.info.speed=4;tick(3)
+assert(world.brakes==1 and world.enables==1 and world.disables==0 and car.info.speed==0)
+assert(phase()=='waiting-for-player-exit' and fleet.chauffeur.stopObligation)
+`));
+test('changing the map as the old command completes restarts only the new revision after stopped evidence',()=>run(`
+driving();local first=fleet.chauffeur.operation;local generation=fleet.generation
+world.driveCommand.state='Success';world.waypoint.id='new-road';world.auto.destinationId='new-road'
+world.waypoint.position={x=250,y=350,z=0};car.info.speed=2;tick(8)
+assert(phase()=='driving' and world.enables==2 and fleet.chauffeur.operation~=first)
+assert(fleet.generation==generation and world.enablePoint.x==250 and world.playerMounts==0)
+`));
+test('Success far from the current destination and manual stop racing Success never become arrival',()=>run(`
+driving();world.driveCommand.state='Success';world.routeDistance=90;tick(3)
+assert(transport.chauffeurSnapshot(fleet).outcome=='failed')
+actual('player',nil);tick(8);actual(entry,nil);world.driveCommand=nil
+driving();world.driveCommand.state='Success';world.routeDistance=1
+assert(transport.cancelChauffeur(fleet));tick(3)
+assert(transport.chauffeurSnapshot(fleet).outcome=='cancelled')
+`));
+test('a foreign same-car AI owner prevents braking until it releases, without consuming the stop allowance',()=>run(`
+driving();world.foreignDrive=true;car.info.speed=5;tick(90,.1)
+assert(phase()=='stopping' and world.brakes==0 and fleet.chauffeur.brakeAttempts==0)
+assert(world.disables==1 and world.enables==1 and world.unmounts==0)
+world.foreignDrive=false;tick(50,.1)
+assert(world.brakes==1 and phase()=='waiting-for-player-exit')
 `));

@@ -15,12 +15,13 @@ local point={id='4001ULL',name='Selected waypoint',position={x=12,y=34,z=0},
 local car={id='3001ULL',entityID={hash='3001ULL'},name='Summoned owned car',record='Vehicle.Test',owned=false}
 local carInfo={ready=true,speed=0,playerGap=3,seats={{name='seat_front_left'},{name='seat_front_right'}}}
 companionChauffeurAdapter=function(api)
+ api.inspectDrive=function()return {known=true,ready=true,foreign=false,busy=false,reservations=0}end
  api.sample=function(player,entry)
   assert(not paused,'native sample from a paused menu action');reads=reads+1
   return {actor={serial=entry.serial,id=tostring(entry.entityID.hash),key=entry.profileKey},
    actorValid=entry.system:IsManaged(entry.entityID) and entry.system:IsTagged(entry.entityID,'CyberpunkConvaiCompanion'),
    actorCalm=true,playerCombat=false,car=car,carValid=true,info=carInfo,summonedId=car.id,
-   waypoint=point,auto={enabled=false}}
+    waypoint=point,auto={enabled=false},drive={known=true,ready=true,busy=false,foreign=false,reservations=0}}
  end
  return api
 end

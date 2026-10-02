@@ -37,9 +37,10 @@ local receipt={version=2,intent='cleanup-only',issuedAt=now,expiresAt=now+3600,
 local function save(v)files[PATH]=json.encode(v or receipt)end
 `;
 const policyFixture=`
-local calls={samples=0,stops=0,brakes=0,restores=0,states=0,cancels=0,unmounts=0,deletes=0,polls=0}
+local calls={samples=0,stops=0,brakes=0,restores=0,states=0,cancels=0,unmounts=0,deletes=0,polls=0,vehicleRestores=0,vehicleCancels=0}
 local world={aboard=false,driverMounted=true,speed=0,auto=false,autoMatches=true}
 local old={state='Executing',id=17,class='AIMountCommand'}
+local vehicleCommand={state='Executing',id=71,class='AIVehicleDriveToPointAutonomousCommand'}
 local latest
 local api={}
 function api.sample()
@@ -47,7 +48,7 @@ function api.sample()
  if world.unavailable then return nil,'missing',world.fatal end
  return {car={entityID={hash='3001ULL'}},info={speed=world.speed},driverMounted=world.driverMounted,
   playerAboard=world.aboard,playerDriver=world.playerDriver,autoEnabled=world.auto,
-  autoMatches=world.autoMatches,blocked=world.blocked,driverExiting=world.exiting}
+  autoMatches=world.autoMatches,blocked=world.blocked,driverExiting=world.exiting,foreignVehicle=world.foreignVehicle}
 end
 function api.stop()calls.stops=calls.stops+1;return true end
 function api.brake()calls.brakes=calls.brakes+1;return true end
@@ -62,6 +63,15 @@ function api.cancel(cmd)
  return cmd.state=='Cancelled'
 end
 function api.commandReceipt(cmd)return {id=cmd.id,class=cmd.class,cancelRequested=cmd.cancelRequested==true}end
+function api.restoreVehicle(r)
+ calls.vehicleRestores=calls.vehicleRestores+1;vehicleCommand.id=r.id;return vehicleCommand
+end
+function api.cancelVehicle(cmd)
+ assert(cmd==vehicleCommand);calls.vehicleCancels=calls.vehicleCancels+1
+ if not world.vehicleCancelBlocked then cmd.state='Cancelled' end
+ return cmd.state=='Cancelled'
+end
+api.vehicleReceipt=api.commandReceipt
 function api.unmount()
  calls.unmounts=calls.unmounts+1
  latest={id=100+calls.unmounts,class='AIUnmountCommand',state='Executing'}
@@ -72,8 +82,10 @@ function api.delete(_,requested)
  if requested then calls.polls=calls.polls+1;return world.despawned,true end
  calls.deletes=calls.deletes+1;return not world.delayDelete,true
 end
-function api.capture(_,_,_,cmd,tag)
- local r=copy(receipt);r.tag=tag;r.command=cmd and api.commandReceipt(cmd);return r
+function api.capture(_,_,_,cmd,tag,drive)
+ local r=copy(receipt);r.tag=tag;r.command=cmd and api.commandReceipt(cmd)
+ if drive then r.version=3;r.backend='npc';r.vehicleCommand=api.commandReceipt(drive) end
+ return r
 end
 function api.seated()return {},{},nil end
 local owner=cleanup.new(api)
@@ -166,6 +178,37 @@ assert(not cleanup.captureSeated(owner,{},{}));noMutations()
 local before=calls.samples;cleanup.abandon(owner)
 assert(not files[PATH] and not owner.receipt and owner.operation==nil and calls.samples==before)
 tick();assert(calls.samples==before)
+`));
+test('a terminal car command retains stopping authority while V is passenger and the car is coasting',()=>run(`
+receipt.version=3;receipt.backend='npc';receipt.vehicleCommand=api.commandReceipt(vehicleCommand)
+vehicleCommand.state='Interrupted';world.aboard=true;world.speed=5;save()
+tick();assert(calls.vehicleRestores==1 and calls.vehicleCancels==0 and calls.brakes==1)
+assert(owner.receipt.vehicleCommand and owner.phase=='waiting-for-stopped-car' and calls.unmounts==0)
+world.speed=0;tick();assert(not owner.receipt.vehicleCommand and owner.phase=='waiting-for-player-exit')
+assert(calls.unmounts==0 and calls.deletes==0)
+world.aboard=false;tick();assert(calls.unmounts==1)
+`));
+test('reload retires only the lead-car command before passenger waiting and never submits a new trip',()=>run(`
+receipt.version=3;receipt.backend='npc';receipt.vehicleCommand=api.commandReceipt(vehicleCommand)
+world.aboard=true;save();tick()
+assert(calls.vehicleCancels==1 and calls.brakes==1 and calls.unmounts==0)
+tick();assert(owner.phase=='waiting-for-player-exit' and not owner.receipt.vehicleCommand)
+assert(calls.stops==0 and calls.unmounts==0 and calls.deletes==0)
+`));
+test('coasting cleanup never brakes V, foreign commands or scenes and retains the terminal stop receipt',()=>run(`
+receipt.version=3;receipt.backend='npc';receipt.vehicleCommand=api.commandReceipt(vehicleCommand)
+vehicleCommand.state='Success';world.speed=5;world.aboard=true;world.playerDriver=true;save();tick()
+assert(owner.receipt.vehicleCommand and calls.brakes==0)
+world.playerDriver=false;world.foreignVehicle=true;tick();assert(calls.brakes==0 and owner.receipt.vehicleCommand)
+world.foreignVehicle=false;world.blocked=true;tick();assert(calls.brakes==0 and owner.receipt.vehicleCommand)
+world.blocked=false;tick();assert(calls.brakes==1 and owner.receipt.vehicleCommand)
+`));
+test('a refused car-command retirement stays recoverable beyond its warning deadline without deleting the driver',()=>run(`
+receipt.version=3;receipt.backend='npc';receipt.vehicleCommand=api.commandReceipt(vehicleCommand)
+world.vehicleCancelBlocked=true;save();tick(30)
+assert(owner.receipt.vehicleCommand and owner.error=='native-vehicle-command-did-not-stop')
+assert(calls.unmounts==0 and calls.deletes==0)
+world.vehicleCancelBlocked=false;tick(2);assert(calls.unmounts==1)
 `));
 
 const nativeFixture=`

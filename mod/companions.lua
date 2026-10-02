@@ -672,7 +672,7 @@ function M.prepareChauffeurShutdown(reason)
         if not owner.receipt then
             local person=fleet.people[trip.serial]
             local captured,error=reloadCleanupModule.capture(owner,Game.GetPlayer(),trip.entry,trip.car,
-                person and person.command)
+                person and person.command,trip.operation)
             if not captured then why=tostring(why)..' Cleanup receipt: '..tostring(error) end
         end
     end

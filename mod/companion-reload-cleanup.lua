@@ -26,8 +26,18 @@ local function commandReceipt(value)
         and (value.class=='AIMountCommand' or value.class=='AIUnmountCommand')
         and (value.cancelRequested==nil or type(value.cancelRequested)=='boolean'))
 end
+local function vehicleReceipt(value)
+    return value==nil or type(value)=='table' and type(value.id)=='number'
+        and value.id>=0 and value.id<4294967295 and value.id==math.floor(value.id)
+        and value.class=='AIVehicleDriveToPointAutonomousCommand'
+        and (value.cancelRequested==nil or type(value.cancelRequested)=='boolean')
+        and (value.stopSubmissions==nil or type(value.stopSubmissions)=='number'
+            and value.stopSubmissions>=0 and value.stopSubmissions<=MAX_ATTEMPTS
+            and value.stopSubmissions==math.floor(value.stopSubmissions))
+end
 local function valid(value,now)
-    return type(value)=='table' and value.version==2 and value.intent=='cleanup-only'
+    return type(value)=='table' and (value.version==2 or value.version==3 and value.backend=='npc')
+        and value.intent=='cleanup-only'
         and type(value.issuedAt)=='number' and value.issuedAt<=now+5
         and type(value.expiresAt)=='number' and value.expiresAt>now
         and value.expiresAt-value.issuedAt==WAIT_LIMIT
@@ -36,6 +46,7 @@ local function valid(value,now)
         and value.tag:match('^'..PREFIX..'%d+_%d+$') and #value.tag<=96
         and type(value.car)=='table' and identifier(value.car.id) and text(value.car.record)
         and value.seat=='seat_front_left' and commandReceipt(value.command)
+        and vehicleReceipt(value.vehicleCommand)
         and (value.attempts==nil or type(value.attempts)=='number' and value.attempts>=0
             and value.attempts<=MAX_ATTEMPTS and value.attempts==math.floor(value.attempts))
         and (value.deleteRequested==nil or type(value.deleteRequested)=='boolean')
@@ -64,6 +75,7 @@ end
 local function erase() os.remove(PATH); os.remove(PATH..'.tmp') end
 local function finish(s,phase,reason)
     s.phase,s.error,s.receipt,s.operation,s.carID,s.actorID=phase,reason,nil,nil,nil,nil
+    s.vehicleOperation,s.vehicleCommandAt=nil,nil
     erase()
 end
 
@@ -94,7 +106,7 @@ local function nativeApi(transport,chauffeur,beforeRemove)
         if not role or not role:IsA('AIFollowerRole') then return nil,'driver-role-changed',true end
         return {entry={npc=npc,entityID=entityID,system=system},role=role}
     end
-    function api.capture(player,entry,car,operation,tag)
+    function api.capture(player,entry,car,operation,tag,driveOperation)
         local system=entry.system
         if not player or not player:IsAttached() or not entry.npc or not entry.npc:IsAttached()
             or not system or not system:IsReady() or not system:IsManaged(entry.entityID)
@@ -105,11 +117,15 @@ local function nativeApi(transport,chauffeur,beforeRemove)
             or id(car.entity:GetEntityID())~=car.id then return nil,'cleanup-ownership-unavailable' end
         local receipt=operation and transport.commandReceipt(operation) or nil
         if not commandReceipt(receipt) then return nil,'cleanup-command-unavailable' end
+        local vehicleCommand=driveOperation and chauffeur.driveReceipt(driveOperation) or nil
+        if driveOperation and not vehicleCommand or not vehicleReceipt(vehicleCommand) then
+            return nil,'cleanup-vehicle-command-unavailable'
+        end
         local now=os.time()
-        local value={version=2,intent='cleanup-only',issuedAt=now,expiresAt=now+WAIT_LIMIT,
+        local value={version=3,backend='npc',intent='cleanup-only',issuedAt=now,expiresAt=now+WAIT_LIMIT,
             player=id(player:GetEntityID()),actor={id=id(entry.entityID),record=tostring(entry.npc:GetRecordID())},
             car={id=car.id,record=tostring(car.entity:GetRecordID())},tag=tag,
-            seat='seat_front_left',command=receipt}
+            seat='seat_front_left',command=receipt,vehicleCommand=vehicleCommand}
         system:AssignTag(entry.entityID,CName.new(tag))
         local checked=proof(player,value)
         if not checked then return nil,'cleanup-tag-unavailable' end
@@ -196,10 +212,26 @@ local function nativeApi(transport,chauffeur,beforeRemove)
         local auto=Game.GetScriptableSystemsContainer():Get(CName.new('AutoDriveSystem'))
         local active=auto:GetAutodriveVehicle()
         bound.autoEnabled=auto:GetAutodriveEnabled()
-        bound.autoMatches=not bound.autoEnabled or not auto:GetAutodriveIsDelamain()
+        bound.legacyAuto=receipt.version==2
+        bound.autoMatches=not bound.autoEnabled or bound.legacyAuto and not auto:GetAutodriveIsDelamain()
             and active and id(active:GetEntityID())==receipt.car.id
+        if type(chauffeur.inspectDrive)=='function' then
+            local operation=receipt.vehicleCommand and {driveReceipt=receipt.vehicleCommand,carId=receipt.car.id}
+            bound.drive=chauffeur.inspectDrive(bound.car,operation)
+            bound.foreignVehicle=not bound.drive.known or bound.drive.foreign
+            -- Legacy receipts can own that already-proved AutoDrive lease,
+            -- but never a newly observed vehicle-AI command.
+            if bound.legacyAuto and bound.autoEnabled and bound.autoMatches then
+                bound.foreignVehicle=not bound.drive.known or bound.drive.currentId~=nil
+            end
+        elseif receipt.vehicleCommand then return nil,'vehicle-command-observation-unavailable' end
         bound.playerAboard=pm and pm.vehicle==receipt.car.id or bound.info.playerMounted==true
         bound.playerDriver=pm and pm.vehicle==receipt.car.id and pm.seat=='seat_front_left' or car:IsPlayerDriver()
+        for _,seat in ipairs(bound.info.seats or {}) do
+            if seat.name=='seat_front_left' and seat.occupant and seat.occupant~=receipt.actor.id then
+                bound.foreignVehicle=true
+            end
+        end
         bound.driverMounted=dm~=nil
         bound.driverExiting=not bound.driverMounted and Game.GetWorkspotSystem():IsActorInWorkspot(bound.entry.npc)
         for _,seat in ipairs(bound.info.seats or {}) do
@@ -214,7 +246,25 @@ local function nativeApi(transport,chauffeur,beforeRemove)
         return bound
     end
     function api.stop(player,bound) return chauffeur.disable(player,bound.car,false,transport) end
-    function api.brake(bound) return chauffeur.brake(bound.car) end
+    function api.brake(bound)
+        local operation=bound.vehicleOperation
+        if not operation and bound.driveReceipt then
+            operation={driveReceipt=bound.driveReceipt,carId=bound.car.id,driverId=id(bound.entry.entityID)}
+        end
+        return chauffeur.brake(bound.car,operation,id(bound.entry.entityID))
+    end
+    function api.restoreVehicle(receipt,bound)
+        local operation=transport.retiredCommand(receipt,bound.car.entity,true)
+        operation.carId,operation.driverId=bound.car.id,id(bound.entry.entityID)
+        operation.driveReceipt=receipt
+        operation.stopSubmissions=receipt.stopSubmissions or 0
+        transport.commandState(operation)
+        if operation.handle and (NameToString(operation.handle:GetClassName())~=receipt.class
+            or tonumber(operation.handle.id)~=receipt.id) then return nil,'cleanup-vehicle-command-binding-changed' end
+        return operation
+    end
+    function api.cancelVehicle(operation,bound) return chauffeur.stop(operation,bound.car) end
+    function api.vehicleReceipt(operation) return chauffeur.driveReceipt(operation) end
     function api.restore(receipt,bound)
         local operation=transport.retiredCommand(receipt,bound.entry.npc,false)
         transport.commandState(operation)
@@ -262,10 +312,10 @@ function M.captureSeated(s,player,npc)
     if not entry then return false,car or 'native-companion-ownership-unavailable' end
     return M.capture(s,player,entry,car,operation)
 end
-function M.capture(s,player,entry,car,operation)
+function M.capture(s,player,entry,car,operation,driveOperation)
     if s.receipt then return false,'A previous driver cleanup is still pending.' end
     local tag=PREFIX..tostring(os.time())..'_'..tostring(math.random(100000000,999999999))
-    local value,why=safe(s.api.capture,player,entry,car,operation,tag)
+    local value,why=safe(s.api.capture,player,entry,car,operation,tag,driveOperation)
     if not value or not valid(value,os.time()) then return false,why or 'cleanup-receipt-unavailable' end
     if not store(value) then return false,'cleanup-receipt-write-failed' end
     s.receipt,s.phase,s.loaded=value,'recorded-for-reload',true
@@ -293,6 +343,48 @@ function M.update(s,player,delta,worldReady)
     end
     s.carID=bound.car.entityID
     s.actorID=bound.entry and bound.entry.entityID or s.actorID
+    -- Retire the lead-car command while V is still a passenger. Waiting for V
+    -- to leave first would leave an old Lua owner's route driving unattended.
+    -- Scene/foreign-control checks still precede every cleanup mutation.
+    if s.receipt.vehicleCommand then
+        bound.driveReceipt=s.receipt.vehicleCommand
+        if bound.blocked then s.phase,s.error='waiting-for-safe-exit','native-scene-or-combat'; return end
+        if not s.vehicleOperation then
+            s.vehicleOperation,why=safe(s.api.restoreVehicle,s.receipt.vehicleCommand,bound)
+            if not s.vehicleOperation then finish(s,'rejected',why or 'cleanup-vehicle-command-unavailable'); return end
+            s.vehicleCommandAt=s.clock
+        end
+        bound.vehicleOperation=s.vehicleOperation
+        local state=safe(s.api.commandState,s.vehicleOperation)
+        if not terminal(state) then
+            s.phase='cancelling-retired-vehicle-command'
+            safe(s.api.cancelVehicle,s.vehicleOperation,bound)
+            if not bound.playerDriver and not bound.foreignVehicle and not bound.autoEnabled
+                and s.brakeAttempts<MAX_ATTEMPTS and s.clock>=(s.brakeAt or 0) then
+                s.brakeAttempts=s.brakeAttempts+1; s.brakeAt=s.clock+4; safe(s.api.brake,bound)
+            end
+            local receipt=safe(s.api.vehicleReceipt or s.api.commandReceipt,s.vehicleOperation)
+            if vehicleReceipt(receipt) then s.receipt.vehicleCommand=receipt; store(s.receipt) end
+            if s.clock-s.vehicleCommandAt>12 then s.error='native-vehicle-command-did-not-stop' end
+            return
+        end
+        -- A terminal command can leave an owned car rolling. Keep its plain
+        -- fixed-car stop receipt until stopped evidence, including with V still
+        -- in a passenger seat. Braking never inherits foreign/V-driver control.
+        if bound.playerDriver or bound.foreignVehicle or bound.autoEnabled then
+            s.phase,s.error='waiting-for-native-stop','another-vehicle-owner'; return
+        end
+        if type(bound.info.speed)~='number' or bound.info.speed~=bound.info.speed or bound.info.speed>.25 then
+            s.phase='waiting-for-stopped-car'
+            if s.brakeAttempts<MAX_ATTEMPTS and s.clock>=(s.brakeAt or 0) then
+                s.brakeAttempts=s.brakeAttempts+1; s.brakeAt=s.clock+4; safe(s.api.brake,bound)
+            end
+            return
+        end
+        s.vehicleOperation,s.vehicleCommandAt,s.receipt.vehicleCommand=nil,nil,nil
+        if not store(s.receipt) then finish(s,'failed','cleanup-progress-write-failed'); return end
+    end
+    if bound.foreignVehicle then s.phase,s.error='waiting-for-native-stop','another-vehicle-command-owner'; return end
     if bound.playerDriver or bound.playerAboard then s.phase,s.error='waiting-for-player-exit',nil; return end
     if not bound.autoMatches then s.phase,s.error='waiting-for-native-stop','another-autodrive-owner'; return end
     if bound.autoEnabled then

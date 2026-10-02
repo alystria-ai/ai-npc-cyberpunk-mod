@@ -1045,3 +1045,32 @@ checks pass. Optional staging copies only the verified generated archive into
 the project's development inputs; installation remains behind the existing
 game-closed native installer. A fresh vehicle entry after the combined restart
 is still required to validate the native eligibility behavior.
+
+## October 2: native chauffeur command and retained stop ownership
+
+The bounded native trial moved the borrowed car 175.654 m in 30 seconds. Its
+copied command initially exposed the unassigned ID `4294967295`; only the
+post-submission ID can authorize later updates or retirement. Live reflection
+resolved `AIDriveToPointAutonomousUpdate`, which differs from the source alias.
+The trial retired its exact command and applied brakes at the deadline; the
+resulting native Failure was intentional cancellation, not a failed route.
+
+Production now submits that NPC driving command instead of enabling AutoDrive.
+The initial conversation offer remains immutable, while later map changes
+advance the current trip's destination revision. Handleless destination updates
+require a freshly matched command ID, vehicle and actual driver/passenger seats.
+Arrival needs native Success plus a stopped car near the current destination.
+
+Independent review caught two cleanup defects before installation. A terminal
+command must retain its fixed-car stop obligation while V is a passenger, and
+a false/throwing cancellation call must permit bounded exact-ID retries.
+Separate intent, submission acknowledgment and terminal state now preserve
+both conditions. Reload receipts retire the car command independently of the
+driver's mount command and never reconstruct a trip or destination.
+
+The final combined source gate passed 277 checks with one optional installed
+subtitle-source check skipped. The facial native source separately compiled
+successfully and its staged source hash matches. New regression cases include
+map changes at completion, missing passengers, refused cancellation, coasting,
+foreign control and retained-driver reload cleanup. Full production driving,
+retargeting, arrival and the repaired seated face remain the combined live gate.

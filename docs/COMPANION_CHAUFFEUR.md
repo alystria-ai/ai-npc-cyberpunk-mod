@@ -1,395 +1,119 @@
 # Companion chauffeur
 
-V can ask a managed companion to drive the personally summoned, owned car to
-the game's selected destination, including a tracked quest route or map pin.
-The selected copy takes the driver seat;
-V gets a reserved passenger seat. Other companions fill the remaining seats
-and use the existing personal-model carpool and overflow-car controller.
-Native Cyberpunk 2.31 AutoDrive owns the lead car's road route.
+A managed companion can drive V's personally summoned, owned car to the selected map destination. Start a trip by asking the character in private text or voice conversation. The Companion Manager shows trip status and **Stop trip**; it has no driving-initiation button.
 
-The request begins while V is on foot near a stopped summoned car. If V is
-already driving, the action asks V to step out. It never ejects V, takes over
-an unrelated AutoDrive trip, unlocks another car, or changes garage ownership.
+The companion takes the driver seat and waits for V to enter a passenger seat through normal gameplay. The remaining companions fill free seats and use the existing overflow-car controller. The mod never mounts, ejects or switches seats for V, changes garage ownership, or deletes the borrowed lead car.
 
-Start a trip by asking the companion in private text or voice conversation.
-The Companion Manager shows active trip status and a Stop trip action; it has
-no driving initiation button or deferred driving request. The companion waits
-for V to enter a passenger seat manually before departure.
+## Native NPC driving
+
+The lead car uses Cyberpunk 2.31's `AIVehicleDriveToPointAutonomousCommand` on its vehicle AI component. It does not enable AutoDrive, simulate the game's AutoDrive key, or use Delamain mode.
+
+The native destination getters remain the source of the selected quest/map marker and its road endpoint. Reading that endpoint does not enable AutoDrive. A quest marker's visual position is not substituted for the road endpoint.
+
+| Setting | Production value |
+| --- | --- |
+| Maximum speed | 8 m/s |
+| Minimum speed | -1, native policy |
+| Minimum distance to target | 5 m |
+| Forced starting speed | -1, no forced launch |
+| Driver required | Yes |
+| Kinematic movement | Off |
+| Clear traffic on path | Off |
+| Drive down the road indefinitely | Off |
+
+The constructor's measured defaults were maximum/minimum speed 26/12, no driver requirement and traffic clearing On. Every relevant setting is assigned explicitly.
 
 ## Files and ownership
 
 | File | Responsibility |
 | --- | --- |
-| `mod/companion-vehicles.lua` | Sole transport movement/seat owner, ordinary party allocation and convoy, chauffeur entry points and lifecycle integration |
-| `mod/companion-chauffeur.lua` | Bounded preparation, boarding, departure, cancellation and exit transaction inside that fleet |
-| `mod/companion-chauffeur-native.lua` | Installed 2.31 AutoDrive, summoned car, waypoint, player mount and guarded borrowed-car braking APIs |
-| `bridge/companion-chauffeur.test.mjs` | Real fleet controller plus delayed native-boundary fixtures |
-| `bridge/companion-chauffeur-native.test.mjs` | Native request shapes, live-identity guards and read-only offer inputs |
-| `bridge/chauffeur-game-integration.test.mjs` | Managed actor binding, protected dismissal and active-trip manager cancellation |
+| `mod/companion-vehicles.lua` | Sole seat/movement owner, party allocation, overflow vehicles, convoy and fast-travel integration |
+| `mod/companion-chauffeur.lua` | Trip transaction, destination revisions, departure, arrival, interruption and stop obligation |
+| `mod/companion-chauffeur-native.lua` | Actual vehicle/seat/command checks and guarded NPC command submission, update, retirement and braking |
+| `mod/companion-reload-cleanup.lua` | Retirement-only receipt for the borrowed car command and retained driver |
+| `bridge/companion-chauffeur.test.mjs` | Real fleet plus delayed/failed native-boundary fixtures |
+| `bridge/companion-chauffeur-native.test.mjs` | RTTI constructor, post-send identity, exact ownership, updates and guarded native calls |
+| `bridge/chauffeur-game-integration.test.mjs` | Managed actor binding, manager intents and protected dismissal |
+| `bridge/companion-reload-cleanup.test.mjs` | Receipt validation, command retirement, stop evidence and driver cleanup |
 
-The chauffeur owns the same `fleet.people[serial]` record used by ordinary
-transport. There is no second update loop or parallel walking controller. The
-lead car is `fleet.primary`, remains `owned=false`, and is never added to the
-deletable overflow-car list. The driver's front-left seat and V's selected
-passenger seat are unavailable to the ordinary allocator.
+There is one update owner. The driver uses the ordinary fleet's `people[serial]` record. The borrowed lead car stays `owned=false` and outside the deletable overflow-car list.
 
-Only the selected driver is acquired and boarded while V is on foot. Other
-companions retain their ordinary collision-aware walking owner, and no overflow
-cars are created during this wait. Acquisition retires the exact walking and
-standing-look owner immediately, even if an equipment cancellation still needs
-time. Both releases must complete before the fleet submits one animated
-`AIMountCommand` for the driver slot. The native mount owns navigation around
-the car, its door entry point and entry animation; there is no intermediate
-social-turn or seat-centre walking target. New seated attention is admitted only
-after a completed native mount. An existing seated look can still be removed
-during an exit or cancellation, including delayed removal retries.
+Only the selected driver is acquired while V waits on foot. The foot/look/equipment owners release before one animated `AIMountCommand` takes over the approach, door and entry animation. There is no intermediate social-turn target or failsafe teleport. The remaining party is acquired after V's actual passenger mount and native `Passenger` state are observed.
 
-The driver waits for V to enter a passenger
-seat through normal gameplay. The mod never mounts, unmounts, teleports or
-switches seats for V. After observing V's actual passenger mounting and native
-`Passenger` state, the fleet acquires the remaining companions and allocates
-the free lead-car seats and overflow cars. It preserves V's reserved or actually
-chosen passenger slot. Overflow cars use the existing exact
-follow-command receipts, braking rules and tagged nonpersistent vehicle
-cleanup. Departure waits for V's actual passenger mount and `Passenger` state,
-and for every assigned companion's real mount and terminal mount command.
+## Native command identity
 
-## Public fleet API
+Submission follows the installed AI-component contract:
 
 ```lua
-local offer = vehicles.chauffeurOffer(fleet, player, readyEntry)
-local ok, reason, currentOffer = vehicles.queueChauffeur(
-    fleet, player, readyEntry, expectedOffer)
-local accepted, reason = vehicles.cancelChauffeur(fleet, reason)
-local snapshot = vehicles.chauffeurSnapshot(fleet)
-local mayDismiss, reason = vehicles.canDismissChauffeurDriver(fleet, serial)
-local safeToDelete, reason, cleanupReceipt = vehicles.prepareChauffeurShutdown(fleet, reason)
+local handle = command:Copy()
+local accepted = car:GetAIComponent():SendCommand(handle)
+local id = tonumber(handle.id) -- capture AFTER SendCommand
 ```
 
-`chauffeurOffer` performs fresh read-only native queries. A successful offer has
-exactly this JSON-compatible shape; error offers have `available=false` and a
-`code`/`reason` and cannot grant an action capability:
+Before submission, the copied handle's ID is the unassigned unsigned sentinel `4294967295`. That value can never become a receipt. The adapter preserves an assigned handle even when submission throws after a side effect, so the transaction can retire it instead of losing its owner.
 
-```lua
-{
-    available = true,
-    actor = { serial = 1, id = "1001ULL", key = "judy-alvarez" },
-    car = { id = "2001ULL", record = "...", name = "..." },
-    waypoint = { id = "3001ULL", name = "...", position = {x=1,y=2,z=3} },
-    passengerSeat = "seat_front_right"
-}
-```
+Destination updates use the measured RTTI class **`AIDriveToPointAutonomousUpdate`**. `NewObject('DriveToPointAutonomousUpdate')`, using the source-language alias, returned nil in the installed game.
 
-`actor.key` is the assigned `entry.profileKey`, not the visual/model key.
-Passenger seats are explicitly front-right, back-left or back-right.
-`queueChauffeur` rechecks the current actor, car, selected destination ID/coordinates and
-passenger seat against `expectedOffer`. Callers must resolve a current ready
-managed entry by serial/entity/profile before calling. Lua action consumers
-also validate their world generation, request generation and expiry.
+`SetDriveToPointAutonomousUpdate(update)` takes no command ID. Before calling it, the adapter verifies that the current drive-to-point command's class/ID matches the owned receipt, that V and the selected driver still occupy the leased seats, and that foreign driving or a scene has not taken control. All update fields are assigned explicitly.
 
-Destination capture uses the native AutoDrive destination type, mappin ID and
-`GetAutodriveDestination()` position. Supported types are `PlayerTracked` and
-`Quest`. A quest route can be selected while `GetManuallyTrackedMappinID()` is
-zero; that does not mean the player has no selected destination. The mappin
-must resolve, but its visual position is not used as the driving endpoint:
-the installed read-only Quest probe showed a roughly 1.1 m vertical difference
-between the mappin marker and native route point. The bridge field remains
-named `waypoint`, and its exact three-field shape is unchanged. The native-only
-sample additionally stores `destinationType` and `markerPosition`; these do
-not appear in the public offer or provider action packet.
+## Destinations and revisions
 
-`None`, missing native destination IDs/mappins, and nonfinite or unbounded
-route/marker coordinates are rejected. No unspecified route or Free Roam is
-started. Initial action admission still rechecks the public offer's captured
-native endpoint. Once admitted, the trip binds the selected mappin ID and
-destination type. `PlayerTracked` also binds the original marker's world
-position with the existing 0.25 m component tolerance, detecting a moved pin
-even if the game reuses its ID. This baseline never advances on subsequent
-samples. A `Quest` target may legitimately move under the same selected ID.
+The initial public conversation offer remains immutable. Admission still rechecks its actor, car, passenger slot and destination against the current world.
 
-The native road endpoint may change when V boards or the game updates its path.
-Each successful destination check refreshes only that internal endpoint. The
-enable adapter resamples and checks the fresh endpoint, original logical
-destination, exact car and actual seats before issuing the ordinary request.
-The public action offer stays immutable. A new ID, changed destination type or
-moved manual pin cancels the trip; native road projection alone does not.
-LocKey-style destination labels use guarded localization with a friendly
-fallback, so a cosmetic label cannot block route admission.
+After admission, V may change the selected map marker, switch between a quest and a custom marker, or move a custom marker. These changes advance the destination revision inside the same trip. Road-endpoint changes also retarget the owned command. Gradual drift is compared with the last revision's anchor rather than discarded by comparison with each preceding frame. Updates are limited to one per 0.2 seconds.
 
-The coordinator runs only from existing `vehicles.update`. Cached snapshots
-make no native calls and are also present as `vehicleSnapshot().chauffeur`.
-They expose phase, offer identity, native enabled/vehicle/distance readings,
-actual driver/player seats, speed, reason, outcome and bounded attempt counts.
-Each fleet person row also exposes `commandState`, `commandActive` and
-`commandAge`. The state is cached from the existing mount/unmount command
-checks; age is time since the last request. Snapshots never query a native
-command. This distinguishes a real driver-seat mount whose command still
-executes from a command that reached a terminal state.
+If a new destination races the old command's native completion, the trip waits for the old command to be terminal and the car physically stopped, then submits the latest revision. It does not declare arrival at the old destination. Clearing the destination cancels the trip safely. A completed or explicitly cancelled trip is not automatically restarted by a later map selection.
 
 ## State and interruption rules
 
-| Phase | Required evidence / transition |
+| Phase | Required evidence |
 | --- | --- |
-| Releasing | Existing walking and equipment commands release; 12-second deadline |
-| Boarding driver | Animated exact driver mount plus terminal command; 25-second deadline |
-| Waiting for driver seat | V temporarily chose the driver slot in a stopped car during approach; retire the exact NPC mount, keep the same trip, and allow 45 seconds total to vacate and release the native reservation |
-| Waiting for player | Driver is seated; observe V boarding manually into a valid passenger seat; up to five minutes while V remains within 40 m |
-| Waiting for party | V is in an observed passenger seat and native `Passenger` state; all assigned actors seated, with a 75-second party deadline |
-| Starting | Ordinary `EnableAutoDriveRequest`, once; observe native enabled state for this exact car/destination within 5 seconds |
-| Driving | Exact actor/profile, car, waypoint and mounts stay current; native availability remains true |
-| Stopping | Guarded disable, brake, and fresh native-disabled/stopped evidence; each submission bounded to three attempts |
-| Waiting for player exit | Driver and car retained until V leaves; no forced player exit or automatic seat takeover |
-| Exiting driver/party | Retire exact convoy commands, stop cars, animated NPC exits, then resume walking and remove only empty owned overflow cars |
-| Taken over by V | V chose the driver seat; retire this trip's native requests, yield without braking against V, and retain ordinary party transport |
+| Releasing | Exact walking/equipment owners release; 12-second deadline |
+| Boarding driver | Actual driver mount plus terminal animated mount command; 25-second deadline |
+| Waiting for driver seat | Accidental V driver-seat entry during stopped approach retires the NPC mount and allows 45 seconds total to vacate/release the reservation |
+| Waiting for player | Driver is seated; V boards a passenger slot manually; up to five minutes within 40 m |
+| Waiting for party | Every assigned passenger/overflow driver finishes native boarding; 75-second deadline |
+| Starting | Submit one owned vehicle command; observe its current class/ID and native state within five seconds |
+| Driving | Actor/car/seats remain valid; latest destination revision is applied; native command owns the route |
+| Stopping | Retire only the exact owned command, retain the fixed-car stop obligation, and observe a physically stopped car |
+| Waiting for player exit | Retain the driver until V exits; no forced player movement |
+| Exiting driver/party | Retire convoy commands, finish animated NPC exits, resume walking and delete only empty owned overflow cars |
+| Taken over by V | Retire the old owned command and yield without braking, reseating or ejecting V |
 
-Stationary/no-progress driving is stopped after 35 seconds; maximum trip time
-is 30 minutes. Native distance is a local traffic-slot path that can initialize
-at zero or reset upward. Confirmed movement and decreasing local distance both
-count as progress. No native route restart is attempted.
+Native `Success` is necessary for arrival. The car must also be stopped within 7 m of the **current** destination, and no manual cancellation may be pending. AutoDrive arrival/toggle events do not complete an NPC-command trip. Manual stop uses the native failure/retirement path; cancellation cannot fabricate arrival.
 
-Selected-destination changes, a different summoned car, combat, driver loss, lost ownership,
-native interruption, an incompatible seat change, or a scene cancel the trip.
-A failed waypoint/UI read still attempts guarded native shutdown using the
-exact car lease. Uncertain command release, an active foreign AutoDrive journey,
-or missing stopped evidence retains ownership and an explicit error.
+Car movement and decreasing local path distance count as progress. A stationary route stops after 35 seconds without progress; total trip time is capped at 30 minutes. Native local path distance may initialize at zero or reset upward when a traffic segment loads.
 
-Manager/world feedback keeps one notice per message for the actual trip
-generation. Alternating native command errors and stop reasons do not repeat
-the same blue popup. Distinct later instructions and a new trip remain visible;
-invitation preparation feedback retains its separate ticket ownership.
+Combat, driver/actor loss, a changed borrowed car binding, incompatible seat changes, a scene or foreign vehicle activity stop the trip. The exact command can be retired without disabling an unrelated AutoDrive/AI journey. Braking is withheld for V driving, scenes, foreign commands or a different driver. An unavailable observation retains the owner and an error instead of claiming cleanup.
 
-There is no player `Mount()` request in the chauffeur adapter. The waiting
-stage observes actual mounting and gives V time to enter manually. Walking
-more than 40 m away, changing the selected destination or waiting five minutes
-cancels the request without moving V. The manager can show one friendly
-"Get in the passenger seat" notice when the driver is ready; no key is assumed.
+## Stop obligation and retry behavior
 
-V may choose a different available front-right, back-left or back-right seat.
-The current internal reservation changes only after actual player occupancy
-is confirmed. If an NPC has an uncommitted reservation for that seat, its exact
-mount command must retire before the NPC is reassigned. The original action
-offer remains immutable; `snapshot.passengerSeat` reports the current observed
-seat. Briefly choosing the driver seat while the companion is still approaching
-a stopped car pauses preparation. The exact NPC mount is cancelled and its
-confirmed retirement and a free native driver reservation are required before
-resubmitting the same animated entry. Cancellation does not spend a failed
-boarding attempt. The 45-second grace is cumulative across repeated accidental
-entries in this trip; it does not create a new generation or rewrite the public
-offer. V can then enter any available supported passenger slot manually.
+The fixed-car stopping obligation survives native `Success`, `Interrupted`, `Failure` and command retirement. A terminal command can leave a car coasting; its handle disappearing is not stopped evidence.
 
-The blue instruction to vacate the driver seat is shown only while V is actually
-in that slot. Once V is outside or in a passenger slot, any pending cancellation
-or door reservation is reported as waiting for the native vehicle transition.
-Existing per-trip feedback deduplication keeps repeated frames silent.
+Retirement is sent to the exact owned handle. Native calls return Bool. A refusal or exception before acknowledgment can be retried, at most three times, while ownership still matches. A post-call terminal observation reconciles exceptions after a side effect. An acknowledged pending submission is not repeated. Braking has a separate bounded allowance and ownership checks; denial by a foreign owner does not consume that allowance.
 
-V starting to drive, beginning another AutoDrive activity, or choosing the
-driver slot after the companion has completed entry cancels chauffeur intent
-and yields. No player exit, reseat, or automatic driving request is issued
-during that handoff. Preparation never acquires borrowed-car braking rights;
-only this trip's own pending or active AutoDrive lease permits a shutdown brake.
+A warning deadline does not grant permission to delete a retained driver or forget an active vehicle command. Cleanup remains pending until native retirement and safe stopped/exit evidence are available.
 
-`AIMountCommand` remains the direct native boarding path. Its `isInstant=false`,
-`allowFailsafeTeleport=false` and `ignoreHLS=false` are preserved. The installed
-native approach rejects an Alerted non-prevention actor, independently of
-`ignoreHLS`; the current request gate also rejects Alerted/Combat. The adapter
-reports that native blocker and waits within the boarding deadline, rather than
-changing the NPC's high-level state or forcing an instant seat entry. This is a
-source-supported diagnostic and not a claim that Alerted caused the reported
-live halfway stop.
+## Reload and fast travel
 
-## Required application hooks
+Before CET shutdown, the controller requests retirement and records a cleanup-only receipt containing the car command separately from the driver's mount/unmount command. Recovery never sends a new driving command, reconstructs a waypoint, invites a character or resumes a trip. See [COMPANION_RELOAD_CLEANUP.md](COMPANION_RELOAD_CLEANUP.md).
 
-These callbacks only record evidence; they do not move entities. The native
-method signatures are exact installed 2.31 declarations:
+Fast travel interrupts the trip while the old world is valid. The ordinary vehicle receipt carries only exact command identities for retirement after the transition. Save/death/world abandonment drops handles without native reads or mutations and never restores chauffeur intent.
 
-```lua
--- OnAutodriveToggled(enabled : Bool, isDelamain : Bool)
-ObserveAfter('AutoDriveSystem', 'OnAutodriveToggled', function(self, enabled, isDelamain)
-    vehicles.chauffeurAutodriveToggled(fleet, enabled)
-end)
+## Installed source and verification
 
--- OnStopAutoDriveOnDestinationReachedRequest(request : StopAutoDriveOnDestinationReachedRequest)
-ObserveBefore('AutoDriveSystem', 'OnStopAutoDriveOnDestinationReachedRequest', function(self, request)
-    local car = self:GetAutodriveVehicle()
-    if self:GetAutodriveEnabled() and car then
-        vehicles.chauffeurArrived(fleet, tostring(car:GetEntityID().hash))
-    end
-end)
-```
+The installed source root is `E:\SteamLibrary\steamapps\common\Cyberpunk 2077\tools\redmod\scripts`.
 
-Use the existing `companions` wrappers in application code because the fleet is
-private there. Arrival observation must run before the original handler clears
-tracking and disables AutoDrive. Only a matching native arrival event qualifies
-`completed`; a vanished waypoint or a small remaining distance does not.
-The off-edge observation prevents adopting or disabling a new trip after
-native off/on transitions between update samples.
-
-Guard selected-driver dismissal **before** clearing its AI role, equipment or
-requesting deletion. `canDismissChauffeurDriver` returns false while that driver
-is retained. Ordinary `removing`/`remove` hooks still handle later completed
-actor deletion and unexpected death/detach.
-
-Existing `vehicles.suspend` stops chauffeur driving while the old world is
-valid, then stores only ordinary mount/convoy cleanup receipts. It never stores
-or restores a chauffeur intent. Save/death/detach `abandon` makes zero native
-calls and drops the trip. No waypoint is recreated after arrival or cancellation.
-
-Before a mod shutdown/reload, call `prepareChauffeurShutdown` only while the
-world is still valid. It stops the owned lead/convoy driving and returns false
-plus a plain actor/car cleanup receipt while the driver remains protected.
-The caller must retain/report that receipt and skip driver deletion. A forced
-CET Reload All Mods destroys the old Lua owner before asynchronous exit can be
-completed; automatic recovery of those outstanding native receipts is not
-implemented. Finish the trip and step out before reload for complete cleanup.
-Never claim that an unavoidable reload completed the actor cleanup merely
-because the native stop request was queued.
-
-## Installed source evidence
-
-The running executable reports ProductVersion `2.31`, FileVersion `3.0.5294808`.
-The installed source root is
-`E:\SteamLibrary\steamapps\common\Cyberpunk 2077\tools\redmod\scripts`.
-Its `core/systems/autoDriveSystem.script` is 22,772 bytes, SHA-256
-`6810E4F776C9FDAC2E884CF1D193FDA8254163006A347F5326DE83E6E249B8BF`.
-The vendored GitHub script snapshot is 2.3 and lacks several 2.31 changes.
-
-| Installed source | Evidence |
+| Source | Contract |
 | --- | --- |
-| `core/systems/autoDriveSystem.script:130-141` | Native enabled/free-roam/destination/vehicle/lane readers and native setter signatures |
-| Same file, `156-212` | `GetAutodriveAvailable` accepts `gamePSMVehicle.Passenger`; requires actual player ownership, valid lane, health and other native guards |
-| Same file, `315-340` | Ordinary enable request uses native checks; disable request disables but does not itself brake |
-| Same file, `371-403` | Native arrival brakes, untracks/removes destination and disables AutoDrive |
-| `cyberpunk/UI/widgets/autodrive/autodrive.script:129-151,305-325` | HUD action `HoldAutodrive` submits the same request, but its input hint only permits V driving; key simulation is unsuitable for passengers |
-| `core/blackboard/blackboardDefinitions.script:797-802` | Exact summoned world car ID is `VehicleSummonData.SummonedVehicleEntityID` |
-| `cyberpunk/UI/widgets/notifications/vehicle_summon_notification.script:192-209` | Native UI resolves that ID with `FindEntityByID` |
-| `core/systems/autoDriveSystem.script:116-141`, `core/systems/mappinSystem.script:34` | `PlayerTracked` and `Quest` are explicit native destination types; resolve `GetAutodriveDestinationMappinID()` with `GetMappin`, and use the current native `GetAutodriveDestination()` point |
-| `cyberpunk/ai/commands/aiDriveCommandHandler.script:220-250` | Native AutoDrive reads its initial destination, then submits `DriveToPointAutonomousUpdate` whenever `GetAutodriveDestination()` changes; endpoint changes are part of the native route lifecycle |
-| `core/systems/mountingFacility.script:44-78` | Exact mounting info, request and native mount signatures |
-| `cyberpunk/ai/commands/aiVehicleBehaviorDelegate.script:14-34,58-78,151-161` | `AIMountCommand` forwards the exact MountEventData and invokes the native mount callback; Alerted/Combat request checks honor `ignoreHLS` |
-| `cyberpunk/ai/Tasks/aiVehicle.script:229-233,259-269,295-313` | Animated approach separately rejects Alerted non-prevention NPCs, fails after three seconds of another occupant in the requested slot, and reserves/opens the actual door entry point |
-| `cyberpunk/player/psm/vehicleTransition.script:873-911` | V in front-right automatically switches to an available driver seat after 0.2 seconds; keep driver until V exits |
-| `core/gameplay/vehicles.script:104-105` | `ForceBrakesUntilStoppedOrFor(Float, optional callback)` |
-| `core/data/tweakDBRecords.script:9771`, `core/ui/uiTextUtils.script:3` | Vehicle `DisplayName()` returns `CName`; `GetLocalizedTextByKey(CName)` resolves it. CET uses `Game.GetLocalizedTextByKey`, with record-ID fallback on cosmetic lookup failure. Blackboard definitions use the established `Game.GetAllBlackboardDefs()` binding. |
+| `core/ai/aiCommand.script:215-219,280-289` | Vehicle command inheritance and drive-to-point fields |
+| `core/components/aiComponent.script:8-18` | Send, exact-handle cancellation, command state and current-command lookup |
+| `core/components/aiComponent.script:105-128,152-155` | Destination-update fields and vehicle-agent update method |
+| `cyberpunk/ai/Tasks/aiVehicle.script:535-668` | Native NPC driver submits/updates the mounted vehicle command and observes Success/Failure |
+| `core/systems/preventionSystem.script:4557-4587` | Native coordinate-based vehicle command submission |
+| `core/gameplay/vehicles.script:95-105,109-120` | Local path progress, guarded brakes and vehicle AI/control readers |
+| `core/systems/mountingFacility.script:44-78` | Actual native mounts and seat identities |
 
-The installed `tools/redmod/tweaks/base/gameplay/static_data/database/ai/actions/library/`
-contains the follower vehicle policy. `followeractions.tweak:1864-1884` defines
-`FollowerActions.ExitVehicle` as `IsFollower AND NotDriver AND NotFollowerInVehicle`
-before it queues `ExitVehicle`. `commonconditionchecks.tweak:15342-15349` makes
-`NotDriver` the inverse of `AIDriverCond`; its implementation in
-`scripts/core/ai/actions/tweakAIConditionChecks.script:2948-2954` tests the NPC's
-actual driver mounting. Judy in the driver seat is therefore excluded from
-this relaxed follower exit rule without any role replacement or extra Hold
-command. Non-driver passengers are eligible while V is on foot, which is why
-their transport acquisition and boarding wait until V is aboard.
+A bounded live prototype with the already seated Johnny/Porsche drove **175.654 m in 30 seconds**, with a maximum-speed setting of 8 m/s. The actual handle ID was verified after submission, and the update constructor name was resolved through live RTTI reflection.
 
-CDPR's [2.31 patch notes](https://www.cyberpunk.net/en/news/51794/patch-2-31)
-describe the updated route driving and overtaking. The implementation submits
-native requests rather than reproducing that pathfinding in Lua. The old AMM
-`scan.lua:955` fast-travel-marker/NodeRef method is not used for arbitrary pins.
-
-## Verification
-
-### Conversation action delivery, October 2
-
-The installed driving request reached the identified private bridge and its
-silent runtime `context-update` received a successful acknowledgment. The
-verified provider then emitted one `Drive To Waypoint` action without a target.
-The old parser rejected it, so the native fleet remained idle; the actor's
-look-at controller had not received or blocked a driving command.
-
-Legacy Convai semantic actions permit an omitted target. The bridge now
-advertises a request-specific name (`Drive To Waypoint drive-<nonce>`) and accepts
-a targetless proposal only when that complete name matches the current one-use
-capability. A supplied nonempty target must also match. The previous base name
-plus exact target remains supported. Unknown fields, tool-call projections,
-batches, stale names, expired requests, unrelated participants and unreliable
-delivery cannot authorize driving. The nonce stays in protocol context, with
-an explicit instruction to omit it from speech; game controls retain their
-friendly labels. The frozen native actor/car/route remains the
-authority, independently of any model fields.
-
-The model context includes the car and selected destination labels from that
-frozen offer and states that the route is already ready. It asks for a new map
-selection only when V explicitly requests a different destination. These
-presentation labels cannot change the native coordinates or identity.
-
-After the targetless action fix, the live bridge accepted and published the
-driving packet, but the native consumer still rejected it. A read-only native
-offer round trip through CET's own `json.encode`/`json.decode` differed at all
-three `waypoint.position` coordinates. The exact receipt had kept native
-floating-point values while the bridge received rounded values. Capture now
-freezes that bounded serialized representation and sends the same copy to the
-bridge. Packet equality remains exact; changed coordinates and identities
-remain rejected. The fleet still obtains a fresh native route before queueing,
-with its existing 0.25 m position check. This is representation normalization,
-not a wider route tolerance.
-
-PID-bound `runtime/bridge-control.json` diagnostics inspect existing browser
-pages only. They report action eligibility, context acknowledgment, proposal
-counts and matching booleans; they omit credentials, player/provider/session
-identifiers, capabilities and dialogue. No conversation, microphone or game
-action is created by collecting a snapshot.
-
-The ordinary Judy Core readback had an empty saved action list. The documented
-singular `action` update and a bounded plural compatibility check both returned
-success without changing any field in the readback. Neither is treated as a
-successful configuration change. An isolated anonymous connection comparison
-was rejected with HTTP 400 before conversation and therefore provides no
-evidence about action initialization. Runtime protocol evidence and actual
-installed action delivery remain the acceptance criteria.
-
-The October 2 read-only game probe verified the current owned Porsche, actual
-empty seats, managed Judy identity and native selected Quest destination while
-the manual tracker was empty. Both Quest and PlayerTracked destinations use the
-native route endpoint; the mappin's visual height is not substituted for the road
-target. This qualified the getter bindings without starting a journey.
-
-### Logical destination and native road projection
-
-The installed October 2 test then observed Judy in the front-left driver seat
-with her `AIMountCommand` at terminal `Success`, and V manually in front-right.
-The coordinator cancelled with "The map destination changed." before enabling
-AutoDrive. The selected destination remained the same `Quest` mappin ID/type,
-while the native endpoint changed after boarding:
-
-| Native road endpoint | X | Y | Z |
-| --- | --- | --- | --- |
-| V on foot | -1623.8048095703 | -386.49038696289 | -13.099999427795 |
-| V in passenger seat | -1691.3070068359 | -603.80609130859 | 7.6229648590088 |
-
-The quest marker itself remained near (-1624.0824, -386.6285, -12.0036), moving
-about 0.28 m. This distinguishes a recalculated road endpoint from a new map
-selection. The driver's command completion gate remains unchanged. The
-correction binds logical selection and supplies fresh native endpoints, as
-the installed AI handler does. Executable regressions reproduce these values,
-check immutable public offers, moved manual pins, accumulated pin drift,
-destination type/ID changes and final native enable guards. A separate repeated
-native-state regression checks that an error is shown once per trip while new
-instructions and later trip generations still receive feedback.
-
-These source checks do not qualify actual road departure or arrival; that
-remains an installed gameplay check after the correction is loaded.
-
-The combined source gate passed 1,947 tests with native-source and installed MCM
-checks enabled. Private chat action delivery uses a unique per-request target
-in the documented silent context update; it does not reconnect normal replies
-or wait for actions before audio. Lua revalidates its own frozen actor/car/route
-offer before consuming the action. Actual provider action emission and driving
-remain separate live checks.
-
-Run the focused, headless checks:
-
-```powershell
-node --test bridge/companion-chauffeur.test.mjs bridge/companion-chauffeur-native.test.mjs bridge/companion-vehicles.test.mjs bridge/companion-vehicle-integration.test.mjs
-```
-
-The new checks cover stale offers, exact identities and profiles, manual
-boarding/activation, alternate passenger seats, V taking over, walking away,
-waiting deadlines, whole-party carpool and two overflow cars, native request
-guards, bounded stop attempts, foreign AutoDrive takeover, native arrival,
-route-distance resets, sample failures, cancellation, deletion exclusion,
-save/death/fast-travel interruption and pre-shutdown driver protection.
-
-These are executable Lua and source/API boundary checks. Actual 2.31 animated
-entry, passenger camera, road routing, overflow driving, arrival and stop/exit
-behavior remain live game acceptance items until observed on the installed mod.
+That prototype proves native command movement and the bindings. Full production departure, arrival, map retargeting and reload/fast-travel behavior still require activation and normal gameplay checks. Automated fixtures qualify the transaction rules, not the game's route quality or collision handling.

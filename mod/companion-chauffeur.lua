@@ -5,6 +5,7 @@ local RELEASE_TIMEOUT,BOARD_TIMEOUT,START_TIMEOUT=12,25,5
 local STOP_TIMEOUT,PARTY_TIMEOUT,TRIP_TIMEOUT,STALL_TIMEOUT=15,75,1800,35
 local PLAYER_WAIT_TIMEOUT,PLAYER_WAIT_DISTANCE=300,40
 local DRIVER_SEAT_GRACE=45
+local ARRIVAL_DISTANCE,RETARGET_INTERVAL=7,0.2
 local passengerSeats={'seat_front_right','seat_back_left','seat_back_right'}
 local function copy(value)
     if type(value)~='table' then return value end
@@ -20,6 +21,23 @@ local function sameDestination(a,b)
     if not a or not b or a.id~=b.id or a.destinationType~=b.destinationType then return false end
     return a.destinationType=='Quest' or (a.destinationType=='PlayerTracked'
         and samePoint(a.markerPosition,b.markerPosition))
+end
+local function terminal(state)
+    return state=='Success' or state=='Failure' or state=='Cancelled'
+        or state=='Interrupted' or state=='Detached'
+end
+local function destination(c,value)
+    if not value then return false,'The map destination is no longer selected.' end
+    local old=c.destinationAnchor or c.waypoint
+    local changed=not sameDestination(old,value) or not old or not old.position
+        or math.abs(old.position.x-value.position.x)>1 or math.abs(old.position.y-value.position.y)>1
+        or math.abs(old.position.z-value.position.z)>1
+    c.waypoint=copy(value)
+    if changed then
+        c.destinationRevision=(c.destinationRevision or 1)+1
+        c.destinationAnchor=copy(value)
+    end
+    return true
 end
 local function bounded(value,fallback,limit)
     local text=type(value)=='string' and value or fallback
@@ -71,6 +89,12 @@ local function offer(s,player,entry)
     if not sample.info.ready or sample.info.invalid or sample.summonEnRoute then
         return reject(value,'car-arriving','Wait for your summoned car to arrive.'),sample
     end
+    if not sample.drive or not sample.drive.known or not sample.drive.ready then
+        return reject(value,'driving-unavailable','Vehicle driving AI is not ready.'),sample
+    end
+    if sample.drive.foreign or sample.drive.busy then
+        return reject(value,'transport-busy','Another vehicle activity has control.'),sample
+    end
     if sample.info.speed>0.5 or sample.info.scene then return reject(value,'car-moving','Wait for your car to stop.'),sample end
     if (sample.info.playerGap or math.huge)>20 then return reject(value,'car-distant','Stand near your summoned car.'),sample end
     if not sample.waypoint then return reject(value,'no-waypoint','Select a destination on the map first.'),sample end
@@ -105,7 +129,8 @@ function M.queue(s,player,entry,expected)
         vehicle=s.primary,seat='seat_front_left'}
     s.chauffeur={phase='releasing',phaseAt=s.clock,startedAt=s.clock,offer=copy(value),entry=entry,player=player,
         car=s.primary,serial=entry.serial,waypoint=copy(sample.waypoint),passengerSeat=value.passengerSeat,
-        playerId=sample.playerId,generation=s.generation,active=true,stopAttempts=0,brakeAttempts=0}
+        playerId=sample.playerId,generation=s.generation,active=true,stopAttempts=0,brakeAttempts=0,
+        destinationRevision=1,destinationAnchor=copy(sample.waypoint),driveRevision=0,retargets=0,backend='npc'}
     s.lastChauffeur=nil; s.phase='chauffeur'; s.error=nil
     return true,'Your companion is preparing to drive.',copy(value)
 end
@@ -116,6 +141,7 @@ local function stop(s,reason,outcome)
 end
 function M.cancel(s,reason)
     if not s.chauffeur then return false,'There is no companion trip to cancel.' end
+    s.chauffeur.cancelled=true
     stop(s,reason or 'Trip cancelled.','cancelled'); return true
 end
 function M.canDismiss(s,serial)
@@ -124,34 +150,48 @@ function M.canDismiss(s,serial)
     end
     return true
 end
+local function retire(s,c)
+    if c.operation and not c.stopConfirmed and c.stopAttempts<3 and s.clock>=(c.stopAt or 0) then
+        local prior=c.operation.cancelRequested
+        c.stopAt=s.clock+1
+        local done,why=safe(s.chauffeurApi.stop,c.operation,c.car)
+        if c.operation.stopSubmissions then c.stopAttempts=c.operation.stopSubmissions
+        elseif c.operation.cancelRequested and not prior then c.stopAttempts=c.stopAttempts+1 end
+        if done then c.stopConfirmed=true elseif why then c.error=why end
+    end
+    -- Native completion/collision interruption does not erase the fixed-car
+    -- stop obligation. The adapter rechecks foreign control before braking.
+    if c.stopObligation and c.brakeAttempts<3 and s.clock>=(c.brakeAt or 0) then
+        c.brakeAt=s.clock+4
+        local done,why=safe(s.chauffeurApi.brake,c.car,c.operation)
+        if done~=false then c.brakeAttempts=c.brakeAttempts+1 end
+        if not done and why then c.error=why end
+    end
+end
 function M.prepareShutdown(s,reason)
     local c=s.chauffeur
     if not c then return true end
     stop(s,reason or 'The mod is stopping. Step out before dismissing your driver.','cancelled')
-    if (c.nativeOwned or c.enablePending) and not c.shutdownNativeAttempt then
+    if not c.shutdownNativeAttempt then
         c.shutdownNativeAttempt=true
-        c.brakeAttempts=c.brakeAttempts+1; c.brakeAt=s.clock+4
-        safe(s.chauffeurApi.brake,c.car)
-        c.stopAttempts=c.stopAttempts+1; c.stopAt=s.clock+1
-        local done=safe(s.chauffeurApi.disable,c.player,c.car,c.enablePending==true,s.api)
-        if done then c.disableSent=true; c.disableAt=s.clock end
+        retire(s,c)
     end
     -- Reload cannot wait for player exit. Return a plain cleanup receipt and
     -- retain the live owner; the caller must not delete this driver or pretend
     -- that a new Lua instance can automatically recover its native commands.
     return false,'The driver remains protected until V exits and cleanup finishes.',
         {actor=copy(c.offer.actor),car=copy(c.offer.car),passengerSeat=c.passengerSeat,
-            phase=c.phase,nativeStopRequested=c.disableSent==true}
+            phase=c.phase,backend='npc',vehicleCommand=safe(s.chauffeurApi.driveReceipt,c.operation),
+            nativeStopRequested=c.operation and c.operation.cancelRequested==true or false}
 end
 function M.autodriveToggled(s,enabled)
     local c=s.chauffeur
-    if c and not enabled and (c.nativeOwned or c.enablePending) then
-        c.nativeEndObserved=true; c.nativeOwned=false; c.enablePending=false
-    end
+    if c and enabled then stop(s,'Another AutoDrive activity took control.','cancelled') end
 end
 function M.arrived(s,vehicleId)
-    local c=s.chauffeur
-    if c and c.car.id==vehicleId and (c.nativeOwned or c.enablePending) then c.arrivalObserved=true end
+    -- AutoDrive arrival is foreign to this backend. Only the owned NPC command
+    -- and the current destination's physical arrival evidence can complete it.
+    return false
 end
 local function binding(c,sample,requirePassenger)
     if not sample.actorValid or sample.actor.id~=c.offer.actor.id or sample.actor.key~=c.offer.actor.key then
@@ -161,13 +201,8 @@ local function binding(c,sample,requirePassenger)
     if not sample.carValid or not sample.car or sample.car.id~=c.car.id then return false,'The borrowed car is unavailable.' end
     if sample.info.scene then return false,'A scene has taken control of the car.' end
     if sample.summonedId~=c.car.id then return false,'A different car was summoned.' end
-    if not sameDestination(sample.waypoint,c.waypoint) then return false,'The map destination changed.' end
-    -- Boarding and native path updates can project the same selected marker
-    -- onto a different road endpoint. The immutable public offer stays intact;
-    -- departure receives the latest endpoint plus the original logical lease.
-    -- Never advance the captured manual marker, or repeated small pin moves
-    -- could silently accumulate into a different destination.
-    c.waypoint.position=copy(sample.waypoint.position)
+    local route,why=destination(c,sample.waypoint)
+    if not route then return false,why end
     local pm=sample.playerMount
     if pm and (pm.vehicle~=c.car.id or (pm.seat~=c.passengerSeat
         and not (approaching(c.phase) and pm.seat=='seat_front_left')
@@ -194,23 +229,18 @@ function M.update(s,player,entries,hooks,ops)
     end
     if person and present then person.entry=c.entry end
     if not present or not person or person.removing then stop(s,'The selected companion is leaving.','cancelled') end
-    local sample,err=safe(s.chauffeurApi.sample,player,c.entry,c.car,s.api)
+    local sample,err=safe(s.chauffeurApi.sample,player,c.entry,c.car,s.api,c.operation)
     if not sample then
         stop(s,'Vehicle information became unavailable.','failed')
         -- Waypoint/UI reads can fail independently of the exact native vehicle
         -- binding. The stop adapter rechecks that binding itself, so one bad
         -- observation must not leave an owned car driving indefinitely.
-        if (c.nativeOwned or c.enablePending) and c.stopAttempts<3 and s.clock>=(c.stopAt or 0) then
-            c.stopAttempts=c.stopAttempts+1; c.stopAt=s.clock+1
-            local done=safe(s.chauffeurApi.disable,player,c.car,c.enablePending==true,s.api)
-            if done then
-                c.disableSent=true; c.disableAt=s.clock
-                if c.brakeAttempts<3 then c.brakeAttempts=c.brakeAttempts+1; safe(s.chauffeurApi.brake,c.car) end
-            end
-        end
+        retire(s,c)
         c.error=err or 'Waiting for current vehicle information.'; return
     end
-    c.observed={enabled=sample.auto.enabled,vehicle=sample.auto.vehicleId,remaining=sample.auto.remaining,
+    local drive=sample.drive or {known=false,error='Vehicle driving information is unavailable.'}
+    c.observed={enabled=sample.auto.enabled,commandState=drive.state,commandId=drive.commandId,
+        commandOwned=drive.ownedActive,foreign=drive.foreign,remaining=drive.remaining,distance=drive.distance,
         speed=sample.info.speed,playerSeat=sample.playerMount and sample.playerMount.seat,
         driverSeat=sample.driverMount and sample.driverMount.seat}
     if sample.car and sample.car.id==c.car.id then
@@ -226,7 +256,7 @@ function M.update(s,player,entries,hooks,ops)
     local takingOver=sample.playerMount and sample.playerMount.vehicle==c.car.id
         and sample.playerMount.seat=='seat_front_left'
     local stopped=sample.info.ready and sample.info.speed<=0.5 and not sample.info.scene
-    local driverGrace=approaching(c.phase) and not c.nativeOwned and not c.enablePending
+    local driverGrace=approaching(c.phase) and not c.operation
         and not sample.auto.enabled and stopped
     if takingOver and driverGrace then
         -- People can choose the wrong door while their friend is approaching.
@@ -244,19 +274,10 @@ function M.update(s,player,entries,hooks,ops)
         c.yieldToPlayer=true
         stop(s,'You are driving. The companion trip was cancelled.','taken-over')
     end
-    if preparation(c.phase) and sample.auto.enabled then
+    if sample.auto.enabled or drive.foreign then
         stop(s,'Another AutoDrive activity took control.','cancelled')
     end
-    if (c.phase=='driving' and not sample.auto.enabled)
-        or (c.nativeEndObserved and (c.phase=='driving' or c.phase=='starting')) then
-        -- OnAutodriveToggled's off edge also prevents claiming an off/on user
-        -- takeover between samples. Only the native arrival event qualifies
-        -- completion; a vanished waypoint alone can be a manual cancellation.
-        c.nativeOwned=false
-        local arrived=c.arrivalObserved
-        stop(s,arrived and 'Destination reached. Step out when ready.' or 'AutoDrive ended. Step out when ready.',
-            arrived and 'completed' or 'stopped')
-    elseif c.phase~='stopping' and c.phase~='waiting-for-player-exit' and c.phase~='exiting-driver' then
+    if c.phase~='stopping' and c.phase~='waiting-for-player-exit' and c.phase~='exiting-driver' then
         local ok,reason=binding(c,sample,c.phase=='waiting-for-party' or c.phase=='starting' or c.phase=='driving')
         if not ok then stop(s,reason,'cancelled') end
         if not approaching(c.phase) and not driverSeated(c,sample) then
@@ -308,31 +329,62 @@ function M.update(s,player,entries,hooks,ops)
         if c.partyReady and not c.passengerYieldPending then phase(s,'starting')
         elseif age>PARTY_TIMEOUT then stop(s,'The party could not finish boarding. The trip was cancelled.','failed') end
     elseif c.phase=='starting' then
-        if sample.auto.enabled then
-            if c.enablePending and sample.auto.vehicleId==c.car.id and not sample.auto.delamain
-                and not sample.auto.freeRoam and sample.auto.destinationId==c.waypoint.id then
-                c.enablePending=false; c.nativeOwned=true; c.progressAt=s.clock
-                c.drivingAt=s.clock
-                c.lastRemaining=sample.auto.remaining; phase(s,'driving')
-            else stop(s,'Another AutoDrive activity took control.','cancelled') end
-        elseif not c.enableSent then
-            if not sample.auto.available or not (sample.auto.playerTracked or sample.auto.questTracked)
-                or sample.auto.destinationId~=c.waypoint.id then
-                stop(s,'AutoDrive cannot use this road or destination. Move the car onto a valid road and try again.','failed')
-            else
-                c.enableSent=true; c.enablePending=true
-                local done,why=safe(s.chauffeurApi.enable,player,c.entry,c.car,c.waypoint,c.passengerSeat,s.api)
-                if done==false then c.enablePending=false end
-                if not done then stop(s,why or 'AutoDrive did not accept departure.','failed') end
-            end
-        elseif age>START_TIMEOUT then stop(s,'AutoDrive did not start in time.','failed') end
-    elseif c.phase=='driving' then
-        if sample.auto.vehicleId~=c.car.id or sample.auto.delamain then
-            c.nativeOwned=false; stop(s,'Another AutoDrive activity took control.','cancelled')
-        elseif not sample.auto.available or sample.auto.freeRoam or sample.auto.destinationId~=c.waypoint.id then
-            stop(s,'AutoDrive is no longer available for this trip.','cancelled')
+        if c.operation then
+            if drive.known and drive.ownedActive and (drive.state=='Executing' or drive.state=='Enqueued') then
+                c.progressAt=s.clock; c.drivingAt=c.drivingAt or s.clock
+                c.lastRemaining=drive.remaining; phase(s,'driving')
+            elseif drive.known and terminal(drive.state) then
+                stop(s,'The native driving command ended before departure.','failed')
+            elseif age>START_TIMEOUT then stop(s,'Native NPC driving did not start in time.','failed') end
         else
-            local remaining=sample.auto.remaining
+            if not sample.auto.laneValid or not drive.known or not drive.ready or drive.foreign
+                or drive.busy or drive.reservations~=0 then
+                stop(s,'NPC driving cannot start on this road or while the car is in use.','failed')
+            else
+                local operation,why=safe(s.chauffeurApi.start,player,c.entry,c.car,c.waypoint,c.passengerSeat,s.api)
+                if operation then
+                    c.operation=operation; c.stopObligation=true; c.driveRevision=c.destinationRevision
+                    c.commandReceipt=safe(s.chauffeurApi.driveReceipt,operation)
+                    if operation.refused or operation.sendError then
+                        stop(s,why or 'The native driving submission could not be confirmed.','failed')
+                    end
+                else stop(s,why or 'Native NPC driving did not accept departure.','failed') end
+            end
+        end
+    elseif c.phase=='driving' then
+        if not drive.known then stop(s,drive.error or 'The driving command is unavailable.','failed')
+        elseif drive.state=='Success' then
+            -- A new selected destination can race the end of the old command.
+            -- Preserve the trip and submit its next revision only after the old
+            -- command is terminal and the borrowed car is physically stopped.
+            if not stopped then
+                if c.brakeAttempts<3 and s.clock>=(c.brakeAt or 0) then
+                    c.brakeAttempts=c.brakeAttempts+1; c.brakeAt=s.clock+4
+                    safe(s.chauffeurApi.brake,c.car,c.operation)
+                end
+                c.successAt=c.successAt or s.clock
+                if s.clock-c.successAt>STOP_TIMEOUT then stop(s,'The car did not stop after its route ended.','failed') end
+            elseif c.driveRevision~=c.destinationRevision then
+                c.operation=nil; c.commandReceipt=nil; c.successAt=nil
+                c.stopAttempts=0; c.brakeAttempts=0; c.brakeAt=nil
+                phase(s,'starting')
+            elseif type(drive.distance)=='number' and drive.distance<=ARRIVAL_DISTANCE and not c.cancelled then
+                stop(s,'Destination reached. Step out when ready.','completed')
+            else stop(s,'The route ended before reaching the selected destination.','failed') end
+        elseif terminal(drive.state) then
+            stop(s,'The native driving command was interrupted. Step out when ready.','stopped')
+        elseif not drive.ownedActive then
+            stop(s,'The driving command lost its exact owner.','failed')
+        else
+            if c.driveRevision~=c.destinationRevision and s.clock>=(c.retargetAt or 0) then
+                c.retargetAt=s.clock+RETARGET_INTERVAL
+                local done,why=safe(s.chauffeurApi.retarget,c.operation,c.car,c.waypoint)
+                if done then
+                    c.driveRevision=c.destinationRevision; c.retargets=c.retargets+1
+                    c.progressAt=s.clock; c.lastRemaining=nil
+                else stop(s,why or 'The driving destination could not be updated.','failed') end
+            end
+            local remaining=drive.remaining
             if type(remaining)=='number' and remaining>=0 then
                 -- Native distance is a local traffic-slot path, which can
                 -- start at zero and reset upward when its next segment loads.
@@ -345,35 +397,27 @@ function M.update(s,player,entries,hooks,ops)
         end
     end
     if c.phase=='stopping' then
-        local ownsNative=c.nativeOwned or c.enablePending
-        local other=sample.auto.enabled and (not ownsNative or sample.auto.vehicleId~=c.car.id or sample.auto.delamain)
+        local other=sample.auto.enabled or drive.foreign
         local pm=sample.playerMount
         local takeover=pm and pm.vehicle==c.car.id and pm.seat=='seat_front_left'
+        -- Retire only our exact command even if a different owner has taken the
+        -- car. Its adapter never brakes V, a scene or a foreign command.
+        if not sample.info.scene then retire(s,c) end
+        local retired=not c.operation or drive.known and terminal(drive.state)
+        if not sample.car and not sample.driverMount and (not pm or pm.vehicle~=c.car.id) then retired=true end
         if other and c.yieldToPlayer and takeover then
             -- V started another native driving activity during preparation.
             -- Retire only the NPC request and yield, without touching that
             -- activity, steering/braking V, or recreating chauffeur intent.
-            if ops.yieldToPlayer(s,player,hooks) then
+            if retired and ops.yieldToPlayer(s,player,hooks) then
                 s.lastChauffeur=M.snapshot(s); s.lastChauffeur.active=false; s.lastChauffeur.phase='taken-over'
                 s.chauffeur=nil
             else c.error='Waiting for the companion to release the driver seat.' end
             return
         end
-        if other then c.error='Waiting for the other AutoDrive activity to finish.'; return end
-        if not takeover and ownsNative and sample.info.ready
-            and c.brakeAttempts<3 and s.clock>=(c.brakeAt or 0) then
-            c.brakeAttempts=c.brakeAttempts+1; c.brakeAt=s.clock+4
-            local done,why=safe(s.chauffeurApi.brake,c.car); if not done then c.error=why end
-        end
-        if ownsNative and not (c.disableSent and not sample.auto.enabled)
-            and c.stopAttempts<3 and s.clock>=(c.stopAt or 0) then
-            c.stopAttempts=c.stopAttempts+1; c.stopAt=s.clock+1
-            local done,why=safe(s.chauffeurApi.disable,player,c.car,c.enablePending==true,s.api)
-            if done then c.disableSent=true; c.disableAt=s.clock else c.error=why end
-        end
-        -- Observe the state on a later update after the disable was queued.
-        if not sample.auto.enabled and (not ownsNative or (c.disableSent and s.clock>c.disableAt)) then
-            c.nativeOwned=false; c.enablePending=false
+        if other then c.error='Waiting for the other vehicle activity to finish.'; return end
+        if sample.info.scene then c.error='Waiting for the vehicle scene to finish.'; return end
+        if retired then
             if c.yieldToPlayer and takeover then
                 if ops.yieldToPlayer(s,player,hooks) then
                     s.lastChauffeur=M.snapshot(s); s.lastChauffeur.active=false; s.lastChauffeur.phase='taken-over'
@@ -387,12 +431,12 @@ function M.update(s,player,entries,hooks,ops)
                 else phase(s,'exiting-driver') end
             elseif not sample.car and not sample.driverMount then phase(s,'exiting-driver') end
         end
-        if s.clock-c.phaseAt>STOP_TIMEOUT then c.error=c.error or 'Waiting for confirmed AutoDrive shutdown and a stopped car.' end
+        if s.clock-c.phaseAt>STOP_TIMEOUT then c.error=c.error or 'Waiting for the owned driving command to retire and the car to stop.' end
     elseif c.phase=='waiting-for-player-exit' then
-        if sample.auto.enabled then c.error='Finish the active AutoDrive journey before your companion gets out.'; return end
+        if sample.auto.enabled or drive.foreign then c.error='Finish the active vehicle activity before your companion gets out.'; return end
         if not sample.playerMount or sample.playerMount.vehicle~=c.car.id then phase(s,'exiting-driver') end
     elseif c.phase=='exiting-driver' then
-        if sample.auto.enabled and sample.auto.vehicleId==c.car.id then c.error='The borrowed car is in use.'; return end
+        if sample.auto.enabled or drive.foreign then c.error='The borrowed car is in use.'; return end
         if sample.playerMount and sample.playerMount.vehicle==c.car.id then phase(s,'waiting-for-player-exit'); return end
         if person then
             if not sample.actorValid then
@@ -413,9 +457,11 @@ function M.interrupt(s,reason)
     if not c then return end
     -- Used only before a known loading transition, while references are live.
     -- The ordinary fleet serializes mount receipts, never a chauffeur intent.
-    if c.nativeOwned or c.enablePending then
-        safe(s.chauffeurApi.brake,c.car)
-        safe(s.chauffeurApi.disable,c.player,c.car,c.enablePending==true,s.api)
+    if c.operation then
+        retire(s,c)
+        -- The ordinary fast-travel receipt already knows how to retire an
+        -- exact vehicle command. It never serializes this driving intention.
+        c.car.command=c.operation; c.car.retired=true
     end
     c.reason=reason or 'Travel interrupted the trip.'; c.outcome='cancelled'
     s.lastChauffeur=M.snapshot(s); s.lastChauffeur.active=false; s.lastChauffeur.phase='cancelled'
@@ -426,7 +472,8 @@ function M.snapshot(s)
     if not c then return s.lastChauffeur and copy(s.lastChauffeur) or {active=false,phase='idle'} end
     return {active=true,phase=c.phase,generation=c.generation,offer=copy(c.offer),
         reason=c.reason,error=c.error,outcome=c.outcome,observed=copy(c.observed),
-        enablePending=c.enablePending==true,nativeOwned=c.nativeOwned==true,
+        backend='npc',vehicleCommand=copy(c.commandReceipt),stopObligation=c.stopObligation==true,
+        destinationRevision=c.destinationRevision,driveRevision=c.driveRevision,retargets=c.retargets,
         passengerSeat=c.passengerSeat,partyReady=c.partyReady==true,
         driverSeatWaitUsed=(c.driverSeatWaitUsed or 0)+(c.driverSeatWaitAt and s.clock-c.driverSeatWaitAt or 0),
         driverSeatWaitRemaining=c.driverSeatWaitStarted and math.max(0,DRIVER_SEAT_GRACE
