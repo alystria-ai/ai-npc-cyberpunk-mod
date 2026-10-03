@@ -271,6 +271,15 @@ starvation, distant forced walking and the stale post-coast hold. The repair
 preserves a local obstacle escape while V moves, revalidates the distant goal,
 restores catch-up pace and records recoverable height-check failures.
 
+The installed `e0617e0` projection/handoff update passed the subsequent complete
+trip check: V exited normally, walked away, then glanced at Johnny, and the user
+confirmed **"Approaches and settles"**. The 90-second read-only trace captured
+running catch-up and a final settled position about 1.34 m from V. Evidence:
+`runtime/verification/car-exit-follow-user-accepted-20261003.json` and
+`car-exit-follow-accepted-trace-20261003.json`. This accepts the reproduced
+post-exit failure; normal following and the accepted camera interactions remain
+the baseline. A later driver-door approach pause is a separate boarding case.
+
 ### September 30: close face inspection
 
 The user requested that a companion stay put when V approaches her face. The

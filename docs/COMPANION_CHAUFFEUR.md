@@ -141,8 +141,21 @@ trace confirmed arrival classification: the transaction reached
 `completed` with reason `Destination reached. Step out when ready.` That same
 repeat exposed detour search starvation while V walked away, forced walking on
 a distant catch-up route and a stale short-leg height rejection after coasting.
-Those walking repairs are in progress; the camera peek did not rotate the
-formation. Evidence: `runtime/verification/johnny-exit-timing-20261003.json`,
+Those walking repairs were subsequently installed in `e0617e0`; the camera peek
+did not rotate the formation. Evidence: `runtime/verification/johnny-exit-timing-20261003.json`,
 its systems snapshot and `johnny-nav-origin-20261003.json`.
+
+The next complete-trip check confirmed **"Approaches and settles"** after V exited,
+walked away and glanced back. The bounded trace ended with Johnny stationary about
+1.34 m from V, after actual running catch-up. This closes that post-exit handoff
+case; ordinary following retains its earlier acceptance. Evidence:
+`runtime/verification/car-exit-follow-user-accepted-20261003.json` and its matched
+`car-exit-follow-accepted-trace-20261003.json`.
+
+A separate report says the driver can pause on the door approach until V catches
+up. Source inspection found no Lua player-distance wait in boarding. The exact
+native mount/move state must be captured before altering that chauffeur handoff.
+The already shown drive-request caption also replayed when entering the car;
+the subtitle correction preserves unread text and awaits its focused live check.
 Overflow convoys, cancellation, reload and fast-travel cleanup remain separate
 acceptance cases. Automated fixtures do not establish the game's route quality.
