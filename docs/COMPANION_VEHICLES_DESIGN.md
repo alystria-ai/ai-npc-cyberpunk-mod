@@ -231,6 +231,18 @@ and command class/ID receipts. NPC, system, role, look, AI and command handles
 are discarded before teleportation. `PlayerPuppet.OnDetach` during this armed
 interval preserves those descriptors; the callback makes no native calls.
 
+The descriptor also retains the numeric result of the copy's one-time physical
+appearance preparation. Zero means preparation completed with no phantom
+controller; only a missing result means the copy entered transit before its
+ordinary attachment finished. A surviving pending copy waits for current
+attachment, ownership and compatible AI checks, then completes the same
+physical appearance procedure before gaining a follower role or becoming
+ready. A preparation failure remains failed and uses the ordinary tagged-copy
+deletion guard. Missing copies still use normal creation and attachment. Native
+face-graph preparation remains owned by the existing tagged extraction and
+initialization callbacks, including an appearance rebuild; Lua recovery does
+not replace or assume readiness of the facial graph.
+
 Only a subsequent `OnLoadingScreenFinished(true)` activates recovery. The next
 world-ready companion updates obtain the current DynamicEntitySystem and
 check every saved entity's managed flag and ownership tag. Fresh native
@@ -275,3 +287,11 @@ must first verify live read-only capacity/mounting APIs, then normal animated
 boarding, driving, dismount, car switching and fast-travel event ordering with
 the user. In particular, physical road routing and each special vehicle's
 boarding animations are not established by these tests.
+
+On October 3, the current vehicle and real companion integration suites pass
+50 checks. New transit regressions exercise a pending copy's delayed attachment
+and physical appearance mapping, preserve a completed zero preparation result,
+and reject/clean up failed preparation without granting a new movement owner.
+The first and third regressions failed before the recovery correction. This
+closes that source defect; it does not establish live overflow convoy or
+fast-travel acceptance.

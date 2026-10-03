@@ -300,6 +300,64 @@ assert(math.abs(npc.pos.z-8.1)<0.001 and math.abs(npc.pos.x-player.pos.x)<6)
 assert(stops==1 and #active(npc)==1,'native cancellation was repeated or walking overlapped its old owner')
 `));
 
+test('a surviving pending spawn completes physical appearance preparation after travel and attachment',()=>run(`
+assert(companions.registerDefinition('phantom-copy',
+ {id='Character.TestPhantom',name='Physical companion',profileKey='judy-alvarez'}))
+local serial=companions.spawn('phantom-copy'); local npc=entities[sequence]
+assert(row(serial).state=='spawning')
+companions.setProfile(serial,'panam-palmer','Panam')
+local phantom={enabled=true,params={blendableAppearanceMatches={{blendable='ghost',notBlendable='solid'}}}}
+function phantom:IsA(kind) return kind=='gamePhantomEntityComponent' end
+function phantom:Toggle(value) self.enabled=value end
+function phantom:IsEnabled() return self.enabled end
+local componentReads,visibilityEvents,appearanceChanges=0,0,0
+function npc:GetComponents() componentReads=componentReads+1; return {phantom} end
+function npc:GetCurrentAppearanceName() return 'ghost' end
+function npc:ScheduleAppearanceChange(value) assert(value=='solid'); appearanceChanges=appearanceChanges+1 end
+function npc:QueueEvent(event) if event.visible==true then visibilityEvents=visibilityEvents+1 else self.looks[event]=true end end
+local attached=false
+function npc:IsAttached() return attached end
+assert(companions.beginFastTravel()); companions.abandon(true)
+player.pos=Vector4.new(500,700,8); assert(companions.fastTravel()); update(5)
+assert(row(serial).state=='transit' and componentReads==0 and phantom.enabled)
+attached=true; update(40)
+local current=row(serial)
+assert(current.state=='ready' and current.serial==serial and sequence==1)
+assert(current.key=='phantom-copy' and current.profileKey=='panam-palmer')
+assert(componentReads==1 and not phantom.enabled and visibilityEvents==1 and appearanceChanges==1,
+ 'The pending copy bypassed its one-time physical appearance preparation.')
+assert(math.abs(npc.pos.z-8.1)<.001 and math.abs(npc.pos.x-player.pos.x)<6)
+update(20); assert(componentReads==1 and appearanceChanges==1)
+`));
+
+test('a previously attached copy preserves zero as completed appearance preparation during transit',()=>run(`
+local npc=spawn(); local serial=row(companions.list()[1].serial).serial
+-- The ordinary attachment returned a real zero phantom count. Native handles
+-- are reacquired, but zero remains a completed preparation receipt.
+local componentReads=0
+function npc:GetComponents() componentReads=componentReads+1; error('appearance was already prepared') end
+assert(companions.beginFastTravel()); companions.abandon(true)
+player.pos=Vector4.new(500,700,8); assert(companions.fastTravel()); update(40)
+assert(row(serial).state=='ready' and sequence==1 and componentReads==0)
+assert(math.abs(npc.pos.z-8.1)<.001)
+`));
+
+test('failed pending-copy appearance preparation never grants ready and cleans up only its owned actor',()=>run(`
+local serial=companions.spawn('judy-alvarez'); local npc=entities[sequence]
+assert(row(serial).state=='spawning')
+local componentReads,roleChanges,deletes=0,0,0
+function npc:GetComponents() componentReads=componentReads+1; error('physical preparation failed') end
+function npc.ai:SetAIRole() roleChanges=roleChanges+1 end
+local ordinaryDelete=system.DeleteEntity
+function system:DeleteEntity(id) assert(id.hash==npc.id.hash); deletes=deletes+1; return ordinaryDelete(self,id) end
+assert(companions.beginFastTravel()); assert(companions.fastTravel()); update(40)
+local current=row(serial)
+assert(current.state=='failed' and current.error:find('physical preparation failed',1,true))
+assert(componentReads==1 and roleChanges==0 and deletes==1 and not system:IsManaged(npc.id))
+assert(#active(npc)==0,'Failed preparation admitted walking or vehicle movement.')
+update(40); assert(componentReads==1 and deletes==1 and sequence==1)
+`));
+
 test('fast travel drops stale actors and convoy handles, then unmounts current copies before safe relocation',()=>run(`
 local one,two=spawn(),spawn('panam-palmer')
 selected=primary; update(15); assert(carSequence==1)

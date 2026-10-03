@@ -716,6 +716,7 @@ function M.beginFastTravel()
                 profileKey=entry.profileKey,profileName=entry.profileName,record=entry.record,
                 modelRecordID=entry.modelRecordID,spawnRecord=entry.spawnRecord,entityID=entry.entityID,
                 state='transit',spawnPosition=space.copy(entry.spawnPosition),clearance=entry.clearance,
+                phantomControllersDisabled=entry.phantomControllersDisabled,
                 retiredCommands=commands,
                 transitError=entry.motor and entry.motor.look and 'The previous gaze request could not be released.' or nil}
         end
@@ -786,6 +787,20 @@ local function recoverTransit(player,step)
                 local role=ai:GetAIRole()
                 if role and not role:IsA('AIFollowerRole') and not role:IsA('AINoRole') then
                     entry.state,entry.error='failed','This copy now has another native AI role.'; return
+                end
+                -- A copy can enter transit between creation and attachFollower.
+                -- Only nil means its physical appearance setup is outstanding;
+                -- zero is the completed result for an ordinary nonphantom NPC.
+                if entry.phantomControllersDisabled==nil then
+                    local prepared,result=pcall(appearance.prepare,npc)
+                    if not prepared then
+                        entry.state,entry.error='failed',tostring(result)
+                        if not deleteOwnedCopy(entry) then
+                            entry.error=entry.error..' The copy could not be removed; try Dismiss.'
+                        end
+                        return
+                    end
+                    entry.phantomControllersDisabled=result
                 end
                 if not role or role:IsA('AINoRole') then
                     role=NewObject('AIFollowerRole'); role.followerRef=Game.CreateEntityReference('#player',{})
