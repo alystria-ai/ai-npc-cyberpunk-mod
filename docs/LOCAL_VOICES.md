@@ -402,6 +402,30 @@ The previous accepted student remains preserved. Listening qualification and
 the paired CPU streaming measurement are still separate gates; production
 OmniVoice/Convai selection remains unchanged while Pocket TTS is integrated.
 
+The subsequent paired CPU test ran with Cyberpunk present and the user standing
+still in normal gameplay. On the i9-13980HX, FP32 with two CPU threads, five warm
+calls per model produced first copied PCM in 160.08 ms for the old student and
+140.62 ms for the selected student. Full generation of the 7.28-second quote
+averaged 4.121 / 3.803 seconds. The new process-cold launch, imports, model load,
+reference preparation and first PCM totaled 29.381 seconds; disk caches were
+not flushed. Peak process RSS was about 1.69 GiB and GPU allocation was zero.
+
+Both raw waves have roughly 0.686 seconds of low-energy prefix. Estimated speech
+onset for an ideal uninterrupted sample player was 0.846 / 0.826 seconds; this
+is not a recorded audio-device or full Convai/game reply latency. The twelve
+streams completed naturally, source assets stayed unchanged, and both owned
+workers exited. Windows reported Balanced; the laptop's separate OEM profile
+was not inferred. Raw recordings and verification live under ignored
+`runtime/student-transfer-stream-20261003-verified/`.
+
+After hearing Johnny, Judy and Panam, the user approved this student and requested
+that Pocket TTS replace OmniVoice, with Convai retained as the alternate. The
+separate adoption receipt is `runtime/student-selected-improvement-20261003.json`;
+it does not rewrite the frozen experimental selection/export receipts. Runtime
+integration is in progress; the approved weights and earlier fallbacks remain
+preserved. The local model should warm at voice selection and reuse one CPU
+instance across character reference states.
+
 A separate CPU experiment kept the accepted teacher's CFG2 and original
 reference. Supported dynamic INT8 reduced full generation from 15.82 to
 10.02 seconds on two CPU threads, with resident RAM falling from 2.11 to
