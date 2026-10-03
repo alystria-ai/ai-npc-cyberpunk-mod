@@ -213,6 +213,95 @@ class TeacherDataTests(unittest.TestCase):
             expected = hashlib.sha256(b"encoder.weight:(1, 1)" + struct.pack("<f", 1.0)).hexdigest()
             self.assertEqual(data.encoder_file_hash(path), expected)
 
+    def actual_cache_fixture(self, root, *, student):
+        """Build real WAV/tensor/manifests observed by the complete verifier.
+
+        These tiny artifacts test cache binding; they are not an admission
+        receipt for the real corpus and do not instantiate/encode a model.
+        """
+        import numpy as np
+        import wave
+        from training.scripts.precompute_latents import _load_window
+        from pocket_training import student_transfer
+        waveform = root / "wave.wav"
+        with wave.open(str(waveform), "wb") as stream:
+            stream.setnchannels(1); stream.setsampwidth(2); stream.setframerate(24000)
+            samples = (np.arange(72000, dtype=np.int32) % 301 - 150).astype("<i2")
+            stream.writeframes(samples.tobytes())
+        pcm = _load_window(str(waveform), 0, 3, 24000)
+        row = original()
+        row.update(path="wave.wav", audio_sha256=data.file_sha(waveform), sha256=data.file_sha(waveform),
+                   pcm_sha256=hashlib.sha256(np.asarray(pcm, dtype="<f4").tobytes()).hexdigest())
+        output = root / "out"
+        source = {}
+        staged = {**row, "path": str(waveform.resolve())}
+        for role in data.ROLES:
+            path = root / (role + ".jsonl")
+            runner.atomic_rows(path, [row] if role == "train" else [])
+            runner.atomic_rows(output / "data" / (role + ".jsonl"), [staged] if role == "train" else [])
+            source[role] = path
+        weights = root / "accepted-encoder.safetensors"
+        tensor_file(weights, [1, 1], [1.], key="mimi.encoder.weight")
+        codec_hash = data.encoder_file_hash(weights)
+        latent_path = output / "data/latents/train_00000000.safetensors"
+        tensor_file(latent_path, [37, 2])
+        annotated = {**staged, "latents_file": "latents/train_00000000.safetensors"}
+        runner.atomic_rows(output / "data/train_latents.jsonl", [annotated])
+        calibration = output / "data/latents/calibration.json"
+        runner.atomic_json(calibration, {"stitch_frames": 1, "noise_floor": .001})
+        runner.atomic_text(output / "configs/teacher-inference.yaml",
+                          "mimi:\n  inner_dim: 2\n  sample_rate: 24000\n  frame_rate: 12.5\n")
+        raw = {"teacher_regression_manifest": str(source["teacher_regression"]),
+               "teacher_conditional_manifest": str(source["teacher_conditional"])}
+        if student:
+            raw.update(student_transfer_policy=student_transfer.POLICY, import_teacher_weights=str(weights))
+        else:
+            raw.update(teacher_quality_policy="macro_speaker_cfg2_old_dev_v1", teacher_anchor_weights=str(weights))
+        spec = runner.Spec(root / "spec", raw, root, root, output, "actual-cache-fixture",
+                           {key: source[key] for key in ("train", "dev", "test")})
+        observation = {"id": staged["id"], "source": data.cache_source(staged), "mimi_encode_hash": codec_hash,
+            "actual_resampled_samples": len(pcm), "decoded_float32_sha256": hashlib.sha256(np.asarray(pcm, dtype="<f4").tobytes()).hexdigest(),
+            "encoded_frames_available": 40, "sample_rate": 24000, "frame_rate": 12.5, "shape": [37, 2],
+            "latents_sha256": data.file_sha(latent_path), "latents_file": annotated["latents_file"]}
+        cache = {"schema": "teacher_actual_loader_cache_v2", "input_identity": spec.identity,
+            "verifier_sha256": data.file_sha(data.__file__), "mimi_encode_hash": codec_hash,
+            "sample_rate": 24000, "frame_rate": 12.5, "latent_dimension": 2,
+            "prepared_manifest_sha256": {role: data.file_sha(output / "data" / (role + ".jsonl")) for role in data.ROLES},
+            "annotated_manifest_sha256": data.file_sha(output / "data/train_latents.jsonl"),
+            "ordered_rows_sha256": data.digest([data.cache_source(staged)]), "rows": [observation],
+            "calibration_path": "latents/calibration.json", "calibration_sha256": data.file_sha(calibration)}
+        cache_path = output / "prepare/teacher-loader-cache.json"
+        runner.atomic_json(cache_path, cache)
+        runner.atomic_json(output / "prepared.json", {"input_identity": spec.identity,
+                          "loader_cache_receipt_sha256": data.file_sha(cache_path)})
+        return spec, weights, latent_path, waveform
+
+    def test_student_actual_cache_uses_imported_encoder_without_teacher_anchor_alias(self):
+        with tempfile.TemporaryDirectory() as folder:
+            spec, weights, latent, waveform = self.actual_cache_fixture(Path(folder), student=True)
+            self.assertNotIn("teacher_anchor_weights", spec.raw)
+            self.assertTrue(waveform.is_file())
+            self.assertEqual(data.latent_shape(latent), [37, 2])
+            result = data.verify_actual_cache(spec)  # Actual decoder, files and all cache gates; no mocks.
+            self.assertEqual(result["status"], "passed")
+            self.assertEqual(result["actual_decoded_rows"], 1)
+            wrong = Path(folder) / "wrong-imported-encoder.safetensors"
+            tensor_file(wrong, [1, 1], [2.], key="mimi.encoder.weight")
+            spec.raw["import_teacher_weights"] = str(wrong)
+            with self.assertRaisesRegex(ValueError, "accepted Mimi encode weights"):
+                data.verify_actual_cache(spec)
+
+    def test_teacher_actual_cache_preserves_anchor_and_ignores_imported_weight_alias(self):
+        with tempfile.TemporaryDirectory() as folder:
+            spec, weights, latent, waveform = self.actual_cache_fixture(Path(folder), student=False)
+            wrong = Path(folder) / "wrong-imported-encoder.safetensors"
+            tensor_file(wrong, [1, 1], [2.], key="mimi.encoder.weight")
+            spec.raw["import_teacher_weights"] = str(wrong)
+            self.assertEqual(data.verify_actual_cache(spec)["status"], "passed")
+            spec.raw["teacher_anchor_weights"] = str(wrong)
+            with self.assertRaisesRegex(ValueError, "accepted Mimi encode weights"):
+                data.verify_actual_cache(spec)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -539,7 +539,7 @@ def encoder_file_hash(path):
 def verify_actual_cache(spec, *, decode_window=None):
     """Inspect real output receipts/tensors and independently decode each WAV.
 
-    This runs after precompute and before a teacher update. Input corpus receipts
+    This runs after precompute and before a qualified teacher/student update. Input corpus receipts
     are never rewritten to add observations from a future cache.
     """
     import numpy as np
@@ -553,7 +553,9 @@ def verify_actual_cache(spec, *, decode_window=None):
     if (cache.get("schema") != "teacher_actual_loader_cache_v2" or cache.get("input_identity") != spec.identity
             or cache.get("verifier_sha256") != file_sha(__file__)):
         raise ValueError("Teacher actual cache source/verifier identity differs")
-    if cache.get("mimi_encode_hash") != encoder_file_hash(spec.asset("teacher_anchor_weights")):
+    from . import student_transfer
+    weights_key = "import_teacher_weights" if student_transfer.enabled(spec) else "teacher_anchor_weights"
+    if cache.get("mimi_encode_hash") != encoder_file_hash(spec.asset(weights_key)):
         raise ValueError("Teacher actual cache is not bound to its accepted Mimi encode weights")
     import yaml
     config = yaml.safe_load((spec.output / "configs/teacher-inference.yaml").read_text())["mimi"]
