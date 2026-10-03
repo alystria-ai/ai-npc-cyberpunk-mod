@@ -151,3 +151,50 @@ and the [CALM paper](https://arxiv.org/abs/2509.06926). Local evidence lives in
 the ignored `runtime/student-stream-livegame-20261003`,
 `codec-boundary-check-20261003`, `teacher-sampling-screen-20261003` and
 `teacher-next-screen-20261003` folders.
+
+## Conditioning experiment and implementation audit
+
+The next comparison uses the accepted teacher and a balanced 1,020-recording
+corpus across 73 character identities. Panam contributes 66 recordings, Judy 53,
+Johnny 52 and Evelyn 52; original source archives remain intact. These counts
+describe selected training recordings, with historical phone/media labels
+preserved. Independent wording/alignment/codec checks admitted 171 newly collected
+recordings into this mixture. Runtime caches must still be generated from the
+final package before any training update.
+
+Three matched experimental arms are being prepared:
+
+1. The official audio prompt from the same recording as the training target.
+2. A 50% mixture of independent recordings from the same authenticated voice,
+   preserving the original target audio, text and crop.
+3. The same mixture with a small learned speaker embedding added to the audio
+   conditioning and 50% independent ID dropout.
+
+The internal ID never appears in spoken text. Its key identifies the character,
+native voice tag, locale and performer version. Recording context and delivery
+constrain donor selection separately. Unknown IDs use reference audio with a
+zero ID contribution. The table contains about 74,000 trainable parameters;
+this experiment still uses one shared voice model.
+
+An audit of the first prototype found that its actual training runner never
+passed the new ID inputs, its checkpoint writer omitted mapping metadata, and
+resume could accept a same-shape table with a different identity mapping.
+The isolated corrected implementation wires the actual loader, training,
+checkpoint, resume, export and public inference paths. A real checkpoint check
+also exposed a second load of the same 5.06 GB file; metadata validation now reuses
+the loaded payload. The corrected restore/export completed with 5.62 GiB peak
+process RAM and 4.80 GiB peak GPU allocation.
+
+The baseline real-model update and subsequent public CPU streaming check pass.
+Paired/hybrid execution and audible benefits remain under evaluation. The finite
+pilot will compare 500 updates per arm with the same initialization, target draws,
+base learning schedule and text/reference probes. Raw and EMA results are kept,
+and ID gradients and residual strength are measured. Production models remain
+the previously accepted teacher/student until the new results are qualified.
+
+For cloud execution, final resumable checkpoints retain raw and EMA state.
+Derived exports can be generated after download, avoiding duplicate multi-GB
+files in Kaggle's 20 GB saved-output allocation. See [Kaggle's notebook limits](https://www.kaggle.com/docs/notebooks).
+Exact local receipts and candidate source are under
+`runtime/voice-data-expansion-20261003/current-parent-audit` and
+`speaker-conditioning-experiment/hybrid-v2`.
