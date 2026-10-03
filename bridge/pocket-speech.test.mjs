@@ -26,14 +26,18 @@ test('whole-text Pocket production starts genuine prefix admission and shares de
       const snapshot={version:1,token:config.token,sampleRate:24000,channels:1,receivedFrames,
         positionSeconds:receivedFrames===9600?0:.05,text:config.text,textComplete:true,sourceComplete:false,
         ended:false,underruns:0,state:'playing'};
-      snapshot.face=options.getFace(snapshot);const control=await options.onFrame(snapshot);
+      snapshot.face=options.getFace(snapshot);
+      assert.equal(snapshot.face.coverage.audiblePositionSeconds,snapshot.positionSeconds,
+        'production facial source must use the device cursor, not a default zero');
+      const control=await options.onFrame(snapshot);
       assert.equal(control.allow,true);
       spoken.push(value);
       if(spoken.length===1)assert.equal(replies.length,1,'first prefix is admitted before source completion');
     },{signal:controller.signal});
     const final={version:1,token:config.token,sampleRate:24000,channels:1,receivedFrames,positionSeconds:receivedFrames/24000,
       text:config.text,textComplete:true,sourceComplete:true,ended:true,underruns:0,state:'draining'};
-    final.face=options.getFace(final);await options.onFrame(final);return {...produced,timing:{voiceProvider:'pocket',firstPcmMs:140}};
+    final.face=options.getFace(final);assert.equal(final.face.coverage.audiblePositionSeconds,final.positionSeconds);
+    await options.onFrame(final);return {...produced,timing:{voiceProvider:'pocket',firstPcmMs:140}};
   }};
   let calls=0;
   const voice={async synthesizeStream(key,text,{onPcm}){calls++;assert.equal(key,profile.key);assert.equal(text,result.text);

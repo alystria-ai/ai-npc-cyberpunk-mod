@@ -33,6 +33,12 @@ function amplitude(wav, segment) {
     }
     energies.push(Math.sqrt(squares / Math.max(1, (last - first) * wav.channels)));
   }
+  return normaliseSpeechEnvelope(energies, segment);
+}
+
+// Whole-WAV and continuous local speech share one effort reference and the
+// same three-bin smoothing. Decoder packet boundaries are not speech edges.
+export function normaliseSpeechEnvelope(energies, segment) {
   const sorted = energies.filter(x => x > 0.0008).sort((a, b) => a - b);
   const reference = Math.max(0.015, sorted[Math.floor(sorted.length * 0.9)] || 0);
   const floor = Math.max(0.0008, reference * 0.025);

@@ -1,9 +1,12 @@
-import {buildFacialTimeline, SPEECH_TRACKS} from './facial-timeline.mjs';
-import {PHONETIC_ARTICULATION} from './phonetic-poses.mjs';
+import {normaliseSpeechEnvelope, SPEECH_TRACKS} from './facial-timeline.mjs';
+import {PHONETIC_ARTICULATION, phoneticPose} from './phonetic-poses.mjs';
+import {validateMouthCues} from './phonetic-lipsync.mjs';
 import {throwIfCancelled} from './transport-pool.mjs';
 
-const RATE = 24000, MAX_FRAMES = RATE * 120;
+const RATE = 24000, MAX_FRAMES = RATE * 120, ENERGY_FRAMES = RATE / 30;
 const zero = () => SPEECH_TRACKS.map(() => 0);
+const clamp = value => Math.max(0,Math.min(1,value));
+const rounded = value => Math.round(value*10000)/10000;
 
 // An analysis container only. These copied float samples are never returned
 // to playback: the renderer receives the original Pocket PCM independently.
@@ -21,6 +24,8 @@ export function pocketAnalysisWav(pcm) {
 
 // Same native phonetic mapping as local WAV replies, on one audio-seconds
 // clock. Rhubarb runs beside playback; PCM admission never awaits analysis.
+// Only the part of a result that is still ahead of the device cursor can be
+// admitted. Completed work is not evidence of phonetic coverage at playback.
 export class PocketFacialStream {
   constructor({input, lipsync, signal, expressionSignal, onAnalysis = () => {}}) {
     if (typeof input?.requestId !== 'string' || typeof input.entity !== 'string' || !Number.isSafeInteger(input.generation))
@@ -29,25 +34,15 @@ export class PocketFacialStream {
     this.controller = new AbortController(); this.cancel = () => this.close();
     signal?.addEventListener('abort',this.cancel,{once:true});
     this.pcm = new Float32Array(MAX_FRAMES); this.frames = 0; this.packet = 0;
-    this.anchors = []; this.pending = new Set(); this.analysisCursor = 0; this.analysisIndex = 0;
-    this.revision = 0; this.phonetic = false; this.complete = false;
+    this.energies = []; this.energySquares = 0; this.energySamples = 0;
+    this.intervals = []; this.pending = new Set(); this.analysisCursor = 0; this.analysisIndex = 0;
+    this.revision = 0; this.publicationRevision = 0; this.audiblePosition = 0; this.complete = false;
     if (signal?.aborted) this.close();
   }
   assertActive() { throwIfCancelled(this.signal); throwIfCancelled(this.controller.signal); }
-  segment(index,start,last=false) {
-    // This is an analysis-window marker, not a native file-slot index. Pocket
-    // can yield more than 128 packets in a long continuous utterance.
-    return {version:1,index:start===0?1:Math.max(2,Math.min(128,index)),startSeconds:start,first:start===0,last};
-  }
-  line(pcm,index,start,last=false,extra={}) {
-    return buildFacialTimeline({audio:pocketAnalysisWav(pcm),speechSegment:this.segment(index,start,last),
-      expressionSignal:this.expressionSignal,...extra},this.input);
-  }
-  merge(line,start,end) {
-    if (!line || this.closed) return;
-    this.anchors = this.anchors.filter(frame=>frame[0]<start-1e-7 || frame[0]>end+1e-7);
-    this.anchors.push(...line.frames.map(frame=>[start+frame[0],...frame.slice(1)]));
-    this.anchors.sort((a,b)=>a[0]-b[0]); this.revision++; this.cached = null;
+  measure(event) {
+    try { Promise.resolve(this.onAnalysis(event)).catch(()=>{}); }
+    catch { /* Diagnostics cannot interrupt voice. */ }
   }
   push(packet) {
     this.assertActive();
@@ -55,59 +50,135 @@ export class PocketFacialStream {
         || packet.index !== this.packet+1 || !(packet.pcm instanceof Float32Array) || packet.frames !== packet.pcm.length
         || !packet.frames || this.frames+packet.frames>MAX_FRAMES || !packet.pcm.every(Number.isFinite))
       throw Error('Pocket facial PCM is out of order');
-    const start = this.frames/RATE; this.pcm.set(packet.pcm,this.frames); this.frames += packet.frames; this.packet++;
-    // Real Pocket decoder chunks are 80 ms. Ignore only a shorter final piece
-    // here; it remains in the source PCM and is included in final analysis.
-    if (packet.frames>=RATE*.05) this.merge(this.line(packet.pcm,packet.index,start),start,this.frames/RATE);
-    this.schedule(false);
-  }
-  schedule(final) {
-    for (;;) {
-      const size = Math.round((this.analysisIndex ? 1.6 : .8)*RATE), remaining = this.frames-this.analysisCursor;
-      if (remaining<size && !final) return;
-      if (remaining<RATE*.05) return;
-      const count = Math.min(size,remaining), first=this.analysisCursor, start=first/RATE, end=(first+count)/RATE;
-      const window=this.pcm.slice(first,first+count); this.analysisCursor += count; this.analysisIndex++;
-      if (!this.lipsync || this.pending.size>=8) continue; // bounded explicit envelope fallback
-      const index=this.analysisIndex, audio=pocketAnalysisWav(window), began=performance.now();
-      const job=Promise.resolve().then(()=>this.lipsync.analyse(audio,{signal:this.controller.signal})).then(result=>{
-        if (this.closed || this.controller.signal.aborted) return;
-        const line=this.line(window,index,start,final&&end===this.frames/RATE,result);
-        if (line?.source==='local-phonetic') { this.phonetic=true;this.merge(line,start,end); }
-        this.onAnalysis({lipEngine:result.timing?.lipEngine,lipAnalysisMs:performance.now()-began,startSeconds:start,endSeconds:end});
-      }).catch(()=>{}).finally(()=>this.pending.delete(job));
-      this.pending.add(job);
+    this.pcm.set(packet.pcm,this.frames); this.frames += packet.frames; this.packet++;
+    // Fixed audio-clock bins carry across all decoder packets, including short
+    // final pieces. Match whole-WAV RMS clamping without modifying source PCM.
+    for(const sample of packet.pcm) {
+      const value=Math.max(-1,Math.min(1,sample));this.energySquares+=value*value;this.energySamples++;
+      if(this.energySamples===ENERGY_FRAMES) {
+        this.energies.push(Math.sqrt(this.energySquares/ENERGY_FRAMES));
+        this.energySquares=0;this.energySamples=0;
+      }
     }
+    this.revision++;this.cached=null;this.geometry=null;this.schedule();
+  }
+  schedule() {
+    if(this.closed || !this.lipsync || this.pending.size) return;
+    // One job, no analyser backlog. If playback overtakes a window, skip those
+    // samples and spend CPU on the still-unheard prefix. Left context helps a
+    // fresh window recognize its first sound; context is never re-admitted.
+    const first=Math.max(this.analysisCursor,Math.ceil(this.audiblePosition*RATE)),remaining=this.frames-first;
+    // Recognition needs context, not 800 ms entirely ahead of playback. With
+    // near-real-time generation that requirement starved analysis until late
+    // in a line. Permit 400 ms of already-heard acoustic context, while still
+    // qualifying only unheard output. Very short future tails remain fallback.
+    const contextFirst=Math.max(0,first-Math.round(RATE*.4));
+    if(remaining<(this.complete?RATE*.05:RATE*.12)
+        || (!this.complete && this.frames-contextFirst<RATE*.8)) return;
+    const count=Math.min(this.analysisIndex?RATE*1.6:RATE*.8,remaining);
+    const start=first/RATE,end=(first+count)/RATE,analysisStart=contextFirst/RATE;
+    const window=this.pcm.slice(contextFirst,first+count),duration=window.length/RATE;
+    this.analysisCursor=first+count;const index=++this.analysisIndex,began=performance.now();
+    const controller=new AbortController(),cancel=()=>controller.abort();
+    this.controller.signal.addEventListener('abort',cancel,{once:true});
+    const state={index,start,end,analysisStart,controller,obsolete:false};this.analysisJob=state;
+    const receipt={type:'analysis',index,startSeconds:start,endSeconds:end,analysisStartSeconds:analysisStart,
+      receivedSecondsAtStart:this.frames/RATE,audiblePositionSecondsAtStart:this.audiblePosition};
+    const job=Promise.resolve().then(()=>this.lipsync.analyse(pocketAnalysisWav(window),{signal:controller.signal})).then(result=>{
+      if(this.closed || this.controller.signal.aborted) return;
+      const usableStart=Math.max(start,this.audiblePosition),usableSeconds=Math.max(0,end-usableStart);
+      let status='late-discarded';
+      if(!controller.signal.aborted && usableSeconds>1/RATE) {
+        let cues;
+        if(result?.mouthCuesFormat==='rhubarb-phonetic-v1')try {
+          cues=validateMouthCues({metadata:{duration},mouthCues:result.mouthCues},duration);
+        }catch { /* Invalid recognition falls back, not voice playback. */ }
+        if(cues) {
+          this.intervals.push({index,start:usableStart,end,analysisStart,cues,
+            easeIn:usableStart>start+1e-7});
+          this.revision++;this.cached=null;this.geometry=null;status='qualified';
+        }else status='invalid-fallback';
+      }
+      this.measure({...receipt,lipEngine:result?.timing?.lipEngine,lipAnalysisMs:performance.now()-began,status,
+        receivedSecondsAtFinish:this.frames/RATE,audiblePositionSecondsAtFinish:this.audiblePosition,
+        usableStartSeconds:Math.min(end,usableStart),usableSeconds:status==='qualified'?usableSeconds:0});
+    }).catch(()=>{
+      if(!this.closed)this.measure({...receipt,lipAnalysisMs:performance.now()-began,
+        status:state.obsolete?'late-discarded':'analysis-failed',usableSeconds:0,
+        receivedSecondsAtFinish:this.frames/RATE,audiblePositionSecondsAtFinish:this.audiblePosition});
+    }).finally(()=>{
+      this.controller.signal.removeEventListener('abort',cancel);controller.abort();this.pending.delete(job);
+      if(this.analysisJob===state)this.analysisJob=null;
+      this.schedule();
+    });
+    this.pending.add(job);
   }
   finish() {
-    this.assertActive(); this.complete=true; this.schedule(true); this.revision++; this.cached=null;
+    this.assertActive(); this.complete=true; this.schedule();this.revision++;this.cached=null;this.geometry=null;
   }
-  snapshot(receivedFrames=this.frames, sourceComplete=this.complete) {
-    if (this.closed || !receivedFrames || !this.anchors.length) return undefined;
+  envelope(receivedFrames,sourceComplete) {
+    const count=Math.floor(receivedFrames/ENERGY_FRAMES),energies=this.energies.slice(0,count);
+    if(receivedFrames%ENERGY_FRAMES) {
+      let squares=0;
+      for(let at=count*ENERGY_FRAMES;at<receivedFrames;at++) {
+        const value=Math.max(-1,Math.min(1,this.pcm[at]));squares+=value*value;
+      }
+      energies.push(Math.sqrt(squares/(receivedFrames-count*ENERGY_FRAMES)));
+    }
+    return normaliseSpeechEnvelope(energies,{first:true,last:sourceComplete});
+  }
+  snapshot(receivedFrames=this.frames, sourceComplete=this.complete, audiblePositionSeconds=0) {
+    if (this.closed || !receivedFrames) return undefined;
     if (!Number.isSafeInteger(receivedFrames) || receivedFrames<0 || receivedFrames>this.frames
         || typeof sourceComplete!=='boolean' || (sourceComplete&&(!this.complete||receivedFrames!==this.frames)))
       throw Error('Pocket facial prefix exceeds accepted source samples');
-    const key=`${this.revision}:${receivedFrames}:${sourceComplete}`;
+    const duration=receivedFrames/RATE;
+    if(!Number.isFinite(audiblePositionSeconds) || audiblePositionSeconds<0 || audiblePositionSeconds>duration+.025
+        || audiblePositionSeconds+1/RATE<this.audiblePosition)throw Error('Invalid Pocket facial audible cursor');
+    this.audiblePosition=Math.max(this.audiblePosition,Math.min(duration,audiblePositionSeconds));
+    if(this.analysisJob && this.analysisJob.end<=this.audiblePosition+1/RATE) {
+      this.analysisJob.obsolete=true;this.analysisJob.controller.abort();
+    }
+    this.schedule();
+    const geometryKey=`${this.revision}:${receivedFrames}:${sourceComplete}`;
+    const key=`${geometryKey}:${this.audiblePosition}`;
     if (this.cached?.key===key) return this.cached.face;
-    const duration=receivedFrames/RATE, frames=[];let at=0;
-    const pose=seconds=>{
-      while(at+1<this.anchors.length && this.anchors[at+1][0]<=seconds)at++;
-      const left=this.anchors[at],right=this.anchors[at+1];
-      if (seconds<left[0]) return zero();
-      const mix=right?Math.max(0,Math.min(1,(seconds-left[0])/(right[0]-left[0]||1))):0;
-      const edge=sourceComplete?Math.max(0,Math.min(1,(duration-seconds)/.04)):1;
-      return left.slice(1).map((value,index)=>Math.round((value+((right?.[index+1]??value)-value)*mix)*edge*10000)/10000);
-    };
-    for(let index=0;index/60<duration;index++)frames.push([index/60,...pose(index/60)]);
-    frames.push([duration,...pose(duration)]);
+    const intervals=this.intervals.filter(interval=>interval.start<duration);
+    let frames=this.geometry?.key===geometryKey?this.geometry.frames:undefined;
+    if(!frames) {
+      const envelope=this.envelope(receivedFrames,sourceComplete);frames=[];let intervalIndex=0;
+      const pose=seconds=>{
+        const energyAt=sourceComplete?seconds:Math.min(seconds,Math.max(0,duration-1/RATE));
+        const energyFrame=energyAt*30,energyIndex=Math.floor(energyFrame),mix=energyFrame-energyIndex;
+        const level=(envelope[energyIndex]||0)*(1-mix)
+          +(envelope[energyIndex+1]??(sourceComplete?0:envelope[energyIndex]||0))*mix;
+        const fallback=zero();fallback[0]=.35*level;fallback[1]=.12*level;fallback[2]=.16*level;
+        while(intervalIndex+1<intervals.length && intervals[intervalIndex].end<=seconds)intervalIndex++;
+        const interval=intervals[intervalIndex];let values=fallback;
+        if(interval && seconds>=interval.start && seconds<interval.end) {
+          const phonetic=phoneticPose(interval.cues,seconds-interval.analysisStart,level,SPEECH_TRACKS);
+          const blend=interval.easeIn?clamp((seconds-interval.start)/.04):1;
+          values=phonetic.map((value,index)=>fallback[index]+(value-fallback[index])*blend);
+        }
+        const edge=clamp(Math.min(seconds/.04,sourceComplete?(duration-seconds)/.04:1));
+        return values.map(value=>rounded(value*edge));
+      };
+      for(let index=0;index/60<duration;index++)frames.push([index/60,...pose(index/60)]);
+      frames.push([duration,...pose(duration)]);this.geometry={key:geometryKey,frames};
+    }
+    const phonetic=intervals.some(interval=>this.audiblePosition>=interval.start
+      && this.audiblePosition<Math.min(duration,interval.end));
+    const coverage={version:1,audiblePositionSeconds:this.audiblePosition,
+      phoneticIntervals:intervals.map(interval=>[interval.start,Math.min(duration,interval.end)]),
+      receivedSeconds:duration,pendingAnalyses:this.pending.size};
     const face={version:1,requestId:this.input.requestId,entity:this.input.entity,generation:this.input.generation,
-      continuous:true,complete:sourceComplete,duration,revision:this.revision,tracks:[...SPEECH_TRACKS],frames,
-      source:this.phonetic?'local-phonetic':'audio-envelope',...(this.phonetic?{articulation:PHONETIC_ARTICULATION}:{} )};
+      continuous:true,complete:sourceComplete,duration,revision:++this.publicationRevision,tracks:[...SPEECH_TRACKS],frames,
+      source:phonetic?'local-phonetic':'audio-envelope',...(phonetic?{articulation:PHONETIC_ARTICULATION}:{}),coverage};
     this.cached={key,face};return face;
   }
   close() {
     if (this.closed) return; this.closed=true;this.controller.abort();this.signal?.removeEventListener('abort',this.cancel);
-    this.pcm=null;this.anchors=[];this.cached=null;
+    this.pcm=null;this.energies=[];this.intervals=[];this.cached=null;this.geometry=null;
   }
 }
 
@@ -123,6 +194,24 @@ export function ownedPocketFace(snapshot, owner) {
       || face.tracks.length!==SPEECH_TRACKS.length || face.tracks.some((name,index)=>name!==SPEECH_TRACKS[index])
       || !Array.isArray(face.frames) || !face.frames.length || face.frames.length>7202)
     throw Error('Pocket facial timeline owner or source clock changed');
+  const coverage=face.coverage;
+  if(!coverage || coverage.version!==1 || !Number.isFinite(coverage.audiblePositionSeconds)
+      || coverage.audiblePositionSeconds<0 || coverage.audiblePositionSeconds>face.duration
+      || !Number.isFinite(coverage.receivedSeconds) || Math.abs(coverage.receivedSeconds-face.duration)>1/24000
+      || (snapshot.positionSeconds!==undefined && Math.abs(coverage.audiblePositionSeconds-snapshot.positionSeconds)>.025+1e-7)
+      || !Number.isInteger(coverage.pendingAnalyses) || coverage.pendingAnalyses<0 || coverage.pendingAnalyses>1
+      || !Array.isArray(coverage.phoneticIntervals) || coverage.phoneticIntervals.length>2400)
+    throw Error('Pocket facial coverage clock changed');
+  let end=0;
+  for(const interval of coverage.phoneticIntervals) {
+    if(!Array.isArray(interval) || interval.length!==2 || !interval.every(Number.isFinite)
+        || interval[0]<end || interval[0]<0 || interval[1]<=interval[0] || interval[1]>face.duration+1e-7)
+      throw Error('Invalid Pocket phonetic interval');
+    end=interval[1];
+  }
+  const phonetic=coverage.phoneticIntervals.some(([start,end])=>coverage.audiblePositionSeconds>=start
+    && coverage.audiblePositionSeconds<end);
+  if((face.source==='local-phonetic')!==phonetic)throw Error('Pocket facial source is not covered at the audible cursor');
   let previous=-1;
   for(const frame of face.frames) {
     if (!Array.isArray(frame) || frame.length!==SPEECH_TRACKS.length+1 || !frame.every(Number.isFinite)

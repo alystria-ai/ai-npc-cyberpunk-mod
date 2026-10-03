@@ -14,7 +14,7 @@ export async function deliverPocketSpeech({input,profile,result,current,signal,v
       }});
       facial.finish();return response;
     },{signal,current,onFrame:snapshot=>speech.frame(snapshot),
-      getFace:snapshot=>facial.snapshot(snapshot.receivedFrames,snapshot.sourceComplete)});
+      getFace:snapshot=>facial.snapshot(snapshot.receivedFrames,snapshot.sourceComplete,snapshot.positionSeconds)});
     throwIfCancelled(signal);
     return {...result,continuous:true,transport:'realtime',timing:{...result.timing,...generated.timing},
       liveDelivery:{published:speech.published,ended:speech.ended,generated:speech.generated,id:speech.token}};
