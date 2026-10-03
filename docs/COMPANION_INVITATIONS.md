@@ -111,3 +111,7 @@ Hanako's reported failure was followed by a read-only provider check confirming
 the correct owned profile and enabled memory. The original exception had been
 discarded, so its cause is unconfirmed. Preparation now preserves a bounded
 diagnostic code and stage without exposing provider responses or identifiers.
+
+After the October 4 CET reload, the user confirmed that Hanako joins. This
+accepts the retry/spawn path. The earlier discarded cause remains unknown;
+no additional failure was induced just to repeat the notification check.
