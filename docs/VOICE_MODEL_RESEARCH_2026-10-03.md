@@ -58,12 +58,25 @@ the full training cache.
 The corrected retry is private Kaggle kernel **136850641, version 1**, with
 frozen source SHA256
 `6168e5903d7c9661a8b5aa291b626c61f62d8108a5c910cf68a551d70c50b0ca`.
-It passed cloud preflight for the full declared manifests. Kaggle has not yet
-published its inner-stage output files, so weight updates and full runtime cache
-verification remain unconfirmed. The ignored
-`runtime/kaggle-teacher-improve-retry-monitor/state.json` records current
-read-only status; a remote `RUNNING` state is not evidence of optimizer updates.
-The failed run, retry source, input corpus and accepted student remain distinct.
+It completed successfully. The actual cache gate passed for all 1,744 training
+rows. Two Tesla T4 GPUs trained with FP16 activation precision and no nonfinite
+gradient attempts. Training stopped at new-run update 1,250 after four validation
+checks without the required improvement; the stop reason is `heldout_plateau`.
+
+The speech-tested EMA candidate is update 500. Relative to the accepted
+two-step anchor, its primary unseen-scene objective was 0.674% lower, the
+original 94-clip objective 0.514% lower and the conditional objective 0.477%
+lower. These are modest descriptive loss improvements, not a voice-likeness
+score. All 18 candidate probes completed. The EMA check at update 0 and raw/EMA
+checks at 500/1,000 completed; 1,500/2,000 were not reached because training plateaued.
+The exported FP32 model remains a listening candidate, not a production provider
+or an automatic replacement for the accepted student.
+
+Actual receipts live in the ignored
+`runtime/kaggle-pocket-teacher-improve-retry-output/teacher-improve-results`;
+the source/private-version readback is in
+`runtime/kaggle-teacher-improve-retry-monitor`. The failed run, retry source,
+input corpus and accepted student remain distinct.
 
 ## Corrected padding interpretation
 

@@ -352,6 +352,18 @@ student training. A hard 3.5-hour session bound and a conservative 7.25 GPU-hour
 preflight allowance protect the private job. A genuinely better teacher can later
 be used for a separately authorized distillation from the accepted student.
 
+The October 3 teacher-only pilot completed its real 1,744-row cache gate and
+trained on two T4 GPUs. It stopped at update 1,250 on a development plateau,
+selecting the speech-tested EMA at update 500. Its unseen-scene, original
+94-clip and conditional objectives were 0.674%, 0.514% and 0.477% lower than
+the accepted two-step anchor. All 18 selected-candidate probes completed;
+these loss checks do not establish perceptual improvement. The accepted
+student and production voice providers remain unchanged. Matched Johnny,
+Judy and Panam listening pairs retain CFG2, two decoder steps, temperature
+0.3, seed 1337 and the same native references/texts. No audio processing is
+applied. The training sampler returns whole utterances, so those cloud
+generation timings are not streaming first-PCM latency.
+
 A separate CPU experiment kept the accepted teacher's CFG2 and original
 reference. Supported dynamic INT8 reduced full generation from 15.82 to
 10.02 seconds on two CPU threads, with resident RAM falling from 2.11 to
