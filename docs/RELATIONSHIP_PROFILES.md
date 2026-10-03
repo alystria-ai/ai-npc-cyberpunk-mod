@@ -285,15 +285,6 @@ their own relationship in character, without revealing private scene/chat
 details or asserting an unconfirmed relationship for another participant. This
 is a conversation test, not a requirement to clear real memory or modify quests.
 
-## Invitation preparation failures
-
-Failed invitations retain their error until the player cancels/reinvites or
-explicitly changes the selected profile. Missing or stale bridge receipts cannot
-turn that same failed attempt back into preparation. The phone, manager and
-world notification share one failure notice per attempt.
-
-Hanako's reported failure was followed by a read-only provider check confirming
-the correct owned profile and enabled memory. The original exception had been
-discarded, so its cause is unconfirmed. Preparation now preserves a bounded
-diagnostic code and stage without exposing provider responses or identifiers.
+For preparation errors and explicit retries after a profile change, see
+[invitation preparation failures](COMPANION_INVITATIONS.md#invitation-preparation-failures).
 

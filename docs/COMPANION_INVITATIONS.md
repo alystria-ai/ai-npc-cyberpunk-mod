@@ -74,7 +74,8 @@ fixtures. The tests use isolated local storage and fake provider/native actors;
 they do not invoke production deletion or generate GPU audio. Source and fixture
 success does not establish rendered game acceptance. The live check should
 invite while the menu remains open, inspect preparation feedback, resume, and
-send the first F6 message. This Lua-only update uses **CET Reload All Mods**.
+send the first private text message using the player's assigned binding. This
+Lua-only update uses **CET Reload All Mods**.
 
 September 30 source verification: the full suite passed **983 checks**, with
 zero failures or skips, including the installed MCM framework fixture. The new
@@ -98,3 +99,15 @@ compared with the earlier 19,628 ms trace. The full reply was generated in 7,143
 ms while its earlier chunks were already playing. These are individual observed
 turns, not a controlled provider benchmark or an assurance for every response.
 The safe timing summary is in ignored `runtime/invitation-latency-live.json`.
+
+## Invitation preparation failures
+
+Failed invitations retain their error until the player cancels/reinvites or
+explicitly changes the selected profile. Missing or stale bridge receipts cannot
+turn that same failed attempt back into preparation. The phone, manager and
+world notification share one failure notice per attempt.
+
+Hanako's reported failure was followed by a read-only provider check confirming
+the correct owned profile and enabled memory. The original exception had been
+discarded, so its cause is unconfirmed. Preparation now preserves a bounded
+diagnostic code and stage without exposing provider responses or identifiers.
