@@ -29,22 +29,41 @@ larger pretrained teacher; changing depth or width would require a separate
 architecture/initialization experiment.
 
 The original teacher's development objective worsened 4.38% between its accepted
-update 1,200 and update 2,000 while training loss fell. The next proposed run
+update 1,200 and update 2,000 while training loss fell. The new teacher-only run
 starts from the accepted EMA with a fresh optimizer: LR 1e-5, 250-update warm-up,
 EMA 0.999, effective batch 64 and a 2,000-update pilot cap. Further training is
 judged from held-out performance and free-running speech, with raw/EMA kept
 separate. A completed run can legitimately produce no eligible improvement.
 
-The loader samples uniformly by recording. In the proposed 2,815-clip pool,
-Johnny, Judy and Panam account for 45.75% of clip draws and about 44.86% of
-target frames. Equal sampling by character would replay singleton recordings
-roughly 38 times more often, so the first pilot keeps the existing sampler and
-adds recording variety. The final admitted pool still depends on wording review.
+The loader samples uniformly by recording. The final qualified pool contains
+1,744 clips across 72 voices: Johnny has 122, Judy 158 and Panam 499. Together
+they account for 44.67% of clip draws. Equal sampling by character would replay
+singleton recordings roughly 24 times more often, so the first pilot keeps the
+existing sampler and adds recording variety. Clip counts do not measure target
+frame exposure; actual prepared-cache and training receipts record that separately.
 
 Both sampler and EOS heads remain trainable for that first pilot. A later
 controlled comparison could freeze only `flow_net`, matching upstream
 `freeze_head`; that option does not freeze EOS. Such a run would need explicit
 enforcement in this wrapper, which bypasses the upstream training entry point.
+
+## Current cloud run
+
+The first teacher-improvement run failed during preparation because four
+teacher-only `Spec.option` calls omitted their required defaults. It made no
+training updates. The correction passed an actual preparation check with three
+training clips and every evaluation-panel row; that fixture does not qualify
+the full training cache.
+
+The corrected retry is private Kaggle kernel **136850641, version 1**, with
+frozen source SHA256
+`6168e5903d7c9661a8b5aa291b626c61f62d8108a5c910cf68a551d70c50b0ca`.
+It passed cloud preflight for the full declared manifests. Kaggle has not yet
+published its inner-stage output files, so weight updates and full runtime cache
+verification remain unconfirmed. The ignored
+`runtime/kaggle-teacher-improve-retry-monitor/state.json` records current
+read-only status; a remote `RUNNING` state is not evidence of optimizer updates.
+The failed run, retry source, input corpus and accepted student remain distinct.
 
 ## Corrected padding interpretation
 
