@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {jsonPointer, verifyNativeEvidence, mergeNativePacks} from '../research/cyberpunk/scripts/build_native_pack.mjs';
+import {nativeRuleAuthorHash} from '../research/cyberpunk/scripts/narrative_topic_identity.mjs';
 
 const raw = Buffer.from('Native fixture'), sha = createHash('sha256').update(raw).digest('hex');
 test('shared fact selectors preserve richer writer provenance and reject executable disagreement', () => {
@@ -19,11 +20,11 @@ test('shared fact selectors preserve richer writer provenance and reject executa
 function fixture() {
   const native = {jsonPath: 'raw/base/base/quest/fixture.quest.json', assetSha256: sha,
     jsonPointer: '/Data/graph/node', expectedType: 'questSetVar_NodeType'};
-  return {pack: {evidence: [{id: 'native-proof', kind: 'native', native}], rules: [{id: 'rule', questKey: 'rescue',
+  return {pack: {evidence: [{id: 'native-proof', kind: 'native', native}], rules: [{id: 'rule', questKey: 'rescue', topic: 'rescue.fate',
     status: 'source-verified', narrativeLinks: [{decisionId: 'rescue.fate', outcomeKey: 'rescued'}]}]},
     inventory: {assets: [{...native, winner: true, rawPath: 'raw/base/base/quest/fixture.quest', archive: 'base'}]},
     loadArtifact: async () => ({raw, json: {Data: {graph: {node: {$type: 'questSetVar_NodeType', value: 1}}}}}),
-    decisions: new Map([['rescue.fate', {id: 'rescue.fate', questKey: 'rescue', outcomes: [{key: 'rescued'}, {key: 'lost'}]}]])};
+    decisions: new Map([['rescue.fate', {id: 'rescue.fate', questKey: 'rescue', topic: 'rescue.fate', outcomes: [{key: 'rescued'}, {key: 'lost'}]}]])};
 }
 test('evidence pointers are exact own-property lookups with RFC6901 escapes', () => {
   assert.equal(jsonPointer({'a/b': {'a~b': 3}}, '/a~1b/a~0b'), 3);
@@ -79,6 +80,28 @@ test('source prose for a different outcome or quest cannot be linked by a native
   const result = await verifyNativeEvidence(input);
   assert.match(result.errors.join('\n'), /unknown or mismatched/);
   assert.equal(result.counts.outcomesWithReviewedRules, 0);
+});
+
+test('the evidence verifier rejects undeclared linked-topic drift before counting that outcome mapped',async()=>{
+  const input=fixture();input.pack.rules[0].topic='rescue.unreviewed-fate';
+  const result=await verifyNativeEvidence(input);
+  assert.match(result.errors.join('\n'),/undeclared narrative topic mismatch/);
+  assert.equal(result.counts.outcomesWithReviewedRules,0);
+});
+
+test('reviewed aliases require an existing nonempty review document during evidence qualification',async()=>{
+  const input=fixture(),rule=input.pack.rules[0];rule.topic='rescue.native-fate';
+  input.topicAliasDocument={version:1,aliases:[{ruleId:'rule',decisionId:'rescue.fate',outcomeKey:'rescued',
+    nativeTopic:rule.topic,catalogTopic:'rescue.fate',ruleSha256:nativeRuleAuthorHash(rule),policy:'identity-preserving-namespace',
+    rationale:'The fixture retains its existing native topic.',reviewRef:'native-reviews/fixture-review.md',reviewed:true}]};
+  assert.match((await verifyNativeEvidence(input)).errors.join('\n'),/review document loader required/);
+  input.loadTopicReview=async()=>{throw Error('missing review document');};
+  assert.match((await verifyNativeEvidence(input)).errors.join('\n'),/missing review document/);
+  input.loadTopicReview=async()=>Buffer.from('');
+  assert.match((await verifyNativeEvidence(input)).errors.join('\n'),/empty or over-budget/);
+  input.loadTopicReview=async()=>Buffer.from('Reviewed fixture topic.');
+  const result=await verifyNativeEvidence(input);assert.deepEqual(result.errors,[]);
+  assert.equal(result.narrativeTopics.reviewedAliases,1);assert.equal(result.narrativeTopics.reviewDocuments.length,1);
 });
 test('shipped localization references verify exact values without replacing scene evidence', async () => {
   const input = fixture();

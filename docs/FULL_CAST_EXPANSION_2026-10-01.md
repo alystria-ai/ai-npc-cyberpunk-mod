@@ -130,3 +130,13 @@ to the production registry or inserted into provider conversation memory.
 All checkpoints are local Git commits. Private keys, provider IDs, dialogue,
 raw game assets, reference audio and generated auditions remain ignored. No
 publication is performed by this work.
+
+## October 3 native event-history increment
+
+Four additional locally reviewed River/Joss rules use exact received native messages and positive stage observations. They cover River's report about Harris after the failed rescue, Joss's report of abandonment losses, her gradual-recovery assessment, and her visit/game follow-up. These are bounded character perspectives: a message from Joss does not become River's private knowledge, and family hospitality does not confirm romance.
+
+The generated source pack now has 195 enabled rules and 188 of 1,160 researched outcomes mapped; 972 outcomes remain excluded. All 5,402 cited evidence pointers are bound to recorded native binary/JSON hashes. The [October 3 review](../research/cyberpunk/native-reviews/river-joss-oct03.md) records exact identities, activation branches, exporter integrity corrections and resolver/privacy regressions.
+
+This batch rebuilt generated research only. It does not expand universal biography, change provider profiles, seed memories, install the pack or claim live-save acceptance. Intrinsic personal-history topic cards beyond the separately qualified Johnny/Jackie layer still require their own disclosure-aware selectors.
+
+All 195 enabled narrative links also underwent a [topic identity audit](../research/cyberpunk/native-reviews/topic-identity-audit-oct03.md). Its explicit alias declarations preserve compatible history stages and established topic names while preventing unreviewed topic drift from slipping past source qualification. Contradictory positive Randy rescue routes now suppress the dependent Harris account as well as the rescue outcomes.

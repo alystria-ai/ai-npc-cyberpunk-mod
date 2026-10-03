@@ -1,8 +1,9 @@
-import {readFile, readdir, writeFile, mkdir, stat} from 'node:fs/promises';
+import {readFile, readdir, writeFile, mkdir, stat, realpath} from 'node:fs/promises';
 import {resolve, dirname, relative, isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {validateKnowledgePack} from '../../../bridge/world-knowledge.mjs';
+import {validateNarrativeTopicIdentities, narrativeTopicLinkKey} from './narrative_topic_identity.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url)), research = resolve(here, '..'), root = resolve(research, '../..');
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -70,8 +71,20 @@ export function mergeNativePacks(parts, profileKeys) {
 }
 
 /** Authored semantics require review; these checks prove the cited artifact exists unchanged. */
-export async function verifyNativeEvidence({pack, inventory, loadArtifact, decisions, requireJsonHashes = false}) {
+export async function verifyNativeEvidence({pack, inventory, loadArtifact, decisions, requireJsonHashes = false,
+  topicAliasDocument = {version: 1, aliases: []}, loadTopicReview}) {
   const errors = [], verified = [], assets = new Map((inventory.assets || []).filter(row => row.winner).map(row => [row.jsonPath, row]));
+  const topics = validateNarrativeTopicIdentities({pack, decisions, aliasDocument: topicAliasDocument});
+  errors.push(...topics.errors);
+  const topicReviews = [];
+  for (const reference of [...new Set(topics.proofs.filter(row => row.qualification === 'pinned-reviewed-alias').map(row => row.reviewRef))]) {
+    try {
+      if (typeof loadTopicReview !== 'function') throw Error('review document loader required');
+      const bytes = await loadTopicReview(reference);
+      if (!(bytes instanceof Uint8Array) || !bytes.byteLength || bytes.byteLength > 512 * 1024) throw Error('empty or over-budget review document');
+      topicReviews.push({reference, sha256: hash(bytes), bytes: bytes.byteLength});
+    } catch (error) { errors.push(`Narrative topic review ${reference}: ${error.message}`); }
+  }
   const cached = new Map(), legacyJsonPaths = new Set();
   for (const evidence of pack.evidence) {
     if (evidence.kind !== 'native') continue;
@@ -134,6 +147,7 @@ export async function verifyNativeEvidence({pack, inventory, loadArtifact, decis
       if (!outcome || decision.questKey !== rule.questKey) {
         errors.push(`${rule.id}: unknown or mismatched narrative outcome ${link.decisionId}/${link.outcomeKey}`); continue;
       }
+      if (!topics.acceptedLinks.has(narrativeTopicLinkKey(rule.id, link.decisionId, link.outcomeKey))) continue;
       const key = `${link.decisionId}/${link.outcomeKey}`;
       if (!mapped.has(key)) mapped.set(key, []);
       mapped.get(key).push(rule.id);
@@ -143,7 +157,11 @@ export async function verifyNativeEvidence({pack, inventory, loadArtifact, decis
     decisionId: decision.id, questKey: decision.questKey, outcomeKey: outcome.key,
     rules: mapped.get(`${decision.id}/${outcome.key}`) || [],
   })));
-  return {errors, verified, outcomes, exportIntegrity: {policy: requireJsonHashes ? 'require-recorded-json-hash' : 'legacy-compatible',
+  return {errors, verified, outcomes, narrativeTopics: {policy: 'exact-or-pinned-reviewed-alias', proofs: topics.proofs,
+    exactMatches: topics.proofs.filter(row => row.qualification === 'exact').length,
+    reviewedAliases: topics.proofs.filter(row => row.qualification === 'pinned-reviewed-alias').length,
+    reviewDocuments: topicReviews},
+    exportIntegrity: {policy: requireJsonHashes ? 'require-recorded-json-hash' : 'legacy-compatible',
     legacyJsonPaths: [...legacyJsonPaths].sort(), note: legacyJsonPaths.size
       ? 'Legacy raw binary hashes and pointers were checked; decoded JSON is not bound to its original export. No retroactive qualification is implied.'
       : 'All cited JSON exports matched a recorded hash.'}, counts: {enabledRules: pack.rules.filter(enabled).length,
@@ -161,6 +179,7 @@ async function main() {
   const profiles = await read(resolve(root, 'characters/roster.json'));
   const catalog = await read(resolve(research, 'generated/quest-catalog.json'));
   const decisions = new Map(catalog.quests.flatMap(quest => quest.decisions.map(decision => [decision.id, {...decision, questKey: quest.key}])));
+  const topicAliasDocument = await read(resolve(research, 'native-topic-aliases.json'));
   const {pack, errors} = mergeNativePacks(parts, profiles.map(row => row.key));
   const cache = resolve(research, 'cache/game'), inventory = await read(resolve(cache, 'inventory.json'));
   // Scene exports are deliberately bounded to reviewed graph references and
@@ -193,10 +212,20 @@ async function main() {
     return {raw, jsonRaw};
   };
   const result = await verifyNativeEvidence({pack, inventory, loadArtifact, decisions,
-    requireJsonHashes: process.argv.includes('--require-json-hashes')});
+    requireJsonHashes: process.argv.includes('--require-json-hashes'), topicAliasDocument,
+    loadTopicReview: async reference => {
+      if (!/^native-reviews\/[a-z0-9-]+\.md$/u.test(reference)) throw Error('unsafe review document path');
+      const path = await realpath(resolve(research, reference)), directory = resolve(research, 'native-reviews');
+      const local = relative(directory, path);
+      if (local.startsWith('..') || isAbsolute(local)) throw Error('review document outside root');
+      const info = await stat(path);
+      if (!info.isFile() || info.size > 512 * 1024) throw Error('review document outside budget');
+      return readFile(path);
+    }});
   errors.push(...result.errors);
   const report = {version: 1, builtAt: new Date().toISOString(), errors, ...result.counts,
     verified: result.verified, outcomes: result.outcomes, exportIntegrity: result.exportIntegrity,
+    narrativeTopics: result.narrativeTopics,
     qualification: errors.length ? 'rejected' : result.counts.legacyJsonPointers
       ? 'source-reviewed-legacy-export-unbound-not-live-qualified' : 'source-verified-not-live-qualified'};
   await mkdir(resolve(research, 'generated'), {recursive: true});

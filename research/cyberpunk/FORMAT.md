@@ -104,6 +104,17 @@ inventory; semantics need supporting branch/scene evidence. Runtime status:
 unmapped, candidate, source-verified, live-verified, disabled. Only reviewed
 source-verified/live-verified rules can be emitted to the mod.
 
+Each narrative link also qualifies its topic identity. Exact catalog/native
+topic equality is the default. Independent compatible facets or sequential
+stages may retain distinct native topics: a shared motel room and a flirt are
+compatible, as are a gift invitation and later collection. Such differences
+require an explicit reviewed entry in `native-topic-aliases.json`, pinned to the
+full authored rule, decision/outcome and both topic names. The compiler rejects
+undeclared/stale aliases and missing review documents. A future alternative
+cannot use the catalog topic to bypass an already reviewed native topic domain.
+Native topic IDs and runtime conflict behavior are preserved; no mismatch list
+automatically authorizes new aliases.
+
 Live captures contain plain data, no retained native handles: game/version,
 world generation, save/playthrough identity evidence, game time, revealed
 journal states, requested fact observations, player lifepath and capturedAt.

@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "builtAt": "2026-10-01T09:27:33.720Z",
+  "builtAt": "2026-10-03T07:45:28.457Z",
   "errors": [],
-  "enabledRules": 191,
-  "citedArtifacts": 397,
-  "verifiedEvidencePointers": 5359,
+  "enabledRules": 195,
+  "citedArtifacts": 402,
+  "verifiedEvidencePointers": 5402,
   "outcomesResearched": 1160,
-  "jsonHashBoundPointers": 5359,
+  "jsonHashBoundPointers": 5402,
   "legacyJsonPointers": 0,
-  "outcomesWithReviewedRules": 185,
-  "outcomesUnmapped": 975,
+  "outcomesWithReviewedRules": 188,
+  "outcomesUnmapped": 972,
   "verified": [
     {
       "evidenceId": "al-native.release-entry",
@@ -42373,6 +42373,479 @@
       "depotPath": "ep1\\quest\\main_quests\\q306\\scenes\\q306_postcard_alex.scene"
     },
     {
+      "evidenceId": "jr-oct03.release",
+      "jsonPath": "scene-evidence/judy-release-final-oct01/raw/ep1/ep1/quest/ep1.gamedef.json",
+      "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile/DepotPath/$value",
+      "assetSha256": "30b735c237ea2344b3f667752b4f98fdbbe1283808594a51693cfa61aebc6579",
+      "jsonSha256": "4f24cc027024d390ac5972c8cec8a49b6a3f800820b95aaff4b93c6810b4fa40",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "0ee7f5c03d3dd379f374e8b034981eb29372498b",
+      "depotPath": "ep1\\quest\\ep1.gamedef"
+    },
+    {
+      "evidenceId": "jr-oct03.release",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/quest/cyberpunk2077.quest.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource/DepotPath/$value",
+      "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+      "jsonSha256": "5b860f4a432d252e26391d7ed44c4977b03b80fb248cdec7bbcf6d93a46f6f2d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "629e5b68927412e59175c6ad7d87524fef29842d",
+      "depotPath": "base\\quest\\cyberpunk2077.quest"
+    },
+    {
+      "evidenceId": "jr-oct03.release",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/quest/cyberpunk2077.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/4/Data/phaseResource/DepotPath/$value",
+      "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+      "jsonSha256": "3737deb675b4cfb1d40dba60f6b1ccf10cd21f851eb376ef9b448fe3bb718d9d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "a4bba3783f17fbe8eba427d60bfc7978b21ac262",
+      "depotPath": "base\\quest\\cyberpunk2077.questphase"
+    },
+    {
+      "evidenceId": "jr-oct03.release",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/quest/cyberpunk2077.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/2/Data/phaseResource/DepotPath/$value",
+      "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+      "jsonSha256": "3737deb675b4cfb1d40dba60f6b1ccf10cd21f851eb376ef9b448fe3bb718d9d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "a4bba3783f17fbe8eba427d60bfc7978b21ac262",
+      "depotPath": "base\\quest\\cyberpunk2077.questphase"
+    },
+    {
+      "evidenceId": "jr-oct03.release",
+      "jsonPath": "scene-evidence/river-joss-release-oct03/raw/base/base/quest/additional_game_elements.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource/DepotPath/$value",
+      "assetSha256": "c67fb292f88384f3f31e8242fc374e8b7afe5553588333c61f6eaec2c1e0b7eb",
+      "jsonSha256": "3e3cbe1bc3278f353b1ad68a5ea026eec3bb6ab802297501253d087d1f56a4ee",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "5cc7bd2f52b7968ddd5b3e2d17b24384813df945",
+      "depotPath": "base\\quest\\additional_game_elements.questphase"
+    },
+    {
+      "evidenceId": "jr-oct03.release",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/quest/side_quests/sidequests.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/15/Data/phaseResource/DepotPath/$value",
+      "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+      "jsonSha256": "148daf5a9e92857f07972b168b14d32d2563fb5807b246372aee5dc70026678b",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "0890ef97fd951ba660284008c221df154bfe9aea",
+      "depotPath": "base\\quest\\side_quests\\sidequests.questphase"
+    },
+    {
+      "evidenceId": "jr-oct03.release",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/quest/side_quests/sidequests.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data/phaseResource/DepotPath/$value",
+      "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+      "jsonSha256": "148daf5a9e92857f07972b168b14d32d2563fb5807b246372aee5dc70026678b",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "0890ef97fd951ba660284008c221df154bfe9aea",
+      "depotPath": "base\\quest\\side_quests\\sidequests.questphase"
+    },
+    {
+      "evidenceId": "jr-oct03.release",
+      "jsonPath": "scene-evidence/river-joss-release-oct03/raw/base/base/quest/side_quests/sq029/sq029.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data/phaseResource/DepotPath/$value",
+      "assetSha256": "df46bf27a63435ddead9a0abcae64c4dbfc4965873a8cdd61c8f53ab83fcb683",
+      "jsonSha256": "3eaec1450a7744756c0125a96770ca7c85b89761674dc618dbca6db5c11af864",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "9234b3d1227b3ea48788c14537abdcc00103a69d",
+      "depotPath": "base\\quest\\side_quests\\sq029\\sq029.questphase"
+    },
+    {
+      "evidenceId": "jr-oct03.river-harris-report",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/47/Data",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "depotPath": "base\\journal\\cooked_journal.journal"
+    },
+    {
+      "evidenceId": "jr-oct03.river-harris-report",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonPointer": "/Data/RootChunk/root/Data/entries/7181",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json"
+    },
+    {
+      "evidenceId": "jr-oct03.river-harris-report",
+      "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/persistent_content.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/6/Data/condition/Data",
+      "assetSha256": "7e702dfe44e84719576d6bed8d87f3bda383e308cb45c85fe34de9cc4ca62189",
+      "jsonSha256": "9541a83a4dc0a201f7402bceef6d095d814c5e918a5f11a5cda7e8c2e83c8f34",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "5dad7ac56fa438e15231a7bf8247a7df858fffe3",
+      "depotPath": "base\\quest\\persistent_content.questphase"
+    },
+    {
+      "evidenceId": "jr-oct03.river-harris-report",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/47/Data/entries/8/Data/entries/0/Data",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "depotPath": "base\\journal\\cooked_journal.journal"
+    },
+    {
+      "evidenceId": "jr-oct03.river-harris-report",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonPointer": "/Data/RootChunk/root/Data/entries/22931",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json"
+    },
+    {
+      "evidenceId": "jr-oct03.river-harris-report",
+      "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/persistent_content.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/7/Data/phaseGraph/Data/nodes/5/Data",
+      "assetSha256": "7e702dfe44e84719576d6bed8d87f3bda383e308cb45c85fe34de9cc4ca62189",
+      "jsonSha256": "9541a83a4dc0a201f7402bceef6d095d814c5e918a5f11a5cda7e8c2e83c8f34",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "5dad7ac56fa438e15231a7bf8247a7df858fffe3",
+      "depotPath": "base\\quest\\persistent_content.questphase"
+    },
+    {
+      "evidenceId": "jr-oct03.river-harris-report",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/47/Data/entries/8/Data/entries/2/Data",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "depotPath": "base\\journal\\cooked_journal.journal"
+    },
+    {
+      "evidenceId": "jr-oct03.river-harris-report",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonPointer": "/Data/RootChunk/root/Data/entries/22933",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json"
+    },
+    {
+      "evidenceId": "jr-oct03.river-harris-report",
+      "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/persistent_content.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/7/Data/phaseGraph/Data/nodes/12/Data",
+      "assetSha256": "7e702dfe44e84719576d6bed8d87f3bda383e308cb45c85fe34de9cc4ca62189",
+      "jsonSha256": "9541a83a4dc0a201f7402bceef6d095d814c5e918a5f11a5cda7e8c2e83c8f34",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "5dad7ac56fa438e15231a7bf8247a7df858fffe3",
+      "depotPath": "base\\quest\\persistent_content.questphase"
+    },
+    {
+      "evidenceId": "jr-oct03.river-harris-report",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/47/Data/entries/8/Data/entries/3/Data",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "depotPath": "base\\journal\\cooked_journal.journal"
+    },
+    {
+      "evidenceId": "jr-oct03.river-harris-report",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonPointer": "/Data/RootChunk/root/Data/entries/22934",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json"
+    },
+    {
+      "evidenceId": "jr-oct03.river-harris-report",
+      "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/persistent_content.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/7/Data/phaseGraph/Data/nodes/15/Data",
+      "assetSha256": "7e702dfe44e84719576d6bed8d87f3bda383e308cb45c85fe34de9cc4ca62189",
+      "jsonSha256": "9541a83a4dc0a201f7402bceef6d095d814c5e918a5f11a5cda7e8c2e83c8f34",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "5dad7ac56fa438e15231a7bf8247a7df858fffe3",
+      "depotPath": "base\\quest\\persistent_content.questphase"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-loss-report",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/76/Data",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "depotPath": "base\\journal\\cooked_journal.journal"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-loss-report",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonPointer": "/Data/RootChunk/root/Data/entries/7149",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-loss-report",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/76/Data/entries/0/Data/entries/0/Data",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "depotPath": "base\\journal\\cooked_journal.journal"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-loss-report",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonPointer": "/Data/RootChunk/root/Data/entries/7150",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-loss-report",
+      "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/side_quests/sq021/sq021.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/31/Data/phaseGraph/Data/nodes/14/Data",
+      "assetSha256": "3d290fcb28740f23ce525331b66da7ef978208d5ea113c1c5acfc3bba49ba44b",
+      "jsonSha256": "6edff318969ba0a611a8f94825dcc2205332c11d21db7a3be527243d7519c209",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "565e00cd3fcd8700f300bd3a3c8f5034e7220a60",
+      "depotPath": "base\\quest\\side_quests\\sq021\\sq021.questphase"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-loss-report",
+      "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/side_quests/sq021/sq021.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/29/Data/phaseGraph/Data/nodes/13/Data/phaseGraph/Data/nodes/25/Data",
+      "assetSha256": "3d290fcb28740f23ce525331b66da7ef978208d5ea113c1c5acfc3bba49ba44b",
+      "jsonSha256": "6edff318969ba0a611a8f94825dcc2205332c11d21db7a3be527243d7519c209",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "565e00cd3fcd8700f300bd3a3c8f5034e7220a60",
+      "depotPath": "base\\quest\\side_quests\\sq021\\sq021.questphase"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-recovery-report",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/76/Data",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "depotPath": "base\\journal\\cooked_journal.journal"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-recovery-report",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonPointer": "/Data/RootChunk/root/Data/entries/7149",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-recovery-report",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/76/Data/entries/1/Data/entries/0/Data",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "depotPath": "base\\journal\\cooked_journal.journal"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-recovery-report",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonPointer": "/Data/RootChunk/root/Data/entries/17484",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-recovery-report",
+      "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/side_quests/sq029/phases/sq029_messages.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/49/Data",
+      "assetSha256": "2dc819819aa4c48babf8a298d357fbb426f873c39c70ea42a607bcf52da58841",
+      "jsonSha256": "ebf98ac679e5c8ab4646c805fd6094935e2d57a9acca0e7e1abe7aca7ca2b2a7",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "de3754a75c2bd19c7a0f9b908d191bbfb9932fca",
+      "depotPath": "base\\quest\\side_quests\\sq029\\phases\\sq029_messages.questphase"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-family-visit",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/76/Data",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "depotPath": "base\\journal\\cooked_journal.journal"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-family-visit",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonPointer": "/Data/RootChunk/root/Data/entries/7149",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-family-visit",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/76/Data/entries/2/Data/entries/4/Data",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "depotPath": "base\\journal\\cooked_journal.journal"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-family-visit",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonPointer": "/Data/RootChunk/root/Data/entries/17490",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-family-visit",
+      "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/side_quests/sq029/phases/sq029_messages.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/65/Data",
+      "assetSha256": "2dc819819aa4c48babf8a298d357fbb426f873c39c70ea42a607bcf52da58841",
+      "jsonSha256": "ebf98ac679e5c8ab4646c805fd6094935e2d57a9acca0e7e1abe7aca7ca2b2a7",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "de3754a75c2bd19c7a0f9b908d191bbfb9932fca",
+      "depotPath": "base\\quest\\side_quests\\sq029\\phases\\sq029_messages.questphase"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-family-visit",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/76/Data/entries/2/Data/entries/6/Data",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "depotPath": "base\\journal\\cooked_journal.journal"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-family-visit",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonPointer": "/Data/RootChunk/root/Data/entries/17491",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-family-visit",
+      "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/side_quests/sq029/phases/sq029_messages.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/68/Data",
+      "assetSha256": "2dc819819aa4c48babf8a298d357fbb426f873c39c70ea42a607bcf52da58841",
+      "jsonSha256": "ebf98ac679e5c8ab4646c805fd6094935e2d57a9acca0e7e1abe7aca7ca2b2a7",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "de3754a75c2bd19c7a0f9b908d191bbfb9932fca",
+      "depotPath": "base\\quest\\side_quests\\sq029\\phases\\sq029_messages.questphase"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-family-visit",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/76/Data/entries/2/Data/entries/5/Data",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "depotPath": "base\\journal\\cooked_journal.journal"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-family-visit",
+      "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonPointer": "/Data/RootChunk/root/Data/entries/17492",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-family-visit",
+      "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/side_quests/sq029/phases/sq029_messages.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/69/Data",
+      "assetSha256": "2dc819819aa4c48babf8a298d357fbb426f873c39c70ea42a607bcf52da58841",
+      "jsonSha256": "ebf98ac679e5c8ab4646c805fd6094935e2d57a9acca0e7e1abe7aca7ca2b2a7",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "de3754a75c2bd19c7a0f9b908d191bbfb9932fca",
+      "depotPath": "base\\quest\\side_quests\\sq029\\phases\\sq029_messages.questphase"
+    },
+    {
+      "evidenceId": "jr-oct03.joss-family-visit",
+      "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/side_quests/sq029/phases/sq029_messages.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/70/Data/condition/Data/type/Data",
+      "assetSha256": "2dc819819aa4c48babf8a298d357fbb426f873c39c70ea42a607bcf52da58841",
+      "jsonSha256": "ebf98ac679e5c8ab4646c805fd6094935e2d57a9acca0e7e1abe7aca7ca2b2a7",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "de3754a75c2bd19c7a0f9b908d191bbfb9932fca",
+      "depotPath": "base\\quest\\side_quests\\sq029\\phases\\sq029_messages.questphase"
+    },
+    {
       "evidenceId": "silverhand-native.beach-committed",
       "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
       "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/questNode/Data/type/Data",
@@ -64697,7 +65170,8 @@
       "questKey": "the-hunt",
       "outcomeKey": "saved",
       "rules": [
-        "jr-native.hunt-randy-saved"
+        "jr-native.hunt-randy-saved",
+        "jr-oct03.joss-randy-recovery-report"
       ]
     },
     {
@@ -64712,7 +65186,9 @@
       "decisionId": "judy-river.hunt.rescue",
       "questKey": "the-hunt",
       "outcomeKey": "abandoned",
-      "rules": []
+      "rules": [
+        "jr-oct03.joss-abandonment-loss-report"
+      ]
     },
     {
       "decisionId": "judy-river.hunt.harris-afterward",
@@ -64730,7 +65206,9 @@
       "decisionId": "judy-river.hunt.harris-afterward",
       "questKey": "the-hunt",
       "outcomeKey": "killed-after-failure",
-      "rules": []
+      "rules": [
+        "jr-oct03.river-harris-killed-after-failure"
+      ]
     },
     {
       "decisionId": "judy-river.hunt.joss-briefed",
@@ -64786,7 +65264,9 @@
       "decisionId": "judy-river.following.family-dinner",
       "questKey": "following-the-river",
       "outcomeKey": "attended",
-      "rules": []
+      "rules": [
+        "jr-oct03.joss-family-visit-followup"
+      ]
     },
     {
       "decisionId": "judy-river.disclosure.reading",
@@ -66303,6 +66783,1658 @@
     "policy": "require-recorded-json-hash",
     "legacyJsonPaths": [],
     "note": "All cited JSON exports matched a recorded hash."
+  },
+  "narrativeTopics": {
+    "policy": "exact-or-pinned-reviewed-alias",
+    "proofs": [
+      {
+        "ruleId": "ahe-native.alt-contact",
+        "decisionId": "arasaka-heist.alt-contact",
+        "outcomeKey": "met",
+        "nativeTopic": "v.alt.contact",
+        "catalogTopic": "v.alt.contact",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "ahe-native.chip-accepted",
+        "decisionId": "arasaka-heist.militech-chip",
+        "outcomeKey": "accepted-intact",
+        "nativeTopic": "pickup.credchip.acceptance",
+        "catalogTopic": "pickup.credchip.acceptance",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "ahe-native.chip-declined",
+        "decisionId": "arasaka-heist.militech-chip",
+        "outcomeKey": "declined",
+        "nativeTopic": "pickup.credchip.acceptance",
+        "catalogTopic": "pickup.credchip.acceptance",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "ahe-native.contract-refused",
+        "decisionId": "arasaka-heist.secure-your-soul",
+        "outcomeKey": "refused",
+        "nativeTopic": "v.secure-your-soul",
+        "catalogTopic": "v.secure-your-soul",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "ahe-native.contract-signed",
+        "decisionId": "arasaka-heist.secure-your-soul",
+        "outcomeKey": "signed",
+        "nativeTopic": "v.secure-your-soul",
+        "catalogTopic": "v.secure-your-soul",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "ahe-native.netwatch-accepted",
+        "decisionId": "arasaka-heist.netwatch-choice",
+        "outcomeKey": "accepted",
+        "nativeTopic": "voodoo.netwatch.choice",
+        "catalogTopic": "voodoo.netwatch.choice",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "ahe-native.placide-virus-warning",
+        "decisionId": "arasaka-heist.placide-malware-warning",
+        "outcomeKey": "warned-by-agent",
+        "nativeTopic": "placide.malware.warning",
+        "catalogTopic": "placide.malware.warning",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "ahe-native.stout-encounter",
+        "decisionId": "arasaka-heist.stout-encounter",
+        "outcomeKey": "completed",
+        "nativeTopic": "meredith.intimacy",
+        "catalogTopic": "meredith.intimacy",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "aldecaldos.native.basilisk-convoy-secured",
+        "decisionId": "aldecaldos.friends.convoy",
+        "outcomeKey": "secured",
+        "nativeTopic": "aldecaldos.basilisk-convoy-secured",
+        "catalogTopic": "aldecaldos.basilisk-acquisition",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "2eef89b746735f0795365a314332bead04e595d2baa8e3080aff7c7eee44b243",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.dakota-antenna-disabled",
+        "decisionId": "aldecaldos.flying.antenna",
+        "outcomeKey": "disabled",
+        "nativeTopic": "aldecaldos.dakota-antenna-disabled",
+        "catalogTopic": "dakota.delivery-drones",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "b067d6fc5ea31d19c2199cdc4c36fcfacbb44b07724978833af3b2f5a76859e1",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.dakota-ben-returned",
+        "decisionId": "aldecaldos.mia.extraction",
+        "outcomeKey": "delivered",
+        "nativeTopic": "aldecaldos.dakota-ben-returned",
+        "catalogTopic": "ben.extraction",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "a0fc1c9ba5e99de0e8dbf06b3bf39131f270cec226e02dfb7a2eb6547f2b103a",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.dakota-bruce-returned",
+        "decisionId": "aldecaldos.goodbye.extraction",
+        "outcomeKey": "delivered",
+        "nativeTopic": "aldecaldos.dakota-bruce-returned",
+        "catalogTopic": "bruce.rescue",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "8b9725baf42efb65927ccd7e9fdd3f4e187130c8b082c843342707588bae52ec",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.dakota-iris-van-delivery",
+        "decisionId": "aldecaldos.nofixers.rescue",
+        "outcomeKey": "delivered-with-van",
+        "nativeTopic": "aldecaldos.dakota-iris-van-delivery",
+        "catalogTopic": "iris.rescue",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "20645d474062d1ec9ce57173b38d3a4726951fbe32be5d7022580da0739a441b",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.dakota-minefield-delivery",
+        "decisionId": "aldecaldos.minefield.vehicle",
+        "outcomeKey": "delivered",
+        "nativeTopic": "aldecaldos.dakota-minefield-delivery",
+        "catalogTopic": "dakota.smuggling-route-recovery",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "a9b2c0c3ff6df290f2b5eaf4e3ce2c973bbb8273dff82e566de843b6dbb56115",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.dakota-radar-delivered",
+        "decisionId": "aldecaldos.radar.prototype",
+        "outcomeKey": "delivered",
+        "nativeTopic": "aldecaldos.dakota-radar-delivered",
+        "catalogTopic": "aldecaldos.radar-prototype",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "d9fb19953985e99a5e9c2b204f33e360850f098cd4e880ba04bdafc55233a00f",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.dakota-sparring-delivered",
+        "decisionId": "aldecaldos.sparring.software",
+        "outcomeKey": "delivered",
+        "nativeTopic": "aldecaldos.dakota-sparring-delivered",
+        "catalogTopic": "red-joe.training-software",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "34573391980b49ee9afdab254d43b358f52b8cab08662c8c252e5953878712f9",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.dakota-trevor-returned",
+        "decisionId": "aldecaldos.trevor.remains",
+        "outcomeKey": "delivered",
+        "nativeTopic": "aldecaldos.dakota-trevor-returned",
+        "catalogTopic": "trevor.remains",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "5beabf93a73d177168195d19f071a6eb79fdda4734e5b830184bbc98c164d185",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.farmhouse-backed-saul",
+        "decisionId": "aldecaldos.riders.farmhouse",
+        "outcomeKey": "supported-saul",
+        "nativeTopic": "aldecaldos.farmhouse-stance",
+        "catalogTopic": "aldecaldos.corporate-policy-stance",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "mutually-exclusive-stance",
+        "ruleSha256": "d65d1dc961ff2daa76db95b3f8f3ab481c0b5d5feaf230f62ea9ec173d22ca37",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.farmhouse-initially-backed-panam",
+        "decisionId": "aldecaldos.riders.farmhouse",
+        "outcomeKey": "supported-panam",
+        "nativeTopic": "aldecaldos.farmhouse-stance",
+        "catalogTopic": "aldecaldos.corporate-policy-stance",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "mutually-exclusive-stance",
+        "ruleSha256": "563261defd5ab180b839b1860ed8363c85d36b351e78793f860aa2bc6eadd12c",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.panam-basilisk-intimacy",
+        "decisionId": "aldecaldos.queen.romance",
+        "outcomeKey": "romanced",
+        "nativeTopic": "aldecaldos.panam-basilisk-intimacy",
+        "catalogTopic": "panam.romance",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "2dc08cdc7ed66a7fc55910c562e7555f4413cddddeb1dd77226fab00c92a430e",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.panam-farmhouse-flirt",
+        "decisionId": "aldecaldos.riders.private-affection",
+        "outcomeKey": "affection-expressed",
+        "nativeTopic": "panam.farmhouse-overture",
+        "catalogTopic": "panam.early-affection",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "694fddf9cc94dd0c0eadaf69218ad74eaddaa57b4b363e8e3cc1161d70d09372",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.panam-motel-flirt",
+        "decisionId": "aldecaldos.ghost.motel",
+        "outcomeKey": "flirted",
+        "nativeTopic": "panam.motel-flirt",
+        "catalogTopic": "panam.motel-intimacy",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "compatible-facet",
+        "ruleSha256": "23534146141e383c917f1524f1b9785ae66797f947a1662640cffd91fb4bd26f",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.panam-motel-room-shared",
+        "decisionId": "aldecaldos.ghost.motel",
+        "outcomeKey": "shared-room",
+        "nativeTopic": "panam.motel-room",
+        "catalogTopic": "panam.motel-intimacy",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "compatible-facet",
+        "ruleSha256": "c72bc414cc266c3c203e950cfc5f75f5f194f2f0574fcca0106bbd70e1a7f61a",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.panam-nash-assistance",
+        "decisionId": "aldecaldos.ghost.nash",
+        "outcomeKey": "helped",
+        "nativeTopic": "panam.nash-assistance",
+        "catalogTopic": "panam.nash-response",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "b4c8c7ebd4d47e4a3b20881a62256101c122869464df2a8fcaaf62eec27d237d",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.panam-plan-disclosed",
+        "decisionId": "aldecaldos.friends.loyalty",
+        "outcomeKey": "reported-saul",
+        "nativeTopic": "aldecaldos.panam-plan-disclosed",
+        "catalogTopic": "panam.convoy-trust",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "2733d00d56819803644b7ee138a3583295afda6cc4b41a419855aa15f7690bca",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.panam-relic-explanation",
+        "decisionId": "aldecaldos.queen.relic-disclosure",
+        "outcomeKey": "explained-panam",
+        "nativeTopic": "aldecaldos.panam-relic-explanation",
+        "catalogTopic": "v.relic-known-to-aldecaldos",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "23b11a6fafabc99d4b04bcd087b67adcff1260c9119fdba7f12f830747e884ca",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.panam-saul-co-leadership",
+        "decisionId": "aldecaldos.queen.leadership",
+        "outcomeKey": "co-leaders",
+        "nativeTopic": "aldecaldos.panam-saul-co-leadership",
+        "catalogTopic": "aldecaldos.leadership",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "3be7a732509eff61ad177d2b26d4d66ac02d478463e9af1993f37a3cfd08a2f4",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.saul-riders-rescue",
+        "decisionId": "aldecaldos.riders.rescue",
+        "outcomeKey": "rescued",
+        "nativeTopic": "aldecaldos.saul-riders-rescue",
+        "catalogTopic": "saul.captivity",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "5cf1a47e8648f0874eb0f48ee5cd4ad2d4f253f1f67b51aefa076d533e689ccb",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.saul-smasher-death",
+        "decisionId": "aldecaldos.belly.saul",
+        "outcomeKey": "killed-by-smasher",
+        "nativeTopic": "aldecaldos.saul-smasher-death",
+        "catalogTopic": "saul.survival",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "1c9698c54de623965fb9e3f35512962c20048f6681e6864d93a07c7722e8fe9e",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.v-aldecaldo-initiation",
+        "decisionId": "aldecaldos.together.initiation",
+        "outcomeKey": "initiated",
+        "nativeTopic": "aldecaldos.v-aldecaldo-initiation",
+        "catalogTopic": "v.aldecaldo-membership",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "b7bb4569d6766a3100814b24c8f5c5efd7560087ba666fbc539e195f35cb0674",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "city-native.blue-actual-culprit",
+        "decisionId": "city-contacts.blue.stalker-neutralization",
+        "outcomeKey": "actual-neutralized",
+        "nativeTopic": "blue-moon.stalker.neutralization",
+        "catalogTopic": "blue-moon.stalker.neutralization",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "city-native.blue-safe-report",
+        "decisionId": "city-contacts.blue.protection",
+        "outcomeKey": "safe-debrief",
+        "nativeTopic": "blue-moon.survival",
+        "catalogTopic": "blue-moon.survival",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "city-native.bugbear-cooled-disconnect",
+        "decisionId": "city-contacts.warmer.disconnection",
+        "outcomeKey": "cooled-safe",
+        "nativeTopic": "bugbear.rescue.disconnection",
+        "catalogTopic": "bugbear.rescue.disconnection",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "city-native.bugbear-evacuated",
+        "decisionId": "city-contacts.warmer.extraction",
+        "outcomeKey": "delivered-alive",
+        "nativeTopic": "bugbear.rescue.extraction",
+        "catalogTopic": "bugbear.rescue.extraction",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "city-native.iris-car-returned",
+        "decisionId": "city-contacts.iris.vehicle",
+        "outcomeKey": "recovered",
+        "nativeTopic": "iris.equipment.recovery",
+        "catalogTopic": "iris.equipment.recovery",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "city-native.iris-safe-arrival",
+        "decisionId": "city-contacts.iris.extraction",
+        "outcomeKey": "safe-arrival",
+        "nativeTopic": "iris.rescue",
+        "catalogTopic": "iris.rescue",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "city-native.jake-gift-collected",
+        "decisionId": "city-contacts.jake.quadra-gift",
+        "outcomeKey": "jake-gift-claimed",
+        "nativeTopic": "jake.quadra.collected",
+        "catalogTopic": "jake.quadra.gift",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "compatible-stage",
+        "ruleSha256": "f08cb10a36626c0d90c1a9ed76c64621253709638f016d2259eeb4c21aada194",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "city-native.jake-gift-offered",
+        "decisionId": "city-contacts.jake.quadra-gift",
+        "outcomeKey": "jake-invitation",
+        "nativeTopic": "jake.quadra.invitation",
+        "catalogTopic": "jake.quadra.gift",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "compatible-stage",
+        "ruleSha256": "a2f3ca043625c8adaf46d7b0d2737d33bcb2213088ab49c79e7caeff8dd83ea6",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "city-native.jake-pickup-returned",
+        "decisionId": "city-contacts.jake.pickup",
+        "outcomeKey": "returned",
+        "nativeTopic": "jake.pickup.recovered",
+        "catalogTopic": "jake.pickup.recovered",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "city-native.liam-paid-v",
+        "decisionId": "city-contacts.violence.bribe",
+        "outcomeKey": "accepted",
+        "nativeTopic": "liam.bribe",
+        "catalogTopic": "liam.bribe",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "city-native.lizzy-affair-cover",
+        "decisionId": "city-contacts.violence.disclosure",
+        "outcomeKey": "affair-cover",
+        "nativeTopic": "lizzy.liam.disclosure",
+        "catalogTopic": "lizzy.liam.disclosure",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "city-native.lizzy-body-disposed",
+        "decisionId": "city-contacts.violence.disposal",
+        "outcomeKey": "body-hidden",
+        "nativeTopic": "lizzy.v.coverup",
+        "catalogTopic": "lizzy.v.coverup",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "city-native.lizzy-truth-disclosed",
+        "decisionId": "city-contacts.violence.disclosure",
+        "outcomeKey": "truth",
+        "nativeTopic": "lizzy.liam.disclosure",
+        "catalogTopic": "lizzy.liam.disclosure",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "city-native.nam-recovered",
+        "decisionId": "city-contacts.nam.recovery",
+        "outcomeKey": "recovered",
+        "nativeTopic": "nam.recovery-completed",
+        "catalogTopic": "nam.rescue",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "9ff061a880c8258a3aac0d81f124a49af9e227415735301818908a7a0f21250a",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "city-native.rachel-failed-report",
+        "decisionId": "city-contacts.rachel.production-result",
+        "outcomeKey": "failed-report",
+        "nativeTopic": "rachel.passion.result",
+        "catalogTopic": "rachel.passion.result",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "city-native.rachel-success-report",
+        "decisionId": "city-contacts.rachel.production-result",
+        "outcomeKey": "successful-report",
+        "nativeTopic": "rachel.passion.result",
+        "catalogTopic": "rachel.passion.result",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "core-arcs.johnny.second-chance",
+        "decisionId": "silverhand.oilfield-reconciliation",
+        "outcomeKey": "second-chance",
+        "nativeTopic": "johnny.v.oilfield-reconciliation",
+        "catalogTopic": "johnny.v.oilfield-reconciliation",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "core-arcs.judy.committed",
+        "decisionId": "judy-river.pyramid.relationship",
+        "outcomeKey": "committed",
+        "nativeTopic": "judy.relationship",
+        "catalogTopic": "judy.relationship",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "core-arcs.judy.friends",
+        "decisionId": "judy-river.pyramid.relationship",
+        "outcomeKey": "friends",
+        "nativeTopic": "judy.relationship",
+        "catalogTopic": "judy.relationship",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.an-inconvenient-killer.agreed-to-leave.confirmed-debrief",
+        "decisionId": "fixers.an-inconvenient-killer.jack",
+        "outcomeKey": "agreed-to-leave",
+        "nativeTopic": "fixers.an-inconvenient-killer.jack",
+        "catalogTopic": "fixers.an-inconvenient-killer.jack",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.bring-me-the-head-of-gustavo-orta.suicide-reported.confirmed-debrief",
+        "decisionId": "fixers.bring-me-the-head-of-gustavo-orta.later-report",
+        "outcomeKey": "suicide-reported",
+        "nativeTopic": "fixers.bring-me-the-head-of-gustavo-orta.later-report",
+        "catalogTopic": "fixers.bring-me-the-head-of-gustavo-orta.later-report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.concrete-cage-trap.rescued.confirmed-debrief",
+        "decisionId": "fixers.concrete-cage-trap.mike",
+        "outcomeKey": "rescued",
+        "nativeTopic": "fixers.concrete-cage-trap.mike",
+        "catalogTopic": "fixers.concrete-cage-trap.mike",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cuckoos-nest.rescued.confirmed-debrief",
+        "decisionId": "fixers.cuckoos-nest.jasmine",
+        "outcomeKey": "rescued",
+        "nativeTopic": "fixers.cuckoos-nest.jasmine",
+        "catalogTopic": "fixers.cuckoos-nest.jasmine",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-bloody-ritual.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-bloody-ritual.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-bloody-ritual.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-bloody-ritual.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-bloody-ritual.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-bloody-ritual.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-bloody-ritual.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-bloody-ritual.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-demons-of-war.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-demons-of-war.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-demons-of-war.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-demons-of-war.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-demons-of-war.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-demons-of-war.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-demons-of-war.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-demons-of-war.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-discount-doc.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-discount-doc.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-discount-doc.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-discount-doc.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-discount-doc.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-discount-doc.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-discount-doc.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-discount-doc.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-house-on-a-hill.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-house-on-a-hill.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-house-on-a-hill.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-house-on-a-hill.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-house-on-a-hill.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-house-on-a-hill.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-house-on-a-hill.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-house-on-a-hill.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-letter-of-the-law.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-letter-of-the-law.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-letter-of-the-law.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-letter-of-the-law.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-letter-of-the-law.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-letter-of-the-law.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-letter-of-the-law.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-letter-of-the-law.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-lex-talionis.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-lex-talionis.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-lex-talionis.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-lex-talionis.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-lex-talionis.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-lex-talionis.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-lex-talionis.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-lex-talionis.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-lt-mower.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-lt-mower.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-lt-mower.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-lt-mower.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-lt-mower.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-lt-mower.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-lt-mower.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-lt-mower.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-on-deaf-ears.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-on-deaf-ears.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-on-deaf-ears.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-on-deaf-ears.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-on-deaf-ears.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-on-deaf-ears.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-on-deaf-ears.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-on-deaf-ears.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-phantom-of-night-city.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-phantom-of-night-city.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-phantom-of-night-city.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-phantom-of-night-city.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-phantom-of-night-city.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-phantom-of-night-city.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-phantom-of-night-city.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-phantom-of-night-city.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-seaside-cafe.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-seaside-cafe.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-seaside-cafe.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-seaside-cafe.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-seaside-cafe.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-seaside-cafe.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-seaside-cafe.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-seaside-cafe.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-second-chances.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-second-chances.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-second-chances.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-second-chances.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-second-chances.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-second-chances.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-second-chances.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-second-chances.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-six-feet-under.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-six-feet-under.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-six-feet-under.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-six-feet-under.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-six-feet-under.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-six-feet-under.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-six-feet-under.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-six-feet-under.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-smoke-on-the-water.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-smoke-on-the-water.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-smoke-on-the-water.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-smoke-on-the-water.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-smoke-on-the-water.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-smoke-on-the-water.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-smoke-on-the-water.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-smoke-on-the-water.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-the-wasteland.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-the-wasteland.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-the-wasteland.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-the-wasteland.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-the-wasteland.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-the-wasteland.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-the-wasteland.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-the-wasteland.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-ticket-to-the-major-leagues.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-ticket-to-the-major-leagues.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-ticket-to-the-major-leagues.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-ticket-to-the-major-leagues.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-ticket-to-the-major-leagues.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-ticket-to-the-major-leagues.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-ticket-to-the-major-leagues.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-ticket-to-the-major-leagues.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-under-the-bridge.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-under-the-bridge.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-under-the-bridge.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-under-the-bridge.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-under-the-bridge.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-under-the-bridge.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-under-the-bridge.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-under-the-bridge.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-where-the-bodies-hit-the-floor.alive-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-where-the-bodies-hit-the-floor.report",
+        "outcomeKey": "alive-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-where-the-bodies-hit-the-floor.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-where-the-bodies-hit-the-floor.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.cyberpsycho-sighting-where-the-bodies-hit-the-floor.death-reported",
+        "decisionId": "fixers.cyberpsycho-sighting-where-the-bodies-hit-the-floor.report",
+        "outcomeKey": "death-reported",
+        "nativeTopic": "fixers.cyberpsycho-sighting-where-the-bodies-hit-the-floor.report",
+        "catalogTopic": "fixers.cyberpsycho-sighting-where-the-bodies-hit-the-floor.report",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.freedom-of-the-press.rescued.confirmed-debrief",
+        "decisionId": "fixers.freedom-of-the-press.max",
+        "outcomeKey": "rescued",
+        "nativeTopic": "fixers.freedom-of-the-press.max",
+        "catalogTopic": "fixers.freedom-of-the-press.max",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.going-away-party.rescued.confirmed-debrief",
+        "decisionId": "fixers.going-away-party.flavio",
+        "outcomeKey": "rescued",
+        "nativeTopic": "fixers.going-away-party.flavio",
+        "catalogTopic": "fixers.going-away-party.flavio",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.hippocratic-oath.rescued.confirmed-debrief",
+        "decisionId": "fixers.hippocratic-oath.extraction",
+        "outcomeKey": "rescued",
+        "nativeTopic": "fixers.hippocratic-oath.extraction",
+        "catalogTopic": "fixers.hippocratic-oath.extraction",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.occupational-hazard.rescued.confirmed-debrief",
+        "decisionId": "fixers.occupational-hazard.hal",
+        "outcomeKey": "rescued",
+        "nativeTopic": "fixers.occupational-hazard.hal",
+        "catalogTopic": "fixers.occupational-hazard.hal",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.olive-branch.freed.confirmed-debrief",
+        "decisionId": "fixers.olive-branch.alex",
+        "outcomeKey": "freed",
+        "nativeTopic": "fixers.olive-branch.alex",
+        "catalogTopic": "fixers.olive-branch.alex",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.wakakos-favorite.stabilized.confirmed-debrief",
+        "decisionId": "fixers.wakakos-favorite.nam",
+        "outcomeKey": "stabilized",
+        "nativeTopic": "fixers.wakakos-favorite.nam",
+        "catalogTopic": "fixers.wakakos-favorite.nam",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fixers.native.we-have-your-wife.rescued.confirmed-debrief",
+        "decisionId": "fixers.we-have-your-wife.lauren",
+        "outcomeKey": "rescued",
+        "nativeTopic": "fixers.we-have-your-wife.lauren",
+        "catalogTopic": "fixers.we-have-your-wife.lauren",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.boxing.final.defeat",
+        "decisionId": "heywood.boxing.final-result",
+        "outcomeKey": "defeat",
+        "nativeTopic": "v.boxing.razor-result",
+        "catalogTopic": "v.boxing.razor-result",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.boxing.final.offer",
+        "decisionId": "heywood.boxing.final-offer",
+        "outcomeKey": "accepted",
+        "nativeTopic": "v.fred.fixed-final-agreement",
+        "catalogTopic": "v.fred.fixed-final-agreement",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.boxing.final.victory",
+        "decisionId": "heywood.boxing.final-result",
+        "outcomeKey": "victory",
+        "nativeTopic": "v.boxing.razor-result",
+        "catalogTopic": "v.boxing.razor-result",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.boxing.ozob.alive",
+        "decisionId": "heywood.boxing.pacifica-result",
+        "outcomeKey": "v-won-ozob-alive",
+        "nativeTopic": "v.ozob.bout-result",
+        "catalogTopic": "v.ozob.bout-result",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.boxing.ozob.fred.ozob-killed",
+        "decisionId": "heywood.boxing.pacifica-result",
+        "outcomeKey": "ozob-killed",
+        "nativeTopic": "v.ozob.bout-result",
+        "catalogTopic": "v.ozob.bout-result",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.boxing.ozob.fred.v-won-ozob-alive",
+        "decisionId": "heywood.boxing.pacifica-result",
+        "outcomeKey": "v-won-ozob-alive",
+        "nativeTopic": "v.ozob.bout-result",
+        "catalogTopic": "v.ozob.bout-result",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.cynthia.explanation",
+        "decisionId": "heywood.cynthia.disclosure",
+        "outcomeKey": "explained",
+        "nativeTopic": "v.cynthia.private-history",
+        "catalogTopic": "v.cynthia.private-history",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.dennis.extraction.delivered",
+        "decisionId": "heywood.dennis.extraction",
+        "outcomeKey": "delivered-alive",
+        "nativeTopic": "v.dennis.extraction",
+        "catalogTopic": "v.dennis.extraction",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.dennis.offer.accepted",
+        "decisionId": "heywood.dennis.offer",
+        "outcomeKey": "accepted",
+        "nativeTopic": "v.dennis.contract",
+        "catalogTopic": "v.dennis.contract",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.heroes.motorcycle.accepted",
+        "decisionId": "heywood.heroes.motorcycle",
+        "outcomeKey": "accepted",
+        "nativeTopic": "v.jackie.motorcycle",
+        "catalogTopic": "v.jackie.motorcycle",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.heroes.offering.basketball",
+        "decisionId": "heywood.heroes.offering",
+        "outcomeKey": "basketball",
+        "nativeTopic": "v.jackie.ofrenda-offering",
+        "catalogTopic": "v.jackie.ofrenda-offering",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.heroes.offering.belt",
+        "decisionId": "heywood.heroes.offering",
+        "outcomeKey": "belt",
+        "nativeTopic": "v.jackie.ofrenda-offering",
+        "catalogTopic": "v.jackie.ofrenda-offering",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.heroes.offering.book",
+        "decisionId": "heywood.heroes.offering",
+        "outcomeKey": "book",
+        "nativeTopic": "v.jackie.ofrenda-offering",
+        "catalogTopic": "v.jackie.ofrenda-offering",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.heroes.offering.tequila",
+        "decisionId": "heywood.heroes.offering",
+        "outcomeKey": "tequila",
+        "nativeTopic": "v.jackie.ofrenda-offering",
+        "catalogTopic": "v.jackie.ofrenda-offering",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.heroes.ofrenda",
+        "decisionId": "heywood.heroes.funeral",
+        "outcomeKey": "full-ofrenda",
+        "nativeTopic": "jackie.ofrenda",
+        "catalogTopic": "jackie.ofrenda",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.heroes.reconciliation.encouraged",
+        "decisionId": "heywood.heroes.reconciliation",
+        "outcomeKey": "encouraged",
+        "nativeTopic": "mama.misty.reconciliation",
+        "catalogTopic": "mama.misty.reconciliation",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.jackie.body-instruction.family",
+        "decisionId": "heywood.jackie.body-instruction",
+        "outcomeKey": "family",
+        "nativeTopic": "jackie.remains.request",
+        "catalogTopic": "jackie.remains.request",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.jackie.body-instruction.viktor",
+        "decisionId": "heywood.jackie.body-instruction",
+        "outcomeKey": "viktor",
+        "nativeTopic": "jackie.remains.request",
+        "catalogTopic": "jackie.remains.request",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.jackie.body-instruction.wait",
+        "decisionId": "heywood.jackie.body-instruction",
+        "outcomeKey": "wait",
+        "nativeTopic": "jackie.remains.request",
+        "catalogTopic": "jackie.remains.request",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.jesse.callback.paid",
+        "decisionId": "heywood.jesse.callback",
+        "outcomeKey": "paid",
+        "nativeTopic": "v.jesse.callback",
+        "catalogTopic": "v.jesse.callback",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.jesse.help.accepted",
+        "decisionId": "heywood.jesse.help",
+        "outcomeKey": "accepted",
+        "nativeTopic": "v.jesse.help",
+        "catalogTopic": "v.jesse.help",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.nix.rescue.computer",
+        "decisionId": "heywood.nix.rescue",
+        "outcomeKey": "computer-breach",
+        "nativeTopic": "v.nix.bartmoss-rescue",
+        "catalogTopic": "v.nix.bartmoss-rescue",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.nix.rescue.power",
+        "decisionId": "heywood.nix.rescue",
+        "outcomeKey": "power-shutdown",
+        "nativeTopic": "v.nix.bartmoss-rescue",
+        "catalogTopic": "v.nix.bartmoss-rescue",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.nix.spellbook.delivered",
+        "decisionId": "heywood.nix.spellbook-handoff",
+        "outcomeKey": "delivered",
+        "nativeTopic": "v.nix.spellbook",
+        "catalogTopic": "v.nix.spellbook",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.pepe.followup.reconciled",
+        "decisionId": "heywood.pepe.marriage-followup",
+        "outcomeKey": "reconciled",
+        "nativeTopic": "pepe.cynthia.marriage",
+        "catalogTopic": "pepe.cynthia.marriage",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.pepe.followup.separated",
+        "decisionId": "heywood.pepe.marriage-followup",
+        "outcomeKey": "separated",
+        "nativeTopic": "pepe.cynthia.marriage",
+        "catalogTopic": "pepe.cynthia.marriage",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.pepe.report.supportive",
+        "decisionId": "heywood.pepe.report",
+        "outcomeKey": "supported-marriage",
+        "nativeTopic": "v.pepe.marriage-advice",
+        "catalogTopic": "v.pepe.marriage-advice",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.wilson.result.first",
+        "decisionId": "heywood.wilson.result",
+        "outcomeKey": "first",
+        "nativeTopic": "v.wilson.competition-result",
+        "catalogTopic": "v.wilson.competition-result",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "heywood.wilson.result.second",
+        "decisionId": "heywood.wilson.result",
+        "outcomeKey": "second",
+        "nativeTopic": "v.wilson.competition-result",
+        "catalogTopic": "v.wilson.competition-result",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.ana-heard-revelation",
+        "decisionId": "judy-river.spy.revelation",
+        "outcomeKey": "revelation",
+        "nativeTopic": "ana.katya-revelation-and-order",
+        "catalogTopic": "ana.katya-revelation-and-order",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.ana-monitor-delivered",
+        "decisionId": "judy-river.spy.biomonitor",
+        "outcomeKey": "delivered-to-ana",
+        "nativeTopic": "ana.bana_evidence",
+        "catalogTopic": "ana.bana_evidence",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.both-evelyn-burial-received",
+        "decisionId": "judy-river.both.evelyn-death",
+        "outcomeKey": "death-confirmed",
+        "nativeTopic": "evelyn.story_status",
+        "catalogTopic": "evelyn.story_status",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.claire-cthulhu-offer",
+        "decisionId": "judy-river.beast.cthulhu-gift",
+        "outcomeKey": "cthulhu-promised",
+        "nativeTopic": "claire.sampson-car-offer",
+        "catalogTopic": "claire.sampson-car-offer",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.claire-race-first-promise",
+        "decisionId": "judy-river.santo.promise",
+        "outcomeKey": "race-first",
+        "nativeTopic": "claire.sampson_promise",
+        "catalogTopic": "claire.sampson_promise",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.claire-sampson-dead",
+        "decisionId": "judy-river.beast.sampson-fate",
+        "outcomeKey": "killed",
+        "nativeTopic": "sampson.story_status",
+        "catalogTopic": "sampson.story_status",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.claire-sampson-spared",
+        "decisionId": "judy-river.beast.sampson-fate",
+        "outcomeKey": "spared",
+        "nativeTopic": "sampson.story_status",
+        "catalogTopic": "sampson.story_status",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.disasterpiece-evelyn-extracted",
+        "decisionId": "judy-river.disasterpiece.recovery",
+        "outcomeKey": "extracted",
+        "nativeTopic": "evelyn.recovery",
+        "catalogTopic": "evelyn.recovery",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.dream-cover-story",
+        "decisionId": "judy-river.dream.jefferson-disclosure",
+        "outcomeKey": "cover-story",
+        "nativeTopic": "jefferson.manipulation_awareness",
+        "catalogTopic": "jefferson.manipulation_awareness",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.dream-truth",
+        "decisionId": "judy-river.dream.jefferson-disclosure",
+        "outcomeKey": "truth",
+        "nativeTopic": "jefferson.manipulation_awareness",
+        "catalogTopic": "jefferson.manipulation_awareness",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.hunt-randy-saved",
+        "decisionId": "judy-river.hunt.rescue",
+        "outcomeKey": "saved",
+        "nativeTopic": "randy.rescue_outcome",
+        "catalogTopic": "randy.rescue_outcome",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.hunt-randy-too-late",
+        "decisionId": "judy-river.hunt.rescue",
+        "outcomeKey": "too-late",
+        "nativeTopic": "randy.rescue_outcome",
+        "catalogTopic": "randy.rescue_outcome",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.pisces-maiko-installed",
+        "decisionId": "judy-river.pisces.control",
+        "outcomeKey": "maiko-installed",
+        "nativeTopic": "clouds.management",
+        "catalogTopic": "clouds.management",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.pisces-maiko-killed",
+        "decisionId": "judy-river.pisces.maiko-fate",
+        "outcomeKey": "killed",
+        "nativeTopic": "maiko.story_status",
+        "catalogTopic": "maiko.story_status",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.pisces-payment-accepted",
+        "decisionId": "judy-river.pisces.payment",
+        "outcomeKey": "accepted",
+        "nativeTopic": "judy.trust_maiko_payment",
+        "catalogTopic": "judy.trust_maiko_payment",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.pyramid-dive-completed",
+        "decisionId": "judy-river.pyramid.visit",
+        "outcomeKey": "completed",
+        "nativeTopic": "judy.dive_visit",
+        "catalogTopic": "judy.dive_visit",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.revolution-overnight",
+        "decisionId": "judy-river.revolution.overnight",
+        "outcomeKey": "stayed",
+        "nativeTopic": "judy.overnight_care",
+        "catalogTopic": "judy.overnight_care",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.river-relationship-committed",
+        "decisionId": "judy-river.following.relationship",
+        "outcomeKey": "committed",
+        "nativeTopic": "river.relationship",
+        "catalogTopic": "river.relationship",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.sandra-admitted-reading",
+        "decisionId": "judy-river.disclosure.reading",
+        "outcomeKey": "read",
+        "nativeTopic": "sandra.data_access",
+        "catalogTopic": "sandra.data_access",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-native.sandra-blackmail",
+        "decisionId": "judy-river.disclosure.response",
+        "outcomeKey": "blackmail",
+        "nativeTopic": "sandra.trust",
+        "catalogTopic": "sandra.trust",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-oct03.joss-abandonment-loss-report",
+        "decisionId": "judy-river.hunt.rescue",
+        "outcomeKey": "abandoned",
+        "nativeTopic": "randy.rescue_outcome",
+        "catalogTopic": "randy.rescue_outcome",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-oct03.joss-family-visit-followup",
+        "decisionId": "judy-river.following.family-dinner",
+        "outcomeKey": "attended",
+        "nativeTopic": "kutcher.family_hospitality",
+        "catalogTopic": "kutcher.family_hospitality",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-oct03.joss-randy-recovery-report",
+        "decisionId": "judy-river.hunt.rescue",
+        "outcomeKey": "saved",
+        "nativeTopic": "randy.rescue_outcome",
+        "catalogTopic": "randy.rescue_outcome",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jr-oct03.river-harris-killed-after-failure",
+        "decisionId": "judy-river.hunt.harris-afterward",
+        "outcomeKey": "killed-after-failure",
+        "nativeTopic": "river.harris_resolution",
+        "catalogTopic": "river.harris_resolution",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.aaron.advice-dive",
+        "decisionId": "phantom.easy.advice",
+        "outcomeKey": "throw",
+        "nativeTopic": "aaron.fight-advice",
+        "catalogTopic": "aaron.fight-advice",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.aaron.advice-honest",
+        "decisionId": "phantom.easy.advice",
+        "outcomeKey": "honest",
+        "nativeTopic": "aaron.fight-advice",
+        "catalogTopic": "aaron.fight-advice",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.aaron.angie-deal-disclosed",
+        "decisionId": "phantom.easy.angie",
+        "outcomeKey": "deal",
+        "nativeTopic": "aaron.angie",
+        "catalogTopic": "aaron.angie",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.aaron.angie-intimidated-disclosed",
+        "decisionId": "phantom.easy.angie",
+        "outcomeKey": "intimidated",
+        "nativeTopic": "aaron.angie",
+        "catalogTopic": "aaron.angie",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.aaron.coaching",
+        "decisionId": "phantom.easy.fate",
+        "outcomeKey": "coaching",
+        "nativeTopic": "character.aaron.fate",
+        "catalogTopic": "character.aaron.fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.aaron.costa-rica",
+        "decisionId": "phantom.easy.fate",
+        "outcomeKey": "costa-rica",
+        "nativeTopic": "character.aaron.fate",
+        "catalogTopic": "character.aaron.fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.alex.coin-gifted",
+        "decisionId": "phantom.sympathy.coin",
+        "outcomeKey": "gifted",
+        "nativeTopic": "relationship.alex.coin",
+        "catalogTopic": "relationship.alex.coin",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.alex.farewell",
+        "decisionId": "phantom.sympathy.meeting",
+        "outcomeKey": "met",
+        "nativeTopic": "relationship.alex.farewell",
+        "catalogTopic": "relationship.alex.farewell",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.alex.first-meeting",
+        "decisionId": "phantom.damned.alex-met",
+        "outcomeKey": "met",
+        "nativeTopic": "relationship.alex.first-contact",
+        "catalogTopic": "relationship.alex.first-contact",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.border.handover-alive",
+        "decisionId": "phantom.silence.handover",
+        "outcomeKey": "alive",
+        "nativeTopic": "songbird.nusa-handover",
+        "catalogTopic": "songbird.nusa-handover",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.border.handover-dead",
+        "decisionId": "phantom.silence.handover",
+        "outcomeKey": "dead",
+        "nativeTopic": "songbird.nusa-handover",
+        "catalogTopic": "songbird.nusa-handover",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.border.medal-accepted-disclosed",
+        "decisionId": "phantom.silence.medal",
+        "outcomeKey": "accepted",
+        "nativeTopic": "v.nusa.medal",
+        "catalogTopic": "v.nusa.medal",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.cynosure.alive",
+        "decisionId": "phantom.damaged.fate",
+        "outcomeKey": "kept-alive",
+        "nativeTopic": "character.songbird.cynosure-fate",
+        "catalogTopic": "character.songbird.cynosure-fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.cynosure.death-disclosed",
+        "decisionId": "phantom.damaged.fate",
+        "outcomeKey": "death-granted",
+        "nativeTopic": "character.songbird.cynosure-fate",
+        "catalogTopic": "character.songbird.cynosure-fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.cynosure.death-observed",
+        "decisionId": "phantom.damaged.reed-observation",
+        "outcomeKey": "found-dead",
+        "nativeTopic": "character.songbird.cynosure-observed-fate",
+        "catalogTopic": "character.songbird.cynosure-observed-fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.firestarter.alex-dead",
+        "decisionId": "phantom.firestarter.alex-fate",
+        "outcomeKey": "dead",
+        "nativeTopic": "character.alex.fate",
+        "catalogTopic": "character.alex.fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.firestarter.reed",
+        "decisionId": "phantom.firestarter.allegiance",
+        "outcomeKey": "reed",
+        "nativeTopic": "phantom.firestarter-branch",
+        "catalogTopic": "phantom.firestarter-branch",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.firestarter.songbird",
+        "decisionId": "phantom.firestarter.allegiance",
+        "outcomeKey": "songbird",
+        "nativeTopic": "phantom.firestarter-branch",
+        "catalogTopic": "phantom.firestarter-branch",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.ncx.cure-arrangement",
+        "decisionId": "phantom.moon.cure-arrangement",
+        "outcomeKey": "recorded",
+        "nativeTopic": "v.ncx.cure-arrangement",
+        "catalogTopic": "v.ncx.cure-arrangement",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.ncx.fia-custody",
+        "decisionId": "phantom.moon.resolution",
+        "outcomeKey": "fia-custody",
+        "nativeTopic": "phantom.spaceport-outcome",
+        "catalogTopic": "phantom.spaceport-outcome",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.ncx.moon",
+        "decisionId": "phantom.moon.resolution",
+        "outcomeKey": "moon",
+        "nativeTopic": "phantom.spaceport-outcome",
+        "catalogTopic": "phantom.spaceport-outcome",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.ncx.moon-disclosed",
+        "decisionId": "phantom.moon.resolution",
+        "outcomeKey": "moon",
+        "nativeTopic": "phantom.spaceport-outcome",
+        "catalogTopic": "phantom.spaceport-outcome",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.nele.captured",
+        "decisionId": "phantom.roads.custody",
+        "outcomeKey": "captured",
+        "nativeTopic": "nele.protection",
+        "catalogTopic": "nele.protection",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.nele.captured-disclosed",
+        "decisionId": "phantom.roads.custody",
+        "outcomeKey": "captured",
+        "nativeTopic": "nele.protection",
+        "catalogTopic": "nele.protection",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.nele.protected",
+        "decisionId": "phantom.roads.client",
+        "outcomeKey": "protected",
+        "nativeTopic": "nele.protection",
+        "catalogTopic": "nele.protection",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.treatment.accepted-after-cynosure",
+        "decisionId": "phantom.forever.treatment",
+        "outcomeKey": "accepted",
+        "nativeTopic": "v.nusa.treatment",
+        "catalogTopic": "v.nusa.treatment",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "phantom.native.treatment.accepted-after-ncx",
+        "decisionId": "phantom.forever.treatment",
+        "outcomeKey": "accepted",
+        "nativeTopic": "v.nusa.treatment",
+        "catalogTopic": "v.nusa.treatment",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.backstage-reconciled",
+        "decisionId": "silverhand.backstage-resolution",
+        "outcomeKey": "reconciled",
+        "nativeTopic": "kerry.uscracks.resolution",
+        "catalogTopic": "kerry.uscracks.resolution",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.backstage-threatened",
+        "decisionId": "silverhand.backstage-resolution",
+        "outcomeKey": "threatened",
+        "nativeTopic": "kerry.uscracks.resolution",
+        "catalogTopic": "kerry.uscracks.resolution",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.beach-committed",
+        "decisionId": "silverhand.beach-commitment",
+        "outcomeKey": "committed",
+        "nativeTopic": "kerry.v.relationship",
+        "catalogTopic": "kerry.v.relationship",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.beach-declined",
+        "decisionId": "silverhand.beach-commitment",
+        "outcomeKey": "declined",
+        "nativeTopic": "kerry.v.relationship",
+        "catalogTopic": "kerry.v.relationship",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.grayson-killed",
+        "decisionId": "silverhand.grayson-fate",
+        "outcomeKey": "killed",
+        "nativeTopic": "grayson.fate",
+        "catalogTopic": "grayson.fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.grayson-spared",
+        "decisionId": "silverhand.grayson-fate",
+        "outcomeKey": "spared",
+        "nativeTopic": "grayson.fate",
+        "catalogTopic": "grayson.fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.lineup-denny",
+        "decisionId": "silverhand.reunion-lineup",
+        "outcomeKey": "denny",
+        "nativeTopic": "samurai.reunion.lineup",
+        "catalogTopic": "samurai.reunion.lineup",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.lineup-denny-nancy",
+        "decisionId": "silverhand.reunion-lineup",
+        "outcomeKey": "denny",
+        "nativeTopic": "samurai.reunion.lineup",
+        "catalogTopic": "samurai.reunion.lineup",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.lineup-henry",
+        "decisionId": "silverhand.reunion-lineup",
+        "outcomeKey": "henry",
+        "nativeTopic": "samurai.reunion.lineup",
+        "catalogTopic": "samurai.reunion.lineup",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.lineup-henry-nancy",
+        "decisionId": "silverhand.reunion-lineup",
+        "outcomeKey": "henry",
+        "nativeTopic": "samurai.reunion.lineup",
+        "catalogTopic": "samurai.reunion.lineup",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.movie-completed",
+        "decisionId": "silverhand.date-completed",
+        "outcomeKey": "completed",
+        "nativeTopic": "johnny.rogue.drive-in",
+        "catalogTopic": "johnny.rogue.drive-in",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.movie-intimacy-interrupted",
+        "decisionId": "silverhand.drive-in-intimacy",
+        "outcomeKey": "interrupted",
+        "nativeTopic": "johnny.rogue.drive-in-intimacy",
+        "catalogTopic": "johnny.rogue.drive-in-intimacy",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.nancy-truth-report",
+        "decisionId": "silverhand.nancy-disclosure",
+        "outcomeKey": "truth",
+        "nativeTopic": "nancy.swedenborg.disclosure",
+        "catalogTopic": "nancy.swedenborg.disclosure",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.porsche-recovered",
+        "decisionId": "silverhand.porsche-recovery",
+        "outcomeKey": "recovered",
+        "nativeTopic": "silverhand.porsche-recovery",
+        "catalogTopic": "johnny.possessions.porsche",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "identity-preserving-namespace",
+        "ruleSha256": "63fd0b0f9b2d604c78491175944926681e1666e8f831060739e19f2c35f2e556",
+        "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "silverhand.reunion-performed",
+        "decisionId": "silverhand.reunion-performance",
+        "outcomeKey": "performed",
+        "nativeTopic": "samurai.reunion.performance",
+        "catalogTopic": "samurai.reunion.performance",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.rogue-killed",
+        "decisionId": "silverhand.rogue-fate",
+        "outcomeKey": "killed",
+        "nativeTopic": "rogue.fate",
+        "catalogTopic": "rogue.fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.swedenborg-altered",
+        "decisionId": "silverhand.swedenborg-machine",
+        "outcomeKey": "altered",
+        "nativeTopic": "swedenborg.machine-state",
+        "catalogTopic": "swedenborg.machine-state",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.swedenborg-disconnected",
+        "decisionId": "silverhand.swedenborg-machine",
+        "outcomeKey": "disconnected",
+        "nativeTopic": "swedenborg.machine-state",
+        "catalogTopic": "swedenborg.machine-state",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.swedenborg-identified",
+        "decisionId": "silverhand.swedenborg-discovery",
+        "outcomeKey": "bot-identified",
+        "nativeTopic": "swedenborg.identity",
+        "catalogTopic": "swedenborg.identity",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.swedenborg-left-running",
+        "decisionId": "silverhand.swedenborg-machine",
+        "outcomeKey": "left-running",
+        "nativeTopic": "swedenborg.machine-state",
+        "catalogTopic": "swedenborg.machine-state",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "silverhand.terrace-kissed",
+        "decisionId": "silverhand.terrace-kiss",
+        "outcomeKey": "kissed",
+        "nativeTopic": "kerry.v.terrace-intimacy",
+        "catalogTopic": "kerry.v.terrace-intimacy",
+        "qualification": "exact"
+      }
+    ],
+    "exactMatches": 169,
+    "reviewedAliases": 26,
+    "reviewDocuments": [
+      {
+        "reference": "native-reviews/topic-identity-audit-oct03.md",
+        "sha256": "51e19e6fd3574f8e6d20cd30e57dd8fccd9cf6f8f4980089258f90251cad75f6",
+        "bytes": 8389
+      }
+    ]
   },
   "qualification": "source-verified-not-live-qualified"
 }

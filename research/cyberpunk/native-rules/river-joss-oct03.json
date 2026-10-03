@@ -1,0 +1,1097 @@
+{
+  "version": 1,
+  "id": "river-joss-reviewed-oct03",
+  "revision": 1,
+  "gameVersions": [
+    "2.31"
+  ],
+  "profileKeys": [
+    "river-ward",
+    "joss-kutcher"
+  ],
+  "sources": [
+    {
+      "id": "jr-oct03.release",
+      "kind": "native",
+      "locator": "ep1/quest/ep1.gamedef -> released base quest/side quests/additional game elements"
+    },
+    {
+      "id": "jr-oct03.river-harris-report",
+      "kind": "native",
+      "locator": "base\\quest\\persistent_content.questphase"
+    },
+    {
+      "id": "jr-oct03.joss-loss-report",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq021\\sq021.questphase"
+    },
+    {
+      "id": "jr-oct03.joss-recovery-report",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq029\\phases\\sq029_messages.questphase"
+    },
+    {
+      "id": "jr-oct03.joss-family-visit",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq029\\phases\\sq029_messages.questphase"
+    },
+    {
+      "id": "jr-native-2",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq021\\scenes\\sq021_11_finale.scene"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "jr-oct03.release",
+      "kind": "native",
+      "sourceId": "jr-oct03.release",
+      "gameVersions": [
+        "2.31"
+      ],
+      "locator": "The released EP1 gamedef enters the base quest. The base quest references sidequests and additional game elements; those reference sq021, sq029 and persistent content. These are authored reference closures, not proof of current-save execution.",
+      "native": {
+        "jsonPath": "scene-evidence/judy-release-final-oct01/raw/ep1/ep1/quest/ep1.gamedef.json",
+        "assetSha256": "30b735c237ea2344b3f667752b4f98fdbbe1283808594a51693cfa61aebc6579",
+        "jsonSha256": "4f24cc027024d390ac5972c8cec8a49b6a3f800820b95aaff4b93c6810b4fa40",
+        "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile/DepotPath/$value",
+        "expectedValue": "base\\quest\\cyberpunk2077.quest"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonSha256": "5b860f4a432d252e26391d7ed44c4977b03b80fb248cdec7bbcf6d93a46f6f2d",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource/DepotPath/$value",
+          "expectedValue": "base\\quest\\cyberpunk2077.questphase"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonSha256": "3737deb675b4cfb1d40dba60f6b1ccf10cd21f851eb376ef9b448fe3bb718d9d",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/4/Data/phaseResource/DepotPath/$value",
+          "expectedValue": "base\\quest\\side_quests\\sidequests.questphase"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonSha256": "3737deb675b4cfb1d40dba60f6b1ccf10cd21f851eb376ef9b448fe3bb718d9d",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/2/Data/phaseResource/DepotPath/$value",
+          "expectedValue": "base\\quest\\additional_game_elements.questphase"
+        },
+        {
+          "jsonPath": "scene-evidence/river-joss-release-oct03/raw/base/base/quest/additional_game_elements.questphase.json",
+          "assetSha256": "c67fb292f88384f3f31e8242fc374e8b7afe5553588333c61f6eaec2c1e0b7eb",
+          "jsonSha256": "3e3cbe1bc3278f353b1ad68a5ea026eec3bb6ab802297501253d087d1f56a4ee",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource/DepotPath/$value",
+          "expectedValue": "base\\quest\\persistent_content.questphase"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonSha256": "148daf5a9e92857f07972b168b14d32d2563fb5807b246372aee5dc70026678b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/15/Data/phaseResource/DepotPath/$value",
+          "expectedValue": "base\\quest\\side_quests\\sq021\\sq021.questphase"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonSha256": "148daf5a9e92857f07972b168b14d32d2563fb5807b246372aee5dc70026678b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data/phaseResource/DepotPath/$value",
+          "expectedValue": "base\\quest\\side_quests\\sq029\\sq029.questphase"
+        },
+        {
+          "jsonPath": "scene-evidence/river-joss-release-oct03/raw/base/base/quest/side_quests/sq029/sq029.questphase.json",
+          "assetSha256": "df46bf27a63435ddead9a0abcae64c4dbfc4965873a8cdd61c8f53ab83fcb683",
+          "jsonSha256": "3eaec1450a7744756c0125a96770ca7c85b89761674dc618dbca6db5c11af864",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data/phaseResource/DepotPath/$value",
+          "expectedValue": "base\\quest\\side_quests\\sq029\\phases\\sq029_messages.questphase"
+        }
+      ]
+    },
+    {
+      "id": "jr-oct03.river-harris-report",
+      "kind": "native",
+      "sourceId": "jr-oct03.river-harris-report",
+      "gameVersions": [
+        "2.31"
+      ],
+      "locator": "sq021 bad-outcome persistent content is entered only after positive Randy-loss and quest-done comparisons. Its three native NPC message branches explicitly report River killing Harris and covering his tracks; no body observation or V participation is implied. The runtime additionally requires the positive loss/completion observations and at least one revealed exact report. The alternative forgiveness message alone cannot establish this outcome.",
+      "native": {
+        "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/47/Data",
+        "expectedType": "gameJournalContact",
+        "expected": {
+          "/id": "river_ward",
+          "/name/value": "LocKey#10894"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7181",
+          "expectedType": "localizationPersistenceOnScreenEntry",
+          "expected": {
+            "/primaryKey": "10894",
+            "/femaleVariant": "River Ward"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/persistent_content.questphase.json",
+          "assetSha256": "7e702dfe44e84719576d6bed8d87f3bda383e308cb45c85fe34de9cc4ca62189",
+          "jsonSha256": "9541a83a4dc0a201f7402bceef6d095d814c5e918a5f11a5cda7e8c2e83c8f34",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/6/Data/condition/Data",
+          "expectedType": "questLogicalCondition",
+          "expected": {
+            "/operation": "AND",
+            "/conditions/0/Data/type/Data/$type": "questVarComparison_ConditionType",
+            "/conditions/0/Data/type/Data/factName": "sq021_randy_kaputt",
+            "/conditions/0/Data/type/Data/comparisonType": "Greater",
+            "/conditions/0/Data/type/Data/value": 0,
+            "/conditions/1/Data/type/Data/$type": "questVarComparison_ConditionType",
+            "/conditions/1/Data/type/Data/factName": "sq021_done",
+            "/conditions/1/Data/type/Data/comparisonType": "Greater",
+            "/conditions/1/Data/type/Data/value": 0
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/47/Data/entries/8/Data/entries/0/Data",
+          "expectedType": "gameJournalPhoneMessage",
+          "expected": {
+            "/id": "16_roof_harris_killed",
+            "/sender": "NPC",
+            "/text/value": "LocKey#35154"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22931",
+          "expectedType": "localizationPersistenceOnScreenEntry",
+          "expected": {
+            "/primaryKey": "35154"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/persistent_content.questphase.json",
+          "assetSha256": "7e702dfe44e84719576d6bed8d87f3bda383e308cb45c85fe34de9cc4ca62189",
+          "jsonSha256": "9541a83a4dc0a201f7402bceef6d095d814c5e918a5f11a5cda7e8c2e83c8f34",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/7/Data/phaseGraph/Data/nodes/5/Data",
+          "expectedType": "questJournalNodeDefinition",
+          "expected": {
+            "/type/Data/$type": "questJournalQuestEntry_NodeType",
+            "/type/Data/path/Data/realPath": "contacts/river_ward/sq021_bad_messages/16_roof_harris_killed",
+            "/type/Data/path/Data/className/$value": "gameJournalPhoneMessage"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/47/Data/entries/8/Data/entries/2/Data",
+          "expectedType": "gameJournalPhoneMessage",
+          "expected": {
+            "/id": "18_quest_ends_harris_killed",
+            "/sender": "NPC",
+            "/text/value": "LocKey#35156"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22933",
+          "expectedType": "localizationPersistenceOnScreenEntry",
+          "expected": {
+            "/primaryKey": "35156"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/persistent_content.questphase.json",
+          "assetSha256": "7e702dfe44e84719576d6bed8d87f3bda383e308cb45c85fe34de9cc4ca62189",
+          "jsonSha256": "9541a83a4dc0a201f7402bceef6d095d814c5e918a5f11a5cda7e8c2e83c8f34",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/7/Data/phaseGraph/Data/nodes/12/Data",
+          "expectedType": "questJournalNodeDefinition",
+          "expected": {
+            "/type/Data/$type": "questJournalQuestEntry_NodeType",
+            "/type/Data/path/Data/realPath": "contacts/river_ward/sq021_bad_messages/18_quest_ends_harris_killed",
+            "/type/Data/path/Data/className/$value": "gameJournalPhoneMessage"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/47/Data/entries/8/Data/entries/3/Data",
+          "expectedType": "gameJournalPhoneMessage",
+          "expected": {
+            "/id": "19_who_cares_harris_dead",
+            "/sender": "NPC",
+            "/text/value": "LocKey#35157"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22934",
+          "expectedType": "localizationPersistenceOnScreenEntry",
+          "expected": {
+            "/primaryKey": "35157"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/persistent_content.questphase.json",
+          "assetSha256": "7e702dfe44e84719576d6bed8d87f3bda383e308cb45c85fe34de9cc4ca62189",
+          "jsonSha256": "9541a83a4dc0a201f7402bceef6d095d814c5e918a5f11a5cda7e8c2e83c8f34",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/7/Data/phaseGraph/Data/nodes/15/Data",
+          "expectedType": "questJournalNodeDefinition",
+          "expected": {
+            "/type/Data/$type": "questJournalQuestEntry_NodeType",
+            "/type/Data/path/Data/realPath": "contacts/river_ward/sq021_bad_messages/19_who_cares_harris_dead",
+            "/type/Data/path/Data/className/$value": "gameJournalPhoneMessage"
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr-oct03.joss-loss-report",
+      "kind": "native",
+      "sourceId": "jr-oct03.joss-loss-report",
+      "gameVersions": [
+        "2.31"
+      ],
+      "locator": "Two sq021 abandonment branches activate Joss’s exact NPC report that she was told both bodies were found on a farm, and that she blames V for leaving. This is Joss’s private reported knowledge, not an eyewitness account, current physical-entity death detection, or permission to expose it to the party.",
+      "native": {
+        "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/76/Data",
+        "expectedType": "gameJournalContact",
+        "expected": {
+          "/id": "joss",
+          "/name/value": "LocKey#10862"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7149",
+          "expectedType": "localizationPersistenceOnScreenEntry",
+          "expected": {
+            "/primaryKey": "10862",
+            "/femaleVariant": "Joss Kutcher"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/76/Data/entries/0/Data/entries/0/Data",
+          "expectedType": "gameJournalPhoneMessage",
+          "expected": {
+            "/id": "sq021_river_dead",
+            "/sender": "NPC",
+            "/text/value": "LocKey#10863"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7150",
+          "expectedType": "localizationPersistenceOnScreenEntry",
+          "expected": {
+            "/primaryKey": "10863"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/side_quests/sq021/sq021.questphase.json",
+          "assetSha256": "3d290fcb28740f23ce525331b66da7ef978208d5ea113c1c5acfc3bba49ba44b",
+          "jsonSha256": "6edff318969ba0a611a8f94825dcc2205332c11d21db7a3be527243d7519c209",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/31/Data/phaseGraph/Data/nodes/14/Data",
+          "expectedType": "questJournalNodeDefinition",
+          "expected": {
+            "/type/Data/$type": "questJournalEntry_NodeType",
+            "/type/Data/path/Data/realPath": "contacts/joss/sq021/sq021_river_dead",
+            "/type/Data/path/Data/className/$value": "gameJournalPhoneMessage"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/side_quests/sq021/sq021.questphase.json",
+          "assetSha256": "3d290fcb28740f23ce525331b66da7ef978208d5ea113c1c5acfc3bba49ba44b",
+          "jsonSha256": "6edff318969ba0a611a8f94825dcc2205332c11d21db7a3be527243d7519c209",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/29/Data/phaseGraph/Data/nodes/13/Data/phaseGraph/Data/nodes/25/Data",
+          "expectedType": "questJournalNodeDefinition",
+          "expected": {
+            "/type/Data/path/Data/realPath": "contacts/joss/sq021/sq021_river_dead",
+            "/type/Data/path/Data/className/$value": "gameJournalPhoneMessage"
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr-oct03.joss-recovery-report",
+      "kind": "native",
+      "sourceId": "jr-oct03.joss-recovery-report",
+      "gameVersions": [
+        "2.31"
+      ],
+      "locator": "sq029 messages In1 -> 8-hour delay68 -> outside-family-area/content-token pause71 -> activation125 -> photograph127. The exact Joss message describes Randy gradually readjusting, expresses hope and gratitude. Positive rescue/done observations are retained. It does not establish complete medical recovery or that V read/responded.",
+      "native": {
+        "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/76/Data",
+        "expectedType": "gameJournalContact",
+        "expected": {
+          "/id": "joss",
+          "/name/value": "LocKey#10862"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7149",
+          "expectedType": "localizationPersistenceOnScreenEntry",
+          "expected": {
+            "/primaryKey": "10862",
+            "/femaleVariant": "Joss Kutcher"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/76/Data/entries/1/Data/entries/0/Data",
+          "expectedType": "gameJournalPhoneMessage",
+          "expected": {
+            "/id": "01_randy_status",
+            "/sender": "NPC",
+            "/text/value": "LocKey#23343"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17484",
+          "expectedType": "localizationPersistenceOnScreenEntry",
+          "expected": {
+            "/primaryKey": "23343"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/side_quests/sq029/phases/sq029_messages.questphase.json",
+          "assetSha256": "2dc819819aa4c48babf8a298d357fbb426f873c39c70ea42a607bcf52da58841",
+          "jsonSha256": "ebf98ac679e5c8ab4646c805fd6094935e2d57a9acca0e7e1abe7aca7ca2b2a7",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/49/Data",
+          "expectedType": "questJournalNodeDefinition",
+          "expected": {
+            "/type/Data/$type": "questJournalQuestEntry_NodeType",
+            "/type/Data/path/Data/realPath": "contacts/joss/sq029_joss_abt_randy/01_randy_status",
+            "/type/Data/path/Data/className/$value": "gameJournalPhoneMessage"
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr-oct03.joss-family-visit",
+      "kind": "native",
+      "sourceId": "jr-oct03.joss-family-visit",
+      "gameVersions": [
+        "2.31"
+      ],
+      "locator": "Joss’s after-visit thanks has separate romance and non-romance branches; both are merely hospitality. The additional children’s rematch message156 follows the positive kids-won condition157. Requiring both an exact thank-you receipt and the rematch receipt qualifies the shared visit/game context while never inferring romance, optional parents disclosure or V’s reply to matchmaking.",
+      "native": {
+        "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/76/Data",
+        "expectedType": "gameJournalContact",
+        "expected": {
+          "/id": "joss",
+          "/name/value": "LocKey#10862"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7149",
+          "expectedType": "localizationPersistenceOnScreenEntry",
+          "expected": {
+            "/primaryKey": "10862",
+            "/femaleVariant": "Joss Kutcher"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/76/Data/entries/2/Data/entries/4/Data",
+          "expectedType": "gameJournalPhoneMessage",
+          "expected": {
+            "/id": "05_joss_thanks_coming_over",
+            "/sender": "NPC",
+            "/text/value": "LocKey#23349"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17490",
+          "expectedType": "localizationPersistenceOnScreenEntry",
+          "expected": {
+            "/primaryKey": "23349"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/side_quests/sq029/phases/sq029_messages.questphase.json",
+          "assetSha256": "2dc819819aa4c48babf8a298d357fbb426f873c39c70ea42a607bcf52da58841",
+          "jsonSha256": "ebf98ac679e5c8ab4646c805fd6094935e2d57a9acca0e7e1abe7aca7ca2b2a7",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/65/Data",
+          "expectedType": "questJournalNodeDefinition",
+          "expected": {
+            "/type/Data/$type": "questJournalQuestEntry_NodeType",
+            "/type/Data/path/Data/realPath": "contacts/joss/sq029_joss_abt_river/05_joss_thanks_coming_over",
+            "/type/Data/path/Data/className/$value": "gameJournalPhoneMessage"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/76/Data/entries/2/Data/entries/6/Data",
+          "expectedType": "gameJournalPhoneMessage",
+          "expected": {
+            "/id": "05_rom_joss_thanks_coming_over",
+            "/sender": "NPC",
+            "/text/value": "LocKey#23350"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17491",
+          "expectedType": "localizationPersistenceOnScreenEntry",
+          "expected": {
+            "/primaryKey": "23350"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/side_quests/sq029/phases/sq029_messages.questphase.json",
+          "assetSha256": "2dc819819aa4c48babf8a298d357fbb426f873c39c70ea42a607bcf52da58841",
+          "jsonSha256": "ebf98ac679e5c8ab4646c805fd6094935e2d57a9acca0e7e1abe7aca7ca2b2a7",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/68/Data",
+          "expectedType": "questJournalNodeDefinition",
+          "expected": {
+            "/type/Data/$type": "questJournalQuestEntry_NodeType",
+            "/type/Data/path/Data/realPath": "contacts/joss/sq029_joss_abt_river/05_rom_joss_thanks_coming_over",
+            "/type/Data/path/Data/className/$value": "gameJournalPhoneMessage"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "5274569b0dc28e6da700d3a9b6c2ec9452bc6a1f3688a16bf92629a6e1bcb6ee",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/76/Data/entries/2/Data/entries/5/Data",
+          "expectedType": "gameJournalPhoneMessage",
+          "expected": {
+            "/id": "06_optional_thanks_kids",
+            "/sender": "NPC",
+            "/text/value": "LocKey#23351"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-reviewed-oct01/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "4667c767cc3a4e2696a19cad3944a8d1da22ae6e497a16d41ef7af96a80d826d",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17492",
+          "expectedType": "localizationPersistenceOnScreenEntry",
+          "expected": {
+            "/primaryKey": "23351"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/side_quests/sq029/phases/sq029_messages.questphase.json",
+          "assetSha256": "2dc819819aa4c48babf8a298d357fbb426f873c39c70ea42a607bcf52da58841",
+          "jsonSha256": "ebf98ac679e5c8ab4646c805fd6094935e2d57a9acca0e7e1abe7aca7ca2b2a7",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/69/Data",
+          "expectedType": "questJournalNodeDefinition",
+          "expected": {
+            "/type/Data/$type": "questJournalQuestEntry_NodeType",
+            "/type/Data/path/Data/realPath": "contacts/joss/sq029_joss_abt_river/06_optional_thanks_kids",
+            "/type/Data/path/Data/className/$value": "gameJournalPhoneMessage"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/river-joss-oct03/raw/base/base/quest/side_quests/sq029/phases/sq029_messages.questphase.json",
+          "assetSha256": "2dc819819aa4c48babf8a298d357fbb426f873c39c70ea42a607bcf52da58841",
+          "jsonSha256": "ebf98ac679e5c8ab4646c805fd6094935e2d57a9acca0e7e1abe7aca7ca2b2a7",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/70/Data/condition/Data/type/Data",
+          "expectedType": "questVarComparison_ConditionType",
+          "expected": {
+            "/factName": "sq029_ar_kids_won",
+            "/comparisonType": "Equal",
+            "/value": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr-native.hunt-rescue-branch",
+      "sourceId": "jr-native-2",
+      "kind": "native",
+      "locator": "Finale choice1450 [Release] -> cut2103 -> condition741 compares sq021_bad_farm_chosen > 0. True sets randy_kaputt=1; false sets randy_saved=1. The release is directed at Randy in the barn; River is scene actor0 with sobchak spawn identity. Later ordinary cleanup sets sq021_done=1 and after good-farm comparison sends the separate Randy-lives message. No rule treats missing bad-farm value as false. Alternate-writer audit: sq021_done is also assigned in finale node2734 after either normal wrap-up or the river_hates_v result; it does not imply affection. The cleanup's separate randy_saved writer is cited explicitly. Only the positive rescued/dead result selects Randy's fate.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+        "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/242/Data",
+        "expectedType": "scnChoiceNode",
+        "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/367/Data",
+          "expectedType": "scnCutControlNode",
+          "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/115/Data/questNode/Data/condition/Data/type/Data",
+          "expectedType": "questVarComparison_ConditionType",
+          "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/120/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/329/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expectedType": "scnActorDef",
+          "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/actors/1",
+          "expectedType": "scnActorDef",
+          "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/36",
+          "expectedType": "scnscreenplayChoiceOption",
+          "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/606",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/sq021.questphase.json",
+          "assetSha256": "3d290fcb28740f23ce525331b66da7ef978208d5ea113c1c5acfc3bba49ba44b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data/phaseGraph/Data/nodes/9/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "jsonSha256": "89caa779086dac0e2fd7137fd14c694964a71ea437ab156afd39c0ee85931221"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/sq021.questphase.json",
+          "assetSha256": "3d290fcb28740f23ce525331b66da7ef978208d5ea113c1c5acfc3bba49ba44b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data/phaseGraph/Data/nodes/10/Data",
+          "expectedType": "questConditionNodeDefinition",
+          "jsonSha256": "89caa779086dac0e2fd7137fd14c694964a71ea437ab156afd39c0ee85931221"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/sq021.questphase.json",
+          "assetSha256": "3d290fcb28740f23ce525331b66da7ef978208d5ea113c1c5acfc3bba49ba44b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data/phaseGraph/Data/nodes/14/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition",
+          "jsonSha256": "89caa779086dac0e2fd7137fd14c694964a71ea437ab156afd39c0ee85931221"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/sq021.questphase.json",
+          "assetSha256": "3d290fcb28740f23ce525331b66da7ef978208d5ea113c1c5acfc3bba49ba44b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data/phaseGraph/Data/nodes/15/Data",
+          "expectedType": "questJournalNodeDefinition",
+          "jsonSha256": "89caa779086dac0e2fd7137fd14c694964a71ea437ab156afd39c0ee85931221"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/15/Data",
+          "expectedType": "questPhaseNodeDefinition",
+          "jsonSha256": "b23d5dfa5d51f905ff914ed648db5c6faedf79df6593661957d78eee5bdfe775"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/sq021.questphase.json",
+          "assetSha256": "3d290fcb28740f23ce525331b66da7ef978208d5ea113c1c5acfc3bba49ba44b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/14/Data",
+          "expectedType": "questPhaseNodeDefinition",
+          "jsonSha256": "89caa779086dac0e2fd7137fd14c694964a71ea437ab156afd39c0ee85931221"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/sq021.questphase.json",
+          "assetSha256": "3d290fcb28740f23ce525331b66da7ef978208d5ea113c1c5acfc3bba49ba44b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data/phaseGraph/Data/nodes/14/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "jsonSha256": "89caa779086dac0e2fd7137fd14c694964a71ea437ab156afd39c0ee85931221"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/412/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/380/Data",
+          "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/381/Data",
+          "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/133/Data",
+          "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733"
+        }
+      ]
+    }
+  ],
+  "factAllowlist": {
+    "sq021_randy_kaputt": {
+      "evidenceRefs": [
+        "jr-native.hunt-rescue-branch"
+      ]
+    },
+    "sq021_randy_saved": {
+      "evidenceRefs": [
+        "jr-native.hunt-rescue-branch"
+      ]
+    },
+    "sq021_done": {
+      "evidenceRefs": [
+        "jr-native.hunt-rescue-branch"
+      ]
+    }
+  },
+  "journalAllowlist": {
+    "river-joss.harris-report-0": {
+      "questKey": "the-hunt",
+      "nativePath": "contacts/river_ward/sq021_bad_messages/16_roof_harris_killed",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr-oct03.river-harris-report"
+      ]
+    },
+    "river-joss.harris-report-1": {
+      "questKey": "the-hunt",
+      "nativePath": "contacts/river_ward/sq021_bad_messages/18_quest_ends_harris_killed",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr-oct03.river-harris-report"
+      ]
+    },
+    "river-joss.harris-report-2": {
+      "questKey": "the-hunt",
+      "nativePath": "contacts/river_ward/sq021_bad_messages/19_who_cares_harris_dead",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr-oct03.river-harris-report"
+      ]
+    },
+    "river-joss.joss-loss-report": {
+      "questKey": "the-hunt",
+      "nativePath": "contacts/joss/sq021/sq021_river_dead",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr-oct03.joss-loss-report"
+      ]
+    },
+    "river-joss.joss-recovery-report": {
+      "questKey": "the-hunt",
+      "nativePath": "contacts/joss/sq029_joss_abt_randy/01_randy_status",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr-oct03.joss-recovery-report"
+      ]
+    },
+    "river-joss.joss-visit-0": {
+      "questKey": "following-the-river",
+      "nativePath": "contacts/joss/sq029_joss_abt_river/05_joss_thanks_coming_over",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr-oct03.joss-family-visit"
+      ]
+    },
+    "river-joss.joss-visit-1": {
+      "questKey": "following-the-river",
+      "nativePath": "contacts/joss/sq029_joss_abt_river/05_rom_joss_thanks_coming_over",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr-oct03.joss-family-visit"
+      ]
+    },
+    "river-joss.joss-visit-2": {
+      "questKey": "following-the-river",
+      "nativePath": "contacts/joss/sq029_joss_abt_river/06_optional_thanks_kids",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr-oct03.joss-family-visit"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "jr-oct03.river-harris-killed-after-failure",
+      "revision": 1,
+      "questKey": "the-hunt",
+      "topic": "river.harris_resolution",
+      "outcome": "killed-after-failure",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "After the failed rescue, River privately reported to V that he had killed Harris and covered his tracks. This is River’s account of what he did afterward; the message does not establish that V witnessed it or that Joss was told.",
+      "sourceIds": [
+        "jr-oct03.river-harris-report"
+      ],
+      "evidenceRefs": [
+        "jr-oct03.release",
+        "jr-oct03.river-harris-report"
+      ],
+      "audience": {
+        "speakers": [
+          "river-ward"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "river-ward"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq021_randy_kaputt",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq021_done",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "any": [
+              {
+                "type": "journal",
+                "key": "river-joss.harris-report-0",
+                "op": "in",
+                "value": [
+                  "active",
+                  "succeeded"
+                ]
+              },
+              {
+                "type": "journal",
+                "key": "river-joss.harris-report-1",
+                "op": "in",
+                "value": [
+                  "active",
+                  "succeeded"
+                ]
+              },
+              {
+                "type": "journal",
+                "key": "river-joss.harris-report-2",
+                "op": "in",
+                "value": [
+                  "active",
+                  "succeeded"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.hunt.harris-afterward",
+          "outcomeKey": "killed-after-failure"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "randy.rescue_route",
+          "outcome": "too-late"
+        }
+      ]
+    },
+    {
+      "id": "jr-oct03.joss-abandonment-loss-report",
+      "revision": 1,
+      "questKey": "the-hunt",
+      "topic": "randy.rescue_outcome",
+      "outcome": "abandoned",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "Joss sent V a private message saying she had been told that River’s and Randy’s bodies were found at a farm. She blamed V for abandoning them and said she would not forgive it. This is her received report and reaction, not something she personally witnessed.",
+      "sourceIds": [
+        "jr-oct03.joss-loss-report"
+      ],
+      "evidenceRefs": [
+        "jr-oct03.release",
+        "jr-oct03.joss-loss-report"
+      ],
+      "audience": {
+        "speakers": [
+          "joss-kutcher"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "joss-kutcher"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "river-joss.joss-loss-report",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.hunt.rescue",
+          "outcomeKey": "abandoned"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "randy.rescue_route",
+          "outcome": "abandoned"
+        }
+      ]
+    },
+    {
+      "id": "jr-oct03.joss-randy-recovery-report",
+      "revision": 1,
+      "questKey": "the-hunt",
+      "topic": "randy.rescue_outcome",
+      "outcome": "saved",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "After Randy survived the rescue, Joss told V that he was gradually easing back into things. She expressed gratitude and hope that things would be all right. This is her follow-up assessment, not proof of complete medical recovery or a message V has read or answered.",
+      "sourceIds": [
+        "jr-oct03.joss-recovery-report"
+      ],
+      "evidenceRefs": [
+        "jr-oct03.release",
+        "jr-oct03.joss-recovery-report"
+      ],
+      "audience": {
+        "speakers": [
+          "joss-kutcher"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "joss-kutcher"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq021_randy_saved",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq021_done",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "river-joss.joss-recovery-report",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.hunt.rescue",
+          "outcomeKey": "saved"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "randy.rescue_route",
+          "outcome": "saved"
+        }
+      ]
+    },
+    {
+      "id": "jr-oct03.joss-family-visit-followup",
+      "revision": 1,
+      "questKey": "following-the-river",
+      "topic": "kutcher.family_hospitality",
+      "outcome": "attended",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "After V’s family visit and game with the children, Joss thanked V for stopping by and passed along the children’s greetings and wish for a rematch. Her hospitality does not establish a romance with River, the content of their private conversation, or V’s response to her matchmaking.",
+      "sourceIds": [
+        "jr-oct03.joss-family-visit"
+      ],
+      "evidenceRefs": [
+        "jr-oct03.release",
+        "jr-oct03.joss-family-visit"
+      ],
+      "audience": {
+        "speakers": [
+          "joss-kutcher"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "joss-kutcher"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "any": [
+              {
+                "type": "journal",
+                "key": "river-joss.joss-visit-0",
+                "op": "in",
+                "value": [
+                  "active",
+                  "succeeded"
+                ]
+              },
+              {
+                "type": "journal",
+                "key": "river-joss.joss-visit-1",
+                "op": "in",
+                "value": [
+                  "active",
+                  "succeeded"
+                ]
+              }
+            ]
+          },
+          {
+            "type": "journal",
+            "key": "river-joss.joss-visit-2",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.following.family-dinner",
+          "outcomeKey": "attended"
+        }
+      ]
+    }
+  ]
+}

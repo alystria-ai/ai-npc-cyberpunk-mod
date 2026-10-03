@@ -1,4 +1,4 @@
-"""Export an explicit, bounded list of native scenes for source review.
+"""Export an explicit, bounded list of native resources for source review.
 
 This shares the archive verification/indexer used by the quest inventory. It
 does not discover all scenes, modify game data, or print screenplay text. Every
@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--game', required=True)
     parser.add_argument('--batch', required=True)
     parser.add_argument('--depot', action='append', required=True)
-    parser.add_argument('--resource-kind', choices=('scene', 'gamedef'), default='scene')
+    parser.add_argument('--resource-kind', choices=('scene', 'gamedef', 'questphase'), default='scene')
     parser.add_argument('--max-decoded-mib', type=float, default=256)
     parser.add_argument('--max-cache-gib', type=float, default=2)
     args = parser.parse_args()
@@ -73,11 +73,21 @@ def main():
                 'winnerCount': len(winners), 'assetCount': len(entries),
                 'totals': {'decodedBytes': decoded}, 'assets': entries}
     manifest_path = output / 'inventory.json'
+    previous_assets = {}
     if manifest_path.is_file():
         old = json.loads(manifest_path.read_text(encoding='utf-8'))
         keys = lambda items: {(e['archive'], e['depotPath']): e['archiveEntrySha1'] for e in items}
         if keys(old['assets']) != keys(entries):
             raise RuntimeError('Batch evidence differs from previous export; use a new batch name')
+        previous_assets = {(entry['archive'], entry['depotPath']): entry
+                           for entry in old['assets']}
+        # Preserve qualified hashes in the resumable manifest even if a later
+        # integrity check fails or the export process is interrupted.
+        for entry in entries:
+            previous = previous_assets[(entry['archive'], entry['depotPath'])]
+            for field in ('assetSha256', 'jsonSha256'):
+                if field in previous:
+                    entry[field] = previous[field]
     write_json(manifest_path, manifest)
     for archive, relative in ARCHIVES:
         assets = [entry for entry in entries if entry['archive'] == archive]
@@ -96,14 +106,28 @@ def main():
             if digest(raw, 'sha1') != entry['archiveEntrySha1']:
                 raise RuntimeError(f'Scene archive payload mismatch: {entry["depotPath"]}')
             entry['assetSha256'] = digest(raw)
+            previous_hash = previous_assets.get((entry['archive'], entry['depotPath']), {}).get('jsonSha256')
             try:
-                doc = json.loads((output / entry['jsonPath']).read_text(encoding='utf-8-sig'))
+                serialized = output / entry['jsonPath']
+                doc = json.loads(serialized.read_text(encoding='utf-8-sig'))
                 if Path(doc['Header']['ArchiveFileName']).resolve() != raw.resolve():
                     raise ValueError('Serialization source mismatch')
+                # Existing unbound exports are serialized again. Hashing them
+                # in place cannot authenticate their original decoded bytes.
+                if previous_hash is None:
+                    convert.append(str(raw))
+                elif digest(serialized) != previous_hash:
+                    raise RuntimeError('Previously qualified JSON changed: ' + entry['depotPath'])
             except (OSError, ValueError, KeyError):
                 convert.append(str(raw))
         if convert:
             job.run(['convert', 'serialize', *convert], f'serialize-scenes-{archive}', len(assets))
+        for entry in assets:
+            serialized = output / entry['jsonPath']
+            doc = json.loads(serialized.read_text(encoding='utf-8-sig'))
+            if Path(doc['Header']['ArchiveFileName']).resolve() != (output / entry['rawPath']).resolve():
+                raise RuntimeError('Serialization source mismatch: ' + entry['depotPath'])
+            entry['jsonSha256'] = digest(serialized)
         write_json(manifest_path, manifest)
     summary = index_exports(job, manifest)
     print(json.dumps({'batch': args.batch, 'missingPaths': missing,

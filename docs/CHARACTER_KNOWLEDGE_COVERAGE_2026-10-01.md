@@ -202,3 +202,23 @@ Final authored file hashes at qualification:
 - Johnny: `25b1ab54131f9c32dcb0fb68730975fcfea682c209c7139c177438702656ce8c`.
 
 The private-context owner has repinned those final documents. The ignored coverage receipt retains the selected claim/sample IDs and this compiler's qualification status. Root's earlier post-baseline paragraph and native-pack/live readback receipts above remain intact.
+
+## October 3: River and Joss native event expansion
+
+The latest local reviewed pack adds four guarded private event-history rules for River and Joss. River can discuss his explicit later Harris report after a failed rescue. Joss gets her own abandonment/loss report, gradual-recovery assessment and visit/game follow-up, with each statement restricted to the actual private recipient and speaker. Her family support cannot confer a River romance or reveal his private disclosures.
+
+| Executable source coverage | Previous pack | October 3 local build |
+| --- | ---: | ---: |
+| Enabled rules | 191 | 195 |
+| Researched outcomes | 1,160 | 1,160 |
+| Outcomes with reviewed rules | 185 | 188 |
+| Unmapped outcomes | 975 | 972 |
+| Cited native artifacts | 397 | 402 |
+| Verified, hash-bound pointers | 5,359 | 5,402 |
+| Legacy-unbound pointers | 0 | 0 |
+
+The eight new aliases select exact revealed native messages; positive rescue/completion facts provide the Harris and recovery stage guards. The existing rescued-Randy outcome gains Joss's perspective, while three other outcomes gain their first reviewed mapping. All four exclude group disclosure and unrelated speakers. See [the complete native review](../research/cyberpunk/native-reviews/river-joss-oct03.md) for activation paths, withheld outcomes, source receipts and negative checks.
+
+This is source-qualified local research, with no provider mutation or installed rollout in this batch. The prior all-character dossier/public-intrinsic work is unchanged. Native aliases still need natural live-save acceptance; schema, exact hashes and resolver tests do not establish live personality or exhaustive decision coverage.
+
+The follow-on [topic identity audit](../research/cyberpunk/native-reviews/topic-identity-audit-oct03.md) checked all 195 enabled links: 169 exact topics and 26 pinned reviewed aliases. Panam's compatible room/flirt facets and Jake's invitation/collection stages retain separate topics; a blanket normalization would create false conflicts. Undeclared or changed mappings, missing review documents, and future alternatives that bypass an existing native topic domain now reject compilation. The runtime resolver and existing topic IDs are unchanged.

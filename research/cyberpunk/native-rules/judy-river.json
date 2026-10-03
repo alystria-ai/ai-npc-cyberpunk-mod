@@ -1,7 +1,7 @@
 {
   "version": 1,
   "id": "judy-river-native",
-  "revision": 3,
+  "revision": 4,
   "gameVersions": [
     "2.31"
   ],
@@ -3338,7 +3338,7 @@
     },
     {
       "id": "jr-native.hunt-randy-saved",
-      "revision": 1,
+      "revision": 2,
       "questKey": "the-hunt",
       "topic": "randy.rescue_outcome",
       "outcome": "saved",
@@ -3392,11 +3392,17 @@
           "decisionId": "judy-river.hunt.rescue",
           "outcomeKey": "saved"
         }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "randy.rescue_route",
+          "outcome": "saved"
+        }
       ]
     },
     {
       "id": "jr-native.hunt-randy-too-late",
-      "revision": 1,
+      "revision": 2,
       "questKey": "the-hunt",
       "topic": "randy.rescue_outcome",
       "outcome": "too-late",
@@ -3449,6 +3455,12 @@
         {
           "decisionId": "judy-river.hunt.rescue",
           "outcomeKey": "too-late"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "randy.rescue_route",
+          "outcome": "too-late"
         }
       ]
     },
