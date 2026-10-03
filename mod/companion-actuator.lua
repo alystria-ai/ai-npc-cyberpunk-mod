@@ -873,14 +873,97 @@ local function blockedRoute(s,intent,c,canPlan)
     return true
 end
 
+local function waypointMotion(s,c)
+    local plan=s.execution
+    local route=plan and plan.commandRoute
+    if not route or #route==0 then
+        return false,'The current waypoint corridor is unavailable.',nil,{geometryType='corridor-unavailable'}
+    end
+    local prior=plan.motionGuard or {progress=0,position=plan.from or c.position}
+    local margin=(s.clearance and s.clearance.radius or .4)+.25
+    -- Search by travelled route distance, not arbitrary nearest segments. A
+    -- later parallel/return leg is not permission to skip the intervening bend.
+    local ceiling=prior.progress+space.distance(prior.position,c.position)+2*margin
+    local arc,best=0,nil
+    for index,leg in ipairs(route) do
+        local length=space.distance(leg.from,leg.to)
+        local dx,dy,dz=leg.to.x-leg.from.x,leg.to.y-leg.from.y,leg.to.z-leg.from.z
+        if length>.005 and arc+length>=prior.progress and arc<=ceiling then
+            local t=((c.position.x-leg.from.x)*dx+(c.position.y-leg.from.y)*dy+(c.position.z-leg.from.z)*dz)/(length*length)
+            t=math.max(0,(prior.progress-arc)/length,math.min(1,t))
+            t=math.min(t,1,(ceiling-arc)/length)
+            local point={x=leg.from.x+dx*t,y=leg.from.y+dy*t,z=leg.from.z+dz*t,w=1}
+            local gap=space.distance(c.position,point)
+            if not best or gap<best.gap-.001 then
+                best={index=index,point=point,gap=gap,progress=arc+length*t,remaining=length*(1-t)}
+            end
+        end
+        arc=arc+length
+        if arc>ceiling then break end
+    end
+    if not best or best.gap>margin then
+        return false,'Native steering left the current waypoint corridor.',nil,
+            {geometryType='corridor-departure',origin=space.copy(c.position),margin=margin}
+    end
+    local segments={}
+    local function add(from,to)
+        if space.distance(from,to)<=.005 then return end
+        local last=segments[#segments]
+        -- Native routes can split one straight line into many tiny legs. Join
+        -- only numerically collinear, forward segments; never cut a corner.
+        if last and space.distance(last.to,from)<.00001
+            and math.abs(space.distance(last.from,last.to)+space.distance(from,to)-space.distance(last.from,to))<.00001 then
+            last.to=to
+        else segments[#segments+1]={from=from,to=to} end
+    end
+    add(c.position,best.point)
+    local remaining=math.max(.75,math.min(5,c.speed*.65+.35))
+    local previous=best.point
+    for index=best.index,#route do
+        if remaining<=.005 then break end
+        local endpoint=route[index].to
+        local length=space.distance(previous,endpoint)
+        local t=length>.005 and math.min(1,remaining/length) or 1
+        local point={x=previous.x+(endpoint.x-previous.x)*t,y=previous.y+(endpoint.y-previous.y)*t,
+            z=previous.z+(endpoint.z-previous.z)*t,w=1}
+        add(previous,point)
+        remaining=remaining-length;previous=point
+    end
+    -- Keep a near-feet steering check, but never extrapolate velocity through
+    -- the next certified corner. The longer lookahead follows the actual legs.
+    if s.motionDirection and c.speed>.18 then
+        local length=math.min(best.remaining,c.speed*.2+.1)
+        if length>.005 then add(c.position,space.offset(c.position,s.motionDirection,0,length)) end
+    end
+    -- companion-clearance checks six collision groups for every body/segment
+    -- box. Moving-origin partial proofs cannot be reused after quota deferral.
+    local cost=6
+    for _,segment in ipairs(segments) do cost=cost+6*clearance.segmentBoxes(segment.from,segment.to) end
+    if not clearance.available(cost) then return nil,nil,true end
+    local clear,reason,deferred,rejection=clearance.body(c.position,s.clearance)
+    if not clear then return clear,reason,deferred,rejection end
+    for _,segment in ipairs(segments) do
+        clear,reason,deferred,rejection=clearance.segment(segment.from,segment.to,s.clearance)
+        if not clear then return clear,reason,deferred,rejection end
+    end
+    plan.motionGuard={progress=best.progress,position=space.copy(c.position)}
+    return true
+end
+
 local function watchRoute(s,c,canPlan)
     if not s.command or not s.feedback.active or s.clearanceWaiting
         or (s.stage~='walking' and s.stage~='following' and s.stage~='walking-leg') then return false end
     if s.clock>=(s.clearanceAt or 0) then
         s.clearanceAt=s.clock+0.2
-        -- Check measured motion as well as the planned path: native avoidance
-        -- and stop animations may stray from the route we accepted.
-        if s.motionDirection and c.speed>0.18 then
+        if s.execution then
+            local clear,reason,deferred,rejection=waypointMotion(s,c)
+            if deferred then waitForClearance(s); return false end
+            if not clear then
+                if rejection then rejection.stage='motion'; s.lastRejection=rejection end
+                block(s,reason,c,s.target or followGoal(s,c),s.kind=='follow'); return false
+            end
+        -- Ordinary native following keeps its existing measured-motion guard.
+        elseif s.motionDirection and c.speed>0.18 then
             local distance=math.max(0.75,math.min(5,c.speed*0.65+0.35))
             if s.executionTarget then distance=math.min(distance,space.ground(c.position,s.executionTarget)+.15) end
             local ahead=space.offset(c.position,s.motionDirection,0,distance)
@@ -917,6 +1000,13 @@ local function watchRoute(s,c,canPlan)
         return true
     end
     return false
+end
+
+-- Existing waypoint motion can be checked before unrelated route planners
+-- spend the shared budget. watchRoute's clock prevents duplicate frame work.
+function M.guardMotion(s,c)
+    if not s.execution or s.suspendedHold then return false end
+    return watchRoute(s,c,false)
 end
 
 local function walk(s,intent,c)
@@ -1071,6 +1161,7 @@ local function commitWaypoint(s,plan,intent,c,index,minimum)
     plan.pendingPhase=nil
     plan.trialIndex,plan.minimumIndex=nil,nil
     plan.commandRoute,plan.phase=route.legs,'moving'
+    plan.motionGuard=nil
     s.executionTarget,s.clearanceWaiting,s.clearanceHolding=space.copy(target),nil,nil
     s.routeCheckedAt=s.clock
     if plan.index==1 and not plan.orientationAt and current.speed<.18 and space.ground(current.position,target)>1

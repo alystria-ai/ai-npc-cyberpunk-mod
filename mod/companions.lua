@@ -960,6 +960,21 @@ function M.update(player,delta,focusEntity)
     local budget=2
     local first=commandCursor % #order
     commandCursor=commandCursor+1
+    -- Existing detour motion gets its current collision check before another
+    -- member can spend the shared physics budget preparing a new route. This
+    -- keeps planning work from repeatedly stopping a safe post-vehicle walker.
+    -- Transport ownership has already excluded seated/boarding entries above.
+    for i=1,#order do
+        local entry=order[(first+i-1)%#order+1]
+        if entry.motor.execution and not equipment.holdsMovement(entry.equipment) then
+            local ok,err=pcall(function()
+                actuator.guardMotion(entry.motor,{position=entry.position,direction=entry.direction,
+                    speed=entry.speed,playerGap=entry.playerGap,frame=groupFrame,player=player,
+                    slot=entry.lane,id=tostring(entry.entityID.hash),others=others})
+            end)
+            if not ok then entry.error=tostring(err) end
+        end
+    end
     for i=1,#order do
         local entry=order[(first+i-1)%#order+1]
         local ok,err=pcall(function()

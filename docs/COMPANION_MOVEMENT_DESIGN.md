@@ -323,3 +323,36 @@ verify command decisions. After CET reload on September 30, the user walked
 up to the companion's face and confirmed she did not back away. Normal following
 after departure retains source coverage and earlier live acceptance; the latest
 report specifically confirms close approach.
+# Waypoint motion guard — October 4, 2026
+
+Waypoint execution now checks its current certified `commandRoute` instead of
+projecting the measured velocity in a straight line through the next bend.
+Ordinary following retains its existing tangent check. The waypoint guard
+projects actual feet onto a monotonically advancing route distance, interpolates
+height, and bounds the search by displacement since the previous check. It
+cannot jump to a distant parallel or return leg simply because that leg is
+spatially closer. Consecutive numerically collinear native legs are combined for
+queries; real corners remain separate.
+
+Every due check includes the actual standing body, the connector from actual
+feet, a clipped path prefix ending within the current command route, and a short
+measured-steering probe capped at the next corner. Collision groups and hard-hit
+rejection are unchanged. The complete query cost is checked before any moving
+guard queries run. Budget deferral still retires movement into the existing
+safety hold; it never licenses unchecked continuation or reuse of stale physics
+results. The shared 192-query limit is unchanged.
+
+`actuator.guardMotion(state, context)` allows the companion update to service
+existing waypoint guards before route planners spend the shared budget. It skips
+equipment-suspended holds and uses the normal 0.2-second guard clock, so the
+ordinary apply pass does not repeat the same guard in that update. Scheduling
+priority is integrated by `companions.lua`; the actuator does not allocate a
+second budget.
+
+A small native-style overlap check covered a clear bend beside a car, a real
+obstacle on the remaining path, query exhaustion, multiple small sloped legs,
+and a nearby parallel return leg. These checks establish the source correction,
+not live resolution of the reported car-exit idle/run cycle. The endpoint-body
+check following asynchronous command retirement remains conservative; this
+change does not bypass that admission check or claim to remove every possible
+quota-related pause.
