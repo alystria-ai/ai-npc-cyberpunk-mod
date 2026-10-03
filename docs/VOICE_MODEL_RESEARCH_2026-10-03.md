@@ -93,8 +93,10 @@ encoder context/phase. Those derivatives remain experiments, not adopted data.
 The local wording pass completed all 2,913 originals. Independent Whisper
 processed all 2,144 CTC disagreements, with one token-capped result kept
 incomplete. A separate pass processed 205 unused candidates. Exact normalized
-caption agreement supports a proposed 1,745-clip, 72-voice training pool
-(2.385 hours), 42 unseen-scene development clips and 55 conditional clips.
+caption agreement supported a proposed 1,745-clip, 72-voice training pool.
+The consumed-word check withheld one T-Bug clip where the old aligner dropped
+the accented vowel in "Ramón". The final pool has 1,744 clips, 42 unseen-scene
+development clips and 55 conditional clips.
 The original 94 development and 76 test clips remain unchanged, with their
 uncertainties recorded separately. These are acoustic wording proxies, not
 listening approval; no native caption was automatically corrected.
