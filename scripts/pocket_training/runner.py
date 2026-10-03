@@ -658,7 +658,7 @@ def prepare(spec: Spec, stop: Stop) -> int:
             if panel == "teacher_regression":
                 if len(entries) != 94 or len({stable_row_id(row) for row in entries}) != 94:
                     raise ValueError("Teacher regression requires all 94 original development clips exactly once")
-                if hashlib.sha256(json.dumps([stable_row_id(row) for row in entries]).encode()).hexdigest() != spec.option("teacher_regression_expected_ids_sha256"):
+                if hashlib.sha256(json.dumps([stable_row_id(row) for row in entries]).encode()).hexdigest() != spec.option("teacher_regression_expected_ids_sha256", None):
                     raise ValueError("Original development IDs/order differ from the frozen regression receipt")
                 fence_splits(spec, {**relocated, panel: entries})
             else:
@@ -1309,7 +1309,7 @@ def teacher_anchor(spec: Spec, model: Any, mimi: Any, ema: Any, args: Any, devic
     path = spec.output / "teacher/quality-anchor.json"
     if start_step:
         anchor = read_json(path, {})
-        if anchor.get("input_identity") != spec.identity or anchor.get("source_weight_sha256") != spec.option("teacher_anchor_expected_sha256"):
+        if anchor.get("input_identity") != spec.identity or anchor.get("source_weight_sha256") != spec.option("teacher_anchor_expected_sha256", None):
             raise ValueError("Teacher resume requires its original accepted-anchor quality receipt")
         return anchor
     with ema_weights(model, ema):
@@ -1345,7 +1345,7 @@ def teacher_anchor(spec: Spec, model: Any, mimi: Any, ema: Any, args: Any, devic
         speech = comparison_speech
     anchor = {"input_identity": spec.identity, "new_run_step": 0, "source_selected_step": spec.option("teacher_anchor_selected_step", 1200),
               "source_weights_kind": spec.option("teacher_anchor_weight_kind", "ema"),
-              "source_weight_sha256": spec.option("teacher_anchor_expected_sha256"), **panels,
+              "source_weight_sha256": spec.option("teacher_anchor_expected_sha256", None), **panels,
               "speech": speech, "starting_baseline": {**starting_panels, "speech": starting_speech},
               "accepted_comparison": comparison, "subjective_quality_qualified": False}
     teacher_rank_zero_commit(lambda: atomic_json(path, anchor), device, rank, world)
@@ -2541,7 +2541,7 @@ def main() -> int:
             return evaluate(spec, stop, baseline_only=True)
         return train(spec, arguments.stage, requested_precision, stop)
     if arguments.mode == "teacher-only":
-        if not teacher_quality.enabled(spec) or spec.option("teacher_only_evaluation") is not True:
+        if not teacher_quality.enabled(spec) or spec.option("teacher_only_evaluation", False) is not True:
             raise ValueError("Teacher-only improvement requires its explicit, hashed quality policy")
         modes = ["prepare", "teacher", "evaluate"]
     elif arguments.mode == "student":

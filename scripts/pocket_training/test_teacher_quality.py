@@ -23,6 +23,52 @@ def speech(deletions=0, count=18):
 
 
 class TeacherPolicyTests(unittest.TestCase):
+    def test_all_runner_option_calls_supply_the_required_default(self):
+        import ast
+        import inspect
+        from pocket_training import runner
+        missing = [node.lineno for node in ast.walk(ast.parse(inspect.getsource(runner)))
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "option" and len(node.args) < 2
+            and not any(keyword.arg == "default" for keyword in node.keywords)]
+        self.assertEqual(missing, [])
+
+    def test_teacher_anchor_initialization_and_resume_use_the_expected_hash(self):
+        from contextlib import nullcontext
+        from pocket_training import runner
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            spec = Spec(root / "spec", {"teacher_anchor_expected_sha256": "accepted-sha"},
+                root, root, root / "out", "fixture", {})
+            panels = {"dev": panel(.5), "old_dev": panel(.4), "conditional": panel(.7)}
+            with patch.object(runner, "ema_weights", return_value=nullcontext()), \
+                 patch.object(runner, "teacher_panel_scores", return_value=panels), \
+                 patch.object(runner, "teacher_speech", return_value=speech()), \
+                 patch.object(runner, "distributed_any", return_value=False), \
+                 patch.object(runner, "teacher_rank_zero_commit", side_effect=lambda action, *args: action()):
+                anchor = runner.teacher_anchor(spec, None, None, None, None, None,
+                    0, 1, SimpleNamespace(requested=lambda: False), 0)
+                resumed = runner.teacher_anchor(spec, None, None, None, None, None,
+                    0, 1, SimpleNamespace(requested=lambda: False), 500)
+            self.assertEqual(anchor["source_weight_sha256"], "accepted-sha")
+            self.assertEqual(resumed, anchor)
+
+    def test_teacher_only_dispatch_uses_an_explicit_safe_false_default(self):
+        import sys
+        from pocket_training import runner
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            spec = Spec(root / "spec", {"teacher_quality_policy": teacher_quality.POLICY,
+                "teacher_only_evaluation": True}, root, root, root / "out", "fixture", {})
+            with patch.object(runner, "load_spec", return_value=spec), \
+                 patch.object(runner, "supervise", return_value=0) as supervised, \
+                 patch.object(sys, "argv", ["runner", "--spec", str(spec.path), "--mode", "teacher-only"]):
+                self.assertEqual(runner.main(), 0)
+                self.assertEqual(supervised.call_args.args[1], ["prepare", "teacher", "evaluate"])
+                del spec.raw["teacher_only_evaluation"]
+                with self.assertRaisesRegex(ValueError, "explicit, hashed quality policy"):
+                    runner.main()
+
     def test_unqualified_wording_and_loader_evidence_refuse_the_staged_bundle(self):
         from pocket_training import runner
         with tempfile.TemporaryDirectory() as folder:
