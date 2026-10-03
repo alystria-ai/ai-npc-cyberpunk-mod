@@ -1,5 +1,25 @@
 # Companion recovery and movement admission
 
+## October 4 vehicle-exit correction
+
+After confirming the restored Porsche could be used, the user reported repeated
+idle/run transitions during catch-up and a missed first departure afterward.
+Source inspection found that waypoint execution repeated full-route validation
+every 0.8 seconds while the actor was moving. Partial validation invalidated its
+origin after 2 cm of movement; a deferred check could cancel movement and issue
+an idle hold.
+
+Waypoint execution now keeps its existing corridor checks, live movement
+lookahead and successor admission without that redundant full-route refresh.
+Recovery intent also survives the settling hold and is rebound to the next
+operation ticket. Old command handles and geometry proofs are still discarded.
+The existing six-metre route prefix is used for the remaining recovery journey;
+a successful direct native follow clears the marker.
+
+This correction is installed in `c50d2d2` and activates through CET Reload All
+Mods. No additional automated suite was run, following the user's request to
+reduce testing. Its visual outcome awaits ordinary gameplay feedback.
+
 This scoped note describes the October 3 repair. The parent movement and
 chauffeur documents remain the feature-level sources. Rendered acceptance is
 still required after the Lua install; the tests below establish ownership,
