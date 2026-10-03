@@ -1,0 +1,152 @@
+{
+  "schema": "experimental_conditioning_code_only_patch_v1",
+  "applied": false,
+  "upstream_revision": "41cbc84af539ea78a804ffca5f9c6edc1a22ce44",
+  "base_source_digest": "b86f98955b6c4776bb24a748b321408aba89d3b66f6b911f415ef4f4191a7666",
+  "candidate_source_digest": "241c7b85c8f696d108d758e4837eaacc58e2bcb96dbbeb14ae23f68587f8dd0a",
+  "base_trainer": "existing tracked scripts/pocket_training plus tracked CLI wrapper",
+  "files": [
+    {
+      "path": "scripts/Pocket-KaggleTrain.py",
+      "change": "modified",
+      "base_sha256": "0c935163ece8ae9e5f6c9351acfea3180b0e725bf774f197923a4db9f65d12d2",
+      "candidate_sha256": "5ce7cc869dfc27f6097aaa78a9045e422da590af067fcf004f8a29e7d1e5b282",
+      "candidate_bytes": 2049,
+      "exact_file": "files/scripts/Pocket-KaggleTrain.py"
+    },
+    {
+      "path": "scripts/pocket_training/conditioning.py",
+      "change": "added",
+      "base_sha256": null,
+      "candidate_sha256": "12f7240b4a6e50c0899a3dba922590422c54f7999a57c4a4615c99abe0df484f",
+      "candidate_bytes": 15048,
+      "exact_file": "files/scripts/pocket_training/conditioning.py"
+    },
+    {
+      "path": "scripts/pocket_training/paired_sampler.py",
+      "change": "added",
+      "base_sha256": null,
+      "candidate_sha256": "4c3222262563e1a9665683889ec02f9121993259a1426cdf9c4b0431669a2b5f",
+      "candidate_bytes": 13667,
+      "exact_file": "files/scripts/pocket_training/paired_sampler.py"
+    },
+    {
+      "path": "scripts/pocket_training/pilot_diagnostics.py",
+      "change": "added",
+      "base_sha256": null,
+      "candidate_sha256": "72ff1de33f23a4a49c51b138a0d15714359cd4ad1f58e5ecc628449db77755a8",
+      "candidate_bytes": 13973,
+      "exact_file": "files/scripts/pocket_training/pilot_diagnostics.py"
+    },
+    {
+      "path": "scripts/pocket_training/runner.py",
+      "change": "modified",
+      "base_sha256": "b70e3cdd35297b631e70673e9ead05bcf6e156af751cb5e59fb77803126e5b26",
+      "candidate_sha256": "057a19d05ad0cf6ce0cd86bf649bc13ffdac2fc3e07e9f20f671a0db6af00a7d",
+      "candidate_bytes": 160677,
+      "exact_file": "files/scripts/pocket_training/runner.py"
+    },
+    {
+      "path": "vendor/pocket-tts-training/source/pocket_tts/models/flow_lm.py",
+      "change": "modified",
+      "base_sha256": "c4595225b0f81dc30df0b3ef77c1bcee954357452f4ec1c38abf57ccb3f71119",
+      "candidate_sha256": "6c58cbf2ec4b027f822576b5fc0a7af6237b78c7feec3056929a3bd51605baf6",
+      "candidate_bytes": 10630,
+      "exact_file": "files/vendor/pocket-tts-training/source/pocket_tts/models/flow_lm.py"
+    },
+    {
+      "path": "vendor/pocket-tts-training/source/pocket_tts/models/model_state.py",
+      "change": "modified",
+      "base_sha256": "b55655e887e83ff529cfbccf748d94a23cfa8f6e4917fc96c4cfe403abde8848",
+      "candidate_sha256": "4dcd7453e040c23c68080712a34ae4fb68643cf6956479b5a497024716731159",
+      "candidate_bytes": 2596,
+      "exact_file": "files/vendor/pocket-tts-training/source/pocket_tts/models/model_state.py"
+    },
+    {
+      "path": "vendor/pocket-tts-training/source/pocket_tts/models/tts_model.py",
+      "change": "modified",
+      "base_sha256": "6ae39e7d7510f59062e9d3e88d20620c0bf399fe3cd690ba9f767ecee2dc2514",
+      "candidate_sha256": "514101d2b9e206984a94935f080feae572de043563a42083a8e1d2b03e87530b",
+      "candidate_bytes": 50461,
+      "exact_file": "files/vendor/pocket-tts-training/source/pocket_tts/models/tts_model.py"
+    },
+    {
+      "path": "vendor/pocket-tts-training/source/pocket_tts/modules/voice_identity.py",
+      "change": "added",
+      "base_sha256": null,
+      "candidate_sha256": "72f93de05e23243311203f961d6e075ffa90abd453cd1fdc1e132ff338149279",
+      "candidate_bytes": 10635,
+      "exact_file": "files/vendor/pocket-tts-training/source/pocket_tts/modules/voice_identity.py"
+    },
+    {
+      "path": "vendor/pocket-tts-training/source/pocket_tts/utils/config.py",
+      "change": "modified",
+      "base_sha256": "b4c2f71b2cfc7971a791ba6b0df3f9c97829471efa9ef3b6204d31025aa637c3",
+      "candidate_sha256": "66cdd51ef6fa43d48b286a28fdde6db6bbba85b43e08564a6c794336690a914e",
+      "candidate_bytes": 4668,
+      "exact_file": "files/vendor/pocket-tts-training/source/pocket_tts/utils/config.py"
+    },
+    {
+      "path": "vendor/pocket-tts-training/source/training/args.py",
+      "change": "modified",
+      "base_sha256": "230c76f6d26bdaf0e5543b1b3a9f336e4387bd46b533d1e79c0250f1b28017d4",
+      "candidate_sha256": "81641716f387fa592cba3980dcaf61c5f774f6549c4a4119ab81bcf725363098",
+      "candidate_bytes": 11340,
+      "exact_file": "files/vendor/pocket-tts-training/source/training/args.py"
+    },
+    {
+      "path": "vendor/pocket-tts-training/source/training/checkpointing.py",
+      "change": "modified",
+      "base_sha256": "baf82836ec9c6870c024e7663da9113cb1122b05989a4708fe0e8a793a12f078",
+      "candidate_sha256": "da40f540117317041cc854e94be1e6ed82782f13b40b473fc34516e5cdd958e9",
+      "candidate_bytes": 7257,
+      "exact_file": "files/vendor/pocket-tts-training/source/training/checkpointing.py"
+    },
+    {
+      "path": "vendor/pocket-tts-training/source/training/dataloader/types.py",
+      "change": "modified",
+      "base_sha256": "d20fd9b6c923b8230ad90c2f68ec3a95f0ea985cdb8b0c991d1f87e53dce65a6",
+      "candidate_sha256": "ee2f4c4811296c612c18ac27a091ed2a632e805724d7a409afcab5d315901cc5",
+      "candidate_bytes": 1395,
+      "exact_file": "files/vendor/pocket-tts-training/source/training/dataloader/types.py"
+    },
+    {
+      "path": "vendor/pocket-tts-training/source/training/modules/builders.py",
+      "change": "modified",
+      "base_sha256": "b05ddba05ad361b25056d075a3bee13cbfdcf0d60b7adabc2996bd9f562c4a81",
+      "candidate_sha256": "ee50aa5d0233c42b01772b5ab6b59d71182c0502029da6ef17c6f7cc021c1d80",
+      "candidate_bytes": 10258,
+      "exact_file": "files/vendor/pocket-tts-training/source/training/modules/builders.py"
+    },
+    {
+      "path": "vendor/pocket-tts-training/source/training/modules/conditioner.py",
+      "change": "modified",
+      "base_sha256": "e471dee5b85cbc2a4c409093303eaf17ff081e95c0e04e159d0e1ca6062ace64",
+      "candidate_sha256": "ac8ae0a2ae9c5952d4532d5d90dd3d87eef8b6cea5da8062534cf3fea35cf9b0",
+      "candidate_bytes": 5598,
+      "exact_file": "files/vendor/pocket-tts-training/source/training/modules/conditioner.py"
+    },
+    {
+      "path": "vendor/pocket-tts-training/source/training/modules/model.py",
+      "change": "modified",
+      "base_sha256": "57c93cc9c1906d7bca2ff8901f59832520c2ca2f937b08fccab81660dc86d009",
+      "candidate_sha256": "24f782aeb4247bc6b533ee7ede244a587532d0a8fba190dfbb30aac7f649de0d",
+      "candidate_bytes": 10925,
+      "exact_file": "files/vendor/pocket-tts-training/source/training/modules/model.py"
+    }
+  ],
+  "patch_sha256": "3ef354fc09e9d7e0342f00c19600ee9821937087fa9efc6114cd30c5e09b408a",
+  "excludes": [
+    "model weights",
+    "audio",
+    "cast ID map",
+    "private native data",
+    "generated receipts",
+    "credentials"
+  ],
+  "notes": [
+    "Exact changed-file copies are included so newline normalization cannot obscure candidate bytes.",
+    "Apply only to the exact base hashes in an isolated experiment; this packet does not activate production.",
+    "Actual smoke receipts and small controls remain in the ignored audit folder and are not embedded in this patch."
+  ]
+}

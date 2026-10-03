@@ -1,0 +1,1874 @@
+--- a/scripts/Pocket-KaggleTrain.py
++++ b/scripts/Pocket-KaggleTrain.py
+@@ -1,27 +1,48 @@
+-"""Offline, resumable official Pocket TTS adaptation and depth distillation.
++"""Matched pilot entry used by its supervisor and every distributed worker.
+ 
+-The account owner stages inputs and launches this script in a private notebook.
+-This script has no account API, credentials, network fetches, or game integration.
+-Run ``python Pocket-KaggleTrain.py --help`` for the local entry points.
++Final portable member: candidate/scripts/Pocket-KaggleTrain.py.
++The common immutable input's original entry remains unchanged.
+ """
+-
+ from __future__ import annotations
+ 
++import importlib.util
++import argparse
++import hashlib
++import json
+ import os
++from pathlib import Path
+ import sys
+ 
+ sys.dont_write_bytecode = True
+-os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
++os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
++for key, value in {'HF_HUB_OFFLINE':'1', 'TRANSFORMERS_OFFLINE':'1', 'HF_HUB_DISABLE_TELEMETRY':'1',
++                   'TOKENIZERS_PARALLELISM':'false', 'PYTORCH_CUDA_ALLOC_CONF':'expandable_segments:True',
++                   'OMP_NUM_THREADS':'2'}.items():
++    os.environ.setdefault(key, value)
+ 
+-os.environ.setdefault("HF_HUB_OFFLINE", "1")
+-os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+-os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+-os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+-os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+-os.environ.setdefault("OMP_NUM_THREADS", "2")
++def main():
++    candidate = Path(__file__).resolve().parents[1]
++    stage = candidate.parent
++    verifier = stage / 'expanded-verifier/bootstrap.py'
++    entry_args = argparse.ArgumentParser(add_help=False)
++    entry_args.add_argument('--spec', type=Path)
++    args, _ = entry_args.parse_known_args()
++    if args.spec is not None:
++        specification = args.spec.resolve()
++        raw = json.loads(specification.read_text(encoding='utf-8-sig'))
++        descriptor = raw['expanded_verifier_sources']['bootstrap']
++        declared = Path(descriptor['path'])
++        verifier = declared if declared.is_absolute() else specification.parent / declared
++        if hashlib.sha256(verifier.read_bytes()).hexdigest() != descriptor['sha256']:
++            raise ValueError('Pilot bootstrap differs from the explicit input source binding')
++    if not verifier.is_file():
++        raise ValueError('The exact expanded verifier is absent beside the pilot source')
++    spec = importlib.util.spec_from_file_location('matched_pilot_expanded_bootstrap', verifier)
++    bootstrap = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(bootstrap)
++    bootstrap.install(candidate)
++    from scripts.pocket_training.runner import main as runner_main
++    return runner_main()
+ 
+-from pocket_training.runner import main
+-
+-
+-if __name__ == "__main__":
++if __name__ == '__main__':
+     raise SystemExit(main())
+--- /dev/null
++++ b/scripts/pocket_training/conditioning.py
+@@ -0,0 +1,282 @@
++"""Opt-in finite A/B/C conditioning pilot; baseline behavior stays explicit.
++
++No speaker identifier is inserted into text. Each draw retains the official
++target crop/token RNG. Pairing and ID dropout use separate stateless streams.
++"""
++from __future__ import annotations
++
++import hashlib
++import json
++import math
++from pathlib import Path
++
++POLICY = "matched-pocket-conditioning-pilot-v2"
++WEIGHT_KEY = "flow_lm.voice_identity.embedding.weight"
++
++
++def encoded(value):
++    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
++
++
++def file_hash(path):
++    digest = hashlib.sha256()
++    with Path(path).open("rb") as stream:
++        for chunk in iter(lambda: stream.read(4 * 1024 * 1024), b""):
++            digest.update(chunk)
++    return digest.hexdigest()
++
++
++def speaker_key(signature):
++    canonical, native_voice, game, package, locale, *_ = signature
++    performer = "cyberpunk2077-en-v1"
++    if canonical == "mr-hands":
++        performer = "phantom-cast" if package == "phantom-liberty" else "base-cast"
++    return [canonical, native_voice, locale, performer]
++
++
++def options(spec):
++    return spec.raw.get("speaker_conditioning")
++
++
++def bound(base, value, field):
++    path = Path(value[field])
++    path = path if path.is_absolute() else base / path
++    if file_hash(path) != value[field + "_sha256"]:
++        raise ValueError(f"Conditioning {field} bytes changed")
++    return path
++
++
++def read_mapping(base, value):
++    mapping = json.loads(bound(base, value, "mapping").read_text(encoding="utf-8"))
++    keys = mapping["keys"]
++    if keys != sorted(set(keys)) or not keys:
++        raise ValueError("Conditioning mapping needs sorted unique native identities")
++    digest = hashlib.sha256(encoded(keys)).hexdigest()
++    if digest != mapping["mapping_sha256"]:
++        raise ValueError("Conditioning mapping identity differs")
++    rows = mapping["rows"]
++    if len({row["id"] for row in rows}) != len(rows):
++        raise ValueError("Conditioning mapping repeats a target row")
++    for row in rows:
++        sid = row["speaker_id"]
++        if type(sid) is not int or not 1 <= sid <= len(keys) or encoded(row["speaker_identity"]).decode() != keys[sid - 1]:
++            raise ValueError("Conditioning target ID does not match its native signature")
++        if row["speaker_identity"] != speaker_key(row["voice_signature"]):
++            raise ValueError("Speaker ID does not derive from authenticated native identity")
++    return mapping
++
++
++def identity_fields(raw, base):
++    value = raw.get("speaker_conditioning")
++    if value is None:
++        return None
++    required = {"policy", "arm", "pair_fraction", "id_dropout", "pilot_max_steps", "plan", "plan_sha256", "mapping", "mapping_sha256"}
++    reference_fields = {"reference_bindings", "reference_bindings_sha256"}
++    optional = reference_fields | {"id_learning_rate_scale"}
++    if set(value) - required - optional or not required <= set(value):
++        raise ValueError("Conditioning pilot fields differ from the explicit v2 contract")
++    if value["policy"] != POLICY or value["arm"] not in {"baseline", "paired", "hybrid"}:
++        raise ValueError("Unknown conditioning pilot")
++    for key in ("pair_fraction", "id_dropout"):
++        if not isinstance(value[key], (int, float)) or not math.isfinite(value[key]) or not 0 <= value[key] <= 1:
++            raise ValueError("Conditioning probabilities must be finite proportions")
++    if value["arm"] == "baseline" and value["pair_fraction"] != 0:
++        raise ValueError("Baseline arm must retain the official same-utterance prompt")
++    if value["arm"] != "hybrid" and value["id_dropout"] != 0:
++        raise ValueError("Audio-only arms have no ID-dropout feature")
++    id_lr_scale = value.get("id_learning_rate_scale", 1.)
++    if type(id_lr_scale) not in (int, float) or not math.isfinite(id_lr_scale) or not .1 <= id_lr_scale <= 10:
++        raise ValueError("ID learning-rate scale must be explicit and within0.1..10")
++    if value["arm"] != "hybrid" and id_lr_scale != 1:
++        raise ValueError("Audio-only arms cannot use an ID learning-rate override")
++    maximum = value["pilot_max_steps"]
++    if type(maximum) is not int or not 1 <= maximum <= 500 or raw.get("teacher_max_steps") != maximum:
++        raise ValueError("The finite pilot must declare the same 1..500 teacher step bound")
++    if raw.get("speaker_balanced_sampling", False):
++        raise ValueError("Matched pilot uses the frozen unique-row permutation, not repeated speaker sampling")
++    plan = json.loads(bound(base, value, "plan").read_text(encoding="utf-8"))
++    mapping = read_mapping(base, value)
++    if (mapping["source_plan_sha256"] != value["plan_sha256"] or mapping["selected_sha256"] != plan["selected_sha256"]
++            or mapping["choice_sha256"] != plan["choice_sha256"]):
++        raise ValueError("Mapping, pairing and selected-corpus identities differ")
++    expected_rows = {row["id"]: row["voice_signature"] for row in plan["rows"]}
++    if {row["id"]: row["voice_signature"] for row in mapping["rows"]} != expected_rows:
++        raise ValueError("Mapping rows differ from the native pairing policy")
++    if set(mapping["fallback_row_ids"]) != {row["id"] for row in plan["source_blocked_fallback"]}:
++        raise ValueError("Unknown-ID fallback rows differ from the pairing plan")
++    if value["arm"] == "hybrid":
++        if not reference_fields <= set(value):
++            raise ValueError("Hybrid evaluation needs a source-reviewed reference-ID binding file")
++        validate_reference_bindings(base, value, mapping)
++    elif set(value) & reference_fields:
++        raise ValueError("Audio-only pilots must not claim ID-bound references")
++    return {**value, "id_learning_rate_scale": id_lr_scale, "implementation_sha256": file_hash(__file__),
++            "sampler_sha256": file_hash(Path(__file__).with_name("paired_sampler.py")),
++            "known_ids": len(mapping["keys"]), "table_capacity": len(mapping["keys"])}
++
++
++def validate_reference_bindings(base, value, mapping):
++    data = json.loads(bound(base, value, "reference_bindings").read_text(encoding="utf-8"))
++    if data.get("schema") != "reviewed-reference-speaker-ids-v1" or data.get("mapping_sha256") != mapping["mapping_sha256"]:
++        raise ValueError("Reference-ID bindings use another mapping")
++    seen = set()
++    for row in data["references"]:
++        identity = (row["reference_id"], row["reference_sha256"])
++        if identity in seen or len(row["reference_sha256"]) != 64:
++            raise ValueError("Reference-ID bindings repeat or omit an exact reference hash")
++        seen.add(identity)
++        sid = row["speaker_id"]
++        if type(sid) is not int or not 0 <= sid <= len(mapping["keys"]):
++            raise ValueError("Invalid reference speaker ID")
++        if sid:
++            if row.get("speaker_identity") != json.loads(mapping["keys"][sid - 1]) or not row.get("segment_proofs"):
++                raise ValueError("Known reference ID needs matching native segment provenance")
++            for proof in row["segment_proofs"]:
++                if proof.get("speaker_identity") != row["speaker_identity"]:
++                    raise ValueError("A concatenated reference mixes native performance identities")
++                path = Path(proof["path"])
++                path = path if path.is_absolute() else base / path
++                if file_hash(path) != proof["sha256"]:
++                    raise ValueError("Reference segment proof changed")
++        elif not row.get("fallback_reason"):
++            raise ValueError("Reference-only fallback must state its uncertainty")
++    return data
++
++
++def configure(spec, config):
++    value = options(spec)
++    if value and value["arm"] == "hybrid":
++        mapping = read_mapping(spec.base, value)
++        config["flow_lm"]["voice_identity"] = {"abi": "pocket-voice-identity-residual-v1",
++            "keys": mapping["keys"], "mapping_sha256": mapping["mapping_sha256"], "capacity": len(mapping["keys"])}
++    elif config["flow_lm"].get("voice_identity") is not None:
++        raise ValueError("Audio-only arm cannot silently load hybrid configuration")
++
++
++def configure_args(spec, args, stage):
++    value = options(spec)
++    if value and value["arm"] == "hybrid":
++        # Explicit new feature only for the pinned baseline teacher warm start.
++        # Distillation starts from the trained hybrid teacher instead.
++        args.voice_identity_new_init = stage == "teacher"
++        import yaml
++        config = yaml.safe_load(Path(args.model_config).read_text(encoding="utf-8"))
++        args.voice_identity_init_source_sha256 = file_hash(config["weights_path"]) if stage == "teacher" else ""
++
++
++def make_loader(spec, args, model, mimi):
++    from .runner import IndexedBatches
++    value = options(spec)
++    if value is None:
++        return IndexedBatches(args, model, mimi, balanced=bool(spec.option("speaker_balanced_sampling", False)))
++    from .paired_sampler import PairedIndexedBatches
++    cache_path = spec.output / "prepare/teacher-loader-cache.json"
++    cache_kwargs = {}
++    if cache_path.is_file():
++        prepared = json.loads((spec.output / "prepared.json").read_text())
++        cache_sha = file_hash(cache_path)
++        if prepared.get("input_identity") != spec.identity or prepared.get("loader_cache_receipt_sha256") != cache_sha:
++            raise ValueError("Prepared pilot does not bind the exact actual cache receipt")
++        cache_kwargs = {"actual_cache_receipt": cache_path, "actual_cache_receipt_sha256": cache_sha}
++    loader = PairedIndexedBatches(args, model, mimi, policy_path=bound(spec.base, value, "plan"),
++        policy_sha256=value["plan_sha256"], pair_fraction=value["pair_fraction"], **cache_kwargs)
++    if value["arm"] == "hybrid":
++        mapping = read_mapping(spec.base, value)
++        bank = getattr(model.flow_lm, "voice_identity", None)
++        if bank is None or bank.mapping_sha256 != mapping["mapping_sha256"] or bank.capacity != len(mapping["keys"]):
++            raise ValueError("Actual training model and loader speaker mappings differ")
++        ids = {row["id"]: row["speaker_id"] for row in mapping["rows"]}
++        ids.update({rid: 0 for rid in mapping["fallback_row_ids"]})
++        loader.set_identity_policy(ids, mapping["mapping_sha256"], value["id_dropout"])
++    elif getattr(model.flow_lm, "voice_identity", None) is not None:
++        raise ValueError("Audio-only pilot loader received a hybrid model")
++    return loader
++
++
++def forward_kwargs(batch):
++    return {"speaker_ids": batch.speaker_ids, "speaker_id_keep": batch.speaker_id_keep}
++
++
++def reference_id(spec, reference):
++    value = options(spec)
++    if not value or value["arm"] != "hybrid":
++        return None
++    mapping = read_mapping(spec.base, value)
++    bindings = validate_reference_bindings(spec.base, value, mapping)
++    matches = [r for r in bindings["references"] if (r["reference_id"], r["reference_sha256"]) == (reference["id"], reference["sha256"])]
++    if len(matches) != 1:
++        raise ValueError("No unique reviewed ID/fallback for this exact conditioning reference")
++    return matches[0]["speaker_id"]
++
++
++def checkpoint_headers(spec, payload):
++    """Used by the runner's actual atomic writer, including all best snapshots."""
++    value = options(spec)
++    state = payload.get("model", {})
++    vector = state.get(WEIGHT_KEY)
++    if not value or value["arm"] != "hybrid":
++        if vector is not None:
++            raise ValueError("Audio-only checkpoint contains an unbound identity table")
++        return {}
++    mapping = read_mapping(spec.base, value)
++    from pocket_tts.modules.voice_identity import ABI
++    import torch
++    if vector is None or vector.ndim != 2 or vector.shape[0] != len(mapping["keys"]) + 1:
++        raise ValueError("Hybrid runner checkpoint omitted or reshaped its identity table")
++    def header(tensor):
++        if tensor.shape != vector.shape or not bool(torch.isfinite(tensor).all()) or not bool((tensor[0] == 0).all()):
++            raise ValueError("Invalid hybrid checkpoint table or nonzero unknown slot")
++        return {"abi": ABI, "mapping_sha256": mapping["mapping_sha256"], "capacity": len(mapping["keys"]),
++            "known_ids": len(mapping["keys"]), "dim": vector.shape[1], "unknown_id": 0,
++            "table_sha256": hashlib.sha256(tensor.detach().float().cpu().contiguous().numpy().astype("<f4", copy=False).tobytes()).hexdigest()}
++    headers = {"voice_identity": header(vector)}
++    if payload.get("ema") is not None:
++        if WEIGHT_KEY not in payload["ema"]:
++            raise ValueError("Hybrid runner EMA omitted its identity table")
++        headers["voice_identity_ema"] = header(payload["ema"][WEIGHT_KEY])
++    return headers
++
++
++def verify_checkpoint(spec, payload):
++    headers = checkpoint_headers(spec, payload)
++    for key in ("voice_identity", "voice_identity_ema"):
++        if payload.get(key) != headers.get(key):
++            raise ValueError("Checkpoint identity mapping/table metadata does not match selected bytes")
++
++
++def pilot_rollout_steps(raw):
++    value = raw.get("speaker_conditioning")
++    return [0, 250, value["pilot_max_steps"]] if value and value["pilot_max_steps"] > 250 else ([0, value["pilot_max_steps"]] if value else [0, 500, 1000, 1500, 2000])
++
++
++def diagnostics(model, ema):
++    bank = getattr(model.flow_lm, "voice_identity", None)
++    if bank is None:
++        return {}
++    import torch
++    with torch.no_grad():
++        return {"speaker_id_raw_l2": float(bank.embedding.weight.float().norm()),
++            "speaker_id_raw_RMS": float(bank.embedding.weight[1:].float().square().mean().sqrt()),
++            "speaker_id_gradient_l2": (None if bank.embedding.weight.grad is None else float(bank.embedding.weight.grad.float().norm())),
++            "speaker_id_gradient_RMS": (None if bank.embedding.weight.grad is None else float(bank.embedding.weight.grad[1:].float().square().mean().sqrt())),
++            "speaker_id_ema_l2": float(ema.shadow[WEIGHT_KEY].float().norm()),
++            "speaker_id_nonzero_rows": int((bank.embedding.weight[1:].abs().sum(dim=1) > 0).sum())}
++
++
++def configure_optimizer(spec, model, optimizer):
++    value = options(spec)
++    if not value or value["arm"] != "hybrid":
++        return
++    parameter = model.flow_lm.voice_identity.embedding.weight
++    matched = [group for group in optimizer.param_groups if any(p is parameter for p in group["params"])]
++    if len(matched) != 1 or parameter in optimizer.state:
++        raise ValueError("ID optimizer group must be established exactly once before any update/resume")
++    original = matched[0]
++    if original.get("use_muon", False):
++        raise ValueError("Speaker embeddings must use the existing auxiliary Adam optimizer")
++    original["params"] = [p for p in original["params"] if p is not parameter]
++    group = {key: value for key, value in original.items() if key != "params"}
++    scale = value.get("id_learning_rate_scale", 1.)
++    group.update(params=[parameter], lr_scale=original.get("lr_scale", 1.) * scale, lr=original["lr"] * scale,
++        conditioning_id_group=True)
++    optimizer.add_param_group(group)
+--- /dev/null
++++ b/scripts/pocket_training/paired_sampler.py
+@@ -0,0 +1,221 @@
++"""Opt-in data-only cross-utterance sampler, without a neural speaker-ID feature.
++
++Uses the pinned IndexedBatches/DataLoader and returns the same official Batch.
++No target text, tokenizer, architecture, loss, or inference behavior is altered.
++Not wired into the real runner. A candidate integration must bind policy/hash/
++fraction in spec.identity and resolved checkpoint options before a neural pilot.
++"""
++from __future__ import annotations
++
++import hashlib
++import json
++import math
++import random
++from pathlib import Path
++
++from .runner import IndexedBatches
++
++
++def keyed_rng(seed, global_index, target_id, policy_id, stream):
++    key = json.dumps([seed, global_index, target_id, policy_id, stream], separators=(",", ":")).encode()
++    return random.Random(int.from_bytes(hashlib.sha256(key).digest(), "big"))
++
++
++class PairedIndexedBatches(IndexedBatches):
++    """A/B candidate: sample B exactly as baseline, optionally substitute A's prompt.
++
++    `global_index` is the same global draw index already used by the runner for
++    rank/microbatch/retry/resume. Pair and donor draws use separate stateless RNGs.
++    Sparse or excluded rows retain the exact baseline sample. Unreadable changed
++    files raise; they never silently move a draw to another speaker or target.
++    """
++
++    def __init__(self, args, model, mimi, *, policy_path, policy_sha256,
++                 pair_fraction=.5, allow_subset_for_controls=False,
++                 actual_cache_receipt=None, actual_cache_receipt_sha256=None):
++        if not 0 <= pair_fraction <= 1 or not math.isfinite(pair_fraction):
++            raise ValueError("Pair fraction must be finite and in [0,1]")
++        raw = Path(policy_path).read_bytes()
++        if hashlib.sha256(raw).hexdigest() != policy_sha256:
++            raise ValueError("Pair policy identity differs")
++        self.policy = json.loads(raw)
++        self.policy_id = self.policy["identity_sha256"]
++        identity_value = {k: v for k, v in self.policy.items() if k not in ("summary", "identity_sha256")}
++        identity_bytes = json.dumps(identity_value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
++        if hashlib.sha256(identity_bytes).hexdigest() != self.policy_id:
++            raise ValueError("Policy semantic identity is invalid")
++        if (self.policy["codec_sha256"] != "29335a056899c615a95664894c691222d4eb3b2c060009bacbaf0f676cb8ce2b"
++                or self.policy["prompt_sec"] != args.data.max_voice_prompt_sec
++                or self.policy["target_sec"] != args.data.max_duration_sec
++                or self.policy["frame_rate"] != mimi.frame_rate
++                or self.policy["sample_rate"] != mimi.sample_rate):
++            raise ValueError("Real crop/codec recipe differs from the reviewed pairing plan")
++        super().__init__(args, model, mimi, balanced=False)
++        self.pair_fraction = pair_fraction
++        self.plan_rows = {r["id"]: r for r in self.policy["rows"]}
++        self.original_indices = {r["index"]: r["id"] for r in self.policy["rows"]}
++        self.allowed = {r["id"]: r for r in self.policy["selected_source_records"]}
++        self.train_rows = [json.loads(self.loader.entries[i]) for i in range(self.size)]
++        self.index_by_id = {r["id"]: i for i, r in enumerate(self.train_rows)}
++        if len(self.index_by_id) != self.size or not set(self.index_by_id) <= set(self.allowed):
++            raise ValueError("Duplicate or TRAIN-external target/reference rows")
++        if not allow_subset_for_controls and set(self.index_by_id) != set(self.allowed):
++            raise ValueError("A real pilot must use the exact frozen selected TRAIN set")
++        self.control_subset = bool(allow_subset_for_controls)
++        self.cached = bool(self.loader.stitch_frames)
++        if any(bool(r.get("latents_file")) != self.cached for r in self.train_rows):
++            raise ValueError("Official collation does not support mixed raw/cached rows")
++        if self.cached:
++            metadata = json.loads(Path(args.data.train_jsonl).with_suffix(".meta.json").read_text())
++            if metadata.get("mimi_hash") != self.policy["codec_sha256"]:
++                raise ValueError("Runtime cache uses another Mimi codec")
++        self.runtime_cache_records = {}
++        if actual_cache_receipt is not None:
++            cache_bytes = Path(actual_cache_receipt).read_bytes()
++            if not actual_cache_receipt_sha256 or hashlib.sha256(cache_bytes).hexdigest() != actual_cache_receipt_sha256:
++                raise ValueError("Runtime source/cache receipt changed")
++            cache_value = json.loads(cache_bytes)
++            if (cache_value.get("schema") != "teacher_actual_loader_cache_v2"
++                    or cache_value.get("mimi_encode_hash") != self.policy["codec_sha256"]):
++                raise ValueError("Runtime source/cache receipt uses another format or codec")
++            self.runtime_cache_records = {r["id"]: r for r in cache_value["rows"]}
++        self.verified_latents = set()
++        for row in self.train_rows:
++            expected = self.allowed[row["id"]]
++            s = expected["sourceIdentity"]
++            if (row["transcript"] != expected["transcript"] or row["duration"] != expected["duration"]
++                    or row.get("audio_sha256") != s["wav"]
++                    or row.get("source_wem_sha256") != s["wem"]
++                    or row.get("pcm_sha256") != s["pcm"]
++                    or row.get("source_row_sha256") != s["sourceRow"]):
++                raise ValueError("Runtime target/reference source tuple differs")
++            if row.get("source_panel") in {"dev", "test", "teacher_conditional", "teacher_regression", "reference"}:
++                raise ValueError("An explicit evaluation/reference role cannot enter the TRAIN pool")
++            planned = self.plan_rows.get(row["id"])
++            if planned and (row.get("words") != planned["words"] or row.get("start", 0) != planned["start"]):
++                raise ValueError("Native aligned words/start differ from the plan")
++            if hashlib.sha256(Path(row["path"]).read_bytes()).hexdigest() != s["wav"]:
++                raise ValueError("Runtime target/reference PCM container changed")
++            if self.cached:
++                self._check_cache(row)
++        self.last_receipts = []
++        self.identity_policy = None
++
++    def set_identity_policy(self, ids, mapping_sha256, dropout):
++        if set(ids) != set(self.allowed):
++            raise ValueError("ID mapping/fallback must cover the exact selected TRAIN rows")
++        self.identity_policy = (dict(ids), mapping_sha256, dropout)
++
++    def _check_cache(self, row):
++        from pocket_training import teacher_data
++        from training.scripts.precompute_latents import _decode_chunk
++
++        planned = self.plan_rows.get(row["id"])
++        record = self.runtime_cache_records.get(row["id"]) or (
++            planned["cache"]["source_record"] if planned and planned.get("cache") else None)
++        if record is None:
++            raise ValueError("No independently source-bound actual cache record; use raw mode or qualify a new full-corpus cache")
++        path = self.loader.latents_root / row["latents_file"]
++        expected = record["latents_sha256"]
++        if not expected or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
++            raise ValueError("Runtime cache file changed or has no source-bound hash")
++        # Reuse the real cache verifier and actual pinned resampler rather than
++        # treating a same-shape tensor or another row's hash as qualification.
++        array, lengths = _decode_chunk([(row["path"], float(row.get("start", 0)), float(row["duration"]), self.loader.sample_rate)])
++        samples = lengths[0]
++        decoded_sha = hashlib.sha256(array[0, 0, :samples].astype("<f4", copy=False).tobytes()).hexdigest()
++        teacher_data.verify_cache_row(row, record, path, samples=samples, decoded_sha=decoded_sha,
++            sample_rate=self.loader.sample_rate, frame_rate=self.loader.frame_rate,
++            codec_hash=self.policy["codec_sha256"], dimension=32)
++        # Shape/finiteness inspection only; no Mimi or neural model runs here.
++        lat = self.loader._load_latents(row["latents_file"])
++        import torch
++        if lat.ndim != 2 or lat.shape[0] < 2 or lat.shape[1] != 32 or lat.dtype != torch.float32 or not bool(torch.isfinite(lat).all()):
++            raise ValueError("Runtime cache is malformed/nonfinite")
++        self.verified_latents.add(row["id"])
++
++    def _index_at(self, global_index):
++        # Exactly IndexedBatches balanced=False. No extra speaker repetition.
++        epoch, within = divmod(global_index, self.size)
++        if epoch != self.epoch:
++            self.order = list(range(self.size))
++            random.Random(self.args.seed + epoch).shuffle(self.order)
++            self.epoch = epoch
++        return self.order[within]
++
++    def sample_at(self, global_index):
++        if not isinstance(global_index, int) or global_index < 0:
++            raise ValueError("A nonnegative exact global sample index is required")
++        index = self._index_at(global_index)
++        target = self.train_rows[index]
++        self.loader.rng.seed(self.args.seed + 104729 * global_index)
++        baseline = self.loader._sample(self.loader.get_entry(index))
++        receipt = {"global_index": global_index, "target_id": target["id"], "mode": "baseline",
++                   "policy_identity": self.policy_id, "neural_forward_called": False}
++        planned = self.plan_rows.get(target["id"])
++        if not planned:
++            return baseline, {**receipt, "fallback": "source/voice-version/delivery ambiguity excluded from cross pairing"}
++        candidates = [self.index_by_id[self.original_indices[i]] for i in planned["donors"]
++                      if self.original_indices[i] in self.index_by_id]
++        if not candidates:
++            return baseline, {**receipt, "fallback": "no independent approved TRAIN donor in this manifest"}
++        gate = keyed_rng(self.args.seed, global_index, target["id"], self.policy_id, "pair-decision")
++        if gate.random() >= self.pair_fraction:
++            return baseline, {**receipt, "fallback": "deterministic baseline arm draw"}
++        donor_rng = keyed_rng(self.args.seed, global_index, target["id"], self.policy_id, "donor-and-prefix")
++        donor_index = donor_rng.choice(candidates)
++        donor = self.train_rows[donor_index]
++        donor_plan = self.plan_rows[donor["id"]]
++        if (donor_plan["voice_signature"] != planned["voice_signature"] or donor["id"] == target["id"]
++                or donor_plan["actual_shape_pcm_sha256"] == planned["actual_shape_pcm_sha256"]):
++            raise ValueError("Impostor or self-reference escaped source pairing gate")
++        # Preserve the baseline cut/punctuation/prompt RNG for diagnostics and any
++        # subsequent official use. Donor selection/trim uses its own RNG object.
++        saved = self.loader.rng
++        self.loader.rng = donor_rng
++        try:
++            entry = self.loader.get_entry(donor_index)
++            if self.cached:
++                if donor["id"] not in self.verified_latents:
++                    raise ValueError("Donor is not actually cache-qualified")
++                lat = self.loader._load_latents(entry.latents_file)
++                cut_frames, _ = self.loader._latent_cut(entry, lat.shape[0])
++                if cut_frames <= 0:
++                    raise ValueError("Donor has no independent aligned-prefix cut")
++                prompt = self.loader._latent_prompt(lat, cut_frames)
++                paired = (baseline[0], baseline[1], prompt, baseline[3], baseline[4])
++                donor_frames = prompt.shape[0]
++            else:
++                from training.dataloader import audio
++                chosen = self.loader._choose_cut(entry)
++                if chosen is None:
++                    raise ValueError("Donor has no independent aligned-prefix cut")
++                cut, _ = chosen
++                prompt, samples = self.loader._cap_prompt(audio._load_window(entry.path, entry.start, cut, self.loader.sample_rate))
++                paired = (baseline[0], baseline[1], prompt, samples)
++                donor_frames = max(1, int(samples * self.loader.frame_rate / self.loader.sample_rate))
++        finally:
++            self.loader.rng = saved
++        if not 1 <= donor_frames <= int(self.loader.max_voice_prompt_sec * self.loader.frame_rate):
++            raise ValueError("Donor escaped the actual 5-second codec frame cap")
++        return paired, {**receipt, "mode": "cross-utterance", "donor_id": donor["id"], "donor_frames": donor_frames,
++                        "donor_scene_policy": planned["donor_scene_policy"], "target_preserved": True,
++                        "transcript_name_or_id_added": False}
++
++    def batch(self, global_start):
++        samples, receipts = [], []
++        for global_index in range(global_start, global_start + self.args.batch_size):
++            sample, receipt = self.sample_at(global_index)
++            samples.append(sample)
++            receipts.append(receipt)
++        self.last_receipts = receipts
++        batch = self.loader._collate(samples)
++        if self.identity_policy is not None:
++            import torch
++            from pocket_tts.modules.voice_identity import independent_id_keep
++            ids, mapping_sha256, dropout = self.identity_policy
++            batch.speaker_ids = torch.tensor([ids[r["target_id"]] for r in receipts], dtype=torch.long)
++            batch.speaker_id_keep = independent_id_keep(self.args.seed,
++                [r["global_index"] for r in receipts], [r["target_id"] for r in receipts],
++                mapping_sha256, dropout)
++        return batch
+--- /dev/null
++++ b/scripts/pocket_training/pilot_diagnostics.py
+@@ -0,0 +1,216 @@
++"""Small, opt-in diagnostic panel for the matched500-update conditioning pilot.
++
++This never selects a best model or grants final teacher/student acceptance.
++The normal eighteen-probe teacher quality path remains in runner.py.
++"""
++from __future__ import annotations
++
++from contextlib import nullcontext
++from dataclasses import replace
++import hashlib
++import json
++from pathlib import Path
++import time
++
++VOICES = ["johnny-silverhand", "judy-alvarez", "panam-palmer", "jackie-welles", "evelyn-parker", "kerry-eurodyne", "misty-olszewski", "alex"]
++
++
++def enabled(spec):
++    return spec.raw.get("pilot_diagnostic_only") is True
++
++
++def identity_fields(raw, base):
++    from . import conditioning
++    value = raw.get("speaker_conditioning")
++    if not value or value["pilot_max_steps"] <= 1:
++        return None
++    if raw.get("pilot_diagnostic_only") is not True:
++        raise ValueError("A conditioning pilot must explicitly be diagnostic-only")
++    path = Path(raw["pilot_diagnostic_manifest"])
++    path = path if path.is_absolute() else base / path
++    if conditioning.file_hash(path) != raw["pilot_diagnostic_manifest_sha256"]:
++        raise ValueError("Pilot diagnostic panel changed")
++    panel = json.loads(path.read_text(encoding="utf-8"))
++    rows = panel if isinstance(panel, list) else panel["references"]
++    if isinstance(rows, dict):
++        rows = list(rows.values())
++    if [row["id"] for row in rows] != VOICES or any(len(row["texts"]) != 2 for row in rows):
++        raise ValueError("Pilot panel must contain the exact8 known-ID voices and2 common prompts")
++    if any(row["texts"] != rows[0]["texts"] for row in rows):
++        raise ValueError("Pilot voices must use common prompts")
++    audio_hashes = []
++    for row in rows:
++        audio = Path(row["path"])
++        audio = audio if audio.is_absolute() else base / audio
++        digest = conditioning.file_hash(audio)
++        if digest != row["sha256"]:
++            raise ValueError("Pilot reference audio changed")
++        audio_hashes.append(digest)
++    expected = [{"step": 0, "weights": ["ema"], "shared_across_arms": True},
++        {"step": 250, "weights": ["raw"], "reference_ids": VOICES[:6], "text_indices": [0], "optional": True},
++        {"step": 500, "weights": ["raw", "ema"]}]
++    if value["pilot_max_steps"] != 500 or raw.get("pilot_diagnostic_schedule") != expected:
++        raise ValueError("Diagnostic pilot schedule must be exactly shared0, optional raw250, raw+EMA500")
++    if not raw.get("pilot_shared_initial_dir"):
++        raise ValueError("Pilot needs an explicit common initial-panel result directory")
++    for key, expected_value in (("sample_decode_steps", 2), ("sample_temperature", .3), ("sample_seed", 1337), ("sample_max_seconds", 30)):
++        if raw.get(key) != expected_value:
++            raise ValueError("Pilot teacher sampling must retain CFG2/decode2/temp.3/seed1337/max30s")
++    return {"panel": raw["pilot_diagnostic_manifest"], "panel_sha256": raw["pilot_diagnostic_manifest_sha256"],
++        "reference_audio_sha256": audio_hashes, "schedule": expected, "shared_initial_dir": raw["pilot_shared_initial_dir"],
++        "implementation_sha256": conditioning.file_hash(__file__), "diagnostic_only": True, "automatic_promotion": False}
++
++
++def _base_model_digest(model, stop):
++    digest = hashlib.sha256()
++    for name, tensor in sorted(model.flow_lm.state_dict().items()):
++        if stop.requested():
++            raise TimeoutError("Pilot diagnostic weight hashing interrupted")
++        if name.startswith("voice_identity."):
++            if bool((tensor != 0).any()):
++                raise ValueError("Initial panel reuse requires an exactly zero new ID table")
++            continue
++        value = tensor.detach().cpu().contiguous()
++        digest.update(name.encode() + b"\0" + str(value.dtype).encode() + b"\0")
++        digest.update(str(tuple(value.shape)).encode() + b"\0" + value.numpy().tobytes())
++    return digest.hexdigest()
++
++
++def inspect_samples(spec, target, label, samples, stop):
++    from . import runner, rollout
++    import gc
++    import torch
++    processor = ctc = None
++    inspected = []
++    try:
++        if spec.raw.get("align_model_dir"):
++            processor, ctc = rollout._load_ctc(spec)
++        for sample in samples:
++            if stop.requested():
++                raise TimeoutError("Pilot audio/wording inspection interrupted")
++            path = target / "comparisons" / label / sample["audio"]
++            if runner.sha256_file(path) != sample["audio_sha256"]:
++                raise ValueError("Generated pilot WAV changed")
++            measured = rollout.sample_diagnostics(sample, rollout._inspect_audio(path))
++            if ctc is not None:
++                transcript = rollout._transcribe(path, measured["measured_duration_seconds"], processor, ctc, torch)
++                measured.update(transcript=transcript, word_errors=rollout.word_errors(sample["text"], transcript), asr_tentative=True)
++            else:
++                measured.update(word_errors=None, asr_status="pending_separate_qualification_no_local_asset")
++            inspected.append(measured)
++        return inspected
++    finally:
++        del processor, ctc
++        gc.collect()
++
++
++def run(spec, model, mimi, ema, device, step, stop, rank, world):
++    from . import runner, conditioning
++    if not enabled(spec):
++        return
++    matches = [entry for entry in spec.raw["pilot_diagnostic_schedule"] if entry["step"] == step]
++    if not matches:
++        return
++    entry = matches[0]
++    import torch
++    failed = False
++    if rank == 0:
++        saved_rng = runner.capture_rng(torch, model)
++        was_training = model.training
++        try:
++            arm = conditioning.options(spec)["arm"]
++            panel_path = spec.asset("pilot_diagnostic_manifest")
++            panel_spec = replace(spec, raw={**spec.raw, "reference_manifest": str(panel_path)})
++            references = runner.references(panel_spec)
++            if entry.get("optional") and stop.monotonic_deadline - time.monotonic() < 300:
++                runner.atomic_json(spec.output / f"pilot-step{step:06d}-skipped.json", {"step": step, "reason": "less_than300seconds_remaining", "diagnostic_only": True})
++            else:
++                if entry.get("reference_ids"):
++                    references = [r for r in references if r["id"] in entry["reference_ids"]]
++                if entry.get("text_indices"):
++                    references = [{**r, "texts": [r["texts"][i] for i in entry["text_indices"]]} for r in references]
++                target = spec.output
++                if step == 0:
++                    target = runner.local_path(spec.base, spec.raw["pilot_shared_initial_dir"], exists=False)
++                    if target == spec.base or target == spec.source or target in spec.source.parents or spec.source in target.parents:
++                        raise ValueError("Shared pilot output cannot overwrite source or input root")
++                    with runner.ema_weights(model, ema):
++                        base_digest = _base_model_digest(model, stop)
++                    shared_identity = {"base_weight_state_sha256": base_digest,
++                        "teacher_anchor_sha256": spec.raw["teacher_anchor_expected_sha256"],
++                        "panel_sha256": spec.raw["pilot_diagnostic_manifest_sha256"],
++                        "reference_sha256": [r["sha256"] for r in references],
++                        "sampler_sha256": runner.sha256_file(Path(runner.__file__)),
++                        "source_digest": spec.raw["source_digest"], "diagnostic_code_sha256": conditioning.file_hash(__file__),
++                        "cfg": 2., "decode_steps": 2, "temperature": .3, "seed": 1337, "max_seconds": 30}
++                    shared_hash = hashlib.sha256(conditioning.encoded(shared_identity)).hexdigest()
++                    receipt_path = target / "shared-initial.json"
++                    if arm != "baseline":
++                        shared = runner.read_json(receipt_path, {})
++                        if shared.get("identity") != shared_identity or shared.get("identity_sha256") != shared_hash or len(shared.get("samples", [])) != 16:
++                            raise ValueError("Shared initial baseline is absent or differs; no silent regeneration")
++                        for sample in shared["samples"]:
++                            if runner.sha256_file(target / "comparisons/pilot-step000000-ema" / sample["audio"]) != sample["audio_sha256"]:
++                                raise ValueError("Shared initial baseline WAV changed")
++                        runner.atomic_json(spec.output / "pilot-step000000-reuse.json", {"source": str(receipt_path),
++                            "source_sha256": runner.sha256_file(receipt_path), "source_arm": "baseline", "zero_id_table": True,
++                            "input_identity": spec.identity, "diagnostic_only": True, "automatic_promotion": False})
++                        references = []
++                if references:
++                    target.mkdir(parents=True, exist_ok=True)
++                    filtered = target / f"pilot-panel-step{step:06d}.json"
++                    runner.atomic_json(filtered, {"references": references})
++                    probe = replace(spec, output=target, raw={**spec.raw, "reference_manifest": str(filtered), "sample_decode_steps": 2})
++                    for weight_kind in entry["weights"]:
++                        label = f"pilot-step{step:06d}-{weight_kind}"
++                        with runner.ema_weights(model, ema) if weight_kind == "ema" else nullcontext():
++                            from .rollout import _state_digest
++                            weights_hash = _state_digest(model.flow_lm, stop)
++                            source_identity = shared_hash if step == 0 else spec.identity
++                            selection = f"pilot:{source_identity}:{step}:{weight_kind}:{weights_hash}:{spec.raw['pilot_diagnostic_manifest_sha256']}"
++                            complete = runner.generate_samples(probe, model, mimi, device, label, 2., stop,
++                                selection_identity=selection, role="teacher")
++                        if not complete:
++                            raise TimeoutError("Pilot diagnostic generation interrupted")
++                        samples = runner.read_json(target / "comparisons" / label / "samples.json", [])
++                        expected_count = sum(len(r["texts"]) for r in references)
++                        if len(samples) != expected_count:
++                            raise ValueError("Pilot diagnostic sample coverage differs")
++                        receipt = {"step": step, "weights": weight_kind, "input_identity": spec.identity,
++                            "weights_sha256": weights_hash, "samples": samples, "cfg": 2., "decode_steps": 2,
++                            "diagnostic_only": True, "automatic_promotion": False, "listening_qualified": False}
++                        receipt["audio_and_word_diagnostics"] = inspect_samples(spec, target, label, samples, stop)
++                        runner.atomic_json(spec.output / f"pilot-step{step:06d}-{weight_kind}.json", receipt)
++                        if step == 0:
++                            runner.atomic_json(receipt_path, {"identity": shared_identity, "identity_sha256": shared_hash,
++                                "source_input_identity": spec.identity, "samples": samples, "diagnostic_only": True,
++                                "raw_and_ema_identical_at_initialization": True})
++                        if arm == "hybrid" and step == 500:
++                            counter = [{**r, "texts": [r["texts"][0]]} for r in references if r["id"] in {"johnny-silverhand", "evelyn-parker"}]
++                            counter_path = target / "pilot-ID-omitted-panel.json"
++                            runner.atomic_json(counter_path, {"references": counter})
++                            counter_spec = replace(probe, raw={**probe.raw, "reference_manifest": str(counter_path)})
++                            counter_label = label + "-ID-omitted"
++                            with runner.ema_weights(model, ema) if weight_kind == "ema" else nullcontext():
++                                complete = runner.generate_samples(counter_spec, model, mimi, device, counter_label, 2., stop,
++                                    selection_identity=selection + ":ID-omitted", role="teacher", id_conditioning_mode="omitted")
++                            if not complete:
++                                raise TimeoutError("ID-omitted counterfactual interrupted")
++                            counter_samples = runner.read_json(target / "comparisons" / counter_label / "samples.json", [])
++                            if len(counter_samples) != 2:
++                                raise ValueError("Counterfactual coverage differs")
++                            counter_receipt = {"step": step, "weights": weight_kind, "weights_sha256": weights_hash,
++                                "same_ref_text_seed_weights_as": label, "ID_mode": "omitted", "samples": counter_samples,
++                                "audio_and_word_diagnostics": inspect_samples(spec, target, counter_label, counter_samples, stop),
++                                "scope": "conditioning effect only; no likeness or preference claim", "automatic_promotion": False}
++                            runner.atomic_json(spec.output / f"pilot-step{step:06d}-{weight_kind}-ID-omitted.json", counter_receipt)
++        except Exception as error:
++            failed = True
++            runner.atomic_json(spec.output / f"pilot-step{step:06d}-error.json", {"error_type": type(error).__name__, "error": str(error)})
++        finally:
++            model.train(was_training)
++            runner.restore_rng(torch, model, saved_rng)
++    if runner.distributed_any(torch, failed, device, world):
++        raise RuntimeError("Conditioning pilot diagnostic failed; inspect exact step receipt")
++    if world > 1:
++        torch.distributed.barrier()
+--- a/scripts/pocket_training/runner.py
++++ b/scripts/pocket_training/runner.py
+@@ -8,7 +8,7 @@
+ 
+ from __future__ import annotations
+ 
+-from . import teacher_data, teacher_quality, student_transfer
++from . import teacher_data, teacher_quality, student_transfer, conditioning, pilot_diagnostics
+ 
+ import argparse
+ from contextlib import contextmanager, nullcontext
+@@ -229,6 +229,15 @@
+         raise ValueError("Training/evaluation requires all three train, valid, and test manifest paths")
+     manifests = {split: local_path(base, raw[key]) for split, key in manifest_keys.items() if raw.get(key)}
+     identities: dict[str, Any] = {"source_revision": PINNED_REVISION, "source_digest": recorded_digest}
++    conditioning_identity = conditioning.identity_fields(raw, base)
++    if conditioning_identity is not None:
++        identities["speaker_conditioning"] = conditioning_identity
++        identities["conditioning_runner_sha256"] = sha256_file(Path(__file__))
++        diagnostic_identity = pilot_diagnostics.identity_fields(raw, base)
++        if diagnostic_identity is not None:
++            identities["pilot_diagnostics"] = diagnostic_identity
++            if raw.get("precision") != "fp16" or raw.get("allow_fp32_fallback") is not False:
++                raise ValueError("Matched pilot requires explicit FP16 and no unmatched automatic precision fallback")
+     sampling = {"decode_steps": decode_steps, "temperature": raw.get("sample_temperature", .3),
+                 "seed": raw.get("sample_seed", 1337), "max_seconds": raw.get("sample_max_seconds", 30),
+                 "teacher_only": raw.get("teacher_only_evaluation", False)}
+@@ -289,7 +298,7 @@
+         conditional_expected = raw.get("teacher_conditional_expected_speakers")
+         if not isinstance(conditional_expected, list) or not conditional_expected or len(set(conditional_expected)) != len(conditional_expected):
+             raise ValueError("Conditional development needs its own honest speaker allowlist")
+-        if raw.get("teacher_rollout_steps") != [0, 500, 1000, 1500, 2000]:
++        if raw.get("teacher_rollout_steps") != conditioning.pilot_rollout_steps(raw):
+             raise ValueError("Teacher quality probes must cover the accepted anchor and all declared checkpoints")
+         identities["teacher_quality"] = {key: raw.get(key) for key in (
+             "teacher_quality_policy", "teacher_dev_expected_speakers", "teacher_rollout_steps",
+@@ -313,6 +322,23 @@
+     if isinstance(reference_items, dict):
+         reference_items = list(reference_items.values())
+     identities["reference_audio"] = [sha256_file(local_path(base, r.get("path", r.get("reference", "")))) for r in reference_items]
++    if raw.get("expanded_reference_manifest"):
++        verifier_sources = raw.get("expanded_verifier_sources", {})
++        if set(verifier_sources) != {"adapter", "bootstrap", "contract", "source_freeze"}:
++            raise ValueError("Expanded references require their explicit verifier source contract")
++        for name, descriptor in verifier_sources.items():
++            if set(descriptor) != {"path", "sha256"} or sha256_file(local_path(base, descriptor["path"])) != descriptor["sha256"]:
++                raise ValueError(f"Expanded verifier {name} source differs")
++        if getattr(teacher_data, "_native_expanded_adapter_sha256", None) != verifier_sources["adapter"]["sha256"]:
++            raise ValueError("The exact expanded verifier bootstrap must be installed before pilot preparation")
++        identities["expanded_verifier_sources"] = verifier_sources
++        expanded_path = local_path(base, raw["expanded_reference_manifest"])
++        identities["expanded_reference_manifest"] = sha256_file(expanded_path)
++        expanded = read_json(expanded_path)
++        expanded_rows = expanded if isinstance(expanded, list) else expanded.get("references", expanded.get("voices", []))
++        if isinstance(expanded_rows, dict):
++            expanded_rows = list(expanded_rows.values())
++        identities["expanded_reference_audio"] = [sha256_file(local_path(base, r.get("path", r.get("reference", "")))) for r in expanded_rows]
+     identity = hashlib.sha256(json.dumps(identities, sort_keys=True).encode()).hexdigest()
+     spec = Spec(path, raw, base, source, output, identity, manifests)
+     if qualified_corpus(spec):
+@@ -499,6 +525,7 @@
+                     node[key] = str(local_path(spec.base, node[key]))
+     if not raw.get("weights_path"):
+         raise ValueError("Inference configs must name a local combined Pocket safetensors bundle")
++    conditioning.configure(spec, raw)
+     atomic_text(destination, yaml.safe_dump(raw, sort_keys=False))
+     return raw
+ 
+@@ -1093,6 +1120,7 @@
+ 
+ 
+ def atomic_torch_save(path: Path, payload: dict[str, Any], spec: Spec) -> None:
++    payload.update(conditioning.checkpoint_headers(spec, payload))
+     import torch
+ 
+     size = tensor_bytes(payload, torch)
+@@ -1155,6 +1183,28 @@
+     atomic_torch_save(spec.output / stage / "best.pt", payload, spec)
+     atomic_json(spec.output / stage / "best.json", {"step": step, "metrics": metrics,
+                 "input_identity": spec.identity, "weights": "ema", "selected_at": now_iso()})
++
++
++def restore_training_checkpoint(spec: Spec, checkpoint: Path, model: Any, optimizer: Any,
++                                ema: Any, world: int) -> dict[str, Any]:
++    import torch
++    payload = torch.load(checkpoint, map_location="cpu", weights_only=True)
++    stored = payload["runner"]
++    if stored.get("input_identity") != spec.identity or stored.get("world_size") != world:
++        raise ValueError("Resume checkpoint input identity or DDP world size differs")
++    conditioning.verify_checkpoint(spec, payload)
++    from pocket_tts.modules.voice_identity import assert_weight_abi
++    assert_weight_abi(model.flow_lm, checkpoint, checkpoint_payload=payload)
++    model.load_state_dict(payload["model"], strict=True)
++    optimizer.load_state_dict(payload["optimizer"])
++    ema.load_state_dict(payload["ema"])
++    return payload
++
++
++def conditioned_forward(model: Any, batch: Any, encoded: Any, *, update_stats: bool = False):
++    latents, mask, voice, frames = encoded
++    return model(latents, mask, batch.text_tokens, voice, update_stats=update_stats,
++                 num_voice_prompt_frames=frames, **conditioning.forward_kwargs(batch))
+ 
+ 
+ def run_rollout_checks(spec: Spec, model: Any, mimi: Any, ema: Any, device: Any,
+@@ -1470,8 +1520,7 @@
+             batch = loader._collate([loader._sample(loader.get_entry(index))])
+             with torch.no_grad(), torch.autocast(device_type=device.type, enabled=False):
+                 latents, mask, voice, frames = with_terminal_slot(encode_batch(mimi, batch, device))
+-                loss, metrics = model(latents, mask, batch.text_tokens, voice,
+-                                      num_voice_prompt_frames=frames)
++                loss, metrics = conditioned_forward(model, batch, (latents, mask, voice, frames))
+             if not bool(torch.isfinite(loss)):
+                 raise RuntimeError("Non-finite fixed heldout loss")
+             speaker = speaker_key(rows[index]) if collect_speakers else None
+@@ -1610,8 +1659,7 @@
+                 optimizer.zero_grad(set_to_none=True)
+                 scaler = torch.amp.GradScaler("cuda", enabled=precision == "fp16", init_scale=128)
+                 with autocast_for(torch, precision, device):
+-                    loss, metrics = model(latents, mask, batch.text_tokens, voice, update_stats=False,
+-                                          num_voice_prompt_frames=frames)
++                    loss, metrics = conditioned_forward(model, batch, (latents, mask, voice, frames))
+                 if jvp_required:
+                     for metric in ("flow_diag", "flow_distill"):
+                         if metric not in metrics or not bool(torch.isfinite(metrics[metric]).all()):
+@@ -1747,6 +1795,7 @@
+         args.distill_teacher_use_ema = teacher_state.get("origin", {}).get("upstream_use_ema", True)
+         if spec.raw.get("student_init_from"):
+             args.student_init_from = str(spec.asset("student_init_from"))
++    conditioning.configure_args(spec, args, stage)
+     args_path = args.run_dir / "args.yaml"
+     new_text = dump_args(args)
+     if args_path.exists() and args_path.read_text(encoding="utf-8") != new_text and (args.run_dir / "last.pt").exists():
+@@ -1803,6 +1852,7 @@
+     if any(p.dtype != torch.float32 for p in model.parameters()):
+         raise ValueError("All trainable master weights must remain FP32")
+     optimizer = build_optimizer(model, args, device, rank)
++    conditioning.configure_optimizer(spec, model, optimizer)
+     ema = EMA(model, args.ema_decay)
+     mode = choose_precision(torch, requested_precision, device)
+     scaler = torch.amp.GradScaler("cuda", enabled=mode == "fp16", init_scale=128)
+@@ -1813,19 +1863,15 @@
+              "learning_schedule_steps": args.max_steps, "ema_decay": args.ema_decay,
+              "official_max_steps": official_ceiling, "stop_reason": "",
+              "latent_calibration": CALIBRATION_POLICY, "objective_weighting": OBJECTIVE_POLICY}
+-    quality_run = stage == "teacher" and teacher_quality.enabled(spec)
++    pilot_run = stage == "teacher" and pilot_diagnostics.enabled(spec)
++    quality_run = stage == "teacher" and teacher_quality.enabled(spec) and not pilot_run
+     student_quality_run = stage == "distill" and student_transfer.enabled(spec)
+     if quality_run or student_quality_run:
+         state["quality_anchor_receipt_sha256"] = None
+     checkpoint = args.run_dir / "last.pt"
+     if checkpoint.exists():
+-        payload = torch.load(checkpoint, map_location="cpu", weights_only=True)
++        payload = restore_training_checkpoint(spec, checkpoint, model, optimizer, ema, world)
+         stored = payload["runner"]
+-        if stored.get("input_identity") != spec.identity or stored.get("world_size") != world:
+-            raise ValueError("Resume checkpoint input identity or DDP world size differs")
+-        model.load_state_dict(payload["model"], strict=True)
+-        optimizer.load_state_dict(payload["optimizer"])
+-        ema.load_state_dict(payload["ema"])
+         start_step = int(payload["step"])
+         state.update({k: v for k, v in stored.items() if k in state})
+         if requested_precision == "auto":
+@@ -1847,7 +1893,7 @@
+     selected = read_json(args.run_dir / "best.json", {})
+     if selected and (state["best_score"] is None or selected["metrics"]["score"] < state["best_score"]):
+         state.update(best_score=selected["metrics"]["score"], best_step=int(selected["step"]))
+-    loader = IndexedBatches(args, model, mimi, balanced=bool(spec.option("speaker_balanced_sampling", False)))
++    loader = conditioning.make_loader(spec, args, model, mimi)
+     probe_batch = loader.batch(start_step * 64 + rank * args.batch_size)
+     probe = precision_probe(spec, model, mimi, optimizer, probe_batch, mode, device)
+     fallback = distributed_any(torch, not probe["safe"], device, world)
+@@ -1859,6 +1905,8 @@
+         mode = "fp32"
+         scaler = torch.amp.GradScaler("cuda", enabled=False)
+     state["precision"] = mode
++    if pilot_run and mode != "fp16":
++        raise ValueError("Matched pilot cannot silently diverge from the shared FP16 recipe")
+     state["speaker_balanced_sampling"] = loader.balanced
+     state["status"] = "running"
+     if rank == 0:
+@@ -1870,6 +1918,9 @@
+     if stage == "distill":
+         run_rollout_checks(spec, model, mimi, ema, device, start_step, stop, rank, world)
+     quality_anchor = None
++    if pilot_run:
++        state.update(diagnostic_only=True, automatic_promotion=False)
++        pilot_diagnostics.run(spec, model, mimi, ema, device, start_step, stop, rank, world)
+     if quality_run:
+         quality_anchor = teacher_anchor(spec, model, mimi, ema, args, device, rank, world, stop, start_step)
+         if quality_anchor is None:
+@@ -1890,7 +1941,7 @@
+         if start_step and state["quality_anchor_receipt_sha256"] != anchor_hash:
+             raise ValueError("Student transfer dual control changed on resume")
+         state["quality_anchor_receipt_sha256"] = anchor_hash
+-    if start_step == 0 and not (args.run_dir / "best.pt").exists():
++    if start_step == 0 and not pilot_run and not (args.run_dir / "best.pt").exists():
+         if quality_run:
+             baseline = quality_anchor["dev"]
+         elif student_quality_run:
+@@ -1908,6 +1959,7 @@
+             atomic_json(args.run_dir / "metrics.json", {"step": 0, "heldout": baseline, "input_identity": spec.identity})
+     step = start_step
+     checkpoint_time = time.monotonic()
++    last_saved_step = start_step if checkpoint.exists() else None
+     bad_gradients = 0
+     exit_code = 0
+     last_metrics: dict[str, Any] = {}
+@@ -1967,8 +2019,7 @@
+                 # DDP requires both the forward and backward inside no_sync().
+                 with sync:
+                     with temporary_eos_weight(args, local_eos_weight), autocast_for(torch, mode, device):
+-                        loss, metrics = wrapped(latents, mask, batch.text_tokens, voice,
+-                            update_stats=False, num_voice_prompt_frames=frames)
++                        loss, metrics = conditioned_forward(wrapped, batch, encoded)
+                     weighted_loss = loss * loss_scale
+                     invalid_loss = distributed_any(torch, not bool(torch.isfinite(weighted_loss)), device, world)
+                     # Complete DDP's backward even on bad loss; the optimizer
+@@ -2035,6 +2086,11 @@
+                     "loss_scale": scaler.get_scale(), "seconds_per_step": time.monotonic() - iteration_start,
+                     "corpus_passes": step * 64 / loader.size, "precision": mode,
+                     "global_valid_frames": global_frames, "global_shifted_positions": global_shifted}
++            if step <= 3 or step % args.log_freq == 0:
++                last_metrics.update(conditioning.diagnostics(model, ema))
++                if pilot_run and conditioning.options(spec)["arm"] == "hybrid":
++                    id_group = next(group for group in optimizer.param_groups if group.get("conditioning_id_group"))
++                    last_metrics.update(speaker_id_learning_rate=id_group["lr"], speaker_id_lr_scale=id_group["lr_scale"])
+             if rank == 0 and (step <= 3 or step % args.log_freq == 0):
+                 atomic_json(args.run_dir / "metrics.json", {"input_identity": spec.identity, "step": step,
+                             **last_metrics, "best_score": state["best_score"], "best_step": state["best_step"]})
+@@ -2043,6 +2099,16 @@
+             validation_due = (step % args.valid_freq == 0 or step == execution_steps
+                               or (quality_run and step in spec.option("teacher_rollout_steps", []))
+                               or (student_quality_run and step in spec.option("rollout_steps", [])))
++            pilot_due = pilot_run and any(entry["step"] == step for entry in spec.raw["pilot_diagnostic_schedule"])
++            if pilot_run:
++                validation_due = False
++            if pilot_due:
++                # Preserve the actual completed update before potentially slow
++                # diagnostic speech. A timeout cannot erase the500-step model.
++                save_training(spec, stage, step, model, optimizer, ema, scaler, state, device, world, rank)
++                last_saved_step = step
++                checkpoint_time = time.monotonic()
++                pilot_diagnostics.run(spec, model, mimi, ema, device, step, stop, rank, world)
+             if stage == "distill":
+                 speech = run_rollout_checks(spec, model, mimi, ema, device, step, stop, rank, world)
+                 if (speech is not None and step >= int(spec.option("rollout_stop_after_step", 2000))
+@@ -2080,8 +2146,9 @@
+                     break
+             timed_checkpoint = time.monotonic() - checkpoint_time >= float(spec.option("checkpoint_seconds", 600))
+             checkpoint_due = distributed_any(torch, step % args.ckpt_freq == 0 or timed_checkpoint or validation_due, device, world)
+-            if checkpoint_due:
++            if checkpoint_due and last_saved_step != step:
+                 save_training(spec, stage, step, model, optimizer, ema, scaler, state, device, world, rank)
++                last_saved_step = step
+                 checkpoint_time = time.monotonic()
+         if step >= execution_steps and state.get("status") != "rejected":
+             state.update(status="completed", stop_reason="exposure_or_official_step_bound")
+@@ -2099,7 +2166,8 @@
+                     completed.append(probe_step)
+             state.update(probe_schedule=planned, probe_steps_reached=reached, probe_steps_completed=completed,
+                          unreached_probe_reasons={str(value): state.get("stop_reason", "not_reached") for value in planned if value not in reached})
+-        save_training(spec, stage, step, model, optimizer, ema, scaler, state, device, world, rank)
++        if not pilot_run or last_saved_step != step:
++            save_training(spec, stage, step, model, optimizer, ema, scaler, state, device, world, rank)
+         if rank == 0:
+             stage_state(spec, stage, **state, step=step, corpus_passes=step * 64 / loader.size,
+                         peak_allocated_bytes=torch.cuda.max_memory_allocated(device),
+@@ -2126,23 +2194,28 @@
+ 
+ 
+ def generate_samples(spec: Spec, model: Any, mimi: Any, device: Any, label: str, cfg: float,
+-                     stop: Stop, *, selection_identity: str, limit_references: int = 0, role: str | None = None) -> bool:
++                     stop: Stop, *, selection_identity: str, limit_references: int = 0, role: str | None = None,
++                     id_conditioning_mode: str = "bound") -> bool:
+     import torch
+     import soundfile as sf
+     from training.dataloader.audio import _load_window
+     from pocket_tts.modules.stateful_module import init_states
++    if id_conditioning_mode not in ("bound", "omitted"):
++        raise ValueError("Unknown explicit ID diagnostic mode")
+ 
+     folder = spec.output / "comparisons" / label
+     folder.mkdir(parents=True, exist_ok=True)
+     decode_steps = role_decode_steps(spec, role) if role is not None else sample_decode_steps(spec.option("sample_decode_steps", 1))
+     records = read_json(folder / "samples.json", [])
+     if any(r.get("selection_identity") != selection_identity or r.get("decode_steps") != decode_steps
++            or r.get("id_conditioning_mode", "bound") != id_conditioning_mode
+            or r.get("cfg") != cfg or r.get("temperature") != float(spec.option("sample_temperature", .3))
+            or r.get("seed") != int(spec.option("sample_seed", 1337)) + r.get("text_index", 0) for r in records):
+         records = []
+     done = {(r["reference_id"], r["text_index"]) for r in records if (folder / r["audio"]).exists()}
+     model.eval()
+     for reference in references(spec)[:limit_references or None]:
++        internal_id = conditioning.reference_id(spec, reference) if id_conditioning_mode == "bound" else None
+         for text_index, text in enumerate(reference["texts"]):
+             if stop.requested():
+                 return False
+@@ -2161,7 +2234,8 @@
+                 voice = mimi.encode_to_latent(torch.from_numpy(wav)[None, None].to(device))[0]
+                 tokens = torch.tensor(model.flow_lm.conditioner.tokenizer.encode(text), dtype=torch.long)
+                 latent = model.generate([tokens], [voice], max_frames=max_frames, temp=float(spec.option("sample_temperature", 0.3)),
+-                           n_steps=decode_steps, cfg_coef=cfg, eos_threshold=-1.0, eos_countdown=1)[0]
++                            n_steps=decode_steps, cfg_coef=cfg, eos_threshold=-1.0, eos_countdown=1,
++                            speaker_ids=(None if internal_id is None else torch.tensor([internal_id], dtype=torch.long)))[0]
+                 if latent.shape[0] < 8 or not torch.isfinite(latent).all():
+                     raise RuntimeError("Official generation produced empty or non-finite latents")
+                 ratio = round(mimi.encoder_frame_rate / mimi.frame_rate)
+@@ -2175,6 +2249,7 @@
+             os.replace(temp, folder / name)
+             records.append({"selection_identity": selection_identity,
+                 "reference_id": reference["id"], "reference_sha256": reference["sha256"],
++                "internal_speaker_id": internal_id, "id_conditioning_mode": id_conditioning_mode,
+                 "reference_duration_seconds": duration, "text_index": text_index, "text": text,
+                 "seed": seed, "cfg": cfg, "decode_steps": decode_steps, "temperature": float(spec.option("sample_temperature", 0.3)),
+                 "sampler": "official_training_TrainableTTS.generate", "audio": name,
+@@ -2239,12 +2314,15 @@
+             return EXIT_PAUSED
+         args = TrainArgs(model_config=str(spec.output / f"configs/{config_kind}-inference.yaml"), compile=False,
+                          start_from_pretrained=checkpoint is None, text_dropout=0, voice_dropout=0)
++        if checkpoint is None:
++            conditioning.configure_args(spec, args, "teacher")
+         model, mimi, _ = build_models(args)
+         install_fp32_reductions(model)
+         if checkpoint is not None:
+             payload = torch.load(checkpoint, map_location="cpu", weights_only=True)
+             if payload["runner"].get("input_identity") != spec.identity:
+                 raise ValueError("Selected checkpoint does not belong to these inputs")
++            conditioning.verify_checkpoint(spec, payload)
+             state = dict(payload["model"])
+             if payload.get("ema"):
+                 state.update(payload["ema"])
+@@ -2607,6 +2685,9 @@
+         parser.error("--spec is required for a runner mode")
+     baseline_mode = arguments.mode in ("plan", "baseline") or (arguments.mode == "worker" and arguments.stage == "baseline")
+     spec = load_spec(arguments.spec, require_manifests=not baseline_mode)
++    if pilot_diagnostics.enabled(spec) and (arguments.mode in ("baseline", "evaluate", "all", "student", "distill")
++            or (arguments.mode == "worker" and arguments.stage in ("baseline", "evaluate", "distill"))):
++        raise ValueError("Conditioning pilot diagnostics cannot grant full acceptance or trigger student training")
+     if teacher_quality.enabled(spec) and (arguments.mode in ("all", "student", "distill")
+             or (arguments.mode == "worker" and arguments.stage == "distill")):
+         raise ValueError("Teacher improvement cannot start student training implicitly")
+@@ -2644,7 +2725,7 @@
+     if arguments.mode == "teacher-only":
+         if not teacher_quality.enabled(spec) or spec.option("teacher_only_evaluation", False) is not True:
+             raise ValueError("Teacher-only improvement requires its explicit, hashed quality policy")
+-        modes = ["prepare", "teacher", "evaluate"]
++        modes = ["prepare", "teacher"] if pilot_diagnostics.enabled(spec) else ["prepare", "teacher", "evaluate"]
+     elif arguments.mode == "student":
+         if not spec.raw.get("import_teacher_checkpoint"):
+             raise ValueError("Student-only adaptation requires a provenanced imported teacher")
+--- a/vendor/pocket-tts-training/source/pocket_tts/models/flow_lm.py
++++ b/vendor/pocket-tts-training/source/pocket_tts/models/flow_lm.py
+@@ -95,6 +95,7 @@
+         dtype: torch.dtype | None = None,
+         insert_bos_before_voice: bool = False,
+         flow_type: str = "lsd",
++        voice_identity=None,
+     ):
+         super().__init__()
+         self.flow_type = flow_type
+@@ -118,6 +119,9 @@
+         self.transformer = transformer
+         self.out_norm = nn.LayerNorm(dim, eps=1e-5)
+         self.out_eos = nn.Linear(dim, 1, dtype=dtype)
++        if voice_identity is not None:
++            from pocket_tts.modules.voice_identity import VoiceIdentityResidual
++            self.voice_identity = VoiceIdentityResidual.from_config(voice_identity, dim)
+ 
+     @property
+     def device(self) -> str:
+@@ -257,4 +261,5 @@
+             dtype=getattr(torch, config.dtype),
+             insert_bos_before_voice=insert_bos_before_voice,
+             flow_type=config.flow.type,
+-        )
++            voice_identity=config.voice_identity,
++        )
+--- a/vendor/pocket-tts-training/source/pocket_tts/models/model_state.py
++++ b/vendor/pocket-tts-training/source/pocket_tts/models/model_state.py
+@@ -5,6 +5,7 @@
+ """
+ 
+ from pathlib import Path
++import json
+ from urllib.parse import urlsplit
+ 
+ import safetensors
+@@ -12,12 +13,15 @@
+ import torch
+ 
+ 
+-def export_model_state(model_state: dict[str, dict[str, torch.Tensor]], dest: str | Path):
++def export_model_state(model_state: dict[str, dict[str, torch.Tensor]], dest: str | Path,
++                       *, voice_identity_cache_key=None):
+     dict_to_store = {}
+     for module_name, module_state in model_state.items():
+         for key, tensor_value in module_state.items():
+             dict_to_store[f"{module_name}/{key}"] = tensor_value
+-    safetensors.torch.save_file(dict_to_store, dest)
++    metadata = {} if voice_identity_cache_key is None else {
++        "voice_identity_cache_key": json.dumps(list(voice_identity_cache_key), separators=(",", ":"))}
++    safetensors.torch.save_file(dict_to_store, dest, metadata=metadata)
+ 
+ 
+ def _is_safetensors_source(source: str | Path) -> bool:
+@@ -31,9 +35,16 @@
+ 
+ def _import_model_state(
+     source: str | Path, device: torch.device
++    , *, voice_identity_cache_key=None
+ ) -> dict[str, dict[str, torch.Tensor]]:
+     result = {}
+     with safetensors.safe_open(source, framework="pt") as f:
++        encoded_key = (f.metadata() or {}).get("voice_identity_cache_key")
++        if voice_identity_cache_key is not None:
++            if encoded_key is None or json.loads(encoded_key) != list(voice_identity_cache_key):
++                raise ValueError("Hybrid voice state is unbound to current model/mapping/ID/reference")
++        elif encoded_key is not None:
++            raise ValueError("Hybrid voice state cannot be imported as legacy reference-only state")
+         for key in f.keys():
+             module_name, tensor_key = key.split("/")
+             result.setdefault(module_name, {})
+--- a/vendor/pocket-tts-training/source/pocket_tts/models/tts_model.py
++++ b/vendor/pocket-tts-training/source/pocket_tts/models/tts_model.py
+@@ -1,4 +1,6 @@
+ import copy
++import hashlib
++import json
+ import logging
+ import math
+ import os
+@@ -30,7 +32,8 @@
+ )
+ from pocket_tts.models.flow_lm import FlowLMModel
+ from pocket_tts.models.mimi import build_mimi
+-from pocket_tts.models.model_state import _import_model_state, _is_safetensors_source
++from pocket_tts.models.model_state import _import_model_state, _is_safetensors_source, export_model_state
++from pocket_tts.modules.voice_identity import assert_weight_abi, load_flow_state_with_fresh_identity, voice_state_key
+ from pocket_tts.models.text_chunking import prepare_text_prompt, split_into_best_sentences
+ from pocket_tts.modules.stateful_module import (
+     ModelState,
+@@ -121,6 +124,7 @@
+         self.append_terminal_punctuation = append_terminal_punctuation
+         self.capitalize_first_letter = capitalize_first_letter
+         self.replace_characters = replace_characters or {}
++        self.voice_identity_model_sha256 = None
+ 
+     @property
+     def device(self) -> torch.device:
+@@ -168,6 +172,7 @@
+         """Load weights from a training checkpoint (.pt) into a config-built model."""
+         self.has_custom_weights = True
+         flow_lm_state, mimi_state = get_training_checkpoint_state_dicts(Path(path), use_ema)
++        identity_receipt = assert_weight_abi(self.flow_lm, path, use_ema=use_ema)
+         config = self.config
+         self.flow_lm.speaker_proj_weight = torch.nn.Parameter(
+             torch.zeros(
+@@ -178,7 +183,9 @@
+                 dtype=torch.float32,
+             )
+         )
+-        self.flow_lm.load_state_dict(flow_lm_state, strict=True)
++        load_flow_state_with_fresh_identity(self.flow_lm, flow_lm_state, identity_receipt)
++        if getattr(self.flow_lm, "voice_identity", None) is not None:
++            self.voice_identity_model_sha256 = hashlib.sha256(Path(path).read_bytes()).hexdigest()
+         self.mimi = build_mimi(config.mimi).to(device="cpu")
+         # Training freezes Mimi and does not checkpoint it, so its weights come
+         # from the config -- either its own safetensors or the packaged bundle.
+@@ -234,10 +241,12 @@
+                     "If you specify flow_lm.weights_path you should specify mimi.weights_path"
+                 )
+             logger.info(f"Loading FlowLM weights from {config.flow_lm.weights_path}")
+-            state_dict_flowlm = get_flow_lm_state_dict(
+-                download_if_necessary(config.flow_lm.weights_path)
+-            )
+-            tts_model.flow_lm.load_state_dict(state_dict_flowlm, strict=True)
++            flow_weights = download_if_necessary(config.flow_lm.weights_path)
++            identity_receipt = assert_weight_abi(tts_model.flow_lm, flow_weights)
++            state_dict_flowlm = get_flow_lm_state_dict(flow_weights)
++            load_flow_state_with_fresh_identity(tts_model.flow_lm, state_dict_flowlm, identity_receipt)
++            if getattr(tts_model.flow_lm, "voice_identity", None) is not None:
++                tts_model.voice_identity_model_sha256 = hashlib.sha256(flow_weights.read_bytes()).hexdigest()
+ 
+         tts_model.mimi = build_mimi(config.mimi).to(device="cpu")
+ 
+@@ -265,7 +274,14 @@
+                 weights_file = download_if_necessary(config.weights_path_without_voice_cloning)
+ 
+             state_dict = safetensors.torch.load_file(weights_file)
++            identity_receipt = assert_weight_abi(tts_model.flow_lm, weights_file)
+             tts_model.load_state_dict(state_dict, strict=True)
++            bank = getattr(tts_model.flow_lm, "voice_identity", None)
++            if bank is not None:
++                bank.validate_unused_zero()
++                if bank.table_hash() != identity_receipt["table_sha256"]:
++                    raise ValueError("Loaded hybrid table bytes differ from export metadata")
++                tts_model.voice_identity_model_sha256 = hashlib.sha256(weights_file.read_bytes()).hexdigest()
+ 
+         if config.flow_lm.weights_path is None and config.weights_path is None:
+             logger.warning(
+@@ -445,7 +461,7 @@
+         scipy.io.wavfile.write(filename, self.sample_rate, resored_audio.numpy())
+         logger.info("Saved restored audio from Mimi encoding to %s for debugging", filename)
+ 
+-    def _encode_audio(self, audio: torch.Tensor) -> torch.Tensor:
++    def _encode_audio(self, audio: torch.Tensor, speaker_id: int | None = None) -> torch.Tensor:
+         encoded = self.mimi.encode_to_latent(audio)
+ 
+         if DEBUG_MIMI:
+@@ -454,6 +470,10 @@
+ 
+         latents = encoded.to(torch.float32)
+         conditioning = F.linear(latents, self.flow_lm.speaker_proj_weight)
++        bank = getattr(self.flow_lm, "voice_identity", None)
++        if bank is not None:
++            ids = torch.tensor([bank.canonical_id(speaker_id)], dtype=torch.long)
++            conditioning = bank(conditioning, ids)
+         return conditioning
+ 
+     def _expand_kv_cache(self, model_state: ModelState, sequence_length: int):
+@@ -912,15 +932,52 @@
+         if steps_times:
+             logger.info("Average generation step time: %d ms", int(statistics.mean(steps_times)))
+ 
++    def _cached_get_state_for_audio_prompt(
++        self, audio_conditioning: Path | str | torch.Tensor, truncate: bool = False,
++        *, speaker_id: int | None = None, reference_sha256: str | None = None
++    ) -> ModelState:
++        if getattr(self.flow_lm, "voice_identity", None) is None:
++            if speaker_id is not None:
++                raise ValueError("Baseline model has no internal speaker-ID ABI")
++            return self._cached_get_state_for_audio_prompt_baseline(audio_conditioning, truncate)
++        key = self._voice_identity_state_key(audio_conditioning, speaker_id, truncate, reference_sha256)
++        return self._cached_get_state_for_audio_prompt_hybrid(key, audio_conditioning, truncate)
++
+     @lru_cache(maxsize=2)
+-    def _cached_get_state_for_audio_prompt(
+-        self, audio_conditioning: Path | str | torch.Tensor, truncate: bool = False
+-    ) -> ModelState:
++    def _cached_get_state_for_audio_prompt_baseline(self, audio_conditioning, truncate):
+         return self.get_state_for_audio_prompt(audio_conditioning, truncate)
++
++    @lru_cache(maxsize=2)
++    def _cached_get_state_for_audio_prompt_hybrid(self, key, audio_conditioning, truncate):
++        return self.get_state_for_audio_prompt(audio_conditioning, truncate,
++                                              speaker_id=key[4], reference_sha256=key[5])
++
++    def _voice_identity_state_key(self, source, speaker_id, truncate, expected_reference=None):
++        if isinstance(source, (str, Path)) and _is_safetensors_source(source):
++            if expected_reference is None:
++                raise ValueError("Hybrid saved voice state requires its original reference SHA256")
++            reference = expected_reference
++        elif isinstance(source, torch.Tensor):
++            header = json.dumps([list(source.shape), str(source.dtype)], separators=(",", ":")).encode()
++            raw = source.detach().cpu().contiguous().view(torch.uint8).numpy().tobytes()
++            reference = hashlib.sha256(header + raw).hexdigest()
++        else:
++            path = download_if_necessary(str(source))
++            reference = hashlib.sha256(path.read_bytes()).hexdigest()
++        if expected_reference is not None and expected_reference != reference:
++            raise ValueError("Actual reference bytes differ from hybrid voice-state key")
++        return voice_state_key(self.flow_lm, self.voice_identity_model_sha256, reference, speaker_id, truncate)
++
++    def export_voice_identity_state(self, dest, source, truncate=False, *, speaker_id=None):
++        key = self._voice_identity_state_key(source, speaker_id, truncate)
++        state = self.get_state_for_audio_prompt(source, truncate, speaker_id=speaker_id)
++        export_model_state(state, dest, voice_identity_cache_key=key)
++        return key
+ 
+     @torch.no_grad
+     def get_state_for_audio_prompt(
+-        self, audio_conditioning: Path | str | torch.Tensor, truncate: bool = False
++        self, audio_conditioning: Path | str | torch.Tensor, truncate: bool = False,
++        *, speaker_id: int | None = None, reference_sha256: str | None = None
+     ) -> ModelState:
+         """Create model state conditioned on audio prompt for continuation.
+ 
+@@ -976,18 +1033,28 @@
+             - Processing time is logged for performance monitoring
+             - The state preserves speaker characteristics for voice cloning
+         """
++        bank = getattr(self.flow_lm, "voice_identity", None)
++        if bank is None and speaker_id is not None:
++            raise ValueError("Baseline model cannot silently ignore a speaker ID")
++        if bank is not None:
++            speaker_id = bank.canonical_id(speaker_id)
++            bank.validate_unused_zero()
+         if isinstance(audio_conditioning, (str, Path)) and _is_safetensors_source(
+             audio_conditioning
+         ):
+             if isinstance(audio_conditioning, str):
+                 audio_conditioning = download_if_necessary(audio_conditioning)
+ 
+-            return _import_model_state(audio_conditioning, self.device)
++            key = None if bank is None else self._voice_identity_state_key(
++                audio_conditioning, speaker_id, truncate, reference_sha256)
++            return _import_model_state(audio_conditioning, self.device, voice_identity_cache_key=key)
+ 
+         elif (
+             isinstance(audio_conditioning, str)
+             and audio_conditioning in _ORIGINS_OF_PREDEFINED_VOICES
+         ):
++            if bank is not None:
++                raise ValueError("Released precomputed voices do not carry the experimental hybrid ABI")
+             # We get the audio conditioning directly from the safetensors file.
+             if self.has_custom_weights:
+                 raise ValueError(
+@@ -1015,6 +1082,9 @@
+         if isinstance(audio_conditioning, str):
+             audio_conditioning = download_if_necessary(audio_conditioning)
+ 
++        if bank is not None and reference_sha256 is not None:
++            self._voice_identity_state_key(audio_conditioning, speaker_id, truncate, reference_sha256)
++
+         if isinstance(audio_conditioning, Path):
+             audio, conditioning_sample_rate = audio_read(audio_conditioning)
+ 
+@@ -1030,7 +1100,7 @@
+ 
+         audio_conditioning = end_on_pause(audio_conditioning, self.config.mimi.sample_rate)
+         with display_execution_time("Encoding audio prompt"):
+-            prompt = self._encode_audio(audio_conditioning.unsqueeze(0).to(self.device))
++            prompt = self._encode_audio(audio_conditioning.unsqueeze(0).to(self.device), speaker_id)
+ 
+         if self.flow_lm.insert_bos_before_voice:
+             prompt = torch.cat([self.flow_lm.bos_before_voice, prompt], dim=1)
+--- /dev/null
++++ b/vendor/pocket-tts-training/source/pocket_tts/modules/voice_identity.py
+@@ -0,0 +1,201 @@
++"""Experimental ABI1: small internal ID residual on audio conditioning.
++
++No ID is a spoken token. This module adds no prefix positions and consumes no
++global RNG. Mapping/config/weight identities are mandatory for hybrid exports.
++The unknown slot and unallocated slots are always an audio-only zero residual.
++"""
++from __future__ import annotations
++
++import hashlib
++import json
++import random
++from pathlib import Path
++
++import torch
++from torch import nn
++
++ABI = "pocket-voice-identity-residual-v1"
++WEIGHT_KEY = "voice_identity.embedding.weight"
++
++
++def mapping_hash(keys):
++    raw = json.dumps(list(keys), ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
++    return hashlib.sha256(raw).hexdigest()
++
++
++def independent_id_keep(seed, global_indices, target_ids, mapping_sha256, dropout):
++    """Stateless CPU mask shared by student/teacher and reused on retry/resume."""
++    if not 0 <= dropout <= 1:
++        raise ValueError("ID dropout must be in [0,1]")
++    if len(global_indices) != len(target_ids):
++        raise ValueError("One exact draw and target ID are required per row")
++    mask = []
++    for index, target in zip(global_indices, target_ids, strict=True):
++        if type(index) is not int or index < 0:
++            raise ValueError("Invalid global sample index")
++        raw = json.dumps([seed, index, target, mapping_sha256, "identity-dropout-v1"], separators=(",", ":")).encode()
++        rng = random.Random(int.from_bytes(hashlib.sha256(raw).digest(), "big"))
++        mask.append(rng.random() >= dropout)
++    return torch.tensor(mask, dtype=torch.bool)
++
++
++class VoiceIdentityResidual(nn.Module):
++    def __init__(self, dim, keys, expected_mapping_sha256, capacity=None):
++        super().__init__()
++        capacity = len(keys) if capacity is None else capacity
++        if dim < 1 or capacity < 1 or len(keys) > capacity or list(keys) != sorted(set(keys)):
++            raise ValueError("Sorted unique mapping and sufficient shared capacity required")
++        if mapping_hash(keys) != expected_mapping_sha256:
++            raise ValueError("Voice identity mapping hash differs")
++        self.dim, self.keys, self.mapping_sha256 = dim, tuple(keys), expected_mapping_sha256
++        self.capacity = capacity
++        # Providing _weight bypasses nn.Embedding's random initialization. New
++        # experimental parameters are explicit zero init, not old learned weights.
++        self.embedding = nn.Embedding(capacity + 1, dim, padding_idx=0,
++                                      _weight=torch.zeros(capacity + 1, dim, dtype=torch.float32))
++
++    @classmethod
++    def from_config(cls, config, dim):
++        if config.abi != ABI:
++            raise ValueError("Unsupported voice identity ABI")
++        return cls(dim, config.keys, config.mapping_sha256, config.capacity)
++
++    def canonical_ids(self, ids, batch_size, device):
++        if ids is None:
++            return torch.zeros(batch_size, dtype=torch.long, device=device)
++        if not isinstance(ids, torch.Tensor) or ids.ndim != 1 or ids.shape[0] != batch_size or ids.dtype not in (torch.int32, torch.int64):
++            raise ValueError("Speaker IDs must be a [B] integer tensor")
++        ids = ids.to(device=device, dtype=torch.long)
++        return torch.where((ids >= 1) & (ids <= len(self.keys)), ids, torch.zeros_like(ids))
++
++    def canonical_id(self, identity):
++        if identity is None:
++            return 0
++        if type(identity) is not int:
++            raise ValueError("Internal speaker ID must be an integer or absent")
++        return identity if 1 <= identity <= len(self.keys) else 0
++
++    def forward(self, voice_embeddings, ids=None, keep=None, valid_frames=None):
++        if voice_embeddings.ndim != 3 or voice_embeddings.shape[-1] != self.dim:
++            raise ValueError("Voice residual expects [B,T,d_model] projected audio")
++        batch, frames, _ = voice_embeddings.shape
++        ids = self.canonical_ids(ids, batch, self.embedding.weight.device)
++        if keep is None:
++            keep = torch.ones(batch, dtype=torch.bool, device=ids.device)
++        elif not isinstance(keep, torch.Tensor) or keep.dtype != torch.bool or keep.shape != (batch,):
++            raise ValueError("ID keep mask must be a [B] boolean tensor")
++        else:
++            keep = keep.to(ids.device)
++        ids = torch.where(keep, ids, torch.zeros_like(ids))
++        # Do not depend on mutable row0 weights: absent/unknown always has zero.
++        residual = self.embedding(ids) * (ids > 0)[:, None]
++        residual = residual.to(device=voice_embeddings.device, dtype=voice_embeddings.dtype)
++        if valid_frames is None:
++            valid = torch.ones(batch, frames, dtype=torch.bool, device=voice_embeddings.device)
++        else:
++            if valid_frames.shape != (batch,):
++                raise ValueError("One valid prefix length is required per row")
++            valid = torch.arange(frames, device=voice_embeddings.device)[None] < valid_frames.to(voice_embeddings.device)[:, None]
++        return voice_embeddings + residual[:, None] * valid[:, :, None]
++
++    def validate_unused_zero(self):
++        unused = torch.cat([self.embedding.weight[:1], self.embedding.weight[len(self.keys) + 1:]], dim=0)
++        if not bool((unused == 0).all()):
++            raise ValueError("Unknown/unallocated residual slots must remain zero")
++
++    def metadata(self):
++        self.validate_unused_zero()
++        return {"abi": ABI, "mapping_sha256": self.mapping_sha256, "capacity": self.capacity,
++                "known_ids": len(self.keys), "dim": self.dim, "unknown_id": 0,
++                "table_sha256": self.table_hash()}
++
++    def table_hash(self):
++        arr = self.embedding.weight.detach().float().cpu().contiguous().numpy()
++        return hashlib.sha256(arr.astype("<f4", copy=False).tobytes()).hexdigest()
++
++
++def identity_metadata(flow_lm):
++    bank = getattr(flow_lm, "voice_identity", None)
++    return bank.metadata() if bank is not None else None
++
++
++def abi_weight_metadata(flow_lm):
++    meta = identity_metadata(flow_lm)
++    return {} if meta is None else {"voice_identity": json.dumps(meta, sort_keys=True)}
++
++
++def assert_weight_abi(flow_lm, path, *, allow_fresh_init=False, expected_init_sha256=None, use_ema=False,
++                      checkpoint_payload=None):
++    """Validate metadata before any hybrid state is loaded; inference is strict.
++
++    Explicit training-only warm start can add a fresh zero table to a pinned
++    baseline export. It never invents tensor fields in that original checkpoint.
++    """
++    import safetensors
++    path = Path(path)
++    bank = getattr(flow_lm, "voice_identity", None)
++    if path.suffix == ".safetensors":
++        if checkpoint_payload is not None:
++            raise ValueError("A safetensors import cannot substitute a checkpoint payload")
++        with safetensors.safe_open(str(path), framework="pt", device="cpu") as file:
++            meta = (file.metadata() or {}).get("voice_identity")
++            has = "flow_lm." + WEIGHT_KEY in file.keys() or WEIGHT_KEY in file.keys()
++    else:
++        # The caller already loads training checkpoint state; small ABI header
++        # validation shares the serialized conditioning contract, never backfills it.
++        payload = checkpoint_payload if checkpoint_payload is not None else torch.load(path, map_location="cpu", weights_only=True)
++        meta = payload.get("voice_identity_ema") if use_ema and payload.get("ema") else payload.get("voice_identity")
++        state = payload.get("model", payload)
++        has = "flow_lm." + WEIGHT_KEY in state or WEIGHT_KEY in state
++    if bank is None:
++        if meta is not None or has:
++            raise ValueError("Hybrid checkpoint cannot be loaded as a baseline model")
++        return {"mode": "baseline"}
++    if meta is None and not has:
++        if not allow_fresh_init or not expected_init_sha256 or hashlib.sha256(path.read_bytes()).hexdigest() != expected_init_sha256:
++            raise ValueError("Hybrid model requires trained ABI weights or explicit pinned fresh-feature initialization")
++        if not bool((bank.embedding.weight == 0).all()):
++            raise ValueError("Fresh hybrid initialization must be an exactly zero table")
++        return {"mode": "explicit_new_zero_feature", "source_sha256": expected_init_sha256,
++                "new_parameter": WEIGHT_KEY, "mapping_sha256": bank.mapping_sha256}
++    if meta is None or not has:
++        raise ValueError("Incomplete hybrid weight ABI")
++    meta = json.loads(meta) if isinstance(meta, str) else meta
++    expected = {"abi": ABI, "mapping_sha256": bank.mapping_sha256, "capacity": bank.capacity,
++                "known_ids": len(bank.keys), "dim": bank.dim, "unknown_id": 0}
++    if any(meta.get(k) != v for k, v in expected.items()):
++        raise ValueError("Hybrid weight/config mapping or shape ABI differs")
++    return {"mode": "trained_hybrid", **meta}
++
++
++def load_flow_state_with_fresh_identity(flow_lm, state, receipt, *, dropped=()):
++    """Only exact explicit-new feature keys may be absent during training import."""
++    missing, unexpected = flow_lm.load_state_dict(state, strict=False)
++    allowed = set(dropped)
++    if receipt.get("mode") == "explicit_new_zero_feature":
++        allowed.add(WEIGHT_KEY)
++    if unexpected or set(missing) != allowed:
++        raise ValueError(f"Unexpected weight import differences: missing={missing}, unexpected={unexpected}")
++    bank = getattr(flow_lm, "voice_identity", None)
++    if bank is not None:
++        bank.validate_unused_zero()
++        if receipt.get("mode") == "trained_hybrid" and bank.table_hash() != receipt["table_sha256"]:
++            raise ValueError("Actual hybrid table bytes differ from weight metadata")
++
++
++def assert_shared_mapping(student, teacher):
++    a, b = getattr(student, "voice_identity", None), getattr(teacher, "voice_identity", None)
++    if (a is None) != (b is None):
++        raise ValueError("Teacher/student conditioning ABIs differ")
++    if a is not None and (a.mapping_sha256, a.capacity, a.dim) != (b.mapping_sha256, b.capacity, b.dim):
++        raise ValueError("Teacher/student identity mapping or dimension differs")
++
++
++def voice_state_key(flow_lm, model_sha256, reference_sha256, speaker_id, truncate):
++    bank = getattr(flow_lm, "voice_identity", None)
++    if bank is None:
++        raise ValueError("A hybrid state key requires the hybrid ABI")
++    if len(model_sha256 or "") != 64 or len(reference_sha256 or "") != 64:
++        raise ValueError("Exact model/reference hashes are required for hybrid voice states")
++    return (ABI, model_sha256, bank.mapping_sha256, bank.table_hash(),
++            bank.canonical_id(speaker_id), reference_sha256, bool(truncate))
+--- a/vendor/pocket-tts-training/source/pocket_tts/utils/config.py
++++ b/vendor/pocket-tts-training/source/pocket_tts/utils/config.py
+@@ -41,6 +41,13 @@
+ 
+ 
+ # Root configuration
++class VoiceIdentityConfig(StrictModel):
++    abi: str = "pocket-voice-identity-residual-v1"
++    keys: list[str]
++    mapping_sha256: str
++    capacity: int | None = None
++
++
+ class FlowLMConfig(StrictModel):
+     """Root configuration model for YAML config files."""
+ 
+@@ -54,6 +61,7 @@
+     lookup_table: LookupTable
+     weights_path: str | None = None
+     insert_bos_before_voice: bool = False
++    voice_identity: VoiceIdentityConfig | None = None
+ 
+ 
+ # SEANet configuration
+--- a/vendor/pocket-tts-training/source/training/args.py
++++ b/vendor/pocket-tts-training/source/training/args.py
+@@ -121,6 +121,8 @@
+     eos_loss_weight: float = 0.1
+     text_dropout: float = 0.2  # CFG dropout of the text prefix
+     voice_dropout: float = 0.2  # CFG dropout of the voice prefix
++    voice_identity_new_init: bool = False
++    voice_identity_init_source_sha256: str = ""
+     # Update the emb_mean/emb_std latent-normalization buffers by EMA for this
+     # many first steps (0 keeps whatever the loaded weights contain).
+     stats_ema_steps: int = 0
+--- a/vendor/pocket-tts-training/source/training/checkpointing.py
++++ b/vendor/pocket-tts-training/source/training/checkpointing.py
+@@ -14,6 +14,7 @@
+ from torch import nn
+ 
+ from training.modules.model import TrainableTTS
++from pocket_tts.modules.voice_identity import identity_metadata, abi_weight_metadata
+ 
+ logger = logging.getLogger(__name__)
+ 
+@@ -76,7 +77,15 @@
+         "step": step,
+         "model": model.state_dict(),
+         "ema": ema.state_dict() if ema is not None else None,
++        "voice_identity": identity_metadata(model.flow_lm),
+     }
++    if payload["voice_identity"] is not None and ema is not None:
++        import hashlib
++        vector = ema.shadow.get("flow_lm.voice_identity.embedding.weight")
++        if vector is None:
++            raise ValueError("Hybrid EMA is missing its actual identity table")
++        payload["voice_identity_ema"] = {**payload["voice_identity"],
++            "table_sha256": hashlib.sha256(vector.detach().float().cpu().contiguous().numpy().astype("<f4", copy=False).tobytes()).hexdigest()}
+     path = run_dir / f"checkpoint_{step:08d}.pt"
+     tmp = path.with_suffix(".tmp")
+     torch.save(payload, tmp)
+@@ -112,6 +121,10 @@
+     ema: EMA | None = None,
+ ) -> int:
+     payload = torch.load(path, map_location="cpu", weights_only=True)
++    from pocket_tts.modules.voice_identity import assert_weight_abi, load_flow_state_with_fresh_identity
++    receipt = assert_weight_abi(model.flow_lm, path, checkpoint_payload=payload)
++    flow_state = {key.removeprefix("flow_lm."): value for key, value in payload["model"].items() if key.startswith("flow_lm.")}
++    load_flow_state_with_fresh_identity(model.flow_lm, flow_state, receipt)
+     model.load_state_dict(payload["model"])
+     if optimizer is not None:
+         opt_state = payload.get("optimizer")
+@@ -141,6 +154,14 @@
+     state.update({f"mimi.{k}": v.detach().cpu() for k, v in mimi.state_dict().items()})
+     path = Path(path)
+     tmp = path.with_suffix(".tmp")
+-    safetensors.torch.save_file(state, str(tmp))
++    # EMA may contain a newer table than raw weights; hash actual exported bytes.
++    meta = abi_weight_metadata(flow_lm)
++    if meta:
++        import hashlib, json
++        identity = json.loads(meta["voice_identity"])
++        exported = state["flow_lm.voice_identity.embedding.weight"]
++        identity["table_sha256"] = hashlib.sha256(exported.float().contiguous().numpy().astype("<f4", copy=False).tobytes()).hexdigest()
++        meta["voice_identity"] = json.dumps(identity, sort_keys=True)
++    safetensors.torch.save_file(state, str(tmp), metadata=meta)
+     tmp.rename(path)
+     logger.info(f"exported pocket-tts weights to {path}")
+--- a/vendor/pocket-tts-training/source/training/dataloader/types.py
++++ b/vendor/pocket-tts-training/source/training/dataloader/types.py
+@@ -34,3 +34,5 @@
+     num_voice_prompt_frames: torch.Tensor  # [B] valid codec frames of each voice prompt
+     tail_latents: torch.Tensor | None = None
+     prompt_latents: torch.Tensor | None = None
++    speaker_ids: torch.Tensor | None = None  # optional internal ABI1, never text
++    speaker_id_keep: torch.Tensor | None = None  # stateless per-global-draw mask
+--- a/vendor/pocket-tts-training/source/training/modules/builders.py
++++ b/vendor/pocket-tts-training/source/training/modules/builders.py
+@@ -16,6 +16,9 @@
+ from pocket_tts.models.mimi import MimiModel, build_mimi
+ from pocket_tts.models.tts_model import TTSModel
+ from pocket_tts.modules.mlp import SimpleMLPAdaLN
++from pocket_tts.modules.voice_identity import (
++    assert_weight_abi, assert_shared_mapping, load_flow_state_with_fresh_identity,
++)
+ from pocket_tts.utils.config import Config, load_config
+ from pocket_tts.utils.utils import download_if_necessary
+ 
+@@ -80,7 +83,9 @@
+         t_args.start_from_pretrained = False
+         teacher = build_models(t_args)[0].flow_lm
+         state = _load_flow_lm_state(args.distill_teacher_weights, args.distill_teacher_use_ema)
+-        teacher.load_state_dict(state, strict=True)
++        teacher_receipt = assert_weight_abi(teacher, download_if_necessary(args.distill_teacher_weights), use_ema=args.distill_teacher_use_ema)
++        load_flow_state_with_fresh_identity(teacher, state, teacher_receipt)
++        assert_shared_mapping(flow_lm, teacher)
+         teacher = teacher.eval()
+         # Seed the student from the teacher: non-backbone tensors verbatim,
+         # backbone from the teacher's bottom+top layers — far faster to
+@@ -94,11 +99,13 @@
+         }
+         if args.student_init_from:
+             src = _load_flow_lm_state(args.student_init_from, use_ema=False)
++            if any(k.startswith("voice_identity.") for k in src):
++                assert_weight_abi(flow_lm, download_if_necessary(args.student_init_from))
+             copied.update(
+                 {
+                     k: v
+                     for k, v in src.items()
+-                    if not k.startswith(("flow_net.", "out_eos."))
++                    if not k.startswith(("flow_net.", "out_eos.", "voice_identity."))
+                     and k in student_state
+                     and student_state[k].shape == v.shape
+                 }
+@@ -184,6 +191,9 @@
+         )
+ 
+     if args.start_from_pretrained:
++        identity_import = assert_weight_abi(flow_lm, weights_file,
++            allow_fresh_init=args.voice_identity_new_init,
++            expected_init_sha256=args.voice_identity_init_source_sha256)
+         flow_state = {
+             k.removeprefix("flow_lm."): v for k, v in state.items() if k.startswith("flow_lm.")
+         }
+@@ -202,9 +212,7 @@
+             )
+             dit_init(flow_lm.flow_net)
+         else:
+-            missing, unexpected = flow_lm.load_state_dict(flow_state, strict=not dropped)
+-            assert not unexpected, unexpected
+-            assert set(missing) <= set(dropped), missing
++            load_flow_state_with_fresh_identity(flow_lm, flow_state, identity_import, dropped=dropped)
+     else:
+         gaussian_init(flow_lm.transformer)
+         gaussian_init(flow_lm.input_linear)
+--- a/vendor/pocket-tts-training/source/training/modules/conditioner.py
++++ b/vendor/pocket-tts-training/source/training/modules/conditioner.py
+@@ -22,6 +22,8 @@
+     fl: FlowLMModel,
+     num_voice_prompt_frames: torch.Tensor | None = None,
+     force_null: bool = False,
++    speaker_ids: torch.Tensor | None = None,
++    speaker_id_keep: torch.Tensor | None = None,
+ ) -> tuple[torch.Tensor, torch.Tensor]:
+     """Assemble per-sample [beginning_of_prefix, voice_conditioning,
+     text_conditioning, beginning_of_sequence, target_audio] rows,
+@@ -60,6 +62,15 @@
+         v_len_cpu = num_voice_prompt_frames.cpu().long().clamp(max=Tv) * keep_voice_cpu
+     else:
+         v_len_cpu = torch.full((B,), Tv, dtype=torch.long) * keep_voice_cpu
++    bank = getattr(fl, "voice_identity", None)
++    if bank is not None:
++        if cfg_dropout and (speaker_ids is None or speaker_id_keep is None):
++            raise ValueError("Training hybrid IDs require explicit IDs and a separate deterministic keep mask")
++        keep_id = (torch.ones(B, dtype=torch.bool) if speaker_id_keep is None else speaker_id_keep.cpu())
++        # Same voice-CFG mask removes BOTH conditioning channels; ID-dropout is
++        # a separate stateless mask and cannot consume the text/flow-noise RNG.
++        keep_id = keep_id & keep_voice_cpu
++        voice_emb = bank(voice_emb, speaker_ids, keep_id, v_len_cpu)
+ 
+     # Batched text embedding over padded tokens (LUT lookup; pad id is the
+     # reserved padding bin and its embeddings are never placed).
+@@ -95,6 +106,10 @@
+     # autograd graph when every row of a rank's batch drops text (possible
+     # under CFG dropout), which find_unused_parameters=False requires.
+     x[:, 0] = x[:, 0] + 0.0 * text_emb.sum()
++    if bank is not None:
++        # DDP receives an explicit zero gradient even when all IDs/voice frames
++        # are absent, without allowing an ID into a CFG-null sequence.
++        x[:, 0] = x[:, 0] + 0.0 * bank.embedding.weight.sum()
+     # audio: positions prefix .. prefix+T_audio (always full)
+     apos = prefix_lengths[:, None] + torch.arange(T_audio, device=device)[None, :]
+     x[rows[:, None].expand(-1, T_audio).reshape(-1), apos.reshape(-1)] = audio_emb.reshape(
+--- a/vendor/pocket-tts-training/source/training/modules/model.py
++++ b/vendor/pocket-tts-training/source/training/modules/model.py
+@@ -59,6 +59,8 @@
+         update_stats: bool = False,
+         num_voice_prompt_frames: torch.Tensor
+         | None = None,  # [B] valid voice frames (rest is padding)
++        speaker_ids: torch.Tensor | None = None,
++        speaker_id_keep: torch.Tensor | None = None,
+     ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+         fl = self.flow_lm
+         _, T, C = latents.shape
+@@ -78,6 +80,8 @@
+                 num_voice_prompt_frames=num_voice_prompt_frames,
+                 fl=module,
+                 force_null=force_null,
++                speaker_ids=speaker_ids,
++                speaker_id_keep=speaker_id_keep,
+             )
+             out = module.out_norm(module.transformer(x, model_state=None))
+             idx = prefix_lengths[:, None] + torch.arange(T, device=out.device)[None, :]
+@@ -86,6 +90,8 @@
+         z = backbone_z(fl, cfg_dropout=self.training)  # [B, T, dim]
+ 
+         if self.distill_teacher is not None:
++            from pocket_tts.modules.voice_identity import assert_shared_mapping
++            assert_shared_mapping(fl, self.distill_teacher)
+             # Latent CFG distillation: the student's backbone regresses onto the
+             # teacher's guidance-combined output; flow/EOS heads stay frozen.
+             teacher = self.distill_teacher.to(latents.device)
+@@ -143,6 +149,7 @@
+         cfg_coef: float = 1.0,
+         eos_threshold: float = -1.0,
+         eos_countdown: int = 1,
++        speaker_ids: torch.Tensor | None = None,
+     ) -> list[torch.Tensor]:
+         """Sample a batch of utterances with arbitrary prefix lengths.
+ 
+@@ -157,11 +164,15 @@
+         B = len(text_tokens)
+ 
+         rows = []
+-        for tokens, voice in zip(text_tokens, voice_latents, strict=True):
++        for row_index, (tokens, voice) in enumerate(zip(text_tokens, voice_latents, strict=True)):
+             t_emb = fl.conditioner(tokens[None].to(device))[0]
+             v_emb = F.linear(
+                 voice[None].to(device, fl.speaker_proj_weight.dtype), fl.speaker_proj_weight
+             )[0]
++            bank = getattr(fl, "voice_identity", None)
++            if bank is not None:
++                ids = None if speaker_ids is None else speaker_ids[row_index:row_index + 1]
++                v_emb = bank(v_emb[None], ids)[0]
+             rows.append(torch.cat([fl.bos_before_voice[0], v_emb, t_emb], dim=0))
+         widths = [r.shape[0] for r in rows]
+         width = max(widths)
