@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
 import {VoiceSelection} from './voice-selection.mjs';
 import {LOCAL_VOICE_KEYS, ResidentVoice} from './resident-voice.mjs';
+import {abortable} from './transport-pool.mjs';
 
 const pocketSettings = voices => ({version:1,provider:'pocket',engine:'pocket-tts',voices,
   runtime:Object.fromEntries(['sourceDirectory','exportDirectory','referenceDirectory','workDirectory'].map(key=>[key,resolve('fixture',key)])),
@@ -11,13 +12,50 @@ const pocketSettings = voices => ({version:1,provider:'pocket',engine:'pocket-tt
 
 const tick = () => new Promise(done => setImmediate(done));
 const defer = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return {resolve, promise}; };
-function fixture({holdWarm = false, holdClose = false, extraProfiles = {}, unavailableProfiles = [], omniConfig = {}} = {}) {
+
+test('Pocket draft and Invite warm optional phone analysis outside reply onset, then close it once',async()=>{
+  const warm=defer(),events=[];
+  const phoneAnalysis={setWanted:value=>events.push(['wanted',value]),
+    prepare:()=>{events.push(['prepare']);return warm.promise;},retire:async()=>events.push(['retire']),
+    close:async()=>events.push(['close'])};
+  const h=fixture({phoneAnalysis});h.voice.update({voiceProvider:'convai'},null,false);
+  h.voice.prepare({provider:'pocket'});assert.ok(events.some(([kind,value])=>kind==='wanted'&&value));
+  h.voice.update({voiceProvider:'pocket'},null,false);let complete=false;
+  const invited=h.voice.prepareProfile('judy-alvarez').then(value=>{complete=true;return value;});
+  await tick();await tick();assert.equal(h.workers[0].loaded,true);assert.equal(complete,false);
+  assert.ok(events.some(([kind])=>kind==='prepare'));assert.equal(h.workers[0].calls.length,0);
+  warm.resolve({ready:true});assert.equal((await invited).ready,true);
+  const first=h.voice.close(),second=h.voice.close();assert.equal(first,second);await first;
+  assert.equal(events.filter(([kind])=>kind==='close').length,1);
+});
+
+test('an owned Pocket reply holds its analyser while a provider change waits for the idle boundary',async()=>{
+  const events=[],phoneAnalysis={setWanted:value=>events.push(['wanted',value]),prepare:async()=>({ready:true}),
+    retire:async()=>events.push(['retire']),close:async()=>events.push(['close'])};
+  const h=fixture({phoneAnalysis});await h.voice.start();events.length=0;
+  h.voice.update({voiceProvider:'convai'},null,true);
+  assert.equal(h.voice.provider,'pocket');assert.ok(events.every(([kind,value])=>kind!=='wanted'||value));
+  assert.equal(events.some(([kind])=>kind==='retire'),false);
+  h.voice.update({voiceProvider:'convai'},null,false);await h.voice.retiring;
+  assert.ok(events.some(([kind,value])=>kind==='wanted'&&!value));assert.ok(events.some(([kind])=>kind==='retire'));
+  await h.voice.close();
+});
+
+test('optional analyser unavailability preserves voice readiness while Invite cancellation still propagates',async()=>{
+  const unavailable={setWanted(){},prepare:async()=>{throw Error('Optional assets missing');},retire:async()=>{},close:async()=>{}};
+  const h=fixture({phoneAnalysis:unavailable});assert.equal((await h.voice.prepareProfile('judy-alvarez')).ready,true);await h.voice.close();
+  const waiting=defer(),phoneAnalysis={...unavailable,prepare:({signal})=>abortable(waiting.promise,signal)};
+  const next=fixture({phoneAnalysis}),controller=new AbortController();
+  const invited=next.voice.prepareProfile('judy-alvarez',{signal:controller.signal});await tick();await tick();
+  controller.abort();await assert.rejects(invited,{name:'AbortError'});waiting.resolve({ready:true});await next.voice.close();
+});
+function fixture({holdWarm = false, holdClose = false, extraProfiles = {}, unavailableProfiles = [], omniConfig = {}, phoneAnalysis} = {}) {
   const workers = [], states = []; let live = 0, peak = 0;
   const voices = Object.fromEntries(LOCAL_VOICE_KEYS.map(key => [key, {
     reference: `runtime/voice-references/${key}.wav`, sha256: 'a'.repeat(64), transcript: 'Ready when you are, V.',
   }]));
   Object.assign(voices, extraProfiles);
-  const voice = new VoiceSelection(pocketSettings(voices), {omniConfig, onState: value => states.push(value),
+  const voice = new VoiceSelection(pocketSettings(voices), {omniConfig, phoneAnalysis, onState: value => states.push(value),
     factory: (config, {onState}) => {
       const warm = defer(), released = defer(); let loaded = false, owned = false;
       const worker = {warm, released, starts: 0, closes: 0, calls: [],

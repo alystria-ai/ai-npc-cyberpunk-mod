@@ -21,6 +21,7 @@ import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {PartyConnections, parsePartyConnections} from './party-connections.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
+import {ResidentPhoneAnalysis} from './resident-phone-analysis.mjs';
 import {VoicePreviewLease} from './voice-preview.mjs';
 import {PhoneChat, parsePhoneState, phoneRecentConversationContext} from './phone-chat.mjs';
 import {GameLaunchIdentity, identifyGameLaunch} from './game-launch.mjs';
@@ -56,7 +57,22 @@ const omniVoiceConfig=JSON.parse(await readFile(omniVoiceConfigPath,'utf8').catc
   if(error.code==='ENOENT')return '{}';throw error;
 }));
 let voiceMetricsWriting = Promise.resolve();
+const phoneAnalysisConfigPath=resolve(stateDirectory,'phone-analysis.json');
+let phoneAnalysisConfig={};
+try{phoneAnalysisConfig=JSON.parse(await readFile(phoneAnalysisConfigPath,'utf8'));}
+catch(error){if(error.code!=='ENOENT')console.error('[CyberpunkConvai] Optional phone analyser configuration is unavailable.');}
+let phoneMetricsWriting=Promise.resolve();
+const phoneAnalysisOptions={configPath:phoneAnalysisConfigPath,
+  onState:state=>{
+    phoneMetricsWriting=phoneMetricsWriting.catch(()=>{}).then(()=>atomic(resolve(runtime,'phone-analysis-state.json'),JSON.stringify(state)));
+    return phoneMetricsWriting;
+  }};
+let phoneAnalysis;
+try{phoneAnalysis=new ResidentPhoneAnalysis(phoneAnalysisConfig,phoneAnalysisOptions);}
+catch{console.error('[CyberpunkConvai] Optional phone analyser configuration failed validation.');
+  phoneAnalysis=new ResidentPhoneAnalysis({},phoneAnalysisOptions);}
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
+  phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfig:omniVoiceConfig,omniConfigPath:omniVoiceConfigPath,
   profileKeys:roster.map(profile=>profile.key),
@@ -426,7 +442,8 @@ async function synthesizeReply(input, result, signal, current, profile = profile
       audioError: 'Local streaming is unavailable; showing the written reply.'};
   }
   const speech = continuousSpeech(input, profile, current, signal, receiptPrepared, true);
-  return deliverPocketSpeech({input, profile, result, current, signal, voice: localVoice, host: realtime, speech, lipsync,
+  return deliverPocketSpeech({input, profile, result, current, signal, voice: localVoice, host: realtime, speech,
+    phoneAnalysis:localVoice.phoneAnalysis,
     onAnalysis: timing => measure(input, {localLipAnalysis: timing})});
 }
 

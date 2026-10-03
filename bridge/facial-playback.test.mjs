@@ -418,3 +418,32 @@ test('Pocket continuous local-source schema retains owner, duration, weight and 
     end
   `);
 });
+
+test('actual resident allphone Pocket timeline reaches the Lua consumer with varied shapes and final reset',async()=>{
+  const owner={requestId:'resident-phone-native-contract',entity:'Judy-1',generation:7};let deliver;
+  const phoneAnalysis={beginTurn(input,{onPhones}){deliver=onPhones;return{push(){},finish(){},close(){}};}};
+  const stream=new PocketFacialStream({input:owner,phoneAnalysis});
+  stream.push({index:1,offsetFrames:0,frames:19200,sampleRate:24000,channels:1,
+    pcm:Float32Array.from({length:19200},(_,index)=>.2*Math.sin(index*.043))});
+  const envelope=stream.snapshot(9600,false,0);
+  const receipt={type:'phones',owner,receivedFrames:19200,
+    segments:[{phone:'AA',startFrame:0,endFrame:29},{phone:'OW',startFrame:30,endFrame:69}]};
+  deliver(receipt);deliver(receipt);const phonetic=stream.snapshot(19200,false,.4);
+  assert.equal(phonetic.recognition.format,'pocketsphinx-allphone-live-v1');
+  stream.finish();const final=stream.snapshot(19200,true,.8);
+  run(`
+    local context=${luaLiteral(owner)}
+    assert(face.updateContinuous(context,${luaLiteral(envelope)},judy,.4),face.error)
+    local feature=face.feature
+    face.sync(judy,.2,context.requestId)
+    assert(face.updateContinuous(context,${luaLiteral(phonetic)},judy,.8),face.error)
+    assert(face.feature==feature and judy.resets==0)
+    face.sync(judy,.55,context.requestId)
+    assert(judy.frames[#judy.frames].lips_l_purse>0,'resident acoustic shape was lost at the Lua seam')
+    assert(face.status().source=='local-phonetic' and face.status().articulation=='coarticulated-v5')
+    assert(face.updateContinuous(context,${luaLiteral(final)},judy,.8),face.error)
+    face.sync(judy,.8,context.requestId)
+    assert(not face.active and face.state=='finished' and judy.resets==1)
+  `);
+  await stream.close();
+});

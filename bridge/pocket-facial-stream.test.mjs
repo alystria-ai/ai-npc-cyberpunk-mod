@@ -182,3 +182,34 @@ test('a generated-ahead phonetic interval is clipped to the accepted prefix at a
   assert.equal(ownedPocketFace({face,duration:.4,sourceComplete:false,positionSeconds:.4},input),face);
   stream.close();
 });
+
+test('resident acoustic packets use stable future phones and their truthful format without a batch analyser',async()=>{
+  let deliver,error,closed=0,batchCalls=0;
+  const phoneAnalysis={beginTurn(owner,{onPhones,onError}){deliver=onPhones;error=onError;
+    assert.deepEqual(owner,input);return{push(){},finish(){},close(){closed++;}};}};
+  const stream=new PocketFacialStream({input,phoneAnalysis,lipsync:{analyse(){batchCalls++;throw Error('must not batch');}}});
+  stream.push(packet(1,0,9600));
+  const response=frames=>({type:'phones',owner:input,receivedFrames:frames,
+    segments:[{phone:'AA',startFrame:0,endFrame:19},{phone:'OW',startFrame:20,endFrame:29}]});
+  deliver(response(9600));assert.equal(stream.snapshot(9600,false,.1).source,'audio-envelope');
+  stream.push(packet(2,9600,9600));deliver(response(19200));
+  const face=stream.snapshot(19200,false,.25);
+  assert.equal(face.source,'local-phonetic');assert.equal(face.recognition.format,'pocketsphinx-allphone-live-v1');
+  assert.equal(face.recognition.engine,'pocketsphinx-5.0.4-allphone-live');assert.equal(batchCalls,0);
+  const rounding=face.tracks.indexOf('lips_l_purse')+1;assert.ok(face.frames.find(frame=>frame[0]===.25)[rounding]>0);
+  assert.equal(ownedPocketFace({face,duration:.8,sourceComplete:false,positionSeconds:.25},input),face);
+  for(const recognition of [{...face.recognition,format:'rhubarb-phonetic-v1'},
+    {...face.recognition,analysisSampleRate:24000},{...face.recognition,timebase:'decoder-frame-guesses'}])
+    assert.throws(()=>ownedPocketFace({face:{...face,recognition},duration:.8,sourceComplete:false,positionSeconds:.25},input),/format/);
+  error(Error('recognizer unavailable'));assert.equal(stream.snapshot(19200,false,.26).source,'audio-envelope');
+  stream.finish();await stream.close();await stream.close();assert.equal(closed,1);
+});
+
+test('an unavailable resident helper retains immediate original PCM and explicit envelope fallback',async()=>{
+  let batches=0,starts=0;
+  const phoneAnalysis={beginTurn(){starts++;return null;},start(){throw Error('reply onset cannot start a helper');}};
+  const stream=new PocketFacialStream({input,phoneAnalysis,lipsync:{analyse(){batches++;}}});
+  const source=packet(1,0,19200),before=source.pcm.slice();stream.push(source);await tick();
+  assert.deepEqual(source.pcm,before);assert.equal(stream.snapshot(19200,false,.3).source,'audio-envelope');
+  assert.equal(starts,1);assert.equal(batches,0);await stream.close();
+});

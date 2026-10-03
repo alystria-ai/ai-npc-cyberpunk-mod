@@ -21,6 +21,7 @@ export class VoiceSelection {
     this.registries={pocket:pocketRegistry,omni:omniRegistry,convai:empty};
     this.configs={pocket:snapshot(validated,pocketRegistry),omni:snapshot(omniInput,omniRegistry)};
     this.options = options;
+    this.phoneAnalysis=options.phoneAnalysis;
     this.factory = options.factory || ((settings, hooks) => new PocketVoice(settings, hooks));
     this.omniFactory=options.omniFactory||((settings,hooks)=>new ResidentVoice(settings,hooks));
     this.configuredByBackend={pocket:!!validated&&pocketRegistry.keys.length>0,
@@ -118,6 +119,8 @@ export class VoiceSelection {
   }
   reconcile() {
     const wanted=this.targetBackend;
+    this.phoneAnalysis?.setWanted((this.busy&&this.clientBackend==='pocket'&&this.provider==='pocket')
+      ||(this.playbackEnabled!==false&&wanted==='pocket'));
     if(this.client&&this.clientBackend!==wanted){
       // A settings draft queues warm-up immediately, but never stops the
       // model that still owns a submitted local turn.
@@ -168,6 +171,8 @@ export class VoiceSelection {
   }
   start() {
     if (this.closed) return Promise.reject(Error('Voice service is closed'));
+    this.phoneAnalysis?.setWanted((this.busy&&this.clientBackend==='pocket'&&this.provider==='pocket')
+      ||(this.playbackEnabled!==false&&this.targetBackend==='pocket'));
     if (!this.wantsLocal) {
       this.publish(this.releasing ? 'releasing' : (this.provider === 'convai' ? 'remote' : 'disabled'));
       return Promise.resolve();
@@ -201,6 +206,7 @@ export class VoiceSelection {
   }
   retire() {
     const client = this.client;
+    const backend=this.clientBackend;
     this.client = this.starting = this.clientBackend = null;
     if (!client) { this.publish(this.releasing ? 'releasing' : (this.closed ? 'stopped' : 'remote')); return this.retiring; }
     this.releasing = true;
@@ -208,7 +214,8 @@ export class VoiceSelection {
     // Signal EOF even during warmup. The worker owns its bounded physical
     // cleanup; waiting for readiness first could prevent shutdown forever.
     // An unconfirmed prior exit must continue blocking any replacement.
-    const retirement = this.retiring.then(() => client.close());
+    const phoneRetirement=backend==='pocket'?this.phoneAnalysis?.retire().catch(()=>{}):undefined;
+    const retirement = this.retiring.then(() => Promise.all([client.close(),phoneRetirement]));
     this.retiring = retirement.then(() => {
       if (this.retiring !== completed) return;
       this.releasing = false;
@@ -272,12 +279,17 @@ export class VoiceSelection {
       if(!client?.loaded||client.closing||this.clientBackend!==this.provider)
         throw Error('Selected local voice backend did not become ready');
       let receipt;
+      const phonePreparing=this.provider==='pocket'&&this.playbackEnabled!==false&&this.phoneAnalysis
+        ?this.phoneAnalysis.prepare(options).catch(error=>{throwIfCancelled(options.signal);return{ready:false};}):null;
+      phonePreparing?.catch(()=>{});
       try { receipt = await client.prepareProfile(profile, options); }
       catch (error) {
         throwIfCancelled(options.signal);
         if (!this.closed && this.provider === 'convai') return remote('selected');
         throw error;
       }
+      throwIfCancelled(options.signal);
+      if(phonePreparing)await phonePreparing;
       throwIfCancelled(options.signal);
       await this.routingSettled(options);
       if (this.closed) throw Error('Voice service is closed');
@@ -288,10 +300,10 @@ export class VoiceSelection {
     }
   }
   close() {
-    if (this.closed) return this.retiring;
+    if (this.closed) return this.closing||this.retiring;
     this.closed = true; this.preview = null;
     for (const waiter of this.routingWaiters) waiter.reject(Error('Voice service is closed'));
     this.routingWaiters.clear();
-    return this.retire();
+    return this.closing=Promise.all([this.retire(),this.phoneAnalysis?.close()]);
   }
 }

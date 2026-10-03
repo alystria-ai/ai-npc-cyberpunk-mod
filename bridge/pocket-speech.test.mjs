@@ -62,3 +62,35 @@ test('pre-admission failure preserves the original text/session; partial admitte
     assert.equal(failures,1);
   }
 });
+
+test('actual Pocket delivery wires the ready resident analyser while admitting original PCM before analysis completion',async()=>{
+  const phones=[];let beginCalls=0,closed=0,finishCalls=0,voiceCalls=0;
+  const phoneAnalysis={beginTurn(owner,{onPhones}){
+    beginCalls++;assert.equal(owner,input);
+    return{push(value){phones.push(value);onPhones({type:'phones',owner:input,receivedFrames:value.offsetFrames+value.frames,
+      segments:[{phone:'AA',startFrame:0,endFrame:19},{phone:'OW',startFrame:20,endFrame:29}]});},
+      finish(){finishCalls++;},close(){closed++;}};
+  },start(){throw Error('first PCM cannot wait on recognizer warm-up');}};
+  const seen=[],speech={token:'resident-delivery-seam',published:true,ended:true,generated:true,
+    frame:async value=>seen.push(value),fail:async()=>{throw Error('unexpected audio failure');}};
+  const host={async playLocalPcm(config,produce,options){
+    let frames=0;
+    const produced=await produce(async value=>{
+      frames+=value.frames;const state={receivedFrames:frames,sourceComplete:false,positionSeconds:.05};
+      state.face=options.getFace(state);await options.onFrame(state);
+      assert.equal(value.pcm[10],packet(value.index,value.offsetFrames).pcm[10]);
+      return{receivedFrames:frames};
+    },{signal:new AbortController().signal});
+    const final={receivedFrames:frames,sourceComplete:true,positionSeconds:frames/24000};
+    final.face=options.getFace(final);await options.onFrame(final);return produced;
+  }};
+  const voice={async synthesizeStream(key,text,{onPcm}){
+    voiceCalls++;assert.equal(text,result.text);assert.equal(key,profile.key);
+    await onPcm(packet(1,0));await onPcm(packet(2,9600));return{frames:19200};
+  }};
+  const response=await deliverPocketSpeech({input,profile,result,current:async()=>true,voice,host,speech,phoneAnalysis});
+  assert.equal(beginCalls,1);assert.equal(voiceCalls,1);assert.equal(phones.length,2);assert.equal(finishCalls,1);assert.equal(closed,1);
+  assert.equal(seen[0].face.source,'audio-envelope');assert.equal(seen[1].face.source,'local-phonetic');
+  assert.equal(seen[1].face.recognition.format,'pocketsphinx-allphone-live-v1');
+  assert.equal(response.sessionID,result.sessionID);assert.equal(response.liveDelivery.ended,true);
+});

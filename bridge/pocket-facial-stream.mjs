@@ -1,6 +1,8 @@
 import {normaliseSpeechEnvelope, SPEECH_TRACKS} from './facial-timeline.mjs';
 import {PHONETIC_ARTICULATION, phoneticPose} from './phonetic-poses.mjs';
 import {validateMouthCues} from './phonetic-lipsync.mjs';
+import {ConfirmedPhoneTimeline} from './phone-poses.mjs';
+import {PHONE_ANALYSIS_ENGINE,PHONE_ANALYSIS_FORMAT,PHONE_ANALYSIS_FRONTEND} from './phone-analysis-config.mjs';
 import {throwIfCancelled} from './transport-pool.mjs';
 
 const RATE = 24000, MAX_FRAMES = RATE * 120, ENERGY_FRAMES = RATE / 30;
@@ -27,7 +29,7 @@ export function pocketAnalysisWav(pcm) {
 // Only the part of a result that is still ahead of the device cursor can be
 // admitted. Completed work is not evidence of phonetic coverage at playback.
 export class PocketFacialStream {
-  constructor({input, lipsync, signal, expressionSignal, onAnalysis = () => {}}) {
+  constructor({input, lipsync, phoneAnalysis, signal, expressionSignal, onAnalysis = () => {}}) {
     if (typeof input?.requestId !== 'string' || typeof input.entity !== 'string' || !Number.isSafeInteger(input.generation))
       throw Error('Pocket facial stream needs an owned utterance');
     Object.assign(this,{input,lipsync,signal,expressionSignal,onAnalysis});
@@ -37,6 +39,20 @@ export class PocketFacialStream {
     this.energies = []; this.energySquares = 0; this.energySamples = 0;
     this.intervals = []; this.pending = new Set(); this.analysisCursor = 0; this.analysisIndex = 0;
     this.revision = 0; this.publicationRevision = 0; this.audiblePosition = 0; this.complete = false;
+    if(phoneAnalysis!==undefined){
+      // A ready resident helper is a side channel. Reply onset never starts or
+      // waits for a recognizer, and unavailable analysis stays envelope-only.
+      this.lipsync=undefined;this.phoneTimeline=new ConfirmedPhoneTimeline(input);
+      try{this.phoneSession=phoneAnalysis?.beginTurn(input,{signal,onPhones:result=>{
+        if(this.closed)return;
+        const receipt=this.phoneTimeline.accept(result,this.audiblePosition,this.frames);
+        this.intervals=this.phoneTimeline.intervals();this.recognition=this.phoneTimeline.recognition();
+        this.revision++;this.cached=this.geometry=null;this.measure(receipt);
+      },onError:()=>{
+        if(this.closed)return;this.phoneTimeline.clear();this.intervals=[];this.recognition=undefined;
+        this.revision++;this.cached=this.geometry=null;this.measure({type:'phones',status:'envelope-fallback'});
+      }});}catch{this.phoneSession=null;}
+    }
     if (signal?.aborted) this.close();
   }
   assertActive() { throwIfCancelled(this.signal); throwIfCancelled(this.controller.signal); }
@@ -60,7 +76,8 @@ export class PocketFacialStream {
         this.energySquares=0;this.energySamples=0;
       }
     }
-    this.revision++;this.cached=null;this.geometry=null;this.schedule();
+    this.revision++;this.cached=null;this.geometry=null;
+    this.phoneSession?.push(packet);this.schedule();
   }
   schedule() {
     if(this.closed || !this.lipsync || this.pending.size) return;
@@ -114,7 +131,8 @@ export class PocketFacialStream {
     this.pending.add(job);
   }
   finish() {
-    this.assertActive(); this.complete=true; this.schedule();this.revision++;this.cached=null;this.geometry=null;
+    this.assertActive(); this.complete=true;this.phoneSession?.finish();this.schedule();
+    this.revision++;this.cached=null;this.geometry=null;
   }
   envelope(receivedFrames,sourceComplete) {
     const count=Math.floor(receivedFrames/ENERGY_FRAMES),energies=this.energies.slice(0,count);
@@ -173,12 +191,15 @@ export class PocketFacialStream {
       receivedSeconds:duration,pendingAnalyses:this.pending.size};
     const face={version:1,requestId:this.input.requestId,entity:this.input.entity,generation:this.input.generation,
       continuous:true,complete:sourceComplete,duration,revision:++this.publicationRevision,tracks:[...SPEECH_TRACKS],frames,
-      source:phonetic?'local-phonetic':'audio-envelope',...(phonetic?{articulation:PHONETIC_ARTICULATION}:{}),coverage};
+      source:phonetic?'local-phonetic':'audio-envelope',...(phonetic?{articulation:PHONETIC_ARTICULATION}:{}),coverage,
+      ...(this.recognition?{recognition:this.recognition}:{})};
     this.cached={key,face};return face;
   }
   close() {
-    if (this.closed) return; this.closed=true;this.controller.abort();this.signal?.removeEventListener('abort',this.cancel);
+    if (this.closed) return this.closing; this.closed=true;this.controller.abort();this.signal?.removeEventListener('abort',this.cancel);
+    this.closing=Promise.resolve(this.phoneSession?.close()).catch(()=>{});
     this.pcm=null;this.energies=[];this.intervals=[];this.cached=null;this.geometry=null;
+    this.phoneTimeline?.clear();return this.closing;
   }
 }
 
@@ -212,6 +233,13 @@ export function ownedPocketFace(snapshot, owner) {
   const phonetic=coverage.phoneticIntervals.some(([start,end])=>coverage.audiblePositionSeconds>=start
     && coverage.audiblePositionSeconds<end);
   if((face.source==='local-phonetic')!==phonetic)throw Error('Pocket facial source is not covered at the audible cursor');
+  if(face.recognition!==undefined){
+    const recognition=face.recognition;
+    if(!recognition||recognition.version!==1||recognition.format!==PHONE_ANALYSIS_FORMAT
+        ||recognition.engine!==PHONE_ANALYSIS_ENGINE||recognition.timebase!=='original-audio-seconds'
+        ||Object.entries(PHONE_ANALYSIS_FRONTEND).some(([key,value])=>recognition[key]!==value))
+      throw Error('Pocket acoustic source format changed');
+  }
   let previous=-1;
   for(const frame of face.frames) {
     if (!Array.isArray(frame) || frame.length!==SPEECH_TRACKS.length+1 || !frame.every(Number.isFinite)
