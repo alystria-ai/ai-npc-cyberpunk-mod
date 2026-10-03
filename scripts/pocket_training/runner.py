@@ -8,7 +8,7 @@ copies under output_dir; input source/configuration/audio files are never edited
 
 from __future__ import annotations
 
-from . import teacher_data, teacher_quality
+from . import teacher_data, teacher_quality, student_transfer
 
 import argparse
 from contextlib import contextmanager, nullcontext
@@ -194,6 +194,11 @@ class Spec:
         return self.raw.get(key, default)
 
 
+def qualified_corpus(spec: Spec) -> bool:
+    """The same actual data gates protect teacher and opt-in student transfer."""
+    return teacher_quality.enabled(spec) or student_transfer.enabled(spec)
+
+
 def load_spec(path: Path, *, verify: bool = True, require_manifests: bool = True) -> Spec:
     path = path.resolve()
     raw = read_json(path)
@@ -301,6 +306,8 @@ def load_spec(path: Path, *, verify: bool = True, require_manifests: bool = True
         for key, default in (("teacher_min_steps", raw.get("teacher_warmup_steps", 1000)),
                              ("validation_patience", 8), ("valid_freq", 100)):
             identities["teacher_quality"][key] = raw.get(key, default)
+    if raw.get("student_transfer_policy") is not None:
+        identities["student_transfer"] = student_transfer.identity_fields(raw, identities, base)
     reference_data = read_json(local_path(base, raw["reference_manifest"]))
     reference_items = reference_data if isinstance(reference_data, list) else reference_data.get("references", reference_data.get("voices", []))
     if isinstance(reference_items, dict):
@@ -308,7 +315,7 @@ def load_spec(path: Path, *, verify: bool = True, require_manifests: bool = True
     identities["reference_audio"] = [sha256_file(local_path(base, r.get("path", r.get("reference", "")))) for r in reference_items]
     identity = hashlib.sha256(json.dumps(identities, sort_keys=True).encode()).hexdigest()
     spec = Spec(path, raw, base, source, output, identity, manifests)
-    if teacher_quality.enabled(spec):
+    if qualified_corpus(spec):
         # Cheap metadata gates precede every model/GPU allocation. The separate
         # corpus receipt and asset hashes bind waveform/history checks outside
         # this runner; these guards must not invent unseen-scene coverage.
@@ -557,19 +564,20 @@ def import_teacher(spec: Spec) -> None:
                 or origin.get("imported_checkpoint_sha256") != sha256_file(destination)):
             raise ValueError("Previously imported teacher changed on resume")
         return
+    checkpoint_hash = sha256_file(checkpoint)
     payload = torch.load(checkpoint, map_location="cpu", weights_only=True)
     parent_identity = receipt.get("input_identity")
-    if (payload.get("step") != receipt["selected_step"] or not parent_identity
-            or payload.get("runner", {}).get("input_identity") != parent_identity
-            or not payload.get("ema")):
-        raise ValueError("Imported teacher checkpoint does not match its selected export")
-    combined = {**payload["model"], **payload["ema"]}
+    if not parent_identity:
+        raise ValueError("Imported teacher has no original input identity")
+    combined, storage = student_transfer.selected_teacher_state(payload, receipt, checkpoint_hash)
     exported = safetensors.torch.load_file(str(weights))
     keys = [key for key in exported if key.startswith("flow_lm.")]
-    if not keys or any(key not in combined or not torch.equal(combined[key].float(), exported[key].float()) for key in keys):
+    if (not keys or {key for key in combined if key.startswith("flow_lm.")} != set(keys)
+            or any(combined[key].dtype != exported[key].dtype or not torch.equal(combined[key], exported[key]) for key in keys)):
         raise ValueError("Imported teacher checkpoint tensors differ from the accepted export")
     origin = {"source_input_identity": parent_identity, "source_weights_sha256": weight_hash,
-              "source_checkpoint_sha256": sha256_file(checkpoint), "selected_step": receipt["selected_step"]}
+              "source_checkpoint_sha256": checkpoint_hash, "selected_step": receipt["selected_step"],
+              "checkpoint_storage": storage, "upstream_use_ema": storage == "dict_ema"}
     payload["runner"] = {**payload["runner"], "input_identity": spec.identity, "imported_teacher": origin}
     destination.parent.mkdir(parents=True, exist_ok=True)
     atomic_torch_save(destination, payload, spec)
@@ -615,7 +623,7 @@ def prepare(spec: Spec, stop: Stop) -> int:
     config_dir.mkdir(parents=True, exist_ok=True)
     stage_state(spec, "prepare", status="running", pid=os.getpid())
     relocated = {split: relocate_manifest(spec, split) for split in spec.manifests}
-    if teacher_quality.enabled(spec) and any(
+    if qualified_corpus(spec) and any(
             row.get("validation_tier") != "A_unseen_scene" or row.get("previous_training_seen") is not False
             or row.get("previous_training_scene_seen") is not False for row in relocated["dev"]):
         raise ValueError("Tier A macro development must declare genuinely unseen training scenes")
@@ -650,7 +658,7 @@ def prepare(spec: Spec, stop: Stop) -> int:
         atomic_rows(data_dir / f"{split}.jsonl", aligned)
         if len(rejected[split]) / len(entries) > float(spec.option("max_alignment_reject_fraction", 0.25)):
             raise ValueError(f"Alignment rejected too much of {split}; inspect prepare/rejected.json before training")
-    if teacher_quality.enabled(spec):
+    if qualified_corpus(spec):
         panels = {}
         for panel in ("teacher_regression", "teacher_conditional"):
             panel_spec = replace(spec, manifests={panel: spec.asset(panel + "_manifest")})
@@ -700,8 +708,8 @@ def prepare(spec: Spec, stop: Stop) -> int:
                 "completed_at": now_iso(), "alignment_dtype": "float32", "mimi_dtype": "float32",
                 "compiled": False,
                 **({"loader_cache_receipt_sha256": sha256_file(spec.output / "prepare/teacher-loader-cache.json")}
-                   if teacher_quality.enabled(spec) else {})})
-    if teacher_quality.enabled(spec):
+                   if qualified_corpus(spec) else {})})
+    if qualified_corpus(spec):
         atomic_json(spec.output / "prepare/teacher-cache-verified.json", teacher_data.verify_actual_cache(spec))
     stage_state(spec, "prepare", status="completed", counts=counts)
     return 0
@@ -819,7 +827,7 @@ def precompute(spec: Spec, mimi: Any, device: Any, stop: Stop) -> bool:
     tag = f"{codec_hash[:12]}-{data_hash[:12]}"
     folder = manifest.parent / "latents" / tag
     folder.mkdir(parents=True, exist_ok=True)
-    quality_data = teacher_quality.enabled(spec)
+    quality_data = qualified_corpus(spec)
     observations_path = folder / "teacher-observations.json"
     observations = read_json(observations_path) if quality_data else None
     metadata = read_json(folder / "calibration.json")
@@ -1152,7 +1160,7 @@ def save_best(spec: Spec, stage: str, step: int, model: Any, ema: Any, metrics: 
 def run_rollout_checks(spec: Spec, model: Any, mimi: Any, ema: Any, device: Any,
                        step: int, stop: Stop, rank: int, world: int) -> dict[str, Any] | None:
     """Check free generation at declared steps; MSE alone cannot qualify speech."""
-    if step not in spec.option("rollout_steps", []):
+    if student_transfer.enabled(spec) or step not in spec.option("rollout_steps", []):
         return None
     import torch
     from pocket_training.rollout import evaluate_rollout
@@ -1234,6 +1242,13 @@ def speech_selection(spec: Spec) -> dict[str, Any]:
 
 
 def selected_checkpoint(spec: Spec, stage: str) -> Path:
+    if stage == "distill" and student_transfer.enabled(spec):
+        candidate = spec.output / "distill/quality-best.pt"
+        receipt = read_json(candidate.with_suffix(".json"), {})
+        if candidate.exists() and (receipt.get("input_identity") != spec.identity
+                or receipt.get("checkpoint_sha256") != sha256_file(candidate)):
+            raise ValueError("Student candidate differs from its exact macro selection receipt")
+        return candidate  # Never fall back to a latent-only or WER-selected best.
     if stage == "teacher" and teacher_quality.enabled(spec):
         candidate = spec.output / "teacher/quality-best.pt"
         receipt = read_json(candidate.with_suffix(".json"), {})
@@ -1420,7 +1435,8 @@ def validate(spec: Spec, model: Any, mimi: Any, args: Any, device: Any, rank: in
 
     rows = rows_at(spec.output / f"data/{split}.jsonl")
     limit = int(spec.option("max_valid_samples", 128)) if split == "dev" else 0
-    collect_speakers = teacher_quality.enabled(spec) and model.distill_teacher is None
+    student_macro = student_transfer.enabled(spec) and model.distill_teacher is not None
+    collect_speakers = (teacher_quality.enabled(spec) and model.distill_teacher is None) or student_macro
     macro = collect_speakers and split in ("dev", "teacher_conditional")
     if macro:
         limit = 0  # Every declared voice contributes; no sparse voice disappears in a cap.
@@ -1502,11 +1518,14 @@ def validate(spec: Spec, model: Any, mimi: Any, args: Any, device: Any, rank: in
                 raise RuntimeError("Teacher development lost a declared voice")
             metrics = {key: float(packed[position, offset + 1].item() / samples) for offset, key in enumerate(names)}
             speaker_scores[voice] = {**metrics, "samples": samples,
-                "score": teacher_quality.objective(metrics, p_equal=model.flow.p_equal, ldim=model.ldim, eos_weight=args.eos_loss_weight)}
+                "score": metrics["distill_mse"] if student_macro else teacher_quality.objective(metrics,
+                    p_equal=model.flow.p_equal, ldim=model.ldim, eos_weight=args.eos_loss_weight)}
         if macro:
             expected_key = "teacher_dev_expected_speakers" if split == "dev" else "teacher_conditional_expected_speakers"
             score = teacher_quality.macro_speakers(speaker_scores, set(spec.raw[expected_key]))
             selection = "tier_a_macro_unseen_scene" if split == "dev" else "tier_b_macro_unseen_utterance_seen_scene_not_generalization"
+            if student_macro:
+                selection += "_student_cfg2_target_backbone_mse"
     result = {**averaged, "score": score, "samples": actual, "eligible_samples": len(rows),
             "sample_ids_sha256": hashlib.sha256(json.dumps([stable_row_id(rows[i]) for i in indices]).encode()).hexdigest(),
             "selection": selection, "split": split, "precision": "float32", "prompt_augmentation": False}
@@ -1653,10 +1672,12 @@ def precision_probe(spec: Spec, model: Any, mimi: Any, optimizer: Any, batch: An
 def make_training_args(spec: Spec, stage: str, world: int) -> Any:
     from training.args import load_args, dump_args
 
+    if student_transfer.enabled(spec) and stage != "distill":
+        raise ValueError("Student transfer cannot train the frozen target teacher")
     data = read_json(spec.output / "prepared.json")
     if not data or data.get("input_identity") != spec.identity:
         raise ValueError("Preparation must complete for these exact inputs before training")
-    if stage == "teacher" and teacher_quality.enabled(spec):
+    if qualified_corpus(spec):
         teacher_data.verify_actual_cache(spec)
     args = load_args(spec.source / f"training/configs/{'finetune' if stage == 'teacher' else 'depth_distill'}.yaml")
     args.model_config = str(spec.output / f"configs/{'teacher' if stage == 'teacher' else 'student'}-inference.yaml")
@@ -1723,7 +1744,7 @@ def make_training_args(spec: Spec, stage: str, world: int) -> Any:
         args.distill_teacher_config = str(spec.output / "configs/teacher-inference.yaml")
         args.distill_teacher_overrides = {}
         args.distill_teacher_weights = str(spec.output / "teacher/best.pt")
-        args.distill_teacher_use_ema = True
+        args.distill_teacher_use_ema = teacher_state.get("origin", {}).get("upstream_use_ema", True)
         if spec.raw.get("student_init_from"):
             args.student_init_from = str(spec.asset("student_init_from"))
     args_path = args.run_dir / "args.yaml"
@@ -1773,6 +1794,12 @@ def train(spec: Spec, stage: str, requested_precision: str, stop: Stop) -> int:
         for name in ("emb_mean", "emb_std"):
             if not torch.equal(getattr(model.flow_lm, name), getattr(model.distill_teacher, name)):
                 raise ValueError("Mature student initialization changed the teacher's frozen latent calibration")
+        if student_transfer.enabled(spec):
+            actual_transfer = student_transfer.transfer_receipt(model, stop)
+            if rank == 0:
+                atomic_json(args.run_dir / "transferred-tensors.json", {"input_identity": spec.identity,
+                    "target_teacher_weights_sha256": spec.raw["import_teacher_expected_sha256"],
+                    "transferred_tensors": actual_transfer})
     if any(p.dtype != torch.float32 for p in model.parameters()):
         raise ValueError("All trainable master weights must remain FP32")
     optimizer = build_optimizer(model, args, device, rank)
@@ -1787,7 +1814,8 @@ def train(spec: Spec, stage: str, requested_precision: str, stop: Stop) -> int:
              "official_max_steps": official_ceiling, "stop_reason": "",
              "latent_calibration": CALIBRATION_POLICY, "objective_weighting": OBJECTIVE_POLICY}
     quality_run = stage == "teacher" and teacher_quality.enabled(spec)
-    if quality_run:
+    student_quality_run = stage == "distill" and student_transfer.enabled(spec)
+    if quality_run or student_quality_run:
         state["quality_anchor_receipt_sha256"] = None
     checkpoint = args.run_dir / "last.pt"
     if checkpoint.exists():
@@ -1809,6 +1837,13 @@ def train(spec: Spec, stage: str, requested_precision: str, stop: Stop) -> int:
             scaler.load_state_dict(payload["scaler"])
         restore_rng(torch, model, payload["rng_by_rank"][rank])
         del payload
+    if student_quality_run:
+        student_transfer.transfer_receipt(model, stop)  # Resume cannot restore altered frozen heads.
+        expected_shadow = {name for name, parameter in model.named_parameters() if parameter.requires_grad}
+        if set(ema.shadow) != expected_shadow:
+            raise ValueError("Student transfer EMA must track exactly its trainable backbone, never old frozen heads")
+        with ema_weights(model, ema):
+            student_transfer.transfer_receipt(model, stop)
     selected = read_json(args.run_dir / "best.json", {})
     if selected and (state["best_score"] is None or selected["metrics"]["score"] < state["best_score"]):
         state.update(best_score=selected["metrics"]["score"], best_step=int(selected["step"]))
@@ -1845,9 +1880,21 @@ def train(spec: Spec, stage: str, requested_precision: str, stop: Stop) -> int:
         if start_step and state["quality_anchor_receipt_sha256"] != anchor_hash:
             raise ValueError("Teacher resume anchor receipt changed after its original baseline")
         state["quality_anchor_receipt_sha256"] = anchor_hash
+    if student_quality_run:
+        quality_anchor = student_transfer.anchor(spec, model, mimi, ema, args, device, rank, world, stop, start_step)
+        if quality_anchor is None:
+            state.update(status="paused", stop_reason=stop.reason)
+            save_training(spec, stage, start_step, model, optimizer, ema, scaler, state, device, world, rank)
+            return EXIT_PAUSED
+        anchor_hash = sha256_file(spec.output / "distill/quality-anchor.json")
+        if start_step and state["quality_anchor_receipt_sha256"] != anchor_hash:
+            raise ValueError("Student transfer dual control changed on resume")
+        state["quality_anchor_receipt_sha256"] = anchor_hash
     if start_step == 0 and not (args.run_dir / "best.pt").exists():
         if quality_run:
             baseline = quality_anchor["dev"]
+        elif student_quality_run:
+            baseline = quality_anchor["hybrid"]["dev"]
         else:
             with ema_weights(model, ema):
                 baseline = validate(spec, model, mimi, args, device, rank, world, stop)
@@ -1994,7 +2041,8 @@ def train(spec: Spec, stage: str, requested_precision: str, stop: Stop) -> int:
                 stage_state(spec, stage, **state, step=step, corpus_passes=last_metrics["corpus_passes"])
                 print(json.dumps({"stage": stage, "step": step, **last_metrics}, allow_nan=False), flush=True)
             validation_due = (step % args.valid_freq == 0 or step == execution_steps
-                              or (quality_run and step in spec.option("teacher_rollout_steps", [])))
+                              or (quality_run and step in spec.option("teacher_rollout_steps", []))
+                              or (student_quality_run and step in spec.option("rollout_steps", [])))
             if stage == "distill":
                 speech = run_rollout_checks(spec, model, mimi, ema, device, step, stop, rank, world)
                 if (speech is not None and step >= int(spec.option("rollout_stop_after_step", 2000))
@@ -2023,6 +2071,8 @@ def train(spec: Spec, stage: str, requested_precision: str, stop: Stop) -> int:
                     torch.distributed.barrier()
                 if quality_run:
                     teacher_quality_check(spec, model, mimi, ema, args, device, rank, world, step, stop, quality_anchor, heldout)
+                if student_quality_run:
+                    student_transfer.check(spec, model, mimi, ema, args, device, rank, world, step, stop, quality_anchor, heldout)
                 minimum_steps = max(1, int(spec.option(f"{stage}_min_steps", min(args.optim.warmup_steps, args.max_steps))))
                 patience = max(1, int(spec.option("validation_patience", 8)))
                 if step >= minimum_steps and state["bad_validations"] >= patience:
@@ -2035,13 +2085,14 @@ def train(spec: Spec, stage: str, requested_precision: str, stop: Stop) -> int:
                 checkpoint_time = time.monotonic()
         if step >= execution_steps and state.get("status") != "rejected":
             state.update(status="completed", stop_reason="exposure_or_official_step_bound")
-        if quality_run:
-            planned = spec.option("teacher_rollout_steps", [])
+        if quality_run or student_quality_run:
+            planned = spec.option("teacher_rollout_steps" if quality_run else "rollout_steps", [])
+            prefix = "teacher-" if quality_run else ""
             reached = []
             completed = []
             for probe_step in planned:
                 kinds = ["ema"] if probe_step == 0 else ["ema", "raw"]
-                receipts = [read_json(spec.output / f"comparisons/teacher-rollout-step{probe_step:06d}-{kind}/metrics.json", {}) for kind in kinds]
+                receipts = [read_json(spec.output / f"comparisons/{prefix}rollout-step{probe_step:06d}-{kind}/metrics.json", {}) for kind in kinds]
                 if any(receipts):
                     reached.append(probe_step)
                 if all(receipt.get("status") == "completed" and receipt.get("aggregate", {}).get("generated_samples") == 18 for receipt in receipts):
@@ -2065,8 +2116,17 @@ def sample_decode_steps(value: Any = 1) -> int:
     return value
 
 
+def role_decode_steps(spec: Spec, role: str) -> int:
+    if role not in ("teacher", "student", "accepted_student"):
+        raise ValueError("Unknown sampling role")
+    if not student_transfer.enabled(spec):
+        return sample_decode_steps(spec.option("sample_decode_steps", 1))
+    key = "teacher_sample_decode_steps" if role == "teacher" else "student_sample_decode_steps"
+    return sample_decode_steps(spec.option(key, spec.option("sample_decode_steps", 1)))
+
+
 def generate_samples(spec: Spec, model: Any, mimi: Any, device: Any, label: str, cfg: float,
-                     stop: Stop, *, selection_identity: str, limit_references: int = 0) -> bool:
+                     stop: Stop, *, selection_identity: str, limit_references: int = 0, role: str | None = None) -> bool:
     import torch
     import soundfile as sf
     from training.dataloader.audio import _load_window
@@ -2074,7 +2134,7 @@ def generate_samples(spec: Spec, model: Any, mimi: Any, device: Any, label: str,
 
     folder = spec.output / "comparisons" / label
     folder.mkdir(parents=True, exist_ok=True)
-    decode_steps = sample_decode_steps(spec.option("sample_decode_steps", 1))
+    decode_steps = role_decode_steps(spec, role) if role is not None else sample_decode_steps(spec.option("sample_decode_steps", 1))
     records = read_json(folder / "samples.json", [])
     if any(r.get("selection_identity") != selection_identity or r.get("decode_steps") != decode_steps
            or r.get("cfg") != cfg or r.get("temperature") != float(spec.option("sample_temperature", .3))
@@ -2160,10 +2220,15 @@ def evaluate(spec: Spec, stop: Stop, *, baseline_only: bool = False) -> int:
             "tokenizer_sha256": sha256_file(spec.asset("tokenizer"))})
         atomic_json(spec.output / "hardware.json", hardware_receipt(torch))
     teacher_only = spec.option("teacher_only_evaluation", False) is True
-    labels = [("accepted-anchor-teacher-cfg2" if teacher_quality.enabled(spec) else "baseline-teacher-cfg2", "teacher", None, 2.0)]
-    if not teacher_only:
-        labels.append(("baseline-september-student-cfg1", "student", None, 1.0))
-    stages = (("teacher", 2.0),) if teacher_only else (("teacher", 2.0), ("distill", 1.0))
+    if student_transfer.enabled(spec):
+        labels = [("accepted-target-teacher-cfg2", "teacher", None, 2.0),
+                  ("accepted-student-original-cfg1", "student", None, 1.0)]
+        stages = (("distill", 1.0),)
+    else:
+        labels = [("accepted-anchor-teacher-cfg2" if teacher_quality.enabled(spec) else "baseline-teacher-cfg2", "teacher", None, 2.0)]
+        if not teacher_only:
+            labels.append(("baseline-september-student-cfg1", "student", None, 1.0))
+        stages = (("teacher", 2.0),) if teacher_only else (("teacher", 2.0), ("distill", 1.0))
     for stage, cfg in (() if baseline_only else stages):
         checkpoint = selected_checkpoint(spec, stage)
         if checkpoint.is_file():
@@ -2194,15 +2259,18 @@ def evaluate(spec: Spec, stop: Stop, *, baseline_only: bool = False) -> int:
         mimi.to(device).eval()
         selection = sha256_file(checkpoint) if checkpoint else read_json(spec.output / "assets.json")[f"{config_kind}_weight_sha256"]
         if not generate_samples(spec, model, mimi, device, label, cfg, stop,
-                                selection_identity=f"{spec.identity}:{label}:{selection}"):
+                                selection_identity=f"{spec.identity}:{label}:{selection}", role=config_kind):
             stage_state(spec, stage_name, status="paused", reason=stop.reason)
             return EXIT_PAUSED
         if checkpoint is not None:
+            transferred = student_transfer.verify_export(spec, model, mimi) if student_transfer.enabled(spec) and config_kind == "student" else None
             export_dir = spec.output / checkpoint.parent.name / "export"
             export_dir.mkdir(exist_ok=True)
             # Only export selected EMA weights; latest raw training state can be
             # worse on heldout data. model now contains the complete EMA overlay.
             export_pocket_safetensors(export_dir / "model.safetensors", model.flow_lm, mimi)
+            if transferred:
+                transferred = student_transfer.verify_export(spec, model, mimi, export_path=export_dir / "model.safetensors")
             import yaml
 
             config = yaml.safe_load((spec.output / f"configs/{config_kind}-inference.yaml").read_text())
@@ -2216,6 +2284,9 @@ def evaluate(spec: Spec, stop: Stop, *, baseline_only: bool = False) -> int:
                 "model_sha256": sha256_file(export_dir / "model.safetensors"), "input_identity": spec.identity,
                 "source_revision": PINNED_REVISION, "sample_cfg": cfg, "quality_parity_qualified": False,
                 "latent_calibration": CALIBRATION_POLICY, "objective_weighting": OBJECTIVE_POLICY,
+                **({"student_transfer_policy": student_transfer.POLICY, "transferred_tensors": transferred,
+                    "sample_decode_steps": role_decode_steps(spec, config_kind), "listening_qualified": False,
+                    "automatic_promotion": False} if transferred else {}),
                 **({"teacher_quality_policy": teacher_quality.POLICY, "listening_qualified": False,
                     "automatic_promotion": False, "tier_b_generalization_claim": False} if teacher_quality.enabled(spec) else {})})
         del model, mimi
@@ -2237,6 +2308,12 @@ def evaluate(spec: Spec, stop: Stop, *, baseline_only: bool = False) -> int:
         torch.manual_seed(int(spec.option("seed", 42)))
         args = TrainArgs(model_config=str(spec.output / f"configs/{config_kind}-inference.yaml"), compile=False,
                          start_from_pretrained=True, text_dropout=0, voice_dropout=0)
+        if student_transfer.enabled(spec) and config_kind == "student":
+            args.distill_cfg_coef = 2.0
+            args.distill_teacher_config = str(spec.output / "configs/teacher-inference.yaml")
+            args.distill_teacher_weights = str(spec.output / "teacher/best.pt")
+            args.distill_teacher_use_ema = read_json(spec.output / "teacher/state.json")["origin"]["upstream_use_ema"]
+            args.student_init_from = str(spec.asset("student_anchor_weights"))
         model, mimi, _ = build_models(args)
         install_fp32_reductions(model)
         if checkpoint is not None:
@@ -2244,6 +2321,14 @@ def evaluate(spec: Spec, stop: Stop, *, baseline_only: bool = False) -> int:
             combined = {**payload["model"], **(payload.get("ema") or {})}
             model.flow_lm.load_state_dict({k.removeprefix("flow_lm."): v for k, v in combined.items() if k.startswith("flow_lm.")}, strict=True)
             del payload, combined
+        elif student_transfer.enabled(spec) and config_kind == "student":
+            # The builder transfers new heads; undo that for the complete
+            # accepted-student control only, while retaining its frozen target.
+            from safetensors.torch import load_file
+            accepted = load_file(str(spec.asset("student_anchor_weights")))
+            model.flow_lm.load_state_dict({key.removeprefix("flow_lm."): value for key, value in accepted.items()
+                                          if key.startswith("flow_lm.")}, strict=True)
+            del accepted
         model.to(device).eval()
         mimi.to(device).eval()
         result = validate(spec, model, mimi, args, device, 0, 1, stop, split="test")
@@ -2260,7 +2345,10 @@ def evaluate(spec: Spec, stop: Stop, *, baseline_only: bool = False) -> int:
                 listening_qualified=False, wer_measured=False, speaker_similarity_measured=False,
                 **({"candidate_available": selected_checkpoint(spec, "teacher").is_file(),
                     "outcome": "teacher_candidate_requires_listening" if selected_checkpoint(spec, "teacher").is_file()
-                    else "no_eligible_teacher_candidate"} if teacher_quality.enabled(spec) else {}))
+                    else "no_eligible_teacher_candidate"} if teacher_quality.enabled(spec) else {}),
+                **({"candidate_available": selected_checkpoint(spec, "distill").is_file(),
+                    "outcome": "student_candidate_requires_listening" if selected_checkpoint(spec, "distill").is_file()
+                    else "no_eligible_student_candidate"} if student_transfer.enabled(spec) else {}))
     return 0
 
 
@@ -2522,9 +2610,22 @@ def main() -> int:
     if teacher_quality.enabled(spec) and (arguments.mode in ("all", "student", "distill")
             or (arguments.mode == "worker" and arguments.stage == "distill")):
         raise ValueError("Teacher improvement cannot start student training implicitly")
+    if student_transfer.enabled(spec) and (arguments.mode in ("all", "teacher", "teacher-only")
+            or (arguments.mode == "worker" and arguments.stage == "teacher")):
+        raise ValueError("Student transfer cannot start new teacher training implicitly")
     requested_precision = arguments.precision or str(spec.option("precision", "auto"))
     if requested_precision not in ("auto", "bf16", "fp16", "fp32"):
         raise ValueError("precision must be auto, bf16, fp16, or fp32")
+    if student_transfer.enabled(spec) and requested_precision != str(spec.option("precision", "auto")):
+        fallback_state = read_json(spec.output / "distill/state.json", {})
+        owned_fallback = (arguments.mode == "worker" and arguments.stage == "distill" and requested_precision == "fp32"
+                          and bool(spec.option("allow_fp32_fallback", True))
+                          and fallback_state.get("input_identity") == spec.identity
+                          and fallback_state.get("status") == "requires_fp32"
+                          and fallback_state.get("stop_reason") in ("nonfinite_loss", "nonfinite_gradient")
+                          and (spec.output / "distill/last.pt").is_file())
+        if not owned_fallback:
+            raise ValueError("Student transfer precision override must be declared in its hashed specification or exact owned numerical fallback")
     spec.raw["precision"] = requested_precision
     if arguments.mode == "plan" or arguments.plan_only:
         print(json.dumps(plan(spec), indent=2, allow_nan=False))

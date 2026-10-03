@@ -364,6 +364,24 @@ Judy and Panam listening pairs retain CFG2, two decoder steps, temperature
 applied. The training sampler returns whole utterances, so those cloud
 generation timings are not streaming first-PCM latency.
 
+The user approved the new teacher for the next student distillation. The
+opt-in `qualified_macro_student_transfer_v1` policy starts from the accepted
+6,000-update student backbone and copies the new teacher's sampler/EOS heads,
+which stay frozen. It imports the teacher's flattened selected-EMA checkpoint
+with exact source/tensor checks. The same qualified corpus, protected panels
+and actual cache checks apply before student updates.
+
+The transfer pilot uses a fresh optimizer, LR 5e-5, 250-update warm-up, EMA
+0.999 and at most 2,000 new updates. Selection uses speaker-macro student MSE,
+the original/conditional regression panels and complete speech probes. The
+original accepted student is a separate control; update zero already has the
+new teacher heads and is labeled as a hybrid. Teacher comparisons use CFG2
+and two decoder steps; student comparisons use CFG1 and one step. Export
+checks verify the actual frozen heads, calibration and codec tensors. All
+probe audio is retained, while weight retention is bounded to selected,
+MSE-best and last checkpoints. A candidate still needs listening and measured
+streaming startup before becoming a production voice model.
+
 A separate CPU experiment kept the accepted teacher's CFG2 and original
 reference. Supported dynamic INT8 reduced full generation from 15.82 to
 10.02 seconds on two CPU threads, with resident RAM falling from 2.11 to

@@ -146,6 +146,13 @@ def _weights_receipt(model: Any, stop: Any, weight_kind: str, *, role: str = "st
                 "flow_lm_state_sha256": _state_digest(model.flow_lm, stop),
                 "trainable_heads": {name: any(p.requires_grad for p in getattr(model.flow_lm, name).parameters())
                                     for name in ("flow_net", "out_eos")}}
+    if role == "accepted_student":
+        if teacher is None:
+            raise ValueError("Accepted-student control requires its separate frozen target")
+        return {"weights": weight_kind, "role": role, "ema_applied_by_helper": False,
+                "weight_kind_declared_by_caller": True,
+                "flow_lm_state_sha256": _state_digest(model.flow_lm, stop),
+                "head_origin": "complete_original_accepted_student_not_new_teacher_hybrid"}
     if role != "student":
         raise ValueError("Rollout role must be teacher or student")
     if teacher is None:
@@ -241,12 +248,15 @@ def evaluate_rollout(spec: Any, model: Any, mimi: Any, device: Any, step: int, s
 
     if isinstance(step, bool) or not isinstance(step, int) or step < 0:
         raise ValueError("Rollout step must be a nonnegative integer")
-    if role not in ("student", "teacher"):
+    if role not in ("student", "teacher", "accepted_student"):
         raise ValueError("Rollout role must be teacher or student")
-    if label_prefix is not None and (role != "teacher" or label_prefix != "teacher-comparison-anchor"):
-        raise ValueError("Only the explicit teacher comparison anchor has a separate label prefix")
+    if label_prefix is not None and (role, label_prefix) not in (
+            ("teacher", "teacher-comparison-anchor"), ("accepted_student", "accepted-student-control")):
+        raise ValueError("Only an explicit immutable comparison control has a separate label prefix")
+    if role == "accepted_student" and not runner.student_transfer.enabled(spec):
+        raise ValueError("Accepted-student control requires the explicit student transfer policy")
     cfg = 2.0 if role == "teacher" else 1.0
-    decode_steps = runner.sample_decode_steps(spec.option("sample_decode_steps", 1))
+    decode_steps = runner.role_decode_steps(spec, role)
     weight_kind = str(spec.option("rollout_weight_kind", "raw"))
     if weight_kind not in ("raw", "ema"):
         raise ValueError("rollout_weight_kind must be raw or ema")
@@ -272,7 +282,7 @@ def evaluate_rollout(spec: Any, model: Any, mimi: Any, device: Any, step: int, s
     try:
         if stop.requested():
             raise _Stopped()
-        receipt.update(_weights_receipt(model, stop, weight_kind, **({"role": role} if role == "teacher" else {})))
+        receipt.update(_weights_receipt(model, stop, weight_kind, **({"role": role} if role != "student" else {})))
         selected = choose_references(runner.references(spec))
         expected = {(item["id"], index): text for item in selected for index, text in enumerate(item["texts"])}
         receipt["expected_samples"] = len(expected)
@@ -293,7 +303,7 @@ def evaluate_rollout(spec: Any, model: Any, mimi: Any, device: Any, step: int, s
         generation_error = None
         try:
             generated = runner.generate_samples(probe, model, mimi, device, label, cfg, stop,
-                                                selection_identity=selection, limit_references=3)
+                                                selection_identity=selection, limit_references=3, role=role)
             if not generated:
                 raise _Stopped()
         except _Stopped:
