@@ -80,6 +80,28 @@ These prompts match across stock, teacher and student for each voice:
 | Panam | The city is quiet tonight, but I know trouble is waiting somewhere. | [Listen](audio/pocket-stock/panam-01.wav) | [Listen](audio/pocket-teacher/panam-01.wav) | [Listen](audio/pocket-student/panam-01.wav) |
 | Panam | We should find a safe place to stop before we talk about the plan. | [Listen](audio/pocket-stock/panam-02.wav) | [Listen](audio/pocket-teacher/panam-02.wav) | [Listen](audio/pocket-student/panam-02.wav) |
 
+### Actual mod inference path — October 3
+
+These ten additional recordings use the actual production PocketVoice/native Windows worker and approved EMA1500 student. Earlier teacher/student listening WAVs use the training generator; its reference preparation, EOS handling and text grouping differ from the public streaming API. The model, precision and reference hashes are the same. This table tests the real mod generation path.
+
+Sentence A: “The city is quiet tonight, but I know trouble is waiting somewhere.”
+
+Sentence B: “We should keep moving. Tell me if you need a break.”
+
+| Character | Sentence A | Sentence B | First playable PCM A / B |
+| --- | --- | --- | ---: |
+| Johnny | [Listen](audio/production-pocket-oct03/johnny-silverhand/text-0.wav) | [Listen](audio/production-pocket-oct03/johnny-silverhand/text-1.wav) | 300.3 / 285.8 ms |
+| Judy | [Listen](audio/production-pocket-oct03/judy-alvarez/text-0.wav) | [Listen](audio/production-pocket-oct03/judy-alvarez/text-1.wav) | 189.8 / 196.1 ms |
+| Panam | [Listen](audio/production-pocket-oct03/panam-palmer/text-0.wav) | [Listen](audio/production-pocket-oct03/panam-palmer/text-1.wav) | 210.2 / 243.8 ms |
+| Jackie | [Listen](audio/production-pocket-oct03/jackie-welles/text-0.wav) | [Listen](audio/production-pocket-oct03/jackie-welles/text-1.wav) | 218.6 / 215.7 ms |
+| Evelyn | [Listen](audio/production-pocket-oct03/evelyn-parker/text-0.wav) | [Listen](audio/production-pocket-oct03/evelyn-parker/text-1.wav) | 222.6 / 252.3 ms |
+
+CPU FP32, two threads, temperature 0.3, CFG 1 and one decode step; production RNG and public EOS/text/prompt defaults are unchanged. The first 400 ms source prefix arrived in 375.1–532.3 ms. Fresh worker startup was 18.71 seconds, measured separately.
+
+These timings include native worker/IPC costs with Cyberpunk running and end at finite PCM received by Node. Convai, browser/game dispatch and audible device onset are excluded. They are production-path observations, not a clean benchmark or a quality guarantee for every speaker. WAV float PCM is unchanged, and all ten containers, sample offsets and file hashes passed verification. [Exact production sampling/reference/audio evidence](references/production-pocket-audio-manifest.json).
+
+The current cast-expansion work is checking more authentic source recordings, balanced training contribution and longer conditioning references for weak voices. It has not replaced the approved weights in these clips.
+
 ### Original game lines and synthesized versions
 
 Johnny: “My man, Dex DeShawn. How's that quiet life workin' out for you now, choom?”

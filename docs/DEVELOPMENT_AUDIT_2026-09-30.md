@@ -23,10 +23,11 @@ separately.
   model-only. Preparation must not manufacture dialogue or seed memory.
 - Actual conversations build provider memory naturally. Forget is an explicit
   confirmed action for a selected character or the contacted set; it retains the
-  player ID and local phone history. Provider extraction has no documented flush
+  player ID; a confirmed clear also resets the corresponding local chat history.
+  Provider extraction has no documented flush
   guarantee, so an empty readback is not a promise about unfinished server work.
-- Keep the accepted native MCM page: default-red labels/headings on a common
-  left edge, cyan option controls, a separate Memory page, and accepted Esc
+- Keep the accepted native MCM page: default-red labels on a common left edge,
+  white section headings with cyan rules, cyan option controls, a separate Memory page, and accepted Esc
   returning to gameplay. Preserve MCM's unsaved-draft guard.
 - Follow-up questions default **Off**. An explicitly saved On choice survives
   updates. Only the last remaining group speaker may ask when enabled; automatic
@@ -39,8 +40,8 @@ separately.
   resident shared FP16 PyTorch model, 32 steps by default or 16 by choice; FP8
   and TensorRT are not shipped precision settings.
 - F7/F9 microphone access starts only through an explicit player action. Live
-  microphone testing is user-deferred. Game testing remains manual; no input
-  automation is authorized. `scripts/Test-GameInput.ps1` is user-owned and is
+  microphone testing is user-deferred. Game checks use user input or explicitly
+  authorized computer control. `scripts/Test-GameInput.ps1` is user-owned and is
   excluded from this work.
 - Local Git checkpoints, hidden helpers and minimal necessary reloads are the
   development workflow. Subagents inherit the current parent model/reasoning.
@@ -1120,3 +1121,92 @@ browser clock and face-data producer do not establish the game's consumer
 admission or rendered mouth movement. Keep source, installed and observed
 results separate; preserve defaults and exact actor/request ownership while
 correcting the reproduced incompatibility.
+
+## October 3: four voice options and production inference parity
+
+The global selector now exposes Pocket TTS (default), OmniVoice 16, OmniVoice 32
+and Convai. Pocket and Omni have separate configuration/reference registries and
+one local worker runs at a time. Omni quality changes reuse its model/cache.
+Draft warm-up keeps the committed route until Apply and waits for an owned reply
+and confirmed worker retirement before replacing the backend.
+
+Independent lifecycle review reproduced two remaining defects: an unavailable
+Omni draft retired valid Pocket and caused a resolved-promise readiness loop;
+a failed/closing Omni worker retained stale speaker readiness. Both gained
+actual-class regressions and were corrected before activation. A stable unloaded
+startup now rejects instead of spinning. The combined source gate passed 161
+checks; the UI/preview gates cover selection, migration and arrow direction.
+These checks overlap and are not summed into a new all-mod test count.
+
+The inference audit checked the actual approved EMA1500 student, all four export
+assets, tokenizer/calibration and pinned source. It found no hidden precision
+reduction or wrong-character cache alias. Earlier listening WAVs use the training
+generator, whereas production uses the public streaming API with its own
+reference preparation, text grouping and EOS defaults. Ten new recordings for
+Johnny, Judy, Panam, Jackie and Evelyn now use the exact production Windows
+worker, CPU FP32, two threads and unchanged generation settings. Original float
+PCM, WAV containers, offsets and file hashes were verified.
+
+First playable source PCM at Node was 189.8–300.3 ms; the first 400 ms prefix
+arrived in 375.1–532.3 ms. Startup was separately 18.71 seconds. These observations
+include native worker/IPC costs with the game running and exclude Convai,
+browser/game dispatch and audible device onset. They do not establish complete
+conversation latency or voice likeness for every character. The portable
+listening table is in the voice-cloning handoff's FINDINGS.md.
+
+Method: compare exact model/reference/code identities, then exercise the real
+public producer contract. Keep research-generator samples accurately labeled,
+separate process-cold startup from warm first PCM, and preserve the original
+audio rather than normalizing or processing comparison clips.
+
+## October 3: Pocket-specific facial timing
+
+Whole-WAV Omni timing assumptions did not transfer to Pocket's short continuous
+PCM packets. The previous stream independently normalized every 80 ms packet:
+the same quiet passage produced jaw 0.3455 instead of whole-WAV 0.1038. Continuous
+audio-clock RMS bins and prefix-based calibration now match 0.1038 exactly,
+including irregular and short final packets. The original renderer PCM is
+unchanged.
+
+A second defect marked the entire stream phonetic after any analysis finished,
+even when its covered speech had already played. The stream now records covered
+intervals at the actual audible cursor, discards fully late analysis and bounds
+work to one job with acoustic context. Four causal regressions failed before the
+patch; 71 focused checks passed. Natural drain, cancellation, owner/clock and
+neutral-reset behavior remain covered.
+
+Actual replay of the ten production-timed recordings exposed the remaining
+recognizer limit: batch Rhubarb supplied varied controls at only 0–21.3 percent
+of sampled audible speech positions. A persistent allphone decoder prototype
+using the same acoustic assets improved timely control availability and is being
+qualified separately. Timely controls are not proof of natural animation or
+accurate phonemes; native visual acceptance remains a distinct check. See
+POCKET_STREAM_LIPSYNC.md for the installed correction and its residual limits.
+
+Method: measure analysis completion against what the player is hearing, inspect
+non-jaw controls at that time, and test packet boundaries with identical audio.
+A completed final timeline or green envelope test cannot close lip quality.
+
+## October 3: source expansion and data admission
+
+The expanded source plan covers 93 identities in 23 lanes, with 24 Tier 1,
+37 Tier 2 and 32 Tier 3 voices. It keeps a broad authentic raw archive and controls
+speaker exposure in the later curated mixture. Indexed lines, native joins,
+decoded recordings, independent wording, word/cut alignment and actual latent
+cache qualification are separate stages. A raw transcriptAgreement flag means
+native-caption equality; it is not caption-free recognition evidence.
+
+Collectors preserve exact scene/actor/acquisition/voice/localization/gender/WEM
+joins and actual archive winners. Transformed Alex, Blackwall Songbird and
+unrelated Kurt/Stephen voices were quarantined. Main and alternate voice banks,
+missing embedded localization and scoped generic aliases receive explicit
+source review instead of silent rejection or broad identity exceptions.
+
+Scene/WEM/PCM/caption connected components fence current references and protected
+evaluation before train selection. New conditioning-reference proposals carry a
+separate later-train exclusion overlay; frozen inputs and old evidence remain
+unchanged. Native serializers and decoders share two slots, with short source
+turns followed by actual PCM collection to prevent starvation. ASR never silently
+rewrites native captions, and supplied-text alignment cannot substitute for an
+independent wording check. New teacher/student jobs require qualified data and
+full source/configuration identities before launch.
