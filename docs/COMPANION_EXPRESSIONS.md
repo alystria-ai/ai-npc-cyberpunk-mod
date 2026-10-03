@@ -218,3 +218,27 @@ owners, unchanged PCM and timing, late metadata during audio drain, and Omni
 phrase continuity. Rendered corner/brow strength and real backend emotion
 envelopes still need a live check. No lip-sync, blink or eye-contact redesign
 is part of this integration.
+
+### October 4 source and running-service review
+
+The current running bridge was sampled through its read-only diagnostic command:
+four warmed local-TTS connections had no active response and had received no
+emotion frames since startup. This is not evidence of working emotion playback.
+The retained October 2 capture had four received/skipped emotion frames and zero
+accepted frames; its aggregate counters cannot establish why they were skipped.
+
+The receiver now records bounded skip reasons and booleans showing whether the
+raw inner/outer envelope supplied response/turn IDs, whether the provider was
+pinned, and whether a response owner was established. It stores no IDs, emotion
+labels, utterances or raw packets in these diagnostics. This distinguishes an
+ownerless event from a late event or a different response without guessing.
+
+There is still a local-TTS lifecycle limitation: text collection retires its
+Convai response before Pocket/Omni finishes local playback. An emotion arriving
+after collection cannot currently update that reply. The pinned SDK's public
+emotion body provides only a label and optional scale, and the reviewed
+Dawnwalker engagement code establishes facial-layer ownership rather than a
+backend response-correlation contract. Extending the local playback lease must
+therefore use observed, matching raw response identity; borrowing whichever
+request is active would be unsafe. No facial gains or speech timing were changed
+by this review, and no sentiment-classification fallback was added.

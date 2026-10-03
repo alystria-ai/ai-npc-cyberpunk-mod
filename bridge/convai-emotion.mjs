@@ -39,6 +39,7 @@ export class ConvaiEmotion {
   constructor({retiredOwners = []} = {}) {
     this.retiredOwners = retiredOwners;
     this.sequence = -1; this.owner = null; this.signal = undefined; this.ambiguous = false;
+    this.lastReason = null;
   }
   observeOwner(value) {
     const next = owner(value);
@@ -50,16 +51,21 @@ export class ConvaiEmotion {
   }
   accept(value) {
     const incoming = owner(value);
-    if (this.ambiguous || !matches(this.owner, incoming)) return false;
+    if (this.ambiguous) { this.lastReason = 'ambiguous-owner'; return false; }
+    if (!incoming) { this.lastReason = 'missing-or-invalid-event-owner'; return false; }
+    if (!this.owner) { this.lastReason = 'response-owner-not-established'; return false; }
+    if (!matches(this.owner, incoming)) { this.lastReason = 'different-response-owner'; return false; }
     // Copy the two public fields into this realm before strict normalization.
     const parsed = normalizeConvaiEmotion({emotion: value.emotion,
       ...(value.scale !== undefined ? {scale: value.scale} : {})});
-    if (!parsed) return false;
+    if (!parsed) { this.lastReason = 'invalid-emotion-body'; return false; }
     // Identical replays are harmless; never advance the game sequence for one.
-    if (this.signal?.emotion === parsed.emotion && this.signal.scale === parsed.scale) return false;
+    if (this.signal?.emotion === parsed.emotion && this.signal.scale === parsed.scale) {
+      this.lastReason = 'duplicate'; return false;
+    }
     this.signal = {version: 1, correlated: true, sequence: ++this.sequence,
       emotion: parsed.emotion, scale: parsed.scale};
-    return true;
+    this.lastReason = 'accepted'; return true;
   }
   snapshot() { return this.signal ? {...this.signal} : undefined; }
   clear() { this.signal = undefined; this.owner = null; this.ambiguous = true; }

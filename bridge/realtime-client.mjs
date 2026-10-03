@@ -183,6 +183,7 @@ async function connect(config) {
   observed = {packets: 0, bytes: 0, validJson: 0, malformed: 0, labelPresent: 0,
     matchingLabel: 0, pinnedParticipantPackets: 0, acceptedAudioEvents: 0,
     acceptedEmotionEvents: 0, skippedEmotionEvents: 0,
+    emotionSkipReasons: {}, lastEmotion: null,
     errorCode: null, outerTypes: {}, innerTypes: {}};
   previousTurnDiagnostics = null;
   initialSession = config.freshSession ? '-1' : config.sessionId || '-1';
@@ -229,12 +230,29 @@ async function connect(config) {
     if (!message || (message.label !== undefined && message.label !== 'rtvi-ai')) return;
     const data = message.type === 'server-message' ? message.data : message.data ?? message;
     const type = message.type === 'server-message' ? data?.type : message.type;
+    const noteEmotion = reason => {
+      // Shape evidence only: never persist labels, dialogue, identities or the
+      // raw envelope. This distinguishes late events from absent correlation.
+      observed.lastEmotion = {reason, ttsEnabled, activeTurn: !!turn,
+        responseIdPresent: typeof data?.response_id === 'string',
+        turnIdPresent: data?.neurosync_turn_id !== undefined || data?.turn_id !== undefined,
+        epochPresent: data?.epoch !== undefined,
+        outerResponseIdPresent: typeof message?.response_id === 'string',
+        outerTurnIdPresent: message?.neurosync_turn_id !== undefined || message?.turn_id !== undefined,
+        responseOwnerEstablished: !!turn?.emotion?.owner,
+        reliable: kind === 0, pinnedParticipant: participant === audioParticipant};
+      if (reason !== 'accepted') {
+        observed.skippedEmotionEvents++;
+        observed.emotionSkipReasons[reason] = (observed.emotionSkipReasons[reason] ?? 0) + 1;
+      }
+    };
     const ownerPresent = data?.response_id !== undefined || data?.neurosync_turn_id !== undefined
       || data?.turn_id !== undefined;
     // The provider's flat bot-turn-completed omits the RTVI label. Admit only
     // known owned lifecycle in that shape; participant, reliability and owner
     // matching remain mandatory below. Other unlabelled traffic is unrelated.
     if (message.label === undefined && (!AUDIO_LIFECYCLE_TYPES.has(message.type) || !ownerPresent)) {
+      if (type === 'bot-emotion') noteEmotion('missing-transport-label');
       if (type === 'action-response') observed.unlabelledActions = (observed.unlabelledActions ?? 0) + 1;
       return;
     }
@@ -286,8 +304,13 @@ async function connect(config) {
       const valid = kind === 0 && participant === audioParticipant && currentParticipant(connection, participant)
         && verifiedProvider?.connection === connection && turn?.epoch === connectionEpoch && !turn.error;
       if (valid && turn.dataAudio?.owner) turn.emotion.observeOwner(turn.dataAudio.owner);
-      if (valid && turn.emotion.accept(data)) observed.acceptedEmotionEvents++;
-      else observed.skippedEmotionEvents++;
+      if (valid && turn.emotion.accept(data)) { observed.acceptedEmotionEvents++; noteEmotion('accepted'); }
+      else noteEmotion(!turn ? 'no-active-response' : turn.error ? 'failed-response'
+        : kind !== 0 ? 'unreliable-packet' : participant !== audioParticipant ? 'foreign-participant'
+        : !currentParticipant(connection, participant) ? 'retired-participant'
+        : verifiedProvider?.connection !== connection ? 'unverified-connection'
+        : turn.epoch !== connectionEpoch ? 'retired-connection'
+        : turn.emotion.lastReason ?? 'unqualified-emotion');
       return;
     }
     // TTS-disabled Omni replies have no audio owner. Only an explicitly owned
