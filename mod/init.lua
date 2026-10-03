@@ -1003,10 +1003,10 @@ local function reactionCanDeliver(context, player)
     if not context.reaction then return true end
     if not automatic or automatic.requestId ~= context.requestId then return false end
     -- A reply can become ready between the half-second observer samples. Read
-    -- the owned speaker again before any audio, captions or facial playback.
+    -- player scene/combat state and the owned speaker before playback.
     for _, person in ipairs(battlePeople) do
         if person.entity == context.entity and person.profileKey == context.profileKey then
-            person.available, person.availableReason, person.voiceBusy = battleObserver.canSpeak(person.npc, context.reaction.phase)
+            person.available, person.availableReason, person.voiceBusy = battleObserver.canDeliver(player, person.npc, context.reaction.phase)
             captureReactionGuard(true, reactionOutputs(player), person)
             local waiting = reactionSpeakerWait(person)
             if not person.available and not waiting then cancelAutomatic('speaker-unavailable') end

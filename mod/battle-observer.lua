@@ -72,4 +72,17 @@ function M.canSpeak(npc, phase)
     return ok and ready, ok and reason or 'native-read-failed', ok and waiting == true
 end
 
+-- Admission is sampled again when audio/captions are actually ready. A scene,
+-- call or combat transition can start between the half-second policy polls.
+-- Unlike a temporary autonomous NPC bark, these player transitions cancel the
+-- automatic reply rather than letting it wait through scripted dialogue.
+function M.canDeliver(player, npc, phase)
+    local sample = M.sample(player)
+    if not sample.available then return false, 'player-observation-unavailable', false end
+    if sample.blocked then return false, 'player-scene-blocked', false end
+    if phase == 'start' and not sample.combat then return false, 'combat-ended', false end
+    if phase ~= 'start' and sample.combat then return false, 'combat-resumed', false end
+    return M.canSpeak(npc, phase)
+end
+
 return M

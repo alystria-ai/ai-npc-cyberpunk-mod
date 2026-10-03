@@ -110,3 +110,28 @@ diagnostics owner. It places exactly two test drinks at V's current feet using
 the game's loot manager, preserving the previous quantity. The user requested
 nearby test loot instead of having to search for a container. This route is
 explicitly invoked only; normal gameplay never adds test items.
+
+## Source audit — October 4
+
+The shared coordinator already gives combat closing and collected loot separate
+sequential turns. Their payloads reject mixed automatic contexts, and a battle
+turn cannot consume the pickup queue or its cooldown. No extra merging or
+parallel playback path is needed.
+
+The native delivery adapter now exposes `battleObserver.canDeliver(player,
+npc, phase)` to refresh the player's scene/call/vehicle and combat state as well
+as the speaker before starting an automatic line. The ordinary half-second
+poll is insufficient at this boundary: a scripted conversation may begin after
+that poll but before the prepared reply arrives. The shared coordinator must
+use this method in its delivery check; its integration is owned by the root
+task. A temporary autonomous NPC bark remains a waitable condition, while a
+player scene or renewed combat cancels the pickup comment.
+
+The Legendary exception remains restricted to a verified new equipment identity,
+complete inventory coverage, a nonsilent Added event, and matching item-specific
+world provenance. Storage transfers, purchases, unknown/silent grants, Changed-only
+increments and unqualified corpse loot-all remain excluded. This audit made no
+live inventory changes, provider requests, or claims of new audible acceptance.
+The remaining checks are actual sequential battle/loot playback and a real new
+Legendary pickup; unsupported event routes require native provenance evidence
+before implementation.
