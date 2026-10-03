@@ -748,7 +748,7 @@ def source_delivery(event, supplied=None):
     if type(holo) not in (bool, int) or holo not in (0, 1):
         raise ValueError("Native holocall metadata is missing or invalid")
     expression = params.get("voExpression")
-    if expression not in {"Vo_Expression_Spoken", "Vo_Expression_Phone", "Vo_Expression_GlobalTV"}:
+    if expression not in {"Vo_Expression_Spoken", "Vo_Expression_Phone", "Vo_Expression_GlobalTV", "Vo_Expression_InnerDialog"}:
         raise ValueError("Unsupported native dialogue delivery")
     custom = params.get("customVoEvent")
     custom = custom.get("$value", "None") if isinstance(custom, dict) else custom
@@ -757,6 +757,8 @@ def source_delivery(event, supplied=None):
         raise ValueError("Native custom voice event is invalid")
     if custom != "None":
         kind = "canonical-custom-performance"
+    elif expression == "Vo_Expression_InnerDialog":
+        kind = "canonical-inner-dialog-performance"
     elif expression == "Vo_Expression_GlobalTV":
         kind = "canonical-media-performance"
     elif expression == "Vo_Expression_Phone" or holo:
@@ -780,7 +782,27 @@ def source_delivery(event, supplied=None):
     return {**observed, "reason": supplied["reason"]}
 
 
+def _source_recovery_bridge():
+    path = Path(__file__).with_name("source_recovery_bridge.py")
+    spec = importlib.util.spec_from_file_location("candidate_source_recovery_bridge", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_RECOVERY_BRIDGE = None
+
+
+def recovery_bridge():
+    global _RECOVERY_BRIDGE
+    if _RECOVERY_BRIDGE is None:
+        _RECOVERY_BRIDGE = _source_recovery_bridge()
+    return _RECOVERY_BRIDGE
+
+
 def validate_native(candidate, roster, project):
+    if "sourceRecovery" in candidate:
+        return recovery_bridge().validate_candidate(candidate, roster, project, globals())
     scene = candidate["scene"]
     document = validate_native_source(scene, project)
     for section, pattern in (("actor", r"/Data/RootChunk/actors/[0-9]+"),
@@ -885,6 +907,13 @@ def validate_input(manifest, project: Path, output=None):
     game = Path(manifest["gameRoot"]).resolve()
     if extract.contained(out, game) or extract.contained(game, out):
         raise ValueError("Casting output overlaps game directory")
+    if manifest.get("registeredMainPolicy") is not None:
+        if manifest["registeredMainPolicy"] != recovery_bridge().MAIN_POLICY:
+            raise ValueError("Unknown job-wide registered MAIN policy")
+        for item in candidates:
+            if item.get("registeredMainPolicy") not in (None, manifest["registeredMainPolicy"]):
+                raise ValueError("Candidate conflicts with its job-wide MAIN declaration")
+            item["registeredMainPolicy"] = manifest["registeredMainPolicy"]
     for item in candidates:
         key = item.get("key", "")
         if not KEY.fullmatch(key) or key not in roster or key not in lane["keys"]:
@@ -930,6 +959,21 @@ def authenticate_serialization(scene, project, out, verified):
     never overwritten. Compare CR2W Data only, excluding source paths/export time.
     All calls occur inside the global CPU gate. No scene archive payload rewrite.
     """
+    # Validate the actual current input before a memoized parser receipt can
+    # be reused. Data equality alone does not bind a changed Header or JSON
+    # file to the claimed bytes, and dependency plans may outlive metadata reads.
+    source_raw = project_file(scene["rawPath"], project)
+    source_json = project_file(scene["jsonPath"], project)
+    checked_hash(source_raw, scene["rawSha256"], "Current native raw")
+    checked_hash(source_raw, scene["entrySha1"], "Current native entry", "sha1")
+    checked_hash(source_json, scene["jsonSha256"], "Current native JSON")
+    expected = read_json(source_json)
+    if Path(expected["Header"]["ArchiveFileName"]).resolve() != source_raw:
+        raise ValueError("Current native JSON original Header source mismatch")
+    data_hash = hashlib.sha256(json.dumps(expected["Data"], ensure_ascii=False,
+        sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+    if scene.get("dataSha256") is not None and scene["dataSha256"] != data_hash:
+        raise ValueError("Current native dependency Data hash differs")
     key = (scene["rawSha256"], scene["jsonSha256"])
     if key in verified:
         return verified[key]
@@ -940,7 +984,7 @@ def authenticate_serialization(scene, project, out, verified):
         if not extract.contained(stage, out):
             raise ValueError("Native serialization staging escapes lane")
         extension = Path(scene["rawPath"]).suffix.lower()
-        if extension not in {".scene", ".community", ".quest", ".questphase", ".gamedef"}:
+        if extension not in {".scene", ".community", ".quest", ".questphase", ".gamedef", ".json"}:
             raise ValueError("Unsupported native serialization resource kind")
         raw = stage / ("source" + extension)
         shutil.copyfile(project_file(scene["rawPath"], project), raw)
@@ -950,7 +994,6 @@ def authenticate_serialization(scene, project, out, verified):
                        capture_output=True, check=True, timeout=120,
                        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
         actual = read_json(raw.with_name(raw.name + ".json"))
-        expected = read_json(project_file(scene["jsonPath"], project))
         if (Path(actual["Header"]["ArchiveFileName"]).resolve() != raw
                 or actual["Data"] != expected["Data"]):
             raise ValueError("Cached actor/line JSON is not the serialization of verified native raw")
@@ -1004,6 +1047,26 @@ def decode_candidate(candidate, roster, project, out, archives, oodle, tools, re
     native = candidate["nativeReceipt"]
     voice_archives, text_archives, scene_archives = archives
     identity_validation = None
+    recovery_validation = None
+    recovery_authentication = None
+    main_validation = None
+    registered_main_authentication = None
+    if "registeredMainPolicy" in candidate:
+        if not CpuSlots.held_by_this_process():
+            raise RuntimeError("Registered MAIN decoding requires the existing CPU slot lease")
+        main_plan = recovery_bridge().validate_main(candidate, project, globals())
+        registered_main_authentication = recovery_bridge().authenticate(main_plan, project, out,
+            [*voice_archives, *text_archives, *scene_archives], verified, globals())
+        main_validation = recovery_bridge().persist_main_validation(candidate, main_plan, registered_main_authentication,
+            project, out, receipt, globals())
+    if "sourceRecovery" in candidate:
+        if not CpuSlots.held_by_this_process():
+            raise RuntimeError("Source recovery decoding requires the existing CPU slot lease")
+        native = validate_native(candidate, roster[candidate["key"]], project)
+        recovery_authentication = recovery_bridge().authenticate(native["sourceRecovery"], project, out,
+            [*voice_archives, *text_archives, *scene_archives], verified, globals())
+        recovery_validation = recovery_bridge().persist_validation(candidate, native, recovery_authentication,
+            project, out, receipt, globals())
     continuity_authentication = None
     if candidate["actor"]["identityProof"].get("kind") == "reviewed_native_actor_continuity":
         if not CpuSlots.held_by_this_process():
@@ -1058,7 +1121,13 @@ def decode_candidate(candidate, roster, project, out, archives, oodle, tools, re
         checked_hash(directory / "reference.wav", saved["sha256"], "Existing original WAV")
         if (directory / "transcript.txt").read_text(encoding="utf-8").removesuffix("\n") != text:
             raise ValueError("Existing exact transcript was changed")
-        return {**saved, "identityRevalidation": identity_validation} if identity_validation else saved
+        if identity_validation:
+            saved = {**saved, "identityRevalidation": identity_validation}
+        if recovery_validation:
+            saved = {**saved, "sourceRecoveryRevalidation": recovery_validation}
+        if main_validation:
+            saved = {**saved, "registeredMainRevalidation": main_validation}
+        return saved
     with tempfile.TemporaryDirectory(prefix=".decode-", dir=key_root) as temporary:
         stage = Path(temporary).resolve()
         if not extract.contained(stage, out):
@@ -1093,6 +1162,10 @@ def decode_candidate(candidate, roster, project, out, archives, oodle, tools, re
                             "decoder": tools["vgmstream-cli"], "ffprobe": tools["ffprobe"],
                             "decoderOutput": decoder.stdout.strip(), "ffprobeReceipt": probe, "processing": receipt["audioProcessing"]},
                   "quality": quality}}
+        if main_validation:
+            item["registeredMainRevalidation"] = main_validation
+        if recovery_validation:
+            item["sourceRecoveryRevalidation"] = recovery_validation
         if identity_validation:
             item["identityRevalidation"] = identity_validation
         write_json(stage / "receipt.json", item)
