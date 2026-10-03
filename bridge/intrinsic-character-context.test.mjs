@@ -56,7 +56,7 @@ test('edited, missing and malformed author documents fail closed independently',
     assert.equal(partial.select(jackie, admission(jackie), () => true).topic, 'father');
   }
   const empty = await loadIntrinsicCharacterContext(project, {read: async () => { throw Error('Missing'); }});
-  assert.equal(empty.unavailable.length, 2);
+  assert.equal(empty.unavailable.length, REVIEWED_INTRINSIC_PACKS.length);
   assert.throws(() => new IntrinsicCharacterContext([{key: 'johnny-silverhand', claims: new Map()}]), /unreviewed/);
 });
 
@@ -85,7 +85,7 @@ test('canonical author pins accept LF/CRLF/whitespace/key order but reject chang
     value.claims[0].text += ' The current V completed every quest.';
     return Buffer.from(JSON.stringify(value));
   }});
-  assert.equal(edited.unavailable.length, 2);
+  assert.equal(edited.unavailable.length, REVIEWED_INTRINSIC_PACKS.length);
   assert.equal(intrinsicAuthorDocumentHash({'2': 'two', '10': 'ten'}),
     createHash('sha256').update('{"10":"ten","2":"two"}').digest('hex'));
   assert.notEqual(intrinsicAuthorDocumentHash({rows: ['a', 'b']}), intrinsicAuthorDocumentHash({rows: ['b', 'a']}));

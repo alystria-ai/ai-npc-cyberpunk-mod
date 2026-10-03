@@ -21,6 +21,12 @@ export const REVIEWED_INTRINSIC_PACKS = Object.freeze([
   Object.freeze({key: 'jackie-welles', file: 'research/cyberpunk/native-character-claims/jackie-welles.json',
     hashEncoding: 'canonical-json-v1', sha256: '32162b6414b63c418b67de147868b8b82d9ee59b401967959c8488217d5fb352',
     reviewedRawFileSha256: '3818200ab7fcd8a5b87bff8829d302adaecfc957eb528b86dae9b6a780f69140'}),
+  Object.freeze({key: 'judy-alvarez', file: 'research/cyberpunk/native-character-claims/judy-alvarez.json',
+    hashEncoding: 'canonical-json-v1', sha256: 'e959ae43a419f3e08a5f05d33a75b1410b67462cfdabc87e2f57ad5b03bd47ef',
+    reviewedRawFileSha256: '3a4622f1ac370d2e8a280c3e7deb899bee701e87c2fba652f2e131d66cf47ca9'}),
+  Object.freeze({key: 'panam-palmer', file: 'research/cyberpunk/native-character-claims/panam-palmer.json',
+    hashEncoding: 'canonical-json-v1', sha256: 'c0a60ce91588df608f78be06d6003dcc2e4d9d15c64170c8ddf98501b8f2eb15',
+    reviewedRawFileSha256: 'b8cf0634738dbef31dc0e64da10df64971a92d86a28531d574064945dd28b522'}),
 ]);
 
 const MAX_PACK_BYTES = 2 * 1024 * 1024;
@@ -67,6 +73,39 @@ export function intrinsicAuthorDocumentHash(value) {
 // Deliberately curated claim IDs, not fuzzy searches through a private bio.
 // Broad questions never silently unlock the most painful nearby material.
 const TOPICS = freeze({
+  // Only already reviewed public history is selectable for these two packs.
+  // Their private rows require prerequisites this selector does not establish;
+  // explicit questions alone do not prove trust or a later quest stage.
+  'judy-alvarez': [
+    {id: 'childhood', match: /\b(?:laguna\s+bend|childhood|grew\s+up|hometown)\b/u, personal: true,
+      association: /\blaguna\s+bend\b|\byour\s+(?:childhood|hometown)\b|\byou\b.{0,35}\bgrew\s+up\b/u,
+      claims: ['judy.history.laguna-bend', 'judy.history.childhood-games']},
+    {id: 'grandparents', match: /\b(?:grandparents?|grandfather|grandmother)\b/u, personal: true,
+      association: /\byour\s+(?:grandparents?|grandfather|grandmother)\b/u,
+      claims: ['judy.history.grandfather-craft', 'judy.family.oregon-visits']},
+    {id: 'bd-craft', match: /\b(?:braindances?|bd|bds|scanware|workshop|hardware)\b/u, personal: true,
+      claims: ['judy.craft.sensory-calibration', 'judy.craft.custom-hardware']},
+    {id: 'art', match: /\b(?:art|artistic|editing|edit\s+recordings?)\b/u, personal: true,
+      claims: ['judy.art.emotional-medium', 'judy.craft.attention-and-editing']},
+    {id: 'mox', match: /\bmox\b/u, personal: true,
+      claims: ['judy.values.mox-and-injustice']},
+    {id: 'independent-work', match: /\b(?:corporate|corporations?|corpos?|studios?|independence)\b/u, personal: true,
+      claims: ['judy.values.independent-work']},
+  ],
+  'panam-palmer': [
+    {id: 'california', match: /\bcalifornia\b/u, personal: true,
+      claims: ['panam.history.california-move']},
+    {id: 'clan-crossroads', match: /\b(?:saul|leaving\s+the\s+clan|left\s+the\s+clan|city\s+mercwork)\b/u, personal: true,
+      claims: ['panam.history.city-mercwork', 'panam.family.disagreements']},
+    {id: 'old-friends', match: /\b(?:mitch|scorpion)\b/u, personal: true,
+      claims: ['panam.friends.mitch-scorpion']},
+    {id: 'road-life', match: /\b(?:road\s+life|life\s+on\s+the\s+road|nomad\s+life|sleeping\s+outside)\b/u, personal: true,
+      claims: ['panam.history.road-life']},
+    {id: 'corporate-bargains', match: /\b(?:corporate|corporations?|corpos?)\b/u, personal: true,
+      claims: ['panam.values.corporate-bargains']},
+    {id: 'government-favors', match: /\b(?:government|president|heads?\s+of\s+state)\b/u, personal: true,
+      claims: ['panam.values.government-leverage']},
+  ],
   'johnny-silverhand': [
     {id: 'cole', match: /\bcole\b|\b(?:lose|lost|died|killed|death)\b.{0,55}\b(?:friends?|comrades?|buddies|fellow\s+soldiers?)\b.{0,45}\b(?:war|army|military)\b|\b(?:friends?|comrades?|buddies)\b.{0,45}\b(?:die|died|lost|killed)\b.{0,45}\b(?:war|army|military)\b|\b(?:friends?|comrades?|buddies)\b.{0,45}\b(?:war|army|military)\b.{0,45}\b(?:die|died|lost|killed)\b/u,
       association: /\b(?:who\s+(?:was|is)|tell\s+me\s+about|what\s+happened\s+to|remember)\s+cole\b|\b(?:friend|comrade)\s+(?:named\s+|called\s+)?cole\b|\b(?:you|your)\b.{0,70}\b(?:lose|lost|friends?|comrades?|buddies)\b.{0,70}\b(?:war|army|military)\b/u,
