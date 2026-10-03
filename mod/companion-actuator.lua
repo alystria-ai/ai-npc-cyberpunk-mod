@@ -949,6 +949,21 @@ local function actualContext(s,c)
     current.playerGap=space.distance(current.position,current.frame.position)
     return current
 end
+local function samePosition(a,b)
+    return a and b and a.x==b.x and a.y==b.y and (a.z or 0)==(b.z or 0)
+end
+local function rememberAdmission(s,plan,c,goal,target,route,horizon)
+    plan.verifiedAdmission={clock=s.clock,origin=space.copy(c.position),player=space.copy(c.frame.position),
+        goal=space.copy(goal),target=space.copy(target),route=route,horizon=horizon}
+end
+local function takeAdmission(s,plan,c,goal)
+    local proof=plan.verifiedAdmission
+    plan.verifiedAdmission=nil
+    -- Cancellation may complete synchronously without changing this frame.
+    -- Only that exact snapshot can reuse its already complete physics checks.
+    if proof and proof.clock==s.clock and samePosition(proof.origin,c.position)
+        and samePosition(proof.player,c.frame.position) and samePosition(proof.goal,goal) then return proof end
+end
 
 local function preserveOwner(s)
     local label=currentCommandState(s)
@@ -980,12 +995,12 @@ end
 local function commitWaypoint(s,plan,intent,c,index,minimum)
     -- Preparation leaves an active current lease intact. Only a completely
     -- certified successor can begin retiring that exact native handle.
-    local clear,reason,deferred
+    local clear,reason,deferred,route
     if not plan.pendingIndex then
         if not plan.trialIndex then plan.trialIndex,plan.minimumIndex=index,minimum or index end
         index=plan.trialIndex
         local target=plan.points[index]
-        clear,reason,deferred=routeClear(s,c,target,false,{stablePlayer=true})
+        clear,reason,deferred,route=routeClear(s,c,target,false,{stablePlayer=true})
         if deferred then preserveOwner(s);return true end
         if not clear then
             if index>plan.minimumIndex then
@@ -1003,6 +1018,7 @@ local function commitWaypoint(s,plan,intent,c,index,minimum)
             end
             block(s,reason,c,s.target,plan.following);return true
         end
+        rememberAdmission(s,plan,c,target,target,route)
         plan.pendingIndex,plan.pendingPhase=index,'retiring'
     end
     index=plan.pendingIndex
@@ -1015,8 +1031,9 @@ local function commitWaypoint(s,plan,intent,c,index,minimum)
     -- preparation is not permission to move after it: reread actual feet/V and
     -- revalidate before committing. Quota deferral owns a safety hold.
     local current=actualContext(s,c)
-    local route
-    clear,reason,deferred,route=routeClear(s,current,target,false,{stablePlayer=true})
+    local proof=takeAdmission(s,plan,current,target)
+    if proof then clear,route=true,proof.route
+    else clear,reason,deferred,route=routeClear(s,current,target,false,{stablePlayer=true}) end
     if deferred then waitForClearance(s);return true end
     if not clear then block(s,reason,current,s.target,plan.following);return true end
     plan.index,plan.pendingIndex,plan.from=index,nil,space.copy(current.position)
@@ -1053,11 +1070,12 @@ local function handoff(s,plan,intent,c,canPlan)
     -- The prefix owner remains active until preparation completes. Unexpected
     -- terminal success or exhausted quota instead keeps an owned safety hold.
     if not canPlan then preserveOwner(s);return false end
-    local target,reason,deferred
+    local target,reason,deferred,route,horizon
     if not plan.handoffPhase then
-        target,reason,deferred=destination(s,plan,intent,c)
+        target,reason,deferred,route,horizon=destination(s,plan,intent,c)
         if deferred then preserveOwner(s);return true end
         if not target then block(s,reason,c,intent.kind=='follow' and followGoal(s,c) or intent.goal,plan.following);return true end
+        rememberAdmission(s,plan,c,intent.kind=='follow' and followGoal(s,c) or intent.goal,target,route,horizon)
         plan.handoffPhase='retiring'
     end
     if plan.handoffPhase=='retiring' then
@@ -1065,8 +1083,9 @@ local function handoff(s,plan,intent,c,canPlan)
         plan.handoffPhase='admitting'
     elseif not cancel(s) then return true end -- stationary hold from a quota continuation
     local current=actualContext(s,c)
-    local route,horizon
-    target,reason,deferred,route,horizon=destination(s,plan,intent,current)
+    local proof=takeAdmission(s,plan,current,intent.kind=='follow' and followGoal(s,current) or intent.goal)
+    if proof then target,route,horizon=proof.target,proof.route,proof.horizon
+    else target,reason,deferred,route,horizon=destination(s,plan,intent,current) end
     if deferred then waitForClearance(s);return true end
     if not target then block(s,reason,current,intent.kind=='follow' and followGoal(s,current) or intent.goal,plan.following);return true end
     if plan.mode=='escape' then s.completedEscapeTicket=s.ticket end

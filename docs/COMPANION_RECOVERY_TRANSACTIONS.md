@@ -20,6 +20,16 @@ This correction is installed in `c50d2d2` and activates through CET Reload All
 Mods. No additional automated suite was run, following the user's request to
 reduce testing. Its visual outcome awaits ordinary gameplay feedback.
 
+The user subsequently reported both symptoms remained. Further source inspection
+found that successor admission validated the same route twice in one update,
+with cancellation between the two checks. Exhausting the query budget on the
+second check inserted another hold. Admission now consumes the first completed
+route only when the update clock, actual NPC position, actual player position
+and requested goal are exactly unchanged after cancellation. Any asynchronous
+cancellation or changed snapshot still requires fresh validation. A passive
+capture showed stationary gameplay only, so it did not establish the active
+movement cause or qualify the new visual outcome.
+
 This scoped note describes the October 3 repair. The parent movement and
 chauffeur documents remain the feature-level sources. Rendered acceptance is
 still required after the Lua install; the tests below establish ownership,
