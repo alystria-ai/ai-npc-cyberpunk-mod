@@ -92,7 +92,7 @@ function M.new(options)
         local invitations = {}
         for _, id in ipairs(order) do
             local row = rows[id]
-            if row then invitations[#invitations + 1] = {id = row.id, revision = row.revision,
+            if row and not row.error then invitations[#invitations + 1] = {id = row.id, revision = row.revision,
                 modelKey = row.modelKey, profileKey = row.profileKey, phase = row.phase} end
         end
         local value = {version = 1, worldToken = target.worldToken, generation = target.generation,
@@ -195,7 +195,15 @@ function M.new(options)
         if row.error or not known(row.profileKey) then
             return {state = 'error', error = row.error or 'That conversation profile is unavailable.'}
         end
-        if not stamp or publicationError then return {state = 'error', error = publicationError or 'Preparation clock unavailable.'} end
+        local function failed(reason)
+            -- A failure belongs to this exact attempt. A missing/expired IPC
+            -- receipt must not turn it back into progress or permit a late
+            -- ready result to spawn it. A new revision is an explicit retry.
+            row.error = reason
+            if stamp then publish(boundary, stamp) end
+            return {state = 'error', error = reason}
+        end
+        if not stamp or publicationError then return failed(publicationError or 'Preparation clock unavailable.') end
         if row.profileKey == nil then return {state = 'model-only'} end
         if receipt and receipt.version == 1 and sameWorld(receipt, boundary) and integer(receipt.bridgePid, 1)
             -- The production Lua clock has whole seconds; Date.now receipts
@@ -218,12 +226,14 @@ function M.new(options)
             end
             for index = 1, count do if receipt.invitations[index] == nil then valid = false; break end end
             if valid and count <= MAX_ROWS and found then
-                return {state = found.state, error = found.state == 'error'
-                    and (type(found.error) == 'string' and found.error:sub(1, 300) or 'Companion preparation failed.') or nil}
+                if found.state == 'error' then
+                    return failed(type(found.error) == 'string' and found.error:sub(1, 300) or 'Companion preparation failed.')
+                end
+                return {state = found.state}
             end
         end
         if stamp - row.started >= SERVICE_TIMEOUT then
-            return {state = 'error', error = 'Companion preparation is not responding. Check the bridge or choose the profile again.'}
+            return failed('Companion preparation is not responding. Check the bridge or choose the profile again.')
         end
         return {state = 'memory'}
     end

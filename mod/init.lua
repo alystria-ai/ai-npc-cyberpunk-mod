@@ -1164,6 +1164,8 @@ local function updatePhoneInvitationFeedback(player)
             if member.state == 'connecting' then message = ui.t('{name}: connecting...',{name=member.name})
             elseif member.state == 'ready-to-join' then message = ui.t('{name} is ready. Close the phone to join.',{name=member.name})
             elseif member.state == 'failed' then message = ui.t('{name}: preparation failed. Cancel and invite again.',{name=member.name}) end
+            if member.state == 'failed' and queue.claimPreparationFailure
+                and not queue.claimPreparationFailure(member.id, member.revision) then return end
             pcall(function() player:ConvaiPhoneFeedback(message) end)
             return
         end

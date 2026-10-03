@@ -21,6 +21,14 @@ const ERRORS = Object.freeze({
   connection: 'The companion connection could not become ready. Choose a profile or cancel the invitation.',
   capacity: 'The party has no free conversation connection.'
 });
+// Preserve a bounded diagnostic reason, never arbitrary provider error text or
+// identifiers. Otherwise a transient provider failure is indistinguishable from
+// a broken local identity and cannot be diagnosed from the invitation log.
+const PREPARATION_CODES = new Set(['CANCELLED', 'TIMEOUT', 'DISABLED', 'NOT_MOD_OWNED',
+  'CHARACTER_MISMATCH', 'INVALID_RESPONSE', 'CONFIGURATION_DRIFT', 'HTTP_ERROR',
+  'NETWORK_ERROR', 'RESPONSE_TOO_LARGE', 'ENABLE_UNVERIFIED', 'MEMORY_UNAVAILABLE',
+  'STALE_TURN', 'MEMORY_CLEAR_PENDING', 'CLOSED', 'STORAGE_FAILURE', 'REGISTRY_CHANGED',
+  'IDENTITY_CHANGED']);
 
 export function parseCompanionInvitations(value, now = Date.now(), staleMs = 6500) {
   if (!object(value) || value.version !== 1 || !token(value.worldToken) || !integer(value.generation) || value.generation < 1
@@ -243,9 +251,12 @@ export class CompanionInvitations {
         lane.prepared = true; lane.state = 'connecting'; this.touch();
         await abortable(this.syncReservations(), lane.controller.signal);
         if (this.current(lane)) this.warm(lane);
-      } catch {
-        if (this.current(lane)) this.fail(lane, lane.stage === 'voice' ? ERRORS.voice
-          : lane.stage === 'connection' || lane.prepared ? ERRORS.connection : ERRORS.memory);
+      } catch (error) {
+        if (this.current(lane)) {
+          lane.errorCode = PREPARATION_CODES.has(error?.code) ? error.code : 'PREPARATION_FAILED';
+          this.fail(lane, lane.stage === 'voice' ? ERRORS.voice
+            : lane.stage === 'connection' || lane.prepared ? ERRORS.connection : ERRORS.memory);
+        }
       } finally { lane.preparing = null; }
     })();
   }
@@ -332,7 +343,7 @@ export class CompanionInvitations {
             && (!this.voiceValid(lane) || !this.routeValid(lane))) state = 'connecting';
         return {id: row.id, revision: row.revision, modelKey: row.modelKey,
           ...(row.profileKey !== undefined ? {profileKey: row.profileKey} : {}), state,
-          ...(state === 'error' ? {error} : {})};
+          ...(state === 'error' ? {error, ...(lane?.errorCode ? {errorCode: lane.errorCode, errorStage: lane.stage} : {})} : {})};
       }) : []};
   }
   publishSnapshot(value) {
@@ -359,6 +370,7 @@ export class CompanionInvitations {
         return {id: row.id, revision: row.revision, state: this.snapshot().invitations.find(value => value.id === row.id)?.state ?? 'error',
           startedAt: row.startedAt, memoryReadyAt: lane?.memoryReadyAt, memoryMs: lane?.memoryMs,
           voiceReadyAt: lane?.voiceReadyAt, voiceMs: lane?.voiceMs, voiceProvider: lane?.voiceProvider,
+          errorCode: lane?.errorCode, errorStage: lane?.errorCode ? lane.stage : undefined,
           readyAt: lane?.readyAt ?? row.readyAt, warmMs: lane?.warmMs};
       })};
   }

@@ -311,6 +311,8 @@ local function samplePreparationPopup(now, worldReady)
     tracking.nextAt, tracking.worldReady = now + 1, worldReady
     local current = queue.invitationFeedback(tracking.id)
     if not current then preparationPopup = nil; return nil end
+    if current.failed and queue.claimPreparationFailure
+        and not queue.claimPreparationFailure(current.id, current.revision) then return nil end
     -- Native warning notifications can be hidden behind a paused menu. Keep
     -- only the current snapshot and announce it once again in gameplay, never
     -- a backlog of memory/connecting stages that may already be obsolete.

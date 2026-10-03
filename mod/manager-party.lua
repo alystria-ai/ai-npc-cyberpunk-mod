@@ -45,6 +45,17 @@ function M.new(companions, readiness, options)
         return result
     end
 
+    function Q.claimPreparationFailure(id, revision)
+        for _, job in ipairs(joins) do
+            if job.id == id and (revision == nil or job.revision == revision) then
+                if job.failureNotified then return false end
+                job.failureNotified = true
+                return true
+            end
+        end
+        return false
+    end
+
     local function preparation(job)
         if job.error then return {state = 'error', error = job.error} end
         if not readiness then return {state = 'ready'} end
@@ -56,6 +67,7 @@ function M.new(companions, readiness, options)
             and state.state ~= 'model-only' and state.state ~= 'error' then
             return {state = 'error', error = ui.t('Companion preparation returned an invalid state.')}
         end
+        if state.state == 'error' then job.error = state.error or ui.t('Companion preparation failed.') end
         return state
     end
 
@@ -182,6 +194,7 @@ function M.new(companions, readiness, options)
         local ok, reason = prepare(job)
         if not ok then
             job.preparationError = job.error
+            job.failureNotified = true
             report(ui.t('{name} could not prepare: {reason}', {name = job.name, reason = reason}), true, job.id)
             return false, feedback, id
         end
@@ -236,7 +249,7 @@ function M.new(companions, readiness, options)
             local job = attaching[member.serial]
             if job then
                 job.profileKey, job.profileName, job.revision = key, name or job.name, job.revision + 1
-                job.error, job.preparationError = nil, nil
+                job.error, job.preparationError, job.failureNotified = nil, nil, nil
                 local prepared, reason = prepare(job)
                 if not prepared then return false, reason end
                 if readiness then readiness.spawned(job, member.serial) end
@@ -246,7 +259,7 @@ function M.new(companions, readiness, options)
                 if job.id == id then
                     job.profileKey, job.profileName, job.revision = key, name or job.name, job.revision + 1
                     preparationId = job.id
-                    job.error, job.preparationError = nil, nil
+                    job.error, job.preparationError, job.failureNotified = nil, nil, nil
                     local ok, reason = prepare(job)
                     if not ok then
                         feedback = ui.t('{name} could not prepare: {reason}', {name = member.name, reason = reason})
@@ -356,10 +369,10 @@ function M.new(companions, readiness, options)
                     remaining[#remaining + 1] = job
                 end
             else
-                if status.state == 'error' and job.preparationError ~= status.error then
+                if status.state == 'error' and Q.claimPreparationFailure(job.id, job.revision) then
                     job.preparationError = status.error
                     report(ui.t('{name} could not prepare: {reason}', {name = job.name, reason = tostring(status.error)}), true, job.id)
-                elseif status.state ~= 'error' then job.preparationError = nil end
+                end
                 remaining[#remaining + 1] = job
             end
         end

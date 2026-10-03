@@ -3,7 +3,9 @@
 The mod can route a supported character to an ordinary or affectionate Convai
 profile without changing the character's game model, voice reference, quests,
 animations, or displayed name. Each character has an independent Auto / On / Off
-choice, defaulting to Auto. MCM drafts do not affect routing until Apply.
+choice, defaulting to Auto. Saved settings take effect at the next idle
+conversation boundary; a reply already in progress retains its selected profile.
+There is no separate Apply-button step in the player instructions.
 
 ## Supported characters and evidence
 
@@ -216,6 +218,33 @@ are character-specific. Samples contain spoken words only, with no speaker-name
 prefixes. API provisioning must compare the current ordinary provider's model
 and voice configuration before accepting the source payload as authoritative.
 
+## Group conversations
+
+The group behavior is already wired into the bridge's admitted conversation
+context. It uses the selection captured for that turn, its exact current-world
+binding, and the admitted audience. It does not collect or send a combined list
+of everyone's relationships.
+
+- A confirmed partner may acknowledge **their own** current-save relationship
+  when it is relevant. Judy uses understated, dry warmth; Panam direct playful
+  warmth; River plainspoken kindness; Kerry irreverent wit; Meredith controlled,
+  casual familiarity without a claim of commitment.
+- Selecting On supplies affectionate delivery, not relationship evidence.
+  Selecting Off preserves ordinary delivery while allowing acknowledgement of
+  an actually confirmed relationship.
+- Other speakers can react to words actually heard in this round. They do not
+  receive another character's private relationship receipts, previous private
+  chat, or intimate scene details. A remark heard in the group is not itself a
+  verified quest fact.
+- Banter stays optional and relevant to the player's topic. It must not add a
+  romantic speech to every reply, assume rivalry or exclusivity, change the
+  speaker order, or bypass the existing final-speaker follow-up setting.
+
+This is prompt context for a real player conversation. It sends no separate
+memory-building message and does not create a new player ID or copy memories
+between ordinary and affectionate provider profiles. The existing canonical
+character family continues to own its Chat history and explicit Forget scope.
+
 ## Verification
 
 Focused tests cover exact/missing/conflicting receipts, explicit overrides,
@@ -255,3 +284,16 @@ companions and ask a relevant question: the confirmed partner should acknowledge
 their own relationship in character, without revealing private scene/chat
 details or asserting an unconfirmed relationship for another participant. This
 is a conversation test, not a requirement to clear real memory or modify quests.
+
+## Invitation preparation failures
+
+Failed invitations retain their error until the player cancels/reinvites or
+explicitly changes the selected profile. Missing or stale bridge receipts cannot
+turn that same failed attempt back into preparation. The phone, manager and
+world notification share one failure notice per attempt.
+
+Hanako's reported failure was followed by a read-only provider check confirming
+the correct owned profile and enabled memory. The original exception had been
+discarded, so its cause is unconfirmed. Preparation now preserves a bounded
+diagnostic code and stage without exposing provider responses or identifiers.
+
