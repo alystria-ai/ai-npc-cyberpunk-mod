@@ -380,3 +380,21 @@ source and passes with the correction. It also checks departure from blocked
 arrival, preservation of same-intent searches and continued holding for actual
 geometry obstructions. Lua 5.1 syntax passes. Native motion remains subject to
 ordinary gameplay feedback; no repeat car trip was requested.
+
+### October 4: live ground intersection at the animation root
+
+A subsequent passive sample found Hanako and Alex stopped 14 m and 20 m from V,
+with a `Static` rejection from the current-position full-body check. A read-only
+native probe measured Hanako's animation-root Z as 7.386871 and the walkable
+navigation point at the same XY as 7.600006. The standing box began at root+0.1,
+inside the support-height band, and reported a hit. The existing walking band
+(root+0.35 to root+2.2) was clear in every collision group. Nearby real static
+obstacles and the vehicle still reported hits with that band.
+
+The new waypoint guard had introduced an overly strict full-body check at this
+animation root; two earlier recovery checks had the same assumption. All three
+actual-current-position checks now use the existing zero-length swept walking
+box. Radius, top/head clearance, six collision groups, query cost and failure
+semantics are unchanged. Projected destinations and spawn positions retain the
+full standing-body check. No speed, follow distance or global collision margin
+was changed. The temporary native probe helper was restored byte-for-byte.

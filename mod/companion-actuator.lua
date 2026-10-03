@@ -491,7 +491,10 @@ local function routeClear(s,c,target,following,options)
             previous=point
         end
         -- A resumed route rechecks both actual ends before movement can resume.
-        clear,reason,deferred,rejection=clearance.body(c.position,s.clearance)
+        -- Animation roots can sit below the navigation surface during a stride.
+        -- Use the existing walking step band at actual feet; destinations still
+        -- require their full standing body at the projected navigation point.
+        clear,reason,deferred,rejection=clearance.segment(c.position,c.position,s.clearance)
         if deferred then return nil,nil,true end
         if not clear then return reject(reason,'origin',rejection) end
         local currentTarget=options.horizon and probe.target or target
@@ -819,7 +822,7 @@ local function blockedRoute(s,intent,c,canPlan)
         end
     end
     if not search.originClear then
-        local clear,reason,deferred,rejection=clearance.body(c.position,s.clearance)
+        local clear,reason,deferred,rejection=clearance.segment(c.position,c.position,s.clearance)
         if deferred then return true end
         if not clear then
             if rejection then rejection.stage='origin'; s.lastRejection=rejection end
@@ -943,7 +946,7 @@ local function waypointMotion(s,c)
     local cost=6
     for _,segment in ipairs(segments) do cost=cost+6*clearance.segmentBoxes(segment.from,segment.to) end
     if not clearance.available(cost) then return nil,nil,true end
-    local clear,reason,deferred,rejection=clearance.body(c.position,s.clearance)
+    local clear,reason,deferred,rejection=clearance.segment(c.position,c.position,s.clearance)
     if not clear then return clear,reason,deferred,rejection end
     for _,segment in ipairs(segments) do
         clear,reason,deferred,rejection=clearance.segment(segment.from,segment.to,s.clearance)
