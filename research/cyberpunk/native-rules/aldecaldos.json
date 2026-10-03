@@ -6682,18 +6682,6 @@
       "reason": "Carol's declined tracker help/gift offer is a private call branch in Phantom Liberty; a clan affiliation is not evidence the call happened."
     },
     {
-      "id": "aldecaldos.unmapped.blacksteel.gift.offered",
-      "status": "unmapped",
-      "questKey": "black-steel-in-the-hour-of-chaos",
-      "narrativeLinks": [
-        {
-          "decisionId": "aldecaldos.blacksteel.gift",
-          "outcomeKey": "offered"
-        }
-      ],
-      "reason": "Offered and collected gift states are distinct. No item possession or shared inventory fact is used to invent a personal gift interaction."
-    },
-    {
       "id": "aldecaldos.unmapped.blacksteel.gift.collected",
       "status": "unmapped",
       "questKey": "black-steel-in-the-hour-of-chaos",

@@ -1,16 +1,126 @@
 {
   "version": 1,
-  "builtAt": "2026-10-03T07:45:28.457Z",
+  "builtAt": "2026-10-03T21:24:49.244Z",
   "errors": [],
-  "enabledRules": 195,
-  "citedArtifacts": 402,
-  "verifiedEvidencePointers": 5402,
+  "enabledRules": 197,
+  "citedArtifacts": 403,
+  "verifiedEvidencePointers": 5449,
   "outcomesResearched": 1160,
-  "jsonHashBoundPointers": 5402,
+  "jsonHashBoundPointers": 5449,
   "legacyJsonPointers": 0,
-  "outcomesWithReviewedRules": 188,
-  "outcomesUnmapped": 972,
+  "outcomesWithReviewedRules": 190,
+  "outcomesUnmapped": 970,
   "verified": [
+    {
+      "evidenceId": "al-oct04.carol-gift-journal",
+      "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/144/Data/entries/4/Data/entries/2/Data",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "depotPath": "base\\journal\\cooked_journal.journal"
+    },
+    {
+      "evidenceId": "al-oct04.carol-gift-journal",
+      "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/144/Data",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "depotPath": "base\\journal\\cooked_journal.journal"
+    },
+    {
+      "evidenceId": "al-oct04.carol-gift-meaning",
+      "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonPointer": "/Data/RootChunk/root/Data/entries/5533",
+      "assetSha256": "2d4a7e03def886c609be3f6306077ff2a7a17dc0ff77916defe6fe36441ada7d",
+      "jsonSha256": "4cd3d29f97d360cfcc079364837fb5f58bd90a7d9f06977f1a21580336d09c89",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "d1fac28f0eb9e9ea5f9c6801c78fd48342b77fc1",
+      "depotPath": "ep1\\localization\\en-us\\onscreens\\onscreens_final.json"
+    },
+    {
+      "evidenceId": "al-oct04.carol-gift-activation",
+      "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data/phaseGraph/Data/nodes/8/Data",
+      "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+      "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "ca74317f2df0ecd3ce01dde84ce0f0083317b39b",
+      "depotPath": "ep1\\quest\\main_quests\\q305\\phases\\q305_01_task.questphase"
+    },
+    {
+      "evidenceId": "al-oct04.carol-gift-activation",
+      "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data/phaseGraph/Data/nodes/4/Data",
+      "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+      "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "ca74317f2df0ecd3ce01dde84ce0f0083317b39b",
+      "depotPath": "ep1\\quest\\main_quests\\q305\\phases\\q305_01_task.questphase"
+    },
+    {
+      "evidenceId": "al-oct04.carol-gift-activation",
+      "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data/phaseGraph/Data/nodes/5/Data",
+      "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+      "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "ca74317f2df0ecd3ce01dde84ce0f0083317b39b",
+      "depotPath": "ep1\\quest\\main_quests\\q305\\phases\\q305_01_task.questphase"
+    },
+    {
+      "evidenceId": "al-oct04.carol-gift-activation",
+      "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data/phaseGraph/Data/nodes/17/Data",
+      "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+      "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "ca74317f2df0ecd3ce01dde84ce0f0083317b39b",
+      "depotPath": "ep1\\quest\\main_quests\\q305\\phases\\q305_01_task.questphase"
+    },
+    {
+      "evidenceId": "al-oct04.carol-gift-activation",
+      "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data/phaseGraph/Data/nodes/5/Data/sockets/2/Data/connections/0/Data",
+      "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+      "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "ca74317f2df0ecd3ce01dde84ce0f0083317b39b",
+      "depotPath": "ep1\\quest\\main_quests\\q305\\phases\\q305_01_task.questphase"
+    },
+    {
+      "evidenceId": "al-oct04.carol-gift-activation",
+      "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data/phaseGraph/Data/nodes/5/Data/sockets/2/Data/connections/0/Data/destination/Data/connections/1/Data",
+      "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+      "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "ca74317f2df0ecd3ce01dde84ce0f0083317b39b",
+      "depotPath": "ep1\\quest\\main_quests\\q305\\phases\\q305_01_task.questphase"
+    },
+    {
+      "evidenceId": "al-oct04.carol-gift-activation",
+      "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data/phaseGraph/Data/nodes/5/Data/sockets/2/Data/connections/0/Data/destination/Data",
+      "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+      "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+      "jsonIntegrity": "hash-verified",
+      "archive": "ep1",
+      "archiveEntrySha1": "ca74317f2df0ecd3ce01dde84ce0f0083317b39b",
+      "depotPath": "ep1\\quest\\main_quests\\q305\\phases\\q305_01_task.questphase"
+    },
     {
       "evidenceId": "al-native.release-entry",
       "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/base/base/quest/cyberpunk2077.gamedef.json",
@@ -42846,6 +42956,413 @@
       "depotPath": "base\\quest\\side_quests\\sq029\\phases\\sq029_messages.questphase"
     },
     {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/questNode/Data/type/Data",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/49/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/60/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/98/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/99/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/100/Data/outputSockets",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/12/Data",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/16/Data",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/49/Data/events/10/Data",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/49/Data/events/13/Data",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/11/Data",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/14/Data",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/60/Data/questNode/Data/type/Data",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/98/Data/questNode/Data/type/Data",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/99/Data/questNode/Data/type/Data",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/100/Data/questNode/Data/actions",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/entryPoints",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
+      "evidenceId": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+      "jsonPointer": "/Data/RootChunk/playerActors/0/actorId",
+      "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+      "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "80666be15a744dc42e436c67fcacb558066eaef3",
+      "depotPath": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene"
+    },
+    {
       "evidenceId": "silverhand-native.beach-committed",
       "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
       "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/questNode/Data/type/Data",
@@ -60413,7 +60930,9 @@
       "decisionId": "aldecaldos.blacksteel.gift",
       "questKey": "black-steel-in-the-hour-of-chaos",
       "outcomeKey": "offered",
-      "rules": []
+      "rules": [
+        "aldecaldos.native.oct04-carol-gift-offered"
+      ]
     },
     {
       "decisionId": "aldecaldos.blacksteel.gift",
@@ -66550,7 +67069,9 @@
       "decisionId": "silverhand.yacht-outcome",
       "questKey": "boat-drinks",
       "outcomeKey": "destroyed",
-      "rules": []
+      "rules": [
+        "silverhand-oct04.yacht-destroyed-after-beach-response"
+      ]
     },
     {
       "decisionId": "silverhand.yacht-intimacy",
@@ -66971,6 +67492,14 @@
         "policy": "mutually-exclusive-stance",
         "ruleSha256": "563261defd5ab180b839b1860ed8363c85d36b351e78793f860aa2bc6eadd12c",
         "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
+      },
+      {
+        "ruleId": "aldecaldos.native.oct04-carol-gift-offered",
+        "decisionId": "aldecaldos.blacksteel.gift",
+        "outcomeKey": "offered",
+        "nativeTopic": "carol.maxtac-gift",
+        "catalogTopic": "carol.maxtac-gift",
+        "qualification": "exact"
       },
       {
         "ruleId": "aldecaldos.native.panam-basilisk-intimacy",
@@ -68255,6 +68784,14 @@
         "qualification": "exact"
       },
       {
+        "ruleId": "silverhand-oct04.yacht-destroyed-after-beach-response",
+        "decisionId": "silverhand.yacht-outcome",
+        "outcomeKey": "destroyed",
+        "nativeTopic": "kerry.yacht.outcome",
+        "catalogTopic": "kerry.yacht.outcome",
+        "qualification": "exact"
+      },
+      {
         "ruleId": "silverhand.backstage-reconciled",
         "decisionId": "silverhand.backstage-resolution",
         "outcomeKey": "reconciled",
@@ -68426,7 +68963,7 @@
         "qualification": "exact"
       }
     ],
-    "exactMatches": 169,
+    "exactMatches": 171,
     "reviewedAliases": 26,
     "reviewDocuments": [
       {

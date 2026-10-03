@@ -144,3 +144,11 @@ All 195 enabled narrative links also underwent a [topic identity audit](../resea
 ## October 4 bounded conversation topics
 
 Judy and Panam now join the topic selector through 12 curated selectors covering 17 already authenticated public-history claims. Their private and later-development rows remain excluded because a keyword alone cannot establish trust or quest progress. This increment makes relevant details available gradually in admitted private/phone conversations; it does not add quest outcomes, change profile fields or seed memories. The [source review](../research/cyberpunk/native-reviews/judy-panam-topics-oct04.md) records the unchanged author hashes, topic scope and focused compiler/selector checks. Runtime quest coverage remains 195 reviewed rules and 188 mapped outcomes; 972 researched outcomes remain unmapped.
+
+## October 4 native outcome increment
+
+Two further source-qualified outcomes bring the generated knowledge pack to **197 enabled rules / 190 mapped outcomes / 970 unmapped outcomes**. Carol's exact sent courier message establishes a gift offer, without proving pickup, player reading or her earlier refusal call. Kerry's positive late beach response establishes the preceding yacht explosion; no missing/zero flag supplies the alternate branch or a romance inference.
+
+Both rules preserve their named speaker's private/phone audience and require current-save observations. The [Carol review](../research/cyberpunk/native-reviews/aldecaldos-oct04.md) and [Kerry review](../research/cyberpunk/native-reviews/silverhand-oct04.md) document exact native predicates, authenticated assets and deliberately withheld neighboring outcomes. The strict merged source compiler verified 5,449 pointers over 403 cited artifacts, with no unbound JSON references or errors. This updates generated research; root owns runtime rollout and natural live-save acceptance. No provider profiles, conversations or memories were written.
+
+The generated pack was then copied to the project and installed game catalogs with matching hashes and a rollback copy. The bridge was restarted to load it. CET's next mod reload loads the expanded native journal allowlist; no game restart is needed. Live recall remains unverified.

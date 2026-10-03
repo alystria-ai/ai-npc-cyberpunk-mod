@@ -222,3 +222,12 @@ The eight new aliases select exact revealed native messages; positive rescue/com
 This is source-qualified local research, with no provider mutation or installed rollout in this batch. The prior all-character dossier/public-intrinsic work is unchanged. Native aliases still need natural live-save acceptance; schema, exact hashes and resolver tests do not establish live personality or exhaustive decision coverage.
 
 The follow-on [topic identity audit](../research/cyberpunk/native-reviews/topic-identity-audit-oct03.md) checked all 195 enabled links: 169 exact topics and 26 pinned reviewed aliases. Panam's compatible room/flirt facets and Jake's invitation/collection stages retain separate topics; a blanket normalization would create false conflicts. Undeclared or changed mappings, missing review documents, and future alternatives that bypass an existing native topic domain now reject compilation. The runtime resolver and existing topic IDs are unchanged.
+
+## October 4: Carol courier and Kerry yacht outcomes
+
+The merged generated pack now contains **197 enabled rules, 190 mapped outcomes and 970 unmapped outcomes** out of the same 1,160 researched outcomes. Two exact catalog topics were added; no alias change was needed. The strict source build passed with 5,449 hash-bound pointers over 403 artifacts and zero legacy-unbound references.
+
+- Carol's gift-offered outcome uses the exact revealed NPC courier message. It establishes her sent offer, not reading, collection or refusal to hack MaxTac.
+- Kerry's yacht-destroyed outcome uses either positive late beach response. All authored scene entries reaching those writers pass an earlier timed yacht explosion and world deactivation. This is deliberately a sufficient subset; other routes remain unknown rather than being filled from absent flags.
+
+Both are private/phone knowledge for their actual named speaker with V. Cassidy's message remains unmapped because its native sq004 follow-up attribution differs from its researched Gun Music placement. Kerry's optional Archangel transfer remains unmapped because generic concert completion is not a transfer receipt. These are source/build results, not an installed/live recall claim. Reviews: [Carol](../research/cyberpunk/native-reviews/aldecaldos-oct04.md), [Kerry](../research/cyberpunk/native-reviews/silverhand-oct04.md).

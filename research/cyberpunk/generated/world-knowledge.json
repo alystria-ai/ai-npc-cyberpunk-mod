@@ -88,6 +88,33 @@
   ],
   "sources": [
     {
+      "id": "al-oct04-journal",
+      "kind": "native",
+      "title": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "locator": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "notes": "Recorded authenticated serialization; exact full Data equality with original cached source verified. Exact semantic predicates bound in evidence refs."
+    },
+    {
+      "id": "al-oct04-carol-message-text",
+      "kind": "native",
+      "title": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/localization/en-us/onscreens/onscreens_final.json.json",
+      "locator": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/localization/en-us/onscreens/onscreens_final.json.json",
+      "assetSha256": "2d4a7e03def886c609be3f6306077ff2a7a17dc0ff77916defe6fe36441ada7d",
+      "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/localization/en-us/onscreens/onscreens_final.json.json",
+      "notes": "Recorded authenticated serialization; exact full Data equality with original cached source verified. Exact semantic predicates bound in evidence refs."
+    },
+    {
+      "id": "al-oct04-carol-task",
+      "kind": "native",
+      "title": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+      "locator": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+      "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+      "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+      "notes": "Recorded authenticated serialization; exact full Data equality with original cached source verified. Exact semantic predicates bound in evidence refs."
+    },
+    {
       "id": "al-ghost",
       "url": "https://cyberpunk.fandom.com/wiki/Ghost_Town",
       "title": "Ghost Town",
@@ -2666,6 +2693,219 @@
     }
   ],
   "evidence": [
+    {
+      "id": "al-oct04.carol-gift-journal",
+      "sourceId": "al-oct04-journal",
+      "kind": "native",
+      "locator": "Carol contact / q305 gift conversation / NPC-sent courier message, LocKey#87521. Positive current-save receipt; not player reading.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/144/Data/entries/4/Data/entries/2/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "03_carol_sending_courier",
+          "/sender": "NPC",
+          "/text/value": "LocKey#87521"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/144/Data",
+          "expectedType": "gameJournalContact",
+          "expected": {
+            "/id": "carol",
+            "/entries/4/Data/id": "q305_ambush_gift",
+            "/entries/4/Data/entries/2/Data/id": "03_carol_sending_courier"
+          }
+        }
+      ]
+    },
+    {
+      "id": "al-oct04.carol-gift-meaning",
+      "sourceId": "al-oct04-carol-message-text",
+      "kind": "native",
+      "locator": "Installed English LocKey#87521 says Carol arranged a courier gift and a Potomac Street drop; no pickup claim.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/localization/en-us/onscreens/onscreens_final.json.json",
+        "assetSha256": "2d4a7e03def886c609be3f6306077ff2a7a17dc0ff77916defe6fe36441ada7d",
+        "jsonSha256": "4cd3d29f97d360cfcc079364837fb5f58bd90a7d9f06977f1a21580336d09c89",
+        "jsonPointer": "/Data/RootChunk/root/Data/entries/5533",
+        "expectedType": "localizationPersistenceOnScreenEntry",
+        "expected": {
+          "/primaryKey": "87521",
+          "/femaleVariant": "Roger that. There's a courier en route with a small gift. Check the drop on Potomac St. I hope it helps, even if only a little. Good luck, V. And take care of yourself.",
+          "/maleVariant": ""
+        }
+      }
+    },
+    {
+      "id": "al-oct04.carol-gift-activation",
+      "sourceId": "al-oct04-carol-task",
+      "kind": "native",
+      "locator": "q305 task nested graph: solo-selection node6 or netrunner fact-writer31 enters journal node11 Active. Node11 activates the exact courier message.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+        "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+        "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data/phaseGraph/Data/nodes/8/Data",
+        "expectedType": "questJournalNodeDefinition",
+        "expected": {
+          "/id": 11,
+          "/type/Data/path/Data/realPath": "contacts/carol/q305_ambush_gift/03_carol_sending_courier",
+          "/type/Data/path/Data/className/$value": "gameJournalPhoneMessage"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+          "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+          "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data/phaseGraph/Data/nodes/4/Data",
+          "expectedType": "questPauseConditionNodeDefinition",
+          "expected": {
+            "/id": 5,
+            "/condition/Data/type/Data/path/Data/realPath": "contacts/carol/q305_ambush_gift/02_ch_response/02a_choose_netrunning",
+            "/condition/Data/type/Data/state": "Succeeded"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+          "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+          "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data/phaseGraph/Data/nodes/5/Data",
+          "expectedType": "questPauseConditionNodeDefinition",
+          "expected": {
+            "/id": 6,
+            "/condition/Data/type/Data/path/Data/realPath": "contacts/carol/q305_ambush_gift/02_ch_response/02b_choose_solo",
+            "/condition/Data/type/Data/state": "Succeeded"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+          "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+          "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data/phaseGraph/Data/nodes/17/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition",
+          "expected": {
+            "/id": 31,
+            "/type/Data/factName": "q305_carol_gift_netrunner",
+            "/type/Data/setExactValue": 1,
+            "/type/Data/value": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+          "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+          "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data/phaseGraph/Data/nodes/5/Data/sockets/2/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition",
+          "expectedValue": {
+            "$type": "graphGraphConnectionDefinition",
+            "destination": {
+              "HandleId": "5646",
+              "Data": {
+                "$type": "questSocketDefinition",
+                "connections": [
+                  {
+                    "HandleRefId": "5645"
+                  },
+                  {
+                    "HandleId": "5647",
+                    "Data": {
+                      "$type": "graphGraphConnectionDefinition",
+                      "destination": {
+                        "HandleRefId": "5646"
+                      },
+                      "source": {
+                        "HandleId": "5648",
+                        "Data": {
+                          "$type": "questSocketDefinition",
+                          "connections": [
+                            {
+                              "HandleRefId": "5647"
+                            }
+                          ],
+                          "name": {
+                            "$type": "CName",
+                            "$storage": "string",
+                            "$value": "Out"
+                          },
+                          "type": "Output"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "name": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "Active"
+                },
+                "type": "Input"
+              }
+            },
+            "source": {
+              "HandleRefId": "5644"
+            }
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+          "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+          "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data/phaseGraph/Data/nodes/5/Data/sockets/2/Data/connections/0/Data/destination/Data/connections/1/Data",
+          "expectedType": "graphGraphConnectionDefinition",
+          "expectedValue": {
+            "$type": "graphGraphConnectionDefinition",
+            "destination": {
+              "HandleRefId": "5646"
+            },
+            "source": {
+              "HandleId": "5648",
+              "Data": {
+                "$type": "questSocketDefinition",
+                "connections": [
+                  {
+                    "HandleRefId": "5647"
+                  }
+                ],
+                "name": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "Out"
+                },
+                "type": "Output"
+              }
+            }
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-carol-oct04/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+          "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+          "jsonSha256": "1a349b97aa71c962d31567ea3f6be30d9cc3b28ac6e45e0f59cea9f4b9f2e6bf",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data/phaseGraph/Data/nodes/5/Data/sockets/2/Data/connections/0/Data/destination/Data",
+          "expectedType": "questSocketDefinition",
+          "expected": {
+            "/name/$value": "Active",
+            "/type": "Input"
+          }
+        }
+      ]
+    },
     {
       "id": "al-native.release-entry",
       "sourceId": "al-native-e64406b9dfc5",
@@ -36186,6 +36426,1729 @@
       ]
     },
     {
+      "id": "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+      "sourceId": "silverhand-native.sq028-07-trashy-beach-scene",
+      "kind": "native",
+      "locator": "Beach dialogue variants 9/185/192 each emit explosion output (2,0) before continuation (2,1). Actual FX90 targets #sq028_com_yacht, then hides the yacht prefab239 and deactivates yacht community491. Only the later choice59 responses reach positive writers66/118. This maps a sufficient post-explosion subset, not every Boat Drinks save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+        "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/questNode/Data/type/Data",
+        "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+        "expectedValue": {
+          "$type": "questPlayFX_NodeType",
+          "params": [
+            {
+              "$type": "questPlayFX_NodeTypeParams",
+              "effectInstanceName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "effectName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "explosion_cs"
+              },
+              "isPlayer": 0,
+              "objectRef": {
+                "$type": "gameEntityReference",
+                "dynamicEntityUniqueName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "names": [
+                  {
+                    "$type": "CName",
+                    "$storage": "string",
+                    "$value": "yacht_no_enviro"
+                  }
+                ],
+                "reference": {
+                  "$type": "NodeRef",
+                  "$storage": "string",
+                  "$value": "#sq028_com_yacht"
+                },
+                "sceneActorContextName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "slotName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "type": "EntityRef"
+              },
+              "play": 1,
+              "save": 0,
+              "sequenceShift": 0
+            }
+          ]
+        },
+        "expectedType": "questPlayFX_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 1,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 90
+                  }
+                },
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 382
+                  }
+                },
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 390
+                  }
+                },
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 395
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 2,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 13
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 2,
+                "ordinal": 1
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/49/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 1,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 90
+                  }
+                },
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 382
+                  }
+                },
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 390
+                  }
+                },
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 395
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 2,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 20
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 2,
+                "ordinal": 1
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 1,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 90
+                  }
+                },
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 382
+                  }
+                },
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 390
+                  }
+                },
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 395
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 2,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 20
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 2,
+                "ordinal": 1
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 1,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 20
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 2,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 22
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 24
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 1
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 26
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 2
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 1,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 2,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 3,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 4,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 5,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 6,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 92
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 1,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 92
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 1,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 92
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 1,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 42
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 97
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 1
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 58
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 1,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 1,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 59
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 2,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 60
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 61
+                  }
+                },
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 459
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 1
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 1,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 2,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 3,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 4,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 5,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 6,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 1,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 66
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 2,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 207
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 3,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 415
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 4,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 429
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 1,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 118
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 3,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 422
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 4,
+                "ordinal": 0
+              }
+            },
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 424
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 5,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 0
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 49
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 85
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 239
+                  }
+                },
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 485
+                  }
+                },
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 487
+                  }
+                },
+                {
+                  "$type": "scnInputSocketId",
+                  "isockStamp": {
+                    "$type": "scnInputSocketStamp",
+                    "name": 0,
+                    "ordinal": 1
+                  },
+                  "nodeId": {
+                    "$type": "scnNodeId",
+                    "id": 491
+                  }
+                }
+              ],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/60/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/98/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/99/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/100/Data/outputSockets",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnOutputSocket",
+              "destinations": [],
+              "stamp": {
+                "$type": "scnOutputSocketStamp",
+                "name": 0,
+                "ordinal": 0
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/12/Data",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": {
+            "$type": "scneventsSocket",
+            "duration": 0,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2013839252318187520"
+            },
+            "osockStamp": {
+              "$type": "scnOutputSocketStamp",
+              "name": 2,
+              "ordinal": 0
+            },
+            "scalingData": null,
+            "startTime": 19992,
+            "type": "0"
+          },
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/16/Data",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": {
+            "$type": "scneventsSocket",
+            "duration": 0,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2243525729115103236"
+            },
+            "osockStamp": {
+              "$type": "scnOutputSocketStamp",
+              "name": 2,
+              "ordinal": 1
+            },
+            "scalingData": null,
+            "startTime": 23335,
+            "type": "0"
+          },
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/49/Data/events/10/Data",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": {
+            "$type": "scneventsSocket",
+            "duration": 0,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2013839252418850864"
+            },
+            "osockStamp": {
+              "$type": "scnOutputSocketStamp",
+              "name": 2,
+              "ordinal": 0
+            },
+            "scalingData": null,
+            "startTime": 10000,
+            "type": "0"
+          },
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/49/Data/events/13/Data",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": {
+            "$type": "scneventsSocket",
+            "duration": 0,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2243525341527859208"
+            },
+            "osockStamp": {
+              "$type": "scnOutputSocketStamp",
+              "name": 2,
+              "ordinal": 1
+            },
+            "scalingData": null,
+            "startTime": 12785,
+            "type": "0"
+          },
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/11/Data",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": {
+            "$type": "scneventsSocket",
+            "duration": 0,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2013839252435628040"
+            },
+            "osockStamp": {
+              "$type": "scnOutputSocketStamp",
+              "name": 2,
+              "ordinal": 0
+            },
+            "scalingData": null,
+            "startTime": 22879,
+            "type": "0"
+          },
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/14/Data",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": {
+            "$type": "scneventsSocket",
+            "duration": 0,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2243524837473181704"
+            },
+            "osockStamp": {
+              "$type": "scnOutputSocketStamp",
+              "name": 2,
+              "ordinal": 1
+            },
+            "scalingData": null,
+            "startTime": 25730,
+            "type": "0"
+          },
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/60/Data/questNode/Data/type/Data",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": {
+            "$type": "questTogglePrefabVariant_NodeType",
+            "params": [
+              {
+                "$type": "questTogglePrefabVariant_NodeTypeParams",
+                "prefabNodeRef": {
+                  "$type": "NodeRef",
+                  "$storage": "string",
+                  "$value": "#loc_sq028_beach_loot"
+                },
+                "variantStates": [
+                  {
+                    "$type": "questVariantState",
+                    "name": {
+                      "$type": "CName",
+                      "$storage": "string",
+                      "$value": "sq028_quest_loot"
+                    },
+                    "show": 0
+                  }
+                ]
+              },
+              {
+                "$type": "questTogglePrefabVariant_NodeTypeParams",
+                "prefabNodeRef": {
+                  "$type": "NodeRef",
+                  "$storage": "string",
+                  "$value": "$/03_night_city/ne1/loc_sq028_beach_prefabFTNRUYY/loc_sq028_beach_questdesign_prefab75S5I6A/#sq028_pr_cruiser/sq028_04_destructive_tendencies_prefabDZLJACA"
+                },
+                "variantStates": [
+                  {
+                    "$type": "questVariantState",
+                    "name": {
+                      "$type": "CName",
+                      "$storage": "string",
+                      "$value": "yacht"
+                    },
+                    "show": 0
+                  }
+                ]
+              }
+            ]
+          },
+          "expectedType": "questTogglePrefabVariant_NodeType"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/98/Data/questNode/Data/type/Data",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": {
+            "$type": "questTogglePrefabVariant_NodeType",
+            "params": [
+              {
+                "$type": "questTogglePrefabVariant_NodeTypeParams",
+                "prefabNodeRef": {
+                  "$type": "NodeRef",
+                  "$storage": "string",
+                  "$value": "#sq028_05_sex"
+                },
+                "variantStates": [
+                  {
+                    "$type": "questVariantState",
+                    "name": {
+                      "$type": "CName",
+                      "$storage": "string",
+                      "$value": "fire_stage1"
+                    },
+                    "show": 0
+                  }
+                ]
+              }
+            ]
+          },
+          "expectedType": "questTogglePrefabVariant_NodeType"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/99/Data/questNode/Data/type/Data",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": {
+            "$type": "questTogglePrefabVariant_NodeType",
+            "params": [
+              {
+                "$type": "questTogglePrefabVariant_NodeTypeParams",
+                "prefabNodeRef": {
+                  "$type": "NodeRef",
+                  "$storage": "string",
+                  "$value": "#sq028_05_sex"
+                },
+                "variantStates": [
+                  {
+                    "$type": "questVariantState",
+                    "name": {
+                      "$type": "CName",
+                      "$storage": "string",
+                      "$value": "start_fire_loop"
+                    },
+                    "show": 0
+                  }
+                ]
+              }
+            ]
+          },
+          "expectedType": "questTogglePrefabVariant_NodeType"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/100/Data/questNode/Data/actions",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "questSpawnManagerNodeActionEntry",
+              "type": {
+                "HandleId": "692",
+                "Data": {
+                  "$type": "questCommunityTemplate_NodeType",
+                  "action": "Deactivate",
+                  "communityEntryName": {
+                    "$type": "CName",
+                    "$storage": "string",
+                    "$value": "yacht"
+                  },
+                  "communityEntryPhaseName": {
+                    "$type": "CName",
+                    "$storage": "string",
+                    "$value": "sq028_marina"
+                  },
+                  "spawnerReference": {
+                    "$type": "NodeRef",
+                    "$storage": "string",
+                    "$value": "#sq028_com_yacht"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/entryPoints",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": [
+            {
+              "$type": "scnEntryPoint",
+              "name": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "beach_in"
+              },
+              "nodeId": {
+                "$type": "scnNodeId",
+                "id": 1
+              }
+            },
+            {
+              "$type": "scnEntryPoint",
+              "name": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "Start 1"
+              },
+              "nodeId": {
+                "$type": "scnNodeId",
+                "id": 227
+              }
+            },
+            {
+              "$type": "scnEntryPoint",
+              "name": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "Start 2"
+              },
+              "nodeId": {
+                "$type": "scnNodeId",
+                "id": 230
+              }
+            },
+            {
+              "$type": "scnEntryPoint",
+              "name": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "mainline"
+              },
+              "nodeId": {
+                "$type": "scnNodeId",
+                "id": 252
+              }
+            },
+            {
+              "$type": "scnEntryPoint",
+              "name": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "Start 4"
+              },
+              "nodeId": {
+                "$type": "scnNodeId",
+                "id": 287
+              }
+            }
+          ]
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": "kerry"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 0
+          },
+          "expectedType": "scnActorId"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": "v"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId",
+          "jsonSha256": "fff001d4ef96c31856b605226add3220c3f157d854195aea06a2ae5c9d326219",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 3
+          },
+          "expectedType": "scnActorId"
+        }
+      ]
+    },
+    {
       "id": "silverhand-native.beach-committed",
       "sourceId": "silverhand-native.sq028-07-trashy-beach-scene",
       "kind": "native",
@@ -62873,6 +64836,15 @@
     }
   },
   "journalAllowlist": {
+    "aldecaldos.carol.gift-dispatch-message": {
+      "questKey": "black-steel-in-the-hour-of-chaos",
+      "nativePath": "contacts/carol/q305_ambush_gift/03_carol_sending_courier",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "al-oct04.carol-gift-journal",
+        "al-oct04.carol-gift-activation"
+      ]
+    },
     "aldecaldos.riders.completed": {
       "questKey": "riders-on-the-storm",
       "nativePath": "quests/side_quest/sq004_riders_on_the_storm",
@@ -66737,6 +68709,61 @@
       ]
     },
     {
+      "id": "aldecaldos.native.oct04-carol-gift-offered",
+      "revision": 1,
+      "questKey": "black-steel-in-the-hour-of-chaos",
+      "topic": "carol.maxtac-gift",
+      "outcome": "offered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "Carol sent V a message saying she had arranged a small gift by courier, with a drop on Potomac Street. This establishes her offer and dispatch message, not that V read it or collected the gift.",
+      "sourceIds": [
+        "al-oct04-journal",
+        "al-oct04-carol-message-text",
+        "al-oct04-carol-task"
+      ],
+      "evidenceRefs": [
+        "al-oct04.carol-gift-journal",
+        "al-oct04.carol-gift-meaning",
+        "al-oct04.carol-gift-activation"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.blacksteel.gift",
+          "outcomeKey": "offered"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "carol-emeka"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "carol-emeka"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "aldecaldos.carol.gift-dispatch-message",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      }
+    },
+    {
       "id": "aldecaldos.native.panam-basilisk-intimacy",
       "revision": 1,
       "questKey": "queen-of-the-highway",
@@ -67460,18 +69487,6 @@
         {
           "decisionId": "aldecaldos.blacksteel.gift",
           "outcomeKey": "collected"
-        }
-      ],
-      "reason": "Offered and collected gift states are distinct. No item possession or shared inventory fact is used to invent a personal gift interaction."
-    },
-    {
-      "id": "aldecaldos.unmapped.blacksteel.gift.offered",
-      "status": "unmapped",
-      "questKey": "black-steel-in-the-hour-of-chaos",
-      "narrativeLinks": [
-        {
-          "decisionId": "aldecaldos.blacksteel.gift",
-          "outcomeKey": "offered"
         }
       ],
       "reason": "Offered and collected gift states are distinct. No item possession or shared inventory fact is used to invent a personal gift interaction."
@@ -79066,6 +81081,67 @@
         {
           "id": "phantom.ncx.resolution",
           "outcome": "fia-custody"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-oct04.yacht-destroyed-after-beach-response",
+      "revision": 1,
+      "questKey": "boat-drinks",
+      "topic": "kerry.yacht.outcome",
+      "outcome": "destroyed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 8,
+      "stable": true,
+      "statement": "The yacht exploded while V and Kerry were together on the beach after their outing.",
+      "sourceIds": [
+        "silverhand-native.sq028-07-trashy-beach-scene"
+      ],
+      "evidenceRefs": [
+        "silverhand-oct04-native.yacht-destroyed-before-beach-response",
+        "silverhand-native.beach-committed",
+        "silverhand-native.beach-declined",
+        "silverhand-native.invocation-beach"
+      ],
+      "audience": {
+        "speakers": [
+          "kerry-eurodyne"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "any": [
+          {
+            "type": "fact",
+            "key": "sq028_kerry_relationship",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq028_kerry_dislike",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.yacht-outcome",
+          "outcomeKey": "destroyed"
         }
       ]
     },

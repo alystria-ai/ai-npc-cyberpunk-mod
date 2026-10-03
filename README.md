@@ -56,7 +56,7 @@ All four options still need Convai and internet access for dialogue generation. 
 - **Settings → Relationships** has separate **Auto / On / Off** choices for Judy, Panam, River, Kerry, and Meredith. Auto uses reviewed relationship facts from the loaded save; On selects the alternate conversation profile; Off selects the ordinary profile. Meredith's alternate reflects an intimate encounter, rather than an ongoing romance. These choices do not write quest facts.
 - In a group, a character can acknowledge their own save-confirmed relationship when relevant and respond with characteristic banter. Intimate scene details and earlier private chats remain private; On alone supplies no relationship history.
 
-Quest coverage is selective: the current reviewed native pack maps **188 of 1,160 researched outcomes** through 195 rules. Other researched branches are not automatically usable as current-save knowledge. See [quest context](docs/QUEST_CONTEXT.md), [knowledge coverage](docs/CHARACTER_KNOWLEDGE_COVERAGE_2026-10-01.md), [player memory](docs/PLAYER_MEMORY.md), [Chat resets](docs/CHAT_MEMORY_RESET.md), and [relationships](docs/RELATIONSHIP_PROFILES.md).
+Quest coverage is selective: the current reviewed native pack maps **190 of 1,160 researched outcomes** through 197 rules. Other researched branches are not automatically usable as current-save knowledge. See [quest context](docs/QUEST_CONTEXT.md), [knowledge coverage](docs/CHARACTER_KNOWLEDGE_COVERAGE_2026-10-01.md), [player memory](docs/PLAYER_MEMORY.md), [Chat resets](docs/CHAT_MEMORY_RESET.md), and [relationships](docs/RELATIONSHIP_PROFILES.md).
 
 ### Reactions and interface languages
 
