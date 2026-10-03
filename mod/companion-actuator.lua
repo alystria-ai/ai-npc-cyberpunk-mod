@@ -3,7 +3,7 @@
 local space=dofile('companion-space.lua')
 local clearance=dofile('companion-clearance.lua')
 local M={}
-local recoveryPolicy={nearObstacle=6,travelHorizon=6,distantGap=12,headingChange=45,
+local recoveryPolicy={nearObstacle=6,travelHorizon=6,headingChange=45,
     planSpan=1.8,planRise=.2,escapeCommandSpan=2.2,travelCommandSpan=4,rollingGap=.35}
 function M.useSpatialBudget(value) clearance.useBudget(value) end
 local function vector(p) return Vector4.new(p.x,p.y,p.z or 0,p.w or 1) end
@@ -886,15 +886,17 @@ local function watchRoute(s,c,canPlan)
             end
         end
     end
-    if canPlan and s.clock>=(s.routeCheckedAt or 0)+0.8 then
+    -- Waypoint execution already checks its certified corridor, current motion
+    -- and every successor leg. Restarting a full path proof while those feet
+    -- move invalidates it each frame and turns quota deferral into idle/run.
+    if not s.execution and canPlan and s.clock>=(s.routeCheckedAt or 0)+0.8 then
         s.routeCheckedAt=s.clock
         local target=s.executionTarget or (s.kind=='follow' and followGoal(s,c) or s.target)
         local clear,reason,deferred,route=routeClear(s,c,target,s.kind=='follow' and not s.execution,
             {stablePlayer=s.execution~=nil})
         if deferred then waitForClearance(s)
         elseif not clear then block(s,reason,c,s.target or target,s.kind=='follow') end
-        if clear and s.execution then s.execution.commandRoute=route.legs
-        elseif clear and route.projection then
+        if clear and route.projection then
             s.destinationProjection,s.target=route.projection,space.copy(route.target)
             if route.projection.lateralShift>.02 then
                 -- A radial follower cannot promise a laterally changed endpoint.
@@ -903,7 +905,7 @@ local function watchRoute(s,c,canPlan)
                 -- while the point coordinator awaits fresh admission/budget.
                 s.execution=execution(route,c.position,route.target,true,'travel')
                 if not s.execution then block(s,'The verified route exceeds bounded waypoint execution',c,route.target,true) end
-                if s.execution then waitForClearance(s) end
+                if s.execution then s.recoveryTicket=s.ticket;waitForClearance(s) end
             end
         end
         return true
@@ -936,7 +938,7 @@ local function follow(s,intent,c)
     command.target=c.player;command.desiredDistance=followDistance(s,c);command.tolerance=.6
     command.movementType=Enum.new('moveMovementType',intent.gait or 'Run')
     command.matchSpeed=intent.gait=='Walk';command.teleport=false;command.stopWhenDestinationReached=false
-    s.gait,s.stage=intent.gait,'following';submit(s,command)
+    s.gait,s.stage=intent.gait,'following';return submit(s,command)
 end
 
 local function actualContext(s,c)
@@ -1039,7 +1041,8 @@ local function destination(s,plan,intent,c)
         -- Recovery uses a bounded certified travel horizon when the group is
         -- remote. A moving far endpoint cannot starve several frames of quota,
         -- and only that verified prefix is granted to a movement command.
-        local horizon=s.recoveryTicket==s.ticket and c.playerGap>recoveryPolicy.distantGap and recoveryPolicy.travelHorizon or nil
+        local horizon=s.recoveryTicket==s.ticket
+            and space.distance(c.position,target)>recoveryPolicy.travelHorizon and recoveryPolicy.travelHorizon or nil
         local clear,reason,deferred,route=routeClear(s,c,target,true,{horizon=horizon,stablePlayer=true})
         return clear and route.target or nil,reason,deferred,route,horizon
     end
@@ -1074,9 +1077,11 @@ local function handoff(s,plan,intent,c,canPlan)
     if horizon or curved(route) or route.projection and route.projection.lateralShift>.02 then
         s.execution=execution(route,current.position,s.target,plan.following,horizon and 'advance' or 'travel')
         if not s.execution then block(s,'The verified route exceeds bounded waypoint execution',current,target,plan.following);return true end
+        s.recoveryTicket=s.ticket
         s.execution.rejection=plan.rejection
         return commitWaypoint(s,s.execution,intent,current,chooseWaypoint(s.execution,current,1),1)
-    elseif intent.kind=='follow' then follow(s,intent,current)
+    elseif intent.kind=='follow' then
+        if follow(s,intent,current) then s.recoveryTicket=nil end
     else walk(s,intent,current) end
     record(s,'recovery-handoff')
     return true
@@ -1189,13 +1194,17 @@ function M.apply(s,decision,c,canPlan)
     end
     if changed then
         if not cancel(s) then return false end
+        local recovering=s.recoveryTicket~=nil or s.execution~=nil
         s.ticket,s.kind,s.face=intent.ticket,intent.kind,intent.face
         s.issued,s.failed,s.error,s.stage=false,false,nil,nil
         s.blockedReason,s.blockedHolding,s.routeCheckedAt,s.clearanceAt=nil,nil,nil,nil
         s.routeProbe,s.candidateIndex,s.clearanceWaiting,s.clearanceHolding=nil,nil,nil,nil
         s.execution,s.executionTarget,s.detourSearch,s.blockedContext=nil,nil,nil,nil
         s.nativeLegFailures=0
-        s.recoveryTicket,s.completedEscapeTicket=nil,nil
+        -- Carry only the need for bounded recovery admission through the
+        -- settling hold/next departure. Commands and geometry are reset above.
+        s.recoveryTicket=recovering and intent.ticket or nil
+        s.completedEscapeTicket=nil
         s.destinationProjection=nil
         s.followAdmission=nil
         s.orientationAt=nil
@@ -1282,7 +1291,7 @@ function M.apply(s,decision,c,canPlan)
     s.target,s.gait=target,intent.gait
     if not intent.face and curved(route) then
         s.execution=execution(route,c.position,target,false)
-        if s.execution then return execute(s,intent,c,canPlan) end
+        if s.execution then s.recoveryTicket=s.ticket;return execute(s,intent,c,canPlan) end
         block(s,'The verified route exceeds bounded waypoint execution',c,target,false); return true
     end
     if not s.issued and intent.finish and not intent.face and c.speed<0.18
