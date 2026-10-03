@@ -30,7 +30,7 @@ The catalog currently contains **79 conversation profiles**: 77 named characters
 - Ask a nearby companion to drive an owned car to the selected map waypoint, including a parked car restored with your save. They take the driver seat and wait for you to enter a passenger seat. You can change the waypoint during the trip; **Current party** shows its status and Stop trip.
 - **Settings → Development → Developer mode** enables routine driving status popups. It defaults Off; important errors remain visible.
 
-Selecting **Invite** reserves a place and immediately prepares memory configuration, the selected voice, and the conversation connection. A talking companion appears only after preparation succeeds and you return to gameplay. Progress reports the current preparation stage. This setup does not send an invented conversation or seed memories.
+Selecting **Invite** reserves a place and immediately prepares memory configuration, the selected voice, and the conversation connection. A talking companion appears only after preparation succeeds and you return to gameplay. Progress reports the current preparation stage. A failed attempt shows its error once and waits for cancellation or an explicit retry. This setup does not send an invented conversation or seed memories.
 
 See [invitations](docs/COMPANION_INVITATIONS.md), [movement](docs/COMPANION_MOVEMENT_DESIGN.md), [combat](docs/COMPANION_COMBAT.md), and [vehicles](docs/COMPANION_VEHICLES_DESIGN.md).
 
@@ -39,9 +39,9 @@ See [invitations](docs/COMPANION_INVITATIONS.md), [movement](docs/COMPANION_MOVE
 - **Companion voices** offers **Pocket TTS (default), OmniVoice 16, OmniVoice 32, Convai**, in that order. The prepared development catalog has local references for **75 of 79 profiles**; characters without a prepared reference use their configured Convai voice. Saved valid choices remain selected, including older Omni settings.
 - Each local backend uses **one shared model** and original character recordings. Pocket uses the approved six-layer student; its teacher stays in training. Neither backend needs a separate neural model or LoRA per character.
 - Pocket uses **float32 on CPU**, with two threads by default and no model GPU allocation. This student is trained for English and uses one sampler step. Omni uses **FP16 on CUDA**, with 16 or 32 generation steps; those choices share the same model and cached references.
-- Selecting a local voice option in Settings requests warm-up immediately, before Apply. Switching backends waits for owned work and confirmed retirement of the previous worker. An applied local choice stays warm; Convai releases local model memory after the current reply.
+- Selecting a local voice option in Settings requests warm-up immediately. Switching backends waits for owned work and confirmed retirement of the previous worker. The selected local choice stays warm; Convai releases local model memory after the current reply.
 - Pocket and Convai use continuous PCM playback. Pocket receives the complete reply text once; Omni prepares its first native audio phrase while later phrases generate during playback. All modes keep the original Convai dialogue turn and avoid added EQ, denoising, pitch effects or audio crossfades.
-- Native lip, jaw, and facial controls follow the actual playback clock. Pocket's prepared facial path uses resident CPU phone analysis with the shared calibrated native shapes; it warms during local-voice preparation and keeps original playback samples untouched. Omni retains its phrase analyser, and Convai uses its supplied facial data. [Phone analysis setup and qualification](docs/RESIDENT_PHONE_ANALYSIS.md) records the remaining native visual check.
+- Native lip, jaw, and facial controls follow the actual playback clock. Pocket's prepared facial path uses resident CPU phone analysis with the shared calibrated native shapes; it warms during local-voice preparation and keeps original playback samples untouched. Pocket and Omni use smoothed transitions between those shapes. Omni retains its phrase analyser, and Convai uses its supplied facial data. [Phone analysis setup and qualification](docs/RESIDENT_PHONE_ANALYSIS.md) records the remaining native visual check.
 - A light resting expression is standard behavior. Supported Convai emotional signals can adjust it, while native blinking and gaze remain available.
 - **Dialogue HUD** subtitles are the default. **Above speaker** is optional; conversations in vehicles use the Dialogue HUD. On boarding, an overhead reply continues with its unread text rather than repeating the page already shown on foot. The game's subtitle preferences still affect native visibility.
 
@@ -170,7 +170,7 @@ Switch to **Chat**, choose a contact, and use the phone's confirm/message action
 
 ## Customize
 
-Open **Companion Manager → Settings**. Use **Apply** to save a settings draft or **Revert** to discard it. Memory, Relationships, and Character conversations have their own pages with Back controls.
+Open **Companion Manager → Settings** to change options. Memory, Relationships, and Character conversations have their own pages with Back controls.
 
 | Setting | New-user default |
 |---|---|
@@ -186,7 +186,7 @@ Open **Companion Manager → Settings**. Use **Apply** to save a settings draft 
 | Head tracking strength | Gentle |
 | Character conversations | Enabled |
 
-Existing saved choices take precedence. Older Omni choices retain their 16/32 quality; a saved Convai choice remains Convai. The single voice selector contains Pocket TTS, OmniVoice 16, OmniVoice 32 and Convai. Local selection requests preparation before Apply; Revert or leaving unsaved Settings cancels that preview. There is no separate quality row, per-character voice-provider selector or disappearing-message option. Exploration observations do not trigger automatic replies.
+Existing saved choices take precedence. Older Omni choices retain their 16/32 quality; a saved Convai choice remains Convai. The single voice selector contains Pocket TTS, OmniVoice 16, OmniVoice 32 and Convai. Selecting a local voice requests preparation immediately. There is no separate quality row, per-character voice-provider selector or disappearing-message option. Exploration observations do not trigger automatic replies.
 
 Ordinary battle and loot reactions have independent ten-minute cooldowns. Newly acquired Legendary equipment has a separate two-minute loot cooldown. Save changes reset reaction context and cooldowns, while player identity and Chat history remain.
 
