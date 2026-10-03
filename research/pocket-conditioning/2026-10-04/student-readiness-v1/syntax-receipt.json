@@ -1,0 +1,8 @@
+{
+  "python_ast_parse": "passed",
+  "files": 5,
+  "frozen_base_hashes_unchanged": true,
+  "model_or_inference_execution": false,
+  "gpu_execution": false,
+  "test_suite_run": false
+}

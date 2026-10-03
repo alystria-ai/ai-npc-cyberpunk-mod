@@ -1,0 +1,21 @@
+{
+  "base": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-data-expansion-20261003\\speaker-conditioning-experiment\\hybrid-v2",
+  "files": [
+    {
+      "path": "scripts/pocket_training/conditioning.py",
+      "base_sha256": "12f7240b4a6e50c0899a3dba922590422c54f7999a57c4a4615c99abe0df484f"
+    },
+    {
+      "path": "scripts/pocket_training/runner.py",
+      "base_sha256": "057a19d05ad0cf6ce0cd86bf649bc13ffdac2fc3e07e9f20f671a0db6af00a7d"
+    },
+    {
+      "path": "scripts/pocket_training/teacher_overlay.py",
+      "base_sha256": "39ee317cd7c90c9794a3a5abe6bffa98e8f64319243c441162eefe5231ebbfaa"
+    },
+    {
+      "path": "scripts/pocket_training/student_transfer.py",
+      "base_sha256": "fed60ee56eaf541cab18b370a99cd482847fc37dabc5641e745422a8b8ab5453"
+    }
+  ]
+}

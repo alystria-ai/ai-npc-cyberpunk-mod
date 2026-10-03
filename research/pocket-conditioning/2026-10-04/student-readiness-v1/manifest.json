@@ -1,0 +1,42 @@
+{
+  "schema": "conditional-student-readiness-code-overlay-v1",
+  "base_runner_sha256": "057a19d05ad0cf6ce0cd86bf649bc13ffdac2fc3e07e9f20f671a0db6af00a7d",
+  "files": [
+    {
+      "path": "scripts/pocket_training/conditioning.py",
+      "base_sha256": "12f7240b4a6e50c0899a3dba922590422c54f7999a57c4a4615c99abe0df484f",
+      "candidate_sha256": "bec2476fa232a733dc7d17a5feb0b397105c9a1483e83002a7255d97f5794279",
+      "bytes": 22507
+    },
+    {
+      "path": "scripts/pocket_training/control_weights.py",
+      "base_sha256": null,
+      "candidate_sha256": "04cc67f8cba28f60eea5afca7b47a0f7d3674cfcaba5ef832fa775d4c611f794",
+      "bytes": 2778
+    },
+    {
+      "path": "scripts/pocket_training/runner.py",
+      "base_sha256": "057a19d05ad0cf6ce0cd86bf649bc13ffdac2fc3e07e9f20f671a0db6af00a7d",
+      "candidate_sha256": "0edd324dd5c6354c18ba3abd50d44f22022440884f642717a499afb010a68eab",
+      "bytes": 163502
+    },
+    {
+      "path": "scripts/pocket_training/student_transfer.py",
+      "base_sha256": "fed60ee56eaf541cab18b370a99cd482847fc37dabc5641e745422a8b8ab5453",
+      "candidate_sha256": "f5f1f9c0bb3bba270356cf55c0f92cf3e62e47d3788fd64bf753fb57dffe1b66",
+      "bytes": 19462
+    },
+    {
+      "path": "scripts/pocket_training/teacher_overlay.py",
+      "base_sha256": "39ee317cd7c90c9794a3a5abe6bffa98e8f64319243c441162eefe5231ebbfaa",
+      "candidate_sha256": "54e36db811e94fa643133a6137253fc4ba06419345eaacb0a52b6b733a025395",
+      "bytes": 4305
+    }
+  ],
+  "patch_sha256": "8c7a626033c5363bb1a742d110d63248e8a60b8b758d9fdf54d2a3956b982d55",
+  "patch_bytes": 32420,
+  "readiness_sha256": "f0a0485d4d18f5f6106be61d61733820136975fe5a247e6a3d8a29959f9c9ca2",
+  "runnable_training_spec_created": false,
+  "production_changed": false,
+  "overlay_identity": "58a1cf4f200ad3e6100fb5ae8aa5911db314f457d3662d9a60051e3b7137a6d9"
+}

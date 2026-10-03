@@ -1,0 +1,548 @@
+--- a/scripts/pocket_training/conditioning.py
++++ b/scripts/pocket_training/conditioning.py
+@@ -1,4 +1,4 @@
+-"""Opt-in finite A/B/C conditioning pilot; baseline behavior stays explicit.
++"""Explicit conditioning pilots and separately admitted teacher/student stages.
+ 
+ No speaker identifier is inserted into text. Each draw retains the official
+ target crop/token RNG. Pairing and ID dropout use separate stateless streams.
+@@ -11,6 +11,7 @@
+ from pathlib import Path
+ 
+ POLICY = "matched-pocket-conditioning-pilot-v2"
++TRAINING_POLICY = "pocket-conditioning-training-v1"
+ WEIGHT_KEY = "flow_lm.voice_identity.embedding.weight"
+ 
+ 
+@@ -70,12 +71,15 @@
+     value = raw.get("speaker_conditioning")
+     if value is None:
+         return None
+-    required = {"policy", "arm", "pair_fraction", "id_dropout", "pilot_max_steps", "plan", "plan_sha256", "mapping", "mapping_sha256"}
++    required = {"policy", "arm", "pair_fraction", "id_dropout", "plan", "plan_sha256", "mapping", "mapping_sha256"}
+     reference_fields = {"reference_bindings", "reference_bindings_sha256"}
+-    optional = reference_fields | {"id_learning_rate_scale"}
++    training = value.get("policy") == TRAINING_POLICY
++    heldout_fields = {"heldout_bindings", "heldout_bindings_sha256", "heldout_selection_mode"}
++    required |= {"stages"} if training else {"pilot_max_steps"}
++    optional = reference_fields | (heldout_fields if training else {"id_learning_rate_scale"})
+     if set(value) - required - optional or not required <= set(value):
+         raise ValueError("Conditioning pilot fields differ from the explicit v2 contract")
+-    if value["policy"] != POLICY or value["arm"] not in {"baseline", "paired", "hybrid"}:
++    if value["policy"] not in {POLICY, TRAINING_POLICY} or value["arm"] not in {"baseline", "paired", "hybrid"}:
+         raise ValueError("Unknown conditioning pilot")
+     for key in ("pair_fraction", "id_dropout"):
+         if not isinstance(value[key], (int, float)) or not math.isfinite(value[key]) or not 0 <= value[key] <= 1:
+@@ -84,14 +88,17 @@
+         raise ValueError("Baseline arm must retain the official same-utterance prompt")
+     if value["arm"] != "hybrid" and value["id_dropout"] != 0:
+         raise ValueError("Audio-only arms have no ID-dropout feature")
++    if training:
++        validate_stage_contract(raw, value)
+     id_lr_scale = value.get("id_learning_rate_scale", 1.)
+     if type(id_lr_scale) not in (int, float) or not math.isfinite(id_lr_scale) or not .1 <= id_lr_scale <= 10:
+         raise ValueError("ID learning-rate scale must be explicit and within0.1..10")
+     if value["arm"] != "hybrid" and id_lr_scale != 1:
+         raise ValueError("Audio-only arms cannot use an ID learning-rate override")
+-    maximum = value["pilot_max_steps"]
+-    if type(maximum) is not int or not 1 <= maximum <= 500 or raw.get("teacher_max_steps") != maximum:
+-        raise ValueError("The finite pilot must declare the same 1..500 teacher step bound")
++    if not training:
++        maximum = value["pilot_max_steps"]
++        if type(maximum) is not int or not 1 <= maximum <= 500 or raw.get("teacher_max_steps") != maximum:
++            raise ValueError("The finite pilot must declare the same 1..500 teacher step bound")
+     if raw.get("speaker_balanced_sampling", False):
+         raise ValueError("Matched pilot uses the frozen unique-row permutation, not repeated speaker sampling")
+     plan = json.loads(bound(base, value, "plan").read_text(encoding="utf-8"))
+@@ -108,11 +115,136 @@
+         if not reference_fields <= set(value):
+             raise ValueError("Hybrid evaluation needs a source-reviewed reference-ID binding file")
+         validate_reference_bindings(base, value, mapping)
++        if training:
++            if not heldout_fields <= set(value) or value["heldout_selection_mode"] not in {"id0", "bound"}:
++                raise ValueError("Hybrid training needs reviewed heldout IDs and an explicit selection mode")
++            validate_heldout_bindings(base, value, mapping)
+     elif set(value) & reference_fields:
+         raise ValueError("Audio-only pilots must not claim ID-bound references")
+-    return {**value, "id_learning_rate_scale": id_lr_scale, "implementation_sha256": file_hash(__file__),
++    if value["arm"] != "hybrid" and set(value) & heldout_fields:
++        raise ValueError("Audio-only training cannot claim ID-bound heldout evaluation")
++    return {**value, **({"id_learning_rate_scale": id_lr_scale} if not training else {}), "implementation_sha256": file_hash(__file__),
+             "sampler_sha256": file_hash(Path(__file__).with_name("paired_sampler.py")),
++            "control_weights_sha256": file_hash(Path(__file__).with_name("control_weights.py")),
+             "known_ids": len(mapping["keys"]), "table_capacity": len(mapping["keys"])}
++
++
++def validate_stage_contract(raw, value):
++    """A post-pilot run declares each trained role; no inherited ID LR multiplier."""
++    stages = value.get("stages")
++    if not isinstance(stages, dict) or not stages or set(stages) - {"teacher", "distill"}:
++        raise ValueError("Conditioning training needs explicit teacher/distill stage settings")
++    if raw.get("pilot_diagnostic_manifest"):
++        raise ValueError("Post-pilot training cannot retain diagnostic-only pilot admission")
++    for stage, settings in stages.items():
++        if set(settings) != {"max_steps", "learning_rate", "id_learning_rate_scale", "rollout_steps"}:
++            raise ValueError("Each conditioning stage must bind steps, base LR, ID LR scale and speech schedule")
++        maximum, lr, scale = settings["max_steps"], settings["learning_rate"], settings["id_learning_rate_scale"]
++        if type(maximum) is not int or maximum < 1 or raw.get(stage + "_max_steps") != maximum:
++            raise ValueError("Conditioning stage execution bound differs from the actual runner")
++        if type(lr) not in (int, float) or not math.isfinite(lr) or not 0 < lr <= .01 or raw.get(stage + "_learning_rate") != lr:
++            raise ValueError("Conditioning stage base learning rate must be explicitly bound")
++        if type(scale) not in (int, float) or not math.isfinite(scale) or not .1 <= scale <= 10:
++            raise ValueError("Conditioning stage ID LR scale must be in0.1..10")
++        if value["arm"] != "hybrid" and scale != 1:
++            raise ValueError("An audio-only stage cannot change ID learning rate")
++        schedule = settings["rollout_steps"]
++        field = "teacher_rollout_steps" if stage == "teacher" else "rollout_steps"
++        if (not isinstance(schedule, list) or len(schedule) < 2 or any(type(n) is not int for n in schedule)
++                or schedule != sorted(set(schedule)) or schedule[0] != 0 or schedule[-1] != maximum
++                or raw.get(field) != schedule):
++            raise ValueError("Conditioning stage speech schedule must cover its exact0..max_steps")
++
++
++def stage_settings(spec, stage):
++    value = options(spec)
++    if not value or value["policy"] != TRAINING_POLICY:
++        return None
++    if stage not in value["stages"]:
++        raise ValueError("This conditioning run did not authorize training the requested role")
++    return value["stages"][stage]
++
++
++def verify_resolved_stage(spec, args, stage):
++    settings = stage_settings(spec, stage)
++    if settings and (args._execution_max_steps != settings["max_steps"] or args.optim.lr != settings["learning_rate"]):
++        raise ValueError("Resolved exposure or base LR differs from the explicit conditioning stage")
++
++
++def stage_rollout_steps(raw, stage, fallback):
++    value = raw.get("speaker_conditioning")
++    if value and value["policy"] == TRAINING_POLICY:
++        if stage not in value["stages"]:
++            raise ValueError("No conditioning speech schedule is declared for this role")
++        return value["stages"][stage]["rollout_steps"]
++    return fallback
++
++
++def validate_heldout_bindings(base, value, mapping):
++    """Consume reviewed native evidence; this reader never guesses a speaker ID."""
++    data = json.loads(bound(base, value, "heldout_bindings").read_text(encoding="utf-8"))
++    if data.get("schema") != "reviewed-heldout-speaker-ids-v1" or data.get("mapping_sha256") != mapping["mapping_sha256"]:
++        raise ValueError("Heldout IDs use another mapping or schema")
++    seen = set()
++    for row in data["rows"]:
++        key = (row["split"], row["row_id"])
++        if (row["split"] not in {"dev", "test", "teacher_regression", "teacher_conditional"}
++                or not row["row_id"] or len(row["audio_sha256"]) != 64 or key in seen):
++            raise ValueError("Heldout binding repeats or omits an exact source row")
++        seen.add(key)
++        sid = row["speaker_id"]
++        if type(sid) is not int or not 0 <= sid <= len(mapping["keys"]):
++            raise ValueError("Invalid heldout speaker ID")
++        if sid:
++            identity = json.loads(mapping["keys"][sid - 1])
++            if row.get("speaker_identity") != identity or not row.get("segment_proofs"):
++                raise ValueError("Known heldout ID needs matching native source evidence")
++            for proof in row["segment_proofs"]:
++                path = Path(proof["path"])
++                path = path if path.is_absolute() else base / path
++                if proof.get("speaker_identity") != identity or file_hash(path) != proof["sha256"]:
++                    raise ValueError("Heldout native evidence changed")
++        elif not row.get("fallback_reason"):
++            raise ValueError("ID0 heldout fallback must state why no trained ID is bound")
++    return data
++
++
++def heldout_modes(spec):
++    value = options(spec)
++    if value and value["policy"] == TRAINING_POLICY and value["arm"] == "hybrid":
++        return ("id0", "bound"), value["heldout_selection_mode"]
++    return ("id0",), "id0"
++
++
++def heldout_ids(spec, split, rows):
++    from .runner import stable_row_id
++    value = options(spec)
++    mapping = read_mapping(spec.base, value)
++    data = validate_heldout_bindings(spec.base, value, mapping)
++    lookup = {(row["split"], row["row_id"], row["audio_sha256"]): row["speaker_id"] for row in data["rows"]}
++    result = []
++    for row in rows:
++        key = (split, stable_row_id(row), row.get("audio_sha256"))
++        if key not in lookup:
++            raise ValueError("Heldout row has no reviewed exact ID or explicit ID0 binding")
++        result.append(lookup[key])
++    return result
++
++
++def verify_heldout_coverage(spec):
++    from .runner import rows_at
++    modes, _ = heldout_modes(spec)
++    if "bound" not in modes:
++        return
++    paths = {split: path for split, path in spec.manifests.items() if split != "train"}
++    for split, field in (("teacher_regression", "teacher_regression_manifest"),
++                         ("teacher_conditional", "teacher_conditional_manifest")):
++        if spec.raw.get(field):
++            paths[split] = spec.asset(field)
++    if not paths:
++        raise ValueError("Hybrid training requires actual heldout manifests before model allocation")
++    for split, path in paths.items():
++        heldout_ids(spec, split, rows_at(path))
+ 
+ 
+ def validate_reference_bindings(base, value, mapping):
+@@ -246,6 +378,8 @@
+ 
+ def pilot_rollout_steps(raw):
+     value = raw.get("speaker_conditioning")
++    if value and value["policy"] == TRAINING_POLICY:
++        return stage_rollout_steps(raw, "teacher", None)
+     return [0, 250, value["pilot_max_steps"]] if value and value["pilot_max_steps"] > 250 else ([0, value["pilot_max_steps"]] if value else [0, 500, 1000, 1500, 2000])
+ 
+ 
+@@ -263,7 +397,7 @@
+             "speaker_id_nonzero_rows": int((bank.embedding.weight[1:].abs().sum(dim=1) > 0).sum())}
+ 
+ 
+-def configure_optimizer(spec, model, optimizer):
++def configure_optimizer(spec, model, optimizer, *, stage=None):
+     value = options(spec)
+     if not value or value["arm"] != "hybrid":
+         return
+@@ -276,7 +410,8 @@
+         raise ValueError("Speaker embeddings must use the existing auxiliary Adam optimizer")
+     original["params"] = [p for p in original["params"] if p is not parameter]
+     group = {key: value for key, value in original.items() if key != "params"}
+-    scale = value.get("id_learning_rate_scale", 1.)
++    settings = stage_settings(spec, stage)
++    scale = settings["id_learning_rate_scale"] if settings else value.get("id_learning_rate_scale", 1.)
+     group.update(params=[parameter], lr_scale=original.get("lr_scale", 1.) * scale, lr=original["lr"] * scale,
+         conditioning_id_group=True)
+     optimizer.add_param_group(group)
+--- /dev/null
++++ b/scripts/pocket_training/control_weights.py
+@@ -0,0 +1,51 @@
++"""Exact old-model controls inside a temporary hybrid-shaped comparison owner.
++
++The only permitted extension is an all-zero ID table. This is never a trained
++hybrid import and must not be used to initialize the candidate student.
++"""
++from pathlib import Path
++import hashlib
++
++TABLE = "voice_identity.embedding.weight"
++
++
++def load_control(flow_lm, source, *, source_path, expected_sha256, allow_zero_identity=False):
++    import safetensors
++    import torch
++    from pocket_tts.modules.voice_identity import assert_weight_abi, load_flow_state_with_fresh_identity
++
++    source_path = Path(source_path)
++    digest = hashlib.sha256()
++    with source_path.open("rb") as stream:
++        for block in iter(lambda: stream.read(4 * 1024 * 1024), b""):
++            digest.update(block)
++    if not expected_sha256 or digest.hexdigest() != expected_sha256:
++        raise ValueError("Control weights differ from their immutable selected source")
++    current = flow_lm.state_dict()
++    missing, unexpected = set(current) - set(source), set(source) - set(current)
++    zero_extension = bool(missing)
++    if unexpected or (missing and (not allow_zero_identity or missing != {TABLE}
++                                   or getattr(flow_lm, "voice_identity", None) is None)):
++        raise ValueError("Control inventory differs beyond the sole optional zero-ID table")
++    for key, tensor in source.items():
++        if tensor.shape != current[key].shape or tensor.dtype != current[key].dtype:
++            raise ValueError("Control tensor shape or dtype changed: " + key)
++    if zero_extension:
++        with safetensors.safe_open(str(source_path), framework="pt", device="cpu") as bundle:
++            if (bundle.metadata() or {}).get("voice_identity") is not None:
++                raise ValueError("Missing-table control must not claim a trained hybrid ABI")
++        state = dict(source)
++        state[TABLE] = torch.zeros_like(current[TABLE])
++        flow_lm.load_state_dict(state, strict=True)
++    else:
++        receipt = assert_weight_abi(flow_lm, source_path)
++        load_flow_state_with_fresh_identity(flow_lm, source, receipt)
++    loaded = flow_lm.state_dict()
++    for key, tensor in source.items():
++        if loaded[key].dtype != tensor.dtype or not torch.equal(loaded[key].detach().cpu(), tensor.detach().cpu()):
++            raise ValueError("Loaded control differs from an original tensor: " + key)
++    if zero_extension and not bool((loaded[TABLE] == 0).all()):
++        raise ValueError("Old-model control acquired a nonzero identity residual")
++    return {"source_weight_sha256": expected_sha256, "original_tensors_identical": True,
++            "identity_control": "explicit_zero_residual_extension" if zero_extension else "native_weight_abi",
++            "candidate_initialization": False}
+--- a/scripts/pocket_training/runner.py
++++ b/scripts/pocket_training/runner.py
+@@ -341,6 +341,7 @@
+         identities["expanded_reference_audio"] = [sha256_file(local_path(base, r.get("path", r.get("reference", "")))) for r in expanded_rows]
+     identity = hashlib.sha256(json.dumps(identities, sort_keys=True).encode()).hexdigest()
+     spec = Spec(path, raw, base, source, output, identity, manifests)
++    conditioning.verify_heldout_coverage(spec)
+     if qualified_corpus(spec):
+         # Cheap metadata gates precede every model/GPU allocation. The separate
+         # corpus receipt and asset hashes bind waveform/history checks outside
+@@ -1207,6 +1208,29 @@
+                  num_voice_prompt_frames=frames, **conditioning.forward_kwargs(batch))
+ 
+ 
++def load_selected_weights(spec: Spec, model: Any, checkpoint: Path, *, flow_only: bool = False) -> dict:
++    """Selected evaluation starts from architecture, then admits one exact ABI."""
++    import torch
++    from pocket_tts.modules.voice_identity import assert_weight_abi
++    payload = torch.load(checkpoint, map_location="cpu", weights_only=True)
++    if payload.get("runner", {}).get("input_identity") != spec.identity:
++        raise ValueError("Selected checkpoint does not belong to these exact inputs")
++    conditioning.verify_checkpoint(spec, payload)
++    receipt = assert_weight_abi(model.flow_lm, checkpoint, use_ema=bool(payload.get("ema")), checkpoint_payload=payload)
++    state = {**payload["model"], **(payload.get("ema") or {})}
++    if flow_only:
++        model.flow_lm.load_state_dict({k.removeprefix("flow_lm."): v for k, v in state.items()
++                                      if k.startswith("flow_lm.")}, strict=True)
++    else:
++        model.load_state_dict(state, strict=True)
++    bank = getattr(model.flow_lm, "voice_identity", None)
++    if bank is not None and bank.table_hash() != receipt["table_sha256"]:
++        raise ValueError("Selected evaluation loaded another identity table")
++    return {"step": int(payload["step"]),
++            "weights": payload.get("runner", {}).get("selection_weights", "ema"),
++            "validated_probe_count": payload.get("runner", {}).get("validated_probe_count", 0)}
++
++
+ def run_rollout_checks(spec: Spec, model: Any, mimi: Any, ema: Any, device: Any,
+                        step: int, stop: Stop, rank: int, world: int) -> dict[str, Any] | None:
+     """Check free generation at declared steps; MSE alone cannot qualify speech."""
+@@ -1480,6 +1504,21 @@
+ 
+ def validate(spec: Spec, model: Any, mimi: Any, args: Any, device: Any, rank: int, world: int,
+              stop: Stop, *, split: str = "dev") -> dict[str, Any] | None:
++    modes, selected = conditioning.heldout_modes(spec)
++    results = {}
++    for mode in modes:
++        result = _validate_conditioning(spec, model, mimi, args, device, rank, world, stop,
++                                        split=split, id_conditioning_mode=mode)
++        if result is None:
++            return None
++        results[mode] = result
++    if len(modes) == 1:
++        return results[selected]
++    return {**results[selected], "conditioning_selection_mode": selected, "conditioning_scores": results}
++
++
++def _validate_conditioning(spec: Spec, model: Any, mimi: Any, args: Any, device: Any, rank: int, world: int,
++                          stop: Stop, *, split: str, id_conditioning_mode: str) -> dict[str, Any] | None:
+     import torch
+     from training.dataloader import DataLoader, encode_batch
+ 
+@@ -1491,6 +1530,11 @@
+     if macro:
+         limit = 0  # Every declared voice contributes; no sparse voice disappears in a cap.
+     indices = fixed_validation_indices(rows, limit, args.seed)
++    ids = conditioning.heldout_ids(spec, split, [rows[i] for i in indices]) if id_conditioning_mode == "bound" else [0] * len(indices)
++    row_ids = dict(zip(indices, ids))
++    bank = getattr(model.flow_lm, "voice_identity", None)
++    if id_conditioning_mode == "bound" and bank is None:
++        raise ValueError("Bound-ID heldout evaluation requires the actual hybrid model")
+     names = ["loss", "distill_mse"] if model.distill_teacher is not None else ["loss", "flow_loss", "flow_diag", "flow_distill", "eos_loss"]
+     speaker_names = sorted({speaker_key(rows[i]) for i in indices}) if collect_speakers else []
+     speaker_totals = {name: {key: 0.0 for key in ["samples", *names]} for name in speaker_names}
+@@ -1518,6 +1562,9 @@
+             loader.rng.seed(args.seed + 1009 * index)
+             torch.manual_seed(args.seed + 8191 * index)
+             batch = loader._collate([loader._sample(loader.get_entry(index))])
++            if bank is not None:
++                batch.speaker_ids = torch.tensor([row_ids[index]], dtype=torch.long)
++                batch.speaker_id_keep = torch.ones(1, dtype=torch.bool)
+             with torch.no_grad(), torch.autocast(device_type=device.type, enabled=False):
+                 latents, mask, voice, frames = with_terminal_slot(encode_batch(mimi, batch, device))
+                 loss, metrics = conditioned_forward(model, batch, (latents, mask, voice, frames))
+@@ -1578,6 +1625,11 @@
+     result = {**averaged, "score": score, "samples": actual, "eligible_samples": len(rows),
+             "sample_ids_sha256": hashlib.sha256(json.dumps([stable_row_id(rows[i]) for i in indices]).encode()).hexdigest(),
+             "selection": selection, "split": split, "precision": "float32", "prompt_augmentation": False}
++    result.update(id_conditioning_mode=id_conditioning_mode,
++                  known_id_samples=sum(identity > 0 for identity in ids), id0_samples=sum(identity == 0 for identity in ids),
++                  reference_policy="same_utterance_heldout_prompt",
++                  identity_mapping_sha256=None if bank is None else bank.mapping_sha256,
++                  identity_table_sha256=None if bank is None else bank.table_hash())
+     if collect_speakers:
+         result.update(speaker_scores=speaker_scores, speaker_count=len(speaker_scores),
+                       generalization_panel=split == "dev")
+@@ -1796,6 +1848,7 @@
+         if spec.raw.get("student_init_from"):
+             args.student_init_from = str(spec.asset("student_init_from"))
+     conditioning.configure_args(spec, args, stage)
++    conditioning.verify_resolved_stage(spec, args, stage)
+     args_path = args.run_dir / "args.yaml"
+     new_text = dump_args(args)
+     if args_path.exists() and args_path.read_text(encoding="utf-8") != new_text and (args.run_dir / "last.pt").exists():
+@@ -1852,7 +1905,7 @@
+     if any(p.dtype != torch.float32 for p in model.parameters()):
+         raise ValueError("All trainable master weights must remain FP32")
+     optimizer = build_optimizer(model, args, device, rank)
+-    conditioning.configure_optimizer(spec, model, optimizer)
++    conditioning.configure_optimizer(spec, model, optimizer, stage=stage)
+     ema = EMA(model, args.ema_decay)
+     mode = choose_precision(torch, requested_precision, device)
+     scaler = torch.amp.GradScaler("cuda", enabled=mode == "fp16", init_scale=128)
+@@ -2319,18 +2372,9 @@
+         model, mimi, _ = build_models(args)
+         install_fp32_reductions(model)
+         if checkpoint is not None:
+-            payload = torch.load(checkpoint, map_location="cpu", weights_only=True)
+-            if payload["runner"].get("input_identity") != spec.identity:
+-                raise ValueError("Selected checkpoint does not belong to these inputs")
+-            conditioning.verify_checkpoint(spec, payload)
+-            state = dict(payload["model"])
+-            if payload.get("ema"):
+-                state.update(payload["ema"])
+-            model.load_state_dict(state, strict=True)
+-            selection_step = int(payload["step"])
+-            selection_weights = payload.get("runner", {}).get("selection_weights", "ema")
+-            validated_probes = payload.get("runner", {}).get("validated_probe_count", 0)
+-            del payload, state
++            selected = load_selected_weights(spec, model, checkpoint)
++            selection_step, selection_weights = selected["step"], selected["weights"]
++            validated_probes = selected["validated_probe_count"]
+         else:
+             selection_step = 0
+         model.to(device).eval()
+@@ -2384,9 +2428,12 @@
+             stage_state(spec, "evaluate", status="paused", reason=stop.reason)
+             return EXIT_PAUSED
+         torch.manual_seed(int(spec.option("seed", 42)))
++        student_control = student_transfer.enabled(spec) and config_kind == "student"
+         args = TrainArgs(model_config=str(spec.output / f"configs/{config_kind}-inference.yaml"), compile=False,
+-                         start_from_pretrained=True, text_dropout=0, voice_dropout=0)
+-        if student_transfer.enabled(spec) and config_kind == "student":
++                         start_from_pretrained=checkpoint is None and not student_control, text_dropout=0, voice_dropout=0)
++        if args.start_from_pretrained:
++            conditioning.configure_args(spec, args, "teacher")
++        if student_control:
+             args.distill_cfg_coef = 2.0
+             args.distill_teacher_config = str(spec.output / "configs/teacher-inference.yaml")
+             args.distill_teacher_weights = str(spec.output / "teacher/best.pt")
+@@ -2395,17 +2442,16 @@
+         model, mimi, _ = build_models(args)
+         install_fp32_reductions(model)
+         if checkpoint is not None:
+-            payload = torch.load(checkpoint, map_location="cpu", weights_only=True)
+-            combined = {**payload["model"], **(payload.get("ema") or {})}
+-            model.flow_lm.load_state_dict({k.removeprefix("flow_lm."): v for k, v in combined.items() if k.startswith("flow_lm.")}, strict=True)
+-            del payload, combined
+-        elif student_transfer.enabled(spec) and config_kind == "student":
++            load_selected_weights(spec, model, checkpoint, flow_only=True)
++        elif student_control:
+             # The builder transfers new heads; undo that for the complete
+             # accepted-student control only, while retaining its frozen target.
+             from safetensors.torch import load_file
++            from .control_weights import load_control
+             accepted = load_file(str(spec.asset("student_anchor_weights")))
+-            model.flow_lm.load_state_dict({key.removeprefix("flow_lm."): value for key, value in accepted.items()
+-                                          if key.startswith("flow_lm.")}, strict=True)
++            load_control(model.flow_lm, {key.removeprefix("flow_lm."): value for key, value in accepted.items()
++                                       if key.startswith("flow_lm.")}, source_path=spec.asset("student_anchor_weights"),
++                         expected_sha256=spec.raw["student_anchor_expected_sha256"], allow_zero_identity=True)
+             del accepted
+         model.to(device).eval()
+         mimi.to(device).eval()
+--- a/scripts/pocket_training/student_transfer.py
++++ b/scripts/pocket_training/student_transfer.py
+@@ -19,7 +19,7 @@
+ 
+ def identity_fields(raw: dict, identities: dict, base: Path) -> dict:
+     """Bind the entire opt-in recipe, source closure and immutable controls."""
+-    from . import runner, rollout, teacher_data, teacher_quality, teacher_overlay
++    from . import runner, rollout, teacher_data, teacher_quality, teacher_overlay, conditioning, control_weights
+     if raw.get("student_transfer_policy") != POLICY:
+         raise ValueError("Unknown student transfer policy")
+     if raw.get("teacher_quality_policy") is not None or raw.get("teacher_only_evaluation", False):
+@@ -55,7 +55,7 @@
+     if (raw.get("teacher_sample_decode_steps") != 2 or raw.get("student_sample_decode_steps") != 1
+             or raw.get("speaker_balanced_sampling", False) is not False):
+         raise ValueError("Student transfer requires teacher LSD2, student LSD1 and uniform clip sampling")
+-    if raw.get("rollout_steps") != [0, 250, 500, 1000, 1500, 2000]:
++    if raw.get("rollout_steps") != conditioning.stage_rollout_steps(raw, "distill", [0, 250, 500, 1000, 1500, 2000]):
+         raise ValueError("Student transfer needs its complete declared speech probe schedule")
+     for key, default in (("minimum_relative_improvement", .002), ("distill_old_dev_regression_limit", .03),
+                          ("distill_conditional_regression_limit", .03)):
+@@ -65,7 +65,7 @@
+     # Original policies retain their old identities. This new explicit policy
+     # hashes every optimization/data/sampling knob, including default overrides,
+     # and every local runner component which can affect training or selection.
+-    modules = (runner, rollout, teacher_data, teacher_quality, teacher_overlay)
++    modules = (runner, rollout, teacher_data, teacher_quality, teacher_overlay, control_weights)
+     return {"configuration": {key: value for key, value in raw.items()
+                               if key not in ("output_dir", "resume_dir")},
+             "source_sha256": {Path(module.__file__).name: runner.sha256_file(Path(module.__file__))
+@@ -129,8 +129,9 @@
+     from dataclasses import replace
+     from .teacher_overlay import comparison_weights
+     control = replace(spec, raw={**spec.raw, "teacher_comparison_weights": str(spec.asset("student_anchor_weights"))})
+-    with comparison_weights(control, model, mimi, device, rank, world):
+-        yield
++    with comparison_weights(control, model, mimi, device, rank, world,
++                            expected_weight_sha256=spec.raw["student_anchor_expected_sha256"]) as receipt:
++        yield receipt
+ 
+ 
+ def candidate_reasons(panels: dict, anchor: dict, speech: dict, *, minimum_improvement=.002,
+@@ -202,7 +203,7 @@
+                 or existing.get("target_teacher_weights_sha256") != spec.raw["import_teacher_expected_sha256"]):
+             raise ValueError("Student transfer resume requires the exact original dual control")
+         return existing
+-    with accepted_student_weights(spec, model, mimi, device, rank, world):
++    with accepted_student_weights(spec, model, mimi, device, rank, world) as control_receipt:
+         accepted_panels = runner.teacher_panel_scores(spec, model, mimi, args, device, rank, world, stop)
+         if accepted_panels is None:
+             return None
+@@ -220,7 +221,8 @@
+     result = {"input_identity": spec.identity, "new_run_step": 0,
+               "accepted_student_weights_sha256": spec.raw["student_anchor_expected_sha256"],
+               "target_teacher_weights_sha256": spec.raw["import_teacher_expected_sha256"],
+-              "accepted": {**accepted_panels, "speech": accepted_speech, "heads": "original_accepted_student"},
++               "accepted": {**accepted_panels, "speech": accepted_speech, "heads": "original_accepted_student",
++                            "control_weight_receipt": control_receipt},
+               "hybrid": {**hybrid_panels, "speech": hybrid_speech, "heads": "new_frozen_teacher_copy"},
+               "transferred_tensors": transfer, "listening_qualified": False}
+     runner.teacher_rank_zero_commit(lambda: runner.atomic_json(path, result), device, rank, world)
+--- a/scripts/pocket_training/teacher_overlay.py
++++ b/scripts/pocket_training/teacher_overlay.py
+@@ -7,7 +7,7 @@
+ 
+ @contextmanager
+ def comparison_weights(spec: Any, model: Any, mimi: Any, device: Any, rank: int,
+-                       world: int) -> Iterator[None]:
++                       world: int, *, expected_weight_sha256: str | None = None) -> Iterator[dict]:
+     """Overlay once at run step zero, restoring state even on stop/error.
+ 
+     TrainableTTS.generate constructs fresh FlowLM streaming states for every
+@@ -17,6 +17,7 @@
+     import numpy as np
+     import safetensors
+     import torch
++    from .control_weights import load_control
+ 
+     saved = None
+     setup_failed = False
+@@ -51,13 +52,16 @@
+             for key in ("emb_mean", "emb_std"):
+                 if not torch.equal(source[key], model.flow_lm.state_dict()[key].detach().cpu()):
+                     raise ValueError("Teacher comparison latent calibration differs")
+-            model.flow_lm.load_state_dict(source, strict=True)
++            expected = expected_weight_sha256 or runner.read_json(spec.asset("teacher_comparison_receipt")).get("model_sha256")
++            control_receipt = load_control(model.flow_lm, source,
++                source_path=spec.asset("teacher_comparison_weights"), expected_sha256=expected,
++                allow_zero_identity=True)
+             del source
+         except Exception:
+             setup_failed = True
+         if runner.distributed_any(torch, setup_failed, device, world):
+             raise RuntimeError("Teacher comparison setup failed on a rank")
+-        yield
++        yield control_receipt
+     finally:
+         restore_failed = False
+         if saved is not None:
