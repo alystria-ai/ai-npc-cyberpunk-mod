@@ -628,6 +628,9 @@ local function block(s,reason,c,target,following)
         record(s,'route-rejected')
     end
     if c and target and not s.blockedContext then
+        -- Recovery admission is needed for player/navigation rejections too,
+        -- including a newly spawned copy. It is not exclusive to car geometry.
+        if not s.face and (s.kind=='move' or s.kind=='follow') then s.recoveryTicket=s.ticket end
         local rejection=s.lastRejection
         s.blockedContext={origin=space.copy(c.position),target=space.copy(target),following=following,
             rejection=rejection,rejections={},nextCheck=s.clock+1,index=1,

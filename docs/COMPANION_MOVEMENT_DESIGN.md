@@ -356,3 +356,27 @@ not live resolution of the reported car-exit idle/run cycle. The endpoint-body
 check following asynchronous command retirement remains conservative; this
 change does not bypass that admission check or claim to remove every possible
 quota-related pause.
+
+### October 4: first-spawn report and stale lane evidence
+
+The user subsequently saw the same stop/start symptom after Hanako's first
+spawn. A passive capture then recorded her stationary for 90 seconds, 1.93 m
+from stationary V, still trying to reach an old lane target across V. The
+path correctly failed the 0.75 m player exclusion (measured 0.646 m). Her actual
+stance passed `nearGroup`; it failed the stricter preferred-side alignment.
+The obstruction early return prevented the normal settle/departure decisions.
+This capture establishes that stale-goal hold, not the reported running cadence.
+
+For owned non-facing movement rejected by a player crossing, a stopped nearby
+copy may now accept its actual stance after normal stillness. This only retires
+movement into a hold. Actual departure can replace obsolete arrival completion,
+pace or movement type before retaining a blocked search. Unchanged travel intent
+keeps its search and ticket. Recovery admission also covers player/navigation
+rejections on newly spawned copies, rather than requiring an earlier physical
+detour. Ordinary unblocked decisions and collision margins are unchanged.
+
+A small replay using the recorded geometry failed on the previous behavior
+source and passes with the correction. It also checks departure from blocked
+arrival, preservation of same-intent searches and continued holding for actual
+geometry obstructions. Lua 5.1 syntax passes. Native motion remains subject to
+ordinary gameplay feedback; no repeat car trip was requested.

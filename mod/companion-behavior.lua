@@ -87,8 +87,36 @@ function M.decide(s,c,dt)
         s.focusFor,s.failures=0,0
     end
 
-    if ours and (motion.blocked or motion.route and motion.route.kind=='waypoints'
-        and (motion.failed or motion.stalled)) then
+    local obstructed=ours and (motion.blocked or motion.route and motion.route.kind=='waypoints'
+        and (motion.failed or motion.stalled))
+    local retaining=s.phase=='obstructed' and ours and (motion.waiting
+        or motion.route and motion.route.kind=='waypoints' and not done)
+    if (obstructed or retaining) and not s.operation.face then
+        -- A lane goal beyond V is obsolete once we are already safely nearby.
+        -- Do not preserve that rejected crossing ahead of the ordinary stop
+        -- decision forever. Holding retires movement; it grants no new route.
+        if not c.frame.moving and c.nearGroup and s.stillFor>=0.65
+            and motion.rejection and motion.rejection.stage=='player' then
+            s.obstructedPhase=nil
+            return accept(s,c)
+        end
+        if c.frame.moving then
+            local chasing=c.playerGap>5.0 or c.targetGap>6.0
+                or math.abs(c.position.z-c.frame.position.z)>1.4
+            -- Preserve an ongoing search only while its intended operation is
+            -- still current. An arrival cannot retain finish/Walk as V departs,
+            -- and a distant walking copy must be allowed to become a follower.
+            if s.operation.kind=='move' and (s.operation.finish or chasing or c.frame.justDeparted) then
+                s.obstructedPhase,s.arrivalGoal,s.parked=nil,nil,nil
+                enter(s,chasing and 'catch_up' or 'alongside','Update the obstructed operation for actual departure')
+                operation(s,chasing and 'follow' or 'move',not chasing and c.travelTarget or nil,
+                    pace(c,chasing),false,false,true)
+                return emit(s)
+            end
+            s.operation.gait=pace(c,s.operation.kind=='follow')
+        end
+    end
+    if obstructed then
         if s.phase~='obstructed' then s.obstructedPhase=s.phase end
         enter(s,'obstructed',motion.waiting and 'Check a safe detour while holding the current stance'
             or 'Wait for the rejected geometry or destination to change')
