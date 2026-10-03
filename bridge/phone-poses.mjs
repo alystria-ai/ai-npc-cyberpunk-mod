@@ -66,7 +66,15 @@ export class ConfirmedPhoneTimeline {
     const cues=[],spans=[];let cursor=0;
     for(const cue of this.cues){
       if(cue.start>cursor)cues.push({start:cursor,end:cue.start,value:'X'});
-      cues.push(cue);cursor=cue.end;
+      // Live recognition retains the heard prefix, then replaces the future.
+      // That can split one unchanged mouth shape at every audio report. Merge
+      // those pieces for articulation only: otherwise their tiny durations
+      // collapse the coarticulation window and turn smooth lips into steps.
+      // Keep coverage spans separate below; unknown gaps remain unsupported.
+      const last=cues.at(-1);
+      if(last&&last.value===cue.value&&Math.abs(last.end-cue.start)<1e-7)last.end=cue.end;
+      else cues.push({...cue});
+      cursor=cue.end;
       const previous=spans.at(-1);
       if(previous&&Math.abs(previous[1]-cue.start)<1e-7)previous[1]=cue.end;
       else spans.push([cue.start,cue.end]);

@@ -191,6 +191,7 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
   return {version: 1, requestId: owner.requestId, entity: owner.entity, duration,
     source: source ? 'convai-arkit61' : cues ? 'local-phonetic' : 'audio-envelope',
     articulation: source ? 'arkit61-native-v10' : cues ? PHONETIC_ARTICULATION : undefined,
+    ...(!source && cues ? {motion: 'local-phonetic-smooth-v1'} : {}),
     ...(segment ? {segment} : {}), tracks: [...SPEECH_TRACKS], frames,
     ...(expressionFrames ? {providerExpressions: {version: 1, format: 'arkit61-expression9', frames: expressionFrames}} : {}),
     ...(ownedExpressionReceipt(expressionSignal, owner) ? {expression: ownedExpressionReceipt(expressionSignal, owner)} : {})};

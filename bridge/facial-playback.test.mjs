@@ -81,12 +81,13 @@ test('real Omni phonetic builder reaches the native adapter with calibrated cont
     reply.face=${literal(timeline)}
     assert(speech.start(context,reply) and face.active)
     cursor=.1;speech.update(.1)
-    assert(judy.frames[#judy.frames].jaw_mid_open>0 and judy.frames[#judy.frames].lips_together_up==.85)
+    assert(judy.frames[#judy.frames].jaw_mid_open>0 and judy.frames[#judy.frames].lips_together_up>.5
+      and judy.frames[#judy.frames].lips_together_up<.85,'local contact should ease in')
     cursor=.3;speech.update(.2)
     assert(judy.frames[#judy.frames].lips_l_corner_stretch>.1 and judy.frames[#judy.frames].lips_l_upper_raise>0)
     cursor=1.3;speech.update(1)
-    assert(judy.frames[#judy.frames].lips_l_lower_raise==0 and judy.frames[#judy.frames].lips_suck_dn==.14)
-    cursor=1.5;speech.update(.2);assert(judy.frames[#judy.frames].tongue_mid_tip_up==.25)
+    assert(judy.frames[#judy.frames].lips_l_lower_raise<.0001 and math.abs(judy.frames[#judy.frames].lips_suck_dn-.14)<.0001)
+    cursor=1.5;speech.update(.2);assert(math.abs(judy.frames[#judy.frames].tongue_mid_tip_up-.25)<.0001)
     assert(face.status().articulation=='coarticulated-v5')
     cursor=1.8;speech.update(.3);assert(not face.active and judy.resets==1 and not speech.requestId)
   `);

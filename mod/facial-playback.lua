@@ -252,6 +252,7 @@ local function clear()
     M.active, M.requestId, M.timeline, M.feature, M.lastPosition = false, nil, nil, nil, nil
     M.segment, M.generation = nil, nil
     M.continuous, M.timelineChanged = nil, nil
+    M.localMotion, M.localPose, M.localPosePosition = nil, nil, nil
     M.providerExpressions=nil
 end
 
@@ -277,6 +278,8 @@ function M.start(context, timeline, actor, duration, expectedSegment)
             and finite(timeline.duration) and math.abs(timeline.duration - duration) < 0.001, 'Facial duration mismatch')
         assert(timeline.source == 'convai-arkit61' or timeline.source == 'audio-envelope'
             or timeline.source == 'local-phonetic', 'Unknown facial source')
+        assert(timeline.motion == nil or (timeline.motion == 'local-phonetic-smooth-v1'
+            and timeline.source == 'local-phonetic'), 'Unknown facial motion')
         assert(type(timeline.tracks) == 'table' and #timeline.tracks > 0 and #timeline.tracks <= 22
             and type(timeline.frames) == 'table' and #timeline.frames >= 2 and #timeline.frames <= 7202,
             'Invalid facial timeline size')
@@ -315,6 +318,8 @@ function M.start(context, timeline, actor, duration, expectedSegment)
         and M.requestId == context.requestId and M.entity == context.entity and M.generation == context.generation
         and segment.index == M.segment.index + 1
         and math.abs(segment.startSeconds - (M.segment.startSeconds + M.timeline.duration)) < .0001
+    local retainedPose = contiguous and M.timeline.motion == timeline.motion and M.localPose or nil
+    local retainedPosition = retainedPose and M.localPosePosition or nil
     if M.active and not contiguous then M.stop(actor, 'replaced') end
     clear();M.state,M.entity,M.restored='unavailable',nil,false
     M.source, M.articulation, M.error, M.applied, M.position = nil, nil, nil, 0, nil
@@ -323,6 +328,8 @@ function M.start(context, timeline, actor, duration, expectedSegment)
     M.requestId, M.timeline, M.index = context.requestId, timeline, 1
     M.source, M.active, M.state = timeline.source, true, 'waiting-for-audio'
     M.articulation = timeline.articulation
+    M.localMotion = timeline.motion == 'local-phonetic-smooth-v1'
+    M.localPose, M.localPosePosition = retainedPose, retainedPosition
     M.providerExpressions=providerExpressions(timeline)
     M.beginExpression(context,timeline.expression)
     return true
@@ -350,6 +357,8 @@ function M.updateContinuous(context, timeline, actor, duration)
             'Facial duration mismatch')
         assert((timeline.source == 'convai-arkit61' or timeline.source == 'audio-envelope'
             or timeline.source == 'local-phonetic') and timeline.segment == nil, 'Unknown continuous facial source')
+        assert(timeline.motion == nil or (timeline.motion == 'local-phonetic-smooth-v1'
+            and timeline.source ~= 'convai-arkit61'), 'Unknown continuous facial motion')
         if timeline.source == 'local-phonetic' then
             assert(timeline.articulation == 'coarticulated-v5', 'Unknown continuous phonetic articulation')
         elseif timeline.source == 'audio-envelope' then
@@ -374,6 +383,7 @@ function M.updateContinuous(context, timeline, actor, duration)
         end
         assert(timeline.frames[1][1] == 0 and math.abs(previous - duration) < .001, 'Incomplete facial timeline')
         if sameOwner then
+            assert(timeline.motion == M.timeline.motion, 'Continuous facial motion changed')
             assert(duration >= M.timeline.duration and (not M.timeline.complete or timeline.complete),
                 'Continuous facial timeline moved backwards')
             assert(#timeline.tracks == #M.timeline.tracks, 'Continuous facial controls changed')
@@ -395,7 +405,9 @@ function M.updateContinuous(context, timeline, actor, duration)
         M.requestId, M.entity, M.generation = context.requestId, context.entity, context.generation
         M.active, M.continuous, M.state = true, true, 'waiting-for-audio'
         M.lastPosition, M.position, M.segment, M.restored = nil, nil, nil, false
+        M.localPose, M.localPosePosition = nil, nil
     end
+    M.localMotion = timeline.motion == 'local-phonetic-smooth-v1'
     M.timeline, M.source, M.articulation = timeline, timeline.source, timeline.articulation
     M.providerExpressions=providerExpressions(timeline)
     M.beginExpression(context,timeline.expression)
@@ -418,6 +430,7 @@ end
 function M.pause(actor)
     if not M.active or M.state == 'paused' then return end
     reset(actor)
+    M.localPose, M.localPosePosition = nil, nil
     M.state, M.lastPosition = 'paused', nil
 end
 
@@ -439,13 +452,34 @@ function M.sync(actor, position, requestId)
             and not (M.segment and not M.segment.last) then M.stop(actor, 'finished'); return end
         local heardPosition = position
         position = math.min(position, M.timeline.duration)
-        if M.lastPosition and heardPosition < M.lastPosition then M.index = 1 end
+        if M.lastPosition and heardPosition < M.lastPosition then
+            M.index = 1; M.localPose, M.localPosePosition = nil, nil
+        end
         while M.index < #frames - 1 and frames[M.index + 1][1] <= position do M.index = M.index + 1 end
         local left, right = frames[M.index], frames[M.index + 1]
         local alpha = math.max(0, math.min(1, (position - left[1]) / (right[1] - left[1])))
+        local motionPosition = heardPosition + (M.segment and M.segment.startSeconds or 0)
+        local motionElapsed = M.localPosePosition and math.max(0, motionPosition - M.localPosePosition) or 1 / 60
         for i, track in ipairs(tracks) do
-            M.feature[track] = left[i + 1] + (right[i + 1] - left[i + 1]) * alpha
+            local value = left[i + 1] + (right[i + 1] - left[i + 1]) * alpha
+            if M.localMotion then
+                -- Local acoustic shapes (Pocket and Omni) share this easing.
+                -- Retain the last applied pose across live phone revisions
+                -- and contiguous Omni phrases. Only elapsed audio time moves
+                -- it; publication count and render FPS cannot pump the mouth.
+                M.localPose = M.localPose or {}
+                local previous = M.localPose[track] or 0
+                local contact = track == 'lips_together_up' or track == 'lips_together_dn'
+                    or track == 'tongue_mid_tip_up' or track == 'lips_suck_dn'
+                -- Brief consonant contacts retain a faster attack, while jaw
+                -- and lip extensions blend across roughly two visual frames.
+                local seconds = contact and value > previous and .018 or .035
+                value = previous + (value - previous) * (1 - math.exp(-motionElapsed / seconds))
+                M.localPose[track] = value
+            end
+            M.feature[track] = value
         end
+        if M.localMotion then M.localPosePosition = motionPosition end
         local provider
         if M.providerExpressions then
             local a,b=M.providerExpressions[M.index],M.providerExpressions[M.index+1]

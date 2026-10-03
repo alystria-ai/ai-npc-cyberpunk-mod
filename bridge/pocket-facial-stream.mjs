@@ -191,6 +191,7 @@ export class PocketFacialStream {
       receivedSeconds:duration,pendingAnalyses:this.pending.size};
     const face={version:1,requestId:this.input.requestId,entity:this.input.entity,generation:this.input.generation,
       continuous:true,complete:sourceComplete,duration,revision:++this.publicationRevision,tracks:[...SPEECH_TRACKS],frames,
+      motion:'local-phonetic-smooth-v1',
       source:phonetic?'local-phonetic':'audio-envelope',...(phonetic?{articulation:PHONETIC_ARTICULATION}:{}),coverage,
       ...(this.recognition?{recognition:this.recognition}:{})};
     this.cached={key,face};return face;
@@ -208,6 +209,7 @@ export function ownedPocketFace(snapshot, owner) {
   if (!face) return undefined;
   if (face.version!==1 || face.requestId!==owner.requestId || face.entity!==owner.entity || face.generation!==owner.generation
       || face.continuous!==true || face.complete!==snapshot.sourceComplete || !Number.isFinite(face.duration)
+      || face.motion!=='local-phonetic-smooth-v1'
       || !['audio-envelope','local-phonetic'].includes(face.source)
       || (face.source==='local-phonetic'&&face.articulation!==PHONETIC_ARTICULATION)
       || (face.source==='audio-envelope'&&face.articulation!==undefined)

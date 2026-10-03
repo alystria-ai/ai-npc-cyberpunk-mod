@@ -47,6 +47,14 @@ and load. RAM was not measured. Reused acoustic/phone assets occupy about
   `pocketsphinx-5.0.4-allphone-live`, on `original-audio-seconds`. It is never
   labeled as a Rhubarb batch result. The physical articulation table remains
   `coarticulated-v5`. Convai's ARKit data and Omni's phrase path stay separate.
+- Pocket merges adjacent equal mouth cues when a live update splits a phone at
+  the heard cursor. This changes articulation sampling only, not recognition
+  coverage or the source audio. Pocket and Omni's phonetic timelines then use
+  `local-phonetic-smooth-v1` in the native player: a 35 ms transition time
+  constant, with 18 ms attacks for lip/tongue contacts. The calibrated targets
+  stay unchanged. Elapsed heard-audio time advances the filter; repeated polls
+  cannot advance it. State survives contiguous Omni phrases and resets on
+  pause, cancellation, replacement and completion. Convai ARKit is unchanged.
 - Expression receipts still follow the original owned Convai turn through the
   continuous speech document. Phone recognition supplies no invented emotion,
   asymmetry, evenly spaced text phonemes or alternating mouth sequence.
