@@ -1098,3 +1098,25 @@ utterance ownership, add regressions that fail on the measured cause, and review
 the callers that use that ownership. Record installed hashes and an explicit
 live result separately from fixture passes. Packaging is paused until Pocket TTS
 integration; teacher/student experiments preserve the accepted fallback exports.
+
+## October 3: Pocket producer/consumer qualification
+
+The approved small Pocket student replaced the local Omni provider. Native CPU
+worker checks verified streaming, reference reuse, cancellation and shutdown.
+The combined muted Edge/Rhubarb check verified one acknowledged sample clock
+and facial prefixes. Independent review then caught an obsolete invitation
+provider allowlist and an upstream-error decoder lifetime; both gained causal
+producer-to-consumer regressions before installation.
+
+The first game reply exposed a further consumer mismatch: audio played, but the
+continuous Lua facial updater accepted only the Convai source. Actual Pocket
+FacialStream JSON now passes through the Lua updater in the regression, including
+envelope-to-phonetic upgrade and final reset. A late renderer control also raced
+natural drain; the fake seam and real browser reproduced that exact failure.
+The corrections are installed in 6863401; visual game acceptance remains pending.
+
+Method: qualify the actual boundary on both sides. A working generator, muted
+browser clock and face-data producer do not establish the game's consumer
+admission or rendered mouth movement. Keep source, installed and observed
+results separate; preserve defaults and exact actor/request ownership while
+correcting the reproduced incompatibility.
