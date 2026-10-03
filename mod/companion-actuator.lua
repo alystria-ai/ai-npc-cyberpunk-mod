@@ -518,6 +518,12 @@ end
 
 local function validate(s,intent,c)
     local candidates={intent.goal}
+    -- Recovery can retain an arrival operation while V starts moving again.
+    -- Certify a fixed local prefix instead of restarting its proof whenever
+    -- the distant lane goal/player moves. routeClear still checks current V
+    -- exclusion on every continuation and refreshes actual geometry at admission.
+    local recoveryMove=s.recoveryTicket==s.ticket and not intent.face and c.frame.moving
+    local options=recoveryMove and {horizon=recoveryPolicy.travelHorizon,stablePlayer=true} or nil
     if not intent.face then
         for _,point in ipairs(c.alternatives or {}) do candidates[#candidates+1]=point end
     end
@@ -531,9 +537,9 @@ local function validate(s,intent,c)
             local p=space.copy(found.point)
             if space.distance(p,desired)<0.8 and math.abs(p.z-c.position.z)<1.2
                 and space.clear(p,c.frame.position,c.others,c.id,intent.face and 0.95 or 0.9,s.clearance) then
-                local clear,reason,deferred,route=routeClear(s,c,p,false)
+                local clear,reason,deferred,route=routeClear(s,c,p,false,options)
                 if deferred then s.candidateIndex=index; return nil,nil,true end
-                if clear then s.candidateIndex=nil; return p,nil,nil,route end
+                if clear then s.candidateIndex=nil; return route.target,nil,nil,route,route.horizon end
             else
                 local margin=math.max(intent.face and .95 or .9,(s.clearance and s.clearance.radius or .4)+.5)
                 local playerDistance=space.ground(p,c.frame.position)
@@ -992,6 +998,18 @@ local function chooseWaypoint(plan,c,index)
     return selected
 end
 
+local function routePrefix(route,target)
+    local legs={}
+    for _,leg in ipairs(route.legs) do
+        local fromGap,toGap=space.distance(leg.from,target),space.distance(target,leg.to)
+        if fromGap+toGap<=space.distance(leg.from,leg.to)+.00001 then
+            if fromGap>.005 then legs[#legs+1]={from=space.copy(leg.from),to=space.copy(target)} end
+            return {origin=space.copy(route.origin),target=space.copy(target),legs=legs}
+        end
+        legs[#legs+1]={from=space.copy(leg.from),to=space.copy(leg.to)}
+    end
+end
+
 local function commitWaypoint(s,plan,intent,c,index,minimum)
     -- Preparation leaves an active current lease intact. Only a completely
     -- certified successor can begin retiring that exact native handle.
@@ -1000,7 +1018,20 @@ local function commitWaypoint(s,plan,intent,c,index,minimum)
         if not plan.trialIndex then plan.trialIndex,plan.minimumIndex=index,minimum or index end
         index=plan.trialIndex
         local target=plan.points[index]
-        clear,reason,deferred,route=routeClear(s,c,target,false,{stablePlayer=true})
+        local admitted=takeAdmission(s,plan,c,target)
+        route=admitted and routePrefix(admitted.route,target)
+        if route then
+            -- Handoff just certified these exact legs. The new prefix endpoint
+            -- still needs the stricter standing-body check (the swept route
+            -- allows a small kerb), but not a second full navigation/box pass.
+            local rejection
+            clear,reason,deferred,rejection=clearance.body(target,s.clearance)
+            if rejection then
+                rejection.stage,rejection.at,rejection.ticket='destination',s.clock,s.ticket
+                rejection.origin,rejection.target=space.copy(c.position),space.copy(target)
+                s.lastRejection=rejection
+            end
+        else clear,reason,deferred,route=routeClear(s,c,target,false,{stablePlayer=true}) end
         if deferred then preserveOwner(s);return true end
         if not clear then
             if index>plan.minimumIndex then
@@ -1091,14 +1122,17 @@ local function handoff(s,plan,intent,c,canPlan)
     if plan.mode=='escape' then s.completedEscapeTicket=s.ticket end
     s.followAdmission=nil
     s.execution,s.executionTarget,s.clearanceWaiting,s.clearanceHolding=nil,nil,nil,nil
-    s.target=space.copy(horizon and followGoal(s,current) or target)
+    s.target=space.copy(horizon and (intent.kind=='follow' and followGoal(s,current) or intent.goal) or target)
     s.destinationProjection=route.projection
     if horizon or curved(route) or route.projection and route.projection.lateralShift>.02 then
         s.execution=execution(route,current.position,s.target,plan.following,horizon and 'advance' or 'travel')
         if not s.execution then block(s,'The verified route exceeds bounded waypoint execution',current,target,plan.following);return true end
         s.recoveryTicket=s.ticket
         s.execution.rejection=plan.rejection
-        return commitWaypoint(s,s.execution,intent,current,chooseWaypoint(s.execution,current,1),1)
+        local first=chooseWaypoint(s.execution,current,1)
+        local firstTarget=s.execution.points[first]
+        rememberAdmission(s,s.execution,current,firstTarget,firstTarget,route)
+        return commitWaypoint(s,s.execution,intent,current,first,1)
     elseif intent.kind=='follow' then
         if follow(s,intent,current) then s.recoveryTicket=nil end
     else walk(s,intent,current) end
@@ -1305,12 +1339,23 @@ function M.apply(s,decision,c,canPlan)
     s.routeCheckedAt=s.clock
     if deferred then waitForClearance(s); return true end
     if not target then block(s,err,c,intent.goal,false); return true end
+    local requested=space.copy(intent.goal)
     if not cancel(s) then return true end
     s.clearanceWaiting,s.clearanceHolding=nil,nil
-    s.target,s.gait=target,intent.gait
-    if not intent.face and curved(route) then
-        s.execution=execution(route,c.position,target,false)
-        if s.execution then s.recoveryTicket=s.ticket;return execute(s,intent,c,canPlan) end
+    s.target,s.gait=space.copy(route.horizon and intent.goal or target),intent.gait
+    if not intent.face and (route.horizon or curved(route)) then
+        s.execution=execution(route,c.position,s.target,false,route.horizon and 'advance' or nil)
+        if s.execution then
+            s.recoveryTicket=s.ticket
+            local current=actualContext(s,c)
+            if samePosition(c.position,current.position) and samePosition(c.frame.position,current.frame.position)
+                and samePosition(requested,intent.goal) then
+                local first=chooseWaypoint(s.execution,current,1)
+                local firstTarget=s.execution.points[first]
+                rememberAdmission(s,s.execution,current,firstTarget,firstTarget,route)
+            end
+            return execute(s,intent,current,canPlan)
+        end
         block(s,'The verified route exceeds bounded waypoint execution',c,target,false); return true
     end
     if not s.issued and intent.finish and not intent.face and c.speed<0.18

@@ -280,7 +280,29 @@ running catch-up and a final settled position about 1.34 m from V. Evidence:
 post-exit failure; normal following and the accepted camera interactions remain
 the baseline. A later driver-door approach pause is a separate boarding case.
 
-### September 30: close face inspection
+### October 4: continuing movement after vehicle exit
+
+The later report of alternating idle/run and a missed first departure remains a
+separate regression from the earlier accepted trip. Source review found that a
+fully checked route was checked again for its first waypoint after cancelling
+the previous command. Exhausted query budget could therefore insert an idle
+hold at that handoff. The first waypoint now reuses only the exact same-update,
+unchanged-feet/player route prefix, with a fresh body check at its endpoint.
+Asynchronous cancellation or changed positions still require fresh admission.
+
+A recovery move can also retain its arrival ticket while V starts moving. That
+path previously invalidated partial route checks on tiny goal/player changes,
+even though following recovery already used a fixed local prefix. Recovery
+moves now use the same bounded six-metre approach while V moves, rechecking
+current player exclusion on every continuation. These prefixes remain continuing
+movement rather than final arrivals. Ordinary on-foot decisions are unchanged.
+
+The vehicle exit itself releases mount/workspot ownership and recreates the
+walking controllers. No additional follower-role reset or guessed delay was
+added. These are source corrections with Lua syntax validation; the previous
+stationary trace did not reproduce the reported motion and is not acceptance.
+
+### September 30: close face inspection (accepted behavior)
 
 The user requested that a companion stay put when V approaches her face. The
 earlier personal-space sensor classified V within 0.72 metres as an intrusion;
