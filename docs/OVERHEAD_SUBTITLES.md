@@ -96,3 +96,24 @@ manual cancellation and world abandonment release that ownership normally. The
 with one optional installed-source check skipped. The new transition and scheduler
 regressions failed before their corrections. Live boarding acceptance remains
 pending.
+
+### October 4 source and installed audit
+
+The boarding correction from `55dc2f9` is already installed. Source and installed
+`subtitles.lua` both have SHA-256
+`482b4e3a9894cc397d156be9f329bd28b93687d91d0500488cbc313b63783b44`;
+`speech.lua` also matches its installed copy. The installed scheduler retains
+`ownsUtterance()` while the overhead widget is retired.
+
+The source review followed normal playback, streamed transcript revisions,
+mount transitions and completion. Boarding hides the current overhead page
+without starting another timed caption or resetting playback. Its character
+frontier survives later transcript revisions; genuinely new seated speech
+selects the dialogue HUD. No mount-driven playback restart was found in these
+paths. Existing regression cases already cover completed replies, unread
+continuation, changing pagination, Unicode and repeated wording in a new reply.
+They were inspected without rerunning the suite or adding production code.
+
+This confirms the correction is present on disk, not that the currently loaded
+Lua or native presentation has been observed during another trip. Fresh native
+boarding acceptance remains open; review and installation are complete.
