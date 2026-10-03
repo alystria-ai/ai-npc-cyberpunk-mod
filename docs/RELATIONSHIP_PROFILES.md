@@ -34,7 +34,9 @@ configured Auto preparation until a fresh current capture arrives.
 On explicitly selects the affectionate conversation profile. It changes
 conversation style without asserting that a canonical kiss, intimate scene or
 quest took place. Off explicitly selects the ordinary profile even if native
-relationship history is present. Neither option writes game facts.
+relationship history is present. Off changes delivery; it does not erase an
+actually confirmed relationship when V asks about it. Neither option writes
+game facts.
 
 ## Native and settings contracts
 
@@ -133,9 +135,51 @@ The canonical local Chat is cleared only after aggregate success. Partial or
 uncertain remote deletion preserves local Chat and remains fenced. Forget All
 uses the same aggregate boundary. Neither operation replaces the player UUID.
 
-Group guidance keeps private relationship history private unless current
-audience disclosure is supplied. Prompt guidance is not proof of provider-level
-isolation between private/group memories for one character ID.
+Group guidance keeps intimate scene details and private conversation history
+private unless current audience disclosure is supplied. A participant can
+acknowledge their own save-confirmed relationship naturally without an extra
+disclosure step. Prompt guidance is not proof of provider-level isolation
+between private/group memories for one character ID.
+
+## Group acknowledgement and banter
+
+At admission, the profile selection captures only this speaker's confirmed
+current-save relationship receipt. It uses the same exact native predicate,
+conflict checks, five-second freshness limit and world binding as Auto routing.
+The receipt is independent of the style choice: On alone cannot create it; Off
+does not remove real history. No extra provider call, memory seed or persistent
+relationship ledger is added.
+
+Group guidance requires the selected speaker to be in the exact admitted group
+of two or three distinct identities, with the same world token and generation.
+Private and phone turns do not receive this group guidance. The receipt is
+captured with the turn, so later settings changes cannot redirect or rewrite
+its admitted provider selection.
+
+Each speaker can acknowledge **their own** confirmed relationship when relevant.
+If two confirmed partners are present, each qualifies independently. Another
+partner's native facts are never injected into their prompt. They can react to
+the preceding words actually heard by the current audience; an Invite, On
+selection, or a reported claim does not establish another character's private
+history or prove that everyone already knew about a relationship. No joint
+intimate scene, exclusivity, automatic jealousy or consent is invented.
+The commitment receipt establishes that decision in the save; it does not
+establish unsupplied later developments or future promises.
+
+Affectionate delivery uses original cues grounded in the reviewed character
+roster and alternate-profile styles:
+
+| Character | Group delivery |
+| --- | --- |
+| Judy | Understated affection, a dry tease, practical offer or brief honest admission. |
+| Panam | Direct, playful warmth and practical teamwork with independent agency. |
+| River | Plainspoken warmth, a small dry joke or ordinary kindness. |
+| Kerry | Irreverent wit and brief candor without a celebrity speech or rivalry. |
+| Meredith | Controlled, terse casual familiarity; no committed-partner claim. |
+
+Ordinary mode retains ordinary delivery while permitting factual acknowledgement
+of a confirmed relationship. Guidance never forces romance into an unrelated
+reply and preserves the group's existing speaker and follow-up question policy.
 
 ## Preparation and routing ownership
 
@@ -180,6 +224,13 @@ registries, phone selected-ID ownership, pending invitation replacement,
 ignored-abort stale readiness, shared family reset completion and separate
 payload fields. Tests do not establish audible or live-game acceptance.
 
+The October 3 group additions also cover own-relationship acknowledgement,
+distinct character delivery, explicit-On non-evidence, Off/history separation,
+stale/conflicting/other-save rejection, exact audience/world matching and prompt
+invariance when another partner's private native facts are added. Existing
+family tests qualify one UUID, exact provider guards and aggregate Forget
+fences without making real provider deletion requests.
+
 New test files for this implementation:
 
 - `bridge/relationship-routing.test.mjs`
@@ -196,3 +247,11 @@ and publishes the separate runtime registry only after complete readback.
 Memory setup remains an Invite-time action; provisioning sends no conversation
 or memory-seeding requests. The actual current-save Auto choice still needs
 installed verification.
+
+Live acceptance remaining: on a save with a verified supported relationship,
+inspect the actual provider selected by Auto, On and Off while confirming that
+the persistent player UUID remains unchanged. Then use group chat with present
+companions and ask a relevant question: the confirmed partner should acknowledge
+their own relationship in character, without revealing private scene/chat
+details or asserting an unconfirmed relationship for another participant. This
+is a conversation test, not a requirement to clear real memory or modify quests.

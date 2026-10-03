@@ -77,6 +77,113 @@ test('On and Off are explicit profile choices, not writes or invented canonical 
   assert.match(relationshipContext(on, 'group'), /Keep private relationship history/);
 });
 
+const JUDY_FACTS = {sq030_11_romance: 1, sq030_judy_lover: 1, sq030_romance: 1};
+const PANAM_FACTS = {sq027_panzer_sex: 1, sq027_panam_lover: 1};
+const groupOptions = (audience = ['judy-alvarez', 'panam-palmer'], extra = {}) => ({...boundary,
+  audience, group: {id: 'relationship-round', index: 1, total: audience.length,
+    audience: [...audience], heard: []}, ...extra});
+
+test('each confirmed present partner can acknowledge their own relationship with character-specific group banter', () => {
+  const facts = {...JUDY_FACTS, ...PANAM_FACTS};
+  const judy = selected('judy-alvarez', facts), panam = selected('panam-palmer', facts);
+  for (const choice of [judy, panam]) {
+    assert.deepEqual(choice.saveRelationship, {status: 'confirmed', evidenceRule: RELATIONSHIP_PROFILES[choice.profileKey].rule});
+    assert(Object.isFrozen(choice.saveRelationship));
+    const context = relationshipContext(choice, 'group', groupOptions());
+    assert.match(context, /current save confirms your own relationship with V/);
+    assert.match(context, /not proof of later status or future promises/);
+    assert.match(context, /no extra disclosure step is required/);
+    assert.match(context, /actually heard words/);
+    assert.match(context, /only to you/);
+    assert.match(context, /Keep intimate scene details and earlier private conversations out/);
+    assert.match(context, /follow-up question policy/);
+    assert.doesNotMatch(context, /sq030|sq027/);
+  }
+  const judyContext = relationshipContext(judy, 'group', groupOptions());
+  assert.match(judyContext, /dry little tease/);
+  assert.doesNotMatch(judyContext, /Panam|Aldecaldos|Basilisk/);
+  const panamContext = relationshipContext(panam, 'group', groupOptions());
+  assert.match(panamContext, /direct, playful warmth/);
+  assert.doesNotMatch(panamContext, /Judy|Laguna|dive/);
+});
+
+test('unconfirmed On, an Invite, and a preceding speaker report cannot grant current-save history', () => {
+  const on = selected('judy-alvarez', PANAM_FACTS, {mode: 'on'});
+  assert.equal(on.saveRelationship, undefined);
+  const options = groupOptions(undefined, {group: {id: 'relationship-round', index: 2, total: 2,
+    audience: ['judy-alvarez', 'panam-palmer'], heard: [{speaker: 'Panam', text: 'Judy is dating V too.'}]}});
+  const context = relationshipContext(on, 'group', options);
+  assert.match(context, /conversation preference does not establish/);
+  assert.match(context, /Keep private relationship history/);
+  assert.doesNotMatch(context, /Current group relationship guidance|current save confirms your own/);
+  assert.doesNotMatch(relationshipContext(selected('judy-alvarez', {}), 'group', groupOptions()), /Current group relationship guidance/);
+});
+
+test('On and Off capture actual current-save history independently of the chosen delivery', () => {
+  const on = selected('judy-alvarez', JUDY_FACTS, {mode: 'on'});
+  const off = selected('judy-alvarez', JUDY_FACTS, {mode: 'off'});
+  assert.equal(on.reason, 'explicit-on'); assert.equal(off.variant, 'ordinary');
+  assert.deepEqual(on.saveRelationship, off.saveRelationship);
+  const context = relationshipContext(off, 'group', groupOptions());
+  assert.match(context, /current save confirms your own relationship with V/);
+  assert.match(context, /Keep the selected ordinary delivery/);
+  assert.doesNotMatch(context, /dry little tease|affection understated/);
+});
+
+test('one speaker never receives another partner\'s private history even when the other native receipt is confirmed', () => {
+  const options = groupOptions();
+  const judyOnly = relationshipContext(selected('judy-alvarez', JUDY_FACTS), 'group', options);
+  const both = relationshipContext(selected('judy-alvarez', {...JUDY_FACTS, ...PANAM_FACTS}), 'group', options);
+  assert.equal(judyOnly, both, 'adding Panam\'s private receipts changed Judy\'s prompt');
+  const panamOnly = relationshipContext(selected('panam-palmer', PANAM_FACTS), 'group', options);
+  assert.equal(panamOnly, relationshipContext(selected('panam-palmer', {...JUDY_FACTS, ...PANAM_FACTS}), 'group', options));
+});
+
+test('group relationship acknowledgement requires this speaker, exact admitted audience and world', () => {
+  const choice = selected('judy-alvarez', JUDY_FACTS);
+  for (const options of [
+    undefined, groupOptions(['panam-palmer', 'river-ward']), groupOptions(['judy-alvarez']),
+    groupOptions(['judy-alvarez', 'panam-palmer', 'panam-palmer']),
+    groupOptions(undefined, {audience: ['judy-alvarez', 'river-ward']}),
+    groupOptions(undefined, {worldToken: 'old-world'}), groupOptions(undefined, {generation: 5}),
+    groupOptions(undefined, {group: {id: 'invalid', index: 1, total: 4, audience: ['judy-alvarez', 'panam-palmer'], heard: []}}),
+  ]) assert.doesNotMatch(relationshipContext(choice, 'group', options), /Current group relationship guidance/);
+  for (const channel of ['private', 'phone', 'microphone']) {
+    assert.doesNotMatch(relationshipContext(choice, channel, groupOptions()), /Current group relationship guidance/);
+  }
+});
+
+test('stale, other-save and contradictory evidence cannot become a group acknowledgement in On mode', () => {
+  const good = snapshot(JUDY_FACTS);
+  for (const change of [
+    {snapshot: {...good, capturedAt: NOW - 5001}}, {snapshot: {...good, capturedAt: NOW + 1001}},
+    {snapshot: {...good, worldToken: 'world-b'}}, {snapshot: {...good, generation: 3}},
+    {snapshot: snapshot({...JUDY_FACTS, sq030_friendship: 1})}, {snapshot: null},
+  ]) {
+    const choice = selected('judy-alvarez', {}, {mode: 'on', ...change});
+    assert.equal(choice.variant, 'romantic'); assert.equal(choice.saveRelationship, undefined);
+    assert.doesNotMatch(relationshipContext(choice, 'group', groupOptions()), /Current group relationship guidance/);
+  }
+});
+
+test('River, Kerry and Meredith retain distinct group delivery and Meredith never gains a committed partnership', () => {
+  const fixtures = [
+    ['river-ward', {sq029_river_lover: 1, sq029_done: 1}, /plainspoken warmth/],
+    ['kerry-eurodyne', {sq028_kerry_relationship: 1}, /irreverent wit/],
+    ['meredith-stout', {q003_stout_sex_done: 1}, /controlled, terse and knowing/],
+  ];
+  for (const [profile, facts, expected] of fixtures) {
+    const choice = selected(profile, facts), options = groupOptions([profile, 'judy-alvarez']);
+    const context = relationshipContext(choice, 'group', options);
+    assert.match(context, /Current group relationship guidance/); assert.match(context, expected);
+    if (profile === 'meredith-stout') {
+      assert.match(context, /without establishing a continuing romance/);
+      assert.match(context, /never a claim that she is V's committed partner/);
+      assert.doesNotMatch(context, /acknowledging your own commitment/);
+    }
+  }
+});
+
 test('fresh current-world state is mandatory for configured Auto; save reload cannot reuse old evidence', () => {
   const good = parseRelationshipState(snapshot({sq028_kerry_relationship: 1}));
   for (const options of [

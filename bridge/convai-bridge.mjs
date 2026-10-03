@@ -226,7 +226,9 @@ const intrinsicConversationContext = createIntrinsicConversationContext({baseCon
 const conversationContext = input => {
   const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
   return [intrinsicConversationContext(input),
-    admitted ? relationshipContext(prepared.relationship, prepared.route.channel) : '',
+    admitted ? relationshipContext(prepared.relationship, prepared.route.channel,
+      {group: prepared.input.group, audience: prepared.route.audience,
+        worldToken: prepared.worldToken, generation: prepared.generation}) : '',
     admitted && prepared.route.channel === 'phone' ? phoneRecentConversationContext(prepared.input) : '']
     .filter(Boolean).join('\n\n');
 };

@@ -1,6 +1,8 @@
 // Conversation profile selection only. This module reads reviewed native
 // relationship receipts; it never changes quests, sends dialogue, provisions
 // profiles, enables memory or copies one provider profile's memories to another.
+import {parseGroup} from './group-context.mjs';
+
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value)
   && [Object.prototype, null].includes(Object.getPrototypeOf(value));
 const key = value => typeof value === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(value)
@@ -118,11 +120,17 @@ export function selectRelationshipProfile({profileKey, mode = 'auto', snapshot, 
   }
   const romantic = !!rule && !!configured && (mode === 'on' || mode === 'auto' && confirmed(profileKey, observed));
   const providerProfileKey = romantic ? configured.romanticProviderKey : profileKey;
+  // History and delivery are separate. On is never evidence, and Off does not
+  // erase a real event. Capture only this speaker's current-save receipt with
+  // the admitted selection; group prompts never receive other partners' facts.
+  const saveRelationship = rule && fresh(observed, boundary, now) && confirmed(profileKey, observed)
+    ? {status: 'confirmed', evidenceRule: rule.rule} : null;
   return freeze({status: 'ready', profileKey, providerProfileKey, characterId: registry.providerIds[providerProfileKey],
     variant: romantic ? 'romantic' : 'ordinary', kind: rule?.kind ?? 'ordinary', mode,
     reason: !rule ? 'unsupported' : mode === 'on' ? 'explicit-on' : mode === 'off' ? 'explicit-off'
       : !configured ? 'ordinary-only-install' : romantic ? 'verified-current-save' : 'auto-unconfirmed',
     ...(romantic && mode === 'auto' ? {evidenceRule: rule.rule} : {}),
+    ...(saveRelationship ? {saveRelationship} : {}),
     ...(binding(boundary) ? {worldToken: boundary.worldToken, generation: boundary.generation} : {})});
 }
 
@@ -196,9 +204,43 @@ export class RelationshipRouting {
   }
 }
 
-export function relationshipContext(selection, channel = 'private') {
+// Original portrayal guidance distilled from the reviewed roster and alternate
+// profile styles. These are delivery cues, not canonical dialogue or memories.
+const GROUP_DELIVERY = Object.freeze({
+  'judy-alvarez': 'Keep Judy\'s affection understated: a dry little tease, a practical offer, or one honest admission. Preserve her independence and avoid a public confession in every reply.',
+  'panam-palmer': 'Use Panam\'s direct, playful warmth and practical teamwork. Keep her agency and loyalties; a spirited tease need not become possessiveness or a competition.',
+  'river-ward': 'Use River\'s plainspoken warmth, a small dry joke or an ordinary kindness. Remain grounded; concern does not give him authority over V or the other companions.',
+  'kerry-eurodyne': 'Use Kerry\'s irreverent wit with a brief candid softening. Avoid a celebrity press statement, a generic romantic speech or turning the exchange into a rivalry.',
+  'meredith-stout': 'Keep Meredith\'s manner controlled, terse and knowing. Her confirmed encounter permits casual familiarity, never a claim that she is V\'s committed partner.',
+});
+
+function groupRelationshipContext(selection, options) {
+  const rule = RELATIONSHIP_PROFILES[selection.profileKey], group = parseGroup(options?.group);
+  const audience = options?.audience;
+  if (!group || !Array.isArray(audience) || audience.length < 2 || audience.length > 3
+      || audience.some(profile => !key(profile)) || new Set(audience).size !== audience.length
+      || !audience.includes(selection.profileKey)
+      || JSON.stringify([...group.audience].sort()) !== JSON.stringify([...audience].sort())
+      || !sameWorld(selection, options) || selection.saveRelationship?.status !== 'confirmed'
+      || selection.saveRelationship.evidenceRule !== rule.rule) return '';
+  const history = rule.kind === 'casual-intimacy'
+    ? 'The current save confirms your own casual intimate encounter with V, without establishing a continuing romance. You may acknowledge casual familiarity when relevant.'
+    : 'The current save confirms your own relationship with V. Treat this as the verified commitment history, not proof of later status or future promises. You may acknowledge that relationship naturally when relevant in this present group; no extra disclosure step is required for acknowledging your own commitment.';
+  return 'Current group relationship guidance: ' + history + ' '
+    + (selection.variant === 'ordinary'
+      ? 'Keep the selected ordinary delivery; this receipt supplies factual acknowledgement, not a switch to the affectionate profile. '
+      : GROUP_DELIVERY[selection.profileKey] + ' ')
+    + 'Respond to another present speaker\'s actually heard words with a brief character-specific reaction or banter when it fits. '
+    + 'This receipt belongs only to you. It does not tell you another companion\'s private relationship history, establish that they already know yours, or establish exclusivity, jealousy or consent. '
+    + 'Keep intimate scene details and earlier private conversations out of the group. Do not invent a shared scene or assume a group invitation proves a relationship. '
+    + 'Do not force a romantic topic into an unrelated reply. Preserve the current round\'s speaker order and follow-up question policy.';
+}
+
+export function relationshipContext(selection, channel = 'private', options) {
   if (selection?.status !== 'ready' || !Object.hasOwn(RELATIONSHIP_PROFILES, selection.profileKey)) return '';
-  if (selection.variant === 'ordinary') return 'Use your ordinary conversation style. Do not assume a romance from friendliness, a party invitation, or earlier recalled reports; only the current save facts establish shared events.';
+  const ordinary = 'Use your ordinary conversation style. Do not assume a romance from friendliness, a party invitation, or earlier recalled reports; only the current save facts establish shared events.';
+  const group = channel === 'group' ? groupRelationshipContext(selection, options) : '';
+  if (selection.variant === 'ordinary') return [ordinary, group].filter(Boolean).join(' ');
   const why = selection.reason === 'explicit-on'
     ? 'The player explicitly selected your affectionate conversation profile. This conversation preference does not establish that any game quest, kiss or intimate scene occurred.'
     : 'The current save confirms your reviewed relationship or intimate-history receipt; discuss only the actually supplied details, without inventing further shared events.';
@@ -206,8 +248,10 @@ export function relationshipContext(selection, channel = 'private') {
     ? 'For Meredith this is casual familiarity: do not claim an ongoing romance, exclusivity, devotion or a promise of another encounter.'
     : 'Use character-specific affection naturally; do not make every reply romantic or treat affection as consent to a new intimate act.';
   const privacy = channel === 'group'
-    ? 'Keep private relationship history and private conversations out of group dialogue unless explicit current-audience disclosure is supplied.' : '';
-  return [why, boundary, privacy].filter(Boolean).join(' ');
+    ? group
+      ? 'Keep private intimate details and private conversations out of group dialogue unless explicit current-audience disclosure is supplied.'
+      : 'Keep private relationship history and private conversations out of group dialogue unless explicit current-audience disclosure is supplied.' : '';
+  return [why, boundary, privacy, group].filter(Boolean).join(' ');
 }
 
 /** Only call at an idle admission boundary. A completed request's exact config
