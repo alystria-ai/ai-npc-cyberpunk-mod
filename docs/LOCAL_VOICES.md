@@ -382,6 +382,26 @@ probe audio is retained, while weight retention is bounded to selected,
 MSE-best and last checkpoints. A candidate still needs listening and measured
 streaming startup before becoming a production voice model.
 
+The October 3 transfer pilot completed all 2,000 updates and selected EMA update
+1,500. The actual 1,744-row cache gate passed. Compared with hybrid update zero,
+speaker-macro unseen-scene MSE fell from 0.0703013 to 0.0536907 (23.63%); the
+conditional seen-scene panel fell from 0.0742409 to 0.0519776 (29.99%). The
+original 94-clip panel remained within its regression bound. On the separate
+76-clip final test panel, accepted/new student MSE was 0.0405275 / 0.0401581.
+These are imitation-objective measurements, not a listening-quality score or
+a direct comparison with the teacher's different training objective.
+
+All 18 selected speech probes were finite and naturally terminated, with no
+tentative ASR deletions. Serialized checks verified the actual copied frozen
+heads, latent calibration and codec. The downloaded six-layer FP32 export is
+438,033,312 bytes (about 418 MiB), SHA256
+`373a0df2115b1e5dc1c583bb0033838ba4ae337499831261e3938218d239a391`.
+Its input identity is
+`a881e3024512339c5c601219f4e453370a6769a2e59e6f8750cdc37c110fc152`.
+The previous accepted student remains preserved. Listening qualification and
+the paired CPU streaming measurement are still separate gates; production
+OmniVoice/Convai selection remains unchanged while Pocket TTS is integrated.
+
 A separate CPU experiment kept the accepted teacher's CFG2 and original
 reference. Supported dynamic INT8 reduced full generation from 15.82 to
 10.02 seconds on two CPU threads, with resident RAM falling from 2.11 to
