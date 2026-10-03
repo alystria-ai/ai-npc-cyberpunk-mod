@@ -8,6 +8,7 @@
 | --- | --- | --- | --- | --- |
 | Stock Pocket TTS cloning | A usable reference recording and desired language | Validate audio; prepare/cache voice state | Shared CPU model with incremental PCM | Low setup burden; no customer-specific training |
 | Managed tuned Pocket TTS cloning | Recordings with speaker labels; optional transcripts | Data preparation, alignment, teacher adaptation, student distillation, evaluation and model publication | Small CPU student plus reference states | Upfront work to improve quality for a particular cast/domain |
+| OmniVoice cloning, 32 or 16 steps | A short clean reference and its transcript, or ASR-prepared transcript | Prepare/cache clone prompt; synthesize through GPU adapter | Shared GPU model; 32 default, 16 faster | Quick setup without customer-specific training, with a quality/speed choice |
 
 These are sensible choices. **Training is a quality upgrade.** Stock and tuned Pocket students have similar architecture and CPU requirements; tuning does not automatically make inference cheaper than stock Pocket.
 
@@ -23,7 +24,7 @@ The user approved our latest student for Johnny, Judy and Panam and requested th
 - Customer training needs held-out evaluation and a way to report insufficient data or no improved candidate.
 - Warm models and cached reference states are essential to latency.
 - Our custom checkpoint is English. Language support needs per-model qualification.
-- Omni's released weights have commercial restrictions. Section 10 addresses training, forks and Chris's optimizations.
+- Omni's 32/16 are inference sampling steps; they are not model precision or training epochs.
 
 ## 2. How Pocket cloning works
 
@@ -53,6 +54,12 @@ The published depth recipe copies non-backbone components and trains a shallower
 ### Cache identity
 
 Conditioning should be keyed by account/voice, model version, exact audio hash and preprocessing version. Recompute it after a weight change. Upstream explicitly prevents mixing stock prepared named voices with custom weights, which can produce incompatible generation or missing termination. [Conditioning checks](https://github.com/kyutai-labs/pocket-tts/blob/41cbc84af539ea78a804ffca5f9c6edc1a22ce44/pocket_tts/models/tts_model.py)
+
+### OmniVoice zero-shot cloning
+
+Omni uses a shared model and cached audio/text clone prompt. Its recommended reference is 3–10 seconds; matching reference text can be supplied or obtained through Whisper ASR. Cache that work before repeated synthesis. 32 sampling steps is the default; 16 is the documented faster option. The user preferred 32 in our early comparisons. [Official cloning usage](https://github.com/k2-fsa/OmniVoice#voice-cloning), [generation options](https://github.com/k2-fsa/OmniVoice/blob/08be0b4ccbac3e13e374e86fbfead4b4cac343e2/docs/generation-parameters.md)
+
+Current public Omni generation returns completed waveform arrays. Its internal long-text chunking does not expose the same incremental PCM iterator as Pocket. A low-latency adapter can schedule stable text phrases or implement an earlier-audio path; that behavior must be measured separately. [Generation implementation](https://github.com/k2-fsa/OmniVoice/blob/08be0b4ccbac3e13e374e86fbfead4b4cac343e2/omnivoice/models/omnivoice.py)
 
 ## 3. Listening tables
 
@@ -115,6 +122,16 @@ These raw Johnny WAVs came from the paired public streaming-generator benchmark:
 
 Cloud training-sampler output and public CPU-generator output can differ even with matching text/seed. Their provenance remains separate; training-rollout WAVs were not substituted for selected-model final evaluations.
 
+### OmniVoice 32/16 comparison
+
+All six clips use “Keep your eyes open, V. We can talk while we walk.” They are raw FP16 CUDA replay outputs, without mastering/denoising/pitch effects. This prompt differs from the Pocket panels, so it is a separate listening comparison.
+
+| Character | OmniVoice 32 steps | OmniVoice 16 steps |
+| --- | --- | --- |
+| Johnny | [Listen](audio/omnivoice-32/johnny.wav) | [Listen](audio/omnivoice-16/johnny.wav) |
+| Judy | [Listen](audio/omnivoice-32/judy.wav) | [Listen](audio/omnivoice-16/judy.wav) |
+| Panam | [Listen](audio/omnivoice-32/panam.wav) | [Listen](audio/omnivoice-16/panam.wav) |
+
 ## 4. Reference experiments
 
 We tried a short Johnny reference, then joined clean lines into longer recordings. The user preferred the 22-second version's pacing; 30 seconds did not establish another improvement.
@@ -161,7 +178,11 @@ Generation RTF was about 3.803 / 7.28 = **0.522**, faster than playback for one 
 
 Stock short-reference Pocket yielded warm first PCM around 185 ms and generated 4.56 s of audio in approximately 2.04–2.10 s. Its reference/runtime/thread context differed, so this is not a controlled fine-tuning speed comparison.
 
-The WSL model path worked. Native Windows IPC checks separately hit their 180-second startup deadline before model readiness and produced no neural/audio receipts. Causal controls localized this to the early blocking stdin reader during NumPy initialization: both TextIO and blocking Win32 reads stalled; polling with PeekNamedPipe before reading available bytes completed the same import/thread-setter control in 14.38 s. The production correction and full native worker proof are additional integration work. Those failures are not the synthesis latency of the successfully measured model.
+The WSL model path worked. Early native Windows IPC checks hit a 180-second startup deadline before model readiness. Controls localized this to the blocking stdin reader during NumPy initialization: TextIO and blocking Win32 reads stalled; PeekNamedPipe followed by reads of available bytes completed the same control in 14.38 s.
+
+After that correction, the native Windows worker loaded the approved student, streamed a complete reply, cancelled after two chunks, reused the same PID/cached reference with zero preparation time, and exited. This single check measured copied PCM 270.64 ms and Node receipt 304.54 ms; complete generation was 4.175 s for 7.44 s of audio. It is a separate setup, not the five-call WSL average. [Native worker proof](references/pocket-native-worker-proof.json)
+
+The combined native student → muted Edge renderer → rolling Rhubarb/facial-prefix check also passed: playback began before source completion, final audio/face clock was 7.36 s, and no underruns occurred. It made no Convai session requests and closed the owned worker/browser. This establishes the actual local interface; audible/in-game and cloud API acceptance remain separate. [Integration proof](references/pocket-native-integration-proof.json)
 
 Mod activation and complete cloud SSE/WebRTC acceptance remain separate work.
 
@@ -224,6 +245,8 @@ Convai can handle format preparation, speaker labels/separation, ASR/transcript 
 
 Stock: reference setup/storage plus inference. Managed tuned: preparation/training/qualification plus inference and custom-model residency. Relative to stock, the training purchase is quality.
 
+Omni: reference/ASR preparation plus GPU inference, with 32/16 steps as a quality/speed choice inside one offering. It is reasonable to position it as a low-setup GPU tier, but “moderate cost” must come from measured GPU utilization, batching, shape caches and service volume.
+
 One custom cast/tenant may need one roughly 418-MiB FP32 student artifact plus its voice states. It does not need that artifact for each voice. Resident RAM was larger than disk weights; measure idle capacity and tenant/model switching.
 
 Against a more expensive alternative, break-even audio minutes equal upfront preparation/training cost divided by the positive difference in inference cost per audio minute. Stock/tuned Pocket should not be assumed to have different inference costs solely from fine-tuning.
@@ -253,7 +276,7 @@ This is a proposed contract, not an implemented Convai endpoint schema. [Example
 | Model version | Weights/config/tokenizer hashes, lineage, languages, codec/calibration identity, sampling and evaluation |
 | TTS request | Exact request and voice/model version, text, language and transport |
 
-Use one Pocket adapter with stock/custom model versions. Keep model execution independent of Core conversation orchestration, with account capability flags and an interface usable by cloud or on-prem callers.
+Use a Pocket adapter with stock/custom model versions and an Omni adapter with 32/16 selection. Keep model execution independent of Core conversation orchestration, with account capability flags and an interface usable by cloud or on-prem callers. Normalize output timing/ownership while retaining each engine's genuine audio-availability boundary.
 
 Customer flow:
 
@@ -273,9 +296,11 @@ Prove upload → ready voice → novel text → streamed audio for both transpor
 ## 9. Included code, identities and terms
 
 - [Streaming example](code/pocket_streaming_example.py): complete text once, public PCM iterator, independent state. Local example rather than a full service.
+- [Omni cloning example](code/omnivoice_cloning_example.py): cached clone prompt and 32/16 complete generation.
 - [Training runner](code/pocket_training/runner.py), [data qualification](code/pocket_training/teacher_data.py), [student transfer](code/pocket_training/student_transfer.py), copied package/tests.
 - [CPU measurements](references/cpu-streaming-result.json), [teacher selection](references/teacher-selection.json), [student selection](references/student-selection.json), [data coverage](references/training-data-coverage.json), [export receipt](references/student-export-receipt.json), [approval](references/student-user-approval.json).
 - [Pinned Pocket source license](references/LICENSE-PocketTTS.txt) and [handoff verification](references/handoff-verification.json).
+- Chris's original [TensorRT report](references/chris-tensorrt-report.txt), [precision report](references/chris-precision-report.txt), their PDFs and code-only archives in references/.
 
 Local streaming example, using a prepared environment and a custom YAML for the selected model:
 
@@ -284,6 +309,8 @@ Local streaming example, using a prepared environment and a custom YAML for the 
 The example exposes first yielded/copied PCM and setup timing. It has syntax/CLI verification; the actual model benchmark was performed by the separate measured harness represented in the results.
 
 The copied training wrappers require the pinned upstream training package and qualified assets. Weights, credentials and the full training dataset are not bundled. Audio is the selected listening set.
+
+Examples submit the complete text once and add no extra waveform effects. Pocket's upstream implementation can segment very long text internally and uses a small decoder-start fade; this is model/library behavior, separate from additional service/mod processing. The included WAVs preserve those generated bytes.
 
 | Component | Pin |
 | --- | --- |
@@ -298,39 +325,57 @@ Pocket v3.3.0 was checked. Current configs cover English, French, German, Portug
 
 Code is MIT; official weights declare CC-BY-4.0 with gated cloning terms. Retain attribution/model terms and use authorized customer data. [Code license](https://github.com/kyutai-labs/pocket-tts/blob/41cbc84af539ea78a804ffca5f9c6edc1a22ce44/LICENSE), [weight terms](https://huggingface.co/kyutai/pocket-tts)
 
-## 10. OmniVoice commercial-use clarification
+## 10. OmniVoice performance and optimization methods
 
-Omni code is Apache-2.0; its released speech weights are CC-BY-NC. Fine-tuning or conversion to TensorRT/FP8 does not establish commercial rights. Chris optimized existing inference with TensorRT, memory sharing and precision changes; his reports do not document training a replacement model. [Official license](https://huggingface.co/k2-fsa/OmniVoice/blob/c5fdb5ccb189668d56333f77ba2629f4cd7535f4/README.md)
+Omni is a usable zero-shot GPU solution for the technical design. It needs no customer-specific training for reference cloning. Our local runtime used VoiceStudio's adapter with effects/mastering disabled, actual FP16 CUDA inference and no TensorRT.
 
-Real training code is published. Fresh initialization uses Qwen3-0.6B text weights and new audio components, avoiding the released Omni speech checkpoint. The default tokenizer has separate Boson Community License terms; original Emilia in the example has noncommercial data terms. Commercial qualification therefore requires appropriate data, tokenizer/components and trained weights. [Trainer](https://github.com/k2-fsa/OmniVoice/blob/08be0b4ccbac3e13e374e86fbfead4b4cac343e2/omnivoice/training/trainer.py), [builder](https://github.com/k2-fsa/OmniVoice/blob/08be0b4ccbac3e13e374e86fbfead4b4cac343e2/omnivoice/training/builder.py), [Qwen](https://huggingface.co/Qwen/Qwen3-0.6B), [tokenizer license](https://huggingface.co/bosonai/higgs-audio-v2-tokenizer/resolve/815a03f1b57dcb5ae918db415f22cd0c8a6f0f54/LICENSE), [data terms](https://huggingface.co/datasets/amphion/Emilia-Dataset)
+| Local context | 32 steps | 16 steps |
+| --- | ---: | ---: |
+| RT Ultra / 60 FPS / Turbo: process-cold to first saved WAV | 17.46 s | 12.16 s |
+| Same run, warm complete generation | 2.51–2.69 s | 1.38–1.39 s |
+| Output duration | 6.56 s | 6.56 s |
+| Peak engine VRAM reservation | 2.16 GiB | 2.16 GiB |
+| Peak process-tree RAM | 3.35 GiB | 3.35 GiB |
 
-The paper's original experiments used eight H800s, reporting 1.33/9.66 days for bilingual/multilingual training; the full multilingual corpus was 581,000 hours. These describe original experiments, rather than a budget estimate for customer adaptation. [Training details](https://arxiv.org/html/2604.00688v1#S3.SS3)
+These laptop results use RTX 4080 Laptop/i9-13980HX. Cold includes imports, load, reference handling, inference and saved-file receipt; warm excludes Convai and device playback. They are complete-wave measurements, so comparing 2.5 seconds with Pocket's 140-ms first PCM as if they were the same boundary would be misleading.
 
-### What commercial-use research found
+The six included replay clips used a different shorter sentence. Actual complete-call times were:
 
-No free, commercially qualified Omni checkpoint was verified in this search. The authors attribute the restriction to rights in their training data, including original Emilia and WenetSpeech-Yue. They say they cannot grant commercial rights to those existing weights, and plan a commercially usable checkpoint without a confirmed timeline. This is a data-rights constraint on the released checkpoint; it should not be described as opposition to commercial adoption. On 7 September the author confirmed no commercial checkpoint was currently available. [September author reply](https://github.com/k2-fsa/OmniVoice/issues/258#issuecomment-5565297920), [July author reply](https://github.com/k2-fsa/OmniVoice/issues/235#issuecomment-5126307191), [official discussion](https://huggingface.co/k2-fsa/OmniVoice/discussions/37)
+| Character | 32-step generation | 16-step generation | Audio duration |
+| --- | ---: | ---: | ---: |
+| Johnny | 1,730.5 ms | 869.7 ms | 4.44 s |
+| Judy | 1,705.9 ms | 867.1 ms | 2.96 s |
+| Panam | 1,684.7 ms | 857.7 ms | 3.20 s |
 
-| Route found online | Evidence and status |
-| --- | --- |
-| Apache-labelled AEmotionStudio mirror | Its main weight file has the same public LFS SHA256 as official Omni: 730839316de585f4c8298ec0e1712efc10fb19c6fa4e36eb741cb8d51ebcf6aa, 2,450,344,112 bytes. The label does not establish an independent commercial checkpoint. [Mirror](https://huggingface.co/AEmotionStudio/omnivoice-models) |
-| MLX and GGUF conversions | Derived from official weights; format conversion supplies no new weight rights. The GGUF card explicitly retains CC-BY-NC. [MLX](https://huggingface.co/mlx-community/OmniVoice-4bit), [GGUF](https://huggingface.co/Serveurperso/OmniVoice-GGUF) |
-| Vietnamese fine-tunes | Base-model lineage remains official Omni; an Apache metadata label does not establish commercial permission. [Example](https://huggingface.co/splendor1811/omnivoice-vietnamese) |
-| Genpio Voices | Claims independent initialization, commercial training corpora and DAC replacing Higgs. Its card requires separately agreed commercial terms and says access approval alone does not sublicense commercial use. Potential licensed alternative, not a verified free option. [Card](https://huggingface.co/GuidenAI/genpio_voice) |
-| Paid hosted Omni services | Pricing or a marketing claim alone does not establish their exact checkpoint or upstream permission. Private agreements may exist; this search did not verify them. |
+Owning a persistent CUDA stream and bounded graph/output-buffer lifetime improved later replay performance. Our FP8 experiment modestly reduced generation time and allocated memory, but was not adopted because reserved-memory and perceptual benefits were not established.
 
-Search covered author licensing issues/discussions, metadata for 60 popular Omni-named HF models, representative mirrors/conversions/fine-tunes, the independent-retrain claim and provider statements. It supports “none verified in these sources,” rather than a claim about every private arrangement.
+### Chris's supplied TensorRT work
 
-Possible future routes are a qualified author release, a separately licensed independent retrain, or fresh training with commercially usable data/components. The current Pocket implementation remains the concrete candidate.
+Chris optimized the existing learned model; his reports describe conversion, memory/tensor sharing and precision changes, rather than training replacement speech weights.
 
-### Pocket commercial scope
+His precision report uses RTX 5090 / TensorRT 11.2.1.2, 32 steps, cached clone prompts and no concurrent game:
 
-Pocket's weight license permits commercial use with attribution; its code uses MIT. Gated cloning conditions and uploaded-audio rights remain applicable. Our Cyberpunk-trained checkpoint and included game clips are evaluation evidence; the managed commercial service should train on authorized customer data. [Pocket weight terms](https://huggingface.co/kyutai/pocket-tts), [CC-BY-4.0 permissions](https://creativecommons.org/licenses/by/4.0/)
+| Engine | Median complete-file clone latency | Reported device-wide used memory |
+| --- | ---: | ---: |
+| Original TensorRT | 321.3 ms | 13,398 MiB |
+| Shared-memory FP16 | 316.5 ms | 5,600 MiB |
+| FP8 | 270.5 ms | 5,036 MiB |
+| NVFP4 | 257.8 ms | 4,850 MiB |
+
+The separate TensorRT report measured PyTorch 818.2 ms versus original TensorRT FP16 322.9 ms. Different reports/runs explain that small baseline difference.
+
+Useful methods: release replaced PyTorch transformer copies, reuse GPU input addresses, cache clone prompts, bound shape/CUDA-graph caches, and share scratch memory under serialized execution. Reported GPU-copy traffic fell roughly 97%. Shared-memory FP16 preserved the ten checked TensorRT WAVs; that does not prove TensorRT is identical to the original PyTorch output or that low precision preserves every human voice.
+
+Times include dispatch through WAV writing and exclude load/reference/shape preparation. Memory is device-wide usage rather than process-only peak. These results are hardware/input specific and are not a streaming or cloud-price guarantee. Supplied reports and code references are included below.
+
+**License note, once:** released Omni weights are CC-BY-NC because of training-data rights, rather than opposition to commercial adoption; code is Apache-2.0. The authors plan a commercial checkpoint and currently cannot grant commercial rights to existing weights. Fresh training is possible, but data/tokenizer terms also need qualification; no free commercially qualified fork was verified in this search. [Official statement](https://huggingface.co/k2-fsa/OmniVoice/blob/c5fdb5ccb189668d56333f77ba2629f4cd7535f4/README.md), [author explanation](https://github.com/k2-fsa/OmniVoice/issues/235#issuecomment-5126307191)
 
 ## 11. Next implementation work
 
-1. Stock reference upload/conditioning and real PCM streaming behind the common TTS interface.
-2. Managed qualification, teacher adaptation, student distillation and explicit version promotion.
-3. Both API transports, multiple voices/novel texts, cancellation and realistic concurrent load.
-4. Pricing from those measurements, with language/model capabilities visible to customers.
+1. Stock Pocket reference upload/conditioning and real PCM streaming behind the common TTS interface.
+2. Managed Pocket qualification, teacher adaptation, student distillation and explicit version promotion.
+3. Omni cached cloning with 32/16 selection; evaluate Chris's GPU optimizations on the chosen runtime.
+4. Both API transports, multiple voices/novel texts, cancellation and realistic concurrent load.
+5. Pricing from those measurements, with language/model capabilities visible to customers.
 
 The evidence supports a Pocket prototype and managed tuning path. It provides approved example voices and measured CPU behavior; server economics and complete Core API acceptance remain to be demonstrated.

@@ -1,11 +1,13 @@
 {
   "status": "proposed interface, not a currently implemented Convai API schema",
+  "offering_choices": ["pocket-stock", "pocket-custom", "omnivoice"],
   "voice_profile": {
     "id": "voice_customer_character_version",
     "owner_account_id": "account_id",
     "engine": "pocket",
     "model_version": "stock-english-2026-09-or-qualified-custom-version",
     "reference_audio_asset_id": "uploaded_reference_asset",
+    "reference_text_for_omni_if_supplied": "Exact words in the reference, otherwise prepare ASR once",
     "reference_sha256": "sha256_of_exact_reference",
     "conditioning_version": "model_plus_reference_plus_preprocessing_revision",
     "languages": ["en"],
@@ -27,7 +29,10 @@
     "text": "The city is quiet tonight, but I know trouble is waiting somewhere.",
     "transport": "sse-or-webrtc",
     "language": "en",
-    "generation_settings": {"temperature": 0.3, "sampler_decode_steps": 1}
+    "generation_settings_by_selected_engine": {
+      "pocket": {"temperature": 0.3, "sampler_decode_steps": 1},
+      "omnivoice": {"num_step": 32}
+    }
   },
   "pcm_event": {
     "request_id": "unique_request_id",

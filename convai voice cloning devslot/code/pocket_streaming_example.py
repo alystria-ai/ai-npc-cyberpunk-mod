@@ -77,7 +77,7 @@ def main() -> None:
                           "generation_seconds": time.perf_counter() - started,
                           "audio_seconds": frames / model.sample_rate,
                           "sample_rate": model.sample_rate,
-                          "device": "cpu", "audio_processing": "none",
+                          "device": "cpu", "additional_audio_processing": "none",
                           "boundary": "Excludes API transport and audio-device playback"}))
 
 

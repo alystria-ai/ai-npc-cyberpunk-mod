@@ -1,0 +1,121 @@
+# OmniVoice TensorRT: 32 steps, cloning retained
+
+Measured 2026-09-27 11:28:51 +0100 on the same RTX 5090 / Windows machine.
+
+## Result
+
+The TensorRT transformer plus CUDA graph replay reduces automatic-voice median latency from **837 ms to 199 ms (4.20x faster)**. With a cached cloning prompt, latency changes from **818 ms to 323 ms (2.53x faster)**. Kokoro measured **83 ms** in this new run; accelerated OmniVoice remains **2.39x** its median latency. Ratios are ratios of pooled medians, not averages of per-prompt speedups.
+
+| Route | Median latency | Median RTF | ASR WER |
+|---|---:|---:|---:|
+| Kokoro / preset | 83.3 ms | 0.013 | 3.79% (5/132) |
+| OmniVoice PyTorch / auto | 837.4 ms | 0.110 | 6.82% (9/132) |
+| OmniVoice TensorRT / auto | 199.4 ms | 0.027 | 1.52% (2/132) |
+| OmniVoice PyTorch / clone | 818.2 ms | 0.133 | 3.79% (5/132) |
+| OmniVoice TensorRT / clone | 322.9 ms | 0.050 | 3.79% (5/132) |
+
+
+Each row contains five texts x three warmed repeats. Complete-file latency covers request dispatch through WAV writing, excluding model load, per-shape warm-up and initial reference preparation. RTF is wall seconds divided by output duration. The clone row uses a cached reference prompt. No step reduction, quantization to INT8/FP8, pruning, distillation or automatic fallback was used.
+
+![Median speed](trt-graphs/latency.png)
+
+![Per-text speed](trt-graphs/by-text.png)
+
+## What runs in TensorRT
+
+The 28-layer Qwen3-based bidirectional denoiser and audio-logit projection run in TensorRT FP16. The same TensorRT core is called exactly **32 times** for every measured accelerated utterance. The graph has batch 2 for classifier-free guidance and dynamic sequence length 32–1536 tokens (optimization point 256). This is one target utterance at a time, not batch TTS.
+
+Token/text embeddings, rotary positions, the iterative sampling/scheduling loop, voice-reference encoding, audio decoding and postprocessing remain in the existing PyTorch implementation. This is a hybrid engine, not a fully native TensorRT speech stack. It preserves the model's cloning inputs and full 32-step schedule. A non-default CUDA stream and per-length CUDA graph replay reduce launch overhead; up to eight shapes are cached. A new shape needs capture/warm-up; the benchmark and app perform that before measuring warm latency.
+
+The reference-audio encoder produces the same reusable VoiceClonePrompt consumed by both routes. In the app, supply a WAV and exact matching transcript, or use the included synthetic reference. No reference ASR or internet access is required. Reference encoding happens once per worker/reference, then is cached. WAVs are limited to 1–20 seconds; 3–10 seconds of clean speech is preferable. Kokoro continues to use its preset voice and does not clone the upload.
+
+## Numerical and speech checks
+
+The exportable PyTorch wrapper matched the original forward on the initial test exactly (max absolute difference 0; argmax agreement 100%). The built TensorRT engine is **not bit-identical**. Nine comparisons of real target-region logits across steps 1, 16 and 32, lengths 64, 262 and 659, produced max absolute differences up to 0.750, mean absolute differences 0.063–0.073, and argmax agreement 76.1–92.3%. Outputs were finite. High raw cosine similarity (>0.999999) should **not** be treated as proof of equivalent token decisions: the large shared logit offsets make that statistic optimistic.
+
+FP16 execution/fusion differences can change sampled tokens and the waveform, even at the same seed. The reduced argmax agreement is disclosed rather than treated as exact conversion parity. This prototype passed execution, finite-output, 32-call and transcription smoke checks; it has **not** passed a human perceptual-equivalence or speaker-similarity acceptance test.
+
+![Transcription proxy](trt-graphs/quality-proxy.png)
+
+Whisper base.en transcribed repeat 0 (25 clips total). WER uses the same English normalization as the earlier report. Numbers, currency, times and names can be recognition/normalization errors, so WER is not a naturalness score or proof of speaker similarity. All full transcripts and reference strings are retained in the raw JSON. Listen before accepting the accelerated route for production.
+
+The cloning reference is our generated bf_isabella Kokoro dialogue sample, not a recording of a person. New texts were generated with reference conditioning in both routes; reference tokens and transcript remain part of the conditional input. This verifies functional cloning support, not fidelity to an independently recorded human speaker. The dialogue target itself also appears in the reference; prioritize the other four test texts when assessing generalization.
+
+## Startup and reference preparation
+
+- **kokoro**: process/model ready 20.55 s; first request 0.06 s.
+- **omnivoice**: process/model ready 9.51 s; first request 17.23 s. First clone request 0.84 s, including 114.0 ms of reference preparation.
+- **omnivoice_trt**: process/model ready 10.15 s; first request 15.56 s. First clone request 0.74 s, including 151.3 ms of reference preparation.
+
+These are one-time observations, not cold-boot averages. Reference preparation can include first-use codec initialization. Per-shape CUDA graph capture and first-use costs are excluded from the warm rows. The app warms your exact text/reference once before timing a second generation.
+
+## Reproduce / limits
+
+- TensorRT 11.2.1.2, RTX 5090, FP16 model weights. Existing Python 3.12, torch 2.7.1+cu128, torchaudio 2.7.1+cu128, transformers 5.6.1, CUDA-capable installed TensorRT bindings. No global package changes. Full VoiceStudio requirements were not installed.
+- VoiceStudio source commit `31975717b2d473eb0ddb672f43f3cfc07c800996`; OmniVoice model revision `c5fdb5ccb189668d56333f77ba2629f4cd7535f4`. The source checkout remains untouched; adapters are separate.
+- Build: `python work/build_trt.py` from the workspace root. ONNX and PLAN remain in work/omnivoice-trt (~1 GB each). PLAN is hardware/runtime specific. Rebuild for a different GPU or TensorRT version. Fixed architecture assumptions are specific to this checkpoint.
+- Validation: `python work/validate_trt.py`. It checks finite outputs/logit diagnostics and exercises cloned synthesis; it does not establish perceptual parity.
+- Stop the app before benchmarking. Run `python outputs/voice-bench/benchmark_trt.py`, then `python outputs/voice-bench/analyze_quality.py --trt`, then `python work/build_trt_report.py`.
+- Benchmark order: Kokoro, PyTorch, TensorRT; automatic then cloned modes; randomized jobs within modes. One worker engine resident at a time. Three repeats, fixed seed 42, speed 1.0, English. Per-text warm-up added to both OmniVoice routes. Fixed seed repeats measure timing stability, not varied voices.
+- No streaming/first-audio metric, concurrent game load, objective speaker embeddings, temperature-controlled experiment, or cross-engine VRAM claim. Native and PyTorch allocation statistics are not directly comparable.
+- No silent PyTorch fallback: unsupported combined token lengths fail with an actionable error. Single-request worker serialization prevents concurrent use of CUDA graph buffers. The eight-shape cache bounds context count; eviction synchronizes before releasing graph buffers.
+
+Raw [JSON](voice-bench/runs/trt32-20260927-112851/results.json) and [CSV](voice-bench/runs/trt32-20260927-112851/results.csv) include all 75 timing samples, 25 transcripts, actual TensorRT call counts, reference cache flags and reference-preparation times. The first benchmark is preserved separately.
+
+## Listening samples
+
+### Short reply
+
+Yes, I can help you with that.
+
+- **Kokoro / preset**: [WAV](voice-bench/runs/trt32-20260927-112851/kokoro-auto-short-0.wav) · 0.0% WER · ASR: Yes, I can help you with that.
+- **OmniVoice PyTorch / auto**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice-auto-short-0.wav) · 0.0% WER · ASR: Yes, I can help you with that.
+- **OmniVoice TensorRT / auto**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice_trt-auto-short-0.wav) · 0.0% WER · ASR: Yes, I can help you with that.
+- **OmniVoice PyTorch / clone**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice-clone-short-0.wav) · 0.0% WER · ASR: Yes, I can help you with that.
+- **OmniVoice TensorRT / clone**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice_trt-clone-short-0.wav) · 0.0% WER · ASR: Yes, I can help you with that.
+
+### Dialogue
+
+I thought you had already left. Wait a moment, and I will come with you. Shall we take the quiet road by the river?
+
+- **Kokoro / preset**: [WAV](voice-bench/runs/trt32-20260927-112851/kokoro-auto-dialogue-0.wav) · 0.0% WER · ASR: I thought you had already left. Wait a moment and I will come with you. Shall we take the quiet road by the river?"
+- **OmniVoice PyTorch / auto**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice-auto-dialogue-0.wav) · 0.0% WER · ASR: I thought you had already left. Wait a moment, and I will come with you. Shall we take the quiet road by the river?
+- **OmniVoice TensorRT / auto**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice_trt-auto-dialogue-0.wav) · 0.0% WER · ASR: I thought you had already left. Wait a moment, and I will come with you. Shall we take the quiet road by the river?
+- **OmniVoice PyTorch / clone**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice-clone-dialogue-0.wav) · 0.0% WER · ASR: I thought you had already left, wait a moment and I will come with you, shall we take the quiet road by the river?
+- **OmniVoice TensorRT / clone**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice_trt-clone-dialogue-0.wav) · 0.0% WER · ASR: I thought you had already left, wait a moment and I will come with you. Shall we take the quiet road by the river?"
+
+### Numbers and abbreviations
+
+Dr. Smith paid $24.50 for 3 tickets. The train leaves at 10:45 a.m. on September 27, 2026.
+
+- **Kokoro / preset**: [WAV](voice-bench/runs/trt32-20260927-112851/kokoro-auto-numbers-0.wav) · 21.1% WER · ASR: Dr. Smith paid $24.50 for three tickets. The train leaves at 10.45am on September 27, 2026.
+- **OmniVoice PyTorch / auto**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice-auto-numbers-0.wav) · 47.4% WER · ASR: Doctors 58.450 for tickets. The train leaves at 10.45 AM on September 27, 2026.
+- **OmniVoice TensorRT / auto**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice_trt-auto-numbers-0.wav) · 10.5% WER · ASR: Dr. Smith paid $24.50 for three tickets. The train leaves at 10.45 a.m. on September 27, 2026.
+- **OmniVoice PyTorch / clone**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice-clone-numbers-0.wav) · 26.3% WER · ASR: Dr Smith paid 2450 for three tickets. The train leaves at 10.45am on September 27, 2026.
+- **OmniVoice TensorRT / clone**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice_trt-clone-numbers-0.wav) · 26.3% WER · ASR: Dr Smith paid 2450 for three tickets. The train leaves at 10.45am on September 27, 2026.
+
+### Expression and pauses
+
+You actually did it! I cannot believe we finally made it. But listen carefully: if that door opens, we have to run. Are you ready?
+
+- **Kokoro / preset**: [WAV](voice-bench/runs/trt32-20260927-112851/kokoro-auto-expression-0.wav) · 0.0% WER · ASR: You actually did it, I cannot believe we finally made it. But listen carefully, if that door opens we have to run. Are you ready?
+- **OmniVoice PyTorch / auto**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice-auto-expression-0.wav) · 0.0% WER · ASR: You actually did it. I cannot believe we finally made it. But listen carefully. If that door opens, we have to run. Are you ready?
+- **OmniVoice TensorRT / auto**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice_trt-auto-expression-0.wav) · 0.0% WER · ASR: You actually did it! I cannot believe we finally made it. But listen carefully. If that door opens, we have to run. Are you ready?
+- **OmniVoice PyTorch / clone**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice-clone-expression-0.wav) · 0.0% WER · ASR: You actually did it. I cannot believe we finally made it. But listen carefully, if that door opens we have to run. Are you ready?
+- **OmniVoice TensorRT / clone**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice_trt-clone-expression-0.wav) · 0.0% WER · ASR: You actually did it. I cannot believe we finally made it. But listen carefully. If that door opens, we have to run. Are you ready?
+
+### Longer narration
+
+The last light of the afternoon fell across the empty station. Somewhere beyond the platform, a dog barked twice and then fell silent. Eleanor folded the letter, placed it carefully inside her coat, and watched the tracks disappear into the mist. She had waited twenty years for this journey, and now, at last, the train was coming.
+
+- **Kokoro / preset**: [WAV](voice-bench/runs/trt32-20260927-112851/kokoro-auto-narration-0.wav) · 1.8% WER · ASR: The last light of the afternoon fell across the empty station, somewhere beyond the platform a dog barked twice and then fell silent. Elina folded the letter, placed it carefully inside her coat and watched the tracks disappear into the mist. She had waited twenty years for this journey and now at last the train was coming.
+- **OmniVoice PyTorch / auto**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice-auto-narration-0.wav) · 0.0% WER · ASR: The last light of the afternoon fell across the empty station. Somewhere beyond the platform, a dog barked twice and then fell silent. Eleanor folded the letter, placed it carefully inside her coat, and watched the tracks disappear into the mist. She had waited twenty years for this journey, and now at last the train was coming.
+- **OmniVoice TensorRT / auto**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice_trt-auto-narration-0.wav) · 0.0% WER · ASR: The last light of the afternoon fell across the empty station. Somewhere beyond the platform, a dog barked twice and then fell silent. Eleanor folded the letter, placed it carefully inside her coat, and watched the tracks disappear into the mist. She had waited twenty years for this journey, and now, at last, the train was coming.
+- **OmniVoice PyTorch / clone**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice-clone-narration-0.wav) · 0.0% WER · ASR: The last light of the afternoon fell across the empty station, somewhere beyond the platform a dog barked twice and then fell silent. Eleanor folded the letter, placed it carefully inside her coat, and watched the tracks disappear into the mist. She had waited twenty years for this journey and now at last the train was coming.
+- **OmniVoice TensorRT / clone**: [WAV](voice-bench/runs/trt32-20260927-112851/omnivoice_trt-clone-narration-0.wav) · 0.0% WER · ASR: The last light of the afternoon fell across the empty station, somewhere beyond the platform a dog barked twice and then fell silent. Eleanor folded the letter, placed it carefully inside her coat, and watched the tracks disappear into the mist. She had waited twenty years for this journey, and now at last the train was coming.
+
+## Sources
+
+- [TensorRT Python API](https://docs.nvidia.com/deeplearning/tensorrt/latest/inference-library/python-api-docs.html) - build/runtime APIs.
+- [Tested VoiceStudio source](https://github.com/debpalash/VoiceStudio/tree/31975717b2d473eb0ddb672f43f3cfc07c800996) - original engine and cloning path.
+- [OmniVoice weights](https://huggingface.co/k2-fsa/OmniVoice/tree/c5fdb5ccb189668d56333f77ba2629f4cd7535f4) - unchanged model checkpoint.

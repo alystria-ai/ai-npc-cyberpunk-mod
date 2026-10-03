@@ -1,8 +1,8 @@
 {
   "status": "verified",
-  "markdown_local_links": 68,
-  "audio_files": 55,
-  "audio_bytes": 28376510,
+  "markdown_local_links": 81,
+  "audio_files": 61,
+  "audio_bytes": 29394374,
   "missing_links": [],
   "source_hashes_unchanged": true,
   "ffprobe": [
@@ -390,8 +390,51 @@
       "sample_rate": "48000",
       "channels": 2,
       "duration": "22.286208"
+    },
+    {
+      "file": "audio/omnivoice-32/judy.wav",
+      "codec_name": "pcm_s16le",
+      "sample_rate": "24000",
+      "channels": 1,
+      "duration": "2.960000"
+    },
+    {
+      "file": "audio/omnivoice-16/judy.wav",
+      "codec_name": "pcm_s16le",
+      "sample_rate": "24000",
+      "channels": 1,
+      "duration": "2.960000"
+    },
+    {
+      "file": "audio/omnivoice-32/johnny.wav",
+      "codec_name": "pcm_s16le",
+      "sample_rate": "24000",
+      "channels": 1,
+      "duration": "4.440000"
+    },
+    {
+      "file": "audio/omnivoice-16/johnny.wav",
+      "codec_name": "pcm_s16le",
+      "sample_rate": "24000",
+      "channels": 1,
+      "duration": "4.440000"
+    },
+    {
+      "file": "audio/omnivoice-32/panam.wav",
+      "codec_name": "pcm_s16le",
+      "sample_rate": "24000",
+      "channels": 1,
+      "duration": "3.200000"
+    },
+    {
+      "file": "audio/omnivoice-16/panam.wav",
+      "codec_name": "pcm_s16le",
+      "sample_rate": "24000",
+      "channels": 1,
+      "duration": "3.200000"
     }
   ],
   "code_ast_passed": true,
-  "neural_execution": false
+  "neural_execution": false,
+  "all_audio_linked": true
 }
