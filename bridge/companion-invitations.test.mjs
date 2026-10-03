@@ -198,7 +198,7 @@ test('speaker conditioning gates both copies and connection startup without bloc
   const gate = deferred(), calls = [];
   const f = fixture(t, {prepareVoice: async (profile, options) => {
     calls.push({profile, ...options}); await abortable(gate.promise, options.signal);
-    return {provider: 'omnivoice', ready: true, profile};
+    return {provider: 'pocket', ready: true, profile};
   }});
   f.ingest([ticket('queued:1'), ticket('queued:2')]); await until(() => calls.length === 1);
   assert.equal(calls[0].profile, 'judy'); assert.equal(f.warmCalls.length, 0);
@@ -207,12 +207,12 @@ test('speaker conditioning gates both copies and connection startup without bloc
   f.tick(240); gate.resolve(); await until(() => f.invitations.snapshot().invitations.every(row => row.state === 'ready'));
   assert.equal(calls.length, 1); assert.equal(f.warmCalls.length, 1);
   assert.equal(f.invitations.diagnostic().invitations[0].voiceMs, 240);
-  assert.equal(f.invitations.diagnostic().invitations[0].voiceProvider, 'omnivoice');
+  assert.equal(f.invitations.diagnostic().invitations[0].voiceProvider, 'pocket');
 });
 
 test('voice failures and wrong-speaker receipts never grant spawn permission or warm a page', async t => {
-  for (const result of [{provider:'omnivoice', ready:true, profile:'panam'},
-    {provider:'omnivoice', ready:false, profile:'judy'}, {provider:'unknown',ready:true}, null]) {
+  for (const result of [{provider:'pocket', ready:true, profile:'panam'},
+    {provider:'pocket', ready:false, profile:'judy'}, {provider:'unknown',ready:true}, null]) {
     const f = fixture(t, {prepareVoice: async () => result});
     f.ingest([ticket()]); await until(() => f.invitations.snapshot().invitations[0].state === 'error');
     assert.match(f.invitations.snapshot().invitations[0].error, /Voice preparation/);
@@ -224,7 +224,7 @@ test('cancel or world replacement during voice preparation fences late completio
   for (const replaceWorld of [false, true]) {
     const gate = deferred(), calls = [];
     const f = fixture(t, {prepareVoice: async (profile, options) => {
-      calls.push(options); await gate.promise; return {provider:'omnivoice',ready:true,profile};
+      calls.push(options); await gate.promise; return {provider:'pocket',ready:true,profile};
     }});
     f.ingest([ticket()]); await until(() => calls.length === 1);
     if (replaceWorld) { f.world({worldToken:'replacement-world',generation:2}); await f.invitations.poll(); }
@@ -248,7 +248,7 @@ test('a pending spawn loses readiness immediately after conditioning eviction an
   const f = fixture(t, {voiceCurrent: () => conditioned,
     prepareVoice: async profile => {
       if (++calls > 1) { await reconditioning.promise; conditioned = true; }
-      return {provider:'omnivoice',ready:true,profile};
+      return {provider:'pocket',ready:true,profile};
     }});
   f.ingest([ticket()]); await until(() => f.invitations.snapshot().invitations[0].state === 'ready');
   conditioned = false;
@@ -262,7 +262,7 @@ test('a pending spawn loses readiness immediately after conditioning eviction an
 test('already-spawned copies do not thrash the bounded conditioning cache when another voice evicts them', async t => {
   let conditioned = true, calls = 0;
   const f = fixture(t, {voiceCurrent: () => conditioned, prepareVoice: async profile => {
-    calls++; return {provider:'omnivoice',ready:true,profile};
+    calls++; return {provider:'pocket',ready:true,profile};
   }});
   f.ingest([ticket()]); await until(() => f.invitations.snapshot().invitations[0].state === 'ready');
   f.ingest([ticket('queued:1', 'judy', {phase:'spawned'})]); conditioned = false;

@@ -1,6 +1,6 @@
 # Cyberpunk Convai
 
-Talk with Night City characters, invite travelling companions, and keep in touch through a native phone Chat tab. Conversations use Convai for dialogue, with a choice of local OmniVoice character voices or Convai voices. The companion manager uses Cyberpunk's Mod Configuration Menu, and replies use native subtitles and facial animation.
+Talk with Night City characters, invite travelling companions, and keep in touch through a native phone Chat tab. Conversations use Convai for dialogue, with a choice of local Pocket TTS character voices or Convai voices. The companion manager uses Cyberpunk's Mod Configuration Menu, and replies use native subtitles and facial animation.
 
 **Development build for Cyberpunk 2077 2.31 on Windows x64.** This repository contains the working development integration. The proposed Scripts and Runtime downloads are not yet a portable release: setup still needs local dependencies, account configuration, and generated assets. Some gameplay features remain under testing.
 
@@ -36,16 +36,16 @@ See [invitations](docs/COMPANION_INVITATIONS.md), [movement](docs/COMPANION_MOVE
 
 ### Voices, faces, and subtitles
 
-- **OmniVoice** is the default voice option. The prepared development catalog has local references for **75 of 79 profiles**; characters without a prepared reference use their configured Convai voice. **Convai** selects online voices for the whole cast.
-- All local voices condition **one shared model**. Each character has a reference recording and transcript, rather than a separate neural model. There is no per-character model training or LoRA requirement.
-- Choose **32 generation steps** for the preferred quality or **16 steps** for faster local speech. Both use FP16 on CUDA through PyTorch. These numbers are generation steps, not floating-point precision or training epochs.
-- Selecting OmniVoice in Settings starts loading and warming immediately, before Apply. An applied selection keeps the model warm; selecting Convai releases local model memory after the current reply finishes.
-- Convai plays original streamed audio continuously. Local OmniVoice starts after its first complete phrase while later phrases generate during playback. Audio is kept close to its source, without added EQ, denoising, or pitch effects.
+- **Pocket TTS** is the default local voice option. The prepared development catalog has local references for **75 of 79 profiles**; characters without a prepared reference use their configured Convai voice. **Convai** selects online voices for the whole cast. A saved Convai choice is preserved; saved Omni choices migrate to Pocket.
+- All local voices condition **one shared six-layer student model**, using original character recordings. The teacher stays in training; there is no separate runtime neural model or LoRA per character.
+- Pocket uses **float32 on CPU**, with two threads by default and no GPU allocation. The current student is trained for English. The former 16/32-step control is removed; the approved student uses one sampler step.
+- Selecting Pocket in Settings starts loading and warming immediately, before Apply. An applied selection keeps the model warm; selecting Convai releases local model memory after the current reply finishes.
+- Both providers play continuous audio before the full reply audio is ready. Pocket receives the complete text once and streams decoded PCM. Audio is kept close to its source, without added EQ, denoising, pitch effects or packet crossfades.
 - Native lip, jaw, and facial controls follow the actual playback clock. Both providers use the improved native face mapping; local speech uses phonetic analysis and Convai speech uses its supplied facial data.
 - A light resting expression is standard behavior. Supported Convai emotional signals can adjust it, while native blinking and gaze remain available.
 - **Dialogue HUD** subtitles are the default. **Above speaker** is optional; conversations in vehicles use the Dialogue HUD. On boarding, an overhead reply continues with its unread text rather than repeating the page already shown on foot. The game's subtitle preferences still affect native visibility.
 
-Both voice options still need Convai and internet access for dialogue generation. See [local voices](docs/LOCAL_VOICES.md), [voice reference activation](docs/VOICE_SOURCE_ACTIVATION.md), [streamed audio](docs/CONVAI_AUDIO_STREAMING.md), [expressions](docs/COMPANION_EXPRESSIONS.md), and [subtitles](docs/OVERHEAD_SUBTITLES.md).
+Both voice options still need Convai and internet access for dialogue generation. The Pocket replacement is implemented in source and user approved. Native Windows streaming, cancellation, caching and muted-browser lip timing checks pass; live-game activation is still pending. See [local voices](docs/LOCAL_VOICES.md), [Pocket runtime](docs/POCKET_TTS_RUNTIME.md), [voice reference activation](docs/VOICE_SOURCE_ACTIVATION.md), [streamed audio](docs/CONVAI_AUDIO_STREAMING.md), [expressions](docs/COMPANION_EXPRESSIONS.md), and [subtitles](docs/OVERHEAD_SUBTITLES.md).
 
 ### Knowledge, memory, and relationships
 
@@ -83,7 +83,7 @@ The current development setup targets **Cyberpunk 2077 2.31, Windows x64**, and 
 
 Conversation setup also needs internet access, a Convai API key, and character mappings for the account you use. The development bridge uses Node.js, the dependencies pinned in `package-lock.json`, and Playwright with Microsoft Edge. It runs as a hidden helper and must currently be started explicitly.
 
-OmniVoice additionally needs the prepared Python 3.11/CUDA environment, pinned OmniVoice weights, attributed reference recordings, and the local phonetic lip-sync tool. The shared model snapshot is approximately **3.04 GiB on disk**. Earlier warm measurements reserved about **2.2–2.4 GiB of GPU memory**; this is an observation, not a fixed limit, and longer dialogue can reserve more. Convai voices do not require that local speech model.
+Pocket additionally needs a prepared CPU Python environment, the approved student export, attributed reference recordings, and the local phonetic lip-sync tool. Shared weights occupy **417.74 MiB on disk**; the verified CPU benchmark peaked at about **1.69 GiB RAM** and used **no VRAM**. Dependency and reference storage are additional. Convai voices do not require the local model. [Pocket runtime setup and qualification](docs/POCKET_TTS_RUNTIME.md) distinguishes the controlled WSL benchmark, native Windows integration checks and pending game activation.
 
 Native facial assets are generated from the installed game with the project's facial builder. Generated assets, credentials, account mappings, extracted dialogue, and Python environments are not supplied by a fresh source checkout. [Packaging](docs/PACKAGING.md) records the dependencies and remaining portability work.
 
@@ -107,7 +107,7 @@ There is no finished one-click or two-ZIP installation yet. Use the following fl
    ```
 
    Configure the account's `runtime/characters.json` mapping and any relationship profiles. See [character setup](characters/README.md) and [the three-field API contract](docs/CHARACTER_API.md). `npm run profiles:plan` previews provisioning; applying the plan is an explicit account operation.
-4. Prepare the generated facial archive and speech assets. The facial builder requires its documented WolvenKit/.NET tools; [facial animation](docs/FACIAL_ANIMATION.md) describes that setup. Build the ambient-car Johnny guard from the reviewed 2.31 game resource with `python scripts/Build-AmbientJohnnyDriverGuard.py --game $gameDirectory --stage-development`; it stages a generated archive in this project. Use the local voice preparation tools if you want OmniVoice, or select Convai in Settings. Local reference files are not automatically downloaded by the mod.
+4. Prepare the generated facial archive and speech assets. The facial builder requires its documented WolvenKit/.NET tools; [facial animation](docs/FACIAL_ANIMATION.md) describes that setup. Build the ambient-car Johnny guard from the reviewed 2.31 game resource with `python scripts/Build-AmbientJohnnyDriverGuard.py --game $gameDirectory --stage-development`; it stages a generated archive in this project. Use the explicit [Pocket voice preparation](docs/POCKET_TTS_RUNTIME.md), or select Convai in Settings. Local reference files are not automatically downloaded by the mod.
 5. With the required generated assets available, prepare the speech bank and install the development adapter:
 
    ```powershell
@@ -174,8 +174,7 @@ Open **Companion Manager → Settings**. Use **Apply** to save a settings draft 
 
 | Setting | New-user default |
 |---|---|
-| Companion voices | OmniVoice |
-| Local voice quality | 32 steps |
+| Companion voices | Pocket TTS |
 | Voice playback | On |
 | Subtitles | On, Dialogue HUD |
 | Follow-up questions | Off |
@@ -187,7 +186,7 @@ Open **Companion Manager → Settings**. Use **Apply** to save a settings draft 
 | Head tracking strength | Gentle |
 | Character conversations | Enabled |
 
-Existing saved choices take precedence. Changing generation steps affects the next reply. Selecting OmniVoice begins preparation immediately, but Apply still owns the saved choice; Revert or leaving unsaved Settings cancels that preview. There is no per-character voice-provider selector or disappearing-message option. Exploration observations do not trigger automatic replies.
+Existing saved choices take precedence. Saved Omni selections migrate to Pocket TTS; a saved Convai choice remains Convai. Selecting Pocket begins preparation immediately, but Apply still owns the saved choice; Revert or leaving unsaved Settings cancels that preview. There is no per-character voice-provider selector, generation-step control or disappearing-message option. Exploration observations do not trigger automatic replies.
 
 Ordinary battle and loot reactions have independent ten-minute cooldowns. Newly acquired Legendary equipment has a separate two-minute loot cooldown. Save changes reset reaction context and cooldowns, while player identity and Chat history remain.
 

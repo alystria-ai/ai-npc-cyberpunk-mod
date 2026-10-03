@@ -5,9 +5,11 @@ import {chromium} from 'playwright';
 import {TransportPool, abortable, cancelled, throwIfCancelled, transportKey, SessionBindings} from './transport-pool.mjs';
 import {CONNECTION_LIMIT} from './party-connections.mjs';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
+import {LocalPcmHost} from './local-pcm-host.mjs';
 
 const PCM_MODULES = Object.freeze([
   'continuous-pcm-player.mjs', 'continuous-pcm-worklet.mjs', 'continuous-pcm-core.mjs',
+  'local-pcm-client.mjs',
 ]);
 
 const pageKey = transportKey;
@@ -135,9 +137,10 @@ export class RealtimeHost {
   }
   async initialize(epoch) {
     // A crashed browser must not leave its local server or stale leases behind.
-    const previousPool = this.pool, previousBrowser = this.browser, previousServer = this.server;
-    this.pool = this.browser = this.server = null;
-    await Promise.allSettled([previousPool?.close(), previousBrowser?.close()]);
+    const previousPool = this.pool, previousLocal = this.localPcm;
+    const previousBrowser = this.browser, previousServer = this.server;
+    this.pool = this.localPcm = this.browser = this.server = null;
+    await Promise.allSettled([previousPool?.close(), previousLocal?.close(), previousBrowser?.close()]);
     previousServer?.close();
     // One hidden browser: eight party private pages plus three optional group
     // pages. No key endpoint, microphone permission or visible user profile.
@@ -159,6 +162,8 @@ export class RealtimeHost {
         res.setHeader('Content-Type', 'text/javascript'); res.end(audioModules.get(req.url));
       } else if (req.url === '/') {
         res.setHeader('Content-Type', 'text/html'); res.end('<!doctype html><script type="module" src="/client.js"></script>');
+      } else if (req.url === '/local') {
+        res.setHeader('Content-Type', 'text/html'); res.end('<!doctype html><script type="module" src="/local-pcm-client.mjs"></script>');
       } else res.writeHead(404).end();
     });
     await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
@@ -170,6 +175,27 @@ export class RealtimeHost {
         args: ['--autoplay-policy=no-user-gesture-required', '--disable-background-timer-throttling']});
       if (epoch !== this.epoch) throw cancelled('Conversation startup cancelled');
       this.browser = browser; this.server = server;
+      this.localPcm = new LocalPcmHost({createPage: async () => {
+        if (epoch !== this.epoch || this.closing) throw cancelled();
+        const page = await browser.newPage(), origin = `http://127.0.0.1:${server.address().port}`;
+        try {
+          // This page has only local PCM modules. It cannot enter the SDK's
+          // conversation routes, open a session or request microphone access.
+          await page.route('**/*', async route => {
+            const request = route.request(); let url;
+            try { url = new URL(request.url()); } catch { await route.abort('failed'); return; }
+            if (request.method() === 'GET' && url.origin === origin && !url.search
+                && (url.pathname === '/local' || PCM_MODULES.includes(url.pathname.slice(1))))
+              await route.continue();
+            else await route.abort('failed');
+          });
+          if (epoch !== this.epoch || this.closing) throw cancelled();
+          await page.goto(origin + '/local');
+          await page.waitForFunction(() => !!window.localPcm, undefined, {timeout: 5000});
+          if (epoch !== this.epoch || this.closing) throw cancelled();
+          return page;
+        } catch (error) { await page.close({runBeforeUnload: false}).catch(() => {}); throw error; }
+      }});
       this.pool = new TransportPool({limit: CONNECTION_LIMIT, create: async () => {
         const page = await browser.newPage();
         try {
@@ -272,6 +298,16 @@ export class RealtimeHost {
   }
   reply(config, options) { return this.run(config, 'reply', options); }
   warm(config, options) { return this.run(config, 'warm', options); }
+  async playLocalPcm(config, producer, options = {}) {
+    const {signal, current = () => true} = options;
+    throwIfCancelled(signal);
+    await abortable(this.start({signal}), signal);
+    throwIfCancelled(signal);
+    const epoch = this.epoch, local = this.localPcm;
+    if (!local || this.closing) throw cancelled();
+    return local.play(config, producer, {...options,
+      current: async () => epoch === this.epoch && local === this.localPcm && !this.closing && await current()});
+  }
   prepare(config, options) {
     // A speculative session is never written back by the page or retained in
     // the pool. Only the bridge can commit its result after exact submission.
@@ -371,17 +407,18 @@ export class RealtimeHost {
     if (this.closing) return this.closing;
     this.epoch++;
     this.connectOwners = new WeakMap();
-    const pool = this.pool, browser = this.browser, server = this.server, starting = this.starting;
+    const pool = this.pool, local = this.localPcm, browser = this.browser, server = this.server, starting = this.starting;
     this.closing = (async () => {
       // Retire every ready page in parallel; total grace is one deadline, not
       // one deadline per companion. Closing the pool immediately fences leases.
       const grace = Promise.allSettled([...pool?.entries.values() || []]
         .map(entry => this.disconnectPage(entry.value)));
       const disposing = pool?.close();
+      const localDisposing = local?.close();
       await grace;
-      await Promise.allSettled([disposing, browser?.close(), starting]);
+      await Promise.allSettled([disposing, localDisposing, browser?.close(), starting]);
       server?.close();
-      this.pool = this.browser = this.server = this.voiceLease = null;
+      this.pool = this.localPcm = this.browser = this.server = this.voiceLease = null;
     })().finally(() => { this.closing = null; });
     return this.closing;
   }

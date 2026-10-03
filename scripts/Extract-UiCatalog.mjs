@@ -165,7 +165,7 @@ const reviewed = {
   ],
   'mcm.validation': [
     'Reopen the manager; that action is no longer available.', 'Choose Above speaker or Dialogue HUD.',
-    'Choose a voice quality.', 'Choose OmniVoice or Convai voices.', 'Choose an eye contact option.', 'That setting is read-only.',
+    'Choose Pocket TTS or Convai voices.', 'Choose an eye contact option.', 'That setting is read-only.',
   ],
   'memory.feedback': [
     'all characters you have talked to', 'the selected character',
@@ -272,10 +272,7 @@ const reviewed = {
     'Conversation profile not assigned.', 'Add a copy, then use Party to choose its conversation profile.',
     'Dismiss copy', 'Choose profile', 'Play spoken replies through the supported voice output. This does not change microphone capture.',
     'Show companion reply subtitles during conversations.', 'Turn off', 'Turn on',
-    'Johnny, Judy and Panam use OmniVoice. Other characters keep their Convai voices.',
-    '32 steps: fuller quality (default).\n16 steps: faster replies.',
-    'The shared model stays loaded while the voice service runs. Changes apply to the next reply.',
-    'Unavailable - restart the voice service', 'Stopping', 'Waiting for the voice service', 'Use 32 steps', 'Use 16 steps',
+    'Stopping',
     'Party full: dismiss a copy before adding another.', '0 results',
     'This copy could not be created.', 'The copy could not be dismissed.', 'The profile could not be assigned.', 'The profile could not be cleared.',
     'Request queued...', 'Updating selection', 'The list will refresh in a moment.',
@@ -287,7 +284,6 @@ const reviewed = {
 // Tokens are values only: names, numbers, state labels or sanitized errors.
 // No arbitrary runtime dialogue, biography or provider response is eligible.
 const templates = [
-  ['mcm.voice-status', 'OmniVoice {steps} steps', 'mod/mcm.lua', 'OmniVoice ', ' steps'],
   ['mcm.voice-status', 'Voice: {voice}', 'mod/mcm.lua', '\n\nVoice: '],
   ['mcm.voice-status', 'Conversation: {state}', 'mod/mcm.lua', '\nConversation: '],
   ['mcm.voice-status', '{status} · After current reply', 'mod/mcm.lua', ' · After current reply'],
@@ -344,13 +340,11 @@ const templates = [
   ['legacy.manager', 'Copies in party: {count}', 'mod/manager.lua', '\nCopies in party: '],
   ['legacy.manager', 'State: {state}', 'mod/manager.lua', 'State: '],
   ['legacy.manager', 'Currently {state}.', 'mod/manager.lua', '\n\nCurrently '],
-  ['legacy.manager', 'Local voices: {status}', 'mod/manager.lua', '\n\nLocal voices: '],
   ['legacy.manager', 'Page {page} of {pages}  |  {count} results', 'mod/manager.lua', ' of ', ' results'],
   ['legacy.manager', 'Reading models {read}/{total}', 'mod/manager.lua', '  |  Reading models '],
   ['legacy.manager', 'Party: {count} / 8', 'mod/manager.lua', 'Party: '],
   ['legacy.manager', 'Creating a copy of {name}. Check Party for its status.', 'mod/manager.lua', 'Creating a copy of ', '. Check Party for its status.'],
   ['legacy.manager', '{name}: chat {state}.', 'mod/manager.lua', ': chat '],
-  ['legacy.manager', 'OmniVoice {steps} steps selected for the next reply.', 'mod/manager.lua', ' steps selected for the next reply.'],
   ['legacy.manager', 'Conversation profile set to {name}.', 'mod/manager.lua', 'Conversation profile set to '],
   ['settings.feedback', '{message} The change is active, but could not be saved for next time.', 'mod/manager.lua', ' The change is active, but could not be saved for next time.'],
   ['settings.feedback', 'Unknown setting: {setting}', 'mod/manager.lua', 'Unknown setting: '],

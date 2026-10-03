@@ -11,10 +11,11 @@ const quiet = () => ({allow: false, paused: true, volume: 0, pan: 0});
 export class ConvaiContinuousSpeech {
   constructor({input, profile, current, signal, readControl, writeState, writeReply,
     onPublished = async () => {}, onStarted = async () => {}, onGenerated = async () => {},
-    now = Date.now, token = randomUUID()}) {
+    now = Date.now, token = randomUUID(), faceBuilder}) {
     this.input = input; this.profile = profile; this.current = current; this.signal = signal;
     this.readControl = readControl; this.writeState = writeState; this.writeReply = writeReply;
     this.onPublished = onPublished; this.onStarted = onStarted; this.onGenerated = onGenerated;
+    this.faceBuilder = faceBuilder || ((snapshot, input) => buildProviderFacialTimeline(snapshot, input));
     this.now = now; this.token = token;
     this.receivedFrames = 0; this.position = 0; this.controlSequence = -1;
     this.published = false; this.started = false; this.generated = false; this.ended = false;
@@ -93,9 +94,9 @@ export class ConvaiContinuousSpeech {
       return quiet();
     }
 
-    const faceKey = `${snapshot.faces?.length || 0}:${snapshot.receivedFrames}:${snapshot.sourceComplete}`;
+    const faceKey = `${snapshot.faces?.length || 0}:${snapshot.receivedFrames}:${snapshot.sourceComplete}:${snapshot.face?.revision || 0}`;
     if (faceKey !== this.faceKey) {
-      this.face = buildProviderFacialTimeline({...snapshot, duration, complete: snapshot.sourceComplete}, this.input);
+      this.face = this.faceBuilder({...snapshot, duration, complete: snapshot.sourceComplete}, this.input);
       this.faceKey = faceKey;
     }
     const document = {version: 1, id: this.token, requestId: this.input.requestId,

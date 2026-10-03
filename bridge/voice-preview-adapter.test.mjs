@@ -74,13 +74,15 @@ test('voice selector immediately publishes a preparation preview without applyin
     assert(#publications == 0 and reads == 0, 'selector callback did work before update')
     update()
     local value = current()
-    assert(value.active and value.provider == 'hybrid' and value.steps == 32)
+    assert(value.active and value.provider == 'pocket' and value.steps == nil)
     assert(value.version == 1 and value.updated == clock)
     assert(value.sequence == 1)
     assert(type(value.owner) == 'string' and #value.owner <= 96 and value.owner:match('^mcm%-'))
     assert(committed.voiceProvider == 'convai' and committed.omniSteps == 32)
     changed(1, 1, true); update()
-    assert(current().steps == 16 and #publications == 2 and current().sequence == 2)
+    assert(current().steps == nil and #publications == 1, 'obsolete quality must not publish another preview')
+    changed(2, 1, true); update()
+    assert(not current().active and #publications == 2 and current().sequence == 2)
     assert(current().updated == value.updated, 'test must exercise same-timestamp changes')
     assert(committed.omniSteps == 32, 'quality preview persisted before Apply')
   `);
@@ -91,11 +93,12 @@ test('lease refresh is bounded but a changed selector is not delayed by the hear
     changed(1, 2, true); update()
     local owner = current().owner
     for i = 1, 59 do clock = clock + 10; update() end
-    assert(#publications == 1 and reads == 2)
+    assert(#publications == 1 and reads == 1)
+    changed(2, 1, true); update()
+    assert(#publications == 2 and not current().active and current().updated == clock and current().owner == owner)
     changed(1, 1, true); update()
-    assert(#publications == 2 and current().updated == clock and current().owner == owner)
     clock = clock + 1000; update()
-    assert(#publications == 3 and current().updated == clock and current().owner == owner)
+    assert(#publications == 4 and current().updated == clock and current().owner == owner)
   `);
 });
 
@@ -116,12 +119,12 @@ test('Revert and returning both selectors to committed values cancel even when o
 test('Apply cancels only the preview while the independently committed selection remains authoritative', () => {
   run(`
     changed(1, 1, true); update()
-    committed.voiceProvider, committed.omniSteps = 'hybrid', 16
+    committed.voiceProvider, committed.omniSteps = 'pocket', 16
     changed(1, 1, false); update()
-    assert(not current().active and committed.voiceProvider == 'hybrid' and committed.omniSteps == 16)
+    assert(not current().active and committed.voiceProvider == 'pocket' and committed.omniSteps == 16)
     changed(2, 2, true); update()
     assert(current().active and current().provider == 'convai')
-    assert(committed.voiceProvider == 'hybrid' and committed.omniSteps == 16)
+    assert(committed.voiceProvider == 'pocket' and committed.omniSteps == 16)
   `);
 });
 
@@ -154,7 +157,7 @@ test('invalid or unavailable draft values cancel and unsupported APIs do not pub
   `);
 });
 
-test('unrelated events and unrelated setting drafts never prepare Omni', () => {
+test('unrelated events and unrelated setting drafts never prepare Pocket', () => {
   run(`
     update()
     changed(2, 2, true); update(); assert(#publications == 0)

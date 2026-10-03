@@ -302,11 +302,11 @@ local function loadSettings()
     if not isChoice(settings.headFollowStrength, headFollowStrengths) then
         settings.headFollowStrength, settingsNeedSave = 1, true
     end
-    if settings.voiceProvider ~= 'hybrid' and settings.voiceProvider ~= 'convai' then
-        settings.voiceProvider, settingsNeedSave = 'hybrid', true
+    if settings.voiceProvider ~= 'pocket' and settings.voiceProvider ~= 'convai' then
+        settings.voiceProvider, settingsNeedSave = 'pocket', true
     end
-    if settings.omniSteps ~= 16 and settings.omniSteps ~= 32 then
-        settings.omniSteps, settingsNeedSave = 32, true
+    if settings.omniSteps ~= nil then
+        settings.omniSteps, settingsNeedSave = nil, true
     end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
@@ -642,10 +642,6 @@ local function rowsForTab()
                     note = value.value and 'On' or 'Off', setting = value.key, kind = 'setting'}
             end
         end
-        if matches('Local voice quality OmniVoice') then
-            result[#result + 1] = {key = 'setting:omniSteps', name = 'Local voice quality',
-                note = 'OmniVoice ' .. settings.omniSteps .. ' steps', kind = 'voice-quality'}
-        end
     end
     return result
 end
@@ -677,8 +673,8 @@ local function detail(player, item)
         body = clean(profile.summary or 'Conversation profile for ' .. profile.name, 1100)
             .. '\n\nConversation: ' .. (M.profileEnabled(profile.key) and 'on' or 'off')
             .. '\nCopies in party: ' .. copyCount(profile.key)
-        if localVoices[profile.key] and settings.voiceProvider == 'hybrid' and localVoiceState.provider == 'hybrid' then
-            body = body .. '\nVoice: OmniVoice ' .. settings.omniSteps .. ' steps'
+        if localVoices[profile.key] and settings.voiceProvider == 'pocket' and localVoiceState.provider == 'pocket' then
+            body = body .. '\nVoice: Pocket TTS'
         elseif profile.voiceName then body = body .. '\nVoice: ' .. clean(profile.voiceName, 140) end
         if not item.definition then body = body .. '\nChoose a model in Models, then assign this profile in Party.' end
         primary, primaryLabel, primaryEnabled = 'spawn:' .. profile.key, 'Add a copy', item.definition ~= nil and #party < 8
@@ -705,17 +701,6 @@ local function detail(player, item)
             or 'Show companion reply subtitles during conversations.'
         body = body .. '\n\nCurrently ' .. (settings[item.setting] and 'on.' or 'off.')
         primary, primaryLabel, primaryEnabled = 'toggle:' .. item.setting, settings[item.setting] and 'Turn off' or 'Turn on', true
-    elseif item.kind == 'voice-quality' then
-        title = 'Local voice quality'
-        body = 'Johnny, Judy and Panam use OmniVoice. Other characters keep their Convai voices.'
-            .. '\n\n32 steps: fuller quality (default).\n16 steps: faster replies.'
-            .. '\n\nThe shared model stays loaded while the voice service runs. Changes apply to the next reply.'
-        local labels = {ready = 'Ready', speaking = 'Preparing a reply', loading = 'Loading', warming = 'Preparing voices',
-            error = 'Unavailable - restart the voice service', disabled = 'Not configured', stopping = 'Stopping',
-            stopped = 'Stopped', waiting = 'Waiting for the voice service'}
-        body = body .. '\n\nLocal voices: ' .. (labels[localVoiceState.state] or labels.waiting)
-        primary, primaryLabel, primaryEnabled = 'omni:32', 'Use 32 steps', settings.omniSteps ~= 32
-        secondary, secondaryLabel, secondaryEnabled = 'omni:16', 'Use 16 steps', settings.omniSteps ~= 16
     end
     if #party >= 8 and (tab == 'characters' or tab == 'models') then body = body .. '\n\nParty full: dismiss a copy before adding another.' end
     player:ConvaiManagerSetDetail(clean(title, 160), clean(body, 1800), primary, primaryLabel,
@@ -807,9 +792,6 @@ local function action(player, request)
         else player:ConvaiManagerSetSubtitles(nextValue) end
         settings[key] = nextValue
         savedFeedback((key == 'voice' and 'Voice playback' or 'Subtitles') .. (nextValue and ' on.' or ' off.'))
-    elseif request == 'omni:16' or request == 'omni:32' then
-        settings.omniSteps = tonumber(request:sub(6))
-        savedFeedback('OmniVoice ' .. settings.omniSteps .. ' steps selected for the next reply.')
     elseif request:sub(1, 7) == 'assign:' then
         local serial = tonumber(request:sub(8))
         if not findParty(serial) then say('That copy is no longer in your party.'); return end
@@ -871,7 +853,7 @@ function M.snapshot(player)
             headFollowStrength = settings.headFollowStrength,
             voiceProvider = settings.voiceProvider,
             uiLanguage = settings.uiLanguage,
-            omniSteps = settings.omniSteps, enabledByKey = enabled},
+            enabledByKey = enabled},
         localVoice = localVoiceState,
         memory = memorySnapshot(),
         scan = {started = scanStarted, finished = scanFinished, error = scanError,
@@ -921,14 +903,12 @@ function M.applySettings(player, values)
         elseif key == 'subtitleStyle' then
             if value ~= 'overhead' and value ~= 'dialogue' then return false, 'Choose Above speaker or Dialogue HUD.' end
             nextSettings.subtitleStyle = value
-        elseif key == 'omniSteps' then
-            if value ~= 16 and value ~= 32 then return false, 'Choose 16 or 32 voice steps.' end
-            nextSettings.omniSteps = value
         elseif key == 'uiLanguage' then
             if value ~= 'auto' and not isChoice(value, ui.supported()) then return false, ui.t('Choose an interface language.') end
             nextSettings.uiLanguage = value
         elseif key == 'voiceProvider' then
-            if value ~= 'hybrid' and value ~= 'convai' then return false, 'Choose OmniVoice or Convai voices.' end
+            if value == 'hybrid' then value = 'pocket' end
+            if value ~= 'pocket' and value ~= 'convai' then return false, 'Choose Pocket TTS or Convai voices.' end
             nextSettings.voiceProvider = value
         elseif key == 'eyeContactHeight' then
             if not isChoice(value, eyeContactHeights) then return false, 'Choose an eye-contact height from the available settings.' end

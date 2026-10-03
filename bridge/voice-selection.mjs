@@ -1,21 +1,23 @@
-import {ResidentVoice, voiceSteps} from './resident-voice.mjs';
+import {PocketVoice, validatePocketConfig} from './pocket-voice.mjs';
 import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
 // can begin from a settings draft while that routing remains unchanged.
-// Retiring CUDA work completes through EOF before a replacement may start.
+// Retiring CPU work completes through EOF before a replacement may start.
+const provider = value => value === 'hybrid' ? 'pocket' : value;
 export class VoiceSelection {
   constructor(config = {}, options = {}) {
-    this.registry = createVoiceProfileRegistry(config);
-    this.config = Object.freeze({...config, voices: Object.freeze({...this.registry.profiles,
+    const supplied = Object.keys(config).length > 0;
+    const validated = supplied ? validatePocketConfig(config) : null;
+    this.registry = validated?.registry || createVoiceProfileRegistry({});
+    this.config = Object.freeze({...validated, voices: Object.freeze({...this.registry.profiles,
       ...Object.fromEntries(Object.entries(this.registry.unavailable).map(([key, status]) => [key, Object.freeze({status})]))}),
       preparation: this.registry.preparation});
     this.options = options;
-    this.factory = options.factory || ((settings, hooks) => new ResidentVoice(settings, hooks));
-    this.configured = config.provider === 'hybrid' && this.registry.keys.length > 0;
-    this.provider = this.requestedProvider = 'hybrid';
-    this.steps = this.requestedSteps = voiceSteps(config.steps);
+    this.factory = options.factory || ((settings, hooks) => new PocketVoice(settings, hooks));
+    this.configured = !!validated && this.registry.keys.length > 0;
+    this.provider = this.requestedProvider = 'pocket';
     this.retiring = Promise.resolve(); this.releasing = false;
     this.state = this.configured ? 'stopped' : 'disabled'; this.details = {};
     this.availability = new Set(this.registry.keys); this.verifiedAvailability = null;
@@ -23,13 +25,13 @@ export class VoiceSelection {
   }
   get profileKeys() { return this.registry.keys; }
   hasProfile(key) { return this.registry.has(key) && this.availability.has(key); }
-  usesProfile(key) { return this.provider === 'hybrid' && this.configured && this.hasProfile(key); }
+  usesProfile(key) { return this.provider === 'pocket' && this.configured && this.hasProfile(key); }
   profileReady(key) { return this.usesProfile(key) && this.client?.profileReady(key) === true; }
   request(settings) {
-    if (['hybrid', 'convai'].includes(settings?.voiceProvider)) this.requestedProvider = settings.voiceProvider;
-    if ([16, 32].includes(settings?.omniSteps)) this.requestedSteps = settings.omniSteps;
+    const chosen = provider(settings?.voiceProvider);
+    if (['pocket', 'convai'].includes(chosen)) this.requestedProvider = chosen;
   }
-  get pending() { return this.provider !== this.requestedProvider || this.steps !== this.requestedSteps; }
+  get pending() { return this.provider !== this.requestedProvider; }
   get availabilityPending() { return !!this.verifiedAvailability
     && (this.availability.size !== this.verifiedAvailability.size
       || [...this.availability].some(key => !this.verifiedAvailability.has(key))); }
@@ -55,13 +57,13 @@ export class VoiceSelection {
     // Provisional configured profiles keep initial warmup intact. Once an idle
     // commit proves every reference unavailable, residency serves no local
     // route; release it without creating an automatic replacement loop.
-    return this.configured && this.availability.size > 0 && !this.closed && (this.provider === 'hybrid'
-      || this.requestedProvider === 'hybrid' || this.preview?.provider === 'hybrid');
+    return this.configured && this.availability.size > 0 && !this.closed && (this.provider === 'pocket'
+      || this.requestedProvider === 'pocket' || this.preview?.provider === 'pocket');
   }
   setPreview(preview) {
-    const next = preview && ['hybrid','convai'].includes(preview.provider) && [16,32].includes(preview.steps)
-      ? {provider:preview.provider, steps:preview.steps} : null;
-    const changed = this.preview?.provider !== next?.provider || this.preview?.steps !== next?.steps;
+    const chosen = provider(preview?.provider);
+    const next = preview && ['pocket','convai'].includes(chosen) ? {provider:chosen} : null;
+    const changed = this.preview?.provider !== next?.provider;
     this.preview = next;
     return changed;
   }
@@ -87,11 +89,11 @@ export class VoiceSelection {
   publish(state = this.state, extra = {}) {
     this.state = state;
     const value = {...this.details, version: 1, state, provider: this.provider,
-      requestedProvider: this.requestedProvider, pending: this.pending, steps: this.steps,
-      requestedSteps: this.requestedSteps, configured: this.configured, bridgePid: process.pid,
+      requestedProvider: this.requestedProvider, pending: this.pending,
+      configured: this.configured, bridgePid: process.pid,
       configuredProfiles: this.profileKeys,
       availabilityPending: this.availabilityPending, routeRevision: this.routeRevision,
-      routedProfiles: this.provider === 'hybrid' ? [...this.availability].sort() : [],
+      routedProfiles: this.provider === 'pocket' ? [...this.availability].sort() : [],
       previewActive: !!this.preview, previewProvider: this.preview?.provider,
       preparationOnly: this.provider === 'convai' && this.wantsLocal,
       updated: Date.now(), ...extra};
@@ -102,14 +104,13 @@ export class VoiceSelection {
     if (!this.pending && !this.availabilityPending) { this.settleRouting(); return false; }
     if (busy) { this.reconcile(); this.publish(); return false; }
     const previous = new Set(this.profileKeys.filter(key => this.usesProfile(key)));
-    this.provider = this.requestedProvider; this.steps = this.requestedSteps;
+    this.provider = this.requestedProvider;
     if (this.verifiedAvailability) this.availability = new Set(this.verifiedAvailability);
     const changedRoutes = this.profileKeys.filter(key => previous.has(key) !== this.usesProfile(key));
     if (changedRoutes.length) {
       this.routeRevision++;
       for (const key of changedRoutes) this.routeChanges.add(key);
     }
-    this.client?.setSteps(this.steps);
     this.reconcile();
     this.publish();
     this.settleRouting();
@@ -128,8 +129,6 @@ export class VoiceSelection {
       if (value.state === 'ready') this.stageAvailability(client);
       this.details = value; this.publish(value.state);
     }});
-    client.setSteps(this.provider === 'hybrid' ? this.steps
-      : this.preview?.provider === 'hybrid' ? this.preview.steps : this.requestedSteps);
     this.publish(this.releasing ? 'releasing' : 'loading');
     this.starting = this.retiring.then(async () => {
       if (this.client !== client || this.closed) return;
@@ -153,7 +152,7 @@ export class VoiceSelection {
       if (this.retiring !== completed) return;
       this.releasing = false;
       if (!this.client) {
-        this.details = {resident: false, cudaAllocatedMiB: 0, cudaReservedMiB: 0};
+        this.details = {resident: false, device: 'cpu', gpuVramBytes: 0};
         this.publish(this.closed ? 'stopped' : 'remote');
       }
     });
@@ -161,12 +160,12 @@ export class VoiceSelection {
     this.retiring.catch(() => this.publish('error', {detail: 'Could not release local voices. Restart the voice service.'}));
     return this.retiring;
   }
-  async synthesize(profile, text, options = {}) {
+  async synthesizeStream(profile, text, options = {}) {
     if (!this.usesProfile(profile)) throw Error('This character uses its Convai voice');
     await abortable(this.start(), options.signal); throwIfCancelled(options.signal);
     const client = this.client;
     if (!client || !this.usesProfile(profile)) throw Error('Voice selection changed before synthesis');
-    return client.synthesize(profile, text, {...options, steps: options.steps ?? this.steps});
+    return client.synthesizeStream(profile, text, options);
   }
   async prepareProfile(profile, options = {}) {
     const remote = reason => ({provider: 'convai', ready: true, reason});

@@ -1,6 +1,66 @@
 # Shared local voices
 
-The current local route is **base OmniVoice, 32 generation steps by default**,
+## Pocket TTS replacement — October 3
+
+The user approved the improved six-layer **Pocket TTS student** and requested
+that it replace OmniVoice. The local option is now **Pocket TTS (default)**;
+**Convai** remains the global online voice option. Saved Omni selections migrate
+to Pocket, while a saved Convai selection stays Convai. The former 16/32-step
+selector is removed: this distilled student uses one sampler step at CFG 1.
+
+Pocket uses **float32 on CPU**, with two inference threads by default, one
+shared model and per-character acoustic reference states. It does not load the
+teacher, allocate CUDA memory, use TensorRT or create a neural model per
+character. This trained student is English. The selected weight file is
+**438,033,312 bytes (417.74 MiB)**.
+
+The source integration has 75 available character references. Johnny uses the
+approved 22.286-second original-dialogue montage; Judy and Panam retain their
+approved original recordings. The remaining cast uses its existing attributed
+references. The four unprepared profiles use their configured Convai voices.
+No cloned/generated speech is used as a reference.
+
+- Selecting Pocket in an unsaved Settings draft begins loading immediately.
+  Apply keeps that worker; Revert or leaving unsaved Settings releases a worker
+  used only for the preview. A saved Convai choice starts without a local model.
+- Invite prepares the character's acoustic state, memory and connection before
+  allowing the world copy to spawn. Eight reference states are cached; they can
+  be re-encoded from their own verified recording after eviction.
+- Convai generates the original reply text once. Pocket receives the complete
+  reply once and yields real PCM decoder chunks. One continuous renderer begins
+  from an accepted prefix and returns only after the device drains. There is no
+  application-level text splitting, full-WAV playback gate, denoising, gain
+  normalization, pitch/speed change, fades or crossfades.
+- Native lips use the existing phonetic/native-shape mapping. Rhubarb analyses
+  copied short windows alongside playback; audio never waits for a complete-file
+  lip analysis. Faces, subtitles and audible drain share the renderer's consumed
+  sample clock and exact request/entity/generation owner.
+- Cancellation stops the owned native generator, drains its decoder to actual
+  EOF and retains serial ownership until physical cleanup completes. Shutdown
+  has bounded owned-child/self-exit recovery; an unconfirmed exit prevents a
+  replacement model from starting.
+
+**Qualification:** the student was approved from listening samples and measured
+on the verified WSL CPU runtime. The new source worker/client, ownership,
+selection, face/stream and real muted-browser tests pass. An actual native Windows
+student check passed incremental output, physical cancellation, cached-reference
+reuse and confirmed shutdown. A combined native student/muted Edge/Rhubarb check
+played a prefix before generation completed, used phonetic lip shapes, drained
+the exact sample count with zero underruns and returned the mouth to neutral.
+Live-game activation is still pending; this paragraph does not claim an installed
+Pocket game reply. Packaging remains deferred.
+
+See [Pocket runtime](POCKET_TTS_RUNTIME.md) for the verified asset contract,
+stream API, development setup and current runtime limitations. The original
+experimental exports and their receipts remain unchanged; user adoption is a
+separate local receipt.
+
+## Former OmniVoice route
+
+The following describes the retained historical GPU implementation and its
+experiments, rather than the new production voice selection.
+
+The former local route was **base OmniVoice, 32 generation steps by default**,
 with 16 steps available in Companion Manager → Settings → Local voice quality. Both settings
 use **FP16 on CUDA through PyTorch**, without TensorRT or `torch.compile`.
 The numbers 16 and 32 describe generation steps, not floating-point precision.

@@ -18,7 +18,7 @@ export class VoicePreviewLease {
       && typeof value.owner === 'string' && /^[A-Za-z0-9_.:-]{8,96}$/.test(value.owner)
       && Number.isSafeInteger(value.sequence) && value.sequence > 0 && value.sequence <= 2147483647
       && Number.isSafeInteger(value.updated) && value.updated > 0 && fresh(value, now)
-      && (!value.active || (['hybrid', 'convai'].includes(value.provider) && [16,32].includes(value.steps)));
+      && (!value.active || ['pocket', 'hybrid', 'convai'].includes(value.provider));
     if (valid && !this.retired.has(value.owner)) {
       if (!this.last || !fresh(this.last, now)) this.last = value;
       else if (value.owner === this.last.owner) {
@@ -29,6 +29,6 @@ export class VoicePreviewLease {
       }
     }
     const current = fresh(this.last, now) && this.last.active ? this.last : null;
-    return current ? {provider:current.provider, steps:current.steps} : null;
+    return current ? {provider:current.provider === 'hybrid' ? 'pocket' : current.provider} : null;
   }
 }

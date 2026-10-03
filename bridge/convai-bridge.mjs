@@ -6,7 +6,9 @@ import {audioReady} from './speech-audio.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
 import {PhoneticLipsync} from './phonetic-lipsync.mjs';
-import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
+import {SpeechSlots} from './speech-stream.mjs';
+import {deliverPocketSpeech} from './pocket-speech.mjs';
+import {ownedPocketFace} from './pocket-facial-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 import {MicrophoneSession} from './microphone-session.mjs';
 import {randomUUID} from 'node:crypto';
@@ -44,13 +46,14 @@ const relationshipVariants = JSON.parse(await readFile(resolve(stateDirectory, '
   throw error;
 }));
 const relationshipRoutes = new RelationshipRouting({ordinaryIds: ids, variants: relationshipVariants});
-const localVoiceConfigPath = resolve(stateDirectory, 'local-voices.json');
+const localVoiceConfigPath = resolve(stateDirectory, 'pocket-voices.json');
 const voiceConfig = JSON.parse(await readFile(localVoiceConfigPath, 'utf8').catch(error => {
   if (error.code === 'ENOENT') return '{}';
   throw error;
 }));
 let voiceMetricsWriting = Promise.resolve();
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
+  pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   onState: state => {
     voiceMetricsWriting = voiceMetricsWriting.catch(() => {}).then(() => atomic(resolve(runtime, 'local-voice-state.json'), JSON.stringify(state)));
     return voiceMetricsWriting;
@@ -200,13 +203,6 @@ const readSpeechState = async () => {
   try { return JSON.parse(await readFile(resolve(runtime, 'speech-state.json'), 'utf8')); } catch { return {}; }
 };
 const slots = new SpeechSlots({depot: audioDepot, readState: readSpeechState});
-let streamWriting = Promise.resolve(), streaming = 0;
-function writeStreamManifest(document, current) {
-  const job = streamWriting.catch(() => {}).then(async () => {
-    if (await current()) await atomic(resolve(runtime, 'speech-stream.json'), JSON.stringify(document), {isCurrent: current, isCurrentSync: current.sync});
-  });
-  streamWriting = job; return job;
-}
 const companionActions = new CompanionActions({createToken: () => 'drive-' + randomUUID(),
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options)});
 const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet)});
@@ -239,7 +235,7 @@ const routeFor = input => preparedInputs.get(input)
   || knowledgeRouter.configFor(input.profileKey, conversationScope(input), boundaryFor(input));
 const sessionKey = input => routeFor(input)?.sessionKey || JSON.stringify(['unavailable', input.profileKey, input.requestId]);
 const completeContext = input => JSON.stringify([conversationContext(input), routeFor(input)?.guard?.characterId, realtimeSessions.get(sessionKey(input)) || null,
-  localVoice.usesProfile(input.profileKey) ? localVoice.steps : 'convai']);
+  localVoice.usesProfile(input.profileKey) ? 'pocket' : 'convai']);
 const realtimeConfig = input => ({key, characterId: routeFor(input)?.guard?.characterId, sessionId: realtimeSessions.get(sessionKey(input)),
   scope: routeFor(input)?.scope || conversationScope(input), ...(routeFor(input)?.remoteConfig || {}),
   context: conversationContext(input), text: battleTrigger(input), reaction: input.reaction,
@@ -268,7 +264,7 @@ const voiceRouteWaiters = new Set();
 let relationshipRouteSync = Promise.resolve(), relationshipRouteReservation = false;
 const relationshipRoutePending = new Map();
 function voiceBoundaryBusy() {
-  return !!(active || streaming || polling || micPolling || mic.current || prefetchPolling || memoryQuiescing
+  return !!(active || polling || micPolling || mic.current || prefetchPolling || memoryQuiescing
     || phone.active || relationshipRouteReservation);
 }
 function syncRelationshipRoutes() {
@@ -342,7 +338,7 @@ function invitedVoiceCurrent(profile, receipt) {
   if (stopped || receipt?.ready !== true || localVoice.pending || localVoice.availabilityPending
       || voiceRouteReservation || voiceRoutePending.size) return false;
   if (receipt.provider === 'convai') return !localVoice.usesProfile(profile);
-  return receipt.provider === 'omnivoice' && receipt.profile === profile
+  return receipt.provider === 'pocket' && receipt.profile === profile
     && localVoice.usesProfile(profile) && localVoice.profileReady(profile);
 }
 async function prepareInvitedVoice(profile, {signal} = {}) {
@@ -350,8 +346,8 @@ async function prepareInvitedVoice(profile, {signal} = {}) {
     throwIfCancelled(signal);
     if (stopped) throw Error('Voice service is closed');
     const receipt = await localVoice.prepareProfile(profile, {signal});
-    if (receipt?.ready !== true || !['convai', 'omnivoice'].includes(receipt.provider)
-        || (receipt.provider === 'omnivoice' && receipt.profile !== profile)) {
+    if (receipt?.ready !== true || !['convai', 'pocket'].includes(receipt.provider)
+        || (receipt.provider === 'pocket' && receipt.profile !== profile)) {
       throw Error('Local voice readiness could not be verified');
     }
     await abortable(syncVoiceRoutes({wait: true, signal}), signal);
@@ -359,7 +355,7 @@ async function prepareInvitedVoice(profile, {signal} = {}) {
     if (stopped) throw Error('Voice service is closed');
     // A settings change can commit while page retirement is awaiting its host.
     // Recheck the actual route before authorizing this invitation's connection.
-    if (receipt.provider === 'omnivoice') {
+    if (receipt.provider === 'pocket') {
       if (!localVoice.usesProfile(profile) || !localVoice.profileReady(profile)) continue;
     } else if (localVoice.usesProfile(profile)) continue;
     return receipt;
@@ -391,50 +387,35 @@ const prefetch = new GroupPrefetch({prepare: async (input, {signal}) => {
   // The SDK has no session fork/rollback. Existing sessions are warm-only so
   // cancelled predictions cannot alter memory or erase conversation history.
   if (realtimeConfig(input).endUserId || realtimeSessions.has(sessionKey(input))) throw Error('Identified or existing character session is warm-only');
-  return synthesizeReply(input, {...await realtime.prepare(realtimeConfig(input), {signal}), transport: 'realtime'}, signal);
+  // Local speech belongs to the submitted turn's game admission, never a
+  // predicted future turn. The cached result remains text until respond().
+  return {...await realtime.prepare(realtimeConfig(input), {signal}), transport: 'realtime'};
 }});
 
-async function synthesizeReply(input, result, signal) {
+async function synthesizeReply(input, result, signal, current, profile = profileFor(input, roster), receiptPrepared = preparedInputs.get(input)) {
   if (!localVoice.usesProfile(input.profileKey)) return {...result, timing: {...result.timing, voiceProvider: 'convai'}};
   throwIfCancelled(signal);
-  try {
-    const phrases = splitSpeechText(result.text), steps = localVoice.steps;
-    const generated = await synthesizePhrase(input.profileKey, phrases[0], {signal, steps});
-    return {...result, ...generated, text: result.text, timing: {...result.timing, ...generated.timing},
-      streamPlan: phrases.length > 1 ? {phrases, steps} : undefined};
-  } catch (error) {
-    throwIfCancelled(signal);
-    console.error('[CyberpunkConvai] Local speech:', error.message);
-    // Preserve a successful dialogue turn if a local model is unavailable.
-    // Do not substitute a different character's voice or turn Convai TTS on.
+  if ((await readSpeechState()).continuousAvailable !== true) {
     return {...result, audio: undefined, faces: [], captions: [],
-      audioError: 'Local voice is unavailable; showing the written reply.'};
+      audioError: 'Local streaming is unavailable; showing the written reply.'};
   }
-}
-
-async function synthesizePhrase(profile, text, options) {
-  const generated = await localVoice.synthesize(profile, text, options);
-  try {
-    const facial = await lipsync.analyse(generated.audio, options);
-    return {...generated, ...facial, timing: {...generated.timing, ...facial.timing}};
-  } catch (error) {
-    throwIfCancelled(options?.signal);
-    console.error('[CyberpunkConvai] Local lip-sync fallback:', error.message);
-    return generated;
-  }
+  const speech = continuousSpeech(input, profile, current, signal, receiptPrepared, true);
+  return deliverPocketSpeech({input, profile, result, current, signal, voice: localVoice, host: realtime, speech, lipsync,
+    onAnalysis: timing => measure(input, {localLipAnalysis: timing})});
 }
 
 async function status(state, detail = '') {
   await atomic(statusPath, JSON.stringify({state, detail: detail.slice(0, 200), updated: Date.now()}));
 }
 
-function continuousSpeech(input, profile, current, signal, receiptPrepared = preparedInputs.get(input)) {
+function continuousSpeech(input, profile, current, signal, receiptPrepared = preparedInputs.get(input), local = false) {
   const options = {signal, isCurrent: current, isCurrentSync: current.sync};
   return new ConvaiContinuousSpeech({input, profile, current, signal,
+    ...(local ? {faceBuilder: ownedPocketFace} : {}),
     readControl: () => readFile(resolve(runtime, 'continuous-control.json'), 'utf8'),
     writeState: value => atomic(resolve(runtime, 'continuous-speech.json'), JSON.stringify(value), options),
     writeReply: value => atomic(replyPath, JSON.stringify(value), options),
-    onPublished: timing => measure(input, {...timing, stream: {mode: 'convai-continuous'}, nativePlaybackObserved: false}),
+    onPublished: timing => measure(input, {...timing, stream: {mode: local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}),
     onStarted: timing => measure(input, {...timing, continuousPlaybackObserved: true}),
     onGenerated: async text => {
       // Microphone context refresh creates a new projection at finish. Its
@@ -467,12 +448,16 @@ async function convaiReply(input, profile, current, signal) {
 async function respond(input, profile, {signal, prepared, current} = {}) {
   if (await audioReady(runtime)) {
     if (prepared) {
-      try { return await prepared; }
+      let cached;
+      try { cached = await prepared; }
       catch { throwIfCancelled(signal); /* Failed speculation falls back to the submitted turn. */ }
+      // Once a cached turn enters audible local playback, failure must not
+      // submit that same prompt to Convai again or replay another response.
+      if (cached) return synthesizeReply(input, cached, signal, current, profile);
     }
     throwIfCancelled(signal);
     if (!localVoice.usesProfile(input.profileKey)) return convaiReply(input, profile, current, signal);
-    return synthesizeReply(input, {...await realtime.reply(realtimeConfig(input), {signal}), transport: 'realtime'}, signal);
+    return synthesizeReply(input, {...await realtime.reply(realtimeConfig(input), {signal}), transport: 'realtime'}, signal, current, profile);
   }
   prefetch.invalidate(); prepared?.cancel();
   throwIfCancelled(signal);
@@ -490,26 +475,18 @@ async function publishResult(input, profile, result, current = async () => true,
     realtimeSessions.set(sessionKey(input), result.sessionID);
     connections.used(input, result.timing); prefetch.published(input, result.text); prefetchObserved = '';
     await measure(input, {transport: 'realtime', timing: result.timing,
-      stream: {id: result.liveDelivery.id, mode: 'convai-continuous', complete: true},
+      stream: {id: result.liveDelivery.id, mode: result.timing?.voiceProvider === 'pocket' ? 'pocket-continuous' : 'convai-continuous', complete: true},
       continuousPlaybackCompleteAt: Date.now()});
     await status('ready', profile.name);
     return true;
   }
   const preparationStartedAt = Date.now();
-  let audio, face, stream, audioError = result.audioError;
+  let audio, face, audioError = result.audioError;
   if (result.audio) {
     try {
-      if (result.streamPlan) {
-        stream = new SpeechStream({input, ...result.streamPlan, slots, readState: readSpeechState, current, signal,
-          writeManifest: document => writeStreamManifest(document, current),
-          synthesize: (text, options) => synthesizePhrase(profile.key, text, options)});
-        const first = await stream.begin(result);
-        audio = first.audio; face = first.face;
-      } else {
-        const id = randomUUID();
-        await slots.begin(id, current);
-        audio = await slots.write(id, 1, result.audio, current);
-      }
+      const id = randomUUID();
+      await slots.begin(id, current);
+      audio = await slots.write(id, 1, result.audio, current);
       if (!await current()) return false;
       try { face ??= buildFacialTimeline(result, input); }
       catch (error) { console.error('[CyberpunkConvai] Facial timing unavailable:', error.message); }
@@ -518,7 +495,7 @@ async function publishResult(input, profile, result, current = async () => true,
         captions: result.captions, duration: audio.duration, face,
       }), {signal, isCurrent: current, isCurrentSync: current.sync});
     } catch (error) {
-      audio = undefined; face = undefined; stream = undefined;
+      audio = undefined; face = undefined;
       audioError = 'Voice could not be prepared; showing the written reply.';
       console.error('[CyberpunkConvai] Voice preparation failed:', error.message);
     }
@@ -526,7 +503,7 @@ async function publishResult(input, profile, result, current = async () => true,
   if (!await current()) return false;
   const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audio, face, audioError,
-    stream: stream?.descriptor(), updated: Date.now()}), {signal, isCurrent: current, isCurrentSync: current.sync});
+    updated: Date.now()}), {signal, isCurrent: current, isCurrentSync: current.sync});
   if (!committed || !await current()) return false;
   (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);
   if (result.transport === 'realtime') connections.used(input, result.timing);
@@ -535,20 +512,8 @@ async function publishResult(input, profile, result, current = async () => true,
   prefetchObserved = '';
   await measure(input, {transport: result.transport || 'rest', timing: result.timing, preparation: result.preparation,
     audioStoreMs: Date.now() - preparationStartedAt, publishedAt: Date.now(), audioDurationSeconds: audio?.duration,
-    stream: stream ? {id: stream.manifest.streamId, chunks: stream.phrases.length, mode: 'local-phrases'} : undefined,
     nativePlaybackObserved: false});
   await status('ready', profile.name);
-  if (stream) {
-    streaming++;
-    try {
-      await stream.finish();
-      if (await current()) await measure(input, {stream: {id: stream.manifest.streamId, mode: 'local-phrases',
-        chunks: stream.manifest.chunks.length, complete: stream.manifest.complete, error: stream.error,
-        productionMs: Date.now() - stream.started, audioDurationSeconds: stream.totalDuration,
-        timings: stream.manifest.chunks.map(chunk => ({index: chunk.index, readyAt: chunk.readyAt,
-          duration: chunk.audio.duration, ...chunk.timing}))}});
-    } finally { streaming--; prefetchObserved = ''; }
-  }
   return true;
 }
 
@@ -580,20 +545,20 @@ const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
     if (!prepared || !await knowledgeRouter.current(prepared)) return;
     const command = JSON.parse(await readFile(micPath, 'utf8'));
     if (command.input?.requestId !== input.requestId || command.action === 'cancel') return;
-    const speech = microphoneSpeech.get(input.requestId);
-    const spoken = await synthesizeReply(input, {...result, transport: 'realtime',
-      ...(speech ? {liveDelivery: {published: speech.published, ended: speech.ended,
-        generated: speech.generated, id: speech.token}} : {})}, signal);
-    if (!speech?.generated) {
-      await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
-      stagedKnowledgeTurn(prepared);
-    }
     const current = async () => {
       if (stopped || signal?.aborted) return false;
       const latest = JSON.parse(await readFile(micPath, 'utf8').catch(() => '{}'));
       return latest.input?.requestId === input.requestId && latest.action !== 'cancel' && await knowledgeRouter.current(prepared);
     };
     current.sync = () => !stopped && !signal?.aborted && knowledgeRouter.currentSync(prepared);
+    const speech = microphoneSpeech.get(input.requestId);
+    const spoken = await synthesizeReply(input, {...result, transport: 'realtime',
+      ...(speech ? {liveDelivery: {published: speech.published, ended: speech.ended,
+        generated: speech.generated, id: speech.token}} : {})}, signal, current, profileFor(input, roster), prepared);
+    if (!spoken.liveDelivery?.generated) {
+      await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
+      stagedKnowledgeTurn(prepared);
+    }
     await publishResult(input, profileFor(input, roster), spoken, current, signal);
     microphoneSpeech.delete(input.requestId);
   },
@@ -951,7 +916,6 @@ async function pollPrefetch() {
     }
     // Feed the current speaker before speculating on another local TTS job.
     // Connection maintenance above continues while this utterance streams.
-    if (streaming) return;
     const raw = await readFile(prefetchPath, 'utf8').catch(() => '');
     if (raw === prefetchObserved) return;
     prefetchObserved = raw;

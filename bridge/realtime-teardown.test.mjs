@@ -336,7 +336,7 @@ async function assetFixture(t, {browserExecutable, onLaunch, omitAsset} = {}) {
   const directory = join(root, '预建 assets with spaces');
   await mkdir(directory);
   const assets = new Map(['realtime-client.js', 'continuous-pcm-player.mjs',
-    'continuous-pcm-core.mjs', 'continuous-pcm-worklet.mjs']
+    'continuous-pcm-core.mjs', 'continuous-pcm-worklet.mjs', 'local-pcm-client.mjs']
     .map(name => [name, '// offline fixture: ' + name + '\n']));
   for (const [name, contents] of assets) if (name !== omitAsset)
     await writeFile(join(directory, name), contents);
@@ -419,7 +419,7 @@ test('browser executable and client asset environment choices are captured at co
   }
 });
 
-test('packaged client assets preserve the four-file route allowlist and loopback Host guard', async t => {
+test('packaged client assets preserve the exact route allowlist and loopback Host guard', async t => {
   const executable = resolve(process.cwd(), 'packaged 浏览器/browser.exe');
   const {host, browser, launches, assets} = await assetFixture(t, {browserExecutable: executable});
   await host.start();

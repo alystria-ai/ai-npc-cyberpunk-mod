@@ -1,0 +1,164 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {EventEmitter} from 'node:events';
+import {PassThrough, Writable} from 'node:stream';
+import {resolve} from 'node:path';
+import {PocketVoice, validatePocketConfig, POCKET_LIMITS,
+  POCKET_SOURCE_REVISION, POCKET_SOURCE_SHA256} from './pocket-voice.mjs';
+
+const tick = () => new Promise(done => setImmediate(done));
+const profile = 'johnny-silverhand';
+const config = () => ({version: 1, provider: 'pocket', engine: 'pocket-tts',
+  runtime: Object.fromEntries(['sourceDirectory','exportDirectory','referenceDirectory','workDirectory']
+    .map(key => [key, resolve('pocket-fixtures', key)])),
+  model: {sha256:'a'.repeat(64),configSha256:'b'.repeat(64),tokenizerSha256:'c'.repeat(64),
+    receiptSha256:'d'.repeat(64),inputIdentity:'e'.repeat(64),selectedStep:1500},
+  cpu: {threads:2}, voices: {[profile]: {reference:'runtime/voice-references/johnny.wav',
+    sha256:'f'.repeat(64), transcript:'One native reference line.'}},
+  preparation: {startupProfiles:[],maxCachedProfiles:2}});
+
+function clock() {
+  const jobs = new Map(); let time = 0, sequence = 0;
+  return {set(callback, delay) { const id=++sequence; jobs.set(id,{callback,at:time+delay}); return id; },
+    clear:id=>jobs.delete(id), advance(ms) { const target=time+ms;
+      for (;;) { const next=[...jobs].filter(([,job])=>job.at<=target).sort((a,b)=>a[1].at-b[1].at)[0];
+        if (!next) break; jobs.delete(next[0]); time=next[1].at; next[1].callback(); } time=target; }};
+}
+
+function harness({autoReady=true, settings=config(), timers}={}) {
+  const requests=[], states=[], launches=[];
+  const child=new EventEmitter(); child.pid=987; child.kills=0; child.kill=()=>{child.kills++;return true;};
+  child.stdout=new PassThrough(); child.stderr=new PassThrough();
+  child.stdin=new Writable({write(bytes,encoding,done) { requests.push(JSON.parse(bytes.toString()));done(); }});
+  const client=new PocketVoice(settings,{project:process.cwd(),configPath:resolve('pocket-fixtures/config.json'),
+    pythonExecutable:resolve('pocket-fixtures/python.exe'),spawnImpl:(exe,args,options)=>{
+      launches.push({exe,args,options});if(autoReady)queueMicrotask(()=>ready());return child;},
+    onState:state=>states.push(state),...(timers?{setTimer:timers.set,clearTimer:timers.clear}:{})});
+  const send=frame=>child.stdout.write(JSON.stringify({owner:client.owner,...frame})+'\n');
+  const profiles=()=>({profiles:[profile],preparedProfiles:[profile],unavailableProfiles:{}});
+  const ready=(extra={})=>send({op:'ready',protocolVersion:1,engine:'pocket-tts',device:'cpu',dtype:'torch.float32',
+    runtime:'pytorch',layers:6,decodeSteps:1,sampleCfg:1,threads:2,gpuVramBytes:0,sourceRevision:POCKET_SOURCE_REVISION,
+    sourceSha256:POCKET_SOURCE_SHA256,model:settings.model,workerPaths:settings.runtime,
+    profiles:[profile],preparedProfiles:[],referenceHashes:{[profile]:settings.voices[profile].sha256},...extra});
+  const prepared=(index=0,extra={})=>{const req=requests[index];send({op:'prepared',id:req.id,profile:req.profile,
+    preparationMs:5,...profiles(),...extra});};
+  const pcm=(request,index,offsetFrames,values=[0,.123,-.42,1.2],extra={})=>{
+    const bytes=Buffer.alloc(values.length*4);values.forEach((value,at)=>bytes.writeFloatLE(value,at*4));
+    send({op:'pcm',id:request.id,profile,index,offsetFrames,frames:values.length,sampleRate:24000,channels:1,
+      format:'f32le',pcm:bytes.toString('base64'),yieldMs:index*40,copiedReadyMs:index*45,...extra});return bytes;};
+  const done=(request,frames=8,chunks=2,extra={})=>send({op:'done',id:request.id,profile,frames,chunks,
+    sampleRate:24000,channels:1,preparationMs:0,firstPcmYieldMs:40,firstPcmCopiedReadyMs:45,
+    generationMs:110,...profiles(),...extra});
+  const finish=code=>child.emit('close',code??0);
+  return {client,child,requests,states,launches,send,ready,prepared,pcm,done,profiles,finish,
+    close:async()=>{const closing=client.close();finish();await closing;}};
+}
+
+test('requires an explicit hashed student and executable without a development fallback',()=>{
+  const original=config(),validated=validatePocketConfig(original);original.model.sha256='0'.repeat(64);
+  assert.equal(validated.model.sha256,'a'.repeat(64));
+  for (const invalid of [undefined,'python.exe','',resolve('python.exe')+'\n']) {
+    assert.throws(()=>new PocketVoice(config(),{project:process.cwd(),configPath:resolve('config.json'),pythonExecutable:invalid}),
+      /absolute|fall back/);
+  }
+  for (const override of [{version:2},{engine:'teacher'},{model:{sha256:'a'.repeat(64)}},{cpu:{threads:12}},
+    {sampling:{decodeSteps:2}},{runtime:{sourceDirectory:resolve('source')}}])
+    assert.throws(()=>validatePocketConfig({...config(),...override}));
+});
+
+test('starts one hidden CPU worker and attests every selected asset before readiness',async()=>{
+  const h=harness();await h.client.start();await h.client.start();assert.equal(h.launches.length,1);
+  const launch=h.launches[0];assert.equal(launch.options.windowsHide,true);
+  assert.deepEqual(launch.options.stdio,['pipe','pipe','pipe']);assert.equal(launch.options.shell,undefined);
+  assert.equal(launch.options.env.CUDA_VISIBLE_DEVICES,'-1');assert.equal(launch.options.env.OMP_NUM_THREADS,'2');
+  assert.equal(launch.options.env.HF_TOKEN,undefined);assert.equal(launch.options.env.KAGGLE_API_TOKEN,undefined);
+  assert.equal(h.client.loaded,true);assert.equal(h.client.profileReady(profile),false);
+  assert.equal(h.states.at(-1).engine,'pocket-tts');assert.equal(h.states.at(-1).gpuVramBytes,0);
+  await h.close();assert.equal(h.child.stdin.writableEnded,true);assert.equal(h.client.loaded,false);
+});
+
+test('rejects wrong model, source, CPU precision, paths or conditioning identities before streaming',async()=>{
+  for (const override of [{model:{...config().model,sha256:'0'.repeat(64)}},{sourceSha256:'0'.repeat(64)},
+    {dtype:'torch.float16'},{layers:24},{device:'cuda:0'},
+    {workerPaths:{...config().runtime,exportDirectory:resolve('wrong')}},{referenceHashes:{[profile]:'0'.repeat(64)}}]) {
+    const h=harness({autoReady:false});const failed=assert.rejects(h.client.start(),/attest|reference identities/);
+    h.ready(override);await failed;assert.equal(h.client.loaded,false);await h.close();
+  }
+});
+
+test('passes a whole reply once and hands off copied PCM before completion with ACK backpressure',async()=>{
+  const h=harness(),packets=[];let release;
+  const gate=new Promise(done=>{release=done;});
+  const text="My man, Dex DeShawn. How's that quiet life workin' out for you now, choom?";
+  let completed=false;
+  const synthesis=h.client.synthesizeStream(profile,text,{onPcm:async packet=>{packets.push(packet);if(packet.index===1)await gate;}});
+  synthesis.then(()=>{completed=true;});await tick();h.prepared();await tick();
+  const request=h.requests[1];assert.equal(request.op,'stream');assert.equal(request.text,text);
+  const first=h.pcm(request,1,0);await tick();assert.equal(packets.length,1);assert.equal(completed,false);
+  assert.equal(h.requests.filter(row=>row.op==='ack').length,0,'a reused producer buffer cannot overtake the sink');
+  assert.equal(packets[0].timebase,'audio-seconds');assert.equal(packets[0].startSeconds,0);
+  assert.deepEqual([...packets[0].pcm],Array.from({length:4},(_,at)=>first.readFloatLE(at*4)));
+  assert.ok(packets[0].pcm[3]>1,'source float PCM is not normalized or clipped');
+  release();await tick();assert.equal(h.requests.at(-1).op,'ack');
+  h.pcm(request,2,4);await tick();assert.equal(packets[1].startSeconds,4/24000);h.done(request);
+  const result=await synthesis;assert.equal(result.frames,8);assert.equal(result.chunks,2);assert.equal(result.audio,undefined);
+  assert.equal(result.timing.voiceFirstPcmYieldMs,40);assert.equal(result.timing.voiceFirstPcmCopiedReadyMs,45);
+  assert.equal(h.requests.filter(row=>row.op==='stream').length,1);await h.close();
+});
+
+test('abort releases the caller but the next turn waits for confirmed physical cancellation',async()=>{
+  const h=harness(),controller=new AbortController();let heard=0;
+  const first=h.client.synthesizeStream(profile,'A first complete reply.',{signal:controller.signal,onPcm:()=>{heard++;}});
+  const rejected=assert.rejects(first,{name:'AbortError'});await tick();h.prepared();await tick();const request=h.requests[1];
+  controller.abort();await rejected;assert.equal(h.requests.at(-1).op,'cancel');
+  const second=h.client.prepareProfile(profile);await tick();assert.equal(h.requests.filter(row=>row.op==='prepare').length,1);
+  h.pcm(request,1,0);await tick();assert.equal(heard,0,'late cancelled PCM is never admitted');
+  h.send({op:'cancelled',id:request.id,profile,...h.profiles()});await tick();
+  assert.equal(h.requests.at(-1).op,'prepare');h.prepared(h.requests.length-1);await second;await h.close();
+});
+
+test('sink failure cancels the exact request and never acknowledges unpublished audio',async()=>{
+  const h=harness();const synthesis=h.client.synthesizeStream(profile,'One reply.',{onPcm:()=>{throw Error('sink owner retired');}});
+  const rejected=assert.rejects(synthesis,/sink owner retired/);await tick();h.prepared();await tick();
+  const request=h.requests[1];h.pcm(request,1,0);await tick();assert.equal(h.requests.at(-1).op,'cancel');
+  assert.equal(h.requests.filter(row=>row.op==='ack').length,0);
+  h.send({op:'cancelled',id:request.id,profile,...h.profiles()});await rejected;await h.close();
+});
+
+test('withdraws only a changed reference and never aliases it to another voice',async()=>{
+  const h=harness();const preparation=h.client.prepareProfile(profile),rejected=assert.rejects(preparation,/could not prepare/);
+  await tick();h.send({op:'error',id:h.requests[0].id,profile,profiles:[],preparedProfiles:[],unavailableProfiles:{[profile]:'unavailable'}});
+  await rejected;assert.equal(h.client.hasProfile(profile),false);assert.equal(h.client.profileReady(profile),false);
+  assert.deepEqual(await h.client.prepareProfile(profile),{provider:'convai',ready:true,reason:'unavailable'});
+  await h.close();
+});
+
+test('rejects invalid packet order and copied-ready clocks without delivering it',async()=>{
+  for (const extra of [{offsetFrames:4},{index:2},{copiedReadyMs:30},{frames:10}]) {
+    const h=harness();let heard=0;
+    const synthesis=h.client.synthesizeStream(profile,'One reply.',{onPcm:()=>{heard++;}}),rejected=assert.rejects(synthesis,/PCM/);
+    await tick();h.prepared();await tick();h.pcm(h.requests[1],1,0,undefined,extra);
+    await rejected;assert.equal(heard,0);assert.equal(h.client.profileReady(profile),false);await h.close();
+  }
+});
+
+test('terminal native synthesis failure retires the owned worker and cannot reuse a possibly unjoined decoder',async()=>{
+  const h=harness();const synthesis=h.client.synthesizeStream(profile,'One reply.',{onPcm:()=>{}});
+  const rejected=assert.rejects(synthesis,/generation stopped/);await tick();h.prepared();await tick();
+  const request=h.requests[1];h.send({op:'error',id:request.id,profile,terminal:true,...h.profiles()});await rejected;
+  assert.equal(h.child.stdin.writableEnded,true);assert.equal(h.client.profileReady(profile),false);
+  const count=h.requests.length;await assert.rejects(h.client.prepareProfile(profile),/generation stopped/);
+  assert.equal(h.requests.length,count,'a cached prompt cannot authorize another job on the failed worker');
+  h.finish(1);await h.client.close();
+});
+
+test('hung cancellation and shutdown kill only the owned handle and require exit confirmation',async()=>{
+  const timers=clock(),h=harness({timers});const controller=new AbortController();
+  const synthesis=h.client.synthesizeStream(profile,'One reply.',{signal:controller.signal,onPcm:()=>{}}),rejected=assert.rejects(synthesis,{name:'AbortError'});
+  await tick();h.prepared();await tick();controller.abort();await rejected;
+  timers.advance(POCKET_LIMITS.cancelMs);await tick();assert.ok(h.client.failure);assert.equal(h.child.stdin.writableEnded,true);
+  timers.advance(POCKET_LIMITS.cancelMs);assert.equal(h.child.kills,1);
+  const close=h.client.close(),failed=assert.rejects(close,/exit could not be confirmed/);
+  timers.advance(POCKET_LIMITS.exitMs);await failed;assert.equal(h.child.kills,1);
+  h.finish();
+});

@@ -232,7 +232,7 @@ local function profileDescription(profile, snapshot)
     if snapshot.settings.voiceProvider ~= 'convai' then
         for _, key in ipairs(snapshot.localVoice.routedProfiles or {}) do
             if key == profile.key then
-                voice = ui.t('OmniVoice {steps} steps',{steps=snapshot.settings.omniSteps})
+                voice = ui.t('Pocket TTS')
                 break
             end
         end
@@ -252,11 +252,11 @@ local function voiceServiceLabel(state)
         end
         return ui.t('Changing after the current reply')
     end
-    if state.preparationOnly and state.previewActive and state.previewProvider == 'hybrid' and state.state == 'ready' then
+    if state.preparationOnly and state.previewActive and state.previewProvider == 'pocket' and state.state == 'ready' then
         return ui.t('Ready · Unsaved selection')
     end
     local preview = voicePreview.inspect()
-    if preview.active and preview.provider == 'hybrid' and state.state == 'remote' then return ui.t('Preparing voices') end
+    if preview.active and preview.provider == 'pocket' and state.state == 'remote' then return ui.t('Preparing voices') end
     return ui.t(labels[state.state] or 'Waiting for voice service')
 end
 
@@ -603,13 +603,10 @@ local function schema()
         categories[#categories + 1] = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
             setting('voiceProvider', 'Companion voices', 'select', snapshot.settings.voiceProvider == 'convai' and 2 or 1, 1,
-                'OmniVoice uses prepared local character voices. Selecting it starts preparing the model immediately. Convai uses online voices. Apply saves your choice; Revert cancels the preview.',
-                {'OmniVoice', 'Convai'}),
-            setting('omniSteps', 'Local voice quality', 'select', snapshot.settings.omniSteps == 16 and 1 or 2, 2,
-                'Applies while OmniVoice is selected. 32 steps gives the preferred quality; 16 steps is faster. One shared model stays loaded until you select Convai or stop the voice service.',
-                {'16 steps · Faster', '32 steps · Higher quality (default)'}),
+                'Pocket TTS uses prepared local character voices. Selecting it starts preparing the model immediately. Convai uses online voices. Apply saves your choice; Revert cancels the preview.',
+                {'Pocket TTS', 'Convai'}),
             readonly('voice-status', 'Voice service', voiceStatus,
-                'OmniVoice starts preparing as soon as you select it here and stays warm after Apply. Revert or leaving without saving cancels the preview; no game restart is needed.'),
+                'Pocket TTS starts preparing as soon as you select it here and stays warm after Apply. Revert or leaving without saving cancels the preview; no game restart is needed.'),
         }, 'Use Apply to save changed settings, or Revert to discard them.')
         categories[#categories + 1] = category('subtitles', 'Subtitles', {
             setting('subtitles', 'Subtitles', 'bool', snapshot.settings.subtitles, true, 'Show companion replies using the selected subtitle display.'),
@@ -689,9 +686,6 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                 elseif key == 'subtitleStyle' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose Above speaker or Dialogue HUD.')} end
                     values.subtitleStyle = change.value == 1 and 'overhead' or 'dialogue'
-                elseif key == 'omniSteps' then
-                    if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose a voice quality.')} end
-                    values.omniSteps = change.value == 1 and 16 or 32
                 elseif key == 'uiLanguage' then
                     local choices = ui.choices()
                     if type(change.value) ~= 'number' or change.value ~= math.floor(change.value) or not choices[change.value] then
@@ -699,8 +693,8 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     end
                     values.uiLanguage = choices[change.value].value
                 elseif key == 'voiceProvider' then
-                    if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose OmniVoice or Convai voices.')} end
-                    values.voiceProvider = change.value == 1 and 'hybrid' or 'convai'
+                    if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose Pocket TTS or Convai voices.')} end
+                    values.voiceProvider = change.value == 1 and 'pocket' or 'convai'
                 elseif key == 'eyeContactHeight' or key == 'headFollowStrength' then
                     local heights,strengths=manager.gazeChoices()
                     local choices=key=='eyeContactHeight' and heights or strengths
