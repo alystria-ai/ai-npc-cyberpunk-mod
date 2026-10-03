@@ -198,3 +198,73 @@ files in Kaggle's 20 GB saved-output allocation. See [Kaggle's notebook limits](
 Exact local receipts and candidate source are under
 `runtime/voice-data-expansion-20261003/current-parent-audit` and
 `speaker-conditioning-experiment/hybrid-v2`.
+
+## October 4: measured conditioning comparison and blind listening
+
+All three matched 500-update teacher experiments completed. A uses the upstream
+same-recording conditioning pattern; B and C are our experimental modifications
+using paired recordings and an additional learned speaker identity, respectively.
+They share the custom fine-tuning corpus and runner. A is not the untouched stock
+Pocket model. The upstream [training guide](https://github.com/kyutai-labs/pocket-tts/blob/main/training/README.md)
+remains the basis for teacher fine-tuning and later depth distillation.
+
+The completed Tier 1 panel contains 24 original references and 144 matched
+short/long A/B/C EMA500 clips. CPU-only evaluation used independently pretrained
+WavLM and ECAPA speaker encoders; source recordings were unchanged. Long-prompt,
+character-balanced cosine averages were:
+
+| Encoder | A | B | C |
+| --- | ---: | ---: | ---: |
+| WavLM | 0.94343 | 0.94386 | 0.94489 |
+| ECAPA | 0.57648 | 0.56592 | 0.57116 |
+
+All primary paired character-bootstrap intervals include zero. The encoders
+disagree on the leading method for 15 of 24 characters. Duration-matched checks
+also do not establish a winner. Both encoders rank A highest on a nine-character
+independent-original subset, with remaining uncertainty. Those are independent
+recordings; four development examples have prior scene exposure. Cosines are not
+percentages of audible likeness, and these models do not establish naturalness or
+graininess. [Research on speaker assessment](https://arxiv.org/abs/2507.02176)
+documents duration/channel confounds and weak coverage of rhythm by speaker
+embeddings. Both full utterances and duration sensitivity are retained locally.
+
+The user completed six randomized X/Y/Z trials. Johnny, Judy, Panam, Evelyn and
+Reed were judged tied, with no distracting roughness. Jackie favored A for
+identity, and B was marked as rough. This supports **A as the working final
+training method**, with no demonstrated reason to add B/C complexity. It does
+not establish that A wins for every character. Current production models remain
+unchanged; no continuation training has started.
+
+Training losses A0.22116/B0.22964/C0.22992 are not a quality ranking: the
+conditioning tasks differ. Existing eight-voice tentative ASR had only 296 words:
+initial0 errors; EMA500 A2/B1/C1. That one-word difference is insufficient to
+choose a method. The pilot has no comparable heldout loss. EMA0.999 also retains
+about60.6% of its initial-weight coefficient after500 updates, which helps
+explain why EMA checkpoints may change gradually without proving their quality.
+
+### Data and continuation decision
+
+The 1,020 selected training recordings total only85.05 minutes. Jackie has about
+one minute, Hands37 seconds and Pepe6.5 seconds; Wakako and Padre have no selected
+training rows. Evelyn already has about4.8 minutes, Reed1.63 and Misty3.45. These
+are selected training durations, not available game dialogue totals. Most sparse
+voices were constrained upstream by collection/qualification, not balancing.
+
+The user requested substantial mining across the supported cast, including minor
+characters. The new October4 collection targets an initial floor of five minutes
+of usable, varied dialogue per character where available, with no ceiling on
+additional authentic material. Original references, heldout recordings and frozen
+corpora remain reserved. Extra updates cannot substitute for absent examples.
+
+After coverage expansion, the continuation plan will declare its schedule from
+actual dataset size and the available compute budget, preserve multiple raw/EMA
+checkpoints, and compare matched heldout identity, wording, pacing and audio
+quality. A single noisy evaluation will not trigger a stop. Selection will use
+sustained validation evidence and per-character regressions, not gradient shape
+alone or the final timestamp. The chosen teacher will then be distilled into a
+student; exact numeric settings remain pending the expanded corpus.
+
+Local evidence: `runtime/voice-comparisons/abc-evaluation-20261004/`,
+`runtime/voice-comparisons/blind-abc-20261004/observed-user-results.json`,
+`current-parent-audit/training/objective-audit-20261004/`, and
+`runtime/voice-data-expansion-20261004/PLAN.md`.
