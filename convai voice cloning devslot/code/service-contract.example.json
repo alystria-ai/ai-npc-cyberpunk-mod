@@ -1,0 +1,43 @@
+{
+  "status": "proposed interface, not a currently implemented Convai API schema",
+  "voice_profile": {
+    "id": "voice_customer_character_version",
+    "owner_account_id": "account_id",
+    "engine": "pocket",
+    "model_version": "stock-english-2026-09-or-qualified-custom-version",
+    "reference_audio_asset_id": "uploaded_reference_asset",
+    "reference_sha256": "sha256_of_exact_reference",
+    "conditioning_version": "model_plus_reference_plus_preprocessing_revision",
+    "languages": ["en"],
+    "state": "preparing-or-ready-or-failed"
+  },
+  "training_job": {
+    "id": "training_job_id",
+    "dataset_asset_ids": ["uploaded_training_bundle"],
+    "speaker_labels": ["character_a", "character_b"],
+    "base_teacher_version": "pinned_teacher_version",
+    "student_initializer_version": "pinned_student_version",
+    "heldout_policy": "separate-scenes-and-speaker-coverage",
+    "stages": ["qualify", "align", "encode", "fine-tune", "distill", "evaluate", "publish-version"],
+    "promotion": "qualified_candidate_then_explicit_approval"
+  },
+  "tts_request": {
+    "request_id": "unique_request_id",
+    "voice_profile_id": "voice_customer_character_version",
+    "text": "The city is quiet tonight, but I know trouble is waiting somewhere.",
+    "transport": "sse-or-webrtc",
+    "language": "en",
+    "generation_settings": {"temperature": 0.3, "sampler_decode_steps": 1}
+  },
+  "pcm_event": {
+    "request_id": "unique_request_id",
+    "voice_profile_id": "voice_customer_character_version",
+    "model_version": "immutable_version",
+    "index": 0,
+    "offset_frames": 0,
+    "sample_rate": 24000,
+    "channels": 1,
+    "sample_format": "float32-le-or-negotiated-transport-format",
+    "source_complete": false
+  }
+}

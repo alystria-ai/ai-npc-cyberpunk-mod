@@ -1,0 +1,38 @@
+{
+  "selected_step": 1500,
+  "checkpoint_step": 1500,
+  "weights": "ema",
+  "source_checkpoint_sha256": "67392830ae4433a1336b2d4ad883223cf5f05de0b2c1f460e73203a1104fa9b1",
+  "validated_probe_count": 18,
+  "model_sha256": "373a0df2115b1e5dc1c583bb0033838ba4ae337499831261e3938218d239a391",
+  "input_identity": "a881e3024512339c5c601219f4e453370a6769a2e59e6f8750cdc37c110fc152",
+  "source_revision": "41cbc84af539ea78a804ffca5f9c6edc1a22ce44",
+  "sample_cfg": 1.0,
+  "quality_parity_qualified": false,
+  "latent_calibration": {
+    "stats_ema_steps": 0,
+    "policy": "preserve_pretrained_latent_mean_and_std",
+    "official_teacher_stats_ema_steps": 1000,
+    "official_distill_stats_ema_steps": 0,
+    "teacher_recipe_deviation": "finetune.yaml stats_ema_steps 1000 is overridden to 0",
+    "rationale": "Upstream calibration updates run per forward. Micro batch 1 with accumulation 32 would apply gamma^32 per optimizer step and use rank-local means; freeze calibration to preserve released geometry and teacher-to-student transfer."
+  },
+  "objective_weighting": {
+    "policy": "official_pooled_frame_denominators",
+    "teacher_flow": "global_valid_frames",
+    "teacher_eos_and_student_regression": "global_shifted_mask_positions",
+    "ddp_scale": "world_size_times_local_fraction",
+    "extra_accumulation_divisor": false
+  },
+  "student_transfer_policy": "qualified_macro_student_transfer_v1",
+  "transferred_tensors": {
+    "target_teacher_weights_sha256": "95d91ae4b970e51bc6270326dccf1294d576f9cb9df4f9667ebb2838c7cb0d27",
+    "flow_net_state_sha256": "9f400d3c9ca9a127058fc66bfbc151d3dc2aedd8b0e3067b81cf3e9b217eb2a3",
+    "out_eos_state_sha256": "3c1ac5a0cd42d0ea5521e2d0786d105a91c1dc5d1184e988ddea1d74471e394b",
+    "calibration_and_codec_identical": true,
+    "serialized_export_verified": true
+  },
+  "sample_decode_steps": 1,
+  "listening_qualified": false,
+  "automatic_promotion": false
+}

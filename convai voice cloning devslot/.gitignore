@@ -1,0 +1,5 @@
+audio/
+references/*.pdf
+references/*.zip
+__pycache__/
+code/**/__pycache__/
