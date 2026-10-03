@@ -328,7 +328,7 @@ function M.start(context, timeline, actor, duration, expectedSegment)
     return true
 end
 
--- Convai's live stream supplies one growing, absolute timeline. Updating the
+-- Both continuous renderers supply one growing, absolute timeline. Updating the
 -- data must not recreate/reset the native layer or advance it ahead of audio.
 function M.updateContinuous(context, timeline, actor, duration)
     local sameOwner = type(context) == 'table' and M.active and M.continuous
@@ -348,7 +348,13 @@ function M.updateContinuous(context, timeline, actor, duration)
         assert(finite(duration) and duration > 0 and duration <= 120
             and finite(timeline.duration) and math.abs(timeline.duration - duration) < .001,
             'Facial duration mismatch')
-        assert(timeline.source == 'convai-arkit61' and timeline.segment == nil, 'Unknown continuous facial source')
+        assert((timeline.source == 'convai-arkit61' or timeline.source == 'audio-envelope'
+            or timeline.source == 'local-phonetic') and timeline.segment == nil, 'Unknown continuous facial source')
+        if timeline.source == 'local-phonetic' then
+            assert(timeline.articulation == 'coarticulated-v5', 'Unknown continuous phonetic articulation')
+        elseif timeline.source == 'audio-envelope' then
+            assert(timeline.articulation == nil, 'Envelope cannot claim phonetic articulation')
+        end
         assert(type(timeline.tracks) == 'table' and #timeline.tracks > 0 and #timeline.tracks <= 22
             and type(timeline.frames) == 'table' and #timeline.frames >= 2 and #timeline.frames <= 7202,
             'Invalid facial timeline size')

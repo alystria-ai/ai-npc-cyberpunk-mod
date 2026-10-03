@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
 import {buildFacialTimeline} from './facial-timeline.mjs';
 import {silentWav} from './speech-audio.mjs';
+import {PocketFacialStream} from './pocket-facial-stream.mjs';
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const facial = readFileSync(new URL('../mod/facial-playback.lua', import.meta.url), 'utf8');
 const speech = readFileSync(new URL('../mod/speech.lua', import.meta.url), 'utf8');
@@ -60,6 +61,11 @@ function run(body) {
   const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
   lua.lua_close(state); assert.equal(result, lua.LUA_OK, error);
 }
+
+const luaLiteral=value=>Array.isArray(value)?`{${value.map(luaLiteral).join(',')}}`:
+  value&&typeof value==='object'?`{${Object.entries(value).filter(([,v])=>v!==undefined)
+    .map(([key,item])=>`[${JSON.stringify(key)}]=${luaLiteral(item)}`).join(',')}}`:
+  value===null?'nil':JSON.stringify(value);
 
 test('real Omni phonetic builder reaches the native adapter with calibrated contact, lift and reset',()=>{
   const bytes=Buffer.concat([silentWav().subarray(0,44),Buffer.alloc(24000*2*1.8)]);
@@ -357,3 +363,58 @@ test('continuous pause releases the pose, growth stays paused, resume catches up
  assert(face.continuous==nil and face.generation==nil and face.requestId==nil)
  face.sync(judy,.7,context.requestId);assert(queries==before)
 `));
+
+test('actual Pocket prefix upgrades envelope to phonetic poses through the Lua continuous consumer without layer restart',async()=>{
+  const owner={requestId:'pocket-native-contract',entity:'Judy-1',generation:7};
+  const lipsync={analyse:async()=>({mouthCuesFormat:'rhubarb-phonetic-v1',
+    mouthCues:['A','B','D','F','G','H','E','C'].map((value,index)=>({start:index*.1,end:(index+1)*.1,value}))})};
+  const stream=new PocketFacialStream({input:owner,lipsync});
+  stream.push({index:1,offsetFrames:0,frames:19200,sampleRate:24000,channels:1,
+    pcm:Float32Array.from({length:19200},(_,index)=>.2*Math.sin(index*.043))});
+  const envelope=stream.snapshot(9600,false);
+  await new Promise(done=>setImmediate(done));const phonetic=stream.snapshot(19200,false);
+  stream.finish();const final=stream.snapshot(19200,true);
+  assert.equal(envelope.source,'audio-envelope');assert.equal(phonetic.source,'local-phonetic');
+  run(`
+    local context=${luaLiteral(owner)}
+    local envelope=${luaLiteral(envelope)}
+    assert(face.updateContinuous(context,envelope,judy,.4),face.error)
+    local feature=face.feature
+    face.sync(judy,.2,context.requestId)
+    assert(face.applied>0 and judy.frames[#judy.frames].jaw_mid_open>0)
+    local before=face.applied
+    local phonetic=${luaLiteral(phonetic)}
+    assert(face.updateContinuous(context,phonetic,judy,.8),face.error)
+    assert(face.feature==feature and judy.resets==0 and face.position==.2)
+    face.sync(judy,.55,context.requestId)
+    assert(face.applied>before and face.status().source=='local-phonetic'
+      and face.status().articulation=='coarticulated-v5')
+    assert(judy.frames[#judy.frames].tongue_mid_tip_up>0,'phonetic shapes were lost at the Lua seam')
+    assert(face.updateContinuous(context,${luaLiteral(final)},judy,.8),face.error)
+    face.sync(judy,.8,context.requestId)
+    assert(not face.active and face.state=='finished' and judy.resets==1)
+  `);
+  stream.close();
+});
+
+test('Pocket continuous local-source schema retains owner, duration, weight and no-file-segment fences',()=>{
+  const owner={requestId:'pocket-native-fences',entity:'Judy-1',generation:7};
+  const stream=new PocketFacialStream({input:owner});
+  stream.push({index:1,offsetFrames:0,frames:9600,sampleRate:24000,channels:1,pcm:new Float32Array(9600).fill(.1)});
+  const prefix=stream.snapshot(9600,false);stream.close();
+  run(`
+    local context=${luaLiteral(owner)}
+    for _,kind in ipairs({'requestId','entity','generation','duration','weight','segment','source','articulation'}) do
+      local line=${luaLiteral(prefix)}
+      if kind=='requestId' or kind=='entity' then line[kind]='wrong'
+      elseif kind=='generation' then line.generation=8
+      elseif kind=='duration' then line.duration=.5
+      elseif kind=='weight' then line.frames[2][2]=2
+      elseif kind=='segment' then line.segment={version=1,index=1,startSeconds=0,first=true,last=false}
+      elseif kind=='source' then line.source='unqualified-local'
+      elseif kind=='articulation' then line.source='local-phonetic';line.articulation='unqualified-phonetic' end
+      assert(not face.updateContinuous(context,line,judy,.4),kind)
+      assert(not face.active and #judy.frames==0,kind)
+    end
+  `);
+});

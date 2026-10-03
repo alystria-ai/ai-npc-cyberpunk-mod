@@ -176,8 +176,14 @@ export class LocalPcmHost {
             return;
           }
           if (control !== undefined) {
-            await evaluate(({token, control}) => window.localPcm.control(token, control), {token: turn.token, control});
+            const admitted = await evaluate(({token, control}) => window.localPcm.control(token, control),
+              {token: turn.token, control});
             await check();
+            // A renderer can finish while onFrame writes native state. Its
+            // declined late control is an owned drain, never a new admission;
+            // immediately publish the fresh ended clock/face snapshot.
+            if (admitted === false) continue;
+            if (admitted !== true) throw Error('Invalid local PCM control acknowledgement');
           }
           await abortable(new Promise(resolve => setTimeout(resolve, this.pollMs)), controller.signal);
         }

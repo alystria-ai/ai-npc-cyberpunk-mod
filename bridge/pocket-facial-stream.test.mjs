@@ -59,3 +59,11 @@ test('cancelled owners and wrong source offsets cannot append or revive facial s
   controller.abort();assert.equal(face.snapshot(),undefined);
   assert.throws(()=>face.push(packet(2,2400)),{name:'AbortError'});
 });
+
+test('owned Pocket prefixes cannot claim remote or unqualified articulation sources',()=>{
+  const stream=new PocketFacialStream({input});stream.push(packet(1,0));const prefix=stream.snapshot();
+  for(const change of [{source:'convai-arkit61'},{source:'unknown-local'},{articulation:'coarticulated-v5'},
+    {source:'local-phonetic',articulation:'unknown'},{source:'local-phonetic',articulation:undefined}])
+    assert.throws(()=>ownedPocketFace({face:{...prefix,...change},duration:prefix.duration,sourceComplete:false},input),/owner or source clock/);
+  stream.close();
+});

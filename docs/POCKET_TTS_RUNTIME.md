@@ -1,5 +1,21 @@
 # Pocket TTS runtime
 
+## October 3 live corrections
+
+The first game check played Pocket voice but applied zero facial frames: Lua's
+continuous updater still admitted only the Convai facial source. It now admits
+qualified envelope and coarticulated-v5 local phonetic prefixes with the same
+actor, request, generation, duration, track and ordering checks. An actual
+PocketFacialStream → Lua updater regression failed before this change; the
+54 focused facial/delivery checks pass after it.
+
+The same check exposed a renderer drain race: playback closed while the host
+awaited state publication, then a late control reached the closed player. The
+local client now recognizes verified natural drain and the host publishes its
+fresh ended clock. Fake and real muted Edge regressions reproduced the exact
+error before correction; 54 renderer checks pass. Visual game acceptance is
+still required. Pocket is the source default and the current saved selection.
+
 ## Selected model and references
 
 The approved local voice backend is the English six-layer EMA student selected at update

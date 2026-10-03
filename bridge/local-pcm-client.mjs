@@ -91,6 +91,16 @@ export class LocalPcmClient {
 
   control(token, value) {
     const turn = this.owned(token);
+    // The host may have awaited native state publication after a pre-drain
+    // snapshot. Inspect the exact owner again on this event-loop turn: its
+    // player can have closed itself at audible drain during that await.
+    const state = turn.player.snapshot();
+    if (state.error) throw Error('Local PCM renderer failed');
+    if (state.ended) {
+      if (!turn.sourceComplete || state.receivedFrames !== turn.frames)
+        throw Error('Local PCM ended before its source');
+      return false;
+    }
     turn.player.control(value); return true;
   }
 

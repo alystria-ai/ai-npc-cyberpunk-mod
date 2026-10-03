@@ -39,9 +39,12 @@ class OfflinePlayer {
   snapshot() { return {state: this.state, sampleRate: 24000, channels: 1, receivedFrames: this.frames,
     playedFrames: this.ended ? this.frames : 0, positionSeconds: this.ended ? this.frames / 24000 : 0,
     bufferedFrames: this.ended ? 0 : this.frames, ended: this.ended, error: this.error, underruns: 0}; }
-  control(value) { this.controls.push({...value}); this.state = 'playing'; }
+  control(value) {
+    if (this.stopped) throw Error('PCM player is not open');
+    this.controls.push({...value}); this.state = 'playing';
+  }
   async end(frames) { assert.equal(frames, this.frames); this.sealed = true; }
-  finish() { assert(this.sealed); this.ended = true; this.state = 'ended'; }
+  finish() { assert(this.sealed); this.ended = true; this.state = 'ended'; this.stopped = true; }
   fail(message) { this.error = message; this.state = 'error'; }
   async stop() { this.stopped = true; this.pending?.reject(Error('Offline renderer retired')); }
 }
@@ -127,6 +130,39 @@ test('a drained page can render a fresh utterance without carrying its previous 
     assert.equal(frames.every(frame => frame.token === token && frame.text === token), true);
   }
   assert.equal(pages.length, 1); assert.equal(players.length, 2);
+});
+
+test('device drain during an awaited game callback cannot submit a control to the closed player', {timeout: 5000}, async t => {
+  const {host, pages, players, track} = fixture(t), held = deferred(), release = deferred();
+  const seen = [];
+  let controlsAtDrain;
+  const pending = track(host.play({token: 'drain-during-admission', text: 'Whole reply'}, emit => emit(packet()), {
+    onFrame: async snapshot => {
+      seen.push(snapshot);
+      if (snapshot.sourceComplete && !snapshot.ended) { held.resolve(); await release.promise; }
+      return control;
+    },
+  }));
+  await held.promise; controlsAtDrain = players[0].controls.length;
+  // The actual player timer does this independently of the host's await.
+  players[0].finish(); release.resolve();
+  const result = await pending;
+  assert.equal(result.snapshot.ended, true); assert.equal(result.snapshot.positionSeconds, .4);
+  assert.equal(seen.at(-1).ended, true, 'the final device snapshot must still reach game/face publication');
+  assert.equal(seen.filter(value => value.ended).length, 1);
+  assert.equal(players[0].controls.length, controlsAtDrain, 'late admission must never reopen drained PCM');
+  assert.equal(pages[0].closed, false, 'a normal audible drain must not discard the local page as a failure');
+});
+
+test('late-control drain handling cannot ignore an explicit stop, a foreign token or a renderer error', async () => {
+  const player = new OfflinePlayer(), client = new LocalPcmClient({createPlayer: () => player});
+  await client.begin({token: 'strict-owner', text: 'Owned'});
+  assert.throws(() => client.control('foreign-owner', control), /Local PCM owner changed/);
+  player.fail('Renderer lease expired');
+  assert.throws(() => client.control('strict-owner', control), /Local PCM renderer failed/);
+  assert.equal(player.controls.length, 0);
+  await client.stop('strict-owner');
+  assert.throws(() => client.control('strict-owner', control), /Local PCM owner changed/);
 });
 
 test('native face prefixes are copied from the exact turn hook while audio continues', {timeout: 5000}, async t => {

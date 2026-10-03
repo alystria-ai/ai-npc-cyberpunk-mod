@@ -6,7 +6,7 @@ import {join, resolve, dirname, basename} from 'node:path';
 import {chromium} from 'playwright';
 import {RealtimeHost} from './realtime-host.mjs';
 
-test('isolated local headless renderer starts before synthesis ends and returns after continuous drain', {timeout: 20000}, async () => {
+test('isolated local headless renderer streams, drains during a pending game callback and publishes completion', {timeout: 20000}, async () => {
   const root = await mkdtemp(join(tmpdir(), 'cyberpunk-local-pcm-'));
   const requests = [], frames = [], pages = [];
   const modules = ['continuous-pcm-player.mjs', 'continuous-pcm-worklet.mjs',
@@ -29,7 +29,7 @@ test('isolated local headless renderer starts before synthesis ends and returns 
   const watchdog = setTimeout(() => controller.abort(), 15000);
   let releaseProducer;
   const heardPrefix = new Promise(resolvePrefix => { releaseProducer = resolvePrefix; });
-  let producerFinished = false, playedBeforeComplete = false;
+  let producerFinished = false, playedBeforeComplete = false, drainedDuringCallback = false;
   try {
     const reply = 'The whole original reply remains one utterance.';
     const makePacket = (index, offsetFrames, count) => ({version: 1, engine: 'pocket-tts',
@@ -42,16 +42,25 @@ test('isolated local headless renderer starts before synthesis ends and returns 
       await heardPrefix;
       await emit(makePacket(2, 9600, 9600)); producerFinished = true;
       return {timing: {voiceProvider: 'pocket'}};
-    }, {signal: controller.signal, onFrame: snapshot => {
+    }, {signal: controller.signal, onFrame: async snapshot => {
       frames.push(snapshot);
       if (snapshot.positionSeconds > 0 && !producerFinished) {
         playedBeforeComplete = true; releaseProducer();
       }
+      if (!drainedDuringCallback && snapshot.sourceComplete && !snapshot.ended && snapshot.positionSeconds >= .65) {
+        // Native state publication is asynchronous. While this callback waits,
+        // the real player timer completes and closes the AudioContext itself.
+        await pages[0].waitForFunction(() => !!window.localPcm.active?.player.snapshot().ended,
+          undefined, {timeout: 1500, polling: 10});
+        drainedDuringCallback = true;
+      }
       return {allow: true, paused: false, volume: 0, pan: 0};
     }});
     assert.equal(playedBeforeComplete, true, 'full-file generation must not gate local playback');
+    assert.equal(drainedDuringCallback, true, 'the regression must cross the real device-drain/control boundary');
     assert.equal(result.frames, 19200); assert.equal(result.duration, .8);
     assert.equal(result.snapshot.ended, true); assert.equal(result.snapshot.positionSeconds, .8);
+    assert.equal(frames.filter(value => value.ended).length, 1);
     assert.equal(result.snapshot.underruns, 0, JSON.stringify(result.snapshot));
     assert.equal(frames.every(value => value.text === reply && value.textComplete), true);
     assert.equal(frames.some(value => value.receivedFrames === 9600 && !value.sourceComplete && value.positionSeconds > 0), true);

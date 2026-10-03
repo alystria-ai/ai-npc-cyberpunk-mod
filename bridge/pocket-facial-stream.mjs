@@ -116,6 +116,9 @@ export function ownedPocketFace(snapshot, owner) {
   if (!face) return undefined;
   if (face.version!==1 || face.requestId!==owner.requestId || face.entity!==owner.entity || face.generation!==owner.generation
       || face.continuous!==true || face.complete!==snapshot.sourceComplete || !Number.isFinite(face.duration)
+      || !['audio-envelope','local-phonetic'].includes(face.source)
+      || (face.source==='local-phonetic'&&face.articulation!==PHONETIC_ARTICULATION)
+      || (face.source==='audio-envelope'&&face.articulation!==undefined)
       || Math.abs(face.duration-snapshot.duration)>1/24000 || !Array.isArray(face.tracks)
       || face.tracks.length!==SPEECH_TRACKS.length || face.tracks.some((name,index)=>name!==SPEECH_TRACKS[index])
       || !Array.isArray(face.frames) || !face.frames.length || face.frames.length>7202)
