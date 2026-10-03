@@ -147,6 +147,7 @@ local function startExit(s,reason)
     s.recoveryPositions={}
     for _,person in pairs(s.people) do
         person.phase='leaving'; person.attempts=0; person.retryAt=nil
+        person.recovered=nil; person.recoverAttempts=nil; person.recoverAt=nil
     end
     emit(s,reason)
 end
@@ -248,10 +249,35 @@ local function board(s,person,hooks,budget)
     if not person.vehicle then person.phase='waiting-for-seat'; return budget end
     local car=person.vehicle
     if not car.info or not car.info.ready then person.error='Waiting for vehicle attachment.'; return budget end
+    local overflowDriver=car~=s.primary and car.driver==person.entry.serial
+    -- Native follower AI can claim a passenger slot before our driver mount
+    -- finishes. That actor is not a driver yet: retire our exact command,
+    -- animate an exit from this same owned car, then retry the driver slot.
+    if person.reseating or (overflowDriver and mount and mount.vehicle==car.id and mount.seat~='seat_front_left') then
+        if person.command then
+            local status=safe(s.api.commandState,person.command)
+            if person.reseating and not terminal(status) and s.clock-person.commandAt<=EXIT_TIMEOUT then return budget end
+            if not releaseCommand(s,person) then return budget end
+        end
+        if mount then
+            if mount.vehicle~=car.id then person.error='Waiting for the foreign vehicle mount to release.'; return budget end
+            if budget<=0 or car.info.speed>0.5 or car.info.scene then return budget end
+            if person.attempts>=MAX_ATTEMPTS then person.phase='boarding-failed'; return budget end
+            person.attempts=person.attempts+1; person.commandAt=s.clock; person.reseating=true
+            local command,err=safe(s.api.mount,person.entry,car,mount.seat,true)
+            person.command=command; person.phase='leaving-wrong-seat'; person.error=err
+            return budget-1
+        end
+        if s.api.canResumeWalking then
+            local clear,err=safe(s.api.canResumeWalking,person.entry,car,person.seat)
+            if clear~=true then person.error=err; return budget end
+        end
+        person.reseating=nil; person.phase='waiting-to-board'
+    end
     local matching=mount and mount.vehicle==car.id and mount.seat==person.seat
     -- Native follower AI can finish a different free passenger seat first.
     -- Adopt only a real seat in this same car, never a driver or a foreign car.
-    if not person.chauffeur and mount and mount.vehicle==car.id and not matching and mount.seat~='seat_front_left'
+    if not person.chauffeur and not overflowDriver and mount and mount.vehicle==car.id and not matching and mount.seat~='seat_front_left'
         and not reserved(s,car,mount.seat,person) then
         person.seat=mount.seat; matching=true
     end
@@ -334,7 +360,8 @@ end
 local function follow(s,car,player,budget)
     if car==s.primary or car.retired or not car.info or not car.info.ready or car.info.playerMounted then return budget end
     local driver=s.people[car.driver]
-    local ready=driver and driver.vehicle==car and driver.phase=='riding'
+    local ready=driver and driver.vehicle==car and driver.phase=='riding' and driver.seat=='seat_front_left'
+        and driver.mount and driver.mount.vehicle==car.id and driver.mount.seat=='seat_front_left'
     for _,person in pairs(s.people) do if person.vehicle==car and person.phase~='riding' then ready=false end end
     if not ready then
         if car.command and releaseCommand(s,car) then safe(s.api.brake,car) end
@@ -395,13 +422,23 @@ local function leave(s,person,player,hooks,budget,recoveryPositions)
         person.retryAt=s.clock+2
     end
     if not mount then
-        if s.phase=='recovering' then
+        if s.phase=='recovering' and not person.recovered then
+            -- The mounting link can clear before the exit workspot. Teleport
+            -- only after the same native exit gate used by walking handoff.
+            if s.api.canResumeWalking then
+                local clear,err=safe(s.api.canResumeWalking,person.entry,person.vehicle,person.seat)
+                if clear~=true then person.phase='waiting-for-native-exit'; person.error=err; return budget end
+            end
             if s.clock<(person.recoverAt or 0) or (person.recoverAttempts or 0)>=MAX_ATTEMPTS then return budget end
             local attempts,at=person.recoverAttempts,person.recoverAt
             person.recoverAttempts=(person.recoverAttempts or 0)+1; person.recoverAt=s.clock+2
             local done,err,deferred=safe(s.api.recover,person.entry,player,recoveryPositions)
             if deferred then person.recoverAttempts,person.recoverAt=attempts,at; return budget end
             if not done then person.phase='recovery-failed'; person.error=err; return budget end
+            -- Native exit/gaze retirement may defer finish(). The successful
+            -- relocation belongs to this travel transaction and must not run
+            -- again or spend the remaining placement attempts while waiting.
+            person.recovered=true
         end
         finish(s,person,hooks); return budget
     end

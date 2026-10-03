@@ -42,8 +42,11 @@ function M.mounting(entry)
 end
 function M.inspect(vehicle)
     local entity=vehicle.entity
-    if not entity and vehicle.system then
-        entity=vehicle.system:GetEntity(vehicle.entityID)
+    if not entity or not entity:IsAttached() then
+        -- Streaming can replace the native handle while the exact entity ID
+        -- remains valid. Never keep polling a detached cached handle forever.
+        if vehicle.system then entity=vehicle.system:GetEntity(vehicle.entityID)
+        else entity=Game.FindEntityByID(vehicle.entityID) end
         vehicle.entity=entity
     end
     if not entity or not entity:IsAttached() then return {ready=false} end

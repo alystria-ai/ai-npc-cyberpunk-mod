@@ -295,3 +295,29 @@ and reject/clean up failed preparation without granting a new movement owner.
 The first and third regressions failed before the recovery correction. This
 closes that source defect; it does not establish live overflow convoy or
 fast-travel acceptance.
+
+### October 4 source corrections
+
+An overflow car now requires its designated driver to be observed in
+`seat_front_left` before convoy movement begins. If native follower boarding
+puts that driver into a passenger seat first, the controller retires only its
+own command, requests an animated exit from that same car, waits for the exit
+workspot to finish, and retries the driver seat within the existing attempt
+limit. Ordinary passenger seat adoption remains available. Foreign cars and
+their occupants are not changed.
+
+Fast-travel recovery records each successful relocation once. A delayed gaze or
+walking handoff can no longer teleport the same actor repeatedly, consume the
+remaining placement attempts, and prevent the handoff from finishing. The
+recovery marker is reset only when a new exit/recovery transaction starts.
+Relocation also waits for the native exit workspot to finish after the mount
+link disappears, rather than moving an actor during its vehicle-exit animation.
+Vehicle inspection also reacquires the exact saved entity ID after a cached
+native handle detaches, so a streamed vehicle does not remain permanently
+unavailable because of a stale handle.
+
+Two small executable checks covered the wrong-seat driver correction and a
+successful fast-travel relocation whose walking handoff is delayed. No new test
+framework, install, game action, or broad test run was added. Actual multi-car
+boarding/convoy/exit and active-party fast travel still need gameplay acceptance;
+the code checks do not establish native animation or routing behavior.
