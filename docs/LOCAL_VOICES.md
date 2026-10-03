@@ -306,10 +306,24 @@ The new manifests, corpus receipt, actor allowlists and anchor export are hashed
 into the new run identity. Cheap metadata gates run before model allocation.
 The staged receipt also verifies actual manifest/audio/ledger bytes. Its semantic
 history, original-development content, wording and floor-frame admission proof
-must come from the independently audited native corpus package. Forced word
+is checked by the hashed teacher-only `teacher_data.py` module against actual
+raw recognizer files and launches, original native receipts, and independently
+frozen protected content. Forced word
 alignment alone is not independent transcript agreement. Unreviewed integrity
-counters are not a launch qualification, and the original 2,743-row wording audit
-remains a separate gate before the improved-teacher job is assembled/submitted.
+counters are not a launch qualification. The original 2,743 training recordings
+receive a separate wording audit before the improved-teacher job is assembled.
+Only admitted train/Tier A/Tier B wording must be qualified. Wording uncertainty
+in the original 94 development and 76 test clips stays in a separate diagnostic
+sidecar bound to their source identities; original
+captions, scene/delivery metadata, word spans and order stay unchanged.
+
+Precompute records actual decoded float32 PCM/sample counts, accepted Mimi encode
+weights, encoded/stored tensor frames and file hashes. Teacher cache hits decode
+the source again and inspect the real finite FP32 tensors. Preparation binds the
+ordered manifests, annotation paths and stitch calibration to an output receipt;
+the teacher verifies it before updates. Input corpus receipts are never rewritten
+to claim observations from a future cache. Existing student pipelines retain their
+original preparation behavior.
 
 Teacher speech checks are scheduled with CFG2 and the declared decode-step setting at new-run updates
 0/500/1,000/1,500/2,000. Johnny, Judy and Panam each have their own original

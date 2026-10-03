@@ -8,7 +8,7 @@ copies under output_dir; input source/configuration/audio files are never edited
 
 from __future__ import annotations
 
-from . import teacher_quality
+from . import teacher_data, teacher_quality
 
 import argparse
 from contextlib import contextmanager, nullcontext
@@ -250,6 +250,9 @@ def load_spec(path: Path, *, verify: bool = True, require_manifests: bool = True
     if raw.get("teacher_quality_policy") is not None:
         if raw["teacher_quality_policy"] != teacher_quality.POLICY:
             raise ValueError("Unknown teacher quality policy")
+        identities["teacher_data_verifier_sha256"] = sha256_file(Path(teacher_data.__file__))
+        identities["teacher_data_preparation"] = {key: raw.get(key, default) for key, default in (
+            ("precompute_batch_size", 2), ("align_batch_size", 2), ("max_utterance_seconds", 30))}
         if raw.get("import_teacher_checkpoint") or raw.get("teacher_only_evaluation") is not True:
             raise ValueError("Teacher improvement must train a fresh teacher and evaluate only that role")
         if session > 12600:
@@ -331,6 +334,9 @@ def load_spec(path: Path, *, verify: bool = True, require_manifests: bool = True
                 or any(len(item["texts"]) != 6 for item in probe_refs)):
             raise ValueError("Teacher improvement requires exactly eighteen audible probes")
         verify_teacher_bundle(spec)
+        if (spec.output / "prepared.json").is_file():
+            install_source(spec)
+            teacher_data.verify_actual_cache(spec)
     return spec
 
 
@@ -380,6 +386,7 @@ def verify_teacher_bundle(spec: Spec) -> None:
                  "tier_a_seen_training_scenes", "tier_b_previously_trained_utterances"):
         if type(integrity.get(name)) is not int or integrity[name] != 0:
             raise ValueError("Teacher bundle has an unresolved integrity or coverage finding")
+    teacher_data.verify_input(spec, bundle)
 
 
 def references(spec: Spec) -> list[dict[str, Any]]:
@@ -691,7 +698,11 @@ def prepare(spec: Spec, stop: Stop) -> int:
                 "counts": counts, "cast_counts": {split: cast_counts(rows_at(data_dir / f"{split}.jsonl")) for split in relocated},
                 "assets": config_receipt, "source_digest": spec.raw["source_digest"],
                 "completed_at": now_iso(), "alignment_dtype": "float32", "mimi_dtype": "float32",
-                "compiled": False})
+                "compiled": False,
+                **({"loader_cache_receipt_sha256": sha256_file(spec.output / "prepare/teacher-loader-cache.json")}
+                   if teacher_quality.enabled(spec) else {})})
+    if teacher_quality.enabled(spec):
+        atomic_json(spec.output / "prepare/teacher-cache-verified.json", teacher_data.verify_actual_cache(spec))
     stage_state(spec, "prepare", status="completed", counts=counts)
     return 0
 
@@ -808,7 +819,12 @@ def precompute(spec: Spec, mimi: Any, device: Any, stop: Stop) -> bool:
     tag = f"{codec_hash[:12]}-{data_hash[:12]}"
     folder = manifest.parent / "latents" / tag
     folder.mkdir(parents=True, exist_ok=True)
+    quality_data = teacher_quality.enabled(spec)
+    observations_path = folder / "teacher-observations.json"
+    observations = read_json(observations_path) if quality_data else None
     metadata = read_json(folder / "calibration.json")
+    if quality_data and observations is None:
+        metadata = None  # A partial/legacy cache cannot self-certify calibration.
     if metadata is None:
         longest = max(rows, key=lambda row: float(row["duration"]))
         arr, _ = _decode_chunk([(longest["path"], float(longest.get("start", 0)), float(longest["duration"]), mimi.sample_rate)])
@@ -821,32 +837,76 @@ def precompute(spec: Spec, mimi: Any, device: Any, stop: Stop) -> bool:
             raise RuntimeError("Invalid codec stitch calibration")
         metadata = {"stitch_frames": stitch, "noise_floor": floor}
         atomic_json(folder / "calibration.json", metadata)
+    if quality_data:
+        import yaml
+        mimi_config = yaml.safe_load((spec.output / "configs/teacher-inference.yaml").read_text())["mimi"]
+        dimension = int(mimi_config.get("inner_dim") or mimi_config["seanet"]["dimension"])
+        observation_header = {"input_identity": spec.identity, "mimi_encode_hash": codec_hash,
+            "manifest_hash": data_hash, "verifier_sha256": sha256_file(Path(teacher_data.__file__)),
+            "sample_rate": mimi.sample_rate, "frame_rate": mimi.frame_rate, "latent_dimension": dimension,
+            "calibration_sha256": sha256_file(folder / "calibration.json")}
+        if observations is not None and any(observations.get(key) != value for key, value in observation_header.items()):
+            raise ValueError("Teacher cached observations/calibration belong to different inputs or verifier")
+        observations = observations or {**observation_header, "rows": {}}
+        atomic_json(observations_path, observations)
     batch_size = max(1, min(4, int(spec.option("precompute_batch_size", 2))))
     order = sorted(range(len(rows)), key=lambda i: float(rows[i]["duration"]))
     for offset in range(0, len(order), batch_size):
         if stop.requested():
             return False
-        indices = [i for i in order[offset:offset + batch_size] if not (folder / f"train_{i:08d}.safetensors").is_file()]
+        indices = [i for i in order[offset:offset + batch_size] if quality_data or not (folder / f"train_{i:08d}.safetensors").is_file()]
         if not indices:
             continue
         jobs = [(rows[i]["path"], float(rows[i].get("start", 0)), float(rows[i]["duration"]), mimi.sample_rate) for i in indices]
         arr, lengths = _decode_chunk(jobs)
+        pending = []
+        for position, (index, length) in enumerate(zip(indices, lengths, strict=True)):
+            destination = folder / f"train_{index:08d}.safetensors"
+            decoded_sha = (hashlib.sha256(arr[position, 0, :length].astype("<f4", copy=False).tobytes()).hexdigest()
+                           if quality_data else "")
+            if quality_data and destination.is_file() and rows[index]["id"] in observations["rows"]:
+                teacher_data.verify_cache_row(rows[index], observations["rows"][rows[index]["id"]], destination,
+                    samples=length, decoded_sha=decoded_sha, sample_rate=mimi.sample_rate, frame_rate=mimi.frame_rate,
+                    codec_hash=codec_hash, dimension=dimension)
+            else:
+                pending.append((position, index, length, decoded_sha))
+        if not pending:
+            stage_state(spec, "prepare", status="running", phase="precompute", encoded=offset + len(indices), total=len(rows))
+            continue
         with torch.no_grad(), torch.autocast(device_type=device.type, enabled=False):
-            latents = mimi.encode_to_latent(torch.from_numpy(arr).to(device)).float().cpu()
+            encode_arr = arr[[item[0] for item in pending]] if quality_data else arr
+            latents = mimi.encode_to_latent(torch.from_numpy(encode_arr).to(device)).float().cpu()
         if not torch.isfinite(latents).all():
             raise RuntimeError("Non-finite precomputed codec latents")
-        for index, latent, length in zip(indices, latents, lengths, strict=True):
+        for (_, index, length, decoded_sha), latent in zip(pending, latents, strict=True):
             frames = min(_entry_frames(length, mimi.sample_rate, mimi.frame_rate), latent.shape[0])
             destination = folder / f"train_{index:08d}.safetensors"
             temp = destination.with_suffix(f".tmp.{os.getpid()}")
             safetensors.torch.save_file({"latents": latent[:frames].contiguous()}, str(temp))
             os.replace(temp, destination)
+            if quality_data:
+                record = {"id": rows[index]["id"], "source": teacher_data.cache_source(rows[index]),
+                    "mimi_encode_hash": codec_hash, "actual_resampled_samples": length,
+                    "decoded_float32_sha256": decoded_sha, "sample_rate": mimi.sample_rate, "frame_rate": mimi.frame_rate,
+                    "encoded_frames_available": latent.shape[0], "shape": list(latent[:frames].shape),
+                    "latents_file": destination.relative_to(manifest.parent).as_posix(), "latents_sha256": sha256_file(destination)}
+                teacher_data.verify_cache_row(rows[index], record, destination, samples=length, decoded_sha=decoded_sha,
+                    sample_rate=mimi.sample_rate, frame_rate=mimi.frame_rate, codec_hash=codec_hash, dimension=dimension)
+                observations["rows"][rows[index]["id"]] = record
+                atomic_json(observations_path, observations)
         stage_state(spec, "prepare", status="running", phase="precompute", encoded=offset + len(indices), total=len(rows))
     annotated = [{**row, "latents_file": f"latents/{tag}/train_{i:08d}.safetensors"} for i, row in enumerate(rows)]
     atomic_rows(manifest.with_name("train_latents.jsonl"), annotated)
     atomic_json(manifest.with_name("train_latents.meta.json"), {**metadata, "mimi_hash": codec_hash,
                 "manifest_hash": data_hash, "frame_rate": mimi.frame_rate,
                 "weights_path": str(spec.output / "configs/teacher-inference.yaml")})
+    if quality_data:
+        atomic_json(spec.output / "prepare/teacher-loader-cache.json", {"schema": "teacher_actual_loader_cache_v2",
+            **observation_header, "ordered_rows_sha256": teacher_data.digest([teacher_data.cache_source(row) for row in rows]),
+            "prepared_manifest_sha256": {role: sha256_file(spec.output / "data" / (role + ".jsonl"))
+                for role in teacher_data.ROLES}, "annotated_manifest_sha256": sha256_file(manifest.with_name("train_latents.jsonl")),
+            "calibration_path": (folder / "calibration.json").relative_to(manifest.parent).as_posix(),
+            "rows": [observations["rows"][row["id"]] for row in rows]})
     return True
 
 
@@ -1596,6 +1656,8 @@ def make_training_args(spec: Spec, stage: str, world: int) -> Any:
     data = read_json(spec.output / "prepared.json")
     if not data or data.get("input_identity") != spec.identity:
         raise ValueError("Preparation must complete for these exact inputs before training")
+    if stage == "teacher" and teacher_quality.enabled(spec):
+        teacher_data.verify_actual_cache(spec)
     args = load_args(spec.source / f"training/configs/{'finetune' if stage == 'teacher' else 'depth_distill'}.yaml")
     args.model_config = str(spec.output / f"configs/{'teacher' if stage == 'teacher' else 'student'}-inference.yaml")
     args.model_overrides = {}

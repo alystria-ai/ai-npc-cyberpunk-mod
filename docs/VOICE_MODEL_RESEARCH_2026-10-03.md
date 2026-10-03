@@ -90,6 +90,22 @@ encoder context/phase. Those derivatives remain experiments, not adopted data.
   Preserve the attempted payload and unknown outcome; do not repeat its Save.
   A local audit can use the same frozen audio and ASR weights independently.
 
+The local wording pass completed all 2,913 originals. Independent Whisper
+processed all 2,144 CTC disagreements, with one token-capped result kept
+incomplete. A separate pass processed 205 unused candidates. Exact normalized
+caption agreement supports a proposed 1,745-clip, 72-voice training pool
+(2.385 hours), 42 unseen-scene development clips and 55 conditional clips.
+The original 94 development and 76 test clips remain unchanged, with their
+uncertainties recorded separately. These are acoustic wording proxies, not
+listening approval; no native caption was automatically corrected.
+
+The teacher-only verifier reconciles actual raw hypotheses and model launches,
+native scene/source identities, accepted word content/timings and historical
+recording aliases. Precompute records actual resampled PCM and stored latent
+tensors, with verification before updates. Its source passed targeted scene,
+word-content and retiming regressions; full runtime preparation remains required
+for the new training run.
+
 The live-game student benchmark measured first PCM at **135 ms mean** across
 five warm calls (127–148 ms), CPU FP32/two threads, zero VRAM and 1.68 GiB peak
 RAM. The saved run's quiet prefix gives an ideal-consumer speech-onset estimate

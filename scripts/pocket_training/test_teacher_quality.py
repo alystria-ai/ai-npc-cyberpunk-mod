@@ -52,7 +52,8 @@ class TeacherPolicyTests(unittest.TestCase):
                 "teacher_conditional_manifest": str(manifests["teacher_conditional"]), "teacher_corpus_receipt": str(receipt)},
                 root, root, root / "out", "fixture", {key: manifests[key] for key in ("train", "dev", "test")})
             runner.atomic_json(receipt, bundle)
-            runner.verify_teacher_bundle(spec)
+            with patch.object(runner.teacher_data, "verify_input"):
+                runner.verify_teacher_bundle(spec)
             for key in ("unverified_wording", "invalid_loader_cuts", "floor_frame_lastword_loss"):
                 for value in (1, None):
                     runner.atomic_json(receipt, {**bundle, "integrity": {**integrity, key: value}})
