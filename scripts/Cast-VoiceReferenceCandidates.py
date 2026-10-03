@@ -27,7 +27,10 @@ Input schema (all paths relative to project unless absolute and contained):
 The actual same-scene actor/speaker/item/event and en_us variant joins are
 rechecked. A reviewed alias is an explicit human/native-research attribution
 decision, not an automatic assertion from the WEM filename. Generic actors need
-a typed same-scene acquisition object with a canonical record pointer. External
+a typed same-scene acquisition object with a canonical record pointer or the explicit
+scoped native actor-continuity policy. Continuity authenticates both resources
+against current winners and the pinned serializer inside CpuSlots before WEM/cache
+access; it never establishes a direct canonical record edge. External
 quest/community linkage remains unprepared pending separate native receipt
 support. All indexed
 subtitle resources are queried read-only and reread from winning game archives.
@@ -315,6 +318,12 @@ class CpuSlots:
             raise ValueError("CPU lock directory escapes voice-cast")
         self.timeout, self.poll, self.handle, self.slot = timeout, poll, None, None
 
+    _held_leases = set()
+
+    @classmethod
+    def held_by_this_process(cls):
+        return any(pid == os.getpid() for pid, _ in cls._held_leases)
+
     @staticmethod
     def _acquire(stream):
         stream.seek(0)
@@ -352,6 +361,7 @@ class CpuSlots:
                     stream.close()
                     continue
                 self.handle, self.slot = stream, index
+                CpuSlots._held_leases.add((os.getpid(), id(self)))
                 return self
             if time.monotonic() >= deadline:
                 raise TimeoutError("Both voice archive/decoder CPU slots are busy")
@@ -364,6 +374,7 @@ class CpuSlots:
             finally:
                 self.handle.close()
                 self.handle = None
+                CpuSlots._held_leases.discard((os.getpid(), id(self)))
 
 
 class LaneLock(CpuSlots):
@@ -394,6 +405,212 @@ class LaneLock(CpuSlots):
             return self
 
 
+CONTINUITY_POLICY = "spawn_set_voice_continuity_v1"
+
+
+def _continuity_scope(source, actor, actor_pointer):
+    return {"actorPointer": actor_pointer, "nativeVoice": ident(actor["voicetagId"]["id"]),
+            "sceneRawSha256": source["rawSha256"], "sceneJsonSha256": source["jsonSha256"]}
+
+
+def _continuity_source(part, project):
+    """Check current native export + independently recorded parser evidence.
+
+    This metadata gate does not rerun WolvenKit or claim current installed
+    winner authentication. Decoded admission must separately authenticate both
+    scenes with verify_live_scene + authenticate_serialization inside CpuSlots.
+    """
+    if not isinstance(part, dict) or not isinstance(part.get("scene"), dict):
+        raise ValueError("Continuity requires two explicit native source resources")
+    source = part["scene"]
+    # The independently frozen export row avoids mutable inventory appends.
+    # Raw/JSON source paths and hashes remain the actual original resources.
+    manifest_path = project_file(part.get("sourceManifestSnapshotPath"), project)
+    checked_hash(manifest_path, part.get("manifestSha256"), "Continuity source manifest")
+    snapshot = read_json(manifest_path)
+    origin = snapshot.get("identityContinuitySourceSnapshot", {})
+    if origin.get("schema") != "native_export_source_snapshot_v1" or origin.get("source") != source:
+        raise ValueError("Continuity source snapshot is not this exact native resource")
+    bound_source = {**source, "manifestPath": manifest_path.relative_to(project).as_posix()}
+    document = validate_native_source(bound_source, project)
+    assets = snapshot["assets"]
+    matched = [row for row in assets if row.get("winner") is True
+               and depot(row["depotPath"], ".scene") == depot(source["depotPath"], ".scene")]
+    if len(matched) != 1:
+        raise ValueError("Continuity resource lacks one exact current native export")
+    expected = {"verified": True, "tool": "WolvenKit.CLI 9.0.1", "toolSha256": WOLVENKIT_SHA256,
+                "rawSha256": source["rawSha256"], "cachedJsonSha256": source["jsonSha256"],
+                "dataSha256": hashlib.sha256(json.dumps(document["Data"], ensure_ascii=False,
+                    sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()}
+    if (matched[0].get("serializationVerified") is not True
+            or matched[0].get("jsonSha256") != source["jsonSha256"]
+            or part.get("serializationVerification") != expected
+            or matched[0].get("serializationVerification") != expected):
+        raise ValueError("Continuity serialization hashes or pinned parser receipt differ")
+    if document.get("Data", {}).get("RootChunk", {}).get("$type") != "scnSceneResource":
+        raise ValueError("Continuity resource is not a native scene")
+    actor_pointer = part.get("actorPointer")
+    if not isinstance(actor_pointer, str) or not re.fullmatch(r"/Data/RootChunk/actors/(0|[1-9][0-9]*)", actor_pointer):
+        raise ValueError("Continuity actor pointer is outside the native actor store")
+    actor = pointer(document, actor_pointer)
+    if (not isinstance(actor, dict) or actor.get("$type") != "scnActorDef"
+            or actor.get("actorId", {}).get("$type") != "scnActorId"
+            or actor.get("voicetagId", {}).get("$type") != "scnVoicetagId"
+            or actor.get("actorName") != part.get("actorName")
+            or ident(actor["voicetagId"]["id"]) != part.get("nativeVoice")
+            or int(ident(actor["voicetagId"]["id"])) == 0):
+        raise ValueError("Continuity actor name or exact native voice does not match its source pointer")
+    review = part.get("review")
+    if (not isinstance(review, dict) or not isinstance(review.get("reviewer"), str)
+            or not review["reviewer"].strip() or not isinstance(review.get("reason"), str)
+            or not review["reason"].strip() or review.get("sourceScope") != _continuity_scope(source, actor, actor_pointer)):
+        raise ValueError("Each continuity source needs its own reviewer and exact actor/hash/voice scope")
+    acquisition_pointer = actor_pointer + "/spawnSetParams"
+    if actor.get("acquisitionPlan") != "spawnSet" or part.get("activeAcquisitionPointer") != acquisition_pointer:
+        raise ValueError("Continuity cannot use an inactive or unrelated acquisition object")
+    acquisition = pointer(document, acquisition_pointer)
+    if (not isinstance(acquisition, dict) or acquisition.get("$type") != "scnSpawnSetParams"
+            or acquisition != part.get("activeAcquisition")):
+        raise ValueError("Continuity active native acquisition object differs from its reviewed source")
+    entry, reference = acquisition.get("entryName", {}), acquisition.get("reference", {})
+    if (entry.get("$type") != "CName" or entry.get("$storage") != "string"
+            or not isinstance(entry.get("$value"), str) or not entry["$value"].strip()
+            or entry["$value"].casefold() in ("none", "0") or reference.get("$type") != "NodeRef"):
+        raise ValueError("Continuity requires an active typed, named spawn-set entry")
+    if reference.get("$storage") == "string":
+        value = reference.get("$value")
+        if not isinstance(value, str) or not value.startswith("#") or len(value) <= 1:
+            raise ValueError("Continuity active world reference is missing or zero")
+    elif reference.get("$storage") == "uint64":
+        if int(ident(reference.get("$value"))) == 0:
+            raise ValueError("Continuity active world reference is missing or zero")
+    else:
+        raise ValueError("Continuity world reference storage is unsupported")
+    return source, document, actor, acquisition, expected
+
+
+def validate_native_actor_continuity(actor, proof, roster, document, project, scene, actor_pointer):
+    """Reviewed, two-source actor continuity; never a canonical record edge.
+
+    A generic alias needs BOTH an exact active acquisition and voice match to a
+    separately reviewed named actor. Shared spawnSet alone is insufficient.
+    Inactive zero TweakDBID fields and nearby scene actors are never consulted.
+    """
+    chain = proof.get("continuity")
+    if not isinstance(chain, dict) or chain.get("policy") != CONTINUITY_POLICY:
+        raise ValueError("Generic continuity needs its explicit strong native chain")
+    if (not isinstance(proof.get("reviewer"), str) or not proof["reviewer"].strip()
+            or not isinstance(proof.get("reason"), str) or not proof["reason"].strip()
+            or proof.get("actorName") != actor.get("actorName")):
+        raise ValueError("Continuity attribution requires its own explicit alias review")
+    anchor, target = chain.get("anchor"), chain.get("target")
+    a_source, a_document, a_actor, a_acquisition, a_serialization = _continuity_source(anchor, project)
+    t_source, t_document, t_actor, t_acquisition, t_serialization = _continuity_source(target, project)
+    if (scene is None or t_source != scene or target["actorPointer"] != actor_pointer
+            or actor != t_actor or document != t_document
+            or proof.get("sourceScope") != target["review"]["sourceScope"]):
+        raise ValueError("Continuity target is not this exact source actor")
+    if (a_source["rawSha256"], anchor["actorPointer"]) == (t_source["rawSha256"], target["actorPointer"]):
+        raise ValueError("Continuity requires a separate canonical named source actor")
+    named = anchor.get("namedCanonicalReview")
+    if (not isinstance(named, dict) or named.get("canonicalKey") != roster["key"]
+            or named.get("canonicalName") != roster["name"]
+            or named.get("actorName") != a_actor["actorName"]
+            or named.get("sourceScope") != anchor["review"]["sourceScope"]
+            or not isinstance(named.get("reviewer"), str) or not named["reviewer"].strip()
+            or not isinstance(named.get("reason"), str) or not named["reason"].strip()):
+        raise ValueError("Continuity anchor needs a scoped canonical named-actor review")
+    generic = re.compile(r"(^|[ _-])(civ|civilian|generic|crowd|gang|npc|vendor|barman|bartender|waiter|guard)([ _-]|$)", re.I)
+    anchor_name = a_actor["actorName"]
+    canonical_aliases = [roster["name"], *roster.get("aliases", [])]
+    is_exact_named = normalized(anchor_name) in {normalized(value) for value in canonical_aliases}
+    # Short names need their own explicit source review and must be the exact
+    # first personal-name token of the current canonical roster; no stem/fuzzy
+    # matching or additions to the production roster are made.
+    first_name = re.split(r"\s+", roster["name"].strip())[0]
+    is_reviewed_short = (named.get("nameMatch") == "reviewed_exact_first_name"
+                         and normalized(anchor_name) == normalized(first_name))
+    if generic.search(anchor_name) or not (is_exact_named or is_reviewed_short):
+        raise ValueError("Continuity canonical anchor is generic or not a reviewed named character")
+    if a_acquisition != t_acquisition:
+        raise ValueError("Continuity active acquisition/world reference differs between source actors")
+    if ident(a_actor["voicetagId"]["id"]) != ident(t_actor["voicetagId"]["id"]):
+        raise ValueError("Continuity same spawn-set actor has a different native voice")
+    return {"kind": "reviewed_native_actor_continuity", "policy": CONTINUITY_POLICY,
+            "canonicalKey": roster["key"], "canonicalName": roster["name"],
+            "anchorActorName": a_actor["actorName"], "targetActorName": t_actor["actorName"],
+            "nativeVoice": ident(t_actor["voicetagId"]["id"]),
+            "anchorSourceScope": anchor["review"]["sourceScope"], "targetSourceScope": target["review"]["sourceScope"],
+            "activeAcquisitionSha256": hashlib.sha256(json.dumps(t_acquisition, sort_keys=True,
+                ensure_ascii=False, separators=(",", ":")).encode()).hexdigest(),
+            "acquisitionContinuityVerified": True, "serializationReceiptsVerified": True,
+            "canonicalRecordEdgeVerified": False, "inactiveRecordFieldsUsed": False,
+            "currentInstalledWinnerAuthenticated": False, "freshSerializationAuthenticated": False,
+            "decodedAdmissionRequiresBothSourcesAuthenticated": True}
+
+
+def authenticate_native_continuity(proof, project, out, scene_archives, verified):
+    """Planned decoded-admission gate; not invoked by the metadata prototype.
+
+    The actual decoder must call this inside CpuSlots before reading any WEM.
+    It authenticates both resource winners and parser outputs rather than
+    mistaking the above hash-bound review gate for fresh installed proof.
+    """
+    if proof.get("kind") != "reviewed_native_actor_continuity":
+        return None
+    if not CpuSlots.held_by_this_process():
+        raise RuntimeError("Native continuity authentication requires the existing CPU slot lease")
+    receipts = {}
+    for role in ("anchor", "target"):
+        part = proof["continuity"][role]
+        _continuity_source(part, project)  # Recheck frozen metadata inside the lease.
+        verify_live_scene(part["scene"], scene_archives)
+        actual = authenticate_serialization(part["scene"], project, out, verified)
+        if actual != part["serializationVerification"]:
+            raise ValueError("Continuity fresh parser output differs from its reviewed native source")
+        receipts[role] = {"scene": part["scene"], "serializationVerification": actual,
+                          "currentInstalledWinnerAuthenticated": True, "freshSerializationAuthenticated": True}
+    return receipts
+
+
+def write_continuity_validation(candidate, native, authentication, project, out, receipt):
+    """Append new validation evidence without touching any original media/receipt."""
+    if authentication is None:
+        return None
+    if not CpuSlots.held_by_this_process():
+        raise RuntimeError("Native continuity sidecar requires its CPU slot lease")
+    key, string_id, gender = candidate["key"], ident(candidate["stringId"]), candidate["genderVariant"]
+    if not KEY.fullmatch(key) or gender not in ("female", "male"):
+        raise ValueError("Unsafe identity validation sidecar coordinates")
+    proof = candidate["actor"]["identityProof"]
+    canonical = lambda value: json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    original_receipt = out / key / (string_id + "-" + gender) / "receipt.json"
+    evidence = {"schema": "native_actor_continuity_revalidation_v1", "key": key, "stringId": string_id,
+        "genderVariant": gender, "validatedAt": datetime.now(timezone.utc).isoformat(),
+        "inputSha256": receipt["inputSha256"], "validatorSourceSha256": digest(Path(__file__)),
+        "identityProofSha256": hashlib.sha256(canonical(proof)).hexdigest(), "identityProof": proof,
+        "metadataVerification": native["actor"]["identityVerification"], "sourceAuthentication": authentication,
+        "originalCandidateReceiptSha256": digest(original_receipt) if original_receipt.is_file() else None,
+        "canonicalRecordEdgeVerified": False, "status": "both_native_sources_authenticated",
+        "audioDecodedByThisValidation": False, "originalMediaRewritten": False}
+    encoded = canonical(evidence) + b"\n"
+    checksum = hashlib.sha256(encoded).hexdigest()
+    directory = out / "identity-validation" / key / (string_id + "-" + gender)
+    if not extract.contained(directory, out):
+        raise ValueError("Identity sidecar escapes its owned lane")
+    directory.mkdir(parents=True, exist_ok=True)
+    target = directory / (checksum + ".json")
+    try:
+        with target.open("xb") as stream:
+            stream.write(encoded); stream.flush(); os.fsync(stream.fileno())
+    except FileExistsError:
+        if target.read_bytes() != encoded:
+            raise ValueError("Immutable identity validation sidecar changed")
+    return {"path": target.relative_to(project).as_posix(), "sha256": checksum,
+            "identityProofSha256": evidence["identityProofSha256"], "inputSha256": receipt["inputSha256"],
+            "canonicalRecordEdgeVerified": False, "bothSourcesAuthenticated": True}
+
+
 def validate_identity(actor, proof, roster, document, project, scene=None, actor_pointer=None):
     if not isinstance(proof, dict) or proof.get("canonicalKey") != roster["key"]:
         raise ValueError("Canonical actor identity proof is missing or mismatched")
@@ -408,12 +625,14 @@ def validate_identity(actor, proof, roster, document, project, scene=None, actor
         aliases = [roster["name"], *roster.get("aliases", [])]
         if normalized(actor_name) not in {normalized(x) for x in aliases}:
             raise ValueError("Native actor is not an exact canonical roster alias")
+    elif kind == "reviewed_native_actor_continuity":
+        return validate_native_actor_continuity(actor, proof, roster, document, project, scene, actor_pointer)
     elif kind == "reviewed_actor_alias":
         if (proof.get("actorName") != actor_name or not str(proof.get("reviewer", "")).strip()
                 or not str(proof.get("reason", "")).strip()):
             raise ValueError("Native alias requires a named reviewer and attribution reason")
         # Shared demographic/crowd names cannot be promoted by alias review.
-        if re.search(r"(^|[ _-])(civ|civilian|generic|crowd|gang|npc|vendor|barman)([ _-]|$)", actor_name, re.I):
+        if re.search(r"(^|[ _-])(civ|civilian|generic|crowd|gang|npc|vendor|barman|bartender)([ _-]|$)", actor_name, re.I):
             raise ValueError("Generic actors require native quest-acquisition proof")
     elif kind == "direct_actor_record":
         active_fields = {"spawnDespawn": "spawnDespawnParams/specRecordId",
@@ -784,8 +1003,20 @@ def verify_probe(probe, quality):
 def decode_candidate(candidate, roster, project, out, archives, oodle, tools, receipt, verified, db_path):
     native = candidate["nativeReceipt"]
     voice_archives, text_archives, scene_archives = archives
-    verify_live_scene(candidate["scene"], scene_archives)
-    serialization = authenticate_serialization(candidate["scene"], project, out, verified)
+    identity_validation = None
+    continuity_authentication = None
+    if candidate["actor"]["identityProof"].get("kind") == "reviewed_native_actor_continuity":
+        if not CpuSlots.held_by_this_process():
+            raise RuntimeError("Native continuity decoding requires the existing CPU slot lease")
+        # Input validation happens before the lease. Revalidate every native
+        # actor/line/proof join inside it before any WEM access or cache return.
+        native = validate_native(candidate, roster[candidate["key"]], project)
+        continuity_authentication = authenticate_native_continuity(candidate["actor"]["identityProof"], project, out, scene_archives, verified)
+        serialization = continuity_authentication["target"]["serializationVerification"]
+        identity_validation = write_continuity_validation(candidate, native, continuity_authentication, project, out, receipt)
+    else:
+        verify_live_scene(candidate["scene"], scene_archives)
+        serialization = authenticate_serialization(candidate["scene"], project, out, verified)
     wem, audio_source = winning(voice_archives, depot(candidate["wemPath"], ".wem"), oodle)
     if (len(wem) < 12 or wem[:4] != b"RIFF" or wem[8:12] != b"WAVE"
             or int.from_bytes(wem[4:8], "little") + 8 != len(wem)):
@@ -827,7 +1058,7 @@ def decode_candidate(candidate, roster, project, out, archives, oodle, tools, re
         checked_hash(directory / "reference.wav", saved["sha256"], "Existing original WAV")
         if (directory / "transcript.txt").read_text(encoding="utf-8").removesuffix("\n") != text:
             raise ValueError("Existing exact transcript was changed")
-        return saved
+        return {**saved, "identityRevalidation": identity_validation} if identity_validation else saved
     with tempfile.TemporaryDirectory(prefix=".decode-", dir=key_root) as temporary:
         stage = Path(temporary).resolve()
         if not extract.contained(stage, out):
@@ -851,7 +1082,8 @@ def decode_candidate(candidate, roster, project, out, archives, oodle, tools, re
                 "provenance": {"rosterSha256": receipt["rosterSha256"], **receipt["rosterValidation"], "gameVersion": "2.31", "locale": "en_us",
                   "identity": {**identity_projection([roster[candidate["key"]]])[0], "proof": candidate["actor"]["identityProof"]},
                   "discovery": candidate.get("discovery", {"inputSha256": receipt["inputSha256"]}),
-                  "nativeActor": {"scene": native["scene"], "serializationVerification": serialization, **native["actor"]},
+                  "nativeActor": {"scene": native["scene"], "serializationVerification": serialization, **native["actor"],
+                                  **({"continuitySourceAuthentication": continuity_authentication} if continuity_authentication else {})},
                   "nativeLine": {**native["line"], "event": native["event"]},
                   "sourceDelivery": native["sourceDelivery"],
                   "subtitle": {**native["english"], "sources": subtitle_sources, "indexSha256": digest(db_path), "indexPath": db_path.relative_to(project).as_posix()},
@@ -861,6 +1093,8 @@ def decode_candidate(candidate, roster, project, out, archives, oodle, tools, re
                             "decoder": tools["vgmstream-cli"], "ffprobe": tools["ffprobe"],
                             "decoderOutput": decoder.stdout.strip(), "ffprobeReceipt": probe, "processing": receipt["audioProcessing"]},
                   "quality": quality}}
+        if identity_validation:
+            item["identityRevalidation"] = identity_validation
         write_json(stage / "receipt.json", item)
         # Whole directory publishes atomically. A process death after rename is
         # recovered from its immutable receipt rather than redecoding/overwriting.
