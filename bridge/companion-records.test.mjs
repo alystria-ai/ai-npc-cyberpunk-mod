@@ -16,6 +16,8 @@ const fixture=`
     ['Character.Judy']={abilities={'sprint','shoot','rightHand'},archetypeData='ranged',
       primaryEquipment='chaoPool',secondaryEquipment='secondary'},
     ['Character.Grayson']={primaryEquipment='malorianPool'},
+    ['Character.Kerry']={entityTemplatePath='base\\\\quest\\\\tertiary_characters\\\\kerry.ent',
+      defaultAppearance='kerry_eurodyne__q203__shower'},
     ranged={},malorianPool={},secondary={}
   }
   local clones,writes=0,0
@@ -40,6 +42,8 @@ const fixture=`
   end
   companions.registerDefinition('johnny-silverhand',{
     id='Character.Silverhand',name='Johnny',profileKey='johnny-silverhand'})
+  companions.registerDefinition('kerry-eurodyne',{
+    id='Character.Kerry',name='Kerry',profileKey='kerry-eurodyne'})
 `;
 
 test('Johnny spawns with private combat data; Judy and quest records remain unchanged',()=>run(`
@@ -104,6 +108,50 @@ test('Johnny recreation after fast travel keeps his initial solid appearance',()
   assert(replacement.spec.appearanceName=='silverhand_riot__not_blendable','fast travel lost the initial solid appearance')
   local row=companions.list()[1]
   assert(row.serial==serial and row.state=='ready')
+`));
+
+test('Kerry is created in his native clothed appearance without rewriting the quest record or rebuilding his face',()=>run(`
+  companions.spawn('kerry-eurodyne')
+  local kerry=entities[sequence]
+  assert(kerry.spec.recordID=='Character.Kerry','Kerry received another character record')
+  assert(kerry.spec.appearanceName=='kerry_eurodyne_kerry_eurodyne_old_no_sunglasses',
+    'Kerry inherited the native shower default instead of his clothed appearance')
+  kerry.ScheduleAppearanceChange=function() error('attachment rebuilt the initialized face graph') end
+  tick()
+  assert(companions.list()[1].state=='ready')
+  assert(records['Character.Kerry'].defaultAppearance=='kerry_eurodyne__q203__shower',
+    'the shared story template was rewritten')
+  assert(clones==0 and writes==0,'clothing selection mutated TweakDB')
+`));
+
+test('Kerry clothing is selected by the model record, including browser copies, rather than the voice profile',()=>run(`
+  companions.registerDefinition('kerry-browser-copy',{recordID='Character.Kerry',name='Kerry model'})
+  local kerry=spawn('kerry-browser-copy')
+  assert(kerry.spec.appearanceName=='kerry_eurodyne_kerry_eurodyne_old_no_sunglasses',
+    'the browser copy inherited the shower outfit')
+  companions.registerDefinition('judy-with-kerry-profile',{
+    id='Character.Judy',name='Judy',profileKey='kerry-eurodyne'})
+  local judy=spawn('judy-with-kerry-profile')
+  assert(judy.spec.recordID=='Character.Judy' and judy.spec.appearanceName==nil,
+    'a conversation identity replaced the selected model outfit')
+  assert(clones==0 and writes==0)
+`));
+
+test('Kerry recreation after fast travel retains the initial clothed appearance and exact companion identity',()=>run(`
+  local kerry=spawn('kerry-eurodyne')
+  local serial=companions.list()[1].serial
+  assert(companions.beginFastTravel())
+  entities[tonumber(kerry.id.hash)]=nil
+  assert(companions.fastTravel())
+  tick(8)
+  local replacement=entities[sequence]
+  assert(replacement and replacement~=kerry,'fast travel did not recreate the missing copy')
+  assert(replacement.spec.recordID=='Character.Kerry')
+  assert(replacement.spec.appearanceName=='kerry_eurodyne_kerry_eurodyne_old_no_sunglasses',
+    'the recreated copy reverted to the shower default')
+  local row=companions.list()[1]
+  assert(row.serial==serial and row.state=='ready')
+  assert(clones==0 and writes==0)
 `));
 
 test('missing combat donor prevents an incomplete spawn and does not touch shared records',()=>run(`

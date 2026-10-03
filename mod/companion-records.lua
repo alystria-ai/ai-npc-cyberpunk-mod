@@ -8,8 +8,14 @@ local johnnyCopy = 'CyberpunkConvai.JohnnyCompanion'
 -- appearance. Select it at creation: changing the appearance after attachment
 -- replaces the prepared face_rig through an ownerless native builder request.
 local johnnyAppearance = 'silverhand_riot__not_blendable'
+-- The native Kerry template defaults to his Q203 shower appearance. Its old
+-- no-sunglasses mapping has the normal shirt/pants outfit. Choose that in the
+-- owned copy's spawn spec, before its facial components are initialized.
+local kerrySource = 'Character.Kerry'
+local kerryAppearance = 'kerry_eurodyne_kerry_eurodyne_old_no_sunglasses'
 
 function M.resolve(source)
+    if source == TweakDBID.new(kerrySource) then return source, nil, nil, kerryAppearance end
     if source ~= TweakDBID.new(johnnySource) then return source end
     if prepared and TweakDB:GetRecord(prepared) then return prepared, nil, johnnyCopy, johnnyAppearance end
 
