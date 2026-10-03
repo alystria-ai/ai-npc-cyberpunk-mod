@@ -13,6 +13,9 @@ const observer = readFileSync(new URL('../mod/battle-observer.lua', import.meta.
 const group = readFileSync(new URL('../mod/group-chat.lua', import.meta.url), 'utf8');
 const lootSource = readFileSync(new URL('../mod/loot-reactions.lua', import.meta.url), 'utf8');
 const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+const subtitlesSource = readFileSync(new URL('../mod/subtitles.lua', import.meta.url), 'utf8');
+const subtitleOwnership = subtitlesSource.slice(subtitlesSource.indexOf('function M.ownsUtterance()'),
+  subtitlesSource.indexOf('-- Keep normal sentences together.'));
 const adapter = init.slice(init.indexOf('local function sendRequest(context)'), init.indexOf('local function groupAudience(player)'));
 const focusExpiry = init.slice(init.indexOf('    if focusUntil and not active'), init.indexOf('    if focusedCrowd and not focusedCrowd.checked'));
 const lifecycle = init.slice(init.indexOf('local worldSuspended, sessionHasState'), init.indexOf("registerForEvent('onInit'"));
@@ -152,8 +155,9 @@ local speech={}
 function speech.stop()stopped=stopped+1;speech.requestId=nil end
 function speech.abandon()speech.requestId,speech.target=nil,nil end
 local subtitles={}
-function subtitles.clear()cleared=cleared+1;subtitles.line=nil end
-function subtitles.abandon()subtitles.line=nil end
+do local M=subtitles;${subtitleOwnership}end
+function subtitles.clear()cleared=cleared+1;subtitles.line,subtitles.pages,subtitles.timed=nil,nil,nil end
+function subtitles.abandon()subtitles.line,subtitles.pages,subtitles.timed=nil,nil,nil end
 local microphone,groupChat,phoneChat={},{},{}
 function microphone.cancel()microphone.context=nil end
 function groupChat.cancel()groupChat.round=nil end
@@ -218,7 +222,7 @@ local function queueLoot(id,overrides,witnesses)
  queuedLoot[#queuedLoot+1]=item;return item
 end
 local function finishAutomatic()
- pending,speech.requestId,subtitles.line=nil,nil,nil;advance(.5)
+ pending,speech.requestId,subtitles.line,subtitles.pages,subtitles.timed=nil,nil,nil,nil,nil;advance(.5)
  assert(not automatic)
 end
 local function openBattle()
@@ -368,6 +372,31 @@ people[1].profileKey='alex'
 assert(not reactionCanDeliver(context,player) and not automatic,
  'An entity reused or reassigned to another profile cannot inherit the old speaker lease')
 assert(lastCancellation().reason=='speaker-missing')
+`));
+
+test('a hidden text-only continuation blocks automatic loot admission until the utterance releases', () => run(adapterFixture + `
+advance(.5);queueLoot('waiting-behind-text');advance(.5)
+subtitles.pages={'Already displayed overhead.','An unread continuation.'}
+subtitles.line,subtitles.timed=nil,nil
+waitGame(6)
+assert(subtitles.ownsUtterance() and not automatic and #requests==0 and loot.status().pending==1,
+ 'A hidden widget is still an owned reply with unread text')
+subtitles.clear();advance(.5)
+assert(automatic and automatic.reaction.kind=='loot' and #requests==1)
+`));
+
+test('an automatic text continuation retains its lease and manual cancellation clears its hidden pages', () => run(adapterFixture + `
+openBattle();local context=automatic
+pending,speech.requestId=nil,nil
+automatic.shown=true;automatic.playbackAt=math.floor(now)
+subtitles.pages={'Already displayed overhead.','An unread continuation.'}
+subtitles.line,subtitles.timed=nil,nil
+advance(.5)
+assert(automatic==context and not lastAutomatic.finishedAt,
+ 'Automatic playback cannot complete merely because its projected root retired')
+active={};advance(.5)
+assert(not automatic and not subtitles.ownsUtterance() and cleared==1)
+assert(lastCancellation().reason=='manual-priority')
 `));
 
 test('coordinator emits one claimed request for a completed confirmed world-loot batch', () => run(adapterFixture + `

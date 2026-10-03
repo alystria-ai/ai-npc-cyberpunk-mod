@@ -1074,3 +1074,27 @@ successfully and its staged source hash matches. New regression cases include
 map changes at completion, missing passengers, refused cancellation, coasting,
 foreign control and retained-driver reload cleanup. Full production driving,
 retargeting, arrival and the repaired seated face remain the combined live gate.
+
+## October 3: accepted exit handoff and subtitle continuity
+
+The complete chauffeur-trip check now has user acceptance for walking after exit:
+V left normally, walked away and glanced back; Johnny approached and settled.
+The matched bounded movement trace records the catch-up and final standing gap.
+That evidence closes the reproduced post-exit defect. Ordinary following remains
+the accepted baseline; the newly reported door-approach pause is investigated
+through the chauffeur's actual mount and native move state.
+
+The user also reported an overhead driving reply replaying in the cinematic HUD
+on boarding. Source inspection located the unconditional same-page `showPage()`
+at the renderer transition; the existing regression incorrectly expected it.
+The correction retains a Unicode read frontier and the playback/read cursor.
+Unread continuation owns the utterance even while its widget is retired, so group
+turns and automatic comments wait for completion. New replies reset that frontier.
+The 113 focused source checks pass with one optional installed-source skip;
+live boarding presentation still needs the user's check.
+
+Method: reproduce the reported transition, distinguish widget visibility from
+utterance ownership, add regressions that fail on the measured cause, and review
+the callers that use that ownership. Record installed hashes and an explicit
+live result separately from fixture passes. Packaging is paused until Pocket TTS
+integration; teacher/student experiments preserve the accepted fallback exports.

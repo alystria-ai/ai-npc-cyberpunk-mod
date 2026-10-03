@@ -148,6 +148,7 @@ function M.abandon()
     M.line, M.controller, M.widgetToken, M.actor, M.entity, M.playerID = nil, nil, nil, nil, nil, nil
     M.pages, M.timed, M.speaker, M.page, M.remaining, M.mode = nil, nil, nil, nil, nil, nil
     M.paginationStyle = nil
+    M.pageRanges, M.vehicleReadThrough = nil, nil
     M.placement = nil
     M.anchor, M.projectionReady, M.pendingProjection, M.rootVisibility = nil, nil, nil, nil
     M.revealAfterFrame = nil
@@ -175,14 +176,19 @@ function M.clearEntity(entity)
     if entity ~= nil and entity == M.entity then M.clear(); return true end
     return false
 end
+function M.ownsUtterance()
+    -- A retired widget can be waiting for an unread page or streamed text.
+    -- Ownership ends on clear/abandon, not when its current root is hidden.
+    return M.pages ~= nil or M.timed ~= nil or M.line ~= nil
+end
 
 -- Keep normal sentences together. Only wrap when a line actually exceeds the
 -- native layout budget; short sentences and commas do not force a new page.
 -- Preserve UTF-8 even in CJK text without spaces or unusually long words.
 function M.split(text, style)
-    if type(text) ~= 'string' then return {} end
+    if type(text) ~= 'string' then return {}, {} end
     text = text:gsub('%s+', ' '):match('^%s*(.-)%s*$')
-    local chars, pages = {}, {}
+    local chars, pages, ranges = {}, {}, {}
     for char in text:gmatch(UTF8) do chars[#chars + 1] = char end
     local overhead = style == 'overhead'
     local maximum, start = overhead and 120 or 160, 1
@@ -207,11 +213,14 @@ function M.split(text, style)
             elseif chars[finish + 1] ~= ' ' and boundary and boundary >= start then finish = boundary end
         end
         local page = table.concat(chars, '', start, finish):match('^%s*(.-)%s*$')
-        if page ~= '' then pages[#pages + 1] = page end
+        if page ~= '' then
+            pages[#pages + 1] = page
+            ranges[#pages] = {start = start, finish = finish}
+        end
         start = finish + 1
         while chars[start] == ' ' do start = start + 1 end
     end
-    return pages
+    return pages, ranges
 end
 
 local function pageDuration(text)
@@ -256,6 +265,23 @@ end
 local function showPage()
     if M.actor and not validActor(M.actor, M.entity) then M.clear(); return false end
     local text = M.pages[M.page]
+    if M.vehicleReadThrough then
+        -- Boarding retires text already presented overhead, not the utterance.
+        -- A growing transcript can move that text across page boundaries, so
+        -- retain its character frontier rather than suppressing a page number.
+        local range = M.pageRanges[M.page]
+        local skip = M.vehicleReadThrough - range.start + 1
+        if skip > 0 then
+            local chars = {}
+            for char in text:gmatch(UTF8) do chars[#chars + 1] = char end
+            text = table.concat(chars, '', math.min(skip + 1, #chars + 1)):match('^%s*(.-)%s*$')
+        end
+        if text == '' then
+            hideLine()
+            M.remaining = pageDuration(M.pages[M.page])
+            return true
+        end
+    end
     local duration = pageDuration(text)
     if M.mode == 'overhead' and M.line then
         if not M.controller or updateOwnedText(M.controller, text) then
@@ -299,7 +325,7 @@ local function prepare(speaker, text, actor, expected)
     end
     if M.mode == 'overhead' then M.anchor = headAnchor(M.actor) end
     M.paginationStyle = M.mode
-    M.pages = M.split(text, M.paginationStyle)
+    M.pages, M.pageRanges = M.split(text, M.paginationStyle)
     if #M.pages == 0 then M.abandon(); return false end
     M.playerID, M.speaker, M.page = identity(Game.GetPlayer()), speaker, 1
     return true
@@ -331,7 +357,7 @@ function M.reviseTimed(text, duration, position)
     if not M.enabled() or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return false end
     -- Switching an ongoing utterance from overhead to the cabin HUD must not
     -- change page boundaries on the next streamed transcript revision.
-    local pages = M.split(text, M.paginationStyle or M.mode)
+    local pages, ranges = M.split(text, M.paginationStyle or M.mode)
     if #pages == 0 then return false end
     local oldText, oldPage = M.pages[M.page], M.page
     local weights, total = {}, 0
@@ -344,7 +370,7 @@ function M.reviseTimed(text, duration, position)
     -- A duration estimate becoming more accurate is not a reason to replay a
     -- page which the player has already read.
     M.page = math.max(math.min(oldPage, #pages), target)
-    M.pages, M.timed = pages, {duration = duration, weights = weights, total = total,
+    M.pages, M.pageRanges, M.timed = pages, ranges, {duration = duration, weights = weights, total = total,
         position = math.min(position, duration), pageFloor = M.page}
     if not M.line or pages[M.page] ~= oldText or M.page ~= oldPage then return showPage() end
     -- A PCM duration estimate is not a new caption. Its local timing changes,
@@ -363,20 +389,20 @@ function M.syncTimed(position)
 end
 function M.update(delta)
     M.frameSerial = (M.frameSerial or 0) + 1
-    if not M.line then return end
+    if not M.pages then return end
     local ok, player = pcall(function() return Game.GetPlayer() end)
     if not ok or not player or (M.playerID and identity(player) ~= M.playerID) then M.abandon(); return end
     if not M.enabled() or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return end
     if M.mode == 'overhead' and vehicleConversation(player) then
-        -- Retire the owned floating root before switching renderer. Keep the
-        -- current page and audio cursor; boarding must not replay the reply.
+        -- The player has already seen this page on foot. Retire its root and
+        -- preserve progress; only unread continuation text may enter the HUD.
         local remaining = M.remaining
+        M.vehicleReadThrough = M.pageRanges[M.page].finish
         hideLine()
         M.mode, M.fallback, M.anchor = 'dialogue', 'vehicle-interior', nil
-        showPage()
         M.remaining = remaining
-        -- Keep this utterance in the HUD even if V exits midway. The next
-        -- reply reevaluates the saved style without rewriting that preference.
+        -- Keep this utterance's renderer if V exits midway. The next reply
+        -- reevaluates the saved style without rewriting that preference.
     end
     if ownedController(M.controller) then
         M.projectionFrames = (M.projectionFrames or 0) + 1

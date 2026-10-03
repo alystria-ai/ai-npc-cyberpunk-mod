@@ -172,24 +172,80 @@ m.clear();judy.vehicle=nil
 assert(m.show('Judy','Back on foot.',judy,'201ULL') and m.status().mode=='overhead')
 `));
 
-test('boarding during timed speech retires the overhead without replaying its page or clock', () => run(setup + `
+test('boarding during timed speech retires the displayed page and preserves the remaining caption cursor', () => run(setup + `
 parents['car']={IsAttached=function()return true end,IsVehicle=function()return true end}
-local text=string.rep('Night City. ',30)
+local text=string.rep('A',120)..string.rep('B',120)..string.rep('C',100)
 assert(m.beginTimed('Judy',text,12,judy,'201ULL'))
 m.syncTimed(7)
 local before=m.status();local old=shown()[#shown()]
-assert(before.page>1 and before.position==7)
+assert(before.page==2 and before.position==7)
+local count=#shown()
 player.vehicle='car';m.update(.1)
-local now=m.status();local replacement=shown()[#shown()]
+local now=m.status()
 assert(now.mode=='dialogue' and now.page==before.page and now.position==7)
-assert(replacement.text==old.text and replacement.type=='ownerless-regular')
-assert(hidden()[#hidden()]==old.id and replacement.id~=old.id)
+assert(#shown()==count and m.line==nil,'Mounting must not display the same on-foot page again in the HUD')
+assert(m.ownsUtterance(),'Retiring the projected root does not release the reply')
+assert(hidden()[#hidden()]==old.id)
 assert(m.reviseTimed(text,12,7))
-assert(shown()[#shown()].text==old.text,'A stream revision must not repaginate and skip words after boarding')
+assert(#shown()==count and m.line==nil,'An unchanged transcript cannot revive the retired page')
 assert(m.status().page==before.page and m.status().position==7)
-local count=#shown();player.vehicle=nil;m.update(.1)
+m.syncTimed(11.5)
+local continuation=shown()[#shown()]
+assert(#shown()==count+1 and continuation.text==string.rep('C',100) and continuation.type=='ownerless-regular')
+count=#shown();player.vehicle=nil;m.update(.1)
 assert(m.status().mode=='dialogue' and #shown()==count,'Do not swap renderer repeatedly mid-reply')
 assert(settingsWrites==0)
+m.clear();assert(not m.ownsUtterance())
+`));
+
+test('a completed on-foot caption cannot reappear on boarding but a new car reply displays normally', () => run(setup + `
+parents['car']={IsAttached=function()return true end,IsVehicle=function()return true end}
+assert(m.beginTimed('Judy','Sure. I will drive.',5,judy,'201ULL'))
+local old=shown()[1]
+m.syncTimed(5)
+judy.vehicle='car';m.update(.1)
+assert(#shown()==1 and hidden()[1]==old.id and m.line==nil)
+assert(m.reviseTimed('Sure. I will drive.',5,5) and #shown()==1)
+assert(m.beginTimed('Judy','We are taking the next left.',4,judy,'201ULL'))
+assert(#shown()==2 and shown()[2].text=='We are taking the next left.' and shown()[2].type=='ownerless-regular')
+assert(m.status().position==0 and settingsWrites==0)
+assert(m.beginTimed('Judy','Sure. I will drive.',5,judy,'201ULL'))
+assert(#shown()==3 and shown()[3].text==old.text,'An identical sentence in a new utterance is not a replay of the old reply')
+`));
+
+test('non-voiced boarding preserves its reading countdown and displays only the unread next page', () => run(setup + `
+parents['car']={IsAttached=function()return true end,IsVehicle=function()return true end}
+local text=string.rep('A',120)..string.rep('B',20)
+assert(m.show('Judy',text,judy,'201ULL'))
+m.update(1)
+local remaining=m.remaining
+player.vehicle='car';m.update(.25)
+assert(#shown()==1 and m.line==nil and m.remaining==remaining-.25)
+assert(m.ownsUtterance())
+m.update(m.remaining+.01)
+assert(#shown()==2 and shown()[2].text==string.rep('B',20) and shown()[2].type=='ownerless-regular')
+m.update(m.remaining+.01);assert(m.pages==nil and m.line==nil)
+assert(not m.ownsUtterance())
+`));
+
+test('a growing car transcript displays new text without repeating characters shifted by repagination', () => run(setup + `
+parents['car']={IsAttached=function()return true end,IsVehicle=function()return true end}
+local prefix=string.rep('word ',18)..string.rep('A',25)
+assert(m.beginTimed('Judy',prefix,5,judy,'201ULL'))
+m.syncTimed(1)
+player.vehicle='car';m.update(.1)
+assert(#shown()==1 and m.line==nil)
+assert(m.reviseTimed(prefix..string.rep('B',30),6,2))
+assert(#shown()==1 and m.line==nil)
+m.syncTimed(4)
+assert(#shown()==2 and shown()[2].text==string.rep('B',30),'The old suffix moved to page two but was already displayed on foot')
+m.clear();player.vehicle=nil
+local cjk=string.rep('界',100)
+assert(m.beginTimed('Judy',cjk,5,judy,'201ULL'))
+m.syncTimed(1);player.vehicle='car';m.update(.1)
+local count=#shown()
+assert(m.reviseTimed(cjk..string.rep('新',40),10,2))
+assert(#shown()==count+1 and shown()[#shown()].text==string.rep('新',20),'The handoff cursor must count Unicode characters, not UTF-8 bytes')
 `));
 
 test('zero mounting IDs and nonvehicle props do not suppress on-foot overhead captions', () => run(setup + `
@@ -386,6 +442,7 @@ m.beginTimed('Judy','Night City always looks different from up here, with all th
 local beforeReads,beforeEvents=nativeReads,#events
 world=false;m.abandon()
 assert(nativeReads==beforeReads and #events==beforeEvents)
+assert(not m.ownsUtterance() and nativeReads==beforeReads,'Ownership inspection performs no native reads after unload')
 assert(m.line==nil and m.timed==nil and m.pages==nil)
 assert(m.actor==nil and m.controller==nil and m.entity==nil)
 m.syncTimed(9);m.update(100)

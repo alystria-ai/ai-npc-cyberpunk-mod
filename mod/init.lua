@@ -941,11 +941,11 @@ local function updateBattles(player, elapsed, worldReady)
             or not valid and (invalidReason or 'event-invalid')
         if reason then
             cancelAutomatic(reason)
-        elseif not pending and not speech.requestId and not subtitles.line then
+        elseif not pending and not speech.requestId and not subtitles.ownsUtterance() then
             cancelAutomatic('completed')
         elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
     end
-    local busy = not worldReady or manual or not outputs.enabled or pending ~= nil or speech.requestId ~= nil or subtitles.line ~= nil or automatic ~= nil
+    local busy = not worldReady or manual or not outputs.enabled or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() or automatic ~= nil
     local function mayFollow(event, kind)
         if not event or busy then return false end
         if not lastAutomatic then return true end
@@ -1061,7 +1061,7 @@ local function updateGroup(player)
     if round.stage == 'waiting' and person and not live[person.entity] then
         groupChat.received(round.requestId, '', true, {})
         if pending and pending.requestId == round.requestId then pending = nil end
-    elseif round.stage == 'playing' and not speech.requestId and not subtitles.line then
+    elseif round.stage == 'playing' and not speech.requestId and not subtitles.ownsUtterance() then
         groupChat.completed(round.requestId, not deliveryFailed)
     end
     if groupChat.round ~= round then return end
@@ -1529,12 +1529,12 @@ registerForEvent('onUpdate', function(delta)
                     -- semantics with stream v2, without native WAV chunking.
                     local utterance = reply.stream or (type(reply.continuous) == 'table'
                         and {version=2,id=reply.continuous.id} or nil)
-                    groupChat.received(pending.requestId, reply.text, reply.error ~= nil or (not speech.requestId and not subtitles.line), listeners, utterance, reply.userText)
+                    groupChat.received(pending.requestId, reply.text, reply.error ~= nil or (not speech.requestId and not subtitles.ownsUtterance()), listeners, utterance, reply.userText)
                     if type(microphone.received) == 'function' then microphone.received(pending.requestId) end
                     log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil))
                     if automatic and pending.requestId == automatic.requestId then
                         automatic.shown = reply.error == nil
-                        if automatic.shown and (speech.requestId or subtitles.line) then
+                        if automatic.shown and (speech.requestId or subtitles.ownsUtterance()) then
                             automatic.playbackAt, automatic.leaseAt = os.time(), nil
                             reactionLease(true)
                         end

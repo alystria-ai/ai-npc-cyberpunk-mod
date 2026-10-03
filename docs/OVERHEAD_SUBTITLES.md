@@ -12,7 +12,7 @@ The user rejected the first overhead presentation on September 30: it sat too hi
 - One overhead utterance owns one CRUID and projected widget. Transcript growth and page advancement update only that owned controller's plain-text normal/wide refs. They do not call `SetLineData` again, because native `SetLineData` resets projection entity and initially displays a bubble. Unsupported refs fall back to replacing only the owned caption and report `renderUpdateError`; foreign text is never edited. Dialogue HUD pages keep their native replacement path. Only exact mod-owned IDs are hidden; actor-wide removal is never used.
 - The renderer receipt uses `ObserveAfter`, because CET's `Observe` is a before-hook. A unique **native CName value** plus exact actor ownership identifies the controller across different CET wrappers. Fresh `CName.new(text)` values need not have text in the game's name pool, so ownership never compares `NameToString` with a generated Lua string. The native value is read back before any root is concealed. An `IsBubble` override requests expanded text only for that owned root. Two regular Lua frame ticks suppress initial cached layout; the root then regains its original visibility even when native projection readiness or callback interception is unavailable. Only owned text/bubble children are clipped by native viewport/range status. Native `UpdateProjection` always runs. The owned controller ignores the unrelated nameplate's 30-pixel vertical adjustment, which otherwise moves text as aim changes. Foreign and retired roots delegate normally. The corrected hooks/private-ref bindings have source/fixture verification; fresh in-game visual acceptance is pending.
 - A missing or mismatched speaker, or disabled native Overheads setting, falls back to the dialogue HUD. The mod does not change global game subtitle preferences. The native Cinematic setting still controls HUD visibility.
-- When V or the speaking companion is mounted in a live vehicle, replies use the dialogue HUD even if Above speaker is selected. Mounting into a chair or an empty zero-parent mount record does not count. If boarding happens during a reply, the owned overhead is removed and its current page continues in the HUD with the same audio cursor. That utterance remains in the HUD on exit; the next reply reevaluates the saved style. No subtitle preference is rewritten.
+- When V or the speaking companion is mounted in a live vehicle, replies use the dialogue HUD even if Above speaker is selected. Mounting into a chair or an empty zero-parent mount record does not count. If boarding happens during a reply, the owned overhead is retired and only unread continuation enters the HUD, with the same audio cursor. That utterance remains in the HUD on exit; the next reply reevaluates the saved style. No subtitle preference is rewritten.
 
 ## Timing and lifecycle
 
@@ -61,7 +61,7 @@ Read-only diagnostics: `subtitles-state:<nonce>` reports adapter state; `overhea
 The user requested no floating captions inside vehicles. The native mount check
 now selects Dialogue HUD when V or the exact speaker occupies a live vehicle.
 Boarding during an existing overhead reply conceals and retires its owned root
-before continuing the same page and playback cursor in the HUD. It does not
+before continuing unread text and the playback cursor in the HUD. It does not
 rewrite the saved subtitle style or native Cinematic preference.
 The original page boundaries also remain fixed for that utterance's subsequent
 stream revisions, avoiding skipped words when the two layouts have different
@@ -75,3 +75,24 @@ A game-window capture confirmed the named bottom caption. Evidence is under
 ignored `runtime/verification/vehicle-subtitle-native-read.json` and
 `runtime/verification/johnny-vehicle-dialogue-caption-active/`. No reply-service
 request or saved-setting change was needed for this preview.
+
+### October 3: boarding without replaying a reply
+
+The user reported that the reply to a driving request appeared overhead on foot,
+then appeared again as a cinematic caption after entering the car. The previous
+transition called `showPage()` on the same page, which created a fresh native HUD
+line and reading duration. Its test also expected that unwanted repetition.
+
+The correction records the Unicode character frontier already presented on foot,
+retires that widget, and preserves the audio cursor or text-only reading countdown.
+Growing transcripts retain that frontier across pagination changes; only newly
+available continuation enters the HUD. A genuinely new utterance resets it, even
+when the character repeats the same sentence.
+
+`ownsUtterance()` separates caption ownership from visible-widget state. Automatic
+comments and group turns continue waiting while a retired page owns unread text;
+manual cancellation and world abandonment release that ownership normally. The
+113 focused subtitle, playback, automatic-reaction and lifecycle checks passed,
+with one optional installed-source check skipped. The new transition and scheduler
+regressions failed before their corrections. Live boarding acceptance remains
+pending.

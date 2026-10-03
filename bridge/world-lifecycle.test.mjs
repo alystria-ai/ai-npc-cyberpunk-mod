@@ -5,6 +5,9 @@ import fengari from 'fengari';
 import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 
 const source = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+const subtitlesSource = readFileSync(new URL('../mod/subtitles.lua', import.meta.url), 'utf8');
+const subtitleOwnership = subtitlesSource.slice(subtitlesSource.indexOf('function M.ownsUtterance()'),
+  subtitlesSource.indexOf('-- Keep normal sentences together.'));
 const questSource = readFileSync(new URL('../mod/quest-context.lua', import.meta.url), 'utf8');
 const invitationSource = readFileSync(new URL('../mod/invitation-readiness.lua', import.meta.url), 'utf8');
 const partyQueueSource = readFileSync(new URL('../mod/manager-party.lua', import.meta.url), 'utf8');
@@ -198,6 +201,8 @@ function companions.dismiss(serial)
 end
 local subtitles = {configure = noOp, install = noOp, update = noOp,
     abandon = function() note('subtitles-abandon') end, clear = noOp}
+do local M=subtitles;${subtitleOwnership}end
+subtitles.clear=function() subtitles.line,subtitles.pages,subtitles.timed=nil,nil,nil end
 local speech = {transcript = noOp, clearEntity = noOp, update = noOp,
     abandon = function() note('speech-abandon') end, stop = noOp,
     start = function(context) stats.starts[#stats.starts + 1] = context.requestId end}
@@ -308,7 +313,7 @@ companions.abandon = function(preserveTransit)
     if not preserveTransit then members = {}; companions.inTransit=nil end
 end
 speech.abandon = function() note('speech-abandon'); speech.requestId = nil end
-subtitles.abandon = function() note('subtitles-abandon'); subtitles.line = nil end
+subtitles.abandon = function() note('subtitles-abandon'); subtitles.line,subtitles.pages,subtitles.timed = nil,nil,nil end
 microphone.cancel = function()
     note('microphone-cancel'); microphone.context, microphone.queued, microphone.knowledgeOwner = nil, nil, nil
 end
@@ -316,6 +321,7 @@ group.cancel = function() note('group-cancel'); group.round = nil end
 phone.abandon = function() note('phone-abandon'); phone.pending = nil end
 local function assertSessionsCancelled()
     assert(companions.session == nil and speech.requestId == nil and subtitles.line == nil)
+    assert(not subtitles.ownsUtterance())
     assert(microphone.context == nil and microphone.queued == nil and microphone.knowledgeOwner == nil)
     assert(group.round == nil and phone.pending == nil)
 end
@@ -369,6 +375,26 @@ local function submitText()
     return json.decode(assert(files['runtime/last-input.json']))
 end
 `;
+
+test('group playback waits for hidden text continuation and advances only after subtitle ownership releases', () => run(`
+events.onInit();events.onUpdate(0)
+player.GetWorldPosition=function() return {x=0,y=0,z=0} end
+local actor={IsAttached=function()return true end,IsDeadNoStatPool=function()return false end,
+ GetWorldPosition=function()return {x=0,y=3,z=0}end}
+local round={requestId='text-round',mode='text',stage='playing',index=1,
+ participants={{entity='13ULL',profileKey='judy-alvarez',npc=actor}}}
+group.round=round
+local completions=0
+group.completed=function(request,delivered)
+ assert(request=='text-round' and delivered);completions=completions+1;group.round=nil
+end
+subtitles.pages={'Already displayed overhead.','Still unread.'}
+subtitles.line,subtitles.timed=nil,nil
+events.onUpdate(.1)
+assert(group.round==round and completions==0,'A hidden projected widget is not a completed group reply')
+subtitles.clear();events.onUpdate(.1)
+assert(group.round==nil and completions==1)
+`));
 
 test('phone Invite prepares during zero-delta pause and creates no actor until memory and connection are ready', () => run(`
 events.onInit(); events.onUpdate(0)
