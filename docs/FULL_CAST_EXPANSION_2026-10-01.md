@@ -152,3 +152,13 @@ Two further source-qualified outcomes bring the generated knowledge pack to **19
 Both rules preserve their named speaker's private/phone audience and require current-save observations. The [Carol review](../research/cyberpunk/native-reviews/aldecaldos-oct04.md) and [Kerry review](../research/cyberpunk/native-reviews/silverhand-oct04.md) document exact native predicates, authenticated assets and deliberately withheld neighboring outcomes. The strict merged source compiler verified 5,449 pointers over 403 cited artifacts, with no unbound JSON references or errors. This updates generated research; root owns runtime rollout and natural live-save acceptance. No provider profiles, conversations or memories were written.
 
 The generated pack was then copied to the project and installed game catalogs with matching hashes and a rollback copy. The bridge was restarted to load it. CET's next mod reload loads the expanded native journal allowlist; no game restart is needed. Live recall remains unverified.
+
+## October 4 additional conversational history
+
+Kerry, Evelyn, River, Reed and Songbird now have 25 topic selectors covering 40
+already adopted public claims. Questions about their work, tastes or earlier
+life retrieve a few relevant details rather than their full biographies. The
+selector supports nine characters; other profiles retain their existing public
+backgrounds. Sixteen private or briefing-dependent claims remain excluded.
+See [source scope and exclusions](../research/cyberpunk/native-reviews/priority-topics-oct04.md).
+This does not add quest outcomes, change provider profiles or seed memories.

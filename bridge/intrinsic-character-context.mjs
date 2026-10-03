@@ -27,6 +27,21 @@ export const REVIEWED_INTRINSIC_PACKS = Object.freeze([
   Object.freeze({key: 'panam-palmer', file: 'research/cyberpunk/native-character-claims/panam-palmer.json',
     hashEncoding: 'canonical-json-v1', sha256: 'c0a60ce91588df608f78be06d6003dcc2e4d9d15c64170c8ddf98501b8f2eb15',
     reviewedRawFileSha256: 'b8cf0634738dbef31dc0e64da10df64971a92d86a28531d574064945dd28b522'}),
+  Object.freeze({key: 'kerry-eurodyne', file: 'research/cyberpunk/native-character-claims/kerry-eurodyne.json',
+    hashEncoding: 'canonical-json-v1', sha256: '30ed717c3bc4f9137138d7257fe31e2cef5e2543a1a4bcf70b6c5cb161ad08c6',
+    reviewedRawFileSha256: '6c7b345c66358302c47ff7cf4330e182676a58df36e4a9676f856b560806c39e'}),
+  Object.freeze({key: 'evelyn-parker', file: 'research/cyberpunk/native-character-claims/evelyn-parker.json',
+    hashEncoding: 'canonical-json-v1', sha256: '87e297c631fdb28c36286ea6065a518bd3633a63ab334f392e36bb2dc4df3098',
+    reviewedRawFileSha256: '5871d678892248edc42702ab328409d789aa2bf36f7fc8b11bd4896c5199f5dd'}),
+  Object.freeze({key: 'river-ward', file: 'research/cyberpunk/native-character-claims/river-ward.json',
+    hashEncoding: 'canonical-json-v1', sha256: '607c9fbd0ca05f231192237c03c9b609d9a4e1eb6047215827d20b34ee57155c',
+    reviewedRawFileSha256: 'bab4d884e8dc842798d5089549eb5bb7be407f4f0926647585daa9574e41b813'}),
+  Object.freeze({key: 'solomon-reed', file: 'research/cyberpunk/native-character-claims/solomon-reed.json',
+    hashEncoding: 'canonical-json-v1', sha256: '7f545888045a47a59d50151744bb986c89bb57f95ce98c90784608b3f722a47d',
+    reviewedRawFileSha256: '48a2a3b13ac5ea6b0b776952ea56c4e33b981c0c57e46f8f701786c61a5dba14'}),
+  Object.freeze({key: 'songbird', file: 'research/cyberpunk/native-character-claims/songbird.json',
+    hashEncoding: 'canonical-json-v1', sha256: '6331ce5ae6bbe3b3162327d15f370941d79dbbce262117aca1c3bdc9a71dc2c1',
+    reviewedRawFileSha256: '28f9f7cb522390357d262fe5ce3e3b2d4d5f7da2104ecc3fe1ba5ac3d9ed8381'}),
 ]);
 
 const MAX_PACK_BYTES = 2 * 1024 * 1024;
@@ -73,6 +88,71 @@ export function intrinsicAuthorDocumentHash(value) {
 // Deliberately curated claim IDs, not fuzzy searches through a private bio.
 // Broad questions never silently unlock the most painful nearby material.
 const TOPICS = freeze({
+  // These five packs match the existing adopted public source receipts.
+  // Select only their reviewed public claims; sensitive material in the same
+  // author documents is intentionally absent from the topic allowlists.
+  'kerry-eurodyne': [
+    {id: 'coffee', match: /\b(?:coffee|espresso)\b/u, personal: true,
+      claims: ['kerry-eurodyne.taste.coffee']},
+    {id: 'early-band', match: /\b(?:early\s+(?:gigs|band|days)|first\s+gigs|caliente)\b/u, personal: true,
+      claims: ['kerry-eurodyne.music.early-gigs', 'kerry-eurodyne.craft.instrument-priorities']},
+    {id: 'music-career', match: /\b(?:samurai|solo\s+career|going\s+solo|music\s+career)\b/u, personal: true,
+      claims: ['kerry-eurodyne.music.samurai-and-solo', 'kerry-eurodyne.music.ambition-and-doubt']},
+    {id: 'heritage', match: /\b(?:filipino|heritage|roots)\b/u, personal: true,
+      association: /\bfilipino\b|\byour\s+(?:heritage|roots)\b/u,
+      claims: ['kerry-eurodyne.identity.filipino-roots']},
+    {id: 'city-muse', match: /\b(?:night\s+city|creative\s+muse)\b/u, personal: true,
+      claims: ['kerry-eurodyne.place.night-city-muse']},
+    {id: 'song-rights', match: /\b(?:record\s+label|song\s+rights|msm|artistic\s+independence)\b/u, personal: true,
+      claims: ['kerry-eurodyne.work.song-rights-and-self']},
+  ],
+  'evelyn-parker': [
+    {id: 'braindance', match: /\b(?:braindances?|bds?)\b/u, personal: true,
+      claims: ['craft.braindance-analysis']},
+    {id: 'food', match: /\b(?:food|dining|fresh\s+ingredients)\b/u, personal: true,
+      claims: ['taste.fresh-food']},
+    {id: 'fixers', match: /\bfixers?\b/u, personal: true,
+      claims: ['opinion.fixers']},
+    {id: 'discretion', match: /\b(?:discretion|privacy|sensitive\s+business)\b/u, personal: true,
+      claims: ['craft.discretion']},
+    {id: 'professional-standards', match: /\b(?:professionals?|colleagues|business\s+partners?|reputations?)\b/u, personal: true,
+      claims: ['craft.observing-colleagues', 'craft.professional-standards']},
+    {id: 'control', match: /\b(?:power|control)\b/u, personal: true,
+      claims: ['opinion.control-illusion']},
+  ],
+  'river-ward': [
+    {id: 'detective-work', match: /\b(?:ncpd|police|detective|badge)\b/u, personal: true,
+      claims: ['river-ward.work.detective-background', 'river-ward.work.moral-pressure', 'river-ward.work.persistence']},
+    {id: 'cooking', match: /\b(?:cook(?:ing)?|jambalaya|recipes?)\b/u, personal: true,
+      claims: ['river-ward.craft.cooks-jambalaya', 'river-ward.craft.cooking-process']},
+    {id: 'family-time', match: /\bjoss\b|\byour\s+(?:sister|family)\b/u, personal: true,
+      claims: ['river-ward.family.joss-sister', 'river-ward.family.time-and-work']},
+    {id: 'city-life', match: /\b(?:night\s+city|neighbou?rhood|city\s+view)\b/u, personal: true,
+      claims: ['river-ward.place.livable-neighborhood', 'river-ward.place.city-view']},
+  ],
+  'solomon-reed': [
+    {id: 'old-network', match: /\b(?:unification\s+war|spy\s+network|old\s+cell)\b/u, personal: true,
+      claims: ['reed.history.night-city-network', 'reed.history.cell-disbanded']},
+    {id: 'operative-skills', match: /\b(?:hostage|kidnappers?|assassination|protective\s+operations)\b/u, personal: true,
+      claims: ['reed.skills.protective-operations', 'reed.skills.hostage-negotiation']},
+    {id: 'surviving-the-operation', match: /\b(?:survive[ds]?|survival)\b/u, personal: true,
+      association: /\byou\b.{0,35}\bsurvive[ds]?\b|\byour\s+survival\b/u,
+      claims: ['reed.personal.survival']},
+    {id: 'service', match: /\b(?:service|country|nusa|fia|patriotism)\b/u, personal: true,
+      claims: ['reed.identity.fia-sleeper', 'reed.motivation.service-before-fame']},
+  ],
+  'songbird': [
+    {id: 'name', match: /\b(?:codename|song\s+so\s+mi|your\s+name)\b/u, personal: true,
+      claims: ['songbird.identity.song-so-mi']},
+    {id: 'freelance-running', match: /\b(?:freelanc(?:e|ing)|solo\s+work|before\s+(?:the\s+)?fia|data\s*forts?)\b/u, personal: true,
+      claims: ['songbird.skills.freelance-netrunner', 'songbird.skills.datafort-confidence', 'songbird.history.solo-work']},
+    {id: 'gear', match: /\b(?:gear|equipment|freelance\s+earnings)\b/u, personal: true,
+      claims: ['songbird.personal.gear-and-fun']},
+    {id: 'teamwork', match: /\b(?:teamwork|taking\s+orders|service\s+oath)\b/u, personal: true,
+      claims: ['songbird.history.service-oath', 'songbird.history.orders-and-teamwork']},
+    {id: 'brooklyn', match: /\bbrooklyn\b/u, personal: true,
+      claims: ['songbird.origin.brooklyn', 'songbird.history.night-city-posting']},
+  ],
   // Only already reviewed public history is selectable for these two packs.
   // Their private rows require prerequisites this selector does not establish;
   // explicit questions alone do not prove trust or a later quest stage.
