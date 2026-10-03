@@ -102,6 +102,7 @@ function native.sample(_,value,_,_,operation)
       and world.mounts.player.seat~='seat_front_left',driverMount=world.mounts[value.serial],
     playerCombat=world.combat,car=not world.detached and car or nil,carValid=world.carValid,
     info=world.detached and {ready=false} or car.info,summonedId=world.summoned,summonEnRoute=world.enRoute,
+    summonState=world.summonState or (world.enRoute and 1 or 0),carSelectionError=world.carSelectionError,
     waypoint=waypoint,auto=world.auto,drive={known=not world.driveUnknown,ready=not world.driveUnavailable,
       reservations=world.reservations or 0,busy=world.foreignDrive or world.driveCommand
         and (world.driveCommand.state=='Executing' or world.driveCommand.state=='NotExecuting'),
@@ -194,6 +195,34 @@ assert(not offer.available and offer.code=='player-driving' and not queue())
 assert(world.unmounts==0 and world.playerMounts==0)
 actual('player',nil); world.auto.enabled=true
 assert(not queue() and world.disables==0 and world.brakes==0)
+`));
+test('restored owned car admits nil or stale summon baseline and new summon cancels the exact trip',()=>run(`
+world.summoned=nil
+assert(queue());assert(fleet.primary==car and not car.owned and next(fleet.cars)==nil)
+assert(car.summonBaseline.id==nil and car.summonBaseline.state==0)
+tick(12);boardManually();assert(phase()=='driving')
+world.summonState=4;tick(2);assert(phase()=='driving','idle/arrival state alone cancelled the car lease')
+world.summoned='different-car';tick(4)
+assert(world.disables==1 and world.deleted==0 and phase()=='waiting-for-player-exit')
+`));
+test('unchanged stale summon identity is allowed but an en-route transition cancels preparation',()=>run(`
+world.summoned='old-detached-car';assert(queue());tick(12)
+assert(phase()=='waiting-for-player' and car.summonBaseline.id=='old-detached-car')
+world.enRoute=true;tick(6)
+assert(not fleet.chauffeur or phase()=='cancelled' or phase()=='exiting-driver')
+assert(world.enables==0 and world.deleted==0)
+`));
+test('ambiguous nearby owned cars reject the offer before movement',()=>run(`
+world.carSelectionError='ambiguous'
+local offered=transport.chauffeurOffer(fleet,player,entry)
+assert(not offered.available and offered.code=='ambiguous-owned-car' and not queue())
+assert(world.releases==0 and world.mountsRequested==0 and world.deleted==0)
+`));
+test('a retained pre-update summoned lease keeps its original identity rule',()=>run(`
+assert(queue());car.summonBaseline=nil;tick(12);boardManually()
+assert(phase()=='driving')
+world.summoned='different-car';tick(4)
+assert(world.disables==1 and world.deleted==0)
 `));
 test('driver command and actual seat must complete before waiting for V to board manually',()=>run(`
 world.delayDriver=true; assert(queue()); tick(5)

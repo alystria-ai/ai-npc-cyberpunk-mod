@@ -1,6 +1,14 @@
 # Companion chauffeur
 
-A managed companion can drive V's personally summoned, owned car to the selected map destination. Start a trip by asking the character in private text or voice conversation. The Companion Manager shows trip status and **Stop trip**; it has no driving-initiation button.
+A managed companion can drive V's nearby owned car to the selected map destination, including a car restored with a save. Start a trip by asking the character in private text or voice conversation. The Companion Manager shows trip status and **Stop trip**; it has no driving-initiation button.
+
+A live summoned car is preferred. When its summon blackboard is empty or stale,
+the native adapter searches within 20 metres for attached, undestroyed player-owned
+cars. A unique match to the active garage record wins; otherwise exactly one
+eligible car is required. Ambiguity asks the player to select or summon the
+intended car. Admission leases that exact entity and record and captures the
+actual summon identity/state. A subsequent summon cancels the trip; merely
+changing the garage selection does not switch or cancel the borrowed car.
 
 The companion takes the driver seat and waits for V to enter a passenger seat through normal gameplay. The remaining companions fill free seats and use the existing overflow-car controller. The mod never mounts, ejects or switches seats for V, changes garage ownership, or deletes the borrowed lead car.
 

@@ -26,7 +26,10 @@ Vector4={new=function(x,y,z,w)return {x=x,y=y,z=z,w=w}end}
 local values={owned=true,tagged=true,managed=true,attached=true,playerState='Default',
   summonState=4,waypoint=true,pinId='3001ULL',destinationId='3001ULL',
   destinationType='PlayerTracked',available=true,enabled=false,queued={},brakes=0}
-local player={GetEntityID=function() return {hash='1ULL'} end,IsInCombat=function() return values.combat end}
+local player={GetEntityID=function() return {hash='1ULL'} end,IsInCombat=function() return values.combat end,
+  GetWorldPosition=function()return {x=0,y=0,z=3}end}
+TSQ_ALL=function()return {}end
+TS_TargetPartInfo={GetComponent=function(part)return {GetEntity=function()return part end}end}
 PlayerPuppet={GetCurrentVehicleState=function() return values.playerState end}
 NPCPuppet={IsInCombat=function() return values.npcCombat end}
 local npc={IsAttached=function() return values.attached end,IsDeadNoStatPool=function() return values.dead end,
@@ -38,7 +41,7 @@ local carEntity={IsAttached=function() return not values.detached end,IsVehicle=
   IsPlayerVehicle=function() return values.owned end,IsDestroyed=function() return values.destroyed end,
   IsPlayerDriver=function() return values.playerState=='Driving' end,
   IsPerformingSceneAnimation=function() return values.scene end,
-  GetEntityID=function() return {hash='2001ULL'} end,GetRecordID=function() return 'Vehicle.test' end,
+  GetEntityID=function() return {hash='2001ULL'} end,GetRecordID=function() return values.record or 'Vehicle.test' end,
   GetRecord=function() return {DisplayName=function() return {key='vehicle-name'} end,
     Type=function() return {Type=function() return 'Car' end} end} end,
   ForceBrakesUntilStoppedOrFor=function(_,seconds) assert(seconds==3); values.brakes=values.brakes+1 end}
@@ -126,7 +129,15 @@ Game={GetDynamicEntitySystem=function() return owner end,
   GetBlackboardSystem=function() return {Get=function() return {
     GetEntityID=function() return {hash=values.summoned or '2001ULL'} end,
     GetUint=function() return values.summonState end} end} end,
-  FindEntityByID=function(id) return id.hash=='2001ULL' and not values.missing and carEntity or nil end,
+  FindEntityByID=function(id) return id.hash=='2001ULL' and not values.missing and carEntity or values.extraEntities and values.extraEntities[id.hash] end,
+  GetTargetingSystem=function()return {GetTargetParts=function(_,who,query)
+    assert(who==player and query.testedSet=='Complete' and query.maxDistance==20
+      and query.filterObjectByDistance and query.includeSecondaryTargets and query.ignoreInstigator)
+    values.queries=(values.queries or 0)+1;return true,values.nearby or {}
+  end}end,
+  GetVehicleSystem=function()return {GetActivePlayerVehicle=function(_,kind)
+    assert(kind=='Car');return {recordID=values.activeRecord or 'Vehicle.test'}
+  end}end,
   GetScriptableSystemsContainer=function() return {Get=function(_,name) assert(name=='AutoDriveSystem'); return auto end} end,
   GetMountingFacility=function() return {Mount=function(_,request) values.mountRequest=request end,
     GetMountingInfoSingleWithIds=function(_,child,parent,slot)
@@ -158,6 +169,44 @@ assert(#values.queued==0 and values.brakes==0 and not values.mountRequest)
 values.summonState=1; assert(native.sample(player,entry,nil,api).summonEnRoute)
 values.owned=false; assert(not native.sample(player,entry,nil,api).carValid)
 values.tagged=false; assert(not native.sample(player,entry,nil,api).actorValid)
+`));
+test('restored owned car is found without summon and remains a borrowed exact lease',()=>run(`
+values.summoned='0ULL';values.summonState=0;values.nearby={carEntity,carEntity}
+local sample=native.sample(player,entry,nil,api)
+assert(sample.carValid and sample.car.id=='2001ULL' and sample.carSource=='nearby-owned')
+assert(sample.summonedId==nil and not sample.car.owned and values.queries==1)
+local restored=sample.car;restored.summonBaseline={id=sample.summonedId,state=sample.summonState}
+driver();passenger();values.activeRecord='Vehicle.other'
+assert(native.start(player,entry,restored,pin,'seat_front_right',api) and values.queries==1)
+values.summoned='9001ULL';assert(not native.start(player,entry,restored,pin,'seat_front_right',api))
+values.summoned='0ULL';values.summonState=1
+assert(not native.start(player,entry,restored,pin,'seat_front_right',api))
+values.summonState=0;values.record='Vehicle.replaced'
+assert(not native.sample(player,entry,restored,api).carValid and values.queries==1)
+`));
+test('nearby discovery filters traffic, distant cars and duplicate parts and rejects ambiguous owned cars',()=>run(`
+values.summoned='0ULL'
+local function clone(id,record,x,owned)
+ local e={};for k,v in pairs(carEntity)do e[k]=v end
+ e.GetEntityID=function()return {hash=id}end;e.GetRecordID=function()return record end
+ e.GetWorldPosition=function()return {x=x,y=0,z=3}end;e.IsPlayerVehicle=function()return owned end
+ return e
+end
+local traffic=clone('3001ULL','Vehicle.traffic',2,false)
+local far=clone('4001ULL','Vehicle.far',25,true)
+local other=clone('5001ULL','Vehicle.other',4,true)
+values.nearby={traffic,far,carEntity,carEntity}
+assert(native.sample(player,entry,nil,api).car.id=='2001ULL')
+values.nearby={carEntity,other};values.activeRecord='Vehicle.other'
+assert(native.sample(player,entry,nil,api).car.id=='5001ULL')
+values.activeRecord='Vehicle.unspawned'
+local ambiguous=native.sample(player,entry,nil,api)
+assert(not ambiguous.car and ambiguous.carSelectionError=='ambiguous')
+values.nearby={traffic,far}
+assert(not native.sample(player,entry,nil,api).car)
+values.summoned='2001ULL';values.nearby={other};values.activeRecord='Vehicle.other'
+local queries=values.queries
+assert(native.sample(player,entry,nil,api).car.id=='2001ULL' and values.queries==queries)
 `));
 test('cosmetic localization failure preserves the exact car identity and sample availability',()=>run(`
 values.localizationError=true

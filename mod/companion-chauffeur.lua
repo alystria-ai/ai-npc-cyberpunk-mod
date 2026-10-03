@@ -83,8 +83,11 @@ local function offer(s,player,entry)
     if sample.driverMount then return reject(value,'actor-seated','Your companion must step out before taking the driver seat.'),sample end
     if not sample.actorCalm or sample.playerCombat then return reject(value,'combat','Finish combat before asking for a ride.'),sample end
     if sample.auto.enabled then return reject(value,'autodrive-active','An AutoDrive journey is already active.'),sample end
-    if not sample.car or not sample.carValid or sample.car.id~=sample.summonedId then
-        return reject(value,'no-summoned-car','Summon one of your owned cars first.'),sample
+    if sample.carSelectionError=='ambiguous' then
+        return reject(value,'ambiguous-owned-car','More than one owned car is nearby. Select or summon the car you want to use.'),sample
+    end
+    if not sample.car or not sample.carValid then
+        return reject(value,'no-owned-car','Stand near one of your owned cars, or summon one.'),sample
     end
     if not sample.info.ready or sample.info.invalid or sample.summonEnRoute then
         return reject(value,'car-arriving','Wait for your summoned car to arrive.'),sample
@@ -96,7 +99,7 @@ local function offer(s,player,entry)
         return reject(value,'transport-busy','Another vehicle activity has control.'),sample
     end
     if sample.info.speed>0.5 or sample.info.scene then return reject(value,'car-moving','Wait for your car to stop.'),sample end
-    if (sample.info.playerGap or math.huge)>20 then return reject(value,'car-distant','Stand near your summoned car.'),sample end
+    if (sample.info.playerGap or math.huge)>20 then return reject(value,'car-distant','Stand near your owned car.'),sample end
     if not sample.waypoint then return reject(value,'no-waypoint','Select a destination on the map first.'),sample end
     if not free(sample.info,'seat_front_left') then return reject(value,'driver-occupied','The driver seat is occupied or reserved.'),sample end
     for _,name in ipairs(passengerSeats) do if free(sample.info,name) then value.passengerSeat=name; break end end
@@ -125,6 +128,7 @@ function M.queue(s,player,entry,expected)
     if expected and not matches(expected,value) then return false,'The companion, car, seat or selected destination changed. Ask again.',value end
     s.generation=s.generation+1
     s.primary=sample.car -- borrowed: deliberately never added to the owned cars list
+    s.primary.summonBaseline={id=sample.summonedId,state=sample.summonState or (sample.summonEnRoute and 1 or 0)}
     s.people[entry.serial]={entry=entry,phase='releasing',attempts=0,owned=true,chauffeur=true,
         vehicle=s.primary,seat='seat_front_left'}
     s.chauffeur={phase='releasing',phaseAt=s.clock,startedAt=s.clock,offer=copy(value),entry=entry,player=player,
@@ -198,9 +202,12 @@ local function binding(c,sample,requirePassenger,clearedAtArrival)
         return false,'The companion binding changed.'
     end
     if not sample.actorCalm or sample.playerCombat then return false,'The trip stopped for combat.' end
-    if not sample.carValid or not sample.car or sample.car.id~=c.car.id then return false,'The borrowed car is unavailable.' end
+    if not sample.carValid or not sample.car or sample.car.id~=c.car.id or sample.car.record~=c.car.record then return false,'The borrowed car is unavailable.' end
     if sample.info.scene then return false,'A scene has taken control of the car.' end
-    if sample.summonedId~=c.car.id then return false,'A different car was summoned.' end
+    local baseline=c.car.summonBaseline or {id=c.car.id,state=0}
+    if sample.summonedId~=baseline.id or (sample.summonEnRoute and baseline.state~=1) then
+        return false,'A new vehicle summon interrupted the trip.'
+    end
     if not clearedAtArrival then
         local route,why=destination(c,sample.waypoint)
         if not route then return false,why end

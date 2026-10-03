@@ -51,6 +51,58 @@ local function liveCar(car)
         or (car.record and tostring(entity:GetRecordID())~=car.record) then return nil end
     return entity
 end
+local function ownedCar(entity)
+    if not entity or not entity:IsAttached() or not entity:IsVehicle() or not entity:IsPlayerVehicle()
+        or entity:IsDestroyed() then return false end
+    local record=entity:GetRecord()
+    return record and enum(record:Type():Type(),'gamedataVehicleType','Car')
+end
+local function nearbyOwnedCar(player)
+    -- The garage stores records, not live entity IDs. The native target parts
+    -- include the attached player car restored from a save without a summon.
+    local query=TSQ_ALL()
+    query.testedSet=Enum.new('TargetingSet','Complete')
+    query.maxDistance=20
+    query.filterObjectByDistance=true
+    query.ignoreInstigator=true
+    query.includeSecondaryTargets=true
+    local _,parts=Game.GetTargetingSystem():GetTargetParts(player,query)
+    local candidates,seen={},{}
+    local origin=player:GetWorldPosition()
+    for _,part in ipairs(parts or {}) do
+        local ok,entity=pcall(function()
+            local component=TS_TargetPartInfo.GetComponent(part)
+            local value=component and component:GetEntity()
+            if not ownedCar(value) then return nil end
+            local position=value:GetWorldPosition()
+            local gap=math.sqrt((position.x-origin.x)^2+(position.y-origin.y)^2+(position.z-origin.z)^2)
+            if gap==gap and gap<=20 then return value end
+        end)
+        local id=ok and entity and entityID(entity:GetEntityID())
+        if id and not seen[id] then seen[id]=true; candidates[#candidates+1]=entity end
+    end
+    local ok,activeRecord=pcall(function()
+        return tostring(Game.GetVehicleSystem():GetActivePlayerVehicle(Enum.new('gamedataVehicleType','Car')).recordID)
+    end)
+    local matching={}
+    if ok then
+        for _,entity in ipairs(candidates) do
+            if tostring(entity:GetRecordID())==activeRecord then matching[#matching+1]=entity end
+        end
+    end
+    if #matching==1 then return matching[1] end
+    if #candidates==1 then return candidates[1] end
+    return nil,#candidates>1 and 'ambiguous' or 'missing'
+end
+local function summonUnchanged(car,sample)
+    local baseline=car and car.summonBaseline
+    if baseline then
+        return sample.summonedId==baseline.id and not (sample.summonEnRoute and baseline.state~=1)
+    end
+    -- Compatibility for an old explicitly summoned lease; a restored car gets
+    -- its actual (possibly empty) baseline captured by queue before movement.
+    return sample.summonedId==car.id and not sample.summonEnRoute
+end
 function M.driveReceipt(operation)
     if not operation then return nil end
     local receipt=operation.driveReceipt
@@ -189,10 +241,21 @@ function M.sample(player,entry,leasedCar,api,operation)
     local summoned=bb:GetEntityID(defs.SummonedVehicleEntityID)
     sample.summonedId=entityID(summoned)
     local summonState=bb:GetUint(defs.SummonState)
+    sample.summonState=tonumber(summonState)
     -- vehicleSystem.script declares Idle=0, EnRoute=1; this blackboard is Uint.
     sample.summonEnRoute=tonumber(summonState)==1
-    local target=leasedCar and leasedCar.entityID or summoned
-    local car=entityID(target) and Game.FindEntityByID(target) or nil
+    local car
+    if leasedCar then
+        -- Never rediscover or change the borrowed car during an admitted trip.
+        car=liveCar(leasedCar)
+    else
+        car=entityID(summoned) and Game.FindEntityByID(summoned) or nil
+        if ownedCar(car) then sample.carSource='summoned'
+        else
+            car,sample.carSelectionError=nearbyOwnedCar(player)
+            sample.carSource=car and 'nearby-owned' or nil
+        end
+    end
     if car and car:IsAttached() and car:IsVehicle() then
         local record=car:GetRecord()
         local recordId=tostring(car:GetRecordID())
@@ -225,7 +288,7 @@ function M.start(player,entry,car,pin,seat,api)
     local pm,dm=sample.playerMount,sample.driverMount
     if not sample.actorValid or not sample.actorCalm or sample.playerCombat or not sample.carValid
         or not sample.info.ready or sample.info.scene
-        or sample.summonedId~=car.id or not pm or pm.vehicle~=car.id or pm.seat~=seat
+        or not summonUnchanged(car,sample) or not pm or pm.vehicle~=car.id or pm.seat~=seat
         or not sample.playerPassenger or not dm or dm.vehicle~=car.id or dm.seat~='seat_front_left'
         or not sameDestination(sample.waypoint,pin) or not samePoint(sample.waypoint.position,pin.position)
         or sample.auto.enabled or not sample.auto.laneValid or sample.auto.destinationId~=pin.id
