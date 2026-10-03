@@ -40,7 +40,7 @@ function M.new(options)
     local seed = 'mcm-' .. tostring(os.time()) .. '-' .. tostring({}):gsub('[^A-Za-z0-9]', ''):sub(1, 32)
 
     local function publish(value, stamp)
-        local signature = table.concat({value.owner, tostring(value.active), value.provider}, ':')
+        local signature = table.concat({value.owner, tostring(value.active), value.provider, tostring(value.omniSteps or '')}, ':')
         if attempted == signature and stamp < nextAttempt then return false end
         attempted, nextAttempt = signature, stamp + INTERVAL
         -- os.time has one-second resolution. Sequence disambiguates rapid
@@ -61,7 +61,7 @@ function M.new(options)
 
     local function cancel(stamp)
         if current and current.active then
-            publish({owner = current.owner, active = false, provider = current.provider}, stamp)
+            publish({owner = current.owner, active = false, provider = current.provider, omniSteps = current.omniSteps}, stamp)
         end
     end
 
@@ -99,16 +99,19 @@ function M.new(options)
         if not pendingOk or not pending then cancel(stamp); return end
         local providerOk, provider, providerError = pcall(api.getValue, MOD_KEY .. ':voiceProvider')
         local savedOk, saved = pcall(readCommitted)
-        if not providerOk or providerError or (provider ~= 1 and provider ~= 2)
+        if not providerOk or providerError or (provider ~= 1 and provider ~= 2 and provider ~= 3 and provider ~= 4)
             or not savedOk or type(saved) ~= 'table'
-            or (saved.voiceProvider ~= 'pocket' and saved.voiceProvider ~= 'hybrid' and saved.voiceProvider ~= 'convai') then
+            or (saved.voiceProvider ~= 'pocket' and saved.voiceProvider ~= 'omni'
+                and saved.voiceProvider ~= 'hybrid' and saved.voiceProvider ~= 'convai') then
             cancel(stamp)
             return
         end
-        provider = provider == 1 and 'pocket' or 'convai'
-        local savedProvider = saved.voiceProvider == 'hybrid' and 'pocket' or saved.voiceProvider
-        if provider == savedProvider then cancel(stamp); return end
-        publish({owner = leaseOwner, active = true, provider = provider}, stamp)
+        local omniSteps = provider == 2 and 16 or (provider == 3 and 32 or nil)
+        provider = provider == 1 and 'pocket' or (provider == 4 and 'convai' or 'omni')
+        local savedProvider = saved.voiceProvider == 'hybrid' and 'omni' or saved.voiceProvider
+        local savedSteps = saved.omniSteps == 16 and 16 or 32
+        if provider == savedProvider and (provider ~= 'omni' or omniSteps == savedSteps) then cancel(stamp); return end
+        publish({owner = leaseOwner, active = true, provider = provider, omniSteps = omniSteps}, stamp)
     end
 
     function P.reset()
@@ -120,7 +123,7 @@ function M.new(options)
 
     function P.inspect()
         return {available = subscription ~= nil, active = current and current.active or false,
-            provider = current and current.provider or nil, error = failure}
+            provider = current and current.provider or nil, omniSteps = current and current.omniSteps or nil, error = failure}
     end
 
     return P

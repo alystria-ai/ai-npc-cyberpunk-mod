@@ -37,3 +37,11 @@ test('malformed, stale and excessively future settings never authorize model loa
   assert.equal(state.observe(lease({sequence:2,updated:99000,active:false}),100020)?.provider,'pocket');
   assert.equal(state.observe('',95000),null,'clock rollback cannot preserve a future lease');
 });
+
+test('Omni draft quality changes are explicit and legacy hybrid leases preserve their quality',()=>{
+  const state=new VoicePreviewLease();
+  assert.deepEqual(state.observe(lease({provider:'omni',omniSteps:16}),100000),{provider:'omni',omniSteps:16});
+  assert.deepEqual(state.observe(lease({provider:'omni',omniSteps:32,sequence:2}),100000),{provider:'omni',omniSteps:32});
+  assert.deepEqual(state.observe(lease({provider:'omni',omniSteps:8,sequence:3}),100000),{provider:'omni',omniSteps:32});
+  assert.deepEqual(new VoicePreviewLease().observe(lease({provider:'hybrid',steps:16}),100000),{provider:'omni',omniSteps:16});
+});

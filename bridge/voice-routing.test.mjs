@@ -5,6 +5,7 @@ import {resolve as absolutePath} from 'node:path';
 import {runInNewContext} from 'node:vm';
 import {silentWav} from './speech-audio.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
+import {SpeechStream,splitSpeechText} from './speech-stream.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 
 // Execute the production routing/publication functions. These checks catch a
@@ -19,10 +20,11 @@ function fixture({local = false, available = true, audioFailure = false, continu
   const remote = {text: 'A complete reply. With two sentences.', sessionID: 'test-session',
     audio: silentWav().toString('base64'), faces: [{at: 0, values: [0.2]}],
     facesFormat: 'arkit61', facesTimebase: 'audio-seconds', timing: {audioRoute: 'convai-data-only'}};
-  const selectedVoice = voiceSelection ?? {usesProfile: () => local};
+  const selectedVoice = voiceSelection ?? {provider:'pocket',usesProfile: () => local};
   const sandbox = {remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json',
     localVoice: selectedVoice,
-    ownedPocketFace: () => {}, lipsync: {},
+    ownedPocketFace:()=>{},lipsync:{analyse:async()=>({mouthCues:[],mouthCuesFormat:'rhubarb-phonetic-v1'})},
+    splitSpeechText,streaming:0,writeStreamManifest:async value=>calls.push(['omni-manifest',value]),
     deliverPocketSpeech: async ({result,profile,speech}) => {
       calls.push(['pocket-stream',profile.key,result.text]);
       return {...result,continuous:true,timing:{...result.timing,voiceProvider:'pocket'},
@@ -50,8 +52,10 @@ function fixture({local = false, available = true, audioFailure = false, continu
       calls.push(['write-slot', index, bytes]); if (audioFailure) throw Error('Fake disk error');
       return {event: 'convai_reply_0', duration: 0.1};
     }},
-    SpeechStream: class {constructor() { throw Error('Remote route must not create a phrase stream'); }},
-    randomUUID: () => 'slot-owner', buildFacialTimeline: result => { assert.equal(result.faces, remote.faces); return {source: 'convai-arkit61'}; },
+    SpeechStream,
+    randomUUID: () => 'slot-owner', buildFacialTimeline: result => {
+      if(result.timing?.voiceProvider==='omni')return{source:'local-phonetic'};
+      assert.equal(result.faces,remote.faces);return{source:'convai-arkit61'};},
     atomic: async (path, value) => { publications.push([path, JSON.parse(value)]); return true; },
     resolve: (...parts) => parts.join('/'), sessionKey: () => 'exact-session',
     realtimeSessions: new Map(), sessions: new Map(), connections: {used: () => calls.push('used')},
@@ -202,7 +206,7 @@ const turn = () => new Promise(resolve => setImmediate(resolve));
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return {resolve, promise}; };
 function invitationVoiceFixture({reconfigure = async () => {}, retire = async () => {}, prepare} = {}) {
   const changes = [], relationshipChanges = [], calls = [], local = new Set(['alex']);
-  const localVoice = {routeRevision: 0, consumeRouteChanges: () => changes.splice(0),
+  const localVoice = {provider:'pocket',routeRevision: 0, consumeRouteChanges: () => changes.splice(0),
     usesProfile: profile => local.has(profile), profileReady: profile => local.has(profile),
     prepareProfile: async (profile, options) => {
       calls.push(['prepare', profile]);
@@ -285,7 +289,7 @@ test('invalid preparation receipts and bridge shutdown cannot authorize a spawn 
 test('the routing boundary includes text, continuous audio, microphone, phone and input/context ownership', () => {
   const f = invitationVoiceFixture();
   assert.equal(f.api.voiceBoundaryBusy(), false);
-  for (const key of ['active', 'polling', 'micPolling', 'prefetchPolling', 'memoryQuiescing']) {
+  for (const key of ['active','streaming','polling','micPolling','prefetchPolling','memoryQuiescing']) {
     const previous = f.context[key]; f.context[key] = true;
     assert.equal(f.api.voiceBoundaryBusy(), true, key); f.context[key] = previous;
   }
@@ -293,6 +297,37 @@ test('the routing boundary includes text, continuous audio, microphone, phone an
   f.context.mic.current = null; assert.equal(f.api.voiceBoundaryBusy(), false);
   f.context.phone.active = {}; assert.equal(f.api.voiceBoundaryBusy(), true);
   f.context.phone.active = null; assert.equal(f.api.voiceBoundaryBusy(), false);
+});
+
+test('Omni16 and32 use one original text reply then their separate native phrase/phonetic pipeline',async()=>{
+  for(const steps of [16,32]){
+    const generated=[],voice={provider:'omni',steps,usesProfile:()=>true,
+      async synthesize(key,text,options){generated.push({key,text,steps:options.steps});
+        return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
+    const f=fixture({voiceSelection:voice,continuous:true}),current=async()=>true;
+    f.remote.text='We have a long enough original sentence to produce the first local phrase. Then we have another long enough sentence for the following phrase.';
+    const result=await f.api.respond(f.input,f.profile,{current});
+    assert.equal(f.calls.find(value=>Array.isArray(value)&&value[0]==='send')[1].ttsEnabled,false);
+    assert.equal(result.continuous,undefined);assert.equal(result.streamPlan.steps,steps);
+    assert.equal(generated.length,1);assert.equal(generated[0].steps,steps);
+    assert.ok(!f.calls.some(value=>Array.isArray(value)&&value[0]==='pocket-stream'));
+    // Publication uses actual SpeechStream; fixed steps survive every phrase.
+    await f.api.publishResult(f.input,f.profile,result,current);
+    assert.equal(generated.length,result.streamPlan.phrases.length);
+    assert.ok(generated.every(value=>value.steps===steps));
+    assert.equal(f.calls.filter(value=>Array.isArray(value)&&value[0]==='send').length,1);
+    const reply=f.publications.find(([path])=>path==='reply.json')[1];
+    assert.ok(reply.audio&&reply.stream);assert.equal(reply.continuous,undefined);
+  }
+});
+
+test('voice playback Off yields one identified text request and never starts either local renderer',async()=>{
+  for(const backend of ['pocket','omni','convai']){
+    const f=fixture({voiceSelection:{provider:backend,playbackEnabled:false,usesProfile:()=>backend!=='convai'},continuous:true});
+    const result=await f.api.respond(f.input,f.profile,{current:async()=>true});
+    assert.equal(result.audio,undefined);assert.equal(result.continuous,undefined);
+    assert.equal(f.calls.length,1);assert.equal(f.calls[0][1].ttsEnabled,false);
+  }
 });
 
 test('an active phone reply holds Invite voice reconciliation until its conversation boundary is idle', async () => {

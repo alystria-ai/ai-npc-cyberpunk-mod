@@ -36,16 +36,16 @@ See [invitations](docs/COMPANION_INVITATIONS.md), [movement](docs/COMPANION_MOVE
 
 ### Voices, faces, and subtitles
 
-- **Pocket TTS** is the default local voice option. The prepared development catalog has local references for **75 of 79 profiles**; characters without a prepared reference use their configured Convai voice. **Convai** selects online voices for the whole cast. A saved Convai choice is preserved; saved Omni choices migrate to Pocket.
-- All local voices condition **one shared six-layer student model**, using original character recordings. The teacher stays in training; there is no separate runtime neural model or LoRA per character.
-- Pocket uses **float32 on CPU**, with two threads by default and no GPU allocation. The current student is trained for English. The former 16/32-step control is removed; the approved student uses one sampler step.
-- Selecting Pocket in Settings starts loading and warming immediately, before Apply. An applied selection keeps the model warm; selecting Convai releases local model memory after the current reply finishes.
-- Both providers play continuous audio before the full reply audio is ready. Pocket receives the complete text once and streams decoded PCM. Audio is kept close to its source, without added EQ, denoising, pitch effects or packet crossfades.
-- Native lip, jaw, and facial controls follow the actual playback clock. Both providers use the improved native face mapping; local speech uses phonetic analysis and Convai speech uses its supplied facial data.
+- **Companion voices** offers **Pocket TTS (default), OmniVoice 16, OmniVoice 32, Convai**, in that order. The prepared development catalog has local references for **75 of 79 profiles**; characters without a prepared reference use their configured Convai voice. Saved valid choices remain selected, including older Omni settings.
+- Each local backend uses **one shared model** and original character recordings. Pocket uses the approved six-layer student; its teacher stays in training. Neither backend needs a separate neural model or LoRA per character.
+- Pocket uses **float32 on CPU**, with two threads by default and no model GPU allocation. This student is trained for English and uses one sampler step. Omni uses **FP16 on CUDA**, with 16 or 32 generation steps; those choices share the same model and cached references.
+- Selecting a local voice option in Settings requests warm-up immediately, before Apply. Switching backends waits for owned work and confirmed retirement of the previous worker. An applied local choice stays warm; Convai releases local model memory after the current reply.
+- Pocket and Convai use continuous PCM playback. Pocket receives the complete reply text once; Omni prepares its first native audio phrase while later phrases generate during playback. All modes keep the original Convai dialogue turn and avoid added EQ, denoising, pitch effects or audio crossfades.
+- Native lip, jaw, and facial controls follow the actual playback clock. Both local backends use the accepted phonetic/native mapping; Convai uses its supplied facial data.
 - A light resting expression is standard behavior. Supported Convai emotional signals can adjust it, while native blinking and gaze remain available.
 - **Dialogue HUD** subtitles are the default. **Above speaker** is optional; conversations in vehicles use the Dialogue HUD. On boarding, an overhead reply continues with its unread text rather than repeating the page already shown on foot. The game's subtitle preferences still affect native visibility.
 
-Both voice options still need Convai and internet access for dialogue generation. The Pocket replacement is implemented in source and user approved. Native Windows streaming, cancellation, caching and muted-browser lip timing checks pass; live-game activation is still pending. See [local voices](docs/LOCAL_VOICES.md), [Pocket runtime](docs/POCKET_TTS_RUNTIME.md), [voice reference activation](docs/VOICE_SOURCE_ACTIVATION.md), [streamed audio](docs/CONVAI_AUDIO_STREAMING.md), [expressions](docs/COMPANION_EXPRESSIONS.md), and [subtitles](docs/OVERHEAD_SUBTITLES.md).
+All four options still need Convai and internet access for dialogue generation. Pocket's native Windows streaming/cancellation/cache checks pass, and live voice playback is confirmed; current facial and restored four-option acceptance remain separate game checks. See [local voices](docs/LOCAL_VOICES.md), [Pocket runtime](docs/POCKET_TTS_RUNTIME.md), [voice reference activation](docs/VOICE_SOURCE_ACTIVATION.md), [streamed audio](docs/CONVAI_AUDIO_STREAMING.md), [expressions](docs/COMPANION_EXPRESSIONS.md), and [subtitles](docs/OVERHEAD_SUBTITLES.md).
 
 ### Knowledge, memory, and relationships
 
@@ -186,7 +186,7 @@ Open **Companion Manager → Settings**. Use **Apply** to save a settings draft 
 | Head tracking strength | Gentle |
 | Character conversations | Enabled |
 
-Existing saved choices take precedence. Saved Omni selections migrate to Pocket TTS; a saved Convai choice remains Convai. Selecting Pocket begins preparation immediately, but Apply still owns the saved choice; Revert or leaving unsaved Settings cancels that preview. There is no per-character voice-provider selector, generation-step control or disappearing-message option. Exploration observations do not trigger automatic replies.
+Existing saved choices take precedence. Older Omni choices retain their 16/32 quality; a saved Convai choice remains Convai. The single voice selector contains Pocket TTS, OmniVoice 16, OmniVoice 32 and Convai. Local selection requests preparation before Apply; Revert or leaving unsaved Settings cancels that preview. There is no separate quality row, per-character voice-provider selector or disappearing-message option. Exploration observations do not trigger automatic replies.
 
 Ordinary battle and loot reactions have independent ten-minute cooldowns. Newly acquired Legendary equipment has a separate two-minute loot cooldown. Save changes reset reaction context and cooldowns, while player identity and Chat history remain.
 

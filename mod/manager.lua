@@ -302,11 +302,14 @@ local function loadSettings()
     if not isChoice(settings.headFollowStrength, headFollowStrengths) then
         settings.headFollowStrength, settingsNeedSave = 1, true
     end
-    if settings.voiceProvider ~= 'pocket' and settings.voiceProvider ~= 'convai' then
+    if settings.voiceProvider == 'hybrid' then
+        settings.voiceProvider, settingsNeedSave = 'omni', true
+    end
+    if settings.voiceProvider ~= 'pocket' and settings.voiceProvider ~= 'omni' and settings.voiceProvider ~= 'convai' then
         settings.voiceProvider, settingsNeedSave = 'pocket', true
     end
-    if settings.omniSteps ~= nil then
-        settings.omniSteps, settingsNeedSave = nil, true
+    if settings.omniSteps ~= 16 and settings.omniSteps ~= 32 then
+        settings.omniSteps, settingsNeedSave = 32, true
     end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
@@ -673,8 +676,10 @@ local function detail(player, item)
         body = clean(profile.summary or 'Conversation profile for ' .. profile.name, 1100)
             .. '\n\nConversation: ' .. (M.profileEnabled(profile.key) and 'on' or 'off')
             .. '\nCopies in party: ' .. copyCount(profile.key)
-        if localVoices[profile.key] and settings.voiceProvider == 'pocket' and localVoiceState.provider == 'pocket' then
-            body = body .. '\nVoice: Pocket TTS'
+        if localVoices[profile.key] and settings.voiceProvider ~= 'convai' and localVoiceState.provider == settings.voiceProvider then
+            local voiceLabel = settings.voiceProvider == 'pocket' and ui.t('Pocket TTS')
+                or ui.t(settings.omniSteps == 16 and 'OmniVoice 16' or 'OmniVoice 32')
+            body = body .. '\nVoice: ' .. voiceLabel
         elseif profile.voiceName then body = body .. '\nVoice: ' .. clean(profile.voiceName, 140) end
         if not item.definition then body = body .. '\nChoose a model in Models, then assign this profile in Party.' end
         primary, primaryLabel, primaryEnabled = 'spawn:' .. profile.key, 'Add a copy', item.definition ~= nil and #party < 8
@@ -852,6 +857,7 @@ function M.snapshot(player)
             eyeContactHeight = settings.eyeContactHeight,
             headFollowStrength = settings.headFollowStrength,
             voiceProvider = settings.voiceProvider,
+            omniSteps = settings.omniSteps,
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         localVoice = localVoiceState,
@@ -907,9 +913,14 @@ function M.applySettings(player, values)
             if value ~= 'auto' and not isChoice(value, ui.supported()) then return false, ui.t('Choose an interface language.') end
             nextSettings.uiLanguage = value
         elseif key == 'voiceProvider' then
-            if value == 'hybrid' then value = 'pocket' end
-            if value ~= 'pocket' and value ~= 'convai' then return false, 'Choose Pocket TTS or Convai voices.' end
+            if value == 'hybrid' then value = 'omni' end
+            if value ~= 'pocket' and value ~= 'omni' and value ~= 'convai' then
+                return false, 'Choose Pocket TTS, OmniVoice 16, OmniVoice 32 or Convai voices.'
+            end
             nextSettings.voiceProvider = value
+        elseif key == 'omniSteps' then
+            if value ~= 16 and value ~= 32 then return false, 'Choose 16 or 32 voice steps.' end
+            nextSettings.omniSteps = value
         elseif key == 'eyeContactHeight' then
             if not isChoice(value, eyeContactHeights) then return false, 'Choose an eye-contact height from the available settings.' end
             nextSettings.eyeContactHeight = value

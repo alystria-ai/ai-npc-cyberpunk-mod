@@ -225,8 +225,8 @@ export class CompanionInvitations {
           {signal: lane.controller.signal, guard: lane.guard}), lane.controller.signal);
         if (!this.current(lane)) return;
         if (this.waitingToSpawn(lane) && !this.routeValid(lane)) { this.refreshRoute(lane); return; }
-        if (voice?.ready !== true || !['convai', 'pocket'].includes(voice.provider)
-            || (voice.provider === 'pocket' && voice.profile !== lane.profileKey)) throw Error('Unverified voice preparation');
+        if (voice?.ready !== true || !['convai','pocket','omni'].includes(voice.provider)
+            || (voice.provider !== 'convai' && voice.profile !== lane.profileKey)) throw Error('Unverified voice preparation');
         lane.voiceReadyAt = this.now(); lane.voiceMs = this.now() - lane.memoryReadyAt;
         lane.voiceProvider = voice.provider; lane.voiceReceipt = Object.freeze({...voice}); lane.stage = 'connection';
         // A cancelled shared enable can finish after its original caller has

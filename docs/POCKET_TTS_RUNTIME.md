@@ -51,11 +51,17 @@ references withdraw that exact character's local route; no speaker alias is used
 
 ## Model lifetime
 
-`VoiceSelection` chooses Pocket or Convai at a conversation boundary. An unsaved
-Pocket draft can start preparation while the saved choice remains Convai. Apply
-reuses the worker; leaving or reverting a preview-only choice closes it. Saved
-`hybrid`/Omni selections migrate to `pocket`; saved Convai stays Convai. Obsolete
-generation-step values are removed from the manager settings.
+`VoiceSelection` exposes Pocket TTS (default), OmniVoice 16, OmniVoice 32 and
+Convai in that order. It stores `voiceProvider=pocket|omni|convai` plus
+`omniSteps=16|32`. Legacy `hybrid` selections migrate to `omni` with their saved
+quality; saved Pocket and Convai choices remain selected.
+
+An unsaved local choice queues preparation immediately. Backend replacement
+waits for the current owned reply and confirmed worker exit; only one local
+backend is resident. Apply reuses preparation, while reverting or leaving an
+unsaved choice restores the saved backend. Omni's 16/32 choices share one GPU
+model and reference cache. Pocket keeps its separate CPU model, configuration
+and reference registry. Selecting Convai releases local residency after Apply.
 
 One hidden worker owns the CPU model and an eight-state LRU. Invite encodes the
 selected acoustic reference before spawn permission, alongside the existing

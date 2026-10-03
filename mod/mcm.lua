@@ -232,7 +232,8 @@ local function profileDescription(profile, snapshot)
     if snapshot.settings.voiceProvider ~= 'convai' then
         for _, key in ipairs(snapshot.localVoice.routedProfiles or {}) do
             if key == profile.key then
-                voice = ui.t('Pocket TTS')
+                voice = snapshot.settings.voiceProvider == 'pocket' and ui.t('Pocket TTS')
+                    or ui.t(snapshot.settings.omniSteps == 16 and 'OmniVoice 16' or 'OmniVoice 32')
                 break
             end
         end
@@ -252,11 +253,14 @@ local function voiceServiceLabel(state)
         end
         return ui.t('Changing after the current reply')
     end
-    if state.preparationOnly and state.previewActive and state.previewProvider == 'pocket' and state.state == 'ready' then
+    if state.preparationOnly and state.previewActive
+        and (state.previewProvider == 'pocket' or state.previewProvider == 'omni') and state.state == 'ready' then
         return ui.t('Ready · Unsaved selection')
     end
     local preview = voicePreview.inspect()
-    if preview.active and preview.provider == 'pocket' and state.state == 'remote' then return ui.t('Preparing voices') end
+    if preview.active and (preview.provider == 'pocket' or preview.provider == 'omni') and state.state == 'remote' then
+        return ui.t('Preparing voices')
+    end
     return ui.t(labels[state.state] or 'Waiting for voice service')
 end
 
@@ -600,13 +604,15 @@ local function schema()
                 {'Eyes only', 'Less', 'Gentle (default)', 'More'}),
         })
         local voiceStatus = voiceServiceLabel(snapshot.localVoice)
+        local voiceIndex = snapshot.settings.voiceProvider == 'convai' and 4
+            or (snapshot.settings.voiceProvider == 'omni' and (snapshot.settings.omniSteps == 16 and 2 or 3) or 1)
         categories[#categories + 1] = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
-            setting('voiceProvider', 'Companion voices', 'select', snapshot.settings.voiceProvider == 'convai' and 2 or 1, 1,
-                'Pocket TTS uses prepared local character voices. Selecting it starts preparing the model immediately. Convai uses online voices. Apply saves your choice; Revert cancels the preview.',
-                {'Pocket TTS', 'Convai'}),
+            setting('voiceProvider', 'Companion voices', 'select', voiceIndex, 1,
+                'Pocket TTS uses prepared local character voices on CPU. OmniVoice uses the GPU with 16 steps for faster replies or 32 steps for higher quality. Convai uses online voices. Selecting a local voice starts preparing its model immediately. Apply saves your choice; Revert cancels the preview.',
+                {'Pocket TTS', 'OmniVoice 16', 'OmniVoice 32', 'Convai'}),
             readonly('voice-status', 'Voice service', voiceStatus,
-                'Pocket TTS starts preparing as soon as you select it here and stays warm after Apply. Revert or leaving without saving cancels the preview; no game restart is needed.'),
+                'The selected local model starts preparing as soon as you select it here and stays warm after Apply. Revert or leaving without saving cancels the preview; no game restart is needed.'),
         }, 'Use Apply to save changed settings, or Revert to discard them.')
         categories[#categories + 1] = category('subtitles', 'Subtitles', {
             setting('subtitles', 'Subtitles', 'bool', snapshot.settings.subtitles, true, 'Show companion replies using the selected subtitle display.'),
@@ -693,8 +699,11 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     end
                     values.uiLanguage = choices[change.value].value
                 elseif key == 'voiceProvider' then
-                    if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose Pocket TTS or Convai voices.')} end
-                    values.voiceProvider = change.value == 1 and 'pocket' or 'convai'
+                    if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 and change.value ~= 4 then
+                        return {ok = false, error = ui.t('Choose Pocket TTS, OmniVoice 16, OmniVoice 32 or Convai voices.')}
+                    end
+                    values.voiceProvider = change.value == 1 and 'pocket' or (change.value == 4 and 'convai' or 'omni')
+                    if change.value == 2 or change.value == 3 then values.omniSteps = change.value == 2 and 16 or 32 end
                 elseif key == 'eyeContactHeight' or key == 'headFollowStrength' then
                     local heights,strengths=manager.gazeChoices()
                     local choices=key=='eyeContactHeight' and heights or strengths
@@ -792,8 +801,8 @@ function M.install()
         if key and presentation.active and active()
             and voiceSelectors[key] == presentation.controllerKey and type(api.getValue) == 'function' then
             local ok, value, err = pcall(api.getValue, MOD_KEY .. ':voiceProvider')
-            if ok and not err and ((forward == false and value == 1) or (forward == true and value == 2)) then
-                -- Stop at the end of this two-choice row. Intercept the child
+            if ok and not err and ((forward == false and value == 1) or (forward == true and value == 4)) then
+                -- Stop at the end of this four-choice row. Intercept the child
                 -- before it emits the host event observed by MCM, whose normal
                 -- cyclic navigation would move the marker the opposite way.
                 return

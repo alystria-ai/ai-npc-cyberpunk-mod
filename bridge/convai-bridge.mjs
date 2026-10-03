@@ -6,7 +6,7 @@ import {audioReady} from './speech-audio.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
 import {PhoneticLipsync} from './phonetic-lipsync.mjs';
-import {SpeechSlots} from './speech-stream.mjs';
+import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
 import {deliverPocketSpeech} from './pocket-speech.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
@@ -51,9 +51,15 @@ const voiceConfig = JSON.parse(await readFile(localVoiceConfigPath, 'utf8').catc
   if (error.code === 'ENOENT') return '{}';
   throw error;
 }));
+const omniVoiceConfigPath=resolve(stateDirectory,'local-voices.json');
+const omniVoiceConfig=JSON.parse(await readFile(omniVoiceConfigPath,'utf8').catch(error=>{
+  if(error.code==='ENOENT')return '{}';throw error;
+}));
 let voiceMetricsWriting = Promise.resolve();
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
+  omniConfig:omniVoiceConfig,omniConfigPath:omniVoiceConfigPath,
+  profileKeys:roster.map(profile=>profile.key),
   onState: state => {
     voiceMetricsWriting = voiceMetricsWriting.catch(() => {}).then(() => atomic(resolve(runtime, 'local-voice-state.json'), JSON.stringify(state)));
     return voiceMetricsWriting;
@@ -203,6 +209,13 @@ const readSpeechState = async () => {
   try { return JSON.parse(await readFile(resolve(runtime, 'speech-state.json'), 'utf8')); } catch { return {}; }
 };
 const slots = new SpeechSlots({depot: audioDepot, readState: readSpeechState});
+let streamWriting=Promise.resolve(),streaming=0;
+function writeStreamManifest(document,current){
+  const job=streamWriting.catch(()=>{}).then(async()=>{
+    if(await current())await atomic(resolve(runtime,'speech-stream.json'),JSON.stringify(document),
+      {isCurrent:current,isCurrentSync:current.sync});
+  });streamWriting=job;return job;
+}
 const companionActions = new CompanionActions({createToken: () => 'drive-' + randomUUID(),
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options)});
 const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet)});
@@ -235,12 +248,12 @@ const routeFor = input => preparedInputs.get(input)
   || knowledgeRouter.configFor(input.profileKey, conversationScope(input), boundaryFor(input));
 const sessionKey = input => routeFor(input)?.sessionKey || JSON.stringify(['unavailable', input.profileKey, input.requestId]);
 const completeContext = input => JSON.stringify([conversationContext(input), routeFor(input)?.guard?.characterId, realtimeSessions.get(sessionKey(input)) || null,
-  localVoice.usesProfile(input.profileKey) ? 'pocket' : 'convai']);
+  localVoice.usesProfile(input.profileKey) ? 'local' : 'convai']);
 const realtimeConfig = input => ({key, characterId: routeFor(input)?.guard?.characterId, sessionId: realtimeSessions.get(sessionKey(input)),
   scope: routeFor(input)?.scope || conversationScope(input), ...(routeFor(input)?.remoteConfig || {}),
   context: conversationContext(input), text: battleTrigger(input), reaction: input.reaction,
   companionAction: companionActions.configFor(input),
-  ttsEnabled: !localVoice.usesProfile(input.profileKey)});
+  ttsEnabled: localVoice.playbackEnabled!==false&&!localVoice.usesProfile(input.profileKey)});
 const warmRoute = (profile, scope) => memoryQuiescing ? null : knowledgeRouter.configFor(profile, scope,
   {worldToken: worldSession?.token, generation: worldSession?.generation});
 const connections = new PartyConnections({host: realtime,
@@ -250,7 +263,7 @@ const connections = new PartyConnections({host: realtime,
     const route = warmRoute(profile, scope);
     if (!route) throw Error('No current world for conversation warmup');
     return {key, characterId: route.guard.characterId, scope: route.scope, ...(route.remoteConfig || {}),
-      sessionId: realtimeSessions.get(route.sessionKey), ttsEnabled: !localVoice.usesProfile(profile)};
+      sessionId: realtimeSessions.get(route.sessionKey), ttsEnabled: localVoice.playbackEnabled!==false&&!localVoice.usesProfile(profile)};
   },
   onState: state => {
     connectionMetricsWriting = connectionMetricsWriting.catch(() => {}).then(() => atomic(resolve(runtime, 'party-connection-state.json'), JSON.stringify(state)));
@@ -264,7 +277,7 @@ const voiceRouteWaiters = new Set();
 let relationshipRouteSync = Promise.resolve(), relationshipRouteReservation = false;
 const relationshipRoutePending = new Map();
 function voiceBoundaryBusy() {
-  return !!(active || polling || micPolling || mic.current || prefetchPolling || memoryQuiescing
+  return !!(active || streaming || polling || micPolling || mic.current || prefetchPolling || memoryQuiescing
     || phone.active || relationshipRouteReservation);
 }
 function syncRelationshipRoutes() {
@@ -338,7 +351,7 @@ function invitedVoiceCurrent(profile, receipt) {
   if (stopped || receipt?.ready !== true || localVoice.pending || localVoice.availabilityPending
       || voiceRouteReservation || voiceRoutePending.size) return false;
   if (receipt.provider === 'convai') return !localVoice.usesProfile(profile);
-  return receipt.provider === 'pocket' && receipt.profile === profile
+  return receipt.provider === localVoice.provider && ['pocket','omni'].includes(receipt.provider) && receipt.profile === profile
     && localVoice.usesProfile(profile) && localVoice.profileReady(profile);
 }
 async function prepareInvitedVoice(profile, {signal} = {}) {
@@ -346,8 +359,8 @@ async function prepareInvitedVoice(profile, {signal} = {}) {
     throwIfCancelled(signal);
     if (stopped) throw Error('Voice service is closed');
     const receipt = await localVoice.prepareProfile(profile, {signal});
-    if (receipt?.ready !== true || !['convai', 'pocket'].includes(receipt.provider)
-        || (receipt.provider === 'pocket' && receipt.profile !== profile)) {
+    if (receipt?.ready !== true || !['convai','pocket','omni'].includes(receipt.provider)
+        || (receipt.provider !== 'convai' && receipt.profile !== profile)) {
       throw Error('Local voice readiness could not be verified');
     }
     await abortable(syncVoiceRoutes({wait: true, signal}), signal);
@@ -355,7 +368,8 @@ async function prepareInvitedVoice(profile, {signal} = {}) {
     if (stopped) throw Error('Voice service is closed');
     // A settings change can commit while page retirement is awaiting its host.
     // Recheck the actual route before authorizing this invitation's connection.
-    if (receipt.provider === 'pocket') {
+    if (receipt.provider !== 'convai') {
+      if(receipt.provider!==localVoice.provider)continue;
       if (!localVoice.usesProfile(profile) || !localVoice.profileReady(profile)) continue;
     } else if (localVoice.usesProfile(profile)) continue;
     return receipt;
@@ -393,8 +407,20 @@ const prefetch = new GroupPrefetch({prepare: async (input, {signal}) => {
 }});
 
 async function synthesizeReply(input, result, signal, current, profile = profileFor(input, roster), receiptPrepared = preparedInputs.get(input)) {
+  if(localVoice.playbackEnabled===false)return{...result,audio:undefined,faces:[],captions:[]};
   if (!localVoice.usesProfile(input.profileKey)) return {...result, timing: {...result.timing, voiceProvider: 'convai'}};
   throwIfCancelled(signal);
+  if(localVoice.provider==='omni'){
+    try{
+      const phrases=splitSpeechText(result.text),steps=localVoice.steps;
+      const generated=await synthesizeOmniPhrase(input.profileKey,phrases[0],{signal,steps});
+      return {...result,...generated,text:result.text,timing:{...result.timing,...generated.timing},
+        streamPlan:phrases.length>1?{phrases,steps}:undefined};
+    }catch(error){
+      throwIfCancelled(signal);console.error('[CyberpunkConvai] Omni speech:',error.message);
+      return {...result,audio:undefined,faces:[],captions:[],audioError:'Local voice is unavailable; showing the written reply.'};
+    }
+  }
   if ((await readSpeechState()).continuousAvailable !== true) {
     return {...result, audio: undefined, faces: [], captions: [],
       audioError: 'Local streaming is unavailable; showing the written reply.'};
@@ -402,6 +428,17 @@ async function synthesizeReply(input, result, signal, current, profile = profile
   const speech = continuousSpeech(input, profile, current, signal, receiptPrepared, true);
   return deliverPocketSpeech({input, profile, result, current, signal, voice: localVoice, host: realtime, speech, lipsync,
     onAnalysis: timing => measure(input, {localLipAnalysis: timing})});
+}
+
+async function synthesizeOmniPhrase(profile,text,options){
+  const generated=await localVoice.synthesize(profile,text,options);
+  try{
+    const facial=await lipsync.analyse(generated.audio,options);
+    return {...generated,...facial,timing:{...generated.timing,...facial.timing,voiceProvider:'omni'}};
+  }catch(error){
+    throwIfCancelled(options?.signal);console.error('[CyberpunkConvai] Omni lip-sync fallback:',error.message);
+    return {...generated,timing:{...generated.timing,voiceProvider:'omni'}};
+  }
 }
 
 async function status(state, detail = '') {
@@ -446,7 +483,7 @@ async function convaiReply(input, profile, current, signal) {
 }
 
 async function respond(input, profile, {signal, prepared, current} = {}) {
-  if (await audioReady(runtime)) {
+  if (localVoice.playbackEnabled!==false&&await audioReady(runtime)) {
     if (prepared) {
       let cached;
       try { cached = await prepared; }
@@ -481,12 +518,17 @@ async function publishResult(input, profile, result, current = async () => true,
     return true;
   }
   const preparationStartedAt = Date.now();
-  let audio, face, audioError = result.audioError;
+  let audio, face, stream, audioError = result.audioError;
   if (result.audio) {
     try {
-      const id = randomUUID();
-      await slots.begin(id, current);
-      audio = await slots.write(id, 1, result.audio, current);
+      if(result.streamPlan){
+        stream=new SpeechStream({input,...result.streamPlan,slots,readState:readSpeechState,current,signal,
+          writeManifest:document=>writeStreamManifest(document,current),
+          synthesize:(text,options)=>synthesizeOmniPhrase(profile.key,text,options)});
+        const first=await stream.begin(result);audio=first.audio;face=first.face;
+      }else{
+        const id=randomUUID();await slots.begin(id,current);audio=await slots.write(id,1,result.audio,current);
+      }
       if (!await current()) return false;
       try { face ??= buildFacialTimeline(result, input); }
       catch (error) { console.error('[CyberpunkConvai] Facial timing unavailable:', error.message); }
@@ -495,7 +537,7 @@ async function publishResult(input, profile, result, current = async () => true,
         captions: result.captions, duration: audio.duration, face,
       }), {signal, isCurrent: current, isCurrentSync: current.sync});
     } catch (error) {
-      audio = undefined; face = undefined;
+      audio = undefined; face = undefined;stream=undefined;
       audioError = 'Voice could not be prepared; showing the written reply.';
       console.error('[CyberpunkConvai] Voice preparation failed:', error.message);
     }
@@ -503,7 +545,7 @@ async function publishResult(input, profile, result, current = async () => true,
   if (!await current()) return false;
   const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audio, face, audioError,
-    updated: Date.now()}), {signal, isCurrent: current, isCurrentSync: current.sync});
+    stream:stream?.descriptor(),updated: Date.now()}), {signal, isCurrent: current, isCurrentSync: current.sync});
   if (!committed || !await current()) return false;
   (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);
   if (result.transport === 'realtime') connections.used(input, result.timing);
@@ -512,8 +554,20 @@ async function publishResult(input, profile, result, current = async () => true,
   prefetchObserved = '';
   await measure(input, {transport: result.transport || 'rest', timing: result.timing, preparation: result.preparation,
     audioStoreMs: Date.now() - preparationStartedAt, publishedAt: Date.now(), audioDurationSeconds: audio?.duration,
+    stream:stream?{id:stream.manifest.streamId,chunks:stream.phrases.length,mode:'omni-phrases'}:undefined,
     nativePlaybackObserved: false});
   await status('ready', profile.name);
+  if(stream){
+    streaming++;
+    try{
+      await stream.finish();
+      if(await current())await measure(input,{stream:{id:stream.manifest.streamId,mode:'omni-phrases',
+        chunks:stream.manifest.chunks.length,complete:stream.manifest.complete,error:stream.error,
+        productionMs:Date.now()-stream.started,audioDurationSeconds:stream.totalDuration,
+        timings:stream.manifest.chunks.map(chunk=>({index:chunk.index,readyAt:chunk.readyAt,
+          duration:chunk.audio.duration,...chunk.timing}))}});
+    }finally{streaming--;prefetchObserved='';}
+  }
   return true;
 }
 
@@ -525,7 +579,7 @@ let micPolling = false;
 const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
   onState: (state, input) => atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state, requestId: input.requestId, updated: Date.now()})),
   prepareReply: async (input, signal) => {
-    if (localVoice.usesProfile(input.profileKey) || (await readSpeechState()).continuousAvailable !== true) return;
+    if(localVoice.playbackEnabled===false||localVoice.usesProfile(input.profileKey)||(await readSpeechState()).continuousAvailable!==true)return;
     const prepared = microphoneKnowledge.get(input.requestId);
     const current = async () => {
       if (stopped || signal.aborted || mic.current?.requestId !== input.requestId || !prepared) return false;
@@ -641,7 +695,7 @@ async function admitPlayerConversation(prepared, {signal} = {}) {
     await connections.retireInvitation(prepared.route.profileKey, {signal});
     const host = prepared.route.channel === 'phone' ? phoneRealtime : realtime;
     const config = {...realtimeConfig(prepared.input), ttsEnabled: prepared.route.channel === 'phone'
-      ? false : !localVoice.usesProfile(prepared.route.profileKey)};
+      ? false : localVoice.playbackEnabled!==false&&!localVoice.usesProfile(prepared.route.profileKey)};
     if (!await host.refreshIdle(config)) throw Error('The character connection is still releasing. Please try again.');
     throwIfCancelled(signal);
     if (!await knowledgeRouter.current(prepared)) throw Error('Conversation world changed');

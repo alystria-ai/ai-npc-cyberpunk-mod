@@ -194,7 +194,7 @@ test('duplicate copies share preparation and hand the retained page to the party
   f.connections.ingest({updated: f.now(), profiles: []}); await f.connections.maintain(); assert.equal(f.live.size, 0);
 });
 
-test('speaker conditioning gates both copies and connection startup without blocking polling', async t => {
+test('Pocket speaker conditioning gates both copies and connection startup without blocking polling', async t => {
   const gate = deferred(), calls = [];
   const f = fixture(t, {prepareVoice: async (profile, options) => {
     calls.push({profile, ...options}); await abortable(gate.promise, options.signal);
@@ -208,6 +208,18 @@ test('speaker conditioning gates both copies and connection startup without bloc
   assert.equal(calls.length, 1); assert.equal(f.warmCalls.length, 1);
   assert.equal(f.invitations.diagnostic().invitations[0].voiceMs, 240);
   assert.equal(f.invitations.diagnostic().invitations[0].voiceProvider, 'pocket');
+});
+
+test('Omni warmed speaker receipt crosses actual invitation consumer and exact speaker mismatch cannot spawn',async t=>{
+  const f=fixture(t,{prepareVoice:async profile=>({provider:'omni',ready:true,profile})});
+  f.ingest([ticket('queued:1','judy')]);
+  await until(()=>f.invitations.snapshot().invitations[0]?.state==='ready');
+  assert.equal(f.invitations.diagnostic().invitations[0].voiceProvider,'omni');
+  assert.equal(f.warmCalls.length,1);
+  const wrong=fixture(t,{prepareVoice:async()=>({provider:'omni',ready:true,profile:'panam'})});
+  wrong.ingest([ticket('queued:2','judy')]);
+  await until(()=>wrong.invitations.snapshot().invitations[0]?.state==='error');
+  assert.equal(wrong.warmCalls.length,0);
 });
 
 test('voice failures and wrong-speaker receipts never grant spawn permission or warm a page', async t => {

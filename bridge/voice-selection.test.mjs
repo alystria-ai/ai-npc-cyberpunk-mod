@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
 import {VoiceSelection} from './voice-selection.mjs';
-import {LOCAL_VOICE_KEYS} from './resident-voice.mjs';
+import {LOCAL_VOICE_KEYS, ResidentVoice} from './resident-voice.mjs';
 
 const pocketSettings = voices => ({version:1,provider:'pocket',engine:'pocket-tts',voices,
   runtime:Object.fromEntries(['sourceDirectory','exportDirectory','referenceDirectory','workDirectory'].map(key=>[key,resolve('fixture',key)])),
@@ -11,13 +11,13 @@ const pocketSettings = voices => ({version:1,provider:'pocket',engine:'pocket-tt
 
 const tick = () => new Promise(done => setImmediate(done));
 const defer = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return {resolve, promise}; };
-function fixture({holdWarm = false, holdClose = false, extraProfiles = {}, unavailableProfiles = []} = {}) {
+function fixture({holdWarm = false, holdClose = false, extraProfiles = {}, unavailableProfiles = [], omniConfig = {}} = {}) {
   const workers = [], states = []; let live = 0, peak = 0;
   const voices = Object.fromEntries(LOCAL_VOICE_KEYS.map(key => [key, {
     reference: `runtime/voice-references/${key}.wav`, sha256: 'a'.repeat(64), transcript: 'Ready when you are, V.',
   }]));
   Object.assign(voices, extraProfiles);
-  const voice = new VoiceSelection(pocketSettings(voices), {onState: value => states.push(value),
+  const voice = new VoiceSelection(pocketSettings(voices), {omniConfig, onState: value => states.push(value),
     factory: (config, {onState}) => {
       const warm = defer(), released = defer(); let loaded = false, owned = false;
       const worker = {warm, released, starts: 0, closes: 0, calls: [],
@@ -306,10 +306,126 @@ test('a remote draft does not unload an applied Pocket choice or alter an owned 
   assert.equal(h.workers[0].closes,1);assert.equal(h.live(),0);
 });
 
-test('legacy saved Omni migrates to Pocket while a saved Convai selection is preserved',async()=>{
+test('legacy saved Omni stays Omni while a saved Convai selection is preserved',async()=>{
   const h=fixture();h.voice.request({voiceProvider:'convai'});h.voice.applyWhenIdle(false);await h.voice.start();
   assert.equal(h.workers.length,0);assert.equal(h.voice.provider,'convai');
   h.voice.request({voiceProvider:'hybrid',omniSteps:16});h.voice.applyWhenIdle(false);await h.voice.start();
-  assert.equal(h.voice.provider,'pocket');assert.equal(h.workers.length,1);assert.equal(h.voice.steps,undefined);
+  assert.equal(h.voice.provider,'omni');assert.equal(h.workers.length,0);assert.equal(h.voice.steps,16);
   await h.voice.close();
+});
+
+function dualFixture({holdClose=false}={}){
+  const calls=[],workers=[],states=[];let live=0,peak=0;
+  const voices={'johnny-silverhand':{reference:'runtime/voice-references/johnny.wav',sha256:'a'.repeat(64),transcript:'Original line.'},
+    'blue-moon':{status:'unprepared'}};
+  const factory=backend=>(config,{onState})=>{
+    const released=defer();let loaded=false,owned=false;
+    const worker={backend,released,starts:0,closes:0,steps:32,get loaded(){return loaded;},
+      hasProfile:key=>Object.hasOwn(config.voices,key)&&!config.voices[key].status?.match(/unprepared|unavailable/),
+      profileReady(key){return loaded&&this.hasProfile(key);},
+      setSteps(value){this.steps=value;},
+      async start(){this.starts++;owned=true;live++;peak=Math.max(peak,live);loaded=true;calls.push('start:'+backend);
+        onState({state:'ready',resident:true,engine:backend==='omni'?'omnivoice':'pocket-tts'});},
+      async prepareProfile(profile){return{provider:backend==='omni'?'omnivoice':'pocket',ready:true,profile};},
+      async synthesize(profile,text,options){calls.push(['synthesize',backend,profile,text,options.steps]);return{};},
+      async synthesizeStream(profile,text){calls.push(['stream',backend,profile,text]);return{};},
+      async close(){this.closes++;calls.push('close:'+backend);if(holdClose&&owned)await released.promise;
+        if(owned)live--;loaded=owned=false;onState({state:'stopped',resident:false});},};
+    workers.push(worker);return worker;
+  };
+  const voice=new VoiceSelection(pocketSettings(voices),{onState:value=>states.push(value),factory:factory('pocket'),
+    omniConfig:{version:2,provider:'hybrid',engine:'omnivoice',steps:32,voices},omniFactory:factory('omni')});
+  return{voice,calls,workers,states,live:()=>live,peak:()=>peak};
+}
+
+test('four choices keep Pocket default; both Omni qualities share the one warmed model and cache',async()=>{
+  const h=dualFixture();await h.voice.start();assert.equal(h.voice.provider,'pocket');assert.equal(h.workers[0].backend,'pocket');
+  h.voice.update({voiceProvider:'omni',omniSteps:16},null,false);await h.voice.start();
+  assert.equal(h.peak(),1);assert.equal(h.workers[0].closes,1);assert.equal(h.workers[1].backend,'omni');
+  assert.equal(h.workers[1].steps,16);assert.deepEqual(await h.voice.prepareProfile('johnny-silverhand'),
+    {provider:'omni',ready:true,profile:'johnny-silverhand'});
+  await h.voice.synthesize('johnny-silverhand','First sentence.');
+  h.voice.update({voiceProvider:'omni',omniSteps:32},null,false);await h.voice.start();
+  await h.voice.synthesize('johnny-silverhand','Second sentence.');
+  assert.equal(h.workers.length,2);assert.equal(h.workers[1].starts,1);assert.equal(h.workers[1].closes,0);
+  assert.deepEqual(h.calls.filter(value=>Array.isArray(value)).map(value=>value.at(-1)),[16,32]);
+  assert.deepEqual(await h.voice.prepareProfile('blue-moon'),{provider:'convai',ready:true,reason:'unprepared'});
+  h.voice.update({voiceProvider:'convai',omniSteps:32},null,false);await h.voice.retiring;assert.equal(h.live(),0);
+  assert.equal(h.voice.provider,'convai');await h.voice.close();
+});
+
+test('cross-backend drafts wait for owned reply and confirmed retirement, then warm before Apply',async()=>{
+  const h=dualFixture({holdClose:true});await h.voice.start();
+  h.voice.update({voiceProvider:'pocket'},{provider:'omni',omniSteps:16},true);await tick();
+  assert.equal(h.workers.length,1);assert.equal(h.workers[0].closes,0);assert.equal(h.voice.provider,'pocket');
+  let inviteReady=false;const invite=h.voice.prepareProfile('johnny-silverhand').then(value=>{inviteReady=true;return value;});
+  await tick();assert.equal(inviteReady,false);
+  h.voice.update({voiceProvider:'pocket'},{provider:'omni',omniSteps:16},false);await tick();
+  assert.equal(h.workers[0].closes,1);assert.equal(h.workers[1].starts,0);
+  h.workers[0].released.resolve();await h.voice.start();assert.equal(h.workers[1].starts,1);assert.equal(h.voice.provider,'pocket');
+  h.voice.update({voiceProvider:'omni',omniSteps:16},null,false);assert.equal((await invite).provider,'omni');
+  assert.equal(h.workers.length,2);assert.equal(h.peak(),1);h.workers[1].released.resolve();await h.voice.close();
+});
+
+test('an unconfirmed cross-backend exit blocks replacement and cannot grant wrong-backend readiness',async()=>{
+  const h=dualFixture();await h.voice.start();
+  h.workers[0].close=async()=>{throw Error('owned exit not confirmed');};
+  h.voice.update({voiceProvider:'omni',omniSteps:32},null,false);
+  await assert.rejects(h.voice.start(),/not confirmed/);assert.equal(h.workers[1].starts,0);
+  assert.equal(h.voice.profileReady('johnny-silverhand'),false);assert.equal(h.peak(),1);
+  await assert.rejects(h.voice.close(),/not confirmed/);
+});
+
+test('an unavailable other-local draft preserves the committed worker and cannot starve invitation readiness',async()=>{
+  for(const omniConfig of [{},{version:2,provider:'hybrid',engine:'omnivoice',steps:32,
+    voices:{'johnny-silverhand':{status:'unprepared'}}}]){
+    const h=fixture({omniConfig});await h.voice.start();
+    try{
+      h.voice.update({voiceProvider:'pocket'},{provider:'omni',omniSteps:32},false);
+      await h.voice.retiring;
+      const controller=new AbortController(),start=h.voice.start.bind(h.voice);let attempts=0;
+      // Keep the pre-fix spinner bounded even though its resolved-await loop
+      // prevents a timer or setImmediate from aborting it.
+      h.voice.start=()=>{if(++attempts===16)controller.abort();return start();};
+      const prepared=await h.voice.prepareProfile('johnny-silverhand',{signal:controller.signal})
+        .then(value=>({value}),error=>({error}));
+      await tick();
+      assert.equal(attempts,1,'invitation must not retry an unavailable draft in a microtask loop');
+      assert.ifError(prepared.error);
+      assert.deepEqual(prepared.value,{provider:'pocket',ready:true,profile:'johnny-silverhand'});
+      assert.equal(h.voice.targetBackend,'pocket');assert.equal(h.voice.previewRoutingPending,false);
+      assert.equal(h.workers.length,1);assert.equal(h.workers[0].closes,0);assert.equal(h.peak(),1);
+      assert.equal(h.voice.profileReady('johnny-silverhand'),true);
+      h.voice.update({voiceProvider:'pocket'},null,false);
+      assert.equal(h.workers.length,1,'Revert must retain the same committed worker');
+      h.voice.update({voiceProvider:'omni',omniSteps:32},null,false);await h.voice.retiring;
+      assert.equal(h.workers[0].closes,1,'Apply may retire a backend which is no longer selected');
+      assert.equal(h.voice.provider,'omni');
+      assert.equal((await h.voice.prepareProfile('johnny-silverhand')).provider,'convai');
+    }finally{await h.voice.close();}
+  }
+});
+
+test('a settled local startup without a loaded worker rejects rather than retrying resolved readiness',async()=>{
+  const h=fixture();await h.voice.start();
+  try{
+    Object.defineProperty(h.workers[0],'loaded',{get:()=>false});
+    const start=h.voice.start.bind(h.voice);let attempts=0;
+    h.voice.start=()=>{if(++attempts===16)throw Error('readiness loop guard');return start();};
+    await assert.rejects(h.voice.prepareProfile('johnny-silverhand'),/local voice backend did not become ready/);
+    assert.equal(attempts,1);await tick();
+  }finally{await h.voice.close();}
+});
+
+test('shared selection rejects Omni readiness immediately on actual worker failure or closing',async()=>{
+  for(const terminal of ['fail','close']){
+    const h=dualFixture(),client=new ResidentVoice(h.voice.configs.omni,{spawnImpl(){throw Error('must not spawn');}});
+    h.voice.provider=h.voice.requestedProvider='omni';h.voice.client=client;h.voice.clientBackend='omni';
+    client.loaded=true;client.prepared.add('johnny-silverhand');
+    assert.equal(h.voice.profileReady('johnny-silverhand'),true);
+    if(terminal==='fail')client.fail(Error('owned worker failed'));else await client.close();
+    assert.equal(client.loaded,true,'terminal state may precede physical worker exit');
+    assert.equal(h.voice.profileReady('johnny-silverhand'),false,'stale ready receipt must not admit a spawn');
+    await h.voice.close();
+  }
 });
