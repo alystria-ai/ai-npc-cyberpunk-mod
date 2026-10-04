@@ -1,5 +1,23 @@
 # Pocket TTS runtime
 
+## October 4 inference parity and replacement boundary
+
+The live public stream now explicitly uses `frames_after_eos=1`, matching the
+student comparison audio. Previously it omitted that argument, allowing the
+pinned upstream implementation to guess a longer text-dependent post-EOS tail.
+CPU float32, temperature 0.3, one decode step, CFG1 export selection and two
+threads remain the accepted inference settings. This correction changes the
+generator's tail policy, not the original PCM or character reference recording.
+
+The expanded A teacher/student training is described in [voice training](VOICE_TRAINING.md).
+The accepted update1500 student remains configured until a new export is
+qualified. Model replacement requires a new immutable export and all four asset
+hashes in a staged configuration, followed by a clean bridge/worker restart.
+Reference states live only in the worker's memory and belong to its loaded
+model; editing a JSON path does not replace an already-running worker or cache.
+The shared phonetic facial path consumes PCM/timing and has no old-model filename
+dependency. Native voice/face acceptance of new weights remains separate.
+
 ## October 3 live corrections
 
 The first game check played Pocket voice but applied zero facial frames: Lua's

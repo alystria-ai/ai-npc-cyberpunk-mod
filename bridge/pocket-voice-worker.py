@@ -268,7 +268,10 @@ def stream_request(model, state, text, commands, send, request_id, key, encode_p
     started = now()
     total, index = 0, 0
     first_yield = first_ready = None
-    generator = model.generate_audio_stream(state, text, copy_state=True, stop=commands.stop)
+    # Match the public-stream samples used to accept/select the student. Letting
+    # upstream guess this tail from text gives live replies different endings.
+    generator = model.generate_audio_stream(state, text, frames_after_eos=1,
+                                            copy_state=True, stop=commands.stop)
     try:
         for chunk in generator:
             yielded_ms = (now() - started) * 1000
