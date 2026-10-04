@@ -1,0 +1,114 @@
+{
+  "schema": "data_expansion_code_checkpoint_v1",
+  "boundary": "Code-only snapshot. No raw audio, models, frozen datasets or private credentials. Runtime originals are active and unchanged.",
+  "files": [
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/collection/decode_batch.py",
+      "snapshotPath": "source/collection/decode_batch.py",
+      "sha256": "619c421b4bc2871afb07f4f5a4dcbd45ef5e169505f15e0878afc2f196d880d5",
+      "bytes": 8963
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/collection/decode_batch_bulk.py",
+      "snapshotPath": "source/collection/decode_batch_bulk.py",
+      "sha256": "ccd871c430da56ff2ddb90169c51449edfeb69a7ed75e921d51e720d58eb3a7a",
+      "bytes": 9920
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/collection/run_plan.py",
+      "snapshotPath": "source/collection/run_plan.py",
+      "sha256": "e6fc724c530fe65d5c92dc85ecab8dafd26326d295e5d0585491052ad105d1c7",
+      "bytes": 3234
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/collection/summarize_collection.py",
+      "snapshotPath": "source/collection/summarize_collection.py",
+      "sha256": "3000dbd21d0aeeff621ba62657328f9cc9b4754d78eb0b8a60cfb061bab6a512",
+      "bytes": 1983
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/scene-inventory/export_batch.py",
+      "snapshotPath": "source/scene-inventory/export_batch.py",
+      "sha256": "4c0fab19e06d563bb806e20d4f91e76e9029eb6080cd51678ae6196102c342df",
+      "bytes": 6877
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/scene-inventory/batch_authenticate.py",
+      "snapshotPath": "source/scene-inventory/batch_authenticate.py",
+      "sha256": "041e3b01728786accfadc05dfa79553601d31441ef9b60832c0fc43caab35508",
+      "bytes": 5298
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/scene-inventory/index_actors.py",
+      "snapshotPath": "source/scene-inventory/index_actors.py",
+      "sha256": "13af35190838e592a5b8f5e53c392ff23f472809593b7af5e878de79aff7f708",
+      "bytes": 3549
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/scene-inventory/inventory_scenes.py",
+      "snapshotPath": "source/scene-inventory/inventory_scenes.py",
+      "sha256": "8e535adaf6feddabaeb4e99465c2b1fe213f4653ba6fc184badbd8203939dee6",
+      "bytes": 4834
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/scene-inventory/plan_batches.py",
+      "snapshotPath": "source/scene-inventory/plan_batches.py",
+      "sha256": "0acdf4ace0893ae949c4fc189a23583d3fe9cd2838439507103fe6f165e39e34",
+      "bytes": 2228
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/scene-inventory/scan_scene_hints.py",
+      "snapshotPath": "source/scene-inventory/scan_scene_hints.py",
+      "sha256": "dee0de706acb6e41701da5547a4b3549995cf023df45a08aa23085afeaedefed",
+      "bytes": 7524
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/roster-reservations/check_reservations.py",
+      "snapshotPath": "source/roster-reservations/check_reservations.py",
+      "sha256": "439fef59bd36e27577137ae51d8bf343698f4340d0493f0a6480da99a185f83b",
+      "bytes": 3738
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/collection/decode_batch_next.py",
+      "snapshotPath": "source/collection/decode_batch_next.py",
+      "sha256": "c4e6f73eff46797f50362fef9652b63fd93c82ba673616df66fe136aeac83614",
+      "bytes": 10138
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/collection/run_plan_next.py",
+      "snapshotPath": "source/collection/run_plan_next.py",
+      "sha256": "9b14969e8d0e82a42fa5205e2fdba0f470b716b37823cb5fb2ef77361a463cb5",
+      "bytes": 3917
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/collection/Handoff-Controller.ps1",
+      "snapshotPath": "source/collection/Handoff-Controller.ps1",
+      "sha256": "6d2cd9749c6de1511b7d703c0a3dec53b238fad411ded2fa81f1924e54b6a3c2",
+      "bytes": 5177
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/scene-inventory/non-scene-discovery/export_voice_tags.py",
+      "snapshotPath": "source/scene-inventory/non-scene-discovery/export_voice_tags.py",
+      "sha256": "ed847fd0aea7c42974c67458f9d8e65f3effaac7024decf8b2d0722c094d33fc",
+      "bytes": 5653
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/scene-inventory/non-scene-discovery/join_registry_authorities.py",
+      "snapshotPath": "source/scene-inventory/non-scene-discovery/join_registry_authorities.py",
+      "sha256": "22a9ea358450957022fa90a36349ab83c8ad5f6b60be11216b3f0c68e9b4f363",
+      "bytes": 3007
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/scene-inventory/non-scene-discovery/list_registries.py",
+      "snapshotPath": "source/scene-inventory/non-scene-discovery/list_registries.py",
+      "sha256": "417fb35b9fd40a00169f9d6d9e5ae39e2d98244f5e0c8795371e4e7b3a6dc399",
+      "bytes": 3034
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/scene-inventory/non-scene-discovery/summarize_existing_maps.py",
+      "snapshotPath": "source/scene-inventory/non-scene-discovery/summarize_existing_maps.py",
+      "sha256": "3e495c6874423e3bb334086a143ff280226404e3329d7802c3ee5cfcc2dc2ba4",
+      "bytes": 2545
+    }
+  ]
+}
