@@ -18,6 +18,7 @@ from pathlib import Path
 import random
 import shutil
 import signal
+import subprocess
 import sys
 import time
 import traceback
@@ -265,6 +266,13 @@ def run(root: Path, output: Path, steps: int, events: Events) -> int:
              "precision": "fp16", "effective_batch_size": 2, "planned_max_steps": steps,
              "learning_schedule_steps": steps, "ema_decay": args.ema_decay,
              "selected_manifest_sha256": sha256_file(selected)}
+    remote_config_path = root / "remote-checkpoint-config.json"
+    remote_config = json.loads(remote_config_path.read_text(encoding="utf-8")) if remote_config_path.is_file() else None
+    # A remote diagnostic needs the first saved model available during later
+    # updates, plus the final model. Avoid uploading ten redundant 5 GB states.
+    checkpoint_interval = steps if remote_config is not None else 10
+    events.emit("checkpoint_schedule", first_step=1, interval=checkpoint_interval,
+                remote_uploads_enabled=remote_config is not None)
     checkpoint = args.run_dir / "last.pt"
     step = 0
     persisted_step = 0
@@ -368,11 +376,13 @@ def run(root: Path, output: Path, steps: int, events: Events) -> int:
         step += 1
         events.latest_step = step
         events.emit("optimizer_update", loss=pooled_weighted_loss,
+                    diagnostic_subset_passes=step * 2 / loader.size,
+                    epoch_number=(step * 2 - 1) // loader.size + 1,
                     metrics=metric_sums, gradient_norm_unscaled=float(norm.item()),
                     learning_rate=lr, loss_scale=scaler.get_scale(),
                     parameter_delta_max=max_delta, valid_frames=frames_total,
                     seconds_per_update=round(time.monotonic() - started, 3))
-        if step == 1 or step % 10 == 0 or step == steps:
+        if step == 1 or step % checkpoint_interval == 0 or step == steps:
             events.emit("checkpoint_begin", checkpoint_step=step)
             state["step"] = step
             runner.save_training(spec, "teacher", step, model, optimizer, ema, scaler,
@@ -390,6 +400,27 @@ def run(root: Path, output: Path, steps: int, events: Events) -> int:
                         checkpoint_sha256=sha256_file(checkpoint))
             if step in (1, steps):
                 export_raw(root, output, step, model, mimi, events)
+            if remote_config is not None:
+                events.emit("remote_checkpoint_upload_begin", checkpoint_step=step)
+                exports = {}
+                export_dir = output / f"export-step{step:06d}"
+                if export_dir.is_dir():
+                    exports = {"export/" + p.name: str(p) for p in export_dir.iterdir() if p.is_file()}
+                extra_path = output / "remote-exports.json"
+                atomic_json(extra_path, exports)
+                child_env = {**os.environ, "HF_HUB_OFFLINE": "0", "TRANSFORMERS_OFFLINE": "0",
+                             "HF_HUB_DISABLE_PROGRESS_BARS": "1", "HF_HUB_DISABLE_TELEMETRY": "1"}
+                # A separate exec process keeps the model loader offline and
+                # prevents importing its CUDA context into the uploader.
+                command = [sys.executable, "-u", str(root / "remote_checkpoints.py"),
+                           "--checkpoint", str(checkpoint), "--step", str(step),
+                           "--input-identity", identity, "--run-id", remote_config["run_id"],
+                           "--state-dir", str(output / "remote-checkpoints"),
+                           "--exports-json", str(extra_path)]
+                child = subprocess.run(command, env=child_env, check=False)
+                if child.returncode:
+                    raise RuntimeError("Remote checkpoint is not verified; preserve the local saved model")
+                events.emit("remote_checkpoint_verified", checkpoint_step=step)
             used = sum(p.stat().st_size for p in output.rglob("*") if p.is_file())
             if used >= MAX_OUTPUT_BYTES:
                 raise RuntimeError("Probe artifacts exceeded the 18 GB publication budget")

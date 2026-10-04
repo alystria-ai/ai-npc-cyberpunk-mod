@@ -213,6 +213,26 @@ execution was still active. Keep accepted models available throughout. Generated
 private inputs, logs and receipts live under
 `runtime/voice-data-expansion-20261005/observable-probes/` and remain Git ignored.
 
+The first probe demonstrated live startup, optimizer loss and checkpoint events
+through Kaggle's SSE log endpoint. The output-list endpoint stayed empty while
+it ran. The local reader derives epoch progress from actual updates and the
+sixteen-row diagnostic subset; these are not passes over the full 8,140-row corpus.
+
+Mid-run retrieval uses a separate private Hugging Face checkpoint repository.
+`remote_checkpoints.py` uploads the complete resumable state and a hash manifest
+between updates, then verifies the exact remote commit before reporting
+`remote_checkpoint_available`. A local save event is a separate event. No old
+checkpoint is deleted automatically and no model is promoted. The uploader runs
+in its own process so the inference/training loader can remain offline.
+
+The user authorized a credential in the private generated notebook after the
+Kaggle Secrets route required manual setup. Only the ignored local credential
+file and ignored private notebook carry it; tracked code loads it at runtime.
+Logs redact credentials. Future probes with checkpoint uploading allow one hour,
+with five minutes reserved for shutdown. The first already-running probe keeps
+its original thirty-minute bound and cannot acquire new code mid-execution.
+Actual download during ongoing training remains a required verification gate.
+
 ## Commands
 
 These commands describe the retired OmniVoice experiment. They require restored

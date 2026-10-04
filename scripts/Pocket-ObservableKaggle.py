@@ -41,6 +41,29 @@ def now():
     return datetime.now(timezone.utc).isoformat()
 
 
+def training_summary(entries, subset_size):
+    result = {}
+    for entry in entries:
+        for line in str(entry.get("data", "")).splitlines():
+            try:
+                value = json.loads(line)
+            except (ValueError, TypeError):
+                continue
+            if not isinstance(value, dict):
+                continue
+            if value.get("phase") == "optimizer_update":
+                result["latest_update"] = {key: value.get(key) for key in (
+                    "step", "total_steps", "loss", "learning_rate", "gradient_norm_unscaled", "seconds_per_update")}
+                result["latest_update"]["diagnostic_subset_passes"] = value["step"] * 2 / subset_size
+                result["latest_update"]["epoch_number"] = (value["step"] * 2 - 1) // subset_size + 1
+            if value.get("phase") == "checkpoint_complete":
+                result["last_saved_checkpoint"] = {key: value.get(key) for key in (
+                    "checkpoint_step", "checkpoint_bytes", "checkpoint_sha256")}
+            if value.get("event") == "phase_started":
+                result["bootstrap_phase"] = value.get("phase")
+    return result
+
+
 def atomic(path, value):
     path = Path(path)
     temporary = path.with_suffix(path.suffix + ".writing")
@@ -55,6 +78,12 @@ def atomic(path, value):
 def prepare():
     worker = ROOT / "scripts/pocket_training/observable_probe_worker.py"
     tail = ROOT / "scripts/pocket_training/observable_kaggle_bootstrap.py"
+    uploader = ROOT / "scripts/pocket_training/remote_checkpoints.py"
+    # The user explicitly authorized this credential in the private generated
+    # notebook. The token file and generated notebook are both Git ignored.
+    private_token = (ROOT / "runtime/huggingface-checkpoint-token.txt").read_text().strip()
+    if not re.fullmatch(r"hf_[A-Za-z0-9]+", private_token):
+        raise ValueError("Checkpoint credential is missing or malformed")
     # Preserve the frozen long-run source and corpus. This new notebook is a
     # separately identified diagnostic with only selected native audio staged.
     binding = read(OLD / "launch-bindings.json")
@@ -80,18 +109,21 @@ def prepare():
     folder = DEST / name
     folder.mkdir(parents=True, exist_ok=False)
     binding.update(segment_id="probe-" + nonce, experiment_id="observable-" + nonce,
-                   available_execution_seconds=1800, probe_steps=100,
+                   available_execution_seconds=3300, probe_steps=100,
                    selected_members=[row["path"] for row in selected], selected_rows=selected,
-                   worker_source=worker.read_text(encoding="utf-8"), worker_sha256=sha(worker))
+                   worker_source=worker.read_text(encoding="utf-8"), worker_sha256=sha(worker),
+                   remote_checkpoint_source=uploader.read_text(encoding="utf-8"),
+                   remote_checkpoint_sha256=sha(uploader))
     template = (LAUNCH / "kernel-template.py").read_text(encoding="utf-8")
     template = template.split("\ndef main():", 1)[0]
     # A Python string literal is necessary: rows contain quotes and line escapes.
     template = template.replace('"__FULL_A_BINDINGS_JSON__"', repr(json.dumps(binding)))
     template = template.replace('OUTPUT = Path("/kaggle/working") / (BINDINGS["role"] + "-results")',
                                 'OUTPUT = Path("/kaggle/working/probe-results")')
-    source = ('print("POCKET_PYTHON_ENTRY ' + nonce + '", flush=True)\n' + template + '\n' + tail.read_text(encoding="utf-8"))
+    source = ('print("POCKET_PYTHON_ENTRY ' + nonce + '", flush=True)\n' + template
+              + '\nos.environ["HF_TOKEN"] = ' + repr(private_token) + '\n' + tail.read_text(encoding="utf-8"))
     compile(source, "observable-kernel.py", "exec")
-    cell = lambda value: {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": value.splitlines(True)}
+    cell = lambda value: {"id": uuid.uuid4().hex[:12], "cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": value.splitlines(True)}
     notebook = {"nbformat": 4, "nbformat_minor": 5, "metadata": {
         "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"}},
         "cells": [cell('import datetime\nprint("POCKET_NOTEBOOK_STARTED ' + nonce + '", datetime.datetime.now(datetime.timezone.utc).isoformat(), flush=True)\n'), cell(source)]}
@@ -105,7 +137,8 @@ def prepare():
     atomic(folder / "approval.json", {"slug": metadata["id"], "nonce": nonce,
         "purpose": "user_requested_100_update_observability_check", "updates": 100,
         "source_sha256": sha(folder / "kernel.ipynb"), "datasets": datasets,
-        "timeout_seconds": 1800, "execution_type": "SAVE_AND_RUN_ALL",
+        "timeout_seconds": 3600, "execution_type": "SAVE_AND_RUN_ALL",
+        "contains_private_checkpoint_credential": True,
         "automatic_model_promotion": False, "authorized_save_calls": 1,
         "scope": "one GPU, two native samples per update; not full-recipe throughput or voice qualification",
         "worker_sha256": sha(worker), "bootstrap_sha256": sha(tail),
@@ -241,27 +274,79 @@ def connected(folder, action):
                         continue
                     if entry is None:
                         break
-                    safe = json.loads(json.dumps(entry, default=str).replace(token, "[redacted]"))
+                    safe = json.loads(re.sub(r"(?:hf_|KGAT_)[A-Za-z0-9]+", "[redacted]",
+                                             json.dumps(entry, default=str).replace(token, "[redacted]")))
                     result["events"].append(safe)
                     with (folder / "live-events.ndjson").open("a", encoding="utf-8") as stream:
                         stream.write(json.dumps({"received_at_utc": now(), "entry": safe}) + "\n")
                         stream.flush()
                         os.fsync(stream.fileno())
                 result["live_events_received"] = len(result["events"])
+                result.update(training_summary(result["events"], len(approval["selected_ids"])))
                 atomic(folder / "live-stream-result.json", result)
-                return result
+                return {**result, "events": result["events"][-8:]}
             request = ApiListKernelSessionOutputRequest()
             request.user_name, request.kernel_slug = approval["slug"].split("/", 1)
             request.page_size = 200
             response = client.kernels.kernels_api_client.list_kernel_session_output(request)
             log = response.log or ""
             # Keep full provider log locally, present only a bounded tail.
-            log = log.replace(token, "[redacted]")
+            log = re.sub(r"(?:hf_|KGAT_)[A-Za-z0-9]+", "[redacted]", log.replace(token, "[redacted]"))
             (folder / "provider.log").write_text(log, encoding="utf-8")
             result.update(log_tail=log[-10000:], startup_observed="POCKET_NOTEBOOK_STARTED" in log or 'python_started' in log,
                           output_names=[item.file_name for item in response.files or []],
                           more_output_pages=bool(response.next_page_token))
             atomic(folder / "status.json", result)
+            if action == "download-first":
+                if result["status"] != "COMPLETE" or response.next_page_token:
+                    raise ValueError("Completed, bounded output inventory required before model retrieval")
+                files = {item.file_name: item for item in response.files or []}
+                collection_name = "probe-collection.json"
+                if collection_name not in files:
+                    raise ValueError("Completed probe has no published collection")
+                incoming = requests.get(files[collection_name].url)
+                incoming.raise_for_status()
+                collection = incoming.json()
+                if (collection.get("schema") != "pocket_observable_probe_v1"
+                        or collection.get("segment_id") != "probe-" + approval["nonce"]
+                        or collection.get("status") != "completed"
+                        or collection.get("automatic_promotion") is not False):
+                    raise ValueError("Published collection does not match this diagnostic")
+                out = folder / "downloaded"
+                out.mkdir(exist_ok=True)
+                atomic(out / collection_name, collection)
+                selected = [name for name in collection["files"] if name.startswith("probe-results/export-step000001/")
+                            or name in ("probe-results/status.json", "probe-results/events.jsonl", "probe-results/probe-spec.json")]
+                verified = []
+                for name in selected:
+                    destination = (out / name).resolve()
+                    if not destination.is_relative_to(out.resolve()) or name not in files:
+                        raise ValueError("Published file is outside the exact output inventory")
+                    expected = collection["files"][name]
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    if not destination.exists() or sha(destination) != expected["sha256"]:
+                        temporary = destination.with_suffix(destination.suffix + ".partial")
+                        with requests.get(files[name].url, stream=True) as download:
+                            download.raise_for_status()
+                            with temporary.open("wb") as stream:
+                                count = 0
+                                for block in download.iter_content(4*1024**2):
+                                    count += len(block)
+                                    if count > expected["bytes"]:
+                                        raise ValueError("Download exceeds its bound size")
+                                    stream.write(block)
+                                stream.flush()
+                                os.fsync(stream.fileno())
+                        if temporary.stat().st_size != expected["bytes"] or sha(temporary) != expected["sha256"]:
+                            raise ValueError("Downloaded model/checkpoint evidence differs")
+                        temporary.replace(destination)
+                    verified.append({"file": name, **expected})
+                completed = read(out / "probe-results/status.json")
+                if completed.get("completed_updates") != 100 or completed.get("phase") != "completed":
+                    raise ValueError("Worker did not confirm 100 successful updates")
+                result = {"downloaded": verified, "completed_updates": 100, "automatic_promotion": False,
+                          "folder": str(out), "verified_at_utc": now()}
+                atomic(folder / "download-receipt.json", result)
             return result
     finally:
         requests.Session.send = original_send
@@ -269,7 +354,7 @@ def connected(folder, action):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("prepare", "submit", "status", "stream"))
+    parser.add_argument("action", choices=("prepare", "submit", "status", "stream", "download-first"))
     parser.add_argument("--folder", type=Path)
     args = parser.parse_args()
     if args.action != "prepare" and args.folder is None:
