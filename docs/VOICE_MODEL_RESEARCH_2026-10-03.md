@@ -268,3 +268,37 @@ Local evidence: `runtime/voice-comparisons/abc-evaluation-20261004/`,
 `runtime/voice-comparisons/blind-abc-20261004/observed-user-results.json`,
 `current-parent-audit/training/objective-audit-20261004/`, and
 `runtime/voice-data-expansion-20261004/PLAN.md`.
+
+### Final A starting checkpoint and preparation policy
+
+The final run will continue from the A pilot's EMA500 weights, with the accepted
+initial teacher retained as a control. This is a declared starting-point choice:
+the additional matched eight-character comparison found no clear advantage.
+For A500 minus initial, long-prompt WavLM was +0.00198 (95% paired interval
+−0.00308 to +0.00685), and ECAPA was −0.00641 (−0.02942 to +0.02062).
+The five-character independent-original subset also remained inconclusive.
+No new TTS generation or training was required for that comparison.
+
+Native game captions are primary after exact speaker/source/WEM authentication.
+Independent STT disagreement is diagnostic rather than an exact-spelling gate.
+The native parser's spoken-text output is retained separately from original
+markup and translated subtitles. Actual word alignment and codec compatibility
+remain required. Short aligned utterances can use the pinned upstream loader's
+full-utterance fallback, explicitly recording prompt/target overlap rather than
+pretending that an interior cut exists.
+
+For future preparation batches, real Mimi encoding is required for every
+recording and the first/last eligible cuts. Every intermediate cut still receives
+the exact loader's timing, word and token checks. Receipts distinguish this edge
+coverage from earlier exhaustive cut encoding; prior evidence stays unchanged.
+This reduces repeated codec work without changing the training algorithm.
+
+Final assembly uses the full eligible prior TRAIN pool rather than the former
+1,020-row pilot cap, adds newly qualified originals, reapplies reference/heldout
+fences and deduplicates source/PCM aliases. Mr. Hands uses EP1 recordings for the
+current EP1 voice reference; base-game and uncertain performer groups are kept
+separate. Final usable coverage and the concrete training recipe remain pending
+completion of collection and qualification.
+
+Evidence: `runtime/voice-comparisons/abc-evaluation-20261004/anchor-control-check/`
+and `runtime/voice-data-expansion-20261004/FINAL_RUN_DECISIONS.md`.
