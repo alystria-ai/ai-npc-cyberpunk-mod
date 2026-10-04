@@ -302,3 +302,39 @@ completion of collection and qualification.
 
 Evidence: `runtime/voice-comparisons/abc-evaluation-20261004/anchor-control-check/`
 and `runtime/voice-data-expansion-20261004/FINAL_RUN_DECISIONS.md`.
+
+### Completed expansion and audio-bank correction
+
+The final October 4 selection proposes **8,140 TRAIN recordings from 79 voices**,
+35,278.374375 seconds of original audio (9.80 hours), and27,337.176999 seconds
+from first to last aligned word. These measures include different amounts of
+silence; neither counts repeated training visits as additional source material.
+The split retains75 dev,87 conditional,94 regression and76 test recordings.
+New development examples cover23 Tier1 voices; Panam retains prior evaluation
+coverage. Physical dataset closure and the exact execution receipt remain
+separate from these selected counts.
+
+Examples of final TRAIN coverage are Jackie839 clips, Johnny357, Judy547,
+Panam499, Evelyn60, Reed1,088, Mr. Hands107 and Misty250. Collection does not
+guarantee equal available dialogue: Alt24 clips and Pepe16 remain sparse.
+Uniform-clip standard A sampling is retained; an equal-speaker sampler would
+repeatedly expose these tiny pools rather than create new evidence.
+
+An actual Songbird failure exposed a source-selection issue: a MAIN recording
+and a holocall recording could share a localization ID while containing different
+words. Treating the lookup caption as authoritative for both was incorrect.
+Independent local Whisper and CTC identified the discrepancy. Four unambiguous
+MAIN transcripts now use explicitly labelled `local_stt` targets; all original
+native captions and recordings remain preserved. Five matching holocall files
+keep their native targets. One MAIN phrase with unresolved wording is excluded.
+Replacement targets supersede exact old waveform memberships, not whichever
+receipt is newest. This is a bounded correction, not a claim that every alternate
+bank is wrong or that ASR always outranks the original script.
+
+The approved source is preserved in
+`research/pocket-conditioning/2026-10-04/full-a-continuation-v5/`.
+Final selection evidence is under
+`runtime/voice-data-expansion-20261004/final-corpus-assembly/split-proposals/final-tier1-001/`;
+completed preparation is bound by
+`qualification/phone-recovery-completed-v1/receipt.json` under the same expansion
+root. Accepted production weights have not been replaced by this data work.
