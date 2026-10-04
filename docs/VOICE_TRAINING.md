@@ -114,8 +114,11 @@ prepared datasets but have not been trained.
 
 Development loss fell from 3.675 to 3.595, while average WavLM similarity on three
 new sentences fell from 0.9195 (base) to 0.9141 (trained). These measurements did
-not justify overriding the user's listening result. Both versions and the
-resumable checkpoint are retained under ignored `runtime/voice-training`.
+not justify overriding the user's listening result. Comparison audio and receipts
+remain under ignored `runtime/voice-training`. The rejected adapter, merged model
+and optimizer/checkpoint weights are selected for October 4 disk cleanup; the
+cleanup record establishes whether that retirement has been performed. Replaying
+this historical pilot then requires rebuilding its weights.
 
 The comparison loader restricts LoRA merging to the speech model: it temporarily
 detaches the audio tokenizer before matching attention-layer names, then restores
@@ -123,12 +126,16 @@ it. Missing adapter weights are treated as an error. The corrected comparison
 loaded without missing-weight warnings. Complete receipts are under
 `runtime/voice-training/judy-alvarez/checkpoint-100-reviewed`.
 
-The next comparison uses other engines in the user-shared VoiceStudio repository,
-starting with VoxCPM2; IndexTTS 2.5 is another candidate. Base OmniVoice remains
-the listening baseline. Neither the rejected adapter nor a new candidate has
-been enabled in the game.
+This September comparison is historical. The current mod uses the accepted
+shared Pocket student by default, with OmniVoice and Convai still available.
+The expanded A teacher is training on Kaggle and will be followed by student
+distillation; see [current voice findings](VOICE_MODEL_RESEARCH_2026-10-03.md).
+The rejected Judy adapter is not part of that pipeline.
 
 ## Commands
+
+These commands describe the retired OmniVoice experiment. They require restored
+training dependencies and generated assets if those files have been cleaned up.
 
 From the workspace, use the isolated training interpreter:
 

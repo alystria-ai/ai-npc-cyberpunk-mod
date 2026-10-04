@@ -58,6 +58,8 @@ All four options still need Convai and internet access for dialogue generation. 
 
 Quest coverage is selective: the current reviewed native pack maps **190 of 1,160 researched outcomes** through 197 rules. Other researched branches are not automatically usable as current-save knowledge. See [quest context](docs/QUEST_CONTEXT.md), [knowledge coverage](docs/CHARACTER_KNOWLEDGE_COVERAGE_2026-10-01.md), [player memory](docs/PLAYER_MEMORY.md), [Chat resets](docs/CHAT_MEMORY_RESET.md), and [relationships](docs/RELATIONSHIP_PROFILES.md).
 
+The current development pass expands decision awareness for **Johnny, Panam, Judy, Jackie, Reed, Songbird, Takemura and Rogue**. New mappings need native save or journal evidence and the right character audience before they become available. Optional dialogue that leaves no durable game state remains unknown after loading an existing save.
+
 ### Reactions and interface languages
 
 - Nearby companions can make a short comment when combat starts and another after it ends.
