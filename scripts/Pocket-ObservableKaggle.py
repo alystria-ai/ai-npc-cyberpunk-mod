@@ -4,6 +4,7 @@ Each generated folder permits one Save call. An uncertain response can only be
 read back; it must never trigger an automatic retry. No accepted model is changed.
 """
 from contextlib import redirect_stdout, redirect_stderr
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 import argparse
 import hashlib
@@ -73,6 +74,38 @@ def atomic(path, value):
         stream.flush()
         os.fsync(stream.fileno())
     temporary.replace(path)
+
+
+def download_ranges(url, destination, size):
+    """Bound each CDN read; do not keep a gigabyte response in memory."""
+    import requests
+    width = 8 * 1024**2
+    def fetch(start):
+        end = min(size, start + width) - 1
+        with requests.get(url, headers={"Range": f"bytes={start}-{end}"}, stream=True) as response:
+            response.raise_for_status()
+            if response.status_code != 206 or response.headers.get("Content-Range") != f"bytes {start}-{end}/{size}":
+                raise ValueError("CDN did not honor the exact bounded model range")
+            data = response.raw.read(end - start + 2)
+            if len(data) != end - start + 1:
+                raise ValueError("Model range length differs")
+            return start, data
+    received, reported = 0, -1
+    with destination.open("wb") as stream, ThreadPoolExecutor(max_workers=4) as pool:
+        stream.truncate(size)
+        jobs = [pool.submit(fetch, start) for start in range(0, size, width)]
+        for job in as_completed(jobs):
+            start, data = job.result()
+            stream.seek(start)
+            stream.write(data)
+            received += len(data)
+            percent = int(received * 100 / size)
+            if percent // 10 != reported:
+                reported = percent // 10
+                print(json.dumps({"event": "model_download_progress", "percent": percent,
+                                  "bytes_received": received, "total_bytes": size}), flush=True)
+        stream.flush()
+        os.fsync(stream.fileno())
 
 
 def prepare():
@@ -296,6 +329,15 @@ def connected(folder, action):
             result.update(log_tail=log[-10000:], startup_observed="POCKET_NOTEBOOK_STARTED" in log or 'python_started' in log,
                           output_names=[item.file_name for item in response.files or []],
                           more_output_pages=bool(response.next_page_token))
+            live_path = folder / "live-events.ndjson"
+            if live_path.is_file():
+                observed = [json.loads(line) for line in live_path.read_text(encoding="utf-8").splitlines()]
+                entries = [item["entry"] for item in observed]
+                result["startup_observed"] = result["startup_observed"] or any(
+                    "POCKET_NOTEBOOK_STARTED" in str(item.get("data", "")) for item in entries)
+                result["last_observed_live_progress"] = {
+                    "received_at_utc": observed[-1]["received_at_utc"] if observed else None,
+                    **training_summary(entries, len(approval["selected_ids"]))}
             atomic(folder / "status.json", result)
             if action == "download-first":
                 if result["status"] != "COMPLETE" or response.next_page_token:
@@ -326,17 +368,20 @@ def connected(folder, action):
                     destination.parent.mkdir(parents=True, exist_ok=True)
                     if not destination.exists() or sha(destination) != expected["sha256"]:
                         temporary = destination.with_suffix(destination.suffix + ".partial")
-                        with requests.get(files[name].url, stream=True) as download:
-                            download.raise_for_status()
-                            with temporary.open("wb") as stream:
-                                count = 0
-                                for block in download.iter_content(4*1024**2):
-                                    count += len(block)
-                                    if count > expected["bytes"]:
-                                        raise ValueError("Download exceeds its bound size")
-                                    stream.write(block)
-                                stream.flush()
-                                os.fsync(stream.fileno())
+                        if expected["bytes"] > 32*1024**2:
+                            download_ranges(files[name].url, temporary, expected["bytes"])
+                        else:
+                            with requests.get(files[name].url, stream=True) as download:
+                                download.raise_for_status()
+                                with temporary.open("wb") as stream:
+                                    count = 0
+                                    for block in download.iter_content(65536):
+                                        count += len(block)
+                                        if count > expected["bytes"]:
+                                            raise ValueError("Download exceeds its bound size")
+                                        stream.write(block)
+                                    stream.flush()
+                                    os.fsync(stream.fileno())
                         if temporary.stat().st_size != expected["bytes"] or sha(temporary) != expected["sha256"]:
                             raise ValueError("Downloaded model/checkpoint evidence differs")
                         temporary.replace(destination)

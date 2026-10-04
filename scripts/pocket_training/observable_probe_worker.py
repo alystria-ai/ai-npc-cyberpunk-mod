@@ -388,7 +388,7 @@ def run(root: Path, output: Path, steps: int, events: Events) -> int:
             runner.save_training(spec, "teacher", step, model, optimizer, ema, scaler,
                                  state, device, world=1, rank=0)
             persisted_step = step
-            if step == 1:
+            if step == 1 and remote_config is None:
                 first = args.run_dir / "step000001.pt"
                 if not first.exists():
                     with checkpoint.open("rb") as source, first.open("xb") as destination:
