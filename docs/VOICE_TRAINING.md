@@ -176,9 +176,42 @@ loaded without missing-weight warnings. Complete receipts are under
 
 This September comparison is historical. The current mod uses the accepted
 shared Pocket student by default, with OmniVoice and Convai still available.
-The expanded A teacher is training on Kaggle and will be followed by student
-distillation; see [current voice findings](VOICE_MODEL_RESEARCH_2026-10-03.md).
+The expanded A teacher's first long Kaggle attempt was cancelled after the
+provider reported RUNNING for over twelve hours without exposing any log or
+checkpoint. No training progress was recovered, and the reserved GPU allowance
+was returned. See the observability check below and
+[current voice findings](VOICE_MODEL_RESEARCH_2026-10-03.md).
 The rejected Judy adapter is not part of that pipeline.
+
+## Kaggle execution and readable progress
+
+The October 5 recovery uses `scripts/Pocket-ObservableKaggle.py` to create a
+separate private notebook with explicit Save and Run All execution. It does not
+modify the frozen full-training recipe or replace accepted models. One durable
+local Save intent prevents an uncertain API response from creating duplicate jobs.
+
+The notebook prints a startup marker in its first cell, before dependency or
+model loading. Its bootstrap records named phases and a heartbeat every 15
+seconds to stdout and an fsynced event file. The worker reports every encoded
+microbatch, backward pass, successful optimizer update, and checkpoint. A
+provider RUNNING status alone never counts as evidence that Python started.
+Kaggle still controls when its log feed exposes these messages; live visibility
+must be demonstrated through actual remote readback.
+
+The user requested 100 updates for the check. It uses the real 24-layer A teacher
+initializer and sixteen authentic, aligned character recordings, with a small
+diagnostic batch of two on one GPU. This checks execution and output recovery;
+it does not qualify the full two-GPU batch-64 recipe or speech quality. The first
+update produces a preserved full checkpoint and raw model export. The latest
+checkpoint is saved every ten updates, followed by a final export at update 100.
+The probe has a 30-minute provider limit to bound a failed startup; this does not
+alter the patient full-training schedule.
+
+Before another long run, retrieve the startup/step logs and the actual saved
+checkpoint, verify its hash and step, and confirm progress was readable while
+execution was still active. Keep accepted models available throughout. Generated
+private inputs, logs and receipts live under
+`runtime/voice-data-expansion-20261005/observable-probes/` and remain Git ignored.
 
 ## Commands
 
