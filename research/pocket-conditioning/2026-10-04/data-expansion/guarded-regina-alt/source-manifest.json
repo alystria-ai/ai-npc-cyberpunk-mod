@@ -1,0 +1,70 @@
+{
+  "schema": "guarded_regina_alt_code_checkpoint_v1",
+  "files": [
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/collection/decode_regina_batch.py",
+      "snapshotPath": "source/collection/decode_regina_batch.py",
+      "sha256": "8092904655be57be3c8dec6467751142e2feff83bbae665359ec07dc2bcea915",
+      "bytes": 14675
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/collection/run_regina_plan.py",
+      "snapshotPath": "source/collection/run_regina_plan.py",
+      "sha256": "c98335d2df0d3b2df1f3ea81c020d74413c4ba7ff1131b67abaf5ba67f904e0a",
+      "bytes": 3919
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/collection/decode_alt_research_batch.py",
+      "snapshotPath": "source/collection/decode_alt_research_batch.py",
+      "sha256": "13b505140558cecf6f57c0175ac9830e406cd86aa29a160dab9b73576bd06503",
+      "bytes": 12713
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/collection/build_manifest_index.py",
+      "snapshotPath": "source/collection/build_manifest_index.py",
+      "sha256": "a811f71adf5bbfd0544bc6c47420b7af606c92c429385a933fcdc50064b114dc",
+      "bytes": 3149
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/collection/report_coverage.py",
+      "snapshotPath": "source/collection/report_coverage.py",
+      "sha256": "651def385b82b4ddb59c2c732d8dd7a343719a83b4dd66084352eaf8447e3776",
+      "bytes": 5929
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/cached-candidates/regina-expansion/canonical_holo_guard.py",
+      "snapshotPath": "source/cached-candidates/regina-expansion/canonical_holo_guard.py",
+      "sha256": "2fc6a6af234ec5817fa43b02ac2106b730a304a9a51967037db64879303a3333",
+      "bytes": 9266
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/cached-candidates/regina-expansion/proposed_holo_tag.py",
+      "snapshotPath": "source/cached-candidates/regina-expansion/proposed_holo_tag.py",
+      "sha256": "4524fca133d448a4fba7d29ebdcf940e09a5446aa8bf1006ced315f6c739686f",
+      "bytes": 2060
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/cached-candidates/regina-expansion/isolated-tools/native_source_contracts.py",
+      "snapshotPath": "source/cached-candidates/regina-expansion/isolated-tools/native_source_contracts.py",
+      "sha256": "fba35101148333f4fc008deaad93483da6ca59a97c1caaeaa2cd43cd45e7fadc",
+      "bytes": 30496
+    },
+    {
+      "runtimePath": "runtime/voice-data-expansion-20261004/cached-candidates/regina-expansion/isolated-tools/source_recovery_bridge.py",
+      "snapshotPath": "source/cached-candidates/regina-expansion/isolated-tools/source_recovery_bridge.py",
+      "sha256": "8a48fcdf9a830578894ba9c3df9e43539c549654d396a8358edb66ea3470ba57",
+      "bytes": 13159
+    }
+  ],
+  "unchangedImports": [
+    {
+      "path": "scripts/Cast-VoiceReferenceCandidates.py",
+      "sha256": "91c8c1ea1d7d5bfe1d2d3f54f6716040f9e43a108c3ec61ecc44e04f5c0a078a"
+    },
+    {
+      "path": "scripts/Extract-VoiceReferences.py",
+      "sha256": "565077b46ff96bfaf2a44dfd3addf792c1d2bf6b7eb9e14a68acf74a06f3144f"
+    }
+  ],
+  "boundary": "Code only. No raw audio, models or native source payloads. Active original workers unchanged."
+}
