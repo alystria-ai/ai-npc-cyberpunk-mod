@@ -53,6 +53,91 @@ local function update(dt)
 end
 `;
 
+test('only a clear first native height projection bridges Chang while Hanako keeps the ordinary step band',()=>run(motor+`
+local origin=Vector4.new(-1812.455566,-455.850250,7.573303)
+local first=Vector4.new(origin.x,origin.y,7.976767)
+npc.pos=origin;player.pos=Vector4.new(-1734,-455,8.285)
+local nav=Game.GetAINavigationSystem()
+nav.CalculatePathForCharacter=function(_,from,destination)
+  return {path={Vector4.new(from.x,from.y,first.z),destination},
+    CalculateLength=function() return math.sqrt((destination.x-from.x)^2+(destination.y-from.y)^2) end}
+end
+Game.GetAINavigationSystem=function() return nav end
+local obstacle=false
+Game.GetSpatialQueriesSystem=function() return {Overlap=function(_,extent,center,_,group)
+  if group~='Static' then return false end
+  local bottom,top=center.z-extent.z,center.z+extent.z
+  if obstacle=='plane' then return bottom<7.82 and top>7.78 end
+  return obstacle==true and center.z>9
+end} end
+-- The recorded ground is 7.572752. Ordinary feet-to-nav stepping rejects
+-- the .403464 rise; only the typed first native point may use a strict sweep.
+assert(helper.segment(origin,first)==false)
+update()
+assert(not state.blockedReason and last(npc,'AIMoveToCommand'),
+  'Chang first native point stayed blocked despite a fully clear strict sweep')
+context.speed=1;update(.25);context.speed=0
+assert(not state.blockedReason and active(npc)[1].kind=='AIMoveToCommand',
+  'the moving corridor dropped its typed first connector')
+obstacle='plane';context.speed=1;update(.25);context.speed=0
+assert(state.blockedReason and state.lastRejection.group=='Static',
+  'a new plane inside the active first connector was missed by corridor monitoring')
+state=actuator.new(npc);npc.ai.commands={};obstacle='plane'
+assert(helper.segment(origin,Vector4.new(origin.x,origin.y,origin.z+.25),nil,nil,true)==false,
+  'a partial first connector lost its strict sweep below the ordinary step band')
+update()
+assert(state.blockedReason and state.lastRejection.group=='Static',
+  'an intervening floor plane inside the strict connector was skipped')
+assert(not last(npc,'AIMoveToCommand'))
+state=actuator.new(npc);npc.ai.commands={};obstacle=false
+first.z=origin.z+.7
+update()
+assert(state.blockedReason and state.lastRejection.geometryType=='step-slope',
+  'a higher native point waived the ordinary slope limit')
+-- Hanako's recorded root/nav gap is .213135 m, below the exception. A plane
+-- below the normal +.35 walking band must not be swept as though it were Chang.
+local hanako=Vector4.new(0,0,7.386871)
+local hanakoNav=Vector4.new(0,0,7.600006)
+Game.GetSpatialQueriesSystem=function() return {Overlap=function(_,extent,center,_,group)
+  local bottom,top=center.z-extent.z,center.z+extent.z
+  return group=='Static' and bottom<7.58 and top>7.54
+end} end
+assert(helper.segment(hanako,hanakoNav,nil,nil,false)==true,
+  'Hanako ordinary step was subjected to the strict Chang-only sweep')
+`));
+
+test('blocked six-metre temporary prefix admits a shorter point on the same native path',()=>run(motor+`
+local origin=Vector4.new(-1806.567139,-450.629608,7.765152)
+npc.pos=origin;player.pos=Vector4.new(-1734,-455,8.285)
+local nav=Game.GetAINavigationSystem()
+nav.CalculatePathForCharacter=function(_,from,destination)
+  return {path={from,destination},CalculateLength=function()
+    return math.sqrt((destination.x-from.x)^2+(destination.y-from.y)^2+(destination.z-from.z)^2) end}
+end
+Game.GetAINavigationSystem=function() return nav end
+local blockedX=-1800.612493
+local queries=0
+Game.GetSpatialQueriesSystem=function() return {Overlap=function(_,extent,center,_,group)
+  queries=queries+1
+  return group=='Static' and extent.x<.5 and extent.y<.5
+    and math.abs(center.x-blockedX)<.22
+end} end
+update()
+local move=last(npc,'AIMoveToCommand')
+assert(move and not state.blockedReason,'an artificial six-metre endpoint became a permanent hold')
+assert(move.movementTarget.position.x<blockedX-1,'the blocked endpoint was still used')
+assert(queries<=192,'fallback exceeded the shared physics budget')
+state=actuator.new(npc);npc.ai.commands={}
+Game.GetSpatialQueriesSystem=function() return {Overlap=function(_,extent,center,_,group)
+  return group=='Static' and extent.x<.5 and extent.y<.5
+    and center.x>-1805 and center.x<-1800
+end} end
+update()
+assert(state.lastRejection.stage=='path' and state.lastRejection.temporaryHorizon)
+assert(state.detourSearch and active(npc)[1].kind=='AIHoldPositionCommand')
+assert(not last(npc,'AIMoveToCommand'),'all blocked prefixes started unchecked movement')
+`));
+
 test('continuous V travel cannot restart local escape search or release its exact owner',()=>run(motor+solids+`
 solid('Vehicle',0,3,1.6,1.3)
 local firstMove

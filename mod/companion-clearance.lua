@@ -103,7 +103,7 @@ function M.segmentBoxes(from,to)
     local length=math.sqrt((to.x-from.x)^2+(to.y-from.y)^2)
     return math.max(1,math.ceil(length/2),math.ceil(math.abs(to.z-from.z)/.2))
 end
-function M.segment(from,to,dimensions,progress)
+function M.segment(from,to,dimensions,progress,nativeOriginProjection)
     return checked(function()
         if not point(from) or not point(to) then error('Invalid companion route') end
         local size=shape(dimensions)
@@ -114,7 +114,12 @@ function M.segment(from,to,dimensions,progress)
         -- through the floor. Native navigation still supplies the walk route.
         local count=M.segmentBoxes(from,to)
         local allowedRise=math.max(.35,length*.8)
-        if count>64 or math.abs(dz)>allowedRise then
+        -- A caller can certify only the first native path point as an origin
+        -- projection. Keep the ordinary step rule for every other leg.
+        local strictNativeConnector=nativeOriginProjection==true and length<=.02
+            and dz>0 and dz<=.65
+        local projectedOrigin=strictNativeConnector and dz>.35
+        if count>64 or (math.abs(dz)>allowedRise and not projectedOrigin) then
             return false,'The companion route has no verified walkable clearance.',nil,
                 {geometryType=count>64 and 'route-size' or 'step-slope',
                 from={x=from.x,y=from.y,z=from.z},to={x=to.x,y=to.y,z=to.z},
@@ -130,7 +135,10 @@ function M.segment(from,to,dimensions,progress)
             -- Walking may step onto a kerb/stair. Check the continuous swept
             -- body above that .35m step band, including the higher head end.
             -- Standing destinations separately use body() down to .1m.
-            local bottom=low+.35
+            -- For that one projected connector, sweep from the reported root +.1
+            -- through the higher navmesh body. Intervening floor planes must
+            -- block; ordinary walking retains its original .35 m step band.
+            local bottom=low+(strictNativeConnector and .1 or .35)
             local top=high+size.height+.1
             local half=(top-bottom)*.5
             local middle=(a+b)*.5

@@ -1,5 +1,36 @@
 # Companion recovery and movement admission
 
+## October 5 native first-point height projection
+
+The native route can start at the actor's XY but slightly above the animated
+feet. Chang's measured root was 7.573303 m, the first native point was
+7.976767 m, and Static ground was 7.572752 m. A separate native probe found
+the full connector from root +0.1 m through the projected standing body clear
+in all six collision groups. Only the first native point, within 0.02 m in XY
+and more than 0.35 m but no more than 0.65 m above actual feet, may use this
+strict swept connector. Actual-foot clearance, projected-body clearance,
+current player exclusion and the shared query budget still apply. A plane in
+the gap rejects movement. Hanako's recorded 0.213 m root/nav difference stays
+under the ordinary 0.35 m walking step band.
+
+The typed first-leg permission follows that exact native leg through waypoint
+and moving-corridor checks. It does not raise the step limit for later legs or
+grant passage when native route, body or physics verification is unavailable.
+Rendered movement remains to be checked in the game.
+
+## October 5 shorter distant-follow prefix
+
+A six-metre catch-up prefix is an intermediate standing point. If that point
+is occupied, admission tries four- and two-metre points on the same native
+path. The selected point still passes player exclusion, standing-body and
+full swept-route clearance. If every prefix is blocked, the rejection enters
+the existing bounded detour policy. The final destination retains its normal
+standing-body proof.
+
+This source correction addresses a recorded hold at an artificial prefix
+endpoint. It does not establish the cause of the separately reported stop/run
+cycle or qualify visible movement in the game.
+
 ## October 4 distant catch-up correction
 
 Fresh and already moving distant followers now use the existing six-metre

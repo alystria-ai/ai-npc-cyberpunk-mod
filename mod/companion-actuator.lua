@@ -390,34 +390,62 @@ local function routeClear(s,c,target,following,options)
         probe.body=true
     end
     if not probe.legs then
-        local ok,route=pcall(function()
-            return Game.GetAINavigationSystem():CalculatePathForCharacter(vector(probe.origin),vector(probe.target),0.3,s.npc)
-        end)
-        if not ok then return reject('The game could not verify the walking route','navigation',{unavailable=true}) end
-        local points=route and route.path
-        local direct=space.distance(probe.origin,probe.target)
-        local allowance=following and math.max(12,direct) or 5
-        local measured,length=pcall(function() return route:CalculateLength() end)
-        if not points or #points==0 or #points>128 or not clearance.isPoint(points[#points])
-            or space.distance(points[#points],probe.target)>=0.65
-            or not measured or type(length)~='number' or not (length>=0 and length<direct+allowance) then
-            return reject('No clear navigation route')
-        end
-        if options.horizon then
-            local clipped,previous,remaining={},probe.origin,options.horizon
+        if not probe.nativePoints then
+            local ok,route=pcall(function()
+                return Game.GetAINavigationSystem():CalculatePathForCharacter(vector(probe.origin),vector(probe.target),0.3,s.npc)
+            end)
+            if not ok then return reject('The game could not verify the walking route','navigation',{unavailable=true}) end
+            local points=route and route.path
+            local direct=space.distance(probe.origin,probe.target)
+            local allowance=following and math.max(12,direct) or 5
+            local measured,length=pcall(function() return route:CalculateLength() end)
+            if not points or #points==0 or #points>128 or not clearance.isPoint(points[#points])
+                or space.distance(points[#points],probe.target)>=0.65
+                or not measured or type(length)~='number' or not (length>=0 and length<direct+allowance) then
+                return reject('No clear navigation route')
+            end
+            -- The proof can span updates. Keep plain coordinates rather than
+            -- the native path array or its temporary Vector4 wrappers.
+            probe.nativePoints={}
             for _,point in ipairs(points) do
                 if not clearance.isPoint(point) then return reject('No clear navigation route') end
-                local distance=space.distance(previous,point)
-                local t=distance>.005 and math.min(1,remaining/distance) or 1
-                local next={x=previous.x+(point.x-previous.x)*t,y=previous.y+(point.y-previous.y)*t,
-                    z=previous.z+(point.z-previous.z)*t,w=1}
-                clipped[#clipped+1]=next
-                remaining=remaining-distance
-                previous=point
-                if remaining<=.005 then break end
+                probe.nativePoints[#probe.nativePoints+1]=space.copy(point)
             end
-            points=clipped
-            probe.target=space.copy(points[#points])
+        end
+        local points=probe.nativePoints
+        if options.horizon then
+            -- This is an intermediate standing point, not the final goal.
+            -- When it is occupied, try closer points on the same native path.
+            local horizons={options.horizon,options.horizon*2/3,options.horizon/3}
+            local blockedReason,blockedReceipt
+            for choice=probe.horizonChoice or 1,#horizons do
+                local clipped,previous,remaining={},probe.origin,horizons[choice]
+                for _,point in ipairs(points) do
+                    if not clearance.isPoint(point) then return reject('No clear navigation route') end
+                    local distance=space.distance(previous,point)
+                    local t=distance>.005 and math.min(1,remaining/distance) or 1
+                    local next={x=previous.x+(point.x-previous.x)*t,y=previous.y+(point.y-previous.y)*t,
+                        z=previous.z+(point.z-previous.z)*t,w=1}
+                    clipped[#clipped+1]=next
+                    remaining=remaining-distance
+                    previous=point
+                    if remaining<=.005 then break end
+                end
+                if #clipped==0 then return reject('No clear navigation route') end
+                local endpoint=clipped[#clipped]
+                local clear,reason,deferred,rejection=clearance.body(endpoint,s.clearance)
+                if deferred then probe.horizonChoice=choice; return nil,nil,true end
+                if clear then
+                    points=clipped;probe.target=space.copy(endpoint);probe.body=true
+                    probe.horizonChoice=nil
+                    break
+                end
+                blockedReason,blockedReceipt=reason,rejection
+                if blockedReceipt then blockedReceipt.temporaryHorizon=true end
+            end
+            if not probe.body then
+                return reject(blockedReason or 'No clear standing point on this route','path',blockedReceipt)
+            end
         end
         local previous=probe.origin
         local legs,boxes={},1
@@ -425,7 +453,10 @@ local function routeClear(s,c,target,following,options)
             -- Equal first/last navmesh points need no extra native box.
             if space.distance(previous,point)>.005 then
                 boxes=boxes+clearance.segmentBoxes(previous,point)
-                legs[#legs+1]={from=space.copy(previous),to=space.copy(point),progress={},navPoint=index}
+                local nativeOriginProjection=index==1 and space.ground(previous,point)<=.02
+                    and point.z-previous.z>.35 and point.z-previous.z<=.65
+                legs[#legs+1]={from=space.copy(previous),to=space.copy(point),progress={},
+                    navPoint=index,nativeOriginProjection=nativeOriginProjection}
             end
             previous=point
         end
@@ -460,12 +491,27 @@ local function routeClear(s,c,target,following,options)
     if not probe.body then
         clear,reason,deferred,rejection=clearance.body(probe.target,s.clearance)
         if deferred then return nil,nil,true end
-        if not clear then return reject(reason,'destination',rejection) end
+        if not clear then return reject(reason,options.horizon and 'path' or 'destination',rejection) end
         probe.body=true
     end
     while probe.next<=#probe.legs do
         local leg=probe.legs[probe.next]
-        clear,reason,deferred,rejection=clearance.segment(leg.from,leg.to,s.clearance,leg.progress)
+        if leg.nativeOriginProjection then
+            if not leg.originChecked then
+                clear,reason,deferred,rejection=clearance.segment(leg.from,leg.from,s.clearance)
+                if deferred then return nil,nil,true end
+                if not clear then return reject(reason,'origin',rejection,probe.next) end
+                leg.originChecked=true
+            end
+            if not leg.navBodyChecked then
+                clear,reason,deferred,rejection=clearance.body(leg.to,s.clearance)
+                if deferred then return nil,nil,true end
+                if not clear then return reject(reason,'path',rejection,probe.next) end
+                leg.navBodyChecked=true
+            end
+        end
+        clear,reason,deferred,rejection=clearance.segment(leg.from,leg.to,s.clearance,
+            leg.progress,leg.nativeOriginProjection)
         if deferred then return nil,nil,true end
         if not clear then return reject(reason,'path',rejection,probe.next) end
         probe.next=probe.next+1
@@ -481,7 +527,10 @@ local function routeClear(s,c,target,following,options)
             local t=distance>.005 and math.min(1,remaining/distance) or 1
             local point={x=previous.x+(leg.to.x-previous.x)*t,y=previous.y+(leg.to.y-previous.y)*t,
                 z=previous.z+(leg.to.z-previous.z)*t,w=1}
-            clear,reason,deferred,rejection=clearance.segment(previous,point,s.clearance)
+            local nativeOriginProjection=index==1 and leg.nativeOriginProjection
+                and space.distance(c.position,leg.from)<=.02
+            clear,reason,deferred,rejection=clearance.segment(previous,point,s.clearance,
+                nil,nativeOriginProjection)
             if deferred then return nil,nil,true end
             if not clear then
                 if rejection then rejection.resumedPrefix=true end
@@ -500,7 +549,7 @@ local function routeClear(s,c,target,following,options)
         local currentTarget=options.horizon and probe.target or target
         clear,reason,deferred,rejection=clearance.body(currentTarget,s.clearance)
         if deferred then return nil,nil,true end
-        if not clear then return reject(reason,'destination',rejection) end
+        if not clear then return reject(reason,options.horizon and 'path' or 'destination',rejection) end
         if not options.horizon and space.distance(probe.target,target)>.005 then
             local distance=space.segmentDistance(c.frame.position,probe.target,target)
             if c.playerGap>1 and distance<margin then
@@ -920,17 +969,29 @@ local function waypointMotion(s,c)
             {geometryType='corridor-departure',origin=space.copy(c.position),margin=margin}
     end
     local segments={}
-    local function add(from,to)
+    local function add(from,to,nativeOriginProjection)
         if space.distance(from,to)<=.005 then return end
         local last=segments[#segments]
         -- Native routes can split one straight line into many tiny legs. Join
         -- only numerically collinear, forward segments; never cut a corner.
-        if last and space.distance(last.to,from)<.00001
+        if last and not last.nativeOriginProjection and not nativeOriginProjection
+            and space.distance(last.to,from)<.00001
             and math.abs(space.distance(last.from,last.to)+space.distance(from,to)-space.distance(last.from,to))<.00001 then
             last.to=to
-        else segments[#segments+1]={from=from,to=to} end
+        else segments[#segments+1]={from=from,to=to,
+            nativeOriginProjection=nativeOriginProjection} end
     end
-    add(c.position,best.point)
+    local first=route[1]
+    local atNativeOrigin=first.nativeOriginProjection
+        and space.distance(c.position,first.from)<=.02
+    if atNativeOrigin and best.index>1 then
+        -- Do not collapse the certified vertical connector into a later chord;
+        -- the short first leg still needs its strict sweep this update.
+        add(c.position,first.to,true)
+        add(first.to,best.point)
+    else
+        add(c.position,best.point,atNativeOrigin and best.index==1)
+    end
     local remaining=math.max(.75,math.min(5,c.speed*.65+.35))
     local previous=best.point
     for index=best.index,#route do
@@ -940,7 +1001,7 @@ local function waypointMotion(s,c)
         local t=length>.005 and math.min(1,remaining/length) or 1
         local point={x=previous.x+(endpoint.x-previous.x)*t,y=previous.y+(endpoint.y-previous.y)*t,
             z=previous.z+(endpoint.z-previous.z)*t,w=1}
-        add(previous,point)
+        add(previous,point,route[index].nativeOriginProjection)
         remaining=remaining-length;previous=point
     end
     -- Keep a near-feet steering check, but never extrapolate velocity through
@@ -957,7 +1018,8 @@ local function waypointMotion(s,c)
     local clear,reason,deferred,rejection=clearance.segment(c.position,c.position,s.clearance)
     if not clear then return clear,reason,deferred,rejection end
     for _,segment in ipairs(segments) do
-        clear,reason,deferred,rejection=clearance.segment(segment.from,segment.to,s.clearance)
+        clear,reason,deferred,rejection=clearance.segment(segment.from,segment.to,s.clearance,
+            nil,segment.nativeOriginProjection)
         if not clear then return clear,reason,deferred,rejection end
     end
     plan.motionGuard={progress=best.progress,position=space.copy(c.position)}
@@ -1106,10 +1168,12 @@ local function routePrefix(route,target)
     for _,leg in ipairs(route.legs) do
         local fromGap,toGap=space.distance(leg.from,target),space.distance(target,leg.to)
         if fromGap+toGap<=space.distance(leg.from,leg.to)+.00001 then
-            if fromGap>.005 then legs[#legs+1]={from=space.copy(leg.from),to=space.copy(target)} end
+            if fromGap>.005 then legs[#legs+1]={from=space.copy(leg.from),to=space.copy(target),
+                nativeOriginProjection=leg.nativeOriginProjection} end
             return {origin=space.copy(route.origin),target=space.copy(target),legs=legs}
         end
-        legs[#legs+1]={from=space.copy(leg.from),to=space.copy(leg.to)}
+        legs[#legs+1]={from=space.copy(leg.from),to=space.copy(leg.to),
+            nativeOriginProjection=leg.nativeOriginProjection}
     end
 end
 
