@@ -422,6 +422,35 @@ test('native spawn rejects missing support and overlap and creates only nonpersi
   assert(values.spec.position.y<0 and values.spec.position.z>0)
 `));
 
+test('moving primary defers the real native overflow spawn without exhausting fleet retries',()=>run(`${nativeFixture}
+  local catalog=(function() ${catalog} end)()
+  dofile=function(file) assert(file=='companion-vehicle-catalog.lua',file); return catalog end
+  local transport=(function() ${controller} end)()
+  values.record='Other'
+  values.occupants.seat_front_left='player'
+  values.speed=5
+  local api={
+    player=function() return car end,
+    inspect=function(vehicle)
+      if vehicle==car then return adapter.inspect(car) end
+      return {ready=false}
+    end,
+    mounting=function() return nil end,
+    spawn=adapter.spawn,
+  }
+  local entries={}
+  for i=1,4 do entries[i]={serial=i,key='person-'..i,entityID={hash='npc-'..i},npc={}} end
+  local hooks={release=function() return true end,resumed=function() end}
+  local fleet=transport.new(api)
+  for _=1,100 do transport.update(fleet,{},entries,0.1,hooks) end
+  assert(#fleet.cars==0 and not values.spec)
+  assert(fleet.spawnAttempts==0 and fleet.spawnFailures==0)
+  values.speed=0
+  transport.update(fleet,{},entries,0.1,hooks)
+  assert(#fleet.cars==1 and values.spec and fleet.spawnFailures==0)
+  assert(fleet.cars[1].driver==4)
+`));
+
 test('an unexpected foreign mount retains movement ownership until native dismount',()=>run(`${fixture}
   party(1); tick(20)
   local foreign=makeCar('quest-car',2,{'quest-driver'})

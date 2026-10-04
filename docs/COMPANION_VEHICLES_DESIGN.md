@@ -160,6 +160,8 @@ candidate offsets behind it are checked. Five footprint rays must find a
 nearby, near-level supporting floor; a conservative body box must be clear of
 static, dynamic, terrain, collider, destructible, vehicle and character groups.
 This rejects unsupported ledges, another floor and occupied spawn volumes.
+Waiting for V's car to stop defers creation without spending a spawn attempt;
+the existing hard limit still applies to failed placement and attachment.
 It does not prove that an arbitrary flat surface is a lane in the vehicle road
 graph. Native traffic AI handles routing after spawn, with bounded failure and
 stuck retries; the controller never teleports a convoy car through an obstacle.

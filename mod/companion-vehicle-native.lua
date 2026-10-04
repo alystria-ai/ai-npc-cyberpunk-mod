@@ -83,8 +83,11 @@ end
 -- body volume. Native traffic routing owns the road path after this placement.
 local function spawnPoint(primary,ordinal)
     local car=primary.entity
-    if not car or not car:IsAttached() or speed(car)>0.8 then
-        return nil,'Wait for your vehicle to stop before the next car joins.'
+    if not car or not car:IsAttached() then
+        return nil,'Your vehicle is not available for another car to join.'
+    end
+    if speed(car)>0.8 then
+        return nil,'Wait for your vehicle to stop before the next car joins.',true
     end
     local origin,forward=car:GetWorldPosition(),car:GetWorldForward()
     local rotation=car:GetWorldOrientation()
