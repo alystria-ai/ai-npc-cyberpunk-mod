@@ -251,7 +251,9 @@ def connected(folder, action, *, allowed_root=None, required_purpose=None):
                 request.enable_gpu, request.enable_tpu, request.enable_internet = True, False, True
                 request.machine_shape, request.session_timeout_seconds = "NvidiaTeslaT4", approval["timeout_seconds"]
                 request.dataset_data_sources = meta["dataset_sources"]
-                request.kernel_data_sources, request.competition_data_sources, request.model_data_sources = [], [], []
+                # A resumed teacher mounts its previous session's saved output.
+                request.kernel_data_sources = list(meta.get("kernel_sources", []))
+                request.competition_data_sources, request.model_data_sources = [], []
                 attempt = {"at_utc": now(), "slug": approval["slug"], "source_sha256": approval["source_sha256"],
                            "save_calls": 1, "state": "claimed_before_save", "quota_before_seconds": remaining}
                 with (folder / "attempt.json").open("x", encoding="utf-8") as stream:
