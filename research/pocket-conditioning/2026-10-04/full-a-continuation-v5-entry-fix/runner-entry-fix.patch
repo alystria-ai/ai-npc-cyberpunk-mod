@@ -1,0 +1,48 @@
+--- approved-v5/runner.py
++++ entry-fix/runner.py
+@@ -198,6 +198,22 @@
+ def qualified_corpus(spec: Spec) -> bool:
+     """The same actual data gates protect teacher and opt-in student transfer."""
+     return teacher_quality.enabled(spec) or student_transfer.enabled(spec)
++
++
++def honest_primary_metadata(rows: list[dict[str, Any]], *, native_admission: bool) -> bool:
++    """Native admission proves missing derived flags through actual history fences."""
++    for row in rows:
++        if native_admission:
++            if row.get("validation_tier") not in (None, "A_unseen_scene"):
++                return False
++            if any(row.get(key) is not None and row.get(key) is not False
++                   for key in ("previous_training_seen", "previous_training_scene_seen")):
++                return False
++        elif (row.get("validation_tier") != "A_unseen_scene"
++              or row.get("previous_training_seen") is not False
++              or row.get("previous_training_scene_seen") is not False):
++            return False
++    return True
+ 
+ 
+ def load_spec(path: Path, *, verify: bool = True, require_manifests: bool = True) -> Spec:
+@@ -347,8 +363,8 @@
+         # corpus receipt and asset hashes bind waveform/history checks outside
+         # this runner; these guards must not invent unseen-scene coverage.
+         primary = rows_at(spec.manifests["dev"])
+-        if any(row.get("validation_tier") != "A_unseen_scene" or row.get("previous_training_seen") is not False
+-               or row.get("previous_training_scene_seen") is not False for row in primary):
++        admission = read_json(spec.asset("teacher_corpus_receipt"))
++        if not honest_primary_metadata(primary, native_admission=native_primary_data.declared(admission)):
+             raise ValueError("Primary macro development is not an honest Tier A panel")
+         if set(cast_counts(primary)) != set(raw["teacher_dev_expected_speakers"]):
+             raise ValueError("Tier A development speaker allowlist differs")
+@@ -663,9 +679,8 @@
+     config_dir.mkdir(parents=True, exist_ok=True)
+     stage_state(spec, "prepare", status="running", pid=os.getpid())
+     relocated = {split: relocate_manifest(spec, split) for split in spec.manifests}
+-    if qualified_corpus(spec) and any(
+-            row.get("validation_tier") != "A_unseen_scene" or row.get("previous_training_seen") is not False
+-            or row.get("previous_training_scene_seen") is not False for row in relocated["dev"]):
++    if qualified_corpus(spec) and not honest_primary_metadata(relocated["dev"],
++            native_admission=native_primary_data.declared(read_json(spec.asset("teacher_corpus_receipt")))):
+         raise ValueError("Tier A macro development must declare genuinely unseen training scenes")
+     fence_splits(spec, relocated)
+     teacher_config = resolve_inference_config(spec, "teacher", config_dir / "teacher-inference.yaml")
