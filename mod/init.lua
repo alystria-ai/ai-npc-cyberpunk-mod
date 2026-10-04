@@ -95,8 +95,8 @@ local function configureKnowledge()
     knowledgeConfigured = true
     local file = io.open('world-knowledge.json', 'rb')
     if not file then return end
-    local raw = file:read(8 * 1024 * 1024 + 1); file:close()
-    if type(raw) ~= 'string' or #raw > 8 * 1024 * 1024 then return end
+    local raw = file:read(16 * 1024 * 1024 + 1); file:close()
+    if type(raw) ~= 'string' or #raw > 16 * 1024 * 1024 then return end
     local decoded, pack = pcall(json.decode, raw)
     local versionOk, version = pcall(function() return Game.GetSystemRequestsHandler():GetGameVersion() end)
     if decoded and type(pack) == 'table' and versionOk and type(version) == 'string' then

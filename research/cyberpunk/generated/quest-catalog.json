@@ -6083,6 +6083,46 @@
           "lane": "phantom"
         },
         {
+          "id": "phantom.changed.implants",
+          "description": "Reed's explanation of V's implant limits after the FIA operation.",
+          "topic": "v.tower-implant-limit",
+          "outcomes": [
+            {
+              "key": "combat-chrome-unavailable",
+              "description": "V woke in 2079 after FIA surgery, and Reed explained that V's neurons can no longer handle most implants; combat chrome could kill V, although a personal link and simple coprocessors remain possible.",
+              "affects": [
+                "v",
+                "solomon-reed"
+              ],
+              "sourceIds": [
+                "ph-changed"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ph-changed"
+          ],
+          "nativeProof": {
+            "scene": "ep1\\quest\\main_quests\\q307\\scenes\\q307_03_hospital.scene",
+            "lines": [
+              39,
+              40
+            ],
+            "conditionFact": "q307_2079",
+            "conditionValue": 1,
+            "journalObjective": "ep1/quests/main_quest/q307_tomorrow/01_hospital_cabride/01_talk_reed",
+            "controlFlow": "Reed's implant-limit lines dominate the succeeded hospital conversation objective."
+          },
+          "runtime": {
+            "status": "candidate",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Source-backed October4 narrative addition. Executable predicates and audience provenance are separately qualified in priority-phantom-20261004.json; narrative prose alone never enables runtime knowledge."
+          },
+          "questKey": "things-done-changed",
+          "lane": "phantom"
+        },
+        {
           "id": "silverhand.surgery-outcome",
           "description": "Has V awakened and heard the actual treatment result?",
           "topic": "v.nusa.surgery-outcome",
@@ -32823,6 +32863,48 @@
             "conditions": null,
             "evidence": [],
             "notes": "Public semantic entry; reviewed native activation, where available, is maintained separately in native-rules/phantom.json. Never infer a choice from a missing or zero flag."
+          },
+          "questKey": "the-killing-moon",
+          "lane": "phantom"
+        },
+        {
+          "id": "phantom.moon.train-bargain",
+          "description": "V's response to Reed's proposal during the train call after Songbird disclosed the neural matrix's single use.",
+          "topic": "relationship.reed.ncx-train-call",
+          "outcomes": [
+            {
+              "key": "refused",
+              "description": "V called Reed, then explicitly hung up and rejected handing Songbird over during the train conversation. This does not determine the later NCX resolution.",
+              "affects": [
+                "v",
+                "solomon-reed",
+                "songbird"
+              ],
+              "sourceIds": [
+                "ph-moon"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ph-moon"
+          ],
+          "nativeProof": {
+            "scene": "ep1\\quest\\main_quests\\q306\\scenes\\q306_09_monorail.scene",
+            "callChoiceNode": 846,
+            "callFactWriterNode": 1699,
+            "callFactValue": 1,
+            "refusalChoiceNode": 2010,
+            "refusalFactWriterNode": 2022,
+            "refusalFact": "q306_train_reed_called",
+            "refusalFactValue": 2,
+            "lineMeaning": "[Hang up] No deal, not handin' Songbird over.",
+            "audienceLimit": "Reed participated in the call; Songbird was not established as hearing it and has a separate V-disclosure-gated native rule."
+          },
+          "runtime": {
+            "status": "candidate",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Source-backed October4 narrative addition. Executable predicates and audience provenance are separately qualified in priority-phantom-20261004.json; narrative prose alone never enables runtime knowledge."
           },
           "questKey": "the-killing-moon",
           "lane": "phantom"

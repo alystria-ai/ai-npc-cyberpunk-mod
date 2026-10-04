@@ -1,5 +1,10 @@
 # Character knowledge coverage audit — October 1, 2026
 
+**Latest update:** the October 4 priority expansion is now source-integrated at
+394 enabled rules / 382 mapped outcomes out of 1,162. See
+[the current eight-character coverage](QUEST_PRIORITY_COVERAGE_2026-10-04.md).
+The earlier counts below are dated audit snapshots, not the current totals.
+
 ## Scope and result
 
 This is an independent, bounded audit of the 79 current conversation-profile inputs, their generated fields and the compiled quest pack. It is a source/configuration audit, not a new cloud readback, live-conversation qualification or complete primary-source validation of every biography. The author read every dossier's biography, delivery guidance, relationships, private/unknown knowledge and original examples through projected inspections and serializer checks. After the audit, the root authorized a scoped correction to the two ambient source dossiers. Their delivery directions and examples remain unchanged; generated and cloud profiles have not been updated by this agent. No provider memory, save or game state was changed.

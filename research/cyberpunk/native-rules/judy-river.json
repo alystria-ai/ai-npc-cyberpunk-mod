@@ -4250,7 +4250,7 @@
     {
       "id": "jr-native.both-evelyn-burial-received",
       "questKey": "both-sides-now",
-      "topic": "evelyn.story_status",
+      "topic": "evelyn.story_status.burial",
       "outcome": "death-confirmed",
       "statement": "Evelyn died, and Judy sent V a message reporting that she had buried her. This establishes Judy’s burial report to V; it does not establish that V read it or which support reply V chose.",
       "condition": {
@@ -4362,7 +4362,7 @@
     {
       "id": "jr-native.pyramid-dive-completed",
       "questKey": "pyramid-song",
-      "topic": "judy.dive_visit",
+      "topic": "judy.dive_visit.completed",
       "outcome": "completed",
       "statement": "Judy and V completed the Laguna Bend dive, and Judy brought V out of the water after V lost consciousness. The shared dive does not establish romance, an overnight stay, or what they said in optional conversations.",
       "condition": {

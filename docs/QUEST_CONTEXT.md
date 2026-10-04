@@ -1,5 +1,10 @@
 # Current-save quest context
 
+The October 4 reviewed pack has **394 enabled rules / 382 mapped outcomes** out
+of 1,162 researched outcomes. See [priority character coverage](QUEST_PRIORITY_COVERAGE_2026-10-04.md)
+for the eight-character expansion and remaining save-detection limits. Tracked
+objectives and reviewed branch knowledge are separate inputs.
+
 Companions receive the tracked quest and its active, revealed objectives when V
 starts a conversation. This is read-only: no journal entries are activated,
 tracked, visited or completed by this feature.

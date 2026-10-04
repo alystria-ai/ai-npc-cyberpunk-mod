@@ -399,7 +399,7 @@ test('capture and pack limits fail closed without throwing on malformed optional
   const cyclic = {}; cyclic.self = cyclic;
   assert.equal(parseWorldSnapshot(cyclic).status, 'unavailable');
   assert.equal(validateKnowledgePack(cyclic).ok, false);
-  const oversized = pack(); oversized.rawPage = 'x'.repeat(4 * 1024 * 1024);
+  const oversized = pack(); oversized.rawPage = 'x'.repeat(16 * 1024 * 1024);
   assert.equal(validateKnowledgePack(oversized).ok, false);
   const mutated = clone(pack()); mutated.rules[0].sourceIds.push('missing');
   assert.equal(resolve({pack: mutated}).diagnostics.status, 'invalid-pack');

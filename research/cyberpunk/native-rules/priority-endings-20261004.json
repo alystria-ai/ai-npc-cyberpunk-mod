@@ -1,0 +1,4113 @@
+{
+  "version": 1,
+  "id": "cyberpunk-priority-endings-20261004",
+  "revision": 1,
+  "gameVersions": [
+    "2.31"
+  ],
+  "profileKeys": [
+    "carol-emeka",
+    "hanako-arasaka",
+    "johnny-silverhand",
+    "judy-alvarez",
+    "kerry-eurodyne",
+    "mitch-anderson",
+    "panam-palmer",
+    "rogue-amendiares",
+    "saul-bright",
+    "takemura"
+  ],
+  "sources": [
+    {
+      "id": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "title": "base\\journal\\cooked_journal.journal",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: base\\journal\\cooked_journal.journal",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.a1d764af903e",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\part1\\q101\\phases\\q101_j_05_soulkiller.questphase",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q101\\phases\\q101_j_05_soulkiller.questphase",
+      "assetSha256": "5a2cf17ff4d836c1f0d5ef877247313d47e68ad9992e95e2e64aa98e9c2b6b97",
+      "jsonSha256": "694ffe27d3b0914ed480769cf29eba1705b50502867f291ef7c6a7135da3a5e4",
+      "archiveEntrySha1": "c865871ec7c2497e765acc34b2a9217f5556842c",
+      "jsonPath": "scene-evidence/priority-endings-20261004-history-phases/raw/base/base/quest/main_quests/part1/q101/phases/q101_j_05_soulkiller.questphase.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.964c26f3b858",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\part1\\q108\\phases\\q108_07_finale.questphase",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q108\\phases\\q108_07_finale.questphase",
+      "assetSha256": "5a87391ef6f253ed3debe150427b0d60eea6bdd6596e35632fe6d13c246bccce",
+      "jsonSha256": "ce47dc6af0263e3cccd634c2161f216388239e70ee9741e560ede4c3a2b21c23",
+      "archiveEntrySha1": "19b16ed28e57c6c9c71a6dcf20068a465f9596f8",
+      "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/part1/q108/phases/q108_07_finale.questphase.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.2ced69021553",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\part1\\q115\\phases\\q115_02_ripperdoc.questphase",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q115\\phases\\q115_02_ripperdoc.questphase",
+      "assetSha256": "8bdd18f9944e27741914a8a3431b8b403ab7b5e501c2258979f78ce283feb8e8",
+      "jsonSha256": "cd0308bf5e31f84e83b8cbd0f58cb80aa8f1e1cef06ed9b2be9aa170ac452e53",
+      "archiveEntrySha1": "2f28aaa01ea03f7f37bbbc2b8243909ff4ddd54f",
+      "jsonPath": "scene-evidence/priority-endings-20261004-phases/raw/base/base/quest/main_quests/part1/q115/phases/q115_02_ripperdoc.questphase.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.c8cb8f984140",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\part1\\q115\\scenes\\q115_02b_ripperdoc_roof.scene",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q115\\scenes\\q115_02b_ripperdoc_roof.scene",
+      "assetSha256": "0506831be23656c51947cf3bf920a95700235d4cc52065dc18e91a09c337dd83",
+      "jsonSha256": "99ea1b7d12009ffa523d12b26ed9c5df0a199f78fa27bd2ab6971a7be6ecb0ee",
+      "archiveEntrySha1": "36e78d865877603e3e5ca1a3e0c2043c9c335d56",
+      "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.483d11959305",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\part1\\q115\\scenes\\q115_04_preparations_final.scene",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q115\\scenes\\q115_04_preparations_final.scene",
+      "assetSha256": "6458a7acade21d2b5e37d270a47664485d98b4085dfa0d230cd61ba1d5286046",
+      "jsonSha256": "256014798d7ccae7cbd4cc49d5f29a714b75593b01e38c5981c6bdc86cf1a182",
+      "archiveEntrySha1": "d48a6938cc6d319b2ec524ebf58693a69943a3e4",
+      "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_04_preparations_final.scene.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.faacc856ec6e",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\part1\\q115\\phases\\q115_solo_the_mikoshi.questphase",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q115\\phases\\q115_solo_the_mikoshi.questphase",
+      "assetSha256": "affbcb6c3c59e11a9c597144188b075f194369cea9f5b731a019bc62da462734",
+      "jsonSha256": "f7d254f482365b709cd9ffcb8c455c45b1c5788edf12d7dd883a8cc3e3211bf4",
+      "archiveEntrySha1": "400608d09480013ed92cc3f030d14111d57f1eb0",
+      "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/part1/q115/phases/q115_solo_the_mikoshi.questphase.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.d8f87a7b20d9",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\epilogue\\q201\\q201_heir.questphase",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\epilogue\\q201\\q201_heir.questphase",
+      "assetSha256": "49f6ec39f8a5c064e6949085bd08226dea1f4226b69e91d4881948065bf1de43",
+      "jsonSha256": "d4d3e60c8297fa88984b434b55b10554b9da10becca0c59c06538267e73ba81c",
+      "archiveEntrySha1": "c3abc4e02cf314ef73bdfff6f5ab881a0484e5d9",
+      "jsonPath": "scene-evidence/priority-endings-20261004-phases/raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.e06c905ef4c2",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\epilogue\\q202\\q202.questphase",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\epilogue\\q202\\q202.questphase",
+      "assetSha256": "6d9e865fbfc58109bf2b4713c5381332cd745d0d064a52eb453022559383c230",
+      "jsonSha256": "58f896735f9a740ed4a8415b3529781a024a32b78d8910d04d74386e98f67212",
+      "archiveEntrySha1": "77ca19e026750842c0a59fe65e62f63974b22e65",
+      "jsonPath": "scene-evidence/priority-endings-20261004-phases/raw/base/base/quest/main_quests/epilogue/q202/q202.questphase.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.37d448f0c57a",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\epilogue\\q203\\phase\\q203_penthouse.questphase",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\epilogue\\q203\\phase\\q203_penthouse.questphase",
+      "assetSha256": "2b4be78d3e2eb7b3a4c7eabfed7ca75fc5e336894233e1fc2c43536e543ae833",
+      "jsonSha256": "c0dc4f6ce4c3bba44baf7824248d0b7ab1329e7f0a0ff14e26a6ddbb3d467513",
+      "archiveEntrySha1": "4ba231d3c193907fbce048bce4ae1a613241fe7a",
+      "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q203/phase/q203_penthouse.questphase.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.449640aa79e7",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\epilogue\\q204\\q204_reborn.questphase",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\epilogue\\q204\\q204_reborn.questphase",
+      "assetSha256": "a20e99fe97040bb1d661a917bd15e1130c8520be43eee560fe2a90e7cd543444",
+      "jsonSha256": "2b78fb7e6d11e7c5c04e1d95c57309aa2ff007688d71b5ae23965418b50b2501",
+      "archiveEntrySha1": "4c6228e78069273d2fec95501beaf21766163572",
+      "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q204/q204_reborn.questphase.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.0abedd54c29b",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\part1\\q101\\scenes\\q101_06c_memories_backalley_p1.scene",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q101\\scenes\\q101_06c_memories_backalley_p1.scene",
+      "assetSha256": "2a1ca73cf442c198f2267330aeee63d01542b2b10f7a8c8922803baded01c6ec",
+      "jsonSha256": "400967328ce60509a81bdbef0eeecbf1266dea6048267929917a5bf8a5c27d8f",
+      "archiveEntrySha1": "b331beee58a44401d1d9eb681ee5b35db0951a0a",
+      "jsonPath": "scene-evidence/priority-endings-20261004-history/raw/base/base/quest/main_quests/part1/q101/scenes/q101_06c_memories_backalley_p1.scene.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.090020fa5ccd",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\part1\\q115\\phases\\q115_05_jungle.questphase",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q115\\phases\\q115_05_jungle.questphase",
+      "assetSha256": "cbf4d7d712dde734b1ce476cc23d4b5df210c6589515dc575a35f5655c6a3508",
+      "jsonSha256": "2016b7dfc46e6b8e1de9185b3a17291f79575fac1ceb3b9b8b89cdbe0720b2bf",
+      "archiveEntrySha1": "2da8062c50af7185658d23df1f102cd8783d1e4d",
+      "jsonPath": "scene-evidence/priority-endings-20261004-weyland/raw/base/base/quest/main_quests/part1/q115/phases/q115_05_jungle.questphase.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.583e45a43dc2",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\part1\\q116\\scenes\\q116_01_adam_smasher.scene",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q116\\scenes\\q116_01_adam_smasher.scene",
+      "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+      "jsonSha256": "64f6dbbd5fa9dfc87d5ebeff1dd083c98d0b1a644bf66dd3437b047841105a7e",
+      "archiveEntrySha1": "d06b80efb4563e038e02a65050975294961fd7e1",
+      "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.7514316575e5",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\epilogue\\q202\\scenes\\q202_05_convoy.scene",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\epilogue\\q202\\scenes\\q202_05_convoy.scene",
+      "assetSha256": "b21a064d4583363bbb080195166a2257ff8107a55837020dfe5489fd77b9a9da",
+      "jsonSha256": "b170155c0577ef9a317b2e6a4097707a693f3f2efc26dacb1e5bc3928a73213f",
+      "archiveEntrySha1": "94c951bf5b8af1a5785be51225e706086c0d5feb",
+      "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q202/scenes/q202_05_convoy.scene.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.e3d9d005ac91",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\epilogue\\q203\\scenes\\q203_02c_judy.scene",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\epilogue\\q203\\scenes\\q203_02c_judy.scene",
+      "assetSha256": "da34446e5a2d12f2179327d3fd701e9db800047fe13f6f0e5972fac9120b4b77",
+      "jsonSha256": "bdf96cba4665c4893f00f67837fd42ef637aa0ad2fe5466a9d9413eca8195ec6",
+      "archiveEntrySha1": "0bd5ab76cec7f997c82a3ad464e29eb72e96b757",
+      "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q203/scenes/q203_02c_judy.scene.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.1a92b29027ba",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\epilogue\\q203\\scenes\\q203_02d_panam.scene",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\epilogue\\q203\\scenes\\q203_02d_panam.scene",
+      "assetSha256": "3346e33fb5772c00a500a2b98d338400cfdad0137cd2850ea43c72a31dda08a0",
+      "jsonSha256": "755ed1fb701e49d4b6ab12df8ead394ef04e85cbd4e87b9c6a61f540d137978a",
+      "archiveEntrySha1": "4e7c3f7893c65118df81d36c2c13bef376d78aff",
+      "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q203/scenes/q203_02d_panam.scene.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.821fd8e3e5a5",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\epilogue\\q201\\scenes\\q201_08_cabin_day_30_takemura.scene",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\epilogue\\q201\\scenes\\q201_08_cabin_day_30_takemura.scene",
+      "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
+      "jsonSha256": "88003c2b78ca861d93f2a8e80df4d599a66154be288ac48221ea3ce0e9998482",
+      "archiveEntrySha1": "b9bccfad306d6ca492707d50b581607f99ba06ee",
+      "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.888e0c3a4ea3",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\part1\\q110\\scenes\\q110_08a_agent.scene",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q110\\scenes\\q110_08a_agent.scene",
+      "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+      "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5",
+      "archiveEntrySha1": "78e2cd74c0aef14d107b4dccaacd11f8724b4b42",
+      "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.61c5f77a4741",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\epilogue\\q204\\scenes\\q204_09_bus_station.scene",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\epilogue\\q204\\scenes\\q204_09_bus_station.scene",
+      "assetSha256": "6a1cefd51ddd134248c0bbf6cc3f28176b1c179284cb73f61684b3cb96ab843d",
+      "jsonSha256": "afd5053a6a1722bea7897b48ceb8946e7dd1d017ccaa2c85f2d9ca8143eb8b3f",
+      "archiveEntrySha1": "5667ce652824f1ff5b0d5b61853a16b344241f40",
+      "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q204/scenes/q204_09_bus_station.scene.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.238a108c3905",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\part1\\q114\\scenes\\q114_10_tunnel.scene",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q114\\scenes\\q114_10_tunnel.scene",
+      "assetSha256": "58ad0dd9d38b815989b3b8a865b55b1c3e3383fd30f7a28287502f0b4457c1c0",
+      "jsonSha256": "7d0f23d29c65a8ac4937f1b9310b62101ceb29699f4f8f9fe0669dff31e95355",
+      "archiveEntrySha1": "7aeafbf5a030c854e0852dbb5e07307abeb3805c",
+      "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q114/scenes/q114_10_tunnel.scene.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.ecbf576b74a5",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\part1\\q110\\scenes\\q110_14_alt.scene",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q110\\scenes\\q110_14_alt.scene",
+      "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
+      "jsonSha256": "92eb29cc761419d4217372f6fe8f270f8195ac9fa3a27a4c835588c4eb2faeb3",
+      "archiveEntrySha1": "96f250e7d4e5290208211cdaffd4fbcb034d2f35",
+      "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    },
+    {
+      "id": "priority-endings.source.5671bd8cd2b8",
+      "kind": "native",
+      "title": "base\\quest\\main_quests\\epilogue\\q204\\scenes\\q204_08_farewell.scene",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\epilogue\\q204\\scenes\\q204_08_farewell.scene",
+      "assetSha256": "5cd50675f98a9340a2175566c21aa82eef157bd18b39fc1532bbfe8e472ac46f",
+      "jsonSha256": "77ffff58b4fc1193f89251ae306464d42973c61153543ebf63a1fcf1c46966b1",
+      "archiveEntrySha1": "76abca3c76c6e388b6c6934cd21446ccfe8cdaa0",
+      "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q204/scenes/q204_08_farewell.scene.json",
+      "notes": "Installed archive winner; immutable raw and exported JSON hashes are recorded in the scene-evidence inventory."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "priority-endings.evidence.4018ca3ff170",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/15/Data",
+        "expectedType": "gameJournalQuest"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.2c9e8f4c6499",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/21/Data",
+        "expectedType": "gameJournalQuest"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.a067f4decae1",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/9/Data",
+        "expectedType": "gameJournalQuest"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.edc344eb8bf0",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/2/Data/entries/10/Data/entries/1/Data/entries/8/Data",
+        "expectedType": "gameJournalQuestObjective"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.8b44575ff6ec",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/2/Data/entries/10/Data/entries/1/Data/entries/9/Data",
+        "expectedType": "gameJournalQuestObjective"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.211338210586",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/3/Data",
+        "expectedType": "gameJournalQuest"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.33cfbdcd222b",
+      "sourceId": "priority-endings.source.a1d764af903e",
+      "kind": "native",
+      "locator": "Firestorm phase runs the Johnny memory scene before the current-save quest can be succeeded.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-history-phases/raw/base/base/quest/main_quests/part1/q101/phases/q101_j_05_soulkiller.questphase.json",
+        "assetSha256": "5a2cf17ff4d836c1f0d5ef877247313d47e68ad9992e95e2e64aa98e9c2b6b97",
+        "jsonSha256": "694ffe27d3b0914ed480769cf29eba1705b50502867f291ef7c6a7135da3a5e4",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data",
+        "expectedType": "questSceneNodeDefinition"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.900ef2dfadb7",
+      "sourceId": "priority-endings.source.964c26f3b858",
+      "kind": "native",
+      "locator": "Finale phase advances the q108_johnny quest after the 2013 sequence.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/part1/q108/phases/q108_07_finale.questphase.json",
+        "assetSha256": "5a87391ef6f253ed3debe150427b0d60eea6bdd6596e35632fe6d13c246bccce",
+        "jsonSha256": "ce47dc6af0263e3cccd634c2161f216388239e70ee9741e560ede4c3a2b21c23",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/14/Data",
+        "expectedType": "questJournalNodeDefinition"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.5500f6b0ad30",
+      "sourceId": "priority-endings.source.2ced69021553",
+      "kind": "native",
+      "locator": "The roof continuation enters a distinct Panam or Hanako help holocall, whose output succeeds its matching objective.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-phases/raw/base/base/quest/main_quests/part1/q115/phases/q115_02_ripperdoc.questphase.json",
+        "assetSha256": "8bdd18f9944e27741914a8a3431b8b403ab7b5e501c2258979f78ce283feb8e8",
+        "jsonSha256": "cd0308bf5e31f84e83b8cbd0f58cb80aa8f1e1cef06ed9b2be9aa170ac452e53",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/9/Data/phaseGraph/Data/nodes/2/Data",
+        "expectedType": "questSceneNodeDefinition"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.ead19fd4b944",
+      "sourceId": "priority-endings.source.c8cb8f984140",
+      "kind": "native",
+      "locator": "Native positive writer for q115_panam_romance_chosen; value 1 with setExactValue 0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+        "assetSha256": "0506831be23656c51947cf3bf920a95700235d4cc52065dc18e91a09c337dd83",
+        "jsonSha256": "99ea1b7d12009ffa523d12b26ed9c5df0a199f78fa27bd2ab6971a7be6ecb0ee",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/162/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.f026e99fc8e1",
+      "sourceId": "priority-endings.source.c8cb8f984140",
+      "kind": "native",
+      "locator": "Native positive writer for q115_call_panam_done; value 1 with setExactValue 0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+        "assetSha256": "0506831be23656c51947cf3bf920a95700235d4cc52065dc18e91a09c337dd83",
+        "jsonSha256": "99ea1b7d12009ffa523d12b26ed9c5df0a199f78fa27bd2ab6971a7be6ecb0ee",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/114/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.db62c268a8ab",
+      "sourceId": "priority-endings.source.483d11959305",
+      "kind": "native",
+      "locator": "Native positive writer for q115_rogue_in_av; value 1 with setExactValue 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_04_preparations_final.scene.json",
+        "assetSha256": "6458a7acade21d2b5e37d270a47664485d98b4085dfa0d230cd61ba1d5286046",
+        "jsonSha256": "256014798d7ccae7cbd4cc49d5f29a714b75593b01e38c5981c6bdc86cf1a182",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/64/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.8f5194376550",
+      "sourceId": "priority-endings.source.faacc856ec6e",
+      "kind": "native",
+      "locator": "Native positive writer for q115_did_it_solo; value 1 with setExactValue 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/part1/q115/phases/q115_solo_the_mikoshi.questphase.json",
+        "assetSha256": "affbcb6c3c59e11a9c597144188b075f194369cea9f5b731a019bc62da462734",
+        "jsonSha256": "f7d254f482365b709cd9ffcb8c455c45b1c5788edf12d7dd883a8cc3e3211bf4",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.a444a3e3c1cf",
+      "sourceId": "priority-endings.source.d8f87a7b20d9",
+      "kind": "native",
+      "locator": "Native positive writer for q201_active; value 1 with setExactValue 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-phases/raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
+        "assetSha256": "49f6ec39f8a5c064e6949085bd08226dea1f4226b69e91d4881948065bf1de43",
+        "jsonSha256": "d4d3e60c8297fa88984b434b55b10554b9da10becca0c59c06538267e73ba81c",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/5/Data/phaseGraph/Data/nodes/9/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.185f84d0178a",
+      "sourceId": "priority-endings.source.d8f87a7b20d9",
+      "kind": "native",
+      "locator": "Native positive writer for q201_done; value 1 with setExactValue 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-phases/raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
+        "assetSha256": "49f6ec39f8a5c064e6949085bd08226dea1f4226b69e91d4881948065bf1de43",
+        "jsonSha256": "d4d3e60c8297fa88984b434b55b10554b9da10becca0c59c06538267e73ba81c",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data/phaseGraph/Data/nodes/10/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.00004c82b72d",
+      "sourceId": "priority-endings.source.e06c905ef4c2",
+      "kind": "native",
+      "locator": "Native positive writer for q202_active; value 1 with setExactValue 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-phases/raw/base/base/quest/main_quests/epilogue/q202/q202.questphase.json",
+        "assetSha256": "6d9e865fbfc58109bf2b4713c5381332cd745d0d064a52eb453022559383c230",
+        "jsonSha256": "58f896735f9a740ed4a8415b3529781a024a32b78d8910d04d74386e98f67212",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.dacf9099307b",
+      "sourceId": "priority-endings.source.e06c905ef4c2",
+      "kind": "native",
+      "locator": "Native positive writer for q202_done; value 1 with setExactValue 0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-phases/raw/base/base/quest/main_quests/epilogue/q202/q202.questphase.json",
+        "assetSha256": "6d9e865fbfc58109bf2b4713c5381332cd745d0d064a52eb453022559383c230",
+        "jsonSha256": "58f896735f9a740ed4a8415b3529781a024a32b78d8910d04d74386e98f67212",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/13/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.119a271d25f7",
+      "sourceId": "priority-endings.source.37d448f0c57a",
+      "kind": "native",
+      "locator": "Native positive writer for q203_active; value 1 with setExactValue 0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q203/phase/q203_penthouse.questphase.json",
+        "assetSha256": "2b4be78d3e2eb7b3a4c7eabfed7ca75fc5e336894233e1fc2c43536e543ae833",
+        "jsonSha256": "c0dc4f6ce4c3bba44baf7824248d0b7ab1329e7f0a0ff14e26a6ddbb3d467513",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/7/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.488612556e41",
+      "sourceId": "priority-endings.source.449640aa79e7",
+      "kind": "native",
+      "locator": "Native positive writer for q204_active; value 1 with setExactValue 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q204/q204_reborn.questphase.json",
+        "assetSha256": "a20e99fe97040bb1d661a917bd15e1130c8520be43eee560fe2a90e7cd543444",
+        "jsonSha256": "2b78fb7e6d11e7c5c04e1d95c57309aa2ff007688d71b5ae23965418b50b2501",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/15/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.4cdfd8b4812f",
+      "sourceId": "priority-endings.source.449640aa79e7",
+      "kind": "native",
+      "locator": "Native positive writer for q204_done; value 1 with setExactValue 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q204/q204_reborn.questphase.json",
+        "assetSha256": "a20e99fe97040bb1d661a917bd15e1130c8520be43eee560fe2a90e7cd543444",
+        "jsonSha256": "2b78fb7e6d11e7c5c04e1d95c57309aa2ff007688d71b5ae23965418b50b2501",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/21/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.4771e7b95731",
+      "sourceId": "priority-endings.source.0abedd54c29b",
+      "kind": "native",
+      "locator": "Native positive writer for q101_rogue_moved_to_heli; value 1 with setExactValue 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-history/raw/base/base/quest/main_quests/part1/q101/scenes/q101_06c_memories_backalley_p1.scene.json",
+        "assetSha256": "2a1ca73cf442c198f2267330aeee63d01542b2b10f7a8c8922803baded01c6ec",
+        "jsonSha256": "400967328ce60509a81bdbef0eeecbf1266dea6048267929917a5bf8a5c27d8f",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/116/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.e60490be06c9",
+      "sourceId": "priority-endings.source.0abedd54c29b",
+      "kind": "native",
+      "locator": "Native positive writer for q101_kerry_insult; value 1 with setExactValue 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-history/raw/base/base/quest/main_quests/part1/q101/scenes/q101_06c_memories_backalley_p1.scene.json",
+        "assetSha256": "2a1ca73cf442c198f2267330aeee63d01542b2b10f7a8c8922803baded01c6ec",
+        "jsonSha256": "400967328ce60509a81bdbef0eeecbf1266dea6048267929917a5bf8a5c27d8f",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.6ec6a61a97da",
+      "sourceId": "priority-endings.source.090020fa5ccd",
+      "kind": "native",
+      "locator": "Native positive writer for q115_jungle_weyland_saved; value 1 with setExactValue 0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-weyland/raw/base/base/quest/main_quests/part1/q115/phases/q115_05_jungle.questphase.json",
+        "assetSha256": "cbf4d7d712dde734b1ce476cc23d4b5df210c6589515dc575a35f5655c6a3508",
+        "jsonSha256": "2016b7dfc46e6b8e1de9185b3a17291f79575fac1ceb3b9b8b89cdbe0720b2bf",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data/phaseGraph/Data/nodes/7/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.8027377ba483",
+      "sourceId": "priority-endings.source.583e45a43dc2",
+      "kind": "native",
+      "locator": "Native positive writer for q116_saul_dead; value 1 with setExactValue 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+        "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+        "jsonSha256": "64f6dbbd5fa9dfc87d5ebeff1dd083c98d0b1a644bf66dd3437b047841105a7e",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.a73bc9c442f1",
+      "sourceId": "priority-endings.source.7514316575e5",
+      "kind": "native",
+      "locator": "Native positive writer for q202_05_talked_about_plan; value 1 with setExactValue 0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q202/scenes/q202_05_convoy.scene.json",
+        "assetSha256": "b21a064d4583363bbb080195166a2257ff8107a55837020dfe5489fd77b9a9da",
+        "jsonSha256": "b170155c0577ef9a317b2e6a4097707a693f3f2efc26dacb1e5bc3928a73213f",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/85/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.773b06d51d9b",
+      "sourceId": "priority-endings.source.e3d9d005ac91",
+      "kind": "native",
+      "locator": "Native positive writer for q203_fact_lover_says_goodbye; value 1 with setExactValue 0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q203/scenes/q203_02c_judy.scene.json",
+        "assetSha256": "da34446e5a2d12f2179327d3fd701e9db800047fe13f6f0e5972fac9120b4b77",
+        "jsonSha256": "bdf96cba4665c4893f00f67837fd42ef637aa0ad2fe5466a9d9413eca8195ec6",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.1963aaf6dd81",
+      "sourceId": "priority-endings.source.1a92b29027ba",
+      "kind": "native",
+      "locator": "Native positive writer for q203_fact_relationship_dialogue_over; value 1 with setExactValue 0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q203/scenes/q203_02d_panam.scene.json",
+        "assetSha256": "3346e33fb5772c00a500a2b98d338400cfdad0137cd2850ea43c72a31dda08a0",
+        "jsonSha256": "755ed1fb701e49d4b6ab12df8ead394ef04e85cbd4e87b9c6a61f540d137978a",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/113/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.7799d163243a",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/5/Data/entries/0/Data/entries/2/Data",
+        "expectedType": "gameJournalQuestObjective"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.db08e216935a",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/0/Data/entries/0/Data/entries/9/Data",
+        "expectedType": "gameJournalQuestObjective"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.9a47610876d1",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/0/Data/entries/3/Data/entries/5/Data",
+        "expectedType": "gameJournalQuestObjective"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.f8e7daab58b8",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/1/Data/entries/1/Data/entries/1/Data/entries/2/Data",
+        "expectedType": "gameJournalQuestObjective"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.ee271955c1aa",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/1/Data/entries/1/Data/entries/1/Data/entries/9/Data",
+        "expectedType": "gameJournalQuestObjective"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.80db8dede9aa",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/8/Data/entries/0/Data/entries/13/Data",
+        "expectedType": "gameJournalQuestObjective"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.bfef1f58f112",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/25/Data/entries/0/Data/entries/5/Data",
+        "expectedType": "gameJournalQuestObjective"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.e07e85d8888d",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/11/Data/entries/0/Data/entries/9/Data",
+        "expectedType": "gameJournalQuestObjective"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.e0bfeab120a0",
+      "sourceId": "priority-endings.source.821fd8e3e5a5",
+      "kind": "native",
+      "locator": "Native positive writer for q201_ice; value 1 with setExactValue 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+        "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
+        "jsonSha256": "88003c2b78ca861d93f2a8e80df4d599a66154be288ac48221ea3ce0e9998482",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/84/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.092cfed9b587",
+      "sourceId": "priority-endings.source.821fd8e3e5a5",
+      "kind": "native",
+      "locator": "Native positive writer for q201_earth; value 1 with setExactValue 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+        "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
+        "jsonSha256": "88003c2b78ca861d93f2a8e80df4d599a66154be288ac48221ea3ce0e9998482",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/85/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.b073e1d2cf20",
+      "sourceId": "priority-endings.source.c8cb8f984140",
+      "kind": "native",
+      "locator": "Native positive writer for q115_judy_romance_chosen; value 1 with setExactValue 0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+        "assetSha256": "0506831be23656c51947cf3bf920a95700235d4cc52065dc18e91a09c337dd83",
+        "jsonSha256": "99ea1b7d12009ffa523d12b26ed9c5df0a199f78fa27bd2ab6971a7be6ecb0ee",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/161/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.db2a8eb6fd8a",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/2/Data/entries/10/Data/entries/1/Data/entries/26/Data",
+        "expectedType": "gameJournalQuestObjective"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.b341a6909653",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/1/Data/entries/3/Data/entries/4/Data/entries/0/Data",
+        "expectedType": "gameJournalQuestObjective"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.7a1e76fd4b55",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/1/Data/entries/3/Data/entries/4/Data/entries/2/Data",
+        "expectedType": "gameJournalQuestObjective"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.f447f7ad366b",
+      "sourceId": "priority-endings.source.9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact installed cooked-journal class/path; the rule additionally requires succeeded state in the current save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "36cca62a368d097d568564ae1ff5ef19b86d20c81ca7d4c92d2340fc5548461a",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/1/Data/entries/0/Data/entries/3/Data/entries/8/Data",
+        "expectedType": "gameJournalQuestObjective"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.f9cfacc72906",
+      "sourceId": "priority-endings.source.888e0c3a4ea3",
+      "kind": "native",
+      "locator": "Native positive writer for q110_08a_netwatch_deal; value 1 with setExactValue 0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+        "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+        "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.5868c9a4c7b9",
+      "sourceId": "priority-endings.source.61c5f77a4741",
+      "kind": "native",
+      "locator": "Johnny tells Steve the guitar was not forgotten while leaving it with him at the bus station.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q204/scenes/q204_09_bus_station.scene.json",
+        "assetSha256": "6a1cefd51ddd134248c0bbf6cc3f28176b1c179284cb73f61684b3cb96ab843d",
+        "jsonSha256": "afd5053a6a1722bea7897b48ceb8946e7dd1d017ccaa2c85f2d9ca8143eb8b3f",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+        "expectedType": "scnSectionNode"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.e78d82d01596",
+      "sourceId": "priority-endings.source.483d11959305",
+      "kind": "native",
+      "locator": "The scene begins with Rogue’s private call to her son; the later AV fact is downstream of this section.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_04_preparations_final.scene.json",
+        "assetSha256": "6458a7acade21d2b5e37d270a47664485d98b4085dfa0d230cd61ba1d5286046",
+        "jsonSha256": "256014798d7ccae7cbd4cc49d5f29a714b75593b01e38c5981c6bdc86cf1a182",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data",
+        "expectedType": "scnSectionNode"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.5c4a54ec657e",
+      "sourceId": "priority-endings.source.238a108c3905",
+      "kind": "native",
+      "locator": "Panam and V identify Bob and Teddy as dead in the tunnel scene after the construction assault.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q114/scenes/q114_10_tunnel.scene.json",
+        "assetSha256": "58ad0dd9d38b815989b3b8a865b55b1c3e3383fd30f7a28287502f0b4457c1c0",
+        "jsonSha256": "7d0f23d29c65a8ac4937f1b9310b62101ceb29699f4f8f9fe0669dff31e95355",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+        "expectedType": "scnSectionNode"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.0bafab9f5f50",
+      "sourceId": "priority-endings.source.ecbf576b74a5",
+      "kind": "native",
+      "locator": "Alt explicitly says she purged Brigitte and the Voodoo Boys because NetWatch exploited their BBS.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+        "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
+        "jsonSha256": "92eb29cc761419d4217372f6fe8f270f8195ac9fa3a27a4c835588c4eb2faeb3",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data",
+        "expectedType": "scnSectionNode"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.0e249fd66a07",
+      "sourceId": "priority-endings.source.ecbf576b74a5",
+      "kind": "native",
+      "locator": "The purge dialogue is selected on the positive q110_08a_netwatch_deal branch.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+        "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
+        "jsonSha256": "92eb29cc761419d4217372f6fe8f270f8195ac9fa3a27a4c835588c4eb2faeb3",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/53/Data",
+        "expectedType": "scnQuestNode"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.60884f93a349",
+      "sourceId": "priority-endings.source.5671bd8cd2b8",
+      "kind": "native",
+      "locator": "The V memorial branch of the columbarium scene precedes the mementos journal success.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q204/scenes/q204_08_farewell.scene.json",
+        "assetSha256": "5cd50675f98a9340a2175566c21aa82eef157bd18b39fc1532bbfe8e472ac46f",
+        "jsonSha256": "77ffff58b4fc1193f89251ae306464d42973c61153543ebf63a1fcf1c46966b1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+        "expectedType": "scnChoiceNode"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.adf416711072",
+      "sourceId": "priority-endings.source.5671bd8cd2b8",
+      "kind": "native",
+      "locator": "Scene node 72 receives the Succeeded socket for leave_mementos after memorial dialogue.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q204/scenes/q204_08_farewell.scene.json",
+        "assetSha256": "5cd50675f98a9340a2175566c21aa82eef157bd18b39fc1532bbfe8e472ac46f",
+        "jsonSha256": "77ffff58b4fc1193f89251ae306464d42973c61153543ebf63a1fcf1c46966b1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+        "expectedType": "scnQuestNode"
+      }
+    },
+    {
+      "id": "priority-endings.evidence.938e288a6f96",
+      "sourceId": "priority-endings.source.449640aa79e7",
+      "kind": "native",
+      "locator": "Production Temperance sequence enters the columbarium phase before the bus station.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q204/q204_reborn.questphase.json",
+        "assetSha256": "a20e99fe97040bb1d661a917bd15e1130c8520be43eee560fe2a90e7cd543444",
+        "jsonSha256": "2b78fb7e6d11e7c5c04e1d95c57309aa2ff007688d71b5ae23965418b50b2501",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data",
+        "expectedType": "questPhaseNodeDefinition"
+      }
+    }
+  ],
+  "factAllowlist": {
+    "q115_panam_romance_chosen": {
+      "evidenceRefs": [
+        "priority-endings.evidence.ead19fd4b944"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/162/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ]
+    },
+    "q115_call_panam_done": {
+      "evidenceRefs": [
+        "priority-endings.evidence.f026e99fc8e1"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/114/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ]
+    },
+    "q115_rogue_in_av": {
+      "evidenceRefs": [
+        "priority-endings.evidence.db62c268a8ab"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_04_preparations_final.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/64/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ]
+    },
+    "q115_did_it_solo": {
+      "evidenceRefs": [
+        "priority-endings.evidence.8f5194376550"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/part1/q115/phases/q115_solo_the_mikoshi.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ]
+    },
+    "q201_active": {
+      "evidenceRefs": [
+        "priority-endings.evidence.a444a3e3c1cf"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases/raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/5/Data/phaseGraph/Data/nodes/9/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ]
+    },
+    "q201_done": {
+      "evidenceRefs": [
+        "priority-endings.evidence.185f84d0178a"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases/raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data/phaseGraph/Data/nodes/10/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ]
+    },
+    "q202_active": {
+      "evidenceRefs": [
+        "priority-endings.evidence.00004c82b72d"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases/raw/base/base/quest/main_quests/epilogue/q202/q202.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ]
+    },
+    "q202_done": {
+      "evidenceRefs": [
+        "priority-endings.evidence.dacf9099307b"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases/raw/base/base/quest/main_quests/epilogue/q202/q202.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/13/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ]
+    },
+    "q203_active": {
+      "evidenceRefs": [
+        "priority-endings.evidence.119a271d25f7"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q203/phase/q203_penthouse.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/7/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ]
+    },
+    "q204_active": {
+      "evidenceRefs": [
+        "priority-endings.evidence.488612556e41"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q204/q204_reborn.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/15/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ]
+    },
+    "q204_done": {
+      "evidenceRefs": [
+        "priority-endings.evidence.4cdfd8b4812f"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q204/q204_reborn.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/21/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ]
+    },
+    "q101_rogue_moved_to_heli": {
+      "evidenceRefs": [
+        "priority-endings.evidence.4771e7b95731"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-history/raw/base/base/quest/main_quests/part1/q101/scenes/q101_06c_memories_backalley_p1.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/116/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ]
+    },
+    "q101_kerry_insult": {
+      "evidenceRefs": [
+        "priority-endings.evidence.e60490be06c9"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-history/raw/base/base/quest/main_quests/part1/q101/scenes/q101_06c_memories_backalley_p1.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ]
+    },
+    "q115_jungle_weyland_saved": {
+      "evidenceRefs": [
+        "priority-endings.evidence.6ec6a61a97da"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-weyland/raw/base/base/quest/main_quests/part1/q115/phases/q115_05_jungle.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data/phaseGraph/Data/nodes/7/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ]
+    },
+    "q116_saul_dead": {
+      "evidenceRefs": [
+        "priority-endings.evidence.8027377ba483"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ]
+    },
+    "q202_05_talked_about_plan": {
+      "evidenceRefs": [
+        "priority-endings.evidence.a73bc9c442f1"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q202/scenes/q202_05_convoy.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/85/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ]
+    },
+    "q203_fact_lover_says_goodbye": {
+      "evidenceRefs": [
+        "priority-endings.evidence.773b06d51d9b"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q203/scenes/q203_02c_judy.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ]
+    },
+    "q203_fact_relationship_dialogue_over": {
+      "evidenceRefs": [
+        "priority-endings.evidence.1963aaf6dd81"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q203/scenes/q203_02d_panam.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/113/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ]
+    },
+    "q201_ice": {
+      "evidenceRefs": [
+        "priority-endings.evidence.e0bfeab120a0"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/84/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ]
+    },
+    "q201_earth": {
+      "evidenceRefs": [
+        "priority-endings.evidence.092cfed9b587"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/85/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ]
+    },
+    "q115_judy_romance_chosen": {
+      "evidenceRefs": [
+        "priority-endings.evidence.b073e1d2cf20"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/161/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ]
+    },
+    "q110_08a_netwatch_deal": {
+      "evidenceRefs": [
+        "priority-endings.evidence.f9cfacc72906"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ]
+    }
+  },
+  "journalAllowlist": {
+    "endings.firestorm.completed": {
+      "questKey": "love-like-fire",
+      "nativePath": "quests/main_quest/act_01/q101_01_firestorm",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "priority-endings.evidence.4018ca3ff170"
+      ]
+    },
+    "endings.never-fade.completed": {
+      "questKey": "never-fade-away",
+      "nativePath": "quests/main_quest/act_01/q108_johnny",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "priority-endings.evidence.2c9e8f4c6499"
+      ]
+    },
+    "endings.transmission.cyberspace.completed": {
+      "questKey": "transmission",
+      "nativePath": "quests/main_quest/act_01/q110_03_cyberspace",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "priority-endings.evidence.a067f4decae1"
+      ]
+    },
+    "endings.nocturne.panam-help.completed": {
+      "questKey": "nocturne-op55n1",
+      "nativePath": "quests/meta/02_sickness/q115_ripperdoc/04a_talk_to_panam",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "priority-endings.evidence.edc344eb8bf0"
+      ]
+    },
+    "endings.nocturne.hanako-help.completed": {
+      "questKey": "nocturne-op55n1",
+      "nativePath": "quests/meta/02_sickness/q115_ripperdoc/04b_talk_to_hanako",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "priority-endings.evidence.8b44575ff6ec"
+      ]
+    },
+    "endings.hanako-extraction.completed": {
+      "questKey": "last-caress",
+      "nativePath": "quests/main_quest/act_01/q113_rescuing_hanako",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "priority-endings.evidence.211338210586"
+      ]
+    },
+    "endings.nomad.assault-plan": {
+      "questKey": "we-gotta-live-together",
+      "nativePath": "quests/main_quest/act_01/q114_01_nomad_initiation/new_camp_wake_up/plan",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "priority-endings.evidence.7799d163243a"
+      ]
+    },
+    "endings.nomad.drilled-hole": {
+      "questKey": "forward-to-death",
+      "nativePath": "quests/main_quest/act_01/q114_03_attack_on_arasaka_tower/06_tunnel/hole",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "priority-endings.evidence.db08e216935a"
+      ]
+    },
+    "endings.nomad.mikoshi-jack-in": {
+      "questKey": "belly-of-the-beast",
+      "nativePath": "quests/main_quest/act_01/q114_03_attack_on_arasaka_tower/09_mikoshi/05_jack_in",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "priority-endings.evidence.9a47610876d1"
+      ]
+    },
+    "endings.star.judy-conversation": {
+      "questKey": "all-along-the-watchtower",
+      "nativePath": "quests/main_quest/epilogues/q202_nomads/temp_river/talk_judy",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "priority-endings.evidence.f8e7daab58b8"
+      ]
+    },
+    "endings.star.mitch-conversation": {
+      "questKey": "all-along-the-watchtower",
+      "nativePath": "quests/main_quest/epilogues/q202_nomads/temp_river/greet_mitch",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "priority-endings.evidence.ee271955c1aa"
+      ]
+    },
+    "endings.devil.jackie-construct-conversation": {
+      "questKey": "totalimmortal",
+      "nativePath": "quests/main_quest/act_01/q113_corpo/02_arasaka_tower/00c3_talk_jackie",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "priority-endings.evidence.80db8dede9aa"
+      ]
+    },
+    "endings.tapeworm.dogtags-taken": {
+      "questKey": "tapeworm",
+      "nativePath": "quests/side_quest/sq032_tapeworm/00_johnny/05_take_dogtags",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "priority-endings.evidence.bfef1f58f112"
+      ]
+    },
+    "endings.takemura.hideout-rescue": {
+      "questKey": "search-and-destroy",
+      "nativePath": "quests/main_quest/act_01/q112_04_hideout/06_safe_house/06i_save",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "priority-endings.evidence.e07e85d8888d"
+      ]
+    },
+    "endings.nocturne.judy-farewell": {
+      "questKey": "nocturne-op55n1",
+      "nativePath": "quests/meta/02_sickness/q115_ripperdoc/02a3_call_judy",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "priority-endings.evidence.db2a8eb6fd8a"
+      ]
+    },
+    "endings.devil.judy-orbital-call": {
+      "questKey": "where-is-my-mind",
+      "nativePath": "quests/main_quest/epilogues/q201_heir/06_cabin_day_3/01_talk_judy",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "priority-endings.evidence.b341a6909653"
+      ]
+    },
+    "endings.devil.panam-orbital-call": {
+      "questKey": "where-is-my-mind",
+      "nativePath": "quests/main_quest/epilogues/q201_heir/06_cabin_day_3/03_talk_to_panam",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "priority-endings.evidence.7a1e76fd4b55"
+      ]
+    },
+    "endings.temperance.mementos-left": {
+      "questKey": "new-dawn-fades",
+      "nativePath": "quests/main_quest/epilogues/q204_reborn/04_columbarium/leave_mementos",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "priority-endings.evidence.f447f7ad366b"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "priority-endings.johnny.firestorm-memory",
+      "revision": 1,
+      "questKey": "love-like-fire",
+      "topic": "johnny.memory.2023",
+      "outcome": "experienced",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V lived through Johnny’s 2023 Arasaka assault memory after the Relic activated.",
+      "sourceIds": [
+        "priority-endings.source.0abedd54c29b",
+        "priority-endings.source.9afb79f8a075",
+        "priority-endings.source.a1d764af903e"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.4771e7b95731",
+        "priority-endings.evidence.4018ca3ff170",
+        "priority-endings.evidence.33cfbdcd222b"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.memory-2023",
+          "outcomeKey": "experienced"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q101_rogue_moved_to_heli",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "endings.firestorm.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.johnny.alt-memory",
+      "revision": 1,
+      "questKey": "never-fade-away",
+      "topic": "johnny.memory.2013",
+      "outcome": "experienced",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V lived through Johnny’s 2013 memory of Alt’s abduction and the Arasaka rescue attempt.",
+      "sourceIds": [
+        "priority-endings.source.0abedd54c29b",
+        "priority-endings.source.9afb79f8a075",
+        "priority-endings.source.964c26f3b858"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.4771e7b95731",
+        "priority-endings.evidence.2c9e8f4c6499",
+        "priority-endings.evidence.900ef2dfadb7"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.memory-2013",
+          "outcomeKey": "experienced"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q101_rogue_moved_to_heli",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "endings.never-fade.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.johnny.transmission-alt",
+      "revision": 1,
+      "questKey": "transmission",
+      "topic": "johnny.alt.digital-contact",
+      "outcome": "contact-established",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V and Johnny reached Alt beyond the Blackwall during Transmission.",
+      "sourceIds": [
+        "priority-endings.source.0abedd54c29b",
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.4771e7b95731",
+        "priority-endings.evidence.a067f4decae1"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.alt-contact",
+          "outcomeKey": "contact-established"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q101_rogue_moved_to_heli",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "endings.transmission.cyberspace.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.panam.rooftop-farewell",
+      "revision": 1,
+      "questKey": "nocturne-op55n1",
+      "topic": "v.final-romance-contact",
+      "outcome": "panam",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V selected Panam for the private farewell call and spoke to her before the final plan.",
+      "sourceIds": [
+        "priority-endings.source.c8cb8f984140"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.ead19fd4b944",
+        "priority-endings.evidence.f026e99fc8e1"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.nocturne.partner-call",
+          "outcomeKey": "panam"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q115_panam_romance_chosen",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q115_call_panam_done",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.panam.accepted-help",
+      "revision": 1,
+      "questKey": "nocturne-op55n1",
+      "topic": "aldecaldos.final-help",
+      "outcome": "called-panam",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V asked Panam for Aldecaldo help on the committed final route.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075",
+        "priority-endings.source.2ced69021553"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.edc344eb8bf0",
+        "priority-endings.evidence.5500f6b0ad30"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.nocturne.help",
+          "outcomeKey": "called-panam"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "endings.nocturne.panam-help.completed",
+        "op": "eq",
+        "value": "succeeded"
+      }
+    },
+    {
+      "id": "priority-endings.johnny.route-star",
+      "revision": 1,
+      "questKey": "nocturne-op55n1",
+      "topic": "v.final-route",
+      "outcome": "aldecaldos",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V committed to Panam’s Aldecaldo plan and completed the help call.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075",
+        "priority-endings.source.2ced69021553"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.edc344eb8bf0",
+        "priority-endings.evidence.5500f6b0ad30"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.final-route",
+          "outcomeKey": "aldecaldos"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "endings.nocturne.panam-help.completed",
+        "op": "eq",
+        "value": "succeeded"
+      }
+    },
+    {
+      "id": "priority-endings.johnny.route-devil",
+      "revision": 1,
+      "questKey": "nocturne-op55n1",
+      "topic": "v.final-route",
+      "outcome": "arasaka",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V committed to Hanako’s Arasaka plan and completed the help call.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075",
+        "priority-endings.source.2ced69021553"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.8b44575ff6ec",
+        "priority-endings.evidence.5500f6b0ad30"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.final-route",
+          "outcomeKey": "arasaka"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "endings.nocturne.hanako-help.completed",
+        "op": "eq",
+        "value": "succeeded"
+      }
+    },
+    {
+      "id": "priority-endings.johnny.route-rogue",
+      "revision": 1,
+      "questKey": "nocturne-op55n1",
+      "topic": "v.final-route",
+      "outcome": "rogue",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Johnny and Rogue took the Arasaka assault route together; Rogue boarded the AV.",
+      "sourceIds": [
+        "priority-endings.source.483d11959305"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.db62c268a8ab"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.final-route",
+          "outcomeKey": "rogue"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand",
+          "rogue-amendiares"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand",
+          "rogue-amendiares"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q115_rogue_in_av",
+        "op": "gte",
+        "value": 1
+      }
+    },
+    {
+      "id": "priority-endings.johnny.route-solo",
+      "revision": 1,
+      "questKey": "nocturne-op55n1",
+      "topic": "v.final-route",
+      "outcome": "solo",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V and Johnny carried the solo Arasaka assault through to Mikoshi.",
+      "sourceIds": [
+        "priority-endings.source.faacc856ec6e"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.8f5194376550"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.final-route",
+          "outcomeKey": "solo"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q115_did_it_solo",
+        "op": "gte",
+        "value": 1
+      }
+    },
+    {
+      "id": "priority-endings.johnny.solo-mikoshi",
+      "revision": 1,
+      "questKey": "dont-fear-the-reaper",
+      "topic": "v.solo-assault.result",
+      "outcome": "reached-mikoshi",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V reached Mikoshi on the solo assault; the late solo marker is written only after its Mikoshi access branch.",
+      "sourceIds": [
+        "priority-endings.source.faacc856ec6e"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.8f5194376550"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.solo-assault-result",
+          "outcomeKey": "reached-mikoshi"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q115_did_it_solo",
+        "op": "gte",
+        "value": 1
+      }
+    },
+    {
+      "id": "priority-endings.hanako.extracted",
+      "revision": 1,
+      "questKey": "last-caress",
+      "topic": "hanako.estate.extraction",
+      "outcome": "rescued",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V extracted Hanako from the Arasaka estate and completed Last Caress.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.211338210586"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.hanako-extracted",
+          "outcomeKey": "rescued"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "hanako-arasaka"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "hanako-arasaka"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "endings.hanako-extraction.completed",
+        "op": "eq",
+        "value": "succeeded"
+      }
+    },
+    {
+      "id": "priority-endings.johnny.body-kept-by-v",
+      "revision": 1,
+      "questKey": "changes",
+      "topic": "v.johnny.body-beneficiary",
+      "outcome": "v",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V retained the body after Mikoshi and entered the Star or Sun epilogue.",
+      "sourceIds": [
+        "priority-endings.source.e06c905ef4c2",
+        "priority-endings.source.37d448f0c57a"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.00004c82b72d",
+        "priority-endings.evidence.dacf9099307b",
+        "priority-endings.evidence.119a271d25f7"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.body-beneficiary",
+          "outcomeKey": "v"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "any": [
+          {
+            "type": "fact",
+            "key": "q202_active",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q202_done",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q203_active",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.johnny.body-kept-by-johnny",
+      "revision": 1,
+      "questKey": "changes",
+      "topic": "v.johnny.body-beneficiary",
+      "outcome": "johnny",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Johnny retained V’s body and entered the Temperance epilogue.",
+      "sourceIds": [
+        "priority-endings.source.449640aa79e7"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.488612556e41",
+        "priority-endings.evidence.4cdfd8b4812f"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.body-beneficiary",
+          "outcomeKey": "johnny"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "any": [
+          {
+            "type": "fact",
+            "key": "q204_active",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q204_done",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.panam.star-body-return",
+      "revision": 1,
+      "questKey": "changes",
+      "topic": "v.body-continuity",
+      "outcome": "v-returned",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V returned from Mikoshi and reached the Aldecaldo epilogue with Panam.",
+      "sourceIds": [
+        "priority-endings.source.e06c905ef4c2"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.00004c82b72d",
+        "priority-endings.evidence.dacf9099307b"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.changes.body",
+          "outcomeKey": "v-returned"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "any": [
+          {
+            "type": "fact",
+            "key": "q202_active",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q202_done",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.panam.star-border",
+      "revision": 1,
+      "questKey": "all-along-the-watchtower",
+      "topic": "aldecaldos.departure",
+      "outcome": "crossed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V and the Aldecaldos completed the border crossing out of Night City.",
+      "sourceIds": [
+        "priority-endings.source.e06c905ef4c2"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.dacf9099307b"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.watchtower.departure",
+          "outcomeKey": "crossed"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q202_done",
+        "op": "gte",
+        "value": 1
+      }
+    },
+    {
+      "id": "priority-endings.johnny.temperance-departure",
+      "revision": 1,
+      "questKey": "new-dawn-fades",
+      "topic": "johnny.temperance.departure",
+      "outcome": "left-city",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Johnny left Night City at the end of New Dawn Fades.",
+      "sourceIds": [
+        "priority-endings.source.449640aa79e7"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.4cdfd8b4812f"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.departure",
+          "outcomeKey": "left-city"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q204_done",
+        "op": "gte",
+        "value": 1
+      }
+    },
+    {
+      "id": "priority-endings.johnny.kerry-dismissive",
+      "revision": 1,
+      "questKey": "love-like-fire",
+      "topic": "johnny.kerry.old-farewell",
+      "outcome": "dismissive",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Johnny insulted Kerry during their 2023 farewell after the Samurai show.",
+      "sourceIds": [
+        "priority-endings.source.0abedd54c29b"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.e60490be06c9"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.kerry-farewell-tone",
+          "outcomeKey": "dismissive"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q101_kerry_insult",
+        "op": "gte",
+        "value": 1
+      }
+    },
+    {
+      "id": "priority-endings.johnny.tapeworm-tags",
+      "revision": 1,
+      "questKey": "tapeworm",
+      "topic": "johnny.v.dog-tags",
+      "outcome": "received",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V took Johnny’s dog tags during their Tapeworm conversation.",
+      "sourceIds": [
+        "priority-endings.source.0abedd54c29b",
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.4771e7b95731",
+        "priority-endings.evidence.bfef1f58f112"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.dog-tags",
+          "outcomeKey": "received"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q101_rogue_moved_to_heli",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "endings.tapeworm.dogtags-taken",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.rogue.assault-commitment",
+      "revision": 1,
+      "questKey": "for-whom-the-bell-tolls",
+      "topic": "rogue.johnny.final-assault",
+      "outcome": "committed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Rogue and Johnny committed to the Arasaka assault and boarded the AV.",
+      "sourceIds": [
+        "priority-endings.source.483d11959305"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.db62c268a8ab"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.assault-commitment",
+          "outcomeKey": "committed"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q115_rogue_in_av",
+        "op": "gte",
+        "value": 1
+      }
+    },
+    {
+      "id": "priority-endings.rogue.weyland-recovered",
+      "revision": 1,
+      "questKey": "knockin-on-heavens-door",
+      "topic": "weyland.rogue-assault.recovery",
+      "outcome": "recovered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Weyland was recovered during Rogue’s Arasaka assault route.",
+      "sourceIds": [
+        "priority-endings.source.090020fa5ccd"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.6ec6a61a97da"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.weyland-recovery",
+          "outcomeKey": "recovered"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q115_jungle_weyland_saved",
+        "op": "gte",
+        "value": 1
+      }
+    },
+    {
+      "id": "priority-endings.johnny.saul-killed",
+      "revision": 1,
+      "questKey": "belly-of-the-beast",
+      "topic": "saul.fate",
+      "outcome": "killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Adam Smasher killed Saul during the Aldecaldo assault, witnessed by V and Panam.",
+      "sourceIds": [
+        "priority-endings.source.583e45a43dc2"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.8027377ba483"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.saul-fate",
+          "outcomeKey": "killed"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q116_saul_dead",
+        "op": "gte",
+        "value": 1
+      }
+    },
+    {
+      "id": "priority-endings.nomad.assault-plan",
+      "revision": 1,
+      "questKey": "we-gotta-live-together",
+      "topic": "aldecaldos.arasaka-plan",
+      "outcome": "committed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "The Aldecaldos agreed on the assault plan with V at their camp.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.7799d163243a"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.assault-plan",
+          "outcomeKey": "committed"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer",
+          "saul-bright"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer",
+          "saul-bright",
+          "mitch-anderson",
+          "carol-emeka"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "endings.nomad.assault-plan",
+        "op": "eq",
+        "value": "succeeded"
+      }
+    },
+    {
+      "id": "priority-endings.nomad.breach",
+      "revision": 1,
+      "questKey": "forward-to-death",
+      "topic": "aldecaldos.construction-breach",
+      "outcome": "opened",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "The Aldecaldo drill opened a route into Arasaka’s underground approach.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.db08e216935a"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.forward.breach",
+          "outcomeKey": "opened"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer",
+          "saul-bright"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer",
+          "saul-bright",
+          "mitch-anderson"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "endings.nomad.drilled-hole",
+        "op": "eq",
+        "value": "succeeded"
+      }
+    },
+    {
+      "id": "priority-endings.nomad.mikoshi",
+      "revision": 1,
+      "questKey": "belly-of-the-beast",
+      "topic": "v.aldecaldo-assault.mikoshi",
+      "outcome": "reached",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V reached and connected to Mikoshi after the Aldecaldo assault.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.9a47610876d1"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.aldecaldo-mikoshi",
+          "outcomeKey": "reached"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "endings.nomad.mikoshi-jack-in",
+        "op": "eq",
+        "value": "succeeded"
+      }
+    },
+    {
+      "id": "priority-endings.nomad.mikoshi-panam",
+      "revision": 1,
+      "questKey": "belly-of-the-beast",
+      "topic": "v.mikoshi-access",
+      "outcome": "connected",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Panam witnessed V connect to Mikoshi after the Aldecaldo assault.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.9a47610876d1"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.belly.mikoshi-reached",
+          "outcomeKey": "connected"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "endings.nomad.mikoshi-jack-in",
+        "op": "eq",
+        "value": "succeeded"
+      }
+    },
+    {
+      "id": "priority-endings.nomad.star-plan",
+      "revision": 1,
+      "questKey": "all-along-the-watchtower",
+      "topic": "aldecaldos.departure",
+      "outcome": "planned",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Panam and V made a plan to leave Night City through an old smuggling tunnel.",
+      "sourceIds": [
+        "priority-endings.source.7514316575e5"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.a73bc9c442f1"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.watchtower.departure",
+          "outcomeKey": "planned"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q202_05_talked_about_plan",
+        "op": "gte",
+        "value": 1
+      }
+    },
+    {
+      "id": "priority-endings.nomad.star-mitch",
+      "revision": 1,
+      "questKey": "all-along-the-watchtower",
+      "topic": "mitch.post-assault-health",
+      "outcome": "recovered-enough-to-travel",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Mitch was well enough to join the border convoy and spoke with V before departure.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.ee271955c1aa"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.watchtower.mitch-recovery",
+          "outcomeKey": "recovered-enough-to-travel"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "mitch-anderson"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer",
+          "mitch-anderson"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "endings.star.mitch-conversation",
+        "op": "eq",
+        "value": "succeeded"
+      }
+    },
+    {
+      "id": "priority-endings.judy.star-departure",
+      "revision": 1,
+      "questKey": "all-along-the-watchtower",
+      "topic": "v.star_relationship",
+      "outcome": "judy-leaves-together",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Judy joined V and the Aldecaldos to leave Night City.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.f8e7daab58b8"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.star.partner",
+          "outcomeKey": "judy-leaves-together"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "judy-alvarez"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "judy-alvarez"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "endings.star.judy-conversation",
+        "op": "eq",
+        "value": "succeeded"
+      }
+    },
+    {
+      "id": "priority-endings.judy.star-partner",
+      "revision": 1,
+      "questKey": "all-along-the-watchtower",
+      "topic": "v.star-partner",
+      "outcome": "judy-leaves",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Judy joined V and the Aldecaldos to leave Night City.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.f8e7daab58b8"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.watchtower.partner",
+          "outcomeKey": "judy-leaves"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "judy-alvarez"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "judy-alvarez"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "endings.star.judy-conversation",
+        "op": "eq",
+        "value": "succeeded"
+      }
+    },
+    {
+      "id": "priority-endings.judy.sun-goodbye",
+      "revision": 1,
+      "questKey": "path-of-glory",
+      "topic": "v.sun_relationship",
+      "outcome": "judy-leaves",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Judy told V she would leave Night City instead of staying with V at the Afterlife.",
+      "sourceIds": [
+        "priority-endings.source.e3d9d005ac91"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.773b06d51d9b"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.sun.partner",
+          "outcomeKey": "judy-leaves"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "judy-alvarez"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "judy-alvarez"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q203_fact_lover_says_goodbye",
+        "op": "gte",
+        "value": 1
+      }
+    },
+    {
+      "id": "priority-endings.panam.sun-goodbye",
+      "revision": 1,
+      "questKey": "path-of-glory",
+      "topic": "panam.sun-parting",
+      "outcome": "different-roads",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Panam and V took different roads after Mikoshi; Panam left Night City while V stayed for the Afterlife job.",
+      "sourceIds": [
+        "priority-endings.source.1a92b29027ba"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.1963aaf6dd81"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.sun.parting",
+          "outcomeKey": "different-roads"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q203_fact_relationship_dialogue_over",
+        "op": "gte",
+        "value": 1
+      }
+    },
+    {
+      "id": "priority-endings.jackie.construct",
+      "revision": 1,
+      "questKey": "totalimmortal",
+      "topic": "jackie.construct.encounter",
+      "outcome": "encountered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V spoke with a damaged Jackie construct in Arasaka’s tower; this does not restore the deceased Jackie’s continuity.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.80db8dede9aa"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.jackie-construct",
+          "outcomeKey": "encountered"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "hanako-arasaka"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "hanako-arasaka"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "endings.devil.jackie-construct-conversation",
+        "op": "eq",
+        "value": "succeeded"
+      }
+    },
+    {
+      "id": "priority-endings.takemura.devil-route",
+      "revision": 1,
+      "questKey": "nocturne-op55n1",
+      "topic": "v.ending.route",
+      "outcome": "hanako",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V chose Hanako’s Arasaka route, and Takemura was alive to accompany the operation.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.8b44575ff6ec",
+        "priority-endings.evidence.e07e85d8888d",
+        "priority-endings.evidence.211338210586"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.ending-route",
+          "outcomeKey": "hanako"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "takemura"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "takemura",
+          "hanako-arasaka"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "endings.nocturne.hanako-help.completed",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "endings.takemura.hideout-rescue",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "endings.hanako-extraction.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.takemura.estate",
+      "revision": 1,
+      "questKey": "last-caress",
+      "topic": "takemura.devil.participation",
+      "outcome": "present",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Takemura joined V for Hanako’s estate extraction on the Arasaka route.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.e07e85d8888d",
+        "priority-endings.evidence.211338210586"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.devil-takemura-presence",
+          "outcomeKey": "present"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "takemura"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "takemura",
+          "hanako-arasaka"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "endings.takemura.hideout-rescue",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "endings.hanako-extraction.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.takemura.orbital-visitor",
+      "revision": 1,
+      "questKey": "where-is-my-mind",
+      "topic": "v.orbital.visitor",
+      "outcome": "takemura",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Takemura survived and visited V aboard Arasaka’s orbital station at the final contract decision.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075",
+        "priority-endings.source.821fd8e3e5a5"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.e07e85d8888d",
+        "priority-endings.evidence.e0bfeab120a0",
+        "priority-endings.evidence.092cfed9b587"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.orbital-visitor",
+          "outcomeKey": "takemura"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "takemura"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "takemura"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "endings.takemura.hideout-rescue",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "any": [
+              {
+                "type": "fact",
+                "key": "q201_ice",
+                "op": "gte",
+                "value": 1
+              },
+              {
+                "type": "fact",
+                "key": "q201_earth",
+                "op": "gte",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.johnny.rogue-alive-after-solo",
+      "revision": 1,
+      "questKey": "path-of-glory",
+      "topic": "rogue.sun.presence",
+      "outcome": "alive-after-solo",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Rogue survived because V reached Mikoshi by the solo route and then entered the Sun epilogue.",
+      "sourceIds": [
+        "priority-endings.source.faacc856ec6e",
+        "priority-endings.source.37d448f0c57a"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.8f5194376550",
+        "priority-endings.evidence.119a271d25f7"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.rogue-afterlife",
+          "outcomeKey": "alive-after-solo"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "rogue-amendiares"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rogue-amendiares"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q115_did_it_solo",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q203_active",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.rogue.son-farewell",
+      "revision": 1,
+      "questKey": "for-whom-the-bell-tolls",
+      "topic": "rogue.family.farewell",
+      "outcome": "overheard",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Johnny overheard Rogue’s farewell call to her son before their Arasaka AV assault.",
+      "sourceIds": [
+        "priority-endings.source.483d11959305"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.db62c268a8ab",
+        "priority-endings.evidence.e78d82d01596"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.rogue-farewell-call",
+          "outcomeKey": "overheard"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q115_rogue_in_av",
+        "op": "gte",
+        "value": 1
+      }
+    },
+    {
+      "id": "priority-endings.nomad.bob-teddy-dead",
+      "revision": 1,
+      "questKey": "forward-to-death",
+      "topic": "aldecaldos.assault-casualties",
+      "outcome": "bob-and-teddy-dead",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Bob and Teddy died during the Aldecaldo construction assault before the group drilled through to Arasaka.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075",
+        "priority-endings.source.238a108c3905"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.db08e216935a",
+        "priority-endings.evidence.5c4a54ec657e"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.forward.casualties",
+          "outcomeKey": "bob-and-teddy-dead"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer",
+          "saul-bright",
+          "mitch-anderson"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "endings.nomad.drilled-hole",
+        "op": "eq",
+        "value": "succeeded"
+      }
+    },
+    {
+      "id": "priority-endings.nomad.mitch-returned",
+      "revision": 1,
+      "questKey": "belly-of-the-beast",
+      "topic": "mitch.solo-basilisk",
+      "outcome": "returned-outside",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Mitch survived the tower assault and returned to the Aldecaldo border convoy.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.ee271955c1aa"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.belly.mitch-return",
+          "outcomeKey": "returned-outside"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "mitch-anderson"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer",
+          "mitch-anderson"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "endings.star.mitch-conversation",
+        "op": "eq",
+        "value": "succeeded"
+      }
+    },
+    {
+      "id": "priority-endings.panam.star-together",
+      "revision": 1,
+      "questKey": "all-along-the-watchtower",
+      "topic": "v.star-partner",
+      "outcome": "panam-together",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Panam was V’s selected romantic partner and they left Night City together on the Aldecaldo route.",
+      "sourceIds": [
+        "priority-endings.source.c8cb8f984140",
+        "priority-endings.source.7514316575e5"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.ead19fd4b944",
+        "priority-endings.evidence.a73bc9c442f1"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.watchtower.partner",
+          "outcomeKey": "panam-together"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q115_panam_romance_chosen",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q202_05_talked_about_plan",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.takemura.prognosis",
+      "revision": 1,
+      "questKey": "where-is-my-mind",
+      "topic": "v.arasaka.treatment",
+      "outcome": "prognosis-given",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Takemura visited V after Arasaka treatment, when V had received the terminal prognosis and faced the final contract decision.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075",
+        "priority-endings.source.821fd8e3e5a5"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.e07e85d8888d",
+        "priority-endings.evidence.e0bfeab120a0",
+        "priority-endings.evidence.092cfed9b587"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.arasaka-treatment",
+          "outcomeKey": "prognosis-given"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "takemura"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "takemura"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "endings.takemura.hideout-rescue",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "any": [
+              {
+                "type": "fact",
+                "key": "q201_ice",
+                "op": "gte",
+                "value": 1
+              },
+              {
+                "type": "fact",
+                "key": "q201_earth",
+                "op": "gte",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.johnny.steve-guitar",
+      "revision": 1,
+      "questKey": "new-dawn-fades",
+      "topic": "johnny.steve.guitar",
+      "outcome": "given",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Johnny left the guitar he bought with Steve in Steve’s care when he departed by bus.",
+      "sourceIds": [
+        "priority-endings.source.449640aa79e7",
+        "priority-endings.source.61c5f77a4741"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.4cdfd8b4812f",
+        "priority-endings.evidence.5868c9a4c7b9"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.temperance-guitar",
+          "outcomeKey": "given"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q204_done",
+        "op": "gte",
+        "value": 1
+      }
+    },
+    {
+      "id": "priority-endings.johnny.memorial-v",
+      "revision": 1,
+      "questKey": "new-dawn-fades",
+      "topic": "johnny.temperance.memorial",
+      "outcome": "v-only",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Johnny visited V’s memorial after retaining the body on an Aldecaldo or solo route where Rogue survived.",
+      "sourceIds": [
+        "priority-endings.source.9afb79f8a075",
+        "priority-endings.source.583e45a43dc2",
+        "priority-endings.source.faacc856ec6e",
+        "priority-endings.source.5671bd8cd2b8",
+        "priority-endings.source.449640aa79e7"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.f447f7ad366b",
+        "priority-endings.evidence.8027377ba483",
+        "priority-endings.evidence.8f5194376550",
+        "priority-endings.evidence.60884f93a349",
+        "priority-endings.evidence.adf416711072",
+        "priority-endings.evidence.938e288a6f96"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.temperance-memorials",
+          "outcomeKey": "v-only"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "endings.temperance.mementos-left",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "any": [
+              {
+                "type": "fact",
+                "key": "q116_saul_dead",
+                "op": "gte",
+                "value": 1
+              },
+              {
+                "type": "fact",
+                "key": "q115_did_it_solo",
+                "op": "gte",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.johnny.netwatch-purge",
+      "revision": 1,
+      "questKey": "transmission",
+      "topic": "transmission.voodoo-boys",
+      "outcome": "netwatch-purge",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "The NetWatch deal led to the Voodoo Boys netrunners’ purge after V and Johnny reached Alt.",
+      "sourceIds": [
+        "priority-endings.source.0abedd54c29b",
+        "priority-endings.source.888e0c3a4ea3",
+        "priority-endings.source.9afb79f8a075",
+        "priority-endings.source.ecbf576b74a5"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.4771e7b95731",
+        "priority-endings.evidence.f9cfacc72906",
+        "priority-endings.evidence.a067f4decae1",
+        "priority-endings.evidence.0bafab9f5f50",
+        "priority-endings.evidence.0e249fd66a07"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.voodoo-outcome",
+          "outcomeKey": "netwatch-purge"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q101_rogue_moved_to_heli",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q110_08a_netwatch_deal",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "endings.transmission.cyberspace.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.judy.rooftop-farewell",
+      "revision": 1,
+      "questKey": "nocturne-op55n1",
+      "topic": "v.primary_ending_partner",
+      "outcome": "judy-called",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V chose Judy as the private rooftop farewell contact and completed the call.",
+      "sourceIds": [
+        "priority-endings.source.c8cb8f984140",
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.b073e1d2cf20",
+        "priority-endings.evidence.db2a8eb6fd8a"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.nocturne.partner-call",
+          "outcomeKey": "judy-called"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "judy-alvarez"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "judy-alvarez"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q115_judy_romance_chosen",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "endings.nocturne.judy-farewell",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.judy.devil-withdrawal",
+      "revision": 1,
+      "questKey": "where-is-my-mind",
+      "topic": "v.devil_relationship",
+      "outcome": "judy-withdraws",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V spoke with Judy from Arasaka orbit; she was angry and preparing to leave Night City.",
+      "sourceIds": [
+        "priority-endings.source.c8cb8f984140",
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.b073e1d2cf20",
+        "priority-endings.evidence.b341a6909653"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.devil.partner-call",
+          "outcomeKey": "judy-withdraws"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "judy-alvarez"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "judy-alvarez"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q115_judy_romance_chosen",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "endings.devil.judy-orbital-call",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "id": "priority-endings.panam.devil-romantic-call",
+      "revision": 1,
+      "questKey": "where-is-my-mind",
+      "topic": "panam.orbital-call",
+      "outcome": "called-romantic",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V spoke with Panam from Arasaka orbit after choosing her as the romantic rooftop contact.",
+      "sourceIds": [
+        "priority-endings.source.c8cb8f984140",
+        "priority-endings.source.9afb79f8a075"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.ead19fd4b944",
+        "priority-endings.evidence.7a1e76fd4b55"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.devil.panam-call",
+          "outcomeKey": "called-romantic"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q115_panam_romance_chosen",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "endings.devil.panam-orbital-call",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      }
+    }
+  ]
+}

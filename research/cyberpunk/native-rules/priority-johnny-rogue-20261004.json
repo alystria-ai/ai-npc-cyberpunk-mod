@@ -1,0 +1,2260 @@
+{
+  "version": 1,
+  "id": "cyberpunk-native-priority-johnny-rogue-20261004",
+  "revision": 1,
+  "gameVersions": [
+    "2.31"
+  ],
+  "profileKeys": [
+    "johnny-silverhand",
+    "rogue-amendiares",
+    "kerry-eurodyne",
+    "nancy-hartley"
+  ],
+  "sources": [
+    {
+      "id": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "Installed Cyberpunk 2077 2.31 archive winners; authenticated batches priority-johnny-rogue-20261004, priority-johnny-rogue-extra-20261004, priority-johnny-rogue-final-20261004, priority-johnny-rogue-ghost-20261004, priority-johnny-rogue-gigs-20261004, priority-johnny-rogue-tattoo-20261004 and their raw/JSON/archive receipts."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "jr-priority.bender.completed",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The sq031 striptease phase exits through reward248, node252, then positive sq031_cool_metal_fire_done writer251. This is the completed night handover, not an early scene start.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq031/phases/sq031_striptease.questphase.json",
+        "assetSha256": "55cce1401498294c693966a2258d8a8d1d7a3f43f14ab8c90aeaeada254798dc",
+        "jsonSha256": "63e95bd98e6f5f5609b54c5fc180dd657beb6d6ec2fac5042c0f25b7f391da10",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq031/phases/sq031_striptease.questphase.json",
+          "assetSha256": "55cce1401498294c693966a2258d8a8d1d7a3f43f14ab8c90aeaeada254798dc",
+          "jsonSha256": "63e95bd98e6f5f5609b54c5fc180dd657beb6d6ec2fac5042c0f25b7f391da10",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data",
+          "expectedType": "questRewardManagerNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.rogue.commission",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The Rogue scene writes q103_rogue_paid_up at node2861 after the payment choice; its completed main scene exits to q103_rogue_done writer157 in the Afterlife phase, after Rogue provides the Kang Tao route and names Panam. Both positive facts are required.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-ghost-20261004/raw/base/base/quest/main_quests/part1/q103/scenes/q103_03_rogue.scene.json",
+        "assetSha256": "7f4de2c6ce8581d261cc61268e27cf5a86b904ee7d0618b0c3bc8c95365b3556",
+        "jsonSha256": "338e216d0678d411f2616d949df09f98746ecc645c491e427e3aa585f26aa686",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/237/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/quest/main_quests/part1/q103/phases/q103_01_afterlife_new.questphase.json",
+          "assetSha256": "a5aace7f12f59dce214a90c1b30328b4845c24ebdd748d17d1f906cdca83412b",
+          "jsonSha256": "2fb9bc9a6ca92a1a46016eb88aa0e8a6bd0369f36c39a5e5d20273bbb36d2127",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/12/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/quest/main_quests/part1/q103/phases/q103_01_afterlife_new.questphase.json",
+          "assetSha256": "a5aace7f12f59dce214a90c1b30328b4845c24ebdd748d17d1f906cdca83412b",
+          "jsonSha256": "2fb9bc9a6ca92a1a46016eb88aa0e8a6bd0369f36c39a5e5d20273bbb36d2127",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.tattoo.special",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "Tattoo choice section265 writes positive sq031_goat_tattoo at node273 and grants Items.CasiusTattoo at node678. Installed English localization names that exact item “Tattoo: Johnny’s Special.” The fact records the choice even if the inventory item is later removed.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-final-20261004/raw/base/base/quest/side_quests/sq031/scenes/sq031_01b_smack_tatto.scene.json",
+        "assetSha256": "0c70b7ce455b78943eb9298ea453cc5ae69bda5850ca1dfd6a1ca1a769ebbb80",
+        "jsonSha256": "7da980be55f4f7051ada42014654432fbe89d272e87cc7b1fb82caad51529e8b",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-final-20261004/raw/base/base/quest/side_quests/sq031/scenes/sq031_01b_smack_tatto.scene.json",
+          "assetSha256": "0c70b7ce455b78943eb9298ea453cc5ae69bda5850ca1dfd6a1ca1a769ebbb80",
+          "jsonSha256": "7da980be55f4f7051ada42014654432fbe89d272e87cc7b1fb82caad51529e8b",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-final-20261004/raw/base/base/quest/side_quests/sq031/scenes/sq031_01b_smack_tatto.scene.json",
+          "assetSha256": "0c70b7ce455b78943eb9298ea453cc5ae69bda5850ca1dfd6a1ca1a769ebbb80",
+          "jsonSha256": "7da980be55f4f7051ada42014654432fbe89d272e87cc7b1fb82caad51529e8b",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/55/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-tattoo-20261004/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "e3237a498829a0e1d02d0ce71ad323c590caefab129ba6152cdab6bf07f015e0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/52048",
+          "expectedType": "localizationPersistenceOnScreenEntry",
+          "expected": {
+            "/femaleVariant": "Tattoo: Johnny's Special"
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.tattoo.together",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The opposite tattoo choice section268 writes positive sq031_property_tattoo at node274 and grants Items.SilverhandTattoo at node679. Installed English localization names that exact item “Tattoo: Together Forever.” The choice fact is independent of later inventory changes.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-final-20261004/raw/base/base/quest/side_quests/sq031/scenes/sq031_01b_smack_tatto.scene.json",
+        "assetSha256": "0c70b7ce455b78943eb9298ea453cc5ae69bda5850ca1dfd6a1ca1a769ebbb80",
+        "jsonSha256": "7da980be55f4f7051ada42014654432fbe89d272e87cc7b1fb82caad51529e8b",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-final-20261004/raw/base/base/quest/side_quests/sq031/scenes/sq031_01b_smack_tatto.scene.json",
+          "assetSha256": "0c70b7ce455b78943eb9298ea453cc5ae69bda5850ca1dfd6a1ca1a769ebbb80",
+          "jsonSha256": "7da980be55f4f7051ada42014654432fbe89d272e87cc7b1fb82caad51529e8b",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-final-20261004/raw/base/base/quest/side_quests/sq031/scenes/sq031_01b_smack_tatto.scene.json",
+          "assetSha256": "0c70b7ce455b78943eb9298ea453cc5ae69bda5850ca1dfd6a1ca1a769ebbb80",
+          "jsonSha256": "7da980be55f4f7051ada42014654432fbe89d272e87cc7b1fb82caad51529e8b",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/56/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-tattoo-20261004/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "e3237a498829a0e1d02d0ce71ad323c590caefab129ba6152cdab6bf07f015e0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/52050",
+          "expectedType": "localizationPersistenceOnScreenEntry",
+          "expected": {
+            "/femaleVariant": "Tattoo: Together Forever"
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.ebunike.lead-obtained",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The motel arrival entry305 cannot reach positive sq031_rogue_met_johnny writer806 without traversing section740 (blocked-node reach test false). Section740 states Johnny got the Grayson tip from Ruby and names Ebunike. Writer806 follows the completed motel discussion, so this is a sufficient persisted receipt for obtaining that lead.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-final-20261004/raw/base/base/quest/side_quests/sq031/scenes/sq031_01d_smack_rogue.scene.json",
+        "assetSha256": "b9542e945e13d006a29a4628f8fd724a06101671b515f51f58e35ec63b8811e3",
+        "jsonSha256": "b436f67c484df86762f89fb19326807debe16febdcc172f3fdd4469af7960de2",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/56/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-final-20261004/raw/base/base/quest/side_quests/sq031/scenes/sq031_01d_smack_rogue.scene.json",
+          "assetSha256": "b9542e945e13d006a29a4628f8fd724a06101671b515f51f58e35ec63b8811e3",
+          "jsonSha256": "b436f67c484df86762f89fb19326807debe16febdcc172f3fdd4469af7960de2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-final-20261004/raw/base/base/quest/side_quests/sq031/scenes/sq031_01d_smack_rogue.scene.json",
+          "assetSha256": "b9542e945e13d006a29a4628f8fd724a06101671b515f51f58e35ec63b8811e3",
+          "jsonSha256": "b436f67c484df86762f89fb19326807debe16febdcc172f3fdd4469af7960de2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/57/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.date.arranged",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The movie scene writes positive sq031_rogue_date_met after Rogue and V meet at the theater. This proves the outing was arranged and reached, without inferring any later intimacy.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq031/scenes/sq031_07_cinema.scene.json",
+        "assetSha256": "6993336073c0b56789f8bea683dc00902869c93da937a9c66480fe04ea4b42b3",
+        "jsonSha256": "2957e217347b025c3de4c1b1052e833dc0ecb6262f898f59060a3116ffb6423c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/379/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-final-20261004/raw/base/base/quest/side_quests/sq031/scenes/sq031_06_rogue_call.scene.json",
+          "assetSha256": "991a468b999cb0b8f4b1a52185fe84e7410943433952469fdd8acb72f50cb257",
+          "jsonSha256": "33e7d78e08178252d6db983fcb1130d82ec46746ea838bd3840f54c1b9771ab3",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.mansion.recognition",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "Kerry addresses Johnny by name during the villa encounter (section919, line7425), then the encounter advances through the reunion discussion. Completion of sq011_kerry at node2716 is the positive reached-stage receipt, not the earlier sq011_kerry_met fact.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_01_kerry_mansion.scene.json",
+        "assetSha256": "a76cc673c14f414315823db02166623bfb4bb48229306f6ee35847f4a441fe94",
+        "jsonSha256": "b6560956ea8acf75b97c76eec1572d145d1bcfdc8887f7650fae881ea6817163",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data",
+        "expectedType": "scnSectionNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_01_kerry_mansion.scene.json",
+          "assetSha256": "a76cc673c14f414315823db02166623bfb4bb48229306f6ee35847f4a441fe94",
+          "jsonSha256": "b6560956ea8acf75b97c76eec1572d145d1bcfdc8887f7650fae881ea6817163",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/293/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.mansion.reunion-proposed",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The villa scene includes the Samurai reunion proposal (section1053 line14593 and section1091 line17665). The completed sq011_kerry quest is downstream of those mandatory discussion stages; it does not imply the concert already happened.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_01_kerry_mansion.scene.json",
+        "assetSha256": "a76cc673c14f414315823db02166623bfb4bb48229306f6ee35847f4a441fe94",
+        "jsonSha256": "b6560956ea8acf75b97c76eec1572d145d1bcfdc8887f7650fae881ea6817163",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/56/Data",
+        "expectedType": "scnSectionNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_01_kerry_mansion.scene.json",
+          "assetSha256": "a76cc673c14f414315823db02166623bfb4bb48229306f6ee35847f4a441fe94",
+          "jsonSha256": "b6560956ea8acf75b97c76eec1572d145d1bcfdc8887f7650fae881ea6817163",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/64/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_01_kerry_mansion.scene.json",
+          "assetSha256": "a76cc673c14f414315823db02166623bfb4bb48229306f6ee35847f4a441fe94",
+          "jsonSha256": "b6560956ea8acf75b97c76eec1572d145d1bcfdc8887f7650fae881ea6817163",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/293/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.sabotage.completed",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The highway scene activates set_fire at node529 and resolves the same objective at node1179 before Kerry and V flee; succeeded is a positive stage receipt for the equipment sabotage.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq017/scenes/sq017_04_highwaymen.scene.json",
+        "assetSha256": "40cef68997ad9d4f3bffef1f9e02a72ed5ebf5287a23f44bb2383e49c3846c82",
+        "jsonSha256": "a57551b4581cb82965d0b742ed22be23f8aee03fa0fa3b0c3091903ec767b090",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq017/scenes/sq017_04_highwaymen.scene.json",
+          "assetSha256": "40cef68997ad9d4f3bffef1f9e02a72ed5ebf5287a23f44bb2383e49c3846c82",
+          "jsonSha256": "a57551b4581cb82965d0b742ed22be23f8aee03fa0fa3b0c3091903ec767b090",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/35/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq017/scenes/sq017_04_highwaymen.scene.json",
+          "assetSha256": "40cef68997ad9d4f3bffef1f9e02a72ed5ebf5287a23f44bb2383e49c3846c82",
+          "jsonSha256": "a57551b4581cb82965d0b742ed22be23f8aee03fa0fa3b0c3091903ec767b090",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.nancy.safe",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The Nancy-saved scene has the ride-to-News-54 and post-ride talk stages, then resolves the 04_nancy quest phase at node617 before Second Conflict advances. Succeeded is a positive extraction receipt.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_08_nancy_saved.scene.json",
+        "assetSha256": "05d3898873c59246edfd28b0a50e8d71f09d9575aa2e6992a5adc24842ce81c0",
+        "jsonSha256": "3e6b471b41a075540e4165d3ad22ca628f0c6cc89728f018b3bc5e7dd7a69e26",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/87/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_08_nancy_saved.scene.json",
+          "assetSha256": "05d3898873c59246edfd28b0a50e8d71f09d9575aa2e6992a5adc24842ce81c0",
+          "jsonSha256": "3e6b471b41a075540e4165d3ad22ca628f0c6cc89728f018b3bc5e7dd7a69e26",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_08_nancy_saved.scene.json",
+          "assetSha256": "05d3898873c59246edfd28b0a50e8d71f09d9575aa2e6992a5adc24842ce81c0",
+          "jsonSha256": "3e6b471b41a075540e4165d3ad22ca628f0c6cc89728f018b3bc5e7dd7a69e26",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.family.recording-delivered",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The Family Heirloom open-world phase activates the deliver_bootleg objective at node150 and sends its Succeeded input at node152 after node248. This is a positive delivery receipt for Dan’s recording.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/westbrook/charter_hill/sts_wbr_hil_06/quest_phase/sts_wbr_hil_06_openworld_phase.questphase.json",
+        "assetSha256": "11864120866eca82d7ea8ff493060de07775116973f50ff27b82fc8c324f85ba",
+        "jsonSha256": "cd42f71a1e654d65131efd39a5fb73ebd7c64c6cbd4af9e18b20069b9b62bfb0",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/19/Data",
+        "expectedType": "questJournalNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/westbrook/charter_hill/sts_wbr_hil_06/quest_phase/sts_wbr_hil_06_openworld_phase.questphase.json",
+          "assetSha256": "11864120866eca82d7ea8ff493060de07775116973f50ff27b82fc8c324f85ba",
+          "jsonSha256": "cd42f71a1e654d65131efd39a5fb73ebd7c64c6cbd4af9e18b20069b9b62bfb0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/18/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.family.car-returned",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The car-delivery branch of the Family Heirloom phase writes exact hil_06_deliver_car=1 at node223 before Rogue’s perfect debrief path. This is a positive branch receipt.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/westbrook/charter_hill/sts_wbr_hil_06/quest_phase/sts_wbr_hil_06_openworld_phase.questphase.json",
+        "assetSha256": "11864120866eca82d7ea8ff493060de07775116973f50ff27b82fc8c324f85ba",
+        "jsonSha256": "cd42f71a1e654d65131efd39a5fb73ebd7c64c6cbd4af9e18b20069b9b62bfb0",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/52/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/westbrook/charter_hill/sts_wbr_hil_06/quest_phase/sts_wbr_hil_06_openworld_phase.questphase.json",
+          "assetSha256": "11864120866eca82d7ea8ff493060de07775116973f50ff27b82fc8c324f85ba",
+          "jsonSha256": "cd42f71a1e654d65131efd39a5fb73ebd7c64c6cbd4af9e18b20069b9b62bfb0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/75/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.family.car-not-returned",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The separate branch writes exact hil_06_not_deliver_car=1 at node59 and continues to Rogue’s not-perfect debrief. No inference from a missing delivery fact is used.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/westbrook/charter_hill/sts_wbr_hil_06/quest_phase/sts_wbr_hil_06_openworld_phase.questphase.json",
+        "assetSha256": "11864120866eca82d7ea8ff493060de07775116973f50ff27b82fc8c324f85ba",
+        "jsonSha256": "cd42f71a1e654d65131efd39a5fb73ebd7c64c6cbd4af9e18b20069b9b62bfb0",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/28/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/westbrook/charter_hill/sts_wbr_hil_06/quest_phase/sts_wbr_hil_06_openworld_phase.questphase.json",
+          "assetSha256": "11864120866eca82d7ea8ff493060de07775116973f50ff27b82fc8c324f85ba",
+          "jsonSha256": "cd42f71a1e654d65131efd39a5fb73ebd7c64c6cbd4af9e18b20069b9b62bfb0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/40/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.psychofan.guitar-delivered",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The Psychofan phase waits for positive sts_hey_gle_03_guitar, then drives the drop objective’s Succeeded input at node40 and the quest success node41. The same phase tests the Kerry guitar item.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_03/phases/sts_hey_gle_03_ow.questphase.json",
+        "assetSha256": "eda86e327e96832410bfebcca0219e38d82d5d6d746f2813bab038774a5e9ce6",
+        "jsonSha256": "76fcdcc9ae627a37d775152d7101c0a3db10c928aeed53eb50420af2adda81f5",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/11/Data",
+        "expectedType": "questJournalNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_03/phases/sts_hey_gle_03_ow.questphase.json",
+          "assetSha256": "eda86e327e96832410bfebcca0219e38d82d5d6d746f2813bab038774a5e9ce6",
+          "jsonSha256": "76fcdcc9ae627a37d775152d7101c0a3db10c928aeed53eb50420af2adda81f5",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/56/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_03/phases/sts_hey_gle_03_ow.questphase.json",
+          "assetSha256": "eda86e327e96832410bfebcca0219e38d82d5d6d746f2813bab038774a5e9ce6",
+          "jsonSha256": "76fcdcc9ae627a37d775152d7101c0a3db10c928aeed53eb50420af2adda81f5",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/9/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.buck-ravers.visited",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The mq023 vendor phase takes V to Karim’s street-vendor scene, resolves the Buck Ravers quest as Succeeded at node8, gives the quest reward, and writes exact mq023_done=1 at node10. This is a visit receipt, not a claim about optional purchases.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/quest/minor_quests/mq023/phases/mq023_bootleg_03_vendor.questphase.json",
+        "assetSha256": "7d6622f51df50a1c4cf7e42c6923049f6b7a7214bc4dca2e469a6a7947e71b48",
+        "jsonSha256": "bdb5d9576761a514ba84c83f72b5aae5caf8cd44cf7754929a40d3f80f6c636d",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/quest/minor_quests/mq023/phases/mq023_bootleg_03_vendor.questphase.json",
+          "assetSha256": "7d6622f51df50a1c4cf7e42c6923049f6b7a7214bc4dca2e469a6a7947e71b48",
+          "jsonSha256": "bdb5d9576761a514ba84c83f72b5aae5caf8cd44cf7754929a40d3f80f6c636d",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/quest/minor_quests/mq023/phases/mq023_bootleg_03_vendor.questphase.json",
+          "assetSha256": "7d6622f51df50a1c4cf7e42c6923049f6b7a7214bc4dca2e469a6a7947e71b48",
+          "jsonSha256": "bdb5d9576761a514ba84c83f72b5aae5caf8cd44cf7754929a40d3f80f6c636d",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.rebeca.delivered-alive",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The nonlethal delivery branch writes spr_06_non_lethal and activates Rogue’s debrief_non_lethal phone message. Installed English text confirms the package was received. The active message is a positive Rogue-awareness receipt for this branch.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/heywood/wellsprings/sts_hey_spr_06/phases/sts_hey_spr_06_openworld.questphase.json",
+        "assetSha256": "432990da39f84e9122845aa633ff45aef618ce5493fcbbed16aa41e4d774108d",
+        "jsonSha256": "c3b91ecce355fbc8bf30b29e1729d527ef2bfb51e5b056cf4ae06ee5372f34af",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/9/Data/phaseGraph/Data/nodes/20/Data",
+        "expectedType": "questJournalNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/heywood/wellsprings/sts_hey_spr_06/phases/sts_hey_spr_06_openworld.questphase.json",
+          "assetSha256": "432990da39f84e9122845aa633ff45aef618ce5493fcbbed16aa41e4d774108d",
+          "jsonSha256": "c3b91ecce355fbc8bf30b29e1729d527ef2bfb51e5b056cf4ae06ee5372f34af",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/9/Data/phaseGraph/Data/nodes/9/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-tattoo-20261004/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "e3237a498829a0e1d02d0ce71ad323c590caefab129ba6152cdab6bf07f015e0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/53268",
+          "expectedType": "localizationPersistenceOnScreenEntry",
+          "expected": {
+            "/femaleVariant": "Package received. Thank you, V. Keep up the good work. The streets will remember your name."
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.rebeca.killed",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The lethal branch writes spr_06_rebeca_dead and activates Rogue’s debrief_kill phone message. Its installed English text treats the job as closed with a sacrifice. The active message is a positive debrief receipt.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/heywood/wellsprings/sts_hey_spr_06/phases/sts_hey_spr_06_openworld.questphase.json",
+        "assetSha256": "432990da39f84e9122845aa633ff45aef618ce5493fcbbed16aa41e4d774108d",
+        "jsonSha256": "c3b91ecce355fbc8bf30b29e1729d527ef2bfb51e5b056cf4ae06ee5372f34af",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/10/Data/phaseGraph/Data/nodes/26/Data",
+        "expectedType": "questJournalNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/heywood/wellsprings/sts_hey_spr_06/phases/sts_hey_spr_06_openworld.questphase.json",
+          "assetSha256": "432990da39f84e9122845aa633ff45aef618ce5493fcbbed16aa41e4d774108d",
+          "jsonSha256": "c3b91ecce355fbc8bf30b29e1729d527ef2bfb51e5b056cf4ae06ee5372f34af",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/10/Data/phaseGraph/Data/nodes/7/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-tattoo-20261004/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "e3237a498829a0e1d02d0ce71ad323c590caefab129ba6152cdab6bf07f015e0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/53271",
+          "expectedType": "localizationPersistenceOnScreenEntry",
+          "expected": {
+            "/femaleVariant": "Excellent. Sometimes equilibrium demands sacrifices. Contract closed."
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.vega.delivered-alive",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The Union Strikes Back subdued/no-casualties debrief is activated for Rogue at node181. Its installed English text says Vega is alive in the trunk and no civilians were hit. This is a narrow positive subset of the alive-delivery outcome.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/santo_domingo/rancho_corronado/sts_std_rcr_01/phases/sts_std_rcr_01_openworld.questphase.json",
+        "assetSha256": "e30b0737217d7b5aae9b91e5b7e6f424df5e1831170a618ab5fda61378529f2c",
+        "jsonSha256": "9f70aedf74c43254b48945834fe1e550bd94ceceb4daf25ad9f1d2bad295e082",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/71/Data",
+        "expectedType": "questJournalNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-tattoo-20261004/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "e3237a498829a0e1d02d0ce71ad323c590caefab129ba6152cdab6bf07f015e0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/53223",
+          "expectedType": "localizationPersistenceOnScreenEntry"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.vega.killed",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The Union Strikes Back killed/no-casualties debrief is activated at node179. Its installed English text says Vega was flatlined. This is a narrow positive subset of the killed outcome.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/santo_domingo/rancho_corronado/sts_std_rcr_01/phases/sts_std_rcr_01_openworld.questphase.json",
+        "assetSha256": "e30b0737217d7b5aae9b91e5b7e6f424df5e1831170a618ab5fda61378529f2c",
+        "jsonSha256": "9f70aedf74c43254b48945834fe1e550bd94ceceb4daf25ad9f1d2bad295e082",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/69/Data",
+        "expectedType": "questJournalNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/santo_domingo/rancho_corronado/sts_std_rcr_01/phases/sts_std_rcr_01_openworld.questphase.json",
+          "assetSha256": "e30b0737217d7b5aae9b91e5b7e6f424df5e1831170a618ab5fda61378529f2c",
+          "jsonSha256": "9f70aedf74c43254b48945834fe1e550bd94ceceb4daf25ad9f1d2bad295e082",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/32/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-tattoo-20261004/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "e3237a498829a0e1d02d0ce71ad323c590caefab129ba6152cdab6bf07f015e0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/53252",
+          "expectedType": "localizationPersistenceOnScreenEntry"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.union.no-other-kills",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The killed/no-casualties debrief is activated at node179 and its installed English text explicitly says Vega is flatlined and no one else is. It proves this no-other-kills subset without treating an absent casualty fact as zero.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/santo_domingo/rancho_corronado/sts_std_rcr_01/phases/sts_std_rcr_01_openworld.questphase.json",
+        "assetSha256": "e30b0737217d7b5aae9b91e5b7e6f424df5e1831170a618ab5fda61378529f2c",
+        "jsonSha256": "9f70aedf74c43254b48945834fe1e550bd94ceceb4daf25ad9f1d2bad295e082",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/69/Data",
+        "expectedType": "questJournalNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/santo_domingo/rancho_corronado/sts_std_rcr_01/phases/sts_std_rcr_01_openworld.questphase.json",
+          "assetSha256": "e30b0737217d7b5aae9b91e5b7e6f424df5e1831170a618ab5fda61378529f2c",
+          "jsonSha256": "9f70aedf74c43254b48945834fe1e550bd94ceceb4daf25ad9f1d2bad295e082",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/32/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-tattoo-20261004/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "e3237a498829a0e1d02d0ce71ad323c590caefab129ba6152cdab6bf07f015e0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/53252",
+          "expectedType": "localizationPersistenceOnScreenEntry"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.karl.saved",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The Nasty Hangover final phase routes the no-Karl-death branch to Rogue’s debrief_optional message at node52. Installed English text explicitly says Karl is still breathing and Rogue will arrange his safehouse. The active message is positive proof; a zero death fact is not queried.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/santo_domingo/arroyo/sts_std_arr_06/phases/sts_std_arr_06_ow.questphase.json",
+        "assetSha256": "258d8195ab86f362664585f7659e02cb5f94515a65f55de4d1783666d9db7cb2",
+        "jsonSha256": "411dfa69818c36388b6c92bad659b9b7968415c85be83d3dc7f35f913641431a",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/35/Data",
+        "expectedType": "questJournalNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/santo_domingo/arroyo/sts_std_arr_06/phases/sts_std_arr_06_ow.questphase.json",
+          "assetSha256": "258d8195ab86f362664585f7659e02cb5f94515a65f55de4d1783666d9db7cb2",
+          "jsonSha256": "411dfa69818c36388b6c92bad659b9b7968415c85be83d3dc7f35f913641431a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/33/Data",
+          "expectedType": "questConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-tattoo-20261004/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "e3237a498829a0e1d02d0ce71ad323c590caefab129ba6152cdab6bf07f015e0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/53267",
+          "expectedType": "localizationPersistenceOnScreenEntry"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.karl.killed",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The Nasty Hangover combat path writes exact arr_06_karl_killed=1 at node584. Its final debrief condition routes that positive state to Rogue’s debrief_non_optional message at node51. Both the death flag and active debrief are required.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/santo_domingo/arroyo/sts_std_arr_06/phases/sts_std_arr_06_ow.questphase.json",
+        "assetSha256": "258d8195ab86f362664585f7659e02cb5f94515a65f55de4d1783666d9db7cb2",
+        "jsonSha256": "411dfa69818c36388b6c92bad659b9b7968415c85be83d3dc7f35f913641431a",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/179/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/santo_domingo/arroyo/sts_std_arr_06/phases/sts_std_arr_06_ow.questphase.json",
+          "assetSha256": "258d8195ab86f362664585f7659e02cb5f94515a65f55de4d1783666d9db7cb2",
+          "jsonSha256": "411dfa69818c36388b6c92bad659b9b7968415c85be83d3dc7f35f913641431a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/34/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.kang-tao.payment-accepted",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The Nasty Hangover phase tests V’s Kang Tao credchip at node127, removes that chip at node128, grants 2,000 eddies at node129, then writes positive arr_06_v_took_money=1 at node126. The fact proves V cashed the payment, not merely found the offer.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/santo_domingo/arroyo/sts_std_arr_06/phases/sts_std_arr_06_ow.questphase.json",
+        "assetSha256": "258d8195ab86f362664585f7659e02cb5f94515a65f55de4d1783666d9db7cb2",
+        "jsonSha256": "411dfa69818c36388b6c92bad659b9b7968415c85be83d3dc7f35f913641431a",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/38/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/santo_domingo/arroyo/sts_std_arr_06/phases/sts_std_arr_06_ow.questphase.json",
+          "assetSha256": "258d8195ab86f362664585f7659e02cb5f94515a65f55de4d1783666d9db7cb2",
+          "jsonSha256": "411dfa69818c36388b6c92bad659b9b7968415c85be83d3dc7f35f913641431a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/40/Data",
+          "expectedType": "questItemManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/santo_domingo/arroyo/sts_std_arr_06/phases/sts_std_arr_06_ow.questphase.json",
+          "assetSha256": "258d8195ab86f362664585f7659e02cb5f94515a65f55de4d1783666d9db7cb2",
+          "jsonSha256": "411dfa69818c36388b6c92bad659b9b7968415c85be83d3dc7f35f913641431a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/41/Data",
+          "expectedType": "questItemManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/santo_domingo/arroyo/sts_std_arr_06/phases/sts_std_arr_06_ow.questphase.json",
+          "assetSha256": "258d8195ab86f362664585f7659e02cb5f94515a65f55de4d1783666d9db7cb2",
+          "jsonSha256": "411dfa69818c36388b6c92bad659b9b7968415c85be83d3dc7f35f913641431a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/58/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.totentanz.royce",
+      "sourceId": "jr-priority.native-231",
+      "kind": "native",
+      "locator": "The sq011_07a_royce encounter scene writes positive sq011_royce_stealth_path at node1509. The Nancy questphase routes into that scene on the branch where its preceding Pickup-outcome OR condition is false. This is a sufficient Royce-controlled encounter subset.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07a_royce.scene.json",
+        "assetSha256": "5acb80fc5fadf66d248bc809e710cf64cff95a04cbde5105e04b15e9bc63bb44",
+        "jsonSha256": "0f8857a2aabf08092e8594fc92461ada1210f921fab5985711e1ff3a286a7442",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/155/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq011/phases/sq011_nancy.questphase.json",
+          "assetSha256": "a92912e935608e0b7cd89c764dea4897acb8ba2a7f4f3238340f44dc834eddd1",
+          "jsonSha256": "18ff7751be9b224d0c1b02786b04ec1107041ee37e0b6810d4a44dbd5d95ed22",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/13/Data",
+          "expectedType": "questConditionNodeDefinition"
+        }
+      ]
+    }
+  ],
+  "factAllowlist": {
+    "sq031_cool_metal_fire_done": {
+      "evidenceRefs": [
+        "jr-priority.bender.completed"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq031/phases/sq031_striptease.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data/type/Data"
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignment in a freshly exported installed 2.31 native asset; other writers outside the bounded lane assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q103_rogue_paid_up": {
+      "evidenceRefs": [
+        "jr-priority.rogue.commission"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-ghost-20261004/raw/base/base/quest/main_quests/part1/q103/scenes/q103_03_rogue.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/237/Data/questNode/Data/type/Data"
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignment in a freshly exported installed 2.31 native asset; other writers outside the bounded lane assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q103_rogue_done": {
+      "evidenceRefs": [
+        "jr-priority.rogue.commission"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/quest/main_quests/part1/q103/phases/q103_01_afterlife_new.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/12/Data/type/Data"
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignment in a freshly exported installed 2.31 native asset; other writers outside the bounded lane assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq031_goat_tattoo": {
+      "evidenceRefs": [
+        "jr-priority.tattoo.special"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-final-20261004/raw/base/base/quest/side_quests/sq031/scenes/sq031_01b_smack_tatto.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/questNode/Data/type/Data"
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignment in a freshly exported installed 2.31 native asset; other writers outside the bounded lane assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq031_property_tattoo": {
+      "evidenceRefs": [
+        "jr-priority.tattoo.together"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-final-20261004/raw/base/base/quest/side_quests/sq031/scenes/sq031_01b_smack_tatto.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/questNode/Data/type/Data"
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignment in a freshly exported installed 2.31 native asset; other writers outside the bounded lane assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq031_rogue_met_johnny": {
+      "evidenceRefs": [
+        "jr-priority.ebunike.lead-obtained"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-final-20261004/raw/base/base/quest/side_quests/sq031/scenes/sq031_01d_smack_rogue.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/56/Data/questNode/Data/type/Data"
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignment in a freshly exported installed 2.31 native asset; other writers outside the bounded lane assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq031_rogue_date_met": {
+      "evidenceRefs": [
+        "jr-priority.date.arranged"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq031/scenes/sq031_07_cinema.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/379/Data/questNode/Data/type/Data"
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignment in a freshly exported installed 2.31 native asset; other writers outside the bounded lane assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "hil_06_deliver_car": {
+      "evidenceRefs": [
+        "jr-priority.family.car-returned"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/westbrook/charter_hill/sts_wbr_hil_06/quest_phase/sts_wbr_hil_06_openworld_phase.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/52/Data/type/Data"
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignment in a freshly exported installed 2.31 native asset; other writers outside the bounded lane assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "hil_06_not_deliver_car": {
+      "evidenceRefs": [
+        "jr-priority.family.car-not-returned"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/westbrook/charter_hill/sts_wbr_hil_06/quest_phase/sts_wbr_hil_06_openworld_phase.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/28/Data/type/Data"
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignment in a freshly exported installed 2.31 native asset; other writers outside the bounded lane assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "mq023_done": {
+      "evidenceRefs": [
+        "jr-priority.buck-ravers.visited"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/quest/minor_quests/mq023/phases/mq023_bootleg_03_vendor.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data/type/Data"
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignment in a freshly exported installed 2.31 native asset; other writers outside the bounded lane assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "arr_06_karl_killed": {
+      "evidenceRefs": [
+        "jr-priority.karl.killed"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/santo_domingo/arroyo/sts_std_arr_06/phases/sts_std_arr_06_ow.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/179/Data/type/Data"
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignment in a freshly exported installed 2.31 native asset; other writers outside the bounded lane assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "arr_06_v_took_money": {
+      "evidenceRefs": [
+        "jr-priority.kang-tao.payment-accepted"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/santo_domingo/arroyo/sts_std_arr_06/phases/sts_std_arr_06_ow.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/38/Data/type/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-gigs-20261004/raw/base/base/open_world/street_stories/santo_domingo/arroyo/sts_std_arr_06/phases/sts_std_arr_06_ow.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/58/Data/type/Data"
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Two writers in this freshly exported phase: node126 follows credchip removal and a 2,000-eddie grant; node164 has no incoming socket in the native graph. No writers outside bounded exports claimed exhausted.",
+        "candidateWriters": 2
+      }
+    },
+    "sq011_royce_stealth_path": {
+      "evidenceRefs": [
+        "jr-priority.totentanz.royce"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07a_royce.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/155/Data/questNode/Data/type/Data"
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignment in a freshly exported installed 2.31 native asset; other writers outside the bounded lane assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    }
+  },
+  "journalAllowlist": {
+    "jr-priority.mansion.completed": {
+      "questKey": "holdin-on",
+      "nativePath": "quests/side_quest/sq011_kerry",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "jr-priority.mansion.recognition"
+      ]
+    },
+    "jr-priority.sabotage.set-fire": {
+      "questKey": "rebel-rebel",
+      "nativePath": "quests/side_quest/sq017_kerry/highwaymen/set_fire",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "jr-priority.sabotage.completed"
+      ]
+    },
+    "jr-priority.nancy.escape": {
+      "questKey": "second-conflict",
+      "nativePath": "quests/side_quest/sq011_johnny/04_nancy",
+      "nativeClass": "gameJournalQuestPhase",
+      "evidenceRefs": [
+        "jr-priority.nancy.safe"
+      ]
+    },
+    "jr-priority.family.recording": {
+      "questKey": "family-heirloom",
+      "nativePath": "quests/street_stories/wesbrook/charter_hill/sts_wbr_hil_06/sts_wbr_hil_06/deliver_bootleg",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "jr-priority.family.recording-delivered"
+      ]
+    },
+    "jr-priority.psychofan.guitar-drop": {
+      "questKey": "psychofan",
+      "nativePath": "quests/street_stories/heywood/glen/sts_hey_gle_03/sts_hey_gle_03/drop",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "jr-priority.psychofan.guitar-delivered"
+      ]
+    },
+    "jr-priority.hot.debrief-alive": {
+      "questKey": "hot-merchandise",
+      "nativePath": "contacts/rogue/sts_hey_spr_06/sts_hey_spr_06_debrief_non_lethal",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr-priority.rebeca.delivered-alive"
+      ]
+    },
+    "jr-priority.hot.debrief-killed": {
+      "questKey": "hot-merchandise",
+      "nativePath": "contacts/rogue/sts_hey_spr_06/sts_hey_spr_06_debrief_kill",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr-priority.rebeca.killed"
+      ]
+    },
+    "jr-priority.union.debrief-alive-clear": {
+      "questKey": "the-union-strikes-back",
+      "nativePath": "contacts/rogue/sts_std_rcr_01/sts_std_rcr_01_debrief_subdued_no_casualties",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr-priority.vega.delivered-alive"
+      ]
+    },
+    "jr-priority.union.debrief-killed-clear": {
+      "questKey": "the-union-strikes-back",
+      "nativePath": "contacts/rogue/sts_std_rcr_01/sts_std_rcr_01_debrief_killed_no_casualties",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr-priority.vega.killed"
+      ]
+    },
+    "jr-priority.union.no-other-kills": {
+      "questKey": "the-union-strikes-back",
+      "nativePath": "contacts/rogue/sts_std_rcr_01/sts_std_rcr_01_debrief_killed_no_casualties",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr-priority.union.no-other-kills"
+      ]
+    },
+    "jr-priority.nasty.debrief-saved": {
+      "questKey": "nasty-hangover",
+      "nativePath": "contacts/rogue/sts_std_arr_06/sts_std_arr_06_debrief_optional",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr-priority.karl.saved"
+      ]
+    },
+    "jr-priority.nasty.debrief-killed": {
+      "questKey": "nasty-hangover",
+      "nativePath": "contacts/rogue/sts_std_arr_06/sts_std_arr_06_debrief_non_optional",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr-priority.karl.killed"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "jr-priority.bender.completed",
+      "revision": 1,
+      "questKey": "a-cool-metal-fire",
+      "topic": "johnny.v.bender-control",
+      "outcome": "completed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Johnny used V’s body for the night and handed control back after the outing.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.bender.completed"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq031_cool_metal_fire_done",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.bender-handover",
+          "outcomeKey": "completed"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.rogue.commission",
+      "revision": 1,
+      "questKey": "ghost-town",
+      "topic": "rogue.v.hellman-commission",
+      "outcome": "paid-and-briefed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V paid Rogue, who supplied the Hellman lead and directed V to Panam.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.rogue.commission"
+      ],
+      "audience": {
+        "speakers": [
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q103_rogue_paid_up",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q103_rogue_done",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.rogue-commission",
+          "outcomeKey": "paid-and-briefed"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.tattoo.special",
+      "revision": 1,
+      "questKey": "a-cool-metal-fire",
+      "topic": "johnny.v.bender-tattoo",
+      "outcome": "johnnys-special",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Johnny selected the tattoo named “Johnny’s Special” during his night using V’s body.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.tattoo.special"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq031_goat_tattoo",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.bender-tattoo",
+          "outcomeKey": "johnnys-special"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.tattoo.together",
+      "revision": 1,
+      "questKey": "a-cool-metal-fire",
+      "topic": "johnny.v.bender-tattoo",
+      "outcome": "together-forever",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Johnny selected the tattoo named “Together Forever” during his night using V’s body.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.tattoo.together"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq031_property_tattoo",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.bender-tattoo",
+          "outcomeKey": "together-forever"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.ebunike.lead-obtained",
+      "revision": 1,
+      "questKey": "a-cool-metal-fire",
+      "topic": "johnny.smasher.ebunike-lead",
+      "outcome": "obtained",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Johnny gained the Ebunike lead through Ruby and V later relayed it to Rogue.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.ebunike.lead-obtained"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand",
+          "rogue-amendiares"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand",
+          "rogue-amendiares"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq031_rogue_met_johnny",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.ebunike-lead",
+          "outcomeKey": "obtained"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.date.arranged",
+      "revision": 1,
+      "questKey": "chippin-in",
+      "topic": "johnny.rogue.date-arranged",
+      "outcome": "arranged",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V arranged Johnny’s outing with Rogue; the pair subsequently met at the theater.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.date.arranged"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand",
+          "rogue-amendiares"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand",
+          "rogue-amendiares"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq031_rogue_date_met",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.rogue-date-invitation",
+          "outcomeKey": "arranged"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.mansion.recognized",
+      "revision": 1,
+      "questKey": "holdin-on",
+      "topic": "kerry.johnny.recognition",
+      "outcome": "recognized",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "At Kerry’s villa, Kerry recognized Johnny speaking through V.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.mansion.recognition"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand",
+          "kerry-eurodyne"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr-priority.mansion.completed",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.identity-revealed",
+          "outcomeKey": "recognized"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.mansion.reunion-proposed",
+      "revision": 1,
+      "questKey": "holdin-on",
+      "topic": "samurai.reunion.proposed",
+      "outcome": "proposed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Johnny proposed bringing Samurai back during the meeting with Kerry; the performance had not happened yet.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.mansion.reunion-proposed"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand",
+          "kerry-eurodyne"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr-priority.mansion.completed",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.reunion-proposal",
+          "outcomeKey": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.sabotage.completed",
+      "revision": 1,
+      "questKey": "rebel-rebel",
+      "topic": "kerry.uscracks.sabotage",
+      "outcome": "completed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V and Kerry completed the planned equipment sabotage.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.sabotage.completed"
+      ],
+      "audience": {
+        "speakers": [
+          "kerry-eurodyne",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "kerry-eurodyne",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr-priority.sabotage.set-fire",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.sabotage",
+          "outcomeKey": "completed"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.nancy.safe",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "nancy.totentanz.extraction",
+      "outcome": "safe",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V safely extracted Nancy from the Totentanz encounter.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.nancy.safe"
+      ],
+      "audience": {
+        "speakers": [
+          "nancy-hartley",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "nancy-hartley",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr-priority.nancy.escape",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.nancy-extraction",
+          "outcomeKey": "safe"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.family.recording-delivered",
+      "revision": 1,
+      "questKey": "family-heirloom",
+      "topic": "nancy.dan.recording",
+      "outcome": "delivered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V delivered Dan’s recording for Nancy’s Family Heirloom job.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.family.recording-delivered"
+      ],
+      "audience": {
+        "speakers": [
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr-priority.family.recording",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.recording-delivery",
+          "outcomeKey": "delivered"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.family.car-returned",
+      "revision": 1,
+      "questKey": "family-heirloom",
+      "topic": "nancy.dan.car",
+      "outcome": "returned",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V returned Dan’s car during Family Heirloom.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.family.car-returned"
+      ],
+      "audience": {
+        "speakers": [
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "hil_06_deliver_car",
+        "op": "eq",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.family-car",
+          "outcomeKey": "returned"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.family.car-not-returned",
+      "revision": 1,
+      "questKey": "family-heirloom",
+      "topic": "nancy.dan.car",
+      "outcome": "not-returned",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V completed the Family Heirloom branch without returning Dan’s car.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.family.car-not-returned"
+      ],
+      "audience": {
+        "speakers": [
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "hil_06_not_deliver_car",
+        "op": "eq",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.family-car",
+          "outcomeKey": "not-returned"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.psychofan.guitar-delivered",
+      "revision": 1,
+      "questKey": "psychofan",
+      "topic": "kerry.possessions.psychofan",
+      "outcome": "delivered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V delivered Kerry’s stolen guitar to the gig’s drop point.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.psychofan.guitar-delivered"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr-priority.psychofan.guitar-drop",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.psychofan-guitar",
+          "outcomeKey": "delivered"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.buck-ravers.visited",
+      "revision": 1,
+      "questKey": "the-ballad-of-buck-ravers",
+      "topic": "johnny.legacy.rainbow-cadenza",
+      "outcome": "visited",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V and Johnny completed the visit to Karim’s Samurai bootleg stall.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.buck-ravers.visited"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "mq023_done",
+        "op": "eq",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.buck-ravers-visit",
+          "outcomeKey": "visited"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.rebeca.delivered-alive",
+      "revision": 1,
+      "questKey": "hot-merchandise",
+      "topic": "rogue.hot-merchandise.target",
+      "outcome": "delivered-alive",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Rebeca Price was delivered alive, and Rogue acknowledged receiving her.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.rebeca.delivered-alive"
+      ],
+      "audience": {
+        "speakers": [
+          "rogue-amendiares"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rogue-amendiares"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr-priority.hot.debrief-alive",
+        "op": "eq",
+        "value": "active"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.rebeca-price-fate",
+          "outcomeKey": "delivered-alive"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.rebeca.killed",
+      "revision": 1,
+      "questKey": "hot-merchandise",
+      "topic": "rogue.hot-merchandise.target",
+      "outcome": "killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Rebeca Price was killed, and Rogue acknowledged the lethal result.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.rebeca.killed"
+      ],
+      "audience": {
+        "speakers": [
+          "rogue-amendiares"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rogue-amendiares"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr-priority.hot.debrief-killed",
+        "op": "eq",
+        "value": "active"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.rebeca-price-fate",
+          "outcomeKey": "killed"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.vega.delivered-alive",
+      "revision": 1,
+      "questKey": "the-union-strikes-back",
+      "topic": "rogue.union.target",
+      "outcome": "delivered-alive",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Vic Vega was delivered alive in the car for Rogue.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.vega.delivered-alive"
+      ],
+      "audience": {
+        "speakers": [
+          "rogue-amendiares"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rogue-amendiares"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr-priority.union.debrief-alive-clear",
+        "op": "eq",
+        "value": "active"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.vic-vega-fate",
+          "outcomeKey": "delivered-alive"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.vega.killed",
+      "revision": 1,
+      "questKey": "the-union-strikes-back",
+      "topic": "rogue.union.target",
+      "outcome": "killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Vic Vega was killed, and Rogue received the lethal debrief.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.vega.killed"
+      ],
+      "audience": {
+        "speakers": [
+          "rogue-amendiares"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rogue-amendiares"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr-priority.union.debrief-killed-clear",
+        "op": "eq",
+        "value": "active"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.vic-vega-fate",
+          "outcomeKey": "killed"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.union.no-other-kills",
+      "revision": 1,
+      "questKey": "the-union-strikes-back",
+      "topic": "rogue.union.collateral",
+      "outcome": "no-other-kills",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "The gig’s debrief confirms that Vega died and nobody else was killed.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.union.no-other-kills"
+      ],
+      "audience": {
+        "speakers": [
+          "rogue-amendiares"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rogue-amendiares"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr-priority.union.no-other-kills",
+        "op": "eq",
+        "value": "active"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.union-collateral",
+          "outcomeKey": "no-other-kills"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.karl.saved",
+      "revision": 1,
+      "questKey": "nasty-hangover",
+      "topic": "rogue.nasty-hangover.karl",
+      "outcome": "saved",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Karl Ginsky survived and Rogue arranged a safehouse for him.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.karl.saved"
+      ],
+      "audience": {
+        "speakers": [
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr-priority.nasty.debrief-saved",
+        "op": "eq",
+        "value": "active"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.karl-ginsky-fate",
+          "outcomeKey": "saved"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.karl.killed",
+      "revision": 1,
+      "questKey": "nasty-hangover",
+      "topic": "rogue.nasty-hangover.karl",
+      "outcome": "killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Karl Ginsky was killed during Nasty Hangover, and Rogue received the debrief.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.karl.killed"
+      ],
+      "audience": {
+        "speakers": [
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rogue-amendiares",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "arr_06_karl_killed",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "jr-priority.nasty.debrief-killed",
+            "op": "eq",
+            "value": "active"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.karl-ginsky-fate",
+          "outcomeKey": "killed"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.kang-tao.payment-accepted",
+      "revision": 1,
+      "questKey": "nasty-hangover",
+      "topic": "johnny.v.kang-tao-payment",
+      "outcome": "accepted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V cashed Kang Tao’s credchip and received the payment.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.kang-tao.payment-accepted"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "arr_06_v_took_money",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.kang-tao-payment",
+          "outcomeKey": "accepted"
+        }
+      ]
+    },
+    {
+      "id": "jr-priority.totentanz.royce",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "maelstrom.totentanz.leadership",
+      "outcome": "royce",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Royce’s group controlled the Totentanz encounter that V navigated with Nancy.",
+      "sourceIds": [
+        "jr-priority.native-231"
+      ],
+      "evidenceRefs": [
+        "jr-priority.totentanz.royce"
+      ],
+      "audience": {
+        "speakers": [
+          "nancy-hartley",
+          "johnny-silverhand"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "nancy-hartley",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq011_royce_stealth_path",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.totentanz-leadership",
+          "outcomeKey": "royce"
+        }
+      ]
+    }
+  ]
+}
