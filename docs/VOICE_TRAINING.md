@@ -231,7 +231,15 @@ file and ignored private notebook carry it; tracked code loads it at runtime.
 Logs redact credentials. Future probes with checkpoint uploading allow one hour,
 with five minutes reserved for shutdown. The first already-running probe keeps
 its original thirty-minute bound and cannot acquire new code mid-execution.
-Actual download during ongoing training remains a required verification gate.
+Actual download during ongoing training is verified by private probe
+137084897/version 1. Checkpoint 1 was committed privately at
+`8b6574eff2c69e040b4a89fcfde14c7d9cfcc034`; training then continued to step 100.
+The local model download began at 20:49:23 UTC, before update 100 at 20:49:27 UTC,
+and the complete 1,344,315,200-byte file passed SHA-256 verification at 20:50:41 UTC.
+The complete resumable state (5,056,673,845 bytes) is stored alongside the export.
+The final step 100 checkpoint was also confirmed remotely. Exact evidence is in
+the probe's ignored `midrun-verification.json` and `remote-step1-retrieval.json`.
+This verifies checkpoint transport, not speech quality or the full batch64 recipe.
 
 ## Commands
 

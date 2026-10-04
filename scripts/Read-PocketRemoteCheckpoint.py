@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import time
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = "akshitireddy/cyberpunk-pocket-training-checkpoints"
@@ -20,6 +21,7 @@ def main():
     parser.add_argument("--folder", type=Path, required=True)
     parser.add_argument("--step", type=int, default=1)
     parser.add_argument("--download-model", action="store_true")
+    parser.add_argument("--wait-seconds", type=int, default=0)
     args = parser.parse_args()
     folder = args.folder.resolve()
     if folder.parent != ROOT / "runtime/voice-data-expansion-20261005/observable-probes":
@@ -36,11 +38,18 @@ def main():
     api = HfApi(token=token)
     if api.whoami()["name"] != "akshitireddy":
         raise ValueError("Wrong checkpoint account")
-    repo = api.repo_info(REPO, repo_type="model")
-    if repo.private is not True:
-        raise ValueError("Checkpoint repository is not private")
     manifest_name = prefix + "/manifest.json"
-    paths = api.get_paths_info(REPO, paths=[manifest_name], revision=repo.sha)
+    if not 0 <= args.wait_seconds <= 1800:
+        raise ValueError("Checkpoint wait must be bounded to at most thirty minutes")
+    deadline = time.monotonic() + args.wait_seconds
+    while True:
+        repo = api.repo_info(REPO, repo_type="model")
+        if repo.private is not True:
+            raise ValueError("Checkpoint repository is not private")
+        paths = api.get_paths_info(REPO, paths=[manifest_name], revision=repo.sha)
+        if paths or time.monotonic() >= deadline:
+            break
+        time.sleep(min(10, max(0, deadline-time.monotonic())))
     if not paths:
         print(json.dumps({"at_utc": now(), "available": False, "step": args.step}))
         return
