@@ -241,6 +241,24 @@ The final step 100 checkpoint was also confirmed remotely. Exact evidence is in
 the probe's ignored `midrun-verification.json` and `remote-step1-retrieval.json`.
 This verifies checkpoint transport, not speech quality or the full batch64 recipe.
 
+## Full A teacher restart
+
+On October 5 the new full teacher was submitted as private Kaggle kernel
+137087975, version 1. It uses the frozen 8,140-recording corpus across 79 voices,
+two T4 GPUs, FP16 computation, batch 64, and the previously approved A recipe.
+The checkpoint-only source changes are preserved in
+`scripts/pocket_training/full_a_checkpoint.patch` with hashes in the adjacent
+JSON manifest. `scripts/Pocket-FullATeacher.py` handles its explicit notebook
+execution and live readback. Submission acceptance is separate from verified
+training progress; the exact receipts remain in the ignored runtime folder.
+
+The first completed update, each completed 1,000-step evaluation, and pause/end
+states publish private checkpoints. Ten-minute local checkpoints continue between
+those uploads. Remote snapshots include the quality anchor, candidate index,
+retained candidate weights and applicable evaluation sidecars. Both ranks agree
+on save/upload success before proceeding. The two accepted voice models remain
+unchanged while the new teacher is trained and evaluated.
+
 ## Commands
 
 These commands describe the retired OmniVoice experiment. They require restored

@@ -52,6 +52,12 @@ def training_summary(entries, subset_size):
                 continue
             if not isinstance(value, dict):
                 continue
+            if (value.get("event") == "training_progress" or
+                    (value.get("stage") in ("teacher", "distill") and "train" in value and "step" in value)):
+                result["latest_update"] = {"step": value["step"], "loss": value.get("loss", value.get("train", {}).get("loss")),
+                    "seconds_per_update": value.get("seconds_per_step"), "corpus_passes": value.get("corpus_passes")}
+            if value.get("event") == "private_checkpoint_verified":
+                result["last_remote_checkpoint"] = value
             if value.get("phase") == "optimizer_update":
                 result["latest_update"] = {key: value.get(key) for key in (
                     "step", "total_steps", "loss", "learning_rate", "gradient_norm_unscaled", "seconds_per_update")}
@@ -179,11 +185,16 @@ def prepare():
     return {"prepared": str(folder), "steps": 100, "source_sha256": sha(folder / "kernel.ipynb")}
 
 
-def connected(folder, action):
+def connected(folder, action, *, allowed_root=None, required_purpose=None):
     folder = folder.resolve()
-    if folder.parent != DEST or not folder.name.startswith("cp2077-observable-"):
+    expected_root = DEST if allowed_root is None else Path(allowed_root).resolve()
+    prefix = "cp2077-observable-" if required_purpose is None else "cp2077-full-a-live-"
+    if (not expected_root.is_relative_to(ROOT / "runtime") or folder.parent != expected_root
+            or not folder.name.startswith(prefix)):
         raise ValueError("Exact owned probe folder required")
     approval, meta = read(folder / "approval.json"), read(folder / "kernel-metadata.json")
+    if required_purpose is not None and approval.get("purpose") != required_purpose:
+        raise ValueError("Authorized full training purpose differs")
     if sha(AUTH) != AUTH_SHA or sha(folder / "kernel.ipynb") != approval["source_sha256"]:
         raise ValueError("Pinned authentication or notebook source changed")
     spec = importlib.util.spec_from_file_location("observable_auth", AUTH)

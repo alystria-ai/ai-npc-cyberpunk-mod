@@ -1,0 +1,236 @@
+--- a/scripts/pocket_training/runner.py
++++ b/scripts/pocket_training/runner.py
+@@ -21,6 +21,7 @@
+ import os
+ from pathlib import Path
+ import random
++import re
+ import shutil
+ import signal
+ import socket
+@@ -263,6 +264,16 @@
+         identities["continuation_source"] = {Path(module.__file__).name: sha256_file(Path(module.__file__))
+             for module in (teacher_continuation, teacher_quality, teacher_data, native_primary_data, continuation_rollout, student_transfer)}
+         identities["continuation_source"]["runner.py"] = sha256_file(Path(__file__))
++    if raw.get("private_remote_checkpoints") is not None:
++        if raw["private_remote_checkpoints"] is not True or continuation is None or student_continuation is not None:
++            raise ValueError("Private remote checkpoints are supported only for the full A teacher continuation")
++        remote_run_id = raw.get("remote_checkpoint_run_id")
++        if not isinstance(remote_run_id, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,40}", remote_run_id):
++            raise ValueError("remote_checkpoint_run_id must be a stable lowercase experiment ID")
++        identities["private_remote_checkpoint_policy"] = "step1_every1000_and_terminal_v1"
++        identities["remote_checkpoint_run_id"] = remote_run_id
++        identities["private_remote_checkpoint_helper_sha256"] = sha256_file(
++            Path(__file__).with_name("remote_checkpoints.py"))
+     sampling = {"decode_steps": decode_steps, "temperature": raw.get("sample_temperature", .3),
+                 "seed": raw.get("sample_seed", 1337), "max_seconds": raw.get("sample_max_seconds", 30),
+                 "teacher_only": raw.get("teacher_only_evaluation", False)}
+@@ -1176,8 +1187,108 @@
+             temp.unlink()
+ 
+ 
++def publish_saved_training(spec: Spec, stage: str, step: int, checkpoint: Path,
++                           runner_state: dict[str, Any]) -> None:
++    """Publish the immutable checkpoint while every training rank is stopped."""
++    if not spec.option("private_remote_checkpoints", False) or step < 1:
++        return
++    if stage != "teacher":
++        raise ValueError("Private remote publication is restricted to the full A teacher")
++    checkpoint_sha = sha256_file(checkpoint)
++    stage_dir = spec.output / stage
++    exports: dict[str, Path] = {}
++    sidecars = [stage_dir / name for name in (
++        "quality-anchor.json", "candidate-index.json", "evaluation-completed.json",
++        "heldout.json", "best.json", "metrics.json", "precision.json", "state.json", "args.yaml")]
++    index = read_json(stage_dir / "candidate-index.json", {})
++    if index:
++        if index.get("input_identity") != spec.identity:
++            raise ValueError("Retained candidate index belongs to another training run")
++        for row in index.get("candidates", []):
++            candidate = (spec.output / row["path"]).resolve(strict=True)
++            if not candidate.is_relative_to((stage_dir / "candidates").resolve()):
++                raise ValueError("Retained candidate path escaped the training stage")
++            if sha256_file(candidate) != row["sha256"]:
++                raise ValueError("Retained compact candidate changed before private publication")
++            exports[row["path"]] = candidate
++    ticket = runner_state.get("pending_evaluation")
++    if isinstance(ticket, dict) and ticket.get("step") == step:
++        for kind in ("ema", "raw"):
++            quality = stage_dir / f"quality-step{step:09d}-{kind}.json"
++            if quality.is_file() and read_json(quality, {}).get("evaluation_ticket") == ticket:
++                sidecars.append(quality)
++                folder = spec.output / f"comparisons/teacher-rollout-step{step:06d}-{kind}"
++                sidecars.extend(p for p in (folder / "metrics.json", folder / "samples.json") if p.is_file())
++                for row in read_json(folder / "samples.json", []):
++                    if row.get("audio"):
++                        audio = (folder / row["audio"]).resolve(strict=True)
++                        if not audio.is_relative_to(folder.resolve()):
++                            raise ValueError("Speech evidence escaped its evaluation folder")
++                        exports[audio.relative_to(spec.output).as_posix()] = audio
++    existing_sidecars = [path for path in sidecars if path.is_file()]
++    identities = {path.relative_to(spec.output).as_posix(): sha256_file(path)
++                  for path in existing_sidecars}
++    identities.update({name: sha256_file(path) for name, path in exports.items()})
++    identity_data = json.dumps({"checkpoint": checkpoint_sha, "exports": identities}, sort_keys=True)
++    snapshot_sha = hashlib.sha256(identity_data.encode("utf-8")).hexdigest()
++    # Pending evaluation and completed evaluation may save different states at
++    # the same optimizer step. Each frozen snapshot gets a unique remote path.
++    run_id = f"{spec.raw['remote_checkpoint_run_id']}-{snapshot_sha[:12]}"
++    snapshot_dir = stage_dir / "remote-state" / "snapshots" / f"{run_id}-step-{step:06d}"
++    for path in existing_sidecars:
++        name = path.relative_to(spec.output).as_posix()
++        frozen = snapshot_dir / name
++        if frozen.is_file():
++            if sha256_file(frozen) != identities[name]:
++                raise ValueError("Frozen checkpoint sidecar changed")
++        else:
++            frozen.parent.mkdir(parents=True, exist_ok=True)
++            temporary = frozen.with_name(f".{frozen.name}.{os.getpid()}.tmp")
++            shutil.copyfile(path, temporary)
++            os.replace(temporary, frozen)
++            if sha256_file(frozen) != identities[name]:
++                raise ValueError("Checkpoint sidecar changed during snapshot")
++        exports[name] = frozen
++    exports_json = snapshot_dir / "exports.json"
++    atomic_json(exports_json, {name: str(path) for name, path in sorted(exports.items())})
++    command = [sys.executable, str(Path(__file__).with_name("remote_checkpoints.py")),
++               "--checkpoint", str(checkpoint), "--step", str(step),
++               "--input-identity", spec.identity, "--run-id", run_id,
++               "--state-dir", str(stage_dir / "remote-state"),
++               "--exports-json", str(exports_json)]
++    print(json.dumps({"event": "private_checkpoint_upload_start", "stage": stage,
++                      "step": step, "run_id": run_id, "export_files": len(exports)}), flush=True)
++    completed = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
++                               text=True, check=False)
++    if completed.returncode:
++        print(json.dumps({"event": "private_checkpoint_upload_failed", "stage": stage,
++                          "step": step, "returncode": completed.returncode}), flush=True)
++        raise RuntimeError("Private checkpoint upload or verification failed; the local last.pt is retained")
++    events = []
++    for line in completed.stdout.splitlines():
++        try:
++            events.append(json.loads(line))
++        except json.JSONDecodeError:
++            continue
++    result = next((item for item in reversed(events)
++                   if isinstance(item, dict) and item.get("event") == "remote_checkpoint_available"), None)
++    if (not result or result.get("step") != step or not isinstance(result.get("commit_oid"), str)
++            or result.get("path_in_repo") != f"runs/{run_id}/step-{step:06d}"):
++        raise RuntimeError("Private checkpoint publisher returned no matching verified receipt")
++    receipt = {"schema": "full_a_remote_checkpoint_v1", "step": step,
++               "input_identity": spec.identity, "checkpoint_sha256": checkpoint_sha,
++               "run_id": run_id, "commit_oid": result["commit_oid"],
++               "path_in_repo": result["path_in_repo"], "verified_at": now_iso()}
++    atomic_json(spec.output / stage / "remote-receipts" /
++                f"step-{step:06d}-{checkpoint_sha[:12]}.json", receipt)
++    print(json.dumps({"event": "private_checkpoint_verified", "stage": stage,
++                      "step": step, "commit_oid": result["commit_oid"],
++                      "path_in_repo": result["path_in_repo"]}), flush=True)
++
++
+ def save_training(spec: Spec, stage: str, step: int, model: Any, optimizer: Any, ema: Any,
+-                  scaler: Any, runner: dict[str, Any], device: Any, world: int, rank: int) -> None:
++                  scaler: Any, runner: dict[str, Any], device: Any, world: int, rank: int,
++                  *, publish_remote: bool = False) -> None:
+     import torch
+ 
+     rng = capture_rng(torch, model)
+@@ -1186,20 +1297,33 @@
+         torch.distributed.all_gather_object(all_rng, rng)
+     else:
+         all_rng[0] = rng
++    failed = False
+     if rank == 0:
+-        path = spec.output / stage / "last.pt"
+-        payload = {"step": step, "model": cpu_tree(model.state_dict(), torch),
+-                   "ema": cpu_tree(ema.state_dict(), torch) if ema else None,
+-                   "optimizer": cpu_tree(optimizer.state_dict(), torch),
+-                   "scaler": scaler.state_dict(), "rng_by_rank": all_rng,
+-                   "runner": {**runner, "schema": SCHEMA, "input_identity": spec.identity,
+-                              "world_size": world}}
+-        atomic_torch_save(path, payload, spec)
+-        stage_state(spec, stage, checkpoint="last.pt", checkpoint_step=step,
+-                    checkpoint_bytes=path.stat().st_size, **runner)
+-        del payload
+-    if world > 1:
+-        torch.distributed.barrier()
++        try:
++            path = spec.output / stage / "last.pt"
++            payload = {"step": step, "model": cpu_tree(model.state_dict(), torch),
++                       "ema": cpu_tree(ema.state_dict(), torch) if ema else None,
++                       "optimizer": cpu_tree(optimizer.state_dict(), torch),
++                       "scaler": scaler.state_dict(), "rng_by_rank": all_rng,
++                       "runner": {**runner, "schema": SCHEMA, "input_identity": spec.identity,
++                                  "world_size": world}}
++            atomic_torch_save(path, payload, spec)
++            stage_state(spec, stage, checkpoint="last.pt", checkpoint_step=step,
++                        checkpoint_bytes=path.stat().st_size, **runner)
++            del payload
++            if publish_remote:
++                publish_saved_training(spec, stage, step, path, runner)
++        except Exception as exc:
++            failed = True
++            try:
++                atomic_json(spec.output / stage / "checkpoint-failure.json",
++                            {"step": step, "exception_type": type(exc).__name__,
++                             "local_checkpoint_present": (spec.output / stage / "last.pt").is_file(),
++                             "at": now_iso()})
++            except Exception:
++                pass  # Still reach the collective if the output volume is full.
++    if distributed_any(torch, failed, device, world):
++        raise RuntimeError("Training checkpoint save or private upload failed on rank zero")
+ 
+ 
+ def save_best(spec: Spec, stage: str, step: int, model: Any, ema: Any, metrics: dict[str, Any]) -> None:
+@@ -1996,7 +2120,8 @@
+             start_step, stop, quality_anchor, device, rank, world)
+         if not complete:
+             state.update(status="paused", stop_reason=stop.reason or "pending_evaluation_incomplete")
+-            save_training(spec, stage, start_step, model, optimizer, ema, scaler, state, device, world, rank)
++            save_training(spec, stage, start_step, model, optimizer, ema, scaler, state, device, world, rank,
++                          publish_remote=start_step > 0)
+             return EXIT_PAUSED
+         resumed_plateau = teacher_continuation.plateau_reached(spec, start_step, loader.size, stage, device, rank, world)
+         if resumed_plateau:
+@@ -2135,6 +2260,10 @@
+                             **last_metrics, "best_score": state["best_score"], "best_step": state["best_step"]})
+                 stage_state(spec, stage, **state, step=step, corpus_passes=last_metrics["corpus_passes"])
+                 print(json.dumps({"stage": stage, "step": step, **last_metrics}, allow_nan=False), flush=True)
++            if step == 1 and spec.option("private_remote_checkpoints", False):
++                save_training(spec, stage, step, model, optimizer, ema, scaler, state, device, world, rank,
++                              publish_remote=True)
++                checkpoint_time = time.monotonic()
+             validation_due = (step % args.valid_freq == 0 or step == execution_steps
+                               or (quality_run and step in spec.option("teacher_rollout_steps", []))
+                               or (student_quality_run and step in spec.option("rollout_steps", [])))
+@@ -2179,6 +2308,10 @@
+                     state.update(status="paused", stop_reason=stop.reason or "pending_evaluation_incomplete")
+                     exit_code = EXIT_PAUSED
+                     break
++                if saved_before_evaluation and step % 1000 == 0 and spec.option("private_remote_checkpoints", False):
++                    save_training(spec, stage, step, model, optimizer, ema, scaler, state, device, world, rank,
++                                  publish_remote=True)
++                    checkpoint_time = time.monotonic()
+                 minimum_steps = max(1, int(spec.option(f"{stage}_min_steps", min(args.optim.warmup_steps, args.max_steps))))
+                 patience = max(1, int(spec.option("validation_patience", 8)))
+                 plateau = step >= minimum_steps and state["bad_validations"] >= patience
+@@ -2191,7 +2324,8 @@
+             checkpoint_due = distributed_any(torch,
+                 (step % args.ckpt_freq == 0 or timed_checkpoint or validation_due) and not saved_before_evaluation, device, world)
+             if checkpoint_due:
+-                save_training(spec, stage, step, model, optimizer, ema, scaler, state, device, world, rank)
++                save_training(spec, stage, step, model, optimizer, ema, scaler, state, device, world, rank,
++                              publish_remote=step % 1000 == 0 and spec.option("private_remote_checkpoints", False))
+                 checkpoint_time = time.monotonic()
+         if step >= execution_steps and state.get("status") != "rejected":
+             state.update(status="completed", stop_reason="exposure_or_official_step_bound")
+@@ -2211,7 +2345,8 @@
+                     completed.append(probe_step)
+             state.update(probe_schedule=planned, probe_steps_reached=reached, probe_steps_completed=completed,
+                          unreached_probe_reasons={str(value): state.get("stop_reason", "not_reached") for value in planned if value not in reached})
+-        save_training(spec, stage, step, model, optimizer, ema, scaler, state, device, world, rank)
++        save_training(spec, stage, step, model, optimizer, ema, scaler, state, device, world, rank,
++                      publish_remote=step > 0 and spec.option("private_remote_checkpoints", False))
+         if rank == 0:
+             stage_state(spec, stage, **state, step=step, corpus_passes=step * 64 / loader.size,
+                         peak_allocated_bytes=torch.cuda.max_memory_allocated(device),
