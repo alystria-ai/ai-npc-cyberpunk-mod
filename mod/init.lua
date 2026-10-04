@@ -1023,7 +1023,12 @@ local function groupAudience(player)
     local origin = player:GetWorldPosition()
     for _, person in ipairs(groupChat.round.participants) do
         local ok, nearby = pcall(function()
-            if not person.npc:IsAttached() or person.npc:IsDeadNoStatPool() then return false end
+            if not person.npc:IsAttached() or person.npc:IsDeadNoStatPool()
+                or tostring(person.npc:GetEntityID().hash) ~= person.entity then return false end
+            -- Keep the actor/profile frozen at admission. A managed copy can
+            -- be reassigned or dismissed while its old group round is paused.
+            if profileIdentity(person.npc) ~= person.profileKey
+                or not profileEnabled(player, person.profileKey) then return false end
             local pos = person.npc:GetWorldPosition()
             return (pos.x-origin.x)^2 + (pos.y-origin.y)^2 + (pos.z-origin.z)^2 <= 144
         end)
@@ -1032,17 +1037,40 @@ local function groupAudience(player)
     return live, listeners
 end
 
+local function retireGroupRound(round, speaker, reason)
+    local requestId = round.requestId
+    local speechOwner = speech.requestId
+    if round.mode == 'voice' and microphone.context and microphone.context.requestId == requestId then
+        microphone.cancel(reason)
+    end
+    if pending and pending.requestId == requestId then pending, pendingKnowledgeOwner = nil, nil end
+    if speechOwner == requestId then speech.stop(reason) end
+    if round.stage == 'playing' and speaker and subtitles.entity == speaker.entity
+        and (speechOwner == nil or speechOwner == requestId) then subtitles.clearEntity(speaker.entity) end
+    if groupChat.round == round then groupChat.cancel() end
+    focusUntil = os.time() + 1
+end
+
 local function updateGroup(player)
     local round = groupChat.round
     if not round then return end
     if not player then groupChat.cancel(); return end
     local live = groupAudience(player)
+    local current = round.participants[round.index]
     if round.mode == 'voice' then
-        if not live[round.participants[1].entity] then cancelVoice('group-primary-lost'); return end
+        if not live[round.participants[1].entity] then
+            retireGroupRound(round, current or round.participants[1], 'group-primary-lost'); return
+        end
         if round.stage == 'recording' then
             if not microphone.context or microphone.context.requestId ~= round.requestId then cancelVoice('recording-cancelled') end
             return
         end
+    end
+    if current and (round.stage == 'waiting' or round.stage == 'playing') and not live[current.entity] then
+        -- Retire only this round. A private or phone turn must not lose its
+        -- output if it has since acquired the shared speech channel.
+        retireGroupRound(round, current, 'group-speaker-lost')
+        return
     end
     local deliveryFailed = speech.state == 'target-lost' or speech.state == 'error'
         or speech.state == 'playback-failed'

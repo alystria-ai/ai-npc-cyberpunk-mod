@@ -5,6 +5,9 @@ import fengari from 'fengari';
 import {groupContext, parseGroup, conversationScope} from './group-context.mjs';
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const source = readFileSync(new URL('../mod/group-chat.lua', import.meta.url), 'utf8');
+const adapterSource = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+const adapter = adapterSource.slice(adapterSource.indexOf('local function groupAudience(player)'),
+  adapterSource.indexOf('local function captureDiagnostic()'));
 function check(body) {
   const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
   const setup = `local group = (function() ${source} end)()
@@ -19,6 +22,105 @@ test('addressed speaker first, duplicate copies count once, maximum three suppor
   local chosen = group.choose(alex,{judy,p('judy',4),panam,p('unknown',5)},{judy=true,panam=true,alex=true})
   assert(#chosen==3 and chosen[1]==alex and chosen[2]==judy and chosen[3]==panam)
 `));
+test('live group audience retains exact actor and profile ownership across reassignment', () => {
+  const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
+  const code = `local groupChat = (function() ${source} end)()
+    local profiles={['1ULL']='judy',['2ULL']='panam',['3ULL']='alex'}
+    local enabled={judy=true,panam=true,alex=true}
+    local function npc(id)
+      return {id=id, attached=true, IsAttached=function(self)return self.attached end,
+        IsDeadNoStatPool=function()return false end,
+        GetEntityID=function(self)return {hash=self.id} end,
+        GetWorldPosition=function()return {x=0,y=0,z=0} end}
+    end
+    local judy,panam,alex=npc('1ULL'),npc('2ULL'),npc('3ULL')
+    local function person(actor,key)return {npc=actor,entity=actor.id,profileKey=key,name=key}end
+    local player={GetWorldPosition=function()return {x=0,y=0,z=0}end}
+    local function profileIdentity(actor)return profiles[actor.id] end
+    local function profileEnabled(_,key)return enabled[key]==true end
+    local stopped,cleared,sent=0,0,{}
+    local speech={state='idle',requestId=nil}
+    function speech.stop()stopped=stopped+1;speech.requestId=nil end
+    local subtitles={ownsUtterance=function()return false end,
+      clearEntity=function()cleared=cleared+1 end}
+    local microphone={cancellations=0}
+    function microphone.cancel()microphone.cancellations=microphone.cancellations+1;microphone.context=nil end
+    local pending,pendingKnowledgeOwner,generation,focusUntil,focusMode,focusEntity=nil,nil,0
+    local function cancelVoice()error('text round used microphone cancellation')end
+    local function gameplayCanAcquire()return true end
+    local function sendRequest(input)sent[#sent+1]=input;pending=input;return true end
+    local function beginFocus()return true end
+    local function log()end
+    ${adapter}
+    -- Unchanged ownership admits the addressed copy and prepares the next.
+    groupChat.start('normal',{person(judy,'judy'),person(panam,'panam')},'Hi')
+    updateGroup(player);assert(#sent==1 and sent[1].profileKey=='judy')
+    groupChat.received(sent[1].requestId,'Hi V',false,{'judy','panam'})
+    pending=nil;speech.requestId=sent[1].requestId
+    updateGroup(player);assert(groupChat.round and groupChat.round.prepared.profileKey=='panam')
+    groupChat.cancel();speech.requestId=nil
+    -- A disabled or dismissed current copy cancels its pending request without
+    -- stopping another request that now owns speech.
+    groupChat.start('disabled',{person(judy,'judy'),person(panam,'panam')},'Hi')
+    updateGroup(player);local request=sent[#sent]
+    speech.requestId='private-request';subtitles.entity='1ULL';enabled.judy=false;updateGroup(player)
+    assert(groupChat.round==nil and pending==nil and stopped==0 and cleared==0
+      and speech.requestId=='private-request')
+    enabled.judy=true;speech.requestId=nil
+    groupChat.start('dismissed',{person(judy,'judy'),person(panam,'panam')},'Hi')
+    updateGroup(player);profiles['1ULL']=nil;updateGroup(player)
+    assert(groupChat.round==nil and pending==nil and stopped==0)
+    profiles['1ULL']='judy'
+    -- The microphone lease is cancelled without touching an unrelated speaker.
+    local voice=groupChat.startVoice('voice',{person(judy,'judy'),person(panam,'panam')},1,100)
+    microphone.context=voice;speech.requestId='private-request'
+    profiles['1ULL']='alex';updateGroup(player)
+    assert(groupChat.round==nil and microphone.cancellations==1 and speech.requestId=='private-request')
+    profiles['1ULL']='judy';speech.requestId=nil
+    -- A reassigned current speaker must retire only this round's owned turn.
+    groupChat.start('changed',{person(judy,'judy'),person(panam,'panam')},'Hi')
+    updateGroup(player);request=sent[#sent]
+    groupChat.received(request.requestId,'Old profile',false,{'judy','panam'})
+    pending=nil;speech.requestId=request.requestId;subtitles.entity='1ULL'
+    profiles['1ULL']='alex';updateGroup(player)
+    assert(groupChat.round==nil and stopped==1 and cleared==1 and speech.requestId==nil)
+    profiles['1ULL']='judy'
+    -- A later reassigned copy is removed from listeners and never speaks.
+    groupChat.start('later',{person(judy,'judy'),person(panam,'panam'),person(alex,'alex')},'Hi')
+    updateGroup(player);request=sent[#sent]
+    groupChat.received(request.requestId,'First',false,{'judy','panam','alex'})
+    pending=nil;speech.requestId=request.requestId
+    profiles['2ULL']='judy';updateGroup(player)
+    assert(groupChat.round and groupChat.round.prepared.profileKey=='alex')
+    assert(#groupChat.round.prepared.group.audience==2)
+    speech.requestId=nil;updateGroup(player)
+    assert(sent[#sent].profileKey=='alex' and sent[#sent].group.index==3)
+    assert(groupChat.round.heard[1].listeners[1]=='judy' and groupChat.round.heard[1].listeners[2]=='alex')
+    profiles['2ULL']='panam';pending=nil
+    local function secondaryVoice(id)
+      local first=groupChat.startVoice(id,{person(judy,'judy'),person(panam,'panam')},10,100)
+      assert(groupChat.voiceSubmitted(first))
+      assert(groupChat.received(first.requestId,'First',false,{'judy','panam'},nil,'Hello'))
+      assert(groupChat.completed(first.requestId,true))
+      local second=groupChat.next(11,101,{['1ULL']=true,['2ULL']=true})
+      assert(second.profileKey=='panam' and groupChat.received(second.requestId,'Second',false,{'judy','panam'}))
+      return second
+    end
+    -- Losing the primary during secondary playback clears the secondary's
+    -- owned caption; a foreign speech owner remains untouched.
+    local secondary=secondaryVoice('secondary-owned')
+    speech.requestId=secondary.requestId;subtitles.entity='2ULL'
+    profiles['1ULL']=nil;updateGroup(player)
+    assert(groupChat.round==nil and stopped==2 and cleared==2 and speech.requestId==nil)
+    profiles['1ULL']='judy'
+    secondary=secondaryVoice('secondary-foreign')
+    speech.requestId='private-request';subtitles.entity='2ULL'
+    profiles['1ULL']=nil;updateGroup(player)
+    assert(groupChat.round==nil and stopped==2 and cleared==2 and speech.requestId=='private-request')`;
+  const result = lauxlib.luaL_dostring(state, to_luastring(code));
+  const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
+  lua.lua_close(state); assert.equal(result, lua.LUA_OK, error);
+});
 test('an unconfigured addressed companion is never replaced by a different speaker', () => check(`
   local chosen, reason = group.choose(p('8ug8ear',4),{alex},{alex=true})
   assert(#chosen==0 and reason=='unsupported-primary')

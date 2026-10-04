@@ -46,6 +46,11 @@ existing assignments; it is not automatic mod initialization.
 - Lost primary, save/world changes, explicit cancellation and recording errors
   retire the owner. A late callback cannot resurrect that group round. Other
   participants may leave and are skipped by the existing live audience checks.
+- Text and voice rounds keep each admitted actor's entity and conversation
+  profile together. Reassigning, dismissing or disabling the current speaker
+  cancels that round's pending reply and owned playback. A changed later
+  participant is skipped; the remaining audience and prepared next turn are
+  refreshed without substituting the new profile into the old round.
 
 One persistent player identity is retained across private/group/microphone and
 phone conversations. Group session separation does not create extra player IDs.
