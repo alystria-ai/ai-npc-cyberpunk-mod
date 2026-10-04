@@ -21,9 +21,11 @@ no longer open it.
   shows at most 18 model results per page and searches the full discovered
   catalogue by name or record. Use MCM's **Search settings** field. Models without
   a researched identity can be assigned one through Current party.
-- **Settings:** voice playback, native dialogue subtitles, OmniVoice 16/32
-  generation steps (32 by default), service readiness and per-character
-  conversation participation. MCM owns Apply, Revert, defaults and draft guards.
+- **Settings:** conversation participation, Memory and Relationships submenus,
+  voice playback, subtitles, automatic reactions, interface language and
+  Developer mode. The global voice choices are **Pocket TTS (default),
+  OmniVoice 16, OmniVoice 32 and Convai**, with service readiness alongside.
+  MCM owns setting drafts, saving, discarding, defaults and draft guards.
 
 Every inner page starts with one **Back** action. Characters, Current party,
 Model browser and Settings return to the manager home; Relationships, Memory

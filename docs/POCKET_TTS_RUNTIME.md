@@ -76,10 +76,11 @@ quality; saved Pocket and Convai choices remain selected.
 
 An unsaved local choice queues preparation immediately. Backend replacement
 waits for the current owned reply and confirmed worker exit; only one local
-backend is resident. Apply reuses preparation, while reverting or leaving an
-unsaved choice restores the saved backend. Omni's 16/32 choices share one GPU
-model and reference cache. Pocket keeps its separate CPU model, configuration
-and reference registry. Selecting Convai releases local residency after Apply.
+backend is resident. Saving the selection reuses preparation, while discarding
+changes or leaving without saving restores the saved backend. Omni's 16/32
+choices share one GPU model and reference cache. Pocket keeps its separate CPU
+model, configuration and reference registry. Selecting Convai releases local
+residency after the choice is saved.
 
 One hidden worker owns the CPU model and an eight-state LRU. Invite encodes the
 selected acoustic reference before spawn permission, alongside the existing

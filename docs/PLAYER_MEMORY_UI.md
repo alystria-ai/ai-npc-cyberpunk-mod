@@ -38,14 +38,16 @@ is open.
 - **Memory result** shows pending, confirmed or failed feedback for the exact
   submitted request. New clears stay disabled while an outcome is pending.
 
-MCM's ordinary draft guard applies: changed conversation settings must be applied
-or reverted before running actions. Selecting a memory character uses an action,
+MCM's ordinary draft guard applies: changed conversation settings must be saved
+or discarded before running actions. Selecting a memory character uses an action,
 so it creates no settings draft and writes no player identity or character choice
 into `settings.json`.
 
-**Phone Chat messages** are a separate control. **Disappearing messages** clears
-the local Chat history and drafts at the next game launch. Forget actions clear
-character memories about the player; saved Chat messages remain available.
+Phone Chat history and drafts persist across game launches. A successful
+**Forget selected character** clears that character's corresponding Chat messages
+and draft; a successful **Forget all memories** clears all saved Chat messages
+and drafts. Cancel and failed or uncertain clears retain them. The Disappearing
+messages setting has been removed.
 
 ## Invitation preparation
 

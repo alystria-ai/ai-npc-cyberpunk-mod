@@ -28,8 +28,9 @@ No cloned/generated speech is used as a reference.
 - Selecting any local option requests preparation from an unsaved Settings
   draft. A cross-backend request waits for an owned reply and confirmed worker
   retirement before loading the replacement; CPU/CUDA models do not overlap.
-  Apply keeps that prepared worker; Revert or leaving unsaved Settings releases
-  preview-only residency. A saved Convai choice starts without a local model.
+  Saving the choice keeps that prepared worker; discarding changes or leaving
+  Settings without saving releases preview-only residency. A saved Convai
+  choice starts without a local model.
 - Switching Omni16↔32 updates the captured steps for the next reply without
   reloading model weights or reference states. Pocket and Omni have separate
   verified registries: approved Pocket Johnny22 does not overwrite Omni's
@@ -96,9 +97,9 @@ opt-out. FP8 remains an isolated candidate, not the installed voice precision.
 
 ## Routing and lifetime
 
-- **Companion Manager → Settings → Companion voices** selects
-  **OmniVoice (default)** or **Convai**. The manager uses the player's assigned
-  CET shortcut. Apply saves the selection for future launches; valid saved
+- **Companion Manager → Settings → Companion voices** selects Pocket TTS,
+  OmniVoice 16, OmniVoice 32 or Convai. The manager uses the player's assigned
+  CET shortcut. Saving the selection keeps it for future launches; valid saved
   choices take precedence over the new-user default.
 - The current catalog has **75 prepared local voice profiles** out of 79.
   Convai generates their reply text, and one shared OmniVoice model produces
@@ -112,10 +113,11 @@ opt-out. FP8 remains an isolated candidate, not the installed voice precision.
   prompts** are cached in memory; an evicted profile can be prepared again from
   its own reference. The shared model stays loaded without idle eviction.
   Changing steps updates the next reply without reloading weights.
-- October 1: switching the MCM selector to OmniVoice now begins that preparation
-  from the draft immediately, before Apply. Apply reuses the prepared worker;
-  Revert or leaving unsaved Settings cancels preview-only residency. Current
-  replies keep their original route. See [VOICE_PREPARATION.md](VOICE_PREPARATION.md).
+- October 1: switching the MCM selector to OmniVoice begins that preparation
+  from the draft immediately, before the change is saved. Saving reuses the
+  prepared worker; discarding changes or leaving Settings without saving
+  cancels preview-only residency. Current replies keep their original route.
+  See [VOICE_PREPARATION.md](VOICE_PREPARATION.md).
 - Selecting Convai waits for the current conversation reply (including every
   streamed phrase or microphone response) to finish. Subsequent replies use the
   character's configured Convai voice. The old worker finishes outstanding CUDA

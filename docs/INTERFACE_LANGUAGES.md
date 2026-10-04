@@ -3,7 +3,8 @@
 ## Player controls
 
 Open **Companion Manager → Settings → Interface → Interface language**.
-Choose a language, then use MCM's **Apply**. **Revert** discards the change.
+Choose a language, then save the setting. Discarding unsaved changes restores
+the previous selection.
 The default, **Automatic (game interface language)**, follows Cyberpunk's
 on-screen language. The mod supports English, Simplified Chinese, Traditional
 Chinese, Spanish, Brazilian Portuguese, French, German, Russian, Japanese and
@@ -15,8 +16,8 @@ profiles, typed messages, saved history, AI replies, voice selection and the
 Convai player identity keep their original values. It does not request a new
 conversation or change the language spoken by a character.
 
-The MCM framework's header, search, Apply/Revert and shared controls, and
-Codeware's generic Confirm/Cancel controls, use their own localization. Native
+MCM's header, search and settings draft controls and Codeware's generic
+Confirm/Cancel controls use their own localization. Native
 Messages/Contacts and story SMS follow the game. The mod does not change these
 global settings or another mod's UI to match a manual selection.
 
@@ -35,7 +36,7 @@ global settings or another mod's UI to match a manual selection.
 - Manager settings validate and atomically save the canonical `uiLanguage`
   value before queuing a language change. Failed saves leave the old choice
   active. MCM refreshes its provider/schema after the locale revision changes;
-  existing drafts defer a rebuild until Apply/Revert.
+  existing drafts defer a rebuild until they are saved or discarded.
 - Phone hooks target only owned Chat widgets and known mod feedback. World
   composer notification data keeps its English ownership markers while the
   rendered title/hint changes. Neither path replaces the current input text.
@@ -96,7 +97,7 @@ uses Semi-Bold when a family lacks that weight. Per-surface scopes retain plain
 original family paths, styles, locks and full-width hash strings; no widget
 handles. Restoration uses ink's family/style setter and checks that a later
 independent font change has not replaced the mod's font. A selector's native
-language name uses its own font before Apply.
+language name uses its own font before the new choice is saved.
 
 The live CET wrapper differs from Codeware's redscript declaration. The tested
 getter is `ResRef.ToString(widget.fontFamily)`; passing that wrapper to
