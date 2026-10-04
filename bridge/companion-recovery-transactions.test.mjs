@@ -269,9 +269,28 @@ end
 assert(not first.finishWhenDestinationReached and not first.useStop)
 update()
 local next=last(npc,'AIMoveToCommand')
-assert(next and next~=first and stops==1 and first.state=='Cancelled','handoff waited for a native stop/success')
+assert(next==first and stops==0 and first.state=='Executing','clear continuation restarted native locomotion')
+assert(next.movementTarget.position~=point,'continuation retained the old endpoint')
 assert(next.movementType=='Run' and not next.useStart and not next.useStop)
 assert(#active(npc)==1 and state.ticket=='curved-travel')
+`));
+
+test('distant catch-up extends successive horizons without cancelling its active command',()=>run(motor+`
+player.pos=Vector4.new(0,50,0)
+update()
+local command=last(npc,'AIMoveToCommand');assert(command)
+local stops=0
+npc.ai.StopExecutingCommand=function(_,owned)
+  stops=stops+1;owned.state='Cancelled';return true
+end
+for i=1,5 do
+  local old=command.movementTarget.position
+  npc.pos=Vector4.new(old.x,old.y-.5,old.z);npc.forward=Vector4.new(0,1,0);context.speed=5
+  update()
+  assert(state.command==command and command.state=='Executing' and stops==0)
+  assert(command.movementTarget.position.y>old.y+.5,'catch-up did not extend the admitted destination')
+  assert(#active(npc)==1 and not state.blockedReason)
+end
 `));
 
 test('terminal waypoint success under exhausted quota immediately owns a safety hold',()=>run(motor+curvedTravel+`
@@ -284,11 +303,12 @@ for i=1,10 do update() if active(npc,'AIMoveToCommand')[1] then break end end
 assert(active(npc,'AIMoveToCommand')[1] and #active(npc)==1)
 `));
 
-test('asynchronous rolling cancellation rechecks a newly occupied successor before committing it',()=>run(motor+solids+curvedTravel+`
+test('asynchronous gait-change cancellation rechecks a newly occupied successor before committing it',()=>run(motor+solids+curvedTravel+`
 local point=first.movementTarget.position
 local length=math.sqrt(point.x^2+point.y^2)
 npc.pos=Vector4.new(point.x-point.x/length*.25,point.y-point.y/length*.25)
 npc.forward=Vector4.new(point.x/length,point.y/length);context.speed=2.4
+decision.operation.gait='Sprint'
 local stops=0
 npc.ai.StopExecutingCommand=function(_,command) assert(command==first);stops=stops+1;return true end
 update();assert(state.cancellation and state.execution.pendingIndex and stops==1)

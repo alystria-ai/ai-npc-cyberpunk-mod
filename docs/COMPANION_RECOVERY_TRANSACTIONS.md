@@ -1,5 +1,25 @@
 # Companion recovery and movement admission
 
+## October 5 command continuity
+
+The user's new trace captured clear-route catch-up with repeated command changes
+and zero-speed intervals for Alex, Ana and Blue Moon. The controller was issuing
+new MoveTo commands at short intermediate points, even though no obstacle was
+reported. Capture: `runtime/follow-cycle-20261005-215236`.
+
+Continuing, same-gait waypoint movement now updates the owned active command's
+target after complete successor admission. It starts that handoff earlier at
+running speed. Gait changes, final arrivals, cancelled handles and blocked routes
+retain their normal retirement path. The native MoveTo handler reads this field;
+whether each native behavior consumes a live update remains an in-game check.
+An ignored target update is recorded and disables further in-place updates for
+that actor, falling back to fresh command admission. Three focused source cases
+cover command continuity, successive horizons and an obstructed gait change.
+
+The older tiny-budget vehicle fixture currently stops at the motion guard before
+its intended successor-preparation setup. It is not counted as a passing check.
+No broad movement-suite or rendered-gait acceptance is claimed for this change.
+
 ## October 5 native first-point height projection
 
 The native route can start at the actor's XY but slightly above the animated

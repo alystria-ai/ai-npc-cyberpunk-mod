@@ -1177,6 +1177,34 @@ local function routePrefix(route,target)
     end
 end
 
+local function continueWaypoint(s,plan,intent,c,index,route)
+    -- A new native command restarts locomotion even when useStop is false.
+    -- Retarget only our currently executing, non-final MoveTo, after the
+    -- successor's complete route/body admission. Never reuse a stale handle.
+    if s.disableRetarget or s.cancellation or not s.command or s.stage~='walking-leg'
+        or stateName(currentCommandState(s) or '')~='Executing'
+        or s.command.finishWhenDestinationReached or s.face or intent.face then return false end
+    local final=index==#plan.points
+    if final and plan.mode=='travel' and not plan.following and intent.finish then return false end
+    local gait=plan.mode=='escape' and 'Walk' or intent.gait or 'Walk'
+    if gait~=s.gait then return false end
+    local target=plan.points[index]
+    local ok=pcall(function()
+        s.command.movementTarget=position(target)
+        s.command.useStart=false
+    end)
+    if not ok then s.disableRetarget=true;return false end
+    plan.index,plan.from=index,space.copy(c.position)
+    plan.pendingIndex,plan.pendingPhase,plan.trialIndex,plan.minimumIndex=nil,nil,nil,nil
+    plan.commandRoute,plan.phase,plan.motionGuard=route.legs,'moving',nil
+    s.execution,s.executionTarget=plan,space.copy(target)
+    s.clearanceWaiting,s.clearanceHolding,s.progress=nil,nil,nil
+    s.routeCheckedAt,s.lastRetarget=s.clock,s.clock
+    s.retargetCommandID=tonumber(s.command.id)
+    record(s,'retarget')
+    return true
+end
+
 local function commitWaypoint(s,plan,intent,c,index,minimum)
     -- Preparation leaves an active current lease intact. Only a completely
     -- certified successor can begin retiring that exact native handle.
@@ -1217,6 +1245,7 @@ local function commitWaypoint(s,plan,intent,c,index,minimum)
             block(s,reason,c,s.target,plan.following);return true
         end
         rememberAdmission(s,plan,c,target,target,route)
+        if continueWaypoint(s,plan,intent,c,index,route) then return true end
         plan.pendingIndex,plan.pendingPhase=index,'retiring'
     end
     index=plan.pendingIndex
@@ -1273,6 +1302,21 @@ local function handoff(s,plan,intent,c,canPlan)
         target,reason,deferred,route,horizon=destination(s,plan,intent,c)
         if deferred then preserveOwner(s);return true end
         if not target then block(s,reason,c,intent.kind=='follow' and followGoal(s,c) or intent.goal,plan.following);return true end
+        if horizon then
+            local nextPlan=execution(route,c.position,followGoal(s,c),plan.following,'advance')
+            if nextPlan then
+                local index=chooseWaypoint(nextPlan,c,1)
+                local prefix=routePrefix(route,nextPlan.points[index])
+                local clear,_,waiting=clearance.body(nextPlan.points[index],s.clearance)
+                if waiting then preserveOwner(s);return true end
+                if clear and prefix and continueWaypoint(s,nextPlan,intent,c,index,prefix) then
+                    s.target=space.copy(followGoal(s,c))
+                    s.recoveryTicket=s.ticket
+                    record(s,'recovery-handoff-retarget')
+                    return true
+                end
+            end
+        end
         rememberAdmission(s,plan,c,intent.kind=='follow' and followGoal(s,c) or intent.goal,target,route,horizon)
         plan.handoffPhase='retiring'
     end
@@ -1332,6 +1376,17 @@ local function execute(s,intent,c,canPlan)
         if not cancel(s) then return false end
         s.issued=false;plan.phase='moving'
     elseif s.stage=='walking-leg' and s.command then
+        if s.lastRetarget and s.retargetCommandID==tonumber(s.command.id)
+            and (s.feedback.stalled or stateName(s.feedback.state or '')=='Success'
+            and space.ground(c.position,s.executionTarget)>.65) then
+            -- Some native behavior variants may latch their initial target.
+            -- Stop trying in-place updates for that actor and use normal fresh
+            -- admission; an ignored retarget must not strand the companion.
+            s.disableRetarget,s.lastRetarget=true,nil
+            record(s,'retarget-not-consumed')
+            plan.pendingIndex,plan.pendingPhase=plan.index,'retiring'
+            return commitWaypoint(s,plan,intent,c,plan.index)
+        end
         if s.feedback.failed or s.feedback.stalled then
             s.lastRejection={stage='execution',nativeLegFailure=true,geometry=plan.rejection,
                 origin=space.copy(c.position),target=space.copy(s.target),leg=plan.index,at=s.clock,ticket=s.ticket}
@@ -1367,10 +1422,11 @@ local function execute(s,intent,c,canPlan)
             local monitored=watchRoute(s,c,canPlan)
             if s.blockedReason or s.clearanceWaiting then return monitored end
             local gap=space.ground(c.position,s.executionTarget)
-            if plan.index==#plan.points and gap<=.3 and (plan.mode~='travel' or plan.following or not intent.finish) then
+            local rollingGap=math.min(2.5,math.max(recoveryPolicy.rollingGap,c.speed*.4+.25))
+            if plan.index==#plan.points and gap<=rollingGap and (plan.mode~='travel' or plan.following or not intent.finish) then
                 plan.phase='handoff';return handoff(s,plan,intent,c,canPlan) or monitored
             end
-            if plan.index<#plan.points and gap<=recoveryPolicy.rollingGap and s.clock>=(plan.rollRetryAt or 0) then
+            if plan.index<#plan.points and gap<=rollingGap and s.clock>=(plan.rollRetryAt or 0) then
                 if plan.refreshGoal then plan.phase='handoff';return handoff(s,plan,intent,c,canPlan) or monitored end
                 if canPlan then
                     return commitWaypoint(s,plan,intent,c,chooseWaypoint(plan,c,plan.index+1),plan.index+1) or monitored
