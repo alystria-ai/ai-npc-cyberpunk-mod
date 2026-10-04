@@ -54,7 +54,9 @@ def prepare(candidate):
     binding.update(experiment_id="full-a-20261005-" + nonce[:8], segment_id="teacher-" + nonce,
                    available_execution_seconds=teacher_allowance,
                    teacher_lifetime_budget_seconds=teacher_allowance, source_overlays=overlays,
-                   remote_checkpoint_run_id="full-a-20261005-" + nonce[:8])
+                   remote_checkpoint_run_id="full-a-20261005-" + nonce[:8],
+                   remote_checkpoint_max_keep=3,
+                   checkpoint_bucket="akshitireddy/cyberpunk-pocket-rolling-checkpoints")
     original_source = (LAUNCH / "kernel-template.py").read_text(encoding="utf-8")
     original_source = original_source.split('\nif __name__ == "__main__":', 1)[0]
     original_source = original_source.replace("def main():", "def full_original_main():", 1)
@@ -87,6 +89,8 @@ def prepare(candidate):
         "student_quota_reserve_seconds": 25200, "max_steps": 20000,
         "train_rows": 8140, "voices": 79, "effective_batch_size": 64, "nproc_per_node": 2,
         "diagnostic_subset": False, "selected_ids": [], "source_overlays": safe_binding["source_overlays"],
+        "checkpoint_storage": {"kind": "private_bucket", "max_snapshots": 3,
+                               "bucket_id": binding["checkpoint_bucket"]},
         "payload_anchor_sha256": binding["payload"]["anchor_sha256"],
         "scope": "Frozen A teacher recipe, full corpus; first-update and evaluation cloud checkpoints"})
     io.atomic(folder / "quota-at-preparation.json", quota)

@@ -243,8 +243,10 @@ This verifies checkpoint transport, not speech quality or the full batch64 recip
 
 ## Full A teacher restart
 
-On October 5 the new full teacher was submitted as private Kaggle kernel
-137087975, version 1. It uses the frozen 8,140-recording corpus across 79 voices,
+On October 5 the full teacher was rebuilt at the user's request to retain at
+most three checkpoint snapshots. The previous kernel 137087975 was cancelled
+during input staging. Its replacement is private kernel 137089516, version 1.
+It uses the frozen 8,140-recording corpus across 79 voices,
 two T4 GPUs, FP16 computation, batch 64, and the previously approved A recipe.
 The checkpoint-only source changes are preserved in
 `scripts/pocket_training/full_a_checkpoint.patch` with hashes in the adjacent
@@ -253,8 +255,15 @@ execution and live readback. Submission acceptance is separate from verified
 training progress; the exact receipts remain in the ignored runtime folder.
 
 The first completed update, each completed 1,000-step evaluation, and pause/end
-states publish private checkpoints. Ten-minute local checkpoints continue between
-those uploads. Remote snapshots include the quality anchor, candidate index,
+states upload private checkpoints to a Hugging Face storage bucket. Three fixed
+slots retain at most three snapshots; a fourth save replaces the oldest slot.
+The old completion marker is removed before replacement, and the new marker is
+written only after file verification. Interrupted uploads leave the other two
+slots intact. Buckets avoid accumulating old versions in Git history.
+`rolling_bucket_checkpoints.py` implements this policy. A small live check of
+four saves retained only saves 2, 3 and 4, with a verified download afterwards.
+Ten-minute local checkpoints continue between cloud saves. Remote snapshots
+include the quality anchor, candidate index,
 retained candidate weights and applicable evaluation sidecars. Both ranks agree
 on save/upload success before proceeding. The two accepted voice models remain
 unchanged while the new teacher is trained and evaluated.

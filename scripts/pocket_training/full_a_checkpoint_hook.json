@@ -1,7 +1,9 @@
 {
   "base_runner_sha256": "79488c318b52b84654064e37fdf468f6b550346d2717e108da697ed399e8f294",
-  "runner_sha256": "2e4e41943eddc9409de74e97dcca6cc4baab7137f046fbc3b3947778903f41df",
-  "patch_sha256": "bd44d7258f911c15023e252c5ee74f61b57d178776ff6c8c2fa6a3ea9097a936",
-  "uploader_sha256": "774a278cbccd2db262f0afeec8426bb60315ad94177dc3d19c780d09310e5d8d",
-  "scope": "Full A checkpoint observability only; use against the named frozen runner"
+  "runner_sha256": "4a8d8582cad5f2b5b9fc1c89917036fb191cb82a83ec1609cfadd13f50f7b47a",
+  "patch_sha256": "a82f4140e484a2a92880234fcec4f122b8963a259cd2befe05f730c7e50e54a8",
+  "uploader_sha256": "f9dba9c899e098116529a7d471ee01118e0a8b3015eac17e07ad531cb679f84d",
+  "checkpoint_storage": "private_bucket",
+  "max_snapshots": 3,
+  "scope": "Full A observability and three-slot checkpoint rotation; use against named frozen runner"
 }

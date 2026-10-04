@@ -18,14 +18,14 @@
 +        remote_run_id = raw.get("remote_checkpoint_run_id")
 +        if not isinstance(remote_run_id, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,40}", remote_run_id):
 +            raise ValueError("remote_checkpoint_run_id must be a stable lowercase experiment ID")
-+        identities["private_remote_checkpoint_policy"] = "step1_every1000_and_terminal_v1"
++        identities["private_remote_checkpoint_policy"] = "step1_every1000_and_terminal_rolling3_v2"
 +        identities["remote_checkpoint_run_id"] = remote_run_id
 +        identities["private_remote_checkpoint_helper_sha256"] = sha256_file(
 +            Path(__file__).with_name("remote_checkpoints.py"))
      sampling = {"decode_steps": decode_steps, "temperature": raw.get("sample_temperature", .3),
                  "seed": raw.get("sample_seed", 1337), "max_seconds": raw.get("sample_max_seconds", 30),
                  "teacher_only": raw.get("teacher_only_evaluation", False)}
-@@ -1176,8 +1187,108 @@
+@@ -1176,8 +1187,114 @@
              temp.unlink()
  
  
@@ -73,10 +73,10 @@
 +    identities.update({name: sha256_file(path) for name, path in exports.items()})
 +    identity_data = json.dumps({"checkpoint": checkpoint_sha, "exports": identities}, sort_keys=True)
 +    snapshot_sha = hashlib.sha256(identity_data.encode("utf-8")).hexdigest()
-+    # Pending evaluation and completed evaluation may save different states at
-+    # the same optimizer step. Each frozen snapshot gets a unique remote path.
-+    run_id = f"{spec.raw['remote_checkpoint_run_id']}-{snapshot_sha[:12]}"
-+    snapshot_dir = stage_dir / "remote-state" / "snapshots" / f"{run_id}-step-{step:06d}"
++    # The bucket rotates three slots for this stable experiment. Distinct
++    # same-step snapshots keep separate small local upload receipts.
++    run_id = spec.raw["remote_checkpoint_run_id"]
++    snapshot_dir = stage_dir / "remote-state" / "snapshots" / f"{run_id}-step-{step:06d}-{snapshot_sha[:12]}"
 +    for path in existing_sidecars:
 +        name = path.relative_to(spec.output).as_posix()
 +        frozen = snapshot_dir / name
@@ -114,18 +114,24 @@
 +            continue
 +    result = next((item for item in reversed(events)
 +                   if isinstance(item, dict) and item.get("event") == "remote_checkpoint_available"), None)
-+    if (not result or result.get("step") != step or not isinstance(result.get("commit_oid"), str)
-+            or result.get("path_in_repo") != f"runs/{run_id}/step-{step:06d}"):
-+        raise RuntimeError("Private checkpoint publisher returned no matching verified receipt")
-+    receipt = {"schema": "full_a_remote_checkpoint_v1", "step": step,
++    if (not result or result.get("step") != step
++            or result.get("bucket_id") != "akshitireddy/cyberpunk-pocket-rolling-checkpoints"
++            or type(result.get("slot")) is not int or result["slot"] not in (0, 1, 2)
++            or result.get("path_in_bucket") != f"runs/{run_id}/slot-{result['slot']}"
++            or not re.fullmatch(r"[0-9a-f]{64}", result.get("snapshot_id", ""))
++            or not re.fullmatch(r"[0-9a-f]{64}", result.get("manifest_sha256", ""))):
++        raise RuntimeError("Rolling checkpoint publisher returned no matching verified receipt")
++    receipt = {"schema": "full_a_rolling_checkpoint_v1", "step": step,
 +               "input_identity": spec.identity, "checkpoint_sha256": checkpoint_sha,
-+               "run_id": run_id, "commit_oid": result["commit_oid"],
-+               "path_in_repo": result["path_in_repo"], "verified_at": now_iso()}
++               "run_id": run_id, "bucket_id": result["bucket_id"], "slot": result["slot"],
++               "snapshot_id": result["snapshot_id"], "manifest_sha256": result["manifest_sha256"],
++               "path_in_bucket": result["path_in_bucket"], "verified_at": now_iso()}
 +    atomic_json(spec.output / stage / "remote-receipts" /
 +                f"step-{step:06d}-{checkpoint_sha[:12]}.json", receipt)
 +    print(json.dumps({"event": "private_checkpoint_verified", "stage": stage,
-+                      "step": step, "commit_oid": result["commit_oid"],
-+                      "path_in_repo": result["path_in_repo"]}), flush=True)
++                      "step": step, "bucket_id": result["bucket_id"], "slot": result["slot"],
++                      "snapshot_id": result["snapshot_id"], "manifest_sha256": result["manifest_sha256"],
++                      "path_in_bucket": result["path_in_bucket"]}), flush=True)
 +
 +
  def save_training(spec: Spec, stage: str, step: int, model: Any, optimizer: Any, ema: Any,
@@ -135,7 +141,7 @@
      import torch
  
      rng = capture_rng(torch, model)
-@@ -1186,20 +1297,33 @@
+@@ -1186,20 +1303,33 @@
          torch.distributed.all_gather_object(all_rng, rng)
      else:
          all_rng[0] = rng
@@ -182,7 +188,7 @@
  
  
  def save_best(spec: Spec, stage: str, step: int, model: Any, ema: Any, metrics: dict[str, Any]) -> None:
-@@ -1996,7 +2120,8 @@
+@@ -1996,7 +2126,8 @@
              start_step, stop, quality_anchor, device, rank, world)
          if not complete:
              state.update(status="paused", stop_reason=stop.reason or "pending_evaluation_incomplete")
@@ -192,7 +198,7 @@
              return EXIT_PAUSED
          resumed_plateau = teacher_continuation.plateau_reached(spec, start_step, loader.size, stage, device, rank, world)
          if resumed_plateau:
-@@ -2135,6 +2260,10 @@
+@@ -2135,6 +2266,10 @@
                              **last_metrics, "best_score": state["best_score"], "best_step": state["best_step"]})
                  stage_state(spec, stage, **state, step=step, corpus_passes=last_metrics["corpus_passes"])
                  print(json.dumps({"stage": stage, "step": step, **last_metrics}, allow_nan=False), flush=True)
@@ -203,7 +209,7 @@
              validation_due = (step % args.valid_freq == 0 or step == execution_steps
                                or (quality_run and step in spec.option("teacher_rollout_steps", []))
                                or (student_quality_run and step in spec.option("rollout_steps", [])))
-@@ -2179,6 +2308,10 @@
+@@ -2179,6 +2314,10 @@
                      state.update(status="paused", stop_reason=stop.reason or "pending_evaluation_incomplete")
                      exit_code = EXIT_PAUSED
                      break
@@ -214,7 +220,7 @@
                  minimum_steps = max(1, int(spec.option(f"{stage}_min_steps", min(args.optim.warmup_steps, args.max_steps))))
                  patience = max(1, int(spec.option("validation_patience", 8)))
                  plateau = step >= minimum_steps and state["bad_validations"] >= patience
-@@ -2191,7 +2324,8 @@
+@@ -2191,7 +2330,8 @@
              checkpoint_due = distributed_any(torch,
                  (step % args.ckpt_freq == 0 or timed_checkpoint or validation_due) and not saved_before_evaluation, device, world)
              if checkpoint_due:
@@ -224,7 +230,7 @@
                  checkpoint_time = time.monotonic()
          if step >= execution_steps and state.get("status") != "rejected":
              state.update(status="completed", stop_reason="exposure_or_official_step_bound")
-@@ -2211,7 +2345,8 @@
+@@ -2211,7 +2351,8 @@
                      completed.append(probe_step)
              state.update(probe_schedule=planned, probe_steps_reached=reached, probe_steps_completed=completed,
                           unreached_probe_reasons={str(value): state.get("stop_reason", "not_reached") for value in planned if value not in reached})

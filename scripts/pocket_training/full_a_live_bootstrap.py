@@ -50,6 +50,8 @@ def progress_watch(raw, seen):
 
 
 def run_logged(command, name, raw=None):
+    if name == "install":
+        command = list(command) + ["huggingface_hub==1.33.0"]
     if name == "runner":
         changes = []
         for item in BINDINGS["source_overlays"]:
@@ -72,12 +74,14 @@ def run_logged(command, name, raw=None):
         raw["log_freq"] = 1
         raw["private_remote_checkpoints"] = True
         raw["remote_checkpoint_run_id"] = BINDINGS["remote_checkpoint_run_id"]
+        raw["remote_checkpoint_max_keep"] = 3
         path = SCRATCH / (BINDINGS["role"] + "-execution-spec.json")
         atomic(path, raw)
         atomic(BOOTSTRAP / "execution-spec.json", raw)
         live_event("full_recipe_ready", train_rows=8140, effective_batch=64, gpus=2,
                    planned_updates=raw["teacher_max_steps"], learning_rate=raw["teacher_learning_rate"],
-                   warmup_updates=raw["teacher_warmup_steps"], diagnostic_subset=False)
+                   warmup_updates=raw["teacher_warmup_steps"], diagnostic_subset=False,
+                   checkpoint_max_keep=3, checkpoint_storage="private_bucket")
     return _original_run_logged(command, name, raw)
 
 
