@@ -30,6 +30,7 @@ The catalog currently contains **79 conversation profiles**: 77 named characters
 - Passenger boarding and seated eye/head attention. The vehicle controller also includes overflow carpooling and fast-travel recovery; their wider gameplay checks are still pending.
 - Ask a nearby companion to drive an owned car to the selected map waypoint, including a parked car restored with your save. They take the driver seat and wait for you to enter a passenger seat. You can change the waypoint during the trip; **Current party** shows its status and Stop trip.
 - **Settings → Development → Developer mode** enables routine driving status popups. It defaults Off; important errors remain visible.
+- Developer mode also records movement diagnostics during gameplay, including companions beyond conversation range. Logging survives CET reloads and keeps at most two 2 MiB files.
 
 Selecting **Invite** reserves a place and immediately prepares memory configuration, the selected voice, and the conversation connection. A talking companion appears only after preparation succeeds and you return to gameplay. Progress reports the current preparation stage. A failed attempt shows its error once and waits for cancellation or an explicit retry. This setup does not send an invented conversation or seed memories.
 

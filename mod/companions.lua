@@ -566,6 +566,91 @@ end
 
 
 -- Menu snapshots read cached values only. Never query native command handles here.
+-- Developer trace reads the same cache for every tracked copy, including copies
+-- beyond the conversation radius. No native handle or provider identity escapes.
+local function movementNumber(value)
+    return type(value)=='number' and value==value and math.abs(value)<1000000000000000 and value or nil
+end
+local function movementText(value)
+    return type(value)=='string' and (value:sub(1,120):gsub('%c',' ')) or nil
+end
+local function movementPoint(value)
+    if not value then return nil end
+    local x,y,z=movementNumber(value.x),movementNumber(value.y),movementNumber(value.z)
+    return x and y and z and {x=x,y=y,z=z} or nil
+end
+local function movementRejection(value)
+    if type(value)~='table' then return nil end
+    local geometry=type(value.geometry)=='table' and value.geometry or nil
+    return {group=movementText(value.group or geometry and geometry.group),
+        stage=movementText(value.stage),geometryType=movementText(value.geometryType),
+        ticket=movementText(value.ticket),leg=movementNumber(value.leg),
+        from=movementPoint(value.from),to=movementPoint(value.to),
+        origin=movementPoint(value.origin),target=movementPoint(value.target),
+        center=movementPoint(value.center or geometry and geometry.center),
+        box=movementNumber(value.box),boxes=movementNumber(value.boxes),
+        unavailable=value.unavailable==true,nativeLegFailure=value.nativeLegFailure==true}
+end
+function M.movementSnapshot()
+    local frame=groupFrame
+    local snapshot={version=1,clock=movementNumber(runtimeClock),
+        player=frame and {position=movementPoint(frame.position),
+            speed=movementNumber(frame.speed),rawSpeed=movementNumber(frame.rawSpeed),
+            moving=frame.moving==true,running=frame.running==true,
+            stop=movementNumber(frame.stop),epoch=movementNumber(frame.epoch),
+            justStopped=frame.justStopped==true,justDeparted=frame.justDeparted==true} or nil,
+        queryBudget=spatialBudget and {used=movementNumber(spatialBudget.used),
+            limit=movementNumber(spatialBudget.limit),deferred=movementNumber(spatialBudget.deferred)} or nil,
+        copies={}}
+    for _,entry in ipairs(entries) do
+        local person,motor=entry.person or {},entry.motor or {}
+        local feedback=motor.feedback or {}
+        local operation=person.operation or {}
+        local execution=motor.execution or {}
+        local guard=execution.motionGuard or {}
+        local route=feedback.route or {}
+        local event=motor.events and motor.events[#motor.events] or nil
+        local projection=motor.destinationProjection or feedback.destinationProjection
+        snapshot.copies[#snapshot.copies+1]={
+            serial=movementNumber(entry.serial),key=movementText(entry.key),
+            name=movementText(entry.name),profileKey=movementText(entry.profileKey),
+            state=movementText(entry.state),lane=movementNumber(entry.lane),
+            actor={position=movementPoint(entry.position),speed=movementNumber(entry.speed),
+                playerGap=movementNumber(entry.playerGap),targetGap=movementNumber(entry.targetGap)},
+            brain={phase=movementText(person.phase),reason=movementText(person.reason),
+                ticket=movementText(operation.ticket),kind=movementText(operation.kind),
+                gait=movementText(operation.gait),goal=movementPoint(operation.goal),
+                finish=operation.finish==true},
+            command={ticket=movementText(feedback.ticket or motor.ticket),
+                kind=movementText(feedback.kind or motor.kind),stage=movementText(feedback.stage or motor.stage),
+                gait=movementText(motor.gait),state=movementText(feedback.state),
+                target=movementPoint(feedback.target or motor.target),
+                active=feedback.active==true,complete=feedback.complete==true,
+                failed=feedback.failed==true,stalled=feedback.stalled==true,
+                waiting=feedback.waiting==true,blocked=feedback.blocked==true,
+                cancelling=feedback.cancelling==true,suspended=feedback.suspended==true,
+                commandID=movementNumber(feedback.commandID),
+                clearanceWaiting=motor.clearanceWaiting==true,
+                route={kind=movementText(route.kind),mode=movementText(route.mode or execution.mode),
+                    phase=movementText(route.phase or execution.phase),
+                    index=movementNumber(route.index or execution.index),
+                    total=movementNumber(route.total or execution.points and #execution.points),
+                    candidate=movementNumber(route.candidate),
+                    progress=movementNumber(guard.progress),
+                    projectedAt=movementPoint(guard.position),
+                    target=movementPoint(route.target or motor.executionTarget)},
+                projection=projection and {requested=movementPoint(projection.requested),
+                    point=movementPoint(projection.point),radius=movementNumber(projection.radius),
+                    maxShift=movementNumber(projection.maxShift),
+                    lateralShift=movementNumber(projection.lateralShift)} or nil,
+                lastRejection=movementRejection(motor.lastRejection or feedback.rejection),
+                lastEvent=event and {at=movementNumber(event.at),event=movementText(event.event),
+                    ticket=movementText(event.ticket),kind=movementText(event.kind),
+                    commandID=movementNumber(event.commandID),target=movementPoint(event.target)} or nil}}
+    end
+    return snapshot
+end
+
 function M.list()
     local rows,totals,seen={},{},{}
     for _,e in ipairs(entries) do totals[e.key]=(totals[e.key] or 0)+1 end

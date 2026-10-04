@@ -2,6 +2,7 @@
 -- Owns native composers, targeted turns, party connections and live diagnostics.
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 local companions = dofile('companions.lua')
+local movementLog = dofile('movement-log.lua')
 local subtitles = dofile('subtitles.lua')
 local speech = dofile('speech.lua')
 local microphone = dofile('microphone.lua')
@@ -1465,6 +1466,7 @@ registerForEvent('onUpdate', function(delta)
     local managerOk, managerError = pcall(manager.update, player, 0.1)
     if not managerOk then log('Manager update failed: ' .. tostring(managerError)) end
     if worldReady then companions.update(player, elapsedPoll, focusEntity) end
+    movementLog.update(worldReady and manager.developerMode(), elapsedPoll, companions.movementSnapshot)
     updateGroup(player)
     local battleOk, battleError = pcall(updateBattles, player, elapsedPoll, worldReady)
     if not battleOk then

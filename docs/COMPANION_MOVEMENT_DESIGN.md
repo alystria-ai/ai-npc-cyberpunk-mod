@@ -398,3 +398,14 @@ box. Radius, top/head clearance, six collision groups, query cost and failure
 semantics are unchanged. Projected destinations and spawn positions retain the
 full standing-body check. No speed, follow distance or global collision margin
 was changed. The temporary native probe helper was restored byte-for-byte.
+
+### Developer movement trace
+
+When Developer mode is enabled, the integration calls `movement-log.update` with
+the current delta and `companions.movementSnapshot`. The snapshot copies cached
+player and every tracked companion's motion, decision, command, route progress,
+projection, last rejection and last command event. It makes no native queries.
+At most two samples per second are appended to `runtime/movement-trace.ndjson`.
+The active trace and its atomic rollover
+`runtime/movement-trace.previous.ndjson` are each limited to 2 MiB. Valid files
+survive a CET reload; disabling Developer mode stops sampling and file access.
