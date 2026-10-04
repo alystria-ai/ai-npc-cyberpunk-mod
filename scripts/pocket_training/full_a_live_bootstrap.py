@@ -74,6 +74,10 @@ def run_logged(command, name, raw=None):
         # One original Judy recording is 32.51 s, but its sole aligned target
         # is 13.51 s. Admit the unchanged source; the target window stays 30 s.
         raw["max_utterance_seconds"] = 33
+        # The end-of-session save writes and uploads a ~5 GB resumable state.
+        # The runner's 300 s default can lose up to 1000 updates at Kaggle's
+        # hard stop; give the save ample time. Not part of the run identity.
+        raw["checkpoint_reserve_seconds"] = 1800
         raw["log_freq"] = 1
         raw["private_remote_checkpoints"] = True
         raw["remote_checkpoint_run_id"] = BINDINGS["remote_checkpoint_run_id"]
