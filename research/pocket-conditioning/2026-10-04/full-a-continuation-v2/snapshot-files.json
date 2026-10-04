@@ -1,0 +1,19 @@
+{
+  "schema": "full_a_code_only_git_snapshot_v1",
+  "candidate_manifest_sha256": "41d6c1e6671f6112adc770d9e8f580bcc8369d4a6f349164b3d9a4cc0ff893fb",
+  "files": {
+    "code/scripts/pocket_training/native_primary_data.py": "62312943d5cf7e5236ea5b806a2d255b4528201f2c896442af548425ac33ce74",
+    "code/scripts/pocket_training/rollout.py": "faf87a00ff0b2e0e78a54d298d721d84f815487cb1bdc615dc9bcdda16d814bf",
+    "code/scripts/pocket_training/runner.py": "c9328b366bbc4ab7699a2a2b1455a5272df68a38fba4b4f533c682dbcb58a853",
+    "code/scripts/pocket_training/student_transfer.py": "14724a3e75fadffa00a0a716f09d6e9739b3e1cef02c055fef1f2b416c35345a",
+    "code/scripts/pocket_training/teacher_continuation.py": "4ae9d352d46f72098615d77adef8cc6b72c5c3cf6d6f5804f0e2d5c4f73ac74c",
+    "code/scripts/pocket_training/teacher_quality.py": "e29ffe61221d66014d8f7a6d658bde741e8b22f1ca0224c1348b505718001224",
+    "READINESS.md": "60c49d9a8db9d28202f04e0e5c7dbaa3853bc2555816e659b413e2368f82c02c",
+    "NATIVE_PRIMARY_ADMISSION.md": "c96793388681a8276e95cf77afcea27a52b668b4d0a729edee7ddc37b2f6749b",
+    "frozen-source-manifest.json": "41d6c1e6671f6112adc770d9e8f580bcc8369d4a6f349164b3d9a4cc0ff893fb",
+    "base-manifest.json": "4958e8b383b612af0641f316de966439be7760647136dc56feb3c8a6ab207d7c",
+    "v1-to-v2.patch": "640ee8eaf51ce707b55dc7e04c37bfc67b19adf72446cf80f739805cf1c0f2ff",
+    "base-to-v1.patch": "aae6cf5176155e19455461e0bb4b974c4c1f3c472f8912bf042c3da345c5961a",
+    "README.md": "2d0607a60708e8b89bd53ced8b30f6457a1fa1598886789015e59416ffb6ef74"
+  }
+}

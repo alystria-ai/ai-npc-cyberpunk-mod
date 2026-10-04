@@ -1,0 +1,98 @@
+{
+  "schema": "full_a_continuation_code_candidate_v2",
+  "status": "frozen_for_root_review_not_run",
+  "parent_manifest_sha256": "8629426541fec7f73d2bbb4ae7ff2060ae8f094a7eb6d0676eadbe128d14f152",
+  "parent_independent_review_sha256": "de33926d0ea50c23272c38e8ad9f46a9a9e2794e537051db89ac2b8f5f7f254b",
+  "files": {
+    "scripts/Pocket-KaggleTrain.py": {
+      "sha256": "0c935163ece8ae9e5f6c9351acfea3180b0e725bf774f197923a4db9f65d12d2",
+      "bytes": 882
+    },
+    "scripts/pocket_training/__init__.py": {
+      "sha256": "39aad3a9aa5705cc9e12bbc85ee904fdc0d178e69d066f2fc1f954b459cd85f2",
+      "bytes": 64
+    },
+    "scripts/pocket_training/compare_exports.py": {
+      "sha256": "38f81b9708d458eb8a28324db50936ade3bf84fa2e5dac07ffd9f770dcbf46ee",
+      "bytes": 24975
+    },
+    "scripts/pocket_training/native_primary_data.py": {
+      "sha256": "62312943d5cf7e5236ea5b806a2d255b4528201f2c896442af548425ac33ce74",
+      "bytes": 56152
+    },
+    "scripts/pocket_training/rollout.py": {
+      "sha256": "faf87a00ff0b2e0e78a54d298d721d84f815487cb1bdc615dc9bcdda16d814bf",
+      "bytes": 24830
+    },
+    "scripts/pocket_training/runner.py": {
+      "sha256": "c9328b366bbc4ab7699a2a2b1455a5272df68a38fba4b4f533c682dbcb58a853",
+      "bytes": 164155
+    },
+    "scripts/pocket_training/selftest.py": {
+      "sha256": "049dea092d8548102d582600014c65d4a82ae9b603d6d77e9b212c2bfa275ead",
+      "bytes": 29990
+    },
+    "scripts/pocket_training/student_transfer.py": {
+      "sha256": "14724a3e75fadffa00a0a716f09d6e9739b3e1cef02c055fef1f2b416c35345a",
+      "bytes": 20607
+    },
+    "scripts/pocket_training/teacher_continuation.py": {
+      "sha256": "4ae9d352d46f72098615d77adef8cc6b72c5c3cf6d6f5804f0e2d5c4f73ac74c",
+      "bytes": 25875
+    },
+    "scripts/pocket_training/teacher_data.py": {
+      "sha256": "e18dd489ea93002f62a3a1f769082dad28aed35c0986b5be765ecbf5bda0b9e7",
+      "bytes": 38040
+    },
+    "scripts/pocket_training/teacher_overlay.py": {
+      "sha256": "39ee317cd7c90c9794a3a5abe6bffa98e8f64319243c441162eefe5231ebbfaa",
+      "bytes": 3928
+    },
+    "scripts/pocket_training/teacher_quality.py": {
+      "sha256": "e29ffe61221d66014d8f7a6d658bde741e8b22f1ca0224c1348b505718001224",
+      "bytes": 5891
+    },
+    "scripts/pocket_training/test_compare_exports.py": {
+      "sha256": "b98d7aa7595d6f98e61f27fd5e0193347a4c2fd30a59f7eedc5ed2f40f7202c7",
+      "bytes": 10554
+    },
+    "scripts/pocket_training/test_rollout.py": {
+      "sha256": "368ae5b83f5a02ec755858464454cc8baf9995e835aff27a2cb37c93f0093c37",
+      "bytes": 14982
+    },
+    "scripts/pocket_training/test_student_transfer.py": {
+      "sha256": "a0af16fca92ece3260ad51f48edbb31995846873ee409beb8bfb801c93394c9e",
+      "bytes": 20898
+    },
+    "scripts/pocket_training/test_teacher_data.py": {
+      "sha256": "47bd4c62e73dcffcb54766b5467b39db7601f01b736ef60a1bf350c971d8ad55",
+      "bytes": 19806
+    },
+    "scripts/pocket_training/test_teacher_overlay.py": {
+      "sha256": "4b3b469df69c8d15ac8b810f5088c3b9104444e5ede0170153e52f39f1367e4f",
+      "bytes": 4235
+    },
+    "scripts/pocket_training/test_teacher_quality.py": {
+      "sha256": "d18350d8c47a363d17deb412372f109bb0ddef3975129253e3cd662b629a30d6",
+      "bytes": 19207
+    },
+    "scripts/pocket_training/test_training_policy.py": {
+      "sha256": "ed050b93ba3bc2ad20c51cac143c2ce38b1ef8a728a33a5b30ad309695c77a7a",
+      "bytes": 8650
+    }
+  },
+  "changed_from_v1": [
+    "scripts/pocket_training/native_primary_data.py"
+  ],
+  "base_manifest_sha256": "4958e8b383b612af0641f316de966439be7760647136dc56feb3c8a6ab207d7c",
+  "patch_sha256": "640ee8eaf51ce707b55dc7e04c37bfc67b19adf72446cf80f739805cf1c0f2ff",
+  "adapter_revision_sha256": "b22965c5c639d966277c9aa57880d57e26f11c646780e1fbf2c04830a1e74b94",
+  "docs": {
+    "READINESS.md": "60c49d9a8db9d28202f04e0e5c7dbaa3853bc2555816e659b413e2368f82c02c",
+    "NATIVE_PRIMARY_ADMISSION.md": "c96793388681a8276e95cf77afcea27a52b668b4d0a729edee7ddc37b2f6749b"
+  },
+  "scope": "Explicit edge coverage and reviewed resource-only successor only; source/target identity and legacy/fallback routes retained.",
+  "models_or_cloud_jobs": 0,
+  "numeric_recipe_selected": false,
+  "final_portable_bundle_verified": false
+}

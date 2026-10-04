@@ -1,0 +1,201 @@
+--- frozen-v1/native_primary_data.py
++++ adapter-revision/native_primary_data.py
+@@ -8,6 +8,7 @@
+ from __future__ import annotations
+ 
+ from collections import defaultdict
++from datetime import datetime
+ import json
+ import math
+ from pathlib import Path, PurePosixPath, PureWindowsPath
+@@ -29,6 +30,13 @@
+ SHORT_KIND = "native_rendered_primary_short_fallback_cache"
+ SHORT_CONDITIONING = "official_aligned_short_fallback_v1"
+ SHORT_LOADER_POLICY = "upstream-aligned-no-cut-fallback-v1"
++EDGE_KIND = "native_rendered_primary_edge_cache"
++EDGE_COVERAGE = "actual_originals_all_cut_arithmetic_edge_stitches_v1"
++EDGE_GUARDED_WORKER_SHA = "a8950774db9a70323053732b876d7b976a0d394777b1031619a2a4a1d3b6a60b"
++EDGE_GPU_GUARD = {
++    "path": "runtime/voice-data-expansion-20261004/qualification/cached_native_gpu_guard.py",
++    "sha256": "b4fe88b7ce86e7ee6a201f3fb8397c1d22ac0e78882fb281def5f853e662465f",
++}
+ SHORT_CUT_HELPER = {
+     "path": "runtime/voice-data-expansion-20261004/qualification/short-fallback-v1/loader_cuts.py",
+     "sha256": "6f84a1f3a09c3b7252cbf6293daa88e528b0a05f392c83bb1c89e82321103616",
+@@ -65,6 +73,10 @@
+         "authenticated_native_rendered_primary_v1", "voice_native_rendered_primary_aligned_short_fallback_scope_v1",
+         "voice_native_rendered_primary_aligned_short_fallback_actual_codec_cache_loader_proof_v1",
+         "267af860f924a20ae5bee08b59a1c4ddb93397798a693e8648936da4b12db20a"),
++    EDGE_KIND: (
++        "authenticated_native_rendered_primary_v2", "voice_native_rendered_primary_edge_stitched_scope_v1",
++        "voice_native_rendered_primary_edge_stitched_codec_cache_loader_proof_v1",
++        "1c8410f005da77a387e04726a298e1370770607cd2985f0595f134614457f363"),
+ }
+ SHORT_V2_CONTRACT = (
+     "authenticated_native_rendered_primary_v2", "voice_native_rendered_primary_aligned_short_fallback_scope_v2",
+@@ -500,21 +512,84 @@
+     return result
+ 
+ 
++def _verify_edge_gpu_guard(evidence, result):
++    """Bind the reviewed resource-only successor; audio coverage is unchanged."""
++    if result["source_sha256"].get("native_gpu_headroom_guard") != EDGE_GPU_GUARD["sha256"]:
++        fail("guarded edge worker lost its executed resource helper")
++    evidence.descriptor(EDGE_GPU_GUARD)
++    receipt = result.get("gpu_headroom_probe_receipt")
++    if result.get("device") == "cpu" and receipt is None:
++        return
++    if (not isinstance(receipt, dict) or receipt.get("policy") != "native_windows_headroom_max_one_second_v1"
++            or receipt.get("max_cache_age_seconds") != 1.0 or receipt.get("clock") != "time.monotonic"
++            or receipt.get("allocator_cap_changed") is not False or receipt.get("headroom_thresholds_changed") is not False
++            or type(receipt.get("cache_hits")) is not int or receipt["cache_hits"] < 0):
++        fail("guarded edge worker lacks its bounded native headroom receipt")
++    queries = receipt.get("queries")
++    if not isinstance(queries, list) or receipt.get("query_count") != len(queries):
++        fail("native headroom probe inventory differs")
++    forced = defaultdict(int)
++    previous = -math.inf
++    for query in queries:
++        start, end, elapsed = (query.get(name) for name in ("start_monotonic", "end_monotonic", "elapsed_seconds"))
++        if (any(type(value) not in (int, float) or not math.isfinite(value) for value in (start, end, elapsed))
++                or start < previous or end < start or not math.isclose(end - start, elapsed, abs_tol=1e-6)
++                or type(query.get("forced")) is not bool):
++            fail("native headroom probe timing is inconsistent")
++        timestamp = datetime.fromisoformat(query["utc"])
++        if timestamp.tzinfo is None:
++            fail("native headroom probe lost its absolute timestamp")
++        total, free, used = (query.get(name) for name in ("total", "free", "used"))
++        # Preserve the provider's independent counters. The executed guard
++        # bounds free memory; it does not assert free+used equals total.
++        if (any(type(value) is not int or value < 0 for value in (total, free, used))
++                or not total or free > total or used > total):
++            fail("native headroom probe memory observation is inconsistent")
++        if query["forced"]:
++            reason = query["reason"]
++            if reason not in ("before_model_load", "before_original_or_calibration_encode",
++                              "before_recording_stitched_proof", "after_model_release"):
++                fail("unsupported forced resource probe point")
++            if reason != "after_model_release" and free < (5 if reason == "before_model_load" else 4) * 1024**3:
++                fail("actual edge GPU work crossed its recorded headroom threshold")
++            forced[reason] += 1
++        elif query.get("reason") != "bounded_poll":
++            fail("unrecognized cached resource probe")
++        previous = end
++    if (forced["before_model_load"] != 1 or forced["after_model_release"] != 1
++            or forced["before_recording_stitched_proof"] != result["scope_rows"]
++            or forced["before_original_or_calibration_encode"] != len(result["actual_precompute_encoder_calls"])):
++        fail("guarded edge worker lacks a fresh sample at each required GPU boundary")
++
++
+ def _verify_cache(evidence, scope, item):
+     policy, unused, result_schema, helper_sha = _contract(item["kind"], scope)
+     result = evidence.document(item["cache_result"])
++    edge = item["kind"] == EDGE_KIND
++    allowed_helpers = {helper_sha, EDGE_GUARDED_WORKER_SHA} if edge else {helper_sha}
+     if (result.get("schema") != result_schema or result.get("qualification_policy") != policy
+             or result.get("scope_sha256") != item["scope"]["sha256"] or result.get("status") != "completed"
+             or result.get("model_released") is not True or result.get("dtype") != "float32"
+             or result.get("actual_mimi_encode_hash") != CODEC_SHA or result.get("actual_mimi_encode_hash_after") != CODEC_SHA
+-            or result.get("approved_model_sha256") != MODEL_SHA or result.get("helper_source_sha256") != helper_sha
+-            or item["helper_source"]["sha256"] != helper_sha
++            or result.get("approved_model_sha256") != MODEL_SHA or result.get("helper_source_sha256") not in allowed_helpers
++            or item["helper_source"]["sha256"] != result.get("helper_source_sha256")
+             or result.get("cache_rows_all_finite_and_source_bound") is not True
+-            or result.get("loader_masks_and_suffix_tokens_verified") is not True
++            or not edge and result.get("loader_masks_and_suffix_tokens_verified") is not True
+             or result.get("native_captions_or_audio_edited") is not False):
+         fail("actual codec/loader proof is incomplete or belongs to another source/helper")
+     evidence.descriptor(item["helper_source"])
+-    short = item["kind"] == SHORT_KIND
++    if edge:
++        if (scope.get("codec_coverage_policy") != EDGE_COVERAGE or result.get("codec_coverage_policy") != EDGE_COVERAGE
++                or result.get("all_cut_token_and_frame_arithmetic_verified") is not True
++                or result.get("edge_cut_masks_verified") is not True or result.get("every_interior_cut_reencoded") is not False
++                or "loader_masks_and_suffix_tokens_verified" in result
++                or type(result.get("actual_stitched_cut_encodes")) is not int):
++            fail("edge result does not truthfully declare its reduced stitched-encode coverage")
++        if result["helper_source_sha256"] == EDGE_GUARDED_WORKER_SHA:
++            _verify_edge_gpu_guard(evidence, result)
++        elif "gpu_headroom_probe_receipt" in result or "native_gpu_headroom_guard" in result["source_sha256"]:
++            fail("original edge worker cannot claim the later resource guard")
++    short = item["kind"] in (SHORT_KIND, EDGE_KIND)
+     if short:
+         if (scope.get("conditioning_policy") != SHORT_CONDITIONING or result.get("conditioning_policy") != SHORT_CONDITIONING
+                 or scope.get("loader_cut_helper") != SHORT_CUT_HELPER or result.get("loader_cut_helper") != SHORT_CUT_HELPER
+@@ -548,6 +623,7 @@
+         grouped[cut["id"]].append(cut)
+     if len(cuts) != result["actual_reachable_cuts"] or set(grouped) != {row["id"] for row in scope["rows"]}:
+         fail("actual loader-cut ledger omits or invents recordings")
++    stitched_encodes = 0
+     for source, original, cached, observed in zip(scope["rows"], raw, annotated, observations, strict=True):
+         if {key: value for key, value in source.items() if key != "path"} != {key: value for key, value in original.items() if key != "path"}:
+             fail("actual cache train.jsonl changed scoped metadata or words")
+@@ -573,24 +649,44 @@
+         actual_cuts = grouped[source["id"]]
+         if len(expected_cuts) != len(actual_cuts):
+             fail("actual loader proof omits a reachable suffix")
+-        for expected_cut, actual in zip(expected_cuts, actual_cuts, strict=True):
++        for cut_number, (expected_cut, actual) in enumerate(zip(expected_cuts, actual_cuts, strict=True)):
+             if any(actual.get(key) != value for key, value in expected_cut.items()):
+                 fail("actual loader suffix/frame arithmetic changed")
+             prompt_limit = expected if expected_cut.get("prompt_target_overlap") else expected_cut["cut_frames"]
++            prompt_field = "loader_declared_prompt_frames" if edge else "actual_prompt_frames"
++            target_field = "loader_declared_target_frames" if edge else "actual_target_mask_frames"
+             if (actual.get("scope_role") != source["cache_scope_role"]
+-                    or actual.get("actual_target_mask_frames") != expected_cut["target_frames"]
++                    or actual.get(target_field) != expected_cut["target_frames"]
+                     or actual.get("actual_cached_target_start_seconds") != expected_cut["consumed_start"]
+                     or actual.get("actual_raw_target_start_seconds") != expected_cut["cut_seconds"]
+                     or actual.get("native_text_suffix_loss_confirmed") is not False
+                     or not actual.get("actual_target_token_ids")
+                     or any(type(token) is not int or token < 0 for token in actual["actual_target_token_ids"])
+-                    or type(actual.get("actual_prompt_frames")) is not int
+-                    or not 0 < actual["actual_prompt_frames"] <= min(prompt_limit, int(5 * 12.5))):
++                    or type(actual.get(prompt_field)) is not int
++                    or not 0 < actual[prompt_field] <= min(prompt_limit, int(5 * 12.5))):
+                 fail("actual cached/raw suffix, target mask or prompt observation differs")
+             if "floor_frames_omit_aligned_last_word" in expected_cut["rejection_reasons"]:
+                 fail("actual target frames omit the aligned final word")
+-            _sha(actual["actual_stitched_target_latent_sha256"])
+-    return {"rows": len(raw), "cuts": len(cuts), "policy": item["kind"]}
++            observed_encode = not edge or cut_number in {0, len(expected_cuts) - 1}
++            if edge and (actual.get("stitched_encode_observed") is not observed_encode
++                    or actual.get("stitched_encode_coverage") != "earliest_latest_per_recording_v1"):
++                fail("stitched observation is not exactly the first/last reachable cut")
++            if observed_encode:
++                if (actual.get("actual_target_mask_frames") != expected_cut["target_frames"]
++                        or actual.get("actual_prompt_frames") != actual[prompt_field]):
++                    fail("observed stitched edge mask/prompt differs from actual loader arithmetic")
++                _sha(actual["actual_stitched_target_latent_sha256"])
++                stitched_encodes += 1
++            elif any(key in actual for key in ("actual_prompt_frames", "actual_target_mask_frames",
++                    "actual_stitched_target_latent_sha256", "actual_raw_target_mask_frames", "cached-target", "raw-target")):
++                fail("an unencoded interior cut claims an observed encoded tensor or mask")
++    summary = {"rows": len(raw), "cuts": len(cuts), "policy": item["kind"]}
++    if edge:
++        if stitched_encodes != result["actual_stitched_cut_encodes"]:
++            fail("edge result's actual stitched-encode count differs from its cut ledger")
++        summary.update(codec_coverage_policy=EDGE_COVERAGE, actual_stitched_cut_encodes=stitched_encodes,
++            every_interior_cut_reencoded=False)
++    return summary
+ 
+ 
+ def _scope(evidence, item):
+@@ -623,7 +719,7 @@
+                 fail("scope does not bind the exact original/native-rendered caption")
+             if kind == "native_primary_cache" and ("<" in row["native_text"] or ">" in row["native_text"]):
+                 fail("markup requires the separate rendered policy")
+-            if kind in ("native_rendered_primary_cache", SHORT_KIND):
++            if kind in ("native_rendered_primary_cache", SHORT_KIND, EDGE_KIND):
+                 for field in ("original_native_source_identity", "original_native_text", "original_native_text_sha256",
+                               "training_transcript", "training_transcript_sha256", "native_rendering", "transcript_authority"):
+                     if row.get(field) != original.get(field):
+@@ -818,7 +914,7 @@
+                 if row.get(name) != original.get(name):
+                     fail("staged row lost original-versus-spoken target provenance")
+             admitted.add(key)
+-            if kind == SHORT_KIND and original["sampling_mode"] == "aligned_full_utterance_fallback":
++            if kind in (SHORT_KIND, EDGE_KIND) and original["sampling_mode"] == "aligned_full_utterance_fallback":
+                 pending_overlap.add(td.digest(td.cache_source(row)))
+ 
+     for item in admission.get("legacy_bundles", []):
