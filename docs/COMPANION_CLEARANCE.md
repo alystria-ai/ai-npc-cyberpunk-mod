@@ -14,6 +14,15 @@ reason. It never substitutes an unchecked teleport. Vehicle/fast-travel
 recovery uses the same placement function and body profile. Entity creation
 still sets both persistence flags to false.
 
+A standing fit is not enough. On October 5 Blue Moon was placed where her
+standing box was clear but every walking sweep, even 0.13 m, hit Static
+0.63 m or more above the floor; she never left the spot. A candidate now
+also needs a clear swept exit: up to 1.5 m back along its native route toward
+V, using the same `clearance.segment` sweep as walking. This adds one box
+(six queries) per accepted candidate, inside the shared frame budget.
+Evidence: `runtime/follow-cycle-retarget-20261005`,
+`runtime/blue-moon-support-20261005.json`.
+
 The standing volume uses a 0.4 m half width and a 2.1 m height for recognized
 roster humanoids. Smasher record/variant names, model names and roster keys, and
 unrecognized model-browser entries use a conservative 0.9 m half width and

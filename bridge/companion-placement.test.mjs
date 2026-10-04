@@ -208,3 +208,24 @@ test('vehicle recovery uses the same body clearance and retains large profile re
   assert(native.recover(entry,player,occupied))
   assert(teleports==1 and occupied[1].clearance.radius==.9)
 `));
+
+test('a body-sized pocket with no walkable exit toward V is not a spawn point',()=>run(`${companionEngine}
+  ${world}
+  local placement=dofile('companion-placement.lua')
+  local clearance=dofile('companion-clearance.lua')
+  player.pos=Vector4.new(0,0,0)
+  -- Recorded Blue Moon pocket: the standing box is clear, but a counter-height
+  -- solid sits just beyond it on the native route back toward V.
+  solids={{group='Static',x1=1.2,x2=1.5,y1=-1,y2=1,z1=.6,z2=2}}
+  assert(clearance.body(Vector4.new(2,0,0)),'fixture pocket must fit a standing body')
+  local spot,reason=placement.find(player,Vector4.new(2,0,0),{})
+  assert(spot,reason)
+  assert(math.abs(spot.x-2)>.05 or math.abs(spot.y)>.05,'accepted the pocket V cannot be followed out of')
+  local feet=Vector4.new(spot.x,spot.y,spot.z-.1)
+  local length=math.sqrt(feet.x^2+feet.y^2)
+  local exit=Vector4.new(feet.x-feet.x/length*1.5,feet.y-feet.y/length*1.5,0)
+  assert(clearance.segment(feet,exit),'chosen spot has no clear first step toward V')
+  solids={}
+  spot=placement.find(player,Vector4.new(2,0,0),{})
+  assert(spot and math.abs(spot.x-2)<.001 and math.abs(spot.y)<.001,'open ground no longer uses the preferred spot')
+`));

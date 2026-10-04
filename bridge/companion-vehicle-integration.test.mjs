@@ -95,7 +95,7 @@ Game.GetMountingFacility=function() return {GetMountingInfoSingleWithObjects=fun
   local mount=mounts[npc:GetEntityID().hash]
   return mount and {parentId={hash=mount.vehicle},slotId={id=mount.seat}} or nil
 end} end
-Quaternion={ToEulerAngles=function() return {} end}
+Quaternion.ToEulerAngles=function() return {} end
 PlayerPuppet={GetCurrentVehicleState=function() return playerVehicleState end}
 function player:IsInCombat() return self.combat or false end
 Game.GetTeleportationFacility=function() return {Teleport=function(_,npc,position) npc.pos=position end} end

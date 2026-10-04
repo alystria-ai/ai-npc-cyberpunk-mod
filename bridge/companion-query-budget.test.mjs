@@ -153,7 +153,8 @@ test('queued invitations, attachment, walking and car queries share the same fra
   local budget=companions.beginSpatialFrame()
   for i=1,8 do assert(companions.spawn('judy-alvarez')) end
   companions.update(player,.1)
-  assert(queries==96,'spawn and attachment did not share their expected body checks')
+  -- Each spawn: standing body plus its first swept exit box; attachment: body.
+  assert(queries==144,'spawn and attachment did not share their expected body checks')
   local car={IsAttached=function() return true end,
     GetLinearVelocity=function() return Vector4.new(0,0,0) end,
     GetWorldPosition=function() return Vector4.new(0,0,0) end,

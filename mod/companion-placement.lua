@@ -59,6 +59,26 @@ local function candidates(origin,preferred)
     end
     return result
 end
+-- A standing body can fit in a pocket that no walking body can leave. Sweep
+-- the native route's first metres back toward V, as walking will.
+local exitLength=1.5
+local function exitClear(points,body)
+    local remaining=exitLength
+    for index=#points,2,-1 do
+        local from,to=points[index],points[index-1]
+        if not point(from) or not point(to) then return false end
+        local length=ground(from,to)
+        if length>remaining then
+            local t=remaining/length
+            to=Vector4.new(from.x+(to.x-from.x)*t,from.y+(to.y-from.y)*t,from.z+(to.z-from.z)*t,1)
+        end
+        local clear,why,pending=clearance.segment(from,to,body)
+        if pending or not clear then return clear,why,pending end
+        remaining=remaining-length
+        if remaining<=0 then break end
+    end
+    return true
+end
 function M.find(player,preferred,occupied,body)
     local ok,result,reason,deferred=pcall(function()
         local nav,origin=Game.GetAINavigationSystem(),player:GetWorldPosition()
@@ -93,7 +113,12 @@ function M.find(player,preferred,occupied,body)
                             for _,p in ipairs(points) do
                                 if not point(p) or math.abs(p.z-origin.z)>.9 then sameFloor=false; break end
                             end
-                            if sameFloor then return Vector4.new(candidate.x,candidate.y,candidate.z+.1,1) end
+                            if sameFloor then
+                                local free,exitWhy,exitPending=exitClear(points,body)
+                                if exitPending then return nil,nil,true end
+                                if not free and exitWhy and exitWhy:find('could not verify',1,true) then return nil,exitWhy end
+                                if free then return Vector4.new(candidate.x,candidate.y,candidate.z+.1,1) end
+                            end
                         end
                     end
                 end
