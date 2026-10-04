@@ -199,6 +199,17 @@ test('circling within the resting group without a precise gaze target keeps frie
   assert(not companions.list()[1].playerMoving)
 `));
 
+test('a short sustained run releases the group even while V looks at a friend',()=>run(`${companionEngine}
+  local one=spawn(); local two=spawn('panam-palmer'); tick(4)
+  companions.update(player,.1,one.id.hash)
+  local count=#one.ai.commands
+  for i=1,2 do player.pos.y=i*.65; companions.update(player,.1,one.id.hash) end
+  local row=companions.list()[1]
+  assert(row.playerMoving and row.playerRunning,'running remained trapped in local conversation space')
+  assert(#one.ai.commands>count,'companion waited for a distant gap before leaving')
+  assert(row.travelDirection.y>.99)
+`));
+
 test('ordinary forward walking starts promptly when V is not addressing anyone',()=>run(`${companionEngine}
   local npc=spawn(); tick(4)
   for i=1,10 do player.pos.y=i*0.15; companions.update(player,0.1) end

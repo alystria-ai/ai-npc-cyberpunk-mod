@@ -62,8 +62,13 @@ function M.update(s,position,dt,company)
     end
     local departure=space.ground(position,s.stopAnchor)
     local localInteraction=insideGathering(s,position,company)
-    if not s.moving and not localInteraction
-        and ((departure>1.0 and s.activeFor>=0.3) or departure>2.2) then
+    local runningDeparture=s.rawSpeed>3.2 and s.activeFor>=.2 and departure>=1.2
+    if not s.moving and (runningDeparture or not localInteraction
+        and ((departure>1.0 and s.activeFor>=0.3) or departure>2.2)) then
+        if runningDeparture then
+            s.direction=space.bearing(s.stopAnchor,position)
+            s.pendingTurn=nil
+        end
         s.moving,s.justDeparted=true,true
         s.epoch=s.epoch+1
         s.restPeople,s.interest,s.localInteraction=nil,nil,false
