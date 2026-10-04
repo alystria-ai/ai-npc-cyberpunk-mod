@@ -1,5 +1,37 @@
 # Companion recovery and movement admission
 
+## October 5 native distant follow (user decision)
+
+The retarget capture (`runtime/follow-cycle-retarget-20261005`) still showed a
+fresh MoveTo about every 0.3–1.0 s per follower while V sprinted: about 40
+submits and one retarget each, with speeds of 2–5 m/s against V's 8. Distant
+catch-up walked 4 m certified legs inside a 6 m horizon, handing off up to
+2.25 m early, and each new native command restarted locomotion. Exactly one
+retarget per actor, then only submits, is consistent with the native MoveTo
+keeping its first path and the not-consumed guard disabling retargeting; the
+one-event snapshot could not prove which transition fired.
+
+The user chose native following. A clear distant horizon proof now admits one
+`AIFollowTargetCommand` instead of waypoint legs. It stays owned while V moves:
+the moving-feet guard sweeps ahead every 0.2 s, capped at the next bend of the
+last certified route so it does not test the wall the path turns away from,
+and the route proof repeats every 0.8 s. A deferred proof is retried within
+0.2 s instead of stopping a running follower. A rejected proof or a guard hit
+blocks exactly as before. Near routes that bend or shift sideways still walk
+certified points.
+
+## October 5 stranded follower recovery (user decision)
+
+A walker that has been blocked within the last 2 s, has moved less than 1 m
+for 6 s, and is more than 30 m from V is re-placed near V once it is out of
+view: more than 60° from the camera direction or with line of sight blocked.
+The new spot comes from the same `placement.find` an invitation uses,
+including standing-body and exit-sweep checks. Attempts are throttled to every
+3 s; an unavailable sight query never counts as hidden. The owned safety hold
+stays in place and the actuator replans from the new feet. The developer
+trace now records `strandedFor`, `relocations` and each copy's last four
+actuator events.
+
 ## October 5 command continuity
 
 The user's new trace captured clear-route catch-up with repeated command changes

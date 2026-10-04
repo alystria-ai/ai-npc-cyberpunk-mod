@@ -328,3 +328,42 @@ test('eight copies share a navigation budget and retain unique lanes after a rea
   lanes={}
   for _,row in ipairs(companions.list()) do assert(not lanes[row.lane]); lanes[row.lane]=true end
 `));
+
+const strandedPocket=`${companionEngine}
+  local teleports={}
+  Game.GetTeleportationFacility=function() return {Teleport=function(_,npc,position)
+    teleports[#teleports+1]=position; npc.pos=position end} end
+  local npc=spawn(); tick(4)
+  local pocket=Vector4.new(npc.pos.x,npc.pos.y,npc.pos.z)
+  -- Recorded Blue Moon case: every body or walking box at her spot hits
+  -- Static; the ground near V stays open for placement.
+  local sight=true
+  Game.GetSpatialQueriesSystem=function() return {
+    Overlap=function(_,half,center,_,group)
+      return group=='Static' and math.abs(center.x-pocket.x)<1.6 and math.abs(center.y-pocket.y)<1.6
+    end,
+    SyncRaycastByCollisionGroup=function() return not sight end} end
+  for i=1,40 do player.pos=Vector4.new(0,i,0); tick(1) end
+`;
+
+test('a blocked follower far behind V and out of view is re-placed near V',()=>run(strandedPocket+`
+  -- V faces away from the stranded copy.
+  player.forward=Vector4.new(0,1)
+  tick(20)
+  assert(#teleports==1,'stranded copy was never recovered')
+  local gap=math.sqrt((npc.pos.x-player.pos.x)^2+(npc.pos.y-player.pos.y)^2)
+  assert(gap<6,'recovery did not place the copy near V')
+  assert(companions.movementSnapshot().copies[1].relocations==1)
+  tick(10)
+  assert(#teleports==1,'a recovered copy was moved again')
+`));
+
+test('a stranded follower in plain view is not teleported',()=>run(strandedPocket+`
+  -- V turns back toward the copy with clear line of sight.
+  player.forward=Vector4.new(0,-1)
+  tick(20)
+  assert(#teleports==0,'teleported a copy V could see')
+  sight=false
+  tick(8)
+  assert(#teleports==1,'an occluded stranded copy was not recovered')
+`));

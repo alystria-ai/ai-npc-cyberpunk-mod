@@ -74,14 +74,16 @@ end} end
 -- the .403464 rise; only the typed first native point may use a strict sweep.
 assert(helper.segment(origin,first)==false)
 update()
-assert(not state.blockedReason and last(npc,'AIMoveToCommand'),
+assert(not state.blockedReason and last(npc,'AIFollowTargetCommand'),
   'Chang first native point stayed blocked despite a fully clear strict sweep')
 context.speed=1;update(.25);context.speed=0
-assert(not state.blockedReason and active(npc)[1].kind=='AIMoveToCommand',
-  'the moving corridor dropped its typed first connector')
-obstacle='plane';context.speed=1;update(.25);context.speed=0
+assert(not state.blockedReason and active(npc)[1].kind=='AIFollowTargetCommand',
+  'the running follow dropped its typed first connector')
+-- Native follow re-proves its distant route every 0.8 s, with the strict
+-- first-connector sweep; the moving-feet guard covers the time between.
+obstacle='plane';context.speed=1;update(.9);context.speed=0
 assert(state.blockedReason and state.lastRejection.group=='Static',
-  'a new plane inside the active first connector was missed by corridor monitoring')
+  'a new plane inside the first connector was missed by the periodic route proof')
 state=actuator.new(npc);npc.ai.commands={};obstacle='plane'
 assert(helper.segment(origin,Vector4.new(origin.x,origin.y,origin.z+.25),nil,nil,true)==false,
   'a partial first connector lost its strict sweep below the ordinary step band')
@@ -123,9 +125,10 @@ Game.GetSpatialQueriesSystem=function() return {Overlap=function(_,extent,center
     and math.abs(center.x-blockedX)<.22
 end} end
 update()
-local move=last(npc,'AIMoveToCommand')
-assert(move and not state.blockedReason,'an artificial six-metre endpoint became a permanent hold')
-assert(move.movementTarget.position.x<blockedX-1,'the blocked endpoint was still used')
+local follow=last(npc,'AIFollowTargetCommand')
+assert(follow and not state.blockedReason,'an artificial six-metre endpoint became a permanent hold')
+local legs=state.followRoute
+assert(legs and legs[#legs].to.x<blockedX-1,'the blocked endpoint was still admitted')
 assert(queries<=192,'fallback exceeded the shared physics budget')
 state=actuator.new(npc);npc.ai.commands={}
 Game.GetSpatialQueriesSystem=function() return {Overlap=function(_,extent,center,_,group)
@@ -135,7 +138,8 @@ end} end
 update()
 assert(state.lastRejection.stage=='path' and state.lastRejection.temporaryHorizon)
 assert(state.detourSearch and active(npc)[1].kind=='AIHoldPositionCommand')
-assert(not last(npc,'AIMoveToCommand'),'all blocked prefixes started unchecked movement')
+assert(not last(npc,'AIMoveToCommand') and not last(npc,'AIFollowTargetCommand'),
+  'all blocked prefixes started unchecked movement')
 `));
 
 test('continuous V travel cannot restart local escape search or release its exact owner',()=>run(motor+solids+`
@@ -275,22 +279,23 @@ assert(next.movementType=='Run' and not next.useStart and not next.useStop)
 assert(#active(npc)==1 and state.ticket=='curved-travel')
 `));
 
-test('distant catch-up extends successive horizons without cancelling its active command',()=>run(motor+`
+test('distant catch-up keeps one native follow command across successive horizons',()=>run(motor+`
 player.pos=Vector4.new(0,50,0)
 update()
-local command=last(npc,'AIMoveToCommand');assert(command)
+local command=last(npc,'AIFollowTargetCommand');assert(command and not last(npc,'AIMoveToCommand'))
 local stops=0
 npc.ai.StopExecutingCommand=function(_,owned)
   stops=stops+1;owned.state='Cancelled';return true
 end
-for i=1,5 do
-  local old=command.movementTarget.position
-  npc.pos=Vector4.new(old.x,old.y-.5,old.z);npc.forward=Vector4.new(0,1,0);context.speed=5
-  update()
-  assert(state.command==command and command.state=='Executing' and stops==0)
-  assert(command.movementTarget.position.y>old.y+.5,'catch-up did not extend the admitted destination')
+-- Live traces restarted a MoveTo leg every 0.3-1.0 s while V sprinted.
+for i=1,10 do
+  npc.pos=Vector4.new(0,npc.pos.y+1.5,0);npc.forward=Vector4.new(0,1,0);context.speed=5
+  player.pos=Vector4.new(0,player.pos.y+2.4,0)
+  update(.3)
+  assert(state.command==command and command.state=='Executing' and stops==0,'catch-up restarted native locomotion')
   assert(#active(npc)==1 and not state.blockedReason)
 end
+assert(state.followRoute and #state.followRoute>0,'the running follower lost its certified route')
 `));
 
 test('terminal waypoint success under exhausted quota immediately owns a safety hold',()=>run(motor+curvedTravel+`

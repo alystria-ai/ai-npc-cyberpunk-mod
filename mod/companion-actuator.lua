@@ -680,7 +680,7 @@ end
 
 local function block(s,reason,c,target,following)
     s.routeProbe,s.candidateIndex,s.clearanceWaiting,s.clearanceHolding=nil,nil,nil,nil
-    s.execution,s.executionTarget=nil,nil
+    s.execution,s.executionTarget,s.followRoute=nil,nil,nil
     s.followAdmission=nil
     if not s.blockedReason then
         s.blockedReason=reason or 'The walking route is obstructed'
@@ -1026,6 +1026,27 @@ local function waypointMotion(s,c)
     return true
 end
 
+-- Straight distance ahead along the last certified native-follow route. A
+-- straight sweep past the next bend would test the wall the path turns away
+-- from; the periodic route proof covers the path beyond that bend.
+local function straightAhead(legs,at,direction)
+    local start
+    for index,leg in ipairs(legs or {}) do
+        if space.segmentDistance(at,leg.from,leg.to)<=.65 then start=index; break end
+    end
+    if not start then return nil end
+    local ahead=0
+    for index=start,#legs do
+        local leg=legs[index]
+        local length=space.ground(leg.from,leg.to)
+        if length>.05 then
+            if space.angle(direction,space.bearing(leg.from,leg.to))>25 then break end
+            ahead=ahead+(index==start and space.ground(at,leg.to) or length)
+        end
+    end
+    return ahead
+end
+
 local function watchRoute(s,c,canPlan)
     if not s.command or not s.feedback.active or s.clearanceWaiting
         or (s.stage~='walking' and s.stage~='following' and s.stage~='walking-leg') then return false end
@@ -1042,6 +1063,8 @@ local function watchRoute(s,c,canPlan)
         elseif s.motionDirection and c.speed>0.18 then
             local distance=math.max(0.75,math.min(5,c.speed*0.65+0.35))
             if s.executionTarget then distance=math.min(distance,space.ground(c.position,s.executionTarget)+.15) end
+            local bend=s.stage=='following' and straightAhead(s.followRoute,c.position,s.motionDirection)
+            if bend then distance=math.min(distance,math.max(.75,bend+.15)) end
             local ahead=space.offset(c.position,s.motionDirection,0,distance)
             local clear,reason,deferred,rejection=clearance.segment(c.position,ahead,s.clearance)
             if deferred then waitForClearance(s); return false end
@@ -1059,9 +1082,17 @@ local function watchRoute(s,c,canPlan)
         local target=s.executionTarget or (s.kind=='follow' and followGoal(s,c) or s.target)
         local clear,reason,deferred,route=routeClear(s,c,target,s.kind=='follow' and not s.execution,
             {horizon=s.kind=='follow' and followHorizon(c,target) or nil,stablePlayer=s.execution~=nil})
-        if deferred then waitForClearance(s)
+        local nativeFollow=s.kind=='follow' and s.stage=='following' and s.feedback.active
+        if deferred then
+            -- The moving-feet guard above still runs every 0.2 s. A deferred
+            -- route proof is retried soon; it never stops a running follower.
+            if nativeFollow then s.routeCheckedAt=s.clock-.6 else waitForClearance(s) end
         elseif not clear then block(s,reason,c,s.target or target,s.kind=='follow') end
-        if clear and (route.horizon or route.projection) then
+        if clear and nativeFollow and route.horizon then
+            -- Distant catch-up keeps one native follow command. Restarting
+            -- MoveTo legs every few metres restarted locomotion each time.
+            s.target,s.followRoute=space.copy(target),route.legs
+        elseif clear and (route.horizon or route.projection) then
             s.destinationProjection,s.target=route.projection,space.copy(route.horizon and target or route.target)
             if route.horizon or route.projection.lateralShift>.02 then
                 -- A radial follower cannot promise a bounded prefix or a
@@ -1302,7 +1333,7 @@ local function handoff(s,plan,intent,c,canPlan)
         target,reason,deferred,route,horizon=destination(s,plan,intent,c)
         if deferred then preserveOwner(s);return true end
         if not target then block(s,reason,c,intent.kind=='follow' and followGoal(s,c) or intent.goal,plan.following);return true end
-        if horizon then
+        if horizon and intent.kind~='follow' then
             local nextPlan=execution(route,c.position,followGoal(s,c),plan.following,'advance')
             if nextPlan then
                 local index=chooseWaypoint(nextPlan,c,1)
@@ -1335,7 +1366,12 @@ local function handoff(s,plan,intent,c,canPlan)
     s.execution,s.executionTarget,s.clearanceWaiting,s.clearanceHolding=nil,nil,nil,nil
     s.target=space.copy(horizon and (intent.kind=='follow' and followGoal(s,current) or intent.goal) or target)
     s.destinationProjection=route.projection
-    if horizon or curved(route) or route.projection and route.projection.lateralShift>.02 then
+    -- A clear distant prefix is admission for one native follow command; the
+    -- moving-feet guard and periodic route proof keep checking it. Near routes
+    -- that bend or shift sideways still walk certified points.
+    local nativeFollow=intent.kind=='follow' and horizon
+    s.followRoute=nativeFollow and route.legs or nil
+    if not nativeFollow and (horizon or curved(route) or route.projection and route.projection.lateralShift>.02) then
         s.execution=execution(route,current.position,s.target,plan.following,horizon and 'advance' or 'travel')
         if not s.execution then block(s,'The verified route exceeds bounded waypoint execution',current,target,plan.following);return true end
         s.recoveryTicket=s.ticket
@@ -1476,6 +1512,7 @@ function M.apply(s,decision,c,canPlan)
         s.blockedReason,s.blockedHolding,s.routeCheckedAt,s.clearanceAt=nil,nil,nil,nil
         s.routeProbe,s.candidateIndex,s.clearanceWaiting,s.clearanceHolding=nil,nil,nil,nil
         s.execution,s.executionTarget,s.detourSearch,s.blockedContext=nil,nil,nil,nil
+        s.followRoute=nil
         s.nativeLegFailures=0
         -- Carry only the need for bounded recovery admission through the
         -- settling hold/next departure. Commands and geometry are reset above.

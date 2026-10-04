@@ -610,11 +610,21 @@ function M.movementSnapshot()
         local guard=execution.motionGuard or {}
         local route=feedback.route or {}
         local event=motor.events and motor.events[#motor.events] or nil
+        -- One sample can hide several command transitions behind lastEvent.
+        local recentEvents={}
+        for index=math.max(1,#(motor.events or {})-3),#(motor.events or {}) do
+            local item=motor.events[index]
+            recentEvents[#recentEvents+1]={at=movementNumber(item.at),event=movementText(item.event),
+                commandID=movementNumber(item.commandID)}
+        end
         local projection=motor.destinationProjection or feedback.destinationProjection
         snapshot.copies[#snapshot.copies+1]={
             serial=movementNumber(entry.serial),key=movementText(entry.key),
             name=movementText(entry.name),profileKey=movementText(entry.profileKey),
             state=movementText(entry.state),lane=movementNumber(entry.lane),
+            strandedFor=entry.strandedSince and movementNumber(runtimeClock-entry.strandedSince) or nil,
+            relocations=movementNumber(entry.relocations),
+            recentEvents=recentEvents,
             actor={position=movementPoint(entry.position),speed=movementNumber(entry.speed),
                 playerGap=movementNumber(entry.playerGap),targetGap=movementNumber(entry.targetGap)},
             brain={phase=movementText(person.phase),reason=movementText(person.reason),
@@ -944,6 +954,49 @@ local function reassignReversal(order)
     end
 end
 
+-- A walker held by an obstruction that no detour resolves would wait there
+-- forever while V leaves. Only when it is far away and out of V's view is it
+-- re-placed near V, through the same placement checks a new invitation uses.
+local stranded={distance=30,after=6,retry=3,fieldOfView=60}
+local function hiddenFromPlayer(player,at)
+    local ok,_,view=pcall(function() return Game.GetTargetingSystem():GetCrosshairData(player) end)
+    local forward=ok and view or player:GetWorldForward()
+    local origin=space.copy(player:GetWorldPosition())
+    if forward and space.angle(space.unit(forward.x,forward.y),space.bearing(origin,at))>stranded.fieldOfView then
+        return true
+    end
+    -- An unavailable query is not evidence that the copy is out of sight.
+    if not clearance.available(#sightGroups) then return nil end
+    return not M.visibleFromCrosshair(Vector4.new(origin.x,origin.y,origin.z+1.6,1),
+        Vector4.new(at.x,at.y,at.z+1.2,1))
+end
+local function recoverStranded(entry,player)
+    -- V walking on re-plans a blocked follower, briefly clearing its block.
+    -- Stranded means recently blocked and not actually getting anywhere.
+    if entry.motor.blockedReason then entry.lastBlockedAt=runtimeClock end
+    if runtimeClock-(entry.lastBlockedAt or -math.huge)>2 or entry.playerGap<stranded.distance
+        or equipment.holdsMovement(entry.equipment) then
+        entry.strandedSince,entry.strandedAnchor=nil,nil; return
+    end
+    if not entry.strandedAnchor or space.distance(entry.strandedAnchor,entry.position)>1 then
+        entry.strandedAnchor,entry.strandedSince=space.copy(entry.position),runtimeClock
+    end
+    if runtimeClock-entry.strandedSince<stranded.after or runtimeClock<(entry.strandedRetryAt or 0) then return end
+    entry.strandedRetryAt=runtimeClock+stranded.retry
+    if not hiddenFromPlayer(player,entry.position) then return end
+    local target,_,deferred=placement.find(player,formationPosition(player,entry.lane),
+        occupiedPositions(entry),entry.clearance)
+    if deferred then entry.strandedRetryAt=runtimeClock; return end
+    if not target then return end
+    Game.GetTeleportationFacility():Teleport(entry.npc,target,Quaternion.ToEulerAngles(player:GetWorldOrientation()))
+    -- The owned safety hold stays in place; the actuator sees the moved feet,
+    -- discards the old obstruction and plans from here on its next turn.
+    entry.position,entry.speed=space.copy(target),0
+    entry.strandedSince,entry.strandedAnchor,entry.lastBlockedAt=nil,nil,nil
+    entry.playerGap=space.distance(entry.position,player:GetWorldPosition())
+    entry.relocations=(entry.relocations or 0)+1
+end
+
 function M.update(player,delta,focusEntity)
     if not externalSpatialFrame then spatialFrame() end
     if not player then return end
@@ -1063,6 +1116,7 @@ function M.update(player,delta,focusEntity)
     for i=1,#order do
         local entry=order[(first+i-1)%#order+1]
         local ok,err=pcall(function()
+            recoverStranded(entry,player)
             local id=tostring(entry.entityID.hash)
             local lane=travel.laneFrame(groupFrame,entry.lane)
             local travelTarget=space.offset(lane.position,lane.direction,slots[entry.lane][1],0)
