@@ -1,0 +1,73 @@
+{
+  "source": "current standard A runner; originals remain unchanged",
+  "files": {
+    "scripts/Pocket-KaggleTrain.py": {
+      "sha256": "0c935163ece8ae9e5f6c9351acfea3180b0e725bf774f197923a4db9f65d12d2",
+      "bytes": 882
+    },
+    "scripts/pocket_training/__init__.py": {
+      "sha256": "39aad3a9aa5705cc9e12bbc85ee904fdc0d178e69d066f2fc1f954b459cd85f2",
+      "bytes": 64
+    },
+    "scripts/pocket_training/compare_exports.py": {
+      "sha256": "38f81b9708d458eb8a28324db50936ade3bf84fa2e5dac07ffd9f770dcbf46ee",
+      "bytes": 24975
+    },
+    "scripts/pocket_training/rollout.py": {
+      "sha256": "fcf3b38621bebd06a98f04955189031caa588c5499217884df782885eb1e29e5",
+      "bytes": 24491
+    },
+    "scripts/pocket_training/runner.py": {
+      "sha256": "b70e3cdd35297b631e70673e9ead05bcf6e156af751cb5e59fb77803126e5b26",
+      "bytes": 154921
+    },
+    "scripts/pocket_training/selftest.py": {
+      "sha256": "049dea092d8548102d582600014c65d4a82ae9b603d6d77e9b212c2bfa275ead",
+      "bytes": 29990
+    },
+    "scripts/pocket_training/student_transfer.py": {
+      "sha256": "fed60ee56eaf541cab18b370a99cd482847fc37dabc5641e745422a8b8ab5453",
+      "bytes": 19159
+    },
+    "scripts/pocket_training/teacher_data.py": {
+      "sha256": "e18dd489ea93002f62a3a1f769082dad28aed35c0986b5be765ecbf5bda0b9e7",
+      "bytes": 38040
+    },
+    "scripts/pocket_training/teacher_overlay.py": {
+      "sha256": "39ee317cd7c90c9794a3a5abe6bffa98e8f64319243c441162eefe5231ebbfaa",
+      "bytes": 3928
+    },
+    "scripts/pocket_training/teacher_quality.py": {
+      "sha256": "224ab00aa8a845164570a8a6a7f87afdd243e9ebaa71c8bd508cdca9b3a0095e",
+      "bytes": 5176
+    },
+    "scripts/pocket_training/test_compare_exports.py": {
+      "sha256": "b98d7aa7595d6f98e61f27fd5e0193347a4c2fd30a59f7eedc5ed2f40f7202c7",
+      "bytes": 10554
+    },
+    "scripts/pocket_training/test_rollout.py": {
+      "sha256": "368ae5b83f5a02ec755858464454cc8baf9995e835aff27a2cb37c93f0093c37",
+      "bytes": 14982
+    },
+    "scripts/pocket_training/test_student_transfer.py": {
+      "sha256": "a0af16fca92ece3260ad51f48edbb31995846873ee409beb8bfb801c93394c9e",
+      "bytes": 20898
+    },
+    "scripts/pocket_training/test_teacher_data.py": {
+      "sha256": "47bd4c62e73dcffcb54766b5467b39db7601f01b736ef60a1bf350c971d8ad55",
+      "bytes": 19806
+    },
+    "scripts/pocket_training/test_teacher_overlay.py": {
+      "sha256": "4b3b469df69c8d15ac8b810f5088c3b9104444e5ede0170153e52f39f1367e4f",
+      "bytes": 4235
+    },
+    "scripts/pocket_training/test_teacher_quality.py": {
+      "sha256": "d18350d8c47a363d17deb412372f109bb0ddef3975129253e3cd662b629a30d6",
+      "bytes": 19207
+    },
+    "scripts/pocket_training/test_training_policy.py": {
+      "sha256": "ed050b93ba3bc2ad20c51cac143c2ce38b1ef8a728a33a5b30ad309695c77a7a",
+      "bytes": 8650
+    }
+  }
+}

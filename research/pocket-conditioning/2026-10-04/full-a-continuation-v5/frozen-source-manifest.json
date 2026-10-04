@@ -1,0 +1,115 @@
+{
+  "schema": "full_a_continuation_code_candidate_v5",
+  "status": "frozen_for_root_final_binding",
+  "parent_manifest_sha256": "07d83ec2dc867760be998c4e1b2b8e83bbf053c156f237f8388edb53d728f421",
+  "files": {
+    "scripts/Pocket-KaggleTrain.py": {
+      "sha256": "0c935163ece8ae9e5f6c9351acfea3180b0e725bf774f197923a4db9f65d12d2",
+      "bytes": 882
+    },
+    "scripts/pocket_training/__init__.py": {
+      "sha256": "39aad3a9aa5705cc9e12bbc85ee904fdc0d178e69d066f2fc1f954b459cd85f2",
+      "bytes": 64
+    },
+    "scripts/pocket_training/compare_exports.py": {
+      "sha256": "38f81b9708d458eb8a28324db50936ade3bf84fa2e5dac07ffd9f770dcbf46ee",
+      "bytes": 24975
+    },
+    "scripts/pocket_training/native_primary_data.py": {
+      "sha256": "3ae91ae6c6a91e322c38f0e4c2f6a0ede3b59d41c5d4be278a62293ea4121fc6",
+      "bytes": 87629
+    },
+    "scripts/pocket_training/rollout.py": {
+      "sha256": "faf87a00ff0b2e0e78a54d298d721d84f815487cb1bdc615dc9bcdda16d814bf",
+      "bytes": 24830
+    },
+    "scripts/pocket_training/runner.py": {
+      "sha256": "c9328b366bbc4ab7699a2a2b1455a5272df68a38fba4b4f533c682dbcb58a853",
+      "bytes": 164155
+    },
+    "scripts/pocket_training/selftest.py": {
+      "sha256": "049dea092d8548102d582600014c65d4a82ae9b603d6d77e9b212c2bfa275ead",
+      "bytes": 29990
+    },
+    "scripts/pocket_training/student_transfer.py": {
+      "sha256": "14724a3e75fadffa00a0a716f09d6e9739b3e1cef02c055fef1f2b416c35345a",
+      "bytes": 20607
+    },
+    "scripts/pocket_training/teacher_continuation.py": {
+      "sha256": "2b2d3b476c5d080c20d49d20b84ae9eb1f2d903091ec13cfbd3d3a736c38f685",
+      "bytes": 27351
+    },
+    "scripts/pocket_training/teacher_data.py": {
+      "sha256": "e18dd489ea93002f62a3a1f769082dad28aed35c0986b5be765ecbf5bda0b9e7",
+      "bytes": 38040
+    },
+    "scripts/pocket_training/teacher_overlay.py": {
+      "sha256": "39ee317cd7c90c9794a3a5abe6bffa98e8f64319243c441162eefe5231ebbfaa",
+      "bytes": 3928
+    },
+    "scripts/pocket_training/teacher_quality.py": {
+      "sha256": "e29ffe61221d66014d8f7a6d658bde741e8b22f1ca0224c1348b505718001224",
+      "bytes": 5891
+    },
+    "scripts/pocket_training/test_compare_exports.py": {
+      "sha256": "b98d7aa7595d6f98e61f27fd5e0193347a4c2fd30a59f7eedc5ed2f40f7202c7",
+      "bytes": 10554
+    },
+    "scripts/pocket_training/test_rollout.py": {
+      "sha256": "368ae5b83f5a02ec755858464454cc8baf9995e835aff27a2cb37c93f0093c37",
+      "bytes": 14982
+    },
+    "scripts/pocket_training/test_student_transfer.py": {
+      "sha256": "a0af16fca92ece3260ad51f48edbb31995846873ee409beb8bfb801c93394c9e",
+      "bytes": 20898
+    },
+    "scripts/pocket_training/test_teacher_data.py": {
+      "sha256": "47bd4c62e73dcffcb54766b5467b39db7601f01b736ef60a1bf350c971d8ad55",
+      "bytes": 19806
+    },
+    "scripts/pocket_training/test_teacher_overlay.py": {
+      "sha256": "4b3b469df69c8d15ac8b810f5088c3b9104444e5ede0170153e52f39f1367e4f",
+      "bytes": 4235
+    },
+    "scripts/pocket_training/test_teacher_quality.py": {
+      "sha256": "d18350d8c47a363d17deb412372f109bb0ddef3975129253e3cd662b629a30d6",
+      "bytes": 19207
+    },
+    "scripts/pocket_training/test_training_policy.py": {
+      "sha256": "ed050b93ba3bc2ad20c51cac143c2ce38b1ef8a728a33a5b30ad309695c77a7a",
+      "bytes": 8650
+    }
+  },
+  "changed_from_v4": [
+    "scripts/pocket_training/native_primary_data.py"
+  ],
+  "unchanged_source_files": 18,
+  "retention_source_sha256": "2b2d3b476c5d080c20d49d20b84ae9eb1f2d903091ec13cfbd3d3a736c38f685",
+  "base_manifest_sha256": "4958e8b383b612af0641f316de966439be7760647136dc56feb3c8a6ab207d7c",
+  "patch_sha256": "893a06abacd63983cdef059b7be1c485b214d79f903686263b7ab74dc70e56f7",
+  "narrow_readbacks": {
+    "initial_stt_scope": {
+      "path": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-data-expansion-20261004\\a-continuation-candidate-v4\\staging\\actual-initial-stt-v5-scope-v2-readback.json",
+      "sha256": "0d61f63b136bef24ab1e1ed2b65024688bcdb194242e1921299e92259eb37f7a"
+    },
+    "main_three_scope": {
+      "path": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-data-expansion-20261004\\a-continuation-candidate-v4\\staging\\actual-main3-final-v5-scope-readback.json",
+      "sha256": "8137b168820f8fbd1d0ab4ada039d6acb66269845796255deca625185df5c350"
+    },
+    "holo_four_scope": {
+      "path": "C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime\\voice-data-expansion-20261004\\a-continuation-candidate-v4\\staging\\actual-holo4-final-v5-scope-readback.json",
+      "sha256": "3b908f66bfcf35f8986db52e36b7bf675917dd56f0ffe5510c2ec34c21379b08"
+    }
+  },
+  "phone_qualification_receipt_sha256": "d13915aeb3b66f4be47af59b4603aaf16da0579ee403b5a7992d2073914883cd",
+  "source_supersession_ledger_sha256": "1559b2b105f2154e3684914bd38fbf9a0737f08eeacb8bcb477b259a7d56c194",
+  "docs": {
+    "READINESS.md": "cd597c207cc02db7aea20e108887583f810c4ccf223afaf19d9fad8759050b13",
+    "NATIVE_PRIMARY_ADMISSION.md": "36e4e88bc20d9b47aef5b6c087a52e01196d0dbac28d2877ffeb7c6141246c97"
+  },
+  "scope": "Exact four MAIN STT authority targets, native bank mismatch rejection, and three qualified target supersessions plus one held MAIN",
+  "final_combined_supersession_closure_pending": true,
+  "models_or_cloud_jobs": 0,
+  "numeric_recipe_selected": false,
+  "final_portable_bundle_verified": false
+}

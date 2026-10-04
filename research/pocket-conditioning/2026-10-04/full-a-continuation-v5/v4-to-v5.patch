@@ -1,0 +1,291 @@
+--- v4/scripts/pocket_training/native_primary_data.py
++++ v5/scripts/pocket_training/native_primary_data.py
+@@ -39,6 +39,26 @@
+ SHORT_CONDITIONING = "official_aligned_short_fallback_v1"
+ SHORT_LOADER_POLICY = "upstream-aligned-no-cut-fallback-v1"
+ EDGE_KIND = "native_rendered_primary_edge_cache"
++LOCAL_STT_KIND = "local_stt_source_preserved_edge_cache"
++LOCAL_STT_POLICY = "authentic_audio_local_stt_source_preserved_v1"
++LOCAL_STT_WORKER_SHA = "265df4c97930c58c55be3027b52b0015c1747820c3318e4a8aa0d40e0463ef25"
++LOCAL_STT_CONTRACT = {
++    "path": "runtime/voice-data-expansion-20261004/qualification/local_stt_contract_v1.py",
++    "sha256": "71d50e9f6f924a97c2f55c1551af1ee32d012742f71029d0d8963f3910f43659",
++}
++LOCAL_STT_TARGET_PROOFS = {
++    "8ae6ee8be50172d6b4c93421f89fefa4ac257943b3400a7d4f5eb8d933afcc80": {
++        "source_gate_sha256": "05289b5e79d432cbbc7cb557b06753a38353e621f20986af998777bf9d62c253",
++        "ids": {"songbird/3495705299552411648/female/vo/ff3427366f16e3e3"},
++    },
++    "e9eefa62f3f405f43a9b32a78d7fefbaadb3f342c731bc13733b9c191616189d": {
++        "source_gate_sha256": "be81332e2de98e97ee69c76884ec4523b08a919c3e465682511ccccc665e3377",
++        "ids": {"songbird/3540288133960933376/female/vo/42294ecfd17ce3c5",
++                "songbird/2953435567175458816/female/vo/9b4951a21b0556a2",
++                "songbird/3001425086610124800/female/vo/c1a089705f179548"},
++    },
++}
++BANK_SOURCE_SUPERSESSION_SHA = "1559b2b105f2154e3684914bd38fbf9a0737f08eeacb8bcb477b259a7d56c194"
+ EDGE_COVERAGE = "actual_originals_all_cut_arithmetic_edge_stitches_v1"
+ EDGE_GUARDED_WORKER_SHA = "a8950774db9a70323053732b876d7b976a0d394777b1031619a2a4a1d3b6a60b"
+ EDGE_GPU_GUARD = {
+@@ -66,6 +86,9 @@
+     "verified_shapes": ['kiroshi l="mex" with b,o,t,a', 'mothertongue l="fre" or l="jpn" with b,m,a'],
+ }
+ KINDS = {
++    LOCAL_STT_KIND: (
++        LOCAL_STT_POLICY, "voice_local_stt_source_preserved_edge_stitched_scope_v1",
++        "voice_local_stt_source_preserved_edge_stitched_codec_cache_loader_proof_v1", LOCAL_STT_WORKER_SHA),
+     "native_primary_cache": (
+         "authenticated_native_primary_v1", "voice_native_primary_cache_scope_v1",
+         "voice_native_primary_actual_codec_cache_loader_proof_v1",
+@@ -403,12 +426,17 @@
+ 
+ 
+ def _targets(evidence, descriptor, policy="authenticated_native_rendered_primary_v1"):
++    if policy == LOCAL_STT_POLICY:
++        return _local_stt_targets(evidence, descriptor)
+     receipt = evidence.document(descriptor)
+     if receipt.get("qualification_policy") != policy:
+         fail("unsupported native target receipt")
+     if policy == QUOTE_POLICY and receipt["original_source_gate"]["sha256"] != QUOTE_SOURCE_GATE_SHA:
+         fail("quote grammar extension is restricted to its three reviewed original recordings")
+     originals, unused = _source_gate(evidence, receipt["original_source_gate"])
++    if (evidence.document(receipt["original_source_gate"]).get("native_caption_matches_actual_bank_audio") is False
++            or any(row.get("native_caption_matches_actual_bank_audio") is False for row in originals.values())):
++        fail("audited bank-caption mismatch requires its separate actual STT-authority route")
+     renderer = receipt["native_renderer"]
+     expected_renderer = QUOTE_RENDERER_SHA if policy == QUOTE_POLICY else RENDERER_V2_SHA if policy == SHORT_V2_CONTRACT[0] else RENDERER_SHA
+     if renderer["sha256"] != expected_renderer:
+@@ -438,6 +466,75 @@
+             fail("original native markup and derived spoken target are not separately bound")
+         td.identity(row)
+     return targets, receipt["inputs_sha256"]
++
++
++def _local_stt_targets(evidence, descriptor):
++    """One explicit approved source-preserving STT route, never native equality."""
++    approved = LOCAL_STT_TARGET_PROOFS.get(descriptor["sha256"])
++    if approved is None:
++        fail("local STT target proof is not one of the root-reviewed exact bank corrections")
++    proof = evidence.document(descriptor)
++    if (proof.get("schema") != "voice_local_stt_source_preserved_targets_v1"
++            or proof.get("qualification_policy") != LOCAL_STT_POLICY
++            or proof["original_source_gate"]["sha256"] != approved["source_gate_sha256"]
++            or proof.get("source_audio_or_native_caption_changed") is not False
++            or proof.get("training_admitted") is not False):
++        fail("separate STT target proof lost its exact original source/boundary")
++    evidence.descriptor(proof["source_code"])
++    evidence.descriptor(LOCAL_STT_CONTRACT)
++    originals, unused = _source_gate(evidence, proof["original_source_gate"])
++    if evidence.document(proof["original_source_gate"]).get("native_caption_matches_actual_bank_audio") is True:
++        fail("local STT correction cannot relabel an explicitly matching native bank")
++    targets = _indexed(rows(evidence.resolve(_sibling(descriptor["path"], "inputs.jsonl"), proof["inputs_sha256"])), "local STT targets")
++    authorities = _indexed(proof["rows"], "exact local STT authorities")
++    if set(targets) != approved["ids"] or set(targets) != set(authorities) or not set(targets) <= set(originals):
++        fail("local STT correction changed its bounded approved recording inventory")
++    for key, target in targets.items():
++        original, authority = originals[key], authorities[key]
++        _same_recording(target, original)
++        bank = authority["source_bank_binding"]
++        expected_id = "/".join((original["speaker_id"], str(original["string_id"]), original["gender_variant"],
++                                "vo", original["source_wem_sha256"][:16]))
++        expected_bank = {"delivery_bank": "vo", "derived_id": expected_id, "original_id": original["original_id"],
++            "source_wem_sha256": original["source_wem_sha256"], "wem_depot": original.get("wem_depot")}
++        if (key != expected_id or bank != expected_bank or target.get("original_id") != original["original_id"]
++                or original.get("delivery_bank") != "vo" or target.get("delivery_bank") != "vo"
++                or original.get("native_caption_matches_actual_bank_audio") is not False):
++            fail("local STT target lost its explicit bank-distinct original media identity")
++        if (authority["original_native_source_identity"] != td.identity(original)
++                or authority["original_native_text"] != original["native_text"]
++                or authority["original_native_text_sha256"] != original["native_text_sha256"]):
++            fail("local STT target replaced the immutable original lookup caption/source")
++        run = evidence.document(authority["stt_run_proof"])
++        old_inputs = _indexed(rows(evidence.descriptor(authority["stt_input_proof"])), "actual STT source inputs")
++        old_identity = authority["original_stt_input_identity"]
++        old = old_inputs[old_identity["id"]]
++        if (run.get("input_manifest_sha256") != authority["stt_input_proof"]["sha256"]
++                or run.get("hypotheses_sha256") != authority["stt_hypotheses_proof"]["sha256"]
++                or run.get("model_id") != "openai/whisper-large-v3-turbo"):
++            fail("STT authority's exact input/model/raw hypothesis receipts differ")
++        evidence.descriptor(authority["stt_hypotheses_proof"])
++        actual = _alignment(evidence, authority["stt_run_proof"], "whisper", authority["stt_input_proof"]["sha256"])[old_identity["id"]]
++        if (actual.get("status") != "audited" or actual["source_identity"] != old_identity
++                or td.identity(old) != old_identity or old_identity["id"] != original["original_id"]):
++            fail("STT hypothesis lost its original cross-ID source identity")
++        for name in ("speaker_id", "audio_sha256", "pcm_sha256", "source_wem_sha256"):
++            if original[name] != old[name] or original[name] != old_identity[name]:
++                fail("STT target crossed the immutable speaker/WEM/WAV/PCM tuple")
++        raw, text = actual["raw_hypothesis"], actual["raw_hypothesis"].strip()
++        if (not text or authority.get("authority") != "local_stt" or authority.get("raw_stt_text") != raw
++                or authority.get("transform") != "strip_leading_trailing_whitespace_only_v1"
++                or authority.get("training_transcript") != text
++                or authority.get("training_transcript_sha256") != td.text_sha(text)
++                or any(target.get(name) != authority.get(name) for name in authority if name != "id")
++                or target.get("native_text") != text or target.get("transcript") != text
++                or target.get("native_text_sha256") != td.text_sha(text)
++                or target.get("transcript_authority") != "local_stt" or target.get("native_caption_primary") is not False
++                or target.get("asr_text_substituted") is not True
++                or target.get("source_audio_or_native_caption_changed") is not False):
++            fail("STT speech target is not exact actual recognition plus declared whitespace stripping")
++        td.identity(target)
++    return targets, proof["inputs_sha256"]
+ 
+ 
+ def _alignment(evidence, descriptor, engine, input_sha=None):
+@@ -752,8 +849,8 @@
+ def _verify_cache(evidence, scope, item):
+     policy, unused, result_schema, helper_sha = _contract(item["kind"], scope)
+     result = evidence.document(item["cache_result"])
+-    edge = item["kind"] == EDGE_KIND
+-    allowed_helpers = {helper_sha, EDGE_GUARDED_WORKER_SHA} if edge and policy != QUOTE_POLICY else {helper_sha}
++    edge = item["kind"] in (EDGE_KIND, LOCAL_STT_KIND)
++    allowed_helpers = {helper_sha, EDGE_GUARDED_WORKER_SHA} if item["kind"] == EDGE_KIND and policy != QUOTE_POLICY else {helper_sha}
+     if (result.get("schema") != result_schema or result.get("qualification_policy") != policy
+             or result.get("scope_sha256") != item["scope"]["sha256"] or result.get("status") != "completed"
+             or result.get("model_released") is not True or result.get("dtype") != "float32"
+@@ -772,11 +869,11 @@
+                 or "loader_masks_and_suffix_tokens_verified" in result
+                 or type(result.get("actual_stitched_cut_encodes")) is not int):
+             fail("edge result does not truthfully declare its reduced stitched-encode coverage")
+-        if result["helper_source_sha256"] in (EDGE_GUARDED_WORKER_SHA, QUOTE_GUARDED_WORKER_SHA):
++        if result["helper_source_sha256"] in (EDGE_GUARDED_WORKER_SHA, QUOTE_GUARDED_WORKER_SHA, LOCAL_STT_WORKER_SHA):
+             _verify_edge_gpu_guard(evidence, result)
+         elif "gpu_headroom_probe_receipt" in result or "native_gpu_headroom_guard" in result["source_sha256"]:
+             fail("original edge worker cannot claim the later resource guard")
+-    short = item["kind"] in (SHORT_KIND, EDGE_KIND)
++    short = item["kind"] in (SHORT_KIND, EDGE_KIND, LOCAL_STT_KIND)
+     if short:
+         if (scope.get("conditioning_policy") != SHORT_CONDITIONING or result.get("conditioning_policy") != SHORT_CONDITIONING
+                 or scope.get("loader_cut_helper") != SHORT_CUT_HELPER or result.get("loader_cut_helper") != SHORT_CUT_HELPER
+@@ -906,7 +1003,7 @@
+                 fail("scope does not bind the exact original/native-rendered caption")
+             if kind == "native_primary_cache" and ("<" in row["native_text"] or ">" in row["native_text"]):
+                 fail("markup requires the separate rendered policy")
+-            if kind in ("native_rendered_primary_cache", SHORT_KIND, EDGE_KIND):
++            if kind in ("native_rendered_primary_cache", SHORT_KIND, EDGE_KIND, LOCAL_STT_KIND):
+                 for field in ("original_native_source_identity", "original_native_text", "original_native_text_sha256",
+                               "training_transcript", "training_transcript_sha256", "native_rendering", "transcript_authority"):
+                     if row.get(field) != original.get(field):
+@@ -1102,6 +1199,94 @@
+                     _verify_conditional_scene_exposure(row, historical_scenes, train_scenes, historical_captions)
+ 
+ 
++def _target_supersessions(evidence, admission, panels):
++    """Bind the exact three replacement targets and the one explicit MAIN hold."""
++    descriptor = admission.get("target_supersessions")
++    if descriptor is None:
++        corrected_ids = LOCAL_STT_TARGET_PROOFS["e9eefa62f3f405f43a9b32a78d7fefbaadb3f342c731bc13733b9c191616189d"]["ids"]
++        if any(row["id"] in corrected_ids for values in panels.values() for row in values):
++            fail("corrected MAIN admission lacks its exact old/new target supersession ledger")
++        return None
++    ledger = evidence.document(descriptor)
++    if ledger.get("schema") != "qualified_corpus_target_supersession_ledger_v1":
++        fail("unsupported target supersession ledger")
++    source_descriptor = ledger["source_supersession_ledger"]
++    if source_descriptor["sha256"] != BANK_SOURCE_SUPERSESSION_SHA:
++        fail("target supersession is not the exact root-reviewed bank source correction")
++    source = evidence.document(source_descriptor)
++    if source.get("schema") != "exact_songbird_bank_pair_supersession_source_ledger_v1" or source.get("old_originals_and_qualification_unchanged") is not True:
++        fail("bank source supersession lost its immutable old-source boundary")
++    evidence.descriptor(source["source_adapter"])
++    evidence.descriptor(source["actual_main_stt_run"])
++    evidence.descriptor(source["actual_holo_ctc_run"])
++    if ledger["current_corpus_hold_ledger"] != source["existing_corpus_hold_ledger"]:
++        fail("target supersession changed its exact source-corpus hold ledger")
++    evidence.descriptor(ledger["current_corpus_hold_ledger"])
++    originals = _indexed([{**row, "id":row["original_id"]} for row in source["rows"]], "source bank supersessions")
++    replacements = {key:row for key,row in originals.items() if row["main_stt_target_selected"]}
++    actual = _indexed([{**row, "id":row["old_recording_id"]} for row in ledger["rows"]], "qualified target supersessions")
++    if len(actual) != 3 or set(actual) != set(replacements):
++        fail("qualified supersession does not contain exactly the three approved MAIN replacements")
++    selected = {row["id"]:row for values in panels.values() for row in values}
++    for key, item in originals.items():
++        membership = item["original_qualification_membership"]
++        old_rows = rows(evidence.descriptor(membership["manifest"]))
++        pointer = membership["row_pointer"]
++        if re.fullmatch(r"/[0-9]+", pointer) is None or int(pointer[1:]) >= len(old_rows):
++            fail("old bank supersession row pointer is invalid")
++        old = old_rows[int(pointer[1:])]
++        if old["id"] != key or td.identity(old) != item["original_source_identity"]:
++            fail("old bank supersession changed its immutable source membership")
++        evidence.descriptor(item["original_raw_receipt"])
++        evidence.descriptor(membership["scope"])
++        old_result = evidence.document(membership["cache_result"])
++        if old_result.get("status") != "completed" or old_result.get("model_released") is not True:
++            fail("old source membership lacks its completed actual cache receipt")
++        if key in selected:
++            fail("superseded or held old MAIN/native target remains in the final corpus")
++        same_media = [row for row in selected.values() if any(row.get(name) == old[name]
++            for name in ("source_wem_sha256", "audio_sha256", "pcm_sha256"))]
++        if not item["main_stt_target_selected"]:
++            if same_media:
++                fail("ambiguous held MAIN waveform was admitted through another target/ID")
++            continue
++        replacement = actual[key]
++        expected_new = next(row["id"] for row in item["new_bank_sources"] if row["bank"] == "vo")
++        if (replacement["old_membership"] != membership or replacement["old_source_identity"] != td.identity(old)
++                or replacement["new_recording_id"] != expected_new or expected_new not in selected
++                or not replacement.get("reason")):
++            fail("qualified MAIN replacement does not bind its exact old and selected new membership")
++        new = selected[expected_new]
++        if (replacement["new_source_identity"] != td.identity(new) or len(same_media) != 1
++                or same_media[0]["id"] != expected_new or new.get("transcript_authority") != "local_stt"
++                or _speaker(old) != _speaker(new)
++                or any(old[name] != new[name] for name in ("source_wem_sha256", "audio_sha256", "pcm_sha256"))):
++            fail("MAIN target supersession changed media/speaker or retained duplicate old targets")
++        new_membership = replacement["new_membership"]
++        new_rows = rows(evidence.descriptor(new_membership["manifest"]))
++        new_pointer = new_membership["row_pointer"]
++        if re.fullmatch(r"/[0-9]+", new_pointer) is None or int(new_pointer[1:]) >= len(new_rows):
++            fail("new bank supersession row pointer is invalid")
++        observed = new_rows[int(new_pointer[1:])]
++        if td.identity(observed) != td.identity(new) or td.model_payload(observed) != td.model_payload(new):
++            fail("new supersession membership differs from actual aligned/cache-qualified target")
++        target = replacement["target_proof"]
++        if target["sha256"] not in LOCAL_STT_TARGET_PROOFS:
++            fail("new supersession target is not one of the exact approved STT proofs")
++        scope = evidence.document(new_membership["scope"])
++        if scope["target_proof"] != target or scope["alignment_source_proof"] != replacement["alignment_source_proof"]:
++            fail("target supersession changed its actual scope/alignment links")
++        evidence.descriptor(target)
++        evidence.descriptor(replacement["alignment_source_proof"])
++        if replacement["cache_result"] != new_membership["cache_result"]:
++            fail("target supersession changed its actual new cache result")
++        result = evidence.document(replacement["cache_result"])
++        if (result.get("status") != "completed" or result.get("model_released") is not True
++                or result.get("qualification_policy") != LOCAL_STT_POLICY):
++            fail("new supersession target lacks its completed actual STT codec receipt")
++    return {"approved_main_replacements":3, "held_main_waveforms":1, "original_artifacts_modified":False}
++
++
+ def verify_input(spec, bundle):
+     """Verify one declared native-primary teacher_staged_bundle_v1 corpus."""
+     _VERIFIED_OVERLAP.clear()
+@@ -1150,7 +1335,15 @@
+             if kind == "legacy_bundle" and row.get("conditional_scene_exposure") != original.get("conditional_scene_exposure"):
+                 fail("inherited legacy conditional metadata was rewritten")
+             admitted.add(key)
+-            if kind in (SHORT_KIND, EDGE_KIND) and original["sampling_mode"] == "aligned_full_utterance_fallback":
++            for name in ("original_id", "delivery_bank", "native_caption_matches_actual_bank_audio"):
++                if row.get(name) != original.get(name):
++                    fail("staged row lost its actual bank/canonical-source binding")
++            if kind == LOCAL_STT_KIND:
++                for name in ("authority", "native_caption_primary", "asr_text_substituted", "raw_stt_text", "transform",
++                             "source_bank_binding", "stt_input_proof", "stt_run_proof", "stt_hypotheses_proof", "original_stt_input_identity"):
++                    if row.get(name) != original.get(name):
++                        fail("staged STT target lost its exact authority or original-media provenance")
++            if kind in (SHORT_KIND, EDGE_KIND, LOCAL_STT_KIND) and original["sampling_mode"] == "aligned_full_utterance_fallback":
+                 pending_overlap.add(td.digest(td.cache_source(row)))
+ 
+     for item in admission.get("legacy_bundles", []):
+@@ -1174,8 +1367,11 @@
+     if admitted != set(selected):
+         fail("actual evidence does not cover every train/dev/conditional row")
+     _fences(spec, evidence, admission, panels, inherited)
++    supersessions = _target_supersessions(evidence, admission, panels)
+     _VERIFIED_OVERLAP.update(pending_overlap)
+     return {"schema": SCHEMA, "admission_rows": len(admitted), "roles": {role: len(values) for role, values in panels.items()},
+             "scopes": summaries, "native_asr_role": "diagnostic_only", "protected_rows": 170,
+             "verified_aligned_overlap_rows": len(pending_overlap),
++            "explicit_local_stt_target_rows": sum(row.get("transcript_authority") == "local_stt" for values in panels.values() for row in values),
++            "target_supersessions": supersessions,
+             "actual_runtime_cache_must_still_be_verified": True, "models_loaded": False}
