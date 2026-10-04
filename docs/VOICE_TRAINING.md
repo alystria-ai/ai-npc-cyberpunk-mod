@@ -1,5 +1,53 @@
 # Character voice preparation
 
+## Current shared Pocket training — October 4
+
+The accepted six-layer Pocket student remains the development runtime model.
+The user selected standard **A** after the all-Tier1 A/B/C listening comparison.
+An expanded shared teacher is running privately on Kaggle; its successor student
+has not started yet. Neither training completion nor a production replacement is
+claimed from the provider's RUNNING status. Kaggle currently exposes no readable
+step/loss log for this run, so remaining time cannot be inferred reliably.
+
+The frozen corpus contains **8,140 training clips across 79 voice identities**,
+plus 75 development, 87 conditional-development, 94 regression and 76 final-test
+clips, with 24 original character references. Expanded collection prioritizes
+thin character coverage and preserves exact game speaker/scene attribution.
+Audio/transcript bank mismatches were corrected using actual STT and alignment
+receipts; codec admission, recording aliases and split fences are frozen with
+the corpus. Final-test audio is excluded from checkpoint selection. Conditional
+development and seen-scene coverage stay explicitly labeled rather than being
+presented as fully independent evaluation.
+
+The teacher continues the selected A EMA initializer with a fresh optimizer,
+learning rate 1e-5, 1,000-update warm-up, EMA 0.999 and global batch 64 on two
+T4 GPUs using FP16. It allows up to 20,000 additional updates. Plateau stopping
+requires at least 8,000 updates, 50 corpus passes and eight post-baseline speech
+evaluations, then five non-improving evaluations. The best eligible checkpoint
+and a full resumable checkpoint are retained; the final update is not assumed
+to be the best model. Provider session boundaries require coherent continuation,
+and a separate quota reserve is kept for distillation and verification.
+
+After the actual teacher is selected, the student uses the accepted student
+initializer and the new frozen teacher, not a separate character-specific model.
+Its planned recipe has learning rate 5e-5, 250-update warm-up, EMA 0.999, global
+batch 64, up to 12,000 updates and patient speech evaluation. The minimum gate
+requires 4,000 updates, 50 corpus passes and six speech evaluations; the pass
+requirement places the first scheduled eligible evaluation at 7,000 updates for
+this corpus. Actual selected weights, audio likeness, completeness and CPU
+streaming latency must be checked before replacing the accepted runtime student.
+
+The exact local corpus/source/recipe and private submission receipts are retained
+under `runtime/voice-data-expansion-20261004/`; they contain development artifacts
+and are excluded from a portable release. Original cast recordings, accepted
+weights, final inputs and listening samples remain available. October 4 cleanup
+removed **42.924 GB** of retired smoke checkpoints, rejected pilot weights, old
+caches, obsolete input archives and duplicate verification models. The receipt
+is `runtime/cleanup-retired-20261004/result.json`; historical pilots may now need
+their retired weights rebuilt or downloaded again.
+
+## Historical OmniVoice pilot
+
 **October 1 follow-up:** the user chose to continue with reference-based voices
 and defer LoRA. The actual Judy adapter is 107,596,368 bytes (102.61 MiB), including
 audio embedding/output layers; 62 equal-sized adapters would add 6.21 GiB before
@@ -116,9 +164,9 @@ Development loss fell from 3.675 to 3.595, while average WavLM similarity on thr
 new sentences fell from 0.9195 (base) to 0.9141 (trained). These measurements did
 not justify overriding the user's listening result. Comparison audio and receipts
 remain under ignored `runtime/voice-training`. The rejected adapter, merged model
-and optimizer/checkpoint weights are selected for October 4 disk cleanup; the
-cleanup record establishes whether that retirement has been performed. Replaying
-this historical pilot then requires rebuilding its weights.
+and optimizer/checkpoint weights were removed in the October 4 disk cleanup.
+Replaying this historical pilot now requires rebuilding its weights. The cleanup
+receipt is `runtime/cleanup-retired-20261004/result.json`.
 
 The comparison loader restricts LoRA merging to the speech model: it temporarily
 detaches the audio tokenizer before matching attention-layer names, then restores
