@@ -78,6 +78,10 @@ def run_logged(command, name, raw=None):
         # The runner's 300 s default can lose up to 1000 updates at Kaggle's
         # hard stop; give the save ample time. Not part of the run identity.
         raw["checkpoint_reserve_seconds"] = 1800
+        # Saving ~5 GB every 10 minutes buys nothing: a crashed worker ends the
+        # session as failed (not resumable from its output). The 1000-update
+        # saves publish to the bucket and the end-of-session save remains.
+        raw["checkpoint_seconds"] = 43200
         raw["log_freq"] = 1
         raw["private_remote_checkpoints"] = True
         raw["remote_checkpoint_run_id"] = BINDINGS["remote_checkpoint_run_id"]
