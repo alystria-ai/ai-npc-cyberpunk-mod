@@ -1,5 +1,21 @@
 # Companion recovery and movement admission
 
+## October 4 distant catch-up correction
+
+Fresh and already moving distant followers now use the existing six-metre
+advance horizon, including blocked-route retries. Previously the horizon depended
+on a prior recovery ticket; the full remote route could exceed the size or query
+budget and repeatedly interrupt catch-up. A stationary player could leave the
+same rejected route stuck in retry.
+
+The correction stays in the actuator and reuses its existing corridor checks and
+rolling handoffs. Five focused causal checks cover fresh admission, blocked retry,
+moving proof deferral, active follower transfer and nearby ordinary follow. Four
+reproduce the prior failure; the corrected code preserves an executing Sprint
+handle while a successor proof is deferred. Source evidence is
+`runtime/verification/follow-bounded-catch-up-20261004.json`. Visible movement
+still needs confirmation in normal gameplay after installation.
+
 ## October 4 vehicle-exit correction
 
 After confirming the restored Porsche could be used, the user reported repeated

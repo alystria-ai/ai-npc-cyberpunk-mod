@@ -598,6 +598,13 @@ local function followGoal(s,c)
     local distance=followDistance(s,c)
     return space.offset(c.frame.position,space.bearing(c.position,c.frame.position),0,-distance)
 end
+local function followHorizon(c,target)
+    -- A distant catch-up needs the same bounded admission on its first run as
+    -- after recovery. Proving the whole remote route can exhaust the shared
+    -- quota or route-size bound and repeatedly stop an otherwise clear prefix.
+    return space.distance(c.position,target)>recoveryPolicy.travelHorizon
+        and recoveryPolicy.travelHorizon or nil
+end
 
 local function detourCandidates(origin,target,rejection,dimensions,localPrefix)
     local direction=space.bearing(origin,target)
@@ -753,7 +760,8 @@ local function blockedRoute(s,intent,c,canPlan)
             local target
             target,reason,deferred=validate(s,intent,c)
             clear=target~=nil
-        else clear,reason,deferred=routeClear(s,c,desired,true) end
+        else clear,reason,deferred=routeClear(s,c,desired,true,
+            {horizon=followHorizon(c,desired),stablePlayer=true}) end
         if deferred then
             held.playerChecking=refreshPlayer; held.geometryChecking=refreshGeometry or refreshDestination; s.clearanceWaiting=true
             return true
@@ -988,17 +996,16 @@ local function watchRoute(s,c,canPlan)
         s.routeCheckedAt=s.clock
         local target=s.executionTarget or (s.kind=='follow' and followGoal(s,c) or s.target)
         local clear,reason,deferred,route=routeClear(s,c,target,s.kind=='follow' and not s.execution,
-            {stablePlayer=s.execution~=nil})
+            {horizon=s.kind=='follow' and followHorizon(c,target) or nil,stablePlayer=s.execution~=nil})
         if deferred then waitForClearance(s)
         elseif not clear then block(s,reason,c,s.target or target,s.kind=='follow') end
-        if clear and route.projection then
-            s.destinationProjection,s.target=route.projection,space.copy(route.target)
-            if route.projection.lateralShift>.02 then
-                -- A radial follower cannot promise a laterally changed endpoint.
-                -- The new point's clear route does not certify its old radial
-                -- route. Retire that exact owner now, then keep a safety hold
-                -- while the point coordinator awaits fresh admission/budget.
-                s.execution=execution(route,c.position,route.target,true,'travel')
+        if clear and (route.horizon or route.projection) then
+            s.destinationProjection,s.target=route.projection,space.copy(route.horizon and target or route.target)
+            if route.horizon or route.projection.lateralShift>.02 then
+                -- A radial follower cannot promise a bounded prefix or a
+                -- laterally changed endpoint. Transfer its exact owner to the
+                -- existing waypoint coordinator and require fresh admission.
+                s.execution=execution(route,c.position,s.target,true,route.horizon and 'advance' or 'travel')
                 if not s.execution then block(s,'The verified route exceeds bounded waypoint execution',c,route.target,true) end
                 if s.execution then s.recoveryTicket=s.ticket;waitForClearance(s) end
             end
@@ -1183,11 +1190,10 @@ end
 local function destination(s,plan,intent,c)
     local target=intent.kind=='follow' and followGoal(s,c) or intent.goal
     if intent.kind=='follow' then
-        -- Recovery uses a bounded certified travel horizon when the group is
+        -- Catch-up uses a bounded certified travel horizon when the group is
         -- remote. A moving far endpoint cannot starve several frames of quota,
         -- and only that verified prefix is granted to a movement command.
-        local horizon=s.recoveryTicket==s.ticket
-            and space.distance(c.position,target)>recoveryPolicy.travelHorizon and recoveryPolicy.travelHorizon or nil
+        local horizon=followHorizon(c,target)
         local clear,reason,deferred,route=routeClear(s,c,target,true,{horizon=horizon,stablePlayer=true})
         return clear and route.target or nil,reason,deferred,route,horizon
     end
