@@ -71,6 +71,9 @@ def run_logged(command, name, raw=None):
             changes.append({key: value for key, value in item.items() if key != "source"})
         atomic(BOOTSTRAP / "source-overlays.json", changes)
         raw["gpu_budget_seconds"] = BINDINGS["teacher_lifetime_budget_seconds"]
+        # One original Judy recording is 32.51 s, but its sole aligned target
+        # is 13.51 s. Admit the unchanged source; the target window stays 30 s.
+        raw["max_utterance_seconds"] = 33
         raw["log_freq"] = 1
         raw["private_remote_checkpoints"] = True
         raw["remote_checkpoint_run_id"] = BINDINGS["remote_checkpoint_run_id"]
