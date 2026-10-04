@@ -1,5 +1,7 @@
 # Cyberpunk Convai
 
+**Developer handoff:** work was paused on October 5. See [HANDOFF_README.md](HANDOFF_README.md) for the complete project history, current source/install differences, remaining defects, credential locations and cancelled Kaggle training state.
+
 Talk with Night City characters, invite travelling companions, and keep in touch through a native phone Chat tab. Conversations use Convai for dialogue, with a choice of local Pocket TTS character voices or Convai voices. The companion manager uses Cyberpunk's Mod Configuration Menu, and replies use native subtitles and facial animation.
 
 **Development build for Cyberpunk 2077 2.31 on Windows x64.** This repository contains the working development integration. The proposed Scripts and Runtime downloads are not yet a portable release: setup still needs local dependencies, account configuration, and generated assets. Some gameplay features remain under testing.

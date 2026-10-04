@@ -207,8 +207,8 @@ same roughly 515 KB packet: the offline check fell from 73 to 3 ms. Its live
 end-to-end gain is pending; audible continuity and facial timing remain separate
 qualification work.
 
-[WORK_PLAN.md](WORK_PLAN.md) records the remaining prompt follow-up,
-anonymous context/voice checks, identity and archive qualification. Local
+[The consolidated handoff](../../HANDOFF_README.md#11-remaining-work-in-practical-order-after-resumption) records current remaining work;
+anonymous identity and archive prototypes are superseded. Historical local
 checkpoints are `857af7c` for the researched knowledge work and `27d6c55` for
 streaming. The existing
 simple tracked-objective feature remains a separate user-accepted capability;

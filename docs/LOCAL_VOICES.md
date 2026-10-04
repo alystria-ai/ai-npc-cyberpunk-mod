@@ -153,8 +153,8 @@ source-qualified descriptors. Preparation checks actor attribution, reference
 bytes, transcript and identity; the user authorized activation without another
 listening-approval gate. This does not claim every generated voice matches the
 original performance. See [VOICE_SOURCE_ACTIVATION.md](VOICE_SOURCE_ACTIVATION.md)
-for the activation contract and [COMPANION_UPDATE_2026-10-01.md](COMPANION_UPDATE_2026-10-01.md)
-for the installed catalog checkpoint.
+for the activation contract and the [consolidated development handoff](../HANDOFF_README.md)
+for the catalog history and current installed state.
 
 Characters share the same pretrained weights. A profile adds a recording,
 transcript and cached conditioning prompt, rather than a separate fine-tuned

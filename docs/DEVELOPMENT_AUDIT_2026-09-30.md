@@ -3,7 +3,7 @@
 This document records the development methods, defects found, corrections and
 remaining verification limits for the Cyberpunk Convai overhaul. It covers the
 current runtime and its development tools, not just the latest visible feature.
-`TODO.md` remains the requested-feature and acceptance backlog.
+The [consolidated handoff](../HANDOFF_README.md#11-remaining-work-in-practical-order-after-resumption) now holds the requested-feature and acceptance backlog; the former TODO was merged there.
 
 **Initial audit checkpoint:** locally committed and installed; **1,159 / 1,159**
 Node checks passed with installed MCM and no failures/skips. The user activated
@@ -747,7 +747,7 @@ Judy reply for the new Convai path, one phone conversation through a normal
 reload for persistence, or one actual actor-command recovery when required.
 Do not repeat accepted styling, basic invitations, minimap markers or ordinary
 F6/F8 turns merely because another subsystem changed. Update the exact evidence
-and limits in this document and `TODO.md`, then continue to the next requested
+and limits in this document and the current handoff, then continue to the next requested
 feature or stop when the user asks.
 
 ## Later September 30: native lip-sync deep dive
@@ -785,7 +785,7 @@ Native idle-pose influence and jaw/lip closure combinations remain calibration
 questions. Rig reference weights and successful feature calls do not establish
 the animated baseline or visible quality. Focused source checks, installation
 and live acceptance are recorded in the deep dive; the visual item stays open
-in `TODO.md` until the user accepts the actual speaking face.
+in the current handoff until the user accepts the actual speaking face.
 
 ## October 1: rendered facial calibration and development method
 
