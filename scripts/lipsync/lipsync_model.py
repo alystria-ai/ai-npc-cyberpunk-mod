@@ -299,6 +299,16 @@ def train(args):
     dil = [int(d) for d in args.dilations.split(',')]
     receptive = receptive_field(dil)
     net = build_torch(args.channels, dil, len(OUTPUTS))
+    if args.init:  # warm start from an exported model; new outputs start fresh
+        old = np.load(args.init, allow_pickle=False)
+        state = net.state_dict()
+        for name, value in state.items():
+            key = name.replace('blocks.', 'b').replace('.weight', '.w').replace('.bias', '.b')
+            if key in old.files:
+                source = torch.tensor(old[key])
+                if source.shape == value.shape: state[name] = source
+                elif name.startswith('out.'): state[name][:source.shape[0]] = source
+        net.load_state_dict(state)
     opt = torch.optim.AdamW(net.parameters(), lr=args.lr, weight_decay=1e-4)
     rng, pyrng = np.random.default_rng(1), random.Random(1)
     mean_t, std_t, scale_t = torch.tensor(mean), torch.tensor(std), torch.tensor(scale)
@@ -424,6 +434,7 @@ def main():
     parser.add_argument('--manifest', default='manifest.jsonl')
     parser.add_argument('--loss', choices=['l1', 'mse'], default='mse')
     parser.add_argument('--split', help='split.json from make_split.py')
+    parser.add_argument('--init', help='warm-start weights (.npz from a previous run)')
     args = parser.parse_args()
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     train(args)

@@ -202,7 +202,7 @@ test('model brows reach the expression layer on the audio clock, bounded and sof
     assert(face.start(context,timeline,judy,timeline.duration),face.error)
     face.sync(judy,${at / 60},'brows')
     local applied=judy.frames[#judy.frames]
-    assert(math.abs(applied.eye_l_brows_raise_in-math.min(.2,.5*${raise}))<1e-4,'model brow raise, halved and capped')
+    assert(math.abs(applied.eye_l_brows_raise_in-math.min(.2,.35*${raise}))<1e-4,'model brow raise, reduced and capped')
     assert(applied.eye_r_brows_raise_out==applied.eye_l_brows_raise_in)
     for k,v in pairs(applied) do assert(v<=1) end
     local bad=${luaLiteral({...timeline, modelExpressions: {...upper, frames: upper.frames.slice(1)}})}

@@ -27,9 +27,10 @@ Changes:
   with the voice (raise in/out together: speech mean .10, p95 .44; lower: p95
   .16). The game-trained model learns brow raise/lower from audio and
   timelines carry them (`modelExpressions`, `jali-upper-v1`, same frame times
-  as the mouth). The single writer halves them, caps them at .20, combines them
-  by **max** with the smoothed emotional pose (never summed), and reduces raises
-  in anger/disgust and lowering in joy/trust/surprise. Mouth expression still
+  as the mouth). On held-out game lines audio predicts brow raises only loosely
+  (r .29; lowering r .13), so the single writer uses raises at 35 % (cap .20),
+  ignores predicted lowering, combines by **max** with the smoothed emotional
+  pose (never summed), and reduces raises in anger/disgust. Mouth expression still
   yields to lip contact and rounding after smoothing; visemes keep the mouth.
 - Ranges now follow the game more closely: corner up .12 (game dialogue holds
   ~.10), corner down .10, brows .20; speech keeps 60 % of mouth emotion (was 30 %).

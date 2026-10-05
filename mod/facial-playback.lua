@@ -197,8 +197,11 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper)
     -- with the smoothed emotional pose, never summed, and toned down where it
     -- would contradict the emotion (raised brows in anger, lowered in joy).
     if upper and not blocked then
-        local raise=.5*upper.raise*((family=='anger' or family=='disgust') and .4 or 1)
-        local lower=.5*upper.lower*((family=='joy' or family=='trust' or family=='surprise') and .3 or 1)
+        -- Held-out game lines: audio predicts brow raises only loosely (r .29)
+        -- and lowering hardly at all (r .13), so raises stay light and the
+        -- predicted lowering is not used (neutral when unsure).
+        local raise=.35*upper.raise*((family=='anger' or family=='disgust') and .4 or 1)
+        local lower=0*upper.lower
         for _,side in ipairs({'l','r'}) do
             for _,stem in ipairs({'raise_in','raise_out'}) do
                 local track='eye_'..side..'_brows_'..stem
