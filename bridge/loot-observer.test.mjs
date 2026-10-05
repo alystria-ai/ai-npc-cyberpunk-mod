@@ -167,9 +167,12 @@ ctx.blocked=false;baselineItems={data(drink,1)};update();assert(listReads==2)
 intent(drink,1);added(drink,1,2,false);ctx.enabled=false;update();assert(#m.drain()==0)
 ctx.enabled=true;baselineItems={data(drink,2)};update();assert(listReads==3)
 intent(drink,1);ctx.available=false;update();added(drink,2,3,false);assert(#m.drain()==0)
-ctx.available=true;baselineItems={data(drink,3)};update();assert(not m.status().baseline.complete)
+ctx.available=true;intent(drink,1);added(drink,3,4,false)
+assert(not m.drain()[1].newlyAcquired,'Gameplay resuming before the new baseline cannot assert a discovery')
+baselineItems={data(drink,3)};update();assert(m.status().baseline.complete and listReads==4)
+-- A clean full read closes the unavailable interval: later new equipment is new again.
 local rare=item('91ULL','Unknown','Legendary','Weapon');intent(rare,1);added(rare,0,1,false)
-assert(not m.drain()[1].newlyAcquired,'Unknown ownership interval cannot assert a discovery')
+assert(m.drain()[1].newlyAcquired)
 `));
 
 test('source callbacks refresh resumed gameplay before stale polling gates and still reject fresh suppression', () => run(fixture + `
@@ -247,6 +250,53 @@ RPGManager.GetItemDataQuality=function()error('native unavailable')end
 added(drink,0,1,false);assert(#m.drain()==0 and m.status().baseline.needed)
 assert(m.status().hooks['PlayerPuppet.OnItemAddedToInventory'].errors==1)
 local count=registrations;m.install();assert(registrations==count)
+`));
+
+test('a real Legendary weapon pickup is a new, Legendary, typed world receipt', () => run(fixture + `
+update()
+local id=item('777ULL','Pride','gamedataQuality : Legendary (4)','gamedataItemCategory : Weapon (6)')
+id.record='Items.Preset_Pride_Default'
+local value=data(id,1);value.GetItemType=function()return 'gamedataItemType : Wea_AssaultRifle (86)' end
+intent(id,1);added(id,0,1,false,value);changed(id,1,1)
+local rows=m.drain();assert(#rows==1)
+local row=rows[1]
+assert(row.quality=='Legendary' and row.category=='Weapon' and row.itemType=='Wea_AssaultRifle')
+assert(row.name=='Pride' and row.newlyAcquired and row.source=='world' and row.confirmed and row.quantity==1)
+-- Quality is the native name, never an ordering guess: plus tiers are reported as named.
+for index,tier in ipairs({'Legendary','LegendaryPlus','LegendaryPlusPlus'})do
+ local plus=item(tostring(800+index)..'ULL','Plus','gamedataQuality : '..tier..' ('..index..')','gamedataItemCategory : Clothing (0)')
+ intent(plus,1);added(plus,0,1,false);local seen=m.drain()[1];assert(seen.quality==tier and seen.newlyAcquired)
+end
+-- The type is a descriptive extra: an unreadable or unusable one never blocks the receipt.
+for index,getter in ipairs({function()error('native')end,function()return nil end,
+  function()return 'gamedataItemType : Invalid (110)' end,function()return 'not a type!' end})do
+ local other=item(tostring(900+index)..'ULL','Other','gamedataQuality : Legendary (4)','gamedataItemCategory : Weapon (6)')
+ local details=data(other,1);details.GetItemType=getter
+ intent(other,1);added(other,0,1,false,details)
+ local result=m.drain()[1];assert(result and result.itemType==nil and result.quality=='Legendary',index)
+end
+`));
+
+test('one failed or unreadable event no longer disables new-equipment detection for the whole session', () => run(fixture + `
+update();assert(m.status().baseline.complete)
+-- A callback that throws leaves ownership uncertain until the inventory is read again.
+local broken=item('601ULL')
+RPGManager.GetItemDataQuality=function()error('native unavailable')end
+intent(broken,1);added(broken,0,1,false)
+assert(m.status().baseline.needed and not m.status().baseline.complete)
+RPGManager.GetItemDataQuality=function(data)assert(data);return data.id.quality end
+local during=item('602ULL','Weapon','gamedataQuality : Legendary (4)','gamedataItemCategory : Weapon (6)')
+intent(during,1);added(during,0,1,false)
+assert(not m.drain()[1].newlyAcquired,'Before the clean read ownership is still uncertain')
+baselineItems={data(broken,1),data(during,1)};update()
+assert(m.status().baseline.complete and listReads==2)
+local rare=item('603ULL','Weapon','gamedataQuality : Legendary (4)','gamedataItemCategory : Weapon (6)')
+intent(rare,1);added(rare,0,1,false);assert(m.drain()[1].newlyAcquired)
+-- Items seen during the uncertain interval remain owned, so they are not new again.
+changed(during,0,-1);intent(during,1);added(during,0,1,false);assert(not m.drain()[1].newlyAcquired)
+-- An unreadable item or oversized ever-owned set in the clean read itself still keeps it off.
+baselineOk=false;now=now+1;ctx.blocked=true;update();ctx.blocked=false;update()
+assert(not m.status().baseline.complete)
 `));
 
 test('incomplete or oversized baselines never label a later Legendary pickup new', () => run(fixture + `

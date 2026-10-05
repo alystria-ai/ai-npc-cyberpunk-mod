@@ -119,6 +119,13 @@ end
 local function baseline(player)
     baselineAttempted, baselineNeeded = true, false
     owned = {}
+    -- Incompleteness records MISSED EVENTS (a failed callback, an unreadable
+    -- item, an unavailable-player gap). A clean full read of the inventory
+    -- closes those, and the ever-owned set already persists across it, so one
+    -- bad event no longer disables new-equipment detection for the whole
+    -- session. Failures in this very read, or an overflowing ever-owned set,
+    -- still keep it off.
+    ownershipComplete = true
     local success, items = Game.GetTransactionSystem():GetItemList(player)
     baselineReads = baselineReads + 1
     if success ~= true or type(items) ~= 'table' then ownershipComplete = false; count('baselineUnavailable'); return end
@@ -138,6 +145,14 @@ local function enumName(value, kind, names)
     local text = tostring(value)
     local name = text:match('^' .. kind .. '%s*:%s*([%a]+)%s*%(%d+%)$') or text
     return names[name] and name or nil
+end
+-- Descriptive only (never a gate): a bounded enum token such as Wea_AssaultRifle.
+local function enumToken(value, kind)
+    if value == nil then return nil end
+    local text = tostring(value)
+    local name = text:match('^' .. kind .. '%s*:%s*([%a][%w_]*)%s*%(%d+%)$') or text
+    if #name > 48 or not name:match('^%a[%w_]*$') or name == 'Invalid' or name == 'Count' then return nil end
+    return name
 end
 local function label(value)
     if type(value) ~= 'string' then return nil end
@@ -160,7 +175,11 @@ local function describe(id, data)
     local quality = enumName(RPGManager.GetItemDataQuality(data), 'gamedataQuality', qualities)
     local category = enumName(RPGManager.GetItemCategory(id), 'gamedataItemCategory', categories)
     if not name or not quality or not category then return nil end
-    return {record=record, name=name, quality=quality, category=category}
+    -- The item's own type (for example an assault rifle) helps a reaction name
+    -- what was found. An unreadable type simply stays absent.
+    local itemType
+    pcall(function() itemType = enumToken(data:GetItemType(), 'gamedataItemType') end)
+    return {record=record, name=name, quality=quality, category=category, itemType=itemType}
 end
 
 local function onIntent(inventory, event)
