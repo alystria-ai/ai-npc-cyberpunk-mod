@@ -142,9 +142,11 @@ failure first observed while the pause menu, phone or manager is open does not
 take it; those only update the in-menu banner or list, and the notice is posted
 once when gameplay resumes. A failure found while the invitation is created is
 queued for gameplay in the same way, and the phone does not also post it while
-it is open. Routine progress (preparing memory, connecting, ready to join,
-joining) is posted as a popup only with Developer mode on; the manager banner
-and Current party list show it either way.
+it is open. Preparing memory, connecting, the ready-to-join instruction and
+joined are posted as popups in every mode, so a slow preparation is not mistaken
+for a failure. Only the joining step, the phone's preparing acknowledgement and
+the dismissed notice need Developer mode; the manager banner and Current party
+list show every stage either way.
 
 Hanako's reported failure was followed by a read-only provider check confirming
 the correct owned profile and enabled memory. The original exception had been

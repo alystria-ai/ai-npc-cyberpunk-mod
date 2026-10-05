@@ -103,21 +103,35 @@ the manager does not create a new HUD widget. These popups track the latest
 manager-requested copy independently of the footer and other manager actions.
 Direct phone invitations use the same rules.
 
-**Routine progress popups are Developer mode only** (Settings → Development →
-Developer mode, default Off): preparing memory, connecting, ready to join and
-joining, for manager and phone invitations alike, plus the routine driving
-instructions (preparing, boarding, driving, exit). The manager banner and the
-Current party list always show the same progress, because they are not popups.
-Switching Developer mode on mid-invitation shows the current stage once, never a
-backlog. These stay visible with Developer mode off: preparation or joining
-failures, the **joined your group** and **dismissed** results, a driving
-failure and the reply to Stop trip. The phone's immediate request
-acknowledgement ("invite queued") comes from the native phone script's own notice and row text and is unchanged.
+**Which notices need Developer mode** (Settings → Development → Developer mode,
+default Off). The player must see that a slow preparation is progressing, so
+these are always shown, for manager and phone invitations alike:
 
-With Developer mode on, each ticket, profile revision and preparation stage is
-posted once while paused. Because the menu may hide native notifications, the
-first gameplay frame samples the current state again and presents it once there.
-It retains no stage backlog.
+- **preparing memory…** and **connecting…**;
+- **ready to join when you return to the game** (manager) and **ready, close the
+  phone to join** (phone), because each tells the player to do something;
+- **joined your group**;
+- every failure and error, including a driving failure and the reply to Stop trip.
+
+These are Developer mode only:
+
+- **is joining your party**, which asks nothing of the player;
+- the phone's acknowledgement **is preparing memory and conversation**, which
+  repeats the native **invite queued** notice and the progress line that follows
+  at once (an invitation that is already ready still gets its ready message);
+- the **dismissed** result (the in-menu feedback line still reports it, and a
+  failed dismissal is always shown);
+- the routine driving instructions (preparing, boarding, driving, exit).
+
+The manager banner and the Current party list always show every stage, because
+they are not popups. Turning Developer mode on mid-invitation shows the current
+joining step once, never a backlog. The phone's own "invite queued" notice
+comes from the native phone script and is unchanged, as is its "will leave when
+you return to the game" reply to a dismissal request.
+
+Each ticket, profile revision and preparation stage is posted once while paused.
+Because the menu may hide native notifications, the first gameplay frame samples
+the current state again and presents it once there. It retains no stage backlog.
 
 A preparation failure is the exception and is never gated: each failed attempt
 posts exactly one gameplay notice in total, shared by the manager, the phone and
@@ -128,12 +142,12 @@ banner, and the notice is posted once when gameplay resumes. An immediate
 failure posts its detailed notice at the same moment, and the phone no longer
 posts a second copy while it is open.
 A ticket already spawning reports **joining** (Developer mode only), and
-completed attachment uses the existing **joined your group** notice. Cancelled,
+completed attachment uses the existing **joined your group** notice (always shown). Cancelled,
 removed and reset tickets cannot replay preparation messages. Native calls run
 only from top-level update, never inside a native callback; same-frame
 failure/progress notices for one ticket are combined without duplicates.
 The popup tests cover menu return within the same clock second, copy/revision
-deduplication, Developer mode on and off, immediate and asynchronous failure
+deduplication, Developer mode on and off (including the dismissed and joining steps), immediate and asynchronous failure
 notices (including one first seen while paused), cancellation, phone ownership
 and already joined tickets. A world spawn deferred by the shared query budget
 keeps the same joining notification when admission later succeeds.
