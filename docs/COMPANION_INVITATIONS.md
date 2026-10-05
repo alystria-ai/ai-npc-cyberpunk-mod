@@ -135,6 +135,17 @@ explicitly changes the selected profile. Missing or stale bridge receipts cannot
 turn that same failed attempt back into preparation. The phone, manager and
 world notification share one failure notice per attempt.
 
+Failure notices are never hidden by Developer mode, but they are posted only in
+gameplay. The shared claim (`claimPreparationFailure`) is taken by the first
+gameplay reporter: the world flush, the manager popup sampler or the phone. A
+failure first observed while the pause menu, phone or manager is open does not
+take it; those only update the in-menu banner or list, and the notice is posted
+once when gameplay resumes. A failure found while the invitation is created is
+queued for gameplay in the same way, and the phone does not also post it while
+it is open. Routine progress (preparing memory, connecting, ready to join,
+joining) is posted as a popup only with Developer mode on; the manager banner
+and Current party list show it either way.
+
 Hanako's reported failure was followed by a read-only provider check confirming
 the correct owned profile and enabled memory. The original exception had been
 discarded, so its cause is unconfirmed. Preparation now preserves a bounded
