@@ -26,39 +26,27 @@ public class ConvaiPhoneChatReadyEvent extends Event {
     public let generation: Uint32;
 }
 
-// A small outlined speech bubble, drawn with the same native palette as tabs.
+// Native speech-bubble glyph (the game's "talk" map icon), drawn like the phone's
+// own Messages/Contacts tab icons: an atlas image tinted from the shared palette.
+// Messages uses 41x28 (fit to content) and Contacts a 32x32 box; this sits between.
 public class ConvaiChatTabArtwork {
-    public static func Create() -> ref<inkCanvas> {
-        let icon = new inkCanvas();
-        icon.SetSize(new Vector2(42.0, 48.0));
+    public static func Create() -> ref<inkImage> {
+        let icon = new inkImage();
+        icon.SetName(n"convaiChatGlyph");
+        icon.SetAtlasResource(r"base\\gameplay\\gui\\common\\icons\\mappin_icons.inkatlas");
+        icon.SetTexturePart(n"talk");
+        icon.SetFitToContent(false);
+        icon.SetSize(new Vector2(36.0, 36.0));
+        icon.SetHAlign(inkEHorizontalAlign.Center);
         icon.SetVAlign(inkEVerticalAlign.Center);
-        ConvaiChatTabArtwork.Bar(icon, 2.0, 8.0, 34.0, 3.0);
-        ConvaiChatTabArtwork.Bar(icon, 2.0, 8.0, 3.0, 25.0);
-        ConvaiChatTabArtwork.Bar(icon, 33.0, 8.0, 3.0, 25.0);
-        ConvaiChatTabArtwork.Bar(icon, 13.0, 30.0, 23.0, 3.0);
-        ConvaiChatTabArtwork.Bar(icon, 2.0, 30.0, 3.0, 9.0);
-        ConvaiChatTabArtwork.Bar(icon, 5.0, 35.0, 5.0, 3.0);
-        ConvaiChatTabArtwork.Bar(icon, 9.0, 32.0, 5.0, 3.0);
-        ConvaiChatTabArtwork.Bar(icon, 10.0, 19.0, 4.0, 4.0);
-        ConvaiChatTabArtwork.Bar(icon, 23.0, 19.0, 4.0, 4.0);
+        icon.SetInteractive(false);
+        icon.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
+        icon.BindProperty(n"tintColor", n"MainColors.Red");
         return icon;
     }
-    private static func Bar(parent: ref<inkCompoundWidget>, x: Float, y: Float, width: Float, height: Float) -> Void {
-        let bar = new inkRectangle();
-        bar.SetSize(new Vector2(width, height));
-        bar.SetHAlign(inkEHorizontalAlign.Left);
-        bar.SetVAlign(inkEVerticalAlign.Top);
-        bar.SetMargin(new inkMargin(x, y, 0.0, 0.0));
-        bar.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
-        bar.BindProperty(n"tintColor", n"MainColors.Red");
-        bar.SetInteractive(false);
-        bar.Reparent(parent);
-    }
-    public static func Select(icon: ref<inkCompoundWidget>, selected: Bool) -> Void {
-        let i = 0;
-        while i < icon.GetNumChildren() {
-            icon.GetWidgetByIndex(i).BindProperty(n"tintColor", selected ? n"MainColors.Blue" : n"MainColors.Red");
-            i += 1;
+    public static func Select(icon: wref<inkWidget>, selected: Bool) -> Void {
+        if IsDefined(icon) {
+            icon.BindProperty(n"tintColor", selected ? n"MainColors.Blue" : n"MainColors.Red");
         };
     }
 }
@@ -293,7 +281,7 @@ private let m_convaiChatTab: wref<inkHorizontalPanel>;
 @addField(PhoneDialerSelectionController)
 private let m_convaiChatLabel: wref<inkText>;
 @addField(PhoneDialerSelectionController)
-private let m_convaiChatGlyph: wref<inkCanvas>;
+private let m_convaiChatGlyph: wref<inkImage>;
 
 @wrapMethod(PhoneDialerSelectionController)
 public func SetupWidgets() -> Void {
