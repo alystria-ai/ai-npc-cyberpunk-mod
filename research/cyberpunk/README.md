@@ -5,6 +5,16 @@ This folder contains the research and implementation work requested on September
 from the loaded save, and durable memories. Its coverage reports deliberately
 count those separately.
 
+## Current status — October 5
+
+The reviewed native pack has 768 enabled rules mapping 749 of 1,162 outcomes,
+built with zero errors from hash-bound evidence (9,246 verified pointers).
+`scripts/save_snapshot.mjs` reads a real `sav.dat` read-only and reproduces the
+Lua capture exactly; `scripts/evaluate_save_knowledge.mjs <save folder>` shows
+what each character would be told. See
+[../../docs/QUEST_OUTCOME_COVERAGE_2026-10-05.md](../../docs/QUEST_OUTCOME_COVERAGE_2026-10-05.md).
+The September 30 notes below are historical.
+
 ## Current status — September 30
 
 All **79 character dossiers** have independent static review coverage across

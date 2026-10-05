@@ -1,9 +1,12 @@
 # Current-save quest context
 
-The October 4 reviewed pack has **394 enabled rules / 382 mapped outcomes** out
-of 1,162 researched outcomes. See [priority character coverage](QUEST_PRIORITY_COVERAGE_2026-10-04.md)
-for the eight-character expansion and remaining save-detection limits. Tracked
-objectives and reviewed branch knowledge are separate inputs.
+The October 5 reviewed pack has **768 enabled rules / 749 mapped outcomes** out
+of 1,162 researched outcomes (413 unmapped, each with a reason). See
+[the October 5 verification and expansion](QUEST_OUTCOME_COVERAGE_2026-10-05.md)
+for the end-to-end evidence, per-character counts, the Johnny co-witness policy
+and remaining limits; [priority character coverage](QUEST_PRIORITY_COVERAGE_2026-10-04.md)
+records the earlier eight-character pass. Tracked objectives and reviewed branch
+knowledge are separate inputs.
 
 Companions receive the tracked quest and its active, revealed objectives when V
 starts a conversation. This is read-only: no journal entries are activated,
