@@ -453,36 +453,56 @@ assert(#requests==1 and not automatic and not loot.valid(context.reaction,now))
 assert(loot.status().active~=priorBatch)
 `));
 
-test('battle closing and pickup reactions take separate turns after owned playback completes', () => run(adapterFixture + `
+test('a closing carries the pickups collected before it is requested, as one reply', () => run(adapterFixture + `
 openBattle();local opening=automatic;finishAutomatic();endBattle()
-queueLoot('battle-drink');advance(.5);waitGame(3.5)
+queueLoot('battle-drink');advance(.5)
+-- The closing is offerable four seconds after combat is confirmed over, but the
+-- pickup is still being collected, so it waits for the six-second quiet mark.
+waitGame(3.5);assert(not automatic and #requests==1 and loot.status().pending==1)
+local waited=0;while not automatic and waited<6 do advance(.5);waited=waited+.5 end
+assert(waited>=1.5,'The closing did not wait for the pickup to finish being collected')
 local closing=assert(automatic)
 assert(closing.reaction.kind=='battle' and closing.reaction.phase=='end' and #requests==2)
-assert(closing.reaction.encounter==opening.reaction.encounter and not closing.loot)
-assert(loot.status().pending==1 and loot.status().cooldownUntil==0 and loot.status().exceptionalCooldownUntil==0)
+assert(closing.reaction.encounter==opening.reaction.encounter)
+assert(closing.loot and closing.loot.items[1].name=='NiCola' and closing.loot.items[1].quantity==1)
+assert(closing.reaction.batch==closing.loot.batch and closing.battle and closing.battle.status=='ended')
+assert(closing.loot.witness.entity==closing.entity and closing.loot.witness.profileKey==closing.profileKey)
+-- The pickup counts as commented: consumed, cooldown running, no active loot owner.
+assert(loot.status().pending==0 and not loot.status().active and loot.status().cooldownUntil==math.floor(now)+600)
 pending=nil;speech.requestId=closing.requestId;subtitles.line={}
-waitGame(8)
-assert(automatic==closing and #requests==2 and loot.status().pending==1,'Ready loot cannot overlap battle audio or captions')
-finishAutomatic();local releasedAt=lastAutomatic.finishedAt
-assert(lastAutomatic.requestId==closing.requestId and releasedAt)
-waitGame(1);assert(not automatic and #requests==2)
-while math.floor(now)-releasedAt<2 do advance(.5)end
-local pickup=assert(automatic)
-assert(pickup.reaction.kind=='loot' and pickup.requestId~=closing.requestId and #requests==3)
-assert(pickup.loot.items[1].name=='NiCola' and pickup.battle==nil)
-assert(loot.status().pending==0 and loot.status().cooldownUntil==math.floor(now)+600)
+waitGame(8);assert(automatic==closing and #requests==2,'Nothing overlaps the merged reply')
+finishAutomatic();waitGame(60)
+assert(not automatic and #requests==2,'The pickup is not spoken a second time')
+queueLoot('later');advance(.5);waitGame(7)
+assert(not automatic and #requests==2 and loot.status().pending==1,'The shared ordinary cooldown still applies')
 `));
 
-test('separate closing and loot turns retain their own exact-copy witness selection', () => run(adapterFixture + `
-openBattle();assert(automatic.profileKey=='judy-alvarez');finishAutomatic();endBattle()
-queueLoot('judy-only',nil,{people[1]});advance(.5);waitGame(6)
-local closing=assert(automatic)
-assert(closing.reaction.kind=='battle' and closing.reaction.phase=='end' and closing.profileKey=='alex')
-assert(not closing.loot and loot.status().pending==1)
-finishAutomatic();waitGame(2)
+test('a pickup made after the closing was requested stays a separate pickup comment', () => run(adapterFixture + `
+openBattle();finishAutomatic();endBattle();waitGame(4)
+local closing=assert(automatic);assert(closing.reaction.phase=='end' and not closing.loot and #requests==2)
+queueLoot('after-request');advance(.5)
+pending=nil;speech.requestId=closing.requestId;subtitles.line={}
+waitGame(10);assert(automatic==closing and #requests==2 and loot.status().pending==1)
+finishAutomatic();local releasedAt=lastAutomatic.finishedAt
+waitGame(1);assert(not automatic)
+while math.floor(now)-releasedAt<2 do advance(.5)end
 local pickup=assert(automatic)
-assert(pickup.reaction.kind=='loot' and pickup.entity=='1ULL' and pickup.profileKey=='judy-alvarez')
-assert(pickup.loot.witness.entity=='1ULL' and pickup.battle==nil and #requests==3)
+assert(pickup.reaction.kind=='loot' and pickup.battle==nil and #requests==3)
+assert(pickup.loot.items[1].name=='NiCola' and loot.status().pending==0)
+`));
+
+test('the closing prefers a speaker who also saw the pickups; others keep their own turn', () => run(adapterFixture + `
+openBattle();assert(automatic.profileKey=='judy-alvarez');finishAutomatic();endBattle()
+-- Alex would be next by rotation, but only Judy saw the pickup.
+queueLoot('judy-only',nil,{people[1]});advance(.5);waitGame(8)
+local closing=assert(automatic)
+assert(closing.reaction.kind=='battle' and closing.reaction.phase=='end' and closing.profileKey=='judy-alvarez')
+assert(closing.loot and closing.loot.witness.entity=='1ULL' and #requests==2)
+finishAutomatic();waitGame(40);assert(not automatic and #requests==2)
+-- Both saw it: the usual rotation decides.
+resetSessionFixture();active=nil;for i=#requests,1,-1 do requests[i]=nil end
+openBattle();finishAutomatic();endBattle();queueLoot('both');advance(.5);waitGame(8)
+assert(automatic.reaction.kind=='battle' and automatic.profileKey=='alex' and automatic.loot and #requests==2)
 `));
 
 test('different battle and loot witnesses do not require an invented audience intersection', () => run(adapterFixture + `
@@ -498,35 +518,37 @@ assert(automatic.reaction.kind=='loot' and automatic.entity=='4ULL' and automati
 assert(automatic.loot.witness.entity=='4ULL' and #requests==3)
 `));
 
-test('continuous collecting does not postpone combat closing or consume an unfinished pickup batch', () => run(adapterFixture + `
+test('a closing waits for pickups still being collected, but never longer than fourteen seconds', () => run(adapterFixture + `
 openBattle();finishAutomatic();endBattle()
-local confirmedAt=now
-for index=1,8 do
- queueLoot('continuous-'..index);advance(.5)
- if index<8 then assert(not automatic)end
+local count=0
+for index=1,60 do
+ queueLoot('continuous-'..index);count=count+1;advance(.5)
+ if automatic then break end
 end
 local closing=assert(automatic)
-assert(now-confirmedAt==4 and closing.reaction.phase=='end' and not closing.loot)
-assert(loot.status().pending==8 and loot.status().collecting and #requests==2)
-for index=9,30 do queueLoot('continuous-'..index);advance(.5)end
-assert(automatic==closing and loot.status().pending==30)
-finishAutomatic();waitGame(5)
-assert(not automatic and loot.status().collecting)
-waitGame(1)
-assert(automatic.reaction.kind=='loot' and automatic.loot.items[1].quantity==30 and #requests==3)
+local age=battles.capture().ageSeconds
+assert(closing.reaction.phase=='end' and closing.loot and age>=14 and age<=15,'Closing sent at '..age)
+assert(closing.loot.items[1].quantity>=20 and closing.loot.items[1].quantity<=count)
+assert(loot.status().pending==0 and #requests==2)
+-- Pickups that keep arriving are a later batch. The closing already counted
+-- as the pickup comment, so the shared cooldown keeps them silent.
+for index=1,4 do queueLoot('after-'..index);advance(.5)end
+assert(automatic==closing and loot.status().pending>=1)
+finishAutomatic();waitGame(10)
+assert(not automatic and #requests==2)
 `));
 
-test('a short combat-state dip preserves an earlier pickup turn before the separate closing', () => run(adapterFixture + `
+test('a pickup made during a short combat-state dip is folded into the closing', () => run(adapterFixture + `
 openBattle();finishAutomatic();queueLoot('during-fight');advance(.5)
 local encounter=battles.capture().encounter
 sample.combat=false;advance(.5);assert(battles.capture().status=='fighting')
 sample.combat=true;advance(.5)
 assert(battles.capture().encounter==encounter and loot.status().pending==1)
 endBattle();waitGame(4)
-assert(automatic.reaction.kind=='loot' and automatic.loot.items[1].quantity==1 and automatic.battle==nil)
-finishAutomatic();waitGame(2)
-assert(automatic.reaction.kind=='battle' and automatic.reaction.phase=='end' and not automatic.loot)
-assert(#requests==3)
+local closing=assert(automatic)
+assert(closing.reaction.kind=='battle' and closing.reaction.phase=='end' and closing.loot.items[1].quantity==1)
+assert(closing.reaction.batch==closing.loot.batch and #requests==2)
+finishAutomatic();waitGame(40);assert(not automatic and #requests==2,'No second comment for the same pickup')
 `));
 
 test('a closing with no remaining witness never reserves a newly witnessed pickup batch', () => run(adapterFixture + `
@@ -758,8 +780,8 @@ test('phone shares recent combat as reported facts and preserves the actual mess
   assert(calls[0].text.endsWith(input.text)); assert.equal(calls[0].voice, false);
 });
 
-// A scripted bridge: the reply arrives three seconds after a request is written
-// and plays for five. It reports every automatic turn in the order it started.
+// A scripted bridge: the reply arrives GEN seconds after a request is written
+// and plays for PLAY. It reports every automatic turn in the order it started.
 const sequenceHarness = `
 local turns,lastCount,genAt,playAt={},0,nil,nil
 local GEN,PLAY=3,5
@@ -771,7 +793,8 @@ local function bridge(dt)
  if automatic and #requests>lastCount then
   assert(not genAt and not playAt,'Two automatic turns overlapped')
   lastCount=#requests;genAt=now
-  turns[#turns+1]={kind=automatic.reaction.kind,phase=automatic.reaction.phase,id=automatic.requestId}
+  turns[#turns+1]={kind=automatic.reaction.kind,phase=automatic.reaction.phase,id=automatic.requestId,
+   merged=automatic.loot~=nil and automatic.reaction.kind=='battle'}
  end
  if automatic and genAt and pending==automatic and now-genAt>=GEN and reactionCanDeliver(automatic,player) then
   pending=nil;speech.requestId=automatic.requestId;subtitles.line={};genAt=nil;playAt=now
@@ -784,101 +807,138 @@ end
 local function run(seconds)
  while seconds>0 do local step=math.min(.5,seconds);bridge(step);seconds=seconds-step end
 end
-`;
-
-test('combat comment and pickup comment that become eligible together play once each, in order', () => run(adapterFixture + sequenceHarness + `
-for _,timing in ipairs({{3,5},{12,15}}) do GEN,PLAY=timing[1],timing[2]
-for _,offset in ipairs({-6,-3,-1.5,0,.5,1,2,3,4,6,8,10}) do
- resetSessionFixture();for i=#requests,1,-1 do requests[i]=nil end
- for i=#turns,1,-1 do turns[i]=nil end
- lastCount,genAt,playAt=0,nil,nil;speakerReady,speakerBusy=true,false;active=nil
- sample.combat=false;bridge(.5)
- sample.combat=true;run(3.5);assert(turns[1] and turns[1].phase=='start','no opening at offset '..offset..' reqs='..#requests..' status='..tostring(battles.status().state)..' elig='..tostring(battles.status().eligible))
- -- The fight lasts ten more seconds; the pickup lands offset seconds from its end.
- local started,picked=now,false
- for step=1,50 do
-  local t=now-started
-  if not picked and t>=10+offset then queueLoot('o'..offset);picked=true end
-  if t>=10 then sample.combat=false end
-  bridge(.5)
- end
- sample.combat=false;run(60)
- assert(picked,'not picked offset '..offset)
- local label='gen '..GEN..' play '..PLAY..' offset '..offset..' turns='..#turns
- for _,turn in ipairs(turns) do label=label..' '..turn.kind..'/'..tostring(turn.phase) end
- assert(#turns==3,label)
- -- Combat ending is announced before a pickup made after it; a pickup made
- -- during the fight keeps its earlier turn.
- if offset>=0 then assert(turns[2].kind=='battle' and turns[2].phase=='end',label) end
- if offset<=-1.5 then assert(turns[2].kind=='loot',label) end
- assert(turns[2].kind~=turns[3].kind,label)
- assert(loot.status().pending==0 and not loot.status().active and not automatic,label)
-end
-end
-`));
-
-
-// Both orders: a pickup made during the fight is ready the moment combat is
-// confirmed over, a pickup right after it is ready after the closing.
-const turnOrder = `
-local function startFight(pickupAfterEnd)
+-- A fight whose opening has played; combat stops ten seconds after that, and a
+-- pickup (optional) lands pickupAt seconds from that moment. Nothing is run
+-- past the moment the pickup is queued.
+local function startFight()
  resetSessionFixture();for i=#requests,1,-1 do requests[i]=nil end
  for i=#turns,1,-1 do turns[i]=nil end
  lastCount,genAt,playAt=0,nil,nil;speakerReady,speakerBusy=true,false;active=nil;GEN,PLAY=3,5
  sample.combat=false;bridge(.5);sample.combat=true;run(3.5)
  assert(turns[1] and turns[1].phase=='start')
- run(8)
- if not pickupAfterEnd then queueLoot('during-fight');run(3) end
- sample.combat=false
- if pickupAfterEnd then queueLoot('after-fight') end
+ run(6);sample.combat=true
 end
 local function untilTurn(count)
  for _=1,200 do bridge(.5);if #turns>=count and automatic then return end end
  error('turn '..count..' never started')
 end
 local function kinds()
- local text='';for _,turn in ipairs(turns)do text=text..turn.kind..'/'..tostring(turn.phase)..' ' end;return text
+ local text='';for _,turn in ipairs(turns)do text=text..turn.kind..'/'..tostring(turn.phase)..(turn.merged and '+loot' or '')..' ' end;return text
 end
 `;
 
-test('a conversation cancels only the comment it interrupts; the queued one plays once afterwards', () => run(adapterFixture + sequenceHarness + turnOrder + `
-for _,order in ipairs({'loot-first','closing-first'}) do
- for _,moment in ipairs({'generating','playing','between'}) do
-  startFight(order=='closing-first')
-  untilTurn(2)
-  local first=turns[2]
-  assert(first.kind==(order=='closing-first' and 'battle' or 'loot'),order..' started '..kinds())
-  if moment=='playing' then run(4) elseif moment=='between' then
-   while automatic do bridge(.5) end
-  else run(.5) end
-  -- Pressing the talk key cancels an automatic turn, then owns the speaker.
-  local interrupted=automatic~=nil
-  if automatic then cancelAutomatic('manual-text') end
-  genAt,playAt=nil,nil;active={}
-  run(10);assert(#turns==2,order..' '..moment..' spoke during the conversation: '..kinds())
-  active=nil
-  for _=1,60 do bridge(.5) end
-  local label=order..' '..moment..' interrupted='..tostring(interrupted)..' '..kinds()
-  assert(#turns==3,label)
-  assert(turns[3].kind~=first.kind,label)
-  assert(turns[2].id~=turns[3].id,label)
-  assert(not automatic and not pending and not loot.status().active and loot.status().pending==0,label)
-  assert(lastAutomatic.finishedAt,label)
+test('closing and pickup comments play once each, never overlapping, as one reply or in order', () => run(adapterFixture + sequenceHarness + `
+for _,timing in ipairs({{3,5},{12,15}}) do
+for _,offset in ipairs({-6,-3,-1.5,0,1,2,3,4,6,10,12,15}) do
+ GEN,PLAY=3,5;startFight();GEN,PLAY=timing[1],timing[2]
+ -- Combat stops in four seconds; the pickup lands offset seconds from that.
+ local started,picked=now,false
+ for step=1,60 do
+  local t=now-started
+  if not picked and t>=4+offset then queueLoot('o'..offset);picked=true end
+  if t>=4 then sample.combat=false end
+  bridge(.5)
  end
+ sample.combat=false;run(80)
+ assert(picked,'not picked offset '..offset)
+ local label='gen '..GEN..' play '..PLAY..' offset '..offset..' '..kinds()
+ assert(turns[2].kind=='battle' and turns[2].phase=='end',label)
+ if offset<=6 then
+  -- Pickups collected before the closing is requested ride in that request.
+  assert(#turns==2 and turns[2].merged,label)
+ else
+  -- Later ones stay a separate pickup comment, after the closing.
+  assert(#turns==3 and not turns[2].merged and turns[3].kind=='loot',label)
+ end
+ assert(loot.status().pending==0 and not loot.status().active and not automatic and not pending,label)
+ assert(lastAutomatic.finishedAt,label)
+end
 end
 `));
 
-test('a queued comment whose window ended during a long conversation is skipped, not replayed', () => run(adapterFixture + sequenceHarness + turnOrder + `
--- Pickup first: the closing's forty-second window closes while V talks.
-startFight(false);untilTurn(2);assert(turns[2].kind=='loot')
+test('a conversation cancels only the comment it interrupts; a queued pickup plays once afterwards', () => run(adapterFixture + sequenceHarness + `
+local function stopCombat() sample.combat=false end
+-- One merged reply: cancelling it consumes both, and nothing replays.
+for _,moment in ipairs({'generating','playing'}) do
+ startFight();queueLoot('merged-'..moment);stopCombat();untilTurn(2)
+ assert(turns[2].merged,kinds())
+ if moment=='playing' then run(4) else run(.5) end
+ cancelAutomatic('manual-text');genAt,playAt=nil,nil;active={}
+ run(10);assert(#turns==2,moment..' spoke during the conversation: '..kinds())
+ active=nil;run(120)
+ assert(#turns==2 and not automatic and loot.status().pending==0,moment..' '..kinds())
+ assert(lastAutomatic.finishedAt)
+end
+-- A pickup made after the closing was requested stays separate.
+for _,moment in ipairs({'closing-generating','closing-playing','between','pickup-generating','pickup-playing'}) do
+ startFight();stopCombat();untilTurn(2)
+ assert(not turns[2].merged,kinds())
+ queueLoot('separate-'..moment)
+ local cancelledKind
+ if moment=='closing-generating' then run(.5)
+ elseif moment=='closing-playing' then run(4)
+ else
+  while automatic do bridge(.5) end
+  if moment~='between' then
+   untilTurn(3);if moment=='pickup-playing' then run(4) else run(.5) end
+  end
+ end
+ if automatic then cancelledKind=automatic.reaction.kind;cancelAutomatic('manual-text') end
+ genAt,playAt=nil,nil;active={}
+ run(10);local during=#turns
+ assert(during==(moment:find('pickup') and 3 or 2),moment..' spoke during the conversation: '..kinds())
+ active=nil;run(80)
+ local label=moment..' cancelled='..tostring(cancelledKind)..' '..kinds()
+ if moment:find('pickup') then assert(#turns==3,label) -- the interrupted pickup is not replayed
+ else
+  assert(#turns==3 and turns[3].kind=='loot' and turns[2].id~=turns[3].id,label)
+ end
+ assert(not automatic and not pending and not loot.status().active and loot.status().pending==0,label)
+ assert(lastAutomatic.finishedAt,label)
+end
+`));
+
+test('a queued pickup whose window ended during a long conversation is skipped, not replayed', () => run(adapterFixture + sequenceHarness + `
+startFight();sample.combat=false;untilTurn(2);assert(not turns[2].merged)
+queueLoot('too-late');run(.5)
 cancelAutomatic('manual-text');genAt,playAt=nil,nil;active={}
-run(60);active=nil;run(120)
-assert(#turns==2 and not automatic and loot.status().pending==0,kinds())
--- Closing first: the pickup waits up to ninety seconds after the last pickup.
-startFight(true);untilTurn(2);assert(turns[2].kind=='battle')
-cancelAutomatic('manual-text');genAt,playAt=nil,nil;active={}
-run(120);active=nil;run(120)
-assert(#turns==2 and not automatic and loot.status().pending==0,kinds())
+run(100);active=nil;run(60)
+assert(#turns==2 and not automatic and loot.status().pending==0 and loot.status().expired==1,kinds())
+`));
+
+test('a merged closing keeps the cancellation rules: menu, renewed combat, a scene and the speaker', () => run(adapterFixture + `
+local function merged()
+ resetSessionFixture();active=nil;speakerReady,speakerBusy=true,false;sample.blocked=false
+ for i=#requests,1,-1 do requests[i]=nil end
+ openBattle();finishAutomatic();endBattle();queueLoot('cancel-'..#requests..'-'..math.floor(now));advance(.5)
+ local waited=0;while not automatic and waited<20 do advance(.5);waited=waited+.5 end
+ local closing=assert(automatic);assert(closing.reaction.phase=='end' and closing.loot and #requests==2)
+ return closing
+end
+local function settle(reason)
+ assert(not automatic and not pending,'The merged request was not cancelled for '..reason)
+ assert(lastCancellation().reason==reason,lastCancellation().reason)
+ assert(lastCancellation().kind=='battle')
+ -- The pickups were consumed with it: nothing replays them afterwards.
+ assert(loot.status().pending==0 and not loot.status().active)
+ waitGame(60);assert(not automatic and #requests==2,'A cancelled merged reply was replayed')
+end
+-- Opening a menu before it is audible.
+merged();advance(.5,false);settle('world-not-ready')
+-- Renewed combat.
+merged();sample.combat=true;advance(.5)
+assert(not automatic and not pending);local reason=lastCancellation().reason
+assert(reason=='encounter-changed' or reason=='combat-resumed',reason)
+sample.combat=false;waitGame(60);assert(not automatic and #requests==2)
+-- A scripted scene starting.
+merged();sample.blocked=true;advance(.5);settle('scene-blocked');sample.blocked=false
+-- The speaker becoming unavailable (native dialogue), and the conversation key.
+merged();speakerReady,speakerBusy=false,false;advance(.5);settle('speaker-unavailable');speakerReady=true
+local closing=merged();cancelAutomatic('manual-text');active={}
+waitGame(30);assert(#requests==2 and not automatic);active=nil;waitGame(60)
+assert(#requests==2 and loot.status().pending==0)
+-- A reply that arrives after cancellation is not delivered.
+assert(not reactionCanDeliver(closing,player))
 `));
 
 test('a pickup never waits for a closing that cannot speak: disabled, cooling down or without a witness', () => run(adapterFixture + `

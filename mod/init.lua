@@ -897,6 +897,12 @@ local function reactionLease(valid)
 end
 
 local reactionGuard, reactionEvidence = nil, {}
+-- After a merged closing fails to claim its pickups, send the closing alone
+-- for a moment instead of retrying the same merge every frame.
+local mergeSuppressedUntil = 0
+-- A closing waits for pickups still being collected, but never longer than
+-- this many seconds after combat was confirmed over (its own window is 40).
+local CLOSING_LOOT_WAIT = 14
 local battleCandidatesOk, battleSampleAt = nil, nil
 
 local function reactionManualActivity()
@@ -1082,28 +1088,40 @@ local function updateBattles(player, elapsed, worldReady)
         return kind == 'battle' and event.phase == 'end' and lastAutomatic.phase == 'start'
             and lastAutomatic.encounter == event.encounter
     end
-    local battleEvent = battles.offer(busy, battlePeople, now)
+    -- One reply after a fight. Pickups collected during the fight or before the
+    -- closing request is written travel in that closing request (one request,
+    -- one speaker, exact-copy witnesses). The closing prefers a speaker who also
+    -- saw them, and waits for pickups still being collected, at most
+    -- CLOSING_LOOT_WAIT seconds after combat was confirmed over. A pickup made
+    -- after the closing was requested stays a separate pickup comment.
+    local battleEvent = battles.offer(busy, battlePeople, now, function(person)
+        return loot.mergeable(person, now) ~= nil
+    end)
     local lootEvent = loot.offer(busy, battlePeople, now)
     if not mayFollow(battleEvent, 'battle') then battleEvent = nil end
     if not mayFollow(lootEvent, 'loot') then lootEvent = nil end
-    -- Combat ending is announced before a pickup made after the fight, even
-    -- when that pickup's quiet window finishes a moment sooner. A pickup made
-    -- during the fight keeps its earlier turn. The hold lasts only until the
-    -- closing becomes offerable and never applies without an eligible witness.
-    if lootEvent and not battleEvent then
-        local due = battles.closingDue(battlePeople)
-        -- Both ages are whole-second/half-second samples, so allow one second.
-        if due and (lootEvent.loot.ageSeconds or 0) < due.sinceCombat + 1 then lootEvent = nil end
+    if battleEvent and battleEvent.phase == 'end' and now >= mergeSuppressedUntil then
+        local merge = loot.mergeable(battleEvent.person, now)
+        if merge and merge.collecting and (battleEvent.battle.ageSeconds or 0) < CLOSING_LOOT_WAIT then
+            battleEvent = nil
+        elseif merge then
+            battleEvent.loot = loot.attach(battleEvent.person, now)
+        end
     end
-    -- Closing has the shorter admission window and normally goes first. Once
-    -- a battle closing has had a turn, an eligible pickup gets the next turn.
-    -- Neither event changes the other policy's receipts or cooldowns.
+    -- While the closing is still ahead, a ready pickup waits for it so the
+    -- fight's end and its pickups share one reply. This never holds a pickup
+    -- for longer than the closing needs to become offerable, and not at all
+    -- without an eligible witness for the closing.
+    if lootEvent and not battleEvent and battles.closingDue(battlePeople) then lootEvent = nil end
+    -- Once a battle closing has had a turn, an eligible pickup gets the next
+    -- turn. A merged closing already consumed what it carried.
     local event
     if battleEvent and lootEvent and lastAutomatic and lastAutomatic.kind == 'battle'
         and lastAutomatic.phase == 'end' then event = lootEvent
     else event = battleEvent or lootEvent end
     if event == battleEvent and event then
-        event.reaction = {kind = 'battle', encounter = event.encounter, phase = event.phase, expiresAt = event.expiresAt}
+        event.reaction = {kind = 'battle', encounter = event.encounter, phase = event.phase, expiresAt = event.expiresAt,
+            batch = event.loot and event.loot.batch or nil}
     end
     if not event then return end
     generation = generation + 1
@@ -1124,7 +1142,19 @@ local function updateBattles(player, elapsed, worldReady)
     if reactionLease(true) and sendRequest(context) then
         local claimed
         if event.reaction.kind == 'loot' then claimed = loot.claim(event, now)
-        else claimed = battles.claim(event) end
+        else
+            claimed = true
+            -- The carried pickups are consumed first: a failure leaves the
+            -- closing unclaimed, to be sent alone after a short pause.
+            if event.loot then
+                local merged, mergeReason = loot.claimMerged(event, now)
+                if not merged then
+                    claimed, mergeSuppressedUntil = false, now + 3
+                    log('Closing could not carry pickups: ' .. tostring(mergeReason))
+                end
+            end
+            if claimed then claimed = battles.claim(event) end
+        end
         if not claimed then cancelAutomatic('claim-failed'); return end
         speech.target = person.npc
         lastAutomatic = {at = now, requestId = context.requestId, kind = event.reaction.kind,
@@ -1410,7 +1440,7 @@ local function abandonSession(reason,preserveTransit)
     invalidateKnowledge(reason)
     cancelAutomatic(reason, true)
     battles.reset()
-    loot.reset(); lootObserver.reset(); lastAutomatic = nil
+    loot.reset(); lootObserver.reset(); lastAutomatic, mergeSuppressedUntil = nil, 0
     battleSample, battlePeople, battlePoll = nil, {}, 0
     if tactics then tactics.abandon() end
     if marking then marking.abandon() end
@@ -1832,7 +1862,7 @@ registerForEvent('onShutdown', function()
     invalidateKnowledge('shutdown')
     cancelAutomatic('shutdown')
     battles.reset()
-    loot.reset(); lootObserver.reset(); lastAutomatic = nil
+    loot.reset(); lootObserver.reset(); lastAutomatic, mergeSuppressedUntil = nil, 0
     battleSample, battlePeople = nil, {}
     phoneChat.abandon()
     mcm.shutdown(liveWorld)

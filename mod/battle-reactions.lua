@@ -119,7 +119,10 @@ function M.new()
         return nil
     end
 
-    function self.offer(busy, people, now)
+    -- prefer(person) is an optional tie-breaker: among the witnesses who could
+    -- speak, one it approves (for example one who also saw the pickups the
+    -- closing will carry) is chosen before the usual rotation.
+    function self.offer(busy, people, now, prefer)
         if busy or not enabled or not sample or not sample.available or sample.blocked or not current or not current.eligible then return nil end
         local phase, remaining
         if current.state == 'fighting' then
@@ -131,12 +134,24 @@ function M.new()
             if current.closed or elapsed < 4 or elapsed > 40 then return nil end
             phase, remaining = 'end', 40 - elapsed
         end
-        local chosen
+        local candidates = {}
         for _, person in ipairs(people or {}) do
             if person.available ~= false and witnessed(current, person) and person.distance <= 20 then
-                if not chosen then chosen = person end
-                if person.profileKey ~= lastSpeaker then chosen = person; break end
+                candidates[#candidates + 1] = person
             end
+        end
+        if prefer and phase == 'end' then
+            local preferred = {}
+            for _, person in ipairs(candidates) do
+                local ok, wanted = pcall(prefer, person)
+                if ok and wanted then preferred[#preferred + 1] = person end
+            end
+            if #preferred > 0 then candidates = preferred end
+        end
+        local chosen
+        for _, person in ipairs(candidates) do
+            if not chosen then chosen = person end
+            if person.profileKey ~= lastSpeaker then chosen = person; break end
         end
         if not chosen then return nil end
         return {encounter = current.id, phase = phase, expiresAt = math.floor((now + remaining) * 1000),

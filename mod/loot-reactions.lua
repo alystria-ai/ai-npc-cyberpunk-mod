@@ -6,7 +6,7 @@ local LIMIT = {
     quiet = 6, ordinary = 600, exceptional = 120, pending = 90,
     admission = 30, playback = 30, distance = 20,
     receipts = 128, descriptions = 12, witnesses = 16, tokens = 8,
-    seen = 1024, seenSeconds = 180, quantity = 1000000,
+    seen = 1024, seenSeconds = 180, quantity = 1000000, descriptionChars = 320,
 }
 local QUALITIES = {Common = true, CommonPlus = true, Uncommon = true, UncommonPlus = true,
     Rare = true, RarePlus = true, Epic = true, EpicPlus = true, Iconic = true,
@@ -78,9 +78,11 @@ local function normalize(item)
     end
     -- Optional descriptive type; an invalid one is dropped, not a rejection.
     local itemType = item.itemType ~= nil and identifier(item.itemType, 48) or nil
+    -- Optional tooltip text, bounded for the prompt. Anything else is dropped.
+    local description = item.description ~= nil and text(item.description, LIMIT.descriptionChars) or nil
     return {acquisitionId = acquisition, identity = identity, record = record, name = name,
         quantity = item.quantity, quality = item.quality, category = item.category,
-        itemType = itemType, newlyAcquired = item.newlyAcquired,
+        itemType = itemType, description = description, newlyAcquired = item.newlyAcquired,
         exceptional = item.newlyAcquired and LEGENDARY[item.quality] == true
             and EQUIPMENT[item.category] == true}
 end
@@ -150,7 +152,7 @@ function M.new()
                 else
                     row = {record = item.record, name = item.name, quantity = item.quantity,
                         quality = item.quality, category = item.category, itemType = item.itemType,
-                        newlyAcquired = item.newlyAcquired,
+                        description = item.description, newlyAcquired = item.newlyAcquired,
                         exceptional = item.exceptional, sequence = receipt.sequence}
                     indices[group] = row; items[#items + 1] = row
                 end
@@ -349,6 +351,64 @@ function M.new()
         retire(token)
         active = token
         active.claimedAt = now
+        ordinaryUntil = now + LIMIT.ordinary
+        if token.snapshot.exceptional then exceptionalUntil = now + LIMIT.exceptional end
+        lastSpeaker = token.snapshot.witness.profileKey
+        return true, copy(token.snapshot)
+    end
+
+    -- A battle closing that is about to be requested may carry this witness's
+    -- pending pickups in the same reply. These three calls are the whole
+    -- contract: mergeable() is side-effect free and says whether the exact
+    -- witness copy has pickups that may speak under the cooldowns (and whether
+    -- collection is still going on); attach() freezes them in a snapshot; and
+    -- claimMerged() consumes them and starts the cooldowns, exactly as a
+    -- standalone pickup turn would. The closing's own policy owns validity,
+    -- cancellation and playback, so no loot reaction becomes active.
+    local function mergePerson(person, now)
+        if type(person) ~= 'table' or gate() or sample.paused or sample.combat or active
+            or #pending == 0 then return nil, 'unavailable' end
+        local entity, profile = identifier(person.entity, 128), identifier(person.profileKey, 128)
+        if not entity or not profile then return nil, 'invalid-person' end
+        local current = currentPerson(entity, profile)
+        if not current then return nil, 'witness-missing' end
+        if not current.available then return nil, 'witness-unavailable' end
+        return current
+    end
+
+    function self.mergeable(person, now)
+        now = time(now); prune(now)
+        local current = mergePerson(person, now)
+        if not current then return nil end
+        local items, exceptional = describe(witnessKey(current.entity, current.profileKey))
+        if #items == 0 or not cooldownAllows(exceptional, now) then return nil end
+        return {items = #items, exceptional = exceptional, quietSeconds = quiet(),
+            collecting = quiet() < LIMIT.quiet}
+    end
+
+    function self.attach(person, now)
+        now = time(now); prune(now)
+        local current, reason = mergePerson(person, now)
+        if not current then return nil, reason end
+        local snapshot, token = snapshotFor(current, 'merge', now)
+        if not snapshot then return nil, token end
+        if not cooldownAllows(snapshot.exceptional, now) then return nil, 'cooldown' end
+        return snapshot
+    end
+
+    function self.claimMerged(event, now)
+        now = time(now); prune(now)
+        local reason = gate()
+        if reason then return false, reason end
+        if sample.paused or sample.combat then return false, 'world-busy' end
+        if active then return false, 'reaction-active' end
+        if type(event) ~= 'table' or type(event.loot) ~= 'table' then return false, 'event-invalid' end
+        local token; token, reason = validateToken(event.loot, 'merge', now)
+        if not token then return false, reason end
+        if type(event.person) ~= 'table' or event.person.entity ~= token.snapshot.witness.entity
+            or event.person.profileKey ~= token.snapshot.witness.profileKey then return false, 'speaker-changed' end
+        if not cooldownAllows(token.snapshot.exceptional, now) then return false, 'cooldown' end
+        retire(token)
         ordinaryUntil = now + LIMIT.ordinary
         if token.snapshot.exceptional then exceptionalUntil = now + LIMIT.exceptional end
         lastSpeaker = token.snapshot.witness.profileKey

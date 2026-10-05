@@ -117,42 +117,63 @@ test('the exceptional flag is derived from newly acquired Legendary equipment, n
   }
 });
 
-test('a Legendary pickup tells the speaker it is Legendary, naming the item and its type', () => {
-  for (const quality of ['Legendary', 'LegendaryPlus', 'LegendaryPlusPlus']) {
-    for (const category of ['Weapon', 'Clothing', 'Cyberware', 'WeaponMod', 'Part']) {
-      const loot = pickup();
-      Object.assign(loot.items[0], {quality, category, name: 'Pride', itemType: 'Wea_AssaultRifle'});
-      loot.exceptional = ['Weapon', 'Clothing', 'Cyberware'].includes(category);
-      const trigger = battleTrigger(wire(automatic(loot)));
-      assert.match(trigger, /Legendary-quality item/, `${quality} ${category}`);
-      assert.match(trigger, /Make the line about the Legendary item: say it is Legendary and name the item or its type/);
-      assert(trigger.includes(JSON.stringify([{name: 'Pride', quality, type: 'Assault Rifle'}])), `${quality} ${category}`);
-      assert.match(trigger, /no more than twenty words/);
-      assert.match(trigger, /Do not ask a question, including a follow-up/);
-    }
+test('pickup facts give each item\'s name, type and tooltip text; quality is a fact, never an instruction', () => {
+  for (const quality of ['Legendary', 'LegendaryPlus', 'LegendaryPlusPlus', 'Epic', 'Common']) {
+    const loot = pickup();
+    Object.assign(loot.items[0], {quality, name: 'Pride', itemType: 'Wea_AssaultRifle',
+      description: 'A rifle with a <b>storied</b>\n past.'});
+    loot.exceptional = quality.startsWith('Legendary');
+    const trigger = battleTrigger(wire(automatic(loot)));
+    assert(trigger.includes('"name":"Pride"') && trigger.includes('"type":"Assault Rifle"'), quality);
+    assert(trigger.includes('"description":"A rifle with a storied past."'), quality);
+    assert(trigger.includes(`"quality":"${quality}"`), quality);
+    assert.match(trigger, /in-game tooltip text; you may react naturally to what the item is or says/);
+    assert(!/say it is Legendary|Legendary-quality|Legendary item|Make the line about/.test(trigger), quality);
+    assert.match(trigger, /You need not list every item/);
+    assert.match(trigger, /no more than twenty words/);
+    assert.match(trigger, /Do not ask a question, including a follow-up/);
   }
-  // Without a readable type the broad category still says what it is.
-  const loot = pickup(); Object.assign(loot.items[0], {quality: 'Legendary', name: 'Kongou'});
-  loot.exceptional = true;
-  assert(battleTrigger(wire(automatic(loot))).includes(JSON.stringify([{name: 'Kongou', quality: 'Legendary', type: 'Weapon'}])));
-  // A Legendary item among ordinary ones leads the statement; others are not required.
-  const mixed = pickup(); mixed.items.push({record: 'Items.LowQualityDrink10', name: 'NiCola', quantity: 3,
-    quality: 'Common', category: 'Consumable', newlyAcquired: false});
-  mixed.items[0].quality = 'Legendary'; mixed.exceptional = true;
-  assert(battleTrigger(wire(automatic(mixed))).includes('"name":"NiCola"'));
-  assert(battleTrigger(wire(automatic(mixed))).includes(JSON.stringify([{name: 'Lexington', quality: 'Legendary', type: 'Weapon'}])));
 });
 
-test('only the native quality name makes a pickup Legendary; look-alike names, types and cases do not', () => {
-  for (const [quality, name] of [['Epic', 'Legendary Lexington'], ['Rare', 'LEGENDARY'], ['Iconic', 'Skippy'], ['Common', 'Legendary Pizza']]) {
-    const loot = pickup(); Object.assign(loot.items[0], {quality, name, itemType: 'Wea_Handgun'});
-    const trigger = battleTrigger(wire(automatic(loot)));
-    assert(!/Legendary-quality|Legendary item/.test(trigger), `${quality} ${name}`);
-    assert.match(trigger, /You need not list every item/);
+test('descriptions are optional, plain, bounded and cut at a sentence or word end', () => {
+  const sentence = 'The first sentence is complete and fairly long so it passes the halfway mark of the excerpt. ';
+  const long = sentence + 'Then more text follows. '.repeat(40);
+  const cases = [
+    ['markup and control characters', ' <i>Tooltip</i>\u0000\n\ttext  here ', 'Tooltip text here'],
+    ['absent when empty', '   ', undefined],
+    ['absent for an unresolved key', 'LocKey#12345', undefined],
+    ['absent for a non-string', 42, undefined],
+    ['absent for markup only', '<br><br>', undefined],
+  ];
+  for (const [name, text, expected] of cases) {
+    const loot = pickup(); loot.items[0].description = text;
+    const parsed = parseLoot(loot, recipient);
+    assert(parsed, name);
+    assert.equal(parsed.items[0].description, expected, name);
+    assert(wire(automatic(loot)), name);
   }
-  assert.equal(parseLoot({...pickup(), items: [{...pickup().items[0], quality: 'legendary'}]}, recipient)?.items[0].quality, 'legendary',
-    'A lower-case label is carried as data');
-  assert(!/Legendary-quality/.test(battleTrigger(wire(automatic({...pickup(), items: [{...pickup().items[0], quality: 'legendary'}]})))));
+  const loot = pickup(); loot.items[0].description = long;
+  const cut = parseLoot(loot, recipient).items[0].description;
+  assert(cut.startsWith(sentence.trim()) && cut.endsWith('follows.') && !cut.endsWith('...'), 'Ends at a sentence boundary');
+  assert(cut.length <= 280);
+  loot.items[0].description = 'word '.repeat(200);
+  const words = parseLoot(loot, recipient).items[0].description;
+  assert(words.length <= 283 && words.endsWith('word...'), words.slice(-20));
+  loot.items[0].description = '🐉'.repeat(300);
+  assert(!/[\ud800-\udbff]\.\.\.$/.test(parseLoot(loot, recipient).items[0].description), 'No split surrogate pair');
+});
+
+test('only the first few items carry tooltip text, keeping the prompt short', () => {
+  const loot = pickup();
+  loot.items = Array.from({length: 8}, (_, index) => ({record: `Items.Thing${index}`, name: `Thing ${index}`,
+    quantity: 1, quality: 'Common', category: 'General', newlyAcquired: false, description: `Description ${index}.`}));
+  const facts = lootFacts(wire(automatic(loot)));
+  for (let index = 0; index < 8; index++) {
+    assert.equal(facts.includes(`Description ${index}.`), index < 5, `item ${index}`);
+    assert(facts.includes(`"name":"Thing ${index}"`));
+  }
+  const bare = pickup(); // No description anywhere: no sentence about tooltip text.
+  assert(!/tooltip/.test(lootFacts(wire(automatic(bare)))));
 });
 
 test('item type is an optional readable hint: malformed values are dropped, never a rejection', () => {
@@ -218,31 +239,54 @@ test('standalone loot reaction validates its own batch and routes to a short pic
   assert.throws(() => lootTrigger({...input, reaction: {...input.reaction, batch: 'loot-1000-2'}}), /Invalid loot trigger/);
 });
 
-test('automatic battle and loot turns reject mixed payloads while manual conversation retains both', () => {
+test('a closing carries its pickups only as one reply naming that exact batch; other mixes are rejected', () => {
   const closing = message({loot: pickup(), battle: encounter(),
     reaction: {kind: 'battle', phase: 'end', encounter: 'battle-1', expiresAt: 20000}});
-  assert.equal(wire(closing), null, 'A battle closing must not consume or speak a pickup batch');
+  assert.equal(wire(closing), null, 'Pickups without the closing naming their batch are rejected');
   assert.throws(() => battleTrigger(closing), /Invalid battle trigger/);
-  const input = wire({...closing, loot: undefined});
-  assert(input);
+  const merged = {...closing, reaction: {...closing.reaction, batch: 'loot-1000-1'}};
+  const input = wire(merged);
+  assert(input, 'A closing may carry the batch it names');
+  assert.deepEqual(input.reaction, {kind: 'battle', phase: 'end', encounter: 'battle-1', expiresAt: 20000, batch: 'loot-1000-1'});
   const trigger = battleTrigger(input);
   assert.match(trigger, /no longer in combat, but the outcome is unknown/);
   assert.match(trigger, /Patrol Officer/);
-  assert(!trigger.includes('Lexington'));
-  assert.match(trigger, /no more than twenty words/);
+  assert(trigger.includes('"name":"Lexington"'));
+  assert.match(trigger, /Confirmed world pickups V collected/);
+  assert.match(trigger, /no more than thirty words, in at most two short sentences/);
+  assert.match(trigger, /covering both that the fight is over and what V picked up/);
   assert.match(trigger, /do not invent enemy numbers, locations, arrivals, injuries, kills or victory/);
-  assert(!trigger.startsWith('V has finished collecting'));
-  assert.deepEqual(parseReaction(input.reaction, input.battle, input.loot), input.reaction);
-  assert.equal(wire({...automatic(), battle: encounter()}), null,
-    'A pickup reaction does not carry a combat recap');
+  assert.match(trigger, /Do not invent their source, value, stats, perks/);
+  assert.match(trigger, /do not ask any question/);
+  assert(!trigger.includes('twenty words') && !trigger.startsWith('V has finished collecting'));
+  const context = conversationContext(input);
+  assert.match(context, /at most thirty words covering the end of the fight and the pickups/);
+  assert.match(context, /The pickups in the event are the items V collected/);
+  assert(!/or collected loot/.test(context), 'The closing may speak of its own supplied pickups');
+  assert.equal(lootContext(input), '', 'The trigger, not the dynamic context, carries the pickup facts');
+  for (const [name, bad] of [
+    ['wrong batch', {...merged, reaction: {...merged.reaction, batch: 'loot-1000-2'}}],
+    ['batch without pickups', {...merged, loot: undefined}],
+    ['opening with pickups', {...merged, battle: encounter('fighting'), reaction: {...merged.reaction, phase: 'start'}}],
+    ['fighting battle on a closing', {...merged, battle: encounter('fighting')}],
+    ['another witness', {...merged, loot: {...pickup(), witness: {entity: '101ULL', profileKey: 'judy-alvarez'}}}],
+  ]) assert.equal(wire(bad), null, name);
+  assert.throws(() => battleTrigger({...merged, reaction: {...merged.reaction, batch: 'loot-1000-2'}}), /Invalid battle trigger/);
+  // A closing without pickups is unchanged and still keeps to the encounter.
+  const alone = wire({...closing, loot: undefined});
+  assert(alone);
+  const plain = battleTrigger(alone);
+  assert.match(plain, /no more than twenty words/);
+  assert.match(plain, /without comments on pickups/);
+  assert(!plain.includes('Lexington') && !plain.includes('pickups V collected'));
+  assert.deepEqual(parseReaction(alone.reaction, alone.battle, alone.loot), alone.reaction);
+  assert.equal(wire({...automatic(), battle: encounter()}), null, 'A standalone pickup reaction carries no combat recap');
   assert.throws(() => battleTrigger({...automatic(), battle: encounter()}), /Invalid loot trigger/);
   const manual = wire({...closing, reaction: undefined});
   assert(manual && manual.battle && manual.loot, 'V may still discuss both facts manually');
   assert(!lootContext(closing));
-  const opening = {...closing, battle: encounter('fighting'), reaction: {...closing.reaction, phase: 'start'}};
-  assert.equal(wire(opening), null);
-  assert(wire({...opening, loot: undefined}), 'Ordinary battle openings remain valid');
-  assert.equal(wire({...closing, battle: encounter('fighting')}), null);
+  assert(wire({...merged, battle: encounter('fighting'), loot: undefined, reaction: {kind: 'battle', phase: 'start',
+    encounter: 'battle-1', expiresAt: 20000}}), 'Ordinary battle openings remain valid');
 });
 
 test('normalized loot facts participate in speculative input identity', () => {

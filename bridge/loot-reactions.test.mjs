@@ -120,6 +120,71 @@ assert(rows.Junk.itemType==nil,'A malformed descriptive type is dropped, not a r
 assert(event.loot.exceptional and event.loot.items[1].name=='Pride','Legendary equipment is described first')
 `));
 
+test('a closing can carry the exact witness\'s pending pickups: peek, freeze, then consume with cooldowns', () => run(fixture + `
+local judy=people[1]
+assert(not policy.mergeable(judy,now),'Nothing pending yet')
+add('drink');tick(1)
+local info=assert(policy.mergeable(judy,now));assert(info.items==1 and info.collecting and not info.exceptional)
+assert(policy.mergeable(people[3],now),'Every witness of the pickup may carry it')
+assert(not policy.mergeable({entity='9ULL',profileKey='alex'},now),'A copy that did not witness it cannot')
+assert(not policy.mergeable({entity=nil,profileKey='x'},now) and not policy.mergeable(nil,now))
+wait(6);info=assert(policy.mergeable(judy,now));assert(not info.collecting)
+-- Peeking never consumes anything or reserves the speaker.
+assert(policy.status().pending==1 and policy.status().cooldownUntil==0 and not policy.status().active)
+local snapshot=assert(policy.attach(judy,now))
+assert(snapshot.items[1].name=='NiCola' and snapshot.witness.entity=='1ULL' and not snapshot.exceptional)
+assert(policy.status().pending==1,'Freezing does not consume')
+-- A pickup after the freeze belongs to a later batch.
+add('late',{name='Late pickup'});tick(0)
+local ok,claimed=policy.claimMerged({loot=snapshot,person={entity='1ULL',profileKey='judy-alvarez'}},now)
+assert(ok and claimed.batch==snapshot.batch and claimed.items[1].name=='NiCola')
+local status=policy.status()
+assert(status.pending==1 and status.cooldownUntil==now+600 and not status.active,'The pickup counts as commented')
+assert(not policy.claimMerged({loot=snapshot,person={entity='1ULL',profileKey='judy-alvarez'}},now),'A frozen batch is claimed once')
+wait(6);assert(not offer(false),'The shared ordinary cooldown keeps the late pickup silent')
+local plain=policy.capture();assert(plain.items[1].name=='Late pickup')
+`));
+
+test('a merged claim is refused for another speaker, fresh combat, paused play, cooldown or disabled loot', () => run(fixture + `
+local judy={entity='1ULL',profileKey='judy-alvarez'}
+local count=0
+local function frozen()count=count+1;add('merge-'..count);wait(6);return assert(policy.attach(people[1],now))end
+local snapshot=frozen()
+local ok,reason=policy.claimMerged({loot=snapshot,person={entity='2ULL',profileKey='judy-alvarez'}},now)
+assert(not ok and reason=='speaker-changed')
+sample.paused=true;tick(0);ok,reason=policy.claimMerged({loot=snapshot,person=judy},now);assert(not ok and reason=='world-busy')
+assert(not policy.mergeable(people[1],now) and not policy.attach(people[1],now))
+sample.paused=false;tick(0)
+sample.combat=true;tick(0);ok=policy.claimMerged({loot=snapshot,person=judy},now);assert(not ok)
+assert(policy.status().pending==0,'A new fight discards the pending pickups')
+sample.combat=false;tick(0)
+snapshot=frozen();enabled=false;tick(0);ok,reason=policy.claimMerged({loot=snapshot,person=judy},now)
+assert(not ok and reason=='setting-disabled' and policy.status().pending==0)
+enabled=true;tick(0)
+-- Cooldown: an ordinary pickup cannot be carried right after a comment, an exceptional one can.
+add('first');wait(6);local first=offer(false);policy.claim(first,now);policy.release(first.reaction)
+add('ordinary-again');wait(6)
+assert(not policy.mergeable(people[1],now),'Ordinary loot stays behind its cooldown')
+add('legendary',{record='Items.Pistol',name='Pistol',quality='Legendary',category='Weapon',newlyAcquired=true});wait(6)
+local rare=assert(policy.mergeable(people[1],now));assert(rare.exceptional)
+local frozenRare=assert(policy.attach(people[1],now))
+local claimedRare=policy.claimMerged({loot=frozenRare,person=judy},now);assert(claimedRare)
+assert(policy.status().exceptionalCooldownUntil==now+120)
+`));
+
+test('a snapshot carries each item\'s optional tooltip text; invalid text is dropped, not a rejection', () => run(fixture + `
+add('described',{record='Items.Preset_Pride',name='Pride',quality='Legendary',category='Weapon',newlyAcquired=true,
+  description='A rifle with a storied past.'})
+assert(add('blank',{description='   '}) and add('control',{description='bad'..string.char(10)..'text'}) and add('huge',{description=string.rep('x',321)}))
+assert(add('wrong-type',{description=42}))
+wait(6);local event=assert(offer(false));local rows={}
+for _,row in ipairs(event.loot.items)do rows[row.record]=row end
+assert(rows['Items.Preset_Pride'].description=='A rifle with a storied past.')
+local others=0
+for record,row in pairs(rows)do if record~='Items.Preset_Pride' then assert(row.description==nil);others=others+1 end end
+assert(others>=1)
+`));
+
 test('old equipment and Legendary consumables cannot use the new-equipment exception', () => run(fixture + `
 add('ordinary');wait(6);local first=offer(false);policy.claim(first,now);policy.release(first.reaction)
 add('returned-weapon',{record='Items.Pistol',quality='Legendary',category='Weapon',newlyAcquired=false})

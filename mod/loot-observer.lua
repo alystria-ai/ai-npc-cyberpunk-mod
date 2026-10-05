@@ -160,6 +160,44 @@ local function label(value)
     if value == '' or #value > 240 or value:match('^LocKey#') then return nil end
     return value
 end
+-- A bounded plain excerpt of game text: markup and control characters removed,
+-- whitespace collapsed, cut at a sentence (else word) end without splitting a
+-- UTF-8 character. Unresolved localization keys and empty text are absent.
+local EXCERPT = 280
+local function excerpt(value, limit)
+    if type(value) ~= 'string' then return nil end
+    value = value:gsub('<[^>]*>', ' '):gsub('%c', ' '):gsub('%s+', ' '):match('^%s*(.-)%s*$')
+    if value == '' or value:match('^LocKey#') then return nil end
+    if #value <= limit then return value end
+    local cut = value:sub(1, limit)
+    -- Do not end inside a multi-byte character.
+    while #cut > 0 and cut:byte(#cut) >= 0x80 and cut:byte(#cut) < 0xC0 do cut = cut:sub(1, -2) end
+    if #cut > 0 and cut:byte(#cut) >= 0xC0 then cut = cut:sub(1, -2) end
+    local sentence = cut:match('^(.*[%.!?])%s')
+    if sentence and #sentence >= limit * 0.5 then return sentence end
+    local word = cut:match('^(.*)%s%S*$')
+    return (word and #word >= limit * 0.5 and word or cut) .. '...'
+end
+-- The inventory tooltip shows LocKeyToString(record.LocalizedDescription()).
+-- Item_Record.LocalizedDescription returns a CName key. Try the game's own
+-- resolvers in turn; an unreadable or empty description is simply absent.
+local function localizedDescription(definition)
+    local ok, key = pcall(function() return definition:LocalizedDescription() end)
+    if not ok or key == nil then return nil end
+    local readers = {
+        function() return LocKeyToString(key) end,
+        function() return Game.LocKeyToString(key) end,
+        function() return GetLocalizedTextByKey(key) end,
+        function() return Game.GetLocalizedTextByKey(key) end,
+        function() return GetLocalizedItemNameByCName(key) end,
+    }
+    for _, read in ipairs(readers) do
+        local success, text = pcall(read)
+        text = success and excerpt(text, EXCERPT) or nil
+        if text then return text end
+    end
+    return nil
+end
 local function describe(id, data)
     if not data or identity(data:GetID()) ~= identity(id) then return nil end
     if ItemID.HasFlag(id, Enum.new('gameEItemIDFlag', 'Preview')) ~= false or RPGManager.IsItemBroken(data) ~= false then return nil end
@@ -179,7 +217,10 @@ local function describe(id, data)
     -- what was found. An unreadable type simply stays absent.
     local itemType
     pcall(function() itemType = enumToken(data:GetItemType(), 'gamedataItemType') end)
-    return {record=record, name=name, quality=quality, category=category, itemType=itemType}
+    -- The item's own tooltip text lets a reaction talk about what the item is.
+    local description = localizedDescription(definition)
+    return {record=record, name=name, quality=quality, category=category, itemType=itemType,
+        description=description}
 end
 
 local function onIntent(inventory, event)

@@ -277,6 +277,60 @@ for index,getter in ipairs({function()error('native')end,function()return nil en
 end
 `));
 
+test('every accepted pickup carries its tooltip description when a native read resolves it', () => run(fixture + `
+update()
+local descriptions={}
+local function record(key)return {LocalizedDescription=function()
+ if key=='throws' then error('native') end;return key end}end
+TweakDBInterface.GetItemRecord=function(value)return record(descriptions[value] or 'LocKey#1')end
+local function pick(hash,tier,text,details)
+ local id=item(hash,'Thing',tier or 'gamedataQuality : Common (0)')
+ id.record='Items.Record'..hash;descriptions[id.record]=text
+ intent(id,1);added(id,0,1,false,details);return m.drain()[1]
+end
+-- The inventory tooltip's own resolver first; tags and whitespace are removed.
+LocKeyToString=function(key)return ' <i>A cheap</i>  drink'..string.char(10)..'for the road. '..key end
+assert(pick('1001ULL','gamedataQuality : Common (0)','LocKey#7').description=='A cheap drink for the road. LocKey#7')
+local legendary=pick('1002ULL','gamedataQuality : Legendary (4)','LocKey#8')
+assert(legendary.quality=='Legendary' and legendary.description,'Legendary items are described the same way')
+-- A resolver that fails, is empty or leaves the key unresolved falls through to the next.
+LocKeyToString=function()error('not callable')end
+GetLocalizedTextByKey=function(key)return 'LocKey#'..tostring(key)end
+Game.GetLocalizedTextByKey=function()return '   'end
+GetLocalizedItemNameByCName=function(key)return 'Resolved by the last reader'end
+assert(pick('1003ULL',nil,'LocKey#9').description=='Resolved by the last reader')
+-- Unreadable text never blocks the receipt and leaves the description absent.
+GetLocalizedItemNameByCName=function()return 'LocKey#9' end
+local bare=pick('1004ULL',nil,'LocKey#10');assert(bare and bare.name=='Thing' and bare.description==nil)
+LocKeyToString=function()return 'Never reached' end
+assert(pick('1005ULL',nil,'throws').description==nil,'A throwing description read is ignored')
+TweakDBInterface.GetItemRecord=function()return {LocalizedDescription=function()return nil end}end
+assert(pick('1006ULL',nil,'x').description==nil)
+TweakDBInterface.GetItemRecord=function(value)return value end
+local plain=pick('1007ULL',nil,'x');assert(plain and plain.description==nil and plain.name=='Thing','A record without the method is fine')
+`));
+
+test('a long description is cut at a sentence or word end without splitting a character', () => run(fixture + `
+update()
+local text
+TweakDBInterface.GetItemRecord=function()return {LocalizedDescription=function()return 'k' end}end
+LocKeyToString=function()return text end
+local function pick(hash)
+ local id=item(hash);intent(id,1);added(id,0,1,false);return m.drain()[1].description
+end
+text=string.rep('A sentence that runs on and on. ',20)
+local cut=pick('2001ULL');assert(#cut<=280 and cut:sub(-1)=='.' and not cut:find('%.%.%.'),cut)
+text=string.rep('word ',200)
+cut=pick('2002ULL');assert(#cut<=283 and cut:sub(-7)=='word...',cut:sub(-12))
+text='x'..string.rep('\u{1F409}',100)
+cut=pick('2003ULL')
+assert(cut and cut:sub(-3)=='...' and #cut<=283)
+local body=cut:sub(1,-4)
+assert(utf8.len(body)==70 and #body==277,'No split multi-byte character')
+text='short'
+assert(pick('2004ULL')=='short')
+`));
+
 test('one failed or unreadable event no longer disables new-equipment detection for the whole session', () => run(fixture + `
 update();assert(m.status().baseline.complete)
 -- A callback that throws leaves ownership uncertain until the inventory is read again.
