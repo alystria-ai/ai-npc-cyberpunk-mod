@@ -66,8 +66,8 @@ function api.cancel(command)
   if world.cancelBlocked then return false end
   command.state='Cancelled'; return true
 end
-function api.follow(car,_,ordinal)
-  local command={kind='follow',car=car,state='Executing'}
+function api.follow(car,target,ordinal)
+  local command={kind='follow',car=car,target=target,state='Executing'}
   world.commands[#world.commands+1]=command; return command
 end
 function api.brake(car) car.info.speed=0; car.brakedNative=true; return true end
@@ -553,3 +553,16 @@ test('accepted deletion survives transit without acquiring an entity handle or i
   values.tagged=true; assert(not adapter.destroy(returned) and values.deletes==1)
   values.managed=false; assert(adapter.destroy(returned) and values.deletes==1)
 `));
+
+// October 5 overflow test: a convoy following the player puppet seated in V's
+// car never moved. Native drive-follow trails a vehicle.
+test('the overflow convoy follows the car V drives, not the seated player puppet',()=>run(`${fixture}
+  local carEntity={IsAttached=function() return true end}
+  primary.entity=carEntity
+  party(4); tick(80)
+  local follow
+  for _,command in ipairs(world.commands) do if command.kind=='follow' then follow=command end end
+  assert(follow,'no convoy follow was requested')
+  assert(follow.target==carEntity,'the convoy followed something other than the car V drives')
+`));
+

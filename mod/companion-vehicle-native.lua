@@ -272,11 +272,11 @@ function M.rebindVehicle(receipt,system)
         deleteRequested=receipt.deleteRequested==true,
         pendingCommand=receipt.command,retired=true,createdAt=0,followAttempts=0}
 end
-function M.follow(vehicle,player,ordinal)
+function M.follow(vehicle,target,ordinal)
     local ai=vehicle.entity:GetAIComponent()
     if not ai then return nil,'This vehicle has no native driving AI.' end
     local cmd=NewObject('AIVehicleFollowCommand')
-    cmd.target=player
+    cmd.target=target
     cmd.distanceMin=10+ordinal*8
     cmd.distanceMax=cmd.distanceMin+12
     cmd.stopWhenTargetReached=false

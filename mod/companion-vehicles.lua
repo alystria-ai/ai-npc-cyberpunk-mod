@@ -386,7 +386,14 @@ local function follow(s,car,player,budget)
     if budget<=0 or car.followAttempts>=MAX_ATTEMPTS or s.clock<(car.retryAt or 0) then return budget end
     car.followAttempts=car.followAttempts+1
     car.stallSince=nil
-    local command,err=safe(s.api.follow,car,player,car.ordinal)
+    -- Native drive-follow trails another vehicle. In the October 5 test a
+    -- convoy told to follow the player puppet (seated in V's car) never moved
+    -- through two requests; follow V's own car, the puppet only as fallback.
+    local target=s.primary and s.primary.entity
+    local attached,ok=false,false
+    if target then ok,attached=pcall(function() return target:IsAttached() end) end
+    if not ok or not attached then target=player end
+    local command,err=safe(s.api.follow,car,target,car.ordinal)
     car.command=command; car.error=err
     if not command then car.retryAt=s.clock+3 end
     emit(s,'convoy-requested',driver)
