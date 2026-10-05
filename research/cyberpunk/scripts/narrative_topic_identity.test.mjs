@@ -20,8 +20,11 @@ const check=(pack=merged.pack,aliases=aliasDocument,ds=decisions)=>validateNarra
 
 test('all current links are exact or covered by a closed, pinned reviewed alias',()=>{
  assert.deepEqual(merged.errors,[]);const result=check();assert.deepEqual(result.errors,[]);
- assert.equal(result.proofs.length,195);assert.equal(result.proofs.filter(p=>p.qualification==='exact').length,169);
- assert.equal(result.proofs.filter(p=>p.qualification==='pinned-reviewed-alias').length,26);
+ // Every enabled rule's narrative link is proved, and every pinned alias is used.
+ const links=merged.pack.rules.filter(r=>['source-verified','live-verified'].includes(r.status)).flatMap(r=>r.narrativeLinks||[]);
+ assert.equal(result.proofs.length,links.length);
+ assert.equal(result.proofs.filter(p=>p.qualification==='pinned-reviewed-alias').length,aliasDocument.aliases.length);
+ assert.equal(result.proofs.filter(p=>p.qualification==='exact').length,links.length-aliasDocument.aliases.length);
 });
 test('actual older Aldecaldo source fails qualification without its explicit alias records',()=>{
  const actual=parts.find(p=>p.id==='cyberpunk-aldecaldos-native');

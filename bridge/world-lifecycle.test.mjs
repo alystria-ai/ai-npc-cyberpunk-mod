@@ -260,7 +260,7 @@ modules = {
     ['loot-reactions.lua'] = {new = function() return loot end}, ['loot-observer.lua'] = lootObserver,
     ['manager-party.lua'] = (function() ${partyQueueSource} end)(), ['mcm-entry.lua'] = {}, ['companion-locomotion.lua'] = {install = noOp},
     ['gameplay-actions.lua'] = (function() ${gameplayActionsSource} end)(),
-    ['composer-input.lua'] = {install = noOp}, ['phone-input.lua'] = {install = noOp},
+    ['composer-input.lua'] = {install = noOp}, ['phone-input.lua'] = {install = noOp}, ['movement-log.lua'] = {update = noOp},
     ['relationship-state.lua'] = {new = function()
         return {update = function() note('relationship-capture') end,
             reset = function(_, reason) note('relationship-unavailable', reason) end}

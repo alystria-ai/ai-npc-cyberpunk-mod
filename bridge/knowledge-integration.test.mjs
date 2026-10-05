@@ -156,7 +156,7 @@ local modules={
  ['loot-observer.lua']={configure=noop,install=noop,reset=noop,update=noop,drain=function()return{}end},
  ['loot-reactions.lua']={new=function()return {reset=noop,update=noop,status=function()return {pending=0}end,offer=noop}end},
  ['manager-party.lua']={},['mcm-entry.lua']={},['companion-locomotion.lua']={install=noop},
- ['composer-input.lua']={install=noop},['phone-input.lua']={install=noop}}
+ ['composer-input.lua']={install=noop},['phone-input.lua']={install=noop},['movement-log.lua']={update=noop}}
 local speech=modules['speech.lua']
 speech.start=function(input,reply)
  playbacks[#playbacks+1]={input=copy(input),reply=copy(reply)}
