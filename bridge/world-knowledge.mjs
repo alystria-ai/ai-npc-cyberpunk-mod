@@ -367,13 +367,22 @@ const FRAMING = 'Current-save knowledge replaces earlier dynamic quest assumptio
 const serialize = value => JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
 const render = value => FRAMING + serialize(value);
 const words = value => new Set((typeof value === 'string' ? value.slice(0, 2000).toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) : []) ?? []);
+// Function words would match nearly every statement and drown real relevance.
+const STOPWORDS = new Set(('the and you your yours are was were what when where which who whom whose why how with without '
+  + 'about from into onto that this these those there their them they then than have has had did does doing done not but '
+  + 'for any all can could would should will just like know think tell said say says get got its hey yeah okay '
+  + 'one out our ours his her hers him she he been being because also really still ever never some more most much very '
+  + 'remember happened happen going gonna want wanna talk talking let lets thing things stuff way back').split(' '));
+const queryWords = value => new Set([...words(value)].filter(word => !STOPWORDS.has(word)));
 
 function rank(rule, snapshot, profileKey, query) {
   let score = rule.priority + (snapshot.activeQuestKeys.includes(rule.questKey) ? 120 : 0)
     + (rule.category === 'relationship' ? 80 : rule.category === 'decision' ? 30 : 0)
     + (rule.audience.speakers !== 'all' && rule.audience.speakers.includes(profileKey) ? 40 : 0);
-  const terms = words(`${rule.questKey} ${rule.topic} ${rule.statement}`);
-  score += Math.min(40, [...query].filter(word => terms.has(word)).length * 8);
+  // Relevance to what V just asked must be able to pull a specific outcome into a
+  // full budget ahead of unrelated relationship facts; it never establishes truth.
+  const terms = words(`${rule.questKey.replace(/-/g, ' ')} ${rule.topic.replace(/[._-]/g, ' ')} ${rule.statement}`);
+  score += Math.min(125, [...query].filter(word => terms.has(word)).length * 25);
   return score;
 }
 
@@ -457,7 +466,7 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
     if (diagnostics.exclusiveGroupConflicts.length < LIMIT.traces) diagnostics.exclusiveGroupConflicts.push({id,
       outcomes: [...outcomes.keys()].sort(), ruleIds: [...outcomes.values()].flat().sort().slice(0, LIMIT.traces)});
   }
-  const candidates = [], queryTerms = words(query);
+  const candidates = [], queryTerms = queryWords(query);
   for (const row of matches) {
     if (conflicts.has(row.rule.topic) || (row.rule.exclusiveGroups ?? []).some(group => conflictingGroups.has(group.id))) {
       diagnostics.counts.conflicted += 1; trace(row.rule, 'conflict'); continue;

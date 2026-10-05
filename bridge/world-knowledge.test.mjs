@@ -449,3 +449,16 @@ test('fact and journal allowlists share the Lua collector capture limit', () => 
   assert.equal(parseWorldSnapshot(snapshot({facts: many(1024)})).status, 'ready');
   assert.equal(parseWorldSnapshot(snapshot({facts: many(1025)})).status, 'unavailable');
 });
+
+test("V's question can pull a specific outcome ahead of unrelated relationship facts, but function words cannot", () => {
+  const relationship = rule({id: 'b.relationship', topic: 'relationship.choice', questKey: 'unrelated', category: 'relationship',
+    statement: 'V and Judy became close after the dive.'});
+  const gig = rule({id: 'c.gig', topic: 'gig.target', questKey: 'monster-hunt', priority: 3,
+    statement: 'Regina closed the Monster Hunt gig after Jotaro Shobo was handed over alive.'});
+  const rows = [relationship, gig];
+  const one = Math.max(...[relationship, gig].map(row => resolve({pack: pack([row])}).context.length));
+  const pick = text => factsIn(resolve({pack: pack(rows), maxChars: one, query: text, snapshot: snapshot({activeQuestKeys: []})})).map(row => row.topic);
+  assert.deepEqual(pick('hello there'), ['relationship.choice']);
+  assert.deepEqual(pick('what happened with the and was'), ['relationship.choice']);
+  assert.deepEqual(pick('What happened with Jotaro at the Monster Hunt?'), ['gig.target']);
+});
