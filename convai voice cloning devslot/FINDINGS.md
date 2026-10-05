@@ -1,6 +1,8 @@
 # Voice cloning findings and Convai API handoff
 
-**3 October 2026.** One document covering our cloning experiments, teacher fine-tuning, student distillation, listening samples, resource measurements and proposed API design. Audio, code and evidence are in the subfolders linked below. Dev-slot deployment and infrastructure instructions are outside this handoff.
+**3 October 2026, updated 5 October 2026.** One technical document covering our cloning experiments, teacher fine-tuning, student distillation, resource measurements and proposed API design. Code and evidence are in the subfolders linked below. Dev-slot deployment and infrastructure instructions are outside this handoff.
+
+**Not included:** reference recordings, generated audio samples and model weights/checkpoints. The listening clips were removed from this folder on 5 October 2026 to keep it technical; the manifests in `references/` still record each removed clip's source, text, reference hash, sampler settings and output hash. Section 12 has the October 5 teacher-continuation results.
 
 ## 1. Recommended offerings
 
@@ -61,113 +63,75 @@ Omni uses a shared model and cached audio/text clone prompt. Its recommended ref
 
 Current public Omni generation returns completed waveform arrays. Its internal long-text chunking does not expose the same incremental PCM iterator as Pocket. A low-latency adapter can schedule stable text phrases or implement an earlier-audio path; that behavior must be measured separately. [Generation implementation](https://github.com/k2-fsa/OmniVoice/blob/08be0b4ccbac3e13e374e86fbfead4b4cac343e2/omnivoice/models/omnivoice.py)
 
-## 3. Listening tables
+## 3. Sample panels (audio not included)
 
-Links point into this folder. WAV bytes are unchanged; [audio-manifest.json](references/audio-manifest.json) records source, exact text, reference hash, sampler settings and output hashes.
+These panels were judged by listening. The audio is not bundled; [audio-manifest.json](references/audio-manifest.json) records each clip's source, exact text, reference hash, sampler settings and output hash.
 
-Teacher uses CFG 2/two decoder steps; stock/student use CFG 1/one step. Temperature is 0.3, seed 1337 plus text index. These examples are not a uniformly held-out, blinded cross-engine benchmark.
+Teacher uses CFG 2/two decoder steps; stock/student use CFG 1/one step. Temperature is 0.3, seed 1337 plus text index. These panels are not a uniformly held-out, blinded cross-engine benchmark.
 
 ### Matching novel sentences
 
-These prompts match across stock, teacher and student for each voice:
+Stock Pocket, tuned teacher and approved student each read the same two prompts for Johnny, Judy and Panam:
 
-| Character | Test text | Stock Pocket | Tuned teacher | Approved student |
-| --- | --- | --- | --- | --- |
-| Johnny | The city is quiet tonight, but I know trouble is waiting somewhere. | [Listen](audio/pocket-stock/johnny-01.wav) | [Listen](audio/pocket-teacher/johnny-01.wav) | [Listen](audio/pocket-student/johnny-01.wav) |
-| Johnny | We should find a safe place to stop before we talk about the plan. | [Listen](audio/pocket-stock/johnny-02.wav) | [Listen](audio/pocket-teacher/johnny-02.wav) | [Listen](audio/pocket-student/johnny-02.wav) |
-| Judy | The city is quiet tonight, but I know trouble is waiting somewhere. | [Listen](audio/pocket-stock/judy-01.wav) | [Listen](audio/pocket-teacher/judy-01.wav) | [Listen](audio/pocket-student/judy-01.wav) |
-| Judy | We should find a safe place to stop before we talk about the plan. | [Listen](audio/pocket-stock/judy-02.wav) | [Listen](audio/pocket-teacher/judy-02.wav) | [Listen](audio/pocket-student/judy-02.wav) |
-| Panam | The city is quiet tonight, but I know trouble is waiting somewhere. | [Listen](audio/pocket-stock/panam-01.wav) | [Listen](audio/pocket-teacher/panam-01.wav) | [Listen](audio/pocket-student/panam-01.wav) |
-| Panam | We should find a safe place to stop before we talk about the plan. | [Listen](audio/pocket-stock/panam-02.wav) | [Listen](audio/pocket-teacher/panam-02.wav) | [Listen](audio/pocket-student/panam-02.wav) |
+1. “The city is quiet tonight, but I know trouble is waiting somewhere.”
+2. “We should find a safe place to stop before we talk about the plan.”
 
 ### Actual mod inference path — October 3
 
-These ten additional recordings use the actual production PocketVoice/native Windows worker and approved EMA1500 student. Earlier teacher/student listening WAVs use the training generator; its reference preparation, EOS handling and text grouping differ from the public streaming API. The model, precision and reference hashes are the same. This table tests the real mod generation path.
+Ten recordings used the actual production PocketVoice/native Windows worker and approved EMA1500 student. Earlier teacher/student listening clips used the training generator; its reference preparation, EOS handling and text grouping differ from the public streaming API. The model, precision and reference hashes are the same.
 
 Sentence A: “The city is quiet tonight, but I know trouble is waiting somewhere.”
 
 Sentence B: “We should keep moving. Tell me if you need a break.”
 
-| Character | Sentence A | Sentence B | First playable PCM A / B |
-| --- | --- | --- | ---: |
-| Johnny | [Listen](audio/production-pocket-oct03/johnny-silverhand/text-0.wav) | [Listen](audio/production-pocket-oct03/johnny-silverhand/text-1.wav) | 300.3 / 285.8 ms |
-| Judy | [Listen](audio/production-pocket-oct03/judy-alvarez/text-0.wav) | [Listen](audio/production-pocket-oct03/judy-alvarez/text-1.wav) | 189.8 / 196.1 ms |
-| Panam | [Listen](audio/production-pocket-oct03/panam-palmer/text-0.wav) | [Listen](audio/production-pocket-oct03/panam-palmer/text-1.wav) | 210.2 / 243.8 ms |
-| Jackie | [Listen](audio/production-pocket-oct03/jackie-welles/text-0.wav) | [Listen](audio/production-pocket-oct03/jackie-welles/text-1.wav) | 218.6 / 215.7 ms |
-| Evelyn | [Listen](audio/production-pocket-oct03/evelyn-parker/text-0.wav) | [Listen](audio/production-pocket-oct03/evelyn-parker/text-1.wav) | 222.6 / 252.3 ms |
+| Character | First playable PCM A / B |
+| --- | ---: |
+| Johnny | 300.3 / 285.8 ms |
+| Judy | 189.8 / 196.1 ms |
+| Panam | 210.2 / 243.8 ms |
+| Jackie | 218.6 / 215.7 ms |
+| Evelyn | 222.6 / 252.3 ms |
 
 CPU FP32, two threads, temperature 0.3, CFG 1 and one decode step; production RNG and public EOS/text/prompt defaults are unchanged. The first 400 ms source prefix arrived in 375.1–532.3 ms. Fresh worker startup was 18.71 seconds, measured separately.
 
-These timings include native worker/IPC costs with Cyberpunk running and end at finite PCM received by Node. Convai, browser/game dispatch and audible device onset are excluded. They are production-path observations, not a clean benchmark or a quality guarantee for every speaker. WAV float PCM is unchanged, and all ten containers, sample offsets and file hashes passed verification. [Exact production sampling/reference/audio evidence](references/production-pocket-audio-manifest.json).
+These timings include native worker/IPC costs with Cyberpunk running and end at finite PCM received by Node. Convai, browser/game dispatch and audible device onset are excluded. They are production-path observations, not a clean benchmark or a quality guarantee for every speaker. [Exact production sampling/reference/audio evidence](references/production-pocket-audio-manifest.json).
 
-The current cast-expansion work is checking more authentic source recordings, balanced training contribution and longer conditioning references for weak voices. It has not replaced the approved weights in these clips.
+### Original game lines
 
-### Original game lines and synthesized versions
+The original-line panel compared each character's game recording with stock, teacher and student readings of the same text:
 
-Johnny: “My man, Dex DeShawn. How's that quiet life workin' out for you now, choom?”
+- Johnny: “My man, Dex DeShawn. How's that quiet life workin' out for you now, choom?”
+- Judy: “I always had a techie streak, ever since I was a little kid. When I felt my first virtu, I was like, ‘Hey, I can make this way better.’”
+- Panam: “It was completely dark, empty. Not a star in the sky. All I heard was the wind and a few engines in the distance.”
 
-Judy: “I always had a techie streak, ever since I was a little kid. When I felt my first virtu, I was like, ‘Hey, I can make this way better.’”
+Judy's/Panam's originals were also their conditioning recordings, so that panel had reference-content overlap. Johnny's comparison line was separate from his joined 22-second reference. The stock run used Johnny's text for all three speakers. Use novel sentences to judge new wording.
 
-Panam: “It was completely dark, empty. Not a star in the sky. All I heard was the wind and a few engines in the distance.”
-
-| Character | Original game recording | Stock Pocket | Tuned teacher | Approved student |
-| --- | --- | --- | --- | --- |
-| Johnny | [Original](audio/original-game/johnny.wav) | [Listen](audio/pocket-stock/johnny-00.wav) | [Listen](audio/pocket-teacher/johnny-00.wav) | [Listen](audio/pocket-student/johnny-00.wav) |
-| Judy | [Original](audio/original-game/judy.wav) | Different text: see below | [Listen](audio/pocket-teacher/judy-00.wav) | [Listen](audio/pocket-student/judy-00.wav) |
-| Panam | [Original](audio/original-game/panam.wav) | Different text: see below | [Listen](audio/pocket-teacher/panam-00.wav) | [Listen](audio/pocket-student/panam-00.wav) |
-
-Judy's/Panam's originals are also their conditioning recordings, so this panel includes reference-content overlap. Johnny's original comparison line is separate from his joined 22-second reference. Use the novel sentences above to judge new wording.
-
-The stock run used Johnny's index-zero text for all three speakers. Additional stock readings, explicitly with that different text: [Judy](audio/pocket-stock/judy-00.wav), [Panam](audio/pocket-stock/panam-00.wav).
-
-### More teacher/student samples
-
-Column prompts:
+### Further teacher/student prompts
 
 1. “If you want the truth, ask one question at a time.”
 2. “Take the next left, then stop when we reach the bridge.”
 3. “Can you see the bridge, or is it hidden behind that truck?”
 
-| Character | Truth / one question | Next left / bridge | Bridge / truck |
-| --- | --- | --- | --- |
-| Johnny | Teacher [Listen](audio/pocket-teacher/johnny-03.wav) · Student [Listen](audio/pocket-student/johnny-03.wav) | Teacher [Listen](audio/pocket-teacher/johnny-04.wav) · Student [Listen](audio/pocket-student/johnny-04.wav) | Teacher [Listen](audio/pocket-teacher/johnny-05.wav) · Student [Listen](audio/pocket-student/johnny-05.wav) |
-| Judy | Teacher [Listen](audio/pocket-teacher/judy-03.wav) · Student [Listen](audio/pocket-student/judy-03.wav) | Teacher [Listen](audio/pocket-teacher/judy-04.wav) · Student [Listen](audio/pocket-student/judy-04.wav) | Teacher [Listen](audio/pocket-teacher/judy-05.wav) · Student [Listen](audio/pocket-student/judy-05.wav) |
-| Panam | Teacher [Listen](audio/pocket-teacher/panam-03.wav) · Student [Listen](audio/pocket-student/panam-03.wav) | Teacher [Listen](audio/pocket-teacher/panam-04.wav) · Student [Listen](audio/pocket-student/panam-04.wav) | Teacher [Listen](audio/pocket-teacher/panam-05.wav) · Student [Listen](audio/pocket-student/panam-05.wav) |
+### CPU-streamed outputs and OmniVoice 32/16
 
-### Actual local CPU-streamed outputs
+The paired public streaming-generator benchmark (section 5) produced raw Johnny clips for the previous and the approved student. Cloud training-sampler output and public CPU-generator output can differ even with matching text/seed; training-rollout clips were not substituted for selected-model evaluations.
 
-These raw Johnny WAVs came from the paired public streaming-generator benchmark:
-
-| Previous accepted student | Approved new student |
-| --- | --- |
-| [Listen](audio/cpu-streaming/johnny-accepted.wav) | [Listen](audio/cpu-streaming/johnny-candidate.wav) |
-
-Cloud training-sampler output and public CPU-generator output can differ even with matching text/seed. Their provenance remains separate; training-rollout WAVs were not substituted for selected-model final evaluations.
-
-### OmniVoice 32/16 comparison
-
-All six clips use “Keep your eyes open, V. We can talk while we walk.” They are raw FP16 CUDA replay outputs, without mastering/denoising/pitch effects. This prompt differs from the Pocket panels, so it is a separate listening comparison.
-
-| Character | OmniVoice 32 steps | OmniVoice 16 steps |
-| --- | --- | --- |
-| Johnny | [Listen](audio/omnivoice-32/johnny.wav) | [Listen](audio/omnivoice-16/johnny.wav) |
-| Judy | [Listen](audio/omnivoice-32/judy.wav) | [Listen](audio/omnivoice-16/judy.wav) |
-| Panam | [Listen](audio/omnivoice-32/panam.wav) | [Listen](audio/omnivoice-16/panam.wav) |
+The OmniVoice comparison used “Keep your eyes open, V. We can talk while we walk.” for Johnny, Judy and Panam at 32 and 16 steps, as raw FP16 CUDA outputs without mastering, denoising or pitch effects. Timings are in section 10.
 
 ## 4. Reference experiments
 
 We tried a short Johnny reference, then joined clean lines into longer recordings. The user preferred the 22-second version's pacing; 30 seconds did not establish another improvement.
 
-| Reference | Generated audio | First PCM | Complete generation | Audio duration | Reference preparation |
-| --- | --- | ---: | ---: | ---: | ---: |
-| Original 8.34 s | [Listen](audio/reference-experiments/pocket-reference-test-20261002-00.wav) | 199.75 ms | 2.230 s | 4.56 s | 2.137 s |
-| Joined 22.29 s | [Listen](audio/reference-experiments/pocket-reference-test-20261002-01.wav) | 193.86 ms | 2.976 s | 6.40 s | 7.330 s |
-| Different 7.79 s | [Listen](audio/reference-experiments/pocket-reference-test-20261002-02.wav) | 184.52 ms | 3.145 s | 7.04 s | 1.935 s |
-| Joined 30.00 s | [Listen](audio/reference-experiments/pocket-30s-reference-20261002-00.wav) | 210.08 ms | 2.430 s | 5.28 s | 10.532 s |
+| Reference | First PCM | Complete generation | Audio duration | Reference preparation |
+| --- | ---: | ---: | ---: | ---: |
+| Original 8.34 s | 199.75 ms | 2.230 s | 4.56 s | 2.137 s |
+| Joined 22.29 s | 193.86 ms | 2.976 s | 6.40 s | 7.330 s |
+| Different 7.79 s | 184.52 ms | 3.145 s | 7.04 s | 1.935 s |
+| Joined 30.00 s | 210.08 ms | 2.430 s | 5.28 s | 10.532 s |
 
 These were standalone CPU experiments, separate from the final live-game conditions. First PCM excludes reference preparation and audio-device playback. Different output durations make generation time alone an incomplete comparison.
 
-The [accepted conditioning recording](audio/conditioning/johnny-22s.wav) and reference-experiment outputs are included. Their paths/settings are in the audio manifest.
+The accepted conditioning recording (Johnny, joined 22.29 s) and these outputs are not included; their paths and settings are in the audio manifest.
 
 Try several clean references from the desired delivery, compare novel speech, then cache the best state. Longer audio adds preparation/storage/state cost and is not monotonically better. Pocket's optional 30-second truncation is disabled by default; it is not a required target length. [Voice-state API](https://kyutai-labs.github.io/pocket-tts/API%20Reference/python-api/)
 
@@ -326,13 +290,13 @@ Prove upload → ready voice → novel text → streamed audio for both transpor
 
 Local streaming example, using a prepared environment and a custom YAML for the selected model:
 
-    python code/pocket_streaming_example.py --config /path/to/inference.yaml --reference audio/conditioning/johnny-22s.wav --text "The city is quiet tonight." --output /new/path/stream.wav
+    python code/pocket_streaming_example.py --config /path/to/inference.yaml --reference /path/to/reference.wav --text "The city is quiet tonight." --output /new/path/stream.wav
 
 The example exposes first yielded/copied PCM and setup timing. It has syntax/CLI verification; the actual model benchmark was performed by the separate measured harness represented in the results.
 
-The copied training wrappers require the pinned upstream training package and qualified assets. Weights, credentials and the full training dataset are not bundled. Audio is the selected listening set.
+The copied training wrappers require the pinned upstream training package and qualified assets. Weights, checkpoints, reference recordings, generated audio, credentials and the training dataset are not bundled.
 
-Examples submit the complete text once and add no extra waveform effects. Pocket's upstream implementation can segment very long text internally and uses a small decoder-start fade; this is model/library behavior, separate from additional service/mod processing. The included WAVs preserve those generated bytes.
+Examples submit the complete text once and add no extra waveform effects. Pocket's upstream implementation can segment very long text internally and uses a small decoder-start fade; this is model/library behavior, separate from additional service/mod processing.
 
 | Component | Pin |
 | --- | --- |
@@ -361,7 +325,7 @@ Omni is a usable zero-shot GPU solution for the technical design. It needs no cu
 
 These laptop results use RTX 4080 Laptop/i9-13980HX. Cold includes imports, load, reference handling, inference and saved-file receipt; warm excludes Convai and device playback. They are complete-wave measurements, so comparing 2.5 seconds with Pocket's 140-ms first PCM as if they were the same boundary would be misleading.
 
-The six included replay clips used a different shorter sentence. Actual complete-call times were:
+The six replay clips (not included) used a different shorter sentence. Actual complete-call times were:
 
 | Character | 32-step generation | 16-step generation | Audio duration |
 | --- | ---: | ---: | ---: |
@@ -388,7 +352,7 @@ The separate TensorRT report measured PyTorch 818.2 ms versus original TensorRT 
 
 Useful methods: release replaced PyTorch transformer copies, reuse GPU input addresses, cache clone prompts, bound shape/CUDA-graph caches, and share scratch memory under serialized execution. Reported GPU-copy traffic fell roughly 97%. Shared-memory FP16 preserved the ten checked TensorRT WAVs; that does not prove TensorRT is identical to the original PyTorch output or that low precision preserves every human voice.
 
-Times include dispatch through WAV writing and exclude load/reference/shape preparation. Memory is device-wide usage rather than process-only peak. These results are hardware/input specific and are not a streaming or cloud-price guarantee. Supplied reports and code references are included below.
+Times include dispatch through WAV writing and exclude load/reference/shape preparation. Memory is device-wide usage rather than process-only peak. These results are hardware/input specific and are not a streaming or cloud-price guarantee. Supplied reports and code references are in references/.
 
 **License note, once:** released Omni weights are CC-BY-NC because of training-data rights, rather than opposition to commercial adoption; code is Apache-2.0. The authors plan a commercial checkpoint and currently cannot grant commercial rights to existing weights. Fresh training is possible, but data/tokenizer terms also need qualification; no free commercially qualified fork was verified in this search. [Official statement](https://huggingface.co/k2-fsa/OmniVoice/blob/c5fdb5ccb189668d56333f77ba2629f4cd7535f4/README.md), [author explanation](https://github.com/k2-fsa/OmniVoice/issues/235#issuecomment-5126307191)
 
@@ -401,3 +365,48 @@ Times include dispatch through WAV writing and exclude load/reference/shape prep
 5. Pricing from those measurements, with language/model capabilities visible to customers.
 
 The evidence supports a Pocket prototype and managed tuning path. It provides approved example voices and measured CPU behavior; server economics and complete Core API acceptance remain to be demonstrated.
+
+## 12. October 5 update: expanded corpus and teacher continuation
+
+### Corpus
+
+The cast expansion froze **8,140 training clips across 79 voice identities**, with separate panels: unseen-scene development 75 clips (speaker-macro, used for checkpoint selection), conditional development 87, preserved regression 94 and final test 76 (excluded from selection). The approved runtime student in sections 2–6 predates this corpus and is unchanged.
+
+### Recipe
+
+Continuation of the teacher on the full corpus, from the selected A EMA500 initializer: learning rate 1e-5 constant after 1,000 warm-up updates, EMA 0.999, global batch 64 (micro-batch 4 on each of two T4s, FP16 activations). It planned up to 20,000 updates and only allowed plateau stopping after at least 8,000 updates, 50 corpus passes and 8 speech evaluations. Evaluation ran every 1,000 updates: held-out loss on the development panel plus a speech panel scored by ASR.
+
+### Throughput on Kaggle (2× T4)
+
+| Stage | Measured |
+| --- | ---: |
+| Input staging (copy and verify inputs) | ~19 min |
+| Latent preparation (8,140 recordings) | ~30 min |
+| Optimizer update | 1.8–2.1 s |
+| Evaluation + 5.06 GB checkpoint + private bucket upload, per 1,000 updates | ~12 min |
+| Wall time per 1,000 updates | ~44 min |
+
+### Result: overfitting after about 1,000–2,000 updates
+
+| Update | Held-out score, EMA | Held-out score, raw | Speech-panel WER, EMA | WER, raw |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 (initializer) | — | — | 1.2% | — |
+| 1,000 | 0.3332 | **0.3305** | 1.7% | 2.4% |
+| 2,000 | **0.3306** | 0.3394 | 1.7% | 4.6% |
+| 3,000 | 0.3370 | 0.3582 | 2.9% | 3.5% |
+| 4,000 | 0.3530 | 0.3873 | 4.3% | 5.7% |
+| 5,000 | 0.3784 | 0.4217 | 5.6% | 7.5% |
+
+Lower is better for both. Training loss kept falling (to about 0.12–0.15 at update 6,000) while held-out score and WER rose: classic overfitting. At batch 64, 1,000 updates is about 7.9 passes over 8,140 clips; by update 5,000 the model had seen each clip about 39 times. WER comes from an ASR approximation and is marked tentative by the runner. The run was stopped at update 6,000; **update 1,000 (raw weights)** was selected as the teacher. Student distillation from it is in preparation; no new student has been qualified yet.
+
+Lessons:
+
+- Fixed minimums (50 corpus passes, 8,000 updates) forced training far past the best checkpoint. Selection and stopping must follow held-out and speech evidence, never training loss or the final update.
+- Keep a retrievable candidate at every evaluation; the best weights here came early.
+
+### Training infrastructure notes
+
+- Kaggle caps a session at 12 hours. The runner deadline counts from kernel start, staging included, and now stops 30 minutes early so the ~5 GB resumable state can be written and uploaded. The previous 5-minute reserve could lose up to 1,000 updates.
+- Periodic 10-minute local checkpoints were removed: a crashed worker ends the session as failed, which cannot be resumed from its output, so they only cost time. Checkpoints at each 1,000-update evaluation go to a private bucket with three rotating slots.
+- A later session resumes from the previous session's saved output under the same experiment, bucket run ID and lifetime GPU budget, skipping latent preparation.
+- Kaggle's public API cannot cancel a running session; cancellation is done in the web UI.
