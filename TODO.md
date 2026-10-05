@@ -13,7 +13,6 @@ The single working document for development: open items first, then a dated log,
 - **Invitation notices** (agent): routine preparation/driving popups shown in Developer mode only; a failure seen while paused gets posted once in gameplay.
 - **Phone Chat tab icon** (agent): replace the rectangle-drawn bubble with native atlas artwork.
 - **Relationship routing review** (agent): verify Auto/On/Off routing and quest predicates for Judy, Panam, River, Kerry and Meredith, with tests.
-- **Group chat speed** (agent): request the next speaker as soon as the previous one's text is known, and prefetch its audio.
 
 ### Waiting for one combined install and in-game test
 After the agents above finish:
@@ -31,6 +30,7 @@ After the agents above finish:
 - Install manifests are missing the quest-knowledge modules (`fact-identity*`, `knowledge-state`, `save-identity*`); add them with the quest agent's results.
 - Convai test user `44634786-9337-4103-b8dd-dc553202563b` (on alex): `memory/list` returns HTTP 502, which looks like a Convai server fault. Remove the user when it's no longer needed (`memory/delete-all`, then the dashboard).
 
+- `packaging/runtime-bootstrap.test.mjs` fails: its allowlist lacks newer bridge modules (`analysis-pcm`, `distraction-context`, `jali-face*` and others). Fix it once the lip-sync and actions modules are final. `bridge-startup.test.mjs` times out under full-suite load but passes alone.
 - Movement design questions from the test triage: (1) a follow blocked beyond 6 m can still enter the "advance" detour mode (`block()` in `companion-actuator.lua`), but no current test reaches it. Decide whether to keep it for follow, and test it if so. (2) Initial follow admissions skip the 2-member planning turn, so each one costs one native navigation query (8 at once costs 8). The 192 physics-query cap still holds. Treated as intended.
 
 ### Later
@@ -55,6 +55,7 @@ After the agents above finish:
 - Bridge auto-start: a RED4ext plugin starts a Node supervisor with the game and stops it on exit (installed; first launch not yet checked).
 - Conversation: the "always ask a follow-up question" rule is removed from prompts and all 84 profiles' speaking style, and re-pushed to Convai. The MCM toggle is gone.
 - Actions: Fight and Distract are implemented (`docs/COMPANION_TACTICS.md`), not yet tried in game.
+- Group chat speed: the bridge now runs the predicted next speaker's turn while the current one is still speaking and holds its audio until the game claims it (`bridge/group-lookahead.mjs`; no Lua change). The gap between speakers dropped from a median ~3.0 s to ~0.8 s with live Convai, and from ~1.9 s to ~0.3 s in fixtures. It cancels on interrupt, dismissal or audience change. Limit: if V interrupts, Convai may already remember the unheard held reply. Needs a bridge restart and an in-game check (steps in `docs/GROUP_VOICE.md`).
 - 22 old movement test failures: all were out of date or fixture faults; no production bug. The fixes put follow-projection scenarios inside the 6 m horizon, used dense routes for the query budget, raised step stubs above the new first-point allowance (.35–.65 m), counted retargeted waypoint goals, and added a `GetEntity` stub. The `companion*` suite now passes 508/508 (commits 3b83300–84d7c38).
 - Old manager/invitation test failures: all three were out of date after commit 986ad09 (failure latch); tests aligned, no production change.
 - Duplicate copies: phone dismiss now removes one copy by the character it speaks as, newest first, and skips a chauffeur driver if another copy can go (16 tests). Cars: dismissing one passenger no longer makes everyone re-board, and only the chauffeur driver leaving cancels a trip.
