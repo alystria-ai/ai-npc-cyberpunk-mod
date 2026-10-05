@@ -651,6 +651,29 @@ local function submit(s,command)
     return true
 end
 
+-- Teleport through the AI system as an owned command. A transform teleport
+-- (TeleportationFacility) on an AI-driven copy was largely undone by its own
+-- locomotion in the October 5 trace. The caller pauses planning until the
+-- copy is seen at the destination; a later decision retires this command.
+function M.teleport(s,destination,yaw)
+    M.resumeHold(s)
+    if not cancel(s) then return nil end
+    local lookReleased=clearLook(s)
+    if not lookReleased then return nil end
+    s.feedback={}; s.issued=false
+    s.blockedReason,s.blockedHolding,s.routeCheckedAt=nil,nil,nil
+    s.routeProbe,s.candidateIndex,s.clearanceWaiting,s.clearanceHolding=nil,nil,nil,nil
+    s.execution,s.executionTarget,s.detourSearch,s.blockedContext=nil,nil,nil,nil
+    s.followRoute,s.followAdmission,s.destinationProjection,s.lastRejection=nil,nil,nil,nil
+    s.nativeRetryAt,s.nativeLegFailures=nil,0
+    s.recoveryTicket,s.completedEscapeTicket=nil,nil
+    local command=NewObject('AITeleportCommand')
+    command.position=vector(destination)
+    command.rotation=yaw or 0
+    command.doNavTest=false
+    s.ticket,s.kind,s.stage,s.target='teleport','teleport','teleport',space.copy(destination)
+    return submit(s,command)
+end
 local function keepBlocked(s)
     if s.blockedHolding and s.command and s.clock-s.issuedAt<35
         and active(currentCommandState(s) or '') then return end

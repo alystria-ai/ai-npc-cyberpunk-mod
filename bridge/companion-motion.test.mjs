@@ -330,11 +330,18 @@ test('eight copies share a navigation budget and retain unique lanes after a rea
 `));
 
 const strandedPocket=(facing='Vector4.new(0,1)',before='')=>`${companionEngine}
-  local teleports={}
-  Game.GetTeleportationFacility=function() return {Teleport=function(_,npc,position)
-    teleports[#teleports+1]=position; npc.pos=position
-    teleportedFrom=Vector4.new(player.pos.x,player.pos.y,player.pos.z) end} end
+  local teleports,transformTeleports={},0
+  -- A transform teleport on an AI-driven copy was undone in the live trace;
+  -- recovery must go through the AI teleport command.
+  Game.GetTeleportationFacility=function() return {Teleport=function() transformTeleports=transformTeleports+1 end} end
   local npc=spawn(); tick(4)
+  npc.ai.onSend=function(cmd)
+    if cmd.kind=='AITeleportCommand' then
+      teleports[#teleports+1]=cmd.position
+      teleportedFrom=Vector4.new(player.pos.x,player.pos.y,player.pos.z)
+      npc.pos=cmd.position; cmd.state='Success'
+    end
+  end
   local pocket=Vector4.new(npc.pos.x,npc.pos.y,npc.pos.z)
   -- Recorded Blue Moon case: every body or walking box at her spot hits
   -- Static; the ground near V stays open for placement.
@@ -353,6 +360,7 @@ test('a blocked follower far behind V and out of view is re-placed near V',()=>r
   -- V faces away from the stranded copy.
   tick(20)
   assert(#teleports>=1,'stranded copy was never recovered')
+  assert(transformTeleports==0,'recovery used a transform teleport')
   local spot=teleports[#teleports]
   local gap=math.sqrt((spot.x-teleportedFrom.x)^2+(spot.y-teleportedFrom.y)^2)
   assert(gap<7 and spot.y<teleportedFrom.y,'recovery did not place the copy just behind V')
@@ -371,55 +379,87 @@ test('a stranded follower in plain view is not teleported',()=>run(strandedPocke
   assert(#teleports==1,'an occluded stranded copy was not recovered')
 `));
 
-test('a stranded copy is released from its owned hold before it is teleported',()=>run(strandedPocket()+`
-  -- Live trace: the engine left a copy in place when teleported under an
-  -- executing hold command.
-  Game.GetTeleportationFacility=function() return {Teleport=function(_,owner,position)
-    for _,cmd in ipairs(owner.ai.commands) do
-      if cmd.state=='Executing' and cmd.kind=='AIHoldPositionCommand' then return end
-    end
-    teleports[#teleports+1]=position; owner.pos=position end} end
-  player.forward=Vector4.new(0,1)
-  tick(20)
-  assert(#teleports==1,'the copy was teleported while its hold pinned it')
-  assert(companions.movementSnapshot().copies[1].relocations==1)
+test('decisions pause until the owned AI teleport has landed',()=>run(strandedPocket('Vector4.new(0,1)',
+  "local pendingTeleport; npc.ai.onSend=function(cmd) if cmd.kind=='AITeleportCommand' then pendingTeleport=cmd end end")+`
+  for i=1,40 do if pendingTeleport then break end; tick(1) end
+  assert(pendingTeleport,'no AI teleport command was sent')
+  local sent=#npc.ai.commands
+  tick(1)
+  assert(#npc.ai.commands==sent and pendingTeleport.state=='Executing',
+    'a new decision retired the AI teleport before it ran')
+  npc.pos=pendingTeleport.position; pendingTeleport.state='Success'
+  tick(2)
+  assert(companions.movementSnapshot().copies[1].relocations==1,'the landed teleport was not confirmed')
+  assert(#npc.ai.commands>sent,'planning did not resume after the teleport landed')
 `));
 
-test('a teleport the engine ignores is recorded as a failure, not a relocation',()=>run(strandedPocket('Vector4.new(0,1)',
-  'Game.GetTeleportationFacility=function() return {Teleport=function() end} end')+`
+test('a teleport the AI never performs is recorded as a failure, not a relocation',()=>run(strandedPocket('Vector4.new(0,1)',
+  'npc.ai.onSend=function() end')+`
   tick(12)
   local row=companions.movementSnapshot().copies[1]
-  assert(not row.relocations and (row.relocationFailures or 0)>=1,'an ignored teleport counted as a relocation')
+  assert(not row.relocations and (row.relocationFailures or 0)>=1,'an unperformed teleport counted as a relocation')
 `));
 
-const leftBehind=(facing)=>`${companionEngine}
+const leftBehind=(facing,steps=50)=>`${companionEngine}
   local teleports={}
-  Game.GetTeleportationFacility=function() return {Teleport=function(_,npc,position)
-    teleports[#teleports+1]={spot=position,from=Vector4.new(player.pos.x,player.pos.y,player.pos.z)}
-    npc.pos=position end} end
   local sight=true
   local spatial=Game.GetSpatialQueriesSystem()
   Game.GetSpatialQueriesSystem=function() return {Overlap=spatial.Overlap,
     SyncRaycastByCollisionGroup=function() return not sight end} end
   local npc=spawn(); tick(4)
-  -- The fixture never moves the copy, standing in for an animation-capped
-  -- sprint that falls far behind V.
+  npc.ai.onSend=function(cmd)
+    if cmd.kind=='AITeleportCommand' then
+      teleports[#teleports+1]={spot=cmd.position,from=Vector4.new(player.pos.x,player.pos.y,player.pos.z)}
+      npc.pos=cmd.position; cmd.state='Success'
+    end
+  end
+  -- The fixture never moves the copy, standing in for a follower that falls
+  -- very far behind (V in a vehicle, a fall, a long detour).
   player.forward=${facing}
-  for i=1,30 do player.pos=Vector4.new(0,i*1.5,0); tick(1) end
+  for i=1,${steps} do player.pos=Vector4.new(0,i*1.5,0); tick(1) end
 `;
 
-test('a follower left far behind rejoins behind V, never in front of the camera',()=>run(leftBehind('Vector4.new(0,1)')+`
+test('a follower left very far behind rejoins behind V, never in front of the camera',()=>run(leftBehind('Vector4.new(0,1)')+`
   tick(6)
   assert(#teleports>=1,'a follower far behind and off-screen never rejoined')
   for _,item in ipairs(teleports) do
     assert(item.spot.y<item.from.y-1,'the follower was placed in front of the camera')
     assert(math.sqrt((item.spot.x-item.from.x)^2+(item.spot.y-item.from.y)^2)<7,'the follower rejoined too far away')
   end
-  local first=teleports[1]
-  assert(first.from.y>=25,'a follower rejoined before it was 25 m behind')
+  assert(teleports[1].from.y>=60,'a follower rejoined before it was 60 m behind')
 `));
 
 test('a far follower V can see keeps running instead of teleporting',()=>run(leftBehind('Vector4.new(0,-1)')+`
   tick(6)
   assert(#teleports==0,'teleported a follower V was looking at')
+`));
+
+const paced=`${companionEngine}
+  local npc=spawn(); tick(4)
+  local dilation={}
+  function npc:HasIndividualTimeDilation(reason)
+    if reason then return dilation.reason==reason end
+    return dilation.reason~=nil
+  end
+  function npc:SetIndividualTimeDilation(reason,value) dilation.reason,dilation.value=reason,value end
+  function npc:UnsetIndividualTimeDilation() dilation.reason,dilation.value=nil,nil end
+`;
+
+test('a following companion speeds up gradually as the gap grows, then back to normal',()=>run(paced+`
+  for i=1,10 do player.pos=Vector4.new(0,i*1.2,0); tick(1) end
+  local gap=companions.movementSnapshot().copies[1].actor.playerGap
+  assert(dilation.reason=='ConvaiCatchUp','no catch-up pace at a '..gap..' m gap')
+  local expected=1+math.min(1,(gap-6)/24)*.6
+  assert(math.abs(dilation.value-expected)<.05,'pace '..tostring(dilation.value)..' does not follow the gap')
+  local early=dilation.value
+  for i=11,30 do player.pos=Vector4.new(0,i*1.2,0); tick(1) end
+  assert(dilation.value>early and dilation.value<=1.6+1e-6,'pace did not rise with a larger gap, capped at 1.6')
+  player.pos=Vector4.new(0,2,0); npc.pos=Vector4.new(0,0,0); tick(2)
+  assert(dilation.reason==nil,'pace stayed on once the follower was close again')
+`));
+
+test('catch-up pace never overrides another time dilation effect',()=>run(paced+`
+  dilation.reason,dilation.value='SandevistanSlowMotion',.2
+  for i=1,20 do player.pos=Vector4.new(0,i*1.2,0); tick(1) end
+  assert(dilation.reason=='SandevistanSlowMotion' and dilation.value==.2,'catch-up pace replaced another effect')
 `));

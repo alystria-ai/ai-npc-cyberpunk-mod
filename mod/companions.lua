@@ -395,6 +395,15 @@ function M.dismiss(serialToDismiss)
             end
             if managed then
                 if entry.equipment then equipment.release(entry.equipment) end
+                if entry.pace and entry.npc and entry.npc:IsAttached() then
+                    -- Catch-up pace (see paceFollower) must not outlive the follower.
+                    pcall(function()
+                        if entry.npc:HasIndividualTimeDilation(CName.new('ConvaiCatchUp')) then
+                            entry.npc:UnsetIndividualTimeDilation(CName.new('KereznikovDodgeEaseOut'))
+                        end
+                    end)
+                    entry.pace=nil
+                end
                 if entry.motor and entry.npc and entry.npc:IsAttached() then
                     pcall(actuator.release,entry.motor)
                 end
@@ -625,6 +634,7 @@ function M.movementSnapshot()
             strandedFor=entry.strandedSince and movementNumber(runtimeClock-entry.strandedSince) or nil,
             relocations=movementNumber(entry.relocations),
             relocationFailures=movementNumber(entry.relocationFailures),
+            pace=movementNumber(entry.pace),
             recentEvents=recentEvents,
             actor={position=movementPoint(entry.position),speed=movementNumber(entry.speed),
                 playerGap=movementNumber(entry.playerGap),targetGap=movementNumber(entry.targetGap)},
@@ -962,7 +972,41 @@ local stranded={distance=30,after=6,retry=3,fieldOfView=60}
 -- NPC sprint speed is capped by its animation (~5.4 m/s against V's ~8), so a
 -- long sprint leaves followers behind. Like vanilla followers, a follower more
 -- than 25 m back rejoins out of view, placed behind V.
-local catchUp={distance=25,after=1.5,cooldown=5,behind=4}
+local catchUp={distance=60,after=2,cooldown=8,behind=4}
+-- Vanilla followers raise their individual time dilation with distance to
+-- their destination (FollowerTasks.script, AIFollowerInterpolateFollowingSpeed).
+-- These copies do not run that behavior task, so apply the same ramp here.
+local pace={reason='ConvaiCatchUp',near=6,far=30,max=1.6,easeOut='KereznikovDodgeEaseOut'}
+local function paceFollower(entry)
+    local npc,reason=entry.npc,CName.new(pace.reason)
+    local motor=entry.motor
+    local alpha=0
+    if motor.kind=='follow' and motor.stage=='following' and entry.playerGap then
+        alpha=math.max(0,math.min(1,(entry.playerGap-pace.near)/(pace.far-pace.near)))
+    end
+    local mine=npc:HasIndividualTimeDilation(reason)
+    if alpha<=0 then
+        if mine then npc:UnsetIndividualTimeDilation(CName.new(pace.easeOut)) end
+        entry.pace=nil
+        return
+    end
+    -- Never override another effect's dilation (slow motion, hit reactions).
+    if not mine and npc:HasIndividualTimeDilation() then entry.pace=nil; return end
+    local value=1+alpha*(pace.max-1)
+    if not mine or not entry.pace or math.abs(entry.pace-value)>.02 then
+        npc:SetIndividualTimeDilation(reason,value,-1.0,CName.new(''),CName.new(''))
+        entry.pace=value
+    end
+end
+local function stopPace(entry)
+    if not entry.pace or not entry.npc then return end
+    entry.pace=nil
+    pcall(function()
+        if entry.npc:HasIndividualTimeDilation(CName.new(pace.reason)) then
+            entry.npc:UnsetIndividualTimeDilation(CName.new(pace.easeOut))
+        end
+    end)
+end
 local function cameraForward(player)
     local ok,_,view=pcall(function() return Game.GetTargetingSystem():GetCrosshairData(player) end)
     local forward=ok and view or player:GetWorldForward()
@@ -983,9 +1027,6 @@ end
 local function relocate(entry,player)
     local forward=cameraForward(player)
     if not forward then return false end
-    -- A teleport under the owned safety hold left the copy in place (live
-    -- trace, October 5). Retire that exact command first; retry if pending.
-    if not actuator.release(entry.motor) then return nil end
     local origin=space.copy(player:GetWorldPosition())
     local lateral=slots[entry.lane] and slots[entry.lane][1] or 0
     local preferred=copyPosition(space.offset(origin,forward,lateral,-catchUp.behind))
@@ -996,9 +1037,13 @@ local function relocate(entry,player)
     local target,_,deferred=placement.find(player,preferred,occupiedPositions(entry),entry.clearance,outOfView)
     if deferred then return nil end
     if not target then return false end
-    Game.GetTeleportationFacility():Teleport(entry.npc,target,Quaternion.ToEulerAngles(player:GetWorldOrientation()))
-    -- Plan nothing more this frame: a new hold must not start at the old spot.
-    -- The next sample senses the new feet with zero speed.
+    local angles=Quaternion.ToEulerAngles(player:GetWorldOrientation())
+    local sent=actuator.teleport(entry.motor,target,angles and angles.yaw or 0)
+    if sent==nil then return nil end
+    if not sent then return false end
+    stopPace(entry)
+    -- Planning pauses until the copy is seen at the destination; the next
+    -- sample senses the new feet with zero speed.
     entry.relocation={target=space.copy(target),at=runtimeClock}
     entry.position=nil
     entry.strandedSince,entry.strandedAnchor,entry.lastBlockedAt,entry.farSince=nil,nil,nil,nil
@@ -1010,9 +1055,12 @@ local function recoverDistant(entry,player)
         -- Count a relocation only once the engine reports the copy there.
         if space.distance(entry.position,pending.target)<2 then
             entry.relocations,entry.relocation=(entry.relocations or 0)+1,nil
-        elseif runtimeClock-pending.at>1.5 then
+        elseif runtimeClock-pending.at>2.5 then
             entry.relocationFailures,entry.relocation=(entry.relocationFailures or 0)+1,nil
-        else return false end
+        else
+            -- A new decision would retire the AI teleport before it runs.
+            return true
+        end
     end
     if equipment.holdsMovement(entry.equipment) then
         entry.strandedSince,entry.strandedAnchor,entry.farSince=nil,nil,nil; return false
@@ -1099,6 +1147,7 @@ function M.update(player,delta,focusEntity)
     -- native cancellation/empty-seat confirmation after walking has no frame.
     vehicles.update(fleet,player,ready,step,vehicleHooks)
     for _,entry in ipairs(ready) do
+        if vehicles.owns(fleet,entry.serial) then stopPace(entry) end
         if vehicles.allowsSeatedAttention(fleet,entry.serial) then
             seatedAttention(entry,player,focusEntity,gazeSettings,step)
         elseif vehicles.owns(fleet,entry.serial) then
@@ -1199,6 +1248,8 @@ function M.update(player,delta,focusEntity)
             if not equipment.holdsMovement(entry.equipment) then
                 actuator.resumeHold(entry.motor)
                 if actuator.apply(entry.motor,decision,context,budget>0) then budget=budget-1 end
+                local paced,paceError=pcall(paceFollower,entry)
+                entry.paceError=not paced and tostring(paceError) or nil
             end
             entry.error=nil
         end)

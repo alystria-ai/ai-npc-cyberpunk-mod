@@ -20,6 +20,23 @@ and the route proof repeats every 0.8 s. A deferred proof is retried within
 blocks exactly as before. Near routes that bend or shift sideways still walk
 certified points.
 
+## October 5 catch-up pace and AI teleport
+
+The catch-up retest recorded nine failed relocations per companion: a
+transform teleport (`TeleportationFacility.Teleport`) moved an AI-driven copy
+only a few metres, and its own locomotion pulled it back. Relocation now sends
+an owned `AITeleportCommand` through the actuator, and decisions pause until
+the copy is seen at the destination (or 2.5 s pass and a failure is recorded).
+
+The user asked for speed that rises with distance instead. Vanilla followers do
+exactly that (`FollowerTasks.script`, `AIFollowerInterpolateFollowingSpeed`
+sets an individual time dilation from distance), but these copies do not run
+that behavior task. While natively following, a copy's time dilation now ramps
+from 1.0 at 6 m to 1.6 at 30 m (~8.6 m/s at sprint, faster than V's ~8), under
+its own reason so it never replaces another effect's dilation, and eases out
+when the gap closes, in a vehicle or on dismissal. Out-of-view teleport catch-up
+is now a backstop for gaps over 60 m.
+
 ## October 5 out-of-view catch-up (user decision)
 
 NPC sprint is capped by its animation at about 5.4 m/s while V runs about 8,
