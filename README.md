@@ -187,7 +187,6 @@ Open **Companion Manager → Settings** to change options. Memory, Relationships
 | Companion voices | Pocket TTS |
 | Voice playback | On |
 | Subtitles | On, Dialogue HUD |
-| Follow-up questions | Off |
 | React to battles | On |
 | React to collected loot | On |
 | Interface language | Automatic |

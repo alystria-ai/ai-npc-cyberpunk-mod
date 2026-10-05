@@ -11,7 +11,7 @@ The single working document for development: open items first, then a dated log,
 - **Duplicate-copy dismissal/reassignment** (agent).
 - **Combat + loot comment queue and Legendary pickup comments** (agent).
 - **Group chat speed** (agent): request the next speaker as soon as the previous one's text is known, and prefetch its audio.
-- **Housekeeping** (agent): broken `world-lifecycle`/`knowledge-integration` fixtures (movement-log stub), `movement-log.lua` in the install manifest, UI catalog regeneration, retired follow-up strings.
+- **Contacts and Memory picker** (agent): newly unlocked contacts available for J-invites without a reload; clear "nothing was deleted" feedback in the Memory picker.
 
 ### Waiting for one combined install and in-game test
 After the agents above finish:
@@ -28,6 +28,8 @@ After the agents above finish:
 ### Smaller gaps
 - Newly unlocked phone contacts: confirm they show up for J-invites in Contacts without a reload. Chat picks them up when the tab opens.
 - Memory picker: clear "nothing was deleted" feedback when backing out or cancelling a Forget.
+- **22 companion fixture tests** have failed since before October 5 (mostly `companion-follow-projection`, plus query-budget, recovery-transactions, obstacles, one motion and one vehicles test). Decide test by test whether each is stale or a real bug.
+- Install manifests are missing the quest-knowledge modules (`fact-identity*`, `knowledge-state`, `save-identity*`); add them with the quest agent's results.
 - Convai test user `44634786-9337-4103-b8dd-dc553202563b` (on alex): `memory/list` returns HTTP 502, which looks like a Convai server fault. Remove the user when it's no longer needed (`memory/delete-all`, then the dashboard).
 
 ### Later
@@ -52,6 +54,7 @@ After the agents above finish:
 - Bridge auto-start: a RED4ext plugin starts a Node supervisor with the game and stops it on exit (installed; first launch not yet checked).
 - Conversation: the "always ask a follow-up question" rule is removed from prompts and all 84 profiles' speaking style, and re-pushed to Convai. The MCM toggle is gone.
 - Actions: Fight and Distract are implemented (`docs/COMPANION_TACTICS.md`), not yet tried in game.
+- Housekeeping: `world-lifecycle` (15/15) and `knowledge-integration` (26/26) fixtures repaired, `movement-log.lua` added to the install manifests, UI catalog regenerated, retired follow-up strings removed.
 - Docs: the voice cloning devslot moved out of the repo to `C:\Users\akshi\Downloads\convai voice cloning devslot` (technical cloning info only; no audio or checkpoints).
 - Computer use can see the game, but can't drive it reliably. The user does the playing; I launch the game and ask what they saw.
 
