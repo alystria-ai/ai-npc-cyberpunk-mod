@@ -174,7 +174,7 @@ The manager also appears through the game's pause-menu **MCM** entry. Use **Back
 
 ### Phone
 
-Open the phone through the game's assigned control (normally hold **T**). In **Contacts**, **J** invites the selected supported character and **L** dismisses a copy. Custom invite/dismiss icons appear on the selected row. Their competing menu actions are consumed while the phone is open; the normal journal shortcut works after closing it.
+Open the phone through the game's assigned control (normally hold **T**). In **Contacts**, **J** invites the selected supported character and **L** dismisses one copy of the selected character (the newest; a copy speaking as another profile does not count). Custom invite/dismiss icons appear on the selected row. Their competing menu actions are consumed while the phone is open; the normal journal shortcut works after closing it.
 
 Switch to **Chat**, choose a contact, and use the phone's confirm/message action to open the conversation. **Enter** starts typing and sends; **Esc** stops typing. When you are no longer typing, use the game's normal back/close control. These phone controls are separate from CET conversation bindings.
 

@@ -52,6 +52,12 @@ existing assignments; it is not automatic mod initialization.
   participant is skipped; the remaining audience and prepared next turn are
   refreshed without substituting the new profile into the old round.
 
+Duplicate copies of one profile are one speaker. The copy V addresses (looks at,
+or the nearest when none is targeted) is the one that speaks, wherever its
+duplicate stands. Dismissing or reassigning the copy that is waiting or speaking
+ends the round even when another copy of that profile remains; the duplicate
+never takes over the turn. Changes to a silent duplicate do not affect the round.
+
 One persistent player identity is retained across private/group/microphone and
 phone conversations. Group session separation does not create extra player IDs.
 

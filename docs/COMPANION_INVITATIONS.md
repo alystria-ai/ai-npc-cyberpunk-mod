@@ -10,6 +10,29 @@ The phone and MCM use the same queue and capacity. Phone dismissal can cancel a
 pending invitation. Changing a pending copy's conversation profile invalidates
 the previous preparation before starting its replacement.
 
+## Duplicate copies
+
+The same character or conversation profile can be in the party more than once.
+Each copy has its own serial, actor and place; a copy's model and its
+conversation profile are separate, so `companions.setProfile` changes only the
+profile.
+
+- **Current party** dismisses exactly the copy named by its row (`live:<serial>`).
+  The other copies keep their actor, profile and seat.
+- **Phone dismiss** names a character, not a copy. A copy belongs to the character
+  it speaks as; a copy with no conversation profile belongs to its model. One
+  request removes one copy, chosen newest first: pending invitations (the
+  reservation is cancelled), then joined copies by serial. A copy already
+  leaving is used only when nothing else matches, so pressing the key twice
+  takes two different copies and a third press is harmless. A protected
+  chauffeur driver yields to another copy of the same character, and is refused
+  with the usual explanation only when it is the sole match.
+- A Judy model reassigned to Panam answers to Panam on the phone, not to Judy.
+  Phone Chat history and memory belong to the profile and never to a copy, so
+  either copy can leave without changing them.
+- Copies with the same profile share one prepared connection. It stays while any
+  such copy remains, and is released only after the last one is gone.
+
 ## Memory and connection ownership
 
 Preparation verifies the mod-owned character's provider memory setting. It uses
