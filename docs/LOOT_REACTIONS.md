@@ -35,12 +35,12 @@ speaker, renewed combat, expired request or disabled output cancels automatic
 delivery. A temporary native bark may finish before AI playback starts, within
 the original deadline; speech that interrupts an already playing line cancels it.
 
-Combat and pickups produce **separate spoken turns**. A battle closing never
-captures or consumes a pickup batch, starts a loot cooldown, or waits for loot
-collection to finish. The pickup policy keeps its own six-second quiet window,
-90-second pending limit and exact-copy witnesses. Only dispatching its own
-standalone reaction can consume the captured prefix or start a loot cooldown;
-later acquisitions stay outside that prefix.
+A pickup comment and a battle opening are separate spoken turns, and a pickup
+comment with no fight is a standalone turn. The pickup policy keeps its own
+six-second quiet window, 90-second pending limit and exact-copy witnesses; only
+dispatching a reaction that carries a frozen snapshot can consume its prefix or
+start a loot cooldown, and later acquisitions stay outside that prefix. After a
+fight, the closing and the pickups are one reply (below).
 
 The shared owner admits one request/audio/caption turn at a time. Once that owner
 is released, a different reaction type can follow after about two seconds,
@@ -48,16 +48,43 @@ instead of the previous thirty-second spacing. The same battle's closing can
 also follow its opening. Per-feature cooldowns and original admission deadlines
 still apply.
 
-**Order.** Comments play in the order their events happened. A pickup made
-*during* the fight finishes its quiet window as soon as combat is confirmed
-over and speaks before the closing. A pickup made *after* combat stopped waits
-until the closing is offerable (at most about eight seconds, and only while an
-eligible witness could speak it), so combat ending is announced first and the
-pickup follows. The closing never waits for loot. An unavailable battle witness
-does not reserve the channel against another eligible pickup witness. Manual
-conversation and authored scenes still take priority; a conversation cancels
-only the comment it interrupts, and a queued one plays once afterwards if its
-own window (forty seconds for a closing, ninety for pickups) is still open.
+**One reply after a fight (October 5).** Pickups V collected during the fight or
+before the closing request is written travel *in the closing request*: one
+request, one speaker, one short spoken reply (at most two sentences, thirty words)
+covering the end of the fight and what was picked up. Details:
+
+- The closing speaker is chosen among eligible witnesses, preferring one who also
+  saw the pickups, then the usual rotation. The pickup facts are that exact copy's
+  (`mergeable`/`attach`/`claimMerged` in `loot-reactions.lua`); a pickup only another
+  witness saw is not carried and keeps its own comment.
+- While the fight is being confirmed over, ready pickups do not speak on their own;
+  the closing is only a few seconds away.
+- A closing normally goes out four seconds after combat is confirmed over. If a
+  pickup is still being collected (inside the six-second quiet window) it waits for
+  the pickup to finish, but never longer than fourteen seconds after combat was
+  confirmed over (its own window is forty). Then it goes with whatever is pending.
+- Carried pickups count as commented: they are consumed and start the same
+  cooldowns a standalone comment would (ten minutes; two for new Legendary
+  equipment). Pickups still under cooldown are not carried and the closing does
+  not wait for them.
+- A pickup made **after the closing request was written** (generating or playing)
+  is a separate pickup comment under the normal rules: after the closing releases
+  the shared owner and a two-second pause, once its own quiet window passes.
+  If the closing carried pickups, the cooldown they started keeps later ones silent.
+- Mid-fight pickups are carried too (they are simply pending when the closing
+  goes out); this was trivial with the same mechanism and avoids a loot line
+  followed twenty seconds later by "the fight is over".
+- Cancellation is the closing's: a conversation key, an opened menu, a scene, an
+  unavailable speaker or renewed combat cancels the merged request and its pickups
+  are not replayed.
+
+An opening, and a pickup comment with no fight, are unchanged. The bridge accepts a
+pickup batch only on a closing that names that exact batch.
+
+An unavailable battle witness does not reserve the channel against another eligible
+pickup witness. Manual conversation and authored scenes still take priority; a
+conversation cancels only the comment it interrupts, and a queued pickup comment
+plays once afterwards if its own ninety-second window is still open.
 
 The bridge validates the witness, bounds and computed equipment exception,
 includes the actual item facts in the automatic trigger, and treats all item
@@ -108,10 +135,11 @@ change does not add an unreliable speech or exploration trigger.
 Executable tests exercise the actual coordinator with simultaneous closing and
 pickup eligibility, ongoing collection, long owned playback, different exact
 witnesses, a native-busy battle witness, expired closing windows, combat-state
-dips and manual/save interruption. Battle and loot automatic payloads reject
-mixed contexts at the bridge boundary. Ordinary manual messages may still carry
-both types of factual context. These checks verify queue/prompt ownership; live
-audible acceptance of the new separate-turn behavior is pending installation.
+dips and manual/save interruption. The October 1 policy kept the two comments
+fully separate; October 5 replaced that for the end of a fight with the single
+merged reply above. Ordinary manual messages may carry both types of factual
+context. These checks verify queue/prompt ownership; live audible acceptance is
+pending installation.
 
 For live pickup checks, use `loot-test-drop:<nonce>` through the existing
 diagnostics owner. It places exactly two test drinks at V's current feet using
@@ -130,11 +158,11 @@ Source audit of the Legendary path:
   matched by name. In the game's scripts the Plus tiers and Iconic are separate
   item stats (`GetItemPlus`, `IsItemIconic`), so such items normally arrive as
   `Legendary`; Iconic is not treated as Legendary.
-- **Reaction.** Any pickup whose quality is Legendary, in any category, now tells
-  the speaker so: the bridge adds the Legendary item (name, quality and type) to
-  the facts and instructs one short line that says it is Legendary and names the
-  item or its type, without inventing stats, perks or value. A batch with no
-  Legendary item is unchanged.
+- **Reaction.** Quality is a fact, not an instruction. Every pickup gives the
+  speaker each item's display name, type, quality and, where readable, its
+  inventory tooltip description (see below), and the speaker reacts naturally. The
+  bridge no longer tells the speaker to say an item is Legendary; Legendary only
+  decides the cooldown exception.
 - **Type.** The observer reads `gameItemData:GetItemType()` (for example
   `Wea_AssaultRifle`) as an optional descriptive field. An unreadable or
   malformed value is dropped and never rejects a pickup; the category is the
@@ -155,16 +183,34 @@ Source audit of the Legendary path:
   count and exception flag, so a missing comment can be traced to detection,
   cooldown or delivery.
 
+## Item description text — October 5
+
+Each accepted pickup also carries the item's inventory tooltip description when it
+can be read. The inventory builds it as `LocKeyToString(itemRecord.LocalizedDescription())`
+(`inventoryDataManagerV2.script:1711`, `InventoryItem.script:1020`); the same
+`Item_Record` has `DisplayName()` for the name the observer already reads.
+`LocalizedDescription()` returns a `CName` key (`tweakDBRecords.script:5236`), and
+`LocKeyToString`, `GetLocalizedTextByKey` and `GetLocalizedItemNameByCName` are
+imported localization functions (`uiTextUtils.script:1-13`). The observer reads the
+key from the record and tries those resolvers in order, accepting the first
+non-empty text that is not an unresolved `LocKey#`. This exact read has **not** been
+exercised in the live game yet (the repository's live-verified neighbours are
+`UIItemsHelper.GetItemName` and `Game.GetLocalizedTextByKey` on vehicle records).
+Markup and control characters are removed, whitespace collapses, and a text longer
+than 280 characters is cut at a sentence (else word) end without splitting a
+character. An unreadable or empty description is left out and never rejects a
+pickup. The prompt carries descriptions for the first five items only. The text is
+quoted game data, never instructions.
+
 Still excluded, unchanged: corpse loot-all, virtual pickups and Changed-only
 increments (no verified native provenance), storage, purchases and quest grants.
 A comment is cancelled, not deferred, if V opens a menu before it is audible.
 
 ## Source audit — October 4
 
-The shared coordinator already gives combat closing and collected loot separate
-sequential turns. Their payloads reject mixed automatic contexts, and a battle
-turn cannot consume the pickup queue or its cooldown. No extra merging or
-parallel playback path is needed.
+That day the coordinator gave combat closing and collected loot separate
+sequential turns, with mixed automatic payloads rejected. October 5 superseded
+this for the end of a fight: a closing may carry the batch it names.
 
 The native delivery adapter exposes `battleObserver.canDeliver(player,
 npc, phase)` to refresh the player's scene/call/vehicle and combat state as well

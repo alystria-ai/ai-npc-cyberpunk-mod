@@ -29,17 +29,19 @@ sequences. Opening a menu, starting a conversation, leaving the speaker, disabli
 the option or changing combat phase cancels pending automatic work and its owned
 playback. Missed windows are skipped, not replayed later.
 
-Combat comments and pickup comments have independent requests. Closing does not
-wait for looting, include pickup facts, consume loot receipts or change loot
-cooldowns. Both features share one speech owner. Once the current generation,
-audio and captions release that owner, the other type may take its own turn
+The opening is always its own comment. The closing is one reply for the end of the
+fight **and** the pickups V collected during the fight or before the closing request
+is written: one request, one speaker (preferring a witness who also saw the
+pickups), at most two sentences. It waits for a pickup still being collected, but at
+most fourteen seconds after combat was confirmed over. Carried pickups count as
+commented and start the usual loot cooldowns. A pickup made after the closing
+request was written is a separate pickup comment under the normal rules. Both
+features share one speech owner: once a turn releases it, the next may follow
 after about two seconds. Their original deadlines, exact witnesses and manual
-conversation priority remain enforced. An unavailable closing witness does not
-hold the channel against an eligible pickup witness. Order follows the events:
-a pickup made after combat stopped waits (at most about eight seconds) so the
-closing is announced first, while a pickup made during the fight speaks as soon
-as combat is confirmed over. A conversation cancels only the comment it
-interrupts. See `LOOT_REACTIONS.md`.
+conversation priority remain enforced; an unavailable closing witness does not
+hold the channel against an eligible pickup witness. A conversation, menu, scene,
+unavailable speaker or renewed combat cancels the merged request and its pickups
+are not replayed. See `LOOT_REACTIONS.md`.
 
 An owned companion in autonomous gameplay may become temporarily busy with
 native speech while a reply is being generated. Keep that same request and lease,
@@ -120,8 +122,9 @@ are reused.
 - September 30 historical behavior: witnessed loot merging was implemented with one shared automatic
   reply owner, six-second collection quiet time, a bounded closing wait and
   exact-copy witness selection. Production audible acceptance is pending; see
-  `LOOT_REACTIONS.md`. October 1 replaces merging with separate sequential
-  combat and pickup turns. Exploration remains inactive. No Horde-wave
+  `LOOT_REACTIONS.md`. October 1 replaced merging with separate sequential
+  combat and pickup turns; October 5 restored a single reply for the end of a
+  fight and its pickups. Exploration remains inactive. No Horde-wave
   or kill-count equivalent is invented for Cyberpunk.
 - Second live fight: the opening was cancelled two seconds after submission by
   Judy's `native-dialogue` gate, at 7.16 metres, with player combat true and all

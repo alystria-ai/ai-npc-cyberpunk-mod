@@ -71,7 +71,7 @@ The latest development pass expands decision awareness for **Johnny, Panam, Judy
 
 - Nearby companions can make a short comment when combat starts and another after it ends.
 - Collected world loot can prompt a comment after a pickup batch. Storage transfers stay silent, and newly acquired Legendary equipment has a separate cooldown.
-- Battle and loot comments play as separate turns, one after another. Manual conversations and scripted scenes take priority.
+- After a fight, one comment covers the fight's end and the pickups collected up to then; a pickup made after that comment started is a separate comment, one after another. Manual conversations and scripted scenes take priority.
 - The interface supports English, Simplified Chinese, Traditional Chinese, Spanish, Brazilian Portuguese, French, German, Russian, Japanese, and Korean. Automatic follows the game's interface language; manual selection changes the mod UI independently of voice or conversation language.
 
 See [battle reactions](docs/BATTLE_REACTIONS.md), [loot reactions](docs/LOOT_REACTIONS.md), and [interface languages](docs/INTERFACE_LANGUAGES.md).
