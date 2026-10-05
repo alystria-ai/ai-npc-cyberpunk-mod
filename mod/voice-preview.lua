@@ -106,11 +106,11 @@ function M.new(options)
             cancel(stamp)
             return
         end
-        -- Select order: OmniVoice 32 steps, OmniVoice 16 steps, Pocket TTS, Convai cloud voice.
-        local omniSteps = provider == 1 and 32 or (provider == 2 and 16 or nil)
+        -- Select order: OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS, Convai cloud voice.
+        local omniSteps = provider == 1 and 16 or (provider == 2 and 32 or nil)
         provider = provider == 3 and 'pocket' or (provider == 4 and 'convai' or 'omni')
         local savedProvider = saved.voiceProvider == 'hybrid' and 'omni' or saved.voiceProvider
-        local savedSteps = saved.omniSteps == 16 and 16 or 32
+        local savedSteps = saved.omniSteps == 32 and 32 or 16
         if provider == savedProvider and (provider ~= 'omni' or omniSteps == savedSteps) then cancel(stamp); return end
         publish({owner = leaseOwner, active = true, provider = provider, omniSteps = omniSteps}, stamp)
     end

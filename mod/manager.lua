@@ -17,8 +17,8 @@ local party, partySignature, previousStates = {}, '', {}
 local visible, selectedItem = {}, nil
 local localVoiceState, localVoiceSignature = {}, ''
 local localVoices = {}
--- The voice list, best first: OmniVoice (32 or 16 steps), Pocket TTS, Convai.
-local DEFAULT_VOICE_PROVIDER, DEFAULT_OMNI_STEPS = 'omni', 32
+-- The voice list, best first: OmniVoice (16 or 32 steps), Pocket TTS, Convai.
+local DEFAULT_VOICE_PROVIDER, DEFAULT_OMNI_STEPS = 'omni', 16
 local voiceFallbackSeen, voiceFallbackNotice = {}, nil
 local eyeContactHeights = {-0.10, -0.05, 0, 0.05, 0.10}
 local headFollowStrengths = {0, 0.5, 1, 1.5}
@@ -390,7 +390,7 @@ end
 function M.voiceLabel(provider, steps)
     if provider == 'pocket' then return ui.t('Pocket TTS') end
     if provider == 'convai' then return ui.t('Convai cloud voice') end
-    return ui.t(steps == 16 and 'OmniVoice 16 steps' or 'OmniVoice 32 steps')
+    return ui.t(steps == 32 and 'OmniVoice 32 steps' or 'OmniVoice 16 steps')
 end
 
 -- The pending "chosen voice could not run" notice, once. The caller asks only
@@ -967,7 +967,7 @@ function M.applySettings(player, values)
         elseif key == 'voiceProvider' then
             if value == 'hybrid' then value = 'omni' end
             if value ~= 'pocket' and value ~= 'omni' and value ~= 'convai' then
-                return false, 'Choose OmniVoice 32 steps, OmniVoice 16 steps, Pocket TTS or Convai cloud voice.'
+                return false, 'Choose OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS or Convai cloud voice.'
             end
             nextSettings.voiceProvider = value
         elseif key == 'omniSteps' then

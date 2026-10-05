@@ -381,19 +381,19 @@ function dualFixture({holdClose=false,start,fail=[]}={}){
   return{voice,calls,workers,states,live:()=>live,peak:()=>peak};
 }
 
-test('four choices default to OmniVoice 32; both Omni qualities share the one warmed model and cache',async()=>{
+test('four choices default to OmniVoice 16; both Omni qualities share the one warmed model and cache',async()=>{
   const h=dualFixture();await h.voice.start();
-  assert.equal(h.voice.provider,'omni');assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.steps,32);
+  assert.equal(h.voice.provider,'omni');assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.steps,16);
   assert.equal(h.workers[0].backend,'omni');assert.equal(h.voice.fallback,null);
-  h.voice.update({voiceProvider:'omni',omniSteps:16},null,false);await h.voice.start();
-  assert.equal(h.peak(),1);assert.equal(h.workers.length,1);assert.equal(h.workers[0].steps,16);
+  h.voice.update({voiceProvider:'omni',omniSteps:32},null,false);await h.voice.start();
+  assert.equal(h.peak(),1);assert.equal(h.workers.length,1);assert.equal(h.workers[0].steps,32);
   assert.deepEqual(await h.voice.prepareProfile('johnny-silverhand'),
     {provider:'omni',ready:true,profile:'johnny-silverhand'});
   await h.voice.synthesize('johnny-silverhand','First sentence.');
-  h.voice.update({voiceProvider:'omni',omniSteps:32},null,false);await h.voice.start();
+  h.voice.update({voiceProvider:'omni',omniSteps:16},null,false);await h.voice.start();
   await h.voice.synthesize('johnny-silverhand','Second sentence.');
   assert.equal(h.workers.length,1);assert.equal(h.workers[0].starts,1);assert.equal(h.workers[0].closes,0);
-  assert.deepEqual(h.calls.filter(value=>Array.isArray(value)).map(value=>value.at(-1)),[16,32]);
+  assert.deepEqual(h.calls.filter(value=>Array.isArray(value)).map(value=>value.at(-1)),[32,16]);
   assert.deepEqual(await h.voice.prepareProfile('blue-moon'),{provider:'convai',ready:true,reason:'unprepared'});
   h.voice.update({voiceProvider:'pocket'},null,false);await h.voice.start();
   assert.equal(h.voice.provider,'pocket');assert.equal(h.workers[0].closes,1);assert.equal(h.workers[1].backend,'pocket');
@@ -484,7 +484,7 @@ test('the default list order is OmniVoice, then Pocket, then Convai',async()=>{
   const {VOICE_FALLBACK_ORDER}=await import('./voice-selection.mjs');
   assert.deepEqual([...VOICE_FALLBACK_ORDER],['omni','pocket','convai']);
   const h=dualFixture();
-  assert.equal(h.voice.provider,'omni');assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.steps,32);
+  assert.equal(h.voice.provider,'omni');assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.steps,16);
   await h.voice.close();
 });
 

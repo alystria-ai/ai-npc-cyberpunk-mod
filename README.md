@@ -43,7 +43,7 @@ See [invitations](docs/COMPANION_INVITATIONS.md), [movement](docs/COMPANION_MOVE
 
 ### Voices, faces, and subtitles
 
-- **Companion voices** offers four choices, in this order: **OmniVoice 32 steps (default), OmniVoice 16 steps, Pocket TTS, Convai cloud voice**. OmniVoice sounds closest to the characters. The prepared development catalog has local references for **75 of 79 profiles**; characters without a prepared reference use their configured Convai voice. If the chosen voice cannot run (no CUDA GPU, OmniVoice failing to load, Pocket unavailable), the next one down the list is used and the game tells you once; choosing it again retries it. Older saved settings map to the nearest choice (Pocket stays Pocket, `hybrid` becomes OmniVoice, anything unknown becomes the default).
+- **Companion voices** offers four choices, in this order: **OmniVoice 16 steps (default), OmniVoice 32 steps, Pocket TTS, Convai cloud voice**. OmniVoice sounds closest to the characters, and 16 steps matches 32 on every perceptual metric at half the GPU time. The prepared development catalog has local references for **75 of 79 profiles**; characters without a prepared reference use their configured Convai voice. If the chosen voice cannot run (no CUDA GPU, OmniVoice failing to load, Pocket unavailable), the next one down the list is used and the game tells you once; choosing it again retries it. Older saved settings map to the nearest choice (Pocket stays Pocket, `hybrid` becomes OmniVoice, anything unknown becomes the default, and an explicitly saved 32 steps stays 32).
 - Each local backend uses **one shared model** and original character recordings. Pocket TTS uses the six-layer student (update 5,000, raw weights) chosen after listening tests; its teacher stays in training. Neither backend needs a separate neural model or LoRA per character.
 - Pocket uses **float32 on CPU**, with four threads and no model GPU allocation. This student is trained for English and uses one sampler step. Omni uses **FP16 on CUDA**, with 16 or 32 generation steps; those choices share the same model and cached references.
 - Selecting a local voice option in Settings requests warm-up immediately. Switching backends waits for owned work and confirmed retirement of the previous worker. The selected local choice stays warm; Convai releases local model memory after the current reply.
@@ -185,7 +185,7 @@ Open **Companion Manager → Settings** to change options. Memory, Relationships
 
 | Setting | New-user default |
 |---|---|
-| Companion voices | OmniVoice 32 steps |
+| Companion voices | OmniVoice 16 steps |
 | Voice playback | On |
 | Subtitles | On, Dialogue HUD |
 | React to battles | On |
@@ -196,7 +196,7 @@ Open **Companion Manager → Settings** to change options. Memory, Relationships
 | Head tracking strength | Gentle |
 | Character conversations | Enabled |
 
-Existing saved choices take precedence. Older Omni choices retain their 16/32 quality; a saved Pocket or Convai choice stays as it was; an unknown value becomes the default. The single voice selector contains OmniVoice 32 steps, OmniVoice 16 steps, Pocket TTS and Convai cloud voice, in that order. Selecting a local voice requests preparation immediately. There is no separate quality row, per-character voice-provider selector or disappearing-message option. Exploration observations do not trigger automatic replies.
+Existing saved choices take precedence. Older Omni choices retain their 16/32 quality; a saved Pocket or Convai choice stays as it was; an unknown value becomes the default. The single voice selector contains OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS and Convai cloud voice, in that order. Selecting a local voice requests preparation immediately. There is no separate quality row, per-character voice-provider selector or disappearing-message option. Exploration observations do not trigger automatic replies.
 
 Ordinary battle and loot reactions have independent ten-minute cooldowns. Newly acquired Legendary equipment has a separate two-minute loot cooldown. Save changes reset reaction context and cooldowns, while player identity and Chat history remain.
 

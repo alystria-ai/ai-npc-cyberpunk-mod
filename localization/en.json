@@ -104,7 +104,7 @@
     "Choose Above speaker or Dialogue HUD.": "Choose Above speaker or Dialogue HUD.",
     "Choose Auto, On or Off for each relationship.": "Choose Auto, On or Off for each relationship.",
     "Choose Generate report. The file path appears here, in the banner above and in a notification.": "Choose Generate report. The file path appears here, in the banner above and in a notification.",
-    "Choose OmniVoice 32 steps, OmniVoice 16 steps, Pocket TTS or Convai cloud voice.": "Choose OmniVoice 32 steps, OmniVoice 16 steps, Pocket TTS or Convai cloud voice.",
+    "Choose OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS or Convai cloud voice.": "Choose OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS or Convai cloud voice.",
     "Choose a character": "Choose a character",
     "Choose a character before clearing their memories about you.": "Choose a character before clearing their memories about you.",
     "Choose a character from the catalogue first.": "Choose a character from the catalogue first.",
@@ -296,7 +296,7 @@
     "Off": "Off",
     "OmniVoice 16 steps": "OmniVoice 16 steps",
     "OmniVoice 32 steps": "OmniVoice 32 steps",
-    "OmniVoice uses the GPU and sounds closest to the characters: 32 steps for the best quality, 16 steps for faster replies. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. Selecting a local voice starts preparing its model immediately. Saving the settings keeps your choice; discarding changes cancels the preview.": "OmniVoice uses the GPU and sounds closest to the characters: 32 steps for the best quality, 16 steps for faster replies. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. Selecting a local voice starts preparing its model immediately. Saving the settings keeps your choice; discarding changes cancels the preview.",
+    "OmniVoice uses the GPU and sounds closest to the characters. 16 steps sounds the same in tests as 32 steps at half the GPU time, so it is the default. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. Selecting a local voice starts preparing its model immediately. Saving the settings keeps your choice; discarding changes cancels the preview.": "OmniVoice uses the GPU and sounds closest to the characters. 16 steps sounds the same in tests as 32 steps at half the GPU time, so it is the default. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. Selecting a local voice starts preparing its model immediately. Saving the settings keeps your choice; discarding changes cancels the preview.",
     "On": "On",
     "One file with versions, settings and the latest log lines. It never contains your API key, tokens, voice recordings or conversation text.": "One file with versions, settings and the latest log lines. It never contains your API key, tokens, voice recordings or conversation text.",
     "Open": "Open",
@@ -763,7 +763,7 @@
       "Choose 16 or 32 voice steps.",
       "Choose Above speaker or Dialogue HUD.",
       "Choose Auto, On or Off for each relationship.",
-      "Choose OmniVoice 32 steps, OmniVoice 16 steps, Pocket TTS or Convai cloud voice.",
+      "Choose OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS or Convai cloud voice.",
       "Choose a character from the catalogue first.",
       "Choose a character from the catalogue.",
       "Choose a head-follow strength from the available settings.",
@@ -1015,7 +1015,7 @@
       "Eye contact height",
       "Head tracking strength",
       "Interface language",
-      "OmniVoice uses the GPU and sounds closest to the characters: 32 steps for the best quality, 16 steps for faster replies. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. Selecting a local voice starts preparing its model immediately. Saving the settings keeps your choice; discarding changes cancels the preview.",
+      "OmniVoice uses the GPU and sounds closest to the characters. 16 steps sounds the same in tests as 32 steps at half the GPU time, so it is the default. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. Selecting a local voice starts preparing its model immediately. Saving the settings keeps your choice; discarding changes cancels the preview.",
       "Play voiced replies from your companions.",
       "Raise or lower the point companions look at on V. Default uses V’s usual eye contact target.",
       "React to battles",
@@ -1029,7 +1029,7 @@
     ],
     "mcm.validation": [
       "Choose Above speaker or Dialogue HUD.",
-      "Choose OmniVoice 32 steps, OmniVoice 16 steps, Pocket TTS or Convai cloud voice.",
+      "Choose OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS or Convai cloud voice.",
       "Choose an eye contact option.",
       "Reopen the manager; that action is no longer available.",
       "That setting is read-only."
@@ -1183,7 +1183,7 @@
       "Choose Above speaker or Dialogue HUD.",
       "Choose Auto, On or Off for each relationship.",
       "Choose Generate report. The file path appears here, in the banner above and in a notification.",
-      "Choose OmniVoice 32 steps, OmniVoice 16 steps, Pocket TTS or Convai cloud voice.",
+      "Choose OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS or Convai cloud voice.",
       "Choose an active or invited copy.",
       "Choose an eye contact option.",
       "Choose an interface language.",
@@ -1836,7 +1836,7 @@
         "mod/mcm.lua:615"
       ]
     },
-    "Choose OmniVoice 32 steps, OmniVoice 16 steps, Pocket TTS or Convai cloud voice.": {
+    "Choose OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS or Convai cloud voice.": {
       "contexts": [
         "manager.validation",
         "mcm.validation",
@@ -3453,7 +3453,7 @@
         "mod/mcm.lua:698"
       ]
     },
-    "OmniVoice uses the GPU and sounds closest to the characters: 32 steps for the best quality, 16 steps for faster replies. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. Selecting a local voice starts preparing its model immediately. Saving the settings keeps your choice; discarding changes cancels the preview.": {
+    "OmniVoice uses the GPU and sounds closest to the characters. 16 steps sounds the same in tests as 32 steps at half the GPU time, so it is the default. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. Selecting a local voice starts preparing its model immediately. Saving the settings keeps your choice; discarding changes cancels the preview.": {
       "contexts": [
         "mcm.setting"
       ],

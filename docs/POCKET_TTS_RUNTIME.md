@@ -125,7 +125,7 @@ references withdraw that exact character's local route; no speaker alias is used
 
 ## Model lifetime
 
-`VoiceSelection` exposes OmniVoice 32 steps (default), OmniVoice 16 steps,
+`VoiceSelection` exposes OmniVoice 16 steps (default), OmniVoice 32 steps,
 Pocket TTS and Convai cloud voice in that order, which is also its fallback
 order (see [local voices](LOCAL_VOICES.md)). It stores
 `voiceProvider=pocket|omni|convai` plus `omniSteps=16|32`. Legacy `hybrid`

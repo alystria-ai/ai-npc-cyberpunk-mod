@@ -6,14 +6,15 @@ Listening tests put OmniVoice (GPU, `k2-fsa/OmniVoice`) closest to the real
 characters, and the fine-tuned Pocket student was no better than stock Pocket
 (speaker similarity 0.930 against 0.926 on 77 voices, within noise). The
 selector was therefore reduced to one global setting with four choices, in this
-order: **OmniVoice 32 steps (default), OmniVoice 16 steps, Pocket TTS, Convai
-cloud voice**. Earlier lists (Pocket first, and separate student/teacher or
+order: **OmniVoice 16 steps (default), OmniVoice 32 steps, Pocket TTS, Convai
+cloud voice**. 16 steps was made the default after research showed it equals 32
+on every perceptual metric at half the GPU time. Earlier lists (Pocket first, and separate student/teacher or
 fine-tuning variants) are gone. There is no separate quality row and no
 per-character voice selector.
 
 Settings store `voiceProvider` as `pocket`, `omni` or `convai`, with retained
-`omniSteps` of 16 or 32 (default 32); the names are unchanged so older saves
-keep working. Select index 1 is `omni`/32, 2 is `omni`/16, 3 is `pocket`, 4 is
+`omniSteps` of 16 or 32 (default 16); the names are unchanged so older saves
+keep working. Select index 1 is `omni`/16, 2 is `omni`/32, 3 is `pocket`, 4 is
 `convai`. Those numbers are Omni generation steps, not precision. 32 versus 16
 changes only the step count; the bridge's Omni configuration (FP16, CUDA,
 guidance, seed) is otherwise identical. Both Omni choices reuse the same
@@ -27,7 +28,7 @@ the six-layer student at CFG 1, one decode step, temperature 0.3.
 (`pocket`, `pocket-student`, `pocket-base`, ...) becomes Pocket TTS; `omni`,
 `omnivoice` and the older `hybrid` become OmniVoice; anything else (missing,
 empty, a number, `teacher`, ...) becomes the default OmniVoice. An invalid
-`omniSteps` becomes 32. Because the old default was Pocket, a player who never
+`omniSteps` becomes 16; a saved 32 stays 32. Because the old default was Pocket, a player who never
 changed the setting keeps Pocket until they pick another voice.
 
 ### Fallback order
@@ -42,7 +43,7 @@ commits at the next idle settings poll, like any routing change, so a turn in
 progress keeps its voice. The bridge publishes `fallback: {from, to}` in
 `runtime/local-voice-state.json` (and the support report) once the lower voice
 is the committed route; the CET mod reads it and posts one gameplay notice per
-fallback ("OmniVoice 32 steps is unavailable. Companions are using Pocket TTS
+fallback ("OmniVoice 16 steps is unavailable. Companions are using Pocket TTS
 instead."), and the Settings voice status names the voice in use. Invitations
 that were preparing against the failed backend continue on the fallback instead
 of failing. The pre-existing readiness and availability checks are unchanged.
@@ -134,7 +135,7 @@ opt-out. FP8 remains an isolated candidate, not the installed voice precision.
 ## Routing and lifetime
 
 - **Companion Manager → Settings → Companion voices** selects OmniVoice
-  32 steps (default), OmniVoice 16 steps, Pocket TTS or Convai cloud voice. The manager uses the player's assigned
+  16 steps (default), OmniVoice 32 steps, Pocket TTS or Convai cloud voice. The manager uses the player's assigned
   CET shortcut. Saving the selection keeps it for future launches; valid saved
   choices take precedence over the new-user default.
 - The current catalog has **75 prepared local voice profiles** out of 79.

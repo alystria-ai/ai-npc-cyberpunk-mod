@@ -687,15 +687,15 @@ local function schema()
                 {'Eyes only', 'Less', 'Gentle (default)', 'More'}),
         })
         local voiceStatus = voiceServiceLabel(snapshot.localVoice)
-        -- The list, best first: OmniVoice 32 steps, OmniVoice 16 steps, Pocket TTS, Convai cloud voice.
+        -- The list, best first: OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS, Convai cloud voice.
         local voiceIndex = snapshot.settings.voiceProvider == 'convai' and 4
             or (snapshot.settings.voiceProvider == 'pocket' and 3
-                or (snapshot.settings.omniSteps == 16 and 2 or 1))
+                or (snapshot.settings.omniSteps == 32 and 2 or 1))
         categories[#categories + 1] = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
             setting('voiceProvider', 'Companion voices', 'select', voiceIndex, 1,
-                'OmniVoice uses the GPU and sounds closest to the characters: 32 steps for the best quality, 16 steps for faster replies. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. Selecting a local voice starts preparing its model immediately. Saving the settings keeps your choice; discarding changes cancels the preview.',
-                {'OmniVoice 32 steps', 'OmniVoice 16 steps', 'Pocket TTS', 'Convai cloud voice'}),
+                'OmniVoice uses the GPU and sounds closest to the characters. 16 steps sounds the same in tests as 32 steps at half the GPU time, so it is the default. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. Selecting a local voice starts preparing its model immediately. Saving the settings keeps your choice; discarding changes cancels the preview.',
+                {'OmniVoice 16 steps', 'OmniVoice 32 steps', 'Pocket TTS', 'Convai cloud voice'}),
             readonly('voice-status', 'Voice service', voiceStatus,
                 'The selected local model starts preparing as soon as you select it here and stays warm once your choice is saved. Discarding changes or leaving without saving cancels the preview; no game restart is needed.'),
         }, 'Save changed settings to keep your choices, or discard changes to restore the saved settings.')
@@ -797,10 +797,10 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     values.uiLanguage = choices[change.value].value
                 elseif key == 'voiceProvider' then
                     if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 and change.value ~= 4 then
-                        return {ok = false, error = ui.t('Choose OmniVoice 32 steps, OmniVoice 16 steps, Pocket TTS or Convai cloud voice.')}
+                        return {ok = false, error = ui.t('Choose OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS or Convai cloud voice.')}
                     end
                     values.voiceProvider = change.value == 3 and 'pocket' or (change.value == 4 and 'convai' or 'omni')
-                    if change.value == 1 or change.value == 2 then values.omniSteps = change.value == 2 and 16 or 32 end
+                    if change.value == 1 or change.value == 2 then values.omniSteps = change.value == 2 and 32 or 16 end
                 elseif key == 'eyeContactHeight' or key == 'headFollowStrength' then
                     local heights,strengths=manager.gazeChoices()
                     local choices=key=='eyeContactHeight' and heights or strengths

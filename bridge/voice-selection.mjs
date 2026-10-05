@@ -1,5 +1,5 @@
 import {PocketVoice, validatePocketConfig} from './pocket-voice.mjs';
-import {ResidentVoice, voiceSteps} from './resident-voice.mjs';
+import {ResidentVoice} from './resident-voice.mjs';
 import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 
@@ -7,7 +7,7 @@ import {abortable, throwIfCancelled} from './transport-pool.mjs';
 // can begin from a settings draft while that routing remains unchanged.
 // CPU/CUDA workers retire through confirmed EOF before another backend starts.
 export const canonicalVoiceProvider = value => ['hybrid','omnivoice'].includes(value) ? 'omni' : value;
-// The player's list, best first: OmniVoice (32 or 16 steps), Pocket TTS, Convai.
+// The player's list, best first: OmniVoice (16 or 32 steps), Pocket TTS, Convai.
 // A choice that cannot run falls to the next entry; Convai is always runnable.
 export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket','convai']);
 const local = value => value === 'pocket' || value === 'omni';
@@ -30,7 +30,8 @@ export class VoiceSelection {
     this.configuredByBackend={pocket:!!validated&&pocketRegistry.keys.length>0,
       omni:omniInput.provider==='hybrid'&&omniRegistry.keys.length>0};
     this.provider = this.requestedProvider = 'pocket';
-    this.omniSteps=this.requestedOmniSteps=voiceSteps(omniInput.steps);
+    // 16 steps is the default; the saved setting replaces it on the first poll.
+    this.omniSteps=this.requestedOmniSteps=16;
     this.playbackEnabled=true;
     this.routeKeys=[...new Set([...Object.keys(this.configs.pocket.voices),...Object.keys(this.configs.omni.voices),
       ...(options.profileKeys||[])])].sort();
@@ -132,7 +133,7 @@ export class VoiceSelection {
   }
   get warmSteps(){return this.preview?.provider==='omni'?this.preview.omniSteps:this.requestedOmniSteps;}
   setPreview(preview) {
-    const chosen=canonicalVoiceProvider(preview?.provider),quality=preview?.omniSteps??preview?.steps??32;
+    const chosen=canonicalVoiceProvider(preview?.provider),quality=preview?.omniSteps??preview?.steps??16;
     const next=preview&&['pocket','omni','convai'].includes(chosen)&&(!['omni'].includes(chosen)||[16,32].includes(quality))
       ?{provider:chosen,...(chosen==='omni'?{omniSteps:quality}:{})}:null;
     const changed=this.preview?.provider!==next?.provider||this.preview?.omniSteps!==next?.omniSteps;

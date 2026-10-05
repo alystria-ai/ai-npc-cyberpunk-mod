@@ -23,10 +23,10 @@ no longer open it.
   a researched identity can be assigned one through Current party.
 - **Settings:** conversation participation, Memory and Relationships submenus,
   voice playback, subtitles, automatic reactions, interface language and
-  Developer mode. The global voice choices are **OmniVoice 32 steps (default),
-  OmniVoice 16 steps, Pocket TTS and Convai cloud voice**, in that order, with
+  Developer mode. The global voice choices are **OmniVoice 16 steps (default),
+  OmniVoice 32 steps, Pocket TTS and Convai cloud voice**, in that order, with
   service readiness alongside. If the chosen voice cannot run, the status line
-  names the voice in use (for example "Ready · Using Pocket TTS, OmniVoice 32
+  names the voice in use (for example "Ready · Using Pocket TTS, OmniVoice 16
   steps unavailable") and one gameplay notice says so once.
   MCM owns setting drafts, saving, discarding, defaults and draft guards.
 

@@ -193,8 +193,8 @@ test('MCM settings apply as one saved transaction and leave playback unchanged o
     manager.configure(api, profiles); manager.snapshot(player)
     assert(manager.snapshot(player).settings.disappearingMessages == nil)
     assert(manager.subtitleStyle() == 'dialogue' and saved.subtitleStyle == 'dialogue')
-    assert(manager.snapshot(player).settings.voiceProvider == 'omni', 'default voice is OmniVoice 32 steps')
-    assert(manager.snapshot(player).settings.omniSteps == 32 and saved.omniSteps == 32)
+    assert(manager.snapshot(player).settings.voiceProvider == 'omni', 'default voice is OmniVoice 16 steps')
+    assert(manager.snapshot(player).settings.omniSteps == 16 and saved.omniSteps == 16)
     assert(manager.battleReactions() and manager.snapshot(player).settings.battleReactions)
     assert(manager.lootReactions() and manager.snapshot(player).settings.lootReactions)
     assert(not manager.followUpQuestions() and manager.snapshot(player).settings.followUpQuestions == false)
@@ -205,13 +205,13 @@ test('MCM settings apply as one saved transaction and leave playback unchanged o
     assert(not manager.battleReactions() and saved.battleReactions == false)
     assert(manager.applySettings(player, {battleReactions = 'on'}) == false)
     assert(manager.applySettings(player, {voice = false, subtitleStyle = 'overhead', voiceProvider = 'convai', followUpQuestions = true, enabledByKey = {['johnny-silverhand'] = false}}))
-    assert(player.voice == false and saved.omniSteps == 32 and not manager.profileEnabled('johnny-silverhand'))
+    assert(player.voice == false and saved.omniSteps == 16 and not manager.profileEnabled('johnny-silverhand'))
     assert(saved.disappearingMessages == nil)
     assert(saved.followUpQuestions == true and manager.followUpQuestions())
     failSave = true
     assert(manager.applySettings(player, {voice = true, subtitles = false, subtitleStyle = 'dialogue', voiceProvider = 'pocket', followUpQuestions = false}) == false)
     local values = manager.snapshot(player).settings
-    assert(values.voice == false and values.subtitles == true and values.omniSteps == 32)
+    assert(values.voice == false and values.subtitles == true and values.omniSteps == 16)
     assert(player.voice == false and player.subtitles == true)
     assert(values.disappearingMessages == nil)
     assert(values.followUpQuestions == true and manager.followUpQuestions())
@@ -586,15 +586,15 @@ test('voice selector arrows stay within their displayed direction and use effect
       return wrapped(forward)
     end
     emit(false)
-    assert(effective == 1 and forwarded == 0, 'left at OmniVoice 32 steps must not wrap right')
+    assert(effective == 1 and forwarded == 0, 'left at OmniVoice 16 steps must not wrap right')
     for _, expected in ipairs({2, 3, 4}) do emit(true); assert(effective == expected and forwarded == expected - 1) end
     emit(true)
     assert(effective == 4 and forwarded == 3, 'right at Convai must not wrap left')
     for _, expected in ipairs({3, 2, 1}) do emit(false); assert(effective == expected and forwarded == 7 - expected) end
-    emit(false); assert(effective == 1 and forwarded == 6, 'left at OmniVoice 32 steps must not wrap right')
+    emit(false); assert(effective == 1 and forwarded == 6, 'left at OmniVoice 16 steps must not wrap right')
     assert(row('voiceProvider').defaultValue == 1)
-    assert(#row('voiceProvider').elements == 4 and row('voiceProvider').elements[1] == 'OmniVoice 32 steps')
-    assert(row('voiceProvider').elements[2] == 'OmniVoice 16 steps' and row('voiceProvider').elements[3] == 'Pocket TTS')
+    assert(#row('voiceProvider').elements == 4 and row('voiceProvider').elements[1] == 'OmniVoice 16 steps')
+    assert(row('voiceProvider').elements[2] == 'OmniVoice 32 steps' and row('voiceProvider').elements[3] == 'Pocket TTS')
     assert(row('voiceProvider').elements[4] == 'Convai cloud voice')
     assert(row('omniSteps') == nil, 'retired quality steps remain in the active menu')
     handlers.McmUiConfigureBase(selector, controller, 'another-mod:settings:voiceProvider')
@@ -609,7 +609,7 @@ test('local voice previews carry the effective four-choice draft and cancel on R
     assert(manager.applySettings(player, {voiceProvider = 'convai'}))
     local committed = saved
     local preview = (function() ${voicePreviewSource} end)().new({now = function() return 1000 end})
-    -- Select order: 1 OmniVoice 32 steps, 2 OmniVoice 16 steps, 3 Pocket TTS, 4 Convai cloud voice.
+    -- Select order: 1 OmniVoice 16 steps, 2 OmniVoice 32 steps, 3 Pocket TTS, 4 Convai cloud voice.
     local effective, pending, callback, inCallback, reads = 1, true, nil, false, 0
     local bus = {
       subscribe = function(topic, listener) assert(topic == 'drafts.changed'); callback = listener; return 'preview-token' end,
@@ -632,28 +632,28 @@ test('local voice previews carry the effective four-choice draft and cancel on R
     end
     changed()
     local lease = update()
-    assert(lease.active and lease.provider == 'omni' and lease.omniSteps == 32 and lease.steps == nil and reads == 1)
+    assert(lease.active and lease.provider == 'omni' and lease.omniSteps == 16 and lease.steps == nil and reads == 1)
     assert(saved == committed and manager.snapshot(player).settings.voiceProvider == 'convai')
     update(); assert(reads == 1, 'unchanged draft was queried again in the same poll interval')
     effective, pending = 4, false; changed()
     local cancelled = update()
     assert(not cancelled.active and cancelled.owner == lease.owner and cancelled.sequence > lease.sequence)
     assert(saved == committed and manager.snapshot(player).settings.voiceProvider == 'convai')
-    effective, pending = 2, true; changed(); lease = update()
+    effective, pending = 1, true; changed(); lease = update()
     assert(lease.active and lease.provider == 'omni' and lease.omniSteps == 16 and lease.steps == nil)
-    effective = 1; changed(); local qualityPreview = update()
+    effective = 2; changed(); local qualityPreview = update()
     assert(qualityPreview.active and qualityPreview.provider == 'omni' and qualityPreview.omniSteps == 32)
     assert(qualityPreview.sequence > lease.sequence, 'same-second quality change did not reach the backend')
     assert(saved == committed and manager.snapshot(player).settings.voiceProvider == 'convai')
-    effective = 2; changed(); lease = update()
+    effective = 1; changed(); lease = update()
     assert(lease.active and lease.omniSteps == 16)
     assert(manager.applySettings(player, {voiceProvider = 'omni', omniSteps = 16})); pending = false; changed()
     assert(not update().active and manager.snapshot(player).settings.voiceProvider == 'omni')
     pending = true; changed(); assert(not update().active, 'an unrelated draft re-warmed the saved choice')
-    effective = 1; changed(); assert(update().active and preview.inspect().omniSteps == 32)
+    effective = 2; changed(); assert(update().active and preview.inspect().omniSteps == 32)
     effective = 3; changed(); lease = update()
     assert(lease.active and lease.provider == 'pocket' and lease.omniSteps == nil, 'Pocket preview retained stale Omni quality')
-    effective, pending = 2, false; changed(); assert(not update().active)
+    effective, pending = 1, false; changed(); assert(not update().active)
     assert(manager.snapshot(player).settings.voiceProvider == 'omni' and manager.snapshot(player).settings.omniSteps == 16)
     assert(manager.applySettings(player, {voiceProvider = 'convai'})); pending = true; changed()
     effective = 3
@@ -669,8 +669,8 @@ test('local voice previews carry the effective four-choice draft and cancel on R
 test('one MCM voice selector commits Pocket, both Omni qualities and Convai without an extra quality row', () => {
   run(`${mcmFixture}
     assert(invoke('tab:settings').ok)
-    -- Pocket keeps the remembered Omni quality (16 after the second choice).
-    for _, choice in ipairs({{1, 'omni', 32}, {2, 'omni', 16}, {3, 'pocket', 16}, {4, 'convai', 16}}) do
+    -- Pocket keeps the remembered Omni quality (32 after the second choice).
+    for _, choice in ipairs({{1, 'omni', 16}, {2, 'omni', 32}, {3, 'pocket', 32}, {4, 'convai', 32}}) do
       assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = choice[1]}}).ok)
       loaded = registered.loadMod('manager')
       assert(row('voiceProvider').value == choice[1] and row('voiceProvider').defaultValue == 1)
@@ -688,9 +688,9 @@ test('one MCM voice selector commits Pocket, both Omni qualities and Convai with
     end
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 2}}).ok)
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok)
-    assert(saved.voiceProvider == 'pocket' and saved.omniSteps == 16, 'selecting Pocket erased the remembered Omni quality')
+    assert(saved.voiceProvider == 'pocket' and saved.omniSteps == 32, 'selecting Pocket erased the remembered Omni quality')
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 4}}).ok)
-    assert(saved.voiceProvider == 'convai' and saved.omniSteps == 16)
+    assert(saved.voiceProvider == 'convai' and saved.omniSteps == 32)
   `);
 });
 
@@ -1708,7 +1708,7 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(registered.applyBatch('manager', {{id = 'battleReactions', value = false}}).ok)
     assert(not manager.battleReactions())
     local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = 4}, {id = 'subtitleStyle', value = 1}})
-    assert(applied.ok and applied.atomic and #applied.appliedIds == 3 and saved.omniSteps == 32)
+    assert(applied.ok and applied.atomic and #applied.appliedIds == 3 and saved.omniSteps == 16)
     assert(saved.voiceProvider == 'convai')
     loaded = registered.loadMod('manager')
     assert(manager.subtitleStyle() == 'overhead' and row('subtitleStyle').value == 1)
@@ -2002,7 +2002,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       local ok, err = actual.apply(key)
       assert(ok, err)
       assert(actual.getValue(key .. ':voice') == false and actual.getValue(key .. ':omniSteps') == nil)
-      assert(manager.snapshot(player).settings.omniSteps == 32 and not actual.hasDrafts(key))
+      assert(manager.snapshot(player).settings.omniSteps == 16 and not actual.hasDrafts(key))
       assert(actual.getValue(key .. ':voiceProvider') == 4)
       assert(manager.snapshot(player).settings.voiceProvider == 'convai')
       assert(actual.getValue(key .. ':subtitleStyle') == 1 and manager.subtitleStyle() == 'overhead')
@@ -2014,7 +2014,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       -- native selector hook. Preparation is immediate, settings are not.
       function controller:GetRootWidget() return nil end
       handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-      assert(actual.setDraft(key .. ':voiceProvider', 1))
+      assert(actual.setDraft(key .. ':voiceProvider', 3))
       assert(files['runtime/voice-preview.json'] == nil, 'draft callback performed filesystem IO')
       mcm.update(player, false)
       local preview = json.decode(files['runtime/voice-preview.json'])
@@ -2025,14 +2025,14 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(manager.snapshot(player).settings.voiceProvider == 'convai')
       assert(actual.setModDraftsToDefaults(key)); mcm.update(player, false)
       preview = json.decode(files['runtime/voice-preview.json'])
-      assert(preview.active and preview.provider == 'pocket' and preview.omniSteps == nil and preview.steps == nil)
+      assert(preview.active and preview.provider == 'omni' and preview.omniSteps == 16 and preview.steps == nil, 'defaults preview OmniVoice 16 steps')
       assert(actual.revert(key)); mcm.update(player, false)
       assert(not json.decode(files['runtime/voice-preview.json']).active)
-      assert(actual.setDraft(key .. ':voiceProvider', 2)); mcm.update(player, false)
+      assert(actual.setDraft(key .. ':voiceProvider', 1)); mcm.update(player, false)
       preview = json.decode(files['runtime/voice-preview.json'])
       assert(preview.active and preview.provider == 'omni' and preview.omniSteps == 16)
       assert(manager.snapshot(player).settings.voiceProvider == 'convai')
-      assert(actual.setDraft(key .. ':voiceProvider', 3)); mcm.update(player, false)
+      assert(actual.setDraft(key .. ':voiceProvider', 2)); mcm.update(player, false)
       preview = json.decode(files['runtime/voice-preview.json'])
       assert(preview.active and preview.provider == 'omni' and preview.omniSteps == 32)
       assert(actual.apply(key)); mcm.update(player, false)
@@ -2151,10 +2151,10 @@ test('all installed models are discovered lazily in bounded batches, and closing
   `);
 });
 
-test('OmniVoice 32 steps is the default while saved choices migrate to the nearest of the four voices', () => {
+test('OmniVoice 16 steps is the default while saved choices migrate to the nearest of the four voices', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
-    assert(saved.voiceProvider == 'omni' and saved.omniSteps == 32)
+    assert(saved.voiceProvider == 'omni' and saved.omniSteps == 16)
     assert(saved.voice == true and saved.subtitles == true)
     for _, oldProvider in ipairs({'missing', 'hybrid', 'omni', 'omnivoice', 'pocket', 'pocket-student', 'Pocket-Base', 'convai', 'invalid', 'teacher', '', false, 7}) do
       seed = {version = 2, voice = false, subtitles = false, subtitleStyle = 'overhead',
@@ -2182,7 +2182,8 @@ test('OmniVoice 32 steps is the default while saved choices migrate to the neare
       if oldSteps ~= 'missing' then seed.omniSteps = oldSteps end
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
-      local expected = oldSteps == 16 and 16 or 32
+      -- Only an explicit saved 32 stays 32; missing or invalid becomes the default 16.
+      local expected = oldSteps == 32 and 32 or 16
       assert(saved.voiceProvider == 'omni' and saved.omniSteps == expected)
       assert(manager.snapshot(player).settings.omniSteps == expected and saved.future.keep == 'unchanged')
     end
