@@ -28,18 +28,24 @@ export const JALI_ARTICULATION = 'jali-audio-v1';
 export const JALI_LEAD_SECONDS = .035;
 
 export class JaliFace {
-  static async load(directory, {WorkerImpl = Worker} = {}) {
+  static async load(directory, {WorkerImpl = Worker, respawnMs = 5000} = {}) {
     if (process.env.CYBERPUNK_CONVAI_FACE_MODEL === 'off') return null;
     const meta = resolve(directory, 'face-model.json'), weights = resolve(directory, 'face-model.bin');
     try { await access(meta); await access(weights); } catch { return null; }
-    const face = new JaliFace(new WorkerImpl(new URL('./jali-face-worker.mjs', import.meta.url), {workerData: {meta, weights}}));
-    try { await face.ready; } catch (error) { await face.worker.terminate(); throw error; }
-    // An idle model must never keep the bridge process alive.
-    face.worker.unref?.();
+    const face = new JaliFace({meta, weights, WorkerImpl, respawnMs});
+    try { await face.ready; } catch (error) { face.close(); throw error; }
     return face;
   }
-  constructor(worker) {
-    this.worker = worker; this.sessions = new Map(); this.sequence = 0;
+  constructor({meta, weights, WorkerImpl, respawnMs}) {
+    Object.assign(this, {paths: {meta, weights}, WorkerImpl, respawnMs});
+    this.sessions = new Map(); this.sequence = 0; this.respawns = [];
+    this.spawn();
+  }
+  // One worker at a time. An unexpected exit fails its sessions (callers fall
+  // back) and respawns after a pause, at most three times per ten minutes.
+  spawn() {
+    const worker = this.worker = new this.WorkerImpl(new URL('./jali-face-worker.mjs', import.meta.url), {workerData: this.paths});
+    this.info = undefined;
     this.ready = new Promise((done, fail) => {
       worker.once('error', fail);
       worker.once('exit', code => fail(Error(`Facial model worker exited (${code})`)));
@@ -49,14 +55,25 @@ export class JaliFace {
           if (names.length !== JALI_TRACKS.length || names.some((name, index) => name !== JALI_TRACKS[index])) {
             fail(Error('Facial model controls do not match this bridge')); return;
           }
-          this.info = message; done(this); return;
+          this.info = message; worker.unref?.(); done(this); return;
         }
         const session = this.sessions.get(message.id);
         if (session) session.receive(message);
       });
     });
+    this.ready.catch(() => {});
     worker.on('error', () => this.failAll());
-    worker.on('exit', () => { this.closed = true; this.failAll(); });
+    worker.on('exit', () => {
+      if (this.worker !== worker) return;
+      this.info = undefined; this.failAll();
+      if (this.closed || !this.everReady) return;
+      const now = Date.now();
+      this.respawns = this.respawns.filter(at => now - at < 600000);
+      if (this.respawns.length >= 3) return;
+      this.respawns.push(now);
+      const timer = setTimeout(() => { if (!this.closed) this.spawn(); }, this.respawnMs); timer.unref?.();
+    });
+    this.ready.then(() => { this.everReady = true; }, () => {});
   }
   failAll() { for (const session of [...this.sessions.values()]) session.fail(Error('Facial model worker stopped')); }
   // Active analysis keeps the worker referenced; an idle model never keeps the process alive.
@@ -98,7 +115,7 @@ export class JaliFace {
     const result = await this.analyse(pcm, wav.sampleRate, options);
     return {jaliFrames: result, timing: {lipAnalysisMs: performance.now() - started, lipEngine: JALI_ARTICULATION}};
   }
-  close() { this.closed = true; this.sessions.clear(); return this.worker.terminate(); }
+  close() { this.closed = true; this.failAll(); this.sessions.clear(); return this.worker.terminate(); }
 }
 
 export class JaliFaceSession {

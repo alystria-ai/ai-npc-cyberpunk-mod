@@ -110,6 +110,22 @@ test('worker client returns the same rows as in-process analysis and cancels cle
   } finally { await face.close(); rmSync(folder, {recursive: true, force: true}); }
 });
 
+test('an unexpected worker exit fails active analysis, then the model worker respawns', async () => {
+  const {meta, buffer} = syntheticModel(), folder = mkdtempSync(join(tmpdir(), 'jali-face-'));
+  writeFileSync(join(folder, 'face-model.json'), JSON.stringify(meta)); writeFileSync(join(folder, 'face-model.bin'), buffer);
+  const face = await JaliFace.load(folder, {respawnMs: 10});
+  try {
+    const session = face.begin(16000);
+    await face.worker.terminate();
+    await assert.rejects(session.done, /stopped/);
+    assert.throws(() => face.begin(16000), /unavailable/);
+    await new Promise(done => setTimeout(done, 50));
+    await face.ready;
+    const frames = await face.analyse(speechLike(.3, 16000), 16000);
+    assert.equal(frames.finished, true);
+  } finally { await face.close(); rmSync(folder, {recursive: true, force: true}); }
+});
+
 const wavBase64 = pcm => {
   const bytes = Buffer.alloc(44 + pcm.length * 2);
   bytes.write('RIFF', 0); bytes.writeUInt32LE(bytes.length - 8, 4); bytes.write('WAVEfmt ', 8);
