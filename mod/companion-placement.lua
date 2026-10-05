@@ -79,7 +79,8 @@ local function exitClear(points,body)
     end
     return true
 end
-function M.find(player,preferred,occupied,body)
+-- accept(candidate), when given, can refuse an otherwise valid spot.
+function M.find(player,preferred,occupied,body,accept)
     local ok,result,reason,deferred=pcall(function()
         local nav,origin=Game.GetAINavigationSystem(),player:GetWorldPosition()
         local success=Enum.new('worldNavigationRequestStatus','OK')
@@ -117,7 +118,9 @@ function M.find(player,preferred,occupied,body)
                                 local free,exitWhy,exitPending=exitClear(points,body)
                                 if exitPending then return nil,nil,true end
                                 if not free and exitWhy and exitWhy:find('could not verify',1,true) then return nil,exitWhy end
-                                if free then return Vector4.new(candidate.x,candidate.y,candidate.z+.1,1) end
+                                if free and (not accept or accept(candidate)) then
+                                    return Vector4.new(candidate.x,candidate.y,candidate.z+.1,1)
+                                end
                             end
                         end
                     end

@@ -329,10 +329,11 @@ test('eight copies share a navigation budget and retain unique lanes after a rea
   for _,row in ipairs(companions.list()) do assert(not lanes[row.lane]); lanes[row.lane]=true end
 `));
 
-const strandedPocket=`${companionEngine}
+const strandedPocket=(facing='Vector4.new(0,1)',before='')=>`${companionEngine}
   local teleports={}
   Game.GetTeleportationFacility=function() return {Teleport=function(_,npc,position)
-    teleports[#teleports+1]=position; npc.pos=position end} end
+    teleports[#teleports+1]=position; npc.pos=position
+    teleportedFrom=Vector4.new(player.pos.x,player.pos.y,player.pos.z) end} end
   local npc=spawn(); tick(4)
   local pocket=Vector4.new(npc.pos.x,npc.pos.y,npc.pos.z)
   -- Recorded Blue Moon case: every body or walking box at her spot hits
@@ -343,24 +344,26 @@ const strandedPocket=`${companionEngine}
       return group=='Static' and math.abs(center.x-pocket.x)<1.6 and math.abs(center.y-pocket.y)<1.6
     end,
     SyncRaycastByCollisionGroup=function() return not sight end} end
+  player.forward=${facing}
+  ${before}
   for i=1,40 do player.pos=Vector4.new(0,i,0); tick(1) end
 `;
 
-test('a blocked follower far behind V and out of view is re-placed near V',()=>run(strandedPocket+`
+test('a blocked follower far behind V and out of view is re-placed near V',()=>run(strandedPocket()+`
   -- V faces away from the stranded copy.
-  player.forward=Vector4.new(0,1)
   tick(20)
-  assert(#teleports==1,'stranded copy was never recovered')
-  local gap=math.sqrt((npc.pos.x-player.pos.x)^2+(npc.pos.y-player.pos.y)^2)
-  assert(gap<6,'recovery did not place the copy near V')
-  assert(companions.movementSnapshot().copies[1].relocations==1)
+  assert(#teleports>=1,'stranded copy was never recovered')
+  local spot=teleports[#teleports]
+  local gap=math.sqrt((spot.x-teleportedFrom.x)^2+(spot.y-teleportedFrom.y)^2)
+  assert(gap<7 and spot.y<teleportedFrom.y,'recovery did not place the copy just behind V')
+  assert(companions.movementSnapshot().copies[1].relocations==#teleports)
+  local count=#teleports
   tick(10)
-  assert(#teleports==1,'a recovered copy was moved again')
+  assert(#teleports==count,'a recovered copy near a standing V was moved again')
 `));
 
-test('a stranded follower in plain view is not teleported',()=>run(strandedPocket+`
-  -- V turns back toward the copy with clear line of sight.
-  player.forward=Vector4.new(0,-1)
+test('a stranded follower in plain view is not teleported',()=>run(strandedPocket('Vector4.new(0,-1)')+`
+  -- V keeps looking back at the copy with clear line of sight.
   tick(20)
   assert(#teleports==0,'teleported a copy V could see')
   sight=false
@@ -368,7 +371,7 @@ test('a stranded follower in plain view is not teleported',()=>run(strandedPocke
   assert(#teleports==1,'an occluded stranded copy was not recovered')
 `));
 
-test('a stranded copy is released from its owned hold before it is teleported',()=>run(strandedPocket+`
+test('a stranded copy is released from its owned hold before it is teleported',()=>run(strandedPocket()+`
   -- Live trace: the engine left a copy in place when teleported under an
   -- executing hold command.
   Game.GetTeleportationFacility=function() return {Teleport=function(_,owner,position)
@@ -382,10 +385,41 @@ test('a stranded copy is released from its owned hold before it is teleported',(
   assert(companions.movementSnapshot().copies[1].relocations==1)
 `));
 
-test('a teleport the engine ignores is recorded as a failure, not a relocation',()=>run(strandedPocket+`
-  Game.GetTeleportationFacility=function() return {Teleport=function() end} end
-  player.forward=Vector4.new(0,1)
+test('a teleport the engine ignores is recorded as a failure, not a relocation',()=>run(strandedPocket('Vector4.new(0,1)',
+  'Game.GetTeleportationFacility=function() return {Teleport=function() end} end')+`
   tick(12)
   local row=companions.movementSnapshot().copies[1]
   assert(not row.relocations and (row.relocationFailures or 0)>=1,'an ignored teleport counted as a relocation')
+`));
+
+const leftBehind=(facing)=>`${companionEngine}
+  local teleports={}
+  Game.GetTeleportationFacility=function() return {Teleport=function(_,npc,position)
+    teleports[#teleports+1]={spot=position,from=Vector4.new(player.pos.x,player.pos.y,player.pos.z)}
+    npc.pos=position end} end
+  local sight=true
+  local spatial=Game.GetSpatialQueriesSystem()
+  Game.GetSpatialQueriesSystem=function() return {Overlap=spatial.Overlap,
+    SyncRaycastByCollisionGroup=function() return not sight end} end
+  local npc=spawn(); tick(4)
+  -- The fixture never moves the copy, standing in for an animation-capped
+  -- sprint that falls far behind V.
+  player.forward=${facing}
+  for i=1,30 do player.pos=Vector4.new(0,i*1.5,0); tick(1) end
+`;
+
+test('a follower left far behind rejoins behind V, never in front of the camera',()=>run(leftBehind('Vector4.new(0,1)')+`
+  tick(6)
+  assert(#teleports>=1,'a follower far behind and off-screen never rejoined')
+  for _,item in ipairs(teleports) do
+    assert(item.spot.y<item.from.y-1,'the follower was placed in front of the camera')
+    assert(math.sqrt((item.spot.x-item.from.x)^2+(item.spot.y-item.from.y)^2)<7,'the follower rejoined too far away')
+  end
+  local first=teleports[1]
+  assert(first.from.y>=25,'a follower rejoined before it was 25 m behind')
+`));
+
+test('a far follower V can see keeps running instead of teleporting',()=>run(leftBehind('Vector4.new(0,-1)')+`
+  tick(6)
+  assert(#teleports==0,'teleported a follower V was looking at')
 `));

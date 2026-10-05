@@ -959,11 +959,19 @@ end
 -- forever while V leaves. Only when it is far away and out of V's view is it
 -- re-placed near V, through the same placement checks a new invitation uses.
 local stranded={distance=30,after=6,retry=3,fieldOfView=60}
-local function hiddenFromPlayer(player,at)
+-- NPC sprint speed is capped by its animation (~5.4 m/s against V's ~8), so a
+-- long sprint leaves followers behind. Like vanilla followers, a follower more
+-- than 25 m back rejoins out of view, placed behind V.
+local catchUp={distance=25,after=1.5,cooldown=5,behind=4}
+local function cameraForward(player)
     local ok,_,view=pcall(function() return Game.GetTargetingSystem():GetCrosshairData(player) end)
     local forward=ok and view or player:GetWorldForward()
+    return forward and space.unit(forward.x,forward.y) or nil
+end
+local function hiddenFromPlayer(player,at)
+    local forward=cameraForward(player)
     local origin=space.copy(player:GetWorldPosition())
-    if forward and space.angle(space.unit(forward.x,forward.y),space.bearing(origin,at))>stranded.fieldOfView then
+    if forward and space.angle(forward,space.bearing(origin,at))>stranded.fieldOfView then
         return true
     end
     -- An unavailable query is not evidence that the copy is out of sight.
@@ -971,7 +979,32 @@ local function hiddenFromPlayer(player,at)
     return not M.visibleFromCrosshair(Vector4.new(origin.x,origin.y,origin.z+1.6,1),
         Vector4.new(at.x,at.y,at.z+1.2,1))
 end
-local function recoverStranded(entry,player)
+-- Returns true when teleported, nil when it should retry shortly.
+local function relocate(entry,player)
+    local forward=cameraForward(player)
+    if not forward then return false end
+    -- A teleport under the owned safety hold left the copy in place (live
+    -- trace, October 5). Retire that exact command first; retry if pending.
+    if not actuator.release(entry.motor) then return nil end
+    local origin=space.copy(player:GetWorldPosition())
+    local lateral=slots[entry.lane] and slots[entry.lane][1] or 0
+    local preferred=copyPosition(space.offset(origin,forward,lateral,-catchUp.behind))
+    -- Never appear on screen: only spots behind the camera's view qualify.
+    local outOfView=function(point)
+        return space.angle(forward,space.bearing(origin,point))>stranded.fieldOfView
+    end
+    local target,_,deferred=placement.find(player,preferred,occupiedPositions(entry),entry.clearance,outOfView)
+    if deferred then return nil end
+    if not target then return false end
+    Game.GetTeleportationFacility():Teleport(entry.npc,target,Quaternion.ToEulerAngles(player:GetWorldOrientation()))
+    -- Plan nothing more this frame: a new hold must not start at the old spot.
+    -- The next sample senses the new feet with zero speed.
+    entry.relocation={target=space.copy(target),at=runtimeClock}
+    entry.position=nil
+    entry.strandedSince,entry.strandedAnchor,entry.lastBlockedAt,entry.farSince=nil,nil,nil,nil
+    return true
+end
+local function recoverDistant(entry,player)
     local pending=entry.relocation
     if pending then
         -- Count a relocation only once the engine reports the copy there.
@@ -981,33 +1014,33 @@ local function recoverStranded(entry,player)
             entry.relocationFailures,entry.relocation=(entry.relocationFailures or 0)+1,nil
         else return false end
     end
+    if equipment.holdsMovement(entry.equipment) then
+        entry.strandedSince,entry.strandedAnchor,entry.farSince=nil,nil,nil; return false
+    end
     -- V walking on re-plans a blocked follower, briefly clearing its block.
     -- Stranded means recently blocked and not actually getting anywhere.
     if entry.motor.blockedReason then entry.lastBlockedAt=runtimeClock end
-    if runtimeClock-(entry.lastBlockedAt or -math.huge)>2 or entry.playerGap<stranded.distance
-        or equipment.holdsMovement(entry.equipment) then
-        entry.strandedSince,entry.strandedAnchor=nil,nil; return false
+    local strandedReady=false
+    if runtimeClock-(entry.lastBlockedAt or -math.huge)>2 or entry.playerGap<stranded.distance then
+        entry.strandedSince,entry.strandedAnchor=nil,nil
+    else
+        if not entry.strandedAnchor or space.distance(entry.strandedAnchor,entry.position)>1 then
+            entry.strandedAnchor,entry.strandedSince=space.copy(entry.position),runtimeClock
+        end
+        strandedReady=runtimeClock-entry.strandedSince>=stranded.after
     end
-    if not entry.strandedAnchor or space.distance(entry.strandedAnchor,entry.position)>1 then
-        entry.strandedAnchor,entry.strandedSince=space.copy(entry.position),runtimeClock
-    end
-    if runtimeClock-entry.strandedSince<stranded.after or runtimeClock<(entry.strandedRetryAt or 0) then return false end
-    entry.strandedRetryAt=runtimeClock+stranded.retry
+    if entry.motor.kind=='follow' and entry.playerGap>catchUp.distance then
+        entry.farSince=entry.farSince or runtimeClock
+    else entry.farSince=nil end
+    local farReady=entry.farSince~=nil and runtimeClock-entry.farSince>=catchUp.after
+        and runtimeClock>=(entry.catchUpAt or 0)
+    if not (strandedReady or farReady) or runtimeClock<(entry.strandedRetryAt or 0) then return false end
+    entry.strandedRetryAt=runtimeClock+(farReady and .5 or stranded.retry)
     if not hiddenFromPlayer(player,entry.position) then return false end
-    -- A teleport under the owned safety hold left the copy in place (live
-    -- trace, October 5). Retire that exact command first; retry if pending.
-    if not actuator.release(entry.motor) then entry.strandedRetryAt=runtimeClock+.3; return false end
-    local target,_,deferred=placement.find(player,formationPosition(player,entry.lane),
-        occupiedPositions(entry),entry.clearance)
-    if deferred then entry.strandedRetryAt=runtimeClock; return false end
-    if not target then return false end
-    Game.GetTeleportationFacility():Teleport(entry.npc,target,Quaternion.ToEulerAngles(player:GetWorldOrientation()))
-    -- Plan nothing more this frame: a new hold must not start at the old spot.
-    -- The next sample senses the new feet with zero speed.
-    entry.relocation={target=space.copy(target),at=runtimeClock}
-    entry.position=nil
-    entry.strandedSince,entry.strandedAnchor,entry.lastBlockedAt=nil,nil,nil
-    return true
+    local moved=relocate(entry,player)
+    if moved==nil then entry.strandedRetryAt=runtimeClock+.3 end
+    if moved then entry.catchUpAt=runtimeClock+catchUp.cooldown end
+    return moved==true
 end
 
 function M.update(player,delta,focusEntity)
@@ -1129,7 +1162,7 @@ function M.update(player,delta,focusEntity)
     for i=1,#order do
         local entry=order[(first+i-1)%#order+1]
         local ok,err=pcall(function()
-            if recoverStranded(entry,player) then return end
+            if recoverDistant(entry,player) then return end
             local id=tostring(entry.entityID.hash)
             local lane=travel.laneFrame(groupFrame,entry.lane)
             local travelTarget=space.offset(lane.position,lane.direction,slots[entry.lane][1],0)

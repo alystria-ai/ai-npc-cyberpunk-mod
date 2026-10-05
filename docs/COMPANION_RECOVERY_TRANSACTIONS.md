@@ -20,6 +20,18 @@ and the route proof repeats every 0.8 s. A deferred proof is retried within
 blocks exactly as before. Near routes that bend or shift sideways still walk
 certified points.
 
+## October 5 out-of-view catch-up (user decision)
+
+NPC sprint is capped by its animation at about 5.4 m/s while V runs about 8,
+so long sprints leave followers 30–80 m behind. A following companion more
+than 25 m back for 1.5 s, and out of view, now rejoins about 4 m behind V
+relative to the camera, through `placement.find` with an out-of-view filter
+(never in front of the camera), then a 5 s cooldown. Stranded recovery shares
+the same out-of-view destination. Both release the owned command before the
+teleport: the departure retest showed a teleport under the hold command left
+the copy in place. Relocations count only once the copy is seen at the target;
+`relocationFailures` records ignored teleports.
+
 ## October 5 false blocks at departure
 
 The first native-follow game test (`runtime/follow-native-test-20261005`)
