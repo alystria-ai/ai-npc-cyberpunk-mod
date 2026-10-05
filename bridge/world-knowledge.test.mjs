@@ -404,3 +404,30 @@ test('capture and pack limits fail closed without throwing on malformed optional
   const mutated = clone(pack()); mutated.rules[0].sourceIds.push('missing');
   assert.equal(resolve({pack: mutated}).diagnostics.status, 'invalid-pack');
 });
+
+const deepFreeze = value => {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) { for (const key of Reflect.ownKeys(value)) deepFreeze(value[key]); Object.freeze(value); }
+  return value;
+};
+
+test('a deep-frozen pack is reused across turns with identical results, other packs are never served stale', () => {
+  const frozen = deepFreeze(pack());
+  const first = resolveKnowledge({pack: frozen, snapshot: snapshot(), profileKey: 'judy-alvarez'});
+  const second = resolveKnowledge({pack: frozen, snapshot: snapshot(), profileKey: 'judy-alvarez'});
+  assert.deepEqual(second, first);
+  assert.equal(factsIn(first)[0].text, 'V selected the first route.');
+  // A mutable pack edited between turns must be re-prepared every time.
+  const mutable = pack();
+  assert.equal(factsIn(resolveKnowledge({pack: mutable, snapshot: snapshot(), profileKey: 'judy-alvarez'}))[0].text, 'V selected the first route.');
+  mutable.rules[0].statement = 'V selected the edited route.';
+  assert.equal(factsIn(resolveKnowledge({pack: mutable, snapshot: snapshot(), profileKey: 'judy-alvarez'}))[0].text, 'V selected the edited route.');
+  // Freezing only the top level is not immutability; nested edits still apply.
+  const shallow = pack(); Object.freeze(shallow);
+  assert.equal(factsIn(resolveKnowledge({pack: shallow, snapshot: snapshot(), profileKey: 'judy-alvarez'}))[0].text, 'V selected the first route.');
+  shallow.rules[0].statement = 'V selected the nested edit.';
+  assert.equal(factsIn(resolveKnowledge({pack: shallow, snapshot: snapshot(), profileKey: 'judy-alvarez'}))[0].text, 'V selected the nested edit.');
+  // An invalid frozen pack keeps failing closed on every call.
+  const invalid = deepFreeze({...pack(), version: 2});
+  assert.equal(resolveKnowledge({pack: invalid, snapshot: snapshot(), profileKey: 'judy-alvarez'}).diagnostics.status, 'invalid-pack');
+  assert.equal(resolveKnowledge({pack: invalid, snapshot: snapshot(), profileKey: 'judy-alvarez'}).diagnostics.status, 'invalid-pack');
+});

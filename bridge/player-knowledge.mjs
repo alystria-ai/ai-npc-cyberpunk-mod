@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {parseWorldSnapshot, resolveKnowledge, validateKnowledgePack} from './world-knowledge.mjs';
+import {parseWorldSnapshot, resolveKnowledge, validateKnowledgePack, warmKnowledgePack} from './world-knowledge.mjs';
 import {parseJournal, withConversationKnowledge} from './quest-context.mjs';
 
 const PROFILE = /^[a-z0-9][a-z0-9-]{0,79}$/;
@@ -79,6 +79,8 @@ export class PlayerKnowledge {
         || !isWorldCurrent && !getBoundary || selectProfile !== undefined && typeof selectProfile !== 'function') fail('INVALID_CONFIGURATION');
     if (!validateKnowledgePack(pack).ok) fail('INVALID_REVIEWED_PACK');
     this.playerMemory = playerMemory; this.pack = freeze(clone(pack));
+    // The frozen copy is immutable; prepare it once here rather than per turn.
+    warmKnowledgePack(this.pack);
     this.questCatalog = freeze(clone(questCatalog)); this.now = now;
     this.isWorldCurrent = isWorldCurrent; this.getBoundary = getBoundary; this.selectProfile = selectProfile;
   }

@@ -291,6 +291,37 @@ export function validateKnowledgePack(pack) {
   return {ok: errors.length === 0, errors};
 }
 
+// Validating the reviewed pack (several megabytes, including a full serialization
+// for its size limit) took about 50 ms on every conversation turn. A deep-frozen
+// pack, such as the copy PlayerKnowledge keeps, cannot change after it has been
+// validated, so its prepared form is reused. Any other pack is still prepared on
+// every call. The prepared form is only read by the resolver below.
+const preparedPacks = new WeakMap();
+function deepFrozen(value, seen) {
+  if (value === null || typeof value !== 'object' || seen.has(value)) return true;
+  if (!Object.isFrozen(value)) return false;
+  seen.add(value);
+  for (const key of Reflect.ownKeys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (!descriptor || !Object.hasOwn(descriptor, 'value') || !deepFrozen(descriptor.value, seen)) return false;
+  }
+  return true;
+}
+function resolverPack(pack) {
+  if (pack === null || typeof pack !== 'object' || !Object.isFrozen(pack)) return preparePack(pack);
+  const cached = preparedPacks.get(pack);
+  if (cached) return cached;
+  const prepared = preparePack(pack);
+  if (deepFrozen(pack, new Set())) preparedPacks.set(pack, prepared);
+  return prepared;
+}
+
+// Optional startup warm-up for a long-lived frozen pack, so the first
+// conversation turn does not pay the one-time preparation either.
+export function warmKnowledgePack(pack) {
+  resolverPack(pack);
+}
+
 function evaluate(node, snapshot, prepared) {
   if (node.all || node.any) {
     const kind = node.all ? 'all' : 'any', parts = node[kind].map(child => evaluate(child, snapshot, prepared));
@@ -373,7 +404,7 @@ function eventFor(row, snapshot, prepared, profileKey) {
 /** Resolve only this capture. Calls are independent, so rollback cannot reuse a future outcome. */
 export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 6000} = {}) {
   const budget = Number.isSafeInteger(maxChars) && maxChars >= 0 ? Math.min(maxChars, LIMIT.context) : 6000;
-  const prepared = preparePack(pack), current = parseWorldSnapshot(snapshot);
+  const prepared = resolverPack(pack), current = parseWorldSnapshot(snapshot);
   const diagnostics = {status: 'ready', errors: [...prepared.errors], counts: {evaluated: 0, true: 0, false: 0,
     unknown: 0, outsideAudience: 0, conflicted: 0, selected: 0, omitted: 0}, conflicts: [],
     exclusiveGroupConflicts: [], rules: [], contextChars: 0};

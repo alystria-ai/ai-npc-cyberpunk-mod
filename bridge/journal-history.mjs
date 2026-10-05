@@ -86,7 +86,20 @@ export function parseJournalHistory(input) {
 
 const STOP = new Set(['what', 'where', 'when', 'which', 'have', 'been', 'with', 'about', 'that', 'this', 'there', 'they', 'your', 'our', 'the', 'and', 'for', 'how', 'are', 'you', 'can', 'did', 'does', 'quest', 'quests', 'job', 'jobs', 'objective', 'objectives']);
 const words = value => [...new Set((String(value ?? '').toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).filter(word => word.length > 2 && !STOP.has(word)))].slice(0, 32);
-const matching = (value, query) => { const bag = new Set(words(value)); return query.filter(word => bag.has(word)).length; };
+// Journal titles/objectives rarely change between turns. Their word sets are
+// pure functions of the text, so a bounded cache avoids re-tokenizing thousands
+// of objectives on every conversation turn.
+const bags = new Map();
+const bagFor = value => {
+  const text = String(value ?? '');
+  let bag = bags.get(text);
+  if (!bag) {
+    if (bags.size >= 16384) bags.clear();
+    bag = new Set(words(text)); bags.set(text, bag);
+  }
+  return bag;
+};
+const matching = (value, query) => { const bag = bagFor(value); return query.filter(word => bag.has(word)).length; };
 function related(row, profileKey, catalog) {
   if (!identifier(profileKey) || !Array.isArray(catalog)) return false;
   return catalog.slice(0, 4096).some(item => item && Array.isArray(item.characters) && item.characters.includes(profileKey)
@@ -121,7 +134,6 @@ export function selectJournalHistory({snapshot, generation, worldToken, profileK
     const titleHits = matching(row.title, tokens);
     const objectiveHits = row.objectives.reduce((sum, objective) => sum + Math.min(2, matching(objective.text, tokens)), 0);
     const isTracked = current.tracked.status === 'known' && current.tracked.questId === row.id;
-    const isRelated = related(row, profileKey, questCatalog?.quests ?? questCatalog);
     // The separately captured tracked-journal block already carries the fresh
     // current objective. Keep this older inventory only for questions about its
     // history; never spend a second prompt block repeating the same objective.
@@ -129,6 +141,8 @@ export function selectJournalHistory({snapshot, generation, worldToken, profileK
     // Character association and active status rank relevant results, but must
     // not summon several unrelated quests for a greeting or a casual question.
     if (!isTracked && !titleHits && !objectiveHits && !(historyQuestion && row.state !== 'active')) return null;
+    // Scanning the catalog only affects the score, so do it for candidates only.
+    const isRelated = related(row, profileKey, questCatalog?.quests ?? questCatalog);
     const score = (isTracked ? 1000 : 0) + titleHits * 70 + Math.min(60, objectiveHits * 5)
       + (isRelated ? 40 : 0) + (row.state === 'active' ? 10 : historyQuestion ? 2 : 0);
     return score > 0 ? {row, score, isTracked, isRelated} : null;

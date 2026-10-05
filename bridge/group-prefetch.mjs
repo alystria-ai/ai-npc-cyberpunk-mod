@@ -6,7 +6,13 @@ import {abortable, cancelled} from './transport-pool.mjs';
 // Use every normalized input field, including listener order and heard text.
 // A request ID alone does not identify the context a speculative reply used.
 export function inputIdentity(input, context = '') {
-  return createHash('sha256').update(JSON.stringify([parseInput(JSON.stringify(input)), context])).digest('hex');
+  return parsedInputIdentity(parseInput(JSON.stringify(input)), context);
+}
+
+// The same digest for a value that parseInput itself just returned. Re-parsing
+// a parsed request (with its large journal history) cost about 40 ms per turn.
+export function parsedInputIdentity(parsed, context = '') {
+  return createHash('sha256').update(JSON.stringify([parsed, context])).digest('hex');
 }
 
 export function parsePrewarm(value, ids) {

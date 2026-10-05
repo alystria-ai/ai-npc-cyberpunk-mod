@@ -16,7 +16,7 @@ import {conversationScope} from './group-context.mjs';
 import {conversationContext as baseConversationContext} from './quest-context.mjs';
 import {createIntrinsicConversationContext, loadIntrinsicCharacterContext} from './intrinsic-character-context.mjs';
 import {battleTrigger, reactionLeaseValid} from './battle-context.mjs';
-import {GroupPrefetch, inputIdentity, validatePrefetch, parsePrewarm} from './group-prefetch.mjs';
+import {GroupPrefetch, inputIdentity, parsedInputIdentity, validatePrefetch, parsePrewarm} from './group-prefetch.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {PartyConnections, parsePartyConnections} from './party-connections.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
@@ -834,7 +834,8 @@ async function tick() {
       if (!active) await status('invalid-input', 'Could not parse the game request');
       return;
     }
-    const identity = inputIdentity(input);
+    // input is parseInput's own result: hash it without parsing it again.
+    const identity = parsedInputIdentity(input);
     if (identity === lastAcceptedIdentity) { observed = signature; observedIdentity = stampIdentity; return; }
     const lease = await reactionCurrent(input);
     // A missing/partial heartbeat has not accepted or rejected new input.
@@ -1075,7 +1076,7 @@ const initial = await stat(inputPath).catch(() => null);
 if (initial) {
   const raw = await readFile(inputPath, 'utf8');
   observed = `${initial.mtimeMs}:${initial.size}:${raw}`; observedIdentity = fileIdentity(initial);
-  const input = parseInput(raw); if (input) lastAcceptedIdentity = inputIdentity(input);
+  const input = parseInput(raw); if (input) lastAcceptedIdentity = parsedInputIdentity(input);
 }
 const controlPath = resolve(stateDirectory, 'bridge-control.json');
 let controlsObserved = await readFile(controlPath, 'utf8').catch(() => '');
