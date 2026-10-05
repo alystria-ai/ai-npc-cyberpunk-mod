@@ -1290,20 +1290,24 @@ local function processPhoneAction(player)
         local accepted, message, invitationId = queue.invite(key)
         log(accepted and ('Phone preparation requested for ' .. key)
             or ('Phone join failed for ' .. key .. ': ' .. tostring(message)))
+        local preparing = false
         if accepted then
             local party = queue.list()
             for index = #party, 1, -1 do
                 if party[index].key == key and not party[index].serial then
                     lastPhoneInvitation = {id = party[index].id}
+                    preparing = party[index].state == 'preparing-memory' or party[index].state == 'connecting'
                     break
                 end
             end
         end
-        -- "Preparing memory" is routine progress: Developer mode only. The
-        -- phone already confirmed the request. A failed preparation is queued
-        -- as the single gameplay notice for that attempt, so it is not posted
-        -- again here while the phone is open.
-        if accepted and not (manager.developerMode and manager.developerMode()) then return end
+        -- The "is preparing memory and conversation" acknowledgement repeats the
+        -- phone's own "invite queued" and the progress notice that follows, so
+        -- it is a Developer-mode popup. An invitation that is already ready
+        -- tells the player to return to the game and is always shown. A failed
+        -- preparation is queued as the single gameplay notice for that attempt,
+        -- so it is not posted again here while the phone is open.
+        if preparing and not (manager.developerMode and manager.developerMode()) then return end
         if not accepted and invitationId then return end
         player:ConvaiPhoneFeedback(tostring(message))
         return
@@ -1329,10 +1333,10 @@ local function updatePhoneInvitationFeedback(player, worldReady)
             if member.state == lastPhoneInvitation.state and lastPhoneInvitation.localeRevision == ui.revision() then return end
             local failed = member.state == 'failed'
             -- A failure waits for gameplay so the paused phone/menu cannot
-            -- consume its single notice; routine progress is Developer mode only.
+            -- consume its single notice. Progress is always shown so a slow
+            -- preparation is not mistaken for a failure.
             if failed and not worldReady then return end
             lastPhoneInvitation.state, lastPhoneInvitation.localeRevision = member.state, ui.revision()
-            if not failed and not (manager.developerMode and manager.developerMode()) then return end
             local message = ui.t('{name}: preparing memory...',{name=member.name})
             if member.state == 'connecting' then message = ui.t('{name}: connecting...',{name=member.name})
             elseif member.state == 'ready-to-join' then message = ui.t('{name} is ready. Close the phone to join.',{name=member.name})

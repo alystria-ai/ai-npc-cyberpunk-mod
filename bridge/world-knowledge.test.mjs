@@ -462,3 +462,26 @@ test("V's question can pull a specific outcome ahead of unrelated relationship f
   assert.deepEqual(pick('what happened with the and was'), ['relationship.choice']);
   assert.deepEqual(pick('What happened with Jotaro at the Monster Hunt?'), ['gig.target']);
 });
+
+test('a reviewed co-witness hears V-involved outcomes outside excluded quests, without widening other listeners', () => {
+  const policy = {profileKey: 'johnny-silverhand', reviewed: true, perspectives: ['participant', 'private'],
+    excludeQuestKeys: ['prologue-quest'], origin: 'experienced it through V', rationale: 'Shares V senses after the prologue.'};
+  const withPolicy = rules => ({...pack(rules), coWitnesses: [policy]});
+  const johnny = {audience: {channel: 'private', profileKeys: ['johnny-silverhand']}};
+  const ask = (rules, fields = johnny, value = withPolicy(rules)) => resolveKnowledge({pack: value, profileKey: 'johnny-silverhand',
+    snapshot: snapshot(fields)});
+  assert.equal(validateKnowledgePack(withPolicy([rule()])).ok, true);
+  const heard = ask([rule()]);
+  assert.deepEqual(factsIn(heard).map(row => row.knowledgeOrigin), ['experienced it through V']);
+  assert.equal(factsIn(ask([rule()], johnny, pack([rule()]))).length, 0, 'no policy, no co-witness');
+  assert.equal(factsIn(ask([rule({questKey: 'prologue-quest'})])).length, 0, 'excluded quest');
+  assert.equal(factsIn(ask([rule({audience: {...rule().audience, perspective: 'witnessed'}})])).length, 0, 'perspective not listed');
+  const group = {audience: {channel: 'group', profileKeys: ['johnny-silverhand', 'panam-palmer']}};
+  const groupRule = rule({audience: {...rule().audience, channels: ['private', 'group']}});
+  assert.equal(factsIn(ask([groupRule], group)).length, 0, 'an undeclared listener still blocks the fact');
+  const shared = rule({audience: {...rule().audience, channels: ['private', 'group'], recipients: ['v', 'judy-alvarez', 'panam-palmer']}});
+  assert.equal(factsIn(ask([shared], group)).length, 1);
+  for (const bad of [{...policy, reviewed: false}, {...policy, profileKey: 'unknown'}, {...policy, perspectives: ['public']}]) {
+    assert.equal(validateKnowledgePack({...pack(), coWitnesses: [bad]}).ok, false);
+  }
+});

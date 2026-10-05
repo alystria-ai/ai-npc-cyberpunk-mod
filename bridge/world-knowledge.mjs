@@ -286,7 +286,22 @@ function preparePack(value) {
     validateCondition(rule.condition, rule, `${path}.condition`, {nodes: 0});
     rules.push(rule);
   }
-  return {pack, profiles, sources, evidence, facts, journals, rules, errors};
+  // Optional reviewed co-witness policy: a character who shares V's senses (the
+  // Relic engram) also knows V-involved outcomes of listed perspectives, except in
+  // quests where that character was not yet or no longer present.
+  const coWitnesses = new Map();
+  if (pack.coWitnesses !== undefined) {
+    const rows = array(pack.coWitnesses, 4, 'coWitnesses');
+    for (const [index, row] of rows.entries()) {
+      const path = `coWitnesses[${index}]`;
+      if (!plain(row) || !profiles.has(row.profileKey) || row.reviewed !== true || coWitnesses.has(row.profileKey)
+        || !stringList(row.perspectives, 3, value => ['participant', 'witnessed', 'private'].includes(value), 1)
+        || !stringList(row.excludeQuestKeys, 256, identifier) || !boundedText(row.origin, 200)
+        || !boundedText(row.rationale, 1200)) { fail('invalid-co-witness', path); continue; }
+      coWitnesses.set(row.profileKey, {perspectives: new Set(row.perspectives), exclude: new Set(row.excludeQuestKeys), origin: row.origin});
+    }
+  }
+  return {pack, profiles, sources, evidence, facts, journals, rules, coWitnesses, errors};
 }
 
 export function validateKnowledgePack(pack) {
@@ -347,11 +362,21 @@ function evaluate(node, snapshot, prepared) {
     ...(node.type === 'fact' ? {present: true} : {}), ...(node.type === 'journal' ? {questKey: row.questKey} : {})}] : []};
 }
 
-function permitted(rule, snapshot, profileKey) {
-  const audience = rule.audience;
-  if (audience.speakers !== 'all' && !audience.speakers.includes(profileKey)) return false;
+function coWitnessFor(rule, prepared, profileKey) {
+  const policy = prepared.coWitnesses?.get(profileKey), audience = rule.audience;
+  return !!policy && audience.speakers !== 'all' && !audience.speakers.includes(profileKey)
+    && policy.perspectives.has(audience.perspective) && !policy.exclude.has(rule.questKey)
+    && audience.recipients !== 'all' && audience.recipients.includes('v') ? policy : null;
+}
+
+function permitted(rule, snapshot, profileKey, prepared) {
+  const audience = rule.audience, coWitness = coWitnessFor(rule, prepared, profileKey);
+  if (audience.speakers !== 'all' && !audience.speakers.includes(profileKey) && !coWitness) return false;
   if (!audience.channels.includes(snapshot.audience.channel)) return false;
-  if (audience.recipients !== 'all' && !['v', ...snapshot.audience.profileKeys].every(key => audience.recipients.includes(key))) return false;
+  // A co-witness may hear the rule alongside its declared recipients; every
+  // other listener must still be a declared recipient.
+  if (audience.recipients !== 'all' && !['v', ...snapshot.audience.profileKeys]
+    .every(key => audience.recipients.includes(key) || (coWitness && key === profileKey))) return false;
   if (audience.perspective === 'told-by-v') return snapshot.disclosures.some(row => row.topic === rule.topic
     && row.outcome === rule.outcome && row.to.includes(profileKey));
   return true;
@@ -380,9 +405,9 @@ function rank(rule, snapshot, profileKey, query) {
     + (rule.category === 'relationship' ? 80 : rule.category === 'decision' ? 30 : 0)
     + (rule.audience.speakers !== 'all' && rule.audience.speakers.includes(profileKey) ? 40 : 0);
   // Relevance to what V just asked must be able to pull a specific outcome into a
-  // full budget ahead of unrelated relationship facts; it never establishes truth.
+  // full budget ahead of unrelated facts (50 per distinct term, up to 150); it never establishes truth.
   const terms = words(`${rule.questKey.replace(/-/g, ' ')} ${rule.topic.replace(/[._-]/g, ' ')} ${rule.statement}`);
-  score += Math.min(125, [...query].filter(word => terms.has(word)).length * 25);
+  score += Math.min(150, [...query].filter(word => terms.has(word)).length * 50);
   return score;
 }
 
@@ -471,7 +496,7 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
     if (conflicts.has(row.rule.topic) || (row.rule.exclusiveGroups ?? []).some(group => conflictingGroups.has(group.id))) {
       diagnostics.counts.conflicted += 1; trace(row.rule, 'conflict'); continue;
     }
-    if (!permitted(row.rule, current, profileKey)) { diagnostics.counts.outsideAudience += 1; trace(row.rule, 'outside-audience'); continue; }
+    if (!permitted(row.rule, current, profileKey, prepared)) { diagnostics.counts.outsideAudience += 1; trace(row.rule, 'outside-audience'); continue; }
     candidates.push({...row, score: rank(row.rule, current, profileKey, queryTerms)});
   }
   candidates.sort((a, b) => b.score - a.score || (a.rule.id < b.rule.id ? -1 : a.rule.id > b.rule.id ? 1 : 0));
@@ -482,7 +507,7 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
   for (const row of candidates) {
     if (seenTopics.has(row.rule.topic)) { trace(row.rule, 'duplicate-outcome'); continue; }
     const rule = row.rule, fact = {questKey: rule.questKey, topic: rule.topic, outcome: rule.outcome,
-      knowledgeOrigin: ORIGIN[rule.audience.perspective], text: rule.statement};
+      knowledgeOrigin: coWitnessFor(rule, prepared, profileKey)?.origin ?? ORIGIN[rule.audience.perspective], text: rule.statement};
     const proposed = render({...data, facts: [...data.facts, fact]});
     if (proposed.length > budget) { diagnostics.counts.omitted += 1; trace(rule, 'budget'); continue; }
     data.facts.push(fact); context = proposed; seenTopics.add(rule.topic); selected.push(row); trace(rule, 'selected');

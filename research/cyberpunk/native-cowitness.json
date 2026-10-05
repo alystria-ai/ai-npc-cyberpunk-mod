@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "coWitnesses": [
+    {
+      "profileKey": "johnny-silverhand",
+      "reviewed": true,
+      "perspectives": ["participant", "witnessed", "private"],
+      "excludeQuestKeys": [
+        "the-corpo-rat", "the-streetkid", "the-nomad", "the-rescue", "the-ripperdoc", "the-ride",
+        "the-information", "the-pickup", "venus-in-furs", "the-heist", "the-gift", "the-gig", "the-gun",
+        "playing-for-time",
+        "where-is-my-mind", "all-along-the-watchtower", "path-of-glory", "things-done-changed"
+      ],
+      "origin": "experienced it through V's eyes as the engram in V's head; not physically present",
+      "rationale": "From the Relic's activation after The Heist until Mikoshi, Johnny's engram shares V's senses and comments on what V sees, hears and does, including private conversations and romance. He therefore knows V-involved outcomes that other reviewed rules establish for other speakers. Excluded: the prologue and Heist (before the engram was active), Playing for Time (it surfaces only at its end), and the Devil, Star, Sun and 2079 epilogues, where Johnny is no longer with V. Temperance is kept because Johnny lives it. Rules still need their own native predicate and V as a recipient; group speech still requires every other listener to be a declared recipient."
+    }
+  ]
+}

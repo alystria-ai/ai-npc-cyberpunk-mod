@@ -26,7 +26,7 @@ export function jsonPointer(document, pointer) {
   return value;
 }
 
-export function mergeNativePacks(parts, profileKeys) {
+export function mergeNativePacks(parts, profileKeys, {coWitnesses} = {}) {
   const sources = new Map(), evidence = new Map(), rules = new Map(), factAllowlist = {}, journalAllowlist = {};
   const versions = new Set(), errors = [];
   function rows(map, values, kind) {
@@ -64,7 +64,8 @@ export function mergeNativePacks(parts, profileKeys) {
   }
   const pack = {version: 1, id: 'cyberpunk-reviewed-knowledge', revision: 1, gameVersions: [...versions].sort(),
     profileKeys: [...profileKeys].sort(), sources: [...sources.values()], evidence: [...evidence.values()],
-    factAllowlist, journalAllowlist, rules: [...rules.values()].sort((a, b) => a.id.localeCompare(b.id))};
+    factAllowlist, journalAllowlist, rules: [...rules.values()].sort((a, b) => a.id.localeCompare(b.id)),
+    ...(coWitnesses ? {coWitnesses} : {})};
   const validation = validateKnowledgePack(pack);
   errors.push(...validation.errors.map(row => `Runtime pack: ${JSON.stringify(row)}`));
   return {pack, errors};
@@ -180,7 +181,9 @@ async function main() {
   const catalog = await read(resolve(research, 'generated/quest-catalog.json'));
   const decisions = new Map(catalog.quests.flatMap(quest => quest.decisions.map(decision => [decision.id, {...decision, questKey: quest.key}])));
   const topicAliasDocument = await read(resolve(research, 'native-topic-aliases.json'));
-  const {pack, errors} = mergeNativePacks(parts, profiles.map(row => row.key));
+  // Reviewed co-witness policy (characters who share V's senses); see the file.
+  const coWitnessDocument = await read(resolve(research, 'native-cowitness.json'));
+  const {pack, errors} = mergeNativePacks(parts, profiles.map(row => row.key), {coWitnesses: coWitnessDocument.coWitnesses});
   const cache = resolve(research, 'cache/game'), inventory = await read(resolve(cache, 'inventory.json'));
   // Scene exports are deliberately bounded to reviewed graph references and
   // keep separate manifests. Canonicalize their paths without flattening them.
