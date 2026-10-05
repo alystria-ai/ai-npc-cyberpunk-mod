@@ -3,7 +3,7 @@
 This document records the development methods, defects found, corrections and
 remaining verification limits for the Cyberpunk Convai overhaul. It covers the
 current runtime and its development tools, not just the latest visible feature.
-The [consolidated handoff](../HANDOFF_README.md#11-remaining-work-in-practical-order-after-resumption) now holds the requested-feature and acceptance backlog; the former TODO was merged there.
+The [TODO list](../TODO.md) now holds the requested-feature and acceptance backlog.
 
 **Initial audit checkpoint:** locally committed and installed; **1,159 / 1,159**
 Node checks passed with installed MCM and no failures/skips. The user activated

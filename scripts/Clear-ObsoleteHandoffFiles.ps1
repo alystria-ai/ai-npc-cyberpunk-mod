@@ -1,7 +1,7 @@
 param([switch]$ListOnly)
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
-if (-not (Test-Path -LiteralPath (Join-Path $projectRoot 'HANDOFF_README.md'))) {
+if (-not (Test-Path -LiteralPath (Join-Path $projectRoot 'TODO.md'))) {
     throw 'Run only from the Cyberpunk Mod checkout containing the handoff.'
 }
 # Exact retired targets reviewed on October 5. No wildcard model/data deletion.

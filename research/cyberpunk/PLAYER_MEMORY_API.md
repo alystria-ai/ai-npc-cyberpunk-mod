@@ -6,7 +6,7 @@ made no authenticated cloud requests, created no profiles or end users, and
 enabled or deleted no remote memory. API shapes below are source qualification;
 the new production flow is not yet qualified by a real conversation and clear.
 
-This document follows the single-ID decision now preserved in [the consolidated handoff](../../HANDOFF_README.md) and supersedes the
+This document follows the single-ID decision now preserved in [the TODO list](../../TODO.md) and supersedes the
 three-ID/anonymous/manual-archive policy at the top of `MEMORY_API_AUDIT.md`.
 The existing archive probes must not be resumed to implement this policy.
 

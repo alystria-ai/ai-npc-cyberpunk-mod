@@ -1,6 +1,6 @@
 # Character voice preparation
 
-> **October 5 stop/handoff:** all work is paused. The latest expanded teacher137093247/v1 is CANCEL_ACKNOWLEDGED, and its successor student has not started. The [consolidated handoff](../HANDOFF_README.md#10-kaggle-lineage-and-observability) supersedes historical running-state statements below and records the exact retained models, source changes, credentials and receipts.
+> **Current state:** see the [TODO list](../TODO.md) captain's log. The October 5 expanded teacher overfit after about 1,000 updates; update 1,000 was selected and a student distillation from it is running. Historical running-state statements below are superseded.
 
 ## Current shared Pocket training — October 4
 

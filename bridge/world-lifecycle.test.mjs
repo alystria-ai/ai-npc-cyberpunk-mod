@@ -213,7 +213,7 @@ local group = {cancel = function() note('group-cancel') end,
 local phone = {configure = function(_, _, options) stats.phoneOptions = options end,
     update = noOp, abandon = function() note('phone-abandon') end}
 local manager = {subtitleStyle = 'game', configure = noOp, interfaceLanguage = function() return 'auto' end, profileEnabled = function() return true end,
-    battleReactions = function() return false end, lootReactions = function() return false end,
+    developerMode = function() return false end, battleReactions = function() return false end, lootReactions = function() return false end,
     update = noOp, reset = function() note('manager-reset') end}
 local partyQueue
 local mcm = {configure = function(_, suppliedCompanions, factory, _, readiness)
@@ -379,8 +379,11 @@ end
 test('group playback waits for hidden text continuation and advances only after subtitle ownership releases', () => run(`
 events.onInit();events.onUpdate(0)
 player.GetWorldPosition=function() return {x=0,y=0,z=0} end
-local actor={IsAttached=function()return true end,IsDeadNoStatPool=function()return false end,
- GetWorldPosition=function()return {x=0,y=3,z=0}end}
+local actor={GetEntityID=function()return {hash='13ULL'}end,IsAttached=function()return true end,IsDeadNoStatPool=function()return false end,
+ GetWorldPosition=function()return {x=0,y=3,z=0}end,GetBodyType=function()return 'Woman'end,
+ GetRecordID=function()return 'Character.Judy'end,IsCrowd=function()return false end}
+companions.identity=function()return 'judy-alvarez','Judy',true end
+modules['character-catalog.lua'].resolve=function(_,value)return value.managedKey,'Judy' end
 local round={requestId='text-round',mode='text',stage='playing',index=1,
  participants={{entity='13ULL',profileKey='judy-alvarez',npc=actor}}}
 group.round=round

@@ -1,6 +1,6 @@
 # Cyberpunk Convai
 
-**Developer handoff:** work was paused on October 5. See [HANDOFF_README.md](HANDOFF_README.md) for the complete project history, current source/install differences, remaining defects, credential locations and cancelled Kaggle training state.
+**Development:** see [TODO.md](TODO.md) for open work, the captain's log and the standing facts (paths, protected files, credential locations, decisions).
 
 Talk with Night City characters, invite travelling companions, and keep in touch through a native phone Chat tab. Conversations use Convai for dialogue, with a choice of local Pocket TTS character voices or Convai voices. The companion manager uses Cyberpunk's Mod Configuration Menu, and replies use native subtitles and facial animation.
 

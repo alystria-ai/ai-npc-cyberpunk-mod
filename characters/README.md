@@ -33,4 +33,4 @@ Credentials, character IDs, API responses and backup snapshots stay in ignored `
 
 Private text uses the addressed identity. Group text uses that identity first, then at most two different nearby supported companions; duplicate copies count once. The input heading shows only the addressed name. Assign these actions in CET's Bindings; the mod does not impose particular keys. Characters unlocked later in the phone use the same mapping when they become available. Service contacts and unmapped drones do not become walking NPCs through conversation profiles.
 
-Source validation and API readback establish configuration correctness. They do not establish the quality of every in-game conversation, follower body, animation or voice. Those require live observations and are tracked in the [current handoff backlog](../HANDOFF_README.md#11-remaining-work-in-practical-order-after-resumption).
+Source validation and API readback establish configuration correctness. They do not establish the quality of every in-game conversation, follower body, animation or voice. Those require live observations and are tracked in the [TODO list](../TODO.md).
