@@ -3,6 +3,7 @@ LIVE_LOCK = threading.Lock()
 LIVE_STOP = threading.Event()
 LIVE_PHASE = "python_startup"
 LIVE_FILE = Path("/kaggle/working/full-live-events.ndjson")
+LIVE_STAGE = "teacher" if BINDINGS["role"] == "teacher" else "distill"
 _original_run_logged = run_logged
 _original_progress_watch = progress_watch
 
@@ -49,6 +50,46 @@ def progress_watch(raw, seen):
                     seen["log_offsets"][name] = cursor + end + 1
 
 
+def import_bucket_teacher():
+    """Student only: fetch the selected teacher candidate and export it.
+
+    A stopped teacher run has no completed Kaggle output to mount, so the
+    selected compact candidate comes from the private checkpoint bucket.
+    Returns the import_teacher_* fields the student recipe leaves empty.
+    """
+    selected = BINDINGS["bucket_teacher"]
+    root = SCRATCH / "teacher-results/teacher"
+    checkpoint = root / "candidates" / PurePosixPath(selected["path_in_bucket"]).name
+    result = BOOTSTRAP / "selected-teacher-export.json"
+    log("Fetching the selected teacher from the private checkpoint bucket and exporting it")
+    command = [sys.executable, str(SCRATCH / "candidate/scripts/pocket_training/selected_teacher_export.py"),
+        "--download", "--bucket-path", selected["path_in_bucket"], "--expected-bytes", str(selected["bytes"]),
+        "--source", str(SCRATCH / "pocket-source"), "--config", str(SCRATCH / selected["architecture_config"]),
+        "--assets-root", str(SCRATCH), "--tokenizer", str(SCRATCH / "models/tokenizer.json"),
+        "--checkpoint", str(checkpoint), "--export-dir", str(root / "export"),
+        "--expected-step", str(selected["step"]), "--expected-weights", selected["weights"],
+        "--expected-input-identity", selected["input_identity"],
+        "--selection-basis", selected["selection_basis"], "--result", str(result)]
+    # A transfer can die without a traceback; each attempt is a new process
+    # and a completed download is reused.
+    for attempt in range(1, 4):
+        code = _original_run_logged(command, f"teacher-import-{attempt}")
+        if code == 0:
+            break
+        live_event("selected_teacher_attempt_failed", attempt=attempt, returncode=code)
+    else:
+        raise RuntimeError("Selected teacher download/export failed three times")
+    exported = read(result)
+    live_event("selected_teacher_ready", step=exported["step"], weights=exported["weights"],
+               model_bytes=exported["model_bytes"], path_in_bucket=selected["path_in_bucket"])
+    return {"import_teacher_checkpoint": checkpoint.relative_to(SCRATCH).as_posix(),
+            "import_teacher_weight_kind": exported["weights"],
+            "import_teacher_expected_sha256": exported["model_sha256"],
+            "import_teacher_expected_checkpoint_sha256": exported["checkpoint_sha256"],
+            "import_teacher_expected_input_identity": exported["input_identity"],
+            "import_teacher_expected_step": exported["step"]}
+
+
 def run_logged(command, name, raw=None):
     if name == "install":
         command = list(command) + ["huggingface_hub==1.33.0"]
@@ -70,7 +111,11 @@ def run_logged(command, name, raw=None):
                 raise ValueError("Installed overlay content differs")
             changes.append({key: value for key, value in item.items() if key != "source"})
         atomic(BOOTSTRAP / "source-overlays.json", changes)
-        raw["gpu_budget_seconds"] = BINDINGS["teacher_lifetime_budget_seconds"]
+        if BINDINGS["role"] == "student":
+            raw.update(import_bucket_teacher())
+            raw["gpu_budget_seconds"] = BINDINGS["available_execution_seconds"]
+        else:
+            raw["gpu_budget_seconds"] = BINDINGS["teacher_lifetime_budget_seconds"]
         # One original Judy recording is 32.51 s, but its sole aligned target
         # is 13.51 s. Admit the unchanged source; the target window stays 30 s.
         raw["max_utterance_seconds"] = 33
@@ -86,18 +131,21 @@ def run_logged(command, name, raw=None):
         raw["private_remote_checkpoints"] = True
         raw["remote_checkpoint_run_id"] = BINDINGS["remote_checkpoint_run_id"]
         raw["remote_checkpoint_max_keep"] = 3
+        # Launcher-declared recipe changes (the student's stopping rule).
+        raw.update(BINDINGS.get("recipe_overrides", {}))
         path = SCRATCH / (BINDINGS["role"] + "-execution-spec.json")
         atomic(path, raw)
         atomic(BOOTSTRAP / "execution-spec.json", raw)
-        live_event("full_recipe_ready", train_rows=8140, effective_batch=64, gpus=2,
-                   planned_updates=raw["teacher_max_steps"], learning_rate=raw["teacher_learning_rate"],
-                   warmup_updates=raw["teacher_warmup_steps"], diagnostic_subset=False,
-                   checkpoint_max_keep=3, checkpoint_storage="private_bucket")
+        live_event("full_recipe_ready", role=BINDINGS["role"], train_rows=8140, effective_batch=64, gpus=2,
+                   planned_updates=raw[LIVE_STAGE + "_max_steps"], learning_rate=raw[LIVE_STAGE + "_learning_rate"],
+                   warmup_updates=raw[LIVE_STAGE + "_warmup_steps"], diagnostic_subset=False,
+                   checkpoint_max_keep=3, checkpoint_storage="private_bucket",
+                   recipe_overrides=sorted(BINDINGS.get("recipe_overrides", {})))
     return _original_run_logged(command, name, raw)
 
 
 os.environ["PYTHONUNBUFFERED"] = "1"
-live_event("python_started", planned_role="teacher", diagnostic_subset=False)
+live_event("python_started", planned_role=BINDINGS["role"], diagnostic_subset=False)
 threading.Thread(target=heartbeat, daemon=True).start()
 try:
     full_original_main()
