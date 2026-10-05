@@ -213,7 +213,10 @@ export class PocketFacialStream {
   jaliSnapshot(receivedFrames,sourceComplete) {
     const duration=receivedFrames/RATE,frames=this.model.frames,failed=Boolean(this.model.failed);
     const covered=Math.min(duration,frames.coveredSeconds());
-    if(this.modelStart===undefined&&covered>this.audiblePosition+JALI_LEAD_SECONDS)this.modelStart=this.audiblePosition;
+    if(this.modelStart===undefined&&covered>this.audiblePosition+JALI_LEAD_SECONDS){
+      this.modelStart=this.audiblePosition;
+      this.measure({type:'model',engine:JALI_ARTICULATION,startSeconds:this.modelStart,coveredSeconds:covered,receivedSeconds:duration});
+    }
     const start=this.modelStart??Infinity;
     const geometryKey=`jali:${this.revision}:${receivedFrames}:${sourceComplete}:${start}`;
     const key=`${geometryKey}:${this.audiblePosition}`;
