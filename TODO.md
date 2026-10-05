@@ -27,6 +27,7 @@ After the agents above finish:
 - Install manifests are missing the quest-knowledge modules (`fact-identity*`, `knowledge-state`, `save-identity*`); add them with the quest agent's results.
 - Convai test user `44634786-9337-4103-b8dd-dc553202563b` (on alex): `memory/list` returns HTTP 502, which looks like a Convai server fault. Remove the user when it's no longer needed (`memory/delete-all`, then the dashboard).
 
+- After all agents finish: run the full `npm test` and triage what fails. Last seen: about 7 installer and binding-setup failures, plus the bridge-import allowlist.
 - `packaging/runtime-bootstrap.test.mjs` fails: its allowlist lacks newer bridge modules (`analysis-pcm`, `distraction-context`, `jali-face*` and others). Fix it once the lip-sync and actions modules are final. `bridge-startup.test.mjs` times out under full-suite load but passes alone.
 - Movement design questions from the test triage: (1) a follow blocked beyond 6 m can still enter the "advance" detour mode (`block()` in `companion-actuator.lua`), but no current test reaches it. Decide whether to keep it for follow, and test it if so. (2) Initial follow admissions skip the 2-member planning turn, so each one costs one native navigation query (8 at once costs 8). The 192 physics-query cap still holds. Treated as intended.
 
