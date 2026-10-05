@@ -1,5 +1,7 @@
 # Native facial animation
 
+> **October 5:** local voices and continuous Convai speech now use a model trained on the game's own JALI dialogue lipsync when local weights exist; see [GAME_LIPSYNC_MODEL.md](GAME_LIPSYNC_MODEL.md). The paths below remain the fallback.
+
 ## October 2: facial graph lifetime across appearance changes
 
 Johnny's seated reply delivered 186 facial applications and a reset, but the

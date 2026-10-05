@@ -1,5 +1,55 @@
 # Companion expressions
 
+## October 5: what Convai actually sends, game-informed ranges, all routes
+
+**Live probe** (`scripts/lipsync/probe_convai_emotion.mjs`, four short turns as
+the existing test end user on Alex): every *voiced* turn carried exactly one
+`bot-emotion` server message (label + scale, e.g. `Interest`/1), on the pinned
+provider's reliable channel, after the reply's LLM text and before the first
+audio packet. Neither its inner nor outer envelope has a `response_id`,
+`turn_id` or epoch, so the previous receiver rejected **every** live emotion
+(`missing-or-invalid-event-owner`); this is why no correlated emotion had ever
+been seen. *Text-only* turns (the ones Pocket and Omni voice) carried **no**
+emotion at all.
+
+Changes:
+
+- `ConvaiEmotion.acceptOrdered` admits one id-less label per response when it
+  arrives on that ordered channel after the response's own audio owner *or*
+  its reply text, and before its terminal; a second id-less label makes the
+  response ambiguous (no expression). Events with ids keep the strict match.
+  The label therefore reaches the face before the first spoken syllable.
+- Local voices: `bridge/text-emotion.mjs` derives a cue from the reply's own
+  text (small lexicon, negation, intensity); it fires only when one feeling
+  clearly dominates and otherwise leaves the face neutral. Ownership is exact
+  (it is that reply's text). Same receipt path as Convai.
+- Voice-synchronous upper face: the game's dialogue lipsync animates brows
+  with the voice (raise in/out together: speech mean .10, p95 .44; lower: p95
+  .16). The game-trained model learns brow raise/lower from audio and
+  timelines carry them (`modelExpressions`, `jali-upper-v1`, same frame times
+  as the mouth). The single writer halves them, caps them at .20, combines them
+  by **max** with the smoothed emotional pose (never summed), and reduces raises
+  in anger/disgust and lowering in joy/trust/surprise. Mouth expression still
+  yields to lip contact and rounding after smoothing; visemes keep the mouth.
+- Ranges now follow the game more closely: corner up .12 (game dialogue holds
+  ~.10), corner down .10, brows .20; speech keeps 60 % of mouth emotion (was 30 %).
+
+What the native rig/animation system offers: the 414-track face rig has the
+full expression set (corners, brows, squints, sneer, cheeks), all reachable
+through our 50-control feature for corners and brows. The game also has an
+authored crowd mood layer, `AnimFeature_FacialReaction {category, idle}`
+(e.g. 3/5 joy, 3/3 sad, 3/1 aggressive, 3/7 disgust, 3/8 surprise, 3/10 fear,
+1/3 curiosity, 2/2 neutral; `reactionComponent.script`). It is consumed by
+`man_average_sermo`/`woman_average_sermo` but **not** by
+`player_woman_photomode_sermo` (Judy's graph), is tied to crowd look-at
+reactions and graph states, and would change base mouth tracks under the
+lipsync; it is documented here but not used.
+
+Verification: CPU/fixture tests cover ordered admission (before owner, after
+text, duplicate, after terminal), text cues, local routing, the brow curve
+through the real Lua writer, misaligned curves and caps. Rendered strength on
+Judy/Johnny remains the in-game check.
+
 ## Product behavior and current scope
 
 Managed companions should have a small relaxed smile at rest by default.

@@ -1,5 +1,7 @@
 # Lip articulation refinement, September 29
 
+> **October 5:** local voices and continuous Convai speech now use a model trained on the game's own JALI dialogue lipsync when local weights exist; see [GAME_LIPSYNC_MODEL.md](GAME_LIPSYNC_MODEL.md). The paths below remain the fallback.
+
 ## October 1: Omni native-calibration parity
 
 Convai v10 is accepted as "good enough." The user then requested the compatible
