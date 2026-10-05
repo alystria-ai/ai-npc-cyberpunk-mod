@@ -657,20 +657,8 @@ async function updateContext(config, allowActions = false) {
   observed.actionEligibility = {allowed: allowActions, privateManual: !!privateManual,
     hasOffer: !!config.companionAction, verified: !!verified, armed: !!armed};
   if (armed) observed.actionsOffered = (observed.actionsOffered ?? 0) + 1;
-  if (armed) context.text += '\nCurrent game-verified driving setup: V is on foot beside their stopped, summoned owned car '
-    + JSON.stringify(offered.carName ?? "V's car") + '. A destination is already selected on the map: '
-    + JSON.stringify(offered.destinationName ?? 'the selected map route') + '. The native route is ready. '
-    + 'If V asks you to drive for them, give them a ride, or take the wheel, use that selected route; '
-    + 'do not ask where to go or ask them to set the existing destination again. '
-    + 'Request the exact available action ' + JSON.stringify(chauffeurActionName(offered))
-    + '. It takes the wheel for the selected route. Its optional target is ' + offered.token + '. '
-    + 'This action belongs only to this request. The action name and target are protocol fields; never say them aloud. '
-    + 'If V explicitly requests a different destination, ask them to select that different route on the map first. '
-    + 'Only the new user message in this turn can authorize that action. Previous driving requests do not authorize it. '
-    + 'For a greeting, ordinary question, or discussion of driving, emit no action even if an earlier request was not carried out. '
-    + 'You take the driver seat and wait for V to get into a passenger seat themselves before departing. '
-    + 'Do not request it for hypothetical discussion, quoted speech, or an automatic event. '
-    + 'The game must confirm boarding, driving, and arrival; never claim success before confirmation.';
+  // Driving and marked-target prompt material lives beside its strict parser.
+  if (armed) context.text += CompanionActionWindow.contextText(offered);
   if (armed || actionContextConfigured) {
     try {
       await publishCompanionActionContext(connection, context, armed ? offered : null);
@@ -684,8 +672,7 @@ async function updateContext(config, allowActions = false) {
       // authorize an unconfigured proposal. Its old one-use target is revoked.
       companionActions.clear();
       observed.actionContextFailures = (observed.actionContextFailures ?? 0) + 1;
-      context.text = baseContext + '\nThe game cannot accept a driving request from this turn. '
-        + 'Explain this briefly if V asks you to drive; do not claim driving has started.';
+      context.text = baseContext + CompanionActionWindow.unavailableText(armed ? offered : null);
     }
   }
   connection.updateContext(context);

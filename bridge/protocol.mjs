@@ -7,7 +7,7 @@ import {parseBattle, parseReaction} from './battle-context.mjs';
 import {parseLoot} from './loot-context.mjs';
 import {parseWorldSnapshot} from './world-knowledge.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
-import {parseChauffeurOffer} from './companion-actions.mjs';
+import {parseChauffeurOffer, parseTacticOffer} from './companion-actions.mjs';
 
 export function profileFor(input, roster) {
   return roster.find(profile => profile.key === input.profileKey);
@@ -36,9 +36,10 @@ export function parseInput(raw) {
   // A malformed optional offer removes only gameplay admission; the original
   // conversation is still valid and must keep its actor/request identity.
   const chauffeurOffer = parseChauffeurOffer(value.chauffeurOffer);
+  const tacticOffer = parseTacticOffer(value.tacticOffer);
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
     followUpQuestions: followUpsEnabled(value.followUpQuestions),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
-    ...(chauffeurOffer ? {chauffeurOffer} : {}),
+    ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
     ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {})};
 }
