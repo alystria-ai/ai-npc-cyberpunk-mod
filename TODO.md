@@ -8,8 +8,11 @@ The single working document for development: open items first, then a dated log,
 - **Student distillation** (Kaggle kernel 137135141, `cp2077-full-a-student-114278c5e96c449e`, bucket run `full-a-student-20261005-114278c5`). Teacher: update 1,000 raw from the expanded run. It stops after two evaluations without held-out improvement (earliest 2,000 updates, cap 12,000). Next: pick the best checkpoint by held-out and speech evidence, produce listening samples, and install only with user approval. Check with `vendor/kaggle-env/Scripts/python.exe scripts/Pocket-FullAStudent.py stream --folder runtime/voice-data-expansion-20261005/full-a-student/<run>`.
 - **Lip sync + facial expressions** (agent): all three routes, Convai emotion, and Convai audio-output start at turn start (~150–200 ms).
 - **Quest outcomes** (agent with Sonnet helpers): review the pipeline, map every outcome that has a reliable native predicate, then merge and verify the pack.
-- **Duplicate-copy dismissal/reassignment** (agent).
 - **Combat + loot comment queue and Legendary pickup comments** (agent).
+- **Stale voice after reassign** (agent): retire a copy's in-flight private reply when its profile is reassigned.
+- **Old test failures** (agent): 2 `manager.test.mjs` tests and 1 `invitation-readiness` test, judged out of date, real bug or broken setup.
+- **Relationship routing review** (agent): verify Auto/On/Off routing and quest predicates for Judy, Panam, River, Kerry and Meredith, with tests.
+- **22 old movement test failures** (agent): judged out of date, real bug or broken setup.
 - **Group chat speed** (agent): request the next speaker as soon as the previous one's text is known, and prefetch its audio.
 
 ### Waiting for one combined install and in-game test
@@ -25,8 +28,6 @@ After the agents above finish:
 - Relationships: profile routing on a relevant save; natural recall of quest branches.
 
 ### Smaller gaps
-- Two `manager.test.mjs` preparation-popup tests fail at HEAD (pre-existing); check whether they are stale or real.
-- **22 companion fixture tests** have failed since before October 5 (mostly `companion-follow-projection`, plus query-budget, recovery-transactions, obstacles, one motion and one vehicles test). Decide test by test whether each is stale or a real bug.
 - Install manifests are missing the quest-knowledge modules (`fact-identity*`, `knowledge-state`, `save-identity*`); add them with the quest agent's results.
 - Convai test user `44634786-9337-4103-b8dd-dc553202563b` (on alex): `memory/list` returns HTTP 502, which looks like a Convai server fault. Remove the user when it's no longer needed (`memory/delete-all`, then the dashboard).
 
@@ -52,6 +53,7 @@ After the agents above finish:
 - Bridge auto-start: a RED4ext plugin starts a Node supervisor with the game and stops it on exit (installed; first launch not yet checked).
 - Conversation: the "always ask a follow-up question" rule is removed from prompts and all 84 profiles' speaking style, and re-pushed to Convai. The MCM toggle is gone.
 - Actions: Fight and Distract are implemented (`docs/COMPANION_TACTICS.md`), not yet tried in game.
+- Duplicate copies: phone dismiss now removes one copy by the character it speaks as, newest first, and skips a chauffeur driver if another copy can go (16 tests). Cars: dismissing one passenger no longer makes everyone re-board, and only the chauffeur driver leaving cancels a trip.
 - Phone contacts: mapping covers all 102 catalog contacts every session, so mid-session unlocks already work for J-invites (test added). Memory picker now says nothing was deleted when backing out or cancelling.
 - Housekeeping: `world-lifecycle` (15/15) and `knowledge-integration` (26/26) fixtures repaired, `movement-log.lua` added to the install manifests, UI catalog regenerated, retired follow-up strings removed.
 - Docs: the voice cloning devslot moved out of the repo to `C:\Users\akshi\Downloads\convai voice cloning devslot` (technical cloning info only; no audio or checkpoints).
