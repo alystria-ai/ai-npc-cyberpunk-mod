@@ -130,39 +130,9 @@ private let m_convaiSelected: Bool;
 @addField(PhoneContactItemVirtualController)
 private let m_convaiLabelWidth: Float;
 
-@addField(PhoneContactItemVirtualController)
-private let m_convaiFeedback: wref<inkText>;
-
-@addMethod(PhoneContactItemVirtualController)
-private final func ConvaiShowActionFeedback(message: String) -> Void {
-    if !IsDefined(this.m_convaiFeedback) {
-        let label: wref<inkWidget> = inkWidgetRef.Get(this.m_label);
-        let parent: ref<inkCompoundWidget> = IsDefined(label) ? label.GetParentWidget() as inkCompoundWidget : null;
-        if !IsDefined(parent) { return; };
-        let feedback: ref<inkText> = new inkText();
-        feedback.SetName(n"convaiActionFeedback");
-        feedback.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
-        feedback.SetFontStyle(n"Medium");
-        feedback.SetFontSize(22);
-        feedback.SetSize(new Vector2(376.0, 26.0));
-        feedback.SetHAlign(inkEHorizontalAlign.Left);
-        feedback.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
-        feedback.BindProperty(n"tintColor", n"MainColors.Blue");
-        feedback.SetInteractive(false);
-        feedback.SetAffectsLayoutWhenHidden(false);
-        feedback.Reparent(parent);
-        this.m_convaiFeedback = feedback;
-    };
-    this.m_convaiFeedback.SetText(message);
-    this.m_convaiFeedback.SetVisible(StrLen(message) > 0);
-}
-
 @addMethod(PhoneContactItemVirtualController)
 private final func ConvaiLayoutActions(selected: Bool) -> Void {
     this.m_convaiSelected = selected;
-    if IsDefined(this.m_convaiFeedback) {
-        this.m_convaiFeedback.SetVisible(false);
-    };
     let visible: Bool = selected && StrLen(this.ConvaiContactKey()) > 0;
     let player: ref<PlayerPuppet> = GetPlayer(GetGameInstance()) as PlayerPuppet;
     let available: Bool = IsDefined(player) && player.ConvaiPhoneContactAvailable(this.ConvaiContactKey());
@@ -242,11 +212,10 @@ public final func ConvaiRequestCompanion(join: Bool) -> Bool {
     if !this.m_convaiSelected || StrLen(key) == 0 || !IsDefined(player) {
         return false;
     };
-    let accepted: Bool = player.ConvaiPhoneQueue(key, join);
-    this.ConvaiShowActionFeedback(accepted
-        ? (join ? "INVITE QUEUED - CLOSE PHONE" : "DISMISS QUEUED - CLOSE PHONE")
-        : (player.ConvaiPhoneContactAvailable(key) ? "CLOSE PHONE TO CONTINUE" : "COMPANION UNAVAILABLE"));
-    return accepted;
+    // Feedback goes to the HUD notice only. An extra line inside the row made
+    // it taller; under a hovering cursor the list then re-selected neighbours
+    // in a loop and raced through every contact.
+    return player.ConvaiPhoneQueue(key, join);
 }
 
 @addField(PlayerPuppet)
@@ -312,7 +281,7 @@ public final func ConvaiPhoneQueue(key: String, join: Bool) -> Bool {
     };
     if ArraySize(this.m_convaiPhoneRequests) < 8 {
         ArrayPush(this.m_convaiPhoneRequests, (join ? "+" : "-") + key);
-        this.ConvaiPhoneFeedback(this.m_convaiPhoneContactNames[index] + (join ? ": invite queued." : ": dismiss queued."));
+        this.ConvaiPhoneFeedback(this.m_convaiPhoneContactNames[index] + (join ? ": invite queued. Close the phone to continue." : ": dismiss queued. Close the phone to continue."));
         return true;
     };
     this.ConvaiPhoneFeedback("Close the phone to finish the pending companion requests.");
