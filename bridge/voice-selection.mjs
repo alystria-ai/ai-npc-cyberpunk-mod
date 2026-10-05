@@ -7,6 +7,9 @@ import {abortable, throwIfCancelled} from './transport-pool.mjs';
 // can begin from a settings draft while that routing remains unchanged.
 // CPU/CUDA workers retire through confirmed EOF before another backend starts.
 export const canonicalVoiceProvider = value => ['hybrid','omnivoice'].includes(value) ? 'omni' : value;
+// The player's list, best first: OmniVoice (32 or 16 steps), Pocket TTS, Convai.
+// A choice that cannot run falls to the next entry; Convai is always runnable.
+export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket','convai']);
 const local = value => value === 'pocket' || value === 'omni';
 const equalSet = (a,b) => a.size===b.size&&[...a].every(key=>b.has(key));
 export class VoiceSelection {
@@ -34,8 +37,37 @@ export class VoiceSelection {
     this.retiring = Promise.resolve(); this.releasing = false;
     this.state = this.configured ? 'stopped' : 'disabled'; this.details = {};
     this.availabilities={pocket:new Set(pocketRegistry.keys),omni:new Set(omniRegistry.keys),convai:new Set()};
+    // The default choice is OmniVoice; it starts on the first usable entry of
+    // the list so a machine without Omni begins on Pocket without a switch.
+    this.requestedProvider='omni';this.failedBackends=new Set();
+    this.provider=this.resolve('omni');
+    this.state = this.configured ? 'stopped' : 'disabled';
     this.verifiedAvailabilities=new Map();this.busy=false;
+    // failedBackends: local workers that could not start or died (no CUDA, load
+    // error, crash) stay out of routing until the player chooses them again.
     this.routeRevision = 0; this.routeChanges = new Set(); this.routingWaiters = new Set();
+  }
+  backendUsable(backend){
+    return backend==='convai'||(!!this.configuredByBackend[backend]&&this.availabilities[backend].size>0
+      &&!this.failedBackends.has(backend));
+  }
+  // The first usable entry at or below the requested one.
+  resolve(provider){
+    const start=VOICE_FALLBACK_ORDER.indexOf(provider);
+    return VOICE_FALLBACK_ORDER.slice(Math.max(start,0)).find(backend=>this.backendUsable(backend))||'convai';
+  }
+  get resolvedProvider(){return this.resolve(this.requestedProvider);}
+  // Set only once the fallback is the committed route, so the player is told
+  // after the voice actually changed, never during a pending switch.
+  get fallback(){
+    const want=this.resolvedProvider;
+    return want!==this.requestedProvider&&this.provider===want?{from:this.requestedProvider,to:want}:null;
+  }
+  // Why a character is on Convai: chosen, or the local voice cannot serve it.
+  convaiReason(profile){
+    if(this.requestedProvider==='convai')return 'selected';
+    const status=this.registries.pocket.status(profile);
+    return status==='ready'?'unavailable':status;
   }
   get registry(){return this.registries[this.provider];}
   get config(){return this.configs[this.provider]||{};}
@@ -53,10 +85,14 @@ export class VoiceSelection {
       for(const key of this.routeKeys)this.routeChanges.add(key);
     }
     const chosen=canonicalVoiceProvider(settings?.voiceProvider);
-    if (['pocket','omni','convai'].includes(chosen))this.requestedProvider=chosen;
+    if (['pocket','omni','convai'].includes(chosen)){
+      // Choosing a provider again retries it, even if it failed earlier.
+      if(chosen!==this.requestedProvider)this.failedBackends.delete(chosen);
+      this.requestedProvider=chosen;
+    }
     if ([16,32].includes(settings?.omniSteps))this.requestedOmniSteps=settings.omniSteps;
   }
-  get pending() { return this.provider!==this.requestedProvider
+  get pending() { return this.provider!==this.resolvedProvider
     ||(this.provider==='omni'&&this.omniSteps!==this.requestedOmniSteps); }
   get availabilityPending() { const verified=this.verifiedAvailabilities.get(this.provider);
     return !!verified&&!equalSet(this.availability,verified); }
@@ -90,8 +126,9 @@ export class VoiceSelection {
     // An unloadable settings draft must not retire a usable committed worker.
     // Apply still changes routing normally and lets unsupported profiles use
     // Convai; a configured draft retains its existing warm-up/retirement path.
-    return [this.preview?.provider,this.requestedProvider,this.provider].find(candidate=>local(candidate)
-      &&this.configuredByBackend[candidate]&&this.availabilities[candidate].size>0)||null;
+    const candidates=[this.preview&&this.resolve(this.preview.provider),this.resolvedProvider,this.provider];
+    return candidates.find(candidate=>local(candidate)&&this.configuredByBackend[candidate]
+      &&this.availabilities[candidate].size>0&&!this.failedBackends.has(candidate))||null;
   }
   get warmSteps(){return this.preview?.provider==='omni'?this.preview.omniSteps:this.requestedOmniSteps;}
   setPreview(preview) {
@@ -134,7 +171,7 @@ export class VoiceSelection {
   publish(state = this.state, extra = {}) {
     this.state = state;
     const value = {...this.details, version: 1, state, provider: this.provider,
-      requestedProvider: this.requestedProvider, pending: this.pending,
+      requestedProvider: this.requestedProvider, fallback: this.fallback, pending: this.pending,
       playbackEnabled:this.playbackEnabled,
       omniSteps:this.omniSteps,requestedOmniSteps:this.requestedOmniSteps,
       workerBackend:this.clientBackend,preparationQueued:this.targetBackend!==this.clientBackend,
@@ -154,10 +191,19 @@ export class VoiceSelection {
     if (!this.pending && !this.availabilityPending) { this.settleRouting(); return false; }
     if (busy) { this.reconcile(); this.publish(); return false; }
     const previous = new Set(this.profileKeys.filter(key => this.usesProfile(key)));
-    this.provider = this.requestedProvider;
+    // Verified availability can make the chosen backend unusable (every
+    // reference gone); settle on the first entry that stays usable once it
+    // is applied, so one commit reaches the final route.
+    let target=this.resolvedProvider;
+    for(let step=0;step<VOICE_FALLBACK_ORDER.length;step++){
+      const verified=this.verifiedAvailabilities.get(target);
+      if(verified)this.availabilities[target]=new Set(verified);
+      const next=this.resolvedProvider;
+      if(next===target)break;
+      target=next;
+    }
+    this.provider=target;
     this.omniSteps=this.requestedOmniSteps;
-    const verified=this.verifiedAvailabilities.get(this.provider);
-    if(verified)this.availabilities[this.provider]=new Set(verified);
     if(this.clientBackend==='omni')this.client?.setSteps(this.omniSteps);
     const changedRoutes = this.profileKeys.filter(key => previous.has(key) !== this.usesProfile(key));
     if (changedRoutes.length) {
@@ -190,6 +236,7 @@ export class VoiceSelection {
     const hooks={...this.options,...(backend==='omni'?{configPath:this.options.omniConfigPath,
       pythonExecutable:this.options.omniPythonExecutable}:{}),onState: value => {
       if (this.client !== client || this.closed) return;
+      if (value.state === 'error') queueMicrotask(()=>this.backendFailed(backend,client));
       if (value.state === 'ready') this.stageAvailability(client,backend);
       this.details = value; this.publish(value.state);
     }};
@@ -201,8 +248,16 @@ export class VoiceSelection {
       await client.start();
       this.stageAvailability(client,backend);
     });
-    this.starting.catch(() => {});
+    this.starting.catch(() => this.backendFailed(backend,client));
     return this.starting;
+  }
+  // A worker that cannot start or has died leaves routing; the next poll
+  // commits the fallback at an idle boundary like any other change.
+  backendFailed(backend,client){
+    if(this.closed||this.client!==client||this.failedBackends.has(backend))return;
+    this.failedBackends.add(backend);
+    this.reconcile();
+    this.publish();
   }
   retire() {
     const client = this.client;
@@ -252,7 +307,7 @@ export class VoiceSelection {
       await this.routingSettled(options);
       throwIfCancelled(options.signal);
       if (this.closed) throw Error('Voice service is closed');
-      if (this.provider === 'convai') return remote('selected');
+      if (this.provider === 'convai') return remote(this.convaiReason(profile));
       if (!this.configured || !this.registry.has(profile)) return remote(this.registry.status(profile));
       const startingBackend=this.provider;let startedClient;
       try {
@@ -261,7 +316,10 @@ export class VoiceSelection {
       }
       catch (error) {
         throwIfCancelled(options.signal);
-        if (!this.closed && this.provider === 'convai') return remote('selected');
+        if (!this.closed && this.provider === 'convai') return remote(this.convaiReason(profile));
+        // The failed worker is now out of routing; wait for the fallback commit.
+        await new Promise(resolve => setImmediate(resolve));
+        if (!this.closed && this.failedBackends.has(startingBackend)) continue;
         throw error;
       }
       throwIfCancelled(options.signal);
@@ -269,7 +327,7 @@ export class VoiceSelection {
       // The flight waits for the normal idle commit; no polling loop is held.
       await this.routingSettled(options);
       if (this.closed) throw Error('Voice service is closed');
-      if (this.provider === 'convai') return remote('selected');
+      if (this.provider === 'convai') return remote(this.convaiReason(profile));
       if (!this.hasProfile(profile)) return remote('unavailable');
       const client = this.client;
       // Retry only a real ownership/selection transition. A fulfilled startup
@@ -285,7 +343,9 @@ export class VoiceSelection {
       try { receipt = await client.prepareProfile(profile, options); }
       catch (error) {
         throwIfCancelled(options.signal);
-        if (!this.closed && this.provider === 'convai') return remote('selected');
+        if (!this.closed && this.provider === 'convai') return remote(this.convaiReason(profile));
+        await new Promise(resolve => setImmediate(resolve));
+        if (!this.closed && this.failedBackends.has(startingBackend)) continue;
         throw error;
       }
       throwIfCancelled(options.signal);
@@ -293,7 +353,7 @@ export class VoiceSelection {
       throwIfCancelled(options.signal);
       await this.routingSettled(options);
       if (this.closed) throw Error('Voice service is closed');
-      if (this.provider === 'convai') return remote('selected');
+      if (this.provider === 'convai') return remote(this.convaiReason(profile));
       if (this.client !== client) continue;
       if (!this.hasProfile(profile)) return remote('unavailable');
       return {...receipt,provider:this.provider};

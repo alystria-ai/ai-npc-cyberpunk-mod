@@ -1,12 +1,67 @@
 # Pocket TTS runtime
 
+## October 5 update-5,000 student and rollback
+
+The Pocket TTS choice now uses **student update 5,000, raw weights** (the user's
+pick after listening) instead of the update-1,500 EMA student. It is the same
+six-layer export layout: CFG 1, one decode step, temperature 0.3, four CPU
+threads, `frames_after_eos=1`, the same `inference.yaml` and `tokenizer.json`
+(hashes unchanged). The export is `runtime/pocket-student-full-a-s5000-raw/`
+(`model.safetensors` sha256 `43dfe333...02e3`, 438,033,312 bytes). It was built
+by `scripts/Rank-StudentCheckpoints.py` (the update-5,000 raw `flow_lm` tensors
+over the previous student's Mimi tensors) and its source file lives at
+`E:\CyberpunkConvai-offload\work\student-ranking\exports\s5000-raw`. That
+export carried no `receipt.json`, so one was written beside it recording the
+provenance (`weights: "raw"`, step 5,000, the run's input identity; the local
+slot-2 checkpoint no longer exists, so its own file hash is not recorded). The
+runtime validator now accepts `weights` of `ema` or `raw` in a receipt; the
+step, CFG, source revision, input identity and model hash checks are unchanged.
+Reference states are built in the worker at run time, so no per-voice
+preparation is stored; `scripts/Prepare-PocketVoices.py` only restages the
+configuration.
+
+`runtime/pocket-voices.json` changed in `runtime.exportDirectory`, `model.sha256`,
+`model.receiptSha256`, `model.selectedStep` (1500 to 5000) and
+`model.inputIdentity`; `configSha256`, `tokenizerSha256`, threads (4), sampling
+and the 79 voice entries are the same (a few transcripts that held a damaged
+character in the old file now carry the original punctuation; Pocket ignores
+transcripts). Restage command:
+
+```powershell
+vendor\pocket-tts-env\Scripts\python.exe -B scripts\Prepare-PocketVoices.py `
+  --export runtime\pocket-student-full-a-s5000-raw --source vendor\pocket-tts-training\source `
+  --python vendor\pocket-tts-env\Scripts\python.exe --references runtime\pocket-voice-references.json `
+  --reference-directory runtime\voice-references --work runtime\pocket-voice-work `
+  --output runtime\pocket-voices.json --threads 4 `
+  --model-sha256 43dfe333cbdc633f4b344649f6505da65f092c911f6723249f242993d47d02e3 `
+  --input-identity 03e89124733a88ac5d869f0df5c79f0d2d60cc88a77a67bbc32d444a59ffc22c
+```
+
+**Rollback to the update-1,500 student.** The old export stays in place at
+`runtime/kaggle-pocket-student-transfer-ddb133ba-output/student-transfer-results/distill/export`,
+and the previous configuration is saved as
+`runtime/pocket-voices.student-step1500-ema.json`. To switch back, copy that
+file over `runtime/pocket-voices.json` and restart the bridge (the running
+worker keeps its loaded model until restart). Its hashes (sha256 `373a0df2...`,
+step 1500) are inside it. Staging a fresh config with the command above, but with
+the old export directory, model hash `373a0df2115b1e5dc1c583bb0033838ba4ae337499831261e3938218d239a391`
+and input identity `a881e3024512339c5c601219f4e453370a6769a2e59e6f8750cdc37c110fc152`,
+produces the same result.
+
+Smoke test (separate process, its own work directory, four threads, native
+Windows, with the game bridge's own worker also running): two voices, two lines
+each, streamed 80 ms PCM chunks; first PCM 154-209 ms; real-time factor
+0.56-0.68 (generation time over audio time; below 1 is faster than real time);
+no worker warnings. Johnny's first prompt preparation took 2.4 s cold, Judy's
+0.8 s.
+
 ## October 4 inference parity and replacement boundary
 
 The live public stream now explicitly uses `frames_after_eos=1`, matching the
 student comparison audio. Previously it omitted that argument, allowing the
 pinned upstream implementation to guess a longer text-dependent post-EOS tail.
-CPU float32, temperature 0.3, one decode step, CFG1 export selection and two
-threads remain the accepted inference settings. This correction changes the
+CPU float32, temperature 0.3, one decode step, CFG1 export selection and four
+threads (the current default) remain the accepted inference settings. This correction changes the
 generator's tail policy, not the original PCM or character reference recording.
 
 The expanded A teacher/student training is described in [voice training](VOICE_TRAINING.md).
@@ -36,8 +91,9 @@ still required. Pocket is the source default and the current saved selection.
 
 ## Selected model and references
 
-The approved local voice backend is the English six-layer EMA student selected at update
-1500, with CFG 1 and one sampler step. Its shared float32 weights are
+The approved local voice backend is the English six-layer student, with CFG 1
+and one sampler step. Since October 5 that is update 5,000 raw (see above); the
+update-1,500 EMA student was the choice until then and is kept for rollback. Its shared float32 weights are
 438,033,312 bytes. The 24-layer teacher stays in the training/comparison workflow.
 Runtime code does not search for teacher weights or choose another export.
 
@@ -69,10 +125,12 @@ references withdraw that exact character's local route; no speaker alias is used
 
 ## Model lifetime
 
-`VoiceSelection` exposes Pocket TTS (default), OmniVoice 16, OmniVoice 32 and
-Convai in that order. It stores `voiceProvider=pocket|omni|convai` plus
-`omniSteps=16|32`. Legacy `hybrid` selections migrate to `omni` with their saved
-quality; saved Pocket and Convai choices remain selected.
+`VoiceSelection` exposes OmniVoice 32 steps (default), OmniVoice 16 steps,
+Pocket TTS and Convai cloud voice in that order, which is also its fallback
+order (see [local voices](LOCAL_VOICES.md)). It stores
+`voiceProvider=pocket|omni|convai` plus `omniSteps=16|32`. Legacy `hybrid`
+selections migrate to `omni` with their saved quality; saved Pocket and Convai
+choices remain selected, and unknown values take the default (OmniVoice).
 
 An unsaved local choice queues preparation immediately. Backend replacement
 waits for the current owned reply and confirmed worker exit; only one local

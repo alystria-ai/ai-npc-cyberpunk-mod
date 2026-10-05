@@ -233,11 +233,13 @@ end
 
 local function profileDescription(profile, snapshot)
     local voice = profile.voiceName or ui.t('Convai voice')
-    if snapshot.settings.voiceProvider ~= 'convai' then
+    -- The label names the voice actually in use, which differs from the choice
+    -- while a fallback is active.
+    local active = snapshot.localVoice.provider
+    if active == 'pocket' or active == 'omni' then
         for _, key in ipairs(snapshot.localVoice.routedProfiles or {}) do
             if key == profile.key then
-                voice = snapshot.settings.voiceProvider == 'pocket' and ui.t('Pocket TTS')
-                    or ui.t(snapshot.settings.omniSteps == 16 and 'OmniVoice 16' or 'OmniVoice 32')
+                voice = manager.voiceLabel(active, snapshot.localVoice.omniSteps)
                 break
             end
         end
@@ -256,6 +258,14 @@ local function voiceServiceLabel(state)
             return ui.t('{status} · After current reply', {status=ui.t(labels[state.state] or 'Waiting for voice service')})
         end
         return ui.t('Changing after the current reply')
+    end
+    local fallback = state.fallback
+    if type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket')
+        and (fallback.to == 'pocket' or fallback.to == 'convai') then
+        return ui.t('{status} · Using {voice}, {requested} unavailable', {
+            status = ui.t(labels[state.state] or 'Waiting for voice service'),
+            voice = manager.voiceLabel(fallback.to, state.omniSteps),
+            requested = manager.voiceLabel(fallback.from, state.requestedOmniSteps)})
     end
     if state.preparationOnly and state.previewActive
         and (state.previewProvider == 'pocket' or state.previewProvider == 'omni') and state.state == 'ready' then
@@ -677,13 +687,15 @@ local function schema()
                 {'Eyes only', 'Less', 'Gentle (default)', 'More'}),
         })
         local voiceStatus = voiceServiceLabel(snapshot.localVoice)
+        -- The list, best first: OmniVoice 32 steps, OmniVoice 16 steps, Pocket TTS, Convai cloud voice.
         local voiceIndex = snapshot.settings.voiceProvider == 'convai' and 4
-            or (snapshot.settings.voiceProvider == 'omni' and (snapshot.settings.omniSteps == 16 and 2 or 3) or 1)
+            or (snapshot.settings.voiceProvider == 'pocket' and 3
+                or (snapshot.settings.omniSteps == 16 and 2 or 1))
         categories[#categories + 1] = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
             setting('voiceProvider', 'Companion voices', 'select', voiceIndex, 1,
-                'Pocket TTS uses prepared local character voices on CPU. OmniVoice uses the GPU with 16 steps for faster replies or 32 steps for higher quality. Convai uses online voices. Selecting a local voice starts preparing its model immediately. Saving the settings keeps your choice; discarding changes cancels the preview.',
-                {'Pocket TTS', 'OmniVoice 16', 'OmniVoice 32', 'Convai'}),
+                'OmniVoice uses the GPU and sounds closest to the characters: 32 steps for the best quality, 16 steps for faster replies. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. Selecting a local voice starts preparing its model immediately. Saving the settings keeps your choice; discarding changes cancels the preview.',
+                {'OmniVoice 32 steps', 'OmniVoice 16 steps', 'Pocket TTS', 'Convai cloud voice'}),
             readonly('voice-status', 'Voice service', voiceStatus,
                 'The selected local model starts preparing as soon as you select it here and stays warm once your choice is saved. Discarding changes or leaving without saving cancels the preview; no game restart is needed.'),
         }, 'Save changed settings to keep your choices, or discard changes to restore the saved settings.')
@@ -785,10 +797,10 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     values.uiLanguage = choices[change.value].value
                 elseif key == 'voiceProvider' then
                     if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 and change.value ~= 4 then
-                        return {ok = false, error = ui.t('Choose Pocket TTS, OmniVoice 16, OmniVoice 32 or Convai voices.')}
+                        return {ok = false, error = ui.t('Choose OmniVoice 32 steps, OmniVoice 16 steps, Pocket TTS or Convai cloud voice.')}
                     end
-                    values.voiceProvider = change.value == 1 and 'pocket' or (change.value == 4 and 'convai' or 'omni')
-                    if change.value == 2 or change.value == 3 then values.omniSteps = change.value == 2 and 16 or 32 end
+                    values.voiceProvider = change.value == 3 and 'pocket' or (change.value == 4 and 'convai' or 'omni')
+                    if change.value == 1 or change.value == 2 then values.omniSteps = change.value == 2 and 16 or 32 end
                 elseif key == 'eyeContactHeight' or key == 'headFollowStrength' then
                     local heights,strengths=manager.gazeChoices()
                     local choices=key=='eyeContactHeight' and heights or strengths
@@ -952,6 +964,11 @@ function M.update(currentPlayer, worldReady)
         -- A finished report is announced once, in gameplay (a paused menu hides popups).
         local reportOk, reportNotice = pcall(support.update, worldReady == true)
         if reportOk and reportNotice then messages[#messages + 1] = reportNotice end
+    end
+    if worldReady then
+        -- A voice that could not run is announced once, in gameplay.
+        local voiceNotice = manager.takeVoiceFallbackNotice()
+        if voiceNotice then log(voiceNotice); messages[#messages + 1] = voiceNotice end
     end
     local progress = samplePreparationPopup(now, worldReady == true)
     if progress and not notifiedInvitations[progress.id] then messages[#messages + 1] = progress.message end

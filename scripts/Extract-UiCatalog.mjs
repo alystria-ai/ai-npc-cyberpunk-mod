@@ -165,7 +165,7 @@ const reviewed = {
   ],
   'mcm.validation': [
     'Reopen the manager; that action is no longer available.', 'Choose Above speaker or Dialogue HUD.',
-    'Choose Pocket TTS, OmniVoice 16, OmniVoice 32 or Convai voices.', 'Choose an eye contact option.', 'That setting is read-only.',
+    'Choose OmniVoice 32 steps, OmniVoice 16 steps, Pocket TTS or Convai cloud voice.', 'Choose an eye contact option.', 'That setting is read-only.',
   ],
   'memory.feedback': [
     'all characters you have talked to', 'the selected character',

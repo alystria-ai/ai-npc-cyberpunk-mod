@@ -181,11 +181,11 @@ def inspect_student_export(directory, expected, *, yaml_load=None):
             raise ValueError("Pocket export asset differs from its selected identity")
     receipt = read_json(assets["receipt.json"])
     if (not isinstance(receipt, dict) or receipt.get("source_revision") != SOURCE_REVISION
-            or receipt.get("weights") != "ema" or receipt.get("sample_cfg") != 1.0
+            or receipt.get("weights") not in ("ema", "raw") or receipt.get("sample_cfg") != 1.0
             or receipt.get("selected_step") != expected["selectedStep"]
             or receipt.get("input_identity") != expected["inputIdentity"]
             or receipt.get("model_sha256") != expected["sha256"]):
-        raise ValueError("Pocket receipt does not identify the selected EMA student")
+        raise ValueError("Pocket receipt does not identify the selected student export")
     config_path = assets["inference.yaml"]
     if config_path.stat().st_size > 65_536:
         raise ValueError("Pocket inference config is oversized")

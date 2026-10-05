@@ -67,10 +67,11 @@ end
 local function current() return files['runtime/voice-preview.json'] end
 `;
 
+// Selector order: 1 OmniVoice 32 steps, 2 OmniVoice 16 steps, 3 Pocket TTS, 4 Convai cloud voice.
 test('voice selector immediately publishes a preparation preview without applying settings or callback IO', () => {
   run(`
     update(); assert(#publications == 0)
-    changed(1, true)
+    changed(3, true)
     assert(#publications == 0 and reads == 0, 'selector callback did work before update')
     update()
     local value = current()
@@ -79,11 +80,11 @@ test('voice selector immediately publishes a preparation preview without applyin
     assert(value.sequence == 1)
     assert(type(value.owner) == 'string' and #value.owner <= 96 and value.owner:match('^mcm%-'))
     assert(committed.voiceProvider == 'convai' and committed.omniSteps == 32)
-    changed(1, true); update()
+    changed(3, true); update()
     assert(current().omniSteps == nil and #publications == 1, 'unchanged selection must not publish another preview')
     changed(2, true); update()
     assert(current().active and current().provider == 'omni' and current().omniSteps == 16 and current().sequence == 2)
-    changed(3, true); update()
+    changed(1, true); update()
     assert(current().active and current().provider == 'omni' and current().omniSteps == 32 and current().sequence == 3)
     changed(4, true); update()
     assert(not current().active and #publications == 4 and current().sequence == 4 and current().omniSteps == 32)
@@ -94,14 +95,14 @@ test('voice selector immediately publishes a preparation preview without applyin
 
 test('lease refresh is bounded but a changed selector is not delayed by the heartbeat', () => {
   run(`
-    changed(1, true); update()
+    changed(3, true); update()
     local owner = current().owner
     for i = 1, 59 do clock = clock + 10; update() end
     assert(#publications == 1 and reads == 1)
     changed(2, true); update()
     assert(#publications == 2 and current().active and current().provider == 'omni' and current().omniSteps == 16)
     assert(current().updated == clock and current().owner == owner)
-    changed(1, true); update()
+    changed(3, true); update()
     clock = clock + 1000; update()
     assert(#publications == 4 and current().updated == clock and current().owner == owner)
   `);
@@ -110,11 +111,11 @@ test('lease refresh is bounded but a changed selector is not delayed by the hear
 test('Revert and returning the voice choice to the committed Omni quality cancel even when other drafts remain', () => {
   run(`
     committed.voiceProvider, committed.omniSteps = 'omni', 16
-    changed(3, true); update()
+    changed(1, true); update()
     assert(current().active and current().provider == 'omni' and current().omniSteps == 32)
     changed(2, true); update()
     assert(not current().active and current().sequence == 2 and committed.voiceProvider == 'omni')
-    changed(1, true); update(); assert(current().active and current().omniSteps == nil)
+    changed(3, true); update(); assert(current().active and current().omniSteps == nil)
     changed(2, false); update()
     assert(not current().active and committed.omniSteps == 16)
     local count = #publications
@@ -125,9 +126,9 @@ test('Revert and returning the voice choice to the committed Omni quality cancel
 
 test('Apply cancels only the preview while the independently committed selection remains authoritative', () => {
   run(`
-    changed(1, true); update()
+    changed(3, true); update()
     committed.voiceProvider, committed.omniSteps = 'pocket', 16
-    changed(1, false); update()
+    changed(3, false); update()
     assert(not current().active and committed.voiceProvider == 'pocket' and committed.omniSteps == 16)
     changed(4, true); update()
     assert(current().active and current().provider == 'convai' and current().omniSteps == nil)
@@ -137,7 +138,7 @@ test('Apply cancels only the preview while the independently committed selection
 
 test('menu loss and reset cancel ownership; reopened and replacement menus get distinct leases', () => {
   run(`
-    changed(1, true); update()
+    changed(3, true); update()
     local first = current().owner
     update(false); assert(not current().active and current().owner == first)
     clock = clock + 10; update(); assert(current().active and current().owner ~= first)
@@ -154,9 +155,9 @@ test('menu loss and reset cancel ownership; reopened and replacement menus get d
 
 test('invalid or unavailable draft values cancel and unsupported APIs do not publish', () => {
   run(`
-    changed(1, true); update()
+    changed(3, true); update()
     changed(5, true); update(); assert(not current().active)
-    changed(1, true); update(); assert(current().active)
+    changed(3, true); update(); assert(current().active)
     api.getValue = function() error('unavailable') end
     changed(); update(); assert(not current().active)
     preview.bind({}); update()
@@ -178,7 +179,7 @@ test('unrelated events and unrelated setting drafts never prepare a local model'
 
 test('failed writes retry at the heartbeat and failed cancellation leaves only the bounded prior lease', () => {
   run(`
-    failWrite = true; changed(3, true); update()
+    failWrite = true; changed(1, true); update()
     assert(not current() and attempts == 1 and preview.inspect().error)
     for i = 1, 10 do clock = clock + 10; update() end
     assert(attempts == 1)
@@ -198,7 +199,7 @@ test('a saved legacy hybrid choice matches its effective Omni quality without pr
   run(`
     committed.voiceProvider, committed.omniSteps = 'hybrid', 16
     changed(2, true); update(); assert(#publications == 0)
-    changed(3, true); update()
+    changed(1, true); update()
     assert(current().active and current().provider == 'omni' and current().omniSteps == 32)
     changed(2, true); update(); assert(not current().active)
     assert(committed.voiceProvider == 'hybrid' and committed.omniSteps == 16)

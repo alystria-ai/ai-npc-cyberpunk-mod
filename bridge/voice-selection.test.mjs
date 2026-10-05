@@ -344,15 +344,16 @@ test('a remote draft does not unload an applied Pocket choice or alter an owned 
   assert.equal(h.workers[0].closes,1);assert.equal(h.live(),0);
 });
 
-test('legacy saved Omni stays Omni while a saved Convai selection is preserved',async()=>{
-  const h=fixture();h.voice.request({voiceProvider:'convai'});h.voice.applyWhenIdle(false);await h.voice.start();
+test('legacy saved hybrid stays Omni while a saved Convai selection is preserved',async()=>{
+  const h=dualFixture({start:'convai'});await h.voice.start();
   assert.equal(h.workers.length,0);assert.equal(h.voice.provider,'convai');
   h.voice.request({voiceProvider:'hybrid',omniSteps:16});h.voice.applyWhenIdle(false);await h.voice.start();
-  assert.equal(h.voice.provider,'omni');assert.equal(h.workers.length,0);assert.equal(h.voice.steps,16);
+  assert.equal(h.voice.provider,'omni');assert.equal(h.workers.length,1);assert.equal(h.voice.steps,16);
+  assert.equal(h.voice.fallback,null);
   await h.voice.close();
 });
 
-function dualFixture({holdClose=false}={}){
+function dualFixture({holdClose=false,start,fail=[]}={}){
   const calls=[],workers=[],states=[];let live=0,peak=0;
   const voices={'johnny-silverhand':{reference:'runtime/voice-references/johnny.wav',sha256:'a'.repeat(64),transcript:'Original line.'},
     'blue-moon':{status:'unprepared'}};
@@ -362,7 +363,9 @@ function dualFixture({holdClose=false}={}){
       hasProfile:key=>Object.hasOwn(config.voices,key)&&!config.voices[key].status?.match(/unprepared|unavailable/),
       profileReady(key){return loaded&&this.hasProfile(key);},
       setSteps(value){this.steps=value;},
-      async start(){this.starts++;owned=true;live++;peak=Math.max(peak,live);loaded=true;calls.push('start:'+backend);
+      async start(){this.starts++;
+        if(fail.includes(backend)){this.failure=Error(backend+' worker failed');onState({state:'error'});throw this.failure;}
+        owned=true;live++;peak=Math.max(peak,live);loaded=true;calls.push('start:'+backend);
         onState({state:'ready',resident:true,engine:backend==='omni'?'omnivoice':'pocket-tts'});},
       async prepareProfile(profile){return{provider:backend==='omni'?'omnivoice':'pocket',ready:true,profile};},
       async synthesize(profile,text,options){calls.push(['synthesize',backend,profile,text,options.steps]);return{};},
@@ -373,27 +376,34 @@ function dualFixture({holdClose=false}={}){
   };
   const voice=new VoiceSelection(pocketSettings(voices),{onState:value=>states.push(value),factory:factory('pocket'),
     omniConfig:{version:2,provider:'hybrid',engine:'omnivoice',steps:32,voices},omniFactory:factory('omni')});
+  // The default is OmniVoice; a test that needs another committed start asks for it.
+  if(start){voice.request({voiceProvider:start});voice.applyWhenIdle(false);}
   return{voice,calls,workers,states,live:()=>live,peak:()=>peak};
 }
 
-test('four choices keep Pocket default; both Omni qualities share the one warmed model and cache',async()=>{
-  const h=dualFixture();await h.voice.start();assert.equal(h.voice.provider,'pocket');assert.equal(h.workers[0].backend,'pocket');
+test('four choices default to OmniVoice 32; both Omni qualities share the one warmed model and cache',async()=>{
+  const h=dualFixture();await h.voice.start();
+  assert.equal(h.voice.provider,'omni');assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.steps,32);
+  assert.equal(h.workers[0].backend,'omni');assert.equal(h.voice.fallback,null);
   h.voice.update({voiceProvider:'omni',omniSteps:16},null,false);await h.voice.start();
-  assert.equal(h.peak(),1);assert.equal(h.workers[0].closes,1);assert.equal(h.workers[1].backend,'omni');
-  assert.equal(h.workers[1].steps,16);assert.deepEqual(await h.voice.prepareProfile('johnny-silverhand'),
+  assert.equal(h.peak(),1);assert.equal(h.workers.length,1);assert.equal(h.workers[0].steps,16);
+  assert.deepEqual(await h.voice.prepareProfile('johnny-silverhand'),
     {provider:'omni',ready:true,profile:'johnny-silverhand'});
   await h.voice.synthesize('johnny-silverhand','First sentence.');
   h.voice.update({voiceProvider:'omni',omniSteps:32},null,false);await h.voice.start();
   await h.voice.synthesize('johnny-silverhand','Second sentence.');
-  assert.equal(h.workers.length,2);assert.equal(h.workers[1].starts,1);assert.equal(h.workers[1].closes,0);
+  assert.equal(h.workers.length,1);assert.equal(h.workers[0].starts,1);assert.equal(h.workers[0].closes,0);
   assert.deepEqual(h.calls.filter(value=>Array.isArray(value)).map(value=>value.at(-1)),[16,32]);
   assert.deepEqual(await h.voice.prepareProfile('blue-moon'),{provider:'convai',ready:true,reason:'unprepared'});
+  h.voice.update({voiceProvider:'pocket'},null,false);await h.voice.start();
+  assert.equal(h.voice.provider,'pocket');assert.equal(h.workers[0].closes,1);assert.equal(h.workers[1].backend,'pocket');
+  assert.equal(h.peak(),1);assert.equal(h.voice.fallback,null);
   h.voice.update({voiceProvider:'convai',omniSteps:32},null,false);await h.voice.retiring;assert.equal(h.live(),0);
   assert.equal(h.voice.provider,'convai');await h.voice.close();
 });
 
 test('cross-backend drafts wait for owned reply and confirmed retirement, then warm before Apply',async()=>{
-  const h=dualFixture({holdClose:true});await h.voice.start();
+  const h=dualFixture({holdClose:true,start:'pocket'});await h.voice.start();
   h.voice.update({voiceProvider:'pocket'},{provider:'omni',omniSteps:16},true);await tick();
   assert.equal(h.workers.length,1);assert.equal(h.workers[0].closes,0);assert.equal(h.voice.provider,'pocket');
   let inviteReady=false;const invite=h.voice.prepareProfile('johnny-silverhand').then(value=>{inviteReady=true;return value;});
@@ -406,7 +416,7 @@ test('cross-backend drafts wait for owned reply and confirmed retirement, then w
 });
 
 test('an unconfirmed cross-backend exit blocks replacement and cannot grant wrong-backend readiness',async()=>{
-  const h=dualFixture();await h.voice.start();
+  const h=dualFixture({start:'pocket'});await h.voice.start();
   h.workers[0].close=async()=>{throw Error('owned exit not confirmed');};
   h.voice.update({voiceProvider:'omni',omniSteps:32},null,false);
   await assert.rejects(h.voice.start(),/not confirmed/);assert.equal(h.workers[1].starts,0);
@@ -436,10 +446,12 @@ test('an unavailable other-local draft preserves the committed worker and cannot
       assert.equal(h.voice.profileReady('johnny-silverhand'),true);
       h.voice.update({voiceProvider:'pocket'},null,false);
       assert.equal(h.workers.length,1,'Revert must retain the same committed worker');
+      // Omni cannot serve this machine, so the committed choice falls to Pocket
+      // and its warm worker is kept rather than retired.
       h.voice.update({voiceProvider:'omni',omniSteps:32},null,false);await h.voice.retiring;
-      assert.equal(h.workers[0].closes,1,'Apply may retire a backend which is no longer selected');
-      assert.equal(h.voice.provider,'omni');
-      assert.equal((await h.voice.prepareProfile('johnny-silverhand')).provider,'convai');
+      assert.equal(h.workers[0].closes,0,'the fallback keeps the Pocket worker');
+      assert.equal(h.voice.provider,'pocket');assert.deepEqual(h.voice.fallback,{from:'omni',to:'pocket'});
+      assert.equal((await h.voice.prepareProfile('johnny-silverhand')).provider,'pocket');
     }finally{await h.voice.close();}
   }
 });
@@ -466,4 +478,63 @@ test('shared selection rejects Omni readiness immediately on actual worker failu
     assert.equal(h.voice.profileReady('johnny-silverhand'),false,'stale ready receipt must not admit a spawn');
     await h.voice.close();
   }
+});
+
+test('the default list order is OmniVoice, then Pocket, then Convai',async()=>{
+  const {VOICE_FALLBACK_ORDER}=await import('./voice-selection.mjs');
+  assert.deepEqual([...VOICE_FALLBACK_ORDER],['omni','pocket','convai']);
+  const h=dualFixture();
+  assert.equal(h.voice.provider,'omni');assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.steps,32);
+  await h.voice.close();
+});
+
+test('an Omni worker that cannot start falls to Pocket once, and invitation readiness follows the fallback',async()=>{
+  const h=dualFixture({fail:['omni']});
+  const invited=h.voice.prepareProfile('johnny-silverhand');
+  await tick();await tick();
+  // The fallback commits at the next idle settings poll, like any routing change.
+  h.voice.update({},null,false);
+  assert.deepEqual(await invited,{provider:'pocket',ready:true,profile:'johnny-silverhand'});
+  assert.equal(h.voice.provider,'pocket');assert.equal(h.voice.requestedProvider,'omni');
+  assert.deepEqual(h.voice.fallback,{from:'omni',to:'pocket'});
+  assert.deepEqual(h.states.at(-1).fallback,{from:'omni',to:'pocket'});
+  assert.equal(h.workers.filter(worker=>worker.backend==='omni').length,1,'a failed Omni is not restarted in a loop');
+  h.voice.update({},null,false);await tick();
+  assert.equal(h.workers.filter(worker=>worker.backend==='omni').length,1);
+  // Choosing OmniVoice again is an explicit retry.
+  h.voice.update({voiceProvider:'pocket'},null,false);assert.equal(h.voice.fallback,null);
+  h.voice.update({voiceProvider:'omni',omniSteps:32},null,false);await tick();await tick();
+  assert.equal(h.workers.filter(worker=>worker.backend==='omni').length,2);
+  await h.voice.close();
+});
+
+test('a failure during an owned turn waits for the idle boundary before the route changes',async()=>{
+  const h=dualFixture({fail:['omni']});h.voice.update({},null,true);
+  await h.voice.start().catch(()=>{});await tick();
+  assert.equal(h.voice.provider,'omni','the owned turn keeps its route');assert.equal(h.voice.pending,true);
+  h.voice.update({},null,false);
+  assert.equal(h.voice.provider,'pocket');assert.deepEqual(h.voice.fallback,{from:'omni',to:'pocket'});
+  await h.voice.close();
+});
+
+test('Pocket failing, or both local voices failing, falls down to Convai',async()=>{
+  const pocketOnly=dualFixture({start:'pocket',fail:['pocket']});
+  await pocketOnly.voice.start().catch(()=>{});await tick();pocketOnly.voice.update({},null,false);
+  assert.equal(pocketOnly.voice.provider,'convai');assert.deepEqual(pocketOnly.voice.fallback,{from:'pocket',to:'convai'});
+  assert.equal((await pocketOnly.voice.prepareProfile('johnny-silverhand')).provider,'convai');
+  await pocketOnly.voice.close();
+  const both=dualFixture({fail:['omni','pocket']});
+  await both.voice.start().catch(()=>{});await tick();both.voice.update({},null,false);
+  await both.voice.start().catch(()=>{});await tick();both.voice.update({},null,false);
+  assert.equal(both.voice.provider,'convai');assert.deepEqual(both.voice.fallback,{from:'omni',to:'convai'});
+  await both.voice.close();
+});
+
+test('a saved Convai choice never reports a fallback, and a missing Omni setup starts on Pocket',async()=>{
+  const convai=dualFixture({start:'convai'});
+  assert.equal(convai.voice.provider,'convai');assert.equal(convai.voice.fallback,null);await convai.voice.close();
+  const h=fixture();
+  assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.provider,'pocket');
+  assert.deepEqual(h.voice.fallback,{from:'omni',to:'pocket'});
+  await h.voice.close();
 });

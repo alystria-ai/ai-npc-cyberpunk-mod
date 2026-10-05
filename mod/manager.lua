@@ -17,6 +17,9 @@ local party, partySignature, previousStates = {}, '', {}
 local visible, selectedItem = {}, nil
 local localVoiceState, localVoiceSignature = {}, ''
 local localVoices = {}
+-- The voice list, best first: OmniVoice (32 or 16 steps), Pocket TTS, Convai.
+local DEFAULT_VOICE_PROVIDER, DEFAULT_OMNI_STEPS = 'omni', 32
+local voiceFallbackSeen, voiceFallbackNotice = {}, nil
 local eyeContactHeights = {-0.10, -0.05, 0, 0.05, 0.10}
 local headFollowStrengths = {0, 0.5, 1, 1.5}
 local relationshipProfiles = {
@@ -276,6 +279,19 @@ local function isChoice(value, choices)
     return false
 end
 
+-- Maps any saved engine name to the nearest current choice. Unknown values
+-- take the default. Provider names stay stable so older saves keep working:
+-- Pocket TTS was and remains 'pocket', OmniVoice 'omni' (old 'hybrid'), Convai
+-- 'convai'. Any Pocket variant name resolves to the one Pocket TTS entry.
+local function normalizeVoiceProvider(value)
+    if type(value) ~= 'string' then return DEFAULT_VOICE_PROVIDER end
+    local name = value:lower()
+    if name == 'convai' then return 'convai' end
+    if name:find('pocket', 1, true) then return 'pocket' end
+    if name:find('omni', 1, true) or name == 'hybrid' then return 'omni' end
+    return DEFAULT_VOICE_PROVIDER
+end
+
 local function loadSettings()
     if settingsLoaded then return end
     settingsLoaded = true
@@ -313,14 +329,10 @@ local function loadSettings()
     if not isChoice(settings.headFollowStrength, headFollowStrengths) then
         settings.headFollowStrength, settingsNeedSave = 1, true
     end
-    if settings.voiceProvider == 'hybrid' then
-        settings.voiceProvider, settingsNeedSave = 'omni', true
-    end
-    if settings.voiceProvider ~= 'pocket' and settings.voiceProvider ~= 'omni' and settings.voiceProvider ~= 'convai' then
-        settings.voiceProvider, settingsNeedSave = 'pocket', true
-    end
+    local provider = normalizeVoiceProvider(settings.voiceProvider)
+    if provider ~= settings.voiceProvider then settings.voiceProvider, settingsNeedSave = provider, true end
     if settings.omniSteps ~= 16 and settings.omniSteps ~= 32 then
-        settings.omniSteps, settingsNeedSave = 32, true
+        settings.omniSteps, settingsNeedSave = DEFAULT_OMNI_STEPS, true
     end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
@@ -374,6 +386,23 @@ end
 
 -- The feedback paths read the already loaded saved choice. Never load files,
 -- query native settings or retain native handles from a menu callback.
+-- One of the four voice choices, as the player reads it in Settings.
+function M.voiceLabel(provider, steps)
+    if provider == 'pocket' then return ui.t('Pocket TTS') end
+    if provider == 'convai' then return ui.t('Convai cloud voice') end
+    return ui.t(steps == 16 and 'OmniVoice 16 steps' or 'OmniVoice 32 steps')
+end
+
+-- The pending "chosen voice could not run" notice, once. The caller asks only
+-- in gameplay so a paused menu cannot swallow it.
+function M.takeVoiceFallbackNotice()
+    local pending = voiceFallbackNotice
+    voiceFallbackNotice = nil
+    if not pending then return nil end
+    return ui.t('{requested} is unavailable. Companions are using {voice} instead.', {
+        requested = M.voiceLabel(pending.from, pending.steps), voice = M.voiceLabel(pending.to)})
+end
+
 function M.developerMode()
     return settings ~= nil and settings.developerMode == true
 end
@@ -480,6 +509,20 @@ local function updateLocalVoice()
     end
     local signature = tostring(state.provider) .. ':' .. tostring(state.state) .. ':' .. tostring(state.steps)
         .. ':' .. tostring(state.routeRevision)
+    -- The bridge reports a fallback only after it committed the lower voice.
+    -- Tell the player once per fallback; the mark clears when the fallback ends.
+    local fallback = state.fallback
+    if fresh and type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket')
+        and (fallback.to == 'pocket' or fallback.to == 'convai') then
+        local id = fallback.from .. '>' .. fallback.to
+        if not voiceFallbackSeen[id] then
+            voiceFallbackSeen[id] = true
+            voiceFallbackNotice = {from = fallback.from, to = fallback.to, steps = state.requestedOmniSteps}
+        end
+        signature = signature .. ':' .. id
+    elseif fresh then
+        voiceFallbackSeen = {}
+    end
     localVoiceState = state
     if signature ~= localVoiceSignature then localVoiceSignature, dirty = signature, true end
 end
@@ -687,10 +730,8 @@ local function detail(player, item)
         body = clean(profile.summary or 'Conversation profile for ' .. profile.name, 1100)
             .. '\n\nConversation: ' .. (M.profileEnabled(profile.key) and 'on' or 'off')
             .. '\nCopies in party: ' .. copyCount(profile.key)
-        if localVoices[profile.key] and settings.voiceProvider ~= 'convai' and localVoiceState.provider == settings.voiceProvider then
-            local voiceLabel = settings.voiceProvider == 'pocket' and ui.t('Pocket TTS')
-                or ui.t(settings.omniSteps == 16 and 'OmniVoice 16' or 'OmniVoice 32')
-            body = body .. '\nVoice: ' .. voiceLabel
+        if localVoices[profile.key] and (localVoiceState.provider == 'pocket' or localVoiceState.provider == 'omni') then
+            body = body .. '\nVoice: ' .. M.voiceLabel(localVoiceState.provider, localVoiceState.omniSteps)
         elseif profile.voiceName then body = body .. '\nVoice: ' .. clean(profile.voiceName, 140) end
         if not item.definition then body = body .. '\nChoose a model in Models, then assign this profile in Party.' end
         primary, primaryLabel, primaryEnabled = 'spawn:' .. profile.key, 'Add a copy', item.definition ~= nil and #party < 8
@@ -926,7 +967,7 @@ function M.applySettings(player, values)
         elseif key == 'voiceProvider' then
             if value == 'hybrid' then value = 'omni' end
             if value ~= 'pocket' and value ~= 'omni' and value ~= 'convai' then
-                return false, 'Choose Pocket TTS, OmniVoice 16, OmniVoice 32 or Convai voices.'
+                return false, 'Choose OmniVoice 32 steps, OmniVoice 16 steps, Pocket TTS or Convai cloud voice.'
             end
             nextSettings.voiceProvider = value
         elseif key == 'omniSteps' then

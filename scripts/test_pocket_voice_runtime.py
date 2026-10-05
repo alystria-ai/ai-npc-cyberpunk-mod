@@ -89,11 +89,17 @@ class Assets(unittest.TestCase):
                     self.validate()
                 path.write_bytes(before)
 
+    def test_an_explicitly_selected_raw_student_export_is_accepted(self):
+        receipt={**self.receipt,'weights':'raw'};(self.export/'receipt.json').write_text(json.dumps(receipt))
+        accepted=copy.deepcopy(self.config);accepted['model']['receiptSha256']=runtime.digest_file(self.export/'receipt.json')
+        self.validate(accepted)
+        (self.export/'receipt.json').write_text(json.dumps(self.receipt))
+
     def test_teacher_or_wrong_training_identity_is_rejected_even_with_matching_file_hash(self):
-        for field,value in [('selected_step',250),('weights','raw'),('sample_cfg',2.),('input_identity','f'*64)]:
+        for field,value in [('selected_step',250),('weights','teacher'),('sample_cfg',2.),('input_identity','f'*64)]:
             receipt={**self.receipt,field:value};(self.export/'receipt.json').write_text(json.dumps(receipt))
             altered=copy.deepcopy(self.config);altered['model']['receiptSha256']=runtime.digest_file(self.export/'receipt.json')
-            with self.assertRaisesRegex(ValueError,'EMA student'):
+            with self.assertRaisesRegex(ValueError,'selected student export'):
                 self.validate(altered)
         (self.export/'receipt.json').write_text(json.dumps(self.receipt))
         altered=copy.deepcopy(self.inference);altered['flow_lm']['transformer']['num_layers']=24

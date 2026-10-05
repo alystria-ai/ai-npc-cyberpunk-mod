@@ -313,6 +313,7 @@ function companionProviders({settings, voice, routing, party}) {
   }
   return {conversation: 'convai-realtime', voiceSelected: settings?.voiceProvider ?? voice?.requestedProvider ?? null,
     voiceActive: voice?.provider ?? null, voiceState: voice?.state ?? null, omniSteps: voice?.omniSteps ?? settings?.omniSteps ?? null,
+    voiceFallback: voice?.fallback ?? null,
     companions: rows};
 }
 

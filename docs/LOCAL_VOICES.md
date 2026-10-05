@@ -1,19 +1,55 @@
 # Shared local voices
 
-## Four global voice choices — October 3
+## Four global voice choices — October 5
 
-The user approved the improved six-layer **Pocket TTS student** and subsequently
-requested that Omni remain available. One global selector contains, in order:
-**Pocket TTS (default), OmniVoice 16, OmniVoice 32, Convai**. There is no separate
-quality row. Saved choices remain authoritative; legacy `hybrid`/Omni settings
-retain their saved 16/32 quality. The current user's Pocket choice stays Pocket.
+Listening tests put OmniVoice (GPU, `k2-fsa/OmniVoice`) closest to the real
+characters, and the fine-tuned Pocket student was no better than stock Pocket
+(speaker similarity 0.930 against 0.926 on 77 voices, within noise). The
+selector was therefore reduced to one global setting with four choices, in this
+order: **OmniVoice 32 steps (default), OmniVoice 16 steps, Pocket TTS, Convai
+cloud voice**. Earlier lists (Pocket first, and separate student/teacher or
+fine-tuning variants) are gone. There is no separate quality row and no
+per-character voice selector.
 
 Settings store `voiceProvider` as `pocket`, `omni` or `convai`, with retained
-`omniSteps` of 16 or 32 (default32). Those numbers are Omni generation steps, not
-precision. The Pocket student uses one sampler step at CFG1. Both Omni choices
-reuse the same accepted FP16 CUDA ResidentVoice model and reference cache.
+`omniSteps` of 16 or 32 (default 32); the names are unchanged so older saves
+keep working. Select index 1 is `omni`/32, 2 is `omni`/16, 3 is `pocket`, 4 is
+`convai`. Those numbers are Omni generation steps, not precision. 32 versus 16
+changes only the step count; the bridge's Omni configuration (FP16, CUDA,
+guidance, seed) is otherwise identical. Both Omni choices reuse the same
+accepted FP16 CUDA ResidentVoice model and reference cache. The Pocket choice is
+the six-layer student at CFG 1, one decode step, temperature 0.3.
 
-Pocket uses **float32 on CPU**, with two inference threads by default, one
+### Migration
+
+`mod/manager.lua` maps a saved `voiceProvider` once, on load, and rewrites
+`runtime/settings.json`: `convai` stays Convai; any name containing `pocket`
+(`pocket`, `pocket-student`, `pocket-base`, ...) becomes Pocket TTS; `omni`,
+`omnivoice` and the older `hybrid` become OmniVoice; anything else (missing,
+empty, a number, `teacher`, ...) becomes the default OmniVoice. An invalid
+`omniSteps` becomes 32. Because the old default was Pocket, a player who never
+changed the setting keeps Pocket until they pick another voice.
+
+### Fallback order
+
+The list is also the fallback order, best first: OmniVoice, Pocket TTS, Convai.
+A choice that cannot run falls to the next entry; Convai is always runnable.
+"Cannot run" means the backend is not configured, none of its references is
+available, or its worker failed (for example no CUDA GPU, OmniVoice failing to
+load, a crashed worker). A failed worker stays out of routing until the player
+chooses that provider again, and is not restarted in a loop. The fallback
+commits at the next idle settings poll, like any routing change, so a turn in
+progress keeps its voice. The bridge publishes `fallback: {from, to}` in
+`runtime/local-voice-state.json` (and the support report) once the lower voice
+is the committed route; the CET mod reads it and posts one gameplay notice per
+fallback ("OmniVoice 32 steps is unavailable. Companions are using Pocket TTS
+instead."), and the Settings voice status names the voice in use. Invitations
+that were preparing against the failed backend continue on the fallback instead
+of failing. The pre-existing readiness and availability checks are unchanged.
+The same machinery lets a machine with no OmniVoice setup start on Pocket
+without a manual switch.
+
+Pocket uses **float32 on CPU**, with four inference threads, one
 shared model and per-character acoustic reference states. It does not load the
 teacher, allocate CUDA memory, use TensorRT or create a neural model per
 character. This trained student is English. The selected weight file is
@@ -97,8 +133,8 @@ opt-out. FP8 remains an isolated candidate, not the installed voice precision.
 
 ## Routing and lifetime
 
-- **Companion Manager → Settings → Companion voices** selects Pocket TTS,
-  OmniVoice 16, OmniVoice 32 or Convai. The manager uses the player's assigned
+- **Companion Manager → Settings → Companion voices** selects OmniVoice
+  32 steps (default), OmniVoice 16 steps, Pocket TTS or Convai cloud voice. The manager uses the player's assigned
   CET shortcut. Saving the selection keeps it for future launches; valid saved
   choices take precedence over the new-user default.
 - The current catalog has **75 prepared local voice profiles** out of 79.
