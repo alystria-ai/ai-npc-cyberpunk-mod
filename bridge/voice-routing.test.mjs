@@ -59,7 +59,7 @@ function fixture({local = false, available = true, audioFailure = false, continu
     atomic: async (path, value) => { publications.push([path, JSON.parse(value)]); return true; },
     resolve: (...parts) => parts.join('/'), sessionKey: () => 'exact-session',
     realtimeSessions: new Map(), sessions: new Map(), connections: {used: () => calls.push('used')},
-    measure: async () => {}, status: async () => {}, Date, console: {error() {}},
+    measure: async () => {}, status: async () => {}, Date, AbortController, console: {error() {}},
     knowledgeRouter: {activity: async (prepared, event, detail) => calls.push(['knowledge', prepared, event, detail])},
     stagedKnowledgeTurn: prepared => calls.push(['staged', prepared]),
   };
@@ -309,7 +309,10 @@ test('Omni16 and32 use one original text reply then their separate native phrase
     const result=await f.api.respond(f.input,f.profile,{current});
     assert.equal(f.calls.find(value=>Array.isArray(value)&&value[0]==='send')[1].ttsEnabled,false);
     assert.equal(result.continuous,undefined);assert.equal(result.streamPlan.steps,steps);
-    assert.equal(generated.length,1);assert.equal(generated[0].steps,steps);
+    // Phrase 2 is queued beside phrase 1 so the GPU renders it during phrase 1's
+    // lip analysis and publication; it is handed to the stream, never rendered twice.
+    assert.equal(generated.length,2);assert.equal(generated[1].text,result.streamPlan.phrases[1]);
+    assert.ok(generated.every(value=>value.steps===steps));
     assert.ok(!f.calls.some(value=>Array.isArray(value)&&value[0]==='pocket-stream'));
     // Publication uses actual SpeechStream; fixed steps survive every phrase.
     await f.api.publishResult(f.input,f.profile,result,current);

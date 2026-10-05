@@ -428,12 +428,20 @@ async function synthesizeReply(input, result, signal, current, profile = profile
   if (!localVoice.usesProfile(input.profileKey)) return {...result, timing: {...result.timing, voiceProvider: 'convai'}};
   throwIfCancelled(signal);
   if(localVoice.provider==='omni'){
+    const lookahead=new AbortController(),cancelLookahead=()=>lookahead.abort();
+    signal?.addEventListener('abort',cancelLookahead,{once:true});
     try{
       const phrases=splitSpeechText(result.text),steps=localVoice.steps;
-      const generated=await synthesizeOmniPhrase(input.profileKey,phrases[0],{signal,steps});
+      const first=synthesizeOmniPhrase(input.profileKey,phrases[0],{signal,steps});
+      // Queue phrase 2 behind phrase 1 now: the GPU renders it while phrase 1's
+      // lip analysis, storage and publication run, instead of after them.
+      let second;
+      if(phrases.length>1){second=synthesizeOmniPhrase(input.profileKey,phrases[1],{signal:lookahead.signal,steps});second.catch(()=>{});}
+      const generated=await first;
       return {...result,...generated,text:result.text,timing:{...result.timing,...generated.timing},
-        streamPlan:phrases.length>1?{phrases,steps}:undefined};
+        streamPlan:phrases.length>1?{phrases,steps,lookahead:{promise:second,cancel:cancelLookahead}}:undefined};
     }catch(error){
+      cancelLookahead();
       throwIfCancelled(signal);console.error('[CyberpunkConvai] Omni speech:',error.message);
       return {...result,audio:undefined,faces:[],captions:[],audioError:'Local voice is unavailable; showing the written reply.'};
     }
@@ -547,7 +555,7 @@ async function publishResult(input, profile, result, current = async () => true,
       }else{
         const id=randomUUID();await slots.begin(id,current);audio=await slots.write(id,1,result.audio,current);
       }
-      if (!await current()) return false;
+      if (!await current()) { stream?.closeQueue(); return false; }
       try { face ??= buildFacialTimeline(result, input); }
       catch (error) { console.error('[CyberpunkConvai] Facial timing unavailable:', error.message); }
       await atomic(resolve(runtime, 'last-speech-timing.json'), JSON.stringify({
@@ -555,16 +563,17 @@ async function publishResult(input, profile, result, current = async () => true,
         captions: result.captions, duration: audio.duration, face,
       }), {signal, isCurrent: current, isCurrentSync: current.sync});
     } catch (error) {
+      stream?.closeQueue();result.streamPlan?.lookahead?.cancel?.();
       audio = undefined; face = undefined;stream=undefined;
       audioError = 'Voice could not be prepared; showing the written reply.';
       console.error('[CyberpunkConvai] Voice preparation failed:', error.message);
     }
   }
-  if (!await current()) return false;
+  if (!await current()) { stream?.closeQueue(); return false; }
   const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audio, face, audioError,
     stream:stream?.descriptor(),updated: Date.now()}), {signal, isCurrent: current, isCurrentSync: current.sync});
-  if (!committed || !await current()) return false;
+  if (!committed || !await current()) { stream?.closeQueue(); return false; }
   (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);
   if (result.transport === 'realtime') connections.used(input, result.timing);
   prefetch.published(input, result.text);

@@ -67,11 +67,33 @@ export class SpeechSlots {
 
 export class SpeechStream {
   constructor({input, phrases, steps, slots, readState, writeManifest, synthesize, current,
-    signal, now = Date.now, wait = ms => new Promise(done => setTimeout(done, ms))}) {
+    signal, lookahead, now = Date.now, wait = ms => new Promise(done => setTimeout(done, ms))}) {
     Object.assign(this, {input, phrases, steps, slots, readState, writeManifest, synthesize, current, signal, now, wait});
     this.manifest = {version: 1, streamId: randomUUID(), requestId: input.requestId,
       generation: input.generation, entity: input.entity, total: phrases.length, complete: false, chunks: []};
     this.started = now(); this.totalDuration = 0; this.accepted = false;
+    // Phrase synthesis queued by this stream is cancelled when the stream ends
+    // or its request is cancelled. Work not yet started by a worker is skipped;
+    // an inference already running still finishes and is discarded, as before.
+    this.queue = new AbortController(); this.pending = new Map();
+    this.cancelQueue = () => this.queue.abort();
+    signal?.addEventListener('abort', this.cancelQueue, {once: true});
+    if (signal?.aborted) this.cancelQueue();
+    // Optional synthesis of phrase 2 that was queued beside phrase 1.
+    if (lookahead?.promise && phrases.length > 1) {
+      lookahead.promise.catch(() => {});
+      this.pending.set(1, lookahead.promise); this.cancelLookahead = lookahead.cancel;
+    }
+  }
+  queueSynthesis(index) {
+    if (index >= this.phrases.length || this.pending.has(index)) return;
+    const job = Promise.resolve().then(() => this.synthesize(this.phrases[index], {signal: this.queue.signal, steps: this.steps}));
+    job.catch(() => {});
+    this.pending.set(index, job);
+  }
+  closeQueue() {
+    this.cancelQueue(); this.cancelLookahead?.(); this.pending.clear();
+    this.signal?.removeEventListener('abort', this.cancelQueue);
   }
   async assertCurrent() {
     throwIfCancelled(this.signal);
@@ -128,7 +150,14 @@ export class SpeechStream {
       while (!this.manifest.complete) {
         await this.room();
         const index = this.manifest.chunks.length;
-        const result = await this.synthesize(this.phrases[index], {signal: this.signal, steps: this.steps});
+        this.queueSynthesis(index);
+        // Keep one more phrase queued. The GPU renders it while this phrase's
+        // CPU lip analysis runs (each worker keeps its own FIFO order), so a
+        // phrase costs the slower stage instead of both in series. Slot writes
+        // stay behind room(): at most one extra phrase waits in memory.
+        this.queueSynthesis(index + 1);
+        const result = await this.pending.get(index);
+        this.pending.delete(index);
         await this.assertCurrent();
         await this.append({...result, expressionSignal: this.expressionSignal});
       }
@@ -140,7 +169,7 @@ export class SpeechStream {
       this.manifest.error = 'The rest of the voice reply could not be prepared.';
       await this.publish();
       this.error = error.message;
-    }
+    } finally { this.closeQueue(); }
   }
   descriptor() {
     return {version: 1, id: this.manifest.streamId, total: this.phrases.length,
