@@ -880,3 +880,25 @@ cancelAutomatic('manual-text');genAt,playAt=nil,nil;active={}
 run(120);active=nil;run(120)
 assert(#turns==2 and not automatic and loot.status().pending==0,kinds())
 `));
+
+test('a pickup never waits for a closing that cannot speak: disabled, cooling down or without a witness', () => run(adapterFixture + `
+-- Battle comments off: nothing can announce the fight, so the pickup speaks at its own six-second mark.
+settings=false;sample.combat=false;advance(.5);sample.combat=true;waitGame(5);sample.combat=false
+queueLoot('no-battle-comments');advance(.5)
+local picked=now;while not automatic and now-picked<12 do advance(.5)end
+assert(automatic and automatic.reaction.kind=='loot' and now-picked<=7,'Disabled battle comments held a pickup')
+finishAutomatic()
+-- Closing already used, so the encounter is not eligible for another one.
+resetSessionFixture();settings=true;active=nil
+openBattle();finishAutomatic();endBattle();waitGame(4);assert(automatic and automatic.reaction.phase=='end');finishAutomatic()
+-- No eligible witness is present: the pickup's own witness may speak without waiting.
+resetSessionFixture();people={people[1]};active=nil
+sample.combat=false;advance(.5);sample.combat=true;waitGame(3)
+if automatic then finishAutomatic()end
+sample.combat=false;advance(.5)
+local newcomer={entity='4ULL',profileKey='panam-palmer',distance=3,available=true,name='Panam',npc='panam'}
+people={newcomer};supportedProfiles['panam-palmer']=true
+queueLoot('newcomer',nil,{newcomer});advance(.5)
+local at=now;while not automatic and now-at<12 do advance(.5)end
+assert(automatic and automatic.reaction.kind=='loot' and now-at<=7,'A closing without a witness held a pickup')
+`));
