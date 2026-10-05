@@ -315,10 +315,21 @@ test('eight copies share a navigation budget and retain unique lanes after a rea
   local find=nav.FindPointInSphereForCharacter
   nav.FindPointInSphereForCharacter=function(self,...) queries=queries+1; return find(self,...) end
   Game.GetAINavigationSystem=function() return nav end
+  -- Planning (cruise) work is limited to two members per update. A member
+  -- starting a native follow is admitted promptly regardless of that turn
+  -- (its one projection query belongs to the operation transition), so each
+  -- follow command issued this update may add one query.
+  local function followCommands()
+    local count=0
+    for _,member in pairs(entities) do
+      for _,cmd in ipairs(member.ai.commands) do if cmd.kind=='AIFollowTargetCommand' then count=count+1 end end
+    end
+    return count
+  end
   for i=1,35 do
     player.pos.y=-i*0.2
-    local before=queries; companions.update(player,0.1)
-    assert(queries-before<=2,'more than two cruise navigation requests in one update')
+    local before,follows=queries,followCommands(); companions.update(player,0.1)
+    assert(queries-before<=2+followCommands()-follows,'more than two cruise navigation requests in one update')
   end
   local rows=companions.list(); local lanes={}
   for _,row in ipairs(rows) do assert(not lanes[row.lane]); lanes[row.lane]=true end

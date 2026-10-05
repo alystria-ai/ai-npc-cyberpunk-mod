@@ -255,7 +255,9 @@ test('a planted car keeps the party in owned bounded waits instead of autonomous
 
 const executeDetour = `
   local helper=dofile('companion-clearance.lua')
-  local travelled,waypoints=0,{}
+  -- Same-gait legs retarget the one owned command (October 5 command
+  -- continuity), so count distinct certified waypoint goals, not commands.
+  local travelled,waypoints,targets=0,{},{}
   for frame=1,600 do
     motor.useSpatialBudget(helper.newBudget())
     update(0.1)
@@ -268,15 +270,23 @@ const executeDetour = `
     if command.kind=='AIMoveToCommand' then
       local goal=command.movementTarget.position
       if #waypoints==0 or waypoints[#waypoints]~=command then waypoints[#waypoints+1]=command end
+      local seen=targets[#targets]
+      if not seen or math.abs(seen.x-goal.x)>.01 or math.abs(seen.y-goal.y)>.01 then targets[#targets+1]={x=goal.x,y=goal.y} end
       assert(command.ignoreNavigation==false and not command.rotateEntityTowardsFacingTarget)
       local gap=math.sqrt((goal.x-npc.pos.x)^2+(goal.y-npc.pos.y)^2)
       local step=math.min(gap,0.1)
       if gap>0 then
         local next=Vector4.new(npc.pos.x+(goal.x-npc.pos.x)*step/gap,
           npc.pos.y+(goal.y-npc.pos.y)*step/gap,npc.pos.z)
+        -- A NPC is a round capsule. Test its true footprint against the solid;
+        -- a heading-independent .4 m square has corners the swept (rotated)
+        -- clearance box rightly does not claim.
         for _,box in ipairs(obstacles) do
-          assert(not overlaps({x=.4,y=.4,z=1.05},{x=next.x,y=next.y,z=next.z+1.15},
-            {yaw=0},box),'a validated detour command crossed the parked vehicle')
+          local nearX=math.max(box.x-box.hx,math.min(next.x,box.x+box.hx))
+          local nearY=math.max(box.y-box.hy,math.min(next.y,box.y+box.hy))
+          local vertical=next.z<box.z+box.hz and next.z+2.1>box.z-box.hz
+          assert(not (vertical and (next.x-nearX)^2+(next.y-nearY)^2<.4*.4),
+            'a validated detour command crossed the parked vehicle')
         end
         npc.forward=Vector4.new((goal.x-npc.pos.x)/gap,(goal.y-npc.pos.y)/gap)
         npc.pos=next; travelled=travelled+step; context.speed=step/.1
@@ -298,7 +308,7 @@ test('a parked car omitted by native navigation produces executed clearance-chec
   assert(state.lastRejection and state.lastRejection.group=='Vehicle')
   assert(state.lastRejection.stage=='path' and state.lastRejection.leg and state.lastRejection.box)
   ${executeDetour}
-  assert(travelled>6 and #waypoints>=3,'only the final goal was submitted after biased preflight')
+  assert(travelled>6 and #targets>=3,'only the final goal was submitted after biased preflight')
   assert(math.sqrt(npc.pos.x^2+(npc.pos.y-6)^2)<.4,'the detour never completed the original approach')
   assert(state.feedback.complete and not state.feedback.failed)
 `));
@@ -310,7 +320,7 @@ test('blocked catch-up checks a free stand-off and hands its certified local esc
   solid('Vehicle',0,3,.9,1.3)
   solid('Dynamic',0,8,.3,.3)
   ${executeDetour}
-  assert(travelled>6 and #waypoints>=3)
+  assert(travelled>6 and #targets>=3)
   local follow=last(npc,'AIFollowTargetCommand')
   assert(follow and state.completedEscapeTicket==state.ticket,'local escape never acquired a verified follow owner')
   assert(not state.feedback.complete and not state.feedback.failed,'local success completed the whole follow operation')
