@@ -16,7 +16,8 @@ copy of the same character cannot inherit an earlier pickup.
 
 An inventory baseline and an ever-owned identity set distinguish newly acquired
 equipment from equipment returned from storage or dropped and picked up again.
-Incomplete native reads disable the new-equipment distinction. Native objects
+Incomplete native reads disable the new-equipment distinction until a clean
+full inventory read. Native objects
 never leave callbacks; bounded plain receipts are the policy's only input.
 
 `mod/loot-reactions.lua` groups receipts and waits for six quiet gameplay seconds.
@@ -45,11 +46,18 @@ The shared owner admits one request/audio/caption turn at a time. Once that owne
 is released, a different reaction type can follow after about two seconds,
 instead of the previous thirty-second spacing. The same battle's closing can
 also follow its opening. Per-feature cooldowns and original admission deadlines
-still apply. If battle closing and a quiet pickup batch become eligible together,
-closing normally takes the shorter-window slot first; the pending pickup gets its
-own next turn. A pickup already eligible earlier may speak before closing. An
-unavailable battle witness does not reserve the channel against another eligible
-pickup witness. Manual conversation and authored scenes still take priority.
+still apply.
+
+**Order.** Comments play in the order their events happened. A pickup made
+*during* the fight finishes its quiet window as soon as combat is confirmed
+over and speaks before the closing. A pickup made *after* combat stopped waits
+until the closing is offerable (at most about eight seconds, and only while an
+eligible witness could speak it), so combat ending is announced first and the
+pickup follows. The closing never waits for loot. An unavailable battle witness
+does not reserve the channel against another eligible pickup witness. Manual
+conversation and authored scenes still take priority; a conversation cancels
+only the comment it interrupts, and a queued one plays once afterwards if its
+own window (forty seconds for a closing, ninety for pickups) is still open.
 
 The bridge validates the witness, bounds and computed equipment exception,
 includes the actual item facts in the automatic trigger, and treats all item
@@ -111,6 +119,46 @@ the game's loot manager, preserving the previous quantity. The user requested
 nearby test loot instead of having to search for a container. This route is
 explicitly invoked only; normal gameplay never adds test items.
 
+## Legendary pickups — October 5
+
+Source audit of the Legendary path:
+
+- **Quality is the game's own name.** `RPGManager.GetItemDataQuality(data)` is
+  what the game's item-added notification and loot UI read
+  (`itemsQueue.script`, `looting.script`). Its enum text was confirmed live
+  (`gamedataQuality : Common (0)`); Legendary, Legendary+ and Legendary++ are
+  matched by name. In the game's scripts the Plus tiers and Iconic are separate
+  item stats (`GetItemPlus`, `IsItemIconic`), so such items normally arrive as
+  `Legendary`; Iconic is not treated as Legendary.
+- **Reaction.** Any pickup whose quality is Legendary, in any category, now tells
+  the speaker so: the bridge adds the Legendary item (name, quality and type) to
+  the facts and instructs one short line that says it is Legendary and names the
+  item or its type, without inventing stats, perks or value. A batch with no
+  Legendary item is unchanged.
+- **Type.** The observer reads `gameItemData:GetItemType()` (for example
+  `Wea_AssaultRifle`) as an optional descriptive field. An unreadable or
+  malformed value is dropped and never rejects a pickup; the category is the
+  fallback. This getter has not yet been exercised live.
+- **Cooldown.** Unchanged and still as the MCM text states: newly acquired
+  Legendary weapons, clothing and cyberware bypass the ten-minute cooldown, with
+  their own two-minute spacing. A Legendary mod or other category speaks under the
+  ordinary cooldown but is still described as Legendary. A second Legendary
+  batch within two minutes of the first is not commented on.
+- **New-equipment detection no longer dies for a session.** Incompleteness
+  recorded a missed event (a failing callback, an unreadable item, an unavailable
+  player interval) and stayed set until save change, which silently demoted every
+  later Legendary pickup to the ordinary cooldown. A clean full inventory read now
+  clears it; the ever-owned set persists across reads, and a failure inside that
+  read or an overflowing set still keeps it off.
+- **Diagnostics.** `runtime/probe.log` records each accepted receipt with its
+  quality, category, type and new flag, and each automatic loot request with item
+  count and exception flag, so a missing comment can be traced to detection,
+  cooldown or delivery.
+
+Still excluded, unchanged: corpse loot-all, virtual pickups and Changed-only
+increments (no verified native provenance), storage, purchases and quest grants.
+A comment is cancelled, not deferred, if V opens a menu before it is audible.
+
 ## Source audit — October 4
 
 The shared coordinator already gives combat closing and collected loot separate
@@ -118,14 +166,13 @@ sequential turns. Their payloads reject mixed automatic contexts, and a battle
 turn cannot consume the pickup queue or its cooldown. No extra merging or
 parallel playback path is needed.
 
-The native delivery adapter now exposes `battleObserver.canDeliver(player,
+The native delivery adapter exposes `battleObserver.canDeliver(player,
 npc, phase)` to refresh the player's scene/call/vehicle and combat state as well
 as the speaker before starting an automatic line. The ordinary half-second
 poll is insufficient at this boundary: a scripted conversation may begin after
-that poll but before the prepared reply arrives. The shared coordinator must
-use this method in its delivery check; its integration is owned by the root
-task. A temporary autonomous NPC bark remains a waitable condition, while a
-player scene or renewed combat cancels the pickup comment.
+that poll but before the prepared reply arrives. The shared coordinator uses it
+in `reactionCanDeliver`. A temporary autonomous NPC bark remains a waitable
+condition, while a player scene or renewed combat cancels the pickup comment.
 
 The Legendary exception remains restricted to a verified new equipment identity,
 complete inventory coverage, a nonsilent Added event, and matching item-specific

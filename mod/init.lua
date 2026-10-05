@@ -975,7 +975,10 @@ local function updateBattles(player, elapsed, worldReady)
     -- a menu. Pausing freezes their policy timer; story/disabled gates discard.
     for _, item in ipairs(lootObserver.drain()) do
         local accepted, reason = loot.acquire(item, item.witnesses, now)
-        if accepted then log('World loot collected: ' .. item.record .. ' quantity=' .. item.quantity)
+        if accepted then
+            log('World loot collected: ' .. item.record .. ' quantity=' .. item.quantity
+                .. ' quality=' .. item.quality .. ' category=' .. item.category
+                .. ' type=' .. tostring(item.itemType) .. ' new=' .. tostring(item.newlyAcquired))
         else log('World loot skipped: ' .. tostring(reason)) end
     end
     lootObserver.update({available = battleSample.available, blocked = battleSample.blocked,
@@ -1062,7 +1065,8 @@ local function updateBattles(player, elapsed, worldReady)
         speech.target = person.npc
         lastAutomatic = {at = now, requestId = context.requestId, kind = event.reaction.kind,
             phase = event.phase, encounter = event.encounter}
-        log('Automatic ' .. event.reaction.kind .. ' reaction: ' .. tostring(event.phase or 'batch') .. ' speaker=' .. person.profileKey)
+        log('Automatic ' .. event.reaction.kind .. ' reaction: ' .. tostring(event.phase or 'batch') .. ' speaker=' .. person.profileKey
+            .. (event.loot and (' items=' .. #event.loot.items .. ' exceptional=' .. tostring(event.loot.exceptional)) or ''))
     else cancelAutomatic('request-write-failed') end
 end
 

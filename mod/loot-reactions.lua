@@ -76,9 +76,11 @@ local function normalize(item)
     if not QUALITIES[item.quality] or not identifier(item.category, 64) or type(item.newlyAcquired) ~= 'boolean' then
         return nil, 'unverified-classification'
     end
+    -- Optional descriptive type; an invalid one is dropped, not a rejection.
+    local itemType = item.itemType ~= nil and identifier(item.itemType, 48) or nil
     return {acquisitionId = acquisition, identity = identity, record = record, name = name,
         quantity = item.quantity, quality = item.quality, category = item.category,
-        newlyAcquired = item.newlyAcquired,
+        itemType = itemType, newlyAcquired = item.newlyAcquired,
         exceptional = item.newlyAcquired and LEGENDARY[item.quality] == true
             and EQUIPMENT[item.category] == true}
 end
@@ -147,7 +149,8 @@ function M.new()
                 if row then row.quantity = math.min(LIMIT.quantity, row.quantity + item.quantity)
                 else
                     row = {record = item.record, name = item.name, quantity = item.quantity,
-                        quality = item.quality, category = item.category, newlyAcquired = item.newlyAcquired,
+                        quality = item.quality, category = item.category, itemType = item.itemType,
+                        newlyAcquired = item.newlyAcquired,
                         exceptional = item.exceptional, sequence = receipt.sequence}
                     indices[group] = row; items[#items + 1] = row
                 end

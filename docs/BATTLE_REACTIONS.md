@@ -35,7 +35,11 @@ cooldowns. Both features share one speech owner. Once the current generation,
 audio and captions release that owner, the other type may take its own turn
 after about two seconds. Their original deadlines, exact witnesses and manual
 conversation priority remain enforced. An unavailable closing witness does not
-hold the channel against an eligible pickup witness.
+hold the channel against an eligible pickup witness. Order follows the events:
+a pickup made after combat stopped waits (at most about eight seconds) so the
+closing is announced first, while a pickup made during the fight speaks as soon
+as combat is confirmed over. A conversation cancels only the comment it
+interrupts. See `LOOT_REACTIONS.md`.
 
 An owned companion in autonomous gameplay may become temporarily busy with
 native speech while a reply is being generated. Keep that same request and lease,

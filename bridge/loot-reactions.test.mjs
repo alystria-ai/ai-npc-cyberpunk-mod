@@ -107,6 +107,19 @@ add('after-cooldown',{record='Items.Coat',quality='Legendary',category='Clothing
 wait(6);assert(offer(false))
 `));
 
+test('a snapshot keeps the verified quality and optional item type of every Legendary pickup', () => run(fixture + `
+add('weapon',{record='Items.Preset_Pride',name='Pride',quality='Legendary',category='Weapon',itemType='Wea_AssaultRifle',newlyAcquired=true})
+add('mod',{record='Items.Scope',name='Scope',quality='LegendaryPlus',category='WeaponMod',itemType='Prt_Scope',newlyAcquired=true})
+add('junk',{record='Items.Junk',name='Junk',quality='Common',category='General',itemType='Not a type!'})
+wait(6);local event=assert(offer(false));assert(policy.claim(event,now))
+local rows={}
+for _,row in ipairs(event.loot.items)do rows[row.name]=row end
+assert(rows.Pride.quality=='Legendary' and rows.Pride.itemType=='Wea_AssaultRifle' and rows.Pride.category=='Weapon')
+assert(rows.Scope.quality=='LegendaryPlus' and rows.Scope.itemType=='Prt_Scope')
+assert(rows.Junk.itemType==nil,'A malformed descriptive type is dropped, not a rejection')
+assert(event.loot.exceptional and event.loot.items[1].name=='Pride','Legendary equipment is described first')
+`));
+
 test('old equipment and Legendary consumables cannot use the new-equipment exception', () => run(fixture + `
 add('ordinary');wait(6);local first=offer(false);policy.claim(first,now);policy.release(first.reaction)
 add('returned-weapon',{record='Items.Pistol',quality='Legendary',category='Weapon',newlyAcquired=false})
