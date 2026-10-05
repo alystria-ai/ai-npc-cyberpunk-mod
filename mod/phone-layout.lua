@@ -65,9 +65,25 @@ local function apply(controller)
     if not ok then M.lastError = tostring(err) end
 end
 
+-- One line per phone session: list presses, honoured repeats, and repeats the
+-- native adapter ignored because their direction was held before the list
+-- opened. Absent on older native scripts.
+function M.reportNavigation(player)
+    local ok, stats = pcall(function() return player:ConvaiPhoneNavigationStats() end)
+    if not ok or type(stats) ~= 'string' or stats == '' then return end
+    M.lastNavigation = stats
+    local line = 'Phone navigation: ' .. stats
+    local file = io.open('runtime/probe.log', 'a')
+    if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', line, '\n'); file:close() end
+    print('[CyberpunkConvai] ' .. line)
+end
+
 function M.refresh(force)
     local player = Game.GetPlayer()
-    if not player or not player:ConvaiPhoneIsOpen() then M.wasOpen = false; return end
+    if not player or not player:ConvaiPhoneIsOpen() then
+        if M.wasOpen and player then M.reportNavigation(player) end
+        M.wasOpen = false; return
+    end
     -- Row callbacks handle selection/recycling. Scan just once on opening to
     -- cover a phone that was already visible when the module was installed.
     if not force and M.wasOpen then return end

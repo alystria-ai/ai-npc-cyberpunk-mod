@@ -66,6 +66,9 @@ public func EnableContactsInput() -> Void {
     if IsDefined(this.m_player) {
         this.m_player.ConvaiPhoneSetOpen(true);
     };
+    // Presses made while the list was not listening (before it opened, or
+    // while a Chat conversation had focus) must not authorize repeats.
+    ArrayClear(this.m_convaiPressedDirections);
     this.ConvaiStopPhoneKeys();
     this.m_convaiPhoneKeys = GameInstance.GetCallbackSystem()
         .RegisterCallback(n"Input/Key", this, n"OnConvaiPhoneKey")
@@ -84,7 +87,53 @@ private final func ConvaiStopPhoneKeys() -> Void {
 @wrapMethod(NewHudPhoneGameController)
 public func DisableContactsInput() -> Void {
     this.ConvaiStopPhoneKeys();
+    ArrayClear(this.m_convaiPressedDirections);
     wrappedMethod();
+}
+
+// Native list navigation honours REPEAT from every held direction as soon as
+// any phone action has been pressed: m_repeatingScrollActionEnabled is a single
+// flag. It exists because the gamepad phone button, D-pad Down, is also
+// popup_moveDown, so a direction held before the list opened keeps repeating
+// into it. On keyboard W/S, Q/E and the arrows are gameplay keys too. A
+// direction still held, or never seen released, when the phone opened starts
+// repeating every 0.05 s on the first unrelated press (an arrow, S or the mouse
+// wheel), and this list wraps (cycleNavigation), so the selection races through
+// every contact. Repeat only a direction whose own press this list received.
+@addField(NewHudPhoneGameController)
+private let m_convaiPressedDirections: array<CName>;
+
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiIsListDirection(name: CName) -> Bool {
+    return Equals(name, n"popup_moveDown") || Equals(name, n"popup_moveUp")
+        || Equals(name, n"popup_moveUp_left_stick_down") || Equals(name, n"popup_moveUp_left_stick_up");
+}
+
+@wrapMethod(NewHudPhoneGameController)
+protected cb func OnContactListAction(action: ListenerAction, consumer: ListenerActionConsumer) -> Bool {
+    let name: CName = ListenerAction.GetName(action);
+    if this.ConvaiIsListDirection(name) && IsDefined(this.m_player) {
+        let type: gameinputActionType = ListenerAction.GetType(action);
+        if Equals(type, gameinputActionType.BUTTON_PRESSED) {
+            if !ArrayContains(this.m_convaiPressedDirections, name) {
+                ArrayPush(this.m_convaiPressedDirections, name);
+            };
+            this.m_player.ConvaiPhoneCountNavigation(0);
+        } else {
+            if Equals(type, gameinputActionType.BUTTON_RELEASED) {
+                ArrayRemove(this.m_convaiPressedDirections, name);
+            } else {
+                if Equals(type, gameinputActionType.REPEAT) && this.m_repeatingScrollActionEnabled {
+                    if !ArrayContains(this.m_convaiPressedDirections, name) {
+                        this.m_player.ConvaiPhoneCountNavigation(2);
+                        return false;
+                    };
+                    this.m_player.ConvaiPhoneCountNavigation(1);
+                };
+            };
+        };
+    };
+    return wrappedMethod(action, consumer);
 }
 
 @wrapMethod(NewHudPhoneGameController)
@@ -275,9 +324,48 @@ private let m_convaiPhoneRequests: array<String>;
 @addField(PlayerPuppet)
 private let m_convaiPhoneOpen: Bool;
 
+// Per phone session: list presses, honoured repeats, and repeats ignored
+// because their direction was never pressed inside the list.
+@addField(PlayerPuppet)
+private let m_convaiPhonePresses: Int32;
+
+@addField(PlayerPuppet)
+private let m_convaiPhoneRepeats: Int32;
+
+@addField(PlayerPuppet)
+private let m_convaiPhoneIgnoredRepeats: Int32;
+
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneSetOpen(open: Bool) -> Void {
+    if open && !this.m_convaiPhoneOpen {
+        this.m_convaiPhonePresses = 0;
+        this.m_convaiPhoneRepeats = 0;
+        this.m_convaiPhoneIgnoredRepeats = 0;
+    };
     this.m_convaiPhoneOpen = open;
+}
+
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneCountNavigation(kind: Int32) -> Void {
+    if kind == 0 {
+        this.m_convaiPhonePresses += 1;
+    } else {
+        if kind == 1 {
+            this.m_convaiPhoneRepeats += 1;
+        } else {
+            this.m_convaiPhoneIgnoredRepeats += 1;
+        };
+    };
+}
+
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneNavigationStats() -> String {
+    if this.m_convaiPhonePresses + this.m_convaiPhoneRepeats + this.m_convaiPhoneIgnoredRepeats == 0 {
+        return "";
+    };
+    return "presses=" + IntToString(this.m_convaiPhonePresses)
+        + " repeats=" + IntToString(this.m_convaiPhoneRepeats)
+        + " ignoredRepeats=" + IntToString(this.m_convaiPhoneIgnoredRepeats);
 }
 
 @addMethod(PlayerPuppet)
