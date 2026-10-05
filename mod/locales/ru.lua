@@ -9,7 +9,7 @@ return {
     ["Waiting for walking ownership to resume."] = "Ожидание восстановления управления передвижением пешком.",
     ["Development"] = "Разработка",
     ["Developer mode"] = "Режим разработчика",
-    ["Show routine companion driving popups, including boarding and exit instructions. Failures and replies to Stop trip remain visible when off."] = "Показывает обычные уведомления о поездке с напарником, включая указания сесть в машину и выйти из неё. Ошибки и ответы на команду остановки поездки остаются видимыми, даже когда режим выключен.",
+    ["Show routine companion popups: invitation progress (preparing, connecting, ready, joining) and driving instructions such as boarding and exit. Failures and replies to Stop trip remain visible when off."] = "Показывает обычные уведомления о напарниках: ход приглашения (подготовка, подключение, готов, присоединение) и указания по поездке, например сесть в машину и выйти из неё. Ошибки и ответы на команду остановки поездки остаются видимыми, даже когда режим выключен.",
     ["0 results"] = "Нет результатов",
     ["10 cm higher"] = "На 10 см выше",
     ["10 cm lower"] = "На 10 см ниже",

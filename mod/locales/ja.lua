@@ -9,7 +9,7 @@ return {
     ["Waiting for walking ownership to resume."] = "歩行制御の再開を待っています。",
     ["Development"] = "開発",
     ["Developer mode"] = "開発者モード",
-    ["Show routine companion driving popups, including boarding and exit instructions. Failures and replies to Stop trip remain visible when off."] = "コンパニオンの運転に関する通常の通知を表示します。乗車や降車の案内も含まれます。オフでも、エラーや「ドライブを停止」への応答は表示されます。",
+    ["Show routine companion popups: invitation progress (preparing, connecting, ready, joining) and driving instructions such as boarding and exit. Failures and replies to Stop trip remain visible when off."] = "コンパニオンの通常の通知を表示します。招待の進行状況（準備、接続、準備完了、参加）と、乗車や降車などの運転の案内が対象です。オフでも、エラーや「ドライブを停止」への応答は表示されます。",
   ["0 results"] = "0件",
   ["10 cm higher"] = "10 cm高く",
   ["10 cm lower"] = "10 cm低く",

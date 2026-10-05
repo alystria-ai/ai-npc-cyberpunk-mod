@@ -9,7 +9,7 @@ return {
     ["Waiting for walking ownership to resume."] = "Esperando a que se restablezca el control del movimiento a pie.",
     ["Development"] = "Desarrollo",
     ["Developer mode"] = "Modo desarrollador",
-    ["Show routine companion driving popups, including boarding and exit instructions. Failures and replies to Stop trip remain visible when off."] = "Muestra avisos habituales de conducción de los compañeros, incluidas las instrucciones para subir y bajar del vehículo. Los errores y las respuestas a Detener viaje siguen visibles al desactivarlo.",
+    ["Show routine companion popups: invitation progress (preparing, connecting, ready, joining) and driving instructions such as boarding and exit. Failures and replies to Stop trip remain visible when off."] = "Muestra avisos habituales de los compañeros: el progreso de las invitaciones (preparación, conexión, listo, incorporación) y las instrucciones de conducción, como subir y bajar del vehículo. Los errores y las respuestas a Detener viaje siguen visibles al desactivarlo.",
     ["0 results"] = "0 resultados",
     ["10 cm higher"] = "10 cm más alto",
     ["10 cm lower"] = "10 cm más bajo",

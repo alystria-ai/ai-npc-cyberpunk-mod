@@ -9,7 +9,7 @@ return {
     ["Waiting for walking ownership to resume."] = "正在等待恢复步行控制。",
     ["Development"] = "开发",
     ["Developer mode"] = "开发者模式",
-    ["Show routine companion driving popups, including boarding and exit instructions. Failures and replies to Stop trip remain visible when off."] = "显示伙伴驾驶时的常规弹窗，包括上车和下车提示。关闭后仍会显示故障信息和停止行程的反馈。",
+    ["Show routine companion popups: invitation progress (preparing, connecting, ready, joining) and driving instructions such as boarding and exit. Failures and replies to Stop trip remain visible when off."] = "显示伙伴的常规弹窗：邀请进度（准备、连接、就绪、加入）以及上车、下车等驾驶提示。关闭后仍会显示故障信息和停止行程的反馈。",
     ["0 results"] = "0 项结果",
     ["10 cm higher"] = "提高 10 厘米",
     ["10 cm lower"] = "降低 10 厘米",
