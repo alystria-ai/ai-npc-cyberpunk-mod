@@ -106,6 +106,11 @@ Direct phone invitations keep their existing notification path.
 Each ticket, profile revision and preparation stage is posted once while paused.
 Because the menu may hide native notifications, the first gameplay frame samples
 the current state again and presents it once there. It retains no stage backlog.
+A preparation failure is the exception: each failed attempt posts one notice in
+total, shared with the phone and the queue's detailed notice, and stays failed
+until the player cancels or chooses the profile again. An immediate failure waits
+for gameplay and posts its detailed notice there; one first seen while paused
+posts the short notice then, and the manager banner keeps showing it.
 A ticket already spawning reports **joining**, and completed attachment uses the
 existing **joined your group** notice. Cancelled, removed and reset tickets cannot
 replay preparation messages. Native calls run only from top-level update; same-

@@ -205,7 +205,13 @@ reject(function(v) v.invitations = 'ready' end)
 unknown = 'judy-alvarez'
 files['runtime/companion-invitations-state.json'] = json.encode(good)
 readiness.update(); queue.flush(); assert(#spawned == 0 and queue.list()[1].state == 'failed')
+-- A failed attempt keeps its error: the profile becoming known again and a
+-- valid receipt for the old revision cannot revive or spawn it.
 unknown = nil
+readiness.update(); queue.flush()
+assert(#spawned == 0 and queue.list()[1].state == 'failed' and queue.list()[1].error == 'That conversation profile is unavailable.')
+-- Only an explicit retry (a new revision) starts a fresh preparation attempt.
+assert(queue.assign(queue.list()[1].id, 'judy-alvarez', 'Judy') and queue.list()[1].state == 'preparing-memory')
 files['runtime/companion-invitations-state.json'] = 'corrupt'
 readiness.update(); queue.flush(); assert(#spawned == 0)
 ms = ms + 15000; readiness.update(); queue.flush()

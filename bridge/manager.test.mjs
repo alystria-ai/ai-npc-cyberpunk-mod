@@ -1094,12 +1094,12 @@ test('a preparation popup hidden by the menu gets one gameplay presentation per 
     for _ = 1, 3 do popupTick(true); popupTick(false) end
     popupTick(true); assert(#popups == 2, 'reopening the menu repeated a stage already shown in gameplay')
     readiness.receipts['queued:1'] = {state = 'error', error = 'Bridge unavailable'}; popupTick(false)
-    assert(#popups == 3)
+    assert(#popups == 3 and popups[3] == 'Johnny Silverhand: preparation failed. Cancel and invite again.')
+    -- A failed attempt reports once; the notice shown while paused is the claim.
     popupTick(true)
-    assert(#popups == 4 and popups[4] == 'Johnny Silverhand could not prepare: Bridge unavailable',
-      'the existing failure notice was duplicated by a second preparation failure')
-    for _ = 1, 3 do popupTick(true) end
-    assert(#popups == 4)
+    assert(#popups == 3, 'the existing failure notice was duplicated by a second preparation failure')
+    for _ = 1, 3 do popupTick(true); popupTick(false) end
+    assert(#popups == 3)
   `);
 });
 
@@ -1142,12 +1142,12 @@ test('an immediate preparation failure posts one gameplay failure notice outside
     nativeCallback = true; assert(not invoke('invite:johnny-silverhand').ok); nativeCallback = false
     assert(#popups == 0)
     popupTick(false)
-    assert(#popups == 1 and popups[1] == 'Johnny Silverhand: preparation failed. Cancel and invite again.')
+    assert(#popups == 0, 'the immediate failure already has its notice; the paused menu added a second one')
     popupTick(true)
-    assert(#popups == 2 and popups[2] == 'Johnny Silverhand could not prepare: Bridge unavailable',
-      'first gameplay flush repeated the same failure notice')
-    for _ = 1, 3 do popupTick(true) end
-    assert(#popups == 2 and #spawned == 0)
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand could not prepare: Bridge unavailable',
+      'first gameplay flush did not post the single failure notice')
+    for _ = 1, 3 do popupTick(true); popupTick(false) end
+    assert(#popups == 1 and #spawned == 0)
   `);
 });
 
