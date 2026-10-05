@@ -45,8 +45,68 @@ and detach, then activates the real pause-menu Resume item once. MCM retains
 its unsaved-settings prompt; cancelling that prompt stays in Settings. Other
 providers and native settings retain their own exit behavior.
 
+## Help and support report
+
+**Settings → Help → Help and support** (last category of Settings) opens a Help page. Its Back
+returns to Settings, like Relationships and Memory. The page has three groups:
+
+- **If something goes wrong**: what to do, and whether the conversation service is Running,
+  Starting, Not running or Unknown.
+- **Report for the developer**: **Generate report**, the **Last report** row (file name as the
+  value, full path in the description, the same path in the banner) and **Copy report path**
+  (enabled only when the game exposes `ImGui.SetClipboardText`; it fails quietly otherwise).
+  A native popup with the path appears once, when gameplay resumes (a paused menu hides it).
+- **Where the logs are**: absolute paths for the mod's `runtime\` logs (`probe.log`, `mcm.log`),
+  the conversation service logs (`bridge.stderr.log`, `bridge.stdout.log`, `bridge-service.log`),
+  `launcher.log` (`red4ext\plugins\CyberpunkConvaiLauncher`), the CET logs (`cyber_engine_tweaks.log`,
+  `scripting.log`), `r6\logs\redscript_rCURRENT.log`, `red4ext\logs`, and the reports folder.
+
+Where each log is written (verified in code): `mod/init.lua` and `mod/phone-layout.lua` append to
+`<mod>\runtime\probe.log`; `mod/mcm.lua` to `<mod>\runtime\mcm.log`; CET writes
+`<mod>\CyberpunkConvai.log`, `bin\x64\plugins\cyber_engine_tweaks\cyber_engine_tweaks.log` and
+`scripting.log`; the supervisor (`bridge/bridge-supervisor.mjs`) writes `bridge-service.log`,
+`bridge.stdout.log` and `bridge.stderr.log` (previous run: `.previous`) to the **state folder**
+(development: the project's `runtime\`; packaged: `<mod>\data`, with the bootstrap using `data\logs\`);
+the RED4ext launcher writes `launcher.log` beside its DLL; redscript and RED4ext write to `r6\logs` and
+`red4ext\logs`. Lua cannot see outside the mod folder, so the service publishes the real absolute paths in
+`runtime\support-paths.json` at start (the supervisor also adds `gameRoot` and `stateDirectory` to
+`bridge-service.json`). With neither, the page shows `the game folder\...` templates.
+
+### How a report is made
+
+1. **Generate report** writes `runtime\report-request.json` (`{version, id, issuedAt, lua:{cetVersion,
+   language, view, developerMode, party[]}}`) and waits. The service polls every 500 ms
+   (`bridge/support-report.mjs`), writes `runtime\report-result.json` (`building`, then `ready` with `path`,
+   `fileName`, `bytes`, or `failed` with a code) and builds
+   `<mod>\runtime\reports\convai-report-YYYYMMDD-HHMMSS.zip`. Only the newest five reports are kept.
+2. The zip holds `README.txt`, `summary.json` (mod fingerprint, CET/game/RED4ext versions, service status,
+   settings, party, provider per companion, recent errors, the log index) and `logs/NN-<id>.txt`: the last
+   2,000 lines or 1 MiB of each log.
+3. If the service is stopped (fresh status says so) the page writes a **short text report** itself at once;
+   if the service is not known to be stopped but does not answer within 6 s (30 s once it reports
+   `building`), or answers `failed`, it does the same. The short report holds what the game can read
+   (service status, settings, party, `runtime\*.log`, `CyberpunkConvai.log`), says why it is short and names
+   the logs it could not read. It goes to `runtime\reports\` when that folder exists (the service creates it),
+   otherwise to `runtime\`; the same five-newest rule applies.
+
+### Privacy
+
+Only named files are ever opened, so credential files, audio, voice references, model files, chat history
+and conversation transcripts cannot enter a report (log names that suggest conversation content are
+skipped). Credential files (`convai-key.txt`, `kaggle-access-token.txt`, `huggingface-*.txt`) are read only to
+learn the secret values to scrub. Every line passes a redactor: known secrets, `Authorization` and
+`key/token/secret/password/cookie` assignments, `Bearer` tokens, `?token=` parameters, well-known key
+prefixes, hex runs of 32+ characters, 40+ character token-like runs, UUIDs and provider IDs (hashed to 8 hex
+characters), and the Windows account name in `C:\Users\<name>`. Structured values are also redacted by key
+name (`apiKey`, `token`, `endUserId`, `sessionId`, ...). `bridge/support-report.test.mjs`,
+`bridge/support-report-lua.test.mjs` and `bridge/support-help-ui.test.mjs` plant fake keys, IDs, a Windows
+name and conversation text in logs, settings and status files and require that none reaches either report.
+
 ## Ownership
 
+- `mod/support-report.lua`: Help support (paths, request/result flow, short Lua report, copy path). Loaded
+  by `mod/mcm.lua` behind a `pcall`; without it the manager simply has no Help entry.
+- `bridge/support-report.mjs`, `bridge/zip-writer.mjs`: the service side (also in `BRIDGE_MODULES`).
 - `mod/mcm.lua`: provider `cyberpunk-convai`, mod `manager`, registered through
   `GetMod('ModConfigurationMenuAPI').providers.registerProvider`. Produces the
   native schema and extends content search to the model catalogue. MCM files

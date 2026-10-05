@@ -1,0 +1,374 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import fengari from 'fengari';
+import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
+import {PLANTED, VECTORS} from './support-report-fixture.mjs';
+
+// support-report.lua over a fake mod folder: files, directory listing, clock,
+// JSON and clipboard. Reads of anything outside the allowed set fail the test.
+const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
+const source = readFileSync(new URL('../mod/support-report.lua', import.meta.url), 'utf8');
+const serviceSource = readFileSync(new URL('../mod/service-status.lua', import.meta.url), 'utf8');
+const catalog = JSON.parse(readFileSync(new URL('../localization/en.json', import.meta.url), 'utf8')).strings;
+
+function run(body) {
+  const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
+  try {
+    const program = uiLocaleBootstrap + fixture + body;
+    const result = lauxlib.luaL_dostring(state, to_luastring(program));
+    const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
+    const line = Number(/\]:(\d+):/.exec(error)?.[1]);
+    assert.equal(result, lua.LUA_OK, error + (line ? `\n${program.split('\n')[line - 1]}` : ''));
+  } finally { lua.lua_close(state); }
+}
+
+const fixture = `
+local json_ = {}
+local function skip(text, index) return text:find('%S', index) or #text + 1 end
+local decodeValue
+local escapes = {n = '\\n', t = '\\t', r = '\\r', b = '\\b', f = '\\f', ['"'] = '"', ['\\\\'] = '\\\\', ['/'] = '/'}
+local function decodeString(text, index)
+  local out, position = {}, index + 1
+  while true do
+    local char = text:sub(position, position)
+    if char == '' then error('unterminated string') end
+    if char == '"' then return table.concat(out), position + 1 end
+    if char == '\\\\' then
+      local next = text:sub(position + 1, position + 1)
+      if next == 'u' then out[#out + 1] = utf8.char(tonumber(text:sub(position + 2, position + 5), 16)); position = position + 6
+      else out[#out + 1] = escapes[next]; position = position + 2 end
+    else out[#out + 1] = char; position = position + 1 end
+  end
+end
+decodeValue = function(text, index)
+  index = skip(text, index)
+  local char = text:sub(index, index)
+  if char == '{' then
+    local result = {}; index = skip(text, index + 1)
+    if text:sub(index, index) == '}' then return result, index + 1 end
+    while true do
+      local key; key, index = decodeString(text, skip(text, index))
+      index = skip(text, index); assert(text:sub(index, index) == ':', 'colon'); local value
+      value, index = decodeValue(text, index + 1); result[key] = value
+      index = skip(text, index)
+      local separator = text:sub(index, index); index = index + 1
+      if separator == '}' then return result, index end
+      assert(separator == ',', 'comma')
+    end
+  elseif char == '[' then
+    local result = {}; index = skip(text, index + 1)
+    if text:sub(index, index) == ']' then return result, index + 1 end
+    while true do
+      local value; value, index = decodeValue(text, index); result[#result + 1] = value
+      index = skip(text, index)
+      local separator = text:sub(index, index); index = index + 1
+      if separator == ']' then return result, index end
+      assert(separator == ',', 'comma')
+    end
+  elseif char == '"' then return decodeString(text, index)
+  elseif text:sub(index, index + 3) == 'true' then return true, index + 4
+  elseif text:sub(index, index + 4) == 'false' then return false, index + 5
+  elseif text:sub(index, index + 3) == 'null' then return nil, index + 4
+  else
+    local number = text:match('^-?%d+%.?%d*[eE]?[+-]?%d*', index)
+    assert(number and #number > 0, 'bad json at ' .. index)
+    return tonumber(number), index + #number
+  end
+end
+local function encodeValue(value)
+  local kind = type(value)
+  if kind == 'string' then return '"' .. value:gsub('[%c"\\\\]', function(c) return string.format('\\\\u%04x', c:byte()) end) .. '"' end
+  if kind == 'number' or kind == 'boolean' then return tostring(value) end
+  if kind == 'table' then
+    local count, isArray = 0, true
+    for key in pairs(value) do count = count + 1; if type(key) ~= 'number' then isArray = false end end
+    local parts = {}
+    if isArray then for _, item in ipairs(value) do parts[#parts + 1] = encodeValue(item) end return '[' .. table.concat(parts, ',') .. ']' end
+    for key, item in pairs(value) do parts[#parts + 1] = encodeValue(tostring(key)) .. ':' .. encodeValue(item) end
+    return '{' .. table.concat(parts, ',') .. '}'
+  end
+  return 'null'
+end
+json = {decode = function(text) return (decodeValue(text, 1)) end, encode = encodeValue}
+
+local clock, cpu, stamps = 1800000000, 0, 0
+os.time = function() return clock end
+os.clock = function() return cpu end
+os.date = function(format)
+  if format == '%Y%m%d-%H%M%S' then stamps = stamps + 1; return string.format('20261005-12%04d', stamps) end
+  return '2026-10-05 12:00:00'
+end
+function advance(seconds) clock = clock + seconds; cpu = cpu + seconds end
+
+files, removed, readLog, blocked, reportsFolder = {}, {}, {}, {}, true
+local forbidden = {'convai%-key', 'token', 'huggingface', 'kaggle', '%.wav$', 'last%-input', 'phone%-chat', 'chat%-history', 'memory%-command'}
+local function check(path)
+  for _, pattern in ipairs(forbidden) do
+    if path:lower():find(pattern) then error('forbidden read of ' .. path) end
+  end
+end
+io.open = function(path, mode)
+  if mode == 'rb' then
+    readLog[#readLog + 1] = path; check(path)
+    local data = files[path]
+    if data == nil then return nil end
+    local position = 0
+    return {
+      read = function(_, amount)
+        if amount == '*a' then local rest = data:sub(position + 1); position = #data; return rest end
+        local piece = data:sub(position + 1, position + amount); position = position + #piece; return piece
+      end,
+      seek = function(_, whence, offset)
+        if whence == 'end' then position = #data + (offset or 0); return #data end
+        position = offset or 0; return position
+      end,
+      close = function() return true end}
+  end
+  for prefix in pairs(blocked) do if path:sub(1, #prefix) == prefix then return nil end end
+  if path:sub(1, 15) == 'runtime/reports' and not reportsFolder then return nil end
+  local buffer = {}
+  return {write = function(self, text) buffer[#buffer + 1] = text; return self end,
+    close = function() files[path] = table.concat(buffer); return true end}
+end
+dir = function(folder)
+  if folder == 'runtime/reports' and not reportsFolder then error('no such directory') end
+  local list, escaped = {}, folder:gsub('%p', '%%%0')
+  for path in pairs(files) do
+    local name = path:match('^' .. escaped .. '/([^/]+)$')
+    if name then list[#list + 1] = {name = name, type = 'file'} end
+  end
+  return list
+end
+os.remove = function(path) removed[#removed + 1] = path; files[path] = nil; return true end
+
+function put(path, value)
+  files[path] = type(value) == 'string' and value or json.encode(value)
+end
+function ms(offset) return (clock + (offset or 0)) * 1000.0 end
+convaiServiceStatus = (function() ${serviceSource} end)()
+local support = (function() ${source} end)()
+function newSupport(options)
+  options = options or {}
+  options.party = options.party or function() return {} end
+  return support.new(options)
+end
+function reportsWritten()
+  local names = {}
+  for path in pairs(files) do if path:match('convai%-report%-') then names[#names + 1] = path end end
+  table.sort(names)
+  return names
+end
+`;
+
+test('every message the module can show is a catalogued English UI key', () => {
+  const literals = [...source.matchAll(/ui\.t\('((?:[^'\\]|\\.)*)'/g)].map(match => match[1].replace(/\\'/g, "'"));
+  assert(literals.length >= 12);
+  for (const text of literals) assert.equal(catalog[text], text, `missing from localization/en.json: ${text}`);
+});
+
+test('the Lua redactor removes the same planted patterns as the service and keeps ordinary lines', () => {
+  const cases = VECTORS.map(vector => ({...vector, input: vector.input}));
+  const encode = value => JSON.stringify(value).replace(/\\u([0-9a-f]{4})/g, (_, hex) => `\\${parseInt(hex, 16)}`);
+  run(`
+    local redact = support.redactLine
+    local cases = {}
+    ${cases.map(vector => `cases[#cases + 1] = {input = ${encode(vector.input)}, gone = {${(vector.gone ?? []).map(encode).join(',')}}, keep = {${(vector.keep ?? []).map(encode).join(',')}}}`).join('\n    ')}
+    for index, case in ipairs(cases) do
+      local output = redact(case.input)
+      for _, text in ipairs(case.gone) do assert(not output:find(text, 1, true), index .. ' kept ' .. text .. ' in ' .. output) end
+      for _, text in ipairs(case.keep) do assert(output:find(text, 1, true), index .. ' lost ' .. text .. ' from ' .. output) end
+    end
+    assert(redact('bare ' .. ${encode(PLANTED.shortKey)}, {${encode(PLANTED.shortKey)}}):find(${encode(PLANTED.shortKey)}, 1, true) == nil)
+    assert(redact('abc def', {'abc'}) == 'abc def', 'short strings are not secrets')
+    local a, b = redact('id ${PLANTED.userId}'), redact('id ${PLANTED.userId}')
+    assert(a == b and a:find('%[id:%x%x%x%x%x%x%x%x%]'), 'stable short id hash')
+  `);
+});
+
+test('service reachable: the request goes to the service, the result completes it, and a notice follows once in gameplay', () => run(`
+  put('runtime/knowledge-status.json', {version = 1, updated = ms()})
+  local s = newSupport({party = function() return {{key = 'bob-sagan', profileKey = 'bob-sagan', name = 'Bob', state = 'following', error = 'api-key=zzzSecret99'}} end})
+  assert(s.serviceState() == 'running')
+  local ok, message = s.request()
+  assert(ok and message == 'Creating the report…' and s.status().phase == 'working')
+  local request = json.decode(files['runtime/report-request.json'])
+  assert(request.version == 1 and request.id:match('^r%d+%-1$') and request.issuedAt == clock * 1000 and request.lua.view == 'help')
+  assert(request.lua.party[1].profile == 'bob-sagan' and request.lua.party[1].state == 'following')
+  assert(not files['runtime/report-request.json']:find('zzzSecret99', 1, true), 'party errors are redacted before they are sent')
+  assert(#reportsWritten() == 0, 'no Lua-side report while the service is answering')
+  assert(not select(1, s.request()), 'only one report at a time')
+  advance(1); put('runtime/report-result.json', {version = 1, id = 'other', state = 'ready', path = 'X', fileName = 'X'})
+  assert(s.update(true) == nil and s.status().phase == 'working', 'another request id is ignored')
+  advance(1); put('runtime/report-result.json', {version = 1, id = request.id, state = 'ready', mode = 'bridge',
+    path = 'E:\\\\Game\\\\mod\\\\runtime\\\\reports\\\\convai-report-20261005-120000.zip', fileName = 'convai-report-20261005-120000.zip'})
+  assert(s.update(false) == nil, 'a paused menu hides popups, so the notice waits')
+  local status = s.status()
+  assert(status.phase == 'ready' and status.mode == 'bridge' and status.fileName == 'convai-report-20261005-120000.zip')
+  assert(s.banner() == 'Report saved: ' .. status.path)
+  local notice = s.update(true)
+  assert(notice == 'Support report saved: ' .. status.path, notice)
+  assert(s.update(true) == nil, 'announced once')
+`));
+
+test('a building service gets longer to finish; a silent one gets a short Lua report; a failed one does too', () => run(`
+  put('runtime/knowledge-status.json', {version = 1, updated = ms()})
+  local s = newSupport()
+  s.request()
+  local id = json.decode(files['runtime/report-request.json']).id
+  advance(3); s.update(true)
+  assert(s.status().phase == 'working')
+  put('runtime/report-result.json', {version = 1, id = id, state = 'building'})
+  advance(1); s.update(true)
+  advance(15); put('runtime/knowledge-status.json', {version = 1, updated = ms()}); s.update(true)
+  assert(s.status().phase == 'working', 'still building after 19 seconds')
+  advance(15); s.update(true)
+  assert(s.status().phase == 'ready' and s.status().mode == 'lua' and s.status().reason == 'no-response', 'gives up after 30 seconds')
+  assert(s.banner():find('did not answer', 1, true))
+  assert(files[reportsWritten()[1]]:find('the conversation service did not answer the request', 1, true))
+
+  -- No evidence at all about the service: wait the short time, then fall back.
+  files = {}
+  local quiet = newSupport()
+  quiet.request()
+  advance(5); quiet.update(true); assert(quiet.status().phase == 'working')
+  advance(2); quiet.update(true)
+  assert(quiet.status().phase == 'ready' and quiet.status().reason == 'no-response')
+
+  -- The service answers "failed".
+  put('runtime/knowledge-status.json', {version = 1, updated = ms()})
+  local failing = newSupport()
+  failing.request()
+  local failedId = json.decode(files['runtime/report-request.json']).id
+  advance(1); put('runtime/report-result.json', {version = 1, id = failedId, state = 'failed', code = 'write-failed'})
+  failing.update(true)
+  assert(failing.status().mode == 'lua' and failing.status().reason == 'failed' and failing.banner():find('could not build the full report', 1, true))
+  assert(files[reportsWritten()[#reportsWritten()]]:find('could not build the full report', 1, true))
+`));
+
+test('service stopped: a short report is written at once, says why, and no request is sent', () => run(`
+  put('runtime/bridge-service.json', {state = 'stopped', updated = ms(), since = ms(-5)})
+  reportsFolder = false
+  put('runtime/probe.log', '2026-10-05T10:00:00Z Game adapter initialized\\n')
+  put('runtime/mcm.log', '2026-10-05T10:00:01Z Companion Manager registered\\n')
+  put('CyberpunkConvai.log', "[2026-10-05 10:00:00] Type 'MovePolicies' not found.\\n")
+  put('runtime/settings.json', {version = 2, voiceProvider = 'omni', enabledByKey = {['bob-sagan'] = true, ['judy-alvarez'] = false}})
+  put('runtime/local-voice-state.json', {state = 'error', provider = 'omni', updated = ms(-60)})
+  local s = newSupport({party = function() return {{profileKey = 'bob-sagan', name = 'Bob Sagan', state = 'following'}} end})
+  assert(s.serviceState() == 'stopped')
+  local ok, message = s.request()
+  assert(ok and message:find('Short report saved because the conversation service is not running', 1, true))
+  assert(not files['runtime/report-request.json'])
+  local status = s.status()
+  assert(status.phase == 'ready' and status.mode == 'lua' and status.reason == 'service-stopped')
+  local name = status.fileName
+  assert(name:match('^convai%-report%-20261005%-%d+%-lua%.txt$'))
+  local text = files['runtime/' .. name]
+  assert(text, 'with no reports folder the file lands in runtime/ itself')
+  assert(status.path:find('runtime\\\\' .. name, 1, true) and status.path:find('the game folder', 1, true))
+  for _, expected in ipairs({'short report', 'the conversation service was not running', '== versions ==', '== service status ==',
+    '== settings ==', '== party ==', 'bob-sagan  state=following  name=Bob Sagan', 'conversationDisabled', 'judy-alvarez',
+    '== log: runtime/probe.log ==', 'Game adapter initialized', '== log: runtime/mcm.log ==', 'Companion Manager registered',
+    '== log: CyberpunkConvai.log ==', "MovePolicies' not found", 'Not included: CET, redscript, RED4ext'}) do
+    assert(text:find(expected, 1, true), 'missing: ' .. expected)
+  end
+`));
+
+test('the Lua report never reads credential, audio or conversation files and removes planted secrets, IDs and the Windows name', () => run(`
+  put('runtime/bridge-service.json', {state = 'failed', code = 'bridge-crashed', updated = ms(), since = ms(-5)})
+  put('runtime/convai-key.txt', 'api-key=${PLANTED.shortKey}')
+  put('runtime/huggingface-token.txt', '${PLANTED.hfToken}')
+  put('runtime/last-input.json', '{"text":"${PLANTED.chat}"}')
+  put('runtime/phone-chat-output.json', '{"reply":"${PLANTED.chat}"}')
+  put('runtime/microphone-capture.wav', '${PLANTED.chat}')
+  put('runtime/chat-history.log', '${PLANTED.chat}')
+  put('runtime/probe.log', table.concat({
+    'Using key ${PLANTED.hexKey} for the first request',
+    'Authorization: Bearer ${PLANTED.hexKey}',
+    'request failed: api-key=${PLANTED.shortKey}',
+    'character ${PLANTED.characterId} session ${PLANTED.sessionId} user ${PLANTED.userId}',
+    'path C:\\\\Users\\\\${PLANTED.windowsUser}\\\\Desktop\\\\Code Palace\\\\mod'}, '\\n') .. '\\n')
+  put('CyberpunkConvai.log', 'token=${PLANTED.base64}\\n')
+  put('runtime/settings.json', {version = 2, apiKey = '${PLANTED.shortKey}', convaiUserId = '${PLANTED.userId}',
+    endUserId = '${PLANTED.userId}', note = 'uses ${PLANTED.shortKey} and ${PLANTED.hfToken}', voiceProvider = 'pocket',
+    enabledByKey = {x = true}})
+  put('runtime/bridge-status.json', {state = 'ready', detail = '${PLANTED.userId}', sessionId = '${PLANTED.sessionId}'})
+  put('runtime/party-connection-state.json', {profiles = {'bob'}, connections = {{profile = 'bob', sessionId = '${PLANTED.sessionId}'}}})
+  local s = newSupport({party = function() return {{profileKey = 'bob', name = 'Bob', state = 'following',
+    error = 'rejected ${PLANTED.shortKey}'}} end})
+  assert(s.request())
+  local text = files[reportsWritten()[1]]
+  for _, planted in ipairs({'${PLANTED.hexKey}', '${PLANTED.shortKey}', '${PLANTED.hfToken}', '${PLANTED.userId}',
+    '${PLANTED.characterId}', '${PLANTED.sessionId}', '${PLANTED.windowsUser}', '${PLANTED.base64}', '${PLANTED.chat}'}) do
+    assert(not text:find(planted, 1, true), 'planted value leaked: ' .. planted)
+  end
+  assert(text:find('[redacted]', 1, true) and text:find('<user>', 1, true))
+  assert(text:find('== log: runtime/probe.log ==', 1, true))
+  assert(not text:find('chat%-history'), 'a log whose name suggests conversation content is not read')
+  for _, path in ipairs(readLog) do check(path) end
+`));
+
+test('Lua reports go to runtime/reports when it exists, and only the newest five are kept', () => run(`
+  put('runtime/bridge-service.json', {state = 'stopped', updated = ms(), since = ms(-5)})
+  put('runtime/support-paths.json', {version = 1, runtime = 'E:\\\\Game\\\\mod\\\\runtime', reports = 'E:\\\\Game\\\\mod\\\\runtime\\\\reports', logs = {}})
+  for index = 1, 4 do put('runtime/reports/convai-report-2026100' .. index .. '-100000.zip', 'old') end
+  put('runtime/reports/convai-report-20261005-110000-lua.txt', 'old')
+  put('runtime/reports/notes.txt', 'keep me')
+  put('runtime/convai-report-20260101-000000.zip', 'old stray')
+  local s = newSupport()
+  for _ = 1, 3 do
+    assert(s.request())
+    assert(s.status().path:find('E:\\\\Game\\\\mod\\\\runtime\\\\reports\\\\', 1, true), s.status().path)
+  end
+  local kept = {}
+  for path in pairs(files) do if path:match('^runtime/reports/convai%-report%-') then kept[#kept + 1] = path end end
+  assert(#kept == 5, #kept .. ' kept')
+  assert(files['runtime/reports/notes.txt'] == 'keep me', 'unrelated files are untouched')
+  assert(not files['runtime/reports/convai-report-20261001-100000.zip'] and not files['runtime/reports/convai-report-20261002-100000.zip'])
+  assert(files['runtime/convai-report-20260101-000000.zip'], 'the other folder is pruned only when a report goes there')
+  -- A reports folder that cannot be written falls back to runtime/.
+  blocked['runtime/reports/'] = true
+  assert(s.request() and s.status().path:find('E:\\\\Game\\\\mod\\\\runtime\\\\convai-report-', 1, true), s.status().path)
+  blocked['runtime/'] = true
+  local failed, why = s.request()
+  assert(not failed and s.status().phase == 'failed' and why:find('could not be created', 1, true))
+`));
+
+test('log locations: exact paths from the service, derived paths from the launcher status, and honest placeholders otherwise', () => run(`
+  local none = newSupport().locations()
+  assert(none.known == false and none.launcher:find('the game folder\\\\red4ext\\\\plugins\\\\CyberpunkConvaiLauncher\\\\launcher.log', 1, true))
+  assert(none.mod:find('the game folder\\\\bin\\\\x64\\\\plugins\\\\cyber_engine_tweaks\\\\mods\\\\CyberpunkConvai\\\\runtime', 1, true))
+  assert(none.redscript:find('r6\\\\logs\\\\redscript_rCURRENT.log', 1, true) and none.red4ext:find('red4ext\\\\logs', 1, true))
+  put('runtime/bridge-service.json', {state = 'failed', updated = ms(), gameRoot = 'D:\\\\Games\\\\Cyberpunk 2077', stateDirectory = 'D:\\\\Mod\\\\runtime'})
+  local derived = newSupport().locations()
+  assert(derived.known and derived.bridge == 'D:\\\\Mod\\\\runtime')
+  assert(derived.launcher == 'D:\\\\Games\\\\Cyberpunk 2077\\\\red4ext\\\\plugins\\\\CyberpunkConvaiLauncher\\\\launcher.log')
+  assert(derived.cet == 'D:\\\\Games\\\\Cyberpunk 2077\\\\bin\\\\x64\\\\plugins\\\\cyber_engine_tweaks')
+  put('runtime/support-paths.json', {version = 1, gameRoot = 'E:\\\\G', runtime = 'E:\\\\G\\\\mod\\\\runtime', reports = 'E:\\\\G\\\\mod\\\\runtime\\\\reports',
+    stateDirectory = 'E:\\\\P\\\\runtime', logs = {probe = {path = 'E:\\\\G\\\\mod\\\\runtime\\\\probe.log'},
+      ['bridge-stderr'] = {path = 'E:\\\\P\\\\runtime\\\\logs\\\\bridge.stderr.log'}, red4ext = {path = 'E:\\\\G\\\\red4ext\\\\logs\\\\red4ext-1.log'}}})
+  local exact = newSupport().locations()
+  assert(exact.mod == 'E:\\\\G\\\\mod\\\\runtime' and exact.bridge == 'E:\\\\P\\\\runtime\\\\logs' and exact.red4ext == 'E:\\\\G\\\\red4ext\\\\logs')
+  assert(exact.reports == 'E:\\\\G\\\\mod\\\\runtime\\\\reports')
+`));
+
+test('Copy path needs a report and the game clipboard, and never raises', () => run(`
+  put('runtime/bridge-service.json', {state = 'stopped', updated = ms(), since = ms(-5)})
+  local s = newSupport()
+  local ok, message = s.copyPath()
+  assert(not ok and message == 'Create a report first.')
+  assert(s.request())
+  assert(not s.canCopy())
+  ok, message = s.copyPath()
+  assert(not ok and message:find('clipboard is not available', 1, true))
+  local copied
+  ImGui = {SetClipboardText = function(text) copied = text end}
+  assert(s.canCopy())
+  ok, message = s.copyPath()
+  assert(ok and copied == s.status().path and message == 'Report path copied to the clipboard.')
+  ImGui = {SetClipboardText = function() error('no ImGui context') end}
+  ok, message = s.copyPath()
+  assert(not ok and message:find('clipboard is not available', 1, true))
+  ImGui = {}
+  assert(not s.canCopy())
+`));

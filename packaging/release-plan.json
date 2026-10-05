@@ -222,6 +222,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/service-status.lua"
         },
         {
+          "source": "mod/support-report.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/support-report.lua"
+        },
+        {
           "source": "mod/movement-log.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/movement-log.lua"
         },
@@ -412,12 +416,14 @@
             "bridge/runtime-paths.mjs",
             "bridge/speech-audio.mjs",
             "bridge/speech-stream.mjs",
+            "bridge/support-report.mjs",
             "bridge/transport-pool.mjs",
             "bridge/voice-preview.mjs",
             "bridge/voice-profile-registry.mjs",
             "bridge/voice-selection.mjs",
             "bridge/world-knowledge.mjs",
             "bridge/world-session.mjs",
+            "bridge/zip-writer.mjs",
             "bridge/resident-voice-worker.py",
             "bridge/voice-cuda-graph.py"
           ]

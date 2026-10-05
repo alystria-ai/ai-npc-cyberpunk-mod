@@ -49,12 +49,14 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/runtime-paths.mjs',
   'bridge/speech-audio.mjs',
   'bridge/speech-stream.mjs',
+  'bridge/support-report.mjs',
   'bridge/transport-pool.mjs',
   'bridge/voice-preview.mjs',
   'bridge/voice-profile-registry.mjs',
   'bridge/voice-selection.mjs',
   'bridge/world-knowledge.mjs',
   'bridge/world-session.mjs',
+  'bridge/zip-writer.mjs',
 ]);
 // These are the pinned external package entry points, not a replacement for the
 // full reviewed Playwright distributions and their transitive source/notices.

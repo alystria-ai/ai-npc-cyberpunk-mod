@@ -1,0 +1,536 @@
+-- Help page support: where the logs are, and a one-click report the player can
+-- send to the developer.
+--
+-- Lua is sandboxed to this mod's folder, so the full report is built by the
+-- conversation service (bridge/support-report.mjs), which can read the CET,
+-- redscript and RED4ext logs. This module writes runtime/report-request.json,
+-- waits for runtime/report-result.json, and shows the path it names. When the
+-- service is not running (or does not answer) it writes a shorter text report
+-- itself from the files the game can read, and says so.
+--
+-- Nothing here touches native game state. Call update() from the top-level CET
+-- update only. Privacy: the same rules as the service. Only the files named
+-- below are opened; every line goes through the redactor first.
+local M = {version = 1}
+
+local REQUEST, RESULT, PATHS = 'runtime/report-request.json', 'runtime/report-result.json', 'runtime/support-paths.json'
+local KEEP, MAX_LINES, MAX_BYTES, LINE_LIMIT = 5, 2000, 1048576, 1000
+local FIRST_WAIT, BUILD_WAIT = 6, 30 -- seconds to wait for the service, before and after it reports "building"
+local NAME_PATTERN = '^convai%-report%-(%d%d%d%d%d%d%d%d%-%d%d%d%d%d%d)[%-%a]*%.(%a+)$'
+
+------------------------------------------------------------------ redaction
+
+local KEYWORDS = {'authorization', 'convai-key', 'convai_key', 'api-key', 'api_key', 'apikey', 'x-api-key',
+    'access-token', 'access_token', 'auth-token', 'auth_token', 'refresh-token', 'refresh_token', 'id-token',
+    'id_token', 'token', 'secret', 'passwd', 'password', 'private-key', 'private_key', 'cookie', 'session-key',
+    'session_key'}
+local KEY_PREFIXES = {'hf', 'ghp', 'gho', 'ghs', 'ghu', 'sk', 'pk', 'xoxa', 'xoxb', 'xoxp', 'xoxr', 'AKIA', 'AIza', 'ya29'}
+local SENSITIVE_NAME = {'key', 'token', 'secret', 'passw', 'credential', 'authorization', 'bearer', 'cookie', 'signature'}
+local ID_NAME = {'enduserid', 'userid', 'sessionid', 'characterid', 'connectionid', 'roomid', 'participantid', 'ownerid',
+    'end_user_id', 'user_id', 'session_id', 'character_id'}
+
+local function hash8(value)
+    -- Short, stable and not reversible for random IDs. Two 16-bit halves keep
+    -- every intermediate value small, so the result is exact in any Lua number
+    -- representation (doubles in the game, 32-bit integers in the test harness).
+    local a, b = 5381, 52711
+    for index = 1, #value do
+        local byte = value:byte(index)
+        a = (a * 31 + byte) % 65521
+        b = (b * 37 + byte) % 65519
+    end
+    return string.format('%04x%04x', a, b)
+end
+
+local function maskKeyword(line, lower, keyword)
+    local out, position = {}, 1
+    while true do
+        local first, last = lower:find(keyword, position, true)
+        if not first then break end
+        local prefix, valueStart = line:match('^(["\']?%s*[:=]%s*["\']?)()', last + 1)
+        if prefix then
+            local pattern = keyword == 'authorization' and '^[^\r\n"\',;}]*' or '^[^%s"\',;}&]+'
+            local _, valueEnd = line:find(pattern, valueStart)
+            out[#out + 1] = line:sub(position, valueStart - 1)
+            if valueEnd and valueEnd >= valueStart then
+                out[#out + 1] = '[redacted]'; position = valueEnd + 1
+            else position = valueStart end
+        else
+            out[#out + 1] = line:sub(position, last); position = last + 1
+        end
+    end
+    out[#out + 1] = line:sub(position)
+    return table.concat(out)
+end
+
+local function isUuid(run)
+    return #run == 36 and run:match('^%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x$') ~= nil
+end
+
+function M.redactLine(line, secrets)
+    line = tostring(line)
+    for _, secret in ipairs(secrets or {}) do
+        if type(secret) == 'string' and #secret >= 6 then
+            local at = 1
+            while true do
+                local first, last = line:find(secret, at, true)
+                if not first then break end
+                line = line:sub(1, first - 1) .. '[secret-redacted]' .. line:sub(last + 1)
+                at = first + #'[secret-redacted]'
+            end
+        end
+    end
+    for _, keyword in ipairs(KEYWORDS) do
+        local lower = line:lower()
+        if lower:find(keyword, 1, true) then line = maskKeyword(line, lower, keyword) end
+    end
+    line = line:gsub('[Bb][Ee][Aa][Rr][Ee][Rr]%s+([%w%._~%+/=%-]+)', function(token)
+        if #token >= 8 then return 'Bearer [redacted]' end
+    end)
+    -- Well-known key prefixes (the same list as the service), 12+ characters after it.
+    for _, prefix in ipairs(KEY_PREFIXES) do
+        local out, position = {}, 1
+        while true do
+            local first, last = line:find(prefix, position, true)
+            if not first then break end
+            local before = first > 1 and line:sub(first - 1, first - 1) or ''
+            local _, tailEnd = line:find('^[%w_%-%.]+', last + 1)
+            if not before:match('[%w]') and tailEnd and tailEnd - last >= 12 then
+                out[#out + 1] = line:sub(position, first - 1) .. '[token-redacted]'
+                position = tailEnd + 1
+            else
+                out[#out + 1] = line:sub(position, last); position = last + 1
+            end
+        end
+        out[#out + 1] = line:sub(position)
+        line = table.concat(out)
+    end
+    line = line:gsub('[%w%+_=%-]+', function(run)
+        if isUuid(run) then return '[id:' .. hash8(run:lower()) .. ']' end
+        if #run >= 32 and run:match('^%x+$') then return '[hex-redacted]' end
+        if #run >= 40 and run:find('%d') and run:find('%a') then return '[token-redacted]' end
+    end)
+    line = line:gsub('(%a:[\\/]+[Uu][Ss][Ee][Rr][Ss][\\/]+)[^\\/%s"\'<>|:*?]+', '%1<user>')
+    return line
+end
+
+local function nameMatches(name, list)
+    local lower = tostring(name):lower()
+    for _, part in ipairs(list) do if lower:find(part, 1, true) then return true end end
+    return false
+end
+
+-- Text view of a decoded JSON value. Secret-looking names and provider IDs
+-- never print their value; long arrays are summarised.
+local function render(value, name, depth, out, indent)
+    indent = indent or ''
+    if depth > 4 then out[#out + 1] = indent .. tostring(name) .. ': ...'; return end
+    if type(value) == 'table' then
+        local count = 0
+        for _ in pairs(value) do count = count + 1 end
+        if #value > 0 and count == #value then
+            if #value > 12 then out[#out + 1] = indent .. tostring(name) .. ': ' .. #value .. ' items'; return end
+            out[#out + 1] = indent .. tostring(name) .. ':'
+            for index, item in ipairs(value) do render(item, '[' .. index .. ']', depth + 1, out, indent .. '  ') end
+        else
+            out[#out + 1] = indent .. tostring(name) .. ':'
+            local keys = {}
+            for key in pairs(value) do keys[#keys + 1] = {text = tostring(key), key = key} end
+            table.sort(keys, function(a, b) return a.text < b.text end)
+            for index, entry in ipairs(keys) do
+                if index > 60 then out[#out + 1] = indent .. '  ...'; break end
+                render(value[entry.key], entry.text, depth + 1, out, indent .. '  ')
+            end
+        end
+        return
+    end
+    local text = tostring(value)
+    if type(value) == 'string' and value ~= '' then
+        if nameMatches(name, ID_NAME) then text = '[id:' .. hash8(value) .. ']'
+        elseif nameMatches(name, SENSITIVE_NAME) then text = '[redacted]'
+        else text = M.redactLine(text) end
+    end
+    out[#out + 1] = indent .. tostring(name) .. ': ' .. text:sub(1, 300)
+end
+
+------------------------------------------------------------------- file I/O
+
+local function readSmall(path)
+    local ok, raw = pcall(function()
+        local file = io.open(path, 'rb')
+        if not file then return nil end
+        local text = file:read(262144); file:close()
+        return text
+    end)
+    return ok and type(raw) == 'string' and raw ~= '' and raw or nil
+end
+
+local function readJson(path)
+    local raw = readSmall(path)
+    if not raw then return nil end
+    local ok, value = pcall(json.decode, raw)
+    return ok and type(value) == 'table' and value or nil
+end
+
+-- Last lines of a file, bounded by bytes and lines. nil when it cannot be read.
+local function tail(path)
+    local ok, result = pcall(function()
+        local file = io.open(path, 'rb')
+        if not file then return nil end
+        local size = file:seek('end') or 0
+        local start = math.max(0, size - MAX_BYTES)
+        file:seek('set', start)
+        local data = file:read('*a') or ''
+        file:close()
+        local lines = {}
+        for line in (data .. '\n'):gmatch('(.-)\r?\n') do lines[#lines + 1] = line end
+        if start > 0 and #lines > 1 then table.remove(lines, 1) end
+        while #lines > 0 and lines[#lines] == '' do lines[#lines] = nil end
+        local omitted = #lines > MAX_LINES or start > 0
+        if #lines > MAX_LINES then
+            local kept = {}
+            for index = #lines - MAX_LINES + 1, #lines do kept[#kept + 1] = lines[index] end
+            lines = kept
+        end
+        for index, line in ipairs(lines) do
+            if #line > LINE_LIMIT then lines[index] = line:sub(1, LINE_LIMIT) .. ' [truncated]' end
+        end
+        return {lines = lines, omitted = omitted, size = size}
+    end)
+    return ok and result or nil
+end
+
+local function listNames(folder)
+    local names = {}
+    if type(dir) ~= 'function' then return names end
+    local ok, entries = pcall(dir, folder)
+    if ok and type(entries) == 'table' then
+        for _, entry in ipairs(entries) do
+            if type(entry) == 'table' and type(entry.name) == 'string' and entry.type ~= 'directory' then
+                names[#names + 1] = entry.name
+            end
+        end
+    end
+    return names
+end
+
+-- Names of files that may hold what the player or a character said. Never read.
+local CONTENT_WORDS = {'chat', 'transcript', 'convers', 'history', 'dialog', 'message', 'input', 'reply', 'prompt',
+    'journal', 'speech', 'audio', 'voice', 'mic', 'memory', 'subtitle'}
+local function contentLike(name)
+    local lower = tostring(name):lower()
+    for _, word in ipairs(CONTENT_WORDS) do if lower:find(word, 1, true) then return true end end
+    return false
+end
+
+local function baseName(path) return tostring(path):match('([^\\/]*)$') end
+local function dirName(path) return tostring(path):match('^(.*)[\\/][^\\/]*$') end
+
+------------------------------------------------------------------ instance
+
+function M.new(options)
+    options = options or {}
+    local ui = options.ui or convaiUiLocale or dofile('ui-locale.lua')
+    local self = {}
+    local state = {phase = 'idle'} -- idle | working | ready | failed
+    local counter, lastPoll = 0, -1
+    local notice
+
+    local function now() return os.time() end
+
+    local function serviceStatus()
+        local ok, status = pcall(function() return convaiServiceStatus or dofile('service-status.lua') end)
+        return ok and type(status) == 'table' and status or nil
+    end
+
+    local function heartbeatFresh()
+        local stamp = now() * 1000.0
+        for _, name in ipairs({'runtime/knowledge-status.json', 'runtime/local-voice-state.json'}) do
+            local value = readJson(name)
+            if value and type(value.updated) == 'number' and math.abs(stamp - value.updated) <= 20000 then return true end
+        end
+        return false
+    end
+
+    -- 'running' | 'starting' | 'stopped' | 'unknown'
+    function self.serviceState()
+        if heartbeatFresh() then return 'running' end
+        local status = serviceStatus()
+        local ok, down = false, nil
+        if status then ok, down = pcall(status.unavailable, now()) end
+        if ok and type(down) == 'table' then return down.kind == 'starting' and 'starting' or 'stopped' end
+        return 'unknown'
+    end
+
+    function self.serviceLabel()
+        local code = self.serviceState()
+        if code == 'running' then return ui.t('Running') end
+        if code == 'starting' then return ui.t('Starting') end
+        if code == 'stopped' then return ui.t('Not running') end
+        return ui.t('Unknown')
+    end
+
+    ---------------------------------------------------------- where logs are
+    local RELATIVE_MOD = 'bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\CyberpunkConvai'
+    -- Rows: id, English label key handled by the caller; this returns paths only.
+    function self.locations()
+        local published = readJson(PATHS)
+        local logs = published and type(published.logs) == 'table' and published.logs or {}
+        local service = readJson('runtime/bridge-service.json')
+        local game = (published and published.gameRoot) or (service and service.gameRoot)
+        local stateDirectory = (published and published.stateDirectory) or (service and service.stateDirectory)
+        local pick = function(id) return type(logs[id]) == 'table' and type(logs[id].path) == 'string' and logs[id].path or nil end
+        local placeholder = ui.t('the game folder')
+        local function underGame(relative) return (game or placeholder) .. '\\' .. relative end
+        local known = game ~= nil or published ~= nil
+        local result = {known = known}
+        local mod = pick('probe') and dirName(pick('probe')) or (published and published.runtime)
+            or underGame(RELATIVE_MOD .. '\\runtime')
+        result.mod = mod
+        result.reports = (published and published.reports) or (mod .. '\\reports')
+        local bridge = pick('bridge-stderr') and dirName(pick('bridge-stderr')) or stateDirectory
+        result.bridge = bridge or ui.t('the runtime folder of the mod project, or the data folder inside the mod folder')
+        result.launcher = pick('launcher') or underGame('red4ext\\plugins\\CyberpunkConvaiLauncher\\launcher.log')
+        result.cet = pick('cet') and dirName(pick('cet')) or underGame('bin\\x64\\plugins\\cyber_engine_tweaks')
+        result.redscript = pick('redscript') or underGame('r6\\logs\\redscript_rCURRENT.log')
+        result.red4ext = pick('red4ext') and dirName(pick('red4ext')) or underGame('red4ext\\logs')
+        return result
+    end
+
+    -------------------------------------------------------- status for UI
+    function self.status()
+        return {phase = state.phase, mode = state.mode, path = state.path, fileName = state.fileName,
+            reason = state.reason, failure = state.failure}
+    end
+
+    function self.signature()
+        return table.concat({state.phase, state.mode or '', state.fileName or '', state.reason or '', state.failure or ''}, '|')
+    end
+
+    function self.canCopy()
+        return state.path ~= nil and type(ImGui) == 'table' and type(ImGui.SetClipboardText) == 'function'
+    end
+
+    -- The line shown in the action banner for the current state.
+    function self.banner()
+        if state.phase == 'working' then return ui.t('Creating the report…') end
+        if state.phase == 'failed' then
+            return ui.t('The report could not be created. Check that the mod folder can be written to, then try again.')
+        end
+        if state.phase == 'ready' then
+            if state.mode == 'lua' and state.reason == 'no-response' then
+                return ui.t('Short report saved because the conversation service did not answer: {path}', {path = state.path})
+            end
+            if state.mode == 'lua' and state.reason == 'failed' then
+                return ui.t('Short report saved because the conversation service could not build the full report: {path}', {path = state.path})
+            end
+            if state.mode == 'lua' then
+                return ui.t('Short report saved because the conversation service is not running: {path}', {path = state.path})
+            end
+            return ui.t('Report saved: {path}', {path = state.path})
+        end
+        return nil
+    end
+
+    function self.takeNotice(worldReady)
+        if not notice or not worldReady then return nil end
+        local text = notice; notice = nil
+        return text
+    end
+
+    ------------------------------------------------------------ finishing
+    local function finish(result)
+        state = result
+        if result.phase == 'ready' then
+            notice = ui.t('Support report saved: {path}', {path = result.path})
+        end
+    end
+
+    ----------------------------------------------------------- local report
+    local function section(out, title) out[#out + 1] = ''; out[#out + 1] = '== ' .. title .. ' ==' end
+
+    local function sanitizeParty()
+        local rows = {}
+        local ok, party = pcall(options.party or function() return {} end)
+        if not ok or type(party) ~= 'table' then return rows end
+        for index, member in ipairs(party) do
+            if index > 12 then break end
+            if type(member) == 'table' then
+                rows[#rows + 1] = {profile = tostring(member.profileKey or member.key or ''):sub(1, 80),
+                    name = tostring(member.name or ''):sub(1, 80), state = tostring(member.state or ''):sub(1, 40),
+                    error = member.error and M.redactLine(tostring(member.error):sub(1, 160)) or nil}
+            end
+        end
+        return rows
+    end
+
+    local function buildLocal(reason)
+        local stamp = os.date('%Y%m%d-%H%M%S')
+        local out = {'Cyberpunk Convai support report (short report, made inside the game)',
+            'Created: ' .. os.date('%Y-%m-%d %H:%M:%S') .. '   id ' .. stamp,
+            'Why it is short: ' .. (reason == 'no-response' and 'the conversation service did not answer the request'
+                or reason == 'failed' and 'the conversation service could not build the full report'
+                or 'the conversation service was not running'),
+            'Not included: CET, redscript, RED4ext, launcher and conversation-service logs (outside the mod folder).',
+            'Keys, tokens, IDs, audio and conversation text are never included; the paths for the other logs are in the Help page.'}
+        section(out, 'versions')
+        local okVersion, cet = pcall(function() return GetVersion and GetVersion() or nil end)
+        out[#out + 1] = 'cet: ' .. tostring(okVersion and cet or 'unknown')
+        out[#out + 1] = 'interface language: ' .. tostring(ui.current and ui.current() or 'unknown')
+        section(out, 'service status')
+        out[#out + 1] = 'state: ' .. self.serviceState()
+        for _, name in ipairs({'bridge-service', 'bridge-status', 'knowledge-status', 'local-voice-state', 'party-connection-state'}) do
+            local value = readJson('runtime/' .. name .. '.json')
+            if value then
+                local copy = {}
+                for key, item in pairs(value) do
+                    if type(item) ~= 'table' or key == 'connections' then copy[key] = item
+                    elseif #item > 12 then copy[key] = #item .. ' items' else copy[key] = item end
+                end
+                render(copy, name, 1, out)
+            else out[#out + 1] = name .. ': not available' end
+        end
+        section(out, 'settings')
+        local settings = readJson('runtime/settings.json')
+        if settings then
+            local disabled, enabled = {}, 0
+            if type(settings.enabledByKey) == 'table' then
+                for key, value in pairs(settings.enabledByKey) do
+                    if value == false then disabled[#disabled + 1] = tostring(key) else enabled = enabled + 1 end
+                end
+                table.sort(disabled)
+            end
+            local copy = {}
+            for key, value in pairs(settings) do if key ~= 'enabledByKey' and key ~= 'enabled' then copy[key] = value end end
+            copy.conversationEnabledCount = enabled
+            copy.conversationDisabled = disabled
+            render(copy, 'settings', 1, out)
+        else out[#out + 1] = 'settings: not available' end
+        section(out, 'party')
+        local party = sanitizeParty()
+        if #party == 0 then out[#out + 1] = 'no companions' end
+        for _, member in ipairs(party) do
+            out[#out + 1] = string.format('%s  state=%s  name=%s%s', member.profile, member.state, member.name,
+                member.error and ('  error=' .. member.error) or '')
+        end
+        -- Logs the game can read: this mod's runtime folder and its CET log.
+        local files, seen = {'runtime/probe.log', 'runtime/mcm.log', 'CyberpunkConvai.log'}, {}
+        for _, path in ipairs(files) do seen[path] = true end
+        for _, name in ipairs(listNames('runtime')) do
+            local path = 'runtime/' .. name
+            if name:match('%.log$') and not seen[path] and not contentLike(name) and #files < 9 then files[#files + 1] = path; seen[path] = true end
+        end
+        for _, path in ipairs(files) do
+            local data = tail(path)
+            section(out, 'log: ' .. path)
+            if not data then out[#out + 1] = '(not found)'
+            else
+                out[#out + 1] = string.format('(last %d lines%s)', #data.lines, data.omitted and ', earlier lines omitted' or '')
+                for _, line in ipairs(data.lines) do out[#out + 1] = M.redactLine(line) end
+            end
+        end
+        return table.concat(out, '\n') .. '\n', stamp
+    end
+
+    local function prune(folder, prefix)
+        local rows = {}
+        for _, name in ipairs(listNames(folder)) do
+            local stamp = name:match(NAME_PATTERN)
+            if stamp then rows[#rows + 1] = {name = name, stamp = stamp} end
+        end
+        table.sort(rows, function(a, b) if a.stamp ~= b.stamp then return a.stamp < b.stamp end return a.name < b.name end)
+        for index = 1, #rows - KEEP do pcall(os.remove, prefix .. rows[index].name) end
+    end
+
+    local function writeLocal(reason)
+        local ok, text, stamp = pcall(buildLocal, reason)
+        if not ok then return nil end
+        local name = 'convai-report-' .. stamp .. '-lua.txt'
+        for _, folder in ipairs({'runtime/reports/', 'runtime/'}) do
+            local file = io.open(folder .. name, 'wb')
+            if file then
+                local wrote = file:write(text); file:close()
+                if wrote then
+                    local trimmed = folder:gsub('/$', '')
+                    pcall(prune, trimmed, folder)
+                    local locations = self.locations()
+                    local display = folder == 'runtime/reports/' and locations.reports or dirName(locations.reports)
+                    return name, (display or 'runtime') .. '\\' .. name
+                end
+            end
+        end
+        return nil
+    end
+
+    local function fallback(reason)
+        local name, path = writeLocal(reason)
+        if name then
+            finish({phase = 'ready', mode = 'lua', reason = reason, fileName = name, path = path})
+        else
+            finish({phase = 'failed', failure = 'write-failed'})
+        end
+    end
+
+    ------------------------------------------------------------ the request
+    function self.request()
+        if state.phase == 'working' then return false, ui.t('A report is already being created.') end
+        counter = counter + 1
+        local id = 'r' .. now() .. '-' .. counter
+        local down = self.serviceState() == 'stopped'
+        if down then fallback('service-stopped')
+        else
+            local payload = {version = 1, id = id, issuedAt = now() * 1000,
+                lua = {cetVersion = (select(2, pcall(function() return GetVersion and GetVersion() or nil end))),
+                    language = ui.current and ui.current() or nil, view = 'help',
+                    developerMode = options.developerMode and options.developerMode() or nil, party = sanitizeParty()}}
+            local encoded = pcall(function()
+                local file = io.open(REQUEST, 'wb')
+                if not file then error('no file') end
+                local wrote = file:write(json.encode(payload)); file:close()
+                if not wrote then error('write failed') end
+            end)
+            if not encoded then fallback('failed')
+            else
+                state = {phase = 'working', id = id, deadline = now() + FIRST_WAIT, started = now()}
+            end
+        end
+        if state.phase == 'failed' then return false, self.banner() end
+        return true, self.banner()
+    end
+
+    -- Call from the top-level update. Returns a notification for gameplay when
+    -- a new report is ready (once), else nil.
+    function self.update(worldReady)
+        if state.phase == 'working' then
+            local clock = os.clock()
+            if clock - lastPoll >= 0.3 or clock < lastPoll then
+                lastPoll = clock
+                local result = readJson(RESULT)
+                if result and result.id == state.id then
+                    if result.state == 'ready' and type(result.path) == 'string' and type(result.fileName) == 'string' then
+                        finish({phase = 'ready', mode = 'bridge', fileName = result.fileName, path = result.path})
+                    elseif result.state == 'failed' then fallback('failed')
+                    elseif result.state == 'building' then
+                        state.deadline = math.max(state.deadline, state.started + BUILD_WAIT)
+                    end
+                end
+            end
+            if state.phase == 'working' and now() > state.deadline then fallback('no-response') end
+        end
+        return self.takeNotice(worldReady)
+    end
+
+    function self.copyPath()
+        if not state.path then return false, ui.t('Create a report first.') end
+        if not self.canCopy() then return false, ui.t('The clipboard is not available here. Read the path from the Last report row.') end
+        local ok = pcall(ImGui.SetClipboardText, state.path)
+        if not ok then return false, ui.t('The clipboard is not available here. Read the path from the Last report row.') end
+        return true, ui.t('Report path copied to the clipboard.')
+    end
+
+    function self.reset() state, notice = {phase = 'idle'}, nil end
+
+    return self
+end
+
+return M

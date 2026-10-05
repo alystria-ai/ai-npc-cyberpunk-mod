@@ -17,6 +17,10 @@ local presentation = {active = false, rows = {}}
 local voiceSelectors = {}
 local localeRevision = -1
 local voicePreview = dofile('voice-preview.lua').new()
+-- Help page: log locations and the shareable support report. Optional: the
+-- manager works without it, and a load failure only hides the Help entry.
+local support, supportSignature
+local supportLoaded, supportFactory = pcall(dofile, 'support-report.lua')
 local log = function(message)
     local file = io.open('runtime/mcm.log', 'a')
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', message, '\n'); file:close() end
@@ -589,6 +593,55 @@ local function schema()
                 ui.t('Allow {name} in private and group conversations. Existing copies can still follow you when this is off.',{name=profile.name}))
         end
         categories[#categories + 1] = category('permissions', 'Character conversations', rows)
+    elseif view == 'help' and support then
+        local where, report = support.locations(), support.status()
+        local files = {mod = 'probe.log, mcm.log', bridge = 'bridge.stderr.log', launcher = 'launcher.log',
+            cet = 'cyber_engine_tweaks.log', redscript = 'redscript_rCURRENT.log', red4ext = 'red4ext-*.log',
+            reports = 'convai-report-*.zip'}
+        local rawRow = {value = true, description = true}
+        local copyDescription = report.path
+            and ui.t('Copy the report path to the clipboard so you can paste it into a message.')
+            or ui.t('Create a report first, then copy its path.')
+        local lastValue, lastDescription = ui.t('None yet'), ui.t('Choose Generate report. The file path appears here, in the banner above and in a notification.')
+        if report.path then
+            lastValue = report.fileName
+            lastDescription = ui.t('Saved at {path}', {path = report.path})
+            if report.mode == 'lua' then
+                lastDescription = lastDescription .. '\n' .. ui.t('This is a short report: the conversation service was not available to build the full one.')
+            end
+        end
+        rows[#rows + 1] = action('help:back', 'Back to settings', 'Back', 'Return to conversation settings.',
+            function(context) return navigate('settings', context) end)
+        rows[#rows + 1] = readonly('help-steps', 'What to do', 'Create a report',
+            'If a character stops answering, voices stop or an error appears: open this page, choose Generate report, then send the file it names to the developer with a short note about what you were doing. The logs listed below show what went wrong.')
+        rows[#rows + 1] = readonly('help-service', 'Conversation service', support.serviceLabel(),
+            'The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.', {value = true})
+        categories[#categories + 1] = category('help-trouble', 'If something goes wrong', rows)
+        categories[#categories + 1] = category('help-report', 'Report for the developer', {
+            action('help:generate', 'Generate report', 'Create',
+                'Save a report file you can send to the developer. API keys, tokens, IDs, microphone audio and conversation text are left out. If the conversation service is not running, a shorter report is made from the files the game can read.',
+                function() return support.request() end, report.phase ~= 'working'),
+            readonly('help-last', 'Last report', lastValue, lastDescription, {value = report.path ~= nil, description = true}),
+            action('help:copy', 'Copy report path', 'Copy',
+                copyDescription,
+                function() return support.copyPath() end, report.path ~= nil and support.canCopy()),
+        }, 'One file with versions, settings and the latest log lines. It never contains your API key, tokens, voice recordings or conversation text.')
+        categories[#categories + 1] = category('help-logs', 'Where the logs are', {
+            readonly('help-log-mod', 'Mod logs', files.mod,
+                ui.t('Mod logs such as probe.log and mcm.log are in {path}', {path = where.mod}), rawRow),
+            readonly('help-log-bridge', 'Conversation service logs', files.bridge,
+                ui.t('The conversation service writes bridge.stderr.log, bridge.stdout.log and bridge-service.log in {path}', {path = where.bridge}), rawRow),
+            readonly('help-log-launcher', 'Launcher log', files.launcher,
+                ui.t('The service launcher writes launcher.log at {path}', {path = where.launcher}), rawRow),
+            readonly('help-log-cet', 'Cyber Engine Tweaks logs', files.cet,
+                ui.t('Cyber Engine Tweaks writes cyber_engine_tweaks.log and scripting.log in {path}', {path = where.cet}), rawRow),
+            readonly('help-log-redscript', 'Redscript log', files.redscript,
+                ui.t('The redscript compiler writes redscript_rCURRENT.log at {path}', {path = where.redscript}), rawRow),
+            readonly('help-log-red4ext', 'RED4ext logs', files.red4ext,
+                ui.t('RED4ext writes its logs in {path}', {path = where.red4ext}), rawRow),
+            readonly('help-log-reports', 'Saved reports', files.reports,
+                ui.t('Generated reports are saved in {path}. The five newest are kept.', {path = where.reports}), rawRow),
+        }, 'Send the generated report rather than raw log files. Open these locations only if the developer asks for a specific file.')
     elseif view == 'settings' then
         local choices, languageElements, languageIndex = ui.choices(), {}, 1
         for index, choice in ipairs(choices) do
@@ -650,6 +703,13 @@ local function schema()
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
                 'Show routine companion popups: the joining step, dismissal confirmations, and driving instructions such as boarding and exit. Preparation progress, joined notices, failures and replies to Stop trip remain visible when off.'),
         })
+        if support then
+            categories[#categories + 1] = category('help', 'Help', {
+                action('help', 'Help and support', 'Open',
+                    'Find the log files and create a report to send to the developer if something goes wrong.',
+                    function(context) return navigate('help', context) end),
+            })
+        end
     end
     if view == 'characters' or view == 'party' or view == 'models' or view == 'settings' then
         table.insert(categories[1].settings, 1, action(view .. ':back', 'Back to Companion Manager', 'Back',
@@ -661,6 +721,11 @@ end
 function M.configure(domain, companions, queueFactory, entryFactory, readiness)
     manager, queue = domain, queueFactory.new(companions, readiness, {developerMode = domain.developerMode})
     entry = entryFactory.new(function() return ui.t(LABEL) end, function() return api ~= nil end, log, active)
+    if supportLoaded and type(supportFactory) == 'table' and type(supportFactory.new) == 'function' then
+        local created, instance = pcall(supportFactory.new, {ui = ui, party = function() return queue.list() end,
+            developerMode = function() return developerMode() end})
+        if created and type(instance) == 'table' then support = instance end
+    end
     provider = {
         id = PROVIDER, registrationKey = 'cyberpunk-convai.manager.v1', apiVersion = 2,
         name = 'Cyberpunk Convai', shortName = 'CONVAI',
@@ -883,6 +948,11 @@ function M.update(currentPlayer, worldReady)
         preparationAt = now + 1
         samplePreparationFeedback()
     end
+    if support then
+        -- A finished report is announced once, in gameplay (a paused menu hides popups).
+        local reportOk, reportNotice = pcall(support.update, worldReady == true)
+        if reportOk and reportNotice then messages[#messages + 1] = reportNotice end
+    end
     local progress = samplePreparationPopup(now, worldReady == true)
     if progress and not notifiedInvitations[progress.id] then messages[#messages + 1] = progress.message end
     if #messages > 0 and currentPlayer then
@@ -936,6 +1006,15 @@ function M.update(currentPlayer, worldReady)
             memory.command and memory.command.profileKey or '', memory.command and memory.command.state or ''}, '|')
         for _, member in ipairs(queue.list()) do
             signature[#signature + 1] = table.concat({member.id, member.state or '', member.profileKey or '', member.error or ''}, '|')
+        end
+        if support and view == 'help' then
+            -- Refresh the Help page when the report state or service state changes.
+            local reportSignature = support.signature()
+            if reportSignature ~= supportSignature then
+                supportSignature = reportSignature
+                actionFeedback = support.banner() or actionFeedback
+            end
+            signature[#signature + 1] = 'help:' .. reportSignature .. '|' .. support.serviceState()
         end
         signature = table.concat(signature, '\n')
         if signature ~= lastSignature then lastSignature, refreshQueued = signature, true end

@@ -1,0 +1,498 @@
+import {createHash} from 'node:crypto';
+import {open, readFile, readdir, rm, stat, mkdir} from 'node:fs/promises';
+import {resolve, join} from 'node:path';
+import os from 'node:os';
+import {createZip} from './zip-writer.mjs';
+import {atomicFile} from './guarded-file.mjs';
+
+// Support report: one redacted zip a player can send to the developer after an
+// error. The Help page in Companion Manager writes runtime/report-request.json;
+// SupportReportControl (polled by the bridge) answers in runtime/report-result.json.
+//
+// Privacy contract, enforced structurally rather than by inspection:
+//   * Only the files named below are ever opened. Credential files, audio,
+//     voice references, model files and conversation transcripts are not on
+//     those lists, so they cannot enter a report.
+//   * Credential files are read only to learn the secret values to scrub. The
+//     values are never written, logged or returned.
+//   * Every text and JSON value passes through the redactor before it is
+//     written: known secrets, key/token/authorization patterns, long hex and
+//     base64-like runs, UUIDs and known provider IDs (hashed), and the Windows
+//     account name in profile paths.
+
+export const REPORT_KEEP = 5;
+export const REPORT_NAME = /^convai-report-(\d{8}-\d{6})(?:-[a-z]+)?\.(?:zip|txt)$/;
+export const LOG_MAX_LINES = 2000;
+export const LOG_MAX_BYTES = 1024 * 1024;
+const LINE_LIMIT = 1000, REQUEST_MAX_BYTES = 16384, REQUEST_MAX_AGE_MS = 120000;
+const REPORT_MAX_BYTES = 40 * 1024 * 1024;
+
+// ---------------------------------------------------------------- redaction
+
+const SENSITIVE_KEY = /api[-_ ]?key|apikey|access[-_ ]?token|auth[-_ ]?token|refresh[-_ ]?token|id[-_ ]?token|token|secret|passw|credential|authorization|bearer|cookie|private[-_ ]?key|signature/i;
+const ID_KEY = /^(?:end[-_ ]?user|user|session|character|connection|room|participant|owner)[-_ ]?id$|^(?:world[-_ ]?)?token$/i;
+const VALUE = String.raw`[^\s"',;}&]+`;
+const KEYWORD = String.raw`(?:convai[-_ ]?key|api[-_ ]?key|apikey|x-api-key|access[-_ ]?token|auth[-_ ]?token|refresh[-_ ]?token|id[-_ ]?token|token|secret|passwd|password|private[-_ ]?key|cookie|session[-_ ]?key)`;
+const RULES = [
+  [/\b(authorization|proxy-authorization)(["']?\s*[:=]\s*["']?)[^\r\n"',;}]*/gi, '$1$2[redacted]'],
+  [new RegExp(String.raw`(${KEYWORD}["']?\s*[:=]\s*["']?)${VALUE}`, 'gi'), '$1[redacted]'],
+  [/\b(Bearer)\s+[A-Za-z0-9._~+\/=-]{8,}/gi, '$1 [redacted]'],
+  [/([?&](?:key|token|api_key|apikey|access_token|auth|signature|sig)=)[^&\s"']+/gi, '$1[redacted]'],
+  [/\b(?:hf|ghp|gho|ghs|ghu|sk|pk|xox[abpr]|AKIA|AIza|ya29)[-_A-Za-z0-9.]{12,}/g, '[token-redacted]'],
+];
+const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
+const LONG_HEX = /\b[0-9a-f]{32,}\b/gi;
+const LONG_RUN = /[A-Za-z0-9+_=-]{40,}/g;
+const USER_PATH = /([A-Za-z]:[\\/]+Users[\\/]+)[^\\/\s"'<>|:*?]+/gi;
+
+export const shortHash = value => createHash('sha256').update(String(value)).digest('hex').slice(0, 8);
+
+export function createRedactor({secrets = [], ids = []} = {}) {
+  const literal = [...new Set(secrets.filter(value => typeof value === 'string' && value.trim().length >= 6)
+    .flatMap(value => [value, value.trim()]))].sort((a, b) => b.length - a.length);
+  const known = [...new Set(ids.filter(value => typeof value === 'string' && value.length >= 6))].sort((a, b) => b.length - a.length);
+  const stats = {secrets: 0, ids: 0, patterns: 0, paths: 0};
+  const replaceAll = (text, needle, replacement, counter) => {
+    if (!text.includes(needle)) return text;
+    stats[counter] += text.split(needle).length - 1;
+    return text.split(needle).join(replacement);
+  };
+  const text = input => {
+    let value = typeof input === 'string' ? input : String(input ?? '');
+    for (const secret of literal) value = replaceAll(value, secret, '[secret-redacted]', 'secrets');
+    for (const id of known) value = replaceAll(value, id, `[id:${shortHash(id)}]`, 'ids');
+    for (const [pattern, replacement] of RULES) {
+      value = value.replace(pattern, (...match) => { stats.patterns++; return replacement.replace(/\$(\d)/g, (_, n) => match[Number(n)] ?? ''); });
+    }
+    value = value.replace(UUID, id => { stats.ids++; return `[id:${shortHash(id.toLowerCase())}]`; });
+    value = value.replace(LONG_HEX, () => { stats.patterns++; return '[hex-redacted]'; });
+    value = value.replace(LONG_RUN, run => {
+      if (!/\d/.test(run) || !/[A-Za-z]/.test(run) || run.startsWith('[')) return run;
+      stats.patterns++; return '[token-redacted]';
+    });
+    value = value.replace(USER_PATH, (_, prefix) => { stats.paths++; return `${prefix}<user>`; });
+    return value;
+  };
+  const walk = (value, key = '', depth = 0) => {
+    if (depth > 8) return '[depth-limited]';
+    if (typeof value === 'string') {
+      if (ID_KEY.test(key) && value) { stats.ids++; return `[id:${shortHash(value)}]`; }
+      if (SENSITIVE_KEY.test(key) && value) { stats.patterns++; return '[redacted]'; }
+      return text(value);
+    }
+    if (Array.isArray(value)) {
+      const rows = value.slice(0, 60).map(item => walk(item, key, depth + 1));
+      if (value.length > 60) rows.push(`[${value.length - 60} more omitted]`);
+      return rows;
+    }
+    if (value && typeof value === 'object') {
+      const result = {};
+      for (const [name, item] of Object.entries(value).slice(0, 200)) result[text(name)] = walk(item, name, depth + 1);
+      return result;
+    }
+    return value;
+  };
+  return {text, value: item => walk(item), stats};
+}
+
+// ------------------------------------------------------------------- files
+
+/** Reads a bounded tail. Returns null when the file is absent or unreadable. */
+export async function tailFile(path, {maxBytes = LOG_MAX_BYTES, maxLines = LOG_MAX_LINES} = {}) {
+  let handle;
+  try {
+    const info = await stat(path);
+    if (!info.isFile()) return null;
+    handle = await open(path, 'r');
+    const length = Math.min(info.size, maxBytes), start = info.size - length;
+    const buffer = Buffer.alloc(length);
+    const {bytesRead} = await handle.read(buffer, 0, length, start);
+    let raw = buffer.subarray(0, bytesRead);
+    let text = raw.length >= 2 && raw[0] === 0xFF && raw[1] === 0xFE ? raw.toString('utf16le') : raw.toString('utf8');
+    let lines = text.split(/\r\n|\r|\n/);
+    // The first line of a mid-file read is usually cut short.
+    let cut = start > 0 && lines.length > 1;
+    if (cut) lines = lines.slice(1);
+    // Progress bars rewrite one line with carriage returns; keep each run's last.
+    const progress = line => /\d+%\|/.test(line) && /it\/s|s\/it/.test(line);
+    lines = lines.filter((line, index) => !(progress(line) && progress(lines[index + 1] ?? '')));
+    lines = lines.map(line => line.length > LINE_LIMIT ? `${line.slice(0, LINE_LIMIT)} [truncated ${line.length - LINE_LIMIT} characters]` : line);
+    while (lines.length && lines.at(-1) === '') lines.pop();
+    const total = lines.length;
+    if (total > maxLines) { lines = lines.slice(total - maxLines); cut = true; }
+    return {lines, truncated: cut, bytes: info.size, modified: info.mtime.toISOString()};
+  } catch { return null; }
+  finally { await handle?.close().catch(() => {}); }
+}
+
+async function readSmallJson(path, maxBytes = 256 * 1024) {
+  try {
+    const info = await stat(path);
+    if (!info.isFile() || info.size > maxBytes) return {error: info.isFile() ? 'too-large' : 'not-a-file'};
+    return {value: JSON.parse((await readFile(path, 'utf8')).replace(/^﻿/, '')), modified: info.mtime.toISOString()};
+  } catch (error) { return {error: error.code === 'ENOENT' ? 'absent' : 'unreadable'}; }
+}
+
+const newest = async (directory, pattern, count = 1) => {
+  try {
+    const names = (await readdir(directory)).filter(name => pattern.test(name));
+    const rows = [];
+    for (const name of names) rows.push({name, time: (await stat(join(directory, name))).mtimeMs});
+    return rows.sort((a, b) => b.time - a.time).slice(0, count).map(row => join(directory, row.name));
+  } catch { return []; }
+};
+
+// Every log location the report knows. Used for the report and for the paths
+// the Help page shows, so the page and the report cannot disagree.
+export async function locateLogs({game, modRoot, runtime, stateDirectory}) {
+  // Each log has one or more candidate locations; the first that exists wins,
+  // otherwise the first is reported as where it will appear.
+  const candidates = [];
+  const add = (id, paths, extra = {}) => candidates.push({id, paths: [].concat(paths), ...extra});
+  const folders = stateDirectory ? [stateDirectory, join(stateDirectory, 'logs')] : [];
+  const slug = path => path.split(/[\\/]/).at(-1).replace(/\.log$/i, '').replace(/[^A-Za-z0-9-]/g, '-').toLowerCase();
+  add('probe', join(runtime, 'probe.log'));
+  add('mcm', join(runtime, 'mcm.log'));
+  // Other diagnostic logs in the mod's runtime folder, except any whose name suggests
+  // conversation content: those are never part of a report.
+  for (const path of await newest(runtime, /^(?!probe\.log$|mcm\.log$).+\.log$/i, 12)) {
+    if (!CONTENT_LIKE.test(path.split(/[\\/]/).at(-1))) add(`mod-${slug(path)}`, path);
+  }
+  add('mod-log', join(modRoot, 'CyberpunkConvai.log'));
+  const bridgeNames = {'bridge-service': 'bridge-service.log', 'bridge-service-previous': 'bridge-service.log.previous',
+    'bridge-stdout': 'bridge.stdout.log', 'bridge-stderr': 'bridge.stderr.log',
+    'bridge-stdout-previous': 'bridge.stdout.previous.log', 'bridge-stderr-previous': 'bridge.stderr.previous.log'};
+  for (const [id, name] of Object.entries(bridgeNames)) {
+    if (folders.length) add(id, folders.map(folder => join(folder, name)), {previous: /previous/.test(id)});
+  }
+  for (const folder of folders) {
+    for (const path of await newest(folder, /^bootstrap-.+\.(?:stdout|stderr)\.log$/i, 2)) add(`bootstrap-${slug(path)}`, path);
+  }
+  add('launcher', join(game, 'red4ext', 'plugins', 'CyberpunkConvaiLauncher', 'launcher.log'));
+  const cet = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks');
+  add('cet', join(cet, 'cyber_engine_tweaks.log'));
+  add('cet-scripting', join(cet, 'scripting.log'));
+  add('redscript', join(game, 'r6', 'logs', 'redscript_rCURRENT.log'));
+  const logs = join(game, 'red4ext', 'logs');
+  add('red4ext', (await newest(logs, /^red4ext-.+\.log$/i))[0] ?? join(logs, 'red4ext-<date>.log'));
+  add('audioware', (await newest(logs, /^audioware-.+\.log$/i))[0] ?? join(logs, 'audioware-<date>.log'));
+  const result = [], seen = new Set();
+  for (const {id, paths, ...extra} of candidates) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    let chosen = paths[0];
+    for (const path of paths) if (await stat(path).then(info => info.isFile(), () => false)) { chosen = path; break; }
+    result.push({id, path: chosen, ...extra});
+  }
+  return result;
+}
+
+export async function credentialSecrets(stateDirectory) {
+  const found = [];
+  if (!stateDirectory) return found;
+  const names = ['convai-key.txt', 'kaggle-access-token.txt'];
+  try { for (const name of await readdir(stateDirectory)) if (/^huggingface-.*\.txt$/i.test(name)) names.push(name); } catch { return found; }
+  for (const name of names) {
+    try {
+      const info = await stat(join(stateDirectory, name));
+      if (!info.isFile() || info.size > 8192) continue;
+      const raw = (await readFile(join(stateDirectory, name), 'utf8')).trim();
+      found.push(raw);
+      // The key file is api-key=VALUE; the value alone must also be scrubbed.
+      const value = /^[A-Za-z0-9_-]+\s*=\s*(\S+)$/.exec(raw)?.[1];
+      if (value) found.push(value);
+      for (const part of raw.split(/\s+/)) if (part.length >= 12) found.push(part);
+    } catch {}
+  }
+  return found;
+}
+
+export async function publishSupportPaths({game, modRoot, runtime, stateDirectory, now = Date.now}) {
+  const logs = {};
+  for (const entry of await locateLogs({game, modRoot, runtime, stateDirectory})) {
+    logs[entry.id] = {path: entry.path, exists: await stat(entry.path).then(info => info.isFile(), () => false)};
+  }
+  const document = {version: 1, updated: now(), gameRoot: game, modRoot, runtime,
+    reports: join(runtime, 'reports'), stateDirectory: stateDirectory ?? null, logs};
+  await atomicFile(join(runtime, 'support-paths.json'), JSON.stringify(document));
+  return document;
+}
+
+// ------------------------------------------------------------------ report
+
+const STATUS_FILES = ['bridge-service.json', 'bridge-status.json', 'knowledge-status.json', 'local-voice-state.json',
+  'party-connection-state.json', 'party-connections.json', 'companion-invitations-state.json', 'memory-status.json',
+  'relationship-routing.json', 'world-session.json', 'bridge-latency.json'];
+const ERROR_LINE = /\b(?:error|exception|failed|failure|fatal|crash(?:ed)?|traceback|panic|unhandled|assert(?:ion)?)\b/i;
+// Routine lines that merely mention the word ("no error reported", "error=false").
+const NOT_AN_ERROR = /\b(?:no|zero|0)\s+(?:scene\s+)?errors?\b|\berrors?\s*[=:]\s*(?:false|0|none|null)\b|\bfailures?\s*[=:]\s*0\b|\bwithout (?:an? )?error/i;
+
+// Names of files that may hold what the player or a character said.
+const CONTENT_LIKE = /chat|transcript|convers|history|dialog|message|input|reply|prompt|journal|speech|audio|voice|mic|memory|subtitle/i;
+
+const clip = (value, size = 120) => typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/g, ' ').slice(0, size) : undefined;
+
+function compactStatus(name, value) {
+  if (!value || typeof value !== 'object') return value;
+  const copy = {...value};
+  for (const key of ['profiles', 'configuredProfiles', 'preparedProfiles', 'routedProfiles']) {
+    if (Array.isArray(copy[key]) && copy[key].length > 12) copy[key] = {count: copy[key].length};
+  }
+  if (name === 'memory-status.json' && Array.isArray(copy.characters)) {
+    copy.characters = {count: copy.characters.length, blocked: copy.characters.filter(row => row?.blocked).length};
+  }
+  if (name === 'world-session.json') return {ready: copy.ready, generation: copy.generation, updated: copy.updated};
+  return copy;
+}
+
+function sanitizeRequest(request) {
+  const lua = request.lua && typeof request.lua === 'object' ? request.lua : {};
+  const party = Array.isArray(lua.party) ? lua.party.slice(0, 12).map(row => ({
+    profile: clip(row?.profile, 80), key: clip(row?.key, 80), name: clip(row?.name, 80),
+    state: clip(row?.state, 40), error: clip(row?.error, 160),
+  })) : [];
+  return {cetVersion: clip(lua.cetVersion, 40), language: clip(lua.language, 20), view: clip(lua.view, 40),
+    developerMode: typeof lua.developerMode === 'boolean' ? lua.developerMode : undefined, party};
+}
+
+async function versions({game, modRoot, project, logs, now}) {
+  const result = {node: process.version, os: {platform: process.platform, release: os.release(), arch: process.arch}};
+  const head = async path => (await tailFile(path, {maxBytes: 8192, maxLines: 60}))?.lines ?? [];
+  const logPath = id => logs.find(entry => entry.id === id)?.path;
+  // RED4ext writes the game version at the top of every session log.
+  for (const line of await head(logPath('red4ext'))) {
+    const product = /Product version:\s*(\S+)/.exec(line), file = /File version:\s*(\S+)/.exec(line), version = /RED4ext \(v([^)]+)\)/.exec(line);
+    if (product) result.game = {...result.game, product: product[1]};
+    if (file) result.game = {...result.game, file: file[1]};
+    if (version) result.red4ext = version[1];
+  }
+  // CET appends sessions to one log; the last version line is the current one.
+  const cet = await tailFile(logPath('cet'), {maxBytes: 4 * 1024 * 1024, maxLines: 100000});
+  for (const line of cet?.lines ?? []) {
+    const cetVersion = /CET version (\S+)/.exec(line);
+    if (cetVersion) result.cet = cetVersion[1];
+  }
+  try {
+    const names = (await readdir(modRoot)).filter(name => /\.lua$/i.test(name)).sort();
+    const rows = [];
+    let newestTime = 0;
+    for (const name of names) {
+      const info = await stat(join(modRoot, name));
+      rows.push(`${name}:${info.size}`); newestTime = Math.max(newestTime, info.mtimeMs);
+    }
+    result.mod = {luaFiles: names.length, fingerprint: createHash('sha256').update(rows.join('\n')).digest('hex').slice(0, 12),
+      newestFile: newestTime ? new Date(newestTime).toISOString() : null};
+  } catch { result.mod = {luaFiles: 0}; }
+  try {
+    const pointer = (await readFile(join(project, '.git', 'HEAD'), 'utf8')).trim();
+    const reference = /^ref:\s*(\S+)$/.exec(pointer)?.[1];
+    const commit = reference ? (await readFile(join(project, '.git', ...reference.split('/')), 'utf8').catch(() => '')).trim() : pointer;
+    if (/^[0-9a-f]{12,64}$/i.test(commit)) result.mod = {...result.mod, commit: commit.slice(0, 12)};
+  } catch {}
+  try {
+    const pack = JSON.parse(await readFile(join(project, 'package.json'), 'utf8'));
+    if (typeof pack.version === 'string') result.mod = {...result.mod, package: clip(pack.version, 30)};
+  } catch {}
+  result.generated = new Date(now()).toISOString();
+  return result;
+}
+
+function companionProviders({settings, voice, routing, party}) {
+  const routed = new Set(Array.isArray(voice?.routedProfiles) ? voice.routedProfiles : []);
+  const routes = new Map((Array.isArray(routing?.routes) ? routing.routes : []).map(row => [row?.profileKey, row]));
+  const local = voice?.provider && voice.provider !== 'convai' ? voice.provider : null;
+  const rows = [];
+  for (const member of party) {
+    const key = member.profile || member.key;
+    if (!key) continue;
+    const route = routes.get(key);
+    rows.push({profile: key, state: member.state, conversation: 'convai-realtime',
+      voice: local && routed.has(key) ? local : 'convai',
+      relationshipVariant: route ? {mode: route.mode, variant: route.variant, status: route.status} : undefined,
+      conversationEnabled: settings?.enabledByKey ? settings.enabledByKey[key] !== false : undefined});
+  }
+  return {conversation: 'convai-realtime', voiceSelected: settings?.voiceProvider ?? voice?.requestedProvider ?? null,
+    voiceActive: voice?.provider ?? null, voiceState: voice?.state ?? null, omniSteps: voice?.omniSteps ?? settings?.omniSteps ?? null,
+    companions: rows};
+}
+
+/** Builds the report in memory. Nothing is written here. */
+export async function collectReport(options) {
+  const {game, runtime, stateDirectory, project, request, now = Date.now, bridge = {}} = options;
+  const modRoot = options.modRoot ?? resolve(runtime, '..');
+  const secrets = [...(options.secrets ?? []), ...await credentialSecrets(stateDirectory)];
+  const redact = createRedactor({secrets, ids: options.knownIds ?? []});
+  const logs = await locateLogs({game, modRoot, runtime, stateDirectory});
+  const lua = sanitizeRequest(request ?? {});
+  const entries = [], index = [], errors = [];
+
+  let number = 0;
+  for (const log of logs) {
+    const tail = await tailFile(log.path, {maxLines: log.previous ? 500 : LOG_MAX_LINES});
+    if (!tail) { index.push({id: log.id, path: redact.text(log.path), found: false}); continue; }
+    const lines = tail.lines.map(line => redact.text(line));
+    const name = `logs/${String(++number).padStart(2, '0')}-${log.id}.txt`;
+    entries.push({name, data: `# ${redact.text(log.path)}\n# last ${lines.length} lines${tail.truncated ? ' (earlier lines omitted)' : ''}, file modified ${tail.modified}\n${lines.join('\n')}\n`});
+    index.push({id: log.id, path: redact.text(log.path), found: true, entry: name, lines: lines.length,
+      truncated: tail.truncated, bytes: tail.bytes, modified: tail.modified});
+    if (!log.previous) {
+      for (const line of lines.slice(-500)) {
+        if (ERROR_LINE.test(line) && !NOT_AN_ERROR.test(line)) errors.push({source: log.id, line: line.slice(0, 300)});
+      }
+    }
+  }
+  // Newest first, at most 12 per source and 80 overall.
+  const perSource = new Map(), recentErrors = [];
+  for (const row of errors.reverse()) {
+    const count = perSource.get(row.source) ?? 0;
+    if (count >= 12 || recentErrors.length >= 80) continue;
+    perSource.set(row.source, count + 1); recentErrors.push(row);
+  }
+
+  const status = {}, raw = {};
+  for (const name of STATUS_FILES) {
+    const read = await readSmallJson(join(runtime, name));
+    if (read.error) { status[name] = {state: read.error}; continue; }
+    raw[name] = read.value;
+    status[name] = {modified: read.modified, value: redact.value(compactStatus(name, read.value))};
+  }
+  const settingsRead = await readSmallJson(join(runtime, 'settings.json'));
+  let settings = settingsRead.value, settingsView = {state: settingsRead.error ?? 'present'};
+  if (settings && typeof settings === 'object') {
+    const {enabledByKey, ...rest} = settings;
+    const flags = enabledByKey && typeof enabledByKey === 'object' ? enabledByKey : {};
+    settingsView = redact.value({...rest, conversationEnabledCount: Object.values(flags).filter(value => value !== false).length,
+      conversationDisabled: Object.keys(flags).filter(key => flags[key] === false)});
+  }
+  const party = [...lua.party];
+  if (!party.length && Array.isArray(raw['party-connections.json']?.profiles)) {
+    for (const profile of raw['party-connections.json'].profiles.slice(0, 12)) party.push({profile: clip(profile, 80), state: 'connected'});
+  }
+  const versionInfo = await versions({game, modRoot, project: project ?? resolve(runtime, '..'), logs, now});
+  const summary = redact.value({
+    schema: 1, reportId: options.reportId, generatedBy: 'bridge', generatedAt: new Date(now()).toISOString(),
+    privacy: {notes: ['No API keys, tokens, audio, voice references, model files or conversation text are included.',
+      'IDs are replaced by short hashes; key and token patterns, long secrets and your Windows account name are removed from every log.'],
+      redactions: undefined},
+    versions: versionInfo,
+    request: {cetVersion: lua.cetVersion, language: lua.language, view: lua.view, developerMode: lua.developerMode,
+      ageMs: Number.isFinite(request?.issuedAt) ? Math.max(0, now() - request.issuedAt) : null},
+    bridge: {pid: process.pid, uptimeSeconds: Math.round(process.uptime()), ...bridge, status},
+    settings: settingsView,
+    party: {companions: party, connections: raw['party-connection-state.json']
+      ? redact.value(compactStatus('party-connection-state.json', raw['party-connection-state.json'])) : null},
+    providers: companionProviders({settings, voice: raw['local-voice-state.json'], routing: raw['relationship-routing.json'], party}),
+    recentErrors, logs: index,
+  });
+  summary.privacy.redactions = {...redact.stats};
+  const readme = [
+    'Cyberpunk Convai support report',
+    `Created ${summary.generatedAt}  (report ${options.reportId})`, '',
+    'Send this one file to the developer. It contains:',
+    '  summary.json   versions, service status, settings, party, provider per companion, recent errors',
+    '  logs/*.txt     the end of each mod, service, CET, redscript and RED4ext log (last 2000 lines each)', '',
+    'It does NOT contain API keys or tokens, microphone audio, voice references, model files',
+    'or conversation text. IDs are shown as short hashes and your Windows account name is hidden.',
+    'You can open the zip and read every file before you send it.', ''].join('\n');
+  return {entries: [{name: 'README.txt', data: readme}, {name: 'summary.json', data: JSON.stringify(summary, null, 2) + '\n'}, ...entries],
+    summary};
+}
+
+const stamp = date => {
+  const pad = (value, size = 2) => String(value).padStart(size, '0');
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+};
+
+export async function pruneReports(directory, keep = REPORT_KEEP) {
+  let names;
+  try { names = (await readdir(directory)).filter(name => REPORT_NAME.test(name)); } catch { return []; }
+  // Names embed the creation time; the newest sort last.
+  names.sort((a, b) => REPORT_NAME.exec(a)[1].localeCompare(REPORT_NAME.exec(b)[1]) || a.localeCompare(b));
+  const removed = names.slice(0, Math.max(0, names.length - keep));
+  for (const name of removed) await rm(join(directory, name), {force: true}).catch(() => {});
+  return removed;
+}
+
+/** Collects, zips, writes into <runtime>/reports and keeps the newest five. */
+export async function buildReport(options) {
+  const now = options.now ?? Date.now;
+  const reportId = options.reportId ?? `r-${stamp(new Date(now()))}`;
+  const directory = join(options.runtime, 'reports');
+  await mkdir(directory, {recursive: true});
+  const {entries, summary} = await collectReport({...options, reportId});
+  const archive = createZip(entries, {date: new Date(now())});
+  if (archive.length > REPORT_MAX_BYTES) throw Object.assign(Error('Report too large'), {code: 'too-large'});
+  let name = `convai-report-${stamp(new Date(now()))}.zip`;
+  for (let attempt = 2; await stat(join(directory, name)).then(() => true, () => false); attempt++) {
+    name = `convai-report-${stamp(new Date(now()))}-${String.fromCharCode(96 + Math.min(attempt, 26))}.zip`;
+  }
+  const path = join(directory, name);
+  if (!await atomicFile(path, archive)) throw Object.assign(Error('Report was not written'), {code: 'write-failed'});
+  await pruneReports(directory);
+  return {path, name, bytes: archive.length, entries: entries.length, summary};
+}
+
+// -------------------------------------------------------------- bridge side
+
+const REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/;
+
+export function parseReportRequest(raw, now = Date.now()) {
+  if (typeof raw !== 'string' || Buffer.byteLength(raw, 'utf8') > REQUEST_MAX_BYTES) return null;
+  let value; try { value = JSON.parse(raw); } catch { return null; }
+  if (!value || typeof value !== 'object' || Array.isArray(value) || value.version !== 1
+      || typeof value.id !== 'string' || !REQUEST_ID.test(value.id)
+      || !Number.isFinite(value.issuedAt) || value.issuedAt < 0) return null;
+  return {id: value.id, issuedAt: value.issuedAt, lua: value.lua && typeof value.lua === 'object' ? value.lua : {}};
+}
+
+/** File IPC for the Help page. Only a request that appears after the bridge
+ * started, is well formed and is recent produces a report; an old request left
+ * by an earlier session is never replayed. */
+export class SupportReportControl {
+  static async open(options) {
+    const control = new SupportReportControl(options);
+    control.observed = await readFile(control.requestPath, 'utf8').catch(() => '');
+    await publishSupportPaths(control.layout()).catch(() => {});
+    return control;
+  }
+  constructor({game, runtime, stateDirectory, project, requestPath, resultPath, secrets, knownIds, bridge,
+    now = Date.now, build = buildReport}) {
+    Object.assign(this, {game, runtime, stateDirectory, project, secrets, knownIds, bridge, now, build});
+    this.requestPath = requestPath ?? join(runtime, 'report-request.json');
+    this.resultPath = resultPath ?? join(runtime, 'report-result.json');
+    this.observed = ''; this.polling = false; this.closed = false; this.handled = new Set();
+  }
+  layout() {
+    return {game: this.game, modRoot: resolve(this.runtime, '..'), runtime: this.runtime, stateDirectory: this.stateDirectory, now: this.now};
+  }
+  publish(value) {
+    return atomicFile(this.resultPath, JSON.stringify({version: 1, updated: this.now(), ...value})).catch(() => false);
+  }
+  async poll() {
+    if (this.polling || this.closed) return;
+    this.polling = true;
+    try {
+      const raw = await readFile(this.requestPath, 'utf8').catch(() => '');
+      if (raw === this.observed) return;
+      this.observed = raw;
+      const request = parseReportRequest(raw, this.now());
+      if (!request || this.handled.has(request.id)) return;
+      if (request.issuedAt > this.now() + 5000 || this.now() - request.issuedAt > REQUEST_MAX_AGE_MS) return;
+      this.handled.add(request.id);
+      await this.publish({id: request.id, state: 'building'});
+      try {
+        const secrets = typeof this.secrets === 'function' ? await this.secrets() : this.secrets ?? [];
+        const knownIds = typeof this.knownIds === 'function' ? await this.knownIds() : this.knownIds ?? [];
+        const bridge = typeof this.bridge === 'function' ? await this.bridge() : this.bridge ?? {};
+        const result = await this.build({game: this.game, runtime: this.runtime, stateDirectory: this.stateDirectory,
+          project: this.project, request, secrets, knownIds, bridge, now: this.now});
+        await publishSupportPaths(this.layout()).catch(() => {});
+        await this.publish({id: request.id, state: 'ready', mode: 'bridge', path: result.path, fileName: result.name,
+          bytes: result.bytes, entries: result.entries});
+      } catch (error) {
+        await this.publish({id: request.id, state: 'failed', code: typeof error?.code === 'string' ? error.code : 'failed'});
+      }
+    } finally { this.polling = false; }
+  }
+  close() { this.closed = true; }
+}

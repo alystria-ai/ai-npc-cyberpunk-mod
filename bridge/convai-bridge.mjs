@@ -31,6 +31,7 @@ import {GameLaunchIdentity, identifyGameLaunch} from './game-launch.mjs';
 import {PlayerMemory} from './player-memory.mjs';
 import {PlayerMemoryApi} from './player-memory-api.mjs';
 import {PlayerMemoryControl} from './player-memory-control.mjs';
+import {SupportReportControl} from './support-report.mjs';
 import {PlayerKnowledge} from './player-knowledge.mjs';
 import {PlayerPhoneKnowledge, playerPhoneGeneration} from './player-phone-knowledge.mjs';
 import {atomicFile as atomic} from './guarded-file.mjs';
@@ -1261,6 +1262,11 @@ const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   chatResetPath: resolve(runtime, 'memory-chat-resets.json'),
   chatResetFamilies: relationshipRoutes.providerFamilies,
   publish: value => atomic(resolve(runtime, 'memory-status.json'), JSON.stringify(value))});
+// Help > Generate report: a redacted zip of versions, status and log tails.
+// The key and provider IDs are passed only so they can be scrubbed from it.
+const supportReport = await SupportReportControl.open({game, runtime, stateDirectory, project,
+  secrets: () => [key], knownIds: () => Object.values(relationshipRoutes.providerIds ?? ids),
+  bridge: () => ({busy: !!active, microphoneActive: !!mic.current})});
 await companionActions.revoke();
 await status('waiting');
 await pollSettings(false);
@@ -1277,6 +1283,7 @@ const settingsTimer = setInterval(() => { void pollSettings().catch(error => con
 const phoneTimer = setInterval(() => { void pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)); }, 150);
 const knowledgeTimer = setInterval(() => { void pollKnowledge().catch(error => console.error('[CyberpunkConvai] Knowledge poll:', error.message)); }, 500);
 const memoryTimer = setInterval(() => { void memoryControl.poll().catch(error => console.error('[CyberpunkConvai] Memory control:', error.message)); }, 500);
+const supportTimer = setInterval(() => { void supportReport.poll().catch(error => console.error('[CyberpunkConvai] Support report:', error.message)); }, 500);
 async function shutdown() {
   if (stopped) return;
   await companionActions.revoke();
@@ -1286,6 +1293,7 @@ async function shutdown() {
   phoneKnowledge.clear();
   clearInterval(knowledgeTimer);
   clearInterval(memoryTimer);
+  clearInterval(supportTimer); supportReport.close();
   clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);
   await invitations.clear('service-stopped');
   await voiceRouteSync.catch(() => {});

@@ -14,7 +14,7 @@ const files = [
   'mod/companion-chauffeur-native.lua', 'mod/gameplay-actions.lua',
   'mod/companion-clearance.lua', 'mod/companion-placement.lua',
   'mod/phone-chat.lua', 'mod/phone-chat-style.lua', 'mod/phone-input.lua',
-  'mod/composer-input.lua', 'mod/microphone.lua', 'mod/service-status.lua',
+  'mod/composer-input.lua', 'mod/microphone.lua', 'mod/service-status.lua', 'mod/support-report.lua',
   'r6/scripts/CyberpunkConvai/Composer.reds',
   'r6/scripts/CyberpunkConvai/PhoneContacts.reds',
   'r6/scripts/CyberpunkConvai/PhoneChat.reds',

@@ -464,7 +464,9 @@ export class BridgeSupervisor {
     this.statusWriting = (this.statusWriting || Promise.resolve()).then(() => {
       const value = {version: 1, state: this.status.state, code: this.status.code, since: this.status.since,
         updated: this.now(), supervisorPid: process.pid, bridgePid: this.childPid ?? this.adoptedPid ?? null,
-        adopted: !!this.adoptedPid, restarts: this.restarts, gamePid: this.gamePid ?? null};
+        adopted: !!this.adoptedPid, restarts: this.restarts, gamePid: this.gamePid ?? null,
+        // Where the service logs are, for the in-game Help page when the bridge never started.
+        gameRoot: this.gameRoot, stateDirectory: this.stateDirectory};
       return atomicFile(this.paths.status, JSON.stringify(value))
         .catch(error => this.log(`The service status could not be published: ${error.message}`));
     });

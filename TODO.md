@@ -8,7 +8,6 @@ The single working document for development: open items first, then a dated log,
 - **Student distillation** (Kaggle kernel 137135141, `cp2077-full-a-student-114278c5e96c449e`, bucket run `full-a-student-20261005-114278c5`). Teacher: update 1,000 raw from the expanded run. It stops after two evaluations without held-out improvement (earliest 2,000 updates, cap 12,000). Next: pick the best checkpoint by held-out and speech evidence, produce listening samples, and install only with user approval. Check with `vendor/kaggle-env/Scripts/python.exe scripts/Pocket-FullAStudent.py stream --folder runtime/voice-data-expansion-20261005/full-a-student/<run>`.
 - **Teacher listening samples** (agent): blind A/B page in `runtime/listening-20261005/` comparing teacher 1,000 raw, teacher 6,000, the current student and a real reference clip, for Evelyn, Jackie and the lowest-clip voices. The user judges by character likeness, not WER.
 - **Lip sync + facial expressions** (agent): all three routes, Convai emotion, and Convai audio-output start at turn start (~150–200 ms).
-- **Help page + report button** (agent): Help in the manager settings with log locations and a "generate report" button (redacted bundle, path shown).
 
 ### Waiting for one combined install and in-game test
 After the agents above finish:
@@ -18,6 +17,7 @@ After the agents above finish:
 - Memory picker messages ("…deleted nothing") and Fight / Distract actions (needs the "mark target for companions" binding set in CET) and the question-rule change in game.
 - Quest knowledge on the current save: Johnny on Songbird at Cynosure and on Judy; Regina on the Monster Hunt; Reed on before the stadium.
 - Lip sync, expressions, quest knowledge, duplicates, comments, group chat speed.
+- Help page (Settings → Help → Help and support): open it with the service running and then with it stopped, press Generate report, and check the path in the banner and page, the popup after Esc, Copy report path and that the zip holds no key or chat text. Install `support-report.lua` and the updated `mcm.lua`/locales (CET reload); the bridge restart adds the report service and `runtime/support-paths.json`.
 
 ### Not yet tested in game
 - Cars: fast-travel recovery, the "drive for me" chauffeur after today's changes, alternate owned cars, the boarding pause when V doesn't get in, overhead captions while boarding.
@@ -29,7 +29,7 @@ After the agents above finish:
 - Convai test user `44634786-9337-4103-b8dd-dc553202563b` (on alex): `memory/list` returns HTTP 502, which looks like a Convai server fault. Remove the user when it's no longer needed (`memory/delete-all`, then the dashboard).
 
 - After all agents finish: run the full `npm test` and triage what fails. Last seen: about 7 installer and binding-setup failures, plus the bridge-import allowlist.
-- After the Help agent finishes (it is editing `mcm.lua` and the locales): update the loot setting's help text, which still says battle and loot comments play separately, in all 10 locales. Also delete the unused `loot.capture({forBattle=true})`.
+- Update the loot setting's help text, which still says battle and loot comments play separately, in all 10 locales. Also delete the unused `loot.capture({forBattle=true})`.
 - Convai early audio-player open (latency item A): not done. The player fails with "admission expired" if no control arrives within 2 s of opening, so opening it at turn start would break slow Convai turns. Needs a different design (for example, open early with a longer or renewable admission window).
 - `packaging/runtime-bootstrap.test.mjs` fails: its allowlist lacks newer bridge modules (`analysis-pcm`, `distraction-context`, `jali-face*` and others). Fix it once the lip-sync and actions modules are final. `bridge-startup.test.mjs` times out under full-suite load but passes alone.
 - Movement design questions from the test triage: (1) a follow blocked beyond 6 m can still enter the "advance" detour mode (`block()` in `companion-actuator.lua`), but no current test reaches it. Decide whether to keep it for follow, and test it if so. (2) Initial follow admissions skip the 2-member planning turn, so each one costs one native navigation query (8 at once costs 8). The 192 physics-query cap still holds. Treated as intended.
@@ -43,6 +43,7 @@ After the agents above finish:
 ## Captain's log
 
 **2026-10-05: resumed session**
+- Help page and support report: Settings now ends with Help → Help and support. It explains what to do, shows the service state, lists absolute log paths (mod `runtime`, service logs, launcher, CET, redscript, RED4ext, reports) and has Generate report, Last report and Copy report path. Generate writes `runtime/report-request.json`; the bridge (`bridge/support-report.mjs`) builds a redacted `runtime/reports/convai-report-*.zip` (versions, status, settings, party, provider per companion, recent errors, the last 2,000 lines / 1 MiB of each log), newest 5 kept, and answers in `report-result.json`. If the service is stopped or silent, `mod/support-report.lua` writes a short text report itself. Keys, tokens, audio, chat and transcripts never enter it; IDs are hashed; planted-secret tests cover both writers. Docs: `docs/MANAGER_UI.md`. Not yet tested in game.
 - Training: a fresh full A teacher ran on 8,140 clips / 79 voices. Throughput: staging ~19 min, latent preparation ~30 min, 1.8–2.1 s/update, ~44 min per 1,000 updates including evaluation and a 5 GB checkpoint upload. It **overfit**: held-out best at update 1,000 raw (0.3305), worse every checkpoint after; speech WER rose from 1.2% to 5.6%. It was stopped at 6,000 and update 1,000 selected. Session fixes: a 30-minute end-of-session save reserve, the 10-minute 5 GB local saves removed, and a resume launcher (`Pocket-FullATeacher.py resume`). Then the student run above, launched with held-out stopping.
 - Movement (all confirmed in game unless noted):
   - Distant catch-up uses one native follow command instead of a fresh MoveTo every ~0.4 s.
