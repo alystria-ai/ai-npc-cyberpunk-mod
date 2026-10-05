@@ -93,7 +93,7 @@ return {
     ["Companion preparation returned an invalid state."] = "При подготовке напарника получено некорректное состояние.",
     ["Companion voices"] = "Голоса напарников",
     ["Companions"] = "Напарники",
-    ["Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Battle and loot comments play separately, one after another."] = "Напарники могут комментировать добычу после того, как вы закончите собирать предметы в мире. Перенос предметов через тайник не вызывает реакций. Между обычными комментариями проходит десять минут; для нового легендарного снаряжения действует отдельный перерыв в две минуты. Комментарии о бое и добыче звучат отдельно, один за другим.",
+    ["Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. After a fight, pickups collected by then are folded into one end-of-fight comment; later pickups get their own comment."] = "Напарники могут комментировать добычу после того, как вы закончите собирать предметы в мире. Перенос предметов через тайник не вызывает реакций. Между обычными комментариями проходит десять минут; для нового легендарного снаряжения действует отдельный перерыв в две минуты. После боя добыча, собранная к этому моменту, включается в один комментарий об окончании боя; добыча, собранная позже, получает собственный комментарий.",
     ["Confirm"] = "Подтвердить",
     ["Confirm memory clear"] = "Подтвердить удаление воспоминаний",
     ["Connecting"] = "Подключение",

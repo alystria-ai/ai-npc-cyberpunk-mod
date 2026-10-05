@@ -93,7 +93,7 @@ return {
   ["Companion preparation returned an invalid state."] = "동료 준비 과정에서 잘못된 상태가 반환되었습니다.",
   ["Companion voices"] = "동료 음성",
   ["Companions"] = "동료",
-  ["Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Battle and loot comments play separately, one after another."] = "월드에서 전리품을 모두 주운 뒤 동료가 한마디 합니다. 보관함으로 옮기거나 꺼낼 때는 반응하지 않습니다. 일반 반응은 10분, 새로 획득한 전설 장비는 별도의 2분 대기시간이 있습니다. 전투와 전리품 반응은 각각 차례로 재생됩니다.",
+  ["Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. After a fight, pickups collected by then are folded into one end-of-fight comment; later pickups get their own comment."] = "월드에서 전리품을 모두 주운 뒤 동료가 한마디 합니다. 보관함으로 옮기거나 꺼낼 때는 반응하지 않습니다. 일반 반응은 10분, 새로 획득한 전설 장비는 별도의 2분 대기시간이 있습니다. 전투가 끝나면 그때까지 주운 전리품은 전투 종료 반응 하나에 함께 담기고, 이후에 주운 전리품에는 별도의 반응이 나옵니다.",
   ["Confirm"] = "확인",
   ["Confirm memory clear"] = "기억 삭제 확인",
   ["Connecting"] = "연결 중",

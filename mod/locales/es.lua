@@ -94,7 +94,7 @@ return {
     ["Companion preparation returned an invalid state."] = "La preparación del compañero devolvió un estado no válido.",
     ["Companion voices"] = "Voces de compañeros",
     ["Companions"] = "Compañeros",
-    ["Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Battle and loot comments play separately, one after another."] = "Los compañeros pueden comentar cuando terminas de recoger botín del mundo. Los traslados al alijo no generan comentarios. Los comentarios normales tienen diez minutos de espera; el equipo legendario recién adquirido tiene una espera independiente de dos minutos. Los comentarios de combate y botín se reproducen por separado, uno tras otro.",
+    ["Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. After a fight, pickups collected by then are folded into one end-of-fight comment; later pickups get their own comment."] = "Los compañeros pueden comentar cuando terminas de recoger botín del mundo. Los traslados al alijo no generan comentarios. Los comentarios normales tienen diez minutos de espera; el equipo legendario recién adquirido tiene una espera independiente de dos minutos. Tras un combate, el botín recogido hasta ese momento se incluye en un único comentario de fin de combate; el botín posterior recibe su propio comentario.",
     ["Confirm"] = "Confirmar",
     ["Confirm memory clear"] = "Confirmar borrado de recuerdos",
     ["Connecting"] = "Conectando",

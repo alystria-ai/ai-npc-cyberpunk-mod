@@ -93,7 +93,7 @@ return {
     ["Companion preparation returned an invalid state."] = "La préparation des compagnons a renvoyé un état invalide.",
     ["Companion voices"] = "Voix des compagnons",
     ["Companions"] = "Compagnons",
-    ["Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Battle and loot comments play separately, one after another."] = "Les compagnons peuvent commenter le butin une fois le ramassage terminé. Les transferts vers ou depuis le stockage restent silencieux. Les remarques ordinaires sont espacées de dix minutes ; l'acquisition d'équipement légendaire possède un délai distinct de deux minutes. Les commentaires de combat et de butin sont joués séparément, les uns après les autres.",
+    ["Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. After a fight, pickups collected by then are folded into one end-of-fight comment; later pickups get their own comment."] = "Les compagnons peuvent commenter le butin une fois le ramassage terminé. Les transferts vers ou depuis le stockage restent silencieux. Les remarques ordinaires sont espacées de dix minutes ; l'acquisition d'équipement légendaire possède un délai distinct de deux minutes. Après un combat, le butin ramassé jusque-là est intégré à un seul commentaire de fin de combat ; le butin ramassé ensuite a son propre commentaire.",
     ["Confirm"] = "Confirmer",
     ["Confirm memory clear"] = "Confirmer l'effacement des souvenirs",
     ["Connecting"] = "Connexion",

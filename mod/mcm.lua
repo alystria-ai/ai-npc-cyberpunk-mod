@@ -697,7 +697,7 @@ local function schema()
             setting('battleReactions', 'React to battles', 'bool', snapshot.settings.battleReactions, true,
                 'A nearby companion can make one short comment as combat starts and another afterward. Ten-minute cooldown after a fight; conversations and story scenes take priority. Loading a save resets the cooldown.'),
             setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, true,
-                'Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Battle and loot comments play separately, one after another.'),
+                'Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. After a fight, pickups collected by then are folded into one end-of-fight comment; later pickups get their own comment.'),
         })
         categories[#categories + 1] = category('development', 'Development', {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,

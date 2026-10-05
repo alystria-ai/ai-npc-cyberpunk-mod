@@ -93,7 +93,7 @@ return {
     ["Companion preparation returned an invalid state."] = "Die Begleitervorbereitung hat einen ungültigen Status zurückgegeben.",
     ["Companion voices"] = "Begleiterstimmen",
     ["Companions"] = "Begleiter",
-    ["Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Battle and loot comments play separately, one after another."] = "Begleiter können nach dem Einsammeln von Beute einen Kommentar abgeben. Lagertransfers bleiben ohne Kommentar. Normale Kommentare haben zehn Minuten Wartezeit; neu erworbene legendäre Ausrüstung hat eine separate Wartezeit von zwei Minuten. Kampf- und Beutekommentare werden getrennt nacheinander abgespielt.",
+    ["Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. After a fight, pickups collected by then are folded into one end-of-fight comment; later pickups get their own comment."] = "Begleiter können nach dem Einsammeln von Beute einen Kommentar abgeben. Lagertransfers bleiben ohne Kommentar. Normale Kommentare haben zehn Minuten Wartezeit; neu erworbene legendäre Ausrüstung hat eine separate Wartezeit von zwei Minuten. Nach einem Kampf werden bis dahin eingesammelte Beutestücke in einen einzigen Kommentar am Kampfende eingebunden; spätere Beute erhält einen eigenen Kommentar.",
     ["Confirm"] = "Bestätigen",
     ["Confirm memory clear"] = "Löschen der Erinnerungen bestätigen",
     ["Connecting"] = "Verbindung wird hergestellt",

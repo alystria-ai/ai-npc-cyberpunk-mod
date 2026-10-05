@@ -93,7 +93,7 @@ return {
   ["Companion preparation returned an invalid state."] = "コンパニオンの準備で無効な状態が返されました。",
   ["Companion voices"] = "コンパニオンの音声",
   ["Companions"] = "コンパニオン",
-  ["Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Battle and loot comments play separately, one after another."] = "ワールド内の戦利品を拾い終わると、コンパニオンがコメントします。保管庫との移動には反応しません。通常のコメントのクールダウンは10分、新しく入手したレジェンダリー装備は別枠で2分です。戦闘と戦利品のコメントは、それぞれ順番に再生されます。",
+  ["Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. After a fight, pickups collected by then are folded into one end-of-fight comment; later pickups get their own comment."] = "ワールド内の戦利品を拾い終わると、コンパニオンがコメントします。保管庫との移動には反応しません。通常のコメントのクールダウンは10分、新しく入手したレジェンダリー装備は別枠で2分です。戦闘後は、その時点までに拾った戦利品が戦闘終了のコメント1つにまとめられ、その後に拾った戦利品には別のコメントが付きます。",
   ["Confirm"] = "確認",
   ["Confirm memory clear"] = "記憶消去の確認",
   ["Connecting"] = "接続中",

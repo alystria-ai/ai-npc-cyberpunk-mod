@@ -93,7 +93,7 @@ return {
     ["Companion preparation returned an invalid state."] = "伙伴准备流程返回了无效状态。",
     ["Companion voices"] = "伙伴语音",
     ["Companions"] = "伙伴",
-    ["Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Battle and loot comments play separately, one after another."] = "拾取完场景中的物品后，伙伴可以发表评论。存储转移不会触发评论。普通评论冷却十分钟；新获得的传说装备单独冷却两分钟。战斗评论和拾取评论会分开依次播放。",
+    ["Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. After a fight, pickups collected by then are folded into one end-of-fight comment; later pickups get their own comment."] = "拾取完场景中的物品后，伙伴可以发表评论。存储转移不会触发评论。普通评论冷却十分钟；新获得的传说装备单独冷却两分钟。战斗结束后，到那时为止拾取的物品会合并到一条战斗结束评论中；之后拾取的物品会有单独的评论。",
     ["Confirm"] = "确认",
     ["Confirm memory clear"] = "确认清除记忆",
     ["Connecting"] = "连接中",

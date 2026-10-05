@@ -94,7 +94,7 @@ return {
     ["Companion preparation returned an invalid state."] = "A preparação do companheiro retornou um estado inválido.",
     ["Companion voices"] = "Vozes dos companheiros",
     ["Companions"] = "Companheiros",
-    ["Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Battle and loot comments play separately, one after another."] = "Os companheiros podem comentar quando você termina de recolher saques do mundo. Transferências de armazenamento não geram comentários. Comentários comuns têm um intervalo de dez minutos; equipamentos lendários recém-adquiridos têm um intervalo separado de dois minutos. Os comentários de combate e saque são reproduzidos separadamente, um após o outro.",
+    ["Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. After a fight, pickups collected by then are folded into one end-of-fight comment; later pickups get their own comment."] = "Os companheiros podem comentar quando você termina de recolher saques do mundo. Transferências de armazenamento não geram comentários. Comentários comuns têm um intervalo de dez minutos; equipamentos lendários recém-adquiridos têm um intervalo separado de dois minutos. Depois de uma luta, os saques recolhidos até então entram em um único comentário de fim de combate; os saques posteriores recebem o próprio comentário.",
     ["Confirm"] = "Confirmar",
     ["Confirm memory clear"] = "Confirmar exclusão de lembranças",
     ["Connecting"] = "Conectando",
