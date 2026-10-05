@@ -346,6 +346,9 @@ const nativeFixture=`
       return true
     end,
     IsReady=function() return true end,
+    -- A detached cached handle is re-resolved by exact entity ID; streaming can
+    -- hand back the same detached entity.
+    GetEntity=function() return entity end,
     CreateEntity=function(_,spec) values.spec=spec; return {hash='new-car'} end}
   Game={GetMountingFacility=function() return {
     GetMountingInfoSingleWithIds=function(_,child,parent,slot)
