@@ -20,6 +20,21 @@ and the route proof repeats every 0.8 s. A deferred proof is retried within
 blocks exactly as before. Near routes that bend or shift sideways still walk
 certified points.
 
+## October 5 false blocks at departure
+
+The first native-follow game test (`runtime/follow-native-test-20261005`)
+followed smoothly, but Ana started late and Alex, queued behind her, stuttered
+for ~5 s. Three checks fired on space the companion could never collide with:
+the route was rejected for crossing V while V sprinted away; the guard swept
+sideways along the first sensed start-animation shuffle and hit a wall the route
+never approaches; and Blue Moon's zero-length feet check hit a destructible prop
+she was already touching. Now: a running V (>2.5 m/s) does not reject a route;
+the native-follow guard sweeps along the certified route direction; and every
+sweep that leaves the feet starts just ahead of the occupied body, so the
+volume a companion already stands in is never a reason to stay put. The
+zero-length origin checks in admission, waypoint motion and detour search are
+gone. Obstacles ahead still block.
+
 ## October 5 stranded follower recovery (user decision)
 
 A walker that has been blocked within the last 2 s, has moved less than 1 m

@@ -328,6 +328,15 @@ function M.applySeatedLook(s,c,dt)
     return M.applyLook(s,style,c.player,c.gazeSettings,true)
 end
 
+-- The volume a body already occupies is not route. An overlap there (a prop
+-- the companion is touching) cannot be avoided by standing still, and checking
+-- it only traps the companion. Sweeps that leave the feet start just ahead.
+local function leavingFrom(s,from,to)
+    local length=space.ground(from,to)
+    if length<=.05 then return from end
+    return space.offset(from,space.bearing(from,to),0,math.min(s.clearance and s.clearance.radius or .4,length*.5))
+end
+
 local function routeClear(s,c,target,following,options)
     options=options or {}
     local requested=space.copy(target)
@@ -480,9 +489,12 @@ local function routeClear(s,c,target,following,options)
     -- Recheck exclusion in Lua on EVERY continuation, without discarding the
     -- expensive verified prefix. These checks never grant movement by themselves.
     local margin=math.max(.75,(s.clearance and s.clearance.radius or .4)+.35)
+    -- A running V will not be standing on the route when the companion gets
+    -- there; rejecting it only delayed departure behind V.
+    local playerLeaving=(c.frame.rawSpeed or 0)>2.5
     for index,leg in ipairs(probe.legs) do
         local distance=space.segmentDistance(c.frame.position,leg.from,leg.to)
-        if c.playerGap>1 and distance<margin then
+        if c.playerGap>1 and distance<margin and not playerLeaving then
             return reject('The walking route crosses the player','player',
                 {playerPosition=space.copy(c.frame.position),from=space.copy(leg.from),to=space.copy(leg.to),
                 distance=distance,margin=margin,navPoint=leg.navPoint},index)
@@ -510,7 +522,11 @@ local function routeClear(s,c,target,following,options)
                 leg.navBodyChecked=true
             end
         end
-        clear,reason,deferred,rejection=clearance.segment(leg.from,leg.to,s.clearance,
+        local from=leg.from
+        if probe.next==1 and not leg.nativeOriginProjection and space.distance(from,probe.origin)<.001 then
+            from=leavingFrom(s,from,leg.to)
+        end
+        clear,reason,deferred,rejection=clearance.segment(from,leg.to,s.clearance,
             leg.progress,leg.nativeOriginProjection)
         if deferred then return nil,nil,true end
         if not clear then return reject(reason,'path',rejection,probe.next) end
@@ -529,7 +545,8 @@ local function routeClear(s,c,target,following,options)
                 z=previous.z+(leg.to.z-previous.z)*t,w=1}
             local nativeOriginProjection=index==1 and leg.nativeOriginProjection
                 and space.distance(c.position,leg.from)<=.02
-            clear,reason,deferred,rejection=clearance.segment(previous,point,s.clearance,
+            local from=index==1 and not nativeOriginProjection and leavingFrom(s,previous,point) or previous
+            clear,reason,deferred,rejection=clearance.segment(from,point,s.clearance,
                 nil,nativeOriginProjection)
             if deferred then return nil,nil,true end
             if not clear then
@@ -540,19 +557,15 @@ local function routeClear(s,c,target,following,options)
             previous=point
         end
         -- A resumed route rechecks both actual ends before movement can resume.
-        -- Animation roots can sit below the navigation surface during a stride.
-        -- Use the existing walking step band at actual feet; destinations still
-        -- require their full standing body at the projected navigation point.
-        clear,reason,deferred,rejection=clearance.segment(c.position,c.position,s.clearance)
-        if deferred then return nil,nil,true end
-        if not clear then return reject(reason,'origin',rejection) end
+        -- The actual feet are where the body already is; only the route ahead
+        -- and the standing destination are checked.
         local currentTarget=options.horizon and probe.target or target
         clear,reason,deferred,rejection=clearance.body(currentTarget,s.clearance)
         if deferred then return nil,nil,true end
         if not clear then return reject(reason,options.horizon and 'path' or 'destination',rejection) end
         if not options.horizon and space.distance(probe.target,target)>.005 then
             local distance=space.segmentDistance(c.frame.position,probe.target,target)
-            if c.playerGap>1 and distance<margin then
+            if c.playerGap>1 and distance<margin and not playerLeaving then
                 return reject('The walking route crosses the player','player',
                     {playerPosition=space.copy(c.frame.position),from=space.copy(probe.target),to=space.copy(target),
                     distance=distance,margin=margin})
@@ -878,19 +891,6 @@ local function blockedRoute(s,intent,c,canPlan)
             record(s,'detours-exhausted')
         end
     end
-    if not search.originClear then
-        local clear,reason,deferred,rejection=clearance.segment(c.position,c.position,s.clearance)
-        if deferred then return true end
-        if not clear then
-            if rejection then rejection.stage='origin'; s.lastRejection=rejection end
-            s.detourSearch,s.clearanceWaiting=nil,nil
-            held.rejection=s.lastRejection
-            held.rejections=rejection and rejection.center and {rejection} or {}
-            s.error=reason
-            return true
-        end
-        search.originClear=true
-    end
     local candidate=search.candidates[search.index]
     if not search.mapped then
         search.mapped={}
@@ -1015,10 +1015,13 @@ local function waypointMotion(s,c)
     local cost=6
     for _,segment in ipairs(segments) do cost=cost+6*clearance.segmentBoxes(segment.from,segment.to) end
     if not clearance.available(cost) then return nil,nil,true end
-    local clear,reason,deferred,rejection=clearance.segment(c.position,c.position,s.clearance)
-    if not clear then return clear,reason,deferred,rejection end
+    local clear,reason,deferred,rejection
     for _,segment in ipairs(segments) do
-        clear,reason,deferred,rejection=clearance.segment(segment.from,segment.to,s.clearance,
+        local from=segment.from
+        if not segment.nativeOriginProjection and space.distance(from,c.position)<.001 then
+            from=leavingFrom(s,from,segment.to)
+        end
+        clear,reason,deferred,rejection=clearance.segment(from,segment.to,s.clearance,
             nil,segment.nativeOriginProjection)
         if not clear then return clear,reason,deferred,rejection end
     end
@@ -1029,12 +1032,13 @@ end
 -- Straight distance ahead along the last certified native-follow route. A
 -- straight sweep past the next bend would test the wall the path turns away
 -- from; the periodic route proof covers the path beyond that bend.
-local function straightAhead(legs,at,direction)
+local function straightAhead(legs,at)
     local start
     for index,leg in ipairs(legs or {}) do
-        if space.segmentDistance(at,leg.from,leg.to)<=.65 then start=index; break end
+        if space.ground(leg.from,leg.to)>.05 and space.segmentDistance(at,leg.from,leg.to)<=.65 then start=index; break end
     end
     if not start then return nil end
+    local direction=space.bearing(legs[start].from,legs[start].to)
     local ahead=0
     for index=start,#legs do
         local leg=legs[index]
@@ -1044,7 +1048,11 @@ local function straightAhead(legs,at,direction)
             ahead=ahead+(index==start and space.ground(at,leg.to) or length)
         end
     end
-    return ahead
+    return ahead,direction
+end
+local function sweepAhead(s,from,direction,distance)
+    local to=space.offset(from,direction,0,distance)
+    return clearance.segment(leavingFrom(s,from,to),to,s.clearance)
 end
 
 local function watchRoute(s,c,canPlan)
@@ -1063,10 +1071,13 @@ local function watchRoute(s,c,canPlan)
         elseif s.motionDirection and c.speed>0.18 then
             local distance=math.max(0.75,math.min(5,c.speed*0.65+0.35))
             if s.executionTarget then distance=math.min(distance,space.ground(c.position,s.executionTarget)+.15) end
-            local bend=s.stage=='following' and straightAhead(s.followRoute,c.position,s.motionDirection)
-            if bend then distance=math.min(distance,math.max(.75,bend+.15)) end
-            local ahead=space.offset(c.position,s.motionDirection,0,distance)
-            local clear,reason,deferred,rejection=clearance.segment(c.position,ahead,s.clearance)
+            -- The first sensed displacement of a start animation can point
+            -- sideways. On a certified route, sweep where the route goes.
+            local direction=s.motionDirection
+            local bend,routeDirection
+            if s.stage=='following' then bend,routeDirection=straightAhead(s.followRoute,c.position) end
+            if bend then distance,direction=math.min(distance,math.max(.75,bend+.15)),routeDirection end
+            local clear,reason,deferred,rejection=sweepAhead(s,c.position,direction,distance)
             if deferred then waitForClearance(s); return false end
             if not clear then
                 if rejection then rejection.stage='motion'; s.lastRejection=rejection end

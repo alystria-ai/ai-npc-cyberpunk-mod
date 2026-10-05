@@ -477,3 +477,50 @@ assert(not state.completedEscapeTicket and not state.recoveryTicket)
 actuator.sense(state,npc.pos,0,.1)
 assert(state.feedback.ticket=='new-resting-operation' and not state.feedback.afterEscape)
 `));
+
+// Recorded Ana start (follow-native-test-20261005): the first sensed shuffle
+// pointed sideways and its sweep hit a wall the route never approaches.
+test('a sideways start-up shuffle beside a wall does not block a native follower',()=>run(motor+solids+`
+player.pos=Vector4.new(50,0,0)
+solid('Static',0,.95,1.5,.15)
+update()
+local command=last(npc,'AIFollowTargetCommand');assert(command and not state.blockedReason)
+npc.pos=Vector4.new(0,.05,0);npc.forward=Vector4.new(0,1,0);context.speed=1
+update(.25)
+assert(not state.blockedReason and state.command==command,'a sideways shuffle sweep blocked a clear route')
+`));
+
+// Recorded Blue Moon start: a destructible prop touching her body made every
+// sweep that included the occupied volume fail.
+test('a prop touching the body does not stop a follower walking away from it',()=>run(motor+solids+`
+player.pos=Vector4.new(50,0,0)
+solid('Destructible',-.5,0,.15,.3)
+update()
+assert(last(npc,'AIFollowTargetCommand') and not state.blockedReason,'a touching prop trapped the follower')
+npc.pos=Vector4.new(.3,0,0);npc.forward=Vector4.new(1,0,0);context.speed=2
+update(.25)
+assert(not state.blockedReason,'the moving guard re-checked the volume behind the body')
+`));
+
+test('an obstacle genuinely ahead still blocks the moving native follower',()=>run(motor+solids+`
+player.pos=Vector4.new(50,0,0)
+update()
+assert(last(npc,'AIFollowTargetCommand') and not state.blockedReason)
+solid('Static',1.6,0,.2,1)
+npc.pos=Vector4.new(.3,0,0);npc.forward=Vector4.new(1,0,0);context.speed=2
+update(.25)
+assert(state.blockedReason and state.lastRejection.group=='Static','an obstacle ahead was missed')
+`));
+
+test('a route past V is admitted while V runs away, and rejected while V stands there',()=>run(motor+`
+npc.pos=Vector4.new(0,0,0);player.pos=Vector4.new(3,.3,0)
+context.frame.rawSpeed=8
+decision.operation={ticket='run',kind='move',goal=Vector4.new(6,0,0),gait='Run'}
+update()
+assert(not state.blockedReason and last(npc,'AIMoveToCommand'),'a running V blocked the route behind it')
+state=actuator.new(npc);npc.ai.commands={}
+context.frame.rawSpeed=0
+decision.operation={ticket='stand',kind='move',goal=Vector4.new(6,0,0),gait='Walk'}
+update()
+assert(state.lastRejection and state.lastRejection.stage=='player','a route through a standing V was admitted')
+`));
