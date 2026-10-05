@@ -49,6 +49,28 @@ class MimiDecoderPolicyTests(unittest.TestCase):
             self.assertEqual(logits.shape[0], 2)
             self.assertEqual(len(feats), 5)
 
+    def test_apply_decoder_replaces_only_decoder_tensors(self):
+        import torch
+        import safetensors.torch
+        from pocket_training import apply_decoder
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "export").mkdir()
+            bundle = {"flow_lm.w": torch.ones(2), "mimi.encoder.w": torch.ones(2), "mimi.decoder.w": torch.zeros(2),
+                      "mimi.upsample.w": torch.zeros(3)}
+            safetensors.torch.save_file(bundle, str(root / "export/model.safetensors"))
+            safetensors.torch.save_file({"mimi.decoder.w": torch.full((2,), 5.0), "mimi.upsample.w": torch.full((3,), 7.0)},
+                                        str(root / "dec.safetensors"))
+            receipt = apply_decoder.apply(root / "export", root / "dec.safetensors", root / "out")
+            out = safetensors.torch.load_file(str(root / "out/model.safetensors"))
+            self.assertEqual(receipt["replaced_tensors"], 2)
+            self.assertTrue(torch.equal(out["flow_lm.w"], bundle["flow_lm.w"]))
+            self.assertTrue(torch.equal(out["mimi.encoder.w"], bundle["mimi.encoder.w"]))
+            self.assertEqual(float(out["mimi.decoder.w"][0]), 5.0)
+            safetensors.torch.save_file({"mimi.decoder.w": torch.zeros(2)}, str(root / "partial.safetensors"))
+            with self.assertRaises(ValueError):
+                apply_decoder.apply(root / "export", root / "partial.safetensors", root / "out2")
+
 
 if __name__ == "__main__":
     unittest.main()
