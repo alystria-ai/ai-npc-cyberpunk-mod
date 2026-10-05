@@ -176,6 +176,15 @@ local mcm={resetSession=noop}
 local resetGaze,warmConversation,publishPartyConnections=noop,noop,noop
 local speakerReady,speakerBusy=true,false
 local battleObserver={sample=function()return sample end,canSpeak=function()return speakerReady,speakerReady and 'available' or 'native-dialogue',speakerBusy end}
+-- Mirrors battle-observer.canDeliver: a fresh player sample, then the speaker.
+-- It calls the current canSpeak so tests may replace the speaker gate.
+function battleObserver.canDeliver(_,npc,phase)
+ if not sample.available then return false,'player-observation-unavailable',false end
+ if sample.blocked then return false,'player-scene-blocked',false end
+ if phase=='start' and not sample.combat then return false,'combat-ended',false end
+ if phase~='start' and sample.combat then return false,'combat-resumed',false end
+ return battleObserver.canSpeak(npc,phase)
+end
 local queuedLoot,observerContext,observerResets={},nil,0
 local lootObserver={update=function(value)
  observerContext=value

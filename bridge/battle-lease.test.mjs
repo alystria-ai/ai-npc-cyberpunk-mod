@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {parseInput} from './protocol.mjs';
-import {inputIdentity} from './group-prefetch.mjs';
+import {inputIdentity, parsedInputIdentity} from './group-prefetch.mjs';
+import {fileIdentity, RequestFileOwner} from './request-ownership.mjs';
 import {reactionLeaseValid} from './battle-context.mjs';
 
 // Execute the bridge's real read and polling functions without starting its
@@ -21,7 +22,7 @@ const missing = () => Object.assign(Error('Heartbeat rename gap'), {code: 'ENOEN
 function fixture() {
   const state = {queue: [], reads: 0, delays: [], accepted: [], errors: [], actionRevocations: 0,
     lease: {requestId: input.requestId, valid: true, updated: Date.now()}};
-  const context = vm.createContext({parseInput, inputIdentity, reactionLeaseValid, AbortController,
+  const context = vm.createContext({parseInput, inputIdentity, parsedInputIdentity, fileIdentity, RequestFileOwner, reactionLeaseValid, AbortController,
     companionActions: {revoke: async () => { state.actionRevocations++; }},
     readLease: async () => {
       state.reads++;
@@ -33,7 +34,7 @@ function fixture() {
     setTimeout: (done, delay) => { state.delays.push(delay); done(); },
     console: {error: (...args) => { state.errors.push(args); throw Error(args.join(' ')); }}, rawInput: JSON.stringify(input)});
   vm.runInContext(`
-    let polling=false, stopped=false, active=null, observed='', lastAcceptedIdentity='', voiceRouteReservation=false;
+    let polling=false, stopped=false, active=null, observed='', observedIdentity=null, lastAcceptedIdentity='', voiceRouteReservation=false;
     let relationshipRouteReservation=false;
     const inputPath='input', runtime='runtime', resolve=(...parts)=>parts.join('/');
     const stat=async()=>({mtimeMs:1,size:rawInput.length});
