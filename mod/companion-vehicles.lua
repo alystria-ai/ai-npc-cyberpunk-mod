@@ -654,15 +654,28 @@ function M.allowsSeatedAttention(s,serial)
 end
 -- Call only AFTER the owning companion has been successfully deleted, or when
 -- it detached/died. The native command owner no longer exists in that case.
+-- Only a departing driver changes the plan. A dismissed passenger is simply
+-- removed: the others keep their seats, and a chauffeur trip continues.
+local function drivesConvoy(s,serial)
+    for _,car in ipairs(s.cars) do
+        if car~=s.primary and not car.retired and car.driver==serial then return true end
+    end
+    return false
+end
 function M.remove(s,serial)
     if s.chauffeur and s.chauffeur.serial==serial then M.cancelChauffeur(s,'The selected companion is unavailable.') end
-    if s.people[serial] then s.people[serial]=nil; s.replan=true end
+    if s.people[serial] then
+        if drivesConvoy(s,serial) then s.replan=true end
+        s.people[serial]=nil
+    end
 end
 function M.removing(s,serial)
     if not s.people[serial] then return end
     s.people[serial].removing=true
-    if s.chauffeur then M.cancelChauffeur(s,'The selected companion is leaving.'); return end
-    startExit(s,'companion-dismissed')
+    if s.chauffeur and s.chauffeur.serial==serial then
+        M.cancelChauffeur(s,'The selected companion is leaving.'); return
+    end
+    if drivesConvoy(s,serial) then startExit(s,'companion-dismissed') end
 end
 function M.fastTravel(s) s.fastTravelPending=true end
 -- Called before native teleportation while owners are still valid. Only IDs,

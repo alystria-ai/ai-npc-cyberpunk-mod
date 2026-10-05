@@ -566,3 +566,32 @@ test('the overflow convoy follows the car V drives, not the seated player puppet
   assert(follow.target==carEntity,'the convoy followed something other than the car V drives')
 `));
 
+
+// Duplicate-copies review: dismissing one rider made every other rider step out
+// and re-board, and a passenger leaving cancelled a whole chauffeur trip.
+test('dismissing one passenger leaves the other riders seated',()=>run(`${fixture}
+  party(4); tick(80)
+  assert(fleet.phase=='riding')
+  local before=count('unmount')
+  transport.removing(fleet,1); table.remove(entries,1); transport.remove(fleet,1); tick(30)
+  assert(count('unmount')==before,'other riders were made to step out')
+  assert(fleet.phase=='riding')
+`));
+
+test('dismissing the convoy driver still replans the trip',()=>run(`${fixture}
+  party(4); tick(80)
+  local driver=world.spawned[1].driver
+  assert(driver,'no convoy driver')
+  local before=count('unmount')
+  transport.removing(fleet,driver)
+  for i=#entries,1,-1 do if entries[i].serial==driver then table.remove(entries,i) end end
+  transport.remove(fleet,driver); tick(30)
+  assert(count('unmount')>before,'losing the convoy driver did not replan')
+`));
+
+test('a passenger leaving does not cancel a chauffeur trip driven by someone else',()=>run(`${fixture}
+  party(2); tick(30)
+  fleet.chauffeur={serial=99,phase='driving'}
+  transport.removing(fleet,1)
+  assert(fleet.chauffeur and fleet.chauffeur.serial==99,'the trip was cancelled by a passenger leaving')
+`));
