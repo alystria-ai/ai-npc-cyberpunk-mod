@@ -84,7 +84,10 @@ export class ConvaiContinuousSpeech {
     // A device timestamp may be quantized by one render quantum. Never move
     // the native face/subtitle clock backwards when that estimate changes.
     this.position = Math.max(this.position, Math.min(duration, snapshot.positionSeconds));
-    if (!this.published && (!snapshot.text.trim() || (duration < .4 && !snapshot.sourceComplete))) return quiet();
+    // Admission needs validated PCM and reply text, not a 400 ms prefix: the
+    // renderer itself withholds sound until 400 ms is buffered (or EOF). The
+    // game's lease round trip therefore overlaps buffering instead of following it.
+    if (!this.published && !snapshot.text.trim()) return quiet();
     // F9 must pass the recognized microphone prompt to later speakers. Wait for
     // the owned transcript before admitting its first reply; never use the
     // placeholder "[Microphone]" or invent text after audio has already played.

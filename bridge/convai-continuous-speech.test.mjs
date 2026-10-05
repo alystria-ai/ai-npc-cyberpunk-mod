@@ -74,11 +74,12 @@ test('invalid microphone text is rejected before the game admission', async () =
 test('continuous admission waits for PCM and text then publishes one descriptor before permitting playback', async () => {
   const f = fixture();
   assert.deepEqual(await f.stream.options.onFrame(f.snapshot({sampleRate: 0, receivedFrames: 0})), QUIET);
-  assert.deepEqual(await f.stream.frame(f.snapshot({receivedFrames: 9360})), QUIET);
-  assert.deepEqual(await f.stream.frame(f.snapshot({text: '  '})), QUIET);
+  assert.deepEqual(await f.stream.frame(f.snapshot({text: '  ', receivedFrames: 960})), QUIET);
   assert.equal(f.replies.length, 0); assert.equal(f.states.length, 0);
   f.onPublished = () => f.control();
-  assert.deepEqual(await f.stream.frame(f.snapshot()), {allow: true, paused: false, volume: .8, pan: .2});
+  // One validated packet (80 ms) admits the game lease; the renderer, not this
+  // admission, withholds sound until its 400 ms startup prefix is buffered.
+  assert.deepEqual(await f.stream.frame(f.snapshot({receivedFrames: 1920})), {allow: true, paused: false, volume: .8, pan: .2});
   assert.deepEqual(f.events, ['state', 'reply', 'published', 'control']);
   assert.deepEqual(f.replies[0].continuous, {version: 1, id: 'continuous-1'});
   assert.equal(f.replies[0].profile, 'judy-alvarez');
