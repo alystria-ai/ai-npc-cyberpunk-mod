@@ -168,9 +168,7 @@ The WSL model path worked. Early native Windows IPC checks hit a 180-second star
 
 After that correction, the native Windows worker loaded the approved student, streamed a complete reply, cancelled after two chunks, reused the same PID/cached reference with zero preparation time, and exited. This single check measured copied PCM 270.64 ms and Node receipt 304.54 ms; complete generation was 4.175 s for 7.44 s of audio. It is a separate setup, not the five-call WSL average. [Native worker proof](references/pocket-native-worker-proof.json)
 
-The combined native student → muted Edge renderer → rolling Rhubarb/facial-prefix check also passed: playback began before source completion, final audio/face clock was 7.36 s, and no underruns occurred. It made no Convai session requests and closed the owned worker/browser. This establishes the actual local interface; audible/in-game and cloud API acceptance remain separate. [Integration proof](references/pocket-native-integration-proof.json)
-
-Mod activation and complete cloud SSE/WebRTC acceptance remain separate work.
+Complete cloud SSE/WebRTC acceptance remains separate work.
 
 ## 6. Our data and training methods
 
@@ -246,7 +244,6 @@ Useful engineering:
 - Bound CPU threads, queueing and concurrent execution.
 - Stream PCM prefixes; distinguish source completion from client playback completion.
 - Use monotonic sample offsets and exact request/voice/model ownership.
-- Keep optional alignment/lip-sync analysis from delaying initial audio.
 - Evaluate precision or waveform changes separately from the faithful baseline.
 
 Our measured CPU route used FP32 without TensorRT, FP8 or FP4.
@@ -273,7 +270,7 @@ Customer flow:
 
 Keep backstory, speaking_style_description and speaking_style_sample_dialogues separate. Example dialogue contains spoken text without speaker-name prefixes. Personality is dialogue-generation context; voice preparation does not seed character memory.
 
-SSE should carry negotiated PCM prefixes and sample-offset metadata. WebRTC can encode the same produced audio into its negotiated track. Source completion follows sealed generation; playback completion follows the client clock. Optional facial/subtitle metadata uses actual sample timing. Cancellation retires the exact producer and queued output.
+SSE should carry negotiated PCM prefixes and sample-offset metadata. WebRTC can encode the same produced audio into its negotiated track. Source completion follows sealed generation; playback completion follows the client clock. Cancellation retires the exact producer and queued output.
 
 Clone preparation should be reusable/asynchronous. It need not generate an invented conversation as a warm-up.
 
