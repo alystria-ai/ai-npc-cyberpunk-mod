@@ -222,6 +222,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/service-status.lua"
         },
         {
+          "source": "mod/movement-log.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/movement-log.lua"
+        },
+        {
           "source": "mod/diagnostics.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/diagnostics.lua"
         },
