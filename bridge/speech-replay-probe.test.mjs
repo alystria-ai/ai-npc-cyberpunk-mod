@@ -157,7 +157,7 @@ test('file audio is limited to one known short native slot and rejects stream de
 test('mapped face rejects unknown or duplicate tracks, oversized curves, bad bounds and incomplete or foreign segment timelines', () => run(`
   local original=clone(doc.face)
   local cases={function(f) f.tracks[1]='unknown' end,function(f) f.tracks[2]='jaw_mid_open' end,
-    function(f) f.frames[2][2]=.51 end,function(f) f.frames[2][3]=.8501 end,
+    function(f) f.frames[2][2]=.7001 end,function(f) f.frames[2][3]=1.0001 end,function(f) f.frames[2][4]=.5001 end,
     function(f) f.frames[2][4]=-1 end,function(f) f.frames[2][2]=0/0 end,
     function(f) f.frames[1][1]=.01 end,function(f) f.frames[3][1]=1.9 end,
     function(f) f.frames[2][1]=2 end,function(f) f.frames[2][5]=0 end,
@@ -168,16 +168,19 @@ test('mapped face rejects unknown or duplicate tracks, oversized curves, bad bou
   assert(starts==0)
 `));
 
-test('all 22 native controls admit the calibrated upper roll cap without widening other track bounds', () => run(`
+test('native controls admit the game lipsync ranges (incl. model puff/cheek/tongue) without widening other bounds', () => run(`
   doc.face.tracks={'jaw_mid_open','lips_apart_up','lips_apart_dn','lips_together_up','lips_together_dn',
     'lips_l_funnel','lips_r_funnel','lips_l_purse','lips_r_purse','lips_l_stretch','lips_r_stretch',
     'lips_l_lower_raise','lips_r_lower_raise','lips_tighten_up','lips_tighten_dn','lips_suck_dn',
-    'tongue_mid_tip_up','lips_l_upper_raise','lips_r_upper_raise','lips_l_corner_stretch','lips_r_corner_stretch','lips_suck_up'}
+    'tongue_mid_tip_up','lips_l_upper_raise','lips_r_upper_raise','lips_l_corner_stretch','lips_r_corner_stretch','lips_suck_up',
+    'lips_puff_up','lips_puff_dn','cheek_l_puff','cheek_r_puff','tongue_mid_fwd'}
+  doc.face.source='local-jali';doc.face.articulation='jali-audio-v1'
   doc.face.frames={{0},{.5},{2}}
-  for i=2,23 do doc.face.frames[1][i]=0;doc.face.frames[2][i]=.1;doc.face.frames[3][i]=0 end
-  doc.face.frames[2][23]=.060001; assert(not start() and status()=='fixture-face')
-  doc.face.frames[2][23]=.06; assert(start()); cursor=.5;speech.update(.5)
-  assert(face.active and frames[1].lips_suck_up==.06 and frames[1].jaw_mid_open==.1)
+  for i=2,28 do doc.face.frames[1][i]=0;doc.face.frames[2][i]=.1;doc.face.frames[3][i]=0 end
+  doc.face.frames[2][23]=.300001; assert(not start() and status()=='fixture-face')
+  doc.face.frames[2][23]=.29; doc.face.frames[2][28]=.500001; assert(not start() and status()=='fixture-face')
+  doc.face.frames[2][28]=.1; doc.face.frames[2][24]=.45; assert(start()); cursor=.5;speech.update(.5)
+  assert(face.active and frames[1].lips_suck_up==.29 and frames[1].jaw_mid_open==.1 and frames[1].lips_puff_up==.45)
 `));
 
 test('busy speech, silent face probe, group round, phone and native UI all block without interrupting an owner', () => run(`

@@ -2,6 +2,8 @@ import {readPcmWav} from './speech-audio.mjs';
 import {PHONETIC_TRACKS, PHONETIC_ARTICULATION, phoneticPose} from './phonetic-poses.mjs';
 import {validateMouthCues} from './phonetic-lipsync.mjs';
 import {PROVIDER_EXPRESSION_INDICES, ownedExpressionReceipt} from './companion-expressions.mjs';
+import {FaceModelFrames} from './jali-face-model.mjs';
+import {JALI_TIMELINE_TRACKS, JALI_SOURCE, JALI_ARTICULATION, JALI_LEAD_SECONDS, jaliPose} from './jali-face.mjs';
 
 // Conservative speech controls. Head/eye rotation stays with the companion
 // gaze controller. Local voices use audio-derived phonetic cues; the envelope
@@ -140,7 +142,9 @@ function mapArkit(v) {
     .06 * shapeResponse(a(32), 5)];
 }
 
-function renderTimeline({owner, duration, segment, source, cues, envelope = [], first, last, sampleRate, expressionSignal}) {
+// Provider ARKit poses expressed in the model timeline's fixed track order.
+const JALI_FROM_SPEECH = JALI_TIMELINE_TRACKS.map(track => SPEECH_TRACKS.indexOf(track));
+function renderTimeline({owner, duration, segment, source, cues, envelope = [], first, last, sampleRate, expressionSignal, jali}) {
   const frames = [], expressionFrames = source ? [] : undefined;
   // Provider articulation includes quiet closures and anticipatory shapes.
   // Per-file RMS normalization cannot distinguish these from rest: gating it
@@ -173,12 +177,20 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
       } else {
         values[0] = 0.35 * level; values[1] = 0.12 * level; values[2] = 0.16 * level;
       }
+      if (jali) {
+        values = JALI_FROM_SPEECH.map(index => index < 0 ? 0 : values[index]);
+        const ahead = Math.min(duration, at + JALI_LEAD_SECONDS);
+        if (jali.frames && at >= jali.start && (ahead <= jali.covered || jali.frames.finished)) {
+          const blend = clamp((at - jali.start) / .06), model = jaliPose(jali.frames, ahead);
+          values = model.map((value, index) => values[index] + (value - values[index]) * blend);
+        }
+      }
       // Only actual utterance boundaries ease to/from neutral. Ordinary
       // replies and v1 phrase timelines retain their original edge behavior.
       // No audio samples or gaze channels are changed by these pose flags.
       const edge = clamp(Math.min(first ? at / .04 : 1, last ? (duration - at) / .04 : 1));
       values = values.map(v => rounded(v * edge));
-    }
+    } else if (jali) values = JALI_TIMELINE_TRACKS.map(() => 0);
     if (expressionFrames) expressionFrames.push([at,
       ...PROVIDER_EXPRESSION_INDICES.map(i => rounded(clamp(providerValues?.[i] ?? 0)))]);
     return values;
@@ -188,13 +200,32 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
     frames.push([at, ...poseAt(at)]);
   }
   frames.push([duration, ...poseAt(duration)]);
+  // A model-driven provider stream labels the source heard at the cursor.
+  const modelled = jali && jali.frames && jali.position >= jali.start && jali.position < jali.covered;
   return {version: 1, requestId: owner.requestId, entity: owner.entity, duration,
-    source: source ? 'convai-arkit61' : cues ? 'local-phonetic' : 'audio-envelope',
-    articulation: source ? 'arkit61-native-v10' : cues ? PHONETIC_ARTICULATION : undefined,
+    source: modelled ? JALI_SOURCE : source ? 'convai-arkit61' : cues ? 'local-phonetic' : 'audio-envelope',
+    articulation: modelled ? JALI_ARTICULATION : source ? 'arkit61-native-v10' : cues ? PHONETIC_ARTICULATION : undefined,
     ...(!source && cues ? {motion: 'local-phonetic-smooth-v1'} : {}),
-    ...(segment ? {segment} : {}), tracks: [...SPEECH_TRACKS], frames,
+    ...(segment ? {segment} : {}), tracks: jali ? [...JALI_TIMELINE_TRACKS] : [...SPEECH_TRACKS], frames,
     ...(expressionFrames ? {providerExpressions: {version: 1, format: 'arkit61-expression9', frames: expressionFrames}} : {}),
     ...(ownedExpressionReceipt(expressionSignal, owner) ? {expression: ownedExpressionReceipt(expressionSignal, owner)} : {})};
+}
+
+// Game-trained model frames (local voices): native controls in the units of
+// Cyberpunk's own dialogue lipsync. Only actual utterance edges ease to rest;
+// the model already closes the mouth in silence. No easing is added in Lua.
+export function renderJaliTimeline({owner, duration, frames, segment, first = true, last = true, expressionSignal}) {
+  const rows = [];
+  const pose = at => {
+    const edge = clamp(Math.min(first ? at / .04 : 1, last ? (duration - at) / .04 : 1));
+    return jaliPose(frames, Math.min(duration, at + JALI_LEAD_SECONDS)).map(value => rounded(value * edge));
+  };
+  for (let sample = 0; sample / 60 < duration; sample++) rows.push([sample / 60, ...pose(sample / 60)]);
+  rows.push([duration, ...pose(duration)]);
+  const receipt = ownedExpressionReceipt(expressionSignal, owner);
+  return {version: 1, requestId: owner.requestId, entity: owner.entity, duration, source: JALI_SOURCE,
+    articulation: JALI_ARTICULATION, ...(segment ? {segment} : {}), tracks: [...JALI_TIMELINE_TRACKS], frames: rows,
+    ...(receipt ? {expression: receipt} : {})};
 }
 
 export function buildFacialTimeline(result, owner) {
@@ -202,6 +233,10 @@ export function buildFacialTimeline(result, owner) {
   const wav = readPcmWav(Buffer.from(result.audio, 'base64'));
   const segment = speechSegment(result.speechSegment, wav.duration);
   const first = segment ? segment.first : true, last = segment ? segment.last : true;
+  const model = result.jaliFrames;
+  if (model instanceof FaceModelFrames && model.finished && Math.abs(model.duration - wav.duration) < .002 && !result.faces?.length)
+    return renderJaliTimeline({owner, duration: wav.duration, frames: model, segment, first, last,
+      expressionSignal: result.expressionSignal});
   const source = validFaces(result, wav.duration);
   let cues;
   if (!source && result.mouthCuesFormat === 'rhubarb-phonetic-v1') {
@@ -215,7 +250,7 @@ export function buildFacialTimeline(result, owner) {
 // Continuous PCM playback owns one global audio clock. Build only its received
 // prefix from indexed provider poses; no synthetic WAV or inferred phonemes are
 // needed. Missing facial coverage never prevents the separate audio publisher.
-export function buildProviderFacialTimeline(result, owner) {
+export function buildProviderFacialTimeline(result, owner, jali) {
   if (!result || typeof owner?.requestId !== 'string' || typeof owner.entity !== 'string'
       || !Number.isSafeInteger(owner.generation) || owner.generation < 0 || owner.generation > 2147483647
       || !Number.isFinite(result.duration) || result.duration <= 0 || result.duration > 120
@@ -231,7 +266,7 @@ export function buildProviderFacialTimeline(result, owner) {
   const right = source.findIndex(frame => frame.at >= result.duration);
   const window = right >= 0 ? source.slice(0, right + 1) : source;
   const line = renderTimeline({owner, duration: result.duration, source: window,
-    first: true, last: result.complete, expressionSignal: result.expressionSignal});
+    first: true, last: result.complete, expressionSignal: result.expressionSignal, jali});
   // A growing timeline crosses repeated game polls; preserve the same load/
   // request generation that the Lua owner uses to reject stale facial data.
   return {...line, generation: owner.generation, continuous: true, complete: result.complete};

@@ -10,15 +10,20 @@ local allowed = {
     lips_tighten_up = true, lips_tighten_dn = true, lips_suck_dn = true, tongue_mid_tip_up = true,
     lips_l_upper_raise = true, lips_r_upper_raise = true,
     lips_l_corner_stretch = true, lips_r_corner_stretch = true, lips_suck_up = true,
+    -- Used by the game-trained (JALI) model, all present in the 50-control graph.
+    lips_puff_up = true, lips_puff_dn = true, cheek_l_puff = true, cheek_r_puff = true, tongue_mid_fwd = true,
 }
 local function finite(value)
     return type(value) == 'number' and value == value and value > -math.huge and value < math.huge
 end
+-- Validation bounds, not gains. They cover the ranges Cyberpunk's own
+-- dialogue lipsync writes to these LipsyncPoseOutput tracks (measured over the
+-- extracted JALI corpus; docs/GAME_LIPSYNC_MODEL.md): jaw ~.66, lip contact
+-- 1.1 (the solver clamps at 1), lower roll ~.72, upper roll ~.29, puff ~.38.
+local limits = {jaw_mid_open = .7, lips_together_up = 1, lips_together_dn = 1, lips_suck_dn = .8,
+    lips_suck_up = .3, lips_puff_up = .45, lips_puff_dn = .45, cheek_l_puff = .35, cheek_r_puff = .35}
 local function trackLimit(track)
-    -- Native lip contact is a jaw corrective, with a different calibrated
-    -- range. Do not raise the bound on other mouth, tongue or reserved tracks.
-    if track == 'lips_suck_up' then return .06 end
-    return (track == 'lips_together_up' or track == 'lips_together_dn') and .85 or .5
+    return limits[track] or .5
 end
 local function owns(actor, entity)
     return actor and convaiCompanions and convaiCompanions.owns(actor)
@@ -230,7 +235,10 @@ function M.updateExpressions(context)
 end
 local function providerExpressions(timeline)
     local value=timeline.providerExpressions
-    if timeline.source~='convai-arkit61' or type(value)~='table' or value.version~=1 or value.format~='arkit61-expression9'
+    -- Convai turns keep their provider brows/corners when the game-trained
+    -- model drives the mouth from the same PCM (source local-jali).
+    if (timeline.source~='convai-arkit61' and timeline.source~='local-jali') or type(value)~='table'
+        or value.version~=1 or value.format~='arkit61-expression9'
         or type(value.frames)~='table' or #value.frames~=#timeline.frames then return nil end
     for index,frame in ipairs(value.frames) do
         if type(frame)~='table' or #frame~=10 or frame[1]~=timeline.frames[index][1] then return nil end
@@ -277,10 +285,11 @@ function M.start(context, timeline, actor, duration, expectedSegment)
         assert(finite(duration) and duration > 0 and duration <= 120
             and finite(timeline.duration) and math.abs(timeline.duration - duration) < 0.001, 'Facial duration mismatch')
         assert(timeline.source == 'convai-arkit61' or timeline.source == 'audio-envelope'
-            or timeline.source == 'local-phonetic', 'Unknown facial source')
+            or timeline.source == 'local-phonetic' or timeline.source == 'local-jali', 'Unknown facial source')
         assert(timeline.motion == nil or (timeline.motion == 'local-phonetic-smooth-v1'
             and timeline.source == 'local-phonetic'), 'Unknown facial motion')
-        assert(type(timeline.tracks) == 'table' and #timeline.tracks > 0 and #timeline.tracks <= 22
+        assert(timeline.source ~= 'local-jali' or timeline.articulation == 'jali-audio-v1', 'Unknown model articulation')
+        assert(type(timeline.tracks) == 'table' and #timeline.tracks > 0 and #timeline.tracks <= 32
             and type(timeline.frames) == 'table' and #timeline.frames >= 2 and #timeline.frames <= 7202,
             'Invalid facial timeline size')
         local used, previous = {}, -1
@@ -356,15 +365,18 @@ function M.updateContinuous(context, timeline, actor, duration)
             and finite(timeline.duration) and math.abs(timeline.duration - duration) < .001,
             'Facial duration mismatch')
         assert((timeline.source == 'convai-arkit61' or timeline.source == 'audio-envelope'
-            or timeline.source == 'local-phonetic') and timeline.segment == nil, 'Unknown continuous facial source')
+            or timeline.source == 'local-phonetic' or timeline.source == 'local-jali')
+            and timeline.segment == nil, 'Unknown continuous facial source')
         assert(timeline.motion == nil or (timeline.motion == 'local-phonetic-smooth-v1'
-            and timeline.source ~= 'convai-arkit61'), 'Unknown continuous facial motion')
+            and timeline.source ~= 'convai-arkit61' and timeline.source ~= 'local-jali'), 'Unknown continuous facial motion')
         if timeline.source == 'local-phonetic' then
             assert(timeline.articulation == 'coarticulated-v5', 'Unknown continuous phonetic articulation')
+        elseif timeline.source == 'local-jali' then
+            assert(timeline.articulation == 'jali-audio-v1', 'Unknown continuous model articulation')
         elseif timeline.source == 'audio-envelope' then
             assert(timeline.articulation == nil, 'Envelope cannot claim phonetic articulation')
         end
-        assert(type(timeline.tracks) == 'table' and #timeline.tracks > 0 and #timeline.tracks <= 22
+        assert(type(timeline.tracks) == 'table' and #timeline.tracks > 0 and #timeline.tracks <= 32
             and type(timeline.frames) == 'table' and #timeline.frames >= 2 and #timeline.frames <= 7202,
             'Invalid facial timeline size')
         local used, previous = {}, -1

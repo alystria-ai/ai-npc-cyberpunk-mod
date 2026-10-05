@@ -161,26 +161,28 @@ test('native apply failure and muting clean up once without breaking the speech 
   assert(speech.state=='muted' and not face.active and judy.resets==2)
 `));
 
-test('only native lip-contact tracks admit the calibrated larger range',()=>run(`
+test('validation bounds follow the native ranges written by Cyberpunk dialogue lipsync',()=>run(`
   local c,r=input(judy,'contact')
   r.face.tracks={'jaw_mid_open','lips_together_up','lips_together_dn'}
-  r.face.frames={{0,0,0,0},{.5,.14,.85,.85},{2,0,0,0}}
+  r.face.frames={{0,0,0,0},{.5,.66,1,1},{2,0,0,0}}
   assert(speech.start(c,r) and face.active)
   cursor=.5;speech.update(.1)
-  assert(judy.frames[#judy.frames].lips_together_up==.85)
+  assert(judy.frames[#judy.frames].lips_together_up==1 and judy.frames[#judy.frames].jaw_mid_open==.66)
   speech.stop('cancelled');assert(judy.resets==1)
   c,r=input(judy,'bad-contact');r.face.tracks={'lips_together_up'}
-  r.face.frames={{0,0},{.5,.8501},{2,0}}
+  r.face.frames={{0,0},{.5,1.0001},{2,0}}
   assert(speech.start(c,r) and not face.active);speech.stop('cancelled')
-  c,r=input(judy,'bad-jaw');r.face.frames[2][2]=.51
+  c,r=input(judy,'bad-jaw');r.face.frames[2][2]=.7001
+  assert(speech.start(c,r) and not face.active)
+  c,r=input(judy,'other-track');r.face.tracks={'lips_l_purse'};r.face.frames={{0,0},{.5,.5001},{2,0}}
   assert(speech.start(c,r) and not face.active)
   c,r=input(judy,'upper-roll');r.face.tracks={'lips_suck_up'}
-  r.face.frames={{0,0},{.5,.06},{2,0}}
+  r.face.frames={{0,0},{.5,.29},{2,0}}
   assert(speech.start(c,r) and face.active)
-  cursor=.5;speech.update(.1);assert(judy.frames[#judy.frames].lips_suck_up==.06)
+  cursor=.5;speech.update(.1);assert(judy.frames[#judy.frames].lips_suck_up==.29)
   speech.stop('cancelled')
   c,r=input(judy,'bad-upper-roll');r.face.tracks={'lips_suck_up'}
-  r.face.frames={{0,0},{.5,.0601},{2,0}}
+  r.face.frames={{0,0},{.5,.3001},{2,0}}
   assert(speech.start(c,r) and not face.active)
 `));
 
@@ -335,7 +337,7 @@ test('malformed or regressing continuous updates fail closed for their exact own
   if kind=='duration'then next.duration=0/0
   elseif kind=='frames'then next.frames={{0,.1}}
   elseif kind=='duplicate'then next.frames={{0,.1},{0,.2},{.8,.1}}
-  elseif kind=='weight'then next.frames[2][2]=.51
+  elseif kind=='weight'then next.frames[2][2]=.71
   elseif kind=='track'then next.tracks={'head_yaw'}
   elseif kind=='track-order'then next.tracks={'lips_apart_up','jaw_mid_open'};next.frames={{0,.1,.05},{.8,.2,.1}}
   elseif kind=='source'then next.source='audio-envelope'

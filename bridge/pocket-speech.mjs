@@ -4,8 +4,8 @@ import {throwIfCancelled} from './transport-pool.mjs';
 // Dialogue/memory stays with the original Convai turn. Only its complete text
 // is sent once to the local student; an independent PCM renderer starts from
 // the prefix and owns the one device clock for face and subtitles.
-export async function deliverPocketSpeech({input,profile,result,current,signal,voice,host,speech,lipsync,phoneAnalysis,onAnalysis}) {
-  const facial=new PocketFacialStream({input,lipsync,phoneAnalysis,signal,expressionSignal:result.expressionSignal,onAnalysis});
+export async function deliverPocketSpeech({input,profile,result,current,signal,voice,host,speech,lipsync,phoneAnalysis,jaliFace,onAnalysis}) {
+  const facial=new PocketFacialStream({input,lipsync,phoneAnalysis,jaliFace,signal,expressionSignal:result.expressionSignal,onAnalysis});
   try {
     const generated=await host.playLocalPcm({token:speech.token,text:result.text,
       expressionSignal:result.expressionSignal,userText:result.userText},async(emit,{signal:localSignal})=>{

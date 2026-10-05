@@ -4,6 +4,7 @@ import {validateMouthCues} from './phonetic-lipsync.mjs';
 import {ConfirmedPhoneTimeline} from './phone-poses.mjs';
 import {PHONE_ANALYSIS_ENGINE,PHONE_ANALYSIS_FORMAT,PHONE_ANALYSIS_FRONTEND} from './phone-analysis-config.mjs';
 import {throwIfCancelled} from './transport-pool.mjs';
+import {JALI_TIMELINE_TRACKS, JALI_SOURCE, JALI_ARTICULATION, JALI_LEAD_SECONDS, jaliPose} from './jali-face.mjs';
 
 const RATE = 24000, MAX_FRAMES = RATE * 120, ENERGY_FRAMES = RATE / 30;
 const zero = () => SPEECH_TRACKS.map(() => 0);
@@ -29,7 +30,7 @@ export function pocketAnalysisWav(pcm) {
 // Only the part of a result that is still ahead of the device cursor can be
 // admitted. Completed work is not evidence of phonetic coverage at playback.
 export class PocketFacialStream {
-  constructor({input, lipsync, phoneAnalysis, signal, expressionSignal, onAnalysis = () => {}}) {
+  constructor({input, lipsync, phoneAnalysis, jaliFace, signal, expressionSignal, onAnalysis = () => {}}) {
     if (typeof input?.requestId !== 'string' || typeof input.entity !== 'string' || !Number.isSafeInteger(input.generation))
       throw Error('Pocket facial stream needs an owned utterance');
     Object.assign(this,{input,lipsync,signal,expressionSignal,onAnalysis});
@@ -39,6 +40,14 @@ export class PocketFacialStream {
     this.energies = []; this.energySquares = 0; this.energySamples = 0;
     this.intervals = []; this.pending = new Set(); this.analysisCursor = 0; this.analysisIndex = 0;
     this.revision = 0; this.publicationRevision = 0; this.audiblePosition = 0; this.complete = false;
+    if(jaliFace){
+      // Game-trained model on a worker thread: it follows the same copied PCM
+      // and supersedes the phone/Rhubarb paths. Failure leaves the envelope.
+      try{
+        this.model=jaliFace.begin(RATE);this.lipsync=undefined;phoneAnalysis=undefined;
+        this.model.onUpdate=()=>{if(this.closed)return;this.revision++;this.cached=this.geometry=null;};
+      }catch{this.model=null;}
+    }
     if(phoneAnalysis!==undefined){
       // A ready resident helper is a side channel. Reply onset never starts or
       // waits for a recognizer, and unavailable analysis stays envelope-only.
@@ -77,7 +86,7 @@ export class PocketFacialStream {
       }
     }
     this.revision++;this.cached=null;this.geometry=null;
-    this.phoneSession?.push(packet);this.schedule();
+    this.model?.push(packet.pcm);this.phoneSession?.push(packet);this.schedule();
   }
   schedule() {
     if(this.closed || !this.lipsync || this.pending.size) return;
@@ -131,7 +140,7 @@ export class PocketFacialStream {
     this.pending.add(job);
   }
   finish() {
-    this.assertActive(); this.complete=true;this.phoneSession?.finish();this.schedule();
+    this.assertActive(); this.complete=true;this.model?.finish();this.phoneSession?.finish();this.schedule();
     this.revision++;this.cached=null;this.geometry=null;
   }
   envelope(receivedFrames,sourceComplete) {
@@ -158,6 +167,7 @@ export class PocketFacialStream {
       this.analysisJob.obsolete=true;this.analysisJob.controller.abort();
     }
     this.schedule();
+    if(this.model)return this.jaliSnapshot(receivedFrames,sourceComplete);
     const geometryKey=`${this.revision}:${receivedFrames}:${sourceComplete}`;
     const key=`${geometryKey}:${this.audiblePosition}`;
     if (this.cached?.key===key) return this.cached.face;
@@ -196,17 +206,92 @@ export class PocketFacialStream {
       ...(this.recognition?{recognition:this.recognition}:{})};
     this.cached={key,face};return face;
   }
+  // Model-driven prefix: native controls from the game-trained model where its
+  // rows cover the audio, otherwise the shared envelope fallback. The first
+  // covered position is fixed once heard audio reaches it and blends in over
+  // 60 ms, so a late model start never snaps an already-moving mouth.
+  jaliSnapshot(receivedFrames,sourceComplete) {
+    const duration=receivedFrames/RATE,frames=this.model.frames,failed=Boolean(this.model.failed);
+    const covered=Math.min(duration,frames.coveredSeconds());
+    if(this.modelStart===undefined&&covered>this.audiblePosition+JALI_LEAD_SECONDS)this.modelStart=this.audiblePosition;
+    const start=this.modelStart??Infinity;
+    const geometryKey=`jali:${this.revision}:${receivedFrames}:${sourceComplete}:${start}`;
+    const key=`${geometryKey}:${this.audiblePosition}`;
+    if(this.cached?.key===key)return this.cached.face;
+    let rows=this.geometry?.key===geometryKey?this.geometry.frames:undefined;
+    if(!rows){
+      const envelope=this.envelope(receivedFrames,sourceComplete),apartUp=JALI_TIMELINE_TRACKS.indexOf('lips_apart_up');
+      const pose=seconds=>{
+        const energyAt=sourceComplete?seconds:Math.min(seconds,Math.max(0,duration-1/RATE));
+        const energyFrame=energyAt*30,energyIndex=Math.floor(energyFrame),mix=energyFrame-energyIndex;
+        const level=(envelope[energyIndex]||0)*(1-mix)
+          +(envelope[energyIndex+1]??(sourceComplete?0:envelope[energyIndex]||0))*mix;
+        const fallback=JALI_TIMELINE_TRACKS.map(()=>0);
+        fallback[0]=.35*level;fallback[apartUp]=.12*level;fallback[apartUp+1]=.16*level;
+        let values=fallback;const ahead=Math.min(duration,seconds+JALI_LEAD_SECONDS);
+        if(seconds>=start&&(ahead<=covered||(frames.finished&&!failed))){
+          const blend=clamp((seconds-start)/.06),model=jaliPose(frames,ahead);
+          values=model.map((value,index)=>fallback[index]+(value-fallback[index])*blend);
+        }
+        const edge=clamp(Math.min(seconds/.04,sourceComplete?(duration-seconds)/.04:1));
+        return values.map(value=>rounded(value*edge));
+      };
+      rows=[];for(let index=0;index/60<duration;index++)rows.push([index/60,...pose(index/60)]);
+      rows.push([duration,...pose(duration)]);this.geometry={key:geometryKey,frames:rows};
+    }
+    const modelled=this.audiblePosition>=start&&this.audiblePosition<Math.max(start,covered);
+    const coverage={version:1,audiblePositionSeconds:this.audiblePosition,
+      phoneticIntervals:Number.isFinite(start)&&covered>start?[[start,covered]]:[],
+      receivedSeconds:duration,pendingAnalyses:0};
+    const face={version:1,requestId:this.input.requestId,entity:this.input.entity,generation:this.input.generation,
+      continuous:true,complete:sourceComplete,duration,revision:++this.publicationRevision,tracks:[...JALI_TIMELINE_TRACKS],
+      frames:rows,source:modelled?JALI_SOURCE:'audio-envelope',...(modelled?{articulation:JALI_ARTICULATION}:{}),coverage};
+    this.cached={key,face};return face;
+  }
   close() {
     if (this.closed) return this.closing; this.closed=true;this.controller.abort();this.signal?.removeEventListener('abort',this.cancel);
+    this.model?.close();
     this.closing=Promise.resolve(this.phoneSession?.close()).catch(()=>{});
     this.pcm=null;this.energies=[];this.intervals=[];this.cached=null;this.geometry=null;
     this.phoneTimeline?.clear();return this.closing;
   }
 }
 
+function ownedJaliFace(snapshot, owner, face) {
+  if (face.version!==1 || face.requestId!==owner.requestId || face.entity!==owner.entity || face.generation!==owner.generation
+      || face.continuous!==true || face.complete!==snapshot.sourceComplete || !Number.isFinite(face.duration)
+      || Math.abs(face.duration-snapshot.duration)>1/24000 || face.motion!==undefined
+      || !['audio-envelope',JALI_SOURCE].includes(face.source)
+      || (face.source===JALI_SOURCE)!==(face.articulation===JALI_ARTICULATION)
+      || !Array.isArray(face.tracks) || face.tracks.length!==JALI_TIMELINE_TRACKS.length
+      || face.tracks.some((name,index)=>name!==JALI_TIMELINE_TRACKS[index])
+      || !Array.isArray(face.frames) || !face.frames.length || face.frames.length>7202)
+    throw Error('Pocket facial timeline owner or source clock changed');
+  const coverage=face.coverage;
+  if(!coverage || coverage.version!==1 || !Number.isFinite(coverage.audiblePositionSeconds)
+      || coverage.audiblePositionSeconds<0 || coverage.audiblePositionSeconds>face.duration
+      || (snapshot.positionSeconds!==undefined && Math.abs(coverage.audiblePositionSeconds-snapshot.positionSeconds)>.025+1e-7)
+      || !Array.isArray(coverage.phoneticIntervals) || coverage.phoneticIntervals.length>1)
+    throw Error('Pocket facial coverage clock changed');
+  const [interval]=coverage.phoneticIntervals;
+  if(interval&&(!Array.isArray(interval)||interval.length!==2||!interval.every(Number.isFinite)||interval[0]<0
+      ||interval[1]<=interval[0]||interval[1]>face.duration+1e-7))throw Error('Invalid Pocket model interval');
+  const modelled=Boolean(interval)&&coverage.audiblePositionSeconds>=interval[0]&&coverage.audiblePositionSeconds<interval[1];
+  if((face.source===JALI_SOURCE)!==modelled)throw Error('Pocket facial source is not covered at the audible cursor');
+  let previous=-1;
+  for(const frame of face.frames) {
+    if (!Array.isArray(frame) || frame.length!==JALI_TIMELINE_TRACKS.length+1 || !frame.every(Number.isFinite)
+        || frame[0]<0 || frame[0]<=previous || frame[0]>face.duration+1e-7)
+      throw Error('Invalid Pocket facial timeline');
+    previous=frame[0];
+  }
+  return face;
+}
+
 export function ownedPocketFace(snapshot, owner) {
   const face=snapshot?.face;
   if (!face) return undefined;
+  if (face.motion===undefined && face.tracks?.length===JALI_TIMELINE_TRACKS.length) return ownedJaliFace(snapshot, owner, face);
   if (face.version!==1 || face.requestId!==owner.requestId || face.entity!==owner.entity || face.generation!==owner.generation
       || face.continuous!==true || face.complete!==snapshot.sourceComplete || !Number.isFinite(face.duration)
       || face.motion!=='local-phonetic-smooth-v1'

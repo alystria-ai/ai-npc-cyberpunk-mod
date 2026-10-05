@@ -108,6 +108,9 @@ test('combat, injury, native dialogue and lost autonomy immediately suppress all
 test('speaking composes one feature with unchanged accepted Omni contact/tongue weights',()=>{
   const line=buildFacialTimeline({audio:wav(),mouthCuesFormat:'rhubarb-phonetic-v1',
     mouthCues:[{start:0,end:.5,value:'A'},{start:.5,end:1,value:'G'}],expressionSignal:signal()},owner);
+  // Compare the composed feature with the authored frame itself: the separate
+  // local easing (motion) is covered by facial-playback tests.
+  delete line.motion;
   const at=line.frames.find(frame=>frame[0]===.25);
   const expected=Object.fromEntries(SPEECH_TRACKS.map((track,i)=>[track,at[i+1]]));
   run(`tick(.1);speech.target=a

@@ -10,7 +10,11 @@ local allowed = {
     lips_l_stretch=true, lips_r_stretch=true, lips_l_lower_raise=true, lips_r_lower_raise=true,
     lips_tighten_up=true, lips_tighten_dn=true, lips_suck_dn=true, lips_suck_up=true, tongue_mid_tip_up=true,
     lips_l_upper_raise=true, lips_r_upper_raise=true, lips_l_corner_stretch=true, lips_r_corner_stretch=true,
+    lips_puff_up=true, lips_puff_dn=true, cheek_l_puff=true, cheek_r_puff=true, tongue_mid_fwd=true,
 }
+-- Same validation bounds as facial-playback.lua (native ranges of the game's own lipsync).
+local caps = {jaw_mid_open=.7, lips_together_up=1, lips_together_dn=1, lips_suck_dn=.8, lips_suck_up=.3,
+    lips_puff_up=.45, lips_puff_dn=.45, cheek_l_puff=.35, cheek_r_puff=.35}
 local function finite(value)
     return type(value) == 'number' and value == value and math.abs(value) < math.huge
 end
@@ -70,8 +74,9 @@ local function fixture(profile, nonce)
         and finite(audio.duration) and audio.duration >= .05 and audio.duration <= maxDuration, 'fixture-audio')
     check(type(face) == 'table' and face.version == 1 and face.segment == nil and not face.continuous
         and finite(face.duration) and math.abs(face.duration - audio.duration) < .001
-        and (face.source == 'convai-arkit61' or face.source == 'local-phonetic' or face.source == 'audio-envelope')
-        and type(face.tracks) == 'table' and #face.tracks > 0 and #face.tracks <= 22
+        and (face.source == 'convai-arkit61' or face.source == 'local-phonetic' or face.source == 'audio-envelope'
+            or face.source == 'local-jali')
+        and type(face.tracks) == 'table' and #face.tracks > 0 and #face.tracks <= 32
         and type(face.frames) == 'table' and #face.frames >= 2 and #face.frames <= 902, 'fixture-face')
     local mapped = {version=1, source=face.source, duration=audio.duration, tracks={}, frames={}}
     if face.articulation ~= nil then
@@ -91,8 +96,7 @@ local function fixture(profile, nonce)
         local copied = {frame[1]}
         for i = 2, #frame do
             local track = face.tracks[i-1]
-            local cap = (track == 'lips_together_up' or track == 'lips_together_dn') and .85
-                or track == 'lips_suck_up' and .06 or .5
+            local cap = caps[track] or .5
             check(finite(frame[i]) and frame[i] >= 0 and frame[i] <= cap, 'fixture-face')
             copied[i] = frame[i]
         end

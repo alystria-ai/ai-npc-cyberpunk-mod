@@ -24,6 +24,7 @@ function fixture({local = false, available = true, audioFailure = false, continu
   const sandbox = {remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json',
     localVoice: selectedVoice,
     ownedPocketFace:()=>{},lipsync:{analyse:async()=>({mouthCues:[],mouthCuesFormat:'rhubarb-phonetic-v1'})},
+    jaliFace:null,
     splitSpeechText,streaming:0,writeStreamManifest:async value=>calls.push(['omni-manifest',value]),
     deliverPocketSpeech: async ({result,profile,speech}) => {
       calls.push(['pocket-stream',profile.key,result.text]);

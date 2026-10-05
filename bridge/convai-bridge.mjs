@@ -6,6 +6,7 @@ import {audioReady} from './speech-audio.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
 import {PhoneticLipsync} from './phonetic-lipsync.mjs';
+import {JaliFace} from './jali-face.mjs';
 import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
 import {deliverPocketSpeech} from './pocket-speech.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
@@ -72,8 +73,14 @@ let phoneAnalysis;
 try{phoneAnalysis=new ResidentPhoneAnalysis(phoneAnalysisConfig,phoneAnalysisOptions);}
 catch{console.error('[CyberpunkConvai] Optional phone analyser configuration failed validation.');
   phoneAnalysis=new ResidentPhoneAnalysis({},phoneAnalysisOptions);}
+// Optional game-trained facial model (docs/GAME_LIPSYNC_MODEL.md). With local
+// weights it drives Pocket, Omni and Convai mouths and the resident phone
+// analyser is not started; without them the previous paths are unchanged.
+const jaliFace = await JaliFace.load(resolve(stateDirectory, 'lipsync-model')).catch(error => {
+  console.error('[CyberpunkConvai] Facial model unavailable:', error.message); return null;
+});
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
-  phoneAnalysis,
+  phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfig:omniVoiceConfig,omniConfigPath:omniVoiceConfigPath,
   profileKeys:roster.map(profile=>profile.key),
@@ -452,12 +459,18 @@ async function synthesizeReply(input, result, signal, current, profile = profile
   }
   const speech = continuousSpeech(input, profile, current, signal, receiptPrepared, true);
   return deliverPocketSpeech({input, profile, result, current, signal, voice: localVoice, host: realtime, speech,
-    phoneAnalysis:localVoice.phoneAnalysis,
+    phoneAnalysis:localVoice.phoneAnalysis,jaliFace,
     onAnalysis: timing => measure(input, {localLipAnalysis: timing})});
 }
 
 async function synthesizeOmniPhrase(profile,text,options){
   const generated=await localVoice.synthesize(profile,text,options);
+  if(jaliFace)try{
+    const facial=await jaliFace.analyseWav(generated.audio,options);
+    return {...generated,...facial,timing:{...generated.timing,...facial.timing,voiceProvider:'omni'}};
+  }catch(error){
+    throwIfCancelled(options?.signal);console.error('[CyberpunkConvai] Facial model fallback:',error.message);
+  }
   try{
     const facial=await lipsync.analyse(generated.audio,options);
     return {...generated,...facial,timing:{...generated.timing,...facial.timing,voiceProvider:'omni'}};
@@ -474,7 +487,7 @@ async function status(state, detail = '') {
 function continuousSpeech(input, profile, current, signal, receiptPrepared = preparedInputs.get(input), local = false) {
   const options = {signal, isCurrent: current, isCurrentSync: current.sync};
   return new ConvaiContinuousSpeech({input, profile, current, signal,
-    ...(local ? {faceBuilder: ownedPocketFace} : {}),
+    ...(local ? {faceBuilder: ownedPocketFace} : {jaliFace}),
     readControl: () => readFile(resolve(runtime, 'continuous-control.json'), 'utf8'),
     writeState: value => atomic(resolve(runtime, 'continuous-speech.json'), JSON.stringify(value), options),
     writeReply: value => atomic(replyPath, JSON.stringify(value), options),
