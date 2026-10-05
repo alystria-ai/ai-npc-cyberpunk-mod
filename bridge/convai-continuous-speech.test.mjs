@@ -251,3 +251,35 @@ test('failure reports only an admitted current stream and shutdown cannot write 
   assert.equal(f.states.at(-1).state, 'error'); assert.equal(f.states.at(-1).requestId, owner.requestId);
   const count = f.states.length; f.abort.abort(); await f.stream.fail(); assert.equal(f.states.length, count);
 });
+
+const sharing = () => Object.assign(Error('file in use'), {code: 'EPERM'});
+
+test('a sharing violation skips one publication instead of failing the utterance, then publishes on the next poll', async () => {
+  const f = fixture(); f.control();
+  let failState = 1, failReply = 1;
+  f.onState = () => { if (failState-- > 0) throw sharing(); };
+  assert.deepEqual(await f.stream.frame(f.snapshot()), QUIET, 'no admission until the state is published');
+  f.onReply = () => { if (failReply-- > 0) throw sharing(); };
+  assert.deepEqual(await f.stream.frame(f.snapshot()), QUIET, 'a busy reply file retries on the next poll');
+  assert.equal(f.published.length, 0);
+  assert.equal((await f.stream.frame(f.snapshot())).allow, true);
+  assert.equal(f.published.length, 1);
+  // After admission a skipped state keeps the current lease rather than stopping speech.
+  failState = 1; f.control({sequence: 2});
+  assert.deepEqual(await f.stream.frame(f.snapshot({positionSeconds: .1, state: 'playing'})),
+    {allow: true, paused: false, volume: .8, pan: .2});
+});
+
+test('the final drained state is retried, and persistent or other write errors still fail', async () => {
+  const f = fixture(); f.control();
+  await f.stream.frame(f.snapshot({receivedFrames: 4800, sourceComplete: true, textComplete: true}));
+  let failState = 3; f.onState = () => { if (failState-- > 0) throw sharing(); };
+  const ended = f.snapshot({receivedFrames: 4800, sourceComplete: true, textComplete: true, positionSeconds: .2, ended: true});
+  assert.deepEqual(await f.stream.frame(ended), QUIET);
+  assert.equal(f.states.at(-1).ended, true); assert.equal(f.stream.ended, true);
+  const g = fixture(); g.control(); g.onState = () => { throw Object.assign(Error('disk full'), {code: 'ENOSPC'}); };
+  await assert.rejects(g.stream.frame(g.snapshot()), /disk full/);
+  const h = fixture(); h.control(); h.onState = () => { throw sharing(); };
+  for (let poll = 0; poll < 20; poll++) assert.deepEqual(await h.stream.frame(h.snapshot()), QUIET);
+  await assert.rejects(h.stream.frame(h.snapshot()), /file in use/);
+});

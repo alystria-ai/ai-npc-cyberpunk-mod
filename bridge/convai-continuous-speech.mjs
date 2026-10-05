@@ -6,6 +6,7 @@ import {ownedExpressionReceipt} from './companion-expressions.mjs';
 import {decodeAnalysisPcm} from './analysis-pcm.mjs';
 import {JALI_LEAD_SECONDS} from './jali-face.mjs';
 
+const SHARING_ERRORS = new Set(['EPERM', 'EACCES', 'EBUSY']);
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const integer = value => Number.isSafeInteger(value) && value >= 0;
 const quiet = () => ({allow: false, paused: true, volume: 0, pan: 0});
@@ -148,14 +149,19 @@ export class ConvaiContinuousSpeech {
       ended: snapshot.ended, underruns: snapshot.underruns, face: this.face};
     const expression = ownedExpressionReceipt(snapshot.expressionSignal, this.input);
     if (expression) document.expression = expression;
-    if (!await this.writeState(document)) throw Error('Continuous speech state could not be committed');
+    const stateCommitted = await this.commit(this.writeState, document, snapshot.ended);
+    if (stateCommitted === false) throw Error('Continuous speech state could not be committed');
     if (!await this.valid()) throw Error('Continuous speech owner changed');
+    // A file the game was reading at that instant: publish on the next poll.
+    if (stateCommitted === null) return this.published ? this.control() : quiet();
     if (!this.published) {
       const reply = {requestId: this.input.requestId, generation: this.input.generation,
         entity: this.input.entity, profile: this.profile.key, text: snapshot.text,
         ...(snapshot.userText ? {userText: snapshot.userText} : {}),
         continuous: {version: 1, id: this.token}, updated: this.now()};
-      if (!await this.writeReply(reply)) throw Error('Continuous speech admission could not be committed');
+      const replyCommitted = await this.commit(this.writeReply, reply, false);
+      if (replyCommitted === null) return quiet();
+      if (!replyCommitted) throw Error('Continuous speech admission could not be committed');
       this.published = true; this.publishedAt = this.now();
       await this.onPublished({publishedAt: this.publishedAt, initialBufferedSeconds: duration});
     }
@@ -172,6 +178,29 @@ export class ConvaiContinuousSpeech {
     if (snapshot.ended) { this.ended = true; this.model?.close(); return quiet(); }
     if (!await this.valid()) throw Error('Continuous speech owner changed');
     return this.control();
+  }
+
+  // The game reads these files on its own cadence. On Windows a read in progress
+  // (or a scanner holding the new file) makes the atomic rename fail with a
+  // sharing error even after its short retries; the live bridge log shows this
+  // for another polled file. One missed publication is harmless (the game
+  // tolerates two seconds between state updates); failing the whole utterance
+  // and its warm page is not. Returns null for a skipped publication. The final
+  // drained state is retried instead, because no later poll would carry it.
+  async commit(write, value, final) {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const committed = await write(value);
+        this.sharingFailures = 0;
+        return committed;
+      } catch (error) {
+        this.sharingFailures = (this.sharingFailures || 0) + 1;
+        if (!SHARING_ERRORS.has(error?.code) || this.sharingFailures > 20) throw error;
+        if (!final || attempt >= 10) return final ? Promise.reject(error) : null;
+        await new Promise(done => setTimeout(done, 25));
+        if (!await this.valid()) throw Error('Continuous speech owner changed');
+      }
+    }
   }
 
   async fail() {
