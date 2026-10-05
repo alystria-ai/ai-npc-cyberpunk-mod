@@ -160,3 +160,31 @@ test('routine queued feedback uses the saved developer choice without repeating 
  publish(packet(input));q.update(true);q.update(true)
  assert(#queued==3 and #feedback==2 and feedback[2].state=='rejected')
 `));
+
+const tacticFixture = fixture
+  .replace("offer=function(entity)assert(entity=='22ULL');return offer end,",
+    "offer=function(entity)assert(entity=='22ULL');return driveAvailable and offer or {available=false} end,\n tacticOffer=function(entity)assert(entity=='22ULL');return tactic end,\n queueTactic=function(kind,snapshot,entity)tactics[#tactics+1]={kind=kind,offer=snapshot,entity=entity};return true,'started' end,")
+  .replace('local packets,queued,feedback={},{},{}',
+    "local packets,queued,feedback={},{},{}\nlocal tactics,driveAvailable={},false\nlocal tactic={available=true,actor={serial=2,id='22ULL',key='judy'},target={id='77ULL',name='Tyger Claw',hostile=true,distance=23},kinds={'fight','distract-return'}}");
+function runTactic(body) {
+  const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
+  const status = lauxlib.luaL_dostring(vm, to_luastring(tacticFixture + body));
+  const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1));
+  lua.lua_close(vm); assert.equal(status, lua.LUA_OK, error);
+}
+
+test('a marked-target offer is leased with the request and one offered tactic is queued once', () => runTactic(`
+ local input=context();assert(q.capture(input,'private-text'))
+ assert(input.chauffeurOffer==nil and input.tacticOffer.target.id=='77ULL')
+ local base=packet(input);base.offer=nil;base.action='companion-tactic'
+ base.tacticOffer=clone(input.tacticOffer)
+ local wrong=clone(base);wrong.tactic='distract-fight';publish(wrong);q.update(true);assert(#tactics==0,'unoffered kind')
+ local changed=clone(base);changed.tactic='fight';changed.tacticOffer.target.id='99ULL';publish(changed);q.update(true);assert(#tactics==0)
+ local drive=clone(base);drive.action='drive-to-waypoint';drive.offer=clone(offer);publish(drive);q.update(true)
+ assert(#queued==0,'no drive offer was leased')
+ local good=clone(base);good.tactic='distract-return';publish(good);q.update(true)
+ assert(#tactics==1 and tactics[1].kind=='distract-return' and tactics[1].offer.target.id=='77ULL' and tactics[1].entity=='22ULL')
+ publish(clone(good));q.update(true);assert(#tactics==1,'consumed once')
+ driveAvailable=true;input=context('request-2');assert(q.capture(input,'private-text'))
+ assert(input.chauffeurOffer and input.tacticOffer,'both offers ride on one lease')
+`));

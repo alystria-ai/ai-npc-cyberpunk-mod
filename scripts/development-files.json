@@ -302,6 +302,18 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/gameplay-actions.lua"
     },
     {
+      "source": "mod/companion-tactics.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-tactics.lua"
+    },
+    {
+      "source": "mod/companion-marking.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-marking.lua"
+    },
+    {
+      "source": "mod/tactic-perception.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/tactic-perception.lua"
+    },
+    {
       "source": "mod/companion-chauffeur.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-chauffeur.lua"
     },
