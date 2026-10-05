@@ -301,11 +301,10 @@ assert(policy.status().pending==1 and policy.capture().items[1].quantity==1)
 assert(not offer(false),'The independent loot cooldown still applies to later pickups')
 `));
 
-test('battle cannot capture or consume loot and standalone claims require their available exact witness', () => run(fixture + `
+test('standalone claims require their available exact witness and are invalidated by a later fight', () => run(fixture + `
 add('one');wait(6);local ordinary=assert(offer(false))
 assert(policy.consumeForBattle==nil and policy.suppressAfterBattle==nil)
-local none,reason=policy.capture({forBattle=true,entity='1ULL',profileKey='judy-alvarez'},now)
-assert(not none and reason=='separate-reactions' and policy.status().pending==1)
+assert(policy.status().pending==1)
 people[1].available=false;tick(0);assert(not policy.claim(ordinary,now))
 people[1].available=true;tick(0);sample.combat=true;tick(0)
 sample.combat=false;tick(0)

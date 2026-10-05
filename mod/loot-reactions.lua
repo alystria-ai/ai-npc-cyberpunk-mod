@@ -290,7 +290,6 @@ function M.new()
     function self.capture(options, now)
         now = time(now); prune(now)
         local reason = gate()
-        if type(options) == 'table' and options.forBattle then return nil, 'separate-reactions' end
         if type(options) ~= 'table' or not options.forReaction then
             local items, exceptional = describe()
             return {version = 1, status = reason and 'suppressed' or (#pending > 0 and 'pending' or 'none'),
