@@ -18,7 +18,12 @@ remain in the game's Messages and Contacts flows.
 
 The character does not have to be spawned or nearby. Chat lists active, known
 contacts supported by the conversation catalog, including contacts with no quest
-SMS. Newly unlocked contacts are picked up when opening the tab. Replies use the
+SMS. Newly unlocked contacts are picked up when opening the tab, because each open
+reads the journal's active contacts again. The Contacts J/L mapping needs no such
+refresh: `companions.registerPhoneContacts` registers every contact in
+`characters/phone-contacts.json` once per session, whether or not the game has
+unlocked it, so a contact unlocked mid-session is already mapped
+(`bridge/phone-contact-mapping.test.mjs`). Replies use the
 game's sent/received message bubbles. Private/group text and microphone actions
 remain separate in-person conversations, using the player's assigned CET bindings.
 

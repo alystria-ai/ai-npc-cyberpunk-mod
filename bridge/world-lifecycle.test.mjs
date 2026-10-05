@@ -710,3 +710,27 @@ after['AutoDriveSystem.OnAutodriveToggled'](auto,false)
 events.onUpdate(0.1);events.onShutdown();tearingDown=false
 assert(arrivals==1 and toggles==1 and prepared==0)
 `));
+
+test('phone contact mapping is built once per session, not while the phone is open, and rebuilt after a save load', () => run(`
+local registrations = {}
+companions.registerPhoneContacts = function(target) assert(target == player); registrations[#registrations + 1] = clock end
+events.onInit()
+for _ = 1, 3 do clock = clock + 1; events.onUpdate(0.1) end
+assert(#registrations == 1, 'mapping is registered once for the session, found ' .. #registrations)
+-- Opening Contacts, selecting rows and a contact unlocked meanwhile never rebuild it.
+player.phoneOpen = true
+for _ = 1, 5 do clock = clock + 1; events.onUpdate(0.1) end
+player.phoneOpen = false
+for _ = 1, 3 do clock = clock + 1; events.onUpdate(0.1) end
+assert(#registrations == 1, 'open phone must not trigger rebuilds, found ' .. #registrations)
+-- A save load replaces the native fields, so the next session maps again.
+tearingDown = true; after['PlayerSystem.OnGameRestored'](); tearingDown = false
+for _ = 1, 3 do clock = clock + 1; events.onUpdate(0.1) end
+assert(#registrations == 2, 'new session must register again, found ' .. #registrations)
+-- A failed registration (native part not installed) is retried until it succeeds.
+companions.registerPhoneContacts = function() registrations[#registrations + 1] = clock; error('native unavailable') end
+tearingDown = true; before['PlayerPuppet.OnDetach'](); tearingDown = false
+after['PlayerPuppet.OnGameAttached']()
+for _ = 1, 3 do clock = clock + 1; events.onUpdate(0.1) end
+assert(#registrations == 5)
+`));
