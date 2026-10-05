@@ -1019,6 +1019,15 @@ local function updateBattles(player, elapsed, worldReady)
     local lootEvent = loot.offer(busy, battlePeople, now)
     if not mayFollow(battleEvent, 'battle') then battleEvent = nil end
     if not mayFollow(lootEvent, 'loot') then lootEvent = nil end
+    -- Combat ending is announced before a pickup made after the fight, even
+    -- when that pickup's quiet window finishes a moment sooner. A pickup made
+    -- during the fight keeps its earlier turn. The hold lasts only until the
+    -- closing becomes offerable and never applies without an eligible witness.
+    if lootEvent and not battleEvent then
+        local due = battles.closingDue(battlePeople)
+        -- Both ages are whole-second/half-second samples, so allow one second.
+        if due and (lootEvent.loot.ageSeconds or 0) < due.sinceCombat + 1 then lootEvent = nil end
+    end
     -- Closing has the shorter admission window and normally goes first. Once
     -- a battle closing has had a turn, an eligible pickup gets the next turn.
     -- Neither event changes the other policy's receipts or cooldowns.

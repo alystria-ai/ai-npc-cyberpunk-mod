@@ -664,6 +664,38 @@ Game.GetSceneSystem=function()error('native private details')end
 ok,why,waiting=m.canSpeak(npc,'end');assert(not ok and why=='native-read-failed' and not waiting)
 `));
 
+test('delivery re-reads the player and speaker: renewed combat or a scene cancels, brief native speech only waits', () => run(`
+local combat,dialogue,attached,speakerDialogue=false,false,true,false
+local player={IsAttached=function()return attached end,IsDeadNoStatPool=function()return false end,
+  IsInCombat=function()return combat end,GetEntityID=function()return 1 end,
+  GetMountedVehicle=function()return nil end,IsReplacer=function()return false end}
+local npc={IsAttached=function()return true end,IsDeadNoStatPool=function()return false end,
+ GetEntityID=function()return 2 end,IsOnAutonomousAI=function()return true end}
+PlayerPuppet={GetSceneTier=function()return 1 end}
+NPCPuppet={IsInCombat=function()return false end}
+FromVariant=function(v)return v end; Enum={new=function(_,v)return v end}
+Game={GetSceneSystem=function()return {GetScriptInterface=function()return {
+  IsEntityInDialogue=function(_,id)return id==1 and dialogue or id==2 and speakerDialogue end,
+  IsEntityInScene=function()return false end}end}end,
+  GetTargetingSystem=function()return {GetLookAtObject=function()return nil end}end,
+  GetAllBlackboardDefs=function()return {UI_ComDevice={PhoneCallInformation='call'},UIInteractions={DialogChoiceHubs='choices'}}end,
+  GetBlackboardSystem=function()return {Get=function()return {GetVariant=function(_,field)
+    if field=='call' then return nil end;return {choiceHubs={}}end}end}end}
+local m=(function() ${observer} end)()
+local ok,why,waiting=m.canDeliver(player,npc,'end');assert(ok and why=='available' and not waiting)
+ok,why=m.canDeliver(player,npc,'start');assert(not ok and why=='combat-ended')
+combat=true
+ok,why=m.canDeliver(player,npc,'start');assert(ok)
+ok,why,waiting=m.canDeliver(player,npc,'end');assert(not ok and why=='combat-resumed' and not waiting)
+ok,why=m.canDeliver(player,npc,nil);assert(not ok and why=='combat-resumed','A pickup comment is also cancelled by renewed combat')
+combat=false;dialogue=true
+ok,why,waiting=m.canDeliver(player,npc,'end');assert(not ok and why=='player-scene-blocked' and not waiting)
+dialogue=false;speakerDialogue=true
+ok,why,waiting=m.canDeliver(player,npc,nil);assert(not ok and why=='native-dialogue' and waiting,'Brief native speech may be waited out')
+speakerDialogue=false;attached=false
+ok,why,waiting=m.canDeliver(player,npc,'end');assert(not ok and why=='player-observation-unavailable' and not waiting)
+`));
+
 const battle = {version: 1, status: 'ended', encounter: 'battle-1', ageSeconds: 8, durationSeconds: 25,
   opponents: [{name: 'Tyger Claw', kind: 'Human', count: 2}], witnesses: ['judy-alvarez']};
 const input = {requestId: '1000-1-1ULL', generation: 1, entity: '1ULL', name: 'Judy', bodyType: 'WomanAverage',
@@ -725,3 +757,126 @@ test('phone shares recent combat as reported facts and preserves the actual mess
   assert.match(calls[0].text, /Tyger Claw/); assert.match(calls[0].text, /presence.*not established/);
   assert(calls[0].text.endsWith(input.text)); assert.equal(calls[0].voice, false);
 });
+
+// A scripted bridge: the reply arrives three seconds after a request is written
+// and plays for five. It reports every automatic turn in the order it started.
+const sequenceHarness = `
+local turns,lastCount,genAt,playAt={},0,nil,nil
+local GEN,PLAY=3,5
+-- Like the real speech.stop, stopping a spoken turn also clears its captions.
+local stopSpeech=speech.stop
+function speech.stop(reason)subtitles.line,subtitles.pages,subtitles.timed=nil,nil,nil;stopSpeech(reason)end
+local function bridge(dt)
+ advance(dt)
+ if automatic and #requests>lastCount then
+  assert(not genAt and not playAt,'Two automatic turns overlapped')
+  lastCount=#requests;genAt=now
+  turns[#turns+1]={kind=automatic.reaction.kind,phase=automatic.reaction.phase,id=automatic.requestId}
+ end
+ if automatic and genAt and pending==automatic and now-genAt>=GEN and reactionCanDeliver(automatic,player) then
+  pending=nil;speech.requestId=automatic.requestId;subtitles.line={};genAt=nil;playAt=now
+  automatic.shown=true;automatic.playbackAt=math.floor(now)
+ end
+ if playAt and now-playAt>=PLAY then speech.requestId=nil;subtitles.line=nil;playAt=nil end
+ if not automatic then genAt,playAt=nil,nil end
+ assert(#requests==lastCount,'A request was written without a recorded turn')
+end
+local function run(seconds)
+ while seconds>0 do local step=math.min(.5,seconds);bridge(step);seconds=seconds-step end
+end
+`;
+
+test('combat comment and pickup comment that become eligible together play once each, in order', () => run(adapterFixture + sequenceHarness + `
+for _,timing in ipairs({{3,5},{12,15}}) do GEN,PLAY=timing[1],timing[2]
+for _,offset in ipairs({-6,-3,-1.5,0,.5,1,2,3,4,6,8,10}) do
+ resetSessionFixture();for i=#requests,1,-1 do requests[i]=nil end
+ for i=#turns,1,-1 do turns[i]=nil end
+ lastCount,genAt,playAt=0,nil,nil;speakerReady,speakerBusy=true,false;active=nil
+ sample.combat=false;bridge(.5)
+ sample.combat=true;run(3.5);assert(turns[1] and turns[1].phase=='start','no opening at offset '..offset..' reqs='..#requests..' status='..tostring(battles.status().state)..' elig='..tostring(battles.status().eligible))
+ -- The fight lasts ten more seconds; the pickup lands offset seconds from its end.
+ local started,picked=now,false
+ for step=1,50 do
+  local t=now-started
+  if not picked and t>=10+offset then queueLoot('o'..offset);picked=true end
+  if t>=10 then sample.combat=false end
+  bridge(.5)
+ end
+ sample.combat=false;run(60)
+ assert(picked,'not picked offset '..offset)
+ local label='gen '..GEN..' play '..PLAY..' offset '..offset..' turns='..#turns
+ for _,turn in ipairs(turns) do label=label..' '..turn.kind..'/'..tostring(turn.phase) end
+ assert(#turns==3,label)
+ -- Combat ending is announced before a pickup made after it; a pickup made
+ -- during the fight keeps its earlier turn.
+ if offset>=0 then assert(turns[2].kind=='battle' and turns[2].phase=='end',label) end
+ if offset<=-1.5 then assert(turns[2].kind=='loot',label) end
+ assert(turns[2].kind~=turns[3].kind,label)
+ assert(loot.status().pending==0 and not loot.status().active and not automatic,label)
+end
+end
+`));
+
+
+// Both orders: a pickup made during the fight is ready the moment combat is
+// confirmed over, a pickup right after it is ready after the closing.
+const turnOrder = `
+local function startFight(pickupAfterEnd)
+ resetSessionFixture();for i=#requests,1,-1 do requests[i]=nil end
+ for i=#turns,1,-1 do turns[i]=nil end
+ lastCount,genAt,playAt=0,nil,nil;speakerReady,speakerBusy=true,false;active=nil;GEN,PLAY=3,5
+ sample.combat=false;bridge(.5);sample.combat=true;run(3.5)
+ assert(turns[1] and turns[1].phase=='start')
+ run(8)
+ if not pickupAfterEnd then queueLoot('during-fight');run(3) end
+ sample.combat=false
+ if pickupAfterEnd then queueLoot('after-fight') end
+end
+local function untilTurn(count)
+ for _=1,200 do bridge(.5);if #turns>=count and automatic then return end end
+ error('turn '..count..' never started')
+end
+local function kinds()
+ local text='';for _,turn in ipairs(turns)do text=text..turn.kind..'/'..tostring(turn.phase)..' ' end;return text
+end
+`;
+
+test('a conversation cancels only the comment it interrupts; the queued one plays once afterwards', () => run(adapterFixture + sequenceHarness + turnOrder + `
+for _,order in ipairs({'loot-first','closing-first'}) do
+ for _,moment in ipairs({'generating','playing','between'}) do
+  startFight(order=='closing-first')
+  untilTurn(2)
+  local first=turns[2]
+  assert(first.kind==(order=='closing-first' and 'battle' or 'loot'),order..' started '..kinds())
+  if moment=='playing' then run(4) elseif moment=='between' then
+   while automatic do bridge(.5) end
+  else run(.5) end
+  -- Pressing the talk key cancels an automatic turn, then owns the speaker.
+  local interrupted=automatic~=nil
+  if automatic then cancelAutomatic('manual-text') end
+  genAt,playAt=nil,nil;active={}
+  run(10);assert(#turns==2,order..' '..moment..' spoke during the conversation: '..kinds())
+  active=nil
+  for _=1,60 do bridge(.5) end
+  local label=order..' '..moment..' interrupted='..tostring(interrupted)..' '..kinds()
+  assert(#turns==3,label)
+  assert(turns[3].kind~=first.kind,label)
+  assert(turns[2].id~=turns[3].id,label)
+  assert(not automatic and not pending and not loot.status().active and loot.status().pending==0,label)
+  assert(lastAutomatic.finishedAt,label)
+ end
+end
+`));
+
+test('a queued comment whose window ended during a long conversation is skipped, not replayed', () => run(adapterFixture + sequenceHarness + turnOrder + `
+-- Pickup first: the closing's forty-second window closes while V talks.
+startFight(false);untilTurn(2);assert(turns[2].kind=='loot')
+cancelAutomatic('manual-text');genAt,playAt=nil,nil;active={}
+run(60);active=nil;run(120)
+assert(#turns==2 and not automatic and loot.status().pending==0,kinds())
+-- Closing first: the pickup waits up to ninety seconds after the last pickup.
+startFight(true);untilTurn(2);assert(turns[2].kind=='battle')
+cancelAutomatic('manual-text');genAt,playAt=nil,nil;active={}
+run(120);active=nil;run(120)
+assert(#turns==2 and not automatic and loot.status().pending==0,kinds())
+`));

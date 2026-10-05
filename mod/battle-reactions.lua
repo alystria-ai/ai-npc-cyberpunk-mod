@@ -100,6 +100,25 @@ function M.new()
         return nil
     end
 
+    -- A closing that is still ahead of us: combat has stopped, its quiet
+    -- confirmation or four-second settle is running, and a witness could speak.
+    -- It lets a pickup made AFTER the fight wait (at most until the closing
+    -- becomes offerable) so the combat end is not announced behind a later
+    -- pickup. The closing itself never waits for loot.
+    function self.closingDue(people)
+        if not enabled or not sample or not sample.available or sample.blocked
+            or not current or not current.eligible or current.closed or not current.quiet then return nil end
+        local since = clock - current.quiet
+        if since >= 10 or (current.state == 'ended' and clock - current.ended >= 4) then return nil end
+        for _, person in ipairs(people or {}) do
+            if witnessed(current, person) and person.distance <= 20
+                and (person.available ~= false or person.voiceBusy == true) then
+                return {encounter = current.id, sinceCombat = since}
+            end
+        end
+        return nil
+    end
+
     function self.offer(busy, people, now)
         if busy or not enabled or not sample or not sample.available or sample.blocked or not current or not current.eligible then return nil end
         local phase, remaining
