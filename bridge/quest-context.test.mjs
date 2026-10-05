@@ -42,26 +42,26 @@ test('quest changes invalidate prepared context and group instructions retain fi
   assert.match(journalContext({version: 1, status: 'unavailable'}), /Do not assume earlier quest progress/);
 });
 
-test('follow-ups default Off, opt in privately or for the last group speaker, and never open automatic reactions', () => {
-  for (const channel of ['private', 'phone']) {
-    assert.match(conversationContext({...input, channel}), /Follow-up questions are disabled/);
-    assert.match(conversationContext({...input, channel, followUpQuestions: true}), /ask V one short, relevant follow-up question/);
-    assert.match(conversationContext({...input, channel}), /Do not put a speaker name, role label, or script prefix/);
-    assert.match(conversationContext({...input, channel, followUpQuestions: true}), /says goodbye, says they need to leave, explicitly requests no questions/);
+test('ordinary turns neither require nor forbid questions, whatever the retired follow-up flag says', () => {
+  for (const channel of ['private', 'phone']) for (const followUpQuestions of [undefined, false, true]) {
+    const context = conversationContext({...input, channel, followUpQuestions});
+    assert.match(context, /Whether you ask V anything is your own call/);
+    assert.match(context, /Do not tack a question onto a reply out of habit/);
+    assert.doesNotMatch(context, /follow-up question|Follow-up questions are|ask V one/i);
+    assert.match(context, /Do not put a speaker name, role label, or script prefix/);
   }
   for (const index of [1, 2, 3]) {
     const group = {index, total: 3, audience: ['judy', 'panam', 'alex'], heard: []};
-    const enabled = conversationContext({...input, group, followUpQuestions: true});
-    if (index === 3) assert.match(enabled, /ask V one short, relevant follow-up question/);
-    else { assert.match(enabled, /Do not ask V a question/); assert.doesNotMatch(enabled, /ask V one/); }
-    assert.doesNotMatch(conversationContext({...input, group, followUpQuestions: false}), /ask V one/);
+    const context = conversationContext({...input, group, followUpQuestions: true});
+    if (index === 3) assert.match(context, /Whether you ask V anything is your own call/);
+    else assert.match(context, /Do not ask V a question/);
+    assert.doesNotMatch(context, /ask V one|follow-up question/i);
   }
   for (const kind of ['battle', 'loot']) {
     const automatic = conversationContext({...input, followUpQuestions: true, reaction: {kind}});
     assert.match(automatic, /automatic reaction\. Do not ask V a question/);
     assert.doesNotMatch(automatic, /ask V one/);
   }
-  assert.notEqual(inputIdentity(input), inputIdentity({...input, followUpQuestions: true}));
 });
 
 test('phone sends revealed context to Convai while retaining the original display text and identity', async () => {

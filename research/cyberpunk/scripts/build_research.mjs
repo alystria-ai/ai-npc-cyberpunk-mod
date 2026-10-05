@@ -145,7 +145,7 @@ export function buildProfiles(roster, dossiers, {intrinsicPacks = [], intrinsicR
       'Speak naturally to V, usually in one or two sentences unless asked for detail. '
         + 'Give only the spoken reply, without prepending your name or a speaker label. '
         + 'No stage directions or markdown. Dialogue samples are original delivery examples, not memories. '
-        + 'In a group, only the final scheduled speaker may ask V a follow-up. Never reveal private conversation history to a group.'].join('\n\n');
+        + 'In a group, speak for yourself and leave room for the others. Never reveal private conversation history to a group.'].join('\n\n');
     const {sampleDialogue: retiredExamples, speakingRules: retiredStyle, relationships: retiredRelationships,
       nativeIntrinsic: retiredNative, nativeIntrinsicRevision: retiredNativeRevision, ...preserved} = old;
     const samples = serializeCharacterSamples(dossier.profile.speakingStyleSampleDialogues, old).split(/\n\s*\n/u);

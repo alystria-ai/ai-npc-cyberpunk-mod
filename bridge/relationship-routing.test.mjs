@@ -96,7 +96,8 @@ test('each confirmed present partner can acknowledge their own relationship with
     assert.match(context, /actually heard words/);
     assert.match(context, /only to you/);
     assert.match(context, /Keep intimate scene details and earlier private conversations out/);
-    assert.match(context, /follow-up question policy/);
+    assert.match(context, /Preserve the current round's speaker order\./);
+    assert.doesNotMatch(context, /follow-up/);
     assert.doesNotMatch(context, /sq030|sq027/);
   }
   const judyContext = relationshipContext(judy, 'group', groupOptions());

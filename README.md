@@ -15,7 +15,7 @@ Talk with Night City characters, invite travelling companions, and keep in touch
 - Private text and microphone conversations with supported nearby characters, with voiced replies, subtitles, and facial animation.
 - Group conversations with up to three distinct speakers. The person you address speaks first, and the input box shows that person's name. Additional copies of the same character do not become extra speakers.
 - Group turns retain each copy's assigned identity. Reassigning, dismissing or disabling the current speaker retires that round; changed later participants leave its audience.
-- An optional follow-up question keeps ordinary conversations going. In groups, only the final speaker asks; automatic comments do not ask questions.
+- Characters ask questions only when their personality and the moment call for it; nothing forces a question onto a reply. In groups, earlier speakers leave the floor to the next one, and automatic comments do not ask questions.
 - A dedicated **Chat** tab beside the phone's Messages and Contacts tabs. Choose a contact to open their conversation directly, then type in the composer at the bottom.
 - Independent Chat histories and drafts that persist across launches. Contacts unlocked later become available when the phone catalog refreshes. Phone Chat works without summoning the character.
 

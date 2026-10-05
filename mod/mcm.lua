@@ -590,8 +590,6 @@ local function schema()
             action('relationships', 'Relationships', 'Manage',
                 'Choose ordinary or romantic conversations for supported characters.',
                 function(context) return navigate('relationships', context) end),
-            setting('followUpQuestions', 'Follow-up questions', 'bool', snapshot.settings.followUpQuestions, false,
-                'Characters answer, then ask one brief, relevant question in ordinary conversations. They omit it when you say goodbye, ask for no questions or request an exact fixed reply. In a group, only the final speaker asks. When off, characters answer without inviting another turn. Automatic reactions never ask questions.'),
         })
         local heights,strengths=manager.gazeChoices()
         local heightIndex,strengthIndex=3,3

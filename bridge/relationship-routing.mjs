@@ -233,7 +233,7 @@ function groupRelationshipContext(selection, options) {
     + 'Respond to another present speaker\'s actually heard words with a brief character-specific reaction or banter when it fits. '
     + 'This receipt belongs only to you. It does not tell you another companion\'s private relationship history, establish that they already know yours, or establish exclusivity, jealousy or consent. '
     + 'Keep intimate scene details and earlier private conversations out of the group. Do not invent a shared scene or assume a group invitation proves a relationship. '
-    + 'Do not force a romantic topic into an unrelated reply. Preserve the current round\'s speaker order and follow-up question policy.';
+    + 'Do not force a romantic topic into an unrelated reply. Preserve the current round\'s speaker order.';
 }
 
 export function relationshipContext(selection, channel = 'private', options) {

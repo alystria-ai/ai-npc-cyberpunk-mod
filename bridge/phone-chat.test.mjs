@@ -44,7 +44,8 @@ test('phone opt-in reaches provider context once per send and does not change di
     assert.equal(calls.length, 1);
     assert.equal(calls[0].input.followUpQuestions, followUpQuestions === true);
     assert.equal(calls[0].input.text, message);
-    assert.match(calls[0].context, followUpQuestions === true ? /ask V one short, relevant follow-up question/ : /Follow-up questions are disabled/);
+    assert.match(calls[0].context, /Whether you ask V anything is your own call/);
+    assert.doesNotMatch(calls[0].context, /follow-up question/i);
     assert.deepEqual(output.filter(row => row.state === 'reply').map(row => row.text), ['Going well.']);
   }
 });

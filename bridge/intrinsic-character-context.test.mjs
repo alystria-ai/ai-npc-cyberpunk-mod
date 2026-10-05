@@ -97,7 +97,8 @@ test('a broad war question supplies one limited service beat, without dumping pr
   assert.equal(result.topic, 'war-service');
   assert.doesNotMatch(result.context, /Cole|ceiling fan|dog tags|M-9|gave his life/);
   assert.match(result.context, /brief reaction is a natural initial response/);
-  assert.match(result.context, /follow-up questions disabled/);
+  assert.match(result.context, /asking why V wants to know is up to you and the moment/);
+  assert.doesNotMatch(result.context, /follow-up question/i);
   assert.match(result.context, /gradual disclosure/);
   assert.match(result.context, /do not establish that V knows them/);
   assert.match(result.context, /subjective, attributed history/);
@@ -317,17 +318,11 @@ test('actual protocol policy keeps painful-history pushback within the frozen fo
     const wrapped = createIntrinsicConversationContext({baseContext: conversationContext, intrinsic: selector,
       resolveAdmission: input => admissions.get(input), isCurrentSync: value => router.currentSync(value)});
     const context = wrapped(prepared.input);
-    assert.match(context, /current turn’s question policy and V’s intent take priority/);
-    assert.match(context, /If V says goodbye, needs to leave, requests no questions, or requests an exact fixed reply, respect that without asking a question/);
-    if (enabled === true) {
-      assert.match(context, /With follow-up questions enabled, asking briefly why V wants to know is optional within the current question policy/);
-      assert.match(context, /do not add a second question or override V’s goodbye, no-question, or exact-reply intent/);
-      assert.match(context, /This exception takes priority/);
-    } else {
-      assert.match(context, /With follow-up questions disabled, use the brief reaction without an added question/);
-      assert.match(context, /ask only if clarification is necessary or V explicitly requests a question/);
-      assert.doesNotMatch(context, /asking briefly why V wants to know is optional/);
-    }
+    assert.match(context, /V’s intent takes priority over this history material/);
+    assert.match(context, /If V says goodbye, needs to leave, requests no questions, or requests an exact fixed reply, respect that without forcing a history detail/);
+    assert.match(context, /asking why V wants to know is up to you and the moment/);
+    assert.match(context, /Whether you ask V anything is your own call/);
+    assert.doesNotMatch(context, /follow-up question|ask V one/i);
   }
 });
 

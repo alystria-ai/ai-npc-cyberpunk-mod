@@ -1,5 +1,33 @@
 # Optional follow-up questions
 
+## October 5 change: no question rule
+
+The user reported characters ending replies with a question. The sources were
+the per-turn follow-up policy in `bridge/conversation-style.mjs` (the saved On
+setting told the character to "ask V one short, relevant follow-up question"),
+its mirror in the intrinsic-history header, and the static
+`speaking_style_description` sentence "In a group, only the final scheduled
+speaker may ask V a follow-up", which implied ordinary follow-ups in every
+profile. `resident-female` also carried "may offer one grounded follow-up".
+
+All of these are removed. Ordinary private, phone and final-group turns now
+carry one neutral line: whether the character asks V anything is their own
+call, and they must not add a question out of habit. Non-final group speakers
+and automatic battle/loot reactions keep their existing "do not ask V a
+question" handoff rule. The MCM **Follow-up questions** toggle is retired; the
+stored `followUpQuestions` value is still parsed and carried for compatibility
+but no longer changes the prompt. Sample dialogues were audited: 56 of 1,047
+samples end in a question and no profile exceeds 4 of 16, so none teach the
+habit.
+
+The profile sentence now reads "In a group, speak for yourself and leave room
+for the others." Ordinary profiles were re-pushed with
+`Provision-Characters.mjs --apply --existing-style-only` (style fields only)
+and the five romantic variants with the style-only relationship path.
+
+The history below describes the retired toggle.
+
+
 ## Player setting
 
 **Companion Manager → Settings → Conversations → Follow-up questions** defaults
