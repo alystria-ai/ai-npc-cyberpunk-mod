@@ -11,6 +11,7 @@ import {TransportPool, endUserOptions, transportKey, SessionBindings} from './tr
 import {drainBlendshapes} from './blendshape-capture.mjs';
 import {PcmChunkStream} from './convai-audio-stream.mjs';
 import {ConvaiDataAudio} from './convai-data-audio.mjs';
+import {AnalysisPcm} from './analysis-pcm.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
 import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
@@ -29,6 +30,7 @@ const clientSource = readFileSync(new URL('./realtime-client.mjs', import.meta.u
   .replace("import {PcmChunkStream} from './convai-audio-stream.mjs';", '')
   .replace("import {ConvaiDataAudio} from './convai-data-audio.mjs';", '')
   .replace("import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';", '')
+  .replace("import {AnalysisPcm} from './analysis-pcm.mjs';", '')
   .replace("import {ConvaiEmotion} from './convai-emotion.mjs';", '')
   .replace("import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';", '');
 
@@ -91,7 +93,7 @@ function fixture(t, {disconnectTimeoutMs, realClient = false, onDisconnect, crea
           }
         }
         runInNewContext(clientSource, {ConvaiClient: Client, window: page.window,
-          endUserOptions, transportKey, SessionBindings, drainBlendshapes, PcmChunkStream, ConvaiDataAudio, ConvaiEmotion,
+          endUserOptions, transportKey, SessionBindings, drainBlendshapes, PcmChunkStream, ConvaiDataAudio, AnalysisPcm, ConvaiEmotion,
           CompanionActionWindow, publishCompanionActionContext, chauffeurActionName,
           TextDecoder, ArrayBuffer, Uint8Array,
           performance, setTimeout, clearTimeout, setInterval, clearInterval,

@@ -2,6 +2,7 @@ import {ConvaiClient} from '@convai/web-sdk/vanilla';
 import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';
 import {ConvaiDataAudio} from './convai-data-audio.mjs';
 import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';
+import {AnalysisPcm} from './analysis-pcm.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
 import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
 
@@ -10,7 +11,7 @@ let initialSession, submitted = false, epoch = 0, ttsEnabled = true;
 let retiredAudioOwners = [];
 let retiredExpressionOwners = [];
 let observed = {}, previousTurnDiagnostics = null;
-let previousContinuous = null;
+let previousContinuous = null, previousAnalysis = null;
 const sessions = new SessionBindings();
 const companionActions = new CompanionActionWindow();
 let actionContextConfigured = false;
@@ -139,6 +140,7 @@ async function close(reason = 'Conversation cancelled') {
     if (previous.turn.live) {
       void previous.turn.live.player.stop(reason).catch(() => {});
       previousContinuous = continuousView(previous.turn);
+      previousAnalysis = {token: previous.turn.live.token, analysis: previous.turn.live.analysis};
     }
   }
   if (previous.turn) previousTurnDiagnostics = turnDiagnostics(previous.turn);
@@ -422,7 +424,7 @@ function attachContinuous(current, token) {
     if (current.live.token !== token) throw Error('Live speech owner changed');
     return;
   }
-  previousContinuous = null;
+  previousContinuous = null; previousAnalysis = null;
   current.live = {token, player: new ContinuousPcmPlayer(), chain: Promise.resolve(), opened: false};
   queueContinuous(current);
 }
@@ -452,6 +454,14 @@ function queueContinuous(current) {
   const packets = current.dataAudio.drainPcm();
   if (!packets.length) return;
   const {sampleRate, channels} = current.dataAudio;
+  // Read-only analysis copy for the bridge's facial model, taken before the
+  // renderer may transfer these buffers. A fault only removes model coverage.
+  if (!live.analysisFailed) {
+    try {
+      live.analysis ??= new AnalysisPcm(channels);
+      for (const packet of packets) live.analysis.append(packet.bytes, packet.offsetFrames);
+    } catch { live.analysis = null; live.analysisFailed = true; }
+  }
   live.chain = live.chain.then(async () => {
     const owned = () => !current.error && turn === current && current.epoch === epoch;
     if (!owned()) return;
@@ -472,8 +482,9 @@ function queueContinuous(current) {
   });
 }
 
-function continuousView(current) {
+function continuousView(current, pcmFrom) {
   if (!current?.live) return null;
+  const pcm = pcmFrom === undefined ? undefined : current.live.analysis?.slice(pcmFrom);
   const source = current.dataAudio.progress(), playback = current.live.player.snapshot();
   const diagnostic = clockDiagnostic(playback);
   // Explicit public shape: never expose SDK configuration or remote identities.
@@ -488,12 +499,13 @@ function continuousView(current) {
     ...(diagnostic ? {clockDiagnostic: diagnostic} : {}),
     underruns: playback.underruns ?? 0, faces: source.faces,
     facesFormat: source.facesFormat, facesTimebase: source.facesTimebase,
-    sourceComplete: source.sourceComplete};
+    sourceComplete: source.sourceComplete, ...(pcm ? {pcm} : {})};
 }
 
-function continuousSnapshot(token) {
-  const snapshot = turn?.live?.token === token ? continuousView(turn)
-    : previousContinuous?.token === token ? previousContinuous : null;
+function continuousSnapshot(token, pcmFrom) {
+  const tail = previousAnalysis?.token === token && pcmFrom !== undefined ? previousAnalysis.analysis?.slice(pcmFrom) : undefined;
+  const snapshot = turn?.live?.token === token ? continuousView(turn, pcmFrom)
+    : previousContinuous?.token === token ? (tail ? {...previousContinuous, pcm: tail} : previousContinuous) : null;
   // A clock fault may reach this poll before collect's next tick. Throw the
   // same bounded diagnostic here so a generic publication error cannot erase
   // the evidence before the host disposes this page.
@@ -547,6 +559,7 @@ async function collect(current) {
         return state.ended === true;
       }, Infinity, 'Continuous speech did not drain');
       previousContinuous = continuousView(current);
+      previousAnalysis = {token: current.live.token, analysis: current.live.analysis};
       await current.live.player.stop('completed');
     }
     return {...collected, text: current.text, sessionID: client.characterSessionId,

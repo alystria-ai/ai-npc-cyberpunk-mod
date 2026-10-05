@@ -3,6 +3,8 @@
 import {randomUUID} from 'node:crypto';
 import {buildProviderFacialTimeline} from './facial-timeline.mjs';
 import {ownedExpressionReceipt} from './companion-expressions.mjs';
+import {decodeAnalysisPcm} from './analysis-pcm.mjs';
+import {JALI_LEAD_SECONDS} from './jali-face.mjs';
 
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const integer = value => Number.isSafeInteger(value) && value >= 0;
@@ -11,17 +13,50 @@ const quiet = () => ({allow: false, paused: true, volume: 0, pan: 0});
 export class ConvaiContinuousSpeech {
   constructor({input, profile, current, signal, readControl, writeState, writeReply,
     onPublished = async () => {}, onStarted = async () => {}, onGenerated = async () => {},
-    now = Date.now, token = randomUUID(), faceBuilder}) {
+    now = Date.now, token = randomUUID(), faceBuilder, jaliFace}) {
     this.input = input; this.profile = profile; this.current = current; this.signal = signal;
     this.readControl = readControl; this.writeState = writeState; this.writeReply = writeReply;
     this.onPublished = onPublished; this.onStarted = onStarted; this.onGenerated = onGenerated;
-    this.faceBuilder = faceBuilder || ((snapshot, input) => buildProviderFacialTimeline(snapshot, input));
+    this.faceBuilder = faceBuilder || ((snapshot, input, jali) => buildProviderFacialTimeline(snapshot, input, jali));
+    // Optional game-trained model on an analysis copy of the same PCM. The
+    // track layout is fixed for the whole stream; provider poses remain the
+    // fallback wherever the model has no coverage, and its expressions stay.
+    this.jaliFace = jaliFace; this.pcmFrames = 0;
+    signal?.addEventListener('abort', () => this.dropModel(), {once: true});
     this.now = now; this.token = token;
     this.receivedFrames = 0; this.position = 0; this.controlSequence = -1;
     this.published = false; this.started = false; this.generated = false; this.ended = false;
   }
 
-  get options() { return {token: this.token, onFrame: snapshot => this.frame(snapshot)}; }
+  get options() { return {token: this.token, onFrame: snapshot => this.frame(snapshot), pcmCursor: () => this.pcmCursor()}; }
+
+  // Next analysis frame wanted from the renderer, or undefined (no model).
+  pcmCursor() { return this.model && !this.model.failed && !this.modelFinished ? this.pcmFrames : undefined; }
+
+  dropModel() { this.model?.close(); this.model = null; this.modelDropped = true; }
+
+  feedModel(snapshot) {
+    if (!this.jaliFace || this.modelDropped) return;
+    try {
+      if (!this.model) { this.model = this.jaliFace.begin(snapshot.sampleRate); this.model.onUpdate = () => { this.modelRevision = (this.modelRevision || 0) + 1; }; }
+      if (snapshot.pcm !== undefined) {
+        const pcm = decodeAnalysisPcm(snapshot.pcm, this.pcmFrames);
+        if (this.pcmFrames + pcm.length > snapshot.receivedFrames) throw Error('Analysis PCM exceeds the renderer');
+        this.model.push(pcm); this.pcmFrames += pcm.length;
+      }
+      if (snapshot.sourceComplete && !this.modelFinished && this.pcmFrames === snapshot.receivedFrames) {
+        this.model.finish(); this.modelFinished = true;
+      }
+    } catch { this.dropModel(); }
+  }
+
+  jaliState(duration) {
+    if (!this.jaliFace) return undefined;
+    const frames = this.model && !this.model.failed ? this.model.frames : null;
+    const covered = frames ? Math.min(duration, frames.coveredSeconds()) : 0;
+    if (frames && this.modelStart === undefined && covered > this.position + JALI_LEAD_SECONDS) this.modelStart = this.position;
+    return {frames, covered, start: this.modelStart ?? Infinity, position: this.position};
+  }
 
   matches(value) {
     return value?.version === 1 && value.id === this.token
@@ -97,9 +132,13 @@ export class ConvaiContinuousSpeech {
       return quiet();
     }
 
-    const faceKey = `${snapshot.faces?.length || 0}:${snapshot.receivedFrames}:${snapshot.sourceComplete}:${snapshot.face?.revision || 0}`;
+    this.feedModel(snapshot);
+    const jali = this.jaliState(duration);
+    const faceKey = `${snapshot.faces?.length || 0}:${snapshot.receivedFrames}:${snapshot.sourceComplete}:${snapshot.face?.revision || 0}`
+      + (jali ? `:${this.modelRevision || 0}:${jali.start}:${jali.position >= jali.start && jali.position < jali.covered}` : '');
     if (faceKey !== this.faceKey) {
-      this.face = this.faceBuilder({...snapshot, duration, complete: snapshot.sourceComplete}, this.input);
+      const {pcm: _pcm, ...view} = snapshot;
+      this.face = this.faceBuilder({...view, duration, complete: snapshot.sourceComplete}, this.input, jali);
       this.faceKey = faceKey;
     }
     const document = {version: 1, id: this.token, requestId: this.input.requestId,
@@ -130,12 +169,13 @@ export class ConvaiContinuousSpeech {
       await this.onGenerated(snapshot.text); this.generated = true;
     }
     this.last = document;
-    if (snapshot.ended) { this.ended = true; return quiet(); }
+    if (snapshot.ended) { this.ended = true; this.model?.close(); return quiet(); }
     if (!await this.valid()) throw Error('Continuous speech owner changed');
     return this.control();
   }
 
   async fail() {
+    this.dropModel();
     if (!this.published || !await this.valid()) return;
     await this.writeState({...this.last, version: 1, id: this.token,
       requestId: this.input.requestId, generation: this.input.generation, entity: this.input.entity,

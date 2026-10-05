@@ -23,14 +23,16 @@ const CONVAI_CONNECT_URL = 'https://realtime-api.convai.com/connect';
 // This is a transport ceiling, not a larger utterance/facial admission limit.
 export const CONTINUOUS_SNAPSHOT_JSON_LIMIT = 32 * 1024 * 1024;
 
-export async function continuousSnapshotForHost(page, token, signal) {
+export async function continuousSnapshotForHost(page, token, signal, pcmFrom) {
   // Playwright recursively encodes every number in a returned object. Passing
   // the existing public snapshot as one JSON string avoids that cost without
   // changing a coefficient, PCM packet, device clock or ownership field.
-  const raw = await abortable(page.evaluate(token => {
-    const value = window.convaiRealtime.continuousSnapshot(token);
+  // pcmFrom optionally requests the facial model's next analysis PCM slice.
+  if (pcmFrom !== undefined && (!Number.isSafeInteger(pcmFrom) || pcmFrom < 0)) pcmFrom = undefined;
+  const raw = await abortable(page.evaluate(({token, pcmFrom}) => {
+    const value = window.convaiRealtime.continuousSnapshot(token, pcmFrom);
     return value == null ? null : JSON.stringify(value);
-  }, token), signal);
+  }, {token, pcmFrom}), signal);
   if (raw == null) return null;
   if (typeof raw !== 'string' || raw.length > CONTINUOUS_SNAPSHOT_JSON_LIMIT
       || Buffer.byteLength(raw, 'utf8') > CONTINUOUS_SNAPSHOT_JSON_LIMIT)
@@ -222,7 +224,7 @@ export class RealtimeHost {
     if (signal?.aborted) cancel();
     const check = () => { throwIfCancelled(controller.signal); if (!current()) throw cancelled(); };
     let settled = false;
-    const snapshot = () => continuousSnapshotForHost(page, token, controller.signal);
+    const snapshot = () => continuousSnapshotForHost(page, token, controller.signal, liveSpeech.pcmCursor?.());
     const request = Promise.resolve().then(() => {
       check();
       return page.evaluate(({config, method}) => window.convaiRealtime[method](config),

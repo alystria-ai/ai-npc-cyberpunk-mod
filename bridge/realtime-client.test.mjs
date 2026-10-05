@@ -5,6 +5,7 @@ import {runInNewContext} from 'node:vm';
 import {journalContext} from './quest-context.mjs';
 import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';
 import {ConvaiDataAudio} from './convai-data-audio.mjs';
+import {AnalysisPcm} from './analysis-pcm.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
 import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
 
@@ -13,6 +14,7 @@ const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), '
   .replace("import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';", '')
   .replace("import {ConvaiDataAudio} from './convai-data-audio.mjs';", '')
   .replace("import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';", '')
+  .replace("import {AnalysisPcm} from './analysis-pcm.mjs';", '')
   .replace("import {ConvaiEmotion} from './convai-emotion.mjs';", '')
   .replace("import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';", '');
 const flush = () => new Promise(done => setImmediate(done));
@@ -86,7 +88,7 @@ function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, tim
   class ForbiddenAudio { constructor() { throw Error('Browser audio recapture must not be used'); } }
   const window = {__convaiAudioChunk: emitAudio, __convaiCompanionAction: onCompanionAction};
   runInNewContext(source, {ConvaiClient: Client, AudioContext: ForbiddenAudio, AudioWorkletNode: ForbiddenAudio,
-    endUserOptions, transportKey, SessionBindings, ConvaiDataAudio, ConvaiEmotion, TextDecoder, TextEncoder,
+    endUserOptions, transportKey, SessionBindings, ConvaiDataAudio, AnalysisPcm, ConvaiEmotion, TextDecoder, TextEncoder,
     CompanionActionWindow, publishCompanionActionContext, chauffeurActionName,
     ContinuousPcmPlayer: player || ForbiddenAudio,
     window, performance, setTimeout: timers?.setTimeout ?? setTimeout, clearTimeout: timers?.clearTimeout ?? clearTimeout,
@@ -1254,6 +1256,12 @@ test('continuous playback receives owned original PCM before terminal, preserves
   assert.equal(instances[0].totalFrames, 3200); assert.equal(settled, false);
   const progress = api.continuousSnapshot('audible-turn');
   assert.equal(progress.sourceComplete, true); assert.equal(progress.faces.length, 24);
+  assert.equal(progress.pcm, undefined, 'analysis PCM is returned only when requested');
+  // The bridge's facial model reads an analysis copy by absolute frame offset.
+  const analysis = api.continuousSnapshot('audible-turn', 1000).pcm;
+  assert.equal(analysis.offsetFrames, 1000); assert.equal(analysis.frames, 2200);
+  assert.deepEqual(Buffer.from(analysis.data, 'base64'), data.samples.subarray(2000));
+  assert.equal(api.continuousSnapshot('audible-turn', 3200).pcm, undefined);
   assert.equal(progress.text, 'Hello V.'); assert.equal(progress.textComplete, true);
   assert.equal(JSON.stringify(progress).includes('test-key'), false);
   assert.equal(JSON.stringify(progress).includes(data.owner.response_id), false);
@@ -1263,6 +1271,7 @@ test('continuous playback receives owned original PCM before terminal, preserves
   assert.equal(result.continuous, true); assert.equal(Object.hasOwn(result, 'audio'), false);
   assert.equal(result.faces.length, 24); assert.equal(instances[0].stopped, 'completed');
   assert.equal(api.continuousSnapshot('audible-turn').ended, true);
+  assert.equal(api.continuousSnapshot('audible-turn', 3000).pcm.frames, 200, 'the drained turn still serves its tail');
   await api.close();
 });
 

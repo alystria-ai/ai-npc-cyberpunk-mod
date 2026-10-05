@@ -28,14 +28,20 @@ test('snapshot transport returns one JSON string and preserves the public numeri
     faces:[{at:1/60,values:Array.from({length:61},(_,index)=>index/100)}],
     state:'playing',ended:false,text:'Offline test',error:null};
   let serialized;
+  const requests=[];
   const page={evaluate:async(fn,payload)=>{
-    assert.equal(payload,'offline');
+    assert.equal(payload.token,'offline');
     serialized=runInNewContext(`(${fn.toString()})(payload)`,{
-      window:{convaiRealtime:{continuousSnapshot:()=>snapshot}},payload});
+      window:{convaiRealtime:{continuousSnapshot:(token,pcmFrom)=>{requests.push([token,pcmFrom]);return snapshot;}}},payload});
     assert.equal(typeof serialized,'string','large facial values must bypass the recursive object serializer');
     return serialized;
   }};
   assert.deepEqual(await continuousSnapshotForHost(page,'offline'),snapshot);
+  // The facial model's analysis cursor is forwarded only as a safe integer.
+  await continuousSnapshotForHost(page,'offline',undefined,4800);
+  await continuousSnapshotForHost(page,'offline',undefined,-1);
+  await continuousSnapshotForHost(page,'offline',undefined,1.5);
+  assert.deepEqual(requests,[['offline',undefined],['offline',4800],['offline',undefined],['offline',undefined]]);
 });
 
 test('absent continuous snapshots remain absent through JSON transport',async()=>{
