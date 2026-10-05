@@ -1,0 +1,2929 @@
+{
+  "version": 1,
+  "id": "cyberpunk-native-city-contacts-20261005",
+  "revision": 1,
+  "gameVersions": [
+    "2.31"
+  ],
+  "profileKeys": [
+    "blue-moon",
+    "chang-hoon-nam",
+    "dakota-smith",
+    "iris-tanner",
+    "jim-jarry",
+    "life-coach",
+    "lizzy-wizzy",
+    "rachel-casich",
+    "shank",
+    "steven-santos"
+  ],
+  "sources": [
+    {
+      "id": "cc5.source.9df80f05c553",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\minor_quests\\mq028\\scenes\\mq028_03_resolution.scene (scene-evidence/cc5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "cc5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: base\\journal\\cooked_journal.journal (scene-evidence/judy-river-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "cc5.source.9435c33e28b5",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq017\\scenes\\sq017_10_us_crack_intro.scene (scene-evidence/silverhand-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "cc5.source.c67fa477785c",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\minor_quests\\mq019\\scenes\\mq019_06_finale.scene (scene-evidence/city-contacts-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "cc5.source.48d8351e7b64",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq023\\scenes\\sq023_11_01a_after_chase.scene (scene-evidence/cc5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "cc5.source.17a28a945dd0",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq023\\scenes\\sq023_07_restaurant.scene (scene-evidence/cc5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "cc5.source.717add9468dc",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq023\\scenes\\sq023_10_bd_studio.scene (scene-evidence/cc5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "cc5.source.1e1b46ecb183",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\minor_quests\\mq056\\phases\\mq056_00_main.questphase (scene-evidence/cc5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "cc5.source.54273b1b7a16",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_08\\scenes\\sts_ep1_08_client_ending.scene (scene-evidence/pg5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "cc5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\journal\\cooked_journal.journal (scene-evidence/priority-phantom-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "cc5.source.78b4c99da35e",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_08\\phases\\sts_ep1_08_phase.questphase (scene-evidence/pg5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "cc5.source.03189a6fb22b",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\minor_quests\\mq303\\scenes\\mq303_03_finale.scene (scene-evidence/pg5-04); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "cc5.source.fba115819d8d",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\minor_quests\\mq303\\mq303.questphase (scene-evidence/pg5-03); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "cc5.source.8c27e4a097da",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\prologue\\q000\\scenes\\q000_corpo_03b_fly_to_lizzies.scene (scene-evidence/cc5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "cc5.source.5afaf047e0b3",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\main_quests\\q305\\scenes\\q305_02d_chang.scene (scene-evidence/priority-phantom-20261004-extra); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "cc5.source.9480e4dbf2c9",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_06\\phases\\sts_bls_ina_06_ow.questphase (scene-evidence/city-contacts-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "cc5.ev.mq028.jail-choice",
+      "sourceId": "cc5.source.9df80f05c553",
+      "kind": "native",
+      "locator": "mq028_03_resolution: after the actual stalker is stopped (Blue Moon: \"How'd you know it was her?\"), 06_decide activates; choice 399 \"Maybe we'd better leave it to the badges.\" drives journal node 426 (06c_jail -> Succeeded) and node 425 (06b_kill -> Inactive). If V later kills her, node 420 sets 06b_kill Succeeded and node 423 resets 06c_jail to Inactive.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/minor_quests/mq028/scenes/mq028_03_resolution.scene.json",
+        "assetSha256": "d14373cf1fca388f3958d6f3457164c9907ee6fe92f1f19488cb2974e8eafa00",
+        "jsonSha256": "47f4c4dde40c053d63f6bb58d192051405782d7cea6326e84ed7ec3a5ba7e3cf",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/minor_quests/mq028/scenes/mq028_03_resolution.scene.json",
+          "assetSha256": "d14373cf1fca388f3958d6f3457164c9907ee6fe92f1f19488cb2974e8eafa00",
+          "jsonSha256": "47f4c4dde40c053d63f6bb58d192051405782d7cea6326e84ed7ec3a5ba7e3cf",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/minor_quests/mq028/scenes/mq028_03_resolution.scene.json",
+          "assetSha256": "d14373cf1fca388f3958d6f3457164c9907ee6fe92f1f19488cb2974e8eafa00",
+          "jsonSha256": "47f4c4dde40c053d63f6bb58d192051405782d7cea6326e84ed7ec3a5ba7e3cf",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/minor_quests/mq028/scenes/mq028_03_resolution.scene.json",
+          "assetSha256": "d14373cf1fca388f3958d6f3457164c9907ee6fe92f1f19488cb2974e8eafa00",
+          "jsonSha256": "47f4c4dde40c053d63f6bb58d192051405782d7cea6326e84ed7ec3a5ba7e3cf",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.mq028.kill-route",
+      "sourceId": "cc5.source.9df80f05c553",
+      "kind": "native",
+      "locator": "mq028_03_resolution: condition 397 (character Herring_Girl = #mq028_com_stalker_park, killed=1 defeated=0 unconscious=0) fires cut 220 -> section 229 (V: \"This.\") -> journal node 420 sets 06b_kill \"Kill the stalker.\" Succeeded and node 423 sets 06c_jail Inactive. Only reachable during the fate decision, so it records a kill, not a takedown.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/minor_quests/mq028/scenes/mq028_03_resolution.scene.json",
+        "assetSha256": "d14373cf1fca388f3958d6f3457164c9907ee6fe92f1f19488cb2974e8eafa00",
+        "jsonSha256": "47f4c4dde40c053d63f6bb58d192051405782d7cea6326e84ed7ec3a5ba7e3cf",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/minor_quests/mq028/scenes/mq028_03_resolution.scene.json",
+          "assetSha256": "d14373cf1fca388f3958d6f3457164c9907ee6fe92f1f19488cb2974e8eafa00",
+          "jsonSha256": "47f4c4dde40c053d63f6bb58d192051405782d7cea6326e84ed7ec3a5ba7e3cf",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/minor_quests/mq028/scenes/mq028_03_resolution.scene.json",
+          "assetSha256": "d14373cf1fca388f3958d6f3457164c9907ee6fe92f1f19488cb2974e8eafa00",
+          "jsonSha256": "47f4c4dde40c053d63f6bb58d192051405782d7cea6326e84ed7ec3a5ba7e3cf",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/minor_quests/mq028/scenes/mq028_03_resolution.scene.json",
+          "assetSha256": "d14373cf1fca388f3958d6f3457164c9907ee6fe92f1f19488cb2974e8eafa00",
+          "jsonSha256": "47f4c4dde40c053d63f6bb58d192051405782d7cea6326e84ed7ec3a5ba7e3cf",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.journal.e5f264be2567",
+      "sourceId": "cc5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/minor_quest/mq028_stalker/mq028_stalker/06c_jail (gameJournalQuestObjective): \"Tell Blue Moon that the stalker should go to prison.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/4/Data/entries/28/Data/entries/0/Data/entries/9/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "06c_jail"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/minor_quests/mq028/scenes/mq028_03_resolution.scene.json",
+          "assetSha256": "d14373cf1fca388f3958d6f3457164c9907ee6fe92f1f19488cb2974e8eafa00",
+          "jsonSha256": "47f4c4dde40c053d63f6bb58d192051405782d7cea6326e84ed7ec3a5ba7e3cf",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.journal.c0ffa0e3db75",
+      "sourceId": "cc5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/minor_quest/mq028_stalker/mq028_stalker/06b_kill (gameJournalQuestObjective): \"Kill the stalker.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/4/Data/entries/28/Data/entries/0/Data/entries/8/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "06b_kill"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/minor_quests/mq028/scenes/mq028_03_resolution.scene.json",
+          "assetSha256": "d14373cf1fca388f3958d6f3457164c9907ee6fe92f1f19488cb2974e8eafa00",
+          "jsonSha256": "47f4c4dde40c053d63f6bb58d192051405782d7cea6326e84ed7ec3a5ba7e3cf",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.sq017.reconciled",
+      "sourceId": "cc5.source.9435c33e28b5",
+      "kind": "native",
+      "locator": "sq017_10_us_crack_intro (actors kerry, blue_moon, purple_force, red_menace): section 122 (Kerry: \"You girls... You're all right\" / blue_moon: \"No biggie, Kerry-san\") is the reconciliation; its photo choice 583 options 1/2 reach writer 547 sq017_selfie=1. The bit is used only as a sufficient marker that reconciliation happened.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+        "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+        "jsonSha256": "4316ff0ab011697af33b637b6d7ae299933c07a1c0ff3d0e992b48653cdc0a68",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/53/Data/questNode/Data/type/Data"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonSha256": "4316ff0ab011697af33b637b6d7ae299933c07a1c0ff3d0e992b48653cdc0a68",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/56/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonSha256": "4316ff0ab011697af33b637b6d7ae299933c07a1c0ff3d0e992b48653cdc0a68",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.sq017.coerced",
+      "sourceId": "cc5.source.9435c33e28b5",
+      "kind": "native",
+      "locator": "sq017_10_us_crack_intro: threat count sq017_rough>=2 (condition 355) routes to section 362 (Kerry: \"Tell 'em the concert's off\" / blue_moon: \"Cancel the show... Just do it\"), then departure section 485 and writer 378 sq017_us_cracks_no_deal=1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+        "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+        "jsonSha256": "4316ff0ab011697af33b637b6d7ae299933c07a1c0ff3d0e992b48653cdc0a68",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data/questNode/Data/type/Data"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonSha256": "4316ff0ab011697af33b637b6d7ae299933c07a1c0ff3d0e992b48653cdc0a68",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonSha256": "4316ff0ab011697af33b637b6d7ae299933c07a1c0ff3d0e992b48653cdc0a68",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.mq019.motel-room",
+      "sourceId": "cc5.source.c67fa477785c",
+      "kind": "native",
+      "locator": "mq019_06_finale (actors Lizzy_Wizzy, Liam): at scene start trigger 199 sets 06_finale/02_go_to_notell Succeeded (node 19) and activates \"Talk to Lizzy\"; the conversation follows directly over Liam's body (choice 7 \"Eh, got what was coming to him / What's done is done\", section 11 \"So, this is about the body, right?\").",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_06_finale.scene.json",
+        "assetSha256": "1ebcb660189727f33e5838d8e5a7db6f9e53db7571d2d3169c9e21f3067509ed",
+        "jsonSha256": "28e1bfa37857012f1133a5c54496abe6317a050d81e2aa7acf89eedc552c0efb",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_06_finale.scene.json",
+          "assetSha256": "1ebcb660189727f33e5838d8e5a7db6f9e53db7571d2d3169c9e21f3067509ed",
+          "jsonSha256": "28e1bfa37857012f1133a5c54496abe6317a050d81e2aa7acf89eedc552c0efb",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_06_finale.scene.json",
+          "assetSha256": "1ebcb660189727f33e5838d8e5a7db6f9e53db7571d2d3169c9e21f3067509ed",
+          "jsonSha256": "28e1bfa37857012f1133a5c54496abe6317a050d81e2aa7acf89eedc552c0efb",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_06_finale.scene.json",
+          "assetSha256": "1ebcb660189727f33e5838d8e5a7db6f9e53db7571d2d3169c9e21f3067509ed",
+          "jsonSha256": "28e1bfa37857012f1133a5c54496abe6317a050d81e2aa7acf89eedc552c0efb",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.journal.4e435fe9f1e4",
+      "sourceId": "cc5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/minor_quest/mq019_paparazzi/06_finale/02_go_to_notell (gameJournalQuestObjective): \"Go to the motel room.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/4/Data/entries/53/Data/entries/4/Data/entries/1/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "02_go_to_notell"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_06_finale.scene.json",
+          "assetSha256": "1ebcb660189727f33e5838d8e5a7db6f9e53db7571d2d3169c9e21f3067509ed",
+          "jsonSha256": "28e1bfa37857012f1133a5c54496abe6317a050d81e2aa7acf89eedc552c0efb",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.sq023.join",
+      "sourceId": "cc5.source.48d8351e7b64",
+      "kind": "native",
+      "locator": "sq023_11_01a_after_chase (actors Rachel, Vasquez, Joshua, Bill_jablonsky): section 683 (V: \"All right. I'll go with you.\" / Rachel: \"Ugh, move it. We're running late.\") is the only route setting hook/14_join_joshua Succeeded (node 18); other nodes only activate it or fail it.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_11_01a_after_chase.scene.json",
+        "assetSha256": "a40faab05cf8fc9475ad1d37469814a0db1c1f1a063f0bc341b0d94fd633cba0",
+        "jsonSha256": "a67d25dd2a9b920b823f43e1d80d527d2c3681526c3c772a3bbcf19e13b13717",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_11_01a_after_chase.scene.json",
+          "assetSha256": "a40faab05cf8fc9475ad1d37469814a0db1c1f1a063f0bc341b0d94fd633cba0",
+          "jsonSha256": "a67d25dd2a9b920b823f43e1d80d527d2c3681526c3c772a3bbcf19e13b13717",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.sq023.neutralize",
+      "sourceId": "cc5.source.48d8351e7b64",
+      "kind": "native",
+      "locator": "sq023_11_01a_after_chase: XOR 5031 joins condition 2424 (joshua killed=1) and the combat route 5025 that follows sq032_joshua_shot; it reaches telemetry 4783 and journal node 2428 setting hook/kill_joshua \"Neutralize Joshua Stephenson.\" Succeeded. Neutralized does not by itself prove death.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_11_01a_after_chase.scene.json",
+        "assetSha256": "a40faab05cf8fc9475ad1d37469814a0db1c1f1a063f0bc341b0d94fd633cba0",
+        "jsonSha256": "a67d25dd2a9b920b823f43e1d80d527d2c3681526c3c772a3bbcf19e13b13717",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/206/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_11_01a_after_chase.scene.json",
+          "assetSha256": "a40faab05cf8fc9475ad1d37469814a0db1c1f1a063f0bc341b0d94fd633cba0",
+          "jsonSha256": "a67d25dd2a9b920b823f43e1d80d527d2c3681526c3c772a3bbcf19e13b13717",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/202/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_11_01a_after_chase.scene.json",
+          "assetSha256": "a40faab05cf8fc9475ad1d37469814a0db1c1f1a063f0bc341b0d94fd633cba0",
+          "jsonSha256": "a67d25dd2a9b920b823f43e1d80d527d2c3681526c3c772a3bbcf19e13b13717",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/395/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_11_01a_after_chase.scene.json",
+          "assetSha256": "a40faab05cf8fc9475ad1d37469814a0db1c1f1a063f0bc341b0d94fd633cba0",
+          "jsonSha256": "a67d25dd2a9b920b823f43e1d80d527d2c3681526c3c772a3bbcf19e13b13717",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/351/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.journal.12ab1eb7632c",
+      "sourceId": "cc5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/side_quest/sq023_hit_order/hook/14_join_joshua (gameJournalQuestObjective): \"Get in the NCPD vehicle.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/31/Data/entries/0/Data/entries/14/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "14_join_joshua"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_11_01a_after_chase.scene.json",
+          "assetSha256": "a40faab05cf8fc9475ad1d37469814a0db1c1f1a063f0bc341b0d94fd633cba0",
+          "jsonSha256": "a67d25dd2a9b920b823f43e1d80d527d2c3681526c3c772a3bbcf19e13b13717",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.journal.883800d84e25",
+      "sourceId": "cc5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/side_quest/sq023_hit_order/hook/kill_joshua (gameJournalQuestObjective): \"Neutralize Joshua Stephenson.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/31/Data/entries/0/Data/entries/9/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "kill_joshua"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_11_01a_after_chase.scene.json",
+          "assetSha256": "a40faab05cf8fc9475ad1d37469814a0db1c1f1a063f0bc341b0d94fd633cba0",
+          "jsonSha256": "a67d25dd2a9b920b823f43e1d80d527d2c3681526c3c772a3bbcf19e13b13717",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/206/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.fact.sq023_v_takes_bribe.63900e3efac7",
+      "sourceId": "cc5.source.17a28a945dd0",
+      "kind": "native",
+      "locator": "sq023_07_restaurant: Rachel's buyout choice 655 option 1 \"Fine.\" -> section 656 (V: \"Fine. Deal.\" / Rachel: \"Very wise choice.\") -> writer 992 sq023_v_takes_bribe=1. Single, linear offer.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_07_restaurant.scene.json",
+        "assetSha256": "e660d69d97fc854f93b7326f4b656d6a28f5dd0874f4b63407806f610e5dbd50",
+        "jsonSha256": "bd41a94e923f80d262b286923a01594d721d4f1b299713bf6b362b33942582d7",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/82/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq023_v_takes_bribe",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.fact.sq023_v_takes_corpo_bribe.668fe464ff5d",
+      "sourceId": "cc5.source.17a28a945dd0",
+      "kind": "native",
+      "locator": "sq023_07_restaurant: choice 655 option 2 \"Pay me more and I will.\" -> section 689 (Rachel: \"Fine! Triple... and you disappear\") -> writer 995 sq023_v_takes_corpo_bribe=1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_07_restaurant.scene.json",
+        "assetSha256": "e660d69d97fc854f93b7326f4b656d6a28f5dd0874f4b63407806f610e5dbd50",
+        "jsonSha256": "bd41a94e923f80d262b286923a01594d721d4f1b299713bf6b362b33942582d7",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/83/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq023_v_takes_corpo_bribe",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.fact.sq023_telem_no_bribe.2b8abd9c1390",
+      "sourceId": "cc5.source.17a28a945dd0",
+      "kind": "native",
+      "locator": "sq023_07_restaurant: choice 655 option 0 \"No way.\" -> section 657 (V: \"My answer's no.\") and writer 5269 sq023_telem_no_bribe=1; the other two options never reach it.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_07_restaurant.scene.json",
+        "assetSha256": "e660d69d97fc854f93b7326f4b656d6a28f5dd0874f4b63407806f610e5dbd50",
+        "jsonSha256": "bd41a94e923f80d262b286923a01594d721d4f1b299713bf6b362b33942582d7",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/618/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq023_telem_no_bribe",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.sq023.buyout-choice",
+      "sourceId": "cc5.source.17a28a945dd0",
+      "kind": "native",
+      "locator": "sq023_07_restaurant choice 655 (\"No way.\" | \"Fine.\" | \"Pay me more and I will.\") follows Rachel's pitch (section 749) and is the only buyout offer; each option writes its own marker.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_07_restaurant.scene.json",
+        "assetSha256": "e660d69d97fc854f93b7326f4b656d6a28f5dd0874f4b63407806f610e5dbd50",
+        "jsonSha256": "bd41a94e923f80d262b286923a01594d721d4f1b299713bf6b362b33942582d7",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_07_restaurant.scene.json",
+          "assetSha256": "e660d69d97fc854f93b7326f4b656d6a28f5dd0874f4b63407806f610e5dbd50",
+          "jsonSha256": "bd41a94e923f80d262b286923a01594d721d4f1b299713bf6b362b33942582d7",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_07_restaurant.scene.json",
+          "assetSha256": "e660d69d97fc854f93b7326f4b656d6a28f5dd0874f4b63407806f610e5dbd50",
+          "jsonSha256": "bd41a94e923f80d262b286923a01594d721d4f1b299713bf6b362b33942582d7",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_07_restaurant.scene.json",
+          "assetSha256": "e660d69d97fc854f93b7326f4b656d6a28f5dd0874f4b63407806f610e5dbd50",
+          "jsonSha256": "bd41a94e923f80d262b286923a01594d721d4f1b299713bf6b362b33942582d7",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.sq023.studio-choice",
+      "sourceId": "cc5.source.717add9468dc",
+      "kind": "native",
+      "locator": "sq023_10_bd_studio (actors Joshua, Rachel, Vasquez): choice 243 \"Fine. I'll do it.\" (section 355, telemetry 4083) | \"I won't do it.\" (section 353 \"just stay at my side\", telemetry 4080) | \"Not about to even watch.\" (section 544 -> writer 597 sq023_crucifixion_refused=1, leave_studio).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_10_bd_studio.scene.json",
+        "assetSha256": "a6cd77e8f91f3d2cd3aebad35d844e1e46fc61f805a57b40754e07c8122fcaa9",
+        "jsonSha256": "92a7285b664c359fbb0febf88f53c8b8f422f0f4b6e97218826ad2b6167c3d23",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_10_bd_studio.scene.json",
+          "assetSha256": "a6cd77e8f91f3d2cd3aebad35d844e1e46fc61f805a57b40754e07c8122fcaa9",
+          "jsonSha256": "92a7285b664c359fbb0febf88f53c8b8f422f0f4b6e97218826ad2b6167c3d23",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_10_bd_studio.scene.json",
+          "assetSha256": "a6cd77e8f91f3d2cd3aebad35d844e1e46fc61f805a57b40754e07c8122fcaa9",
+          "jsonSha256": "92a7285b664c359fbb0febf88f53c8b8f422f0f4b6e97218826ad2b6167c3d23",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_10_bd_studio.scene.json",
+          "assetSha256": "a6cd77e8f91f3d2cd3aebad35d844e1e46fc61f805a57b40754e07c8122fcaa9",
+          "jsonSha256": "92a7285b664c359fbb0febf88f53c8b8f422f0f4b6e97218826ad2b6167c3d23",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/84/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.sq023.nail-done",
+      "sourceId": "cc5.source.717add9468dc",
+      "kind": "native",
+      "locator": "sq023_10_bd_studio: journal node 817 sets objectives/nail \"Nail Joshua to the cross.\" Succeeded only after V's [Hammer nail] choice (section 977); quitting (\"I... I can't do this\") sets it Failed at node 944.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_10_bd_studio.scene.json",
+        "assetSha256": "a6cd77e8f91f3d2cd3aebad35d844e1e46fc61f805a57b40754e07c8122fcaa9",
+        "jsonSha256": "92a7285b664c359fbb0febf88f53c8b8f422f0f4b6e97218826ad2b6167c3d23",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/126/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_10_bd_studio.scene.json",
+          "assetSha256": "a6cd77e8f91f3d2cd3aebad35d844e1e46fc61f805a57b40754e07c8122fcaa9",
+          "jsonSha256": "92a7285b664c359fbb0febf88f53c8b8f422f0f4b6e97218826ad2b6167c3d23",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/157/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.sq023.observer",
+      "sourceId": "cc5.source.717add9468dc",
+      "kind": "native",
+      "locator": "sq023_10_bd_studio: at Joshua's death condition 857 (sq023_v_nails > 0) routes True to joshua_on_the_cross and False to journal node 854 objectives/participate \"Stay with Joshua until he dies.\" Succeeded, i.e. V stayed without having agreed to nail.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_10_bd_studio.scene.json",
+        "assetSha256": "a6cd77e8f91f3d2cd3aebad35d844e1e46fc61f805a57b40754e07c8122fcaa9",
+        "jsonSha256": "92a7285b664c359fbb0febf88f53c8b8f422f0f4b6e97218826ad2b6167c3d23",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/132/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_10_bd_studio.scene.json",
+          "assetSha256": "a6cd77e8f91f3d2cd3aebad35d844e1e46fc61f805a57b40754e07c8122fcaa9",
+          "jsonSha256": "92a7285b664c359fbb0febf88f53c8b8f422f0f4b6e97218826ad2b6167c3d23",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/133/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.fact.sq023_telem_bd_yes_nailing.c0378b3016dc",
+      "sourceId": "cc5.source.717add9468dc",
+      "kind": "native",
+      "locator": "sq023_10_bd_studio: written only from choice 243 option 0 \"Fine. I'll do it.\" (V: \"All right, Joshua. I'll do it.\").",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_10_bd_studio.scene.json",
+        "assetSha256": "a6cd77e8f91f3d2cd3aebad35d844e1e46fc61f805a57b40754e07c8122fcaa9",
+        "jsonSha256": "92a7285b664c359fbb0febf88f53c8b8f422f0f4b6e97218826ad2b6167c3d23",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/533/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq023_telem_bd_yes_nailing",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.fact.sq023_telem_bd_not_nailing.4ffaab9dd36d",
+      "sourceId": "cc5.source.717add9468dc",
+      "kind": "native",
+      "locator": "sq023_10_bd_studio: written only from choice 243 option 1 \"I won't do it.\" (V: \"Nuh-uh, no way.\" / Joshua: \"Then please, just stay at my side.\").",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_10_bd_studio.scene.json",
+        "assetSha256": "a6cd77e8f91f3d2cd3aebad35d844e1e46fc61f805a57b40754e07c8122fcaa9",
+        "jsonSha256": "92a7285b664c359fbb0febf88f53c8b8f422f0f4b6e97218826ad2b6167c3d23",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/532/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq023_telem_bd_not_nailing",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.fact.sq023_crucifixion_refused.e1940c0c8ab8",
+      "sourceId": "cc5.source.717add9468dc",
+      "kind": "native",
+      "locator": "sq023_10_bd_studio: written only after choice 243 option 2 \"Not about to even watch.\" (section 544), followed by leave_studio.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_10_bd_studio.scene.json",
+        "assetSha256": "a6cd77e8f91f3d2cd3aebad35d844e1e46fc61f805a57b40754e07c8122fcaa9",
+        "jsonSha256": "92a7285b664c359fbb0febf88f53c8b8f422f0f4b6e97218826ad2b6167c3d23",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/88/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq023_crucifixion_refused",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.journal.d9bfe54164ae",
+      "sourceId": "cc5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/side_quest/sq023_real_passion/objectives/nail (gameJournalQuestObjective): \"Nail Joshua to the cross.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/26/Data/entries/0/Data/entries/8/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "nail"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_10_bd_studio.scene.json",
+          "assetSha256": "a6cd77e8f91f3d2cd3aebad35d844e1e46fc61f805a57b40754e07c8122fcaa9",
+          "jsonSha256": "92a7285b664c359fbb0febf88f53c8b8f422f0f4b6e97218826ad2b6167c3d23",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/126/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.journal.de152a7815b4",
+      "sourceId": "cc5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/side_quest/sq023_real_passion/objectives/participate (gameJournalQuestObjective): \"Stay with Joshua until he dies.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/26/Data/entries/0/Data/entries/11/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "participate"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_10_bd_studio.scene.json",
+          "assetSha256": "a6cd77e8f91f3d2cd3aebad35d844e1e46fc61f805a57b40754e07c8122fcaa9",
+          "jsonSha256": "92a7285b664c359fbb0febf88f53c8b8f422f0f4b6e97218826ad2b6167c3d23",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/132/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.mq056.reply-routing",
+      "sourceId": "cc5.source.1e1b46ecb183",
+      "kind": "native",
+      "locator": "mq056_00_main hook graph: Jim Jarry's SMS chain (00_hi, 01_hook1, 01_hook2) activates choice group 02_response; pause 7 waits for 01_yes Succeeded and activates 03_answer_yes (\"See you on the track!\"), pause 8 waits for 02_no Succeeded and activates 03_answer_no.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-02/raw/base/base/quest/minor_quests/mq056/phases/mq056_00_main.questphase.json",
+        "assetSha256": "d78f482be3148377f80a30a56adc8ed07287d9f22d4d59b7f1aa1c57c1bf8273",
+        "jsonSha256": "ae8127e32114604fb5d4a8ddde372fd5afc6c66f1507fc815a1abd7d4b48dd0e",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/6/Data",
+        "expectedType": "questPauseConditionNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cc5-02/raw/base/base/quest/minor_quests/mq056/phases/mq056_00_main.questphase.json",
+          "assetSha256": "d78f482be3148377f80a30a56adc8ed07287d9f22d4d59b7f1aa1c57c1bf8273",
+          "jsonSha256": "ae8127e32114604fb5d4a8ddde372fd5afc6c66f1507fc815a1abd7d4b48dd0e",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/7/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.journal.b4d65f71d38e",
+      "sourceId": "cc5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/announcer_mq056/mq056_hook/02_response/01_yes (gameJournalPhoneChoiceEntry): \"You had me at burnt rubber. I'll do it.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/124/Data/entries/0/Data/entries/4/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneChoiceEntry",
+        "expected": {
+          "/id": "01_yes"
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.journal.038e95fc4578",
+      "sourceId": "cc5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/announcer_mq056/mq056_hook/02_response/02_no (gameJournalPhoneChoiceEntry): \"Nah, not lookin to lose my license\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/124/Data/entries/0/Data/entries/4/Data/entries/1/Data",
+        "expectedType": "gameJournalPhoneChoiceEntry",
+        "expected": {
+          "/id": "02_no"
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.fact.sts_ep1_08_biomonitor_ana.20087311822c",
+      "sourceId": "cc5.source.54273b1b7a16",
+      "kind": "native",
+      "locator": "sts_ep1_08_client_ending (actors Ana, steven): writer 652 follows \"[Hand over the biomonitor]\" (section 492, Ana: \"The data will make its way to every last agent\"); writer 649 follows \"[Leave the biomonitor]\" with Ana (\"Played my part. I'm out.\"). Both are in the agents' final meeting where Steven speaks.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+        "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+        "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_08_biomonitor_ana",
+          "/value": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "sts_ep1_08_biomonitor_ana",
+            "/value": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.fact.sts_ep1_08_biomonitor_destroyed.5e6acba6fef4",
+      "sourceId": "cc5.source.54273b1b7a16",
+      "kind": "native",
+      "locator": "sts_ep1_08_client_ending: choice 483 option 1 \"[Destroy the biomonitor] Sorry... I can't.\" -> section 491 (V: \"Steven's right. Too much risk\") -> item removal 486 -> writer 741. The quest phase also writes this fact at the drop point, so the rule pairs it with the meeting objective.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+        "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+        "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_08_biomonitor_destroyed",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.s08.destroy-in-meeting",
+      "sourceId": "cc5.source.54273b1b7a16",
+      "kind": "native",
+      "locator": "sts_ep1_08_client_ending: after Steven argues \"Ana, we have to destroy the monitor\" (section 564), choice 483 \"[Hand over the biomonitor] | [Destroy the biomonitor]\"; the destroy branch (491 -> 486 -> 741) then sets final_meeting/talk_with_the_agent Succeeded at node 516. The drop-point route never reaches this meeting.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+        "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+        "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.journal.83e8389362ae",
+      "sourceId": "cc5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/street_stories/sts_ep1_08/final_meeting/talk_with_the_agent (gameJournalQuestObjective): \"Talk to the agents.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/3/Data/entries/1/Data/entries/4/Data/entries/1/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "talk_with_the_agent"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.s08.drop-point",
+      "sourceId": "cc5.source.78b4c99da35e",
+      "kind": "native",
+      "locator": "sts_ep1_08_phase: after Steven's message ep1/contacts/steven_santos/sts_ep1_08_destroy_biomonitor/destroy_biomonitor (\"LEAVE THE BIOMON AT THE DROP POINT. Do NOT give it to Ana\") is read, read_message_from_steven succeeds and leave_biomonitor_droppoint activates; depositing it (biomonitor_target > 0) writes sts_ep1_08_biomonitor_destroyed=1 at this node and sets leave_biomonitor_droppoint Succeeded.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-01/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/phases/sts_ep1_08_phase.questphase.json",
+        "assetSha256": "53a5ddcc3b7ba81c2315229c9e59f496f43db66f7227e18a48ab7e0b70d3cf6f",
+        "jsonSha256": "4d05c1081d5a9dc79f982e8d39ad08d83dd458c9480a97c4baa7eda7b792387b",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/29/Data/phaseGraph/Data/nodes/41/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      }
+    },
+    {
+      "id": "cc5.ev.journal.a2f9f844cfb7",
+      "sourceId": "cc5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/street_stories/sts_ep1_08/final_meeting/leave_biomonitor_droppoint (gameJournalQuestObjective): \"Deposit the biomonitor in the fixer's drop point.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/3/Data/entries/1/Data/entries/4/Data/entries/3/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "leave_biomonitor_droppoint"
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.mq303.direction-choice",
+      "sourceId": "cc5.source.03189a6fb22b",
+      "kind": "native",
+      "locator": "mq303_03_finale (actors Shank, Tool, Lina_Malina): after V takes over as director (choice 2041, section 2043), choice 2033 offers \"Tell him that he's your sister.\" -> writer 2088 mq303_finale_sisters | \"Convince him that he's a clone created by the FIA.\" -> writer 2225 mq303_finale_cia | \"[Send Tool's letter] Here - your lines.\" -> writer 2409 mq303_finale_shock. mq303.questphase epilogue routes on exactly these three facts.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_03_finale.scene.json",
+        "assetSha256": "e4188bbec07025013391af15c700f397c76b95d26116a9f939fc071f9625eca6",
+        "jsonSha256": "69262414a17811c78c4020f36f52441bfd1d4f2970e6b6151ea869a01510de3d",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_03_finale.scene.json",
+          "assetSha256": "e4188bbec07025013391af15c700f397c76b95d26116a9f939fc071f9625eca6",
+          "jsonSha256": "69262414a17811c78c4020f36f52441bfd1d4f2970e6b6151ea869a01510de3d",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.fact.mq303_finale_sisters.9cadd70cf2f6",
+      "sourceId": "cc5.source.03189a6fb22b",
+      "kind": "native",
+      "locator": "mq303_03_finale: written only from choice 2033 option 0 \"Tell him that he's your sister.\"",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_03_finale.scene.json",
+        "assetSha256": "e4188bbec07025013391af15c700f397c76b95d26116a9f939fc071f9625eca6",
+        "jsonSha256": "69262414a17811c78c4020f36f52441bfd1d4f2970e6b6151ea869a01510de3d",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "mq303_finale_sisters",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.fact.mq303_finale_cia.ea9acbd3b384",
+      "sourceId": "cc5.source.03189a6fb22b",
+      "kind": "native",
+      "locator": "mq303_03_finale: written only from choice 2033 option 1 \"Convince him that he's a clone created by the FIA.\"",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_03_finale.scene.json",
+        "assetSha256": "e4188bbec07025013391af15c700f397c76b95d26116a9f939fc071f9625eca6",
+        "jsonSha256": "69262414a17811c78c4020f36f52441bfd1d4f2970e6b6151ea869a01510de3d",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/65/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "mq303_finale_cia",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.fact.mq303_finale_shock.349400e1a7a3",
+      "sourceId": "cc5.source.03189a6fb22b",
+      "kind": "native",
+      "locator": "mq303_03_finale: written only from choice 2033 option 2 \"[Send Tool's letter] Here - your lines.\"",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_03_finale.scene.json",
+        "assetSha256": "e4188bbec07025013391af15c700f397c76b95d26116a9f939fc071f9625eca6",
+        "jsonSha256": "69262414a17811c78c4020f36f52441bfd1d4f2970e6b6151ea869a01510de3d",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/87/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "mq303_finale_shock",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.mq303.rachel-routing",
+      "sourceId": "cc5.source.fba115819d8d",
+      "kind": "native",
+      "locator": "mq303.questphase epilogue: condition sq023_show_is_hit > 0 activates Rachel's friendly message contacts/rachel/mq303_reference/01_start (Lina&Toolina pitch); its False branch checks sq023_show_is_shit > 0 and activates the hostile 01_start_bad instead.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq303/mq303.questphase.json",
+        "assetSha256": "d7b4e6c87992ff1e6dcc8ca0f0684f8495b6bf254a82eef773637428a8f6474e",
+        "jsonSha256": "dcddd4e91b0e83be7bc38e4efa12da7c6611f626e122f2b45240633c905af86b",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/19/Data/phaseGraph/Data/nodes/7/Data/phaseGraph/Data/nodes/203/Data",
+        "expectedType": "questConditionNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq303/mq303.questphase.json",
+          "assetSha256": "d7b4e6c87992ff1e6dcc8ca0f0684f8495b6bf254a82eef773637428a8f6474e",
+          "jsonSha256": "dcddd4e91b0e83be7bc38e4efa12da7c6611f626e122f2b45240633c905af86b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/19/Data/phaseGraph/Data/nodes/7/Data/phaseGraph/Data/nodes/204/Data",
+          "expectedType": "questConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.journal.b201d4c2c6c1",
+      "sourceId": "cc5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/rachel/mq303_reference/01_start (gameJournalPhoneMessage): \"Hey, so this pair of whackjobs walked into the studio studio today trying to pitch me something called the \"Lina&Toolina\" show. They showed me a pilot and it de\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/entries/5/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "01_start"
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.journal.7d6ce06fbb74",
+      "sourceId": "cc5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/rachel/mq303_reference/01_start_bad (gameJournalPhoneMessage): \"Lina and TooLina - ring a bell? It must cuz they say you're the best \"director\" they've ever worked with. Whatever \"career\" you think you're building in Dogtown\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/entries/5/Data/entries/4/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "01_start_bad"
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.q000.coach-call",
+      "sourceId": "cc5.source.8c27e4a097da",
+      "kind": "native",
+      "locator": "q000_corpo_03b_fly_to_lizzies (actors AI, Coach): the coach holocall start check (holo_coach_calls_v_start_done) leads to writer 653 q000_corpo_03b_call_started=1, then section 123 (Coach: \"Hello, V.\" / V: \"We weren't scheduled to connect till the end of the week.\" / Coach: Quantified Satori received a troubling biometric notification).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+        "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+        "jsonSha256": "0ffb0d2724678403c678759402868573bef38ce17a730e829c1b866ad3617d30",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data",
+        "expectedType": "scnSectionNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "0ffb0d2724678403c678759402868573bef38ce17a730e829c1b866ad3617d30",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/128/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.fact.q000_corpo_03b_call_started.79f3fef635da",
+      "sourceId": "cc5.source.8c27e4a097da",
+      "kind": "native",
+      "locator": "q000_corpo_03b_fly_to_lizzies: writer 653 runs once the coach holocall connects and feeds directly into the call conversation (section 123).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+        "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+        "jsonSha256": "0ffb0d2724678403c678759402868573bef38ce17a730e829c1b866ad3617d30",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/72/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q000_corpo_03b_call_started",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.q305.chang-skip-town",
+      "sourceId": "cc5.source.5afaf047e0b3",
+      "kind": "native",
+      "locator": "q305_02d_chang (actor chang): after the breach Chang struggles for words (section 58: \"I'm losing. Words... Aphasia\") and hands over the shard ([Take shard]); the only option at choices 230/306, \"You gotta skip town.\", leads to section 176 (Chang: \"L-leave Night City? ... I'll ask W-Wakako\") and writer 199 q305_nomad_help=1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q305/scenes/q305_02d_chang.scene.json",
+        "assetSha256": "6cc9aeaaa224643dadb06f610884ac333fa7b7127754ea99b2015382ebe68ee8",
+        "jsonSha256": "48b5a17f194a8d4403e29bfe02d97ab1cc7fdfb64a92ee4cc550aba6e1e3e044",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data",
+        "expectedType": "scnSectionNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q305/scenes/q305_02d_chang.scene.json",
+          "assetSha256": "6cc9aeaaa224643dadb06f610884ac333fa7b7127754ea99b2015382ebe68ee8",
+          "jsonSha256": "48b5a17f194a8d4403e29bfe02d97ab1cc7fdfb64a92ee4cc550aba6e1e3e044",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.fact.q305_nomad_help.41f3c0ed5871",
+      "sourceId": "cc5.source.5afaf047e0b3",
+      "kind": "native",
+      "locator": "q305_02d_chang: single positive writer, reached only through the \"You gotta skip town.\" exchange after V takes the data shard.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q305/scenes/q305_02d_chang.scene.json",
+        "assetSha256": "6cc9aeaaa224643dadb06f610884ac333fa7b7127754ea99b2015382ebe68ee8",
+        "jsonSha256": "48b5a17f194a8d4403e29bfe02d97ab1cc7fdfb64a92ee4cc550aba6e1e3e044",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q305_nomad_help",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "cc5.ev.ina06.car-not-returned",
+      "sourceId": "cc5.source.9480e4dbf2c9",
+      "kind": "native",
+      "locator": "sts_bls_ina_06_ow: after Iris is delivered and Dakota is met (ina_06_dakota_met > 0), condition 276 checks ina_06_car_delivered > 0 and its False branch sets opt_get_iris_car \"Retrieve Iris's car.\" Failed; condition 45 also fails it when the car is destroyed.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+        "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+        "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/120/Data",
+        "expectedType": "questConditionNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+          "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+          "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/31/Data/phaseGraph/Data/nodes/6/Data",
+          "expectedType": "questConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "cc5.ev.journal.ccad48b5eda1",
+      "sourceId": "cc5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/street_stories/badlands/inland_avenue/sts_bls_ina_06/sts_bls_ina_06/opt_get_iris_car (gameJournalQuestObjective): \"Retrieve Iris's car.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/6/Data/entries/0/Data/entries/0/Data/entries/4/Data/entries/0/Data/entries/8/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "opt_get_iris_car"
+        }
+      }
+    }
+  ],
+  "factAllowlist": {
+    "sq023_v_takes_bribe": {
+      "evidenceRefs": [
+        "cc5.ev.fact.sq023_v_takes_bribe.63900e3efac7"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_07_restaurant.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/82/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq023_v_takes_corpo_bribe": {
+      "evidenceRefs": [
+        "cc5.ev.fact.sq023_v_takes_corpo_bribe.668fe464ff5d"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_07_restaurant.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/83/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq023_telem_no_bribe": {
+      "evidenceRefs": [
+        "cc5.ev.fact.sq023_telem_no_bribe.2b8abd9c1390"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_07_restaurant.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/618/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq023_telem_bd_yes_nailing": {
+      "evidenceRefs": [
+        "cc5.ev.fact.sq023_telem_bd_yes_nailing.c0378b3016dc"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_10_bd_studio.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/533/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq023_telem_bd_not_nailing": {
+      "evidenceRefs": [
+        "cc5.ev.fact.sq023_telem_bd_not_nailing.4ffaab9dd36d"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_10_bd_studio.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/532/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq023_crucifixion_refused": {
+      "evidenceRefs": [
+        "cc5.ev.fact.sq023_crucifixion_refused.e1940c0c8ab8"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/side_quests/sq023/scenes/sq023_10_bd_studio.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/88/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sts_ep1_08_biomonitor_ana": {
+      "evidenceRefs": [
+        "cc5.ev.fact.sts_ep1_08_biomonitor_ana.20087311822c"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        },
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 2
+      }
+    },
+    "sts_ep1_08_biomonitor_destroyed": {
+      "evidenceRefs": [
+        "cc5.ev.fact.sts_ep1_08_biomonitor_destroyed.5e6acba6fef4"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "mq303_finale_sisters": {
+      "evidenceRefs": [
+        "cc5.ev.fact.mq303_finale_sisters.9cadd70cf2f6"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_03_finale.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "mq303_finale_cia": {
+      "evidenceRefs": [
+        "cc5.ev.fact.mq303_finale_cia.ea9acbd3b384"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_03_finale.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/65/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "mq303_finale_shock": {
+      "evidenceRefs": [
+        "cc5.ev.fact.mq303_finale_shock.349400e1a7a3"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_03_finale.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/87/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q000_corpo_03b_call_started": {
+      "evidenceRefs": [
+        "cc5.ev.fact.q000_corpo_03b_call_started.79f3fef635da"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/cc5-01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/72/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q305_nomad_help": {
+      "evidenceRefs": [
+        "cc5.ev.fact.q305_nomad_help.41f3c0ed5871"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q305/scenes/q305_02d_chang.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    }
+  },
+  "journalAllowlist": {
+    "cc5.every-breath-you-take.jail": {
+      "questKey": "every-breath-you-take",
+      "nativePath": "quests/minor_quest/mq028_stalker/mq028_stalker/06c_jail",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "cc5.ev.journal.e5f264be2567"
+      ]
+    },
+    "cc5.every-breath-you-take.kill": {
+      "questKey": "every-breath-you-take",
+      "nativePath": "quests/minor_quest/mq028_stalker/mq028_stalker/06b_kill",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "cc5.ev.journal.c0ffa0e3db75"
+      ]
+    },
+    "cc5.violence.motel-arrived": {
+      "questKey": "violence",
+      "nativePath": "quests/minor_quest/mq019_paparazzi/06_finale/02_go_to_notell",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "cc5.ev.journal.4e435fe9f1e4"
+      ]
+    },
+    "cc5.sinnerman.joined-joshua": {
+      "questKey": "sinnerman",
+      "nativePath": "quests/side_quest/sq023_hit_order/hook/14_join_joshua",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "cc5.ev.journal.12ab1eb7632c"
+      ]
+    },
+    "cc5.sinnerman.joshua-neutralized": {
+      "questKey": "sinnerman",
+      "nativePath": "quests/side_quest/sq023_hit_order/hook/kill_joshua",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "cc5.ev.journal.883800d84e25"
+      ]
+    },
+    "cc5.they-wont-go-when-i-go.nail": {
+      "questKey": "they-wont-go-when-i-go",
+      "nativePath": "quests/side_quest/sq023_real_passion/objectives/nail",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "cc5.ev.journal.d9bfe54164ae"
+      ]
+    },
+    "cc5.they-wont-go-when-i-go.participate": {
+      "questKey": "they-wont-go-when-i-go",
+      "nativePath": "quests/side_quest/sq023_real_passion/objectives/participate",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "cc5.ev.journal.de152a7815b4"
+      ]
+    },
+    "cc5.the-distance.reply-yes": {
+      "questKey": "the-distance",
+      "nativePath": "contacts/announcer_mq056/mq056_hook/02_response/01_yes",
+      "nativeClass": "gameJournalPhoneChoiceEntry",
+      "evidenceRefs": [
+        "cc5.ev.journal.b4d65f71d38e"
+      ]
+    },
+    "cc5.the-distance.reply-no": {
+      "questKey": "the-distance",
+      "nativePath": "contacts/announcer_mq056/mq056_hook/02_response/02_no",
+      "nativeClass": "gameJournalPhoneChoiceEntry",
+      "evidenceRefs": [
+        "cc5.ev.journal.038e95fc4578"
+      ]
+    },
+    "cc5.spy-in-the-jungle.final-meeting-talk": {
+      "questKey": "spy-in-the-jungle",
+      "nativePath": "ep1/quests/street_stories/sts_ep1_08/final_meeting/talk_with_the_agent",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "cc5.ev.journal.83e8389362ae"
+      ]
+    },
+    "cc5.spy-in-the-jungle.drop-point": {
+      "questKey": "spy-in-the-jungle",
+      "nativePath": "ep1/quests/street_stories/sts_ep1_08/final_meeting/leave_biomonitor_droppoint",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "cc5.ev.journal.a2f9f844cfb7"
+      ]
+    },
+    "cc5.dazed-and-confused.rachel-offer": {
+      "questKey": "dazed-and-confused",
+      "nativePath": "contacts/rachel/mq303_reference/01_start",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "cc5.ev.journal.b201d4c2c6c1"
+      ]
+    },
+    "cc5.dazed-and-confused.rachel-hostile": {
+      "questKey": "dazed-and-confused",
+      "nativePath": "contacts/rachel/mq303_reference/01_start_bad",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "cc5.ev.journal.7d6ce06fbb74"
+      ]
+    },
+    "cc5.no-fixers.car-failed": {
+      "questKey": "no-fixers",
+      "nativePath": "quests/street_stories/badlands/inland_avenue/sts_bls_ina_06/sts_bls_ina_06/opt_get_iris_car",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "cc5.ev.journal.ccad48b5eda1"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "cc5.blue.stalker-left-to-police",
+      "revision": 1,
+      "questKey": "every-breath-you-take",
+      "topic": "blue-moon.stalker.disposition",
+      "outcome": "nonlethal",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "After V stopped the woman stalking Blue Moon, V told Blue Moon the stalker should be left for the police (\"Maybe we'd better leave it to the badges\"), and she was not killed at that decision.",
+      "sourceIds": [
+        "cc5.source.9df80f05c553",
+        "cc5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.mq028.jail-choice",
+        "cc5.ev.journal.e5f264be2567"
+      ],
+      "audience": {
+        "speakers": [
+          "blue-moon"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "blue-moon"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "cc5.every-breath-you-take.jail",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.blue.stalker-disposition",
+          "outcomeKey": "nonlethal"
+        }
+      ]
+    },
+    {
+      "id": "cc5.blue.stalker-killed",
+      "revision": 1,
+      "questKey": "every-breath-you-take",
+      "topic": "blue-moon.stalker.disposition",
+      "outcome": "lethal",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "When it came to deciding the captured stalker's fate, V killed the woman who had been stalking Blue Moon, in front of Blue Moon, instead of leaving her for the police.",
+      "sourceIds": [
+        "cc5.source.9df80f05c553",
+        "cc5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.mq028.kill-route",
+        "cc5.ev.journal.c0ffa0e3db75"
+      ],
+      "audience": {
+        "speakers": [
+          "blue-moon"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "blue-moon"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "cc5.every-breath-you-take.kill",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.blue.stalker-disposition",
+          "outcomeKey": "lethal"
+        }
+      ]
+    },
+    {
+      "id": "cc5.blue.band-reconciled",
+      "revision": 1,
+      "questKey": "i-dont-wanna-hear-it",
+      "topic": "us-cracks.kerry.relation",
+      "outcome": "reconciled",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Backstage at Riot, the confrontation between Kerry Eurodyne and Us Cracks over the label's scheme ended in reconciliation: Kerry accepted the band and Blue Moon answered that there were no hard feelings.",
+      "sourceIds": [
+        "cc5.source.9435c33e28b5"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.sq017.reconciled"
+      ],
+      "audience": {
+        "speakers": [
+          "blue-moon"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "blue-moon"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq017_selfie",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.blue.band-resolution",
+          "outcomeKey": "reconciled"
+        }
+      ]
+    },
+    {
+      "id": "cc5.blue.band-coerced",
+      "revision": 1,
+      "questKey": "i-dont-wanna-hear-it",
+      "topic": "us-cracks.kerry.relation",
+      "outcome": "coerced",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Backstage at Riot, Kerry Eurodyne and V pressured Us Cracks until Blue Moon agreed to cancel the show; the confrontation ended in coercion rather than reconciliation.",
+      "sourceIds": [
+        "cc5.source.9435c33e28b5"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.sq017.coerced"
+      ],
+      "audience": {
+        "speakers": [
+          "blue-moon"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "blue-moon"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq017_us_cracks_no_deal",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.blue.band-resolution",
+          "outcomeKey": "coerced"
+        }
+      ]
+    },
+    {
+      "id": "cc5.violence.liam-body-found",
+      "revision": 1,
+      "questKey": "violence",
+      "topic": "liam.story.fate",
+      "outcome": "body-discovered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Answering Lizzy Wizzy's call, V came to her room at the No-Tell Motel and found Liam Northom dead there with her.",
+      "sourceIds": [
+        "cc5.source.c67fa477785c",
+        "cc5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.mq019.motel-room",
+        "cc5.ev.journal.4e435fe9f1e4"
+      ],
+      "audience": {
+        "speakers": [
+          "lizzy-wizzy"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "lizzy-wizzy"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "cc5.violence.motel-arrived",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.violence.motel-death",
+          "outcomeKey": "body-discovered"
+        }
+      ]
+    },
+    {
+      "id": "cc5.rachel.joined-joshua",
+      "revision": 1,
+      "questKey": "sinnerman",
+      "topic": "rachel.joshua.v-role",
+      "outcome": "joined",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "After the chase in Sinnerman, V agreed to go with Joshua Stephenson (\"All right. I'll go with you\") while Rachel Casich, his producer, was there urging them to move.",
+      "sourceIds": [
+        "cc5.source.48d8351e7b64",
+        "cc5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.sq023.join",
+        "cc5.ev.journal.12ab1eb7632c"
+      ],
+      "audience": {
+        "speakers": [
+          "rachel-casich"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rachel-casich"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "cc5.sinnerman.joined-joshua",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.rachel.sinnerman-entry",
+          "outcomeKey": "joined"
+        }
+      ]
+    },
+    {
+      "id": "cc5.rachel.joshua-neutralized",
+      "revision": 1,
+      "questKey": "sinnerman",
+      "topic": "rachel.joshua.v-role",
+      "outcome": "joshua-neutralized",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "After the chase in Sinnerman, V turned on Joshua Stephenson in front of Rachel Casich and the quest recorded him as neutralized; this alone does not establish whether he died.",
+      "sourceIds": [
+        "cc5.source.48d8351e7b64",
+        "cc5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.sq023.neutralize",
+        "cc5.ev.journal.883800d84e25"
+      ],
+      "audience": {
+        "speakers": [
+          "rachel-casich"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rachel-casich"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "cc5.sinnerman.joshua-neutralized",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.rachel.sinnerman-entry",
+          "outcomeKey": "joshua-neutralized"
+        }
+      ]
+    },
+    {
+      "id": "cc5.rachel.buyout-accepted",
+      "revision": 1,
+      "questKey": "there-is-a-light-that-never-goes-out",
+      "topic": "rachel.v.buyout",
+      "outcome": "accepted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "At PieZ, Rachel Casich offered V money to walk away from Joshua Stephenson, and V took the deal.",
+      "sourceIds": [
+        "cc5.source.17a28a945dd0"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.sq023.buyout-choice",
+        "cc5.ev.fact.sq023_v_takes_bribe.63900e3efac7",
+        "cc5.ev.fact.sq023_v_takes_corpo_bribe.668fe464ff5d"
+      ],
+      "audience": {
+        "speakers": [
+          "rachel-casich"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rachel-casich"
+        ]
+      },
+      "condition": {
+        "any": [
+          {
+            "type": "fact",
+            "key": "sq023_v_takes_bribe",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq023_v_takes_corpo_bribe",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.rachel.buyout",
+          "outcomeKey": "accepted"
+        }
+      ]
+    },
+    {
+      "id": "cc5.rachel.buyout-refused",
+      "revision": 1,
+      "questKey": "there-is-a-light-that-never-goes-out",
+      "topic": "rachel.v.buyout",
+      "outcome": "refused",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "At PieZ, Rachel Casich offered V money to walk away from Joshua Stephenson, and V refused (\"My answer's no\").",
+      "sourceIds": [
+        "cc5.source.17a28a945dd0"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.sq023.buyout-choice",
+        "cc5.ev.fact.sq023_telem_no_bribe.2b8abd9c1390"
+      ],
+      "audience": {
+        "speakers": [
+          "rachel-casich"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rachel-casich"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq023_telem_no_bribe",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.rachel.buyout",
+          "outcomeKey": "refused"
+        }
+      ]
+    },
+    {
+      "id": "cc5.rachel.crucifixion-performed",
+      "revision": 1,
+      "questKey": "they-wont-go-when-i-go",
+      "topic": "rachel.shoot.v-role",
+      "outcome": "performed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In Rachel Casich's braindance studio, V agreed to do it and personally drove the nails during Joshua Stephenson's recorded crucifixion.",
+      "sourceIds": [
+        "cc5.source.717add9468dc",
+        "cc5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.sq023.studio-choice",
+        "cc5.ev.sq023.nail-done",
+        "cc5.ev.fact.sq023_telem_bd_yes_nailing.c0378b3016dc",
+        "cc5.ev.journal.d9bfe54164ae"
+      ],
+      "audience": {
+        "speakers": [
+          "rachel-casich"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rachel-casich"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq023_telem_bd_yes_nailing",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "cc5.they-wont-go-when-i-go.nail",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.rachel.final-participation",
+          "outcomeKey": "performed"
+        }
+      ]
+    },
+    {
+      "id": "cc5.rachel.crucifixion-observed",
+      "revision": 1,
+      "questKey": "they-wont-go-when-i-go",
+      "topic": "rachel.shoot.v-role",
+      "outcome": "observed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In Rachel Casich's braindance studio, V refused to nail Joshua Stephenson but stayed at his side until he died while the crucifixion was recorded.",
+      "sourceIds": [
+        "cc5.source.717add9468dc",
+        "cc5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.sq023.studio-choice",
+        "cc5.ev.sq023.observer",
+        "cc5.ev.fact.sq023_telem_bd_not_nailing.4ffaab9dd36d",
+        "cc5.ev.journal.de152a7815b4"
+      ],
+      "audience": {
+        "speakers": [
+          "rachel-casich"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rachel-casich"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq023_telem_bd_not_nailing",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "cc5.they-wont-go-when-i-go.participate",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.rachel.final-participation",
+          "outcomeKey": "observed"
+        }
+      ]
+    },
+    {
+      "id": "cc5.rachel.crucifixion-departed",
+      "revision": 1,
+      "questKey": "they-wont-go-when-i-go",
+      "topic": "rachel.shoot.v-role",
+      "outcome": "departed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "When the crucifixion recording was about to start, V refused to take part in or even watch it and walked out of Rachel Casich's braindance studio.",
+      "sourceIds": [
+        "cc5.source.717add9468dc"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.sq023.studio-choice",
+        "cc5.ev.fact.sq023_crucifixion_refused.e1940c0c8ab8"
+      ],
+      "audience": {
+        "speakers": [
+          "rachel-casich"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rachel-casich"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq023_crucifixion_refused",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.rachel.final-participation",
+          "outcomeKey": "departed"
+        }
+      ]
+    },
+    {
+      "id": "cc5.jim.invite-declined",
+      "revision": 1,
+      "questKey": "the-distance",
+      "topic": "jim.races.access",
+      "outcome": "invited",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "Jim Jarry texted V an invitation to race again on his circuit; V replied turning him down (\"not lookin to lose my license\").",
+      "sourceIds": [
+        "cc5.source.1e1b46ecb183",
+        "cc5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.mq056.reply-routing",
+        "cc5.ev.journal.038e95fc4578"
+      ],
+      "audience": {
+        "speakers": [
+          "jim-jarry"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "jim-jarry"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "cc5.the-distance.reply-no",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.jim.race-access",
+          "outcomeKey": "invited"
+        }
+      ]
+    },
+    {
+      "id": "cc5.jim.invite-accepted",
+      "revision": 1,
+      "questKey": "the-distance",
+      "topic": "jim.races.access",
+      "outcome": "accepted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "Jim Jarry texted V an invitation to race on his circuit and V accepted (\"You had me at burnt rubber\"); Jim replied he would see V on the track.",
+      "sourceIds": [
+        "cc5.source.1e1b46ecb183",
+        "cc5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.mq056.reply-routing",
+        "cc5.ev.journal.b4d65f71d38e"
+      ],
+      "audience": {
+        "speakers": [
+          "jim-jarry"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "jim-jarry"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "cc5.the-distance.reply-yes",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.jim.race-access",
+          "outcomeKey": "accepted"
+        }
+      ]
+    },
+    {
+      "id": "cc5.steven.biomonitor-to-ana",
+      "revision": 1,
+      "questKey": "spy-in-the-jungle",
+      "topic": "bana.evidence.disposition",
+      "outcome": "given-ana",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "At the agents' final meeting for Spy in the Jungle, V left Bana's biomonitor with Ana Friedman rather than destroying it, with Steven Santos present.",
+      "sourceIds": [
+        "cc5.source.54273b1b7a16"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.fact.sts_ep1_08_biomonitor_ana.20087311822c"
+      ],
+      "audience": {
+        "speakers": [
+          "steven-santos"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "steven-santos"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sts_ep1_08_biomonitor_ana",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.bana.evidence",
+          "outcomeKey": "given-ana"
+        }
+      ]
+    },
+    {
+      "id": "cc5.steven.biomonitor-destroyed",
+      "revision": 1,
+      "questKey": "spy-in-the-jungle",
+      "topic": "bana.evidence.disposition",
+      "outcome": "destroyed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "At the agents' final meeting for Spy in the Jungle, V sided with Steven Santos (\"Steven's right. Too much risk\") and destroyed Bana's biomonitor in front of Ana Friedman.",
+      "sourceIds": [
+        "cc5.source.54273b1b7a16",
+        "cc5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.s08.destroy-in-meeting",
+        "cc5.ev.fact.sts_ep1_08_biomonitor_destroyed.5e6acba6fef4",
+        "cc5.ev.journal.83e8389362ae"
+      ],
+      "audience": {
+        "speakers": [
+          "steven-santos"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "steven-santos"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sts_ep1_08_biomonitor_destroyed",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "cc5.spy-in-the-jungle.final-meeting-talk",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.bana.evidence",
+          "outcomeKey": "destroyed"
+        }
+      ]
+    },
+    {
+      "id": "cc5.steven.biomonitor-drop-point",
+      "revision": 1,
+      "questKey": "spy-in-the-jungle",
+      "topic": "bana.evidence.disposition",
+      "outcome": "drop-point",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Following Steven Santos's urgent message not to give it to Ana Friedman, V left Bana's biomonitor at the fixer's drop point, the route Steven asked for so the evidence would be destroyed.",
+      "sourceIds": [
+        "cc5.source.78b4c99da35e",
+        "cc5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.s08.drop-point",
+        "cc5.ev.journal.a2f9f844cfb7"
+      ],
+      "audience": {
+        "speakers": [
+          "steven-santos"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "steven-santos"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "cc5.spy-in-the-jungle.drop-point",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.bana.evidence",
+          "outcomeKey": "drop-point"
+        }
+      ]
+    },
+    {
+      "id": "cc5.shank.tool-sister",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "brainporium.tool.outcome",
+      "outcome": "sister-performance",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Taking charge of Shank's BD shoot, V settled Lina and Tool's fight by telling Tool he was Lina's sister, so the shoot went ahead as a sister act; this was a performance framing, not a real family tie.",
+      "sourceIds": [
+        "cc5.source.03189a6fb22b"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.mq303.direction-choice",
+        "cc5.ev.fact.mq303_finale_sisters.9cadd70cf2f6"
+      ],
+      "audience": {
+        "speakers": [
+          "shank"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "shank"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "mq303_finale_sisters",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.shank.tool-treatment",
+          "outcomeKey": "sister-performance"
+        }
+      ]
+    },
+    {
+      "id": "cc5.shank.tool-clone",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "brainporium.tool.outcome",
+      "outcome": "clone-performance",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Taking charge of Shank's BD shoot, V convinced Tool he was a clone created by the FIA to get the scene made; it was a cover story, not Tool's real origin.",
+      "sourceIds": [
+        "cc5.source.03189a6fb22b"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.mq303.direction-choice",
+        "cc5.ev.fact.mq303_finale_cia.ea9acbd3b384"
+      ],
+      "audience": {
+        "speakers": [
+          "shank"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "shank"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "mq303_finale_cia",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.shank.tool-treatment",
+          "outcomeKey": "clone-performance"
+        }
+      ]
+    },
+    {
+      "id": "cc5.shank.tool-letter",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "brainporium.tool.outcome",
+      "outcome": "letter-recovery",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Taking charge of Shank's BD shoot, V handed Tool his own letter as his \"lines\", the route meant to shock him out of his Lina persona.",
+      "sourceIds": [
+        "cc5.source.03189a6fb22b"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.mq303.direction-choice",
+        "cc5.ev.fact.mq303_finale_shock.349400e1a7a3"
+      ],
+      "audience": {
+        "speakers": [
+          "shank"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "shank"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "mq303_finale_shock",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.shank.tool-treatment",
+          "outcomeKey": "letter-recovery"
+        }
+      ]
+    },
+    {
+      "id": "cc5.rachel.toolina-offer",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "brainporium.fourth-wall.offer",
+      "outcome": "offer-received",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "After Dazed and Confused, Rachel Casich messaged V that Lina and Toolina had pitched her their \"Lina&Toolina\" show and asked whether V knew them.",
+      "sourceIds": [
+        "cc5.source.fba115819d8d",
+        "cc5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.mq303.rachel-routing",
+        "cc5.ev.journal.b201d4c2c6c1"
+      ],
+      "audience": {
+        "speakers": [
+          "rachel-casich"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rachel-casich"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "cc5.dazed-and-confused.rachel-offer",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.shank.rachel-contact",
+          "outcomeKey": "offer-received"
+        }
+      ]
+    },
+    {
+      "id": "cc5.rachel.toolina-hostile",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "brainporium.fourth-wall.offer",
+      "outcome": "hostile-contact",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "After Dazed and Confused, Rachel Casich messaged V about Lina and TooLina with open contempt; this version is sent only when her earlier Passion production with Joshua had flopped.",
+      "sourceIds": [
+        "cc5.source.fba115819d8d",
+        "cc5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.mq303.rachel-routing",
+        "cc5.ev.journal.7d6ce06fbb74"
+      ],
+      "audience": {
+        "speakers": [
+          "rachel-casich"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rachel-casich"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "cc5.dazed-and-confused.rachel-hostile",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.shank.rachel-contact",
+          "outcomeKey": "hostile-contact"
+        }
+      ]
+    },
+    {
+      "id": "cc5.coach.av-call",
+      "revision": 1,
+      "questKey": "the-corpo-rat",
+      "topic": "coach.v.intro",
+      "outcome": "answered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "During V's AV flight to Lizzie's Bar on the Corpo path, V took an unscheduled holocall from their Quantified Satori life coach about troubling biometric readings.",
+      "sourceIds": [
+        "cc5.source.8c27e4a097da"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.q000.coach-call",
+        "cc5.ev.fact.q000_corpo_03b_call_started.79f3fef635da"
+      ],
+      "audience": {
+        "speakers": [
+          "life-coach"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "life-coach"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q000_corpo_03b_call_started",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.coach.intro-call",
+          "outcomeKey": "answered"
+        }
+      ]
+    },
+    {
+      "id": "cc5.nam.skip-town",
+      "revision": 1,
+      "questKey": "black-steel-in-the-hour-of-chaos",
+      "topic": "nam.maxtac.assistance",
+      "outcome": "departure-discussed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "The MaxTac data breach left Chang Hoon Nam struggling to find words; when he handed V the convoy data, V told him he had to leave Night City.",
+      "sourceIds": [
+        "cc5.source.5afaf047e0b3"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.q305.chang-skip-town",
+        "cc5.ev.fact.q305_nomad_help.41f3c0ed5871"
+      ],
+      "audience": {
+        "speakers": [
+          "chang-hoon-nam"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "chang-hoon-nam"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q305_nomad_help",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.nam.maxtac-job",
+          "outcomeKey": "departure-discussed"
+        }
+      ]
+    },
+    {
+      "id": "cc5.iris.car-left",
+      "revision": 1,
+      "questKey": "no-fixers",
+      "topic": "iris.equipment.recovery",
+      "outcome": "left-behind",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "V brought Iris Tanner to Dakota Smith without Iris's car; the optional objective to retrieve the car was marked failed (left behind or wrecked).",
+      "sourceIds": [
+        "cc5.source.9480e4dbf2c9",
+        "cc5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.ina06.car-not-returned",
+        "cc5.ev.journal.ccad48b5eda1"
+      ],
+      "audience": {
+        "speakers": [
+          "iris-tanner",
+          "dakota-smith"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "iris-tanner",
+          "dakota-smith"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "cc5.no-fixers.car-failed",
+            "op": "eq",
+            "value": "failed"
+          },
+          {
+            "type": "fact",
+            "key": "ina_06_iris_hired",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.iris.vehicle",
+          "outcomeKey": "left-behind"
+        }
+      ]
+    }
+  ]
+}

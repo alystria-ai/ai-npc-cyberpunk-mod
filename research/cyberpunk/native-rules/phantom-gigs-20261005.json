@@ -1,0 +1,4773 @@
+{
+  "version": 1,
+  "id": "cyberpunk-native-phantom-gigs-20261005",
+  "revision": 1,
+  "gameVersions": [
+    "2.31"
+  ],
+  "profileKeys": [
+    "alan-noel",
+    "ana-friedman",
+    "bill-mitchell",
+    "lina-malina",
+    "mr-hands",
+    "nele-springer",
+    "steven-santos"
+  ],
+  "sources": [
+    {
+      "id": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\journal\\cooked_journal.journal (scene-evidence/priority-phantom-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.094e40665103",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_12\\phases\\sts_ep1_12_phase.questphase (scene-evidence/pg5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.55b4d11befc5",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_12\\scenes\\sts_ep1_12_final_scene.scene (scene-evidence/pm5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.f17d468919da",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_12\\scenes\\sts_ep1_12_holocall_debrief.scene (scene-evidence/pm5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.11b32a57349b",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_01\\phases\\sts_ep1_01_openworld.questphase (scene-evidence/pg5-03); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.0ef47c08f8a7",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_01\\scenes\\sts_ep1_01_final.scene (scene-evidence/pg5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.cdb711302cc3",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_01\\scenes\\sts_ep1_01_holocall_debrief.scene (scene-evidence/pg5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.2a0b190ec9a7",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_01\\scenes\\sts_ep1_01_anderson_saved.scene (scene-evidence/pg5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.4a4cacbd668e",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_04\\scenes\\sts_ep1_04_hasan_final.scene (scene-evidence/pg5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.9e6a8d345eea",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\world_stories\\wst_ep1_05\\wst_ep1_05.questphase (scene-evidence/pg5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.f66275dd38bc",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_06_zembinsky\\scenes\\sts_ep1_06_george.scene (scene-evidence/pg5-04); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.47873bdf1758",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_06_zembinsky\\phases\\sts_ep1_06_gameplay.questphase (scene-evidence/pg5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.a80b715af99a",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_06_zembinsky\\scenes\\sts_ep1_06_holocall_debrief.scene (scene-evidence/pg5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.405325443263",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_07\\phases\\sts_ep1_07_phase.questphase (scene-evidence/phantom-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.219528a69bd6",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_07\\scenes\\sts_ep1_07_final_meeting.scene (scene-evidence/phantom-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.54273b1b7a16",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_08\\scenes\\sts_ep1_08_client_ending.scene (scene-evidence/pg5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.4ecb073b728d",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_08\\scenes\\sts_ep1_08_holocall_debrief.scene (scene-evidence/pg5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.ac774a5aed21",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_13\\scenes\\sts_ep1_13_fiona.scene (scene-evidence/pg5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: base\\journal\\cooked_journal.journal (scene-evidence/judy-river-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.03189a6fb22b",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\minor_quests\\mq303\\scenes\\mq303_03_finale.scene (scene-evidence/pg5-04); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.5025f2443676",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\minor_quests\\mq303\\phases\\mq303_messages.questphase (scene-evidence/pg5-03); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.9b7b2b87db4e",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\minor_quests\\mq304\\mq304.questphase (scene-evidence/pg5-03); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.40cae7fa9d7e",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\minor_quests\\mq305\\scenes\\mq305_05_outcome_mr_hands.scene (scene-evidence/pg5-04); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pg5.source.2004d7b0c737",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\minor_quests\\mq305\\phases\\mq305_outcome.questphase (scene-evidence/pg5-03); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "pg5.ev.journal.80e2be95ebce",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/street_stories/sts_ep1_12 (gameJournalQuest): \"Gig: Treating Symptoms\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/3/Data/entries/6/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "sts_ep1_12"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.fact.sts_ep1_12_milko_alive.18ad82f933dd",
+      "sourceId": "pg5.source.094e40665103",
+      "kind": "native",
+      "locator": "sts_ep1_12_phase: milko_alive += 1 is written only after the final scene exits through \"End peace\" (device managers -> 05_kill_target Inactive -> 05b_talk_to_target Succeeded -> 06_get_out Active). Its only other writer is none; the Milko-dead branch writes sts_ep1_12_milko_dead instead.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-01/raw/ep1/ep1/openworld/street_stories/sts_ep1_12/phases/sts_ep1_12_phase.questphase.json",
+        "assetSha256": "50b3104fd0f82c66780d1d428bdeb0e943f36a11fb8a99bf550879bed5d36f82",
+        "jsonSha256": "db9dca888c6f2af83a52b895f9444fb3a795748d1876cd9d88c553fec82fcdce",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/50/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_12_milko_alive",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.symptoms.peace-choice",
+      "sourceId": "pg5.source.55b4d11befc5",
+      "kind": "native",
+      "locator": "sts_ep1_12_final_scene: choice 221 option 0 \"Fine, finish your op.\" leads (character attitude/mortality nodes 272 -> 1556 -> 313 -> ...) to exit \"End peace\", the only route that feeds the milko_alive writer in sts_ep1_12_phase.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_12/scenes/sts_ep1_12_final_scene.scene.json",
+        "assetSha256": "843402a53fda4aaa804c669cfe6a2a080b137f2dd95f5ee721ee9899caa089f9",
+        "jsonSha256": "abb2ed77876a0332b1fe166e53e9e4d0503a7e8d2243f299860882f2a3e4e319",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_12/scenes/sts_ep1_12_final_scene.scene.json",
+          "assetSha256": "843402a53fda4aaa804c669cfe6a2a080b137f2dd95f5ee721ee9899caa089f9",
+          "jsonSha256": "abb2ed77876a0332b1fe166e53e9e4d0503a7e8d2243f299860882f2a3e4e319",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.symptoms.hands-debrief-switch",
+      "sourceId": "pg5.source.f17d468919da",
+      "kind": "native",
+      "locator": "sts_ep1_12_holocall_debrief: condition sts_ep1_12_milko_alive > 0 selects Hands' NetWatch lines (\"My people at NetWatch ... will place Indira Barazza\" under round-the-clock netrunner guard) instead of the kill debrief; the phase plays it after sts_ep1_12_finished.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_12/scenes/sts_ep1_12_holocall_debrief.scene.json",
+        "assetSha256": "3939b4073da3832d4a6508d7e356b74b9f315e65aae1efc26c31507090a51bfa",
+        "jsonSha256": "21d168d70f9c316bb0fd632dc24035a4bfd991834020d3bfc4a678cf150946f8",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-01/raw/ep1/ep1/openworld/street_stories/sts_ep1_12/phases/sts_ep1_12_phase.questphase.json",
+          "assetSha256": "50b3104fd0f82c66780d1d428bdeb0e943f36a11fb8a99bf550879bed5d36f82",
+          "jsonSha256": "db9dca888c6f2af83a52b895f9444fb3a795748d1876cd9d88c553fec82fcdce",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/9/Data",
+          "expectedType": "questConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.journal.cf28f2fabb86",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/contacts/alan_noel/wst_ep1_02/wst_ep1_02 (gameJournalPhoneMessage): \"Alan here. 1:0, NetWatch. Milko led us to the puppet master. It seems a Belgradian arms dealer wanted to sell off the old Militech bots to Serbian separatists -\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/49/Data/entries/0/Data/entries/1/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "wst_ep1_02"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/openworld/world_stories/wst_ep1_02/wst_ep1_02.questphase.json",
+          "assetSha256": "00ecb0f3de3d54afb0dacfd8d3c7cb6d84cae5dbe35dd775a7438b2dc0e7fa28",
+          "jsonSha256": "444c8df4716966c0b17f6ef3cba125b7f0cb3dd7b3d8e8436d980fdbbf8cb695",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.journal.024cf347114b",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/contacts/alan_noel/wst_ep1_02/wst_ep1_02_corpo_blueline (gameJournalPhoneMessage): \"Alan here. 1:0, NetWatch. Milko led us to the puppet master. It seems a Belgradian arms dealer wanted to sell off the old Militech bots to some Serbian separati\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/49/Data/entries/0/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "wst_ep1_02_corpo_blueline"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/openworld/world_stories/wst_ep1_02/wst_ep1_02.questphase.json",
+          "assetSha256": "00ecb0f3de3d54afb0dacfd8d3c7cb6d84cae5dbe35dd775a7438b2dc0e7fa28",
+          "jsonSha256": "444c8df4716966c0b17f6ef3cba125b7f0cb3dd7b3d8e8436d980fdbbf8cb695",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.journal.05fead371868",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/street_stories/sts_ep1_01 (gameJournalQuest): \"Gig: Dogtown Saints\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/3/Data/entries/9/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "sts_ep1_01"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.fact.sts_ep1_01_nika_alive.27941c3af8a9",
+      "sourceId": "pg5.source.11b32a57349b",
+      "kind": "native",
+      "locator": "sts_ep1_01_openworld: sts_ep1_01_nika_alive = 1 (node 219) is fed only by the final scene's \"nika_alive\" exit.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/phases/sts_ep1_01_openworld.questphase.json",
+        "assetSha256": "d188c2992edcda59732693909c597cb8c7e7930f7a82de29dc2e96d81b0dcb11",
+        "jsonSha256": "537688eacac17d996d9c414e70cfa1f7aa28ba814a0700bde949bbe5ae300ddb",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/3/Data/phaseGraph/Data/nodes/101/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_01_nika_alive",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.saints.give-brother",
+      "sourceId": "pg5.source.0ef47c08f8a7",
+      "kind": "native",
+      "locator": "sts_ep1_01_final: the \"nika_alive\" exit (end node 120) is reached only through choice 103 option 0 \"Give Nika her brother.\" (V makes Anderson tell Nika where Gaspar's body is); no combat or Anderson-death node lies on that route.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/scenes/sts_ep1_01_final.scene.json",
+        "assetSha256": "7031d288ad10e730d003c23d99935c9620027f6aa874a99d9b296f50e8991386",
+        "jsonSha256": "79935a44d4a9e2dcdcdeb281868779408e69029aa18dcedfeaf27fce19c13ddb",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/scenes/sts_ep1_01_final.scene.json",
+          "assetSha256": "7031d288ad10e730d003c23d99935c9620027f6aa874a99d9b296f50e8991386",
+          "jsonSha256": "79935a44d4a9e2dcdcdeb281868779408e69029aa18dcedfeaf27fce19c13ddb",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data",
+          "expectedType": "scnEndNode"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.saints.hands-debrief-switch",
+      "sourceId": "pg5.source.cdb711302cc3",
+      "kind": "native",
+      "locator": "sts_ep1_01_holocall_debrief: condition sts_ep1_01_failed > 0 selects Hands' Anderson-died lines; otherwise he says \"Premium work, V.\" The openworld phase plays this call after sts_ep1_01_done/finished.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/scenes/sts_ep1_01_holocall_debrief.scene.json",
+        "assetSha256": "c03d33568c5b212be1fbca5e002498907a477ca1050874949c6958917baef2eb",
+        "jsonSha256": "7cc6262adfd5f2ac67e4abd7a2fecd9a2230c5cac70372f0bef6cc401a49e6d2",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data",
+        "expectedType": "scnQuestNode"
+      }
+    },
+    {
+      "id": "pg5.ev.fact.sts_ep1_01_failed.cabce65b18fc",
+      "sourceId": "pg5.source.11b32a57349b",
+      "kind": "native",
+      "locator": "sts_ep1_01_openworld: sts_ep1_01_failed = 1 (node 89) is fed only by the final scene's \"failed\" exit and also marks defeat_interrogators Failed; inside the scene that exit follows SET sts_ep1_01_anderson_dead += 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/phases/sts_ep1_01_openworld.questphase.json",
+        "assetSha256": "d188c2992edcda59732693909c597cb8c7e7930f7a82de29dc2e96d81b0dcb11",
+        "jsonSha256": "537688eacac17d996d9c414e70cfa1f7aa28ba814a0700bde949bbe5ae300ddb",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/3/Data/phaseGraph/Data/nodes/38/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_01_failed",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.saints.failed-exit",
+      "sourceId": "pg5.source.0ef47c08f8a7",
+      "kind": "native",
+      "locator": "sts_ep1_01_final: end node 117 (\"failed\" exit) is preceded by SET sts_ep1_01_anderson_dead += 1 (node 330), i.e. the route where Anderson is killed during the confrontation with Nika.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/scenes/sts_ep1_01_final.scene.json",
+        "assetSha256": "7031d288ad10e730d003c23d99935c9620027f6aa874a99d9b296f50e8991386",
+        "jsonSha256": "79935a44d4a9e2dcdcdeb281868779408e69029aa18dcedfeaf27fce19c13ddb",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data",
+        "expectedType": "scnEndNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/scenes/sts_ep1_01_final.scene.json",
+          "assetSha256": "7031d288ad10e730d003c23d99935c9620027f6aa874a99d9b296f50e8991386",
+          "jsonSha256": "79935a44d4a9e2dcdcdeb281868779408e69029aa18dcedfeaf27fce19c13ddb",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.journal.0b95e3ab4409",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/street_stories/sts_ep1_01/sts_ep1_01/kill_nika (gameJournalQuestObjective): \"Neutralize Nika.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/3/Data/entries/9/Data/entries/0/Data/entries/18/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "kill_nika"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/scenes/sts_ep1_01_anderson_saved.scene.json",
+          "assetSha256": "695e0f4f8ad625753326df3c9e34c50fee6a7925b2b8f19fff8547f91d8ff698",
+          "jsonSha256": "c81681579720c902e28747e30e6e7245cb720703d043f8fff6f30863507f5a0a",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/scenes/sts_ep1_01_anderson_saved.scene.json",
+          "assetSha256": "695e0f4f8ad625753326df3c9e34c50fee6a7925b2b8f19fff8547f91d8ff698",
+          "jsonSha256": "c81681579720c902e28747e30e6e7245cb720703d043f8fff6f30863507f5a0a",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/201/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.saints.nika-neutralized-route",
+      "sourceId": "pg5.source.2a0b190ec9a7",
+      "kind": "native",
+      "locator": "sts_ep1_01_anderson_saved: starting at its \"combat\" entry, pause node 1205 waits for Nika killed/defeated, then journal node 15 sets kill_nika (\"Neutralize Nika.\") Succeeded and node 57 activates talk_with_target. The final scene only activates kill_nika when combat starts. The condition does not distinguish death from incapacitation.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/scenes/sts_ep1_01_anderson_saved.scene.json",
+        "assetSha256": "695e0f4f8ad625753326df3c9e34c50fee6a7925b2b8f19fff8547f91d8ff698",
+        "jsonSha256": "c81681579720c902e28747e30e6e7245cb720703d043f8fff6f30863507f5a0a",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/201/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/scenes/sts_ep1_01_anderson_saved.scene.json",
+          "assetSha256": "695e0f4f8ad625753326df3c9e34c50fee6a7925b2b8f19fff8547f91d8ff698",
+          "jsonSha256": "c81681579720c902e28747e30e6e7245cb720703d043f8fff6f30863507f5a0a",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.fact.ep1_sts01_andersons_method.bd8139900a40",
+      "sourceId": "pg5.source.0ef47c08f8a7",
+      "kind": "native",
+      "locator": "sts_ep1_01_final: ep1_sts01_andersons_method = 1 (node 524) fires inside section 345, where Anderson says \"Gaspar's dead\" in front of Nika and V and begins explaining what happened.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/scenes/sts_ep1_01_final.scene.json",
+        "assetSha256": "7031d288ad10e730d003c23d99935c9620027f6aa874a99d9b296f50e8991386",
+        "jsonSha256": "79935a44d4a9e2dcdcdeb281868779408e69029aa18dcedfeaf27fce19c13ddb",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/64/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "ep1_sts01_andersons_method",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.saints.account-section",
+      "sourceId": "pg5.source.0ef47c08f8a7",
+      "kind": "native",
+      "locator": "sts_ep1_01_final section 345: anderson \"Gaspar's dead.\" / nika \"What?! You're lying!\"; it feeds the fact writer 524 and then choice 243 (\"You killed him for parts?\" / \"Least he didn't suffer.\" / \"Brother did it to himself.\").",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/scenes/sts_ep1_01_final.scene.json",
+        "assetSha256": "7031d288ad10e730d003c23d99935c9620027f6aa874a99d9b296f50e8991386",
+        "jsonSha256": "79935a44d4a9e2dcdcdeb281868779408e69029aa18dcedfeaf27fce19c13ddb",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/45/Data",
+        "expectedType": "scnSectionNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/scenes/sts_ep1_01_final.scene.json",
+          "assetSha256": "7031d288ad10e730d003c23d99935c9620027f6aa874a99d9b296f50e8991386",
+          "jsonSha256": "79935a44d4a9e2dcdcdeb281868779408e69029aa18dcedfeaf27fce19c13ddb",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data",
+          "expectedType": "scnChoiceNode"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.journal.b1403cb50b21",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/street_stories/sts_ep1_04 (gameJournalQuest): \"Gig: Prototype in the Scraper\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/3/Data/entries/8/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "sts_ep1_04"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.fact.sts_ep1_04_mr_hands_holo_convinced.afb4309b913a",
+      "sourceId": "pg5.source.4a4cacbd668e",
+      "kind": "native",
+      "locator": "sts_ep1_04_hasan_final: sts_ep1_04_mr_hands_holo_convinced = 1 (node 365) follows section 313 (\"Don't send him back to Zetatech... find him a mean chrome-doc\") and Hands' \"Done and done.\" The only other writer is a chicken-test debug input in wst_ep1_05.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_04/scenes/sts_ep1_04_hasan_final.scene.json",
+        "assetSha256": "28770b9d6b277adb0f9a6a206c6a05439f9d2aae319ed838acd75d82c70fa97c",
+        "jsonSha256": "68446c33139a46f66f680845accd3f155803e419f3d6cd4d6a526191b2b86093",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/73/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_04_mr_hands_holo_convinced",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.prototype.holocall-choice",
+      "sourceId": "pg5.source.4a4cacbd668e",
+      "kind": "native",
+      "locator": "sts_ep1_04_hasan_final: during V's holocall with Hands, choice 315 offers \"OK, sending the coordinates.\" (0) or \"Grab the implant, but let Hasan go.\" (1); only option 1 leads to section 313 and the convinced writer.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_04/scenes/sts_ep1_04_hasan_final.scene.json",
+        "assetSha256": "28770b9d6b277adb0f9a6a206c6a05439f9d2aae319ed838acd75d82c70fa97c",
+        "jsonSha256": "68446c33139a46f66f680845accd3f155803e419f3d6cd4d6a526191b2b86093",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/55/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_04/scenes/sts_ep1_04_hasan_final.scene.json",
+          "assetSha256": "28770b9d6b277adb0f9a6a206c6a05439f9d2aae319ed838acd75d82c70fa97c",
+          "jsonSha256": "68446c33139a46f66f680845accd3f155803e419f3d6cd4d6a526191b2b86093",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/54/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.fact.sts_ep1_04_hasan_let_go.339d451d6855",
+      "sourceId": "pg5.source.4a4cacbd668e",
+      "kind": "native",
+      "locator": "sts_ep1_04_hasan_final: sts_ep1_04_hasan_let_go += 1 (node 122, followed by blueprints_hasan) is reached from choice 48 option 2 \"We never met, understood?\".",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_04/scenes/sts_ep1_04_hasan_final.scene.json",
+        "assetSha256": "28770b9d6b277adb0f9a6a206c6a05439f9d2aae319ed838acd75d82c70fa97c",
+        "jsonSha256": "68446c33139a46f66f680845accd3f155803e419f3d6cd4d6a526191b2b86093",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_04_hasan_let_go",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.fact.sts_ep1_04_hasan_let_go_earlier.db396eb22dcd",
+      "sourceId": "pg5.source.4a4cacbd668e",
+      "kind": "native",
+      "locator": "sts_ep1_04_hasan_final: sts_ep1_04_hasan_let_go_earlier += 1 (node 154, followed by blueprints_hasan) is reached from choice 25 option 1 \"Fine. Watch yourself out there.\".",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_04/scenes/sts_ep1_04_hasan_final.scene.json",
+        "assetSha256": "28770b9d6b277adb0f9a6a206c6a05439f9d2aae319ed838acd75d82c70fa97c",
+        "jsonSha256": "68446c33139a46f66f680845accd3f155803e419f3d6cd4d6a526191b2b86093",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/35/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_04_hasan_let_go_earlier",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.prototype.let-go-choices",
+      "sourceId": "pg5.source.4a4cacbd668e",
+      "kind": "native",
+      "locator": "sts_ep1_04_hasan_final choices 48 (\"Calling the fixer\" / \"[Shoot Hasan]\" / \"We never met, understood?\") and 25 (\"Prototype's my responsibility now.\" / \"Fine. Watch yourself out there.\"): the let-go options feed the let_go writers, which give the blueprints to Hasan rather than the corp.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_04/scenes/sts_ep1_04_hasan_final.scene.json",
+        "assetSha256": "28770b9d6b277adb0f9a6a206c6a05439f9d2aae319ed838acd75d82c70fa97c",
+        "jsonSha256": "68446c33139a46f66f680845accd3f155803e419f3d6cd4d6a526191b2b86093",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_04/scenes/sts_ep1_04_hasan_final.scene.json",
+          "assetSha256": "28770b9d6b277adb0f9a6a206c6a05439f9d2aae319ed838acd75d82c70fa97c",
+          "jsonSha256": "68446c33139a46f66f680845accd3f155803e419f3d6cd4d6a526191b2b86093",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data",
+          "expectedType": "scnChoiceNode"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.journal.2bdd1083dd48",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/minor_quest/wst_ep1_05/wst_ep1_05/take_the_gun (gameJournalQuestObjective): \"Take the gun.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/2/Data/entries/0/Data/entries/2/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "take_the_gun"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.977ca07f1800",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/minor_quest/wst_ep1_05/wst_ep1_05/go_to_hasan_apartment (gameJournalQuestObjective): \"Meet with Hasan in the Longshore Stacks.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/2/Data/entries/0/Data/entries/0/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "go_to_hasan_apartment"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.ownway.phase",
+      "sourceId": "pg5.source.9e6a8d345eea",
+      "kind": "native",
+      "locator": "wst_ep1_05.questphase: started from Hands' SMS that Hasan wants to contact V (sts_ep1_04_sms_hasan_alive, sent only on the convinced/hands-safe debrief branch); objectives go_to_hasan_apartment (\"Meet with Hasan in the Longshore Stacks.\") then take_the_gun, which turns Succeeded after wst_ep1_05_gun_taken > 0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-01/raw/ep1/ep1/openworld/world_stories/wst_ep1_05/wst_ep1_05.questphase.json",
+        "assetSha256": "e9a807f12205d7482c0b743763311529a0ba873afaf37bdd03c4831b810e4cea",
+        "jsonSha256": "966379af1169094c1e4431bfda53220e5fa699bfcb6301afbc4176499f34e597",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/24/Data/type/Data",
+        "expectedType": "questJournalQuestEntry_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-01/raw/ep1/ep1/openworld/world_stories/wst_ep1_05/wst_ep1_05.questphase.json",
+          "assetSha256": "e9a807f12205d7482c0b743763311529a0ba873afaf37bdd03c4831b810e4cea",
+          "jsonSha256": "966379af1169094c1e4431bfda53220e5fa699bfcb6301afbc4176499f34e597",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/31/Data/type/Data",
+          "expectedType": "questJournalQuestEntry_NodeType"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.journal.38d8c7f0accf",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/street_stories/sts_ep1_06 (gameJournalQuest): \"Gig: Heaviest of Hearts\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/3/Data/entries/3/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "sts_ep1_06"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.fact.sts_ep1_06_testimony_withdrawn.ea49525cf40d",
+      "sourceId": "pg5.source.f66275dd38bc",
+      "kind": "native",
+      "locator": "sts_ep1_06_george: the only positive writer, testimony_withdrawn = 1 (node 451), sits on the confrontation branch after Hank is dealt with; the deal branch instead writes testimony_agree = 1 then testimony_withdrawn = 0 (node 450). The client scene then offers only \"It's done. I deleted the testimony.\" when withdrawn = 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/openworld/street_stories/sts_ep1_06_zembinsky/scenes/sts_ep1_06_george.scene.json",
+        "assetSha256": "fdc9745062d7de81f22ca44dc2ddb118297f7c531ccef8aa2e4ff8642cba816c",
+        "jsonSha256": "b05d8b79aa8828daaa027be28b03e7a92a178580d67bed606cfdddbd18731fff",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_06_testimony_withdrawn",
+          "/value": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/openworld/street_stories/sts_ep1_06_zembinsky/scenes/sts_ep1_06_george.scene.json",
+          "assetSha256": "fdc9745062d7de81f22ca44dc2ddb118297f7c531ccef8aa2e4ff8642cba816c",
+          "jsonSha256": "b05d8b79aa8828daaa027be28b03e7a92a178580d67bed606cfdddbd18731fff",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/134/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "sts_ep1_06_testimony_withdrawn",
+            "/value": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.hearts.delete-choice",
+      "sourceId": "pg5.source.f66275dd38bc",
+      "kind": "native",
+      "locator": "sts_ep1_06_george choice 1123 (\"Fine. We have a deal.\" / \"I don't believe you. Delete the testimony.\") and sts_ep1_06_holocall_debrief condition 193 (testimony_withdrawn == 0 selects the \"Maldonado was most certainly not [pleased]\" lines; otherwise Hands relays Maldonado's praise).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/openworld/street_stories/sts_ep1_06_zembinsky/scenes/sts_ep1_06_george.scene.json",
+        "assetSha256": "fdc9745062d7de81f22ca44dc2ddb118297f7c531ccef8aa2e4ff8642cba816c",
+        "jsonSha256": "b05d8b79aa8828daaa027be28b03e7a92a178580d67bed606cfdddbd18731fff",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_06_zembinsky/scenes/sts_ep1_06_holocall_debrief.scene.json",
+          "assetSha256": "ebd01b647766a82721dc107b73de0a156424f594a35fa3998f3830d23af769fa",
+          "jsonSha256": "5f78ad211511dcccfeefde1a9097331f011016da7f645c34573584c422f0bb8d",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.fact.sts_ep1_06_ground_floor_combat.cf1519f71b30",
+      "sourceId": "pg5.source.47873bdf1758",
+      "kind": "native",
+      "locator": "sts_ep1_06_gameplay: ground_floor_combat = 1 marks combat breaking out on the Heavy Hearts ground floor during the gig.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-01/raw/ep1/ep1/openworld/street_stories/sts_ep1_06_zembinsky/phases/sts_ep1_06_gameplay.questphase.json",
+        "assetSha256": "015c63d6e6d134a81a943122b06189112a0d858408dad0e6b2b3763e8de60473",
+        "jsonSha256": "1e1201729073addb43dd5d39398bdf8c3e7a0dbb229428d60e4fd68b5590ff7e",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/4/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_06_ground_floor_combat",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.fact.sts_ep1_06_upper_floor_combat.23afb8250410",
+      "sourceId": "pg5.source.47873bdf1758",
+      "kind": "native",
+      "locator": "sts_ep1_06_gameplay: upper_floor_combat = 1 marks combat breaking out on the Heavy Hearts upper floor during the gig.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-01/raw/ep1/ep1/openworld/street_stories/sts_ep1_06_zembinsky/phases/sts_ep1_06_gameplay.questphase.json",
+        "assetSha256": "015c63d6e6d134a81a943122b06189112a0d858408dad0e6b2b3763e8de60473",
+        "jsonSha256": "1e1201729073addb43dd5d39398bdf8c3e7a0dbb229428d60e4fd68b5590ff7e",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/5/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_06_upper_floor_combat",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.hearts.debrief-alarm",
+      "sourceId": "pg5.source.a80b715af99a",
+      "kind": "native",
+      "locator": "sts_ep1_06_holocall_debrief condition 188: OR(ground_floor_combat > 0, upper_floor_combat > 0) selects Hands' line \"Truly, you didn't have to make such a mess at the Heavy Hearts\"; otherwise \"I'm pleased you handled this quietly\". The rejected-call SMS variants use the same switch (alarm_triggered / alarm_not_triggered).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_06_zembinsky/scenes/sts_ep1_06_holocall_debrief.scene.json",
+        "assetSha256": "ebd01b647766a82721dc107b73de0a156424f594a35fa3998f3830d23af769fa",
+        "jsonSha256": "5f78ad211511dcccfeefde1a9097331f011016da7f645c34573584c422f0bb8d",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data",
+        "expectedType": "scnQuestNode"
+      }
+    },
+    {
+      "id": "pg5.ev.journal.bd39372ec7c2",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/street_stories/sts_ep1_07 (gameJournalQuest): \"Gig: Roads to Redemption\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/3/Data/entries/7/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "sts_ep1_07"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.bfd34e76e027",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/street_stories/sts_ep1_07/sts_ep1_07/plant_gps (gameJournalQuestObjective): \"Upload the software to the Net-nuke.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/3/Data/entries/7/Data/entries/0/Data/entries/1/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "plant_gps"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.fact.sts_ep1_07_bomb_disabled.d3aa50d63256",
+      "sourceId": "pg5.source.405325443263",
+      "kind": "native",
+      "locator": "sts_ep1_07_phase: bomb_disabled = 1 (node 278) follows the bomb interaction scene's \"Detonator Swaped\" exit, entered from the plant_gps objective (\"Upload the software to the Net-nuke.\"). A second writer (node 368) sits behind a checkpoint input; the rule also requires plant_gps Succeeded.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/openworld/street_stories/sts_ep1_07/phases/sts_ep1_07_phase.questphase.json",
+        "assetSha256": "17dc8652f7759437da617774156c4a34c7ba9ff2e4a657d4dc28c2c6ca70931f",
+        "jsonSha256": "d58c83143ebaa0309b91e2c1a5f576fd65cac001ab32217d921b4d3ac227cb30",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/93/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_07_bomb_disabled",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.roads.nele-asks",
+      "sourceId": "pg5.source.219528a69bd6",
+      "kind": "native",
+      "locator": "sts_ep1_07_final_meeting section 8: Nele \"The bomb - y-you take care of it?\" / V \"Disarmed. We're in the clear.\"",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/openworld/street_stories/sts_ep1_07/scenes/sts_ep1_07_final_meeting.scene.json",
+        "assetSha256": "9e0188bd4918737b33261b8a5c0bfbdbf1cd0a7dc96f75ce5257eae482870687",
+        "jsonSha256": "b07f114148fc159e9b61d711d454e9e6960affae93a977e1e5795b2486bb55d0",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+        "expectedType": "scnSectionNode"
+      }
+    },
+    {
+      "id": "pg5.ev.journal.c1e62eea99f3",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/street_stories/sts_ep1_08 (gameJournalQuest): \"Gig: Spy in the Jungle\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/3/Data/entries/1/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "sts_ep1_08"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.fact.sts_ep1_08_biomonitor_ana.48340540c5ab",
+      "sourceId": "pg5.source.54273b1b7a16",
+      "kind": "native",
+      "locator": "sts_ep1_08_client_ending (actors Ana, Steven): biomonitor_ana = 1 is written after choice 483 option 0 \"[Hand over the biomonitor] Knock yourself out.\" (node 652) or choice 707 \"[Leave the biomonitor] My job here's done.\" (node 649).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+        "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+        "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_08_biomonitor_ana",
+          "/value": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "sts_ep1_08_biomonitor_ana",
+            "/value": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.jungle.handover-choice",
+      "sourceId": "pg5.source.54273b1b7a16",
+      "kind": "native",
+      "locator": "sts_ep1_08_client_ending choice 483: \"[Hand over the biomonitor] Knock yourself out.\" vs \"[Destroy the biomonitor] Sorry... I can't.\"; option 1 writes biomonitor_destroyed = 1 (node 741).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+        "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+        "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.jungle.hands-debrief-switch",
+      "sourceId": "pg5.source.4ecb073b728d",
+      "kind": "native",
+      "locator": "sts_ep1_08_holocall_debrief condition 158: biomonitor_destroyed == 1 gives Hands' \"I applaud your good sense\" lines; otherwise \"Bana's predicament is all over the holowaves... What matters is we've been compensated.\"",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_holocall_debrief.scene.json",
+        "assetSha256": "3e71fd5735c98fd194caa3c1931d6cc622059e0a3b92d9c0dcf1b9b82ea057a4",
+        "jsonSha256": "649736447ea567104c9b17df52d5cbf98b509c7825875a13c5c8ee790cf9137d",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data",
+        "expectedType": "scnQuestNode"
+      }
+    },
+    {
+      "id": "pg5.ev.journal.a2f9f844cfb7",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/street_stories/sts_ep1_08/final_meeting/leave_biomonitor_droppoint (gameJournalQuestObjective): \"Deposit the biomonitor in the fixer's drop point.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/3/Data/entries/1/Data/entries/4/Data/entries/3/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "leave_biomonitor_droppoint"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.8ec48ed33e92",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/contacts/steven_santos/sts_ep1_08/biomonitor_destroyed_meeting_invitation (gameJournalPhoneMessage): \"Heyyy, V, long time! :) Remember me? Steven Santos, a man of reason? Well, I never forgot your part in choosing the only reasonable option. I happen to be in Ni\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/1/Data/entries/0/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "biomonitor_destroyed_meeting_invitation"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.fact.sts_ep1_08_biomonitor_destroyed.5e6acba6fef4",
+      "sourceId": "pg5.source.54273b1b7a16",
+      "kind": "native",
+      "locator": "sts_ep1_08_client_ending: biomonitor_destroyed = 1 (node 741) follows choice 483 option 1 \"[Destroy the biomonitor] Sorry... I can't.\" in front of the agents. The drop-point route also writes this fact in sts_ep1_08_phase, so the rule additionally requires talk_with_the_agent Succeeded, which the drop-point route never reaches.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+        "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+        "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_08_biomonitor_destroyed",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.83e8389362ae",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/street_stories/sts_ep1_08/final_meeting/talk_with_the_agent (gameJournalQuestObjective): \"Talk to the agents.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/3/Data/entries/1/Data/entries/4/Data/entries/1/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "talk_with_the_agent"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.6fd3c8ed274c",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/contacts/bill/wst_ep1_11_bill_invitation/bill_invitation (gameJournalPhoneMessage): \"V! Sorry I didn't get in touch sooner, but I needed time to process everything that happened in Dodger's den. How about you drop by The Glen to say hi? Laid dow\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/41/Data/entries/0/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "bill_invitation"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pm5-01/raw/ep1/ep1/openworld/world_stories/wst_ep1_11/wst_ep1_11.questphase.json",
+          "assetSha256": "1b32cb92a3e0b3ce1b9ba6a877e5998ccc193b075c40e28f71982fa728b24d38",
+          "jsonSha256": "90a4144a2e05d58f79874127b42240eca7ea8ba7b9261adaa3f56f852117d02c",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/17/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.journal.525041bf2ad0",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/street_stories/sts_ep1_13 (gameJournalQuest): \"Gig: Talent Academy\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/3/Data/entries/2/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "sts_ep1_13"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.fact.sts_ep1_13_fiona_deal_done.ea9acbd3b384",
+      "sourceId": "pg5.source.ac774a5aed21",
+      "kind": "native",
+      "locator": "sts_ep1_13_fiona: fiona_deal_done = 1 (node 1315) follows choice 653 option 0 \"We'll do the leak.\" (or option 2, the leak plus Tommie's signing): Fiona transfers only her controlled leak.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_13/scenes/sts_ep1_13_fiona.scene.json",
+        "assetSha256": "c7db645326d2413555671bd00a4f297a3e7925327e97e9b2e9b9a7177ff178b3",
+        "jsonSha256": "347a0c32d07398d93970d5dc7da788b31d33dea58837a9707f1adca3dc692461",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/65/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_13_fiona_deal_done",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.fact.sts_ep1_13_fiona_deal_refuse.9cb6317f1505",
+      "sourceId": "pg5.source.ac774a5aed21",
+      "kind": "native",
+      "locator": "sts_ep1_13_fiona: fiona_deal_refuse = 1 (node 994) follows choice 653 option 1 \"Fuck your offer.\" (\"Get me access to that data\"), i.e. V takes the full client data instead of the leak.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_13/scenes/sts_ep1_13_fiona.scene.json",
+        "assetSha256": "c7db645326d2413555671bd00a4f297a3e7925327e97e9b2e9b9a7177ff178b3",
+        "jsonSha256": "347a0c32d07398d93970d5dc7da788b31d33dea58837a9707f1adca3dc692461",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_13_fiona_deal_refuse",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.academy.choice",
+      "sourceId": "pg5.source.ac774a5aed21",
+      "kind": "native",
+      "locator": "sts_ep1_13_fiona choice 653: \"We'll do the leak.\" / \"Fuck your offer.\" / \"We'll do the leak, but Tommie gets signed.\" ...",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_13/scenes/sts_ep1_13_fiona.scene.json",
+        "assetSha256": "c7db645326d2413555671bd00a4f297a3e7925327e97e9b2e9b9a7177ff178b3",
+        "jsonSha256": "347a0c32d07398d93970d5dc7da788b31d33dea58837a9707f1adca3dc692461",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data",
+        "expectedType": "scnChoiceNode"
+      }
+    },
+    {
+      "id": "pg5.ev.journal.7a2807fe6c24",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/sts_ep1_13/sts_ep1_13_holocall_debrief_deal_done (gameJournalPhoneMessage): \"I’ve sent the data I received to our client. However, I must say: I expected the client roster to be longer and include, well, some heavier hitters. Nobody like\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/6/Data/entries/4/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "sts_ep1_13_holocall_debrief_deal_done"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.a480b5711b11",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/sts_ep1_13/sts_ep1_13_holocall_debrief_deal_refuse (gameJournalPhoneMessage): \"Nicely done, V. Thanks to you, our Europeans can make sure tax evaders meet their punishment. Contract closed.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/6/Data/entries/5/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "sts_ep1_13_holocall_debrief_deal_refuse"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.3b50f14fd379",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/minor_quest/mq303_addict (gameJournalQuest): \"Dazed and Confused\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/17/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "mq303_addict"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.dazed.finale-choice",
+      "sourceId": "pg5.source.03189a6fb22b",
+      "kind": "native",
+      "locator": "mq303_03_finale (actors Shank, Tool, Lina_Malina): after \"All right, I'm taking over.\" (choice 2041), choice 2033 offers \"Tell him that he's your sister.\" (0 -> SET mq303_finale_sisters), \"Convince him that he's a clone created by the FIA.\" (1 -> SET mq303_finale_cia), \"[Send Tool's letter] Here - your lines.\" (2 -> SET mq303_finale_shock).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_03_finale.scene.json",
+        "assetSha256": "e4188bbec07025013391af15c700f397c76b95d26116a9f939fc071f9625eca6",
+        "jsonSha256": "69262414a17811c78c4020f36f52441bfd1d4f2970e6b6151ea869a01510de3d",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_03_finale.scene.json",
+          "assetSha256": "e4188bbec07025013391af15c700f397c76b95d26116a9f939fc071f9625eca6",
+          "jsonSha256": "69262414a17811c78c4020f36f52441bfd1d4f2970e6b6151ea869a01510de3d",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data",
+          "expectedType": "scnChoiceNode"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.fact.mq303_finale_sisters.9cadd70cf2f6",
+      "sourceId": "pg5.source.03189a6fb22b",
+      "kind": "native",
+      "locator": "mq303_03_finale: mq303_finale_sisters += 1 (node 2088) is reached only from choice 2033 option 0 (the long-lost-sister script).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_03_finale.scene.json",
+        "assetSha256": "e4188bbec07025013391af15c700f397c76b95d26116a9f939fc071f9625eca6",
+        "jsonSha256": "69262414a17811c78c4020f36f52441bfd1d4f2970e6b6151ea869a01510de3d",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "mq303_finale_sisters",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.fact.mq303_finale_cia.ea9acbd3b384",
+      "sourceId": "pg5.source.03189a6fb22b",
+      "kind": "native",
+      "locator": "mq303_03_finale: mq303_finale_cia += 1 (node 2225) is reached only from choice 2033 option 1 (the FIA-clone script).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_03_finale.scene.json",
+        "assetSha256": "e4188bbec07025013391af15c700f397c76b95d26116a9f939fc071f9625eca6",
+        "jsonSha256": "69262414a17811c78c4020f36f52441bfd1d4f2970e6b6151ea869a01510de3d",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/65/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "mq303_finale_cia",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.fact.mq303_finale_shock.349400e1a7a3",
+      "sourceId": "pg5.source.03189a6fb22b",
+      "kind": "native",
+      "locator": "mq303_03_finale: mq303_finale_shock += 1 (node 2409) is reached only from choice 2033 option 2 (sending Tool's fan letter as his lines).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_03_finale.scene.json",
+        "assetSha256": "e4188bbec07025013391af15c700f397c76b95d26116a9f939fc071f9625eca6",
+        "jsonSha256": "69262414a17811c78c4020f36f52441bfd1d4f2970e6b6151ea869a01510de3d",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/87/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "mq303_finale_shock",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.415f29f518b6",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/contacts/lina_malina/twins/01_start (gameJournalPhoneMessage): \"hey, so that TooLina scroll was a stroke of fuckin genius! its exactly what my brand needed - a partner! we've got amaaaaazing chemistry and totally just get ea\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/entries/2/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "01_start"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.e30437c303e5",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mq303/debrief_ch_twin/debrief (gameJournalPhoneChoiceEntry): \"Turns out Lina Malina didn’t hire you, but she was still involved. Long story short, gave her a new sister and both are very happy. Ah, days like this remind me\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/16/Data/entries/4/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneChoiceEntry",
+        "expected": {
+          "/id": "debrief"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.6ee411ba864a",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mq303/debrief_ch_twin/debrief_alt (gameJournalPhoneChoiceEntry): \"So your captive – Edgar Tool. A freak BD wreath accident had him thinking he was Lina Malina. Managed to convince him he was actually her long-lost sister. Anyw\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/16/Data/entries/4/Data/entries/1/Data",
+        "expectedType": "gameJournalPhoneChoiceEntry",
+        "expected": {
+          "/id": "debrief_alt"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.5d7964ee74ad",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mq303/debrief_ch_clone/debrief (gameJournalPhoneChoiceEntry): \"Dunno if it was worth getting involved. Turns out the client was a BD rental owner, goes by Tool. Choom had a psychotic break and thought he was Lina... anyway,\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/16/Data/entries/5/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneChoiceEntry",
+        "expected": {
+          "/id": "debrief"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.905bb861cabb",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mq303/debrief_ch_clone/debrief_alt (gameJournalPhoneChoiceEntry): \"Turns out it wasn’t Lina, but some choom called Tool. Had a BD accident, started thinking he was Lina. Set him free, now he just thinks he’s an FIA clone.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/16/Data/entries/5/Data/entries/1/Data",
+        "expectedType": "gameJournalPhoneChoiceEntry",
+        "expected": {
+          "/id": "debrief_alt"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.0806b678043f",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mq303/debrief_ch_cured/debrief (gameJournalPhoneChoiceEntry): \"Gig called for a psychiatrist, not a merc. Choom got stuck thinking he was someone else. Thankfully managed to help him, now he’s back to his old self.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/16/Data/entries/6/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneChoiceEntry",
+        "expected": {
+          "/id": "debrief"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.aed8a1b7bf3e",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mq303/debrief_ch_cured/debrief_alt (gameJournalPhoneChoiceEntry): \"See why you had your doubts. Client wasn’t Lina Malina, but the co-owner of Brainporium, Edgar Tool. Guy had a freak BD wreath accident, thought he was a BD sta\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/16/Data/entries/6/Data/entries/1/Data",
+        "expectedType": "gameJournalPhoneChoiceEntry",
+        "expected": {
+          "/id": "debrief_alt"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.dazed.freed-route",
+      "sourceId": "pg5.source.5025f2443676",
+      "kind": "native",
+      "locator": "mq303_messages: the Hands debrief_ch_freed phone choice (node 76, V: \"Freed the client, gig complete\" / \"Guy was locked up, I set him free\") is activated behind pause 104 (mq303_tool_freed > 0, tool_kissed = 0, shank_killed = 0); debrief_ch_freed_kiss (node 82, \"...I set him free\") behind pause 73 (shank_killed = 0, tool_kissed > 0). mq303_tool_freed is written by the hook scene when V frees Tool; the kill-the-partner branch writes mq303_shank_killed and uses a separate debrief.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq303/phases/mq303_messages.questphase.json",
+        "assetSha256": "af1b330fc9f96ca662cabead38b0a21a49b8a0a9bb4016cd2d7ce78a5ccaac03",
+        "jsonSha256": "7af252519e9eb1962a2dac1c653604deda8eab345db37ebdfc5e7b999bba79ff",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/64/Data",
+        "expectedType": "questJournalNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq303/phases/mq303_messages.questphase.json",
+          "assetSha256": "af1b330fc9f96ca662cabead38b0a21a49b8a0a9bb4016cd2d7ce78a5ccaac03",
+          "jsonSha256": "7af252519e9eb1962a2dac1c653604deda8eab345db37ebdfc5e7b999bba79ff",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/89/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq303/phases/mq303_messages.questphase.json",
+          "assetSha256": "af1b330fc9f96ca662cabead38b0a21a49b8a0a9bb4016cd2d7ce78a5ccaac03",
+          "jsonSha256": "7af252519e9eb1962a2dac1c653604deda8eab345db37ebdfc5e7b999bba79ff",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/67/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq303/phases/mq303_messages.questphase.json",
+          "assetSha256": "af1b330fc9f96ca662cabead38b0a21a49b8a0a9bb4016cd2d7ce78a5ccaac03",
+          "jsonSha256": "7af252519e9eb1962a2dac1c653604deda8eab345db37ebdfc5e7b999bba79ff",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/61/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.journal.ec10b55b9ee0",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mq303/debrief_ch_freed/debrief (gameJournalPhoneChoiceEntry): \"Easy peasy. Freed the client, gig complete.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/16/Data/entries/7/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneChoiceEntry",
+        "expected": {
+          "/id": "debrief"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.45c60af06f5e",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mq303/debrief_ch_freed/debrief_alt (gameJournalPhoneChoiceEntry): \"Yeah, that wasn’t Lina Malina, just some choom called Tool. Guy was locked up, I set him free, so the gig’s in the bag.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/16/Data/entries/7/Data/entries/1/Data",
+        "expectedType": "gameJournalPhoneChoiceEntry",
+        "expected": {
+          "/id": "debrief_alt"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.9537da127305",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mq303/debrief_ch_freed_kiss/debrief (gameJournalPhoneChoiceEntry): \"Easy peasy. Freed the client, gig complete.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/16/Data/entries/12/Data/entries/1/Data",
+        "expectedType": "gameJournalPhoneChoiceEntry",
+        "expected": {
+          "/id": "debrief"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.2095836e6a28",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mq303/debrief_ch_freed_kiss/debrief_makeout (gameJournalPhoneChoiceEntry): \"So the client wasn’t Lina, that’s for sure. Choom’s name was Tool, owns a BD rental place. His biz partner had him locked up in the basement, so I set him free.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/16/Data/entries/12/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneChoiceEntry",
+        "expected": {
+          "/id": "debrief_makeout"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.6a77697094c1",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/contacts/lina_malina/money/money_transfer/money_01 (gameJournalPhoneChoiceEntry): \"Transferred the eddies. We'll be shooting at the Brainporium - check the address.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/entries/1/Data/entries/0/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneChoiceEntry",
+        "expected": {
+          "/id": "money_01"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq303/phases/mq303_messages.questphase.json",
+          "assetSha256": "af1b330fc9f96ca662cabead38b0a21a49b8a0a9bb4016cd2d7ce78a5ccaac03",
+          "jsonSha256": "7af252519e9eb1962a2dac1c653604deda8eab345db37ebdfc5e7b999bba79ff",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/34/Data/type/Data",
+          "expectedType": "questJournalQuestEntry_NodeType"
+        },
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq303/phases/mq303_messages.questphase.json",
+          "assetSha256": "af1b330fc9f96ca662cabead38b0a21a49b8a0a9bb4016cd2d7ce78a5ccaac03",
+          "jsonSha256": "7af252519e9eb1962a2dac1c653604deda8eab345db37ebdfc5e7b999bba79ff",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/125/Data/type/Data",
+          "expectedType": "questJournalQuestEntry_NodeType"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.town.followup-switch",
+      "sourceId": "pg5.source.9b7b2b87db4e",
+      "kind": "native",
+      "locator": "mq304.questphase follow-up switch (First_Fulfilled): mq304_bennet_killed > 0 -> Hands message followup_jago_bad; mq304_jago_killed > 0 -> followup_bennett_bad / followup_bennett_contacts; mq304_jago_adjutant > 0 -> followup_bennett_good; mq304_bennett_terra_cognita > 0 -> followup_jago_terra. Only one branch is sent.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq304/mq304.questphase.json",
+        "assetSha256": "8b911d4d888368eb9e4e6434e8bc937f03358fe462da375867470a1ae7f52922",
+        "jsonSha256": "a83c087df9b92f3848b02302b0fab65915ade7cb8ec384f3f6648b222759def8",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data/phaseGraph/Data/nodes/5/Data",
+        "expectedType": "questSwitchNodeDefinition"
+      }
+    },
+    {
+      "id": "pg5.ev.journal.1957049bbd42",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mq304_followup/mq304_followup_bennett_good (gameJournalPhoneMessage): \"By some miracle, it seems Jago and Bennett are now working in tandem. I have no idea how you did it, but Dogtown has never been this well-run. Truly excellent w\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/4/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "mq304_followup_bennett_good"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq304/mq304.questphase.json",
+          "assetSha256": "8b911d4d888368eb9e4e6434e8bc937f03358fe462da375867470a1ae7f52922",
+          "jsonSha256": "a83c087df9b92f3848b02302b0fab65915ade7cb8ec384f3f6648b222759def8",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data/phaseGraph/Data/nodes/5/Data",
+          "expectedType": "questSwitchNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.journal.781ebf87b43c",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mq304_followup/mq304_followup_bennett_bad (gameJournalPhoneMessage): \"I will say, Jago’s influence is sorely missed. Certain items of business must be dealt with on the fly. However, Bennett has risen to the occasion, maintained p\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/4/Data/entries/1/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "mq304_followup_bennett_bad"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq304/mq304.questphase.json",
+          "assetSha256": "8b911d4d888368eb9e4e6434e8bc937f03358fe462da375867470a1ae7f52922",
+          "jsonSha256": "a83c087df9b92f3848b02302b0fab65915ade7cb8ec384f3f6648b222759def8",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data/phaseGraph/Data/nodes/5/Data",
+          "expectedType": "questSwitchNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.journal.e43f5a0b5365",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mq304_followup/mq304_followup_bennett_contacts (gameJournalPhoneMessage): \"It seems we’ve made the correct choice. Bennett is already cleaning up Dogtown, starting with the Voodoo Boys and the scavengers. Dogtown’s population is down e\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/4/Data/entries/5/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "mq304_followup_bennett_contacts"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq304/mq304.questphase.json",
+          "assetSha256": "8b911d4d888368eb9e4e6434e8bc937f03358fe462da375867470a1ae7f52922",
+          "jsonSha256": "a83c087df9b92f3848b02302b0fab65915ade7cb8ec384f3f6648b222759def8",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data/phaseGraph/Data/nodes/5/Data",
+          "expectedType": "questSwitchNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.journal.953b33c5bcf2",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mq304_followup/mq304_followup_jago_bad (gameJournalPhoneMessage): \"Well, well, just a few days and Bennett is no longer missed. Jago’s managing better than I expected - it seems you bet on the right hound. Of course, some scave\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/4/Data/entries/2/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "mq304_followup_jago_bad"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq304/mq304.questphase.json",
+          "assetSha256": "8b911d4d888368eb9e4e6434e8bc937f03358fe462da375867470a1ae7f52922",
+          "jsonSha256": "a83c087df9b92f3848b02302b0fab65915ade7cb8ec384f3f6648b222759def8",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data/phaseGraph/Data/nodes/5/Data",
+          "expectedType": "questSwitchNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.journal.925a3dc09f22",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mq304_followup/mq304_followup_jago_terra (gameJournalPhoneMessage): \"I have to hand it to you, V. Do you know who just stopped by my office for a cup of tea and a chat? Jago, Dogtown’s new top dog. He wished to discuss a few item\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/4/Data/entries/6/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "mq304_followup_jago_terra"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq304/mq304.questphase.json",
+          "assetSha256": "8b911d4d888368eb9e4e6434e8bc937f03358fe462da375867470a1ae7f52922",
+          "jsonSha256": "a83c087df9b92f3848b02302b0fab65915ade7cb8ec384f3f6648b222759def8",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data/phaseGraph/Data/nodes/5/Data",
+          "expectedType": "questSwitchNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.journal.17ed6727b2f2",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/minor_quest/mq305_combat_zone_report (gameJournalQuest): \"Shot by Both Sides\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/8/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "mq305_combat_zone_report"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.26b3b7002420",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/minor_quest/mq305_combat_zone_report/04_lab_confrontation/kill_dante (gameJournalQuestObjective): \"Kill Dante.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/8/Data/entries/3/Data/entries/4/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "kill_dante"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.b5ee4347d29a",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mq305/bree_went_to_away (gameJournalPhoneMessage): \"The client's pleased. Transferring your funds.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/3/Data/entries/4/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "bree_went_to_away"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq305/phases/mq305_outcome.questphase.json",
+          "assetSha256": "3a86f3462827c5cf7178b831a5c0c60a24e2dea4a3b33264121c4ac0f1f7ddb8",
+          "jsonSha256": "0af0256f17229b21404c0d8402e436708bc6ad954310efe6a39bcae8c78dace9",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data",
+          "expectedType": "questConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq305/phases/mq305_outcome.questphase.json",
+          "assetSha256": "3a86f3462827c5cf7178b831a5c0c60a24e2dea4a3b33264121c4ac0f1f7ddb8",
+          "jsonSha256": "0af0256f17229b21404c0d8402e436708bc6ad954310efe6a39bcae8c78dace9",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.fact.mq305_mr_hands_sends_message_about_bree.8478636ca380",
+      "sourceId": "pg5.source.40cae7fa9d7e",
+      "kind": "native",
+      "locator": "mq305_05_outcome_mr_hands: mq305_mr_hands_sends_message_about_bree = 1 (node 130) is written right after section 134, Hands' holocall: \"NetWatch has dispatched a... hunter\" / \"Bree Whitney sold them Militech's data, then disappeared.\"",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq305/scenes/mq305_05_outcome_mr_hands.scene.json",
+        "assetSha256": "803698d0ccdd4c528abc72b3d35b53547681c0dc6af2da815a2675028484152b",
+        "jsonSha256": "22d650e15bac29195cb52ba2e8f25fb4e90e997f014b136f956b625ee5990e88",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "mq305_mr_hands_sends_message_about_bree",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.shot.netwatch-section",
+      "sourceId": "pg5.source.40cae7fa9d7e",
+      "kind": "native",
+      "locator": "mq305_05_outcome_mr_hands section 134: mr_hands_holo warns V that NetWatch has dispatched a hunter after Bree Whitney sold them Militech's data and disappeared.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq305/scenes/mq305_05_outcome_mr_hands.scene.json",
+        "assetSha256": "803698d0ccdd4c528abc72b3d35b53547681c0dc6af2da815a2675028484152b",
+        "jsonSha256": "22d650e15bac29195cb52ba2e8f25fb4e90e997f014b136f956b625ee5990e88",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data",
+        "expectedType": "scnSectionNode"
+      }
+    },
+    {
+      "id": "pg5.ev.shot.netwatch-route",
+      "sourceId": "pg5.source.2004d7b0c737",
+      "kind": "native",
+      "locator": "mq305_outcome: output out_bree_sold_data (node 148) is fed only by the False branch of condition mq305_bree_dead > 0 (node 160), i.e. Bree was not killed. The mq305_netwatch_encounter phase then plays mq305_05_outcome_mr_hands at its in_bree_sold_data entry (scene start 165 -> NetWatch warning section 134 -> sets the fact at node 130); the other scene entries (in_bree_dead, in_johnny_sold_data) never reach that write.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq305/phases/mq305_outcome.questphase.json",
+        "assetSha256": "3a86f3462827c5cf7178b831a5c0c60a24e2dea4a3b33264121c4ac0f1f7ddb8",
+        "jsonSha256": "0af0256f17229b21404c0d8402e436708bc6ad954310efe6a39bcae8c78dace9",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/39/Data",
+        "expectedType": "questConditionNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq305/phases/mq305_outcome.questphase.json",
+          "assetSha256": "3a86f3462827c5cf7178b831a5c0c60a24e2dea4a3b33264121c4ac0f1f7ddb8",
+          "jsonSha256": "0af0256f17229b21404c0d8402e436708bc6ad954310efe6a39bcae8c78dace9",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data",
+          "expectedType": "questOutputNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/quest/minor_quests/mq305/phases/mq305_netwatch_encounter.questphase.json",
+          "assetSha256": "51717a540943b15d187daaa62a62ea935a41d9867c7c22eac43bfaf0045946f6",
+          "jsonSha256": "857a9f38835bab394f170611fbc0e69460e68700e799d6a7cc50edda01e5b3e3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq305/scenes/mq305_05_outcome_mr_hands.scene.json",
+          "assetSha256": "803698d0ccdd4c528abc72b3d35b53547681c0dc6af2da815a2675028484152b",
+          "jsonSha256": "22d650e15bac29195cb52ba2e8f25fb4e90e997f014b136f956b625ee5990e88",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data",
+          "expectedType": "scnStartNode"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.journal.206cf1b20b5d",
+      "sourceId": "pg5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/street_stories/combat_zone_reward/combat_zone_reward/talk_with_hands (gameJournalQuestObjective): \"Talk to Mr. Hands.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/3/Data/entries/4/Data/entries/1/Data/entries/1/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "talk_with_hands"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/openworld/fixers/mr_hands/phases/mr_hands_fixers_loop.questphase.json",
+          "assetSha256": "62186cfe9a52c5b5e09c7e9ebf71dfa4a779d672addca561892c5f7c094e3149",
+          "jsonSha256": "7dd871119c4d17958fc2ed62b4f8c596f2994bfc39e6e2d9b427ecbe0b3102af",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/15/Data/phaseGraph/Data/nodes/11/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "pg5.ev.journal.6c7636876ae9",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/mr_hands_global_msg/combat_zone_reward (gameJournalPhoneMessage): \"I see someone values our partnership highly. So much so, in fact, that I’ve run fresh out of jobs for you here in Dogtown. Excellent work; the kind that deserve\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/1/Data/entries/25/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "combat_zone_reward"
+        }
+      }
+    },
+    {
+      "id": "pg5.ev.journal.26ddf7e117ff",
+      "sourceId": "pg5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/mr_hands/q305/q305_ambush_info/01_info_fromv (gameJournalPhoneChoiceEntry): \"Hands, sending the coords as promised. Road by the abandoned hotel on Pacifica Blvd. Good luck.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/81/Data/entries/2/Data/entries/1/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneChoiceEntry",
+        "expected": {
+          "/id": "01_info_fromv"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q305/phases/q305_03_ambush.questphase.json",
+          "assetSha256": "aa6736f266af7410bddb66261d1fd464274c46d046d37744d7630f1035053051",
+          "jsonSha256": "c985f78a6f05b7808e1acf4601eb96325447c732ed2515130514e6ee5c930066",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/13/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        }
+      ]
+    }
+  ],
+  "factAllowlist": {
+    "sts_ep1_12_milko_alive": {
+      "evidenceRefs": [
+        "pg5.ev.fact.sts_ep1_12_milko_alive.18ad82f933dd"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-01/raw/ep1/ep1/openworld/street_stories/sts_ep1_12/phases/sts_ep1_12_phase.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/50/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sts_ep1_01_nika_alive": {
+      "evidenceRefs": [
+        "pg5.ev.fact.sts_ep1_01_nika_alive.27941c3af8a9"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/phases/sts_ep1_01_openworld.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/3/Data/phaseGraph/Data/nodes/101/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sts_ep1_01_failed": {
+      "evidenceRefs": [
+        "pg5.ev.fact.sts_ep1_01_failed.cabce65b18fc"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-03/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/phases/sts_ep1_01_openworld.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/3/Data/phaseGraph/Data/nodes/38/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "ep1_sts01_andersons_method": {
+      "evidenceRefs": [
+        "pg5.ev.fact.ep1_sts01_andersons_method.bd8139900a40"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_01/scenes/sts_ep1_01_final.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/64/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sts_ep1_04_mr_hands_holo_convinced": {
+      "evidenceRefs": [
+        "pg5.ev.fact.sts_ep1_04_mr_hands_holo_convinced.afb4309b913a"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_04/scenes/sts_ep1_04_hasan_final.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/73/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sts_ep1_04_hasan_let_go": {
+      "evidenceRefs": [
+        "pg5.ev.fact.sts_ep1_04_hasan_let_go.339d451d6855"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_04/scenes/sts_ep1_04_hasan_final.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sts_ep1_04_hasan_let_go_earlier": {
+      "evidenceRefs": [
+        "pg5.ev.fact.sts_ep1_04_hasan_let_go_earlier.db396eb22dcd"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_04/scenes/sts_ep1_04_hasan_final.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/35/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sts_ep1_06_testimony_withdrawn": {
+      "evidenceRefs": [
+        "pg5.ev.fact.sts_ep1_06_testimony_withdrawn.ea49525cf40d"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/openworld/street_stories/sts_ep1_06_zembinsky/scenes/sts_ep1_06_george.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        },
+        {
+          "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/openworld/street_stories/sts_ep1_06_zembinsky/scenes/sts_ep1_06_george.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/134/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 2
+      }
+    },
+    "sts_ep1_06_ground_floor_combat": {
+      "evidenceRefs": [
+        "pg5.ev.fact.sts_ep1_06_ground_floor_combat.cf1519f71b30"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-01/raw/ep1/ep1/openworld/street_stories/sts_ep1_06_zembinsky/phases/sts_ep1_06_gameplay.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/4/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sts_ep1_06_upper_floor_combat": {
+      "evidenceRefs": [
+        "pg5.ev.fact.sts_ep1_06_upper_floor_combat.23afb8250410"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-01/raw/ep1/ep1/openworld/street_stories/sts_ep1_06_zembinsky/phases/sts_ep1_06_gameplay.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/5/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sts_ep1_07_bomb_disabled": {
+      "evidenceRefs": [
+        "pg5.ev.fact.sts_ep1_07_bomb_disabled.d3aa50d63256"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/openworld/street_stories/sts_ep1_07/phases/sts_ep1_07_phase.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/93/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sts_ep1_08_biomonitor_ana": {
+      "evidenceRefs": [
+        "pg5.ev.fact.sts_ep1_08_biomonitor_ana.48340540c5ab"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        },
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 2
+      }
+    },
+    "sts_ep1_08_biomonitor_destroyed": {
+      "evidenceRefs": [
+        "pg5.ev.fact.sts_ep1_08_biomonitor_destroyed.5e6acba6fef4"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sts_ep1_13_fiona_deal_done": {
+      "evidenceRefs": [
+        "pg5.ev.fact.sts_ep1_13_fiona_deal_done.ea9acbd3b384"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_13/scenes/sts_ep1_13_fiona.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/65/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sts_ep1_13_fiona_deal_refuse": {
+      "evidenceRefs": [
+        "pg5.ev.fact.sts_ep1_13_fiona_deal_refuse.9cb6317f1505"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_13/scenes/sts_ep1_13_fiona.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "mq303_finale_sisters": {
+      "evidenceRefs": [
+        "pg5.ev.fact.mq303_finale_sisters.9cadd70cf2f6"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_03_finale.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "mq303_finale_cia": {
+      "evidenceRefs": [
+        "pg5.ev.fact.mq303_finale_cia.ea9acbd3b384"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_03_finale.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/65/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "mq303_finale_shock": {
+      "evidenceRefs": [
+        "pg5.ev.fact.mq303_finale_shock.349400e1a7a3"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_03_finale.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/87/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "mq305_mr_hands_sends_message_about_bree": {
+      "evidenceRefs": [
+        "pg5.ev.fact.mq305_mr_hands_sends_message_about_bree.8478636ca380"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-04/raw/ep1/ep1/quest/minor_quests/mq305/scenes/mq305_05_outcome_mr_hands.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    }
+  },
+  "journalAllowlist": {
+    "pg5.symptoms.completed": {
+      "questKey": "gig-treating-symptoms",
+      "nativePath": "ep1/quests/street_stories/sts_ep1_12",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "pg5.ev.journal.80e2be95ebce"
+      ]
+    },
+    "pg5.symptoms.alan-report": {
+      "questKey": "gig-treating-symptoms",
+      "nativePath": "ep1/contacts/alan_noel/wst_ep1_02/wst_ep1_02",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pg5.ev.journal.cf28f2fabb86"
+      ]
+    },
+    "pg5.symptoms.alan-report-blueline": {
+      "questKey": "gig-treating-symptoms",
+      "nativePath": "ep1/contacts/alan_noel/wst_ep1_02/wst_ep1_02_corpo_blueline",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pg5.ev.journal.024cf347114b"
+      ]
+    },
+    "pg5.saints.completed": {
+      "questKey": "gig-dogtown-saints",
+      "nativePath": "ep1/quests/street_stories/sts_ep1_01",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "pg5.ev.journal.05fead371868"
+      ]
+    },
+    "pg5.saints.nika-neutralized": {
+      "questKey": "gig-dogtown-saints",
+      "nativePath": "ep1/quests/street_stories/sts_ep1_01/sts_ep1_01/kill_nika",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "pg5.ev.journal.0b95e3ab4409"
+      ]
+    },
+    "pg5.prototype.completed": {
+      "questKey": "gig-prototype-in-the-scraper",
+      "nativePath": "ep1/quests/street_stories/sts_ep1_04",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "pg5.ev.journal.b1403cb50b21"
+      ]
+    },
+    "pg5.ownway.take-gun": {
+      "questKey": "go-your-own-way",
+      "nativePath": "ep1/quests/minor_quest/wst_ep1_05/wst_ep1_05/take_the_gun",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "pg5.ev.journal.2bdd1083dd48"
+      ]
+    },
+    "pg5.ownway.meet-hasan": {
+      "questKey": "go-your-own-way",
+      "nativePath": "ep1/quests/minor_quest/wst_ep1_05/wst_ep1_05/go_to_hasan_apartment",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "pg5.ev.journal.977ca07f1800"
+      ]
+    },
+    "pg5.hearts.completed": {
+      "questKey": "gig-heaviest-of-hearts",
+      "nativePath": "ep1/quests/street_stories/sts_ep1_06",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "pg5.ev.journal.38d8c7f0accf"
+      ]
+    },
+    "pg5.roads.completed": {
+      "questKey": "gig-roads-to-redemption",
+      "nativePath": "ep1/quests/street_stories/sts_ep1_07",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "pg5.ev.journal.bd39372ec7c2"
+      ]
+    },
+    "pg5.roads.upload": {
+      "questKey": "gig-roads-to-redemption",
+      "nativePath": "ep1/quests/street_stories/sts_ep1_07/sts_ep1_07/plant_gps",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "pg5.ev.journal.bfd34e76e027"
+      ]
+    },
+    "pg5.jungle.completed": {
+      "questKey": "gig-spy-in-the-jungle",
+      "nativePath": "ep1/quests/street_stories/sts_ep1_08",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "pg5.ev.journal.c1e62eea99f3"
+      ]
+    },
+    "pg5.jungle.drop-point": {
+      "questKey": "gig-spy-in-the-jungle",
+      "nativePath": "ep1/quests/street_stories/sts_ep1_08/final_meeting/leave_biomonitor_droppoint",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "pg5.ev.journal.a2f9f844cfb7"
+      ]
+    },
+    "pg5.jungle.steven-invite": {
+      "questKey": "gig-spy-in-the-jungle",
+      "nativePath": "ep1/contacts/steven_santos/sts_ep1_08/biomonitor_destroyed_meeting_invitation",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pg5.ev.journal.8ec48ed33e92"
+      ]
+    },
+    "pg5.jungle.talk-agents": {
+      "questKey": "gig-spy-in-the-jungle",
+      "nativePath": "ep1/quests/street_stories/sts_ep1_08/final_meeting/talk_with_the_agent",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "pg5.ev.journal.83e8389362ae"
+      ]
+    },
+    "pg5.dodger.bill-invitation": {
+      "questKey": "gig-waiting-for-dodger",
+      "nativePath": "ep1/contacts/bill/wst_ep1_11_bill_invitation/bill_invitation",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pg5.ev.journal.6fd3c8ed274c"
+      ]
+    },
+    "pg5.academy.completed": {
+      "questKey": "gig-talent-academy",
+      "nativePath": "ep1/quests/street_stories/sts_ep1_13",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "pg5.ev.journal.525041bf2ad0"
+      ]
+    },
+    "pg5.academy.hands-sms-deal": {
+      "questKey": "gig-talent-academy",
+      "nativePath": "contacts/mr_hands/sts_ep1_13/sts_ep1_13_holocall_debrief_deal_done",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pg5.ev.journal.7a2807fe6c24"
+      ]
+    },
+    "pg5.academy.hands-sms-refuse": {
+      "questKey": "gig-talent-academy",
+      "nativePath": "contacts/mr_hands/sts_ep1_13/sts_ep1_13_holocall_debrief_deal_refuse",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pg5.ev.journal.a480b5711b11"
+      ]
+    },
+    "pg5.dazed.completed": {
+      "questKey": "dazed-and-confused",
+      "nativePath": "ep1/quests/minor_quest/mq303_addict",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "pg5.ev.journal.3b50f14fd379"
+      ]
+    },
+    "pg5.dazed.lina-twins": {
+      "questKey": "dazed-and-confused",
+      "nativePath": "ep1/contacts/lina_malina/twins/01_start",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pg5.ev.journal.415f29f518b6"
+      ]
+    },
+    "pg5.dazed.hands-twin-a": {
+      "questKey": "dazed-and-confused",
+      "nativePath": "contacts/mr_hands/mq303/debrief_ch_twin/debrief",
+      "nativeClass": "gameJournalPhoneChoiceEntry",
+      "evidenceRefs": [
+        "pg5.ev.journal.e30437c303e5"
+      ]
+    },
+    "pg5.dazed.hands-twin-b": {
+      "questKey": "dazed-and-confused",
+      "nativePath": "contacts/mr_hands/mq303/debrief_ch_twin/debrief_alt",
+      "nativeClass": "gameJournalPhoneChoiceEntry",
+      "evidenceRefs": [
+        "pg5.ev.journal.6ee411ba864a"
+      ]
+    },
+    "pg5.dazed.hands-clone-a": {
+      "questKey": "dazed-and-confused",
+      "nativePath": "contacts/mr_hands/mq303/debrief_ch_clone/debrief",
+      "nativeClass": "gameJournalPhoneChoiceEntry",
+      "evidenceRefs": [
+        "pg5.ev.journal.5d7964ee74ad"
+      ]
+    },
+    "pg5.dazed.hands-clone-b": {
+      "questKey": "dazed-and-confused",
+      "nativePath": "contacts/mr_hands/mq303/debrief_ch_clone/debrief_alt",
+      "nativeClass": "gameJournalPhoneChoiceEntry",
+      "evidenceRefs": [
+        "pg5.ev.journal.905bb861cabb"
+      ]
+    },
+    "pg5.dazed.hands-cured-a": {
+      "questKey": "dazed-and-confused",
+      "nativePath": "contacts/mr_hands/mq303/debrief_ch_cured/debrief",
+      "nativeClass": "gameJournalPhoneChoiceEntry",
+      "evidenceRefs": [
+        "pg5.ev.journal.0806b678043f"
+      ]
+    },
+    "pg5.dazed.hands-cured-b": {
+      "questKey": "dazed-and-confused",
+      "nativePath": "contacts/mr_hands/mq303/debrief_ch_cured/debrief_alt",
+      "nativeClass": "gameJournalPhoneChoiceEntry",
+      "evidenceRefs": [
+        "pg5.ev.journal.aed8a1b7bf3e"
+      ]
+    },
+    "pg5.dazed.hands-freed-a": {
+      "questKey": "dazed-and-confused",
+      "nativePath": "contacts/mr_hands/mq303/debrief_ch_freed/debrief",
+      "nativeClass": "gameJournalPhoneChoiceEntry",
+      "evidenceRefs": [
+        "pg5.ev.journal.ec10b55b9ee0"
+      ]
+    },
+    "pg5.dazed.hands-freed-b": {
+      "questKey": "dazed-and-confused",
+      "nativePath": "contacts/mr_hands/mq303/debrief_ch_freed/debrief_alt",
+      "nativeClass": "gameJournalPhoneChoiceEntry",
+      "evidenceRefs": [
+        "pg5.ev.journal.45c60af06f5e"
+      ]
+    },
+    "pg5.dazed.hands-freed-c": {
+      "questKey": "dazed-and-confused",
+      "nativePath": "contacts/mr_hands/mq303/debrief_ch_freed_kiss/debrief",
+      "nativeClass": "gameJournalPhoneChoiceEntry",
+      "evidenceRefs": [
+        "pg5.ev.journal.9537da127305"
+      ]
+    },
+    "pg5.dazed.hands-freed-d": {
+      "questKey": "dazed-and-confused",
+      "nativePath": "contacts/mr_hands/mq303/debrief_ch_freed_kiss/debrief_makeout",
+      "nativeClass": "gameJournalPhoneChoiceEntry",
+      "evidenceRefs": [
+        "pg5.ev.journal.2095836e6a28"
+      ]
+    },
+    "pg5.dazed.lina-paid": {
+      "questKey": "dazed-and-confused",
+      "nativePath": "ep1/contacts/lina_malina/money/money_transfer/money_01",
+      "nativeClass": "gameJournalPhoneChoiceEntry",
+      "evidenceRefs": [
+        "pg5.ev.journal.6a77697094c1"
+      ]
+    },
+    "pg5.town.bennett-good": {
+      "questKey": "run-this-town",
+      "nativePath": "contacts/mr_hands/mq304_followup/mq304_followup_bennett_good",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pg5.ev.journal.1957049bbd42"
+      ]
+    },
+    "pg5.town.bennett-bad": {
+      "questKey": "run-this-town",
+      "nativePath": "contacts/mr_hands/mq304_followup/mq304_followup_bennett_bad",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pg5.ev.journal.781ebf87b43c"
+      ]
+    },
+    "pg5.town.bennett-contacts": {
+      "questKey": "run-this-town",
+      "nativePath": "contacts/mr_hands/mq304_followup/mq304_followup_bennett_contacts",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pg5.ev.journal.e43f5a0b5365"
+      ]
+    },
+    "pg5.town.jago-bad": {
+      "questKey": "run-this-town",
+      "nativePath": "contacts/mr_hands/mq304_followup/mq304_followup_jago_bad",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pg5.ev.journal.953b33c5bcf2"
+      ]
+    },
+    "pg5.town.jago-terra": {
+      "questKey": "run-this-town",
+      "nativePath": "contacts/mr_hands/mq304_followup/mq304_followup_jago_terra",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pg5.ev.journal.925a3dc09f22"
+      ]
+    },
+    "pg5.shot.completed": {
+      "questKey": "shot-by-both-sides",
+      "nativePath": "ep1/quests/minor_quest/mq305_combat_zone_report",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "pg5.ev.journal.17ed6727b2f2"
+      ]
+    },
+    "pg5.shot.kill-dante": {
+      "questKey": "shot-by-both-sides",
+      "nativePath": "ep1/quests/minor_quest/mq305_combat_zone_report/04_lab_confrontation/kill_dante",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "pg5.ev.journal.26b3b7002420"
+      ]
+    },
+    "pg5.shot.client-pleased": {
+      "questKey": "shot-by-both-sides",
+      "nativePath": "contacts/mr_hands/mq305/bree_went_to_away",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pg5.ev.journal.b5ee4347d29a"
+      ]
+    },
+    "pg5.lining.talk-hands": {
+      "questKey": "hi-ho-silver-lining",
+      "nativePath": "ep1/quests/street_stories/combat_zone_reward/combat_zone_reward/talk_with_hands",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "pg5.ev.journal.206cf1b20b5d"
+      ]
+    },
+    "pg5.lining.invite": {
+      "questKey": "hi-ho-silver-lining",
+      "nativePath": "contacts/mr_hands/mr_hands_global_msg/combat_zone_reward",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pg5.ev.journal.6c7636876ae9"
+      ]
+    },
+    "pg5.steel.coords-sent": {
+      "questKey": "black-steel-in-the-hour-of-chaos",
+      "nativePath": "contacts/mr_hands/q305/q305_ambush_info/01_info_fromv",
+      "nativeClass": "gameJournalPhoneChoiceEntry",
+      "evidenceRefs": [
+        "pg5.ev.journal.26ddf7e117ff"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "pg5.symptoms.cooperate.alan",
+      "revision": 1,
+      "questKey": "gig-treating-symptoms",
+      "topic": "alan.milko-operation",
+      "outcome": "cooperate",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "In Treating Symptoms, V agreed to let Alan Noël finish his NetWatch operation and left Milko Alexis alive instead of carrying out the hit.",
+      "sourceIds": [
+        "pg5.source.55b4d11befc5",
+        "pg5.source.094e40665103",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.symptoms.peace-choice",
+        "pg5.ev.fact.sts_ep1_12_milko_alive.18ad82f933dd",
+        "pg5.ev.journal.80e2be95ebce"
+      ],
+      "audience": {
+        "speakers": [
+          "alan-noel"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "alan-noel"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sts_ep1_12_milko_alive",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pg5.symptoms.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.symptoms.resolution",
+          "outcomeKey": "cooperate"
+        }
+      ]
+    },
+    {
+      "id": "pg5.symptoms.cooperate.hands",
+      "revision": 1,
+      "questKey": "gig-treating-symptoms",
+      "topic": "alan.milko-operation",
+      "outcome": "cooperate",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "V closed the Treating Symptoms gig without killing Milko Alexis; Hands' debrief said his NetWatch contacts put the client, Indira Barazza, under round-the-clock netrunner protection instead.",
+      "sourceIds": [
+        "pg5.source.55b4d11befc5",
+        "pg5.source.f17d468919da",
+        "pg5.source.094e40665103",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.symptoms.peace-choice",
+        "pg5.ev.symptoms.hands-debrief-switch",
+        "pg5.ev.fact.sts_ep1_12_milko_alive.18ad82f933dd",
+        "pg5.ev.journal.80e2be95ebce"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sts_ep1_12_milko_alive",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pg5.symptoms.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.symptoms.resolution",
+          "outcomeKey": "cooperate"
+        }
+      ]
+    },
+    {
+      "id": "pg5.symptoms.alan-report",
+      "revision": 1,
+      "questKey": "gig-treating-symptoms",
+      "topic": "alan.netwatch-result",
+      "outcome": "success-reported",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "After Treating Symptoms, Alan Noël messaged V that the NetWatch operation had paid off: Milko led them to the man behind the Voodoo Boys' old Militech bots, a Belgrade arms dealer selling them to separatists.",
+      "sourceIds": [
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.journal.cf28f2fabb86",
+        "pg5.ev.journal.024cf347114b"
+      ],
+      "audience": {
+        "speakers": [
+          "alan-noel"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "alan-noel"
+        ]
+      },
+      "condition": {
+        "any": [
+          {
+            "type": "journal",
+            "key": "pg5.symptoms.alan-report",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          },
+          {
+            "type": "journal",
+            "key": "pg5.symptoms.alan-report-blueline",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.symptoms.followup",
+          "outcomeKey": "success-reported"
+        }
+      ]
+    },
+    {
+      "id": "pg5.saints.both-alive.hands",
+      "revision": 1,
+      "questKey": "gig-dogtown-saints",
+      "topic": "dogtown.clinic-resolution",
+      "outcome": "both-alive",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "Hands closed V's Dogtown Saints gig as premium work: the scavengers were dealt with and Anthony Anderson came out of it alive.",
+      "sourceIds": [
+        "pg5.source.0ef47c08f8a7",
+        "pg5.source.cdb711302cc3",
+        "pg5.source.11b32a57349b",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.saints.give-brother",
+        "pg5.ev.saints.hands-debrief-switch",
+        "pg5.ev.fact.sts_ep1_01_nika_alive.27941c3af8a9",
+        "pg5.ev.journal.05fead371868"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sts_ep1_01_nika_alive",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pg5.saints.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.saints.resolution",
+          "outcomeKey": "both-alive"
+        }
+      ]
+    },
+    {
+      "id": "pg5.saints.anthony-dead",
+      "revision": 1,
+      "questKey": "gig-dogtown-saints",
+      "topic": "dogtown.clinic-resolution",
+      "outcome": "anthony-dead",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "The Haven clinic confrontation in Dogtown Saints ended with Anthony Anderson killed by Nika; Hands' debrief acknowledged Anderson's death while noting the scavengers had been cleared out.",
+      "sourceIds": [
+        "pg5.source.0ef47c08f8a7",
+        "pg5.source.cdb711302cc3",
+        "pg5.source.11b32a57349b",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.saints.failed-exit",
+        "pg5.ev.saints.hands-debrief-switch",
+        "pg5.ev.fact.sts_ep1_01_failed.cabce65b18fc",
+        "pg5.ev.journal.05fead371868"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sts_ep1_01_failed",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pg5.saints.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.saints.resolution",
+          "outcomeKey": "anthony-dead"
+        }
+      ]
+    },
+    {
+      "id": "pg5.prototype.hands-safe",
+      "revision": 1,
+      "questKey": "gig-prototype-in-the-scraper",
+      "topic": "hasan.prototype",
+      "outcome": "hands-safe",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "In Prototype in the Scraper, V talked Hands into having a chrome-doc recover the Zetatech implant from Hasan Demir and letting Hasan go free instead of handing him back to Zetatech; Hands agreed.",
+      "sourceIds": [
+        "pg5.source.4a4cacbd668e",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.prototype.holocall-choice",
+        "pg5.ev.fact.sts_ep1_04_mr_hands_holo_convinced.afb4309b913a",
+        "pg5.ev.journal.b1403cb50b21"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sts_ep1_04_mr_hands_holo_convinced",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pg5.prototype.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.prototype.disposition",
+          "outcomeKey": "hands-safe"
+        }
+      ]
+    },
+    {
+      "id": "pg5.hearts.deleted",
+      "revision": 1,
+      "questKey": "gig-heaviest-of-hearts",
+      "topic": "maldonado.testimony",
+      "outcome": "deleted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "In Heaviest of Hearts, V had the forged testimony against Michael Maldonado deleted outright; Hands reported that Maldonado had nothing but praise for V.",
+      "sourceIds": [
+        "pg5.source.f66275dd38bc",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.hearts.delete-choice",
+        "pg5.ev.fact.sts_ep1_06_testimony_withdrawn.ea49525cf40d",
+        "pg5.ev.journal.38d8c7f0accf"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sts_ep1_06_testimony_withdrawn",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pg5.hearts.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.hearts.testimony",
+          "outcomeKey": "deleted"
+        }
+      ]
+    },
+    {
+      "id": "pg5.hearts.alarm",
+      "revision": 1,
+      "questKey": "gig-heaviest-of-hearts",
+      "topic": "hands.heavy-hearts-discretion",
+      "outcome": "alarm",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "V's Heaviest of Hearts job turned into a fight inside Heavy Hearts, Hands' own club; his debrief chided V for making such a mess there.",
+      "sourceIds": [
+        "pg5.source.a80b715af99a",
+        "pg5.source.47873bdf1758",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.hearts.debrief-alarm",
+        "pg5.ev.fact.sts_ep1_06_ground_floor_combat.cf1519f71b30",
+        "pg5.ev.fact.sts_ep1_06_upper_floor_combat.23afb8250410",
+        "pg5.ev.journal.38d8c7f0accf"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "any": [
+              {
+                "type": "fact",
+                "key": "sts_ep1_06_ground_floor_combat",
+                "op": "gte",
+                "value": 1
+              },
+              {
+                "type": "fact",
+                "key": "sts_ep1_06_upper_floor_combat",
+                "op": "gte",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "type": "journal",
+            "key": "pg5.hearts.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.hearts.discretion",
+          "outcomeKey": "alarm"
+        }
+      ]
+    },
+    {
+      "id": "pg5.roads.sabotaged",
+      "revision": 1,
+      "questKey": "gig-roads-to-redemption",
+      "topic": "nele.berlin-bomb",
+      "outcome": "sabotaged",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "In Roads to Redemption, V got into the stadium weapons factory and uploaded Nele's software to the Crimson Harvest Net-nuke, disarming it before it could be used.",
+      "sourceIds": [
+        "pg5.source.219528a69bd6",
+        "pg5.source.a87921da68fe",
+        "pg5.source.405325443263"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.roads.nele-asks",
+        "pg5.ev.journal.bfd34e76e027",
+        "pg5.ev.fact.sts_ep1_07_bomb_disabled.d3aa50d63256",
+        "pg5.ev.journal.bd39372ec7c2"
+      ],
+      "audience": {
+        "speakers": [
+          "nele-springer",
+          "mr-hands"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "nele-springer",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "pg5.roads.upload",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "fact",
+            "key": "sts_ep1_07_bomb_disabled",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pg5.roads.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.roads.bomb",
+          "outcomeKey": "sabotaged"
+        }
+      ]
+    },
+    {
+      "id": "pg5.jungle.given-ana",
+      "revision": 1,
+      "questKey": "gig-spy-in-the-jungle",
+      "topic": "bia.biomonitor",
+      "outcome": "given-ana",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "At the end of Spy in the Jungle, V handed Mark Bana's biomonitor over to the agents for Ana Friedman to use, rather than suppressing it as Steven Santos had asked.",
+      "sourceIds": [
+        "pg5.source.54273b1b7a16",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.jungle.handover-choice",
+        "pg5.ev.fact.sts_ep1_08_biomonitor_ana.48340540c5ab",
+        "pg5.ev.journal.c1e62eea99f3"
+      ],
+      "audience": {
+        "speakers": [
+          "ana-friedman",
+          "steven-santos"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "ana-friedman",
+          "steven-santos"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sts_ep1_08_biomonitor_ana",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pg5.jungle.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.jungle.biomonitor",
+          "outcomeKey": "given-ana"
+        }
+      ]
+    },
+    {
+      "id": "pg5.jungle.given-ana.hands",
+      "revision": 1,
+      "questKey": "gig-spy-in-the-jungle",
+      "topic": "bia.biomonitor",
+      "outcome": "given-ana",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 3,
+      "stable": true,
+      "statement": "After Spy in the Jungle, Hands noted that Mark Bana's fate was all over the news once the biomonitor reached the agents, and that what mattered to him was that they had been paid.",
+      "sourceIds": [
+        "pg5.source.54273b1b7a16",
+        "pg5.source.4ecb073b728d",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.jungle.handover-choice",
+        "pg5.ev.jungle.hands-debrief-switch",
+        "pg5.ev.fact.sts_ep1_08_biomonitor_ana.48340540c5ab",
+        "pg5.ev.journal.c1e62eea99f3"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sts_ep1_08_biomonitor_ana",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pg5.jungle.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.jungle.biomonitor",
+          "outcomeKey": "given-ana"
+        }
+      ]
+    },
+    {
+      "id": "pg5.jungle.dead-drop.hands",
+      "revision": 1,
+      "questKey": "gig-spy-in-the-jungle",
+      "topic": "bia.biomonitor",
+      "outcome": "dead-drop",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "V ended Spy in the Jungle by leaving Mark Bana's biomonitor at Hands' drop point, as Steven Santos had urged, instead of giving it to Ana; Hands approved of V's \"good sense\".",
+      "sourceIds": [
+        "pg5.source.4ecb073b728d",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.jungle.hands-debrief-switch",
+        "pg5.ev.journal.a2f9f844cfb7",
+        "pg5.ev.journal.c1e62eea99f3"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "pg5.jungle.drop-point",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "pg5.jungle.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.jungle.biomonitor",
+          "outcomeKey": "dead-drop"
+        }
+      ]
+    },
+    {
+      "id": "pg5.jungle.dead-drop.steven",
+      "revision": 1,
+      "questKey": "gig-spy-in-the-jungle",
+      "topic": "bia.biomonitor",
+      "outcome": "dead-drop",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "V followed Steven Santos' request and left Mark Bana's biomonitor at the fixer's drop point instead of giving it to Ana; Steven later reached out to V, grateful for V's part in it.",
+      "sourceIds": [
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.journal.a2f9f844cfb7",
+        "pg5.ev.journal.8ec48ed33e92",
+        "pg5.ev.journal.c1e62eea99f3"
+      ],
+      "audience": {
+        "speakers": [
+          "steven-santos"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "steven-santos"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "pg5.jungle.drop-point",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "pg5.jungle.steven-invite",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          },
+          {
+            "type": "journal",
+            "key": "pg5.jungle.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.jungle.biomonitor",
+          "outcomeKey": "dead-drop"
+        }
+      ]
+    },
+    {
+      "id": "pg5.jungle.destroyed",
+      "revision": 1,
+      "questKey": "gig-spy-in-the-jungle",
+      "topic": "bia.biomonitor",
+      "outcome": "destroyed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "When V met Ana Friedman and Steven Santos at the end of Spy in the Jungle, V destroyed Mark Bana's biomonitor in front of them instead of handing it over.",
+      "sourceIds": [
+        "pg5.source.54273b1b7a16",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.jungle.handover-choice",
+        "pg5.ev.fact.sts_ep1_08_biomonitor_destroyed.5e6acba6fef4",
+        "pg5.ev.journal.83e8389362ae",
+        "pg5.ev.journal.c1e62eea99f3"
+      ],
+      "audience": {
+        "speakers": [
+          "ana-friedman",
+          "steven-santos"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "ana-friedman",
+          "steven-santos"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sts_ep1_08_biomonitor_destroyed",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pg5.jungle.talk-agents",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "pg5.jungle.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.jungle.biomonitor",
+          "outcomeKey": "destroyed"
+        }
+      ]
+    },
+    {
+      "id": "pg5.dodger.bill-left-police",
+      "revision": 1,
+      "questKey": "gig-waiting-for-dodger",
+      "topic": "bill.career-after-rescue",
+      "outcome": "left-police",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "Some time after V got him out of Dodger's den, Bill Mitchell messaged V that he had laid down his badge to open a business of his own in the Glen.",
+      "sourceIds": [
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.journal.6fd3c8ed274c"
+      ],
+      "audience": {
+        "speakers": [
+          "bill-mitchell"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "bill-mitchell"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pg5.dodger.bill-invitation",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.dodger.bill-followup",
+          "outcomeKey": "left-police"
+        }
+      ]
+    },
+    {
+      "id": "pg5.academy.controlled.hands",
+      "revision": 1,
+      "questKey": "gig-talent-academy",
+      "topic": "academy.disclosure",
+      "outcome": "controlled",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "V took Fiona Vargas' controlled leak instead of her full client data; Hands passed it to the client but complained the roster was shorter than expected and lacked heavier hitters.",
+      "sourceIds": [
+        "pg5.source.ac774a5aed21",
+        "pg5.source.c0ba2108b54c",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.academy.choice",
+        "pg5.ev.fact.sts_ep1_13_fiona_deal_done.ea9acbd3b384",
+        "pg5.ev.journal.7a2807fe6c24",
+        "pg5.ev.journal.525041bf2ad0"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sts_ep1_13_fiona_deal_done",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pg5.academy.hands-sms-deal",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          },
+          {
+            "type": "journal",
+            "key": "pg5.academy.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.academy.data",
+          "outcomeKey": "controlled"
+        }
+      ]
+    },
+    {
+      "id": "pg5.academy.full.hands",
+      "revision": 1,
+      "questKey": "gig-talent-academy",
+      "topic": "academy.disclosure",
+      "outcome": "full",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "V refused Fiona Vargas' offer and took her full client data; Hands' debrief said the Europeans could now make sure the tax evaders were punished.",
+      "sourceIds": [
+        "pg5.source.ac774a5aed21",
+        "pg5.source.c0ba2108b54c",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.academy.choice",
+        "pg5.ev.fact.sts_ep1_13_fiona_deal_refuse.9cb6317f1505",
+        "pg5.ev.journal.a480b5711b11",
+        "pg5.ev.journal.525041bf2ad0"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sts_ep1_13_fiona_deal_refuse",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pg5.academy.hands-sms-refuse",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          },
+          {
+            "type": "journal",
+            "key": "pg5.academy.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.academy.data",
+          "outcomeKey": "full"
+        }
+      ]
+    },
+    {
+      "id": "pg5.dazed.sisters.lina",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "tool.recording-outcome",
+      "outcome": "sisters",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "During the BD shoot V directed, V convinced Tool he was Lina Malina's long-lost sister; the TooLina scroll worked, and Lina later messaged V that it was exactly what her brand needed.",
+      "sourceIds": [
+        "pg5.source.03189a6fb22b",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.dazed.finale-choice",
+        "pg5.ev.fact.mq303_finale_sisters.9cadd70cf2f6",
+        "pg5.ev.journal.3b50f14fd379",
+        "pg5.ev.journal.415f29f518b6"
+      ],
+      "audience": {
+        "speakers": [
+          "lina-malina"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "lina-malina"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "mq303_finale_sisters",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pg5.dazed.completed",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "pg5.dazed.lina-twins",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.dazed.performance",
+          "outcomeKey": "sisters"
+        }
+      ]
+    },
+    {
+      "id": "pg5.dazed.sisters.hands",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "tool.recording-outcome",
+      "outcome": "sisters",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 3,
+      "stable": true,
+      "statement": "V texted Hands that the \"kidnapped Lina Malina\" gig was really about Edgar Tool, who believed he was Lina, and that V had convinced him he was her sister.",
+      "sourceIds": [
+        "pg5.source.03189a6fb22b",
+        "pg5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.dazed.finale-choice",
+        "pg5.ev.fact.mq303_finale_sisters.9cadd70cf2f6",
+        "pg5.ev.journal.e30437c303e5",
+        "pg5.ev.journal.6ee411ba864a"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "mq303_finale_sisters",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "any": [
+              {
+                "type": "journal",
+                "key": "pg5.dazed.hands-twin-a",
+                "op": "eq",
+                "value": "succeeded"
+              },
+              {
+                "type": "journal",
+                "key": "pg5.dazed.hands-twin-b",
+                "op": "eq",
+                "value": "succeeded"
+              }
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.dazed.performance",
+          "outcomeKey": "sisters"
+        }
+      ]
+    },
+    {
+      "id": "pg5.dazed.fia-clone.lina",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "tool.recording-outcome",
+      "outcome": "fia-clone",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "During the BD shoot V directed, V convinced Tool that he was a clone created by the FIA. It was a script for the shoot, not a fact about Tool.",
+      "sourceIds": [
+        "pg5.source.03189a6fb22b",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.dazed.finale-choice",
+        "pg5.ev.fact.mq303_finale_cia.ea9acbd3b384",
+        "pg5.ev.journal.3b50f14fd379"
+      ],
+      "audience": {
+        "speakers": [
+          "lina-malina"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "lina-malina"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "mq303_finale_cia",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pg5.dazed.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.dazed.performance",
+          "outcomeKey": "fia-clone"
+        }
+      ]
+    },
+    {
+      "id": "pg5.dazed.fia-clone.hands",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "tool.recording-outcome",
+      "outcome": "fia-clone",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 3,
+      "stable": true,
+      "statement": "V texted Hands that the client was really Tool, a BD-rental owner who believed he was Lina Malina, and that after V freed him he now thought he was an FIA clone.",
+      "sourceIds": [
+        "pg5.source.03189a6fb22b",
+        "pg5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.dazed.finale-choice",
+        "pg5.ev.fact.mq303_finale_cia.ea9acbd3b384",
+        "pg5.ev.journal.5d7964ee74ad",
+        "pg5.ev.journal.905bb861cabb"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "mq303_finale_cia",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "any": [
+              {
+                "type": "journal",
+                "key": "pg5.dazed.hands-clone-a",
+                "op": "eq",
+                "value": "succeeded"
+              },
+              {
+                "type": "journal",
+                "key": "pg5.dazed.hands-clone-b",
+                "op": "eq",
+                "value": "succeeded"
+              }
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.dazed.performance",
+          "outcomeKey": "fia-clone"
+        }
+      ]
+    },
+    {
+      "id": "pg5.dazed.fan-letter.lina",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "tool.recording-outcome",
+      "outcome": "fan-letter",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "During the BD shoot V directed, V handed Tool his own fan letter as his lines; it brought Edgar Tool back to himself, ruining the scroll Lina Malina had expected to film.",
+      "sourceIds": [
+        "pg5.source.03189a6fb22b",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.dazed.finale-choice",
+        "pg5.ev.fact.mq303_finale_shock.349400e1a7a3",
+        "pg5.ev.journal.3b50f14fd379"
+      ],
+      "audience": {
+        "speakers": [
+          "lina-malina"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "lina-malina"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "mq303_finale_shock",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pg5.dazed.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.dazed.performance",
+          "outcomeKey": "fan-letter"
+        }
+      ]
+    },
+    {
+      "id": "pg5.dazed.fan-letter.hands",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "tool.recording-outcome",
+      "outcome": "fan-letter",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 3,
+      "stable": true,
+      "statement": "V texted Hands that the client had been stuck believing he was someone else after a BD accident, and that V had helped him back to his old self.",
+      "sourceIds": [
+        "pg5.source.03189a6fb22b",
+        "pg5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.dazed.finale-choice",
+        "pg5.ev.fact.mq303_finale_shock.349400e1a7a3",
+        "pg5.ev.journal.0806b678043f",
+        "pg5.ev.journal.aed8a1b7bf3e"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "mq303_finale_shock",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "any": [
+              {
+                "type": "journal",
+                "key": "pg5.dazed.hands-cured-a",
+                "op": "eq",
+                "value": "succeeded"
+              },
+              {
+                "type": "journal",
+                "key": "pg5.dazed.hands-cured-b",
+                "op": "eq",
+                "value": "succeeded"
+              }
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.dazed.performance",
+          "outcomeKey": "fan-letter"
+        }
+      ]
+    },
+    {
+      "id": "pg5.dazed.freed.hands",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "tool.early-release",
+      "outcome": "freed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "V texted Hands that the \"Lina Malina\" client was really Tool, a BD-rental owner locked in the basement by his business partner, and that V had simply set him free.",
+      "sourceIds": [
+        "pg5.source.5025f2443676",
+        "pg5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.dazed.freed-route",
+        "pg5.ev.journal.ec10b55b9ee0",
+        "pg5.ev.journal.45c60af06f5e",
+        "pg5.ev.journal.9537da127305",
+        "pg5.ev.journal.2095836e6a28"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "any": [
+          {
+            "type": "journal",
+            "key": "pg5.dazed.hands-freed-a",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "pg5.dazed.hands-freed-b",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "pg5.dazed.hands-freed-c",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "pg5.dazed.hands-freed-d",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.dazed.early-resolution",
+          "outcomeKey": "freed"
+        }
+      ]
+    },
+    {
+      "id": "pg5.dazed.paid.lina",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "relationship.lina.contract",
+      "outcome": "paid",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "To get Lina Malina to the BD shoot, V transferred her the advance she demanded by text and sent her the Brainporium address.",
+      "sourceIds": [
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.journal.6a77697094c1"
+      ],
+      "audience": {
+        "speakers": [
+          "lina-malina"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "lina-malina"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pg5.dazed.lina-paid",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.dazed.lina-recruitment",
+          "outcomeKey": "paid"
+        }
+      ]
+    },
+    {
+      "id": "pg5.town.bennett-jago-alive",
+      "revision": 1,
+      "questKey": "run-this-town",
+      "topic": "dogtown.succession",
+      "outcome": "bennett-jago-alive",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "After Run This Town, Hands messaged V that, by some miracle, Jago and Bennett were working in tandem and Dogtown had never been this well run.",
+      "sourceIds": [
+        "pg5.source.9b7b2b87db4e",
+        "pg5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.town.followup-switch",
+        "pg5.ev.journal.1957049bbd42"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pg5.town.bennett-good",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.town.succession",
+          "outcomeKey": "bennett-jago-alive"
+        }
+      ]
+    },
+    {
+      "id": "pg5.town.bennett-jago-dead",
+      "revision": 1,
+      "questKey": "run-this-town",
+      "topic": "dogtown.succession",
+      "outcome": "bennett-jago-dead",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "After Run This Town, Hands messaged V that Jago was dead and gone and that Bennett now ran Dogtown on his own.",
+      "sourceIds": [
+        "pg5.source.9b7b2b87db4e",
+        "pg5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.town.followup-switch",
+        "pg5.ev.journal.781ebf87b43c",
+        "pg5.ev.journal.e43f5a0b5365"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "any": [
+          {
+            "type": "journal",
+            "key": "pg5.town.bennett-bad",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          },
+          {
+            "type": "journal",
+            "key": "pg5.town.bennett-contacts",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.town.succession",
+          "outcomeKey": "bennett-jago-dead"
+        }
+      ]
+    },
+    {
+      "id": "pg5.town.jago-bennett-dead",
+      "revision": 1,
+      "questKey": "run-this-town",
+      "topic": "dogtown.succession",
+      "outcome": "jago-bennett-dead",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "After Run This Town, Hands messaged V that Bennett was no longer missed and that Jago was running Dogtown better than expected.",
+      "sourceIds": [
+        "pg5.source.9b7b2b87db4e",
+        "pg5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.town.followup-switch",
+        "pg5.ev.journal.953b33c5bcf2"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pg5.town.jago-bad",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.town.succession",
+          "outcomeKey": "jago-bennett-dead"
+        }
+      ]
+    },
+    {
+      "id": "pg5.town.jago-bennett-alive",
+      "revision": 1,
+      "questKey": "run-this-town",
+      "topic": "dogtown.succession",
+      "outcome": "jago-bennett-alive",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "After Run This Town, Hands messaged V that Jago, Dogtown's new top dog, had stopped by his office for tea to discuss business.",
+      "sourceIds": [
+        "pg5.source.9b7b2b87db4e",
+        "pg5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.town.followup-switch",
+        "pg5.ev.journal.925a3dc09f22"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pg5.town.jago-terra",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.town.succession",
+          "outcomeKey": "jago-bennett-alive"
+        }
+      ]
+    },
+    {
+      "id": "pg5.shot.bree-alive",
+      "revision": 1,
+      "questKey": "shot-by-both-sides",
+      "topic": "bree-dante.fate",
+      "outcome": "bree-alive",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "In Shot by Both Sides, V sided with Bree Whitney: the objective to kill Dante was completed, and Hands then told V the client was pleased and paid.",
+      "sourceIds": [
+        "pg5.source.a87921da68fe",
+        "pg5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.journal.26b3b7002420",
+        "pg5.ev.journal.b5ee4347d29a",
+        "pg5.ev.journal.17ed6727b2f2"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "pg5.shot.kill-dante",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "pg5.shot.client-pleased",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          },
+          {
+            "type": "journal",
+            "key": "pg5.shot.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.shot.resolution",
+          "outcomeKey": "bree-alive"
+        }
+      ]
+    },
+    {
+      "id": "pg5.shot.netwatch",
+      "revision": 1,
+      "questKey": "shot-by-both-sides",
+      "topic": "bree.netwatch-deal",
+      "outcome": "reported",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "Hands warned V by holocall that Bree Whitney had sold Militech's data to NetWatch and vanished, and that NetWatch had dispatched a hunter in the aftermath.",
+      "sourceIds": [
+        "pg5.source.40cae7fa9d7e",
+        "pg5.source.2004d7b0c737"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.shot.netwatch-section",
+        "pg5.ev.shot.netwatch-route",
+        "pg5.ev.fact.mq305_mr_hands_sends_message_about_bree.8478636ca380"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "mq305_mr_hands_sends_message_about_bree",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.shot.netwatch",
+          "outcomeKey": "reported"
+        }
+      ]
+    },
+    {
+      "id": "pg5.lining.received",
+      "revision": 1,
+      "questKey": "hi-ho-silver-lining",
+      "topic": "relationship.hands.full-slate",
+      "outcome": "received",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 5,
+      "stable": true,
+      "statement": "Once V had finished every job Hands had in Dogtown, he invited V to Heavy Hearts for a reward and a proper goodbye, and V met him there to collect it.",
+      "sourceIds": [
+        "pg5.source.c0ba2108b54c",
+        "pg5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.journal.6c7636876ae9",
+        "pg5.ev.journal.206cf1b20b5d"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "pg5.lining.invite",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          },
+          {
+            "type": "journal",
+            "key": "pg5.lining.talk-hands",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.lining.reward",
+          "outcomeKey": "received"
+        }
+      ]
+    },
+    {
+      "id": "pg5.steel.coords-shared",
+      "revision": 1,
+      "questKey": "black-steel-in-the-hour-of-chaos",
+      "topic": "phantom.yoko-coordinates",
+      "outcome": "shared",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "As promised for Yoko's help, V texted Mr. Hands the coordinates of Reed's convoy ambush site, the road by the abandoned hotel on Pacifica Blvd.",
+      "sourceIds": [
+        "pg5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.journal.26ddf7e117ff"
+      ],
+      "audience": {
+        "speakers": [
+          "mr-hands"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mr-hands"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pg5.steel.coords-sent",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.steel.yoko-disclosure",
+          "outcomeKey": "shared"
+        }
+      ]
+    }
+  ]
+}

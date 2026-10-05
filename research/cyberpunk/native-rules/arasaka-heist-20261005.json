@@ -1,0 +1,3244 @@
+{
+  "version": 1,
+  "id": "cyberpunk-native-arasaka-heist-20261005",
+  "revision": 1,
+  "gameVersions": [
+    "2.31"
+  ],
+  "profileKeys": [
+    "arthur-jenkins",
+    "dexter-deshawn",
+    "evelyn-parker",
+    "frank-nostra",
+    "hanako-arasaka",
+    "jackie-welles",
+    "johnny-silverhand",
+    "meredith-stout",
+    "nancy-hartley",
+    "placide",
+    "viktor-vektor",
+    "yorinobu-arasaka"
+  ],
+  "sources": [
+    {
+      "id": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: base\\journal\\cooked_journal.journal (scene-evidence/judy-river-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.27a38fbf4c7c",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\prologue\\q000\\scenes\\q000_corpo_03_jenkins.scene (scene-evidence/ah5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.9d4e8420ac39",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\prologue\\q000\\scenes\\q000_corpo_02_to_elevators.scene (scene-evidence/ah5-04); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.d95956ac0843",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\minor_quests\\mq041\\scenes\\mq041_corpo_02_confrontation.scene (scene-evidence/ah5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.949db2633426",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\prologue\\q001\\scenes\\q001_03a_jackie_dex_intro.scene (scene-evidence/ah5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.f26f2799d96f",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\prologue\\q004\\scenes\\q004_06_see_you_later_evelyn.scene (scene-evidence/priority-judy-information-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.d2df71242fb3",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\prologue\\q003\\scenes\\q003_05_transition.scene (scene-evidence/ah5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.f5d3b26c8c5f",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\prologue\\q003\\phases\\q003_stout.questphase (scene-evidence/arasaka-heist-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.c4fa596d072a",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\prologue\\q003\\scenes\\q003_08_stout.scene (scene-evidence/arasaka-heist-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.14d48c8feb32",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\prologue\\q003\\scenes\\q003_01a_militech.scene (scene-evidence/arasaka-heist-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.b0d1545b072c",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\prologue\\q003\\scenes\\q003_07a_final_corp.scene (scene-evidence/priority-jackie-takemura-20261004-scenes); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.a528dbc54c73",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\prologue\\q003\\scenes\\q003_07aa_final_traitor.scene (scene-evidence/priority-jackie-takemura-20261004-scenes); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.7943860dcb12",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq011\\scenes\\sq011_07b_thugs.scene (scene-evidence/priority-johnny-rogue-extra-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.51f5b84d03de",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq011\\scenes\\sq011_07a_royce.scene (scene-evidence/priority-johnny-rogue-extra-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.fdc1ee8e6b81",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q101\\phases\\q101_p2_v_room.questphase (scene-evidence/priority-jackie-takemura-20261004-body-receipts); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.b4600afc8960",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q110\\scenes\\q110_04_netrunners_den.scene (scene-evidence/ah5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.0ff50f6ad84c",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q110\\scenes\\q110_09c_confrontation.scene (scene-evidence/ah5-07); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.b86991109e2b",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q113\\scenes\\q113_07_mikoshi.scene (scene-evidence/ah5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.2934cdf24613",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q113\\phases\\q113_10_jungle.questphase (scene-evidence/ah5-03); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.a8bba5d438b4",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q113\\scenes\\q113_14_yorinobu.scene (scene-evidence/priority-endings-20261004-history); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.09c011da7b92",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q115\\scenes\\q115_00b_hanako.scene (scene-evidence/priority-endings-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ah5.source.14ef51168981",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q112\\scenes\\q112_10_safe_house.scene (scene-evidence/priority-jackie-takemura-20261004-scenes); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ah5.ev.journal.795cec88d0cb",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/prologue/q000_corpo/office/03_talk_jenkins (gameJournalQuestObjective): \"Talk to Jenkins.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/2/Data/entries/4/Data/entries/1/Data/entries/2/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "03_talk_jenkins"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.corpo-rat.jenkins-talk-done",
+      "sourceId": "ah5.source.27a38fbf4c7c",
+      "kind": "native",
+      "locator": "q000_corpo_03_jenkins: journal node 81 sets 03_talk_jenkins (Talk to Jenkins) to Succeeded only after Jenkins' closing section 398 (\"I have my AV waiting outside. It's yours to use. And don't disappoint me.\") following his instructions to V as his employee; the scene exists only in the Corporate-lifepath office prologue.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03_jenkins.scene.json",
+        "assetSha256": "23b38a7768c6aefc593bcd451c11f7db661044954f37f0805282599a32b87bd9",
+        "jsonSha256": "428f6a65d8c306ec9d22e8d342d72c2332dd50234b5d12e9b29dc3f62a795375",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03_jenkins.scene.json",
+          "assetSha256": "23b38a7768c6aefc593bcd451c11f7db661044954f37f0805282599a32b87bd9",
+          "jsonSha256": "428f6a65d8c306ec9d22e8d342d72c2332dd50234b5d12e9b29dc3f62a795375",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/58/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.f1bc03e1dca0",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/prologue/q000_nomad (gameJournalQuest): \"The Nomad\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/2/Data/entries/7/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "q000_nomad"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.journal.937d324d36a0",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/prologue/q000_street_kid (gameJournalQuest): \"The Streetkid\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/2/Data/entries/5/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "q000_street_kid"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.journal.4bee34828088",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/prologue/q000_corpo/office/05_take_shard (gameJournalQuestObjective): \"Take the datashard.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/2/Data/entries/4/Data/entries/1/Data/entries/4/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "05_take_shard"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.journal.2039daf6dc32",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/prologue/q000_corpo/office/05a_take_money (gameJournalQuestObjective): \"Take the money.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/2/Data/entries/4/Data/entries/1/Data/entries/8/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "05a_take_money"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.corpo-rat.take-choices",
+      "sourceId": "ah5.source.27a38fbf4c7c",
+      "kind": "native",
+      "locator": "q000_corpo_03_jenkins: journal node 71 (05_take_shard Succeeded) follows choice 66 \"[Take shard]\" and node 476 (05a_take_money Succeeded) follows choice 415 \"[Take money]\"; Jenkins' section 79 then says to use the money for people with no corporate affiliation and someone V knows well for the core task.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03_jenkins.scene.json",
+        "assetSha256": "23b38a7768c6aefc593bcd451c11f7db661044954f37f0805282599a32b87bd9",
+        "jsonSha256": "428f6a65d8c306ec9d22e8d342d72c2332dd50234b5d12e9b29dc3f62a795375",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03_jenkins.scene.json",
+          "assetSha256": "23b38a7768c6aefc593bcd451c11f7db661044954f37f0805282599a32b87bd9",
+          "jsonSha256": "428f6a65d8c306ec9d22e8d342d72c2332dd50234b5d12e9b29dc3f62a795375",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03_jenkins.scene.json",
+          "assetSha256": "23b38a7768c6aefc593bcd451c11f7db661044954f37f0805282599a32b87bd9",
+          "jsonSha256": "428f6a65d8c306ec9d22e8d342d72c2332dd50234b5d12e9b29dc3f62a795375",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03_jenkins.scene.json",
+          "assetSha256": "23b38a7768c6aefc593bcd451c11f7db661044954f37f0805282599a32b87bd9",
+          "jsonSha256": "428f6a65d8c306ec9d22e8d342d72c2332dd50234b5d12e9b29dc3f62a795375",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/63/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03_jenkins.scene.json",
+          "assetSha256": "23b38a7768c6aefc593bcd451c11f7db661044954f37f0805282599a32b87bd9",
+          "jsonSha256": "428f6a65d8c306ec9d22e8d342d72c2332dd50234b5d12e9b29dc3f62a795375",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.4e7df1b43d33",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/prologue/q000_corpo/lobby/03a_talk_friend (gameJournalQuestObjective): \"Talk to your old acquaintance.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/2/Data/entries/4/Data/entries/0/Data/entries/0/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "03a_talk_friend"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.fact.q000_corpo_02_choice_02_done.b05b64653e55",
+      "sourceId": "ah5.source.9d4e8420ac39",
+      "kind": "native",
+      "locator": "q000_corpo_02_to_elevators: SET q000_corpo_02_choice_02_done = 1 (node 1101) is fed only by AndNode 1636, which needs all three of V's questions to Frank (Cape Town op, what people say about Jenkins, who Frank works under). The only other writers are history-init nodes in mq055/ep1 standalone starts, so the rule also requires the lobby objective.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-04/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_02_to_elevators.scene.json",
+        "assetSha256": "adad2c0437680fc474d1e648844f569a210d0866597fb82b82085a1e28a7e8d7",
+        "jsonSha256": "ea0d2306eb4956b8eb0388645b90bfe0b119a8a538cdc0d72886e6f92cbaa500",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/112/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q000_corpo_02_choice_02_done",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.corpo-rat.frank-chat",
+      "sourceId": "ah5.source.9d4e8420ac39",
+      "kind": "native",
+      "locator": "q000_corpo_02_to_elevators: AndNode 1636 joins section 95 (V: \"Tell me about the op in Cape Town.\"), 97 (V: \"What's everyone say about Jenkins?\") and 281 (V: \"And you? Who do you work under?\" - Frank: Abernathy) before node 1101; section 3 identifies the friend as Frank (\"It's me, Frank. We met during Icefall\").",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-04/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_02_to_elevators.scene.json",
+        "assetSha256": "adad2c0437680fc474d1e648844f569a210d0866597fb82b82085a1e28a7e8d7",
+        "jsonSha256": "ea0d2306eb4956b8eb0388645b90bfe0b119a8a538cdc0d72886e6f92cbaa500",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/239/Data",
+        "expectedType": "scnAndNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/ah5-04/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_02_to_elevators.scene.json",
+          "assetSha256": "adad2c0437680fc474d1e648844f569a210d0866597fb82b82085a1e28a7e8d7",
+          "jsonSha256": "ea0d2306eb4956b8eb0388645b90bfe0b119a8a538cdc0d72886e6f92cbaa500",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/ah5-04/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_02_to_elevators.scene.json",
+          "assetSha256": "adad2c0437680fc474d1e648844f569a210d0866597fb82b82085a1e28a7e8d7",
+          "jsonSha256": "ea0d2306eb4956b8eb0388645b90bfe0b119a8a538cdc0d72886e6f92cbaa500",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/ah5-04/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_02_to_elevators.scene.json",
+          "assetSha256": "adad2c0437680fc474d1e648844f569a210d0866597fb82b82085a1e28a7e8d7",
+          "jsonSha256": "ea0d2306eb4956b8eb0388645b90bfe0b119a8a538cdc0d72886e6f92cbaa500",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.9f353d2fdd5d",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/minor_quest/mq041_corpo/corpo/04_confront_frank (gameJournalQuestObjective): \"Confront Frank.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/4/Data/entries/16/Data/entries/0/Data/entries/3/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "04_confront_frank"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.journal.904ba2af2cb1",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/minor_quest/mq041_corpo (gameJournalQuest): \"War Pigs\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/4/Data/entries/16/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "mq041_corpo"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.war-pigs.confrontation",
+      "sourceId": "ah5.source.d95956ac0843",
+      "kind": "native",
+      "locator": "mq041_corpo_02_confrontation: journal node 663 sets 04_confront_frank (Confront Frank) to Succeeded; it is reached from the end of the confrontation dialogue (node 533 after sections 204/209/780 in which V and Frank argue, Frank having been purged by Abernathy). Frank is the lobby friend from The Corpo-Rat (section 29 \"Hello, V. Man, time flies.\").",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/minor_quests/mq041/scenes/mq041_corpo_02_confrontation.scene.json",
+        "assetSha256": "b9e409b4af9877410039bcf0423676839ff7c4a223eeccd0b19f83bea9fb3c70",
+        "jsonSha256": "c4e9a1adc0d44de7fb73b858cc3caf00328736a1c18169ab4f97a701b1183d22",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/71/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/minor_quests/mq041/scenes/mq041_corpo_02_confrontation.scene.json",
+          "assetSha256": "b9e409b4af9877410039bcf0423676839ff7c4a223eeccd0b19f83bea9fb3c70",
+          "jsonSha256": "c4e9a1adc0d44de7fb73b858cc3caf00328736a1c18169ab4f97a701b1183d22",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/minor_quests/mq041/scenes/mq041_corpo_02_confrontation.scene.json",
+          "assetSha256": "b9e409b4af9877410039bcf0423676839ff7c4a223eeccd0b19f83bea9fb3c70",
+          "jsonSha256": "c4e9a1adc0d44de7fb73b858cc3caf00328736a1c18169ab4f97a701b1183d22",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.3a30fe2bccb2",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/prologue/q001_02_dex/dex/ride_with_dex (gameJournalQuestObjective): \"Talk to Dex.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/2/Data/entries/2/Data/entries/0/Data/entries/1/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "ride_with_dex"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.ride.dex-pitch",
+      "sourceId": "ah5.source.949db2633426",
+      "kind": "native",
+      "locator": "q001_03a_jackie_dex_intro: journal node 1614 sets ride_with_dex (Talk to Dex) to Succeeded from section 2067 (\"Later, now.\") at the end of the pitch, after Dex describes the Arasaka prototype biochip job for Evelyn Parker, the Flathead bought from Maelstrom's Brick, and Royce replacing him.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/main_quests/prologue/q001/scenes/q001_03a_jackie_dex_intro.scene.json",
+        "assetSha256": "953b074432cfefcbb41eb9542dc25652943fb2fdd3641b61122d0e459b778383",
+        "jsonSha256": "f9079155223307ae75e47024d5faa78cb6be98171660bb036c36e3a05d3bda91",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/35/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/main_quests/prologue/q001/scenes/q001_03a_jackie_dex_intro.scene.json",
+          "assetSha256": "953b074432cfefcbb41eb9542dc25652943fb2fdd3641b61122d0e459b778383",
+          "jsonSha256": "f9079155223307ae75e47024d5faa78cb6be98171660bb036c36e3a05d3bda91",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/114/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.fact.Evelyn_Cheat_Dex.dd847a56f303",
+      "sourceId": "ah5.source.f26f2799d96f",
+      "kind": "native",
+      "locator": "q004_06_see_you_later_evelyn: SET Evelyn_Cheat_Dex = 1 (node 265) is reached only through section 243 or 257, both after V picks \"I'll think about it.\" (choice 241 option 0 or choice 253 option 1) in answer to Evelyn's offer; \"No way. Dex trusts me.\" and \"I'm not about to fuck Dex over.\" lead elsewhere. Other writers are standalone-start history inits (mq055, ep1), so the rule also requires the journal quest.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-judy-information-20261004/raw/base/base/quest/main_quests/prologue/q004/scenes/q004_06_see_you_later_evelyn.scene.json",
+        "assetSha256": "9e5036e877234bc37f6f4ade092231522fd27adf7a6fb3cf230dc7052298139b",
+        "jsonSha256": "76db008d0015af09ba0ef0fce578d48dd72f62e6d118342a5d9e1cc817a78a28",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/34/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "Evelyn_Cheat_Dex",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.journal.1c662ebd3910",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/prologue/q004_braindance (gameJournalQuest): \"The Information\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/2/Data/entries/3/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "q004_braindance"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.information.evelyn-offer",
+      "sourceId": "ah5.source.f26f2799d96f",
+      "kind": "native",
+      "locator": "q004_06_see_you_later_evelyn: Evelyn offers V fifty percent with Dex cut out (\"Dex is a middleman... Fifty percent\", section 245); nodes 241/253 offer \"I'll think about it\" vs refusals, and only the \"think about it\" sections 243/257 feed the writer.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-judy-information-20261004/raw/base/base/quest/main_quests/prologue/q004/scenes/q004_06_see_you_later_evelyn.scene.json",
+        "assetSha256": "9e5036e877234bc37f6f4ade092231522fd27adf7a6fb3cf230dc7052298139b",
+        "jsonSha256": "76db008d0015af09ba0ef0fce578d48dd72f62e6d118342a5d9e1cc817a78a28",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-judy-information-20261004/raw/base/base/quest/main_quests/prologue/q004/scenes/q004_06_see_you_later_evelyn.scene.json",
+          "assetSha256": "9e5036e877234bc37f6f4ade092231522fd27adf7a6fb3cf230dc7052298139b",
+          "jsonSha256": "76db008d0015af09ba0ef0fce578d48dd72f62e6d118342a5d9e1cc817a78a28",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-judy-information-20261004/raw/base/base/quest/main_quests/prologue/q004/scenes/q004_06_see_you_later_evelyn.scene.json",
+          "assetSha256": "9e5036e877234bc37f6f4ade092231522fd27adf7a6fb3cf230dc7052298139b",
+          "jsonSha256": "76db008d0015af09ba0ef0fce578d48dd72f62e6d118342a5d9e1cc817a78a28",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/27/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-judy-information-20261004/raw/base/base/quest/main_quests/prologue/q004/scenes/q004_06_see_you_later_evelyn.scene.json",
+          "assetSha256": "9e5036e877234bc37f6f4ade092231522fd27adf7a6fb3cf230dc7052298139b",
+          "jsonSha256": "76db008d0015af09ba0ef0fce578d48dd72f62e6d118342a5d9e1cc817a78a28",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.36bde4da2c3c",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/prologue/q003_maelstrom (gameJournalQuest): \"The Pickup\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/2/Data/entries/10/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "q003_maelstrom"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.fact.q003_brick_saved.173767e452ba",
+      "sourceId": "ah5.source.d2df71242fb3",
+      "kind": "native",
+      "locator": "q003_05_transition: SET q003_brick_saved += 1 (node 430) is reached via XorNode 1175 / hub 1105 either from choice 903 option 1 \"[Disarm charge] Gotta free 'im.\" (917 -> 743) or from the mine-device check 619 (#q003_dvc_brick_mine_1 IsOFF after Brick was found). \"[Set off charge] Bye-bye, Brick.\" leads to q003_brick_dead (node 1080) instead; q003_brick_dead is NOT used because q003_end also adds to it when brick_saved > 0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_05_transition.scene.json",
+        "assetSha256": "12ba4227d328e7421078165cda86b58d7d558ed7be6bba8f2b5777578318d528",
+        "jsonSha256": "afe859612f60eb55620d187d407e8f188256acdd6365d2646a8729d7c7de8490",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q003_brick_saved",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.pickup.brick-disarm",
+      "sourceId": "ah5.source.d2df71242fb3",
+      "kind": "native",
+      "locator": "q003_05_transition: Brick is rigged to a laser-triggered mine (section 762); choice 903 offers [Set off charge] or [Disarm charge]; node 430 (brick_saved) is reachable from the disarm path (917) and from the mine-OFF condition 619, not from the set-off path. Jackie is in the scene (sections 417, 467, 682).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_05_transition.scene.json",
+        "assetSha256": "12ba4227d328e7421078165cda86b58d7d558ed7be6bba8f2b5777578318d528",
+        "jsonSha256": "afe859612f60eb55620d187d407e8f188256acdd6365d2646a8729d7c7de8490",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/109/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_05_transition.scene.json",
+          "assetSha256": "12ba4227d328e7421078165cda86b58d7d558ed7be6bba8f2b5777578318d528",
+          "jsonSha256": "afe859612f60eb55620d187d407e8f188256acdd6365d2646a8729d7c7de8490",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/111/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_05_transition.scene.json",
+          "assetSha256": "12ba4227d328e7421078165cda86b58d7d558ed7be6bba8f2b5777578318d528",
+          "jsonSha256": "afe859612f60eb55620d187d407e8f188256acdd6365d2646a8729d7c7de8490",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/64/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_05_transition.scene.json",
+          "assetSha256": "12ba4227d328e7421078165cda86b58d7d558ed7be6bba8f2b5777578318d528",
+          "jsonSha256": "afe859612f60eb55620d187d407e8f188256acdd6365d2646a8729d7c7de8490",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/155/Data",
+          "expectedType": "scnXorNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.34ba9be65d0a",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/stout/q003_stout_won/q003_04_msg_sex_invite (gameJournalPhoneMessage): \"No-Tell Motel. 1st floor. Come alone.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/20/Data/entries/0/Data/entries/4/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "q003_04_msg_sex_invite"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.stout.invite-activation",
+      "sourceId": "ah5.source.f5d3b26c8c5f",
+      "kind": "native",
+      "locator": "q003_stout.questphase: the invitation message entry is activated only by LogicalXor 91, fed by the journal conditions \"q003_02a_ch_pity Succeeded\" or \"q003_02a_ch_tattoo Succeeded\", i.e. after V sent one of the two replies to Stout's first message; it also activates 01_go_to_notell (Go to the No-Tell Motel).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/phases/q003_stout.questphase.json",
+        "assetSha256": "15c36254f3dcdf65064d6dd50de2d88f1d3f4c2e9a3ff90e2cdd3af3046e0293",
+        "jsonSha256": "73a02492b76cc15cbeaa914146019b178efb9317d4b9c4391b944cdfb011a74b",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/37/Data",
+        "expectedType": "questJournalNodeDefinition"
+      }
+    },
+    {
+      "id": "ah5.ev.journal.5d0924897458",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/prologue/q003_stout/stout/01_go_to_notell (gameJournalQuestObjective): \"Go to the first floor of the No-Tell Motel.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/2/Data/entries/0/Data/entries/0/Data/entries/0/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "01_go_to_notell"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.stout.motel-arrival",
+      "sourceId": "ah5.source.c4fa596d072a",
+      "kind": "native",
+      "locator": "q003_08_stout: node 1783 sets 01_go_to_notell (\"Go to the first floor of the No-Tell Motel.\") Succeeded when V reaches the motel (node 2014 after condition 1782, with q003_stout_sex_on set); Meredith is waiting there (\"Betcha didn't expect to see me here.\", section 1770). The objective was activated by the invitation message itself.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+        "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+        "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+          "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/59/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.fact.q003_militech_met.b1590cc8dd91",
+      "sourceId": "ah5.source.14d48c8feb32",
+      "kind": "native",
+      "locator": "q003_01a_militech: SET q003_militech_met = 1 (node 2730) follows the handshake choice 1521 \"[Shake hand]\" (or the tried-to-escape recovery) at the start of Meredith Stout's interrogation; the other scenes only read the fact.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+        "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+        "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/46/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q003_militech_met",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.journal.3d6e75c842fb",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/prologue/q003_maelstrom/militech/02_meet_militech1 (gameJournalQuestObjective): \"Talk to the Militech agent.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/2/Data/entries/10/Data/entries/0/Data/entries/3/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "02_meet_militech1"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.militech.meeting",
+      "sourceId": "ah5.source.14d48c8feb32",
+      "kind": "native",
+      "locator": "q003_01a_militech: Stout interrogates V (sections: \"Are you here alone?\", \"Is Anthony Gilchrist your contact? Is he the one who leaked intel on the convoy?\"); node 2786 sets 02_meet_militech (Meet with the Militech agent) Succeeded at her \"Look lively.\" and nodes 2788/3297 move on to 02_meet_militech1 (Talk to the Militech agent).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+        "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+        "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/46/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.fact.q003_sold_signatures.b9a123a5c748",
+      "sourceId": "ah5.source.b0d1545b072c",
+      "kind": "native",
+      "locator": "q003_07a_final_corp: SET q003_sold_signatures += 1 (node 85) is reached only from choice 2143 option 0 \"I know the mole's identity.\" -> sections 2126/2130 in which V tells Meredith Stout the cargo manifests were stamped LOA and that Anthony Gilchrist did it; option 1 \"No biggie.\" goes to hub 2520 instead. No other writer exists in the exported q003 scenes.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_07a_final_corp.scene.json",
+        "assetSha256": "d3435d0eae2d629a19021d10eee06fd77998321ee629c0d1cd1c319c6eb460d5",
+        "jsonSha256": "59c5e014c1546d3573f0bd967a9f481f108c2826dd55b77f92ba3a9b9e07423b",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/85/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q003_sold_signatures",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.pickup.mole-disclosure",
+      "sourceId": "ah5.source.b0d1545b072c",
+      "kind": "native",
+      "locator": "q003_07a_final_corp: choice 2143 (\"I know the mole's identity.\" / \"No biggie.\") gates node 2140; section 2130: V: \"Cargo manifests were stamped LOA... Inside job by a man you know - Anthony Gilchrist.\" Meredith: \"I see I'm working with a professional.\"",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_07a_final_corp.scene.json",
+        "assetSha256": "d3435d0eae2d629a19021d10eee06fd77998321ee629c0d1cd1c319c6eb460d5",
+        "jsonSha256": "59c5e014c1546d3573f0bd967a9f481f108c2826dd55b77f92ba3a9b9e07423b",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/86/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_07a_final_corp.scene.json",
+          "assetSha256": "d3435d0eae2d629a19021d10eee06fd77998321ee629c0d1cd1c319c6eb460d5",
+          "jsonSha256": "59c5e014c1546d3573f0bd967a9f481f108c2826dd55b77f92ba3a9b9e07423b",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/84/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_07a_final_corp.scene.json",
+          "assetSha256": "d3435d0eae2d629a19021d10eee06fd77998321ee629c0d1cd1c319c6eb460d5",
+          "jsonSha256": "59c5e014c1546d3573f0bd967a9f481f108c2826dd55b77f92ba3a9b9e07423b",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/82/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.fact.q003_anthony_intimidated.e58f32fff632",
+      "sourceId": "ah5.source.a528dbc54c73",
+      "kind": "native",
+      "locator": "q003_07aa_final_traitor: SET q003_anthony_intimidated += 1 (node 731) follows only section 728 (\"I know you're the mole. Saw the manifests. LOA?\") from choice 9 option 3 \"So, you're the mole after all.\" (itself gated on q003_convoy_signatures > 0); Gilchrist answers \"Ah yes, that. I suggest we part amicably.\"",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_07aa_final_traitor.scene.json",
+        "assetSha256": "b7ebbe3e1c42af9b1ff0f9d08763973487101517857c130e6724add32000c79b",
+        "jsonSha256": "117f9f0ac6b6b5087aa37bd55fee5eedebd6ee6ad6bbdf503c83314a629466f1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q003_anthony_intimidated",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.pickup.gilchrist-confrontation",
+      "sourceId": "ah5.source.a528dbc54c73",
+      "kind": "native",
+      "locator": "q003_07aa_final_traitor: choice 9 option 3 leads to section 728 where V accuses Anthony Gilchrist of being the mole from the LOA-stamped manifests; Jackie is an actor in the scene (\"You know this guy?\", section 707).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_07aa_final_traitor.scene.json",
+        "assetSha256": "b7ebbe3e1c42af9b1ff0f9d08763973487101517857c130e6724add32000c79b",
+        "jsonSha256": "117f9f0ac6b6b5087aa37bd55fee5eedebd6ee6ad6bbdf503c83314a629466f1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_07aa_final_traitor.scene.json",
+          "assetSha256": "b7ebbe3e1c42af9b1ff0f9d08763973487101517857c130e6724add32000c79b",
+          "jsonSha256": "117f9f0ac6b6b5087aa37bd55fee5eedebd6ee6ad6bbdf503c83314a629466f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_07aa_final_traitor.scene.json",
+          "assetSha256": "b7ebbe3e1c42af9b1ff0f9d08763973487101517857c130e6724add32000c79b",
+          "jsonSha256": "117f9f0ac6b6b5087aa37bd55fee5eedebd6ee6ad6bbdf503c83314a629466f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.6b396d1c623a",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/side_quest/sq011_johnny/04_nancy/01_talk_to_nancy1 (gameJournalQuestObjective): \"Talk to Nancy and Brick.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/41/Data/entries/0/Data/entries/21/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "01_talk_to_nancy1"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.totentanz.brick-leads",
+      "sourceId": "ah5.source.7943860dcb12",
+      "kind": "native",
+      "locator": "sq011_07b_thugs: after Patricia says \"Brick. Got another guest.\" (section 793) node 868 activates 01_talk_to_nancy1 (\"Talk to Nancy and Brick.\"); node 870 sets it Succeeded after Brick's \"Tryna run a business here.\" and Nancy's \"Thanks, Brick.\" Patricia confirms \"Brick took over for Royce after the All Foods incident.\" (section 1269).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07b_thugs.scene.json",
+        "assetSha256": "636c254c2b5d31c0d94cb4aad920d3f1bed438fa5b27e362bbc5d61096a1cdfb",
+        "jsonSha256": "e6bdf6a3fcd91f32a6dc52b9a32926c0134397f3e8899f01d852fa643e4815d1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/150/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07b_thugs.scene.json",
+          "assetSha256": "636c254c2b5d31c0d94cb4aad920d3f1bed438fa5b27e362bbc5d61096a1cdfb",
+          "jsonSha256": "e6bdf6a3fcd91f32a6dc52b9a32926c0134397f3e8899f01d852fa643e4815d1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/151/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07b_thugs.scene.json",
+          "assetSha256": "636c254c2b5d31c0d94cb4aad920d3f1bed438fa5b27e362bbc5d61096a1cdfb",
+          "jsonSha256": "e6bdf6a3fcd91f32a6dc52b9a32926c0134397f3e8899f01d852fa643e4815d1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/132/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07b_thugs.scene.json",
+          "assetSha256": "636c254c2b5d31c0d94cb4aad920d3f1bed438fa5b27e362bbc5d61096a1cdfb",
+          "jsonSha256": "e6bdf6a3fcd91f32a6dc52b9a32926c0134397f3e8899f01d852fa643e4815d1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/212/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.15c9ee4fefc3",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/side_quest/sq011_johnny/04_nancy/01_talk_to_patricia_about_nancy (gameJournalQuestObjective): \"Talk to Patricia about Nancy.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/41/Data/entries/0/Data/entries/13/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "01_talk_to_patricia_about_nancy"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.totentanz.patricia-receives",
+      "sourceId": "ah5.source.7943860dcb12",
+      "kind": "native",
+      "locator": "sq011_07b_thugs: nodes 295 (Active) and 532 (Succeeded) of 01_talk_to_patricia_about_nancy are on the branch after the IF q003_brick_saved check goes false (Brick was not freed), where Patricia's crew receives V instead of Brick; the Brick branch uses 01_talk_to_nancy1 instead.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07b_thugs.scene.json",
+        "assetSha256": "636c254c2b5d31c0d94cb4aad920d3f1bed438fa5b27e362bbc5d61096a1cdfb",
+        "jsonSha256": "e6bdf6a3fcd91f32a6dc52b9a32926c0134397f3e8899f01d852fa643e4815d1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07b_thugs.scene.json",
+          "assetSha256": "636c254c2b5d31c0d94cb4aad920d3f1bed438fa5b27e362bbc5d61096a1cdfb",
+          "jsonSha256": "e6bdf6a3fcd91f32a6dc52b9a32926c0134397f3e8899f01d852fa643e4815d1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/70/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.5168d7bcfe97",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/side_quest/sq011_johnny/04_nancy/04_talk_to_dumdum_royce (gameJournalQuestObjective): \"Talk to Royce and Dum Dum.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/41/Data/entries/0/Data/entries/4/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "04_talk_to_dumdum_royce"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.totentanz.royce-leads",
+      "sourceId": "ah5.source.51f5b84d03de",
+      "kind": "native",
+      "locator": "sq011_07a_royce: node 555 sets 04_talk_to_dumdum_royce (\"Talk to Royce and Dum Dum.\") Succeeded in the scene with Royce and Dum Dum at the Totentanz (Royce: \"Now, get the fuck out. Both of you.\"); sq011_nancy plays this scene only when Royce and Dum Dum are still around.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07a_royce.scene.json",
+        "assetSha256": "5acb80fc5fadf66d248bc809e710cf64cff95a04cbde5105e04b15e9bc63bb44",
+        "jsonSha256": "0f8857a2aabf08092e8594fc92461ada1210f921fab5985711e1ff3a286a7442",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07a_royce.scene.json",
+          "assetSha256": "5acb80fc5fadf66d248bc809e710cf64cff95a04cbde5105e04b15e9bc63bb44",
+          "jsonSha256": "0f8857a2aabf08092e8594fc92461ada1210f921fab5985711e1ff3a286a7442",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.0ae676c9f060",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry contacts/delamain/q101_about_jackie/viktor_vektor (gameJournalPhoneMessage): \"Dear Ms. V, I would like to inform you that Mr. Welles' body has been delivered to Viktor Vektor's clinic in accordance with your instructions.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/119/Data/entries/4/Data/entries/1/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "viktor_vektor"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.jackie.viktor-message",
+      "sourceId": "ah5.source.fdc1ee8e6b81",
+      "kind": "native",
+      "locator": "q101_p2_v_room: the viktor_vektor message (\"body has been delivered to Viktor Vektor's clinic in accordance with your instructions\") is activated only when q005_14_body_at_victors >= 1 (condition 112) after q005_jackie_to_mama is false (condition 105); the other branches send the mama_welles or no_info messages.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-body-receipts/raw/base/base/quest/main_quests/part1/q101/phases/q101_p2_v_room.questphase.json",
+        "assetSha256": "92ea12e03ee8971b1b2d8e0bee8f05bbb74abc08677b95c1d09ccf3fb92c979c",
+        "jsonSha256": "d06e25509797bc6841486154b69f02e2b574bece2d7c12c48155cc340a846705",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/54/Data",
+        "expectedType": "questJournalNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-body-receipts/raw/base/base/quest/main_quests/part1/q101/phases/q101_p2_v_room.questphase.json",
+          "assetSha256": "92ea12e03ee8971b1b2d8e0bee8f05bbb74abc08677b95c1d09ccf3fb92c979c",
+          "jsonSha256": "d06e25509797bc6841486154b69f02e2b574bece2d7c12c48155cc340a846705",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/56/Data",
+          "expectedType": "questConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.530316bf23c9",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/act_01/q110_01_voodooboys (gameJournalQuest): \"M'ap Tann Pèlen\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/22/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "q110_01_voodooboys"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.placide.mall-brief",
+      "sourceId": "ah5.source.b4600afc8960",
+      "kind": "native",
+      "locator": "q110_04_netrunners_den: journal node 810 sets the quest q110_01_voodooboys Succeeded (XorNode 2491) after section 947 where V asks \"So I do this and you put me in front of Brigitte, right?\" and Placide answers \"Yes... We are done.\"; earlier sections give the GIM brief (\"Find our people near mall\").",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/main_quests/part1/q110/scenes/q110_04_netrunners_den.scene.json",
+        "assetSha256": "bcfcfb2c56d22945b0638d62d28e49a7dbb5b9df5cf7d20b01d896a0dcd04dae",
+        "jsonSha256": "2543dbdfcc2f5fc3794f571a6b48cce88640a7c1156bb03efb6ef077d973930e",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/main_quests/part1/q110/scenes/q110_04_netrunners_den.scene.json",
+          "assetSha256": "bcfcfb2c56d22945b0638d62d28e49a7dbb5b9df5cf7d20b01d896a0dcd04dae",
+          "jsonSha256": "2543dbdfcc2f5fc3794f571a6b48cce88640a7c1156bb03efb6ef077d973930e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/298/Data",
+          "expectedType": "scnXorNode"
+        },
+        {
+          "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/main_quests/part1/q110/scenes/q110_04_netrunners_den.scene.json",
+          "assetSha256": "bcfcfb2c56d22945b0638d62d28e49a7dbb5b9df5cf7d20b01d896a0dcd04dae",
+          "jsonSha256": "2543dbdfcc2f5fc3794f571a6b48cce88640a7c1156bb03efb6ef077d973930e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/84/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.47d0e255b14d",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/act_01/q110_voodoo/04_confrontation/02_talk_to_placide (gameJournalQuestObjective): \"Talk to Placide.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/2/Data/entries/1/Data/entries/4/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "02_talk_to_placide"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.placide.return-confrontation",
+      "sourceId": "ah5.source.0ff50f6ad84c",
+      "kind": "native",
+      "locator": "q110_09c_confrontation: node 813/1016 set 02_talk_to_placide (Talk to Placide) Succeeded after V and Placide argue at Batty's (\"You set me up!\", \"Haven't turned coat\") and Brigitte ends it; the combat variant (q110_07b_placide_combat) also completes it, so either way Placide met V alive back at Batty's.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-07/raw/base/base/quest/main_quests/part1/q110/scenes/q110_09c_confrontation.scene.json",
+        "assetSha256": "6808612d5cd81c54861ef0ef15be0f79a750e3a65414d1865a818af5c5d2f64c",
+        "jsonSha256": "47c11df3de568f497cb0c225e8beddba279482ec6c194f144321a69312f6221c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/ah5-07/raw/base/base/quest/main_quests/part1/q110/scenes/q110_09c_confrontation.scene.json",
+          "assetSha256": "6808612d5cd81c54861ef0ef15be0f79a750e3a65414d1865a818af5c5d2f64c",
+          "jsonSha256": "47c11df3de568f497cb0c225e8beddba279482ec6c194f144321a69312f6221c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/63/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/ah5-07/raw/base/base/quest/main_quests/part1/q110/scenes/q110_09c_confrontation.scene.json",
+          "assetSha256": "6808612d5cd81c54861ef0ef15be0f79a750e3a65414d1865a818af5c5d2f64c",
+          "jsonSha256": "47c11df3de568f497cb0c225e8beddba279482ec6c194f144321a69312f6221c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data",
+          "expectedType": "scnChoiceNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.b9ad87c5cd31",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/act_01/q113_corpo/02_arasaka_tower/00c2_talk (gameJournalQuestObjective): \"Talk to Hanako and Saburo.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/8/Data/entries/0/Data/entries/12/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "00c2_talk"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.tower.saburo-engram",
+      "sourceId": "ah5.source.b86991109e2b",
+      "kind": "native",
+      "locator": "q113_07_mikoshi: node 660 activates 00c2_talk (\"Talk to Hanako and Saburo.\") after Hanako's \"Father. It is he.\"; node 399 sets it Succeeded after V's exchange with the Saburo construct (\"I am ready, Hanako. Let's begin.\").",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/main_quests/part1/q113/scenes/q113_07_mikoshi.scene.json",
+        "assetSha256": "d75912d5facbdaef86273d5e38a4a2bcbb965cee33a1887e7dc7b58a71fc163e",
+        "jsonSha256": "b279a5ad3c7a49fcf81b0a60c1a3fa7c1109ff7a3bfa09e9b3ca6603cf51ef9d",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/63/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/ah5-02/raw/base/base/quest/main_quests/part1/q113/scenes/q113_07_mikoshi.scene.json",
+          "assetSha256": "d75912d5facbdaef86273d5e38a4a2bcbb965cee33a1887e7dc7b58a71fc163e",
+          "jsonSha256": "b279a5ad3c7a49fcf81b0a60c1a3fa7c1109ff7a3bfa09e9b3ca6603cf51ef9d",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/110/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.77bf59e11afd",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/act_01/q113_corpo/02_arasaka_tower/01_meeting (gameJournalQuestObjective): \"Give your testimony.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/8/Data/entries/0/Data/entries/1/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "01_meeting"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.journal.a63c488d445d",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/act_01/q113_corpo/02_arasaka_tower/02_survive (gameJournalQuestObjective): \"Fend off the attackers.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/8/Data/entries/0/Data/entries/3/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "02_survive"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.tower.testimony-given",
+      "sourceId": "ah5.source.2934cdf24613",
+      "kind": "native",
+      "locator": "q113_10_jungle: node 38 sets 01_meeting (\"Give your testimony.\") Succeeded after the board-meeting scene, which then activates 02_survive (\"Fend off the attackers.\") via checkpoint 56; both objectives are Succeeded in the E2 save.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-03/raw/base/base/quest/main_quests/part1/q113/phases/q113_10_jungle.questphase.json",
+        "assetSha256": "4d692fe8f1426f1685968dab6ae5faf80efb042adb1e46ebba2dbed2c055e3a5",
+        "jsonSha256": "f6ec4b59d0f5a5fa1da1ef41f76112e891cdacf5653be0838e2570d7c6919eab",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data",
+        "expectedType": "questJournalNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/ah5-03/raw/base/base/quest/main_quests/part1/q113/phases/q113_10_jungle.questphase.json",
+          "assetSha256": "4d692fe8f1426f1685968dab6ae5faf80efb042adb1e46ebba2dbed2c055e3a5",
+          "jsonSha256": "f6ec4b59d0f5a5fa1da1ef41f76112e891cdacf5653be0838e2570d7c6919eab",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/13/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.b7c8cab21a4b",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/act_01/q113_corpo/06_ceo_floor/05_confront_yorinobu (gameJournalQuestObjective): \"Confront Yorinobu.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/8/Data/entries/2/Data/entries/2/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "05_confront_yorinobu"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.journal.6d081c0606cb",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/act_01/q113_corpo/06_ceo_floor/05b_hanako (gameJournalQuestObjective): \"Talk to Hanako.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/8/Data/entries/2/Data/entries/5/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "05b_hanako"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.tower.yorinobu-confrontation",
+      "sourceId": "ah5.source.a8bba5d438b4",
+      "kind": "native",
+      "locator": "q113_14_yorinobu: node 611 sets 05_confront_yorinobu Succeeded after the confrontation (choice 56 and Yorinobu's fear-and-power speech, section 157); node 616 sets 05b_hanako Succeeded after Hanako arrives (\"I thank you, V. That will be all.\") and takes charge of him.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-history/raw/base/base/quest/main_quests/part1/q113/scenes/q113_14_yorinobu.scene.json",
+        "assetSha256": "eeb1d730498bedacd32f79bd9342d0ff0d4a6c3f57bb182f66e648d8daa18d39",
+        "jsonSha256": "aee9d68d729681aff1e7933c1edc77db8b3d5d07b01c4fce585bbcc664238990",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/93/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-history/raw/base/base/quest/main_quests/part1/q113/scenes/q113_14_yorinobu.scene.json",
+          "assetSha256": "eeb1d730498bedacd32f79bd9342d0ff0d4a6c3f57bb182f66e648d8daa18d39",
+          "jsonSha256": "aee9d68d729681aff1e7933c1edc77db8b3d5d07b01c4fce585bbcc664238990",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/95/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-history/raw/base/base/quest/main_quests/part1/q113/scenes/q113_14_yorinobu.scene.json",
+          "assetSha256": "eeb1d730498bedacd32f79bd9342d0ff0d4a6c3f57bb182f66e648d8daa18d39",
+          "jsonSha256": "aee9d68d729681aff1e7933c1edc77db8b3d5d07b01c4fce585bbcc664238990",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-history/raw/base/base/quest/main_quests/part1/q113/scenes/q113_14_yorinobu.scene.json",
+          "assetSha256": "eeb1d730498bedacd32f79bd9342d0ff0d4a6c3f57bb182f66e648d8daa18d39",
+          "jsonSha256": "aee9d68d729681aff1e7933c1edc77db8b3d5d07b01c4fce585bbcc664238990",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.91a5f579cc4b",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/meta/02_sickness/q115/04_talk_hanako (gameJournalQuestObjective): \"Talk to Hanako Arasaka.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/2/Data/entries/10/Data/entries/0/Data/entries/4/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "04_talk_hanako"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.embers.offer",
+      "sourceId": "ah5.source.09c011da7b92",
+      "kind": "native",
+      "locator": "q115_00b_hanako: node 1228 sets 04_talk_hanako (\"Talk to Hanako Arasaka.\") Succeeded at the end of the Embers conversation (section 212 after choice 1068 \"[Stand] We'll see.\" / \"I won't.\"); in it Hanako offers to lead V to Mikoshi beneath Arasaka Tower if V testifies against Yorinobu at the board meeting.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_00b_hanako.scene.json",
+        "assetSha256": "709287b5d977e2a4784472694dd392cf03a4f3f234f15d367af5a98bd9778c2c",
+        "jsonSha256": "cf31094adfe8de56fa3cd54234ba20429e91639c4f0d241b0aa6b6282ad84bc0",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/95/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_00b_hanako.scene.json",
+          "assetSha256": "709287b5d977e2a4784472694dd392cf03a4f3f234f15d367af5a98bd9778c2c",
+          "jsonSha256": "cf31094adfe8de56fa3cd54234ba20429e91639c4f0d241b0aa6b6282ad84bc0",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_00b_hanako.scene.json",
+          "assetSha256": "709287b5d977e2a4784472694dd392cf03a4f3f234f15d367af5a98bd9778c2c",
+          "jsonSha256": "cf31094adfe8de56fa3cd54234ba20429e91639c4f0d241b0aa6b6282ad84bc0",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/87/Data",
+          "expectedType": "scnChoiceNode"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ev.journal.f6f74747514d",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/act_01/q113_rescuing_hanako/00_to_estate/06c_hellman (gameJournalQuestObjective): \"Talk to Hellman.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/3/Data/entries/0/Data/entries/3/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "06c_hellman"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.journal.7e8de7206f32",
+      "sourceId": "ah5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/main_quest/act_01/q113_rescuing_hanako/01_estate/02_talk_hanako (gameJournalQuestObjective): \"Talk to Hanako.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/3/Data/entries/1/Data/entries/2/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "02_talk_hanako"
+        }
+      }
+    },
+    {
+      "id": "ah5.ev.estate.takemura-lost",
+      "sourceId": "ah5.source.14ef51168981",
+      "kind": "native",
+      "locator": "q112_10_safe_house: writers 534/1615 set q112_takemura_dead while 1588 resets it only on the 06i_save rescue path; the same fact already drives jt.takemura-fate.left-behind. Last Caress objectives 06c_hellman and 02_talk_hanako show V reached the estate with Hellman and met Hanako.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/part1/q112/scenes/q112_10_safe_house.scene.json",
+        "assetSha256": "327076165157bbfc1755a4e0df0b2d864493eefa83951d08ff9a2aa5c9f70ebb",
+        "jsonSha256": "dd82bc277feb044a110590aefe82261442a249863447e424982be7c54b1843a1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/71/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/part1/q112/scenes/q112_10_safe_house.scene.json",
+          "assetSha256": "327076165157bbfc1755a4e0df0b2d864493eefa83951d08ff9a2aa5c9f70ebb",
+          "jsonSha256": "dd82bc277feb044a110590aefe82261442a249863447e424982be7c54b1843a1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/207/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/part1/q112/scenes/q112_10_safe_house.scene.json",
+          "assetSha256": "327076165157bbfc1755a4e0df0b2d864493eefa83951d08ff9a2aa5c9f70ebb",
+          "jsonSha256": "dd82bc277feb044a110590aefe82261442a249863447e424982be7c54b1843a1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    }
+  ],
+  "factAllowlist": {
+    "q000_corpo_02_choice_02_done": {
+      "evidenceRefs": [
+        "ah5.ev.fact.q000_corpo_02_choice_02_done.b05b64653e55"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/ah5-04/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_02_to_elevators.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/112/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "Evelyn_Cheat_Dex": {
+      "evidenceRefs": [
+        "ah5.ev.fact.Evelyn_Cheat_Dex.dd847a56f303"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-judy-information-20261004/raw/base/base/quest/main_quests/prologue/q004/scenes/q004_06_see_you_later_evelyn.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/34/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q003_brick_saved": {
+      "evidenceRefs": [
+        "ah5.ev.fact.q003_brick_saved.173767e452ba"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_05_transition.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q003_militech_met": {
+      "evidenceRefs": [
+        "ah5.ev.fact.q003_militech_met.b1590cc8dd91"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/46/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q003_sold_signatures": {
+      "evidenceRefs": [
+        "ah5.ev.fact.q003_sold_signatures.b9a123a5c748"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_07a_final_corp.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/85/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q003_anthony_intimidated": {
+      "evidenceRefs": [
+        "ah5.ev.fact.q003_anthony_intimidated.e58f32fff632"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_07aa_final_traitor.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    }
+  },
+  "journalAllowlist": {
+    "ah5.corpo-rat.talk-jenkins": {
+      "questKey": "the-corpo-rat",
+      "nativePath": "quests/main_quest/prologue/q000_corpo/office/03_talk_jenkins",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.795cec88d0cb"
+      ]
+    },
+    "ah5.lifepath.nomad": {
+      "questKey": "the-corpo-rat",
+      "nativePath": "quests/main_quest/prologue/q000_nomad",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "ah5.ev.journal.f1bc03e1dca0"
+      ]
+    },
+    "ah5.lifepath.street-kid": {
+      "questKey": "the-corpo-rat",
+      "nativePath": "quests/main_quest/prologue/q000_street_kid",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "ah5.ev.journal.937d324d36a0"
+      ]
+    },
+    "ah5.corpo-rat.take-shard": {
+      "questKey": "the-corpo-rat",
+      "nativePath": "quests/main_quest/prologue/q000_corpo/office/05_take_shard",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.4bee34828088"
+      ]
+    },
+    "ah5.corpo-rat.take-money": {
+      "questKey": "the-corpo-rat",
+      "nativePath": "quests/main_quest/prologue/q000_corpo/office/05a_take_money",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.2039daf6dc32"
+      ]
+    },
+    "ah5.corpo-rat.talk-friend": {
+      "questKey": "the-corpo-rat",
+      "nativePath": "quests/main_quest/prologue/q000_corpo/lobby/03a_talk_friend",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.4e7df1b43d33"
+      ]
+    },
+    "ah5.war-pigs.confront-frank": {
+      "questKey": "war-pigs",
+      "nativePath": "quests/minor_quest/mq041_corpo/corpo/04_confront_frank",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.9f353d2fdd5d"
+      ]
+    },
+    "ah5.war-pigs.completed": {
+      "questKey": "war-pigs",
+      "nativePath": "quests/minor_quest/mq041_corpo",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "ah5.ev.journal.904ba2af2cb1"
+      ]
+    },
+    "ah5.ride.ride-with-dex": {
+      "questKey": "the-ride",
+      "nativePath": "quests/main_quest/prologue/q001_02_dex/dex/ride_with_dex",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.3a30fe2bccb2"
+      ]
+    },
+    "ah5.information.completed": {
+      "questKey": "the-information",
+      "nativePath": "quests/main_quest/prologue/q004_braindance",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "ah5.ev.journal.1c662ebd3910"
+      ]
+    },
+    "ah5.pickup.completed": {
+      "questKey": "the-pickup",
+      "nativePath": "quests/main_quest/prologue/q003_maelstrom",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "ah5.ev.journal.36bde4da2c3c"
+      ]
+    },
+    "ah5.stout.invite-msg": {
+      "questKey": "venus-in-furs",
+      "nativePath": "contacts/stout/q003_stout_won/q003_04_msg_sex_invite",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "ah5.ev.journal.34ba9be65d0a"
+      ]
+    },
+    "ah5.stout.go-to-notell": {
+      "questKey": "venus-in-furs",
+      "nativePath": "quests/main_quest/prologue/q003_stout/stout/01_go_to_notell",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.5d0924897458"
+      ]
+    },
+    "ah5.militech.meet-agent": {
+      "questKey": "the-pickup",
+      "nativePath": "quests/main_quest/prologue/q003_maelstrom/militech/02_meet_militech1",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.3d6e75c842fb"
+      ]
+    },
+    "ah5.totentanz.brick": {
+      "questKey": "second-conflict",
+      "nativePath": "quests/side_quest/sq011_johnny/04_nancy/01_talk_to_nancy1",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.6b396d1c623a"
+      ]
+    },
+    "ah5.totentanz.patricia": {
+      "questKey": "second-conflict",
+      "nativePath": "quests/side_quest/sq011_johnny/04_nancy/01_talk_to_patricia_about_nancy",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.15c9ee4fefc3"
+      ]
+    },
+    "ah5.totentanz.royce": {
+      "questKey": "second-conflict",
+      "nativePath": "quests/side_quest/sq011_johnny/04_nancy/04_talk_to_dumdum_royce",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.5168d7bcfe97"
+      ]
+    },
+    "ah5.jackie.body-viktor": {
+      "questKey": "the-heist",
+      "nativePath": "contacts/delamain/q101_about_jackie/viktor_vektor",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "ah5.ev.journal.0ae676c9f060"
+      ]
+    },
+    "ah5.placide.briefed": {
+      "questKey": "map-tann-pelen",
+      "nativePath": "quests/main_quest/act_01/q110_01_voodooboys",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "ah5.ev.journal.530316bf23c9"
+      ]
+    },
+    "ah5.placide.returned": {
+      "questKey": "i-walk-the-line",
+      "nativePath": "quests/main_quest/act_01/q110_voodoo/04_confrontation/02_talk_to_placide",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.47d0e255b14d"
+      ]
+    },
+    "ah5.tower.saburo-talk": {
+      "questKey": "totalimmortal",
+      "nativePath": "quests/main_quest/act_01/q113_corpo/02_arasaka_tower/00c2_talk",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.b9ad87c5cd31"
+      ]
+    },
+    "ah5.tower.testimony": {
+      "questKey": "totalimmortal",
+      "nativePath": "quests/main_quest/act_01/q113_corpo/02_arasaka_tower/01_meeting",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.77bf59e11afd"
+      ]
+    },
+    "ah5.tower.survive": {
+      "questKey": "totalimmortal",
+      "nativePath": "quests/main_quest/act_01/q113_corpo/02_arasaka_tower/02_survive",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.a63c488d445d"
+      ]
+    },
+    "ah5.tower.confront-yorinobu": {
+      "questKey": "totalimmortal",
+      "nativePath": "quests/main_quest/act_01/q113_corpo/06_ceo_floor/05_confront_yorinobu",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.b7c8cab21a4b"
+      ]
+    },
+    "ah5.tower.hanako-takes-over": {
+      "questKey": "totalimmortal",
+      "nativePath": "quests/main_quest/act_01/q113_corpo/06_ceo_floor/05b_hanako",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.6d081c0606cb"
+      ]
+    },
+    "ah5.embers.talk-hanako": {
+      "questKey": "nocturne-op55n1",
+      "nativePath": "quests/meta/02_sickness/q115/04_talk_hanako",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.91a5f579cc4b"
+      ]
+    },
+    "ah5.estate.hellman": {
+      "questKey": "last-caress",
+      "nativePath": "quests/main_quest/act_01/q113_rescuing_hanako/00_to_estate/06c_hellman",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.f6f74747514d"
+      ]
+    },
+    "ah5.estate.talk-hanako": {
+      "questKey": "last-caress",
+      "nativePath": "quests/main_quest/act_01/q113_rescuing_hanako/01_estate/02_talk_hanako",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "ah5.ev.journal.7e8de7206f32"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "ah5.corpo-rat.corpo",
+      "revision": 1,
+      "questKey": "the-corpo-rat",
+      "topic": "v.origin.arasaka",
+      "outcome": "corpo",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "V was an Arasaka corporate employee in Arthur Jenkins' department (the Corporate lifepath): V had the private meeting in Jenkins' office in The Corpo-Rat and he treated V as one of his people.",
+      "sourceIds": [
+        "ah5.source.27a38fbf4c7c",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.corpo-rat.jenkins-talk-done",
+        "ah5.ev.journal.795cec88d0cb"
+      ],
+      "audience": {
+        "speakers": [
+          "arthur-jenkins",
+          "frank-nostra"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "arthur-jenkins",
+          "frank-nostra"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "ah5.corpo-rat.talk-jenkins",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.corpo-career",
+          "outcomeKey": "corpo"
+        }
+      ]
+    },
+    {
+      "id": "ah5.corpo-rat.other-lifepath",
+      "revision": 1,
+      "questKey": "the-corpo-rat",
+      "topic": "v.origin.arasaka",
+      "outcome": "other-lifepath",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V is not an Arasaka corporate: V never worked at Arasaka or in Jenkins' department, so V has no office history or friendship with Jenkins, Frank Nostra or their colleagues.",
+      "sourceIds": [
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.journal.f1bc03e1dca0",
+        "ah5.ev.journal.937d324d36a0"
+      ],
+      "audience": {
+        "speakers": [
+          "arthur-jenkins",
+          "frank-nostra"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "arthur-jenkins",
+          "frank-nostra"
+        ]
+      },
+      "condition": {
+        "any": [
+          {
+            "type": "journal",
+            "key": "ah5.lifepath.nomad",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          },
+          {
+            "type": "journal",
+            "key": "ah5.lifepath.street-kid",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.corpo-career",
+          "outcomeKey": "other-lifepath"
+        }
+      ]
+    },
+    {
+      "id": "ah5.corpo-rat.jenkins-order",
+      "revision": 1,
+      "questKey": "the-corpo-rat",
+      "topic": "jenkins.abernathy.commission",
+      "outcome": "received",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "In his office Jenkins gave V a datashard with everything he had collected on Director Abernathy and a payment, telling V to make sure she was no longer a problem, with unaffiliated hires and someone V knew well for the core task. V took both.",
+      "sourceIds": [
+        "ah5.source.27a38fbf4c7c",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.corpo-rat.take-choices",
+        "ah5.ev.journal.795cec88d0cb",
+        "ah5.ev.journal.4bee34828088",
+        "ah5.ev.journal.2039daf6dc32"
+      ],
+      "audience": {
+        "speakers": [
+          "arthur-jenkins"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "arthur-jenkins"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "ah5.corpo-rat.talk-jenkins",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "ah5.corpo-rat.take-shard",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "ah5.corpo-rat.take-money",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.jenkins-order",
+          "outcomeKey": "received"
+        }
+      ]
+    },
+    {
+      "id": "ah5.corpo-rat.frank-chat",
+      "revision": 1,
+      "questKey": "the-corpo-rat",
+      "topic": "frank.prologue.conversation",
+      "outcome": "completed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "In the Arasaka lobby V and Frank Nostra had a full catch-up: V asked about the Cape Town op, what people said about Jenkins, and who Frank worked under (Abernathy).",
+      "sourceIds": [
+        "ah5.source.9d4e8420ac39",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.corpo-rat.frank-chat",
+        "ah5.ev.fact.q000_corpo_02_choice_02_done.b05b64653e55",
+        "ah5.ev.journal.4e7df1b43d33"
+      ],
+      "audience": {
+        "speakers": [
+          "frank-nostra"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "frank-nostra"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q000_corpo_02_choice_02_done",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "ah5.corpo-rat.talk-friend",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.frank-prologue",
+          "outcomeKey": "completed"
+        }
+      ]
+    },
+    {
+      "id": "ah5.war-pigs.confronted",
+      "revision": 1,
+      "questKey": "war-pigs",
+      "topic": "frank.deadmans-trigger",
+      "outcome": "confronted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "In War Pigs V went to the briefcase location and met Frank Nostra there. Purged by Abernathy, he held V at gunpoint to win his way back; V confronted him. This does not record how the confrontation ended.",
+      "sourceIds": [
+        "ah5.source.d95956ac0843",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.war-pigs.confrontation",
+        "ah5.ev.journal.9f353d2fdd5d",
+        "ah5.ev.journal.904ba2af2cb1"
+      ],
+      "audience": {
+        "speakers": [
+          "frank-nostra",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "frank-nostra",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "ah5.war-pigs.confront-frank",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "ah5.war-pigs.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.war-pigs-lure",
+          "outcomeKey": "confronted"
+        }
+      ]
+    },
+    {
+      "id": "ah5.ride.dex-briefing",
+      "revision": 1,
+      "questKey": "the-ride",
+      "topic": "dex.relic.contract",
+      "outcome": "briefed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "In The Ride Dex briefed V and Jackie on the job: steal an Arasaka prototype biochip for client Evelyn Parker, which first needs the Flathead combat bot Dex bought from Maelstrom's Brick, whom Royce had since replaced.",
+      "sourceIds": [
+        "ah5.source.949db2633426",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.ride.dex-pitch",
+        "ah5.ev.journal.3a30fe2bccb2"
+      ],
+      "audience": {
+        "speakers": [
+          "dexter-deshawn"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dexter-deshawn"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "ah5.ride.ride-with-dex",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.dex-contract",
+          "outcomeKey": "briefed"
+        }
+      ]
+    },
+    {
+      "id": "ah5.information.evelyn-offer",
+      "revision": 1,
+      "questKey": "the-information",
+      "topic": "evelyn.dex-bypass.offer",
+      "outcome": "heard",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Evelyn privately offered V a fifty percent cut if V cut fixer Dex out of the job, and V answered \"I'll think about it\" instead of refusing outright.",
+      "sourceIds": [
+        "ah5.source.f26f2799d96f",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.information.evelyn-offer",
+        "ah5.ev.fact.Evelyn_Cheat_Dex.dd847a56f303",
+        "ah5.ev.journal.1c662ebd3910"
+      ],
+      "audience": {
+        "speakers": [
+          "evelyn-parker"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "evelyn-parker"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "Evelyn_Cheat_Dex",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "ah5.information.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.evelyn-offer",
+          "outcomeKey": "heard"
+        }
+      ]
+    },
+    {
+      "id": "ah5.pickup.brick-rescued",
+      "revision": 1,
+      "questKey": "the-pickup",
+      "topic": "maelstrom.brick.fate",
+      "outcome": "rescued",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In The Pickup V and Jackie found Brick, whom Royce had imprisoned rigged to a mine, and V disarmed the charge and freed him.",
+      "sourceIds": [
+        "ah5.source.d2df71242fb3",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.pickup.brick-disarm",
+        "ah5.ev.fact.q003_brick_saved.173767e452ba",
+        "ah5.ev.journal.36bde4da2c3c"
+      ],
+      "audience": {
+        "speakers": [
+          "jackie-welles"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "jackie-welles"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q003_brick_saved",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "ah5.pickup.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.brick-fate",
+          "outcomeKey": "rescued"
+        }
+      ]
+    },
+    {
+      "id": "ah5.stout.invitation",
+      "revision": 1,
+      "questKey": "venus-in-furs",
+      "topic": "meredith.invitation.received",
+      "outcome": "received",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "After V replied to her message, Meredith Stout texted V an invitation: No-Tell Motel, first floor, come alone.",
+      "sourceIds": [
+        "ah5.source.f5d3b26c8c5f",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.stout.invite-activation",
+        "ah5.ev.journal.34ba9be65d0a"
+      ],
+      "audience": {
+        "speakers": [
+          "meredith-stout"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "meredith-stout"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "ah5.stout.invite-msg",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.stout-invitation",
+          "outcomeKey": "received"
+        }
+      ]
+    },
+    {
+      "id": "ah5.stout.motel-arrival",
+      "revision": 1,
+      "questKey": "venus-in-furs",
+      "topic": "meredith.invitation.accepted",
+      "outcome": "accepted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "V took Stout up on her invitation and came to the No-Tell Motel, where she was waiting. This records only that V showed up.",
+      "sourceIds": [
+        "ah5.source.c4fa596d072a",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.stout.motel-arrival",
+        "ah5.ev.journal.5d0924897458"
+      ],
+      "audience": {
+        "speakers": [
+          "meredith-stout"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "meredith-stout"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "ah5.stout.go-to-notell",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.stout-invitation-response",
+          "outcomeKey": "accepted"
+        }
+      ]
+    },
+    {
+      "id": "ah5.pickup.stout-meeting",
+      "revision": 1,
+      "questKey": "the-pickup",
+      "topic": "meredith.meeting",
+      "outcome": "met",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "Before the All Foods job V met Militech agent Meredith Stout, who questioned V about the missing convoy and about the mole Anthony Gilchrist.",
+      "sourceIds": [
+        "ah5.source.14d48c8feb32",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.militech.meeting",
+        "ah5.ev.fact.q003_militech_met.b1590cc8dd91",
+        "ah5.ev.journal.3d6e75c842fb"
+      ],
+      "audience": {
+        "speakers": [
+          "meredith-stout"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "meredith-stout"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q003_militech_met",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "ah5.militech.meet-agent",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.stout-meeting",
+          "outcomeKey": "met"
+        }
+      ]
+    },
+    {
+      "id": "ah5.pickup.gilchrist-told-stout",
+      "revision": 1,
+      "questKey": "the-pickup",
+      "topic": "militech.leak.stout-disclosure",
+      "outcome": "told-stout",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "At the end of The Pickup V told Meredith Stout who the mole was: the cargo manifests stamped LOA pointed to her colleague Anthony Gilchrist.",
+      "sourceIds": [
+        "ah5.source.b0d1545b072c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.pickup.mole-disclosure",
+        "ah5.ev.fact.q003_sold_signatures.b9a123a5c748"
+      ],
+      "audience": {
+        "speakers": [
+          "meredith-stout"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "meredith-stout"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q003_sold_signatures",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.gilchrist-stout-disclosure",
+          "outcomeKey": "told-stout"
+        }
+      ]
+    },
+    {
+      "id": "ah5.pickup.gilchrist-confronted",
+      "revision": 1,
+      "questKey": "the-pickup",
+      "topic": "militech.leak.confrontation",
+      "outcome": "confronted-gilchrist",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "After the All Foods job V confronted Anthony Gilchrist with Jackie present, telling him V had seen the LOA-stamped manifests and knew he was the mole.",
+      "sourceIds": [
+        "ah5.source.a528dbc54c73"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.pickup.gilchrist-confrontation",
+        "ah5.ev.fact.q003_anthony_intimidated.e58f32fff632"
+      ],
+      "audience": {
+        "speakers": [
+          "jackie-welles"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "jackie-welles"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q003_anthony_intimidated",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.gilchrist-confrontation",
+          "outcomeKey": "confronted-gilchrist"
+        }
+      ]
+    },
+    {
+      "id": "ah5.totentanz.brick",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "maelstrom.totentanz.leader",
+      "outcome": "brick",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the Totentanz V and Nancy met Brick, who had taken over the Maelstrom gang from Royce after the All Foods incident.",
+      "sourceIds": [
+        "ah5.source.7943860dcb12",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.totentanz.brick-leads",
+        "ah5.ev.journal.6b396d1c623a"
+      ],
+      "audience": {
+        "speakers": [
+          "nancy-hartley",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "nancy-hartley",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "ah5.totentanz.brick",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.maelstrom-leadership",
+          "outcomeKey": "brick"
+        }
+      ]
+    },
+    {
+      "id": "ah5.totentanz.patricia",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "maelstrom.totentanz.leader",
+      "outcome": "patricia",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the Totentanz V and Nancy were received by Patricia and her Maelstrom crew, not by Brick.",
+      "sourceIds": [
+        "ah5.source.7943860dcb12",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.totentanz.patricia-receives",
+        "ah5.ev.journal.15c9ee4fefc3"
+      ],
+      "audience": {
+        "speakers": [
+          "nancy-hartley",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "nancy-hartley",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "ah5.totentanz.patricia",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.maelstrom-leadership",
+          "outcomeKey": "patricia"
+        }
+      ]
+    },
+    {
+      "id": "ah5.totentanz.royce",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "maelstrom.totentanz.leader",
+      "outcome": "royce",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the Totentanz V and Nancy dealt with Royce and Dum Dum, who were still running the Maelstrom gang there.",
+      "sourceIds": [
+        "ah5.source.51f5b84d03de",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.totentanz.royce-leads",
+        "ah5.ev.journal.5168d7bcfe97"
+      ],
+      "audience": {
+        "speakers": [
+          "nancy-hartley",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "nancy-hartley",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "ah5.totentanz.royce",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.maelstrom-leadership",
+          "outcomeKey": "royce"
+        }
+      ]
+    },
+    {
+      "id": "ah5.jackie.body-viktor",
+      "revision": 1,
+      "questKey": "the-heist",
+      "topic": "jackie.body.destination",
+      "outcome": "viktor",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "After the Heist V had Jackie's body delivered to Viktor Vektor's clinic; Delamain confirmed the delivery.",
+      "sourceIds": [
+        "ah5.source.fdc1ee8e6b81",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.jackie.viktor-message",
+        "ah5.ev.journal.0ae676c9f060"
+      ],
+      "audience": {
+        "speakers": [
+          "viktor-vektor"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "viktor-vektor"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "ah5.jackie.body-viktor",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.jackie-body",
+          "outcomeKey": "viktor"
+        }
+      ]
+    },
+    {
+      "id": "ah5.placide.mall-brief",
+      "revision": 1,
+      "questKey": "map-tann-pelen",
+      "topic": "placide.v.contract",
+      "outcome": "briefed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "At Batty's hotel Placide briefed V as the outside operative for the Grand Imperial Mall job: sync with the Voodoo Boys' subnet, find his people near the mall, and Brigitte could then solve V's problem.",
+      "sourceIds": [
+        "ah5.source.b4600afc8960",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.placide.mall-brief",
+        "ah5.ev.journal.530316bf23c9"
+      ],
+      "audience": {
+        "speakers": [
+          "placide"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "placide"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "ah5.placide.briefed",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.placide-deal",
+          "outcomeKey": "briefed"
+        }
+      ]
+    },
+    {
+      "id": "ah5.placide.returned",
+      "revision": 1,
+      "questKey": "i-walk-the-line",
+      "topic": "placide.v.return",
+      "outcome": "returned",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "After the Grand Imperial Mall job V came back alive to Batty's hotel and confronted Placide there about what had happened.",
+      "sourceIds": [
+        "ah5.source.0ff50f6ad84c",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.placide.return-confrontation",
+        "ah5.ev.journal.47d0e255b14d"
+      ],
+      "audience": {
+        "speakers": [
+          "placide"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "placide"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "ah5.placide.returned",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.mall-return",
+          "outcomeKey": "returned"
+        }
+      ]
+    },
+    {
+      "id": "ah5.tower.saburo-engram",
+      "revision": 1,
+      "questKey": "totalimmortal",
+      "topic": "saburo.engram.revealed",
+      "outcome": "seen",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "In Arasaka Tower, Hanako took V to Saburo Arasaka's engram in Mikoshi (\"Father. It is he.\") and V spoke with it before the board meeting.",
+      "sourceIds": [
+        "ah5.source.b86991109e2b",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.tower.saburo-engram",
+        "ah5.ev.journal.b9ad87c5cd31"
+      ],
+      "audience": {
+        "speakers": [
+          "hanako-arasaka"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "hanako-arasaka"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "ah5.tower.saburo-talk",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.saburo-construct",
+          "outcomeKey": "seen"
+        }
+      ]
+    },
+    {
+      "id": "ah5.tower.board-testimony",
+      "revision": 1,
+      "questKey": "totalimmortal",
+      "topic": "arasaka.board.testimony",
+      "outcome": "given",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "At the Arasaka board meeting in the tower V gave testimony; Yorinobu's armed forces then attacked and V fought them off.",
+      "sourceIds": [
+        "ah5.source.2934cdf24613",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.tower.testimony-given",
+        "ah5.ev.journal.77bf59e11afd",
+        "ah5.ev.journal.a63c488d445d"
+      ],
+      "audience": {
+        "speakers": [
+          "hanako-arasaka"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "hanako-arasaka"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "ah5.tower.testimony",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "ah5.tower.survive",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.board-testimony",
+          "outcomeKey": "given"
+        }
+      ]
+    },
+    {
+      "id": "ah5.tower.yorinobu-heard",
+      "revision": 1,
+      "questKey": "totalimmortal",
+      "topic": "yorinobu.final.confrontation",
+      "outcome": "heard",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "On the CEO floor V confronted Yorinobu Arasaka, who explained why he opposed Saburo's rule by fear; V held him unharmed until Hanako arrived and took charge of him.",
+      "sourceIds": [
+        "ah5.source.a8bba5d438b4",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.tower.yorinobu-confrontation",
+        "ah5.ev.journal.b7c8cab21a4b",
+        "ah5.ev.journal.6d081c0606cb"
+      ],
+      "audience": {
+        "speakers": [
+          "yorinobu-arasaka"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "yorinobu-arasaka"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "ah5.tower.confront-yorinobu",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "ah5.tower.hanako-takes-over",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.yorinobu-confronted",
+          "outcomeKey": "heard"
+        }
+      ]
+    },
+    {
+      "id": "ah5.tower.yorinobu-held",
+      "revision": 1,
+      "questKey": "totalimmortal",
+      "topic": "yorinobu.final.confrontation",
+      "outcome": "heard",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "On the CEO floor V reached Yorinobu without harming him, as Hanako had asked, and held him until Hanako arrived and took charge of him.",
+      "sourceIds": [
+        "ah5.source.a8bba5d438b4",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.tower.yorinobu-confrontation",
+        "ah5.ev.journal.b7c8cab21a4b",
+        "ah5.ev.journal.6d081c0606cb"
+      ],
+      "audience": {
+        "speakers": [
+          "hanako-arasaka"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "hanako-arasaka"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "ah5.tower.confront-yorinobu",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "ah5.tower.hanako-takes-over",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.yorinobu-confronted",
+          "outcomeKey": "heard"
+        }
+      ]
+    },
+    {
+      "id": "ah5.embers.hanako-offer",
+      "revision": 1,
+      "questKey": "nocturne-op55n1",
+      "topic": "hanako.help.offer",
+      "outcome": "heard",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "At Embers Hanako offered to lead V to Mikoshi beneath Arasaka Tower, in return for V testifying against her brother Yorinobu at the board meeting she would get V into. This records the offer only, not V's acceptance.",
+      "sourceIds": [
+        "ah5.source.09c011da7b92",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.embers.offer",
+        "ah5.ev.journal.91a5f579cc4b"
+      ],
+      "audience": {
+        "speakers": [
+          "hanako-arasaka"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "hanako-arasaka"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "ah5.embers.talk-hanako",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.hanako-offer",
+          "outcomeKey": "heard"
+        }
+      ]
+    },
+    {
+      "id": "ah5.estate.takemura-absent",
+      "revision": 1,
+      "questKey": "last-caress",
+      "topic": "takemura.devil.participation",
+      "outcome": "absent",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V went to Hanako's estate with Hellman; Takemura had been lost at the safe house and took no part in the estate rescue.",
+      "sourceIds": [
+        "ah5.source.14ef51168981",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.estate.takemura-lost",
+        "ah5.ev.journal.f6f74747514d",
+        "ah5.ev.journal.7e8de7206f32"
+      ],
+      "audience": {
+        "speakers": [
+          "hanako-arasaka"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "hanako-arasaka"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q112_takemura_dead",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "ah5.estate.hellman",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "ah5.estate.talk-hanako",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.devil-takemura-presence",
+          "outcomeKey": "absent"
+        }
+      ]
+    }
+  ]
+}

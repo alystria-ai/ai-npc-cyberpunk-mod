@@ -1,0 +1,3744 @@
+{
+  "version": 1,
+  "id": "cyberpunk-native-judy-river-20261005",
+  "revision": 1,
+  "gameVersions": [
+    "2.31"
+  ],
+  "profileKeys": [
+    "ana-friedman",
+    "claire-russell",
+    "elizabeth-peralez",
+    "jefferson-peralez",
+    "judy-alvarez",
+    "river-ward",
+    "sandra-dorsett"
+  ],
+  "sources": [
+    {
+      "id": "jr5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: base\\journal\\cooked_journal.journal (scene-evidence/judy-river-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "jr5.source.8f0717675f2a",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq024\\phases\\sq024_05_the_big_race.questphase (scene-evidence/judy-river-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "jr5.source.8dd6bafe4d90",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq024\\scenes\\sq024_02b_santo_domingo_race_end.scene (scene-evidence/judy-river-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "jr5.source.6f7fdcba11d9",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq029\\scenes\\sq029_04a_dinner.scene (scene-evidence/rel-sq029-20261005); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "jr5.source.8f4da72ae67b",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq021\\scenes\\sq021_07_ride_back.scene (scene-evidence/jr5-05); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "jr5.source.d28a722d9699",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq021\\scenes\\sq021_11_finale.scene (scene-evidence/judy-river-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "jr5.source.4cdee794eb75",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq012\\phases\\sq012_the_law_rqr.questphase (scene-evidence/jr5-08); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "jr5.source.207598b75364",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq012\\scenes\\sq012_06b_rqr_investigation.scene (scene-evidence/jr5-07); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "jr5.source.833ae562dc38",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq012\\scenes\\sq012_08a_peralez_apartment.scene (scene-evidence/jr5-07); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "jr5.source.c565f210ebc3",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq006\\phases\\sq006.questphase (scene-evidence/judy-river-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "jr5.source.179c4ca2abb5",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\media\\quests\\scenes\\sq006_03_election_results_version_a.scene (scene-evidence/jr5-12); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "jr5.source.7dffd44efb4a",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\main_quests\\q307\\scenes\\q307_03a_friends_holocall.scene (scene-evidence/jr5-13); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "jr5.source.c1b7be251366",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q115\\scenes\\q115_02b_ripperdoc_roof.scene (scene-evidence/priority-endings-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "jr5.source.6b1f7d3afd6a",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\epilogue\\q204\\phases\\q204_00_setup.questphase (scene-evidence/priority-endings-20261004-phases2); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "jr5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\journal\\cooked_journal.journal (scene-evidence/priority-phantom-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "jr5.source.54273b1b7a16",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_08\\scenes\\sts_ep1_08_client_ending.scene (scene-evidence/pg5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "jr5.ev.journal.ae0412f994d9",
+      "sourceId": "jr5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "sq024_05_the_big_race: the follow_dominic trigger (node 6) is reached only after Sampson's vehicle is damaged (node 236); it completes 05_follow_sampson_or_continue (25 -> 31 Succeeded) and activates 06a_follow_sampson \"Follow Sampson.\" (node 32), and its cut node 239 cancels the continue-race triggers. Active/Succeeded of 06a therefore means V took the follow-Sampson branch.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/19/Data/entries/0/Data/entries/7/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "06a_follow_sampson"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/phases/sq024_05_the_big_race.questphase.json",
+          "assetSha256": "84a96469fc46b8d3fa0d7a47de0c911c484a553a720eeb9fbe372b7144355e39",
+          "jsonSha256": "2d69c12f9c568fd69f1aecb11e8bc173e32d8cc60b29557494e6aa42a8189f3f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/4/Data/phaseGraph/Data/nodes/11/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/phases/sq024_05_the_big_race.questphase.json",
+          "assetSha256": "84a96469fc46b8d3fa0d7a47de0c911c484a553a720eeb9fbe372b7144355e39",
+          "jsonSha256": "2d69c12f9c568fd69f1aecb11e8bc173e32d8cc60b29557494e6aa42a8189f3f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/4/Data/phaseGraph/Data/nodes/52/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/phases/sq024_05_the_big_race.questphase.json",
+          "assetSha256": "84a96469fc46b8d3fa0d7a47de0c911c484a553a720eeb9fbe372b7144355e39",
+          "jsonSha256": "2d69c12f9c568fd69f1aecb11e8bc173e32d8cc60b29557494e6aa42a8189f3f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/4/Data/phaseGraph/Data/nodes/4/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/phases/sq024_05_the_big_race.questphase.json",
+          "assetSha256": "84a96469fc46b8d3fa0d7a47de0c911c484a553a720eeb9fbe372b7144355e39",
+          "jsonSha256": "2d69c12f9c568fd69f1aecb11e8bc173e32d8cc60b29557494e6aa42a8189f3f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/4/Data/phaseGraph/Data/nodes/55/Data",
+          "expectedType": "questCutControlNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.journal.4bae20b1aa7a",
+      "sourceId": "jr5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "sq024_05_the_big_race: the continue_race triggers (7 -> 12, node 216 completes 05_follow_sampson_or_continue) activate 06b_beat_race \"Finish the race.\" (node 56); cut node 238 cancels the follow trigger. A second route (node 229 False -> subgraph 235) marks 04c_stay_close failed and also activates 06b. 06b active/succeeded means V stayed on the race instead of following Sampson.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/19/Data/entries/0/Data/entries/8/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "06b_beat_race"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/phases/sq024_05_the_big_race.questphase.json",
+          "assetSha256": "84a96469fc46b8d3fa0d7a47de0c911c484a553a720eeb9fbe372b7144355e39",
+          "jsonSha256": "2d69c12f9c568fd69f1aecb11e8bc173e32d8cc60b29557494e6aa42a8189f3f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/4/Data/phaseGraph/Data/nodes/14/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/phases/sq024_05_the_big_race.questphase.json",
+          "assetSha256": "84a96469fc46b8d3fa0d7a47de0c911c484a553a720eeb9fbe372b7144355e39",
+          "jsonSha256": "2d69c12f9c568fd69f1aecb11e8bc173e32d8cc60b29557494e6aa42a8189f3f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/4/Data/phaseGraph/Data/nodes/13/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/phases/sq024_05_the_big_race.questphase.json",
+          "assetSha256": "84a96469fc46b8d3fa0d7a47de0c911c484a553a720eeb9fbe372b7144355e39",
+          "jsonSha256": "2d69c12f9c568fd69f1aecb11e8bc173e32d8cc60b29557494e6aa42a8189f3f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/4/Data/phaseGraph/Data/nodes/7/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/phases/sq024_05_the_big_race.questphase.json",
+          "assetSha256": "84a96469fc46b8d3fa0d7a47de0c911c484a553a720eeb9fbe372b7144355e39",
+          "jsonSha256": "2d69c12f9c568fd69f1aecb11e8bc173e32d8cc60b29557494e6aa42a8189f3f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/4/Data/phaseGraph/Data/nodes/54/Data",
+          "expectedType": "questCutControlNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.fact.sq024_big_race_won.e521fccebc2f",
+      "sourceId": "jr5.source.8f0717675f2a",
+      "kind": "native",
+      "locator": "sq024_05_the_big_race continue_race_2 subgraph: after 06b_beat_race succeeds and 07_stop_car activates, node 46 requires sq024_big_race_opponent_finish == 0 (no opponent had finished first) and only then node 84 sets sq024_big_race_won = 1. It is the sole positive writer and is reachable only after the continue_race_2 scene.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/phases/sq024_05_the_big_race.questphase.json",
+        "assetSha256": "84a96469fc46b8d3fa0d7a47de0c911c484a553a720eeb9fbe372b7144355e39",
+        "jsonSha256": "2d69c12f9c568fd69f1aecb11e8bc173e32d8cc60b29557494e6aa42a8189f3f",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/4/Data/phaseGraph/Data/nodes/18/Data/phaseGraph/Data/nodes/36/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq024_big_race_won",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.big.won-gate",
+      "sourceId": "jr5.source.8f0717675f2a",
+      "kind": "native",
+      "locator": "sq024_05_the_big_race continue_race_2 subgraph: node 46 tests sq024_big_race_opponent_finish == 0 before node 84 sets sq024_big_race_won, so the flag is set only when no opponent finished ahead of V.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/phases/sq024_05_the_big_race.questphase.json",
+        "assetSha256": "84a96469fc46b8d3fa0d7a47de0c911c484a553a720eeb9fbe372b7144355e39",
+        "jsonSha256": "2d69c12f9c568fd69f1aecb11e8bc173e32d8cc60b29557494e6aa42a8189f3f",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/4/Data/phaseGraph/Data/nodes/18/Data/phaseGraph/Data/nodes/36/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/phases/sq024_05_the_big_race.questphase.json",
+          "assetSha256": "84a96469fc46b8d3fa0d7a47de0c911c484a553a720eeb9fbe372b7144355e39",
+          "jsonSha256": "2d69c12f9c568fd69f1aecb11e8bc173e32d8cc60b29557494e6aa42a8189f3f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/4/Data/phaseGraph/Data/nodes/18/Data/phaseGraph/Data/nodes/28/Data",
+          "expectedType": "questConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.fact.sq024_end_at_santo_domingo.5526e39589df",
+      "sourceId": "jr5.source.8dd6bafe4d90",
+      "kind": "native",
+      "locator": "sq024_02b_santo_domingo_race_end: choice 157 option 2 \"Sorry, Claire, but I can't help.\" -> 159 -> choice 321 option 1 \"Yeah, Claire. I'm done.\" -> node 334 SET sq024_end_at_santo_domingo = 1 (positive; the only other option 0 \"I'll still drive. But only to win\" goes to 326 and never reaches 334).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+        "assetSha256": "0945a3264658654e17edeff16a119aec32eeda2f225ec4c95e820d723fce82a0",
+        "jsonSha256": "b873b133c5de20899114872f23f5d9c1d76b931bcd714cd0250055dfd1d05de6",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/60/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq024_end_at_santo_domingo",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.santo.withdraw-choice",
+      "sourceId": "jr5.source.8dd6bafe4d90",
+      "kind": "native",
+      "locator": "sq024_02b choice 157 option 2 (\"Sorry, Claire, but I can't help.\") leads via 159 to choice 321, whose option 1 (\"Yeah, Claire. I'm done.\") is the only route into node 334.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+        "assetSha256": "0945a3264658654e17edeff16a119aec32eeda2f225ec4c95e820d723fce82a0",
+        "jsonSha256": "b873b133c5de20899114872f23f5d9c1d76b931bcd714cd0250055dfd1d05de6",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data",
+        "expectedType": "scnChoiceNode",
+        "expected": {
+          "/nodeId/id": 157
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+          "assetSha256": "0945a3264658654e17edeff16a119aec32eeda2f225ec4c95e820d723fce82a0",
+          "jsonSha256": "b873b133c5de20899114872f23f5d9c1d76b931bcd714cd0250055dfd1d05de6",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/57/Data",
+          "expectedType": "scnChoiceNode",
+          "expected": {
+            "/nodeId/id": 321
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+          "assetSha256": "0945a3264658654e17edeff16a119aec32eeda2f225ec4c95e820d723fce82a0",
+          "jsonSha256": "b873b133c5de20899114872f23f5d9c1d76b931bcd714cd0250055dfd1d05de6",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/60/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 334
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.journal.100095c4edbe",
+      "sourceId": "jr5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "sq024_05_msg_claire_fluff: Claire's reply 02c \"Sampson dies during the race, and only then. Remember that. No killing in cold blood.\" is activated (node 23) only by node 20, i.e. after V's phone choice ch3 \"Don't worry about it. Just remember what you promised me.\" succeeded; ch3 itself is offered (node 78) only on the True branch of node 21 (sq024_continue_but_wont_kill_sampson > 0, the race-first agreement). The reply message is used as the predicate because the retired choice group would hide the choice entry.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/68/Data/entries/12/Data/entries/4/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "02c_claire_beat_race"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/jr5-01/raw/base/base/quest/side_quests/sq024/phases/text_messages/sq024_05_msg_claire_fluff.questphase.json",
+          "assetSha256": "0fb41d109904e423efd50da3140733427a8c8c893edc23e79f9203a1c0afb4fa",
+          "jsonSha256": "accf02daca2bfe7a29708e7447097ab9d9d3fdf98f7d76b344ce04bf93de5868",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/21/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-01/raw/base/base/quest/side_quests/sq024/phases/text_messages/sq024_05_msg_claire_fluff.questphase.json",
+          "assetSha256": "0fb41d109904e423efd50da3140733427a8c8c893edc23e79f9203a1c0afb4fa",
+          "jsonSha256": "accf02daca2bfe7a29708e7447097ab9d9d3fdf98f7d76b344ce04bf93de5868",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-01/raw/base/base/quest/side_quests/sq024/phases/text_messages/sq024_05_msg_claire_fluff.questphase.json",
+          "assetSha256": "0fb41d109904e423efd50da3140733427a8c8c893edc23e79f9203a1c0afb4fa",
+          "jsonSha256": "accf02daca2bfe7a29708e7447097ab9d9d3fdf98f7d76b344ce04bf93de5868",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/72/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-01/raw/base/base/quest/side_quests/sq024/phases/text_messages/sq024_05_msg_claire_fluff.questphase.json",
+          "assetSha256": "0fb41d109904e423efd50da3140733427a8c8c893edc23e79f9203a1c0afb4fa",
+          "jsonSha256": "accf02daca2bfe7a29708e7447097ab9d9d3fdf98f7d76b344ce04bf93de5868",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/19/Data",
+          "expectedType": "questConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.journal.dd5a5eb4da08",
+      "sourceId": "jr5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "sq024_03_msg_big_race: node 97 activates 03_claire_give_car after V answers Claire's \"left\" texts (94 / 95 / 96). The message text itself reads \"I left you the Beast. Won't be needing it anymore, so it's yours.\"",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/68/Data/entries/7/Data/entries/3/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "03_claire_give_car"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/phases/text_messages/sq024_03_msg_big_race.questphase.json",
+          "assetSha256": "6fd86e653b2443837ca16c8b106b91e83d5f87ab6242ac585eff036a7e7fa026",
+          "jsonSha256": "76722746bfa379c79fd9ac72294c8ebc117aa32106c02a849bb0a7fd606ac8ff",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/36/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/phases/text_messages/sq024_03_msg_big_race.questphase.json",
+          "assetSha256": "6fd86e653b2443837ca16c8b106b91e83d5f87ab6242ac585eff036a7e7fa026",
+          "jsonSha256": "76722746bfa379c79fd9ac72294c8ebc117aa32106c02a849bb0a7fd606ac8ff",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/64/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.journal.748e702bba2a",
+      "sourceId": "jr5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "sq024_01a_claire_garage: choice 170 option 0 \"I'll be your driver.\" (or choice 209 option 0 \"OK, fine. I'll be your driver.\") starts the qualifying ladder; the refusals (170/1, 209/1 \"You have fun with it\") end the offer. The City Center race quest \"The Beast in Me: City Center\" exists only on the accepted path, so its Succeeded state means V drove for Claire.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/11/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "sq024_city_race"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/jr5-02/raw/base/base/quest/side_quests/sq024/scenes/sq024_01a_claire_garage.scene.json",
+          "assetSha256": "81ed037b16b85e4c51adaf7e056241f1a55c0ee860d03b1cbff5b481bf30769b",
+          "jsonSha256": "69af7718dd975299449332ccf12917b6cb522ac7a3d32beab8a54b13c7b130d2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data",
+          "expectedType": "scnChoiceNode",
+          "expected": {
+            "/nodeId/id": 170
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-02/raw/base/base/quest/side_quests/sq024/scenes/sq024_01a_claire_garage.scene.json",
+          "assetSha256": "81ed037b16b85e4c51adaf7e056241f1a55c0ee860d03b1cbff5b481bf30769b",
+          "jsonSha256": "69af7718dd975299449332ccf12917b6cb522ac7a3d32beab8a54b13c7b130d2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data",
+          "expectedType": "scnChoiceNode",
+          "expected": {
+            "/nodeId/id": 209
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.fact.sq029_river_shot_down.10b2919e5e0d",
+      "sourceId": "jr5.source.6f7fdcba11d9",
+      "kind": "native",
+      "locator": "sq029_04a_dinner: node 2460 SET sq029_river_shot_down = 1 follows section 1299 (\"River: All right. We can still have a drink.\"), which is entered only from section 406 (choice 404 option 1 \"I can't, River. I'm sorry.\" - River: \"Yeah... friends.\") or section 423 (choice 422 option 1 \"I like you, but not like that\" / choice 427 option 1 \"We're friends\" - River: \"Yeah. Sure.\"). The [Kiss] option 404/0 never reaches it, and the fact is never reset.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/rel-sq029-20261005/raw/base/base/quest/side_quests/sq029/scenes/sq029_04a_dinner.scene.json",
+        "assetSha256": "508b2e56398f74397197ab579f08190649dd5d8349c39585612cb41f7242cdc6",
+        "jsonSha256": "dca6ae2d8cf126115322969939c7dd446a5673b9cbce723a9ff52d068cef008b",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/195/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq029_river_shot_down",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.following.friends-route",
+      "sourceId": "jr5.source.6f7fdcba11d9",
+      "kind": "native",
+      "locator": "sq029_04a_dinner: the rebuff options (choice 404/1, 422/1, 427/1) lead to sections 406/423 where River accepts staying friends, then 1299 -> node 2460 sets sq029_river_shot_down; this is its only writer.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/rel-sq029-20261005/raw/base/base/quest/side_quests/sq029/scenes/sq029_04a_dinner.scene.json",
+        "assetSha256": "508b2e56398f74397197ab579f08190649dd5d8349c39585612cb41f7242cdc6",
+        "jsonSha256": "dca6ae2d8cf126115322969939c7dd446a5673b9cbce723a9ff52d068cef008b",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data",
+        "expectedType": "scnSectionNode",
+        "expected": {
+          "/nodeId/id": 406
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/rel-sq029-20261005/raw/base/base/quest/side_quests/sq029/scenes/sq029_04a_dinner.scene.json",
+          "assetSha256": "508b2e56398f74397197ab579f08190649dd5d8349c39585612cb41f7242cdc6",
+          "jsonSha256": "dca6ae2d8cf126115322969939c7dd446a5673b9cbce723a9ff52d068cef008b",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 423
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/rel-sq029-20261005/raw/base/base/quest/side_quests/sq029/scenes/sq029_04a_dinner.scene.json",
+          "assetSha256": "508b2e56398f74397197ab579f08190649dd5d8349c39585612cb41f7242cdc6",
+          "jsonSha256": "dca6ae2d8cf126115322969939c7dd446a5673b9cbce723a9ff52d068cef008b",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/128/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 1299
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/rel-sq029-20261005/raw/base/base/quest/side_quests/sq029/scenes/sq029_04a_dinner.scene.json",
+          "assetSha256": "508b2e56398f74397197ab579f08190649dd5d8349c39585612cb41f7242cdc6",
+          "jsonSha256": "dca6ae2d8cf126115322969939c7dd446a5673b9cbce723a9ff52d068cef008b",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/195/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 2460
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.fact.sq021_v_knows_farm.d3e65c1006d0",
+      "sourceId": "jr5.source.8f4da72ae67b",
+      "kind": "native",
+      "locator": "sq021_07_ride_back node 776 SET sq021_v_knows_farm = 1 (after node 833: sq021_farm_recognized > 0, i.e. the braindance clues pinned the farm; Sobchak: \"Which narrows it down to Edgewood Farm\"). sq021_10_bd_farm node 1608 sets it earlier when V already walked the farm in the braindance (node 1607 sq021_farm_visited > 0). The guess choice 502 is unreachable once it is set.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_07_ride_back.scene.json",
+        "assetSha256": "210cce84a5ab74a7d8cfea1f90141584a6b9a6662a7954a871e637a265a5dc39",
+        "jsonSha256": "03c0602cb73193477ef541cda8ce175b8f86f7c0b2ddbf3c44205ffeb13c1a6c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/120/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq021_v_knows_farm",
+          "/value": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_10_bd_farm.scene.json",
+          "assetSha256": "2ca07215c4022c3b5a905a01ec17f29b01afe4bc1c53dc0803c4d54d39313f09",
+          "jsonSha256": "434f1b5de262adcbb95c9422164874f57caa1ff2bbd9eb777b3d02b030a26d1d",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/322/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "sq021_v_knows_farm",
+            "/value": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.fact.sq021_good_farm_chosen.a53b01685fe9",
+      "sourceId": "jr5.source.8f4da72ae67b",
+      "kind": "native",
+      "locator": "sq021_07_ride_back: node 66 sets sq021_good_farm_chosen = 1 after 776/428 (clue-recognised) or 217/433 (V already knows: \"Southeast of the city\"); node 615 sets the same fact from the guess choice 502 option 0 \"Let's try Edgewood Farm.\" Alone it cannot tell deduction from a guess.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_07_ride_back.scene.json",
+        "assetSha256": "210cce84a5ab74a7d8cfea1f90141584a6b9a6662a7954a871e637a265a5dc39",
+        "jsonSha256": "03c0602cb73193477ef541cda8ce175b8f86f7c0b2ddbf3c44205ffeb13c1a6c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq021_good_farm_chosen",
+          "/value": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_07_ride_back.scene.json",
+          "assetSha256": "210cce84a5ab74a7d8cfea1f90141584a6b9a6662a7954a871e637a265a5dc39",
+          "jsonSha256": "03c0602cb73193477ef541cda8ce175b8f86f7c0b2ddbf3c44205ffeb13c1a6c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/87/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "sq021_good_farm_chosen",
+            "/value": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.hunt.deduction-route",
+      "sourceId": "jr5.source.8f4da72ae67b",
+      "kind": "native",
+      "locator": "sq021_07_ride_back: 217 (v_knows_farm > 0) -> 433 -> node 66, or 833 (farm_recognized > 0) -> 776 (sets v_knows_farm) -> 428 -> 66. The guess choice 502 (-> 615 Edgewood or 67 Poppy) is not reachable from 776/433, so v_knows_farm = 1 together with good_farm_chosen = 1 excludes the guessed-Edgewood route.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_07_ride_back.scene.json",
+        "assetSha256": "210cce84a5ab74a7d8cfea1f90141584a6b9a6662a7954a871e637a265a5dc39",
+        "jsonSha256": "03c0602cb73193477ef541cda8ce175b8f86f7c0b2ddbf3c44205ffeb13c1a6c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data",
+        "expectedType": "scnQuestNode",
+        "expected": {
+          "/nodeId/id": 217
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_07_ride_back.scene.json",
+          "assetSha256": "210cce84a5ab74a7d8cfea1f90141584a6b9a6662a7954a871e637a265a5dc39",
+          "jsonSha256": "03c0602cb73193477ef541cda8ce175b8f86f7c0b2ddbf3c44205ffeb13c1a6c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/135/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 833
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_07_ride_back.scene.json",
+          "assetSha256": "210cce84a5ab74a7d8cfea1f90141584a6b9a6662a7954a871e637a265a5dc39",
+          "jsonSha256": "03c0602cb73193477ef541cda8ce175b8f86f7c0b2ddbf3c44205ffeb13c1a6c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/120/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 776
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_07_ride_back.scene.json",
+          "assetSha256": "210cce84a5ab74a7d8cfea1f90141584a6b9a6662a7954a871e637a265a5dc39",
+          "jsonSha256": "03c0602cb73193477ef541cda8ce175b8f86f7c0b2ddbf3c44205ffeb13c1a6c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/59/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 433
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_07_ride_back.scene.json",
+          "assetSha256": "210cce84a5ab74a7d8cfea1f90141584a6b9a6662a7954a871e637a265a5dc39",
+          "jsonSha256": "03c0602cb73193477ef541cda8ce175b8f86f7c0b2ddbf3c44205ffeb13c1a6c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data",
+          "expectedType": "scnChoiceNode",
+          "expected": {
+            "/nodeId/id": 502
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.fact.sq021_bad_farm_chosen.8459631f9c44",
+      "sourceId": "jr5.source.8f4da72ae67b",
+      "kind": "native",
+      "locator": "sq021_07_ride_back: choice 502 option 1 \"[Stand] I vote Poppy Farm.\" -> section 427 (\"Poppy's the better bet - voice in my gut says so.\") -> node 67 SET sq021_bad_farm_chosen = 1. It is the only positive writer; the wrong-farm scene 13 then opens with River: \"This isn't it! Wrong goddamn farm!\"",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_07_ride_back.scene.json",
+        "assetSha256": "210cce84a5ab74a7d8cfea1f90141584a6b9a6662a7954a871e637a265a5dc39",
+        "jsonSha256": "03c0602cb73193477ef541cda8ce175b8f86f7c0b2ddbf3c44205ffeb13c1a6c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq021_bad_farm_chosen",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.hunt.poppy-choice",
+      "sourceId": "jr5.source.8f4da72ae67b",
+      "kind": "native",
+      "locator": "sq021_07_ride_back choice 502 option 1 -> section 427 -> node 67 (bad_farm_chosen); option 0 goes to 426 -> 615 (good farm).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_07_ride_back.scene.json",
+        "assetSha256": "210cce84a5ab74a7d8cfea1f90141584a6b9a6662a7954a871e637a265a5dc39",
+        "jsonSha256": "03c0602cb73193477ef541cda8ce175b8f86f7c0b2ddbf3c44205ffeb13c1a6c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data",
+        "expectedType": "scnChoiceNode",
+        "expected": {
+          "/nodeId/id": 502
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_07_ride_back.scene.json",
+          "assetSha256": "210cce84a5ab74a7d8cfea1f90141584a6b9a6662a7954a871e637a265a5dc39",
+          "jsonSha256": "03c0602cb73193477ef541cda8ce175b8f86f7c0b2ddbf3c44205ffeb13c1a6c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/53/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 427
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_07_ride_back.scene.json",
+          "assetSha256": "210cce84a5ab74a7d8cfea1f90141584a6b9a6662a7954a871e637a265a5dc39",
+          "jsonSha256": "03c0602cb73193477ef541cda8ce175b8f86f7c0b2ddbf3c44205ffeb13c1a6c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 67
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.fact.sq021_no_change_good_end.970d7b2bfb88",
+      "sourceId": "jr5.source.d28a722d9699",
+      "kind": "native",
+      "locator": "sq021_11_finale: node 4538 SET sq021_no_change_good_end = 1 is one option of choice 163, reached only after section 621 where River says he will squeeze the life out of Harris (\"Sick fuck has to die\"); 621 is reachable only on the good-farm branch (node 313 sq021_bad_farm_chosen False).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+        "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+        "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/477/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq021_no_change_good_end",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.fact.sq021_revenge_good_end.de311ab6f484",
+      "sourceId": "jr5.source.d28a722d9699",
+      "kind": "native",
+      "locator": "sq021_11_finale: node 4540 SET sq021_revenge_good_end = 1 is one option of choice 163, reached only after section 621 where River says he will squeeze the life out of Harris (\"Sick fuck has to die\"); 621 is reachable only on the good-farm branch (node 313 sq021_bad_farm_chosen False).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+        "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+        "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/478/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq021_revenge_good_end",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.fact.sq021_dont_care_good_end.ae118a4b3809",
+      "sourceId": "jr5.source.d28a722d9699",
+      "kind": "native",
+      "locator": "sq021_11_finale: node 4535 SET sq021_dont_care_good_end = 1 is one option of choice 163, reached only after section 621 where River says he will squeeze the life out of Harris (\"Sick fuck has to die\"); 621 is reachable only on the good-farm branch (node 313 sq021_bad_farm_chosen False).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+        "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+        "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/476/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq021_dont_care_good_end",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.hunt.vow-scene",
+      "sourceId": "jr5.source.d28a722d9699",
+      "kind": "native",
+      "locator": "sq021_11_finale: choice 163 (V's answer to River's vow in 621) has exactly three options setting the three good_end facts; 621 is unreachable from the bad-farm branch (316 -> 1785/1787/1789 use the separate no_change_anything/revenge/dont_care facts).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+        "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+        "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data",
+        "expectedType": "scnSectionNode",
+        "expected": {
+          "/nodeId/id": 621
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data",
+          "expectedType": "scnChoiceNode",
+          "expected": {
+            "/nodeId/id": 163
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonSha256": "f486665c99c389146df6d38ee269676874344ddbdbd57776bff7519823701733",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/44/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 313
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.fact.sq012_poison_bd_found.8f27cdda3ece",
+      "sourceId": "jr5.source.4cdee794eb75",
+      "kind": "native",
+      "locator": "sq012_the_law_rqr subgraph nodes/21: node 12 SET sq012_poison_bd_found += 1 runs only after scene sq012_06b_rqr_investigation output sq012_06b_BD_attack_OUT, i.e. after V chose [Connect] (choice 50 option 0), was hit by the BD attack and told River \"Someone spiked his BD\".",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-08/raw/base/base/quest/side_quests/sq012/phases/sq012_the_law_rqr.questphase.json",
+        "assetSha256": "be40f24db51785a682b062b1b382586938d93e34c0f9492fb9065cdb2ac9bc72",
+        "jsonSha256": "a5322e353c5282c9b829d9955826ba83e8844911b607fadf95a16bef33e201e2",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/21/Data/phaseGraph/Data/nodes/5/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq012_poison_bd_found",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.law.bd-attack-scene",
+      "sourceId": "jr5.source.207598b75364",
+      "kind": "native",
+      "locator": "sq012_06b_rqr_investigation: the optional [Connect] choice 50 -> 39 (V screams, River: \"V! You OK?\") ... -> 172 (V: \"Someone spiked his BD. That's what killed him.\") precedes the BD_attack_OUT output that gates the poison_bd_found writer.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_06b_rqr_investigation.scene.json",
+        "assetSha256": "25d867a0557cea62042ca8430f8e71ef3da5cd50c10cc2f5ba7377c914c185b0",
+        "jsonSha256": "b44031a765bef8dfbddc75951fbcab2dda77021032fed4586c40330f2f558cb1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data",
+        "expectedType": "scnChoiceNode",
+        "expected": {
+          "/nodeId/id": 50
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_06b_rqr_investigation.scene.json",
+          "assetSha256": "25d867a0557cea62042ca8430f8e71ef3da5cd50c10cc2f5ba7377c914c185b0",
+          "jsonSha256": "b44031a765bef8dfbddc75951fbcab2dda77021032fed4586c40330f2f558cb1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 39
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_06b_rqr_investigation.scene.json",
+          "assetSha256": "25d867a0557cea62042ca8430f8e71ef3da5cd50c10cc2f5ba7377c914c185b0",
+          "jsonSha256": "b44031a765bef8dfbddc75951fbcab2dda77021032fed4586c40330f2f558cb1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 172
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.journal.71517acc9ff5",
+      "sourceId": "jr5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "sq012_the_law_conclusions node 9 gives confront_yu \"Confront Detective Han.\" its Succeeded state at the output sq012_07a_confront_det_yu_out of scene sq012_07a_conclusions, whose first section (node 5) is River confronting Han: \"I know what you did... why you covered it up.\"",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/36/Data/entries/6/Data/entries/1/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "confront_yu"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/jr5-08/raw/base/base/quest/side_quests/sq012/phases/sq012_the_law_conclusions.questphase.json",
+          "assetSha256": "2405e0bb092e9cb258d39f737b5293741ccc62a3a553d1faa3d48fe9b7ad470a",
+          "jsonSha256": "88188e11a6acb444dbaaab778a0eb71c19471b6b4d2842bd9734e25e222e233d",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_07a_conclusions.scene.json",
+          "assetSha256": "697911fef45f22c0890b0abe7777327be94da07391233794d4506063f20d95f3",
+          "jsonSha256": "c1c761ca58cc71b7fcd875ceeab6e07d4bfe7420a74fdc825b6cd1ebfa1db9ef",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.fact.sq012_fact_holt_killed_mayor.d5a87909bbd1",
+      "sourceId": "jr5.source.833ae562dc38",
+      "kind": "native",
+      "locator": "sq012_08a_peralez_apartment node 52 SET sq012_fact_holt_killed_mayor += 1 follows section 81 (\"I knew it! You got any proof? V: I don't. Just... strong suspicions.\"), reached from section 36 (choice 58 option 1 \"Holt's behind it.\") or 67 (choice 66 option 0 \"Weldon Holt.\"). It is unreachable from the accident (46) and no-conclusions (49) nodes.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_08a_peralez_apartment.scene.json",
+        "assetSha256": "0d3bd7ae765065fe6db3484fbcdaddd6ec930fbafaeed61a7508d8ba64445160",
+        "jsonSha256": "4ab8c2e01e36108f2193626cf19375bf550c728d59b22ed1778871a1219cecb2",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq012_fact_holt_killed_mayor",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.law.report-holt-route",
+      "sourceId": "jr5.source.833ae562dc38",
+      "kind": "native",
+      "locator": "sq012_08a_peralez_apartment: sections 36 and 67 (V names Holt) lead to 81 where V admits no proof, then node 52 sets holt_killed_mayor.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_08a_peralez_apartment.scene.json",
+        "assetSha256": "0d3bd7ae765065fe6db3484fbcdaddd6ec930fbafaeed61a7508d8ba64445160",
+        "jsonSha256": "4ab8c2e01e36108f2193626cf19375bf550c728d59b22ed1778871a1219cecb2",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data",
+        "expectedType": "scnSectionNode",
+        "expected": {
+          "/nodeId/id": 36
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_08a_peralez_apartment.scene.json",
+          "assetSha256": "0d3bd7ae765065fe6db3484fbcdaddd6ec930fbafaeed61a7508d8ba64445160",
+          "jsonSha256": "4ab8c2e01e36108f2193626cf19375bf550c728d59b22ed1778871a1219cecb2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 67
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_08a_peralez_apartment.scene.json",
+          "assetSha256": "0d3bd7ae765065fe6db3484fbcdaddd6ec930fbafaeed61a7508d8ba64445160",
+          "jsonSha256": "4ab8c2e01e36108f2193626cf19375bf550c728d59b22ed1778871a1219cecb2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 81
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_08a_peralez_apartment.scene.json",
+          "assetSha256": "0d3bd7ae765065fe6db3484fbcdaddd6ec930fbafaeed61a7508d8ba64445160",
+          "jsonSha256": "4ab8c2e01e36108f2193626cf19375bf550c728d59b22ed1778871a1219cecb2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 52
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.fact.sq012_fact_I_dont_know.26568275d1c4",
+      "sourceId": "jr5.source.833ae562dc38",
+      "kind": "native",
+      "locator": "sq012_08a_peralez_apartment node 49 SET sq012_fact_I_dont_know += 1 is reached only from section 35 (choice 9 option 1 \"Can't draw any real conclusions.\"), and cannot reach nodes 46/52/55.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_08a_peralez_apartment.scene.json",
+        "assetSha256": "0d3bd7ae765065fe6db3484fbcdaddd6ec930fbafaeed61a7508d8ba64445160",
+        "jsonSha256": "4ab8c2e01e36108f2193626cf19375bf550c728d59b22ed1778871a1219cecb2",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq012_fact_I_dont_know",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.law.report-withheld-route",
+      "sourceId": "jr5.source.833ae562dc38",
+      "kind": "native",
+      "locator": "sq012_08a_peralez_apartment: choice 9 option 1 -> section 35 (\"I'd rather not draw any conclusions yet.\") -> node 49; the other first-choice option 0 leads to the 58/66 conclusions.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_08a_peralez_apartment.scene.json",
+        "assetSha256": "0d3bd7ae765065fe6db3484fbcdaddd6ec930fbafaeed61a7508d8ba64445160",
+        "jsonSha256": "4ab8c2e01e36108f2193626cf19375bf550c728d59b22ed1778871a1219cecb2",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data",
+        "expectedType": "scnChoiceNode",
+        "expected": {
+          "/nodeId/id": 9
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_08a_peralez_apartment.scene.json",
+          "assetSha256": "0d3bd7ae765065fe6db3484fbcdaddd6ec930fbafaeed61a7508d8ba64445160",
+          "jsonSha256": "4ab8c2e01e36108f2193626cf19375bf550c728d59b22ed1778871a1219cecb2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 35
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_08a_peralez_apartment.scene.json",
+          "assetSha256": "0d3bd7ae765065fe6db3484fbcdaddd6ec930fbafaeed61a7508d8ba64445160",
+          "jsonSha256": "4ab8c2e01e36108f2193626cf19375bf550c728d59b22ed1778871a1219cecb2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 49
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.fact.sq012_fact_accident.2d9cff3a6466",
+      "sourceId": "jr5.source.833ae562dc38",
+      "kind": "native",
+      "locator": "sq012_08a_peralez_apartment node 46 SET sq012_fact_accident += 1 follows section 32 (choice 58 option 0 \"It was an accident. NCPD covered it up.\"); node 46 cannot reach 49/52/55.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_08a_peralez_apartment.scene.json",
+        "assetSha256": "0d3bd7ae765065fe6db3484fbcdaddd6ec930fbafaeed61a7508d8ba64445160",
+        "jsonSha256": "4ab8c2e01e36108f2193626cf19375bf550c728d59b22ed1778871a1219cecb2",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq012_fact_accident",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.law.report-accident-route",
+      "sourceId": "jr5.source.833ae562dc38",
+      "kind": "native",
+      "locator": "sq012_08a_peralez_apartment: choice 58 option 0 -> section 32 (V: \"There was an accident, embarrassing one. Rhyne died at a sex club.\") -> node 46.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_08a_peralez_apartment.scene.json",
+        "assetSha256": "0d3bd7ae765065fe6db3484fbcdaddd6ec930fbafaeed61a7508d8ba64445160",
+        "jsonSha256": "4ab8c2e01e36108f2193626cf19375bf550c728d59b22ed1778871a1219cecb2",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data",
+        "expectedType": "scnChoiceNode",
+        "expected": {
+          "/nodeId/id": 58
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_08a_peralez_apartment.scene.json",
+          "assetSha256": "0d3bd7ae765065fe6db3484fbcdaddd6ec930fbafaeed61a7508d8ba64445160",
+          "jsonSha256": "4ab8c2e01e36108f2193626cf19375bf550c728d59b22ed1778871a1219cecb2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 32
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_08a_peralez_apartment.scene.json",
+          "assetSha256": "0d3bd7ae765065fe6db3484fbcdaddd6ec930fbafaeed61a7508d8ba64445160",
+          "jsonSha256": "4ab8c2e01e36108f2193626cf19375bf550c728d59b22ed1778871a1219cecb2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 46
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.journal.b0611b739b6e",
+      "sourceId": "jr5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "sq006_cloak_and_dagger node 58 gives speak_to_elizabeth \"Talk to Elizabeth.\" its Succeeded state at the exit sq006_05a_clandestine_meeting_out of scene sq006_06a_clandestine. That exit is end node 2, and section 71 (Elizabeth: \"I'm begging you, V... Jefferson can't find out about any of this. Ever.\") lies on every path to it (blocking 71 makes node 2 unreachable from the meeting entry).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/42/Data/entries/5/Data/entries/3/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "speak_to_elizabeth"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/jr5-11/raw/base/base/quest/side_quests/sq006/phases/sq006_cloak_and_dagger.questphase.json",
+          "assetSha256": "685926d51129c90026406b0a3a7a07fb9d26c2fd9fd41756bbec84dfbf11ab69",
+          "jsonSha256": "3f812454aea7cc6dbec45140698285597a3a4d924385995eb9db0c0d7f840f7b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/12/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-10/raw/base/base/quest/side_quests/sq006/scenes/sq006_06a_clandestine.scene.json",
+          "assetSha256": "a9a98fa67ce3197a098ab910ccce3f7c15ef43faf7835131b3c402540ef086bd",
+          "jsonSha256": "720d85c5a6eada87d7e76e5165c30b2a0629b167bbfc5d0f4d665667a890f648",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 71
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-10/raw/base/base/quest/side_quests/sq006/scenes/sq006_06a_clandestine.scene.json",
+          "assetSha256": "a9a98fa67ce3197a098ab910ccce3f7c15ef43faf7835131b3c402540ef086bd",
+          "jsonSha256": "720d85c5a6eada87d7e76e5165c30b2a0629b167bbfc5d0f4d665667a890f648",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data",
+          "expectedType": "scnEndNode",
+          "expected": {
+            "/nodeId/id": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.journal.591d89c61054",
+      "sourceId": "jr5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Jefferson Peralez's text 03_jefferson_finale_lie (\"I always knew Holt played dirty... Hiring you was risky, but I'm glad I trusted my gut. Maybe after the elections I'll have more work for you\"). The finale_lie message chain exists only on the concealed-truth route (the truth route has its own _truth chain); active/succeeded means V received it.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/96/Data/entries/0/Data/entries/3/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "03_jefferson_finale_lie"
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.fact.sq006_election_results.91c7abc9df12",
+      "sourceId": "jr5.source.c565f210ebc3",
+      "kind": "native",
+      "locator": "sq006.questphase subgraph nodes/22: node 3 SET sq006_election_results += 1 after a timed pause; the subgraph (node 56) is entered from sq006_conclusion's Out1 and is the only writer. The media news bulletins then announce that Federalist candidate Jefferson Peralez won (49.3 percent in the close-race variant, 70.7 percent in the other).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq006/phases/sq006.questphase.json",
+        "assetSha256": "fc441c05e770f24fb16367c194b39724a9929cf95f9c2bbbf1d6a3caf08cf726",
+        "jsonSha256": "a69d87f4bae188c03e31c179a30e3fd9caac0d905dac33bf370db8a26ae1324e",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/22/Data/phaseGraph/Data/nodes/2/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq006_election_results",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.dream.election-news",
+      "sourceId": "jr5.source.179c4ca2abb5",
+      "kind": "native",
+      "locator": "sq006 election news (jr5-12 scene section 7, Gillean Jordan: \"in a close race, Federalist candidate Jefferson Peralez still seized the election\"); the shipped subtitles for the other variant read \"Federalist candidate Jefferson Peralez won a resounding victory with 70.7 percent of the vote\". Either variant reports a Peralez win.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-12/raw/base/base/media/quests/scenes/sq006_03_election_results_version_a.scene.json",
+        "assetSha256": "94268685c4283bda754fd4a7b6e08cc1e45f1cba8e82ffddd2eca1ced3a59a9a",
+        "jsonSha256": "76d5c6b25f924a54d8956cd7288b54335323c92fc3702ed92959a6e8d799e64f",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+        "expectedType": "scnSectionNode",
+        "expected": {
+          "/nodeId/id": 7
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq006/phases/sq006.questphase.json",
+          "assetSha256": "fc441c05e770f24fb16367c194b39724a9929cf95f9c2bbbf1d6a3caf08cf726",
+          "jsonSha256": "a69d87f4bae188c03e31c179a30e3fd9caac0d905dac33bf370db8a26ae1324e",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/22/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.fact.q307_call_river_end.f44b257b5f8c",
+      "sourceId": "jr5.source.7dffd44efb4a",
+      "kind": "native",
+      "locator": "q307_03a_friends_holocall: node 640 SET q307_call_river_end = 1 is reachable only from the entry river_in (node 1) and only through section 801 (River: \"I needed money for Randy's rehab. So I did a deal with Trauma... Sold 'em a pile o' police secrets\"); blocking 801 makes 640 unreachable. It is set after holo_v_calls_river_end_done and never reset.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-13/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+        "assetSha256": "845a7dc45639667d26f2c7128603bdd80954e2392c23c2fe8fc5603a5ecfa739",
+        "jsonSha256": "aa512228b953b6716bd2080ab2a0c35722eb5f2628148daf91d7890db9871fb9",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/93/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q307_call_river_end",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.tower.river-call-route",
+      "sourceId": "jr5.source.7dffd44efb4a",
+      "kind": "native",
+      "locator": "q307_03a_friends_holocall: entry river_in (node 1) reaches node 640 only through section 801; no other entry point reaches 640.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-13/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+        "assetSha256": "845a7dc45639667d26f2c7128603bdd80954e2392c23c2fe8fc5603a5ecfa739",
+        "jsonSha256": "aa512228b953b6716bd2080ab2a0c35722eb5f2628148daf91d7890db9871fb9",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/134/Data",
+        "expectedType": "scnSectionNode",
+        "expected": {
+          "/nodeId/id": 801
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/jr5-13/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+          "assetSha256": "845a7dc45639667d26f2c7128603bdd80954e2392c23c2fe8fc5603a5ecfa739",
+          "jsonSha256": "aa512228b953b6716bd2080ab2a0c35722eb5f2628148daf91d7890db9871fb9",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/93/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 640
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.fact.q307_call_judy_end.0bc18c6bffb1",
+      "sourceId": "jr5.source.7dffd44efb4a",
+      "kind": "native",
+      "locator": "q307_03a_friends_holocall: node 637 SET q307_call_judy_end = 1 is reachable only from the entry judy_in (node 8) and only through section 700 (\"V, I'm in Pittsburgh. An' I'm married.\") or 703 (\"I'm in Pittsburgh... Got married.\"); blocking both makes 637 unreachable. It is set after holo_v_calls_judy_end_done and never reset.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-13/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+        "assetSha256": "845a7dc45639667d26f2c7128603bdd80954e2392c23c2fe8fc5603a5ecfa739",
+        "jsonSha256": "aa512228b953b6716bd2080ab2a0c35722eb5f2628148daf91d7890db9871fb9",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/92/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q307_call_judy_end",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.tower.judy-call-route",
+      "sourceId": "jr5.source.7dffd44efb4a",
+      "kind": "native",
+      "locator": "q307_03a_friends_holocall: entry judy_in (node 8) reaches node 637 only through section 700 or 703, both of which have Judy say she is in Pittsburgh and married; no other entry point reaches 637.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/jr5-13/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+        "assetSha256": "845a7dc45639667d26f2c7128603bdd80954e2392c23c2fe8fc5603a5ecfa739",
+        "jsonSha256": "aa512228b953b6716bd2080ab2a0c35722eb5f2628148daf91d7890db9871fb9",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/109/Data",
+        "expectedType": "scnSectionNode",
+        "expected": {
+          "/nodeId/id": 700
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/jr5-13/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+          "assetSha256": "845a7dc45639667d26f2c7128603bdd80954e2392c23c2fe8fc5603a5ecfa739",
+          "jsonSha256": "aa512228b953b6716bd2080ab2a0c35722eb5f2628148daf91d7890db9871fb9",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/110/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 703
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-13/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+          "assetSha256": "845a7dc45639667d26f2c7128603bdd80954e2392c23c2fe8fc5603a5ecfa739",
+          "jsonSha256": "aa512228b953b6716bd2080ab2a0c35722eb5f2628148daf91d7890db9871fb9",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/92/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 637
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.fact.q115_river_romance_chosen.92c6832b360b",
+      "sourceId": "jr5.source.c1b7be251366",
+      "kind": "native",
+      "locator": "q115_02b_ripperdoc_roof node 943 SET q115_river_romance_chosen += 1 is reached from the rooftop partner-call choice (section 629, \"Well, there is this... one stubborn badge\") and leads to node 964 which activates 02a1_call_river \"Talk to River.\"",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+        "assetSha256": "0506831be23656c51947cf3bf920a95700235d4cc52065dc18e91a09c337dd83",
+        "jsonSha256": "99ea1b7d12009ffa523d12b26ed9c5df0a199f78fa27bd2ab6971a7be6ecb0ee",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/159/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q115_river_romance_chosen",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.journal.cab42a0b1a9a",
+      "sourceId": "jr5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "q115_02b_ripperdoc_roof: after the River option sets q115_river_romance_chosen (943) and activates 02a1_call_river (964), the holocall runs; once holo_v_calls_river_end_done > 0 (node 3238) node 3239 feeds input ordinal 3 (Succeeded) of node 983 for 02a1_call_river \"Talk to River.\" Succeeded therefore means the rooftop holocall with River was completed (same structure as the Kerry call, 3257 -> 984).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/2/Data/entries/10/Data/entries/1/Data/entries/24/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "02a1_call_river"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+          "assetSha256": "0506831be23656c51947cf3bf920a95700235d4cc52065dc18e91a09c337dd83",
+          "jsonSha256": "99ea1b7d12009ffa523d12b26ed9c5df0a199f78fa27bd2ab6971a7be6ecb0ee",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/159/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 943
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+          "assetSha256": "0506831be23656c51947cf3bf920a95700235d4cc52065dc18e91a09c337dd83",
+          "jsonSha256": "99ea1b7d12009ffa523d12b26ed9c5df0a199f78fa27bd2ab6971a7be6ecb0ee",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/164/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 964
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+          "assetSha256": "0506831be23656c51947cf3bf920a95700235d4cc52065dc18e91a09c337dd83",
+          "jsonSha256": "99ea1b7d12009ffa523d12b26ed9c5df0a199f78fa27bd2ab6971a7be6ecb0ee",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/554/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 3238
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+          "assetSha256": "0506831be23656c51947cf3bf920a95700235d4cc52065dc18e91a09c337dd83",
+          "jsonSha256": "99ea1b7d12009ffa523d12b26ed9c5df0a199f78fa27bd2ab6971a7be6ecb0ee",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/555/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 3239
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+          "assetSha256": "0506831be23656c51947cf3bf920a95700235d4cc52065dc18e91a09c337dd83",
+          "jsonSha256": "99ea1b7d12009ffa523d12b26ed9c5df0a199f78fa27bd2ab6971a7be6ecb0ee",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/168/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 983
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.journal.2f993d2812ee",
+      "sourceId": "jr5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "q202_05_convoy: River's conversation (entry river_ward, gated by q115_river_romance_chosen at node 1483) completes say_goodbye \"Talk to River.\" (node 1473, input ordinal 3 = Succeeded, fed by node 7782). Node 7782 is reachable from the river_ward entry only through section 544 (River: \"Yeah, I'm stayin'. Got to.\"); blocking 544 makes 1473 unreachable, and no other entry point (kerry, judy, panam, camp drive) reaches it.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/1/Data/entries/1/Data/entries/1/Data/entries/1/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "say_goodbye"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q202/scenes/q202_05_convoy.scene.json",
+          "assetSha256": "b21a064d4583363bbb080195166a2257ff8107a55837020dfe5489fd77b9a9da",
+          "jsonSha256": "b170155c0577ef9a317b2e6a4097707a693f3f2efc26dacb1e5bc3928a73213f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/97/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 1473
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q202/scenes/q202_05_convoy.scene.json",
+          "assetSha256": "b21a064d4583363bbb080195166a2257ff8107a55837020dfe5489fd77b9a9da",
+          "jsonSha256": "b170155c0577ef9a317b2e6a4097707a693f3f2efc26dacb1e5bc3928a73213f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1027/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 7782
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q202/scenes/q202_05_convoy.scene.json",
+          "assetSha256": "b21a064d4583363bbb080195166a2257ff8107a55837020dfe5489fd77b9a9da",
+          "jsonSha256": "b170155c0577ef9a317b2e6a4097707a693f3f2efc26dacb1e5bc3928a73213f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 544
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q202/scenes/q202_05_convoy.scene.json",
+          "assetSha256": "b21a064d4583363bbb080195166a2257ff8107a55837020dfe5489fd77b9a9da",
+          "jsonSha256": "b170155c0577ef9a317b2e6a4097707a693f3f2efc26dacb1e5bc3928a73213f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/102/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 1483
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.journal.ff9c9a2d612e",
+      "sourceId": "jr5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "q203_05_afterlife: the optional objective drink \"Talk to Claire.\" becomes Active when the claire_drink entry starts (node 324) and Succeeded (node 391, input ordinal 3) only after V picks a toast in choice 230 at the bar with Claire. Succeeded means V actually sat down and had a drink with Claire before the operation.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/1/Data/entries/2/Data/entries/1/Data/entries/1/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "drink"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q203/scenes/q203_05_afterlife.scene.json",
+          "assetSha256": "a2cd31fed857345a43250750509947b544fae7d6241aca9e595ba11b663b82f4",
+          "jsonSha256": "ca259e58d56d74b9a1caeb387b02d3a9ce6b45b14f698f51b0939aba52e1dbb3",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 324
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q203/scenes/q203_05_afterlife.scene.json",
+          "assetSha256": "a2cd31fed857345a43250750509947b544fae7d6241aca9e595ba11b663b82f4",
+          "jsonSha256": "ca259e58d56d74b9a1caeb387b02d3a9ce6b45b14f698f51b0939aba52e1dbb3",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+          "expectedType": "scnChoiceNode",
+          "expected": {
+            "/nodeId/id": 230
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q203/scenes/q203_05_afterlife.scene.json",
+          "assetSha256": "a2cd31fed857345a43250750509947b544fae7d6241aca9e595ba11b663b82f4",
+          "jsonSha256": "ca259e58d56d74b9a1caeb387b02d3a9ce6b45b14f698f51b0939aba52e1dbb3",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 391
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.journal.1ae0cbe64eef",
+      "sourceId": "jr5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Journal quest quests/main_quest/epilogues/q204_reborn (New Dawn Fades, the Temperance epilogue) is active or succeeded only once that ending has started; it is used only as the stage guard.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/1/Data/entries/0/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "q204_reborn"
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.fact.q115_judy_romance_chosen.46ff74749a5a",
+      "sourceId": "jr5.source.c1b7be251366",
+      "kind": "native",
+      "locator": "q115_02b_ripperdoc_roof node 949 SET q115_judy_romance_chosen += 1 is the Judy option of the rooftop partner call and leads to node 966 (02a3_call_judy).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+        "assetSha256": "0506831be23656c51947cf3bf920a95700235d4cc52065dc18e91a09c337dd83",
+        "jsonSha256": "99ea1b7d12009ffa523d12b26ed9c5df0a199f78fa27bd2ab6971a7be6ecb0ee",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/161/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q115_judy_romance_chosen",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.temperance.river-texts",
+      "sourceId": "jr5.source.6b1f7d3afd6a",
+      "kind": "native",
+      "locator": "q204_00_setup: at the start of Temperance the condition q115_river_romance_chosen > 0 (node 2) routes True to the River subgraph (node 29), which removes all contacts and then activates 01..06_river_msg entries in sequence, including 03_river_msg_looking (\"Where the hell are you? I'm turning NC upside down trying to find you...\"). The contacts are removed (inactive) afterwards, so the message entries cannot be read from the journal; the romance fact plus the reached ending is the proof.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q204/phases/q204_00_setup.questphase.json",
+        "assetSha256": "90c8576d6bb78376ecf57353c1dfbd3156bf89d33d239f255b5219a08a600351",
+        "jsonSha256": "52f0dc428715028a0915d03eb934b823a60b98491ed8132b81cee296f8255b1a",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/2/Data",
+        "expectedType": "questConditionNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q204/phases/q204_00_setup.questphase.json",
+          "assetSha256": "90c8576d6bb78376ecf57353c1dfbd3156bf89d33d239f255b5219a08a600351",
+          "jsonSha256": "52f0dc428715028a0915d03eb934b823a60b98491ed8132b81cee296f8255b1a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/6/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q204/phases/q204_00_setup.questphase.json",
+          "assetSha256": "90c8576d6bb78376ecf57353c1dfbd3156bf89d33d239f255b5219a08a600351",
+          "jsonSha256": "52f0dc428715028a0915d03eb934b823a60b98491ed8132b81cee296f8255b1a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/6/Data/phaseGraph/Data/nodes/4/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.temperance.judy-texts",
+      "sourceId": "jr5.source.6b1f7d3afd6a",
+      "kind": "native",
+      "locator": "q204_00_setup: condition q115_judy_romance_chosen > 0 (node 11) routes True to the Judy subgraph (node 32), which removes all contacts and then activates 01..04_judy_msg entries in sequence, ending with 04_judy_msg_v (\"V? Hello? Please just pick up!\"). The contacts are removed (inactive) afterwards, so the entries cannot be read from the journal; the romance fact plus the reached ending is the proof.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q204/phases/q204_00_setup.questphase.json",
+        "assetSha256": "90c8576d6bb78376ecf57353c1dfbd3156bf89d33d239f255b5219a08a600351",
+        "jsonSha256": "52f0dc428715028a0915d03eb934b823a60b98491ed8132b81cee296f8255b1a",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/5/Data",
+        "expectedType": "questConditionNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q204/phases/q204_00_setup.questphase.json",
+          "assetSha256": "90c8576d6bb78376ecf57353c1dfbd3156bf89d33d239f255b5219a08a600351",
+          "jsonSha256": "52f0dc428715028a0915d03eb934b823a60b98491ed8132b81cee296f8255b1a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/9/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q204/phases/q204_00_setup.questphase.json",
+          "assetSha256": "90c8576d6bb78376ecf57353c1dfbd3156bf89d33d239f255b5219a08a600351",
+          "jsonSha256": "52f0dc428715028a0915d03eb934b823a60b98491ed8132b81cee296f8255b1a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/9/Data/phaseGraph/Data/nodes/5/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.journal.f6dcd37abfeb",
+      "sourceId": "jr5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "q305_02e_sandra: the [Take shard] choices (167, 176, 213, 217) give take_shard its Succeeded state (node 334, ordinal 3) and node 348 then activates send_reed_ambush_info_sandra \"Send Reed a message with details.\" That objective is Sandra-specific and exists only after V took Sandra's shard with the MaxTac convoy data.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/0/Data/entries/19/Data/entries/0/Data/entries/79/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "send_reed_ambush_info_sandra"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q305/scenes/q305_02e_sandra.scene.json",
+          "assetSha256": "2de39d29020c52e00d06af6bc35e02ba5ab0ab0189d933b8acc526149711e8d9",
+          "jsonSha256": "094934f699fb8a4f8e0c0be5b328a139064760274f82abaa0ad6fb0d877aa89a",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data",
+          "expectedType": "scnChoiceNode",
+          "expected": {
+            "/nodeId/id": 167
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q305/scenes/q305_02e_sandra.scene.json",
+          "assetSha256": "2de39d29020c52e00d06af6bc35e02ba5ab0ab0189d933b8acc526149711e8d9",
+          "jsonSha256": "094934f699fb8a4f8e0c0be5b328a139064760274f82abaa0ad6fb0d877aa89a",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 334
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q305/scenes/q305_02e_sandra.scene.json",
+          "assetSha256": "2de39d29020c52e00d06af6bc35e02ba5ab0ab0189d933b8acc526149711e8d9",
+          "jsonSha256": "094934f699fb8a4f8e0c0be5b328a139064760274f82abaa0ad6fb0d877aa89a",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/54/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 348
+          }
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.journal.e9aee0775466",
+      "sourceId": "jr5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "q305_11_after_quest: node 2 tests journal 03_ambush/02_sandra_ping (\"Use the Ping quickhack on MaxTac to upload Sandra's virus\") Succeeded; True activates Sandra's message q305_afterquest_happy_sandra (node 18: \"thanks for your help. I got what I needed... I'm glad I trusted you\"), False activates the angry message (node 13). The happy message therefore means the upload was done.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/37/Data/entries/2/Data/entries/2/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "q305_afterquest_happy_sandra"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/jr5-15/raw/ep1/ep1/quest/main_quests/q305/phases/q305_11_after_quest.questphase.json",
+          "assetSha256": "02ad9b9a1cdb114296d1ab1dd5d71976298a45a1fde84796190110f55fd56453",
+          "jsonSha256": "2467bf68258be84ea1cf0e9d87c631219e64f3c1e9ece4c7bec7d41566dd8ce5",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/9/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-15/raw/ep1/ep1/quest/main_quests/q305/phases/q305_11_after_quest.questphase.json",
+          "assetSha256": "02ad9b9a1cdb114296d1ab1dd5d71976298a45a1fde84796190110f55fd56453",
+          "jsonSha256": "2467bf68258be84ea1cf0e9d87c631219e64f3c1e9ece4c7bec7d41566dd8ce5",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-15/raw/ep1/ep1/quest/main_quests/q305/phases/q305_11_after_quest.questphase.json",
+          "assetSha256": "02ad9b9a1cdb114296d1ab1dd5d71976298a45a1fde84796190110f55fd56453",
+          "jsonSha256": "2467bf68258be84ea1cf0e9d87c631219e64f3c1e9ece4c7bec7d41566dd8ce5",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/5/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr5.ev.fact.sts_ep1_08_biomonitor_destroyed.5e6acba6fef4",
+      "sourceId": "jr5.source.54273b1b7a16",
+      "kind": "native",
+      "locator": "sts_ep1_08_client_ending: choice 483 option 1 \"[Destroy the biomonitor] Sorry... I can't.\" -> 491 (\"Steven's right. Too much risk to go around.\" Ana: \"No! I won't let it go.\") -> node 486 -> node 741 SET sts_ep1_08_biomonitor_destroyed = 1. The only other writer (sts_ep1_08_phase subgraph 29 node 81) runs after V deposits the biomonitor at the fixer drop point on Steven's instruction, which is possible only for a V who still holds it, i.e. did not take option 0 \"[Hand over the biomonitor]\".",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+        "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+        "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sts_ep1_08_biomonitor_destroyed",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "jr5.ev.spy.destroy-choice",
+      "sourceId": "jr5.source.54273b1b7a16",
+      "kind": "native",
+      "locator": "sts_ep1_08_client_ending choice 483: option 0 [Hand over the biomonitor] leads to 492 and the sts_ep1_08_biomonitor_ana writers (649/652); option 1 [Destroy the biomonitor] leads to 491 and the destroyed writer 741. The two options are exclusive.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+        "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+        "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data",
+        "expectedType": "scnChoiceNode",
+        "expected": {
+          "/nodeId/id": 483
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 491
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 486
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonSha256": "10eb19ae5839568af8061c673d2ad4362b7a9c7e64b4d39e60b28825666850ba",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 741
+          }
+        }
+      ]
+    }
+  ],
+  "factAllowlist": {
+    "sq024_big_race_won": {
+      "evidenceRefs": [
+        "jr5.ev.fact.sq024_big_race_won.e521fccebc2f"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/phases/sq024_05_the_big_race.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/4/Data/phaseGraph/Data/nodes/18/Data/phaseGraph/Data/nodes/36/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq024_end_at_santo_domingo": {
+      "evidenceRefs": [
+        "jr5.ev.fact.sq024_end_at_santo_domingo.5526e39589df"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/60/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq029_river_shot_down": {
+      "evidenceRefs": [
+        "jr5.ev.fact.sq029_river_shot_down.10b2919e5e0d"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/rel-sq029-20261005/raw/base/base/quest/side_quests/sq029/scenes/sq029_04a_dinner.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/195/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq021_v_knows_farm": {
+      "evidenceRefs": [
+        "jr5.ev.fact.sq021_v_knows_farm.d3e65c1006d0"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_07_ride_back.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/120/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_10_bd_farm.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/322/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 2
+      }
+    },
+    "sq021_good_farm_chosen": {
+      "evidenceRefs": [
+        "jr5.ev.fact.sq021_good_farm_chosen.a53b01685fe9"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_07_ride_back.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        },
+        {
+          "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_07_ride_back.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/87/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 2
+      }
+    },
+    "sq021_bad_farm_chosen": {
+      "evidenceRefs": [
+        "jr5.ev.fact.sq021_bad_farm_chosen.8459631f9c44"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/jr5-05/raw/base/base/quest/side_quests/sq021/scenes/sq021_07_ride_back.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq021_no_change_good_end": {
+      "evidenceRefs": [
+        "jr5.ev.fact.sq021_no_change_good_end.970d7b2bfb88"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/477/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq021_revenge_good_end": {
+      "evidenceRefs": [
+        "jr5.ev.fact.sq021_revenge_good_end.de311ab6f484"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/478/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq021_dont_care_good_end": {
+      "evidenceRefs": [
+        "jr5.ev.fact.sq021_dont_care_good_end.ae118a4b3809"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/476/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq012_poison_bd_found": {
+      "evidenceRefs": [
+        "jr5.ev.fact.sq012_poison_bd_found.8f27cdda3ece"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/jr5-08/raw/base/base/quest/side_quests/sq012/phases/sq012_the_law_rqr.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/21/Data/phaseGraph/Data/nodes/5/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq012_fact_holt_killed_mayor": {
+      "evidenceRefs": [
+        "jr5.ev.fact.sq012_fact_holt_killed_mayor.d5a87909bbd1"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_08a_peralez_apartment.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq012_fact_I_dont_know": {
+      "evidenceRefs": [
+        "jr5.ev.fact.sq012_fact_I_dont_know.26568275d1c4"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_08a_peralez_apartment.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq012_fact_accident": {
+      "evidenceRefs": [
+        "jr5.ev.fact.sq012_fact_accident.2d9cff3a6466"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/jr5-07/raw/base/base/quest/side_quests/sq012/scenes/sq012_08a_peralez_apartment.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq006_election_results": {
+      "evidenceRefs": [
+        "jr5.ev.fact.sq006_election_results.91c7abc9df12"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/side_quests/sq006/phases/sq006.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/22/Data/phaseGraph/Data/nodes/2/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q307_call_river_end": {
+      "evidenceRefs": [
+        "jr5.ev.fact.q307_call_river_end.f44b257b5f8c"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/jr5-13/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/93/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q307_call_judy_end": {
+      "evidenceRefs": [
+        "jr5.ev.fact.q307_call_judy_end.0bc18c6bffb1"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/jr5-13/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/92/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q115_river_romance_chosen": {
+      "evidenceRefs": [
+        "jr5.ev.fact.q115_river_romance_chosen.92c6832b360b"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/159/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q115_judy_romance_chosen": {
+      "evidenceRefs": [
+        "jr5.ev.fact.q115_judy_romance_chosen.46ff74749a5a"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/161/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sts_ep1_08_biomonitor_destroyed": {
+      "evidenceRefs": [
+        "jr5.ev.fact.sts_ep1_08_biomonitor_destroyed.5e6acba6fef4"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pg5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    }
+  },
+  "journalAllowlist": {
+    "jr5.big.follow-sampson": {
+      "questKey": "the-beast-in-me-the-big-race",
+      "nativePath": "quests/side_quest/sq024_the_big_race/02_santo_domingo_race/06a_follow_sampson",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "jr5.ev.journal.ae0412f994d9"
+      ]
+    },
+    "jr5.big.continue-race": {
+      "questKey": "the-beast-in-me-the-big-race",
+      "nativePath": "quests/side_quest/sq024_the_big_race/02_santo_domingo_race/06b_beat_race",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "jr5.ev.journal.4bae20b1aa7a"
+      ]
+    },
+    "jr5.santo.boundary-reply": {
+      "questKey": "the-beast-in-me-santo-domingo",
+      "nativePath": "contacts/marianne/sq024_00_after_dam/02c_claire_beat_race",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr5.ev.journal.100095c4edbe"
+      ]
+    },
+    "jr5.beast.give-car-message": {
+      "questKey": "the-beast-in-me",
+      "nativePath": "contacts/marianne/sq024_big_race_leaving/03_claire_give_car",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr5.ev.journal.dd5a5eb4da08"
+      ]
+    },
+    "jr5.beast.city-race-done": {
+      "questKey": "the-beast-in-me",
+      "nativePath": "quests/side_quest/sq024_city_race",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "jr5.ev.journal.748e702bba2a"
+      ]
+    },
+    "jr5.law.confront-han": {
+      "questKey": "i-fought-the-law",
+      "nativePath": "quests/side_quest/sq012_lost_girl/confront_yu/confront_yu",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "jr5.ev.journal.71517acc9ff5"
+      ]
+    },
+    "jr5.dream.elizabeth-talk": {
+      "questKey": "dream-on",
+      "nativePath": "quests/side_quest/sq006_dream_on/clandestine_elizabeth/speak_to_elizabeth",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "jr5.ev.journal.b0611b739b6e"
+      ]
+    },
+    "jr5.dream.job-offer-text": {
+      "questKey": "dream-on",
+      "nativePath": "contacts/jefferson_peralez/sq006_finale/03_jefferson_finale_lie",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr5.ev.journal.591d89c61054"
+      ]
+    },
+    "jr5.nocturne.river-call": {
+      "questKey": "nocturne-op55n1",
+      "nativePath": "quests/meta/02_sickness/q115_ripperdoc/02a1_call_river",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "jr5.ev.journal.cab42a0b1a9a"
+      ]
+    },
+    "jr5.star.river-goodbye": {
+      "questKey": "all-along-the-watchtower",
+      "nativePath": "quests/main_quest/epilogues/q202_nomads/temp_river/say_goodbye",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "jr5.ev.journal.2f993d2812ee"
+      ]
+    },
+    "jr5.sun.claire-drink": {
+      "questKey": "path-of-glory",
+      "nativePath": "quests/main_quest/epilogues/q203_legend/afterlife/drink",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "jr5.ev.journal.ff9c9a2d612e"
+      ]
+    },
+    "jr5.temperance.reached": {
+      "questKey": "new-dawn-fades",
+      "nativePath": "quests/main_quest/epilogues/q204_reborn",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "jr5.ev.journal.1ae0cbe64eef"
+      ]
+    },
+    "jr5.steel.sandra-send-reed": {
+      "questKey": "black-steel-in-the-hour-of-chaos",
+      "nativePath": "ep1/quests/main_quest/q305_prison_convoy/01_task/send_reed_ambush_info_sandra",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "jr5.ev.journal.f6dcd37abfeb"
+      ]
+    },
+    "jr5.steel.sandra-thanks": {
+      "questKey": "black-steel-in-the-hour-of-chaos",
+      "nativePath": "contacts/sandra_dorsett/q305/q305_afterquest_happy_sandra",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr5.ev.journal.e9aee0775466"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "jr5.big.route.pursuit",
+      "revision": 1,
+      "questKey": "the-beast-in-me-the-big-race",
+      "topic": "claire.final_race_route",
+      "outcome": "pursuit",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "During the final Big Race (The Beast in Me), V left the race route to follow Sampson instead of continuing the race. The outcome of that chase is a separate matter.",
+      "sourceIds": [
+        "jr5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.journal.ae0412f994d9"
+      ],
+      "audience": {
+        "speakers": [
+          "claire-russell"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "claire-russell"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr5.big.follow-sampson",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.big.route",
+          "outcomeKey": "pursuit"
+        }
+      ]
+    },
+    {
+      "id": "jr5.big.route.finish",
+      "revision": 1,
+      "questKey": "the-beast-in-me-the-big-race",
+      "topic": "claire.final_race_route",
+      "outcome": "finish",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "During the final Big Race (The Beast in Me), V stayed on the race course and kept racing rather than following Sampson.",
+      "sourceIds": [
+        "jr5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.journal.4bae20b1aa7a"
+      ],
+      "audience": {
+        "speakers": [
+          "claire-russell"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "claire-russell"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr5.big.continue-race",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.big.route",
+          "outcomeKey": "finish"
+        }
+      ]
+    },
+    {
+      "id": "jr5.big.finish.won",
+      "revision": 1,
+      "questKey": "the-beast-in-me-the-big-race",
+      "topic": "claire.final_race_result",
+      "outcome": "won",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "V won the final Big Race, crossing the finish line before any opponent.",
+      "sourceIds": [
+        "jr5.source.8f0717675f2a"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.big.won-gate",
+        "jr5.ev.fact.sq024_big_race_won.e521fccebc2f"
+      ],
+      "audience": {
+        "speakers": [
+          "claire-russell"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "claire-russell"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq024_big_race_won",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.big.finish",
+          "outcomeKey": "won"
+        }
+      ]
+    },
+    {
+      "id": "jr5.santo.promise.withdrawn",
+      "revision": 1,
+      "questKey": "the-beast-in-me-santo-domingo",
+      "topic": "claire.sampson_promise",
+      "outcome": "withdrawn",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "After the Santo Domingo race, V refused to help Claire go after Sampson and told her \"I'm done\"; Claire accepted that V was out of her racing team.",
+      "sourceIds": [
+        "jr5.source.8dd6bafe4d90"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.santo.withdraw-choice",
+        "jr5.ev.fact.sq024_end_at_santo_domingo.5526e39589df"
+      ],
+      "audience": {
+        "speakers": [
+          "claire-russell"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "claire-russell"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq024_end_at_santo_domingo",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.santo.promise",
+          "outcomeKey": "withdrawn"
+        }
+      ]
+    },
+    {
+      "id": "jr5.santo.followup.boundary-reaffirmed",
+      "revision": 1,
+      "questKey": "the-beast-in-me-santo-domingo",
+      "topic": "claire.promise_followup",
+      "outcome": "boundary-reaffirmed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "In a text after the Santo Domingo race, V told Claire to remember what she had promised; Claire answered that Sampson dies during the race and only then, with no killing in cold blood.",
+      "sourceIds": [
+        "jr5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.journal.100095c4edbe"
+      ],
+      "audience": {
+        "speakers": [
+          "claire-russell"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "claire-russell"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr5.santo.boundary-reply",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.santo.followup",
+          "outcomeKey": "boundary-reaffirmed"
+        }
+      ]
+    },
+    {
+      "id": "jr5.beast.vehicle-gifts.beast-given",
+      "revision": 1,
+      "questKey": "the-beast-in-me",
+      "topic": "claire.beast-gift",
+      "outcome": "beast-given",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Claire texted V that she had left V the Beast, her prized car, because she would not need it anymore.",
+      "sourceIds": [
+        "jr5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.journal.dd5a5eb4da08"
+      ],
+      "audience": {
+        "speakers": [
+          "claire-russell"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "claire-russell"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr5.beast.give-car-message",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.beast.vehicle-gifts",
+          "outcomeKey": "beast-given"
+        }
+      ]
+    },
+    {
+      "id": "jr5.beast.accept.accepted",
+      "revision": 1,
+      "questKey": "the-beast-in-me",
+      "topic": "claire.racing_team",
+      "outcome": "accepted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "V agreed to be Claire's driver in the NC underground racing circuit and drove her first qualifying race (City Center).",
+      "sourceIds": [
+        "jr5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.journal.748e702bba2a"
+      ],
+      "audience": {
+        "speakers": [
+          "claire-russell"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "claire-russell"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr5.beast.city-race-done",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.beast.accept",
+          "outcomeKey": "accepted"
+        }
+      ]
+    },
+    {
+      "id": "jr5.following.relationship.friends",
+      "revision": 1,
+      "questKey": "following-the-river",
+      "topic": "river.relationship",
+      "outcome": "friends",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 8,
+      "stable": true,
+      "statement": "At dinner with River (Following the River), V turned down River's romantic advance and the two agreed to stay friends.",
+      "sourceIds": [
+        "jr5.source.6f7fdcba11d9"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.following.friends-route",
+        "jr5.ev.fact.sq029_river_shot_down.10b2919e5e0d"
+      ],
+      "audience": {
+        "speakers": [
+          "river-ward"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "river-ward"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq029_river_shot_down",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.following.relationship",
+          "outcomeKey": "friends"
+        }
+      ]
+    },
+    {
+      "id": "jr5.hunt.location.edgewood-deduced",
+      "revision": 1,
+      "questKey": "the-hunt",
+      "topic": "randy.search_location",
+      "outcome": "edgewood-deduced",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "In The Hunt, V worked out from what the braindance had shown that the farm was Edgewood Farm and rode there with River, instead of guessing between two farms.",
+      "sourceIds": [
+        "jr5.source.8f4da72ae67b"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.hunt.deduction-route",
+        "jr5.ev.fact.sq021_v_knows_farm.d3e65c1006d0",
+        "jr5.ev.fact.sq021_good_farm_chosen.a53b01685fe9"
+      ],
+      "audience": {
+        "speakers": [
+          "river-ward"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "river-ward"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq021_v_knows_farm",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq021_good_farm_chosen",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.hunt.location",
+          "outcomeKey": "edgewood-deduced"
+        }
+      ]
+    },
+    {
+      "id": "jr5.hunt.location.poppy",
+      "revision": 1,
+      "questKey": "the-hunt",
+      "topic": "randy.search_location",
+      "outcome": "poppy",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "In The Hunt, V voted to check Poppy Farm first; it was the wrong farm and River realised it on arrival.",
+      "sourceIds": [
+        "jr5.source.8f4da72ae67b"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.hunt.poppy-choice",
+        "jr5.ev.fact.sq021_bad_farm_chosen.8459631f9c44"
+      ],
+      "audience": {
+        "speakers": [
+          "river-ward"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "river-ward"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq021_bad_farm_chosen",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.hunt.location",
+          "outcomeKey": "poppy"
+        }
+      ]
+    },
+    {
+      "id": "jr5.hunt.harris-afterward.vowed",
+      "revision": 1,
+      "questKey": "the-hunt",
+      "topic": "river.harris_resolution",
+      "outcome": "vowed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "At the end of The Hunt, River told V that he meant to kill Anthony Harris, who was in a coma in police custody. This was only a stated intention, not an act.",
+      "sourceIds": [
+        "jr5.source.d28a722d9699"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.hunt.vow-scene",
+        "jr5.ev.fact.sq021_no_change_good_end.970d7b2bfb88",
+        "jr5.ev.fact.sq021_revenge_good_end.de311ab6f484",
+        "jr5.ev.fact.sq021_dont_care_good_end.ae118a4b3809"
+      ],
+      "audience": {
+        "speakers": [
+          "river-ward"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "river-ward"
+        ]
+      },
+      "condition": {
+        "any": [
+          {
+            "type": "fact",
+            "key": "sq021_no_change_good_end",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq021_revenge_good_end",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq021_dont_care_good_end",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.hunt.harris-afterward",
+          "outcomeKey": "vowed"
+        }
+      ]
+    },
+    {
+      "id": "jr5.law.bd-evidence.spiked-wreath-tested",
+      "revision": 1,
+      "questKey": "i-fought-the-law",
+      "topic": "rhyne.death_evidence",
+      "outcome": "spiked-wreath-tested",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "While investigating Rhyne's death with River, V plugged into the tampered BD wreath, was hit by its attack, and told River that someone had spiked the BD and that it killed Rhyne.",
+      "sourceIds": [
+        "jr5.source.207598b75364",
+        "jr5.source.4cdee794eb75"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.law.bd-attack-scene",
+        "jr5.ev.fact.sq012_poison_bd_found.8f27cdda3ece"
+      ],
+      "audience": {
+        "speakers": [
+          "river-ward"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "river-ward"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq012_poison_bd_found",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.law.bd-evidence",
+          "outcomeKey": "spiked-wreath-tested"
+        }
+      ]
+    },
+    {
+      "id": "jr5.law.coverup.han-exposed",
+      "revision": 1,
+      "questKey": "i-fought-the-law",
+      "topic": "rhyne.coverup",
+      "outcome": "han-exposed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "River and V confronted Detective Harold Han about the cover-up of Rhyne's death; River told him he knew what he had done. This establishes Han's part in the concealment, not who ordered it.",
+      "sourceIds": [
+        "jr5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.journal.71517acc9ff5"
+      ],
+      "audience": {
+        "speakers": [
+          "river-ward"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "river-ward"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr5.law.confront-han",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.law.coverup",
+          "outcomeKey": "han-exposed"
+        }
+      ]
+    },
+    {
+      "id": "jr5.law.client-report.holt-blamed",
+      "revision": 1,
+      "questKey": "i-fought-the-law",
+      "topic": "peralez.rhyne_briefing",
+      "outcome": "holt-blamed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In their apartment V told Jefferson and Elizabeth Peralez that Weldon Holt was behind Rhyne's death, admitting there was no proof, only strong suspicions.",
+      "sourceIds": [
+        "jr5.source.833ae562dc38"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.law.report-holt-route",
+        "jr5.ev.fact.sq012_fact_holt_killed_mayor.d5a87909bbd1"
+      ],
+      "audience": {
+        "speakers": [
+          "jefferson-peralez",
+          "elizabeth-peralez"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "jefferson-peralez",
+          "elizabeth-peralez"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq012_fact_holt_killed_mayor",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.law.client-report",
+          "outcomeKey": "holt-blamed"
+        }
+      ]
+    },
+    {
+      "id": "jr5.law.client-report.withheld",
+      "revision": 1,
+      "questKey": "i-fought-the-law",
+      "topic": "peralez.rhyne_briefing",
+      "outcome": "withheld",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In their apartment V told Jefferson and Elizabeth Peralez that the case was too complex to draw conclusions yet, and gave them no findings.",
+      "sourceIds": [
+        "jr5.source.833ae562dc38"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.law.report-withheld-route",
+        "jr5.ev.fact.sq012_fact_I_dont_know.26568275d1c4"
+      ],
+      "audience": {
+        "speakers": [
+          "jefferson-peralez",
+          "elizabeth-peralez"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "jefferson-peralez",
+          "elizabeth-peralez"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq012_fact_I_dont_know",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.law.client-report",
+          "outcomeKey": "withheld"
+        }
+      ]
+    },
+    {
+      "id": "jr5.law.client-report.evidence-shared",
+      "revision": 1,
+      "questKey": "i-fought-the-law",
+      "topic": "peralez.rhyne_briefing",
+      "outcome": "evidence-shared",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "In their apartment V reported to Jefferson and Elizabeth Peralez that Rhyne's death was an embarrassing accident at a sex club which the NCPD had covered up. V did not tell them it was a BD murder.",
+      "sourceIds": [
+        "jr5.source.833ae562dc38"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.law.report-accident-route",
+        "jr5.ev.fact.sq012_fact_accident.2d9cff3a6466"
+      ],
+      "audience": {
+        "speakers": [
+          "jefferson-peralez",
+          "elizabeth-peralez"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "jefferson-peralez",
+          "elizabeth-peralez"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq012_fact_accident",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.law.client-report",
+          "outcomeKey": "evidence-shared"
+        }
+      ]
+    },
+    {
+      "id": "jr5.dream.elizabeth-private.confided",
+      "revision": 1,
+      "questKey": "dream-on",
+      "topic": "elizabeth.private_disclosure",
+      "outcome": "confided",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In a ramen shop Elizabeth Peralez privately confessed her fears to V and begged V never to let Jefferson find out, saying his life depended on it.",
+      "sourceIds": [
+        "jr5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.journal.b0611b739b6e"
+      ],
+      "audience": {
+        "speakers": [
+          "elizabeth-peralez"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "elizabeth-peralez"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr5.dream.elizabeth-talk",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.dream.elizabeth-private",
+          "outcomeKey": "confided"
+        }
+      ]
+    },
+    {
+      "id": "jr5.dream.later-call.job-offer-call",
+      "revision": 1,
+      "questKey": "dream-on",
+      "topic": "jefferson.after_investigation",
+      "outcome": "job-offer-call",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "After the Dream On case Jefferson Peralez texted V that he was glad he had trusted his gut in hiring V and that, after the elections, he might have more work for V.",
+      "sourceIds": [
+        "jr5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.journal.591d89c61054"
+      ],
+      "audience": {
+        "speakers": [
+          "jefferson-peralez"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "jefferson-peralez"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr5.dream.job-offer-text",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.dream.later-call",
+          "outcomeKey": "job-offer-call"
+        }
+      ]
+    },
+    {
+      "id": "jr5.dream.election.elected",
+      "revision": 1,
+      "questKey": "dream-on",
+      "topic": "jefferson.office",
+      "outcome": "elected",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "Jefferson Peralez won the Night City mayoral election; N54 News announced it.",
+      "sourceIds": [
+        "jr5.source.179c4ca2abb5",
+        "jr5.source.c565f210ebc3"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.dream.election-news",
+        "jr5.ev.fact.sq006_election_results.91c7abc9df12"
+      ],
+      "audience": {
+        "speakers": [
+          "jefferson-peralez",
+          "elizabeth-peralez"
+        ],
+        "perspective": "public",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "jefferson-peralez",
+          "elizabeth-peralez"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq006_election_results",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.dream.election",
+          "outcomeKey": "elected"
+        }
+      ]
+    },
+    {
+      "id": "jr5.tower.river-call.heard",
+      "revision": 1,
+      "questKey": "things-done-changed",
+      "topic": "river.tower_life",
+      "outcome": "heard",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "In the 2079 holocall River told V he had needed money for Randy's rehab, so he did a deal with Trauma Team and sold them police secrets.",
+      "sourceIds": [
+        "jr5.source.7dffd44efb4a"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.tower.river-call-route",
+        "jr5.ev.fact.q307_call_river_end.f44b257b5f8c"
+      ],
+      "audience": {
+        "speakers": [
+          "river-ward"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "river-ward"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q307_call_river_end",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.tower.river-call",
+          "outcomeKey": "heard"
+        }
+      ]
+    },
+    {
+      "id": "jr5.tower.judy-call.heard",
+      "revision": 1,
+      "questKey": "things-done-changed",
+      "topic": "judy.tower_life",
+      "outcome": "heard",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "In the 2079 holocall Judy told V she was living in Pittsburgh and had gotten married, and that she could not help V.",
+      "sourceIds": [
+        "jr5.source.7dffd44efb4a"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.tower.judy-call-route",
+        "jr5.ev.fact.q307_call_judy_end.0bc18c6bffb1"
+      ],
+      "audience": {
+        "speakers": [
+          "judy-alvarez"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "judy-alvarez"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q307_call_judy_end",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.tower.judy-call",
+          "outcomeKey": "heard"
+        }
+      ]
+    },
+    {
+      "id": "jr5.nocturne.rooftop-river-call",
+      "revision": 1,
+      "questKey": "nocturne-op55n1",
+      "topic": "v.primary_ending_partner",
+      "outcome": "river-called",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 8,
+      "stable": true,
+      "statement": "On the rooftop before choosing how to face Arasaka, V called River and the two of them talked.",
+      "sourceIds": [
+        "jr5.source.c1b7be251366",
+        "jr5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.fact.q115_river_romance_chosen.92c6832b360b",
+        "jr5.ev.journal.cab42a0b1a9a"
+      ],
+      "audience": {
+        "speakers": [
+          "river-ward"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "river-ward"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q115_river_romance_chosen",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "jr5.nocturne.river-call",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.nocturne.partner-call",
+          "outcomeKey": "river-called"
+        }
+      ]
+    },
+    {
+      "id": "jr5.star.river-stays",
+      "revision": 1,
+      "questKey": "all-along-the-watchtower",
+      "topic": "v.star_relationship",
+      "outcome": "river-stays",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 8,
+      "stable": true,
+      "statement": "At the Aldecaldo camp before the crossing, River told V he was staying in Night City to look after his family and would not go with V.",
+      "sourceIds": [
+        "jr5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.journal.2f993d2812ee"
+      ],
+      "audience": {
+        "speakers": [
+          "river-ward"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "river-ward"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr5.star.river-goodbye",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.star.partner",
+          "outcomeKey": "river-stays"
+        }
+      ]
+    },
+    {
+      "id": "jr5.sun.claire-sendoff.met",
+      "revision": 1,
+      "questKey": "path-of-glory",
+      "topic": "claire.legend_sendoff",
+      "outcome": "met",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "Before leaving for the Crystal Palace job, V stopped at the Afterlife bar and had a drink with Claire, who was tending the bar.",
+      "sourceIds": [
+        "jr5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.journal.ff9c9a2d612e"
+      ],
+      "audience": {
+        "speakers": [
+          "claire-russell"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "claire-russell"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr5.sun.claire-drink",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.sun.claire-sendoff",
+          "outcomeKey": "met"
+        }
+      ]
+    },
+    {
+      "id": "jr5.temperance.river-searching",
+      "revision": 1,
+      "questKey": "new-dawn-fades",
+      "topic": "v.temperance_relationship",
+      "outcome": "river-searching",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 7,
+      "stable": true,
+      "statement": "In the Temperance epilogue River sent V a run of texts begging V to pick up and saying he was turning Night City upside down trying to find V.",
+      "sourceIds": [
+        "jr5.source.6b1f7d3afd6a",
+        "jr5.source.c1b7be251366",
+        "jr5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.temperance.river-texts",
+        "jr5.ev.fact.q115_river_romance_chosen.92c6832b360b",
+        "jr5.ev.journal.1ae0cbe64eef"
+      ],
+      "audience": {
+        "speakers": [
+          "river-ward"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "river-ward"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q115_river_romance_chosen",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "jr5.temperance.reached",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.temperance.partner-message",
+          "outcomeKey": "river-searching"
+        }
+      ]
+    },
+    {
+      "id": "jr5.temperance.judy-worried",
+      "revision": 1,
+      "questKey": "new-dawn-fades",
+      "topic": "v.temperance_relationship",
+      "outcome": "judy-worried",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 9,
+      "stable": true,
+      "statement": "In the Temperance epilogue Judy sent V a run of texts repeatedly asking V to pick up the phone, ending with a worried \"V? Hello?\".",
+      "sourceIds": [
+        "jr5.source.6b1f7d3afd6a",
+        "jr5.source.c1b7be251366",
+        "jr5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.temperance.judy-texts",
+        "jr5.ev.fact.q115_judy_romance_chosen.46ff74749a5a",
+        "jr5.ev.journal.1ae0cbe64eef"
+      ],
+      "audience": {
+        "speakers": [
+          "judy-alvarez"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "judy-alvarez"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q115_judy_romance_chosen",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "jr5.temperance.reached",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.temperance.partner-message",
+          "outcomeKey": "judy-worried"
+        }
+      ]
+    },
+    {
+      "id": "jr5.steel.sandra-contact.intel-delivered",
+      "revision": 1,
+      "questKey": "black-steel-in-the-hour-of-chaos",
+      "topic": "sandra.convoy_assistance",
+      "outcome": "intel-delivered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "At their meeting Sandra Dorsett handed V a shard with the MaxTac convoy data she had gathered, and V took it.",
+      "sourceIds": [
+        "jr5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.journal.f6dcd37abfeb"
+      ],
+      "audience": {
+        "speakers": [
+          "sandra-dorsett"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "sandra-dorsett"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr5.steel.sandra-send-reed",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.black-steel.sandra-contact",
+          "outcomeKey": "intel-delivered"
+        }
+      ]
+    },
+    {
+      "id": "jr5.steel.sandra-favor.fulfilled-confirmed",
+      "revision": 1,
+      "questKey": "black-steel-in-the-hour-of-chaos",
+      "topic": "sandra.maxtac_favor",
+      "outcome": "fulfilled-confirmed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "After the MaxTac ambush V had uploaded Sandra Dorsett's virus with the Ping quickhack, and Sandra texted that she had what she needed and was glad she trusted V.",
+      "sourceIds": [
+        "jr5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.journal.e9aee0775466"
+      ],
+      "audience": {
+        "speakers": [
+          "sandra-dorsett"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "sandra-dorsett"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "jr5.steel.sandra-thanks",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.black-steel.sandra-favor",
+          "outcomeKey": "fulfilled-confirmed"
+        }
+      ]
+    },
+    {
+      "id": "jr5.spy.biomonitor.destroyed",
+      "revision": 1,
+      "questKey": "spy-in-the-jungle",
+      "topic": "ana.bana_evidence",
+      "outcome": "destroyed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "At the final hotel meeting V chose to destroy the biomonitor evidence instead of handing it to Ana, siding with Steven; Ana protested that she would not let it go.",
+      "sourceIds": [
+        "jr5.source.54273b1b7a16"
+      ],
+      "evidenceRefs": [
+        "jr5.ev.spy.destroy-choice",
+        "jr5.ev.fact.sts_ep1_08_biomonitor_destroyed.5e6acba6fef4"
+      ],
+      "audience": {
+        "speakers": [
+          "ana-friedman"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "ana-friedman"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sts_ep1_08_biomonitor_destroyed",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.spy.biomonitor",
+          "outcomeKey": "destroyed"
+        }
+      ]
+    }
+  ]
+}

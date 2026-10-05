@@ -1,0 +1,3261 @@
+{
+  "version": 1,
+  "id": "cyberpunk-native-aldecaldos-20261005",
+  "revision": 1,
+  "gameVersions": [
+    "2.31"
+  ],
+  "profileKeys": [
+    "bob-sagan",
+    "carol-emeka",
+    "cassidy-righter",
+    "dakota-smith",
+    "iris-tanner",
+    "kerry-eurodyne",
+    "mitch-anderson",
+    "panam-palmer",
+    "river-ward"
+  ],
+  "sources": [
+    {
+      "id": "al5.source.0ad9df718bef",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q104\\phases\\q104_tracking_av.questphase (scene-evidence/al5-05); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: base\\journal\\cooked_journal.journal (scene-evidence/judy-river-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "al5.source.cb1932c64c70",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\minor_quests\\mq001\\mq001.questphase (scene-evidence/al5-05); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "al5.source.0c0977147554",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\minor_quests\\mq002\\scenes\\mq002_01_deal.scene (scene-evidence/al5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "al5.source.2971d77e785f",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\minor_quests\\mq002\\phases\\mq002_beginning.questphase (scene-evidence/al5-05); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "al5.source.39fe54b92a41",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\minor_quests\\mq021\\scenes\\mq021_02_hospital_meeting.scene (scene-evidence/al5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "al5.source.e75455afab22",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\minor_quests\\mq021\\scenes\\mq021_03_ending.scene (scene-evidence/al5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "al5.source.7ce34a614ac1",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q114\\phases\\q114_party.questphase (scene-evidence/al5-05); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "al5.source.3833e09af70a",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q114\\scenes\\q114_04b_party.scene (scene-evidence/al5-03); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "al5.source.313ce46098f6",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_05\\phases\\sts_bls_ina_05_openworld_phase.questphase (scene-evidence/aldecaldos-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "al5.source.cedbbb335d97",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\epilogue\\q201\\scenes\\q201_05_cabin_day_7.scene (scene-evidence/priority-endings-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "al5.source.5cac098003e6",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\main_quests\\q305\\phases\\q305_01_task.questphase (scene-evidence/priority-phantom-20261004-extra); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "al5.source.c6fc31189cd7",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\main_quests\\q305\\scenes\\q305_01_holocalls_to_netrunner.scene (scene-evidence/priority-phantom-20261004-extra); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "al5.source.f917a20fabcb",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_05\\phases\\sts_bls_ina_05_gameplay_phase.questphase (scene-evidence/al5-10); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "al5.ev.wartime.tracking-switch",
+      "sourceId": "al5.source.0ad9df718bef",
+      "kind": "native",
+      "locator": "q104_tracking_av root node 510 tests q104_pilot_gas_station > 0: the True branch (phase nodes/4) has no tire-track objectives; the False branch (phase nodes/3) holds the only journal writer that Succeeds scan_tire_tracks (node 65, from the three tire scans). So scanning the tracks is how V followed Hellman when no destination was given by the pilot.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q104/phases/q104_tracking_av.questphase.json",
+        "assetSha256": "a186d3d137de156a3ad9b482d1be2a284a44ae407d9e7e7335117f7f1e67f526",
+        "jsonSha256": "ac7c0c14c15b1f2f23402e9ca9ebeb36d363ace95f7347881ebb0f6eca85df1c",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+        "expectedType": "questConditionNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q104/phases/q104_tracking_av.questphase.json",
+          "assetSha256": "a186d3d137de156a3ad9b482d1be2a284a44ae407d9e7e7335117f7f1e67f526",
+          "jsonSha256": "ac7c0c14c15b1f2f23402e9ca9ebeb36d363ace95f7347881ebb0f6eca85df1c",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/4/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.3d1efb672cee",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Objective \"Scan the tire tracks\" (finding_courier/scan_tire_tracks) is Succeeded only by q104_tracking_av node 65 after V completes the tire scans; that phase branch is taken when q104_pilot_gas_station is not set.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/19/Data/entries/1/Data/entries/6/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "scan_tire_tracks"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q104/phases/q104_tracking_av.questphase.json",
+          "assetSha256": "a186d3d137de156a3ad9b482d1be2a284a44ae407d9e7e7335117f7f1e67f526",
+          "jsonSha256": "ac7c0c14c15b1f2f23402e9ca9ebeb36d363ace95f7347881ebb0f6eca85df1c",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/4/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q104/phases/q104_tracking_av.questphase.json",
+          "assetSha256": "a186d3d137de156a3ad9b482d1be2a284a44ae407d9e7e7335117f7f1e67f526",
+          "jsonSha256": "ac7c0c14c15b1f2f23402e9ca9ebeb36d363ace95f7347881ebb0f6eca85df1c",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.5d8e3f728025",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Quest I'll Fly Away is Succeeded by exactly one node (mq001_cliff node 32), which runs only after the mq001_03_cliff scene ends (socket mq001_03_scene_end), i.e. after Mitch and V finish the send-off at the bridge. An abandoned quest is Failed instead.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/4/Data/entries/59/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "mq001_scorpion"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/minor_quests/mq001/phases/mq001_cliff.questphase.json",
+          "assetSha256": "ed603f29f4ec09b8173cfeca086c7f1b97cf4c2d6d72e6a54cc694b78bf579c4",
+          "jsonSha256": "c7cfde484ce4b0881d64090788f6907022e0db9386c65024be708b0e7c3d9897",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/10/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.fact.mq001_abandoned.94e3929750db",
+      "sourceId": "al5.source.cb1932c64c70",
+      "kind": "native",
+      "locator": "mq001_abandoned is written once, in mq001.questphase right before the quest is set Failed (Abandon_Out from the camp or cliff phase, or a forced abort when the Queen of the Highway chain starts). It is never reset; the quest is then Failed and never Succeeded.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/minor_quests/mq001/mq001.questphase.json",
+        "assetSha256": "ebe667fa4220fcc10bc433f5b1a2331ae1827c597d6887a34e569d707df2b981",
+        "jsonSha256": "79de50e803c849aed97f31c51f1368815c37829e9c6aa55ac08562cf3de48486",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/2/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "mq001_abandoned",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "al5.ev.journal.357f9360e7cb",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Gun Music quest journal entry; Succeeded by mq002.questphase node 124 after the mq002_ending phase finishes (V talked to Carol). Failed when any phase takes quest_fails.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/4/Data/entries/65/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "mq002_veterans"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/minor_quests/mq002/mq002.questphase.json",
+          "assetSha256": "597f436f4786388e783d30c74d4a3734d3b727b74f27501d97e2f96e311a941f",
+          "jsonSha256": "5a94ef69a920c0cc33f3f2267fc5518e02af04911a601aa37d2e6693e24929f0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.fact.mq002_deal_proceeded.9949f262aaa4",
+      "sourceId": "al5.source.0c0977147554",
+      "kind": "native",
+      "locator": "mq002_deal_proceeded is set to 1 only by mq002_01_deal.scene node 107, whose only predecessor is section node 156 (V: \"Take a look at me... You see my implants?\" / scav leader: \"Give 'em the eddies\"). It is never reset.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/al5-01/raw/base/base/quest/minor_quests/mq002/scenes/mq002_01_deal.scene.json",
+        "assetSha256": "d2020c4ffa9b231640945a26c1c4309aa24506a8fed192a125d8a7f5fd0ad603",
+        "jsonSha256": "234686a7eababba5d4280fc2912a19898e500ef77c8c55f9cd939787a4afc6b9",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "mq002_deal_proceeded",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "al5.ev.gun.deal-intimidated",
+      "sourceId": "al5.source.0c0977147554",
+      "kind": "native",
+      "locator": "mq002_01_deal.scene: node 107 (SET mq002_deal_proceeded) has the single predecessor 156, V's implant threat after which the scav leader orders his people to hand over the eddies. The path starts at choice 96 option 2 (\"I'd think real hard about your next move\") through nodes 147/152.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/al5-01/raw/base/base/quest/minor_quests/mq002/scenes/mq002_01_deal.scene.json",
+        "assetSha256": "d2020c4ffa9b231640945a26c1c4309aa24506a8fed192a125d8a7f5fd0ad603",
+        "jsonSha256": "234686a7eababba5d4280fc2912a19898e500ef77c8c55f9cd939787a4afc6b9",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data",
+        "expectedType": "scnSectionNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-01/raw/base/base/quest/minor_quests/mq002/scenes/mq002_01_deal.scene.json",
+          "assetSha256": "d2020c4ffa9b231640945a26c1c4309aa24506a8fed192a125d8a7f5fd0ad603",
+          "jsonSha256": "234686a7eababba5d4280fc2912a19898e500ef77c8c55f9cd939787a4afc6b9",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.6d1d8c6e6109",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Objective \"Defeat the scavengers\" (03_fight) is Active only when the deal turns to combat (mq002_beginning to_combat / hostile-action nodes) and is Succeeded by mq002_combat node 10 once the scavs are defeated.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/4/Data/entries/65/Data/entries/0/Data/entries/2/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "03_fight"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/minor_quests/mq002/phases/mq002_combat.questphase.json",
+          "assetSha256": "8f3223b26f9fb41103aa6ebb2018a9b8d704726e2426426b8c0ad250ba3c2c75",
+          "jsonSha256": "b6c45c9e174bb53f193f30f5eed02cea102e5008c3c1efb18d82a787824f4ca2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/minor_quests/mq002/phases/mq002_beginning.questphase.json",
+          "assetSha256": "5140f2e447a3b809dc0355603d632fb00c6f712a7f19eaa89ba7cbf29165cb6d",
+          "jsonSha256": "627dea4b561b0ad371fb41da8d89b0aa10b9e34a24f0fac802fdff01e2153e31",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/39/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.fact.mq002_escaped.6970eaa7eb50",
+      "sourceId": "al5.source.2971d77e785f",
+      "kind": "native",
+      "locator": "mq002_escaped is incremented (never reset) only after V leaves the area (trigger) in mq002_beginning node 29 or mq002_ending node 22; both exits feed the quest_fails socket and the quest is set Failed.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/minor_quests/mq002/phases/mq002_beginning.questphase.json",
+        "assetSha256": "5140f2e447a3b809dc0355603d632fb00c6f712a7f19eaa89ba7cbf29165cb6d",
+        "jsonSha256": "627dea4b561b0ad371fb41da8d89b0aa10b9e34a24f0fac802fdff01e2153e31",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/19/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "mq002_escaped",
+          "/value": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/minor_quests/mq002/phases/mq002_ending.questphase.json",
+          "assetSha256": "225626d645c3d5403c3f603cba07c73ac14eae7e1f17e38990101416f7961ee5",
+          "jsonSha256": "d2a38cd0363d4fc3646ad293ffda8044e6f3c9dad14916dfa747c902f1978305",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "mq002_escaped",
+            "/value": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.331791d7e386",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Carol's message mq002_escaped (\"We put our hopes on you, V. Fool us once, right?\") is activated by mq002.questphase only on the False side of node 147 (quest Succeeded), i.e. when Gun Music did not succeed.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/144/Data/entries/3/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "mq002_escaped"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/minor_quests/mq002/mq002.questphase.json",
+          "assetSha256": "597f436f4786388e783d30c74d4a3734d3b727b74f27501d97e2f96e311a941f",
+          "jsonSha256": "5a94ef69a920c0cc33f3f2267fc5518e02af04911a601aa37d2e6693e24929f0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/24/Data",
+          "expectedType": "questConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.2b42f53654dc",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Cassidy's sq004_followup messages (01_watch_it, then 02_quote) are activated by sq004_messages nodes 83/84 only after the condition sq004_var_kissed_panam == 1 (node 92) is True.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/130/Data/entries/0/Data/entries/1/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "02_quote"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/side_quests/sq004/phases/sq004_messages.questphase.json",
+          "assetSha256": "dd7a59d12380d4acb3c278f97536b6aad8f5369f30f11395dfd5bda9f650a5fd",
+          "jsonSha256": "917f70d2257a4683ec09217c02eff2739b1933a2574ff2dd3d25ce08edd93cb5",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/28/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/side_quests/sq004/phases/sq004_messages.questphase.json",
+          "assetSha256": "dd7a59d12380d4acb3c278f97536b6aad8f5369f30f11395dfd5bda9f650a5fd",
+          "jsonSha256": "917f70d2257a4683ec09217c02eff2739b1933a2574ff2dd3d25ce08edd93cb5",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/34/Data",
+          "expectedType": "questConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.64831db32d48",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Objective \"Go to the meeting with the hospital employee\" is set Active by mq021_hospital_meeting node 24 as soon as that phase starts; the phase starts only on the mq_yes socket of the mq021_01_briefing scene, i.e. after V accepts Bob's request.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/4/Data/entries/56/Data/entries/0/Data/entries/0/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "04_meeting"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/minor_quests/mq021/phases/mq021_hospital_meeting.questphase.json",
+          "assetSha256": "0b57674cd563980f3278a23624e9d194c484a3eb7913efa30229d3d81d74041c",
+          "jsonSha256": "467a7765ccb03795a41f8ebdb6cf05576ceecaaf2b2b003eb1334532f8ab445b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.fact.mq021_happy_ending.be839269563b",
+      "sourceId": "al5.source.39fe54b92a41",
+      "kind": "native",
+      "locator": "mq021_happy_ending is incremented only by mq021_02_hospital_meeting nodes 42 and 45, reached after the doctor admits the police tampering and V takes the original-firmware shard (choices 80 / 33 option 2 then 244). It is never reset.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/al5-02/raw/base/base/quest/minor_quests/mq021/scenes/mq021_02_hospital_meeting.scene.json",
+        "assetSha256": "9c3a4224a021f971fcc4f11247e773edf683a8def265c14c23fef77ae78c4a4e",
+        "jsonSha256": "66d9c37128ad55e739bd09e19c25d8e8e0f2da619c4b408917079f2cc3de9950",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "mq021_happy_ending",
+          "/value": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-02/raw/base/base/quest/minor_quests/mq021/scenes/mq021_02_hospital_meeting.scene.json",
+          "assetSha256": "9c3a4224a021f971fcc4f11247e773edf683a8def265c14c23fef77ae78c4a4e",
+          "jsonSha256": "66d9c37128ad55e739bd09e19c25d8e8e0f2da619c4b408917079f2cc3de9950",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "mq021_happy_ending",
+            "/value": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.fortunate.delivery-scene",
+      "sourceId": "al5.source.e75455afab22",
+      "kind": "native",
+      "locator": "mq021_03_ending.scene choice 18: the option \"I've got the implant... but it's infected\" is available only when mq021_happy_ending > 0 (the other only at == 0). Node 53 then leads to node 35, which Succeeds objective 08_outcome (isock ordinal 3).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/al5-02/raw/base/base/quest/minor_quests/mq021/scenes/mq021_03_ending.scene.json",
+        "assetSha256": "fea6875ce415724ae1a5683a2f16ad034c32ee01abbe31b5613f591bbfeb8c97",
+        "jsonSha256": "4ccbf404b74613c0ae96f42a0ed97d0776a1bddb734e072bce940c0f35026b84",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-02/raw/base/base/quest/minor_quests/mq021/scenes/mq021_03_ending.scene.json",
+          "assetSha256": "fea6875ce415724ae1a5683a2f16ad034c32ee01abbe31b5613f591bbfeb8c97",
+          "jsonSha256": "4ccbf404b74613c0ae96f42a0ed97d0776a1bddb734e072bce940c0f35026b84",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/al5-02/raw/base/base/quest/minor_quests/mq021/scenes/mq021_03_ending.scene.json",
+          "assetSha256": "fea6875ce415724ae1a5683a2f16ad034c32ee01abbe31b5613f591bbfeb8c97",
+          "jsonSha256": "4ccbf404b74613c0ae96f42a0ed97d0776a1bddb734e072bce940c0f35026b84",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.897053785c03",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Objective 08_outcome \"Return to the Aldecaldos camp\" is Active after the hospital meeting and is Succeeded only by mq021_03_ending scene node 35 right after V sets the implant down for Bob.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/4/Data/entries/56/Data/entries/0/Data/entries/4/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "08_outcome"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-02/raw/base/base/quest/minor_quests/mq021/scenes/mq021_03_ending.scene.json",
+          "assetSha256": "fea6875ce415724ae1a5683a2f16ad034c32ee01abbe31b5613f591bbfeb8c97",
+          "jsonSha256": "4ccbf404b74613c0ae96f42a0ed97d0776a1bddb734e072bce940c0f35026b84",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/al5-02/raw/base/base/quest/minor_quests/mq021/scenes/mq021_03_ending.scene.json",
+          "assetSha256": "fea6875ce415724ae1a5683a2f16ad034c32ee01abbe31b5613f591bbfeb8c97",
+          "jsonSha256": "4ccbf404b74613c0ae96f42a0ed97d0776a1bddb734e072bce940c0f35026b84",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.fact.mq021_bob_ending_approached.9cb6317f1505",
+      "sourceId": "al5.source.e75455afab22",
+      "kind": "native",
+      "locator": "mq021_bob_ending_approached is set only by mq021_03_ending node 51, which is reached from choice 6 \"How's Jake doing?\".",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/al5-02/raw/base/base/quest/minor_quests/mq021/scenes/mq021_03_ending.scene.json",
+        "assetSha256": "fea6875ce415724ae1a5683a2f16ad034c32ee01abbe31b5613f591bbfeb8c97",
+        "jsonSha256": "4ccbf404b74613c0ae96f42a0ed97d0776a1bddb734e072bce940c0f35026b84",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "mq021_bob_ending_approached",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "al5.ev.journal.7099204f7537",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Fortunate Son quest entry; Succeeded by mq021_outcome after the mq021_03_ending outcome scene.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/4/Data/entries/56/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "mq021_guide"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-07/raw/base/base/quest/minor_quests/mq021/phases/mq021_outcome.questphase.json",
+          "assetSha256": "1d0c178d8eeabee59ab1425bf2dd3a39132d9842fc614a73b9dd1770874c76f9",
+          "jsonSha256": "3134f4af59c46d46340b48435a0432499080336688e8af2422fd474f01ec439f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.fortunate.result-switch",
+      "sourceId": "al5.source.e75455afab22",
+      "kind": "native",
+      "locator": "mq021_03_ending.scene node 4 tests mq021_happy_ending > 0 after V asks \"How's Jake doing?\" (node 51): the True branch continues Bob's good-news line (\"He's easin' into it, slowly\"), the False branch goes to node 12 (\"I don't have any good news. The implant didn't take\").",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/al5-02/raw/base/base/quest/minor_quests/mq021/scenes/mq021_03_ending.scene.json",
+        "assetSha256": "fea6875ce415724ae1a5683a2f16ad034c32ee01abbe31b5613f591bbfeb8c97",
+        "jsonSha256": "4ccbf404b74613c0ae96f42a0ed97d0776a1bddb734e072bce940c0f35026b84",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-02/raw/base/base/quest/minor_quests/mq021/scenes/mq021_03_ending.scene.json",
+          "assetSha256": "fea6875ce415724ae1a5683a2f16ad034c32ee01abbe31b5613f591bbfeb8c97",
+          "jsonSha256": "4ccbf404b74613c0ae96f42a0ed97d0776a1bddb734e072bce940c0f35026b84",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.5d6e9c75441e",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Objective \"Talk to Dakota and Carol\" is Succeeded by q114_preparations node 36 after the q114_03c_dakota_trailer scene reaches its post-alt section (socket q114_03c_setupinitiation0ut); Dakota and Carol are the scene actors.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/5/Data/entries/1/Data/entries/16/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "dakota_carol_wrap"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/part1/q114/phases/q114_preparations.questphase.json",
+          "assetSha256": "91dd573bf2ed8396243018e1176daecc5d51fcc1e879614e917a1f5fe6393dad",
+          "jsonSha256": "3db4eb8a42d0918ed04ac576d4207e7e058f9b50a9f2303a5f69139683de0da8",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/16/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.ec75551516aa",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Objective \"Talk to Alt\" is Succeeded by the cyberspace_out socket of q114_cyberspace_manager inside q114_preparations (node 80), after V's meeting with Alt (q114_03d_alt_meeting).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/5/Data/entries/1/Data/entries/4/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "talk_alt"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/part1/q114/phases/q114_preparations.questphase.json",
+          "assetSha256": "91dd573bf2ed8396243018e1176daecc5d51fcc1e879614e917a1f5fe6393dad",
+          "jsonSha256": "3db4eb8a42d0918ed04ac576d4207e7e058f9b50a9f2303a5f69139683de0da8",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/7/Data/phaseGraph/Data/nodes/33/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.fact.q114_bottle_hit.93b660fbf4cf",
+      "sourceId": "al5.source.7ce34a614ac1",
+      "kind": "native",
+      "locator": "q114_bottle_hit is incremented by 1 for every bottle hit by 17 writers in q114_party and is never reset or decreased; the party scene compares it with <= 4/6/8/10 (Cassidy's reaction tiers) and the revolver offer follows for higher counts.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+        "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+        "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/4/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q114_bottle_hit",
+          "/value": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/6/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q114_bottle_hit",
+            "/value": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/8/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q114_bottle_hit",
+            "/value": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/10/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q114_bottle_hit",
+            "/value": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/12/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q114_bottle_hit",
+            "/value": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/14/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q114_bottle_hit",
+            "/value": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/16/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q114_bottle_hit",
+            "/value": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/18/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q114_bottle_hit",
+            "/value": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/20/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q114_bottle_hit",
+            "/value": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/22/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q114_bottle_hit",
+            "/value": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/24/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q114_bottle_hit",
+            "/value": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/26/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q114_bottle_hit",
+            "/value": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/28/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q114_bottle_hit",
+            "/value": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/30/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q114_bottle_hit",
+            "/value": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/32/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q114_bottle_hit",
+            "/value": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/34/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q114_bottle_hit",
+            "/value": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/36/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q114_bottle_hit",
+            "/value": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.together.bottle-switch",
+      "sourceId": "al5.source.3833e09af70a",
+      "kind": "native",
+      "locator": "q114_04b_party.scene node 1152 tests q114_bottle_hit <= 10: the True branch ends in the \"Not bad... you coulda done better\" tier, the False branch (11 or more) goes through 1157/1173 to Cassidy's praise, then node 1337 and choice 1299 where she offers her revolver.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/al5-03/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04b_party.scene.json",
+        "assetSha256": "bcd013c5059b16a5df05f324e9b9ca1cc503f7ef089810f688f627653694b027",
+        "jsonSha256": "4a56e07003ea3f29fbda009bf8981d84751a91beb180b78921d3e0b3e7f7a4ac",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-03/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04b_party.scene.json",
+          "assetSha256": "bcd013c5059b16a5df05f324e9b9ca1cc503f7ef089810f688f627653694b027",
+          "jsonSha256": "4a56e07003ea3f29fbda009bf8981d84751a91beb180b78921d3e0b3e7f7a4ac",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/al5-03/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04b_party.scene.json",
+          "assetSha256": "bcd013c5059b16a5df05f324e9b9ca1cc503f7ef089810f688f627653694b027",
+          "jsonSha256": "4a56e07003ea3f29fbda009bf8981d84751a91beb180b78921d3e0b3e7f7a4ac",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/44/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/al5-03/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04b_party.scene.json",
+          "assetSha256": "bcd013c5059b16a5df05f324e9b9ca1cc503f7ef089810f688f627653694b027",
+          "jsonSha256": "4a56e07003ea3f29fbda009bf8981d84751a91beb180b78921d3e0b3e7f7a4ac",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data",
+          "expectedType": "scnChoiceNode"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.d349b2ac411c",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Optional objective \"Shoot at least 12 bottles in 15 seconds\" is part of the party contest; it only shows that the contest was played (it is Succeeded in a save with 7 hits), so the rule also requires the hit count.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/5/Data/entries/2/Data/entries/3/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "shoot_bottles"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/52/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.279398e507c4",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Objective \"Talk to Panam\" is the closing objective of the q114 camp party; the party phase q114_party spawns the party guests (singer, bruce) before it.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/5/Data/entries/2/Data/entries/5/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "talk_panam"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/39/Data",
+          "expectedType": "questConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.together.party-jake",
+      "sourceId": "al5.source.7ce34a614ac1",
+      "kind": "native",
+      "locator": "q114_party node 141 tests mq021_happy_ending > 0; True leads to node 136 (spawn of \"singer\" for the party song scene, Jake aka Scooter), False hides the marker. In the party scene V can ask Jake how he feels and the kidney \"taken just like a new oil filter\".",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+        "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+        "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/39/Data",
+        "expectedType": "questConditionNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/35/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.fact.ina_05_done.5f459cd0d867",
+      "sourceId": "al5.source.313ce46098f6",
+      "kind": "native",
+      "locator": "ina_05_done is written once, in sts_bls_ina_05_openworld_phase node 290 when the Goodbye, Night City gig quest entry Succeeds; never reset.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+        "assetSha256": "8defa3b841a70bfde5c4570abd9d53a1a3f2b303efc9bc9880a9cc3a4b2e19b1",
+        "jsonSha256": "83944fa3d39c62b93cc87d0cf10620493dbd33eb3c521b00b33041362940c090",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/50/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "ina_05_done",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "al5.ev.together.party-bruce",
+      "sourceId": "al5.source.7ce34a614ac1",
+      "kind": "native",
+      "locator": "q114_party node 142 tests ina_05_done > 0; True leads to node 143 (spawn of bruce) feeding the Welby_In section of q114_04b_party, where Bruce talks with V; Dakota is also at that party.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+        "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+        "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/40/Data",
+        "expectedType": "questConditionNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "assetSha256": "f38f9d4e570ea31b941933d2284d7614e502e57df28175387d085a0c5966994d",
+          "jsonSha256": "aa2e1f65594f1140900bf4f2736976412a6840c87a371da04667fcb6e5e57e43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/41/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.2f993d2812ee",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Objective \"Talk to River\" is Succeeded by q202_05_convoy node 1473 (input socket ordinal 3 = Succeeded) right after River's farewell (\"I'm stayin'. Got to.\" / \"I can't go with you. I just can't.\").",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/1/Data/entries/1/Data/entries/1/Data/entries/1/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "say_goodbye"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q202/scenes/q202_05_convoy.scene.json",
+          "assetSha256": "b21a064d4583363bbb080195166a2257ff8107a55837020dfe5489fd77b9a9da",
+          "jsonSha256": "b170155c0577ef9a317b2e6a4097707a693f3f2efc26dacb1e5bc3928a73213f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/97/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.8c53e1ed2d45",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Objective \"Talk to Kerry\" is Succeeded by q202_05_convoy node 1497 (ordinal 3) after Kerry's goodbye (\"I can't leave. Not now\" ... \"if you ever pass through Night City, don't be a stranger\").",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/1/Data/entries/1/Data/entries/1/Data/entries/8/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "talk_kerry"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q202/scenes/q202_05_convoy.scene.json",
+          "assetSha256": "b21a064d4583363bbb080195166a2257ff8107a55837020dfe5489fd77b9a9da",
+          "jsonSha256": "b170155c0577ef9a317b2e6a4097707a693f3f2efc26dacb1e5bc3928a73213f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/111/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.d3d6cfe53b1b",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Panam's \"We can help you\" friendship texts (02_msg_panam_friend, \"Just remember that you have friends – that you have me\") are activated by q114_msg_panam_ending_hook only on the False side of node 1 (sq027_panam_lover > 0); the lover texts use a different conversation. sq027_panam_lover is only written inside Queen of the Highway.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/67/Data/entries/10/Data/entries/1/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "02_msg_panam_friend"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/messages/q114_msg_panam_ending_hook.questphase.json",
+          "assetSha256": "c7d2015c8546178f5ef690d027330f40e480078ee78f3a7be60b54c5a08a796d",
+          "jsonSha256": "67f204904cae094cdc3196a312796a77300c8280b6c2ec99d83c167caee6fb3c",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/13/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/messages/q114_msg_panam_ending_hook.questphase.json",
+          "assetSha256": "c7d2015c8546178f5ef690d027330f40e480078ee78f3a7be60b54c5a08a796d",
+          "jsonSha256": "67f204904cae094cdc3196a312796a77300c8280b6c2ec99d83c167caee6fb3c",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.80dbed4899d7",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Objective \"Talk to Panam\" in the Devil ending cabin days (existing selector reused unchanged).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/1/Data/entries/3/Data/entries/4/Data/entries/2/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "03_talk_to_panam"
+        }
+      }
+    },
+    {
+      "id": "al5.ev.devil.call-switch",
+      "sourceId": "al5.source.cedbbb335d97",
+      "kind": "native",
+      "locator": "q201_05_cabin_day_7.scene node 2402 tests sq027_panam_lover == 1: True leads to Panam's angry greeting (\"You've got some nerve!\"), False to the friendly one (\"Hey. Wow, it's been a while since I heard that voice.\"). The friendship texts exist only when that flag is not set.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_05_cabin_day_7.scene.json",
+        "assetSha256": "c351382e9b2b3e0ae9bf0672a2f09890e1bfa6b941d10f4660c11fc08d08e0c0",
+        "jsonSha256": "e1038968bf42fb9660b37a1dcf55e626a75d8e3ccb45c7161d0e3ed3d4d1b5ae",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data",
+        "expectedType": "scnQuestNode"
+      }
+    },
+    {
+      "id": "al5.ev.journal.513bb3a306dd",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Panam's q204 text chain (Call me! ... \"Johnny? You fucking sociopath... I'm going to find you and get V back\") is the subphase in q204_00_setup that runs only on the True side of q115_panam_romance_chosen > 0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/67/Data/entries/1/Data/entries/4/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "05_panam_msg_ill_find_you"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q204/phases/q204_00_setup.questphase.json",
+          "assetSha256": "90c8576d6bb78376ecf57353c1dfbd3156bf89d33d239f255b5219a08a600351",
+          "jsonSha256": "52f0dc428715028a0915d03eb934b823a60b98491ed8132b81cee296f8255b1a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/7/Data/phaseGraph/Data/nodes/6/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/epilogue/q204/phases/q204_00_setup.questphase.json",
+          "assetSha256": "90c8576d6bb78376ecf57353c1dfbd3156bf89d33d239f255b5219a08a600351",
+          "jsonSha256": "52f0dc428715028a0915d03eb934b823a60b98491ed8132b81cee296f8255b1a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/3/Data",
+          "expectedType": "questConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.fact.q305_asked_carol_help.8b3127e392a2",
+      "sourceId": "al5.source.5cac098003e6",
+      "kind": "native",
+      "locator": "q305_asked_carol_help is written only by q305_01_task node 158, after the q305_01_Carol_main_call_out socket of q305_01_holocalls_to_netrunner. That socket is the End node 721 reached from Carol's refusals (lines 826/837); the \"call you back later\" path ends at q305_01_Carol_return_call_out (node 841) instead.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+        "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+        "jsonSha256": "dfd7617f8188c83d00f5f644d6cfb302f94f107bc6f5975095017668f72117ad",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data/phaseGraph/Data/nodes/36/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q305_asked_carol_help",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "al5.ev.blacksteel.carol-call-exit",
+      "sourceId": "al5.source.c6fc31189cd7",
+      "kind": "native",
+      "locator": "q305_01_holocalls_to_netrunner: exit q305_01_Carol_main_call_out is End node 721, reached from Carol's refusals (\"No, V. And I'm sorry – risk's just too great\", \"family's safety comes first\"); the call-back path ends at a different exit.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q305/scenes/q305_01_holocalls_to_netrunner.scene.json",
+        "assetSha256": "b1ba1a7b960fee7520e1afd4243c8e4c203b2bee127fc350c08840663ff87ba9",
+        "jsonSha256": "89664064a95aa6aad4523add0e6588e95941814cc82249148f25433046dd1796",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data",
+        "expectedType": "scnEndNode"
+      }
+    },
+    {
+      "id": "al5.ev.journal.d356a65c8b49",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Carol's message 01_carol_additional_question (\"If you had your druthers... a first-rate firearm or a quality hack?\") starts the q305_ambush_gift conversation, which follows her offer to \"zip you somethin'\" in the refusal call.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/144/Data/entries/4/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "01_carol_additional_question"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+          "assetSha256": "9e74c37e9e9fccdeabe205221ab967ff309af3fd8af79302ad1e8b1993112e64",
+          "jsonSha256": "dfd7617f8188c83d00f5f644d6cfb302f94f107bc6f5975095017668f72117ad",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data/phaseGraph/Data/nodes/6/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.79e570d8273d",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Dakota's message badlands_reward (\"This was the last contract you'll see from me... I have a parting gift for you - it is already waiting for you in the garage\") is sent by the Every Grain of Sand reward phase in street_stories_new_fixer_loop, which also activates the get_reward objective.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/133/Data/entries/9/Data/entries/22/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "badlands_reward"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/fr5-02/raw/base/base/open_world/street_stories/street_stories_new_fixer_loop.questphase.json",
+          "assetSha256": "d02ab1709e8f80653532db869df6842d8e74bb0c09f33a700c488214ce477c5f",
+          "jsonSha256": "960d9abacfe59df1fb85e8d0d86b41386079f7cee651e2ec6c02cb82013fa62f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/7/Data/phaseGraph/Data/nodes/10/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.feeff117cefe",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Iris Tanner's text is sent by sts_bls_ina_06_ow after the gig is finished, on a chain that requires ina_06_car_delivered > 0 (node 198 True); it is her own message.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/123/Data/entries/0/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "ina_06_optional_objective_reward"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+          "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+          "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/82/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.fact.ina_05_finished.250d43d2197f",
+      "sourceId": "al5.source.313ce46098f6",
+      "kind": "native",
+      "locator": "ina_05_finished is written once (sts_bls_ina_05_openworld_phase node 294) after the reward is collected or when the optional already failed; never reset.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+        "assetSha256": "8defa3b841a70bfde5c4570abd9d53a1a3f2b303efc9bc9880a9cc3a4b2e19b1",
+        "jsonSha256": "83944fa3d39c62b93cc87d0cf10620493dbd33eb3c521b00b33041362940c090",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/52/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "ina_05_finished",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "al5.ev.fact.ina_05_archi_talk_ended.429b58dde47d",
+      "sourceId": "al5.source.313ce46098f6",
+      "kind": "native",
+      "locator": "ina_05_archi_talk_ended is written only after the sts_bls_ina_05_archibald scene ends (V brings Bruce to Archibald); in the debrief selector this is the branch where Bruce was not left alone.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+        "assetSha256": "8defa3b841a70bfde5c4570abd9d53a1a3f2b303efc9bc9880a9cc3a4b2e19b1",
+        "jsonSha256": "83944fa3d39c62b93cc87d0cf10620493dbd33eb3c521b00b33041362940c090",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/12/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "ina_05_archi_talk_ended",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "al5.ev.goodbye.casualty-switch",
+      "sourceId": "al5.source.f917a20fabcb",
+      "kind": "native",
+      "locator": "ina_05: gameplay phase node 14 sets ina_05_optional_failed only when a listed guard/worker is killed=1 defeated=0 unconscious=0 (a real kill). In the openworld phase optional_failed > 0 sets dont_kill_militech Failed (node 284); otherwise it is Succeeded after the debrief (node 286). Dakota's debrief picks \"...without unnecessary bloodshed\" (01_full) vs \"I said no unnecessary bloodshed\" (02_optional_failed) on the same fact when Bruce was delivered.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/al5-10/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_gameplay_phase.questphase.json",
+        "assetSha256": "c58c62b478ad74c3679246fbded09d2af3e65b6e4ab3056dfa22db26c70a626b",
+        "jsonSha256": "2ff9b9022a29eeca4363bee4dbc9d08c468001119a9683b5b8ccc9a7a6049b66",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseGraph/Data/nodes/5/Data",
+        "expectedType": "questPauseConditionNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+          "assetSha256": "8defa3b841a70bfde5c4570abd9d53a1a3f2b303efc9bc9880a9cc3a4b2e19b1",
+          "jsonSha256": "83944fa3d39c62b93cc87d0cf10620493dbd33eb3c521b00b33041362940c090",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/48/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+          "assetSha256": "8defa3b841a70bfde5c4570abd9d53a1a3f2b303efc9bc9880a9cc3a4b2e19b1",
+          "jsonSha256": "83944fa3d39c62b93cc87d0cf10620493dbd33eb3c521b00b33041362940c090",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/49/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al5.ev.journal.ded60de0c64f",
+      "sourceId": "al5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Objective \"Do not kill any Militech personnel\" (dont_kill_militech): Failed by openworld node 284 as soon as ina_05_optional_failed > 0 (a listed guard/worker killed); otherwise Succeeded (node 286 after the debrief, or the \"if still Active\" clean-ups at the end of the gig). A Failed objective is not overwritten.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/6/Data/entries/0/Data/entries/0/Data/entries/5/Data/entries/0/Data/entries/11/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "dont_kill_militech"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+          "assetSha256": "8defa3b841a70bfde5c4570abd9d53a1a3f2b303efc9bc9880a9cc3a4b2e19b1",
+          "jsonSha256": "83944fa3d39c62b93cc87d0cf10620493dbd33eb3c521b00b33041362940c090",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/49/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+          "assetSha256": "8defa3b841a70bfde5c4570abd9d53a1a3f2b303efc9bc9880a9cc3a4b2e19b1",
+          "jsonSha256": "83944fa3d39c62b93cc87d0cf10620493dbd33eb3c521b00b33041362940c090",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/48/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    }
+  ],
+  "factAllowlist": {
+    "mq001_abandoned": {
+      "evidenceRefs": [
+        "al5.ev.fact.mq001_abandoned.94e3929750db"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/minor_quests/mq001/mq001.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/2/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "mq002_deal_proceeded": {
+      "evidenceRefs": [
+        "al5.ev.fact.mq002_deal_proceeded.9949f262aaa4"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/al5-01/raw/base/base/quest/minor_quests/mq002/scenes/mq002_01_deal.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "mq002_escaped": {
+      "evidenceRefs": [
+        "al5.ev.fact.mq002_escaped.6970eaa7eb50"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/minor_quests/mq002/phases/mq002_beginning.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/19/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/minor_quests/mq002/phases/mq002_ending.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 2
+      }
+    },
+    "mq021_happy_ending": {
+      "evidenceRefs": [
+        "al5.ev.fact.mq021_happy_ending.be839269563b"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/al5-02/raw/base/base/quest/minor_quests/mq021/scenes/mq021_02_hospital_meeting.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-02/raw/base/base/quest/minor_quests/mq021/scenes/mq021_02_hospital_meeting.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 2
+      }
+    },
+    "mq021_bob_ending_approached": {
+      "evidenceRefs": [
+        "al5.ev.fact.mq021_bob_ending_approached.9cb6317f1505"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/al5-02/raw/base/base/quest/minor_quests/mq021/scenes/mq021_03_ending.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q114_bottle_hit": {
+      "evidenceRefs": [
+        "al5.ev.fact.q114_bottle_hit.93b660fbf4cf"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/4/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/6/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/8/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/10/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/12/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/14/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/16/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/18/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/20/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/22/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/24/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/26/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/28/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/30/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/32/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/34/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/al5-05/raw/base/base/quest/main_quests/part1/q114/phases/q114_party.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/36/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 17
+      }
+    },
+    "ina_05_done": {
+      "evidenceRefs": [
+        "al5.ev.fact.ina_05_done.5f459cd0d867"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/50/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q305_asked_carol_help": {
+      "evidenceRefs": [
+        "al5.ev.fact.q305_asked_carol_help.8b3127e392a2"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q305/phases/q305_01_task.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data/phaseGraph/Data/nodes/36/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "ina_05_finished": {
+      "evidenceRefs": [
+        "al5.ev.fact.ina_05_finished.250d43d2197f"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/52/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "ina_05_archi_talk_ended": {
+      "evidenceRefs": [
+        "al5.ev.fact.ina_05_archi_talk_ended.429b58dde47d"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/12/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    }
+  },
+  "journalAllowlist": {
+    "al5.wartime.scan-tire-tracks": {
+      "questKey": "life-during-wartime",
+      "nativePath": "quests/main_quest/act_01/q104_02_av_chase/finding_courier/scan_tire_tracks",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al5.ev.journal.3d1efb672cee"
+      ]
+    },
+    "al5.farewell.completed": {
+      "questKey": "ill-fly-away",
+      "nativePath": "quests/minor_quest/mq001_scorpion",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "al5.ev.journal.5d8e3f728025"
+      ]
+    },
+    "al5.gun.completed": {
+      "questKey": "gun-music",
+      "nativePath": "quests/minor_quest/mq002_veterans",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "al5.ev.journal.357f9360e7cb"
+      ]
+    },
+    "al5.gun.fight-won": {
+      "questKey": "gun-music",
+      "nativePath": "quests/minor_quest/mq002_veterans/mq002_veterans/03_fight",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al5.ev.journal.6d1d8c6e6109"
+      ]
+    },
+    "al5.gun.carol-escaped-msg": {
+      "questKey": "gun-music",
+      "nativePath": "contacts/carol/mq002_post_veterans/mq002_escaped",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "al5.ev.journal.331791d7e386"
+      ]
+    },
+    "al5.gun.cassidy-quote": {
+      "questKey": "gun-music",
+      "nativePath": "contacts/cassidy/sq004_followup/02_quote",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "al5.ev.journal.2b42f53654dc"
+      ]
+    },
+    "al5.fortunate.meeting": {
+      "questKey": "fortunate-son",
+      "nativePath": "quests/minor_quest/mq021_guide/mq021_guide/04_meeting",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al5.ev.journal.64831db32d48"
+      ]
+    },
+    "al5.fortunate.implant-delivered": {
+      "questKey": "fortunate-son",
+      "nativePath": "quests/minor_quest/mq021_guide/mq021_guide/08_outcome",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al5.ev.journal.897053785c03"
+      ]
+    },
+    "al5.fortunate.completed": {
+      "questKey": "fortunate-son",
+      "nativePath": "quests/minor_quest/mq021_guide",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "al5.ev.journal.7099204f7537"
+      ]
+    },
+    "al5.initiation.dakota-carol-wrap": {
+      "questKey": "we-gotta-live-together",
+      "nativePath": "quests/main_quest/act_01/q114_01_nomad_initiation/preparations/dakota_carol_wrap",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al5.ev.journal.5d6e9c75441e"
+      ]
+    },
+    "al5.initiation.talk-alt": {
+      "questKey": "we-gotta-live-together",
+      "nativePath": "quests/main_quest/act_01/q114_01_nomad_initiation/preparations/talk_alt",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al5.ev.journal.ec75551516aa"
+      ]
+    },
+    "al5.initiation.shoot-bottles": {
+      "questKey": "we-gotta-live-together",
+      "nativePath": "quests/main_quest/act_01/q114_01_nomad_initiation/party/shoot_bottles",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al5.ev.journal.d349b2ac411c"
+      ]
+    },
+    "al5.initiation.party-talk-panam": {
+      "questKey": "we-gotta-live-together",
+      "nativePath": "quests/main_quest/act_01/q114_01_nomad_initiation/party/talk_panam",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al5.ev.journal.279398e507c4"
+      ]
+    },
+    "al5.watchtower.say-goodbye-river": {
+      "questKey": "all-along-the-watchtower",
+      "nativePath": "quests/main_quest/epilogues/q202_nomads/temp_river/say_goodbye",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al5.ev.journal.2f993d2812ee"
+      ]
+    },
+    "al5.watchtower.talk-kerry": {
+      "questKey": "all-along-the-watchtower",
+      "nativePath": "quests/main_quest/epilogues/q202_nomads/temp_river/talk_kerry",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al5.ev.journal.8c53e1ed2d45"
+      ]
+    },
+    "al5.panam.friendship-hook": {
+      "questKey": "queen-of-the-highway",
+      "nativePath": "contacts/panam/q114_panam_ending_hook_friendship/02_msg_panam_friend",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "al5.ev.journal.d3d6cfe53b1b"
+      ]
+    },
+    "endings.devil.panam-orbital-call": {
+      "questKey": "where-is-my-mind",
+      "nativePath": "quests/main_quest/epilogues/q201_heir/06_cabin_day_3/03_talk_to_panam",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al5.ev.journal.80dbed4899d7"
+      ]
+    },
+    "al5.temperance.panam-find-you": {
+      "questKey": "new-dawn-fades",
+      "nativePath": "contacts/panam/q204/05_panam_msg_ill_find_you",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "al5.ev.journal.513bb3a306dd"
+      ]
+    },
+    "al5.blacksteel.carol-gift-question": {
+      "questKey": "black-steel-in-the-hour-of-chaos",
+      "nativePath": "contacts/carol/q305_ambush_gift/01_carol_additional_question",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "al5.ev.journal.d356a65c8b49"
+      ]
+    },
+    "al5.reward.dakota-last-contract": {
+      "questKey": "every-grain-of-sand",
+      "nativePath": "contacts/dakota_smith/dakota_global_msg/badlands_reward",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "al5.ev.journal.79e570d8273d"
+      ]
+    },
+    "al5.nofixers.iris-thanks": {
+      "questKey": "gig-no-fixers",
+      "nativePath": "contacts/iris_tanner/sts_bls_ina_06_optional_reward_sms/ina_06_optional_objective_reward",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "al5.ev.journal.feeff117cefe"
+      ]
+    },
+    "al5.goodbye.no-kill-ok": {
+      "questKey": "gig-goodbye-night-city",
+      "nativePath": "quests/street_stories/badlands/inland_avenue/sts_bls_ina_05/sts_bls_ina_05/dont_kill_militech",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al5.ev.journal.ded60de0c64f"
+      ]
+    },
+    "al5.goodbye.no-kill-failed": {
+      "questKey": "gig-goodbye-night-city",
+      "nativePath": "quests/street_stories/badlands/inland_avenue/sts_bls_ina_05/sts_bls_ina_05/dont_kill_militech",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al5.ev.journal.ded60de0c64f"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "al5.wartime.tracks-followed",
+      "revision": 1,
+      "questKey": "life-during-wartime",
+      "topic": "hellman.pursuit-information",
+      "outcome": "tracks-followed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "While chasing Hellman after the AV crash, V and Panam followed physical evidence: V scanned the tire tracks at the crash site to trace where Hellman was taken.",
+      "sourceIds": [
+        "al5.source.0ad9df718bef",
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.wartime.tracking-switch",
+        "al5.ev.journal.3d1efb672cee"
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "al5.wartime.scan-tire-tracks",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.wartime.pilot-information",
+          "outcomeKey": "tracks-followed"
+        }
+      ]
+    },
+    {
+      "id": "al5.farewell.attended",
+      "revision": 1,
+      "questKey": "ill-fly-away",
+      "topic": "mitch.scorpion-farewell",
+      "outcome": "attended",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V went with Mitch to the bridge and shared the send-off for Scorpion in I'll Fly Away, completing it with him.",
+      "sourceIds": [
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.journal.5d8e3f728025"
+      ],
+      "audience": {
+        "speakers": [
+          "mitch-anderson"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mitch-anderson"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "al5.farewell.completed",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.fly.farewell",
+          "outcomeKey": "attended"
+        }
+      ]
+    },
+    {
+      "id": "al5.farewell.missed",
+      "revision": 1,
+      "questKey": "ill-fly-away",
+      "topic": "mitch.scorpion-farewell",
+      "outcome": "missed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V did not see Mitch's farewell for Scorpion through: I'll Fly Away was abandoned and failed, so V was not with him at the bridge.",
+      "sourceIds": [
+        "al5.source.cb1932c64c70"
+      ],
+      "evidenceRefs": [
+        "al5.ev.fact.mq001_abandoned.94e3929750db"
+      ],
+      "audience": {
+        "speakers": [
+          "mitch-anderson"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mitch-anderson"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "mq001_abandoned",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.fly.farewell",
+          "outcomeKey": "missed"
+        }
+      ]
+    },
+    {
+      "id": "al5.gun.deal-intimidated",
+      "revision": 1,
+      "questKey": "gun-music",
+      "topic": "aldecaldos.scav-deal",
+      "outcome": "intimidated",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "At the Gun Music scav deal V threatened the scav leader by pointing to V's implants, and he told his people to hand over the eddies, so the deal went through without a firefight.",
+      "sourceIds": [
+        "al5.source.0c0977147554",
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.gun.deal-intimidated",
+        "al5.ev.fact.mq002_deal_proceeded.9949f262aaa4",
+        "al5.ev.journal.357f9360e7cb"
+      ],
+      "audience": {
+        "speakers": [
+          "carol-emeka",
+          "cassidy-righter"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "carol-emeka",
+          "cassidy-righter"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "mq002_deal_proceeded",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "al5.gun.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.gun.deal",
+          "outcomeKey": "intimidated"
+        }
+      ]
+    },
+    {
+      "id": "al5.gun.deal-firefight",
+      "revision": 1,
+      "questKey": "gun-music",
+      "topic": "aldecaldos.scav-deal",
+      "outcome": "firefight",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "The Gun Music deal broke down into a firefight and V defeated the scavengers.",
+      "sourceIds": [
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.journal.6d1d8c6e6109"
+      ],
+      "audience": {
+        "speakers": [
+          "carol-emeka",
+          "cassidy-righter"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "carol-emeka",
+          "cassidy-righter"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "al5.gun.fight-won",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.gun.deal",
+          "outcomeKey": "firefight"
+        }
+      ]
+    },
+    {
+      "id": "al5.gun.deal-abandoned",
+      "revision": 1,
+      "questKey": "gun-music",
+      "topic": "aldecaldos.scav-deal",
+      "outcome": "abandoned",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V walked away from the Gun Music deal and the quest failed. Carol messaged V that the Aldecaldos had put their hopes on V and she would let it slide this time only because Panam sees something in V.",
+      "sourceIds": [
+        "al5.source.2971d77e785f",
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.fact.mq002_escaped.6970eaa7eb50",
+        "al5.ev.journal.331791d7e386"
+      ],
+      "audience": {
+        "speakers": [
+          "carol-emeka"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "carol-emeka"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "mq002_escaped",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "al5.gun.carol-escaped-msg",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.gun.deal",
+          "outcomeKey": "abandoned"
+        }
+      ]
+    },
+    {
+      "id": "al5.gun.panam-message",
+      "revision": 1,
+      "questKey": "gun-music",
+      "topic": "cassidy.panam-protective-message",
+      "outcome": "received",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "After Riders on the Storm Cassidy texted V that she and the nomads had seen V and Panam getting along and hoped it worked out, adding a joking threat to hang V by the tonsils if it failed through V's fault.",
+      "sourceIds": [
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.journal.2b42f53654dc"
+      ],
+      "audience": {
+        "speakers": [
+          "cassidy-righter"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "cassidy-righter"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "al5.gun.cassidy-quote",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.gun.panam-message",
+          "outcomeKey": "received"
+        }
+      ]
+    },
+    {
+      "id": "al5.fortunate.request-accepted",
+      "revision": 1,
+      "questKey": "fortunate-son",
+      "topic": "jake.implant-request",
+      "outcome": "accepted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V agreed to help Bob's family in Fortunate Son and took on the errand of meeting the hospital contact in Little China to fetch Jake's kidney implant.",
+      "sourceIds": [
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.journal.64831db32d48"
+      ],
+      "audience": {
+        "speakers": [
+          "bob-sagan"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "bob-sagan"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "al5.fortunate.meeting",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.fortunate.request",
+          "outcomeKey": "accepted"
+        }
+      ]
+    },
+    {
+      "id": "al5.fortunate.implant-informed",
+      "revision": 1,
+      "questKey": "fortunate-son",
+      "topic": "jake.implant-delivery",
+      "outcome": "delivered-informed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V delivered Jake's implant to Bob and warned him it carried a virus (the police sabotage), so it had to be re-flashed from the original firmware shard. Bob thanked V for being careful.",
+      "sourceIds": [
+        "al5.source.e75455afab22",
+        "al5.source.39fe54b92a41",
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.fortunate.delivery-scene",
+        "al5.ev.fact.mq021_happy_ending.be839269563b",
+        "al5.ev.journal.897053785c03"
+      ],
+      "audience": {
+        "speakers": [
+          "bob-sagan"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "bob-sagan"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "mq021_happy_ending",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "al5.fortunate.implant-delivered",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.fortunate.implant",
+          "outcomeKey": "delivered-informed"
+        }
+      ]
+    },
+    {
+      "id": "al5.fortunate.result-recovered",
+      "revision": 1,
+      "questKey": "fortunate-son",
+      "topic": "jake.health",
+      "outcome": "recovered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "When V asked after Jake, Bob said the implant had taken and Jake was easing into it slowly, needing a day or two to get back on his feet.",
+      "sourceIds": [
+        "al5.source.e75455afab22",
+        "al5.source.39fe54b92a41",
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.fortunate.result-switch",
+        "al5.ev.fact.mq021_happy_ending.be839269563b",
+        "al5.ev.fact.mq021_bob_ending_approached.9cb6317f1505",
+        "al5.ev.journal.7099204f7537"
+      ],
+      "audience": {
+        "speakers": [
+          "bob-sagan"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "bob-sagan"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "mq021_happy_ending",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "mq021_bob_ending_approached",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "al5.fortunate.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.fortunate.result",
+          "outcomeKey": "recovered"
+        }
+      ]
+    },
+    {
+      "id": "al5.together.alt-link",
+      "revision": 1,
+      "questKey": "we-gotta-live-together",
+      "topic": "v.alt-contact-at-camp",
+      "outcome": "completed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Dakota set up a shielded rig for V's Net run to meet Alt while Carol watched over V. Afterward Dakota's equipment was fried and Carol checked on V after a sharp neural spike. Neither heard what V and Alt discussed.",
+      "sourceIds": [
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.journal.5d6e9c75441e",
+        "al5.ev.journal.ec75551516aa"
+      ],
+      "audience": {
+        "speakers": [
+          "carol-emeka",
+          "dakota-smith"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "carol-emeka",
+          "dakota-smith"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "al5.initiation.dakota-carol-wrap",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "al5.initiation.talk-alt",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.alt-link",
+          "outcomeKey": "completed"
+        }
+      ]
+    },
+    {
+      "id": "al5.together.shooting-won",
+      "revision": 1,
+      "questKey": "we-gotta-live-together",
+      "topic": "cassidy.target-practice",
+      "outcome": "won",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "In Cassidy's bottle-shooting contest at the Aldecaldo party V hit at least eleven bottles (the game's pass line), so Cassidy praised the shooting and offered V her revolver.",
+      "sourceIds": [
+        "al5.source.3833e09af70a",
+        "al5.source.7ce34a614ac1",
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.together.bottle-switch",
+        "al5.ev.fact.q114_bottle_hit.93b660fbf4cf",
+        "al5.ev.journal.d349b2ac411c"
+      ],
+      "audience": {
+        "speakers": [
+          "cassidy-righter"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "cassidy-righter"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q114_bottle_hit",
+            "op": "gte",
+            "value": 11
+          },
+          {
+            "type": "journal",
+            "key": "al5.initiation.shoot-bottles",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.shooting",
+          "outcomeKey": "won"
+        }
+      ]
+    },
+    {
+      "id": "al5.together.jake-present",
+      "revision": 1,
+      "questKey": "we-gotta-live-together",
+      "topic": "aldecaldos.rescued-contacts",
+      "outcome": "jake-present",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "Jake was at the Aldecaldo party after V's initiation, up and playing music after the transplant V delivered.",
+      "sourceIds": [
+        "al5.source.7ce34a614ac1",
+        "al5.source.39fe54b92a41",
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.together.party-jake",
+        "al5.ev.fact.mq021_happy_ending.be839269563b",
+        "al5.ev.journal.279398e507c4"
+      ],
+      "audience": {
+        "speakers": [
+          "bob-sagan"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "bob-sagan"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "mq021_happy_ending",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "al5.initiation.party-talk-panam",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.returning-contacts",
+          "outcomeKey": "jake-present"
+        }
+      ]
+    },
+    {
+      "id": "al5.together.bruce-present",
+      "revision": 1,
+      "questKey": "we-gotta-live-together",
+      "topic": "aldecaldos.rescued-contacts",
+      "outcome": "bruce-present",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "Bruce Welby, whom V rescued in Dakota's gig, was at the Aldecaldo party and told V he might make the camp his home.",
+      "sourceIds": [
+        "al5.source.7ce34a614ac1",
+        "al5.source.313ce46098f6",
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.together.party-bruce",
+        "al5.ev.fact.ina_05_done.5f459cd0d867",
+        "al5.ev.journal.279398e507c4"
+      ],
+      "audience": {
+        "speakers": [
+          "dakota-smith"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dakota-smith"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "ina_05_done",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "al5.initiation.party-talk-panam",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.returning-contacts",
+          "outcomeKey": "bruce-present"
+        }
+      ]
+    },
+    {
+      "id": "al5.goodbye.seen-at-camp",
+      "revision": 1,
+      "questKey": "gig-goodbye-night-city",
+      "topic": "bruce.aldecaldo-membership",
+      "outcome": "seen-at-camp",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 3,
+      "stable": true,
+      "statement": "Bruce Welby, rescued in Dakota's Goodbye, Night City gig, was among the Aldecaldos at the camp party and spoke of settling there.",
+      "sourceIds": [
+        "al5.source.7ce34a614ac1",
+        "al5.source.313ce46098f6",
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.together.party-bruce",
+        "al5.ev.fact.ina_05_done.5f459cd0d867",
+        "al5.ev.journal.279398e507c4"
+      ],
+      "audience": {
+        "speakers": [
+          "dakota-smith"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dakota-smith"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "ina_05_done",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "al5.initiation.party-talk-panam",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.goodbye.future-membership",
+          "outcomeKey": "seen-at-camp"
+        }
+      ]
+    },
+    {
+      "id": "al5.watchtower.river-stays",
+      "revision": 1,
+      "questKey": "all-along-the-watchtower",
+      "topic": "v.star-partner",
+      "outcome": "river-stays",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the convoy before the crossing River told V he was staying in Night City to take care of his family and could not go with the nomads.",
+      "sourceIds": [
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.journal.2f993d2812ee"
+      ],
+      "audience": {
+        "speakers": [
+          "river-ward"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "river-ward"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "al5.watchtower.say-goodbye-river",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.watchtower.partner",
+          "outcomeKey": "river-stays"
+        }
+      ]
+    },
+    {
+      "id": "al5.watchtower.kerry-stays",
+      "revision": 1,
+      "questKey": "all-along-the-watchtower",
+      "topic": "v.star-partner",
+      "outcome": "kerry-stays",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the convoy before the crossing Kerry told V he could not leave Night City yet, still had business there, and asked V to look him up if V ever came back through.",
+      "sourceIds": [
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.journal.8c53e1ed2d45"
+      ],
+      "audience": {
+        "speakers": [
+          "kerry-eurodyne"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "al5.watchtower.talk-kerry",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.watchtower.partner",
+          "outcomeKey": "kerry-stays"
+        }
+      ]
+    },
+    {
+      "id": "al5.devil.called-platonic",
+      "revision": 1,
+      "questKey": "where-is-my-mind",
+      "topic": "panam.orbital-call",
+      "outcome": "called-platonic",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "When V called Panam from the cabin in the Devil ending, V had never been her lover, and she answered warmly: \"it's been a while since I heard that voice.\"",
+      "sourceIds": [
+        "al5.source.cedbbb335d97",
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.devil.call-switch",
+        "al5.ev.journal.80dbed4899d7",
+        "al5.ev.journal.d3d6cfe53b1b"
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "endings.devil.panam-orbital-call",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "al5.panam.friendship-hook",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.devil.panam-call",
+          "outcomeKey": "called-platonic"
+        }
+      ]
+    },
+    {
+      "id": "al5.temperance.panam-texts",
+      "revision": 1,
+      "questKey": "new-dawn-fades",
+      "topic": "panam.temperance-response",
+      "outcome": "romantic-message-observed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 8,
+      "stable": true,
+      "statement": "After V's body was left to Johnny in the Temperance ending, Panam sent V a string of angry texts, one calling Johnny a sociopath and vowing to find him and get V back. These record her messages and suspicion, not that she saw what happened.",
+      "sourceIds": [
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.journal.513bb3a306dd"
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "al5.temperance.panam-find-you",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.temperance.panam-message",
+          "outcomeKey": "romantic-message-observed"
+        }
+      ]
+    },
+    {
+      "id": "al5.blacksteel.carol-declined-gift",
+      "revision": 1,
+      "questKey": "black-steel-in-the-hour-of-chaos",
+      "topic": "carol.maxtac-boundary",
+      "outcome": "declined-offered-gift",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "When V asked Carol to help hack MaxTac for the convoy job she refused because of the risk to the Aldecaldos, but then messaged V to offer a gift in its place.",
+      "sourceIds": [
+        "al5.source.c6fc31189cd7",
+        "al5.source.5cac098003e6",
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.blacksteel.carol-call-exit",
+        "al5.ev.fact.q305_asked_carol_help.8b3127e392a2",
+        "al5.ev.journal.d356a65c8b49"
+      ],
+      "audience": {
+        "speakers": [
+          "carol-emeka"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "carol-emeka"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q305_asked_carol_help",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "al5.blacksteel.carol-gift-question",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.blacksteel.carol-call",
+          "outcomeKey": "declined-offered-gift"
+        }
+      ]
+    },
+    {
+      "id": "al5.reward.offered",
+      "revision": 1,
+      "questKey": "every-grain-of-sand",
+      "topic": "dakota.contract-series-complete",
+      "outcome": "offered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "Dakota messaged V that her last contract was done, thanked V, and said a parting gift was already waiting in the garage.",
+      "sourceIds": [
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.journal.79e570d8273d"
+      ],
+      "audience": {
+        "speakers": [
+          "dakota-smith"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dakota-smith"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "al5.reward.dakota-last-contract",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.reward.recognition",
+          "outcomeKey": "offered"
+        }
+      ]
+    },
+    {
+      "id": "al5.nofixers.iris-thanks",
+      "revision": 1,
+      "questKey": "gig-no-fixers",
+      "topic": "iris.rescue-reward",
+      "outcome": "message-received",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 3,
+      "stable": true,
+      "statement": "After the No Fixers gig Iris Tanner texted V to thank V for handling her ride, saying she had left a small token at the drop point by the Sunset Motel, which made them even.",
+      "sourceIds": [
+        "al5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "al5.ev.journal.feeff117cefe"
+      ],
+      "audience": {
+        "speakers": [
+          "iris-tanner"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "iris-tanner"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "al5.nofixers.iris-thanks",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.nofixers.followup",
+          "outcomeKey": "message-received"
+        }
+      ]
+    },
+    {
+      "id": "al5.goodbye.no-personnel-killed",
+      "revision": 1,
+      "questKey": "gig-goodbye-night-city",
+      "topic": "bruce.rescue-collateral",
+      "outcome": "no-personnel-killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 3,
+      "stable": true,
+      "statement": "On the Bruce Welby rescue V killed none of the guards or workers, so Dakota's no-unnecessary-bloodshed condition was met when she closed the gig.",
+      "sourceIds": [
+        "al5.source.f917a20fabcb",
+        "al5.source.c0ba2108b54c",
+        "al5.source.313ce46098f6"
+      ],
+      "evidenceRefs": [
+        "al5.ev.goodbye.casualty-switch",
+        "al5.ev.journal.ded60de0c64f",
+        "al5.ev.fact.ina_05_finished.250d43d2197f",
+        "al5.ev.fact.ina_05_archi_talk_ended.429b58dde47d"
+      ],
+      "audience": {
+        "speakers": [
+          "dakota-smith"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dakota-smith"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "al5.goodbye.no-kill-ok",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "fact",
+            "key": "ina_05_finished",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "ina_05_archi_talk_ended",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.goodbye.casualties",
+          "outcomeKey": "no-personnel-killed"
+        }
+      ]
+    },
+    {
+      "id": "al5.goodbye.personnel-killed",
+      "revision": 1,
+      "questKey": "gig-goodbye-night-city",
+      "topic": "bruce.rescue-collateral",
+      "outcome": "personnel-killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 3,
+      "stable": true,
+      "statement": "On the Bruce Welby rescue V killed at least one guard or worker, breaking Dakota's no-unnecessary-bloodshed condition; her debrief reminded V she had said so.",
+      "sourceIds": [
+        "al5.source.f917a20fabcb",
+        "al5.source.c0ba2108b54c",
+        "al5.source.313ce46098f6"
+      ],
+      "evidenceRefs": [
+        "al5.ev.goodbye.casualty-switch",
+        "al5.ev.journal.ded60de0c64f",
+        "al5.ev.fact.ina_05_finished.250d43d2197f",
+        "al5.ev.fact.ina_05_archi_talk_ended.429b58dde47d"
+      ],
+      "audience": {
+        "speakers": [
+          "dakota-smith"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dakota-smith"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "al5.goodbye.no-kill-failed",
+            "op": "eq",
+            "value": "failed"
+          },
+          {
+            "type": "fact",
+            "key": "ina_05_finished",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "ina_05_archi_talk_ended",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.goodbye.casualties",
+          "outcomeKey": "personnel-killed"
+        }
+      ]
+    }
+  ]
+}

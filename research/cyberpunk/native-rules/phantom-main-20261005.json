@@ -1,0 +1,2646 @@
+{
+  "version": 1,
+  "id": "cyberpunk-native-phantom-main-20261005",
+  "revision": 1,
+  "gameVersions": [
+    "2.31"
+  ],
+  "profileKeys": [
+    "aaron",
+    "alan-noel",
+    "alex",
+    "babs-okoye",
+    "bill-mitchell",
+    "briana-dolson",
+    "judy-alvarez",
+    "paco-torres",
+    "solomon-reed",
+    "songbird",
+    "steven-santos"
+  ],
+  "sources": [
+    {
+      "id": "pm5.source.af092dea5568",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\main_quests\\q307\\scenes\\q307_03a_friends_holocall.scene (scene-evidence/sh5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.d2d46b826d45",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\main_quests\\q304\\scenes\\q304_04d_shard_pickup.scene (scene-evidence/priority-phantom-20261004-extra); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.ed45cb48c948",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\main_quests\\q304\\scenes\\q304_04e_alex_heart_to_heart.scene (scene-evidence/priority-phantom-20261004-residual-e); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.0cd3a764c972",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\main_quests\\q304\\scenes\\q304_07b_lab.scene (scene-evidence/phantom-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.35e883b47406",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\main_quests\\q304\\phases\\q304_08b_escape_songbird.questphase (scene-evidence/priority-phantom-20261004-extra); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.bdb2b6b5c0cd",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\main_quests\\q306\\phases\\q306_06_epilogues.questphase (scene-evidence/phantom-reviewed-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.89550527dd0d",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\main_quests\\q305\\scenes\\q305_10_songbird_finale.scene (scene-evidence/phantom-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.10d7baa102b7",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\minor_quests\\mq306\\scenes\\mq306_03_expo_ripper.scene (scene-evidence/phantom-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\journal\\cooked_journal.journal (scene-evidence/priority-phantom-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.da5e7c42c65c",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\minor_quests\\mq306\\scenes\\mq306_04b_angie_meeting.scene (scene-evidence/pm5-05); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.409ff39a8bf1",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\tertiary_characters\\default_dialogs\\steven_santos_default\\steven_default.questphase (scene-evidence/pm5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.55b4d11befc5",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\street_stories\\sts_ep1_12\\scenes\\sts_ep1_12_final_scene.scene (scene-evidence/pm5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.d71453563110",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\openworld\\world_stories\\wst_ep1_11\\wst_ep1_11.questphase (scene-evidence/pm5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.b99d4ff7b9d7",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\tertiary_characters\\default_dialogs\\hana_default\\sts_03_hana_default.scene (scene-evidence/pm5-04); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.70d8ed75e0da",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\minor_quests\\mq301\\scenes\\mq301_03_delivery.scene (scene-evidence/pm5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.28298918bd26",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\minor_quests\\mq301\\phases\\mq301_06_contacts.questphase (scene-evidence/pm5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.7cde18bd5317",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\minor_quests\\mq301\\phases\\mq301_04_frame.questphase (scene-evidence/pm5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "pm5.source.1cc4b64469c9",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\minor_quests\\mq301\\scenes\\mq301_05_run.scene (scene-evidence/pm5-02); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "pm5.ev.q307.judy-call-content",
+      "sourceId": "pm5.source.af092dea5568",
+      "kind": "native",
+      "locator": "q307_03a_friends_holocall scene: every route of the 2079 Judy holocall passes Judy saying she is in Pittsburgh and married (section 700 on the default branch, section 703 on the sq030_judy_lover branch, joined at condition 769) before the call-end hub writes q307_call_judy_end=1 (node 637).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/sh5-01/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+        "assetSha256": "845a7dc45639667d26f2c7128603bdd80954e2392c23c2fe8fc5603a5ecfa739",
+        "jsonSha256": "a142c3cbe71fe40cab1472b6889ea3991c0764c24f613f93119d924b834c4c4c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/109/Data",
+        "expectedType": "scnSectionNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/sh5-01/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+          "assetSha256": "845a7dc45639667d26f2c7128603bdd80954e2392c23c2fe8fc5603a5ecfa739",
+          "jsonSha256": "a142c3cbe71fe40cab1472b6889ea3991c0764c24f613f93119d924b834c4c4c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/110/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/sh5-01/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+          "assetSha256": "845a7dc45639667d26f2c7128603bdd80954e2392c23c2fe8fc5603a5ecfa739",
+          "jsonSha256": "a142c3cbe71fe40cab1472b6889ea3991c0764c24f613f93119d924b834c4c4c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/128/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "pm5.ev.fact.q307_call_judy_end.0bc18c6bffb1",
+      "sourceId": "pm5.source.af092dea5568",
+      "kind": "native",
+      "locator": "q307_03a_friends_holocall node 637 sets q307_call_judy_end=1 only after the Judy call ends through hub 758 (goodbye/fairy-tale/miss-you endings). No other writer exists.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/sh5-01/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+        "assetSha256": "845a7dc45639667d26f2c7128603bdd80954e2392c23c2fe8fc5603a5ecfa739",
+        "jsonSha256": "a142c3cbe71fe40cab1472b6889ea3991c0764c24f613f93119d924b834c4c4c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/92/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q307_call_judy_end",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.q304.told-reed-choice",
+      "sourceId": "pm5.source.d2d46b826d45",
+      "kind": "native",
+      "locator": "q304_04d_shard_pickup scene (Reed and V at Farida's): choice 3568 option 1 \"She told me her plan. Intends to escape.\" leads to section 2054 (V: So Mi wants out, plans to run after Hansen goes down; Reed: \"Thank you, V. For your candor.\") and then writes q304_told_reed+=1 (node 2083). Option 0 bypasses the writer.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q304/scenes/q304_04d_shard_pickup.scene.json",
+        "assetSha256": "782689ff3a0f2c29cbcdf9391fc040c60994fa51f57b7a79017dda3dbb61ec40",
+        "jsonSha256": "65592adf72e0019ca30867f0b7f9d65253cd8be071c86eec893616dad6b3d7f8",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/299/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q304/scenes/q304_04d_shard_pickup.scene.json",
+          "assetSha256": "782689ff3a0f2c29cbcdf9391fc040c60994fa51f57b7a79017dda3dbb61ec40",
+          "jsonSha256": "65592adf72e0019ca30867f0b7f9d65253cd8be071c86eec893616dad6b3d7f8",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/104/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "pm5.ev.fact.q304_told_reed.776aa1b03a01",
+      "sourceId": "pm5.source.d2d46b826d45",
+      "kind": "native",
+      "locator": "q304_04d_shard_pickup node 2083 increments q304_told_reed only downstream of choice 3568 option 1 and section 2054. No reset writer was found.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q304/scenes/q304_04d_shard_pickup.scene.json",
+        "assetSha256": "782689ff3a0f2c29cbcdf9391fc040c60994fa51f57b7a79017dda3dbb61ec40",
+        "jsonSha256": "65592adf72e0019ca30867f0b7f9d65253cd8be071c86eec893616dad6b3d7f8",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/111/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q304_told_reed",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.q304.alex-dance",
+      "sourceId": "pm5.source.ed45cb48c948",
+      "kind": "native",
+      "locator": "q304_04e_alex_heart_to_heart scene (actor Alex only): Alex opens with \"Got a headstart. A drink to calm the nerves\" (section 4); q304_04e_v_danced_again=1 (node 2707) is written only from the [Join Alex] choices 3060/2684 when V joins her dance.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004-residual-e/raw/ep1/ep1/quest/main_quests/q304/scenes/q304_04e_alex_heart_to_heart.scene.json",
+        "assetSha256": "ae7c2c93cfb9cdb2ae22fc30992a3626c9193c1a918d4ef46d76c39233ad5dd8",
+        "jsonSha256": "75ebe391abd9ccf59c1295d94243849327660ffdba7ffb5fa71d935b0d97f117",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+        "expectedType": "scnSectionNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004-residual-e/raw/ep1/ep1/quest/main_quests/q304/scenes/q304_04e_alex_heart_to_heart.scene.json",
+          "assetSha256": "ae7c2c93cfb9cdb2ae22fc30992a3626c9193c1a918d4ef46d76c39233ad5dd8",
+          "jsonSha256": "75ebe391abd9ccf59c1295d94243849327660ffdba7ffb5fa71d935b0d97f117",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/283/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004-residual-e/raw/ep1/ep1/quest/main_quests/q304/scenes/q304_04e_alex_heart_to_heart.scene.json",
+          "assetSha256": "ae7c2c93cfb9cdb2ae22fc30992a3626c9193c1a918d4ef46d76c39233ad5dd8",
+          "jsonSha256": "75ebe391abd9ccf59c1295d94243849327660ffdba7ffb5fa71d935b0d97f117",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/261/Data",
+          "expectedType": "scnChoiceNode"
+        }
+      ]
+    },
+    {
+      "id": "pm5.ev.fact.q304_04e_v_danced_again.c4de854eeafe",
+      "sourceId": "pm5.source.ed45cb48c948",
+      "kind": "native",
+      "locator": "q304_04e_alex_heart_to_heart node 2707 sets q304_04e_v_danced_again=1 only from [Join Alex] choice options. Unlike q304_04e_v_dances_withalex (reset to 0 by node 2904), it has no reset writer.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004-residual-e/raw/ep1/ep1/quest/main_quests/q304/scenes/q304_04e_alex_heart_to_heart.scene.json",
+        "assetSha256": "ae7c2c93cfb9cdb2ae22fc30992a3626c9193c1a918d4ef46d76c39233ad5dd8",
+        "jsonSha256": "75ebe391abd9ccf59c1295d94243849327660ffdba7ffb5fa71d935b0d97f117",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/265/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q304_04e_v_danced_again",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.q304.lab-alex-target-down",
+      "sourceId": "pm5.source.0cd3a764c972",
+      "kind": "native",
+      "locator": "q304_07b_lab scene: on the Songbird branch V picks [Give signal to Alex] (choice 503), Alex reports \"Target down.\" (sections 69/71), Songbird says \"It's done…\" (74/720), and only then q304_songbirds_path=1 is written (node 81). Earlier Songbird_vision line 62 tells V to \"Look toward Alex. Wait for Kurt to go down.\"",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q304/scenes/q304_07b_lab.scene.json",
+        "assetSha256": "569c9a4e1c394030b5a6591608eec2285378eb2332c1e6209b2e0a8ee594c509",
+        "jsonSha256": "b18c61e91538ba1da8a9f36a7973d2ed46b23d08fc62b3240211c339e35924e1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/62/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q304/scenes/q304_07b_lab.scene.json",
+          "assetSha256": "569c9a4e1c394030b5a6591608eec2285378eb2332c1e6209b2e0a8ee594c509",
+          "jsonSha256": "b18c61e91538ba1da8a9f36a7973d2ed46b23d08fc62b3240211c339e35924e1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q304/scenes/q304_07b_lab.scene.json",
+          "assetSha256": "569c9a4e1c394030b5a6591608eec2285378eb2332c1e6209b2e0a8ee594c509",
+          "jsonSha256": "b18c61e91538ba1da8a9f36a7973d2ed46b23d08fc62b3240211c339e35924e1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q304/scenes/q304_07b_lab.scene.json",
+          "assetSha256": "569c9a4e1c394030b5a6591608eec2285378eb2332c1e6209b2e0a8ee594c509",
+          "jsonSha256": "b18c61e91538ba1da8a9f36a7973d2ed46b23d08fc62b3240211c339e35924e1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q304/scenes/q304_07b_lab.scene.json",
+          "assetSha256": "569c9a4e1c394030b5a6591608eec2285378eb2332c1e6209b2e0a8ee594c509",
+          "jsonSha256": "b18c61e91538ba1da8a9f36a7973d2ed46b23d08fc62b3240211c339e35924e1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "pm5.ev.fact.q304_kurt_dead.4928e62fed88",
+      "sourceId": "pm5.source.35e883b47406",
+      "kind": "native",
+      "locator": "q304_08b_escape_songbird phase sets q304_kurt_dead=1 at the start of the Songbird-branch stadium escape. Paired here with q304_songbirds_path so the Reed-branch writers elsewhere do not qualify.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q304/phases/q304_08b_escape_songbird.questphase.json",
+        "assetSha256": "f6e8a0d87fc2eee79429576717fb6fe47300d412d0b6c7cf9ed184bce2618685",
+        "jsonSha256": "65309df4f19ea0bb66730f5caabcab8a46f550a1a8d8ff02c588b6a31f1f2971",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/8/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q304_kurt_dead",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.fact.holo_alex_calls_v_complete.13f6479ddc3b",
+      "sourceId": "pm5.source.bdb2b6b5c0cd",
+      "kind": "native",
+      "locator": "q306_06_epilogues node 228 sets holo_alex_calls_v_complete=1 after the q306_12_holo_alex_call scene ends (Alex holocalls V; V can say \"Just plain good to know you're alive\").",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/phantom-reviewed-oct01/raw/ep1/ep1/quest/main_quests/q306/phases/q306_06_epilogues.questphase.json",
+        "assetSha256": "9aa42613fed908aff6df69a32a1b02fcf7d12e747fa612953357ac7a928a7949",
+        "jsonSha256": "0efad5aebb799cb6b67964caeabfa4e4dc181adabd9f5af5f90a9caad933ef08",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/80/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "holo_alex_calls_v_complete",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.q305.songbird-plea",
+      "sourceId": "pm5.source.89550527dd0d",
+      "kind": "native",
+      "locator": "q305_10_songbird_finale scene: q305_songbird_alive=1 (node 659) is reached only through section 27 (Songbird: \"leaving me… to a fate worse than… death\") after the [Kill So Mi]/[Spare So Mi] choices 604/737. Those follow section 602/906 (\"I'm begging you… V…\"), which follow choice 7/328, reached only after Songbird's plea in section 6 (\"don't have the strength… Please… End it.\") or 690 (\"Dying... It's my only hope\").",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q305/scenes/q305_10_songbird_finale.scene.json",
+        "assetSha256": "b56156e2a426eef392720d4a52b14327a64602be70980d35a7d8a2466baf2294",
+        "jsonSha256": "f3a6a9ad4e4ec96c7a05834f91747c074403d7da76116d572854b4fd368fe5de",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/108/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q305/scenes/q305_10_songbird_finale.scene.json",
+          "assetSha256": "b56156e2a426eef392720d4a52b14327a64602be70980d35a7d8a2466baf2294",
+          "jsonSha256": "f3a6a9ad4e4ec96c7a05834f91747c074403d7da76116d572854b4fd368fe5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q305/scenes/q305_10_songbird_finale.scene.json",
+          "assetSha256": "b56156e2a426eef392720d4a52b14327a64602be70980d35a7d8a2466baf2294",
+          "jsonSha256": "f3a6a9ad4e4ec96c7a05834f91747c074403d7da76116d572854b4fd368fe5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/99/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q305/scenes/q305_10_songbird_finale.scene.json",
+          "assetSha256": "b56156e2a426eef392720d4a52b14327a64602be70980d35a7d8a2466baf2294",
+          "jsonSha256": "f3a6a9ad4e4ec96c7a05834f91747c074403d7da76116d572854b4fd368fe5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/98/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q305/scenes/q305_10_songbird_finale.scene.json",
+          "assetSha256": "b56156e2a426eef392720d4a52b14327a64602be70980d35a7d8a2466baf2294",
+          "jsonSha256": "f3a6a9ad4e4ec96c7a05834f91747c074403d7da76116d572854b4fd368fe5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q305/scenes/q305_10_songbird_finale.scene.json",
+          "assetSha256": "b56156e2a426eef392720d4a52b14327a64602be70980d35a7d8a2466baf2294",
+          "jsonSha256": "f3a6a9ad4e4ec96c7a05834f91747c074403d7da76116d572854b4fd368fe5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q305/scenes/q305_10_songbird_finale.scene.json",
+          "assetSha256": "b56156e2a426eef392720d4a52b14327a64602be70980d35a7d8a2466baf2294",
+          "jsonSha256": "f3a6a9ad4e4ec96c7a05834f91747c074403d7da76116d572854b4fd368fe5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/109/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "pm5.ev.mq306.angie-fight-aftermath",
+      "sourceId": "pm5.source.10d7baa102b7",
+      "kind": "native",
+      "locator": "mq306_03_expo_ripper scene: refusing Angie's deal (choice 78) leads to \"Get him, boys!\" (89) and combat. mq306_animals_dead is written after the Angie/Animals defeat check (node 230). When Aaron wakes, condition 1170 (mq306_animals_dead > 0) plays \"Angie...? What the hell happened?\" (1173), and V can tell him his \"chooms came by\" (1200: \"Not a problem anymore, thanks to you\").",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/minor_quests/mq306/scenes/mq306_03_expo_ripper.scene.json",
+        "assetSha256": "fc8a2a893a236d400c154ed0cbcebde5da345ac2a55142158b715996383f26eb",
+        "jsonSha256": "c27034c0ad28380c2ac4cfc1759ae1a73c0d40f4e624cefb89781510731ff15d",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/minor_quests/mq306/scenes/mq306_03_expo_ripper.scene.json",
+          "assetSha256": "fc8a2a893a236d400c154ed0cbcebde5da345ac2a55142158b715996383f26eb",
+          "jsonSha256": "c27034c0ad28380c2ac4cfc1759ae1a73c0d40f4e624cefb89781510731ff15d",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/minor_quests/mq306/scenes/mq306_03_expo_ripper.scene.json",
+          "assetSha256": "fc8a2a893a236d400c154ed0cbcebde5da345ac2a55142158b715996383f26eb",
+          "jsonSha256": "c27034c0ad28380c2ac4cfc1759ae1a73c0d40f4e624cefb89781510731ff15d",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/81/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/minor_quests/mq306/scenes/mq306_03_expo_ripper.scene.json",
+          "assetSha256": "fc8a2a893a236d400c154ed0cbcebde5da345ac2a55142158b715996383f26eb",
+          "jsonSha256": "c27034c0ad28380c2ac4cfc1759ae1a73c0d40f4e624cefb89781510731ff15d",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/82/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/minor_quests/mq306/scenes/mq306_03_expo_ripper.scene.json",
+          "assetSha256": "fc8a2a893a236d400c154ed0cbcebde5da345ac2a55142158b715996383f26eb",
+          "jsonSha256": "c27034c0ad28380c2ac4cfc1759ae1a73c0d40f4e624cefb89781510731ff15d",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/85/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "pm5.ev.fact.mq306_animals_dead.1a7fd7dc66df",
+      "sourceId": "pm5.source.10d7baa102b7",
+      "kind": "native",
+      "locator": "Both writers increment mq306_animals_dead only after angie, animal_01 and animal_02 are killed, defeated or unconscious (mq306_02_tech_expo_combat node 11, also marking 03_ripperdoc/04_combat Succeeded; scene node 230). The conditions do not distinguish death from incapacitation.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/minor_quests/mq306/scenes/mq306_03_expo_ripper.scene.json",
+        "assetSha256": "fc8a2a893a236d400c154ed0cbcebde5da345ac2a55142158b715996383f26eb",
+        "jsonSha256": "c27034c0ad28380c2ac4cfc1759ae1a73c0d40f4e624cefb89781510731ff15d",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "mq306_animals_dead",
+          "/value": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pm5-01/raw/ep1/ep1/quest/minor_quests/mq306/phases/mq306_02_tech_expo_combat.questphase.json",
+          "assetSha256": "17595f47af2fe731e032dbf7284bef86984f8d4748e052ccfa7cab8706f38987",
+          "jsonSha256": "92d2bf6bec71d24287d1acffefa3cb7399eceae59c380226783967057cb80b04",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/9/Data/phaseGraph/Data/nodes/6/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "mq306_animals_dead",
+            "/value": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "pm5.ev.journal.7727975621d1",
+      "sourceId": "pm5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/minor_quest/mq306_dumpster/03_ripperdoc/05_talk_aaron (gameJournalQuestObjective): \"Talk to Aaron.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/11/Data/entries/2/Data/entries/4/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "05_talk_aaron"
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.mq306.angie-meeting-controlled",
+      "sourceId": "pm5.source.da5e7c42c65c",
+      "kind": "native",
+      "locator": "mq306_04b_angie_meeting scene (actors include Aaron): Angie says \"Aaron went down in the third. Clients're happy.\" (55) and keeps the chip option (110); the 03talk_to_angie objective is set Succeeded (node 204, input socket Succeeded) after payment choice 15. The phase is entered only from mq306_03_ripper output mq306_angie (condition 43: mq306_angie_path > 0).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pm5-05/raw/ep1/ep1/quest/minor_quests/mq306/scenes/mq306_04b_angie_meeting.scene.json",
+        "assetSha256": "e8f55a29e7633c9bbd49b21abc31aff5c83fd76b142c6a77926fbbb536fc1a41",
+        "jsonSha256": "aaf43a4bde7234859504660493efd23b334243eb6328e13590139a6233c66200",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data",
+        "expectedType": "scnSectionNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pm5-05/raw/ep1/ep1/quest/minor_quests/mq306/scenes/mq306_04b_angie_meeting.scene.json",
+          "assetSha256": "e8f55a29e7633c9bbd49b21abc31aff5c83fd76b142c6a77926fbbb536fc1a41",
+          "jsonSha256": "aaf43a4bde7234859504660493efd23b334243eb6328e13590139a6233c66200",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/pm5-05/raw/ep1/ep1/quest/minor_quests/mq306/scenes/mq306_04b_angie_meeting.scene.json",
+          "assetSha256": "e8f55a29e7633c9bbd49b21abc31aff5c83fd76b142c6a77926fbbb536fc1a41",
+          "jsonSha256": "aaf43a4bde7234859504660493efd23b334243eb6328e13590139a6233c66200",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/pm5-01/raw/ep1/ep1/quest/minor_quests/mq306/phases/mq306_03_ripper.questphase.json",
+          "assetSha256": "79d11d78c56a3726a39e7d877d031df2c395bc8ed6150d09969b3804c1a8baa0",
+          "jsonSha256": "8e78041a09f297e60b2b183e0798013e3a3039131dde57aeecdcb4cb6ec2cc0d",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data",
+          "expectedType": "questConditionNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "pm5.ev.journal.b09380d0f904",
+      "sourceId": "pm5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/minor_quest/mq306_dumpster/04b_angie_meeting/03talk_to_angie (gameJournalQuestObjective): \"Talk to Angie.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/11/Data/entries/4/Data/entries/2/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "03talk_to_angie"
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.steven.nc-meeting",
+      "sourceId": "pm5.source.409ff39a8bf1",
+      "kind": "native",
+      "locator": "steven_default phase: talk_with_steven is set Succeeded from the scene end of sts_08_steven_default_new_biomonitor_not_destroyed. In that scene the first section after \"Hey, Steve.\" (124) has Steven thank V for Dogtown, say he is \"looking at a promotion\" and hand over payment (\"this is for you. So you know I keep my word\"), with GiveReward node 191.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pm5-01/raw/ep1/ep1/quest/tertiary_characters/default_dialogs/steven_santos_default/steven_default.questphase.json",
+        "assetSha256": "c946115c0234e5648b85b80e53bf8db875bc3777d4ea3523173c57e7e90ad027",
+        "jsonSha256": "b3e702ff5bb01386a98830e25ecedeab038692d40884cd74516ce14bbc80d3d5",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data/phaseGraph/Data/nodes/8/Data",
+        "expectedType": "questJournalNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/tertiary_characters/default_dialogs/steven_santos_default/sts_08_steven_default_new_biomonitor_not_destroyed.scene.json",
+          "assetSha256": "1ed6c14866308cfe5d54d0f77d59b825528dc321f9619b17bc6ae5710fc2cf02",
+          "jsonSha256": "6496b277bb8374f5497a98619b08a46e5288494cc6439eb2855e4036eb7eda7a",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/tertiary_characters/default_dialogs/steven_santos_default/sts_08_steven_default_new_biomonitor_not_destroyed.scene.json",
+          "assetSha256": "1ed6c14866308cfe5d54d0f77d59b825528dc321f9619b17bc6ae5710fc2cf02",
+          "jsonSha256": "6496b277bb8374f5497a98619b08a46e5288494cc6439eb2855e4036eb7eda7a",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/27/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "pm5.ev.journal.5404911940b5",
+      "sourceId": "pm5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/minor_quest/sts_ep1_08_steven_meeting_night_city/steven_default_night_city/talk_with_steven (gameJournalQuestObjective): \"Talk to Steven.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/1/Data/entries/0/Data/entries/2/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "talk_with_steven"
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.journal.3c761de97522",
+      "sourceId": "pm5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/contacts/steven_santos/sts_ep1_08_destroy_biomonitor/destroy_biomonitor (gameJournalPhoneMessage): \"LEAVE THE BIOMON AT THE DROP POINT. Do NOT give it to Ana. Leaked info on Bana's death only hurts us. Please please PLEASE do this and you'll still get the cash\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/1/Data/entries/1/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "destroy_biomonitor"
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.alan.netwatch-reveal",
+      "sourceId": "pm5.source.55b4d11befc5",
+      "kind": "native",
+      "locator": "sts_ep1_12_final_scene: the conversation opens from Start 1 through choice 525 into section 549 (\"I'm Agent Alan Noël, NetWatch, organized crime specialist\"). sts_ep1_12_phase sets 05b_talk_to_target Succeeded (node 146) only on the cooperation route; the scene's own 05b writer 929 sets Failed.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_12/scenes/sts_ep1_12_final_scene.scene.json",
+        "assetSha256": "843402a53fda4aaa804c669cfe6a2a080b137f2dd95f5ee721ee9899caa089f9",
+        "jsonSha256": "abb2ed77876a0332b1fe166e53e9e4d0503a7e8d2243f299860882f2a3e4e319",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_12/scenes/sts_ep1_12_final_scene.scene.json",
+          "assetSha256": "843402a53fda4aaa804c669cfe6a2a080b137f2dd95f5ee721ee9899caa089f9",
+          "jsonSha256": "abb2ed77876a0332b1fe166e53e9e4d0503a7e8d2243f299860882f2a3e4e319",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/openworld/street_stories/sts_ep1_12/scenes/sts_ep1_12_final_scene.scene.json",
+          "assetSha256": "843402a53fda4aaa804c669cfe6a2a080b137f2dd95f5ee721ee9899caa089f9",
+          "jsonSha256": "abb2ed77876a0332b1fe166e53e9e4d0503a7e8d2243f299860882f2a3e4e319",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/65/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/pg5-01/raw/ep1/ep1/openworld/street_stories/sts_ep1_12/phases/sts_ep1_12_phase.questphase.json",
+          "assetSha256": "50b3104fd0f82c66780d1d428bdeb0e943f36a11fb8a99bf550879bed5d36f82",
+          "jsonSha256": "db9dca888c6f2af83a52b895f9444fb3a795748d1876cd9d88c553fec82fcdce",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/46/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "pm5.ev.journal.3cd31799e22f",
+      "sourceId": "pm5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/street_stories/sts_ep1_12/sts_ep1_12/05b_talk_to_target (gameJournalQuestObjective): \"Talk to the netrunner.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/3/Data/entries/6/Data/entries/1/Data/entries/2/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "05b_talk_to_target"
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.journal.cf28f2fabb86",
+      "sourceId": "pm5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/contacts/alan_noel/wst_ep1_02/wst_ep1_02 (gameJournalPhoneMessage): \"Alan here. 1:0, NetWatch. Milko led us to the puppet master. It seems a Belgradian arms dealer wanted to sell off the old Militech bots to Serbian separatists -\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/49/Data/entries/0/Data/entries/1/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "wst_ep1_02"
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.journal.024cf347114b",
+      "sourceId": "pm5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/contacts/alan_noel/wst_ep1_02/wst_ep1_02_corpo_blueline (gameJournalPhoneMessage): \"Alan here. 1:0, NetWatch. Milko led us to the puppet master. It seems a Belgradian arms dealer wanted to sell off the old Militech bots to some Serbian separati\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/49/Data/entries/0/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "wst_ep1_02_corpo_blueline"
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.bill.hotdog-stand",
+      "sourceId": "pm5.source.d71453563110",
+      "kind": "native",
+      "locator": "wst_ep1_11 phase: talk_bill is set Succeeded only after wst_ep1_11_hotdog_finished > 0 (node 109 -> 35). In sts_10_bill_default the hotdog branch has Bill say he quit the NCPD and offer V eddies for changing his life (section 15). It ends with him \"rollin' with the scopdogs\" (92) whether V takes or refuses the money.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pm5-01/raw/ep1/ep1/openworld/world_stories/wst_ep1_11/wst_ep1_11.questphase.json",
+        "assetSha256": "1b32cb92a3e0b3ce1b9ba6a877e5998ccc193b075c40e28f71982fa728b24d38",
+        "jsonSha256": "90a4144a2e05d58f79874127b42240eca7ea8ba7b9261adaa3f56f852117d02c",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data",
+        "expectedType": "questJournalNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/tertiary_characters/default_dialogs/bill_default/sts_10_bill_default.scene.json",
+          "assetSha256": "86dd6e762ab2d2124f6f27fff383b5f4e845196605c0bc94c31179318d797ec9",
+          "jsonSha256": "62bf9923681956da0d54fca3aee76a7e22bd856233d1db298a80fc9785e8efe3",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/tertiary_characters/default_dialogs/bill_default/sts_10_bill_default.scene.json",
+          "assetSha256": "86dd6e762ab2d2124f6f27fff383b5f4e845196605c0bc94c31179318d797ec9",
+          "jsonSha256": "62bf9923681956da0d54fca3aee76a7e22bd856233d1db298a80fc9785e8efe3",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "pm5.ev.journal.3553920338a7",
+      "sourceId": "pm5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/minor_quest/wst_ep1_11_bill_meeting/wst_ep1_11/talk_bill (gameJournalQuestObjective): \"Talk to Bill.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/4/Data/entries/0/Data/entries/1/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "talk_bill"
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.briana.angry",
+      "sourceId": "pm5.source.b99d4ff7b9d7",
+      "kind": "native",
+      "locator": "sts_03_hana_default scene: choice 28 sets briana_default_angry_start_talk=1, then Briana says \"Who the fuck do you think you are letting Rinder live... Don't ever show your face here again\" (13), and both replies (71) lead to hana_default_angry_dialogue_finished+=1 (node 64). The phase plays it only when hana_default_rinder_spared > 0. sts_ep1_03_cleanup sets that flag after Rinder's apology message when sts_ep1_03_wagner_spared > 0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pm5-04/raw/ep1/ep1/quest/tertiary_characters/default_dialogs/hana_default/sts_03_hana_default.scene.json",
+        "assetSha256": "cd6611a6567caef93290870633114570b475408dc1b136726f631cc9eb5570f8",
+        "jsonSha256": "7a3d3eb7c36c7d92d86f959b75289e1f49d238417d091b61f8208ddb6f610787",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data",
+        "expectedType": "scnSectionNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pm5-04/raw/ep1/ep1/quest/tertiary_characters/default_dialogs/hana_default/sts_03_hana_default.scene.json",
+          "assetSha256": "cd6611a6567caef93290870633114570b475408dc1b136726f631cc9eb5570f8",
+          "jsonSha256": "7a3d3eb7c36c7d92d86f959b75289e1f49d238417d091b61f8208ddb6f610787",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/pm5-03/raw/ep1/ep1/openworld/street_stories/sts_ep1_03/phases/sts_ep1_03_cleanup.questphase.json",
+          "assetSha256": "a6d8159d23b9633a4613310f8dcdf603e44230892d5cd09a469163c95422bf84",
+          "jsonSha256": "8145e12d3a931a32a7d1831c0b4fbc6f78c8047772e7cf9dda203562b56f95ae",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/25/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        }
+      ]
+    },
+    {
+      "id": "pm5.ev.fact.hana_default_angry_dialogue_finished.a4fb1497a5d0",
+      "sourceId": "pm5.source.b99d4ff7b9d7",
+      "kind": "native",
+      "locator": "sts_03_hana_default node 64 increments hana_default_angry_dialogue_finished only after Briana's angry Rinder-survival confrontation (sections 13/73/75). No reset writer was found.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pm5-04/raw/ep1/ep1/quest/tertiary_characters/default_dialogs/hana_default/sts_03_hana_default.scene.json",
+        "assetSha256": "cd6611a6567caef93290870633114570b475408dc1b136726f631cc9eb5570f8",
+        "jsonSha256": "7a3d3eb7c36c7d92d86f959b75289e1f49d238417d091b61f8208ddb6f610787",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "hana_default_angry_dialogue_finished",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.mq301.plan-choice",
+      "sourceId": "pm5.source.70d8ed75e0da",
+      "kind": "native",
+      "locator": "mq301_03_delivery scene: choice 1809 (Gotta frame Yuri / run for the hills / call in favors). Option 0 leads to section 1811 and mq301_03_frame_jurij=1 (1589), with Babs answering. The run option leads, after Babs agrees in 2450/2451, to Paco's \"Shit, Babs… Yeah, OK.\" (2452) and mq301_03_run_paco=1 (1585).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/minor_quests/mq301/scenes/mq301_03_delivery.scene.json",
+        "assetSha256": "2b13a188e32120eda5512a04962cc24c619ef94933ba67786062eec0b1dd471b",
+        "jsonSha256": "48a6a62867775b553767759098147bc9dbd94806606e3236450087a231892fe1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/149/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/minor_quests/mq301/scenes/mq301_03_delivery.scene.json",
+          "assetSha256": "2b13a188e32120eda5512a04962cc24c619ef94933ba67786062eec0b1dd471b",
+          "jsonSha256": "48a6a62867775b553767759098147bc9dbd94806606e3236450087a231892fe1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/150/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/minor_quests/mq301/scenes/mq301_03_delivery.scene.json",
+          "assetSha256": "2b13a188e32120eda5512a04962cc24c619ef94933ba67786062eec0b1dd471b",
+          "jsonSha256": "48a6a62867775b553767759098147bc9dbd94806606e3236450087a231892fe1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/158/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/minor_quests/mq301/scenes/mq301_03_delivery.scene.json",
+          "assetSha256": "2b13a188e32120eda5512a04962cc24c619ef94933ba67786062eec0b1dd471b",
+          "jsonSha256": "48a6a62867775b553767759098147bc9dbd94806606e3236450087a231892fe1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/160/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "pm5.ev.fact.mq301_03_frame_jurij.a2c593c5c243",
+      "sourceId": "pm5.source.70d8ed75e0da",
+      "kind": "native",
+      "locator": "mq301_03_delivery node 1589 sets mq301_03_frame_jurij=1 only from choice 1809 option 0 via section 1811. No reset writer in the quest assets.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/minor_quests/mq301/scenes/mq301_03_delivery.scene.json",
+        "assetSha256": "2b13a188e32120eda5512a04962cc24c619ef94933ba67786062eec0b1dd471b",
+        "jsonSha256": "48a6a62867775b553767759098147bc9dbd94806606e3236450087a231892fe1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/140/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "mq301_03_frame_jurij",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.fact.mq301_03_run_paco.46d8f0f7e6e6",
+      "sourceId": "pm5.source.70d8ed75e0da",
+      "kind": "native",
+      "locator": "mq301_03_delivery node 1585 sets mq301_03_run_paco=1 only after Babs chooses to stay and Paco agrees to run alone (sections 2450/2451 -> 2452).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/minor_quests/mq301/scenes/mq301_03_delivery.scene.json",
+        "assetSha256": "2b13a188e32120eda5512a04962cc24c619ef94933ba67786062eec0b1dd471b",
+        "jsonSha256": "48a6a62867775b553767759098147bc9dbd94806606e3236450087a231892fe1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/139/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "mq301_03_run_paco",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.mq301.contacts-branches",
+      "sourceId": "pm5.source.28298918bd26",
+      "kind": "native",
+      "locator": "mq301_06_contacts phase: condition 107 (mq301_03_river_help >= 1) sends True to Paco's \"mq301_river_generators\" messages (good news / \"Your choom sorted us out\") and otherwise continues the Panam-transport route, where Paco's \"mq301_on_the_run\" messages (\"Your friends got us outta D-town\") lead after the reward message to \"mq301_kenya\" (\"we made it to Nairobi\").",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pm5-01/raw/ep1/ep1/quest/minor_quests/mq301/phases/mq301_06_contacts.questphase.json",
+        "assetSha256": "8a6bd6db5271faa353ef6afb82b08a0e54b9cb68a56eadd25fea0bd946ff82db",
+        "jsonSha256": "6a849569b2fc4aeb5fad4f3858f0c14be91223033c9973ff95a066862ad2bb3b",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/41/Data",
+        "expectedType": "questConditionNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pm5-01/raw/ep1/ep1/quest/minor_quests/mq301/phases/mq301_06_contacts.questphase.json",
+          "assetSha256": "8a6bd6db5271faa353ef6afb82b08a0e54b9cb68a56eadd25fea0bd946ff82db",
+          "jsonSha256": "6a849569b2fc4aeb5fad4f3858f0c14be91223033c9973ff95a066862ad2bb3b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/33/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/pm5-01/raw/ep1/ep1/quest/minor_quests/mq301/phases/mq301_06_contacts.questphase.json",
+          "assetSha256": "8a6bd6db5271faa353ef6afb82b08a0e54b9cb68a56eadd25fea0bd946ff82db",
+          "jsonSha256": "6a849569b2fc4aeb5fad4f3858f0c14be91223033c9973ff95a066862ad2bb3b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/54/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/pm5-01/raw/ep1/ep1/quest/minor_quests/mq301/phases/mq301_06_contacts.questphase.json",
+          "assetSha256": "8a6bd6db5271faa353ef6afb82b08a0e54b9cb68a56eadd25fea0bd946ff82db",
+          "jsonSha256": "6a849569b2fc4aeb5fad4f3858f0c14be91223033c9973ff95a066862ad2bb3b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/64/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "pm5.ev.journal.9510b6f3b14e",
+      "sourceId": "pm5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/contacts/paco/mq301_on_the_run/mq301_01_msg_on_the_run (gameJournalPhoneMessage): \"Your friends got us outta D-town, preem work!\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/entries/2/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "mq301_01_msg_on_the_run"
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.journal.b44aee533326",
+      "sourceId": "pm5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/contacts/paco/mq301_kenya/mq301_01_msg_nairobi (gameJournalPhoneMessage): \"Yooo, we made it to Nairobi :D :D :D\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/entries/3/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "mq301_01_msg_nairobi"
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.journal.b51061ab2faa",
+      "sourceId": "pm5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/contacts/paco/mq301_river_generators/mq301_02_msg_helped_out (gameJournalPhoneMessage): \"Your choom sorted us out, all's good af\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/entries/1/Data/entries/1/Data",
+        "expectedType": "gameJournalPhoneMessage",
+        "expected": {
+          "/id": "mq301_02_msg_helped_out"
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.mq301.paco-found-dead",
+      "sourceId": "pm5.source.7cde18bd5317",
+      "kind": "native",
+      "locator": "mq301_04_frame phase (the frame-Yuri branch): objective \"Find Paco's body under the Needle.\" Babs's phone thread mq301_babs_escaped offers V \"They got him, Babs. I'm sorry\", and that truthful choice leads to mq301_told_babs_paco_dead=1 (node 79). The lie option leads to a separate branch.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pm5-01/raw/ep1/ep1/quest/minor_quests/mq301/phases/mq301_04_frame.questphase.json",
+        "assetSha256": "4c9eeb99c23c6ffcbbb455a98050624f9784be53b2e1f7b397656aa26d2108ed",
+        "jsonSha256": "cedd15dc455bbb68240da0a9cd737c38befdb2522af650d095b5334964568922",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/26/Data",
+        "expectedType": "questJournalNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pm5-01/raw/ep1/ep1/quest/minor_quests/mq301/phases/mq301_04_frame.questphase.json",
+          "assetSha256": "4c9eeb99c23c6ffcbbb455a98050624f9784be53b2e1f7b397656aa26d2108ed",
+          "jsonSha256": "cedd15dc455bbb68240da0a9cd737c38befdb2522af650d095b5334964568922",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/20/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        }
+      ]
+    },
+    {
+      "id": "pm5.ev.journal.0534db2cd439",
+      "sourceId": "pm5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/quests/minor_quest/mq301_bomb/04_frame_jurij/02a_search_squot1 (gameJournalQuestObjective): \"Find Paco's body under the Needle.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/16/Data/entries/4/Data/entries/6/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "02a_search_squot1"
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.journal.6fbc0ae6dc5f",
+      "sourceId": "pm5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "Installed cooked journal entry ep1/contacts/babs/mq301_babs_escaped/mq301_03_ch_paco_found/mq301_03a_msg_paco_found (gameJournalPhoneChoiceEntry): \"They got him, Babs. I'm sorry. Really, really fucking sorry.\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/entries/0/Data/entries/2/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneChoiceEntry",
+        "expected": {
+          "/id": "mq301_03a_msg_paco_found"
+        }
+      }
+    },
+    {
+      "id": "pm5.ev.mq301.paco-afterlife-scavs",
+      "sourceId": "pm5.source.1cc4b64469c9",
+      "kind": "native",
+      "locator": "mq301_05_run scene: at the Afterlife meeting Paco says \"Got in with scavs, startin' tomorrow… Got a new life thanks to you\" (2429), then choice 2464 and the follow-up 2485. Only that path reaches mq301_paco_afterlife_done=1 (4518) before the quest journal completes.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/minor_quests/mq301/scenes/mq301_05_run.scene.json",
+        "assetSha256": "32ebb7245a4549a64c1cd1548da09a42c0353de5c7a13db9fef8b4fecd91a00d",
+        "jsonSha256": "d26f8c41b66a2d2772c290fe3dfa9951d34ab87ca6738d574482c5ade71292a0",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data",
+        "expectedType": "scnSectionNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/minor_quests/mq301/scenes/mq301_05_run.scene.json",
+          "assetSha256": "32ebb7245a4549a64c1cd1548da09a42c0353de5c7a13db9fef8b4fecd91a00d",
+          "jsonSha256": "d26f8c41b66a2d2772c290fe3dfa9951d34ab87ca6738d574482c5ade71292a0",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/minor_quests/mq301/scenes/mq301_05_run.scene.json",
+          "assetSha256": "32ebb7245a4549a64c1cd1548da09a42c0353de5c7a13db9fef8b4fecd91a00d",
+          "jsonSha256": "d26f8c41b66a2d2772c290fe3dfa9951d34ab87ca6738d574482c5ade71292a0",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data",
+          "expectedType": "scnChoiceNode"
+        }
+      ]
+    },
+    {
+      "id": "pm5.ev.fact.mq301_paco_afterlife_done.09a0de50271d",
+      "sourceId": "pm5.source.1cc4b64469c9",
+      "kind": "native",
+      "locator": "mq301_05_run node 4518 sets mq301_paco_afterlife_done=1 only after Paco's scav-joining conversation at the Afterlife.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/minor_quests/mq301/scenes/mq301_05_run.scene.json",
+        "assetSha256": "32ebb7245a4549a64c1cd1548da09a42c0353de5c7a13db9fef8b4fecd91a00d",
+        "jsonSha256": "d26f8c41b66a2d2772c290fe3dfa9951d34ab87ca6738d574482c5ade71292a0",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/270/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "mq301_paco_afterlife_done",
+          "/value": 1
+        }
+      }
+    }
+  ],
+  "factAllowlist": {
+    "q307_call_judy_end": {
+      "evidenceRefs": [
+        "pm5.ev.fact.q307_call_judy_end.0bc18c6bffb1"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/sh5-01/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/92/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q304_told_reed": {
+      "evidenceRefs": [
+        "pm5.ev.fact.q304_told_reed.776aa1b03a01"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q304/scenes/q304_04d_shard_pickup.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/111/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q304_04e_v_danced_again": {
+      "evidenceRefs": [
+        "pm5.ev.fact.q304_04e_v_danced_again.c4de854eeafe"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004-residual-e/raw/ep1/ep1/quest/main_quests/q304/scenes/q304_04e_alex_heart_to_heart.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/265/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q304_kurt_dead": {
+      "evidenceRefs": [
+        "pm5.ev.fact.q304_kurt_dead.4928e62fed88"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004-extra/raw/ep1/ep1/quest/main_quests/q304/phases/q304_08b_escape_songbird.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/8/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "holo_alex_calls_v_complete": {
+      "evidenceRefs": [
+        "pm5.ev.fact.holo_alex_calls_v_complete.13f6479ddc3b"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/phantom-reviewed-oct01/raw/ep1/ep1/quest/main_quests/q306/phases/q306_06_epilogues.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/80/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "mq306_animals_dead": {
+      "evidenceRefs": [
+        "pm5.ev.fact.mq306_animals_dead.1a7fd7dc66df"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/minor_quests/mq306/scenes/mq306_03_expo_ripper.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        },
+        {
+          "jsonPath": "scene-evidence/pm5-01/raw/ep1/ep1/quest/minor_quests/mq306/phases/mq306_02_tech_expo_combat.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/9/Data/phaseGraph/Data/nodes/6/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 2
+      }
+    },
+    "hana_default_angry_dialogue_finished": {
+      "evidenceRefs": [
+        "pm5.ev.fact.hana_default_angry_dialogue_finished.a4fb1497a5d0"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pm5-04/raw/ep1/ep1/quest/tertiary_characters/default_dialogs/hana_default/sts_03_hana_default.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "mq301_03_frame_jurij": {
+      "evidenceRefs": [
+        "pm5.ev.fact.mq301_03_frame_jurij.a2c593c5c243"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/minor_quests/mq301/scenes/mq301_03_delivery.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/140/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "mq301_03_run_paco": {
+      "evidenceRefs": [
+        "pm5.ev.fact.mq301_03_run_paco.46d8f0f7e6e6"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/minor_quests/mq301/scenes/mq301_03_delivery.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/139/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "mq301_paco_afterlife_done": {
+      "evidenceRefs": [
+        "pm5.ev.fact.mq301_paco_afterlife_done.09a0de50271d"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/pm5-02/raw/ep1/ep1/quest/minor_quests/mq301/scenes/mq301_05_run.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/270/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    }
+  },
+  "journalAllowlist": {
+    "pm5.no-easy-way-out.talk-aaron-after-ripper": {
+      "questKey": "no-easy-way-out",
+      "nativePath": "ep1/quests/minor_quest/mq306_dumpster/03_ripperdoc/05_talk_aaron",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "pm5.ev.journal.7727975621d1"
+      ]
+    },
+    "pm5.no-easy-way-out.angie-meeting-done": {
+      "questKey": "no-easy-way-out",
+      "nativePath": "ep1/quests/minor_quest/mq306_dumpster/04b_angie_meeting/03talk_to_angie",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "pm5.ev.journal.b09380d0f904"
+      ]
+    },
+    "pm5.show-must-go-on.talk-steven": {
+      "questKey": "the-show-must-go-on",
+      "nativePath": "ep1/quests/minor_quest/sts_ep1_08_steven_meeting_night_city/steven_default_night_city/talk_with_steven",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "pm5.ev.journal.5404911940b5"
+      ]
+    },
+    "pm5.spy-in-the-jungle.steven-drop-request": {
+      "questKey": "gig-spy-in-the-jungle",
+      "nativePath": "ep1/contacts/steven_santos/sts_ep1_08_destroy_biomonitor/destroy_biomonitor",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pm5.ev.journal.3c761de97522"
+      ]
+    },
+    "pm5.treating-symptoms.talk-alan-done": {
+      "questKey": "gig-treating-symptoms",
+      "nativePath": "ep1/quests/street_stories/sts_ep1_12/sts_ep1_12/05b_talk_to_target",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "pm5.ev.journal.3cd31799e22f"
+      ]
+    },
+    "pm5.corpo-of-the-month.alan-thanks": {
+      "questKey": "corpo-of-the-month",
+      "nativePath": "ep1/contacts/alan_noel/wst_ep1_02/wst_ep1_02",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pm5.ev.journal.cf28f2fabb86"
+      ]
+    },
+    "pm5.corpo-of-the-month.alan-thanks-stash": {
+      "questKey": "corpo-of-the-month",
+      "nativePath": "ep1/contacts/alan_noel/wst_ep1_02/wst_ep1_02_corpo_blueline",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pm5.ev.journal.024cf347114b"
+      ]
+    },
+    "pm5.new-person.talk-bill": {
+      "questKey": "new-person-same-old-mistakes",
+      "nativePath": "ep1/quests/minor_quest/wst_ep1_11_bill_meeting/wst_ep1_11/talk_bill",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "pm5.ev.journal.3553920338a7"
+      ]
+    },
+    "pm5.balls.paco-on-the-run": {
+      "questKey": "balls-to-the-wall",
+      "nativePath": "ep1/contacts/paco/mq301_on_the_run/mq301_01_msg_on_the_run",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pm5.ev.journal.9510b6f3b14e"
+      ]
+    },
+    "pm5.balls.paco-nairobi": {
+      "questKey": "balls-to-the-wall",
+      "nativePath": "ep1/contacts/paco/mq301_kenya/mq301_01_msg_nairobi",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pm5.ev.journal.b44aee533326"
+      ]
+    },
+    "pm5.balls.paco-generators-sorted": {
+      "questKey": "balls-to-the-wall",
+      "nativePath": "ep1/contacts/paco/mq301_river_generators/mq301_02_msg_helped_out",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "pm5.ev.journal.b51061ab2faa"
+      ]
+    },
+    "pm5.balls.find-paco-body": {
+      "questKey": "balls-to-the-wall",
+      "nativePath": "ep1/quests/minor_quest/mq301_bomb/04_frame_jurij/02a_search_squot1",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "pm5.ev.journal.0534db2cd439"
+      ]
+    },
+    "pm5.balls.told-babs-they-got-him": {
+      "questKey": "balls-to-the-wall",
+      "nativePath": "ep1/contacts/babs/mq301_babs_escaped/mq301_03_ch_paco_found/mq301_03a_msg_paco_found",
+      "nativeClass": "gameJournalPhoneChoiceEntry",
+      "evidenceRefs": [
+        "pm5.ev.journal.6fbc0ae6dc5f"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "pm5.changed.judy-call-heard",
+      "revision": 1,
+      "questKey": "things-done-changed",
+      "topic": "relationship.judy.tower-contact",
+      "outcome": "heard",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 6,
+      "stable": true,
+      "statement": "After V woke in 2079, V called Judy; she said she now lives in Pittsburgh and is married, and that she could not help V now.",
+      "sourceIds": [
+        "pm5.source.af092dea5568"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.q307.judy-call-content",
+        "pm5.ev.fact.q307_call_judy_end.0bc18c6bffb1"
+      ],
+      "audience": {
+        "speakers": [
+          "judy-alvarez"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "judy-alvarez"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q307_call_judy_end",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.changed.judy-call",
+          "outcomeKey": "heard"
+        }
+      ]
+    },
+    {
+      "id": "pm5.birds.reed-told-escape-plan",
+      "revision": 1,
+      "questKey": "birds-with-broken-wings",
+      "topic": "reed.songbird-confession",
+      "outcome": "told",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Before the stadium op, V told Reed that Songbird had admitted she was not telling the whole truth and planned to slip out of Night City right after Hansen went down; Reed thanked V for the candor.",
+      "sourceIds": [
+        "pm5.source.d2d46b826d45"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.q304.told-reed-choice",
+        "pm5.ev.fact.q304_told_reed.776aa1b03a01"
+      ],
+      "audience": {
+        "speakers": [
+          "solomon-reed"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "solomon-reed"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q304_told_reed",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.birds.reed-disclosure",
+          "outcomeKey": "told"
+        }
+      ]
+    },
+    {
+      "id": "pm5.birds.alex-dance",
+      "revision": 1,
+      "questKey": "birds-with-broken-wings",
+      "topic": "relationship.alex.dance",
+      "outcome": "shared",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 6,
+      "stable": true,
+      "statement": "The night before the stadium op, V joined Alex at the bar where she was having a drink to calm her nerves, and danced with her. This was a moment of trust, not a confirmed romance.",
+      "sourceIds": [
+        "pm5.source.ed45cb48c948"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.q304.alex-dance",
+        "pm5.ev.fact.q304_04e_v_danced_again.c4de854eeafe"
+      ],
+      "audience": {
+        "speakers": [
+          "alex"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "alex"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q304_04e_v_danced_again",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.birds.alex-evening",
+          "outcomeKey": "shared"
+        }
+      ]
+    },
+    {
+      "id": "pm5.firestarter.hansen-killed-by-alex",
+      "revision": 1,
+      "questKey": "firestarter",
+      "topic": "dogtown.hansen",
+      "outcome": "killed-by-alex",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "In the stadium lab, on Songbird's side of the split, V gave Alex the signal and she shot Kurt Hansen (\"Target down\"); Hansen was dead as V escaped with Songbird.",
+      "sourceIds": [
+        "pm5.source.0cd3a764c972",
+        "pm5.source.35e883b47406"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.q304.lab-alex-target-down",
+        "pm5.ev.fact.q304_kurt_dead.4928e62fed88"
+      ],
+      "audience": {
+        "speakers": [
+          "alex"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "alex"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q304_songbirds_path",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q304_lab_done",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q304_kurt_dead",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.firestarter.hansen",
+          "outcomeKey": "killed-by-alex"
+        }
+      ]
+    },
+    {
+      "id": "pm5.firestarter.alex-alive",
+      "revision": 1,
+      "questKey": "firestarter",
+      "topic": "character.alex.fate",
+      "outcome": "alive",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 9,
+      "stable": true,
+      "statement": "On Songbird's branch at the stadium, Alex shot Hansen at V's signal and survived the operation; she later reached out to V by holocall.",
+      "sourceIds": [
+        "pm5.source.0cd3a764c972",
+        "pm5.source.bdb2b6b5c0cd"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.q304.lab-alex-target-down",
+        "pm5.ev.fact.holo_alex_calls_v_complete.13f6479ddc3b"
+      ],
+      "audience": {
+        "speakers": [
+          "alex"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "alex"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q304_songbirds_path",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q304_lab_done",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "holo_alex_calls_v_complete",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.firestarter.alex-fate",
+          "outcomeKey": "alive"
+        }
+      ]
+    },
+    {
+      "id": "pm5.damaged.songbird-begged-to-die",
+      "revision": 1,
+      "questKey": "somewhat-damaged",
+      "topic": "songbird.cynosure-request",
+      "outcome": "heard",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 9,
+      "stable": true,
+      "statement": "At Cynosure the dying Songbird begged V to end her life (\"End it\"), calling death her only way out; V refused, and she said V was leaving her to a fate worse than death.",
+      "sourceIds": [
+        "pm5.source.89550527dd0d"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.q305.songbird-plea"
+      ],
+      "audience": {
+        "speakers": [
+          "songbird"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "songbird"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q305_songbird_alive",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.damaged.request",
+          "outcomeKey": "heard"
+        }
+      ]
+    },
+    {
+      "id": "pm5.easy.angie-defeated",
+      "revision": 1,
+      "questKey": "no-easy-way-out",
+      "topic": "aaron.angie",
+      "outcome": "killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V refused Angie's deal at Damir's clinic and fought her crew; Angie and her two Animals went down while Aaron was under, and he woke to the aftermath. The record does not distinguish killing from knocking them out.",
+      "sourceIds": [
+        "pm5.source.10d7baa102b7",
+        "pm5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.mq306.angie-fight-aftermath",
+        "pm5.ev.fact.mq306_animals_dead.1a7fd7dc66df",
+        "pm5.ev.journal.7727975621d1"
+      ],
+      "audience": {
+        "speakers": [
+          "aaron"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "aaron"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "mq306_animals_dead",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pm5.no-easy-way-out.talk-aaron-after-ripper",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.easy.angie",
+          "outcomeKey": "killed"
+        }
+      ]
+    },
+    {
+      "id": "pm5.easy.fate-controlled",
+      "revision": 1,
+      "questKey": "no-easy-way-out",
+      "topic": "character.aaron.fate",
+      "outcome": "controlled",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Aaron's bout went ahead under Angie's control: he went down in the third round as the Animals had arranged, and Angie kept the option of using his chip.",
+      "sourceIds": [
+        "pm5.source.da5e7c42c65c",
+        "pm5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.mq306.angie-meeting-controlled",
+        "pm5.ev.journal.b09380d0f904"
+      ],
+      "audience": {
+        "speakers": [
+          "aaron"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "aaron"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pm5.no-easy-way-out.angie-meeting-done",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.easy.fate",
+          "outcomeKey": "controlled"
+        }
+      ]
+    },
+    {
+      "id": "pm5.show.steven-meeting",
+      "revision": 1,
+      "questKey": "the-show-must-go-on",
+      "topic": "bia.suppression-followup",
+      "outcome": "heard",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "Steven met V in Night City after Spy in the Jungle, thanked V for what happened in Dogtown, and said he was working and looking at a promotion. Whether V asked about Ana or SovOil is not recorded.",
+      "sourceIds": [
+        "pm5.source.409ff39a8bf1",
+        "pm5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.steven.nc-meeting",
+        "pm5.ev.journal.5404911940b5"
+      ],
+      "audience": {
+        "speakers": [
+          "steven-santos"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "steven-santos"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pm5.show-must-go-on.talk-steven",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.show.meeting",
+          "outcomeKey": "heard"
+        }
+      ]
+    },
+    {
+      "id": "pm5.show.steven-payment",
+      "revision": 1,
+      "questKey": "the-show-must-go-on",
+      "topic": "relationship.steven.payment",
+      "outcome": "received",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "At their Night City meeting Steven handed V the payment he had promised, \"so you know I keep my word.\"",
+      "sourceIds": [
+        "pm5.source.409ff39a8bf1",
+        "pm5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.steven.nc-meeting",
+        "pm5.ev.journal.5404911940b5"
+      ],
+      "audience": {
+        "speakers": [
+          "steven-santos"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "steven-santos"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pm5.show-must-go-on.talk-steven",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.show.payment",
+          "outcomeKey": "received"
+        }
+      ]
+    },
+    {
+      "id": "pm5.jungle.steven-request",
+      "revision": 1,
+      "questKey": "gig-spy-in-the-jungle",
+      "topic": "steven.private-request",
+      "outcome": "received",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "During Spy in the Jungle Steven texted V privately to leave the biomonitor at the drop point and not give it to Ana, saying leaked news of Bana's death would only hurt them.",
+      "sourceIds": [
+        "pm5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.journal.3c761de97522"
+      ],
+      "audience": {
+        "speakers": [
+          "steven-santos"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "steven-santos"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pm5.spy-in-the-jungle.steven-drop-request",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.jungle.steven-request",
+          "outcomeKey": "received"
+        }
+      ]
+    },
+    {
+      "id": "pm5.symptoms.alan-revealed",
+      "revision": 1,
+      "questKey": "gig-treating-symptoms",
+      "topic": "alan.netwatch-disclosure",
+      "outcome": "revealed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "In the Voodoo Boys' base Alan Noël identified himself to V as an undercover NetWatch agent, an organized-crime specialist, and V let his operation continue.",
+      "sourceIds": [
+        "pm5.source.55b4d11befc5",
+        "pm5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.alan.netwatch-reveal",
+        "pm5.ev.journal.3cd31799e22f"
+      ],
+      "audience": {
+        "speakers": [
+          "alan-noel"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "alan-noel"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pm5.treating-symptoms.talk-alan-done",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.symptoms.alan-revealed",
+          "outcomeKey": "revealed"
+        }
+      ]
+    },
+    {
+      "id": "pm5.corpo.alan-reward",
+      "revision": 1,
+      "questKey": "corpo-of-the-month",
+      "topic": "relationship.alan.reward",
+      "outcome": "received",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "Alan later messaged V: Milko had led NetWatch to a Belgrade arms dealer selling the old Militech bots, who was now in a cell. Alan sent V a reward for the help.",
+      "sourceIds": [
+        "pm5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.journal.cf28f2fabb86",
+        "pm5.ev.journal.024cf347114b"
+      ],
+      "audience": {
+        "speakers": [
+          "alan-noel"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "alan-noel"
+        ]
+      },
+      "condition": {
+        "any": [
+          {
+            "type": "journal",
+            "key": "pm5.corpo-of-the-month.alan-thanks",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          },
+          {
+            "type": "journal",
+            "key": "pm5.corpo-of-the-month.alan-thanks-stash",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.corpo.reward",
+          "outcomeKey": "received"
+        }
+      ]
+    },
+    {
+      "id": "pm5.mistakes.bill-hotdog-stand",
+      "revision": 1,
+      "questKey": "new-person-same-old-mistakes",
+      "topic": "bill.hotdog-business",
+      "outcome": "opened",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "V visited Bill at his new scopdog stand in The Glen. He had quit the NCPD, said V changed his life, and offered V eddies as thanks.",
+      "sourceIds": [
+        "pm5.source.d71453563110",
+        "pm5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.bill.hotdog-stand",
+        "pm5.ev.journal.3553920338a7"
+      ],
+      "audience": {
+        "speakers": [
+          "bill-mitchell"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "bill-mitchell"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pm5.new-person.talk-bill",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.mistakes.business",
+          "outcomeKey": "opened"
+        }
+      ]
+    },
+    {
+      "id": "pm5.foreman.briana-confronted",
+      "revision": 1,
+      "questKey": "gig-the-man-who-killed-jason-foreman",
+      "topic": "relationship.briana.truth-discovered",
+      "outcome": "confronted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 5,
+      "stable": true,
+      "statement": "Briana found out that V had let Rinder live. She confronted V in the Stacks, said V had no right, and told V never to show their face there again.",
+      "sourceIds": [
+        "pm5.source.b99d4ff7b9d7"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.briana.angry",
+        "pm5.ev.fact.hana_default_angry_dialogue_finished.a4fb1497a5d0"
+      ],
+      "audience": {
+        "speakers": [
+          "briana-dolson"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "briana-dolson"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "hana_default_angry_dialogue_finished",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.foreman.briana-discovery",
+          "outcomeKey": "confronted"
+        }
+      ]
+    },
+    {
+      "id": "pm5.balls.plan-frame-yuri",
+      "revision": 1,
+      "questKey": "balls-to-the-wall",
+      "topic": "paco.generator-plan",
+      "outcome": "frame-yuri",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "When Paco's generator mess put him and Babs in danger, V proposed framing Yuri, who was already on Hansen's bad side.",
+      "sourceIds": [
+        "pm5.source.70d8ed75e0da"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.mq301.plan-choice",
+        "pm5.ev.fact.mq301_03_frame_jurij.a2c593c5c243"
+      ],
+      "audience": {
+        "speakers": [
+          "paco-torres",
+          "babs-okoye"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "paco-torres",
+          "babs-okoye"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "mq301_03_frame_jurij",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.balls.plan",
+          "outcomeKey": "frame-yuri"
+        }
+      ]
+    },
+    {
+      "id": "pm5.balls.plan-smuggle-paco",
+      "revision": 1,
+      "questKey": "balls-to-the-wall",
+      "topic": "paco.generator-plan",
+      "outcome": "smuggle-paco",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V told Paco and Babs to run for it; Babs chose to stay in Dogtown, and Paco agreed to let V smuggle him out alone.",
+      "sourceIds": [
+        "pm5.source.70d8ed75e0da"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.mq301.plan-choice",
+        "pm5.ev.fact.mq301_03_run_paco.46d8f0f7e6e6"
+      ],
+      "audience": {
+        "speakers": [
+          "paco-torres",
+          "babs-okoye"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "paco-torres",
+          "babs-okoye"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "mq301_03_run_paco",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.balls.plan",
+          "outcomeKey": "smuggle-paco"
+        }
+      ]
+    },
+    {
+      "id": "pm5.balls.plan-nomad-help",
+      "revision": 1,
+      "questKey": "balls-to-the-wall",
+      "topic": "paco.generator-plan",
+      "outcome": "nomad-help",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V called in favors so nomads could get Paco and Babs out of Dogtown; Paco messaged that V's friends got them out.",
+      "sourceIds": [
+        "pm5.source.28298918bd26",
+        "pm5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.mq301.contacts-branches",
+        "pm5.ev.journal.9510b6f3b14e"
+      ],
+      "audience": {
+        "speakers": [
+          "paco-torres",
+          "babs-okoye"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "paco-torres",
+          "babs-okoye"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pm5.balls.paco-on-the-run",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.balls.plan",
+          "outcomeKey": "nomad-help"
+        }
+      ]
+    },
+    {
+      "id": "pm5.balls.result-both-kenya",
+      "revision": 1,
+      "questKey": "balls-to-the-wall",
+      "topic": "paco-babs.resolution",
+      "outcome": "both-kenya",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "With nomad help, Paco and Babs left Dogtown through the Badlands, and Paco later messaged V that they had made it to Nairobi.",
+      "sourceIds": [
+        "pm5.source.28298918bd26",
+        "pm5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.mq301.contacts-branches",
+        "pm5.ev.journal.b44aee533326"
+      ],
+      "audience": {
+        "speakers": [
+          "paco-torres",
+          "babs-okoye"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "paco-torres",
+          "babs-okoye"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pm5.balls.paco-nairobi",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.balls.result",
+          "outcomeKey": "both-kenya"
+        }
+      ]
+    },
+    {
+      "id": "pm5.balls.plan-replace-generators",
+      "revision": 1,
+      "questKey": "balls-to-the-wall",
+      "topic": "paco.generator-plan",
+      "outcome": "replace-generators",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Instead of fleeing, V found replacement gear for Paco's lost generators through a contact (River). Paco messaged that V's choom had sorted them out.",
+      "sourceIds": [
+        "pm5.source.28298918bd26",
+        "pm5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.mq301.contacts-branches",
+        "pm5.ev.journal.b51061ab2faa"
+      ],
+      "audience": {
+        "speakers": [
+          "paco-torres",
+          "babs-okoye"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "paco-torres",
+          "babs-okoye"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pm5.balls.paco-generators-sorted",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.balls.plan",
+          "outcomeKey": "replace-generators"
+        }
+      ]
+    },
+    {
+      "id": "pm5.balls.result-both-barghest",
+      "revision": 1,
+      "questKey": "balls-to-the-wall",
+      "topic": "paco-babs.resolution",
+      "outcome": "both-barghest",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "The replacement gear V got through River solved Paco and Babs' generator problem. Paco messaged that all was good and left V a thank-you gift in their Dogtown tent.",
+      "sourceIds": [
+        "pm5.source.28298918bd26",
+        "pm5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.mq301.contacts-branches",
+        "pm5.ev.journal.b51061ab2faa"
+      ],
+      "audience": {
+        "speakers": [
+          "paco-torres",
+          "babs-okoye"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "paco-torres",
+          "babs-okoye"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pm5.balls.paco-generators-sorted",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.balls.result",
+          "outcomeKey": "both-barghest"
+        }
+      ]
+    },
+    {
+      "id": "pm5.balls.result-paco-executed",
+      "revision": 1,
+      "questKey": "balls-to-the-wall",
+      "topic": "paco-babs.resolution",
+      "outcome": "paco-executed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "After the plan to frame Yuri, Paco was killed. V found his body under the Needle and messaged Babs: \"They got him, Babs. I'm sorry.\"",
+      "sourceIds": [
+        "pm5.source.7cde18bd5317",
+        "pm5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.mq301.paco-found-dead",
+        "pm5.ev.journal.0534db2cd439",
+        "pm5.ev.journal.6fbc0ae6dc5f"
+      ],
+      "audience": {
+        "speakers": [
+          "babs-okoye"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "babs-okoye"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "pm5.balls.find-paco-body",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "pm5.balls.told-babs-they-got-him",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.balls.result",
+          "outcomeKey": "paco-executed"
+        }
+      ]
+    },
+    {
+      "id": "pm5.balls.result-paco-scav",
+      "revision": 1,
+      "questKey": "balls-to-the-wall",
+      "topic": "paco-babs.resolution",
+      "outcome": "paco-scav",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V smuggled Paco out of Dogtown alone. Later, at the Afterlife, he told V he had got in with the scavs, starting the next day, and gave V a souvenir as thanks.",
+      "sourceIds": [
+        "pm5.source.1cc4b64469c9"
+      ],
+      "evidenceRefs": [
+        "pm5.ev.mq301.paco-afterlife-scavs",
+        "pm5.ev.fact.mq301_paco_afterlife_done.09a0de50271d"
+      ],
+      "audience": {
+        "speakers": [
+          "paco-torres"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "paco-torres"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "mq301_paco_afterlife_done",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.balls.result",
+          "outcomeKey": "paco-scav"
+        }
+      ]
+    }
+  ]
+}

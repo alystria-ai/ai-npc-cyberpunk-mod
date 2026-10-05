@@ -1,0 +1,2492 @@
+{
+  "version": 1,
+  "id": "cyberpunk-native-silverhand-20261005",
+  "revision": 1,
+  "gameVersions": [
+    "2.31"
+  ],
+  "profileKeys": [
+    "blue-moon",
+    "johnny-silverhand",
+    "kerry-eurodyne",
+    "nancy-hartley",
+    "panam-palmer"
+  ],
+  "sources": [
+    {
+      "id": "sh5.source.e961f3fab680",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q103\\scenes\\q103_11_tunnel_drive.scene (scene-evidence/sh5-03); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "sh5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: base\\journal\\cooked_journal.journal (scene-evidence/judy-river-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "sh5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\journal\\cooked_journal.journal (scene-evidence/priority-phantom-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "sh5.source.d73dd6dd7bbc",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq031\\scenes\\sq031_05_grave.scene (scene-evidence/core-arcs-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "sh5.source.603b5e88603a",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\main_quests\\q307\\phases\\q307_03_hospital.questphase (scene-evidence/priority-phantom-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "sh5.source.a652e60b10c3",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\main_quests\\q307\\scenes\\q307_01_pickup.scene (scene-evidence/phantom-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "sh5.source.af092dea5568",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: ep1\\quest\\main_quests\\q307\\scenes\\q307_03a_friends_holocall.scene (scene-evidence/sh5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "sh5.source.ff8cab4df452",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\epilogue\\q203\\scenes\\q203_02b_kerry.scene (scene-evidence/priority-endings-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "sh5.source.3ae0bce8808a",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q116\\scenes\\q116_03b_after_bossfight.scene (scene-evidence/silverhand-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "sh5.source.d47d5e5bca73",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q115\\phases\\q115_solo_smasher.questphase (scene-evidence/priority-endings-20261004-phases2); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "sh5.source.8b642f2e8278",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q115\\scenes\\q115_12d_mikoshi.scene (scene-evidence/priority-endings-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "sh5.source.7943860dcb12",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq011\\scenes\\sq011_07b_thugs.scene (scene-evidence/priority-johnny-rogue-extra-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "sh5.source.51f5b84d03de",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq011\\scenes\\sq011_07a_royce.scene (scene-evidence/priority-johnny-rogue-extra-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "sh5.source.9435c33e28b5",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq017\\scenes\\sq017_10_us_crack_intro.scene (scene-evidence/silverhand-authenticated-oct01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "sh5.source.a4ce7467687b",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq028\\scenes\\sq028_05_sex.scene (scene-evidence/priority-johnny-rogue-20261004); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "sh5.source.9e4f05fd7cc7",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q101\\scenes\\q101_07_ripperdoc.scene (scene-evidence/sh5-01); Installed Cyberpunk 2077 2.31 archive winner exported with WolvenKit CLI 9.0.1; raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "sh5.ev.fact.q103_helped_panam.dec2bcb5cf19",
+      "sourceId": "sh5.source.e961f3fab680",
+      "kind": "native",
+      "locator": "q103_11_tunnel_drive choice 56 option 0 \"Fine. Where's this den?\" (or choice 82 option 3) -> journal 68 tunnels/ride -> section 58 (\"All right... So where's this hideout? / Thanks, V.\") -> SET q103_helped_panam += 1 (node 101). The refusal option 56/1 routes to 161 -> 72 roadhouse/ride -> section 59 and never reaches 101.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/sh5-03/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+        "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+        "jsonSha256": "e75d89000040dcf12c9b3e4d76aea4a2241d1d8bd494c621838fc174c4b0833c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q103_helped_panam",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "sh5.ev.ghost-town.nash-choice",
+      "sourceId": "sh5.source.e961f3fab680",
+      "kind": "native",
+      "locator": "q103_11_tunnel_drive choice 56: option 0 \"Fine. Where's this den?\" leads to the Raffen hideout ride and the helped writer; option 1 \"No. Not what we agreed.\" leads to the motel ride without any positive write.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/sh5-03/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+        "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+        "jsonSha256": "e75d89000040dcf12c9b3e4d76aea4a2241d1d8bd494c621838fc174c4b0833c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+        "expectedType": "scnChoiceNode",
+        "expected": {
+          "/nodeId/id": 56
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/sh5-03/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "e75d89000040dcf12c9b3e4d76aea4a2241d1d8bd494c621838fc174c4b0833c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 59
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.journal.56cf71b39324",
+      "sourceId": "sh5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Rooftop scene q115_02b_ripperdoc_roof: Kerry call option -> SET q115_kerry_romance_chosen (946) -> 02a2_call_kerry Active (965) -> holocall start/end; after holo_v_calls_kerry_end_done (3257) node 984 receives input ordinal 3 (Succeeded) for 02a2_call_kerry \"Talk to Kerry.\" Succeeded therefore means the rooftop holocall with Kerry was completed.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/2/Data/entries/10/Data/entries/1/Data/entries/25/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "02a2_call_kerry"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+          "assetSha256": "0506831be23656c51947cf3bf920a95700235d4cc52065dc18e91a09c337dd83",
+          "jsonSha256": "99ea1b7d12009ffa523d12b26ed9c5df0a199f78fa27bd2ab6971a7be6ecb0ee",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/160/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 946
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+          "assetSha256": "0506831be23656c51947cf3bf920a95700235d4cc52065dc18e91a09c337dd83",
+          "jsonSha256": "99ea1b7d12009ffa523d12b26ed9c5df0a199f78fa27bd2ab6971a7be6ecb0ee",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/563/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 3257
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_02b_ripperdoc_roof.scene.json",
+          "assetSha256": "0506831be23656c51947cf3bf920a95700235d4cc52065dc18e91a09c337dd83",
+          "jsonSha256": "99ea1b7d12009ffa523d12b26ed9c5df0a199f78fa27bd2ab6971a7be6ecb0ee",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/169/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 984
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.journal.613fa44b37be",
+      "sourceId": "sh5.source.a87921da68fe",
+      "kind": "native",
+      "locator": "q307_01_pickup: the [Enter] choices 32 (options 0/1/2) converge on the boarding chain (doors closed, timed delay 89); node 213 then receives input ordinal 3 (Succeeded) for 04_enter_av \"Get in the AV.\" and 215 activates 05_go_clinic. Succeeded means V boarded the FIA transport for the NUSA treatment.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/journal/cooked_journal.journal.json",
+        "assetSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "jsonSha256": "b52ddc545be3f49a8aeabac132983c6ac9540a0b3371a5109fe9d28a6cb6887b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/0/Data/entries/12/Data/entries/0/Data/entries/3/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "04_enter_av"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_01_pickup.scene.json",
+          "assetSha256": "2f63a1c376eaaa978fdda055e56166e7adf923026a9faba0f4db02273f39500d",
+          "jsonSha256": "f823bef8a3db2cd6cd714d8446fa1218f5f45c14cc7fe63b672e00dc000e5ceb",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+          "expectedType": "scnChoiceNode",
+          "expected": {
+            "/nodeId/id": 32
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_01_pickup.scene.json",
+          "assetSha256": "2f63a1c376eaaa978fdda055e56166e7adf923026a9faba0f4db02273f39500d",
+          "jsonSha256": "f823bef8a3db2cd6cd714d8446fa1218f5f45c14cc7fe63b672e00dc000e5ceb",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/45/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 213
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.fact.sq032_johnny_friend.438c05744ada",
+      "sourceId": "sh5.source.d73dd6dd7bbc",
+      "kind": "native",
+      "locator": "sq031_05_grave: choice 624 option 0 \"OK. But as second chances go, this is your last.\" -> section 626 -> SET sq032_johnny_friend += 1 (1483). Positive second-chance writer.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+        "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+        "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/213/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq032_johnny_friend",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "sh5.ev.fact.q307_2079.ca953faf3d0e",
+      "sourceId": "sh5.source.603b5e88603a",
+      "kind": "native",
+      "locator": "q307_03_hospital phase sets q307_2079 = 1 when V wakes in the clinic after the surgery and coma; it is reached only after the pickup scene's AV flight.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/quest/main_quests/q307/phases/q307_03_hospital.questphase.json",
+        "assetSha256": "349dcc7a12d5149dfecd13eb1260854e478ad4873fee576fae3052875312dd33",
+        "jsonSha256": "d4c1cf4ddde500abfc4e2af93bd7ef01b35a05bd8b2371344b5c56b9ae0c9576",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/21/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q307_2079",
+          "/value": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/quest/main_quests/q307/phases/q307_03_hospital.questphase.json",
+          "assetSha256": "349dcc7a12d5149dfecd13eb1260854e478ad4873fee576fae3052875312dd33",
+          "jsonSha256": "d4c1cf4ddde500abfc4e2af93bd7ef01b35a05bd8b2371344b5c56b9ae0c9576",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/14/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q307_2079",
+            "/value": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.forever.farewell-branch",
+      "sourceId": "sh5.source.a652e60b10c3",
+      "kind": "native",
+      "locator": "q307_01_pickup: after the doctor's scan on the AV, condition 866 (and 1507) IF sq032_johnny_friend >= 1 selects Johnny's friendly farewell (\"Made our peace at the oil fields\") branch; the False output is the bitter variant with no positive marker.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_01_pickup.scene.json",
+        "assetSha256": "2f63a1c376eaaa978fdda055e56166e7adf923026a9faba0f4db02273f39500d",
+        "jsonSha256": "f823bef8a3db2cd6cd714d8446fa1218f5f45c14cc7fe63b672e00dc000e5ceb",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/135/Data",
+        "expectedType": "scnQuestNode",
+        "expected": {
+          "/nodeId/id": 866
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_01_pickup.scene.json",
+          "assetSha256": "2f63a1c376eaaa978fdda055e56166e7adf923026a9faba0f4db02273f39500d",
+          "jsonSha256": "f823bef8a3db2cd6cd714d8446fa1218f5f45c14cc7fe63b672e00dc000e5ceb",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/205/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 1507
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/phantom-authenticated-oct01/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_01_pickup.scene.json",
+          "assetSha256": "2f63a1c376eaaa978fdda055e56166e7adf923026a9faba0f4db02273f39500d",
+          "jsonSha256": "f823bef8a3db2cd6cd714d8446fa1218f5f45c14cc7fe63b672e00dc000e5ceb",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data",
+          "expectedType": "scnChoiceNode",
+          "expected": {
+            "/nodeId/id": 160
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.fact.q307_call_kerry_end.6b82656cecab",
+      "sourceId": "sh5.source.af092dea5568",
+      "kind": "native",
+      "locator": "q307_03a_friends_holocall: V calls Kerry from the clinic; Kerry answers live (\"Holy fuck, V?! Or is it Johnny?!\", section 51) and after holo_v_calls_kerry_end_done (28/30) the scene writes q307_call_kerry_end = 1 (634). Positive receipt that the 2079 call with Kerry happened.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/sh5-01/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+        "assetSha256": "845a7dc45639667d26f2c7128603bdd80954e2392c23c2fe8fc5603a5ecfa739",
+        "jsonSha256": "a142c3cbe71fe40cab1472b6889ea3991c0764c24f613f93119d924b834c4c4c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q307_call_kerry_end",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "sh5.ev.tower.kerry-call-lines",
+      "sourceId": "sh5.source.af092dea5568",
+      "kind": "native",
+      "locator": "q307_03a_friends_holocall section 51: Kerry interrupts a conversation, recognises V (\"Holy fuck, V?! Or is it Johnny?!\") and talks with V after the coma.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/sh5-01/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+        "assetSha256": "845a7dc45639667d26f2c7128603bdd80954e2392c23c2fe8fc5603a5ecfa739",
+        "jsonSha256": "a142c3cbe71fe40cab1472b6889ea3991c0764c24f613f93119d924b834c4c4c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data",
+        "expectedType": "scnSectionNode",
+        "expected": {
+          "/nodeId/id": 51
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/sh5-01/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+          "assetSha256": "845a7dc45639667d26f2c7128603bdd80954e2392c23c2fe8fc5603a5ecfa739",
+          "jsonSha256": "a142c3cbe71fe40cab1472b6889ea3991c0764c24f613f93119d924b834c4c4c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 30
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.journal.80c1e361138d",
+      "sourceId": "sh5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "q201_05_cabin_day_7: the Kerry holocall (holo_v_calls_kerry_start/end) ends at 3604/3605; node 2949 then receives input ordinal 3 (Succeeded) for 02_talk_to_kerry \"Talk to Kerry.\" Succeeded means the orbital call with Kerry connected and finished.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/1/Data/entries/3/Data/entries/4/Data/entries/1/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "02_talk_to_kerry"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_05_cabin_day_7.scene.json",
+          "assetSha256": "c351382e9b2b3e0ae9bf0672a2f09890e1bfa6b941d10f4660c11fc08d08e0c0",
+          "jsonSha256": "e1038968bf42fb9660b37a1dcf55e626a75d8e3ccb45c7161d0e3ed3d4d1b5ae",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/204/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 3605
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_05_cabin_day_7.scene.json",
+          "assetSha256": "c351382e9b2b3e0ae9bf0672a2f09890e1bfa6b941d10f4660c11fc08d08e0c0",
+          "jsonSha256": "e1038968bf42fb9660b37a1dcf55e626a75d8e3ccb45c7161d0e3ed3d4d1b5ae",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/156/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 2949
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.journal.55fb04d7f35b",
+      "sourceId": "sh5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "q203_02b_kerry (Kerry's penthouse-morning scene): after the shower objective succeeds (210), node 163 activates penthouse/talk_kerry \"Talk to Kerry.\" The objective exists only in Kerry's variant of the Path of Glory morning; it is used only together with the post-conversation coffee receipt.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/1/Data/entries/2/Data/entries/0/Data/entries/10/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "talk_kerry"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q203/scenes/q203_02b_kerry.scene.json",
+          "assetSha256": "b716daa6a81396dafc4806387bd68ae7f9270d4419d4e0a41c3aa71fd680eccf",
+          "jsonSha256": "f2246e7c34815e2a57d5cf17fd7fd74e71f1d55e78b1bea7384e1eb733263c65",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 163
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.fact.q203_coffee_empty.173767e452ba",
+      "sourceId": "sh5.source.ff8cab4df452",
+      "kind": "native",
+      "locator": "q203_02b_kerry: Kerry's morning talk (choice 45 responses 47/51 and 60/63) converges at XOR 81 -> section 53 -> SET q203_coffee_empty += 1 (127). No other exported q203 scene (wakeup, shower, Judy, Panam, River) writes it.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q203/scenes/q203_02b_kerry.scene.json",
+        "assetSha256": "b716daa6a81396dafc4806387bd68ae7f9270d4419d4e0a41c3aa71fd680eccf",
+        "jsonSha256": "f2246e7c34815e2a57d5cf17fd7fd74e71f1d55e78b1bea7384e1eb733263c65",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q203_coffee_empty",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "sh5.ev.sun.kerry-lines",
+      "sourceId": "sh5.source.ff8cab4df452",
+      "kind": "native",
+      "locator": "q203_02b_kerry sections 24/33/40: Kerry says their relationship taught him to let go of the past, talks about a new album and the Crystal Palace, then \"And you – be careful.\"",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q203/scenes/q203_02b_kerry.scene.json",
+        "assetSha256": "b716daa6a81396dafc4806387bd68ae7f9270d4419d4e0a41c3aa71fd680eccf",
+        "jsonSha256": "f2246e7c34815e2a57d5cf17fd7fd74e71f1d55e78b1bea7384e1eb733263c65",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+        "expectedType": "scnSectionNode",
+        "expected": {
+          "/nodeId/id": 24
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q203/scenes/q203_02b_kerry.scene.json",
+          "assetSha256": "b716daa6a81396dafc4806387bd68ae7f9270d4419d4e0a41c3aa71fd680eccf",
+          "jsonSha256": "f2246e7c34815e2a57d5cf17fd7fd74e71f1d55e78b1bea7384e1eb733263c65",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 40
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.fact.q116_smashero_deado.b1b210ba1e2e",
+      "sourceId": "sh5.source.3ae0bce8808a",
+      "kind": "native",
+      "locator": "q116_03b_after_bossfight (shared Aldecaldo/Rogue Smasher aftermath): both writers follow questCharacterHit pause conditions with attacker #player and target q116_boss_smasher (512 during the post-fight exchange; 718 after Smasher's \"This is not the end! We'll meet again!\"). Walking away is a separate distance condition (714) with no write.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+        "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+        "jsonSha256": "7deb7e040604dd664f18244feb0fcd28276c4d999e6d7ce6a0c909008c40cac6",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/98/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q116_smashero_deado",
+          "/value": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonSha256": "7deb7e040604dd664f18244feb0fcd28276c4d999e6d7ce6a0c909008c40cac6",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/99/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q116_smashero_deado",
+            "/value": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.smasher.aftermath-hit",
+      "sourceId": "sh5.source.3ae0bce8808a",
+      "kind": "native",
+      "locator": "q116_03b_after_bossfight: 512 and 718 are questCharacterHit conditions (player attacker, target q116_boss_smasher, bullet/melee/explosion) on the already-defeated Smasher, each feeding a q116_smashero_deado = 1 writer; 714 is the walk-away distance branch that writes nothing.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+        "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+        "jsonSha256": "7deb7e040604dd664f18244feb0fcd28276c4d999e6d7ce6a0c909008c40cac6",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data",
+        "expectedType": "scnQuestNode",
+        "expected": {
+          "/nodeId/id": 512
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonSha256": "7deb7e040604dd664f18244feb0fcd28276c4d999e6d7ce6a0c909008c40cac6",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/78/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 718
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonSha256": "7deb7e040604dd664f18244feb0fcd28276c4d999e6d7ce6a0c909008c40cac6",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/77/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 714
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.fact.q116_smasher_shot.06c33a1cec80",
+      "sourceId": "sh5.source.d47d5e5bca73",
+      "kind": "native",
+      "locator": "q115_solo_smasher: Smasher defeated condition (4) -> 2 s delay (47) -> questCharacterHit (player on q116_boss_smasher, 19) -> SET q116_smasher_shot = 1. In q115_12d_mikoshi the Smasher dialogue option \"Here to save my own skin\" and Johnny's \"finish him\" line exist only while q116_smasher_shot == 0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/part1/q115/phases/q115_solo_smasher.questphase.json",
+        "assetSha256": "c3b738884c4b9b409a974914ec5308c15963ff38d8c998585009f4d6ea592b53",
+        "jsonSha256": "cde24bf61f0f4049474eecfcb0b0b9a62a1dc83143b8461084951f203e5050f7",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/19/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q116_smasher_shot",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "sh5.ev.reaper.post-shot-dialogue",
+      "sourceId": "sh5.source.8b642f2e8278",
+      "kind": "native",
+      "locator": "q115_12d_mikoshi: choice 166 offers \"Here to save my own skin\" only when q116_smasher_shot == 0 and condition 3792 (shot == 0) plays Johnny's \"Shut up and finish him\" - the post-fight exchange treats a shot Smasher as finished.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_12d_mikoshi.scene.json",
+        "assetSha256": "9bc34491bc5326ca0938ece59def75b42fee11e7a872064ef33cc4aefb0f7078",
+        "jsonSha256": "4f003fa962f2e0ed66f49885e405b6ab51f2db2132d275e431d9fb97220d6c8b",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data",
+        "expectedType": "scnChoiceNode",
+        "expected": {
+          "/nodeId/id": 166
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/part1/q115/scenes/q115_12d_mikoshi.scene.json",
+          "assetSha256": "9bc34491bc5326ca0938ece59def75b42fee11e7a872064ef33cc4aefb0f7078",
+          "jsonSha256": "4f003fa962f2e0ed66f49885e405b6ab51f2db2132d275e431d9fb97220d6c8b",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/149/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 3792
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.journal.6b396d1c623a",
+      "sourceId": "sh5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "sq011_07b_thugs: objective 01_talk_to_nancy1 \"Talk to Nancy and Brick.\" receives Succeeded (input ordinal 3) at 870 only after section 846 (\"Brick: Tryna run a business here. / Nancy: Thanks, Brick.\" ), then 08_escort_nancy_car. The Brick objective is the q003_brick_saved branch of the thugs scene.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/41/Data/entries/0/Data/entries/21/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "01_talk_to_nancy1"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07b_thugs.scene.json",
+          "assetSha256": "636c254c2b5d31c0d94cb4aad920d3f1bed438fa5b27e362bbc5d61096a1cdfb",
+          "jsonSha256": "e6bdf6a3fcd91f32a6dc52b9a32926c0134397f3e8899f01d852fa643e4815d1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/145/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 846
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07b_thugs.scene.json",
+          "assetSha256": "636c254c2b5d31c0d94cb4aad920d3f1bed438fa5b27e362bbc5d61096a1cdfb",
+          "jsonSha256": "e6bdf6a3fcd91f32a6dc52b9a32926c0134397f3e8899f01d852fa643e4815d1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/151/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 870
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.journal.15c9ee4fefc3",
+      "sourceId": "sh5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "sq011_07b_thugs: q003_brick_saved False branch (770 out 1) -> ... -> Patricia's hostile line 954 (\"And we won't have history repeating itself, dammit.\") -> checkpoint -> 1811 (Maelstromers turn hostile) -> 532 receives Succeeded for 01_talk_to_patricia_about_nancy and activates 04_follow_patricia1 \"Defeat the Maelstromers.\"",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/41/Data/entries/0/Data/entries/13/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "01_talk_to_patricia_about_nancy"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07b_thugs.scene.json",
+          "assetSha256": "636c254c2b5d31c0d94cb4aad920d3f1bed438fa5b27e362bbc5d61096a1cdfb",
+          "jsonSha256": "e6bdf6a3fcd91f32a6dc52b9a32926c0134397f3e8899f01d852fa643e4815d1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/158/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 954
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07b_thugs.scene.json",
+          "assetSha256": "636c254c2b5d31c0d94cb4aad920d3f1bed438fa5b27e362bbc5d61096a1cdfb",
+          "jsonSha256": "e6bdf6a3fcd91f32a6dc52b9a32926c0134397f3e8899f01d852fa643e4815d1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/352/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 1811
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07b_thugs.scene.json",
+          "assetSha256": "636c254c2b5d31c0d94cb4aad920d3f1bed438fa5b27e362bbc5d61096a1cdfb",
+          "jsonSha256": "e6bdf6a3fcd91f32a6dc52b9a32926c0134397f3e8899f01d852fa643e4815d1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/70/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 532
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.fact.sq011_patricia_combat_path.18809bd20267",
+      "sourceId": "sh5.source.7943860dcb12",
+      "kind": "native",
+      "locator": "sq011_07b_thugs: SET sq011_patricia_combat_path += 1 (1159) is reached only from Patricia's hostile section 954 -> checkpoint 3085 -> 1612 (patisking_preview False) -> 3115; 954 is downstream of the q003_brick_saved False output (770). Only indexed writer of this fact.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07b_thugs.scene.json",
+        "assetSha256": "636c254c2b5d31c0d94cb4aad920d3f1bed438fa5b27e362bbc5d61096a1cdfb",
+        "jsonSha256": "e6bdf6a3fcd91f32a6dc52b9a32926c0134397f3e8899f01d852fa643e4815d1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/190/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq011_patricia_combat_path",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "sh5.ev.second-conflict.brick-switch",
+      "sourceId": "sh5.source.7943860dcb12",
+      "kind": "native",
+      "locator": "sq011_07b_thugs condition 770: IF q003_brick_saved > 0 - True leads to the Brick route (talk_to_nancy1), False to Patricia's hostile route.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07b_thugs.scene.json",
+        "assetSha256": "636c254c2b5d31c0d94cb4aad920d3f1bed438fa5b27e362bbc5d61096a1cdfb",
+        "jsonSha256": "e6bdf6a3fcd91f32a6dc52b9a32926c0134397f3e8899f01d852fa643e4815d1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/125/Data",
+        "expectedType": "scnQuestNode",
+        "expected": {
+          "/nodeId/id": 770
+        }
+      }
+    },
+    {
+      "id": "sh5.ev.fact.sq011_nancy_files_received.e8b792249000",
+      "sourceId": "sh5.source.51f5b84d03de",
+      "kind": "native",
+      "locator": "sq011_07a_royce: choice 427 option 0 \"I'll get the data out, you distract 'em.\" -> SET sq011_royce_stealth_path (1509) -> section 1687 (\"Lemme copy the data and get it out.\") -> data-copy progress bar 2011 -> SET sq011_nancy_files_received = 1 (2977). Only writer.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07a_royce.scene.json",
+        "assetSha256": "5acb80fc5fadf66d248bc809e710cf64cff95a04cbde5105e04b15e9bc63bb44",
+        "jsonSha256": "0f8857a2aabf08092e8594fc92461ada1210f921fab5985711e1ff3a286a7442",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/432/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq011_nancy_files_received",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "sh5.ev.second-conflict.data-choice",
+      "sourceId": "sh5.source.51f5b84d03de",
+      "kind": "native",
+      "locator": "sq011_07a_royce choice 427 option 0 \"I'll get the data out, you distract 'em.\" begins the data-copy route.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07a_royce.scene.json",
+        "assetSha256": "5acb80fc5fadf66d248bc809e710cf64cff95a04cbde5105e04b15e9bc63bb44",
+        "jsonSha256": "0f8857a2aabf08092e8594fc92461ada1210f921fab5985711e1ff3a286a7442",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data",
+        "expectedType": "scnChoiceNode",
+        "expected": {
+          "/nodeId/id": 427
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07a_royce.scene.json",
+          "assetSha256": "5acb80fc5fadf66d248bc809e710cf64cff95a04cbde5105e04b15e9bc63bb44",
+          "jsonSha256": "0f8857a2aabf08092e8594fc92461ada1210f921fab5985711e1ff3a286a7442",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/255/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 2011
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.fact.sq017_selfie.6112e84f8c9d",
+      "sourceId": "sh5.source.9435c33e28b5",
+      "kind": "native",
+      "locator": "sq017_10_us_crack_intro: after the apology section 122, choice 583 options 1/2 \"Let's get one with all of us.\" -> SET sq017_selfie = 1 (547) -> V: \"Hang on, let's get a selfie.\" Option 0 (\"Sure. Smile!\") takes the band's photo without V and never writes it.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+        "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+        "jsonSha256": "4316ff0ab011697af33b637b6d7ae299933c07a1c0ff3d0e992b48653cdc0a68",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/53/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq017_selfie",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "sh5.ev.journal.35b90abe1853",
+      "sourceId": "sh5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "Installed cooked journal entry quests/side_quest/sq017_01_riot_club (gameJournalQuest): \"I Don't Wanna Hear It\". The rule requires its observed current-save state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/35/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "sq017_01_riot_club"
+        }
+      }
+    },
+    {
+      "id": "sh5.ev.uscracks.photo-gate",
+      "sourceId": "sh5.source.9435c33e28b5",
+      "kind": "native",
+      "locator": "sq017_10_us_crack_intro: choice 583 (options 1/2 -> selfie writer) is followed by \"[Snap picture]\" 683 and photo mode (2641 IF sq017_selfie == 1 -> questOpenPhotoMode 2640); AND 2755 waits for sq017_photomode_usc_kerry before the scene continues.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+        "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+        "jsonSha256": "4316ff0ab011697af33b637b6d7ae299933c07a1c0ff3d0e992b48653cdc0a68",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/56/Data",
+        "expectedType": "scnChoiceNode",
+        "expected": {
+          "/nodeId/id": 583
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonSha256": "4316ff0ab011697af33b637b6d7ae299933c07a1c0ff3d0e992b48653cdc0a68",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/281/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 2641
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonSha256": "4316ff0ab011697af33b637b6d7ae299933c07a1c0ff3d0e992b48653cdc0a68",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/300/Data",
+          "expectedType": "scnAndNode",
+          "expected": {
+            "/nodeId/id": 2755
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.journal.90758e5cd07b",
+      "sourceId": "sh5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "sq017_18_premiere: party/enjoy (4052) -> quest node 4051 for quests/side_quest/sq017_02_lounge \"Off the Leash\"; succeeded means V attended the premiere party with Kerry to the end.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/32/Data",
+        "expectedType": "gameJournalQuest",
+        "expected": {
+          "/id": "sq017_02_lounge"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+          "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+          "jsonSha256": "4eb1c0e7d3c2ff3ec0075031a26b16c1a1b7f1f3bed9323149dbd2790095a37c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/476/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 4051
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.journal.9a8ceb474ff5",
+      "sourceId": "sh5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "sq017_06_capitan_caliente: after the coffee conversation sections 820/1884, node 670 receives Succeeded (ordinal 3) for caliente/have_breakfast \"Drink coffee with Kerry.\" and then completes the caliente phase (1166) and Rebel! Rebel! (1167).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/39/Data/entries/2/Data/entries/2/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "have_breakfast"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand-oct01/raw/base/base/quest/side_quests/sq017/scenes/sq017_06_capitan_caliente.scene.json",
+          "assetSha256": "9a932021c622aab5fa268776abf0becb94d4c0e8f1b6bfa1d253ea024a4a7c7a",
+          "jsonSha256": "e34aa1d45c065ace935eba2b43acf88bf4f443eccc38113dac0a4e7008316ba5",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 670
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-oct01/raw/base/base/quest/side_quests/sq017/scenes/sq017_06_capitan_caliente.scene.json",
+          "assetSha256": "9a932021c622aab5fa268776abf0becb94d4c0e8f1b6bfa1d253ea024a4a7c7a",
+          "jsonSha256": "e34aa1d45c065ace935eba2b43acf88bf4f443eccc38113dac0a4e7008316ba5",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/63/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 1167
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.journal.0e9e6b31f2f3",
+      "sourceId": "sh5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "sq028_02_cruiser: talk_kerry2 is activated (18) only from the sex scene's \"End 0\" output ([Stop Kerry]) or from the non-romance demolition path, starts wrap_up, and is set Succeeded (22) after SET sq028_yacht_burnt. The intimate path leaves sq028_05_sex by \"sex_ending\" -> 111 -> escape and never touches talk_kerry2.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/16/Data/entries/1/Data/entries/3/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "talk_kerry2"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq028/phases/sq028_02_cruiser.questphase.json",
+          "assetSha256": "8ee33bb761a2d873acc79004474d5b409ab32fcb43b6cb9fbd785f7b9e8d7c5c",
+          "jsonSha256": "d583e628a812055e76a627c6349c01943292bd8276599a3bc2926e2122852efa",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq028/phases/sq028_02_cruiser.questphase.json",
+          "assetSha256": "8ee33bb761a2d873acc79004474d5b409ab32fcb43b6cb9fbd785f7b9e8d7c5c",
+          "jsonSha256": "d583e628a812055e76a627c6349c01943292bd8276599a3bc2926e2122852efa",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.boat.sex-choice",
+      "sourceId": "sh5.source.a4ce7467687b",
+      "kind": "native",
+      "locator": "sq028_05_sex choice 10: \"[Kiss]\" vs \"[Stop Kerry] You got the wrong idea...\" - the stop option activates talk_kerry2 (647) and ends the scene by End 0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-johnny-rogue-20261004/raw/base/base/quest/side_quests/sq028/scenes/sq028_05_sex.scene.json",
+        "assetSha256": "8ee74e0984e4fc7055a4e60b55c3e82940a9617e018e410de6089815b1bc082d",
+        "jsonSha256": "47257615d245ac6a2bace93524f8af5df81141bd296e65b72da49f1f4c7f715e",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data",
+        "expectedType": "scnChoiceNode",
+        "expected": {
+          "/nodeId/id": 10
+        }
+      }
+    },
+    {
+      "id": "sh5.ev.journal.4066bcad6866",
+      "sourceId": "sh5.source.c0ba2108b54c",
+      "kind": "native",
+      "locator": "q101_08_takemura_v_room: Johnny's scene starts 758 -> 760 -> 384 -> choice 588 -> 596/599 -> section 603 (\"...Think we might be able to help each other. We could start with Rogue.\") -> choice 388 -> 391 -> choice 763 -> 766 -> node 560 receives Succeeded for talk_with_johnny \"Talk to Johnny Silverhand.\"",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/16/Data/entries/3/Data/entries/3/Data",
+        "expectedType": "gameJournalQuestObjective",
+        "expected": {
+          "/id": "talk_with_johnny"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/part1/q101/scenes/q101_08_takemura_v_room.scene.json",
+          "assetSha256": "56b99f3de7037c8bf46a0c76b2233fb932fd0463575c604e457e90401b8e4750",
+          "jsonSha256": "968fee2ef380f9d990bf0edd5ad83bc34264b2deae5a85c3a0e04d074c7d2662",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/49/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 603
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-scenes/raw/base/base/quest/main_quests/part1/q101/scenes/q101_08_takemura_v_room.scene.json",
+          "assetSha256": "56b99f3de7037c8bf46a0c76b2233fb932fd0463575c604e457e90401b8e4750",
+          "jsonSha256": "968fee2ef380f9d990bf0edd5ad83bc34264b2deae5a85c3a0e04d074c7d2662",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/45/Data",
+          "expectedType": "scnQuestNode",
+          "expected": {
+            "/nodeId/id": 560
+          }
+        }
+      ]
+    },
+    {
+      "id": "sh5.ev.resurrection.viktor-diagnosis",
+      "sourceId": "sh5.source.9e4f05fd7cc7",
+      "kind": "native",
+      "locator": "q101_07_ripperdoc (Viktor's clinic after the Heist): every option of choice 1331 leads to section 1268 where Viktor says the biochip is a bomb with \"a few weeks tops\" and \"Silverhand's construct is overwriting your consciousness\". In q101.questphase the vic_garage phase (part2_out) feeds the V-room phase (29), which feeds meet_takemura (105) where talk_with_johnny is completed.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/sh5-01/raw/base/base/quest/main_quests/part1/q101/scenes/q101_07_ripperdoc.scene.json",
+        "assetSha256": "69eec42d39613aef3dd949c3c853e45f280c20ffbc42cd87c603ab1a334ea59f",
+        "jsonSha256": "3d99ffadbf1a1da4b190c2f8a9a60b16fc50827d97bf6c7d2ffc7e1209013ded",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data",
+        "expectedType": "scnChoiceNode",
+        "expected": {
+          "/nodeId/id": 1331
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/sh5-01/raw/base/base/quest/main_quests/part1/q101/scenes/q101_07_ripperdoc.scene.json",
+          "assetSha256": "69eec42d39613aef3dd949c3c853e45f280c20ffbc42cd87c603ab1a334ea59f",
+          "jsonSha256": "3d99ffadbf1a1da4b190c2f8a9a60b16fc50827d97bf6c7d2ffc7e1209013ded",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 1268
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-roots/raw/base/base/quest/main_quests/part1/q101/q101.questphase.json",
+          "assetSha256": "170f8cdf1d4214daab810fffe3a5401a545ca23485bf6280f1b24f69572014bb",
+          "jsonSha256": "33f58ea40f1f77d8ed0c5f299a7917a43d498aaeef2658da361f897ec072eeb2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/priority-jackie-takemura-20261004-roots/raw/base/base/quest/main_quests/part1/q101/q101.questphase.json",
+          "assetSha256": "170f8cdf1d4214daab810fffe3a5401a545ca23485bf6280f1b24f69572014bb",
+          "jsonSha256": "33f58ea40f1f77d8ed0c5f299a7917a43d498aaeef2658da361f897ec072eeb2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    }
+  ],
+  "factAllowlist": {
+    "q103_helped_panam": {
+      "evidenceRefs": [
+        "sh5.ev.fact.q103_helped_panam.dec2bcb5cf19"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/sh5-03/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq032_johnny_friend": {
+      "evidenceRefs": [
+        "sh5.ev.fact.sq032_johnny_friend.438c05744ada"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/213/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q307_2079": {
+      "evidenceRefs": [
+        "sh5.ev.fact.q307_2079.ca953faf3d0e"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/quest/main_quests/q307/phases/q307_03_hospital.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/21/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        },
+        {
+          "jsonPath": "scene-evidence/priority-phantom-20261004/raw/ep1/ep1/quest/main_quests/q307/phases/q307_03_hospital.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/14/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 2
+      }
+    },
+    "q307_call_kerry_end": {
+      "evidenceRefs": [
+        "sh5.ev.fact.q307_call_kerry_end.6b82656cecab"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/sh5-01/raw/ep1/ep1/quest/main_quests/q307/scenes/q307_03a_friends_holocall.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q203_coffee_empty": {
+      "evidenceRefs": [
+        "sh5.ev.fact.q203_coffee_empty.173767e452ba"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004/raw/base/base/quest/main_quests/epilogue/q203/scenes/q203_02b_kerry.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "q116_smashero_deado": {
+      "evidenceRefs": [
+        "sh5.ev.fact.q116_smashero_deado.b1b210ba1e2e"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/98/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/99/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 2
+      }
+    },
+    "q116_smasher_shot": {
+      "evidenceRefs": [
+        "sh5.ev.fact.q116_smasher_shot.06c33a1cec80"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases2/raw/base/base/quest/main_quests/part1/q115/phases/q115_solo_smasher.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/19/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq011_patricia_combat_path": {
+      "evidenceRefs": [
+        "sh5.ev.fact.sq011_patricia_combat_path.18809bd20267"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07b_thugs.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/190/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq011_nancy_files_received": {
+      "evidenceRefs": [
+        "sh5.ev.fact.sq011_nancy_files_received.e8b792249000"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-johnny-rogue-extra-20261004/raw/base/base/quest/side_quests/sq011/scenes/sq011_07a_royce.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/432/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    },
+    "sq017_selfie": {
+      "evidenceRefs": [
+        "sh5.ev.fact.sq017_selfie.6112e84f8c9d"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/silverhand-authenticated-oct01/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/53/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
+    }
+  },
+  "journalAllowlist": {
+    "sh5.nocturne.call-kerry": {
+      "questKey": "nocturne-op55n1",
+      "nativePath": "quests/meta/02_sickness/q115_ripperdoc/02a2_call_kerry",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "sh5.ev.journal.56cf71b39324"
+      ]
+    },
+    "sh5.forever.enter-av": {
+      "questKey": "who-wants-to-live-forever",
+      "nativePath": "ep1/quests/main_quest/q307_before_tomorrow/00_hook/04_enter_av",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "sh5.ev.journal.613fa44b37be"
+      ]
+    },
+    "sh5.orbital.talk-kerry": {
+      "questKey": "where-is-my-mind",
+      "nativePath": "quests/main_quest/epilogues/q201_heir/06_cabin_day_3/02_talk_to_kerry",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "sh5.ev.journal.80c1e361138d"
+      ]
+    },
+    "sh5.sun.talk-kerry": {
+      "questKey": "path-of-glory",
+      "nativePath": "quests/main_quest/epilogues/q203_legend/penthouse/talk_kerry",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "sh5.ev.journal.55fb04d7f35b"
+      ]
+    },
+    "sh5.second-conflict.talk-nancy-brick": {
+      "questKey": "second-conflict",
+      "nativePath": "quests/side_quest/sq011_johnny/04_nancy/01_talk_to_nancy1",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "sh5.ev.journal.6b396d1c623a"
+      ]
+    },
+    "sh5.second-conflict.patricia-about-nancy": {
+      "questKey": "second-conflict",
+      "nativePath": "quests/side_quest/sq011_johnny/04_nancy/01_talk_to_patricia_about_nancy",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "sh5.ev.journal.15c9ee4fefc3"
+      ]
+    },
+    "sh5.uscracks.riot-club-done": {
+      "questKey": "i-dont-wanna-hear-it",
+      "nativePath": "quests/side_quest/sq017_01_riot_club",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "sh5.ev.journal.35b90abe1853"
+      ]
+    },
+    "sh5.offleash.completed": {
+      "questKey": "off-the-leash",
+      "nativePath": "quests/side_quest/sq017_02_lounge",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "sh5.ev.journal.90758e5cd07b"
+      ]
+    },
+    "sh5.rebel.have-breakfast": {
+      "questKey": "rebel-rebel",
+      "nativePath": "quests/side_quest/sq017_kerry/caliente/have_breakfast",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "sh5.ev.journal.9a8ceb474ff5"
+      ]
+    },
+    "sh5.boat.talk-kerry2": {
+      "questKey": "boat-drinks",
+      "nativePath": "quests/side_quest/sq028_kerry_romance/cruiser/talk_kerry2",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "sh5.ev.journal.0e9e6b31f2f3"
+      ]
+    },
+    "sh5.resurrection.talk-with-johnny": {
+      "questKey": "playing-for-time",
+      "nativePath": "quests/main_quest/act_01/q101_resurrection/takemura/talk_with_johnny",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "sh5.ev.journal.4066bcad6866"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "sh5.ghost-town.nash-detour-assisted",
+      "revision": 1,
+      "questKey": "ghost-town",
+      "topic": "panam.nash-retaliation",
+      "outcome": "assisted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "In Ghost Town, V agreed to Panam's detour after Nash and rode with her to the Raffen Shiv hideout instead of insisting on the original deal.",
+      "sourceIds": [
+        "sh5.source.e961f3fab680"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.ghost-town.nash-choice",
+        "sh5.ev.fact.q103_helped_panam.dec2bcb5cf19"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q103_helped_panam",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.nash-detour",
+          "outcomeKey": "assisted"
+        }
+      ]
+    },
+    {
+      "id": "sh5.nocturne.rooftop-kerry-call",
+      "revision": 1,
+      "questKey": "nocturne-op55n1",
+      "topic": "kerry.v.rooftop-call",
+      "outcome": "called",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 8,
+      "stable": true,
+      "statement": "On the rooftop before choosing how to face Arasaka, V called Kerry and the two of them talked.",
+      "sourceIds": [
+        "sh5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.journal.56cf71b39324"
+      ],
+      "audience": {
+        "speakers": [
+          "kerry-eurodyne"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "sh5.nocturne.call-kerry",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.rooftop-kerry-call",
+          "outcomeKey": "called"
+        }
+      ]
+    },
+    {
+      "id": "sh5.nocturne.final-route-nusa",
+      "revision": 1,
+      "questKey": "nocturne-op55n1",
+      "topic": "v.final-route",
+      "outcome": "nusa",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 9,
+      "stable": true,
+      "statement": "V took Reed's NUSA option instead of storming Arasaka: V boarded the FIA medical AV for the experimental surgery, with Johnny still in V's head.",
+      "sourceIds": [
+        "sh5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.journal.613fa44b37be"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "sh5.forever.enter-av",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.final-route",
+          "outcomeKey": "nusa"
+        }
+      ]
+    },
+    {
+      "id": "sh5.forever.surgery-boarded",
+      "revision": 1,
+      "questKey": "who-wants-to-live-forever",
+      "topic": "v.nusa.surgery-departure",
+      "outcome": "boarded",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 9,
+      "stable": true,
+      "statement": "V boarded the FIA medical AV on the rooftop to undergo the NUSA surgery that would remove Johnny.",
+      "sourceIds": [
+        "sh5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.journal.613fa44b37be"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "sh5.forever.enter-av",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.surgery-departure",
+          "outcomeKey": "boarded"
+        }
+      ]
+    },
+    {
+      "id": "sh5.forever.farewell-conciliatory",
+      "revision": 1,
+      "questKey": "who-wants-to-live-forever",
+      "topic": "johnny.v.surgery-farewell",
+      "outcome": "conciliatory",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 9,
+      "stable": true,
+      "statement": "On the FIA flight before the surgery, Johnny and V parted on good terms: he said they had made their peace at the oil fields and stayed with V to the end.",
+      "sourceIds": [
+        "sh5.source.a652e60b10c3",
+        "sh5.source.d73dd6dd7bbc",
+        "sh5.source.a87921da68fe",
+        "sh5.source.603b5e88603a"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.forever.farewell-branch",
+        "sh5.ev.fact.sq032_johnny_friend.438c05744ada",
+        "sh5.ev.journal.613fa44b37be",
+        "sh5.ev.fact.q307_2079.ca953faf3d0e"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq032_johnny_friend",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "sh5.forever.enter-av",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "fact",
+            "key": "q307_2079",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.surgery-goodbye",
+          "outcomeKey": "conciliatory"
+        }
+      ]
+    },
+    {
+      "id": "sh5.tower.kerry-call",
+      "revision": 1,
+      "questKey": "things-done-changed",
+      "topic": "kerry.v.tower-contact",
+      "outcome": "spoke",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 7,
+      "stable": true,
+      "statement": "After waking from the two-year coma following the NUSA surgery, V called Kerry and spoke with him over the holo.",
+      "sourceIds": [
+        "sh5.source.af092dea5568",
+        "sh5.source.603b5e88603a"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.tower.kerry-call-lines",
+        "sh5.ev.fact.q307_call_kerry_end.6b82656cecab",
+        "sh5.ev.fact.q307_2079.ca953faf3d0e"
+      ],
+      "audience": {
+        "speakers": [
+          "kerry-eurodyne"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q307_call_kerry_end",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q307_2079",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.kerry-contact",
+          "outcomeKey": "spoke"
+        }
+      ]
+    },
+    {
+      "id": "sh5.orbital.kerry-call",
+      "revision": 1,
+      "questKey": "where-is-my-mind",
+      "topic": "kerry.v.orbital-call",
+      "outcome": "spoke",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 8,
+      "stable": true,
+      "statement": "While V was at Arasaka's orbital facility after Mikoshi, V called Kerry and spoke with him.",
+      "sourceIds": [
+        "sh5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.journal.80c1e361138d"
+      ],
+      "audience": {
+        "speakers": [
+          "kerry-eurodyne"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "sh5.orbital.talk-kerry",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.orbital-kerry-call",
+          "outcomeKey": "spoke"
+        }
+      ]
+    },
+    {
+      "id": "sh5.sun.kerry-morning",
+      "revision": 1,
+      "questKey": "path-of-glory",
+      "topic": "kerry.v.sun-sendoff",
+      "outcome": "present",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 8,
+      "stable": true,
+      "statement": "On the Path of Glory morning, Kerry was with V at the penthouse; over coffee they talked about leaving the past behind and Kerry's plans, and he asked V to be careful.",
+      "sourceIds": [
+        "sh5.source.ff8cab4df452",
+        "sh5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.sun.kerry-lines",
+        "sh5.ev.journal.55fb04d7f35b",
+        "sh5.ev.fact.q203_coffee_empty.173767e452ba"
+      ],
+      "audience": {
+        "speakers": [
+          "kerry-eurodyne"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "sh5.sun.talk-kerry",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          },
+          {
+            "type": "fact",
+            "key": "q203_coffee_empty",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.kerry-sendoff",
+          "outcomeKey": "present"
+        }
+      ]
+    },
+    {
+      "id": "sh5.belly.smasher-killed",
+      "revision": 1,
+      "questKey": "belly-of-the-beast",
+      "topic": "smasher.fate",
+      "outcome": "killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "After the Aldecaldos' assault on Arasaka Tower, V finished off the defeated Adam Smasher instead of walking away.",
+      "sourceIds": [
+        "sh5.source.3ae0bce8808a"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.smasher.aftermath-hit",
+        "sh5.ev.fact.q116_smashero_deado.b1b210ba1e2e"
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer",
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q116_smashero_deado",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "endings.nomad.mikoshi-jack-in",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.aldecaldo-route-smasher-fate",
+          "outcomeKey": "killed"
+        }
+      ]
+    },
+    {
+      "id": "sh5.knockin.smasher-killed",
+      "revision": 1,
+      "questKey": "knockin-on-heavens-door",
+      "topic": "smasher.fate",
+      "outcome": "killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "On the assault with Rogue, after Smasher was defeated, Johnny (in control of V's body) finished him off instead of walking away.",
+      "sourceIds": [
+        "sh5.source.3ae0bce8808a"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.smasher.aftermath-hit",
+        "sh5.ev.fact.q116_smashero_deado.b1b210ba1e2e"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q116_smashero_deado",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q115_rogue_in_av",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.rogue-route-smasher-fate",
+          "outcomeKey": "killed"
+        }
+      ]
+    },
+    {
+      "id": "sh5.reaper.smasher-killed",
+      "revision": 1,
+      "questKey": "dont-fear-the-reaper",
+      "topic": "smasher.fate",
+      "outcome": "killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "On the solo assault on Arasaka Tower, V shot the defeated Adam Smasher dead before moving on to Mikoshi.",
+      "sourceIds": [
+        "sh5.source.8b642f2e8278",
+        "sh5.source.d47d5e5bca73"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.reaper.post-shot-dialogue",
+        "sh5.ev.fact.q116_smasher_shot.06c33a1cec80"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q116_smasher_shot",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q115_did_it_solo",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.solo-route-smasher-fate",
+          "outcomeKey": "killed"
+        }
+      ]
+    },
+    {
+      "id": "sh5.second-conflict.brick",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "maelstrom.totentanz.leadership",
+      "outcome": "brick",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In Second Conflict, Brick was back in charge at the Totentanz; V and Nancy talked with him and he let Nancy walk out with V.",
+      "sourceIds": [
+        "sh5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.journal.6b396d1c623a"
+      ],
+      "audience": {
+        "speakers": [
+          "nancy-hartley",
+          "johnny-silverhand"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "nancy-hartley",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "sh5.second-conflict.talk-nancy-brick",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.totentanz-leadership",
+          "outcomeKey": "brick"
+        }
+      ]
+    },
+    {
+      "id": "sh5.second-conflict.patricia",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "maelstrom.totentanz.leadership",
+      "outcome": "patricia",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In Second Conflict, Patricia ran the Totentanz; when V came for Nancy, Patricia's Maelstromers turned hostile and V had to fight them.",
+      "sourceIds": [
+        "sh5.source.7943860dcb12",
+        "sh5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.second-conflict.brick-switch",
+        "sh5.ev.journal.15c9ee4fefc3",
+        "sh5.ev.fact.sq011_patricia_combat_path.18809bd20267"
+      ],
+      "audience": {
+        "speakers": [
+          "nancy-hartley",
+          "johnny-silverhand"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "nancy-hartley",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "sh5.second-conflict.patricia-about-nancy",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "fact",
+            "key": "sq011_patricia_combat_path",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.totentanz-leadership",
+          "outcomeKey": "patricia"
+        }
+      ]
+    },
+    {
+      "id": "sh5.second-conflict.nancy-data",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "nancy.totentanz.reporting-data",
+      "outcome": "recovered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "In Second Conflict, V copied Nancy's reporting files out of the Totentanz on Royce's turf while she kept the Maelstromers busy, and got her out.",
+      "sourceIds": [
+        "sh5.source.51f5b84d03de"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.second-conflict.data-choice",
+        "sh5.ev.fact.sq011_nancy_files_received.e8b792249000"
+      ],
+      "audience": {
+        "speakers": [
+          "nancy-hartley"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "nancy-hartley"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq011_nancy_files_received",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "jr-priority.nancy.escape",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.nancy-data",
+          "outcomeKey": "recovered"
+        }
+      ]
+    },
+    {
+      "id": "sh5.uscracks.group-selfie",
+      "revision": 1,
+      "questKey": "i-dont-wanna-hear-it",
+      "topic": "v.uscracks.photo",
+      "outcome": "taken",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "After Kerry and the Us Cracks patched things up backstage, V suggested a group shot and took a selfie with Kerry and the band.",
+      "sourceIds": [
+        "sh5.source.9435c33e28b5",
+        "sh5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.uscracks.photo-gate",
+        "sh5.ev.fact.sq017_selfie.6112e84f8c9d",
+        "sh5.ev.journal.35b90abe1853"
+      ],
+      "audience": {
+        "speakers": [
+          "kerry-eurodyne",
+          "blue-moon"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "kerry-eurodyne",
+          "blue-moon"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq017_selfie",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "sh5.uscracks.riot-club-done",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.uscracks-photo",
+          "outcomeKey": "taken"
+        }
+      ]
+    },
+    {
+      "id": "sh5.offleash.premiere-reconciled",
+      "revision": 1,
+      "questKey": "off-the-leash",
+      "topic": "kerry.uscracks.collaboration-event",
+      "outcome": "present",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "After the reconciliation with the Us Cracks, V went to Kerry's Off the Leash premiere party at the pachinko parlor and spent the evening there with Kerry.",
+      "sourceIds": [
+        "sh5.source.9435c33e28b5",
+        "sh5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.fact.sq017_selfie.6112e84f8c9d",
+        "sh5.ev.journal.90758e5cd07b"
+      ],
+      "audience": {
+        "speakers": [
+          "kerry-eurodyne"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq017_selfie",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "sh5.offleash.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.collaboration-event",
+          "outcomeKey": "present"
+        }
+      ]
+    },
+    {
+      "id": "sh5.rebel.diner-coffee",
+      "revision": 1,
+      "questKey": "rebel-rebel",
+      "topic": "kerry.v.diner-followthrough",
+      "outcome": "completed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "After torching the Us Cracks' gear in Rebel! Rebel!, V followed Kerry to Capitán Caliente and had coffee and a talk with him there.",
+      "sourceIds": [
+        "sh5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.journal.9a8ceb474ff5"
+      ],
+      "audience": {
+        "speakers": [
+          "kerry-eurodyne"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "sh5.rebel.have-breakfast",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.diner-followthrough",
+          "outcomeKey": "completed"
+        }
+      ]
+    },
+    {
+      "id": "sh5.boat.no-yacht-intimacy",
+      "revision": 1,
+      "questKey": "boat-drinks",
+      "topic": "kerry.v.yacht-intimacy",
+      "outcome": "not-occurred",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 6,
+      "stable": true,
+      "statement": "On Kerry's yacht in Boat Drinks, V and Kerry did not sleep together; the evening went on to the wrap-up talk instead.",
+      "sourceIds": [
+        "sh5.source.a4ce7467687b",
+        "sh5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.boat.sex-choice",
+        "sh5.ev.journal.0e9e6b31f2f3"
+      ],
+      "audience": {
+        "speakers": [
+          "kerry-eurodyne"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "sh5.boat.talk-kerry2",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.yacht-intimacy",
+          "outcomeKey": "not-occurred"
+        }
+      ]
+    },
+    {
+      "id": "sh5.resurrection.johnny-proposal",
+      "revision": 1,
+      "questKey": "playing-for-time",
+      "topic": "johnny.v.initial-cooperation",
+      "outcome": "proposed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 6,
+      "stable": true,
+      "statement": "Early on, Johnny told V it had not been easy for him either - V woke up in a landfill, he woke up in V's head - and proposed they help each other, starting with Rogue. It was a truce of necessity, not friendship.",
+      "sourceIds": [
+        "sh5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.journal.4066bcad6866"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "sh5.resurrection.talk-with-johnny",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.diner-cooperation",
+          "outcomeKey": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "sh5.resurrection.relic-diagnosis",
+      "revision": 1,
+      "questKey": "playing-for-time",
+      "topic": "v.relic.initial-diagnosis",
+      "outcome": "heard",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 6,
+      "stable": true,
+      "statement": "After the Heist, Viktor told V that the Relic was overwriting V's consciousness with Johnny Silverhand's construct and that V had only a few weeks left.",
+      "sourceIds": [
+        "sh5.source.9e4f05fd7cc7",
+        "sh5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.resurrection.viktor-diagnosis",
+        "sh5.ev.journal.4066bcad6866"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "sh5.resurrection.talk-with-johnny",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.relic-diagnosis",
+          "outcomeKey": "heard"
+        }
+      ]
+    }
+  ]
+}
