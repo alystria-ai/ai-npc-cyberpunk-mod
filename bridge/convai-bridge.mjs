@@ -18,7 +18,8 @@ import {conversationScope} from './group-context.mjs';
 import {conversationContext as baseConversationContext} from './quest-context.mjs';
 import {createIntrinsicConversationContext, loadIntrinsicCharacterContext} from './intrinsic-character-context.mjs';
 import {battleTrigger, reactionLeaseValid} from './battle-context.mjs';
-import {GroupPrefetch, inputIdentity, parsedInputIdentity, validatePrefetch, parsePrewarm} from './group-prefetch.mjs';
+import {GroupPrefetch, parsedInputIdentity, parsePrewarm} from './group-prefetch.mjs';
+import {GroupLookahead, validateLookahead, waitUntil, BufferedPcm} from './group-lookahead.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {PartyConnections, parsePartyConnections} from './party-connections.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
@@ -282,7 +283,7 @@ const realtimeConfig = input => ({key, characterId: routeFor(input)?.guard?.char
 const warmRoute = (profile, scope) => memoryQuiescing ? null : knowledgeRouter.configFor(profile, scope,
   {worldToken: worldSession?.token, generation: worldSession?.generation});
 const connections = new PartyConnections({host: realtime,
-  canWarm: () => !stopped && !memoryQuiescing && !active && !mic.current && !micPolling,
+  canWarm: () => !stopped && !memoryQuiescing && !active && !mic.current && !micPolling && !lookahead.busy,
   isKnown: profile => Object.hasOwn(ids, profile) && !!warmRoute(profile, 'private'),
   configFor: (profile, scope) => {
     const route = warmRoute(profile, scope);
@@ -303,7 +304,7 @@ let relationshipRouteSync = Promise.resolve(), relationshipRouteReservation = fa
 const relationshipRoutePending = new Map();
 function voiceBoundaryBusy() {
   return !!(active || streaming || polling || micPolling || mic.current || prefetchPolling || memoryQuiescing
-    || phone.active || relationshipRouteReservation);
+    || phone.active || relationshipRouteReservation || lookahead.busy);
 }
 function syncRelationshipRoutes() {
   for (const profile of relationshipRoutes.consumeRouteChanges()) relationshipRoutePending.set(profile, relationshipRoutes.revision);
@@ -430,6 +431,10 @@ const prefetch = new GroupPrefetch({prepare: async (input, {signal}) => {
   // predicted future turn. The cached result remains text until respond().
   return {...await realtime.prepare(realtimeConfig(input), {signal}), transport: 'realtime'};
 }});
+// Speaker N+1 of a group round is generated while N is still audible, then held
+// until the game submits that exact turn (docs/GROUP_VOICE.md, Look-ahead).
+const lookahead = new GroupLookahead({start: entry => startAhead(entry)});
+const dropPrefetch = () => { prefetch.invalidate(); lookahead.cancel(); };
 
 async function synthesizeReply(input, result, signal, current, profile = profileFor(input, roster), receiptPrepared = preparedInputs.get(input)) {
   if(localVoice.playbackEnabled===false)return{...result,audio:undefined,faces:[],captions:[]};
@@ -441,7 +446,12 @@ async function synthesizeReply(input, result, signal, current, profile = profile
     const cue = textExpressionSignal(result.text);
     if (cue) result = {...result, expressionSignal: cue};
   }
+  const ahead = current?.ahead;
   if(localVoice.provider==='omni'){
+    // The one GPU worker is FIFO. A look-ahead phrase queued while the speaker
+    // being heard still has phrases to render would delay that speaker's own
+    // next phrase; wait for its production to finish (its audio plays on).
+    if(ahead?.isHeld())await waitUntil(()=>streaming===0,{signal});
     const lookahead=new AbortController(),cancelLookahead=()=>lookahead.abort();
     signal?.addEventListener('abort',cancelLookahead,{once:true});
     try{
@@ -465,8 +475,21 @@ async function synthesizeReply(input, result, signal, current, profile = profile
       audioError: 'Local streaming is unavailable; showing the written reply.'};
   }
   const speech = continuousSpeech(input, profile, current, signal, receiptPrepared, true);
+  let prefetched;
+  if (ahead?.isHeld()) {
+    // Synthesize now, into memory (the one renderer page may still be draining
+    // the previous speaker); the whole text is still sent to Pocket once.
+    // Pocket's worker is FIFO, so this runs right after the prior speaker's job.
+    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => localVoice.synthesizeStream(profile.key, result.text, {...options, onPcm})});
+    prefetched.start().then(() => ahead.markReady(), () => {});
+    try {
+      await ahead.waitClaimed(signal);
+      // The previous speaker's renderer may still be retiring its page.
+      await waitUntil(() => !realtime.localPcmBusy, {signal, timeoutMs: 3000});
+    } catch (error) { prefetched.discard(); throw error; }
+  }
   return deliverPocketSpeech({input, profile, result, current, signal, voice: localVoice, host: realtime, speech,
-    phoneAnalysis:localVoice.phoneAnalysis,jaliFace,
+    phoneAnalysis:localVoice.phoneAnalysis,jaliFace,prefetched,
     onAnalysis: timing => measure(input, {localLipAnalysis: timing})});
 }
 
@@ -493,8 +516,15 @@ async function status(state, detail = '') {
 
 function continuousSpeech(input, profile, current, signal, receiptPrepared = preparedInputs.get(input), local = false) {
   const options = {signal, isCurrent: current, isCurrentSync: current.sync};
-  return new ConvaiContinuousSpeech({input, profile, current, signal,
+  const ahead = current.ahead;
+  const speech = new ConvaiContinuousSpeech({input, profile, current, signal,
     ...(local ? {faceBuilder: ownedPocketFace} : {jaliFace}),
+    // A look-ahead turn buffers silently until the game submits it. Once its
+    // complete text is known (and it is no longer held), the next group speaker
+    // may be prepared from that text.
+    hold: () => ahead?.isHeld() === true,
+    onHeld: (bufferedSeconds, textComplete) => { if (bufferedSeconds >= 0.4 && textComplete) ahead?.markReady(); },
+    onText: (text, userText) => lookahead.setSource({input, text, userText, current: current.sourceValid || current}),
     readControl: () => readFile(resolve(runtime, 'continuous-control.json'), 'utf8'),
     writeState: value => atomic(resolve(runtime, 'continuous-speech.json'), JSON.stringify(value), options),
     writeReply: value => atomic(replyPath, JSON.stringify(value), options),
@@ -509,6 +539,9 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
       stagedKnowledgeTurn(receiptPrepared);
     },
   });
+  // Poll the buffered turn at once when the game submits it.
+  ahead?.claimed.then(() => speech.wakeUp(), () => {});
+  return speech;
 }
 
 // Original remote PCM has a continuous renderer. It never enters Omni's text
@@ -590,6 +623,8 @@ async function publishResult(input, profile, result, current = async () => true,
     }
   }
   if (!await current()) { stream?.closeQueue(); return false; }
+  // The next group speaker may be prepared from this reply's text from now on.
+  lookahead.setSource({input, text: result.text, userText: result.userText, current: current.sourceValid || current});
   const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audio, face, audioError,
     stream:stream?.descriptor(),updated: Date.now()}), {signal, isCurrent: current, isCurrentSync: current.sync});
@@ -690,7 +725,7 @@ async function resetLiveRoutes({cancelTurns = true} = {}) {
     phone.close(); phoneKnowledge.clear();
     await cancelMicrophone();
   }
-  prefetch.invalidate();
+  dropPrefetch();
   await invitations.clear('world-or-memory-reset');
   await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
   await connections.clear();
@@ -790,7 +825,7 @@ async function pollMicrophone() {
         }
         // A new microphone turn supersedes a pending text reply.
         void companionActions.revoke();
-        active?.controller.abort(); prefetch.invalidate();
+        active?.controller.abort(); dropPrefetch();
         await cancelMicrophone();
         const prepared = await knowledgeRouter.prepare({...input, source: 'microphone'},
           {worldToken: worldSession?.token, generation: worldSession?.generation});
@@ -875,8 +910,17 @@ async function tick() {
     lastAcceptedIdentity = identity;
     void companionActions.revoke();
     active?.controller.abort();
+    const owner = new RequestFileOwner(inputPath, raw, stamp);
+    // The exact turn may already be generated and held back (group look-ahead):
+    // adopt it instead of starting another provider request.
+    const held = lookahead.claim(input, owner);
+    if (held) {
+      active = held; void cancelMicrophone();
+      void measure(held.input, {claimedAt: Date.now(), lookahead: lookahead.stats(held.lookahead)});
+      return;
+    }
     const controller = new AbortController();
-    const request = active = {input, raw, owner: new RequestFileOwner(inputPath, raw, stamp), controller, receivedAt: Date.now()};
+    const request = active = {input, raw, owner, controller, receivedAt: Date.now()};
     // Native decision/history context is projected at actual submission. A
     // raw prediction cannot be substituted for that verified context.
     void processInput(request);
@@ -884,14 +928,24 @@ async function tick() {
   finally { polling = false; }
 }
 
+// Run the predicted next group speaker now, held back from the game until it
+// submits that exact turn. The request carries the entry that gates publication.
+function startAhead(entry) {
+  const request = {input: entry.input, raw: null, owner: entry.owner, controller: entry.controller,
+    receivedAt: entry.startedAt, lookahead: entry};
+  void processInput(request);
+  return request;
+}
+
 async function processInput(request, prepared) {
   let input = request.input;
   const {controller} = request;
+  const ahead = request.lookahead;
   const preparationStarted = performance.now();
   const stages = {};
   let knowledgeTurn;
   const current = async () => {
-    if (controller.signal.aborted || active !== request || stopped) return false;
+    if (controller.signal.aborted || (active !== request && !ahead?.isHeld()) || stopped) return false;
     // The complete request was validated once at admission. Its file identity,
     // and on any identity change its exact bytes, detect every replacement,
     // including changed context under the same request ID, without rereading
@@ -899,10 +953,18 @@ async function processInput(request, prepared) {
     return await request.owner.current() && await reactionCurrent(input)
       && (!knowledgeTurn || await knowledgeRouter.current(knowledgeTurn));
   };
-  current.sync = () => !controller.signal.aborted && active === request && !stopped
+  current.sync = () => !controller.signal.aborted && (active === request || !!ahead?.isHeld()) && !stopped
     && (!knowledgeTurn || knowledgeRouter.currentSync(knowledgeTurn));
+  // Group look-ahead: the speaker that follows this turn is prepared from its
+  // complete text. This turn's file ownership outlives `active` (Omni keeps
+  // playing after its production ends), so it is checked on its own.
+  current.sourceValid = async () => !controller.signal.aborted && !stopped && await request.owner.current()
+    && (!knowledgeTurn || await knowledgeRouter.current(knowledgeTurn));
+  current.ahead = ahead;
   try {
-    await cancelMicrophone();
+    // A look-ahead turn runs beside the speaker still being heard. The
+    // microphone and the companion action mailbox belong to the claimed turn.
+    if (!ahead) await cancelMicrophone();
     stages.cancelMicrophoneMs = performance.now() - preparationStarted;
     throwIfCancelled(controller.signal);
     const profile = profileFor(input, roster);
@@ -924,22 +986,28 @@ async function processInput(request, prepared) {
     await knowledgeRouter.submitted(knowledgeTurn);
     stages.submissionRecordedMs = performance.now() - preparationStarted;
     if (!await current()) return;
-    companionActions.admit(knowledgeTurn, {source: 'private-text', signal: controller.signal,
+    // Group turns never admit gameplay actions, so a look-ahead skips the
+    // admission that would also clear the mailbox beside the speaker still heard.
+    if (!ahead) companionActions.admit(knowledgeTurn, {source: 'private-text', signal: controller.signal,
       isCurrent: async () => !stopped && !controller.signal.aborted && await knowledgeRouter.current(knowledgeTurn)
         && await request.owner.current(),
       isCurrentSync: () => !stopped && !controller.signal.aborted && knowledgeRouter.currentSync(knowledgeTurn)});
     rememberKnowledgeTurn(knowledgeTurn);
-    await measure(input, {receivedAt: request.receivedAt, preparation: {mode: prepared ? 'claimed' : 'none'},
+    await measure(input, {receivedAt: request.receivedAt, preparation: {mode: ahead ? 'lookahead' : prepared ? 'claimed' : 'none'},
       journalStatus: input.journal?.status || 'not-supplied', journalObjectives: input.journal?.quest?.objectives.length || 0,
       battleStatus: input.battle?.status || 'not-supplied', reaction: input.reaction?.phase});
-    await status('thinking', profile.name);
+    if (!ahead) await status('thinking', profile.name);
     const canWarm = await audioReady(runtime);
     throwIfCancelled(controller.signal);
-    if (canWarm) await connections.setRequest(input, realtimeConfig(input));
+    // The speaker being heard already holds this round's group connections.
+    if (canWarm && !ahead) await connections.setRequest(input, realtimeConfig(input));
     throwIfCancelled(controller.signal);
     await measure(input, {transportRequestedAt: Date.now(),
       submissionStages: {...stages, beforeTransportMs: performance.now() - preparationStarted}});
     const result = await respond(input, profile, {signal: controller.signal, prepared, current});
+    // Ready but not yet submitted by the game: hold until it is, or cancelled.
+    // (Continuous speech already waited for this inside its own admission.)
+    if (ahead) { ahead.markReady(); await ahead.waitClaimed(controller.signal); }
     // Do not show a late reply to a different target or a newer turn.
     if (!await current()) return;
     if (!result.liveDelivery?.generated) {
@@ -949,6 +1017,9 @@ async function processInput(request, prepared) {
     await measure(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
     await publishResult(input, profile, result, current, controller.signal);
   } catch (error) {
+    // A look-ahead that fails before the game submits it publishes nothing;
+    // the submitted turn then runs as an ordinary request.
+    if (ahead?.isHeld()) { lookahead.fail(ahead); console.error('[CyberpunkConvai] Look-ahead turn failed:', error.message); return; }
     if (companionActions.pending?.packet.requestId === input?.requestId) void companionActions.revoke();
     if (!await current()) return;
     await status('error', error.message).catch(() => {});
@@ -980,7 +1051,7 @@ async function pollPrefetch() {
       if (change) {
         partyObserved = partyRaw;
         if (change.removed.includes(active?.input.profileKey)) active.controller.abort();
-        if (change.removed.length) prefetch.invalidate();
+        if (change.removed.length) dropPrefetch();
       }
     }
     // A Windows replace can briefly leave a file absent. Preserve the last
@@ -992,13 +1063,13 @@ async function pollPrefetch() {
     if (voiceRouteReservation || relationshipRouteReservation) return;
     await connections.maintain();
     if (partyWasFresh && connections.stale) {
-      prefetch.invalidate(); active?.controller.abort(); await mic.cancel(); await realtime.close();
+      dropPrefetch(); active?.controller.abort(); await mic.cancel(); await realtime.close();
     }
     partyWasFresh = !connections.stale;
     const speech = await readSpeechState();
     if (speech.available && Date.now() - speech.updated < 5000) lastAudioHeartbeat = Date.now();
     else if (lastAudioHeartbeat && Date.now() - lastAudioHeartbeat > 5000) {
-      lastAudioHeartbeat = 0; prefetch.invalidate();
+      lastAudioHeartbeat = 0; dropPrefetch();
       active?.controller.abort(); await connections.clear(); await realtime.close();
     }
     const row = latency.get(speech.requestId);
@@ -1019,24 +1090,45 @@ async function pollPrefetch() {
         await connections.setComposer(hint);
       }
     }
-    // Feed the current speaker before speculating on another local TTS job.
-    // Connection maintenance above continues while this utterance streams.
-    const raw = await readFile(prefetchPath, 'utf8').catch(() => '');
-    if (raw === prefetchObserved) return;
-    prefetchObserved = raw;
-    let command;
-    try { command = JSON.parse(raw); } catch { prefetch.invalidate(); return; }
-    const predicted = validatePrefetch(command, prefetch.source);
-    const submitted = parseInput(await readFile(inputPath, 'utf8').catch(() => ''));
-    if (!predicted || !submitted || inputIdentity(submitted) !== inputIdentity(prefetch.source.input)
-        || !Object.hasOwn(ids, predicted.profileKey) || !profileFor(predicted, roster) || !await audioReady(runtime) || mic.current) {
-      prefetch.invalidate(); return;
-    }
-    prefetch.invalidate();
-    // Open the next connection, but don't invent a user turn before its
-    // submitted audience and current-save context are known.
-    await connections.setRequest(predicted, realtimeConfig(predicted));
   } finally { prefetchPolling = false; }
+}
+
+// The game publishes the turn it will submit for the next group speaker as soon
+// as the speaker being heard has complete reply text (and clears the file when
+// that prediction stops being valid). Run that turn now, held back from the
+// game, so the speaker change no longer pays a whole provider request.
+let lookaheadPolling = false, lookaheadWaiting = {raw: '', at: 0}, lookaheadHandled = '';
+async function pollLookahead() {
+  if (lookaheadPolling || stopped || memoryQuiescing || voiceRouteReservation || relationshipRouteReservation) return;
+  lookaheadPolling = true;
+  try {
+    lookahead.prune();
+    const raw = await readFile(prefetchPath, 'utf8').catch(() => '');
+    if (raw === prefetchObserved || raw === lookaheadHandled) return;
+    let command;
+    try { command = JSON.parse(raw); } catch { prefetchObserved = raw; dropPrefetch(); return; }
+    // `{}` withdraws the prediction: audience change, an undelivered or
+    // interrupted speaker, a new message or a dismissal.
+    if (!command?.input) { prefetchObserved = raw; dropPrefetch(); return; }
+    const source = lookahead.source;
+    if (!source || source.input.requestId !== command.sourceRequestId) {
+      // The source reply is recorded just before the game can see it complete;
+      // allow a late arrival a moment before giving up on this prediction.
+      if (lookaheadWaiting.raw !== raw) lookaheadWaiting = {raw, at: Date.now()};
+      if (Date.now() - lookaheadWaiting.at < 1500) return;
+    }
+    prefetchObserved = raw;
+    const predicted = validateLookahead(command, source);
+    // A recording microphone owns the device; the first speaker's own reply
+    // phase (which this prediction follows) does not.
+    const micAllows = !mic.current || (mic.current.finishing && mic.current.requestId === source?.input.requestId);
+    if (!predicted || !micAllows || !Object.hasOwn(ids, predicted.profileKey) || !profileFor(predicted, roster)
+        || !await source.current() || !await audioReady(runtime) || stopped) {
+      dropPrefetch(); return;
+    }
+    lookaheadHandled = raw;
+    lookahead.offer(predicted);
+  } finally { lookaheadPolling = false; }
 }
 
 const deliveredReceipts = new Set();
@@ -1125,12 +1217,12 @@ async function pollSettings(checkShutdown = true) {
     const relationshipState = await readFile(resolve(runtime, 'relationship-state.json'), 'utf8').catch(() => undefined);
     if (relationshipRoutes.update(settings, relationshipState,
         {boundary: currentBoundary(), busy: voiceBoundaryBusy() || voiceRouteReservation})) {
-      prefetch.invalidate(); prefetchObserved = '';
+      dropPrefetch(); prefetchObserved = '';
     }
     // Every phrase of an accepted turn keeps its original provider and quality.
     // Microphone startup and input polling also own a boundary before `active`.
     if (localVoice.update(settings, preview, voiceBoundaryBusy())) {
-      prefetch.invalidate(); prefetchObserved = '';
+      dropPrefetch(); prefetchObserved = '';
     }
     await syncRelationshipRoutes(); await syncVoiceRoutes();
     if (Date.now() - lastVoiceHeartbeat >= 5000) {
@@ -1168,6 +1260,7 @@ console.log('[CyberpunkConvai] Convai conversation bridge ready');
 const timer = setInterval(tick, 50);
 const micTimer = setInterval(() => { void pollMicrophone().catch(error => console.error('[CyberpunkConvai] Microphone poll:', error.message)); }, 150);
 const prefetchTimer = setInterval(() => { void pollPrefetch().catch(error => console.error('[CyberpunkConvai] Preparation poll:', error.message)); }, 150);
+const lookaheadTimer = setInterval(() => { void pollLookahead().catch(error => console.error('[CyberpunkConvai] Look-ahead poll:', error.message)); }, 60);
 const settingsTimer = setInterval(() => { void pollSettings().catch(error => console.error('[CyberpunkConvai] Settings poll:', error.message)); }, 500);
 const phoneTimer = setInterval(() => { void pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)); }, 150);
 const knowledgeTimer = setInterval(() => { void pollKnowledge().catch(error => console.error('[CyberpunkConvai] Knowledge poll:', error.message)); }, 500);
@@ -1175,13 +1268,13 @@ const memoryTimer = setInterval(() => { void memoryControl.poll().catch(error =>
 async function shutdown() {
   if (stopped) return;
   await companionActions.revoke();
-  stopped = true; active?.controller.abort(); prefetch.invalidate();
+  stopped = true; active?.controller.abort(); dropPrefetch();
   settleVoiceRouteWaiters(Error('Voice service is closed'));
   phone.close(); clearInterval(phoneTimer);
   phoneKnowledge.clear();
   clearInterval(knowledgeTimer);
   clearInterval(memoryTimer);
-  clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(settingsTimer);
+  clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);
   await invitations.clear('service-stopped');
   await voiceRouteSync.catch(() => {});
   await relationshipRouteSync.catch(() => {});

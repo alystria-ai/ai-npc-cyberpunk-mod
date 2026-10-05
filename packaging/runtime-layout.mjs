@@ -25,6 +25,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/facial-timeline.mjs',
   'bridge/game-launch.mjs',
   'bridge/group-context.mjs',
+  'bridge/group-lookahead.mjs',
   'bridge/group-prefetch.mjs',
   'bridge/guarded-file.mjs',
   'bridge/intrinsic-character-context.mjs',

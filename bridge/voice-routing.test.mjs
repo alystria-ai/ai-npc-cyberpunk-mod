@@ -7,6 +7,7 @@ import {silentWav} from './speech-audio.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {SpeechStream,splitSpeechText} from './speech-stream.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
+import {BufferedPcm, waitUntil} from './group-lookahead.mjs';
 import {textExpressionSignal} from './text-emotion.mjs';
 
 // Execute the production routing/publication functions. These checks catch a
@@ -39,6 +40,7 @@ function fixture({local = false, available = true, audioFailure = false, continu
       constructor(options) { this.callbacks = options; this.published = true; this.ended = true; this.generated = true; this.token = 'continuous-owner';
         this.options = {token: this.token, onFrame: () => calls.push('live-frame')}; }
       async fail() { calls.push('live-failed'); }
+      wakeUp() {}
     },
     realtimeConfig: input => ({profileKey: input.profileKey, text: input.text, ttsEnabled: !selectedVoice.usesProfile(input.profileKey)}),
     realtime: {reply: async (config, options) => {
@@ -50,6 +52,7 @@ function fixture({local = false, available = true, audioFailure = false, continu
       return config.ttsEnabled ? remote : {...remote, audio: undefined};
     }},
     prefetch: {invalidate() {}, published: () => calls.push('prefetch-published')},
+    lookahead: {busy: false, setSource: value => calls.push(['lookahead-source', value.text, value.userText]), cancel() {}},
     slots: {begin: async () => calls.push('begin-slot'), write: async (id, index, bytes) => {
       calls.push(['write-slot', index, bytes]); if (audioFailure) throw Error('Fake disk error');
       return {event: 'convai_reply_0', duration: 0.1};
@@ -204,6 +207,71 @@ test('the validated wider registry selects Pocket only for the matching referenc
   assert.equal(remote.calls.filter(value => Array.isArray(value) && value[0] === 'send').length, 1);
 });
 
+// A group look-ahead turn is generated while the previous speaker is audible and
+// held until the game submits it (bridge/group-lookahead.mjs).
+function heldTurn() {
+  let state = 'held', release, cancel;
+  const claimed = new Promise((resolve, reject) => { release = resolve; cancel = reject; });
+  claimed.catch(() => {});
+  return {claimed, isHeld: () => state === 'held', markReady() { this.ready = true; }, waitClaimed: signal => abortable(claimed, signal),
+    claim() { state = 'claimed'; release(); }, abort() { state = 'cancelled'; cancel(Object.assign(Error('cancelled'), {name: 'AbortError'})); }};
+}
+const packet = (index, at) => ({index, offsetFrames: at, frames: 4, pcm: Float32Array.from([1, 2, 3, 4])});
+
+test('a held Pocket turn synthesizes the whole text once into memory, then plays it in order after the claim', async () => {
+  const f = fixture({local: true, continuous: true}), ahead = heldTurn(), delivered = [], synthesized = [];
+  const current = async () => true; current.ahead = ahead;
+  const localVoice = {...f.localVoice, async synthesizeStream(profile, text, {onPcm}) {
+    synthesized.push([profile, text]); await onPcm(packet(1, 0)); await onPcm(packet(2, 4)); return {frames: 8};
+  }};
+  const sandbox = {...f, localVoice, BufferedPcm, waitUntil, realtime: {...f.realtime, localPcmBusy: false},
+    deliverPocketSpeech: async value => { delivered.push(value); return {...value.result, continuous: true}; }};
+  runInNewContext(code + ';globalThis.run=synthesizeReply;', sandbox);
+  const running = sandbox.run(f.input, {...f.remote, audio: undefined}, undefined, current, f.profile);
+  await turn(); await turn();
+  assert.deepEqual(synthesized, [[f.profile.key, f.remote.text]], 'the complete reply text is sent to Pocket exactly once');
+  assert.equal(delivered.length, 0, 'nothing reaches the single renderer while the previous speaker is audible');
+  ahead.claim(); await running;
+  assert.equal(delivered.length, 1); assert.equal(delivered[0].prefetched.packets.length, 2);
+  assert.equal(synthesized.length, 1, 'the claim does not synthesize again');
+});
+
+test('cancelling a held Pocket turn stops its synthesis and never reaches the renderer', async () => {
+  const f = fixture({local: true, continuous: true}), ahead = heldTurn(), delivered = [], controller = new AbortController();
+  let synthesisSignal; const current = async () => true; current.ahead = ahead;
+  const localVoice = {...f.localVoice, synthesizeStream: (profile, text, {signal}) => new Promise((_, reject) => {
+    synthesisSignal = signal; signal.addEventListener('abort', () => reject(Error('stopped')), {once: true});
+  })};
+  const sandbox = {...f, localVoice, BufferedPcm, waitUntil, realtime: {...f.realtime, localPcmBusy: false},
+    throwIfCancelled: signal => { if (signal?.aborted) throw Object.assign(Error('cancelled'), {name: 'AbortError'}); },
+    deliverPocketSpeech: async value => { delivered.push(value); return value.result; }};
+  runInNewContext(code + ';globalThis.run=synthesizeReply;', sandbox);
+  const running = sandbox.run(f.input, {...f.remote, audio: undefined}, controller.signal, current, f.profile);
+  await turn(); await turn();
+  const rejected = assert.rejects(running, {name: 'AbortError'});
+  ahead.abort(); await rejected;
+  assert.equal(synthesisSignal.aborted, true); assert.equal(delivered.length, 0);
+});
+
+test('a held Omni turn waits for the previous speaker to finish rendering phrases before queueing GPU work', async () => {
+  const f = fixture({continuous: true}), ahead = heldTurn(), order = [];
+  const current = async () => true; current.ahead = ahead;
+  const localVoice = {provider: 'omni', steps: 16, usesProfile: () => true, synthesize: async (profile, text) => {
+    order.push('gpu'); return {audio: 'AAAA', faces: [], captions: [], timing: {}};
+  }};
+  const sandbox = {...f, localVoice, waitUntil, BufferedPcm, streaming: 1, jaliFace: null};
+  runInNewContext(code + ';globalThis.run=synthesizeReply;globalThis.finish=()=>{streaming=0;};', sandbox);
+  const running = sandbox.run(f.input, {...f.remote, audio: undefined}, undefined, current, f.profile);
+  await new Promise(done => setTimeout(done, 120));
+  assert.deepEqual(order, [], 'queueing behind the previous speaker would delay its next phrase');
+  sandbox.finish(); const result = await running;
+  assert.ok(order.length >= 1); assert.equal(typeof result.audio, 'string');
+  // An ordinary (not held) turn never waits.
+  const normal = fixture({continuous: true}), plain = {...normal, localVoice, waitUntil, BufferedPcm, streaming: 1, jaliFace: null};
+  runInNewContext(code + ';globalThis.run=synthesizeReply;', plain);
+  await plain.run(normal.input, {...normal.remote, audio: undefined}, undefined, async () => true, normal.profile);
+});
+
 const turn = () => new Promise(resolve => setImmediate(resolve));
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return {resolve, promise}; };
 function invitationVoiceFixture({reconfigure = async () => {}, retire = async () => {}, prepare} = {}) {
@@ -217,6 +285,7 @@ function invitationVoiceFixture({reconfigure = async () => {}, retire = async ()
     }};
   const sandbox = {localVoice, abortable, throwIfCancelled, stopped: false, active: null, streaming: 0,
     polling: false, micPolling: false, mic: {current: null}, phone: {active: null}, prefetchPolling: false, memoryQuiescing: 0,
+    lookahead: {busy: false, cancel() {}, claim: () => null},
     relationshipRoutes: {revision: 0, consumeRouteChanges: () => relationshipChanges.splice(0)}, prewarmObserved: 'prior',
     retireRelationshipConnections: async (connections, keys) => {
       assert.equal(connections, sandbox.connections); calls.push(['retire', [...keys]]); return retire(keys);
@@ -295,6 +364,9 @@ test('the routing boundary includes text, continuous audio, microphone, phone an
     const previous = f.context[key]; f.context[key] = true;
     assert.equal(f.api.voiceBoundaryBusy(), true, key); f.context[key] = previous;
   }
+  // A held group look-ahead owns a connection page even between turns.
+  f.context.lookahead.busy = true; assert.equal(f.api.voiceBoundaryBusy(), true, 'lookahead');
+  f.context.lookahead.busy = false;
   f.context.mic.current = {}; assert.equal(f.api.voiceBoundaryBusy(), true);
   f.context.mic.current = null; assert.equal(f.api.voiceBoundaryBusy(), false);
   f.context.phone.active = {}; assert.equal(f.api.voiceBoundaryBusy(), true);
