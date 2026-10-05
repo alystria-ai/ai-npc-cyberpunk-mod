@@ -13,7 +13,6 @@ The single working document for development: open items first, then a dated log,
 - **Invitation notices** (agent): routine preparation/driving popups shown in Developer mode only; a failure seen while paused gets posted once in gameplay.
 - **Phone Chat tab icon** (agent): replace the rectangle-drawn bubble with native atlas artwork.
 - **Relationship routing review** (agent): verify Auto/On/Off routing and quest predicates for Judy, Panam, River, Kerry and Meredith, with tests.
-- **22 old movement test failures** (agent): judged out of date, real bug or broken setup.
 - **Group chat speed** (agent): request the next speaker as soon as the previous one's text is known, and prefetch its audio.
 
 ### Waiting for one combined install and in-game test
@@ -31,6 +30,8 @@ After the agents above finish:
 ### Smaller gaps
 - Install manifests are missing the quest-knowledge modules (`fact-identity*`, `knowledge-state`, `save-identity*`); add them with the quest agent's results.
 - Convai test user `44634786-9337-4103-b8dd-dc553202563b` (on alex): `memory/list` returns HTTP 502, which looks like a Convai server fault. Remove the user when it's no longer needed (`memory/delete-all`, then the dashboard).
+
+- Movement design questions from the test triage: (1) a follow blocked beyond 6 m can still enter the "advance" detour mode (`block()` in `companion-actuator.lua`), but no current test reaches it. Decide whether to keep it for follow, and test it if so. (2) Initial follow admissions skip the 2-member planning turn, so each one costs one native navigation query (8 at once costs 8). The 192 physics-query cap still holds. Treated as intended.
 
 ### Later
 - Packaging a player release: ship the prebuilt voice client; use the auto-start supervisor instead of `packaging/runtime-bootstrap.mjs`; allow `red4ext/` paths in `release-plan.json`; first-run key setup; no keys, player data, audio or training data in the package.
@@ -54,6 +55,7 @@ After the agents above finish:
 - Bridge auto-start: a RED4ext plugin starts a Node supervisor with the game and stops it on exit (installed; first launch not yet checked).
 - Conversation: the "always ask a follow-up question" rule is removed from prompts and all 84 profiles' speaking style, and re-pushed to Convai. The MCM toggle is gone.
 - Actions: Fight and Distract are implemented (`docs/COMPANION_TACTICS.md`), not yet tried in game.
+- 22 old movement test failures: all were out of date or fixture faults; no production bug. The fixes put follow-projection scenarios inside the 6 m horizon, used dense routes for the query budget, raised step stubs above the new first-point allowance (.35–.65 m), counted retargeted waypoint goals, and added a `GetEntity` stub. The `companion*` suite now passes 508/508 (commits 3b83300–84d7c38).
 - Old manager/invitation test failures: all three were out of date after commit 986ad09 (failure latch); tests aligned, no production change.
 - Duplicate copies: phone dismiss now removes one copy by the character it speaks as, newest first, and skips a chauffeur driver if another copy can go (16 tests). Cars: dismissing one passenger no longer makes everyone re-board, and only the chauffeur driver leaving cancels a trip.
 - Phone contacts: mapping covers all 102 catalog contacts every session, so mid-session unlocks already work for J-invites (test added). Memory picker now says nothing was deleted when backing out or cancelling.
