@@ -3,7 +3,7 @@ import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomUUID} from 'node:crypto';
 import {buildRelationshipProfilePayloads} from './relationship-profile-payloads.mjs';
-import {characterMatches, verifyCharacter, verifyMemoryConfiguration} from './character-payload.mjs';
+import {characterMatches, verifyCharacter, verifyMemoryConfiguration, verifyStyleOnlyCharacter} from './character-payload.mjs';
 import {relationshipRegistry} from '../bridge/relationship-routing.mjs';
 
 const marker = key => `[CyberpunkConvai profile v2:${key}]`;
@@ -11,10 +11,14 @@ const clone = value => structuredClone(value);
 
 /** Only Core character definitions are touched. No end-user/memory/session API.
  * An uncertain create is reconciled by its exact ownership marker on a later
- * run; absence of a receipt never authorizes repeating that create blindly. */
+ * run; absence of a receipt never authorizes repeating that create blindly.
+ * styleOnly repairs only the two speaking-style fields of already mapped
+ * alternates: it never creates, and refuses before writing if the cloud name,
+ * voice or biography differ from this roster (those need a reviewed full run). */
 export async function provisionRelationshipProfiles({roster, ordinaryIds, registry = {version: 1, characters: {}},
-  intents = {}, api, persist = async () => {}, onVerified = () => {}}) {
+  intents = {}, api, persist = async () => {}, onVerified = () => {}, styleOnly = false}) {
   const rows = buildRelationshipProfilePayloads(roster), next = clone(registry), state = clone(intents);
+  if (styleOnly) return repairRelationshipStyles({rows, ordinaryIds, registry: next, api, onVerified});
   relationshipRegistry(ordinaryIds, next);
   const cloud = await api('/character/list', {});
   if (!Array.isArray(cloud?.characters)) throw Error('Core character listing is unavailable.');
@@ -93,6 +97,46 @@ export async function provisionRelationshipProfiles({roster, ordinaryIds, regist
   return {registry: next, intents: state, profiles: report};
 }
 
+async function repairRelationshipStyles({rows, ordinaryIds, registry, api, onVerified}) {
+  const cloud = await api('/character/list', {});
+  if (!Array.isArray(cloud?.characters)) throw Error('Core character listing is unavailable.');
+  const owned = new Map(cloud.characters.map(row => [row.character_id, row]));
+  // Preflight every alternate before the first write.
+  const plan = [];
+  for (const row of rows) {
+    const id = registry.characters[row.profileKey]?.romanticCharacterId;
+    if (!id || !owned.has(id) || registry.characters[row.profileKey].ordinaryCharacterId !== ordinaryIds[row.profileKey]) {
+      throw Error('Style-only repair requires an existing owned alternate mapping: ' + row.profileKey);
+    }
+    const before = await api('/character/get', {charID: id});
+    if (before?.character_id !== id || !before.backstory?.split(/\r?\n/u).includes(row.ownershipMarker)) {
+      throw Error('Alternate ownership marker mismatch: ' + row.profileKey);
+    }
+    if (before.character_name !== row.payload.charName || before.voice_type !== row.payload.voiceType
+        || before.backstory !== row.payload.backstory) {
+      throw Error('Alternate name, voice or biography differs from the roster; a style-only repair would not match it: ' + row.profileKey);
+    }
+    plan.push({row, id, before});
+  }
+  const profiles = [];
+  for (const {row, id, before} of plan) {
+    const changed = before.speaking_style?.description !== row.payload.speaking_style_description
+      || before.speaking_style?.sample_dialogues !== row.payload.speaking_style_sample_dialogues;
+    if (changed) {
+      const updated = await api('/character/update', {charID: id,
+        speaking_style_description: row.payload.speaking_style_description,
+        speaking_style_sample_dialogues: row.payload.speaking_style_sample_dialogues});
+      if (updated?.STATUS !== 'SUCCESS') throw Error('Alternate update was not confirmed: ' + row.profileKey);
+    }
+    const actual = await api('/character/get', {charID: id});
+    verifyStyleOnlyCharacter(id, before, actual, row.payload, row.providerProfileKey);
+    profiles.push({profileKey: row.profileKey, characterId: id, styleUpdated: changed,
+      memoryEnabled: actual.memory_settings?.enabled === true});
+    onVerified(row.profileKey);
+  }
+  return {registry, profiles};
+}
+
 async function main() {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..'), runtime = resolve(root, 'runtime');
   const read = async (path, fallback) => {
@@ -151,6 +195,14 @@ async function main() {
     await lock.writeFile(String(process.pid));
     await mkdir(batch, {recursive: true});
     const registry = await read(target, {version: 1, characters: {}}), intents = await read(intentPath, {});
+    if (process.argv.includes('--existing-style-only')) {
+      await atomic(resolve(batch, 'registry-before.json'), registry);
+      const result = await provisionRelationshipProfiles({roster, ordinaryIds, registry, intents, api, styleOnly: true,
+        onVerified: profile => console.log('Verified alternate speaking style: ' + profile)});
+      await atomic(resolve(batch, 'report.json'), {...result, mode: 'existing-style-only', completedAt: new Date().toISOString()});
+      console.log('Verified ' + result.profiles.length + ' alternate profiles; only speaking-style fields were written.');
+      return;
+    }
     await atomic(resolve(batch, 'registry-before.json'), registry);
     const result = await provisionRelationshipProfiles({roster, ordinaryIds, registry, intents, api,
       persist: async (next, state) => {

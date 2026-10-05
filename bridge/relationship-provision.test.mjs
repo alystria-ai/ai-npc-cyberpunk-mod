@@ -30,7 +30,12 @@ function fixture() {
       if (failCreate === 'committed') { failCreate = undefined; throw Error('Lost response after commit'); }
       return {charID: id};
     }
-    if (endpoint === '/character/update') { objects.set(body.charID, detail(body.charID, body)); return {STATUS: 'SUCCESS'}; }
+    if (endpoint === '/character/update') {
+      // Core updates only the supplied fields; a style-only body keeps the rest.
+      objects.set(body.charID, body.charName ? detail(body.charID, body) : {...objects.get(body.charID),
+        speaking_style: {description: body.speaking_style_description, sample_dialogues: body.speaking_style_sample_dialogues}});
+      return {STATUS: 'SUCCESS'};
+    }
     assert.fail('Unexpected provider API: ' + endpoint);
   };
   return {roster, ordinaryIds, objects, calls, api,
@@ -78,5 +83,23 @@ test('wrong alternate ownership and missing ordinary markers fail before any rem
   f.objects.get(f.ordinaryIds['meredith-stout']).backstory = 'An unrelated character.';
   await assert.rejects(provisionRelationshipProfiles(f), /Ordinary profile ownership/);
   assert.equal(f.createCount(), 0);
+  assert.equal(f.calls.filter(call => call.endpoint === '/character/update').length, 0);
+});
+
+test('style-only repair writes only the speaking-style fields of mapped alternates', async () => {
+  const f = fixture();
+  const {registry} = await provisionRelationshipProfiles(f);
+  const changed = f.roster.map(row => ({...row, speakingStyleDescription: row.speakingStyleDescription + ' Leave room for others.'}));
+  f.calls.length = 0;
+  const result = await provisionRelationshipProfiles({...f, roster: changed, registry, styleOnly: true});
+  assert.equal(result.profiles.length, 5);
+  const updates = f.calls.filter(call => call.endpoint === '/character/update');
+  assert.equal(updates.length, 5);
+  for (const call of updates) assert.deepEqual(Object.keys(call.body).sort(), ['charID', 'speaking_style_description', 'speaking_style_sample_dialogues']);
+  assert.equal(f.createCount(), 0, 'style-only repair never creates');
+  // A biography drift is refused before any write.
+  const drifted = changed.map(row => ({...row, backstory: row.backstory.replace('Established', 'Revised')}));
+  f.calls.length = 0;
+  await assert.rejects(provisionRelationshipProfiles({...f, roster: drifted, registry, styleOnly: true}), /biography differs/);
   assert.equal(f.calls.filter(call => call.endpoint === '/character/update').length, 0);
 });
