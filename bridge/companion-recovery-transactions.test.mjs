@@ -160,7 +160,11 @@ test('coasting under a metre refreshes an observed step rejection without changi
 npc.pos=Vector4.new(0,0,8.01047);player.pos=Vector4.new(5.99,-12.59,8.2)
 local nav=Game.GetAINavigationSystem()
 nav.CalculatePathForCharacter=function(_,origin,destination)
-  return {path={Vector4.new(origin.x,origin.y,8.38422),destination},CalculateLength=function()
+  -- The native first point is .9 m above the original feet: beyond the .65 m
+  -- first-point projection allowance, so it is a genuine step. At the coasted
+  -- feet the navmesh surface is only .198 m up (a stair tread, not a wall).
+  local height=origin.x>.1 and 8.38422 or 8.91047
+  return {path={Vector4.new(origin.x,origin.y,height),destination},CalculateLength=function()
     return math.sqrt((destination.x-origin.x)^2+(destination.y-origin.y)^2) end}
 end
 Game.GetAINavigationSystem=function() return nav end
@@ -178,7 +182,8 @@ test('a genuinely unchanged vertical transition stays held while bounded native 
 local nav=Game.GetAINavigationSystem();local reads=0
 nav.CalculatePathForCharacter=function(_,origin,destination)
   reads=reads+1
-  return {path={Vector4.new(origin.x,origin.y,.4),destination},CalculateLength=function()
+  -- .8 m is beyond the .65 m first-point projection allowance.
+  return {path={Vector4.new(origin.x,origin.y,.8),destination},CalculateLength=function()
     return math.sqrt((destination.x-origin.x)^2+(destination.y-origin.y)^2) end}
 end
 Game.GetAINavigationSystem=function() return nav end
@@ -393,8 +398,12 @@ test('a foreign vehicle arriving during successor preparation never receives a c
 local point=first.movementTarget.position;local length=math.sqrt(point.x^2+point.y^2)
 npc.pos=Vector4.new(point.x-point.x/length*.25,point.y-point.y/length*.25)
 npc.forward=Vector4.new(point.x/length,point.y/length);context.position=npc.pos;context.speed=2.4
-local budget=helper.newBudget();budget.limit=6;actuator.useSpatialBudget(budget)
+-- The moving-corridor guard now runs first and costs 18 queries (six collision
+-- groups for three boxes). Leave exactly one more box so the successor proof
+-- starts and is then quota deferred.
+local budget=helper.newBudget();budget.limit=24;actuator.useSpatialBudget(budget)
 actuator.sense(state,npc.pos,2.4,.1);actuator.apply(state,decision,context,true)
+assert(budget.used==24,'the guard and one successor box did not spend the slice')
 local target=state.routeProbe and state.routeProbe.target
 assert(target,'successor preparation was not quota deferred')
 solid('Vehicle',target.x,target.y,.7,.7)
