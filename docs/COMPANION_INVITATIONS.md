@@ -30,6 +30,11 @@ profile.
 - A Judy model reassigned to Panam answers to Panam on the phone, not to Judy.
   Phone Chat history and memory belong to the profile and never to a copy, so
   either copy can leave without changing them.
+  Reassigning a copy while its private reply (text, voice, or an automatic comment)
+  is still requested, streaming or playing retires exactly that reply: the game stops
+  its audio, captions and facial animation and withdraws the request, so the bridge
+  stops producing it. Replies of other copies, group rounds and other characters
+  continue.
 - Copies with the same profile share one prepared connection. It stays while any
   such copy remains, and is released only after the last one is gone.
 
