@@ -475,3 +475,42 @@ test('a close follower keeps pace while V keeps running, then eases off when V s
   tick(4)
   assert(dilation.reason==nil,'pace stayed on after V stopped')
 `));
+
+// Recorded railing hop (railing-jump-test-20261005): no native route existed,
+// so two companions stood blocked 19 and 24 m away indefinitely.
+const noRoute=(facing)=>`${companionEngine}
+  local teleports={}
+  local sight=true
+  local spatial=Game.GetSpatialQueriesSystem()
+  Game.GetSpatialQueriesSystem=function() return {Overlap=spatial.Overlap,
+    SyncRaycastByCollisionGroup=function() return not sight end} end
+  local npc=spawn(); tick(4)
+  npc.ai.onSend=function(cmd)
+    if cmd.kind=='AITeleportCommand' then teleports[#teleports+1]=cmd.position; npc.pos=cmd.position; cmd.state='Success' end
+  end
+  local start=Vector4.new(npc.pos.x,npc.pos.y,npc.pos.z)
+  local nav=Game.GetAINavigationSystem()
+  local calculate=nav.CalculatePathForCharacter
+  nav.CalculatePathForCharacter=function(self,from,to,...)
+    if math.abs(from.x-start.x)<1.5 and math.abs(from.y-start.y)<1.5 then return nil end
+    return calculate(self,from,to,...)
+  end
+  Game.GetAINavigationSystem=function() return nav end
+  player.forward=${facing}
+  for i=1,10 do player.pos=Vector4.new(0,i*1.5,0); tick(1) end
+`;
+
+test('a companion with no route across an obstacle rejoins once V looks away',()=>run(noRoute('Vector4.new(0,1)')+`
+  tick(12)
+  assert(#teleports>=1,'a companion with no route 15 m away never rejoined')
+  local spot=teleports[1]
+  assert(spot.y<player.pos.y and math.sqrt((spot.x-player.pos.x)^2+(spot.y-player.pos.y)^2)<7,'rejoined in the wrong place')
+`));
+
+test('a companion with no route still rejoins, out of view, if V keeps watching',()=>run(noRoute('Vector4.new(0,-1)')+`
+  tick(10)
+  assert(#teleports==0,'left too soon while V was watching')
+  tick(24)
+  assert(#teleports>=1,'a watched companion with no route stayed stuck forever')
+  assert(teleports[1].y>player.pos.y,'the watched companion reappeared in front of the camera')
+`));

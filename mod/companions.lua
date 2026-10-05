@@ -968,7 +968,10 @@ end
 -- A walker held by an obstruction that no detour resolves would wait there
 -- forever while V leaves. Only when it is far away and out of V's view is it
 -- re-placed near V, through the same placement checks a new invitation uses.
-local stranded={distance=30,after=6,retry=3,fieldOfView=60}
+local stranded={distance=30,after=6,retry=3,fieldOfView=60,
+    -- No native route at all (V hopped a railing): a companion cannot vault,
+    -- so it rejoins sooner and at short range, even if watched for long.
+    unreachableDistance=6,unreachableAfter=4,watchedAfter=12}
 -- NPC sprint speed is capped by its animation (~5.4 m/s against V's ~8), so a
 -- long sprint leaves followers behind. Like vanilla followers, a follower more
 -- than 25 m back rejoins out of view, placed behind V.
@@ -1084,14 +1087,19 @@ local function recoverDistant(entry,player)
     -- V walking on re-plans a blocked follower, briefly clearing its block.
     -- Stranded means recently blocked and not actually getting anywhere.
     if entry.motor.blockedReason then entry.lastBlockedAt=runtimeClock end
-    local strandedReady=false
-    if runtimeClock-(entry.lastBlockedAt or -math.huge)>2 or entry.playerGap<stranded.distance then
+    local rejection=entry.motor.lastRejection
+    local unreachable=rejection and rejection.stage=='navigation'
+    local strandedReady,watchedTooLong=false,false
+    if runtimeClock-(entry.lastBlockedAt or -math.huge)>2
+        or entry.playerGap<(unreachable and stranded.unreachableDistance or stranded.distance) then
         entry.strandedSince,entry.strandedAnchor=nil,nil
     else
         if not entry.strandedAnchor or space.distance(entry.strandedAnchor,entry.position)>1 then
             entry.strandedAnchor,entry.strandedSince=space.copy(entry.position),runtimeClock
         end
-        strandedReady=runtimeClock-entry.strandedSince>=stranded.after
+        local stuckFor=runtimeClock-entry.strandedSince
+        strandedReady=stuckFor>=(unreachable and stranded.unreachableAfter or stranded.after)
+        watchedTooLong=unreachable and stuckFor>=stranded.watchedAfter
     end
     if entry.motor.kind=='follow' and entry.playerGap>catchUp.distance then
         entry.farSince=entry.farSince or runtimeClock
@@ -1100,7 +1108,9 @@ local function recoverDistant(entry,player)
         and runtimeClock>=(entry.catchUpAt or 0)
     if not (strandedReady or farReady) or runtimeClock<(entry.strandedRetryAt or 0) then return false end
     entry.strandedRetryAt=runtimeClock+(farReady and .5 or stranded.retry)
-    if not hiddenFromPlayer(player,entry.position) then return false end
+    -- The destination is always out of view; only a copy stuck with no route
+    -- for a long time may leave while V is looking at it.
+    if not watchedTooLong and not hiddenFromPlayer(player,entry.position) then return false end
     local moved=relocate(entry,player)
     if moved==nil then entry.strandedRetryAt=runtimeClock+.3 end
     if moved then entry.catchUpAt=runtimeClock+catchUp.cooldown end

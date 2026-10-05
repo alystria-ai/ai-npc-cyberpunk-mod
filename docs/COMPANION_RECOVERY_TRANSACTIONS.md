@@ -20,6 +20,16 @@ and the route proof repeats every 0.8 s. A deferred proof is retried within
 blocks exactly as before. Near routes that bend or shift sideways still walk
 certified points.
 
+## October 5 no route across an obstacle
+
+After V hopped a small railing (`runtime/railing-jump-test-20261005`), two
+companions got navigation-stage rejections (no native route) and stood blocked
+19 and 24 m away indefinitely; stranded recovery only applied beyond 30 m. A
+companion with no native route now rejoins after 4 s once more than 6 m away,
+when out of view; if V keeps watching it for 12 s it rejoins anyway. The
+destination is always out of view. The same trace confirmed the AI teleport
+live: two companions left ~690 m behind were relocated once each.
+
 ## October 5 catch-up pace and AI teleport
 
 The catch-up retest recorded nine failed relocations per companion: a
