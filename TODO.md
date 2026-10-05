@@ -6,7 +6,7 @@ The single working document for development: open items first, then a dated log,
 
 ### In progress
 - **Student distillation** (Kaggle kernel 137135141, `cp2077-full-a-student-114278c5e96c449e`, bucket run `full-a-student-20261005-114278c5`). Teacher: update 1,000 raw from the expanded run. It stops after two evaluations without held-out improvement (earliest 2,000 updates, cap 12,000). Next: pick the best checkpoint by held-out and speech evidence, produce listening samples, and install only with user approval. Check with `vendor/kaggle-env/Scripts/python.exe scripts/Pocket-FullAStudent.py stream --folder runtime/voice-data-expansion-20261005/full-a-student/<run>`.
-- **Teacher listening samples** (agent): blind A/B page in `runtime/listening-20261005/` comparing teacher 1,000 raw, teacher 6,000, the current student and a real reference clip, for Evelyn, Jackie and the lowest-clip voices. The user judges by character likeness, not WER.
+- **Teacher listening samples**: ready at `runtime/listening-20261005/index.html` (blind A–D; the key is in `blind-key.json`). Models: teacher 1,000 raw, teacher 5,000 EMA (6,000 was never uploaded), the current student and the earlier teacher (500 EMA). Characters: Evelyn (60 clips), Jackie (839), Jesse (1), Adam Smasher (2), Red Menace (2), Ozob Bozo (3). WavLM similarity means: teacher 1,000 0.935, 5,000 0.904, student 0.923, earlier 0.937. The student is weak on Adam Smasher (0.83). Waiting for the user's verdict; the user judges by character likeness, not WER.
 
 ### Waiting for one combined install and in-game test
 After the agents above finish:
