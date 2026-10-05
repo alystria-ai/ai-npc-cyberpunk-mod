@@ -66,11 +66,11 @@ const partyHarness = `
   end
 `;
 
-test('a phone invitation that fails to start is reported once, in gameplay, and an accepted one is silent unless Developer mode is on', () => run(`${partyHarness}
-  local calls=0
+test('a phone invitation that fails to start is reported once, in gameplay, and an accepted one has a Developer-only preparing acknowledgement', () => run(`${partyHarness}
+  local calls,stage=0,'memory'
   local readiness={bind=function() end, newId=function(n) return 'invite:'..n end, cancel=function() end,
     prepare=function() calls=calls+1; if calls==1 then return false,'Bridge unavailable' end; return true end,
-    status=function() return {state='memory'} end, spawned=function() end}
+    status=function() return {state=stage} end, spawned=function() end}
   queue=(function() ${partySource} end)().new(companions,readiness)
   queue.bind('world')
   press('+judy')

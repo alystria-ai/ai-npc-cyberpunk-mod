@@ -324,10 +324,6 @@ local function samplePreparationPopup(now, worldReady)
         if not worldReady then return nil end
         if queue.claimPreparationFailure
             and not queue.claimPreparationFailure(current.id, current.revision) then return nil end
-    elseif not developerMode() then
-        -- Routine progress (preparing memory, connecting, ready, joining) is
-        -- a Developer-mode popup; the manager banner still shows it.
-        return nil
     end
     -- Native warning notifications can be hidden behind a paused menu. Keep
     -- only the current snapshot and announce it once again in gameplay, never
@@ -337,6 +333,11 @@ local function samplePreparationPopup(now, worldReady)
         current.signature = table.concat({current.id, tostring(current.revision), 'joining'}, '|')
         current.message = ui.t('{name} is joining your party.', {name = current.name})
     end
+    -- Progress the player waits on (preparing memory, connecting) and the
+    -- "ready to join when you return" instruction are always shown, so a slow
+    -- preparation is not mistaken for a failure. "Joining" asks nothing of the
+    -- player and is a Developer-mode popup; the manager banner shows it anyway.
+    if current.state == 'joining' and not developerMode() then return nil end
     if current.signature == tracking.shown
         and (not worldReady or current.signature == tracking.shownInGameplay) then return nil end
     return current
@@ -647,7 +648,7 @@ local function schema()
         })
         categories[#categories + 1] = category('development', 'Development', {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
-                'Show routine companion popups: invitation progress (preparing, connecting, ready, joining) and driving instructions such as boarding and exit. Failures and replies to Stop trip remain visible when off.'),
+                'Show routine companion popups: the joining step, dismissal confirmations, and driving instructions such as boarding and exit. Preparation progress, joined notices, failures and replies to Stop trip remain visible when off.'),
         })
     end
     if view == 'characters' or view == 'party' or view == 'models' or view == 'settings' then

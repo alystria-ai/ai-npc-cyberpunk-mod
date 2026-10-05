@@ -100,7 +100,7 @@ local mic = (function() ${microphoneSource} end)()
 local player = {ConvaiPhoneFeedback = function(_, text) feedback[#feedback + 1] = text end}
 local actorName, profileName = 'Judy 100% {profile}', 'パナム {name} 50%'
 local function makeParty(prepared)
-    local env = {members = {}, status = {state = 'ready'}, serial = 0}
+    local env = {members = {}, status = {state = 'ready'}, serial = 0, developer = true}
     local definitions = {
         known = {name = actorName, id = 'Character.Judy', profileKey = 'judy', profileName = actorName},
         model = {name = actorName, id = 'Character.Model'}}
@@ -127,7 +127,7 @@ local function makeParty(prepared)
         status = function() return env.status end,
         cancel = function() end, spawned = function() end, finish = function() end} or nil
     env.readiness = readiness
-    env.queue = party.new(companions, readiness); env.queue.bind('world')
+    env.queue = party.new(companions, readiness, {developerMode = function() return env.developer end}); env.queue.bind('world')
     return env
 end
 local function microphoneState(value, id)
@@ -175,6 +175,26 @@ test('English invitations, assignments and deferred dismissals retain their exac
   assert(q.dismiss('live:1')); q.flush()
   notices = q.takeNotices()
   assert(#env.members == 0 and #notices == 1 and notices[1].message == actorName .. ' dismissed.')
+`));
+
+test('a successful dismissal posts its gameplay notice only in Developer mode; its failure always does', () => run(`
+  local env = makeParty(false); local q = env.queue
+  env.developer = false
+  assert(q.invite('known')); q.flush(); env.members[1].state = 'ready'; q.flush(); q.takeNotices()
+  assert(q.dismiss(q.list()[1].id)); q.flush()
+  assert(#env.members == 0 and #q.takeNotices() == 0, 'a routine dismissal posted a notice with Developer mode off')
+  assert(q.message() == actorName .. ' dismissed.', 'the in-menu feedback line still reports it')
+  env.developer = true
+  assert(q.invite('known')); q.flush(); env.members[1].state = 'ready'; q.flush(); q.takeNotices()
+  assert(q.dismiss(q.list()[1].id)); q.flush()
+  local notices = q.takeNotices()
+  assert(#notices == 1 and notices[1].message == actorName .. ' dismissed.')
+  env.developer = false
+  assert(q.invite('known')); q.flush(); env.members[1].state = 'ready'; q.flush(); q.takeNotices()
+  env.dismissError = 'raw dismissal failure'
+  assert(q.dismiss(q.list()[1].id)); q.flush()
+  notices = q.takeNotices()
+  assert(#notices == 1 and notices[1].failed, 'a dismissal failure must stay visible')
 `));
 
 test('English readiness, failures and microphone notices preserve original wording', () => run(`

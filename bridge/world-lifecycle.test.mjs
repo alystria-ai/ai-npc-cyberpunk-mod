@@ -454,31 +454,36 @@ local function receipt(state)
 end
 `;
 
-test('phone invitation progress posts no popup with Developer mode off and a failure waits for gameplay', () => run(`${phoneNoticeFixture}
-assert(#feedback() == 0, 'accepting the invitation posted routine preparation text')
+test('phone invitation progress is always shown, the acknowledgement is Developer-only, and a failure waits for gameplay', () => run(`${phoneNoticeFixture}
+local function has(text) for _, line in ipairs(feedback()) do if line:find(text, 1, true) then return true end end return false end
+-- Accepting posts only the progress line; the acknowledgement is Developer-only.
+assert(#feedback() == 1 and has('preparing memory...') and not has('preparing memory and conversation'))
 receipt('memory'); events.onUpdate(0)
+assert(#feedback() == 1)
 receipt('connecting'); events.onUpdate(0)
+assert(#feedback() == 2 and has('connecting...'))
 receipt('ready'); events.onUpdate(0)
-assert(#feedback() == 0, 'routine phone progress posted with Developer mode off')
+assert(#feedback() == 3 and has('Close the phone to join'), 'the instruction to close the phone must be shown')
 assert(partyQueue.list()[1].state == 'ready-to-join')
 -- Failure first seen while the phone is open: no popup, no consumed claim.
 receipt('error'); events.onUpdate(0); events.onUpdate(0); events.onUpdate(0)
-assert(partyQueue.list()[1].state == 'failed' and #feedback() == 0, 'the open phone consumed the failure notice')
+assert(partyQueue.list()[1].state == 'failed' and #feedback() == 3, 'the open phone consumed the failure notice')
 player.phoneOpen = false; events.onUpdate(0.1)
 local posted = feedback()
-assert(#posted == 1 and posted[1]:find('could not prepare', 1, true), 'gameplay did not post the single failure notice')
+assert(#posted == 4 and posted[4]:find('could not prepare', 1, true), 'gameplay did not post the single failure notice')
 for _ = 1, 3 do events.onUpdate(0.1); player.phoneOpen = true; events.onUpdate(0); player.phoneOpen = false end
-assert(#feedback() == 1 and stats.spawned == 0, 'the failed attempt notified again')
+assert(#feedback() == 4 and stats.spawned == 0, 'the failed attempt notified again')
 `));
 
-test('phone invitation progress posts with Developer mode on', () => run(`${phoneNoticeFixture}
+test('phone invitation acknowledgement also posts with Developer mode on', () => run(`${phoneNoticeFixture}
 `.replace('events.onInit();', 'stats.developer = true; events.onInit();') + `
 local before = #feedback()
-assert(before == 2, 'the accepted invitation and its first stage should each post once')
+assert(before == 2, 'the acknowledgement and the first progress line should each post once')
+assert(feedback()[1]:find('preparing memory and conversation', 1, true) and feedback()[2]:find('preparing memory...', 1, true))
 receipt('connecting'); events.onUpdate(0)
 assert(#feedback() == before + 1 and feedback()[before + 1]:find('connecting', 1, true))
 receipt('ready'); events.onUpdate(0); events.onUpdate(0)
-assert(#feedback() == before + 2 and feedback()[before + 2]:find('ready', 1, true))
+assert(#feedback() == before + 2 and feedback()[before + 2]:find('Close the phone', 1, true))
 `));
 
 test('phone cancellation and save restoration reject earlier ready invitation receipts', () => run(`

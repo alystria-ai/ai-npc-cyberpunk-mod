@@ -19,8 +19,11 @@ function M.new(companions, readiness, options)
         return ok and enabled == true
     end
 
-    local function report(message, failed, invitationId)
+    -- The in-menu feedback line always updates. A routine result (a successful
+    -- dismissal) is posted as a gameplay notice only in Developer mode.
+    local function report(message, failed, invitationId, routine)
         feedback = message
+        if routine and failed ~= true and not developerMode() then return end
         notices[#notices + 1] = {message = message, failed = failed == true, invitationId = invitationId}
     end
 
@@ -371,7 +374,7 @@ function M.new(companions, readiness, options)
                 local called, ok, err = pcall(companions.dismiss, member.serial)
                 leaves[member.serial] = nil
                 report(called and ok and ui.t('{name} dismissed.', {name = member.name})
-                    or (member.name .. ': ' .. tostring(called and err or ok)), not (called and ok))
+                    or (member.name .. ': ' .. tostring(called and err or ok)), not (called and ok), nil, true)
             end
         end
         local remaining = {}
