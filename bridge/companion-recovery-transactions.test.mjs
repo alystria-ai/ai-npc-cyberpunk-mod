@@ -524,3 +524,19 @@ decision.operation={ticket='stand',kind='move',goal=Vector4.new(6,0,0),gait='Wal
 update()
 assert(state.lastRejection and state.lastRejection.stage=='player','a route through a standing V was admitted')
 `));
+
+// Recorded 8ug8 hold (follow-departure-test-20261005): the native route began
+// with a 0.22 m vertical step at the feet, so its first sweep was the occupied
+// body, pressed against Static; every route and detour was rejected there.
+test('a vertical first step at the feet is the occupied body, not a blocked route',()=>run(motor+solids+`
+player.pos=Vector4.new(50,0,0)
+local nav=Game.GetAINavigationSystem()
+nav.CalculatePathForCharacter=function(_,from,destination)
+  return {path={Vector4.new(from.x,from.y,from.z+.22),destination},
+    CalculateLength=function() return math.sqrt((destination.x-from.x)^2+(destination.y-from.y)^2) end}
+end
+Game.GetAINavigationSystem=function() return nav end
+solid('Static',-.5,0,.15,.15)
+update()
+assert(last(npc,'AIFollowTargetCommand') and not state.blockedReason,'the occupied body at the feet blocked every route')
+`));

@@ -367,3 +367,25 @@ test('a stranded follower in plain view is not teleported',()=>run(strandedPocke
   tick(8)
   assert(#teleports==1,'an occluded stranded copy was not recovered')
 `));
+
+test('a stranded copy is released from its owned hold before it is teleported',()=>run(strandedPocket+`
+  -- Live trace: the engine left a copy in place when teleported under an
+  -- executing hold command.
+  Game.GetTeleportationFacility=function() return {Teleport=function(_,owner,position)
+    for _,cmd in ipairs(owner.ai.commands) do
+      if cmd.state=='Executing' and cmd.kind=='AIHoldPositionCommand' then return end
+    end
+    teleports[#teleports+1]=position; owner.pos=position end} end
+  player.forward=Vector4.new(0,1)
+  tick(20)
+  assert(#teleports==1,'the copy was teleported while its hold pinned it')
+  assert(companions.movementSnapshot().copies[1].relocations==1)
+`));
+
+test('a teleport the engine ignores is recorded as a failure, not a relocation',()=>run(strandedPocket+`
+  Game.GetTeleportationFacility=function() return {Teleport=function() end} end
+  player.forward=Vector4.new(0,1)
+  tick(12)
+  local row=companions.movementSnapshot().copies[1]
+  assert(not row.relocations and (row.relocationFailures or 0)>=1,'an ignored teleport counted as a relocation')
+`));

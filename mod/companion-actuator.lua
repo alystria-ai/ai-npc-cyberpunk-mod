@@ -333,8 +333,16 @@ end
 -- it only traps the companion. Sweeps that leave the feet start just ahead.
 local function leavingFrom(s,from,to)
     local length=space.ground(from,to)
-    if length<=.05 then return from end
+    if length<=.05 then
+        -- A small vertical step at the same spot as the feet is the occupied
+        -- body itself (nil: nothing to sweep). Larger steps keep their checks.
+        if math.abs((to.z or 0)-(from.z or 0))<=.35 then return nil end
+        return from
+    end
     return space.offset(from,space.bearing(from,to),0,math.min(s.clearance and s.clearance.radius or .4,length*.5))
+end
+local function atFeet(point,feet)
+    return space.ground(point,feet)<=.05 and math.abs((point.z or 0)-(feet.z or 0))<=.6
 end
 
 local function routeClear(s,c,target,following,options)
@@ -523,13 +531,15 @@ local function routeClear(s,c,target,following,options)
             end
         end
         local from=leg.from
-        if probe.next==1 and not leg.nativeOriginProjection and space.distance(from,probe.origin)<.001 then
+        if not leg.nativeOriginProjection and atFeet(from,probe.origin) then
             from=leavingFrom(s,from,leg.to)
         end
-        clear,reason,deferred,rejection=clearance.segment(from,leg.to,s.clearance,
-            leg.progress,leg.nativeOriginProjection)
-        if deferred then return nil,nil,true end
-        if not clear then return reject(reason,'path',rejection,probe.next) end
+        if from then
+            clear,reason,deferred,rejection=clearance.segment(from,leg.to,s.clearance,
+                leg.progress,leg.nativeOriginProjection)
+            if deferred then return nil,nil,true end
+            if not clear then return reject(reason,'path',rejection,probe.next) end
+        end
         probe.next=probe.next+1
     end
     if probe.at<s.clock then
@@ -545,9 +555,13 @@ local function routeClear(s,c,target,following,options)
                 z=previous.z+(leg.to.z-previous.z)*t,w=1}
             local nativeOriginProjection=index==1 and leg.nativeOriginProjection
                 and space.distance(c.position,leg.from)<=.02
-            local from=index==1 and not nativeOriginProjection and leavingFrom(s,previous,point) or previous
-            clear,reason,deferred,rejection=clearance.segment(from,point,s.clearance,
-                nil,nativeOriginProjection)
+            local from=previous
+            if not nativeOriginProjection and atFeet(previous,c.position) then from=leavingFrom(s,previous,point) end
+            clear,reason,deferred,rejection=true,nil,nil,nil
+            if from then
+                clear,reason,deferred,rejection=clearance.segment(from,point,s.clearance,
+                    nil,nativeOriginProjection)
+            end
             if deferred then return nil,nil,true end
             if not clear then
                 if rejection then rejection.resumedPrefix=true end
@@ -1006,7 +1020,11 @@ local function waypointMotion(s,c)
     end
     -- Keep a near-feet steering check, but never extrapolate velocity through
     -- the next certified corner. The longer lookahead follows the actual legs.
-    if s.motionDirection and c.speed>.18 then
+    local leg=route[best.index]
+    if s.motionDirection and c.speed>.18 and space.ground(leg.from,leg.to)>.05
+        and space.angle(s.motionDirection,space.bearing(leg.from,leg.to))<60 then
+        -- A start-animation shuffle can point sideways; it is not where the
+        -- certified leg goes.
         local length=math.min(best.remaining,c.speed*.2+.1)
         if length>.005 then add(c.position,space.offset(c.position,s.motionDirection,0,length)) end
     end
@@ -1018,12 +1036,14 @@ local function waypointMotion(s,c)
     local clear,reason,deferred,rejection
     for _,segment in ipairs(segments) do
         local from=segment.from
-        if not segment.nativeOriginProjection and space.distance(from,c.position)<.001 then
+        if not segment.nativeOriginProjection and atFeet(from,c.position) then
             from=leavingFrom(s,from,segment.to)
         end
-        clear,reason,deferred,rejection=clearance.segment(from,segment.to,s.clearance,
-            nil,segment.nativeOriginProjection)
-        if not clear then return clear,reason,deferred,rejection end
+        if from then
+            clear,reason,deferred,rejection=clearance.segment(from,segment.to,s.clearance,
+                nil,segment.nativeOriginProjection)
+            if not clear then return clear,reason,deferred,rejection end
+        end
     end
     plan.motionGuard={progress=best.progress,position=space.copy(c.position)}
     return true

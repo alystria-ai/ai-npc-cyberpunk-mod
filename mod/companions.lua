@@ -624,6 +624,7 @@ function M.movementSnapshot()
             state=movementText(entry.state),lane=movementNumber(entry.lane),
             strandedFor=entry.strandedSince and movementNumber(runtimeClock-entry.strandedSince) or nil,
             relocations=movementNumber(entry.relocations),
+            relocationFailures=movementNumber(entry.relocationFailures),
             recentEvents=recentEvents,
             actor={position=movementPoint(entry.position),speed=movementNumber(entry.speed),
                 playerGap=movementNumber(entry.playerGap),targetGap=movementNumber(entry.targetGap)},
@@ -971,30 +972,42 @@ local function hiddenFromPlayer(player,at)
         Vector4.new(at.x,at.y,at.z+1.2,1))
 end
 local function recoverStranded(entry,player)
+    local pending=entry.relocation
+    if pending then
+        -- Count a relocation only once the engine reports the copy there.
+        if space.distance(entry.position,pending.target)<2 then
+            entry.relocations,entry.relocation=(entry.relocations or 0)+1,nil
+        elseif runtimeClock-pending.at>1.5 then
+            entry.relocationFailures,entry.relocation=(entry.relocationFailures or 0)+1,nil
+        else return false end
+    end
     -- V walking on re-plans a blocked follower, briefly clearing its block.
     -- Stranded means recently blocked and not actually getting anywhere.
     if entry.motor.blockedReason then entry.lastBlockedAt=runtimeClock end
     if runtimeClock-(entry.lastBlockedAt or -math.huge)>2 or entry.playerGap<stranded.distance
         or equipment.holdsMovement(entry.equipment) then
-        entry.strandedSince,entry.strandedAnchor=nil,nil; return
+        entry.strandedSince,entry.strandedAnchor=nil,nil; return false
     end
     if not entry.strandedAnchor or space.distance(entry.strandedAnchor,entry.position)>1 then
         entry.strandedAnchor,entry.strandedSince=space.copy(entry.position),runtimeClock
     end
-    if runtimeClock-entry.strandedSince<stranded.after or runtimeClock<(entry.strandedRetryAt or 0) then return end
+    if runtimeClock-entry.strandedSince<stranded.after or runtimeClock<(entry.strandedRetryAt or 0) then return false end
     entry.strandedRetryAt=runtimeClock+stranded.retry
-    if not hiddenFromPlayer(player,entry.position) then return end
+    if not hiddenFromPlayer(player,entry.position) then return false end
+    -- A teleport under the owned safety hold left the copy in place (live
+    -- trace, October 5). Retire that exact command first; retry if pending.
+    if not actuator.release(entry.motor) then entry.strandedRetryAt=runtimeClock+.3; return false end
     local target,_,deferred=placement.find(player,formationPosition(player,entry.lane),
         occupiedPositions(entry),entry.clearance)
-    if deferred then entry.strandedRetryAt=runtimeClock; return end
-    if not target then return end
+    if deferred then entry.strandedRetryAt=runtimeClock; return false end
+    if not target then return false end
     Game.GetTeleportationFacility():Teleport(entry.npc,target,Quaternion.ToEulerAngles(player:GetWorldOrientation()))
-    -- The owned safety hold stays in place; the actuator sees the moved feet,
-    -- discards the old obstruction and plans from here on its next turn.
-    entry.position,entry.speed=space.copy(target),0
+    -- Plan nothing more this frame: a new hold must not start at the old spot.
+    -- The next sample senses the new feet with zero speed.
+    entry.relocation={target=space.copy(target),at=runtimeClock}
+    entry.position=nil
     entry.strandedSince,entry.strandedAnchor,entry.lastBlockedAt=nil,nil,nil
-    entry.playerGap=space.distance(entry.position,player:GetWorldPosition())
-    entry.relocations=(entry.relocations or 0)+1
+    return true
 end
 
 function M.update(player,delta,focusEntity)
@@ -1116,7 +1129,7 @@ function M.update(player,delta,focusEntity)
     for i=1,#order do
         local entry=order[(first+i-1)%#order+1]
         local ok,err=pcall(function()
-            recoverStranded(entry,player)
+            if recoverStranded(entry,player) then return end
             local id=tostring(entry.entityID.hash)
             local lane=travel.laneFrame(groupFrame,entry.lane)
             local travelTarget=space.offset(lane.position,lane.direction,slots[entry.lane][1],0)
