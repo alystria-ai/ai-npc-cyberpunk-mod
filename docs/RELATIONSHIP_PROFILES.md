@@ -11,15 +11,25 @@ There is no separate Apply-button step in the player instructions.
 
 | Character | Auto requires | Reviewed native rule |
 | --- | --- | --- |
-| Judy Alvarez | `sq030_11_romance == 1`, `sq030_judy_lover == 1`, `sq030_romance == 1` | `core-arcs.judy.committed` |
+| Judy Alvarez | `sq030_judy_lover == 1` (`sq030_11_romance` and `sq030_romance` are captured but not decisive) | `core-arcs.judy.committed` |
 | Panam Palmer | `sq027_panzer_sex == 1`, `sq027_panam_lover == 1` | `aldecaldos.native.panam-basilisk-intimacy` |
 | River Ward | `sq029_river_lover == 1`, `sq029_done == 1` | `jr-native.river-relationship-committed` |
 | Kerry Eurodyne | `sq028_kerry_relationship >= 1` | `silverhand.beach-committed` |
 | Meredith Stout | `q003_stout_sex_done >= 1` | `ahe-native.stout-encounter` |
 
-All predicates are drawn from the source-reviewed 2.31 native rule pack. Judy's
-positive friendship receipt and Kerry's explicit one-off decline suppress
-automatic affectionate routing if contradictory positive receipts coexist.
+All predicates are drawn from the source-reviewed 2.31 native rule pack, except
+that Judy's routing is deliberately weaker than the knowledge rule (see below).
+Judy's positive friendship receipt and Kerry's explicit one-off decline suppress
+automatic affectionate routing if contradictory positive receipts coexist (in the
+native graphs they are mutually exclusive with the romance outcome, so this is a
+safety net, not a reachable state).
+
+Judy: the pyramid-song hut writes `sq030_judy_lover` only on the morning scene's
+romance exit, which itself requires the "beginning of something amazing" choice
+(`sq030_11_romance`). `sq030_romance` is written later, once V has also picked up
+their clothes, so the three-fact rule left a window where the game already treats V
+as Judy's partner but Auto chose the ordinary profile. Her knowledge rule still
+waits for all three facts; routing does not.
 
 Meredith's receipt establishes a completed casual intimate encounter. Her
 alternate profile must not claim a continuing romance, exclusivity, devotion,
@@ -42,7 +52,8 @@ game facts.
 
 ## Native and settings contracts
 
-Committed `runtime/settings.json` includes:
+The Companion Manager creates these choices in `runtime/settings.json` (inside the
+installed mod) with every character on Auto the first time it loads:
 
 ```json
 {
@@ -244,6 +255,56 @@ This is prompt context for a real player conversation. It sends no separate
 memory-building message and does not create a new player ID or copy memories
 between ordinary and affectionate provider profiles. The existing canonical
 character family continues to own its Chat history and explicit Forget scope.
+
+## Native evidence audit (October 5)
+
+Re-checked against the extracted 2.31 quest graphs (questphases plus the
+sq027/sq028/sq029/sq030/q003 scenes):
+
+- Each decisive fact has a single production writer (Judy `sq030_hut` node 78 on
+  the romance exit; Panam `sq027_06_panzer` node 1184 after the accepted Basilisk
+  scene; River `sq029_05_morning_after` node 28 behind the "[Kiss]" choices;
+  Kerry `sq028_07_trashy_beach` node 66; Meredith `q003_08_stout` node 2288).
+  Other writers exist only in `*_chicken_test` scenes and the `q203_legend.quest`
+  wrapper, none of which the release quest closure reaches.
+- No native writer ever clears or lowers any of these facts, and no consumer
+  (default dialogs, mq055 gifts/messages, q114, q201/q203 epilogue, Phantom
+  Liberty q302/q307) reads them as a breakup. Once true, Auto stays on the
+  alternate profile for the life of the save; use Off to opt out.
+- The game's own "has a romance partner" check (`persistent_content_bugfixing`)
+  is `judy_lover >= 1 and sq030_done >= 1`, or the Kerry, Panam and River
+  equivalents. The mod's predicates are equal or earlier by at most the rest of
+  the same scene, and several partners can coexist, so each is independent.
+- The decline or friend outcomes write different facts (Judy `sq030_friendship`
+  or `sq030_broken`, River `sq021_sobchak_friend`, Kerry `sq028_kerry_friend`
+  or `sq028_kerry_dislike`, Panam `sq027_panam_noreact`), and never the decisive
+  fact, so they stay ordinary under Auto.
+- Body type and voice do not need their own predicate: the romance branch is
+  simply unavailable to some V (for example the `judy_romanceable`,
+  `river_romanceable` and censorship facts gate the earlier flirt/sex
+  options), so the decisive fact is never written and Auto stays ordinary.
+  Every option inside the commit scenes accepts both genders. What sets the
+  `*_romanceable` facts is not in the quest data.
+
+Other gates seen in the data: Kerry's kiss/sex needs `censorship_homosexuality == 0`
+and `sq017_kerry_kiss` (itself behind `kerry_romanceable`); Meredith's encounter
+needs `q003_meredith_won`, a two-day wait and walking into the motel room, and is
+blocked for a non-male V when `censorship_homosexuality > 0`. With the
+oversexualized-content setting on, the scene skips the act but still writes
+`q003_stout_sex_done`, which is a true positive for "had the encounter". Declining
+or being interrupted before the "So what now?" choice never writes it.
+
+Windows where Auto lags the story, by design: Panam from the start of the
+Basilisk scene until it ends; River until the end of the morning-after scene
+(`sq029_done`); Kerry and Meredith until the scene's writer. Judy no longer
+waits for the clothes pickup.
+
+`runtime/relationship-routing.json` (in the game's mod `runtime` folder) lists,
+for each supported character, the mode, the decision (`ready` or `unavailable`),
+the variant, the reason and whether the save confirms the relationship. It is
+rewritten only when a decision changes and holds no provider IDs.
+`runtime/bridge-latency.json` and `runtime/player-memory.json` show which
+provider profile (`<profile>-romantic`) has actually been contacted.
 
 ## Verification
 
