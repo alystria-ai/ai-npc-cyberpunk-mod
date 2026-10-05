@@ -7,6 +7,7 @@ import {silentWav} from './speech-audio.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {SpeechStream,splitSpeechText} from './speech-stream.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
+import {textExpressionSignal} from './text-emotion.mjs';
 
 // Execute the production routing/publication functions. These checks catch a
 // future shared batching path accidentally processing remote Convai speech.
@@ -24,7 +25,7 @@ function fixture({local = false, available = true, audioFailure = false, continu
   const sandbox = {remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json',
     localVoice: selectedVoice,
     ownedPocketFace:()=>{},lipsync:{analyse:async()=>{calls.push('rhubarb');return{mouthCues:[],mouthCuesFormat:'rhubarb-phonetic-v1'};}},
-    jaliFace,
+    jaliFace,textExpressionSignal,
     splitSpeechText,streaming:0,writeStreamManifest:async value=>calls.push(['omni-manifest',value]),
     deliverPocketSpeech: async ({result,profile,speech}) => {
       calls.push(['pocket-stream',profile.key,result.text]);
@@ -336,6 +337,19 @@ test('with local facial weights Omni phrases use the game-trained model and Rhub
   const failing=fixture({voiceSelection:voice,continuous:true,jaliFace:{async analyseWav(){throw Error('worker stopped');}}});
   const fallback=await failing.api.respond(failing.input,failing.profile,{current:async()=>true});
   assert.ok(failing.calls.includes('rhubarb'));assert.equal(fallback.jaliFrames,undefined);
+});
+
+test('local voices take a conservative emotion cue from the reply text; Convai voices keep provider metadata',async()=>{
+  const voice={provider:'omni',steps:32,usesProfile:()=>true,
+    async synthesize(){return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
+  const f=fixture({voiceSelection:voice,continuous:true});
+  f.remote.text='I miss him. Jackie was family, and now he is gone. Sorry.';
+  const local=await f.api.respond(f.input,f.profile,{current:async()=>true});
+  assert.deepEqual(local.expressionSignal,{version:1,correlated:true,sequence:0,emotion:'Sadness',scale:1,basis:'text'});
+  const plain=fixture({voiceSelection:voice,continuous:true});plain.remote.text='Meet me at the Afterlife at nine.';
+  assert.equal((await plain.api.respond(plain.input,plain.profile,{current:async()=>true})).expressionSignal,undefined);
+  const remote=fixture();remote.remote.text='I miss him. Sorry.';
+  assert.equal((await remote.api.respond(remote.input,remote.profile,{current:async()=>true})).expressionSignal,undefined);
 });
 
 test('voice playback Off yields one identified text request and never starts either local renderer',async()=>{

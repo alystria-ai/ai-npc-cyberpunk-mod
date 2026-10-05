@@ -7,6 +7,7 @@ import {buildFacialTimeline} from './facial-timeline.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
 import {PhoneticLipsync} from './phonetic-lipsync.mjs';
 import {JaliFace} from './jali-face.mjs';
+import {textExpressionSignal} from './text-emotion.mjs';
 import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
 import {deliverPocketSpeech} from './pocket-speech.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
@@ -434,6 +435,12 @@ async function synthesizeReply(input, result, signal, current, profile = profile
   if(localVoice.playbackEnabled===false)return{...result,audio:undefined,faces:[],captions:[]};
   if (!localVoice.usesProfile(input.profileKey)) return {...result, timing: {...result.timing, voiceProvider: 'convai'}};
   throwIfCancelled(signal);
+  // Text-only Convai turns carry no emotion (live probe): use a conservative
+  // cue from this reply's own text; no cue keeps the face neutral.
+  if (result.expressionSignal === undefined) {
+    const cue = textExpressionSignal(result.text);
+    if (cue) result = {...result, expressionSignal: cue};
+  }
   if(localVoice.provider==='omni'){
     const lookahead=new AbortController(),cancelLookahead=()=>lookahead.abort();
     signal?.addEventListener('abort',cancelLookahead,{once:true});
