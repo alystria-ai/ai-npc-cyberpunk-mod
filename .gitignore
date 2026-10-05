@@ -20,3 +20,5 @@ __pycache__/
 
 # Voice cloning devslot now lives outside the repo (Downloads).
 convai voice cloning devslot/
+# The root TODO.md is the maintained work list and captain's log.
+!/TODO.md
