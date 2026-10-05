@@ -51,7 +51,7 @@ The project-side runtime holds bridge logs, account mappings, player identity, a
 
 ## Development
 
-Start through `scripts/Start-ConversationBridge.ps1` and stop through `scripts/Stop-ConversationBridge.ps1`. The launcher rebuilds the browser client, keeps helpers hidden, and refuses a duplicate bridge. Explicitly set `CYBERPUNK_CONVAI_GAME` when the game is outside the development default path. Preserve the runtime state across restarts.
+With the RED4ext launcher installed (`scripts/Install-BridgeAutostart.ps1`), the game starts `scripts/Supervise-ConversationBridge.mjs` hidden. The supervisor uses a bridge already serving the game instead of starting a second one, restarts a crashed bridge with backoff (at most five exits in ten minutes), leaves a bridge stopped by `Stop-ConversationBridge.ps1` stopped, and drains the bridge when the game exits; the game holds the only write end of the supervisor's stdin pipe, so even a game crash closes it. It relies on three bridge behaviors: the `Convai conversation bridge ready` line on stdout, the PID heartbeat in `local-voice-state.json`, and PID-addressed shutdown through `bridge-control.json`. It publishes `runtime/bridge-service.json` in the mod folder, which `mod/service-status.lua` reads to explain a starting, missing or failed service in game. Without the launcher, start through `scripts/Start-ConversationBridge.ps1` and stop through `scripts/Stop-ConversationBridge.ps1`. The launcher rebuilds the browser client, keeps helpers hidden, and refuses a duplicate bridge. Explicitly set `CYBERPUNK_CONVAI_GAME` when the game is outside the development default path. Preserve the runtime state across restarts.
 
 ### Executable and prebuilt asset overrides
 

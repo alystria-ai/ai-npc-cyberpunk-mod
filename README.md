@@ -88,7 +88,7 @@ The current development setup targets **Cyberpunk 2077 2.31, Windows x64**, and 
 | Audioware | 1.9.9 |
 | Mod Configuration Menu (MCM) | 0.10.3 |
 
-Conversation setup also needs internet access, a Convai API key, and character mappings for the account you use. The development bridge uses Node.js, the dependencies pinned in `package-lock.json`, and Playwright with Microsoft Edge. It runs as a hidden helper and must currently be started explicitly.
+Conversation setup also needs internet access, a Convai API key, and character mappings for the account you use. The development bridge uses Node.js, the dependencies pinned in `package-lock.json`, and Playwright with Microsoft Edge. It runs as a hidden helper; an optional RED4ext launcher starts it with the game (step 6 below).
 
 Pocket additionally needs a prepared CPU Python environment, the approved student export, attributed reference recordings, and the local phonetic lip-sync tool. Shared weights occupy **417.74 MiB on disk**; the verified CPU benchmark peaked at about **1.69 GiB RAM** and used **no VRAM**. Dependency and reference storage are additional. Convai voices do not require the local model. [Pocket runtime setup and qualification](docs/POCKET_TTS_RUNTIME.md) distinguishes the controlled WSL benchmark, native Windows integration checks and pending game activation.
 
@@ -122,11 +122,13 @@ There is no finished one-click or two-ZIP installation yet. Use the following fl
    .\scripts\Install-DevelopmentMod.ps1 -GameDirectory $gameDirectory
    ```
 
-6. Start the hidden conversation bridge, then launch Cyberpunk normally:
+6. Let the game start the hidden conversation bridge (once per machine), then launch Cyberpunk normally from Steam, GOG, Epic or its executable:
 
    ```powershell
-   .\scripts\Start-ConversationBridge.ps1
+   .\scripts\Install-BridgeAutostart.ps1 -GameDirectory $gameDirectory
    ```
+
+   This builds and adds a small RED4ext plugin, `red4ext/plugins/CyberpunkConvaiLauncher/`. When the game starts with this mod installed, it starts `scripts/Supervise-ConversationBridge.mjs` hidden; the supervisor rebuilds the browser client, starts the bridge (or uses one that is already running), restarts it after a crash and stops it when the game exits, even after a game crash. No scheduled task, service or startup entry is created. `.\scripts\Uninstall-BridgeAutostart.ps1` removes it. Without the launcher, start the bridge by hand before playing with `.\scripts\Start-ConversationBridge.ps1`. While the service is starting, missing or failed, the talk shortcuts and Phone Chat show a short explanation instead of waiting for a reply.
 
 7. Load a save. Open CET's **Bindings**, assign shortcuts to the mod actions, and save. Open **Companion Manager**, choose **Characters**, invite someone, and return to gameplay after preparation.
 
@@ -147,7 +149,7 @@ The intended release will use matching archives extracted into the game director
 
 ### Update and keep your data
 
-Lua updates can be installed with `Install-DevelopmentMod.ps1 -LuaOnly`, then activated through CET's **Reload All Mods**. Loading a save does not activate new Lua code. Native scripts, archives, or plugin updates need a game restart. Bridge changes need a bridge restart; `Start-ConversationBridge.ps1` rebuilds its browser client before launch.
+Lua updates can be installed with `Install-DevelopmentMod.ps1 -LuaOnly`, then activated through CET's **Reload All Mods**. Loading a save does not activate new Lua code. Native scripts, archives, or plugin updates need a game restart. Bridge changes need a bridge restart: restart the game when the launcher is installed, or use `Stop-ConversationBridge.ps1` then `Start-ConversationBridge.ps1`. Both paths rebuild the browser client before launch. A bridge stopped by hand stays stopped for the rest of that game session.
 
 Preserve both the project's `runtime` state and the installed mod's `runtime` state. They hold account configuration, player identity, settings, sessions, Chat history, and drafts. In particular, retain both `player-memory.json` and `player-memory.json.identity`. Installers create local rollback receipts and backups; updates should preserve CET's global bindings and other mods.
 
@@ -201,7 +203,7 @@ Ordinary battle and loot reactions have independent ten-minute cooldowns. Newly 
 
 For a problem report, include the game/framework versions, the selected voice provider, the exact action you took, and what happened. State whether you restarted the game or used CET's **Reload All Mods** after installing changes. For voice issues, check the game's **Master Volume** and **Dialogue Volume**, and the Windows output mixer.
 
-Useful local diagnostics include `party-connection-state.json`, `bridge-latency.json`, `local-voice-state.json`, and `speech-state.json` in the installed mod's `runtime` directory. Bridge startup errors are in the project's `runtime/bridge.stderr.log`; adapter messages appear in CET's log. Share the relevant error and reproduction steps, keeping API keys, player/session identifiers, and private conversations out of a public report. There is no packaged sanitized support-report button yet.
+Useful local diagnostics include `party-connection-state.json`, `bridge-latency.json`, `local-voice-state.json`, and `speech-state.json` in the installed mod's `runtime` directory. Bridge startup errors are in the project's `runtime/bridge.stderr.log`; start, restart and stop decisions are in `runtime/bridge-service.log`, and the launcher's own record is `red4ext/plugins/CyberpunkConvaiLauncher/launcher.log`. Adapter messages appear in CET's log. Share the relevant error and reproduction steps, keeping API keys, player/session identifiers, and private conversations out of a public report. There is no packaged sanitized support-report button yet.
 
 See the [runtime guide](bridge/README.md) for connection/playback details and the [development audit](docs/DEVELOPMENT_AUDIT_2026-09-30.md) for investigation methods. A feature change should update this README's behavior, controls, defaults, or limitations alongside its detailed document. Source checks, installed checks, and live acceptance should be recorded separately.
 
@@ -218,9 +220,10 @@ Summoned copies do not recruit, revive, or alter story actors. They are temporar
 
 ## Remove
 
-Stop the hidden bridge with `scripts/Stop-ConversationBridge.ps1`, close Cyberpunk, and back up the runtime state if you want to retain your identity and histories. Remove only this mod's installed content:
+Close Cyberpunk (with the launcher installed this also stops the bridge; otherwise stop it with `scripts/Stop-ConversationBridge.ps1`), run `scripts/Uninstall-BridgeAutostart.ps1`, and back up the runtime state if you want to retain your identity and histories. Remove only this mod's installed content:
 
 ```text
+red4ext/plugins/CyberpunkConvaiLauncher/
 bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/
 r6/scripts/CyberpunkConvai/
 r6/audioware/CyberpunkConvai/

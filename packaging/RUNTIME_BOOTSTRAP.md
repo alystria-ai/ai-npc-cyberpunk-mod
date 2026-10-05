@@ -77,9 +77,10 @@ The first run checks for the user's `data/convai-key.txt`, containing
 Convai character-ID mapping. These are local setup files, never bundled developer
 credentials or automatic character provisioning. Missing setup produces
 `setup-required` with the missing field names in `data/service-status.json`.
-The full first-run settings UI and service autostart from the mod are still
-pending; the current launcher is explicit and does not install a service or a
-scheduled task.
+The full first-run settings UI is still pending, and this packaged launcher is
+explicit; it does not install a service or a scheduled task. Development
+autostart uses the RED4ext launcher and supervisor described in
+`docs/PACKAGING.md`; connecting them to this packaged layout is pending.
 
 Start the prepared service while Cyberpunk is running:
 

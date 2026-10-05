@@ -115,9 +115,16 @@ are not a claim that extracting two ZIPs already supplies it.
 4. `Start-ConversationBridge.ps1` relies on global Node and a source rebuild. That
    is now safer for development but is not the finished player launcher. The
    release needs a prebuilt, verified client and packaged executable lookup.
-5. The bridge is currently started explicitly. The new hidden bootstrap owns
-   startup, exact-child shutdown, game lifetime and launch races. Missing setup
-   has a clear status, but mod autostart and the full first-run UI remain pending.
+5. Development autostart exists: `native/autostart` is a runtime-independent
+   RED4ext plugin that starts `scripts/Supervise-ConversationBridge.mjs` when
+   the game starts and hands it a stdin lifeline that closes when the game ends.
+   The supervisor owns single-instance startup, crash restarts, explicit stops
+   and game-exit shutdown, and publishes `runtime/bridge-service.json` for the
+   in-game messages. A release should ship the same DLL with a `launcher.ini`
+   whose `%GAME%`-relative paths name the packaged Node and supervisor, and a
+   prebuilt verified client instead of `--build-voice-client`. Wiring that to
+   the packaged layout (and its environment overrides) and the first-run UI
+   remain pending.
 6. The current registry has 75 prepared conditioning references and transcripts,
    including the three startup voices. Current setup reads an ignored registry
    and extracted game dialogue; one model serves the whole catalog. The release
