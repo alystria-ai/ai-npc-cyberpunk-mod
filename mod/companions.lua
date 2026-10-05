@@ -340,8 +340,14 @@ function M.setProfile(serialToAssign, key, name)
     end
     for _, entry in ipairs(entries) do
         if entry.serial == serialToAssign then
+            local previous = entry.profileKey
             entry.profileKey = key
             entry.profileName = key and (name or key) or entry.name
+            -- A reply already requested under the old identity must not be
+            -- delivered by this copy as the new one. Name the exact actor.
+            if previous ~= key and M.onProfileChanged then
+                pcall(M.onProfileChanged, tostring(entry.entityID.hash), previous, key)
+            end
             if M.onPartyChanged then pcall(M.onPartyChanged) end
             return true
         end

@@ -674,11 +674,17 @@ local function cancelVoice(reason)
     focusUntil = os.time() + 1
 end
 
+-- The one private (non-group) request whose reply is requested, streaming or
+-- playing, and the request file the bridge currently owns. Filled in by
+-- claimPrivateReply (defined after sendRequest) and used by retirePrivateReply.
+local privateReply, requestFileId, claimPrivateReply = nil, nil, nil
+
 local function acceptVoiceSubmission(context)
     if not context then return false end
     if context.group and not groupChat.voiceSubmitted(context) then
         microphone.cancel('stale-group'); return false
     end
+    claimPrivateReply(context, 'voice')
     pending, pendingKnowledgeOwner = context, microphone.knowledgeOwner
     pending.sentAt, focusUntil = os.time(), os.time() + 90
     return true
@@ -815,6 +821,64 @@ local function sendRequest(context)
     pending = context
     pendingKnowledgeOwner = owner
     if not context.reaction then focusUntil = os.time() + 90 end
+    return true
+end
+
+-- A managed copy can be reassigned (companions.setProfile) while its private
+-- reply is on the way. That reply was asked of the old character and must never
+-- be heard or shown as the new one. Group rounds retire in updateGroup instead.
+claimPrivateReply = function(context, source)
+    if context.group then privateReply = nil; return end
+    privateReply = {requestId = context.requestId, entity = context.entity, source = source,
+        reaction = context.reaction and context.reaction.kind or nil}
+    if source == 'voice' then privateReply.context = context end
+end
+do
+    local submit = sendRequest
+    sendRequest = function(context)
+        local sent = submit(context)
+        if sent then requestFileId = context.requestId; claimPrivateReply(context, 'text') end
+        return sent
+    end
+end
+
+local function retirePrivateReply(entity, reason)
+    local retired = false
+    -- Not yet a reply: an open text box or a recording that would still be
+    -- submitted under the old identity.
+    if active and not active.participants and active.entity == entity then
+        active, retired = nil, true
+        warmConversation(nil, nil)
+    end
+    local context = microphone.context
+    if context and not context.group and context.entity == entity then
+        microphone.cancel(reason); retired = true
+    end
+    local owner = privateReply
+    if not owner or owner.entity ~= entity then return retired end
+    local requestId = owner.requestId
+    local waiting = pending ~= nil and pending.requestId == requestId
+    local playing = speech.requestId == requestId
+    local captionsOnly = speech.requestId == nil and not groupChat.round and subtitles.entity == entity
+        and subtitles.ownsUtterance()
+    -- A reply that was fully delivered has nothing left to retire.
+    if not (waiting or playing or captionsOnly) then return retired end
+    privateReply = nil
+    gameplayActions.revoke(reason, requestId)
+    if automatic and automatic.requestId == requestId then
+        cancelAutomatic(reason)   -- also invalidates the reaction lease the bridge reads
+    elseif owner.reaction == 'distraction' then
+        tacticEnv.writeLease(requestId, false)
+    end
+    if owner.source == 'voice' then microphone.revoke(owner.context) end
+    if pending and pending.requestId == requestId then pending, pendingKnowledgeOwner = nil, nil end
+    -- The bridge owns a text request through this file: once it is gone there is
+    -- no further audio, subtitles, face or memory for it. Never remove a newer one.
+    if requestFileId == requestId then requestFileId = nil; os.remove('runtime/last-input.json') end
+    if speech.requestId == requestId then pcall(speech.stop, reason)
+    elseif captionsOnly then pcall(subtitles.clearEntity, entity) end
+    if focusEntity == entity then focusUntil = os.time() + 1 end
+    log('Private reply retired: ' .. tostring(reason))
     return true
 end
 
@@ -1305,6 +1369,9 @@ tacticEnv.feedback = function(message)
     if player then pcall(function() player:ConvaiPhoneFeedback(ui.t(message)) end) end
 end
 tacticEnv.log = function(line) log(line) end
+
+-- MCM Current party reassigns a copy's conversation profile (companions.setProfile).
+companions.onProfileChanged = function(entity) retirePrivateReply(entity, 'profile-reassigned') end
 
 registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', function() beginText(false) end)
 registerHotkey('cyberpunk_convai_group_text', 'Cyberpunk Convai: group text chat', function() beginText(true) end)

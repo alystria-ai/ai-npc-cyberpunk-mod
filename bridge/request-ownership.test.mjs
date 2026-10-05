@@ -66,3 +66,22 @@ test('a stale admission identity falls back to the exact byte comparison', async
   assert.notEqual(owner.identity, fileIdentity({ino: 1, size: 1, mtimeMs: 1, ctimeMs: 1, birthtimeMs: 1}));
   assert.equal(fileIdentity(null), null);
 }));
+
+// mod/init.lua retires a private reply (for example when its companion copy is
+// reassigned to another conversation profile) by removing last-input.json. The
+// bridge owns a text turn only while that exact request file is present.
+test('removing the request file retires the owner for good, and a later request never revives it', async () => scratch(async root => {
+  const path = join(root, 'last-input.json'), raw = JSON.stringify({requestId: '1-1-1ULL', profileKey: 'judy-alvarez'});
+  await publish(path, raw);
+  const owner = await RequestFileOwner.admit(path, raw);
+  assert.equal(await owner.current(), true);
+  await rm(path);
+  assert.equal(await owner.current(), false);
+  // The same copy's next request, under its new profile, is a different owner.
+  const next = JSON.stringify({requestId: '2-2-1ULL', profileKey: 'panam-palmer'});
+  await publish(path, next);
+  assert.equal(await owner.current(), false);
+  const successor = await RequestFileOwner.admit(path, next);
+  assert.equal(await successor.current(), true);
+  assert.equal(await owner.current(), false);
+}));

@@ -29,6 +29,7 @@ local function command(action, context)
     if not f then return false end
     f:write(json.encode({nonce = tostring(os.time()) .. ':' .. tostring(os.clock()), action = action, input = context}))
     f:close()
+    M.lastCommand = {action = action, requestId = context.requestId}
     return true
 end
 
@@ -42,6 +43,17 @@ function M.cancel(reason)
     if context then command('cancel', context) end
     clear()
     if context and type(M.onCancelled) == 'function' then M.onCancelled(context, reason or 'cancelled') end
+end
+
+-- Retire a submitted voice turn after the microphone itself has finished with
+-- it (received() clears the context once the reply arrives, but the bridge keeps
+-- streaming and the game keeps playing). The command file is one shared slot:
+-- only cancel while it still names this exact request, never a newer recording.
+function M.revoke(context)
+    if not context or M.context == context then return false end
+    local last = M.lastCommand
+    if not last or last.requestId ~= context.requestId or last.action == 'cancel' then return false end
+    return command('cancel', context)
 end
 
 function M.received(requestId)
