@@ -1193,7 +1193,7 @@ test('preparation banners preserve native errors, memory action feedback, foreig
     assert(invoke('memory:forget-all').ok and invoke('memory:cancel:' .. token()).ok)
     paint('Completed: Cancel')
     readiness.receipts['queued:1'] = {state = 'connecting'}; tick()
-    assert(banner.text == 'Memory clear cancelled.', 'preparation hid the memory result')
+    assert(banner.text == 'Memory clear cancelled. Nothing was deleted.', 'preparation hid the memory result')
     assert(invoke('memory:settings').ok and invoke('settings:back').ok and invoke('tab:characters').ok)
     assert(invoke('invite:person-1').ok)
     paint('Completed: Person 01'); tick()
@@ -1338,7 +1338,7 @@ test('memory clear needs a separate confirmation, cancel sends nothing and delib
     assert(memoryWrites() == 0 and memoryRequest() == nil)
     assert(not manager.beginMemoryClear('all'))
     assert(invoke('memory:cancel:' .. cancelled).ok)
-    assert(row('memory-feedback').value == 'Memory clear cancelled.')
+    assert(row('memory-feedback').value == 'Memory clear cancelled. Nothing was deleted.')
     assert(not manager.confirmMemoryClear(cancelled) and memoryWrites() == 0)
     assert(manager.selectMemoryCharacter('person-20'))
     reloadMemory()
@@ -1360,6 +1360,74 @@ test('memory clear needs a separate confirmation, cancel sends nothing and delib
     assert(not manager.confirmMemoryClear(confirmation) and not manager.beginMemoryClear('all'))
     for _ = 1, 25 do mcm.update(player, false) end
     assert(memoryWrites() == 1, 'pending cloud work was sent again')
+  `);
+});
+
+test('backing out of the memory picker or cancelling a Forget confirmation says nothing was deleted and deletes nothing', () => {
+  run(`${mcmFixture}${memoryFixture}${managerBannerFixture}
+    memoryClock = clock -- the banner fixture owns os.time; keep the memory status fresh against it
+    publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})
+    local removed, originalRemove = {}, os.remove
+    os.remove = function(path) removed[#removed + 1] = path; return originalRemove(path) end
+    local function nothingDeleted()
+      assert(memoryWrites() == 0 and memoryRequest() == nil and #removed == 0, 'a back-out or cancel touched stored memory')
+      assert(#members == 0 and #spawned == 0)
+    end
+    local pickerClosed = 'Character picker closed. Your selection is unchanged. Closing it deleted nothing.'
+    local cancelled = 'Memory clear cancelled. Nothing was deleted.'
+    openMemory()
+    assert(not row('memory-feedback'), 'feedback appeared before any action')
+    -- Open the picker and leave without choosing anyone.
+    assert(invoke('memory:choose').ok and mcm.inspect().view == 'memory-characters')
+    assert(invoke('memory:back').ok and mcm.inspect().view == 'memory')
+    paint('Completed: Back to memory'); assert(banner.text == pickerClosed)
+    assert(row('memory-feedback').value == pickerClosed)
+    assert(row('memory:choose').value == 'Choose a character', 'backing out selected someone')
+    assert(row('memory:forget-character').disabled)
+    nothingDeleted()
+    -- Choosing a character replaces that note and still asks before any Forget.
+    assert(invoke('memory:choose').ok and invoke('memory:next').ok and invoke('memory:select:person-20').ok)
+    assert(not row('memory-feedback') and row('memory:choose').value == 'Person 20')
+    -- Backing out later keeps the choice.
+    assert(invoke('memory:choose').ok and invoke('memory:back').ok)
+    assert(row('memory:choose').value == 'Person 20' and row('memory-feedback').value == pickerClosed)
+    nothingDeleted()
+    -- A new confirmation must not sit beside the old note.
+    assert(invoke('memory:forget-character').ok)
+    assert(not row('memory-feedback') and row('memory-confirmation'))
+    local firstToken = token()
+    assert(invoke('memory:cancel:' .. firstToken).ok)
+    paint('Completed: Cancel'); assert(banner.text == cancelled)
+    assert(row('memory-feedback').value == cancelled and not row('memory-confirmation'))
+    assert(row('memory:choose').value == 'Person 20')
+    nothingDeleted()
+    assert(not manager.confirmMemoryClear(firstToken))
+    nothingDeleted()
+    -- The same for Forget all.
+    assert(invoke('memory:forget-all').ok and not row('memory-feedback'))
+    assert(invoke('memory:cancel:' .. token()).ok)
+    assert(row('memory-feedback').value == cancelled)
+    nothingDeleted()
+  `);
+});
+
+test('closing the memory picker keeps an earlier clear result visible', () => {
+  run(`${mcmFixture}${memoryFixture}${managerBannerFixture}
+    memoryClock = clock -- the banner fixture owns os.time; keep the memory status fresh against it
+    publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})
+    openMemory()
+    assert(invoke('memory:choose').ok and invoke('memory:next').ok and invoke('memory:select:person-20').ok)
+    assert(invoke('memory:forget-character').ok and invoke('memory:confirm:' .. token()).ok)
+    local command = assert(memoryRequest())
+    publishMemory(2, {{profileKey = 'johnny-silverhand'}}, 'ready', memoryResult(command, 'failed'))
+    reloadMemory()
+    local failure = row('memory-feedback').value
+    assert(failure:find('could not confirm', 1, true))
+    assert(invoke('memory:choose').ok and invoke('memory:back').ok)
+    paint('Completed: Back to memory')
+    assert(banner.text == 'Character picker closed. Your selection is unchanged. Closing it deleted nothing.')
+    assert(row('memory-feedback').value == failure, 'the picker note hid the failed clear')
+    assert(memoryWrites() == 1)
   `);
 });
 

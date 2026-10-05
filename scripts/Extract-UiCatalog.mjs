@@ -170,7 +170,8 @@ const reviewed = {
   'memory.feedback': [
     'all characters you have talked to', 'the selected character',
     'A previous memory request could not be read. The memory service must reconcile it before another clear.',
-    'Review the memory clear below, then choose Confirm or Cancel.', 'Memory clear cancelled.',
+    'Review the memory clear below, then choose Confirm or Cancel.', 'Memory clear cancelled. Nothing was deleted.',
+    'Character picker closed. Your selection is unchanged. Closing it deleted nothing.',
     'The memory clear request could not be sent. Check the memory service before trying again.',
     'Memory clear requested. Waiting for the memory service to confirm it.',
   ],

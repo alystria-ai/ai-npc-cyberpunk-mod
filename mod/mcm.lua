@@ -523,7 +523,10 @@ local function schema()
         local pages = math.max(1, math.ceil(#matches / MODEL_PAGE_SIZE))
         modelPage = math.max(1, math.min(modelPage, pages))
         rows[#rows + 1] = action('memory:back', 'Back to memory', 'Back',
-            'Return to the memory controls.', function(context) return navigate('memory', context) end)
+            'Return to the memory controls.', function(context)
+                navigate('memory', context)
+                return manager.closeMemoryPicker()
+            end)
         rows[#rows + 1] = readonly('memory-character-page', 'Choose a character', ui.t('Page {page} / {pages}',{page=modelPage,pages=pages}),
             ui.t('Search by character name using Search settings. {query}\nThe character can be outside your current party.',{query=modelQuery}))
         if modelPage > 1 then

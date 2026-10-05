@@ -24,6 +24,11 @@ is open.
   character results per page. A character can be selected without inviting them,
   spawning a copy, unlocking a phone contact, or changing a conversation setting.
   Choosing a character or using **Back to memory** returns to the Memory page.
+  Backing out without choosing keeps the current selection and shows "Character
+  picker closed. Your selection is unchanged. Closing it deleted nothing." as the
+  action result and in **Memory result**. Only the action result is shown while an
+  earlier clear's own status is on the page, so a pending or failed result is
+  never hidden.
 - **Forget selected character** clears the selected character's memories about
   conversations with this player. The character does not have to be spawned.
   When the bridge supplies its talked-to registry, characters without an actual
@@ -34,7 +39,9 @@ is open.
   must be reviewed again.
 - **Confirm** and **Cancel** appear inline after choosing a Forget action. The
   first activation sends nothing. Confirm publishes one command, removes its
-  confirmation, and shows pending feedback. Cancel publishes no command.
+  confirmation, and shows pending feedback. Cancel publishes no command and shows
+  "Memory clear cancelled. Nothing was deleted." until the next action; choosing
+  Forget again clears that note.
 - **Memory result** shows pending, confirmed or failed feedback for the exact
   submitted request. New clears stay disabled while an outcome is pending.
 
@@ -184,7 +191,10 @@ settings page. Lua-only changes can use
 In-game acceptance should open **Settings → Memory → Manage**, choose an unspawned
 catalogue character, open and cancel a confirmation, and check the bridge count
 and availability feedback. Verify **Back to memory** from the picker and
-**Back to settings** from both Memory and Character conversations. A real
+**Back to settings** from both Memory and Character conversations. Both the
+picker back-out and a cancelled confirmation should say that nothing was deleted
+(`bridge/manager.test.mjs` asserts the text, the absence of any command file and
+that no file is removed). A real
 destructive Forget check requires the user's explicit choice of target.
 The broader clear-confirmation, picker and reload/save checks remain covered by
 source/framework tests; the user has not performed a destructive Forget check.

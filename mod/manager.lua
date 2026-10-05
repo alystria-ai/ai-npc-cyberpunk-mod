@@ -178,6 +178,7 @@ function M.beginMemoryClear(scope)
     if not ok then return false, reason end
     if memoryConfirmation then return false, 'Use Confirm or Cancel for the current memory request.' end
     memoryConfirmSequence = memoryConfirmSequence + 1
+    memoryNotice = '' -- A cancelled or closed-picker note does not belong beside a new confirmation.
     memoryConfirmation = {token = tostring(memoryConfirmSequence), scope = scope,
         profileKey = scope == 'character' and memorySelected or nil, count = memoryState.talkedToCount}
     return true, 'Review the memory clear below, then choose Confirm or Cancel.'
@@ -185,8 +186,18 @@ end
 
 function M.cancelMemoryClear(token)
     if not memoryConfirmation or memoryConfirmation.token ~= token then return false, 'That confirmation is no longer active.' end
-    memoryConfirmation, memoryNotice = nil, 'Memory clear cancelled.'
+    memoryConfirmation, memoryNotice = nil, 'Memory clear cancelled. Nothing was deleted.'
     return true, memoryNotice
+end
+
+-- Leaving the character picker only navigates; it can never clear anything.
+-- Say so on the page the player returns to. An earlier clear's own status stays
+-- on the page (a pending or failed result must remain visible), so then the
+-- reassurance is the transient action banner only.
+function M.closeMemoryPicker()
+    local message = 'Character picker closed. Your selection is unchanged. Closing it deleted nothing.'
+    if not memoryCommand then memoryNotice = message end
+    return true, message
 end
 
 function M.cancelMemoryConfirmation()
