@@ -394,7 +394,7 @@ Continuation of the teacher on the full corpus, from the selected A EMA500 initi
 | 4,000 | 0.3530 | 0.3873 | 4.3% | 5.7% |
 | 5,000 | 0.3784 | 0.4217 | 5.6% | 7.5% |
 
-Lower is better for both. Training loss kept falling (to about 0.12–0.15 at update 6,000) while held-out score and WER rose: classic overfitting. At batch 64, 1,000 updates is about 7.9 passes over 8,140 clips; by update 5,000 the model had seen each clip about 39 times. WER comes from an ASR approximation and is marked tentative by the runner. The run was stopped at update 6,000; **update 1,000 (raw weights)** was selected as the teacher. Student distillation from it is in preparation; no new student has been qualified yet.
+Lower is better for both. Training loss kept falling (to about 0.12–0.15 at update 6,000) while held-out score and WER rose: classic overfitting. At batch 64, 1,000 updates is about 7.9 passes over 8,140 clips; by update 5,000 the model had seen each clip about 39 times. WER comes from an ASR approximation and is marked tentative by the runner. The run was stopped at update 6,000; **update 1,000 (raw weights)** was selected as the teacher. Student distillation from it is running (below); no new student has been qualified yet.
 
 Lessons:
 
@@ -407,3 +407,21 @@ Lessons:
 - Periodic 10-minute local checkpoints were removed: a crashed worker ends the session as failed, which cannot be resumed from its output, so they only cost time. Checkpoints at each 1,000-update evaluation go to a private bucket with three rotating slots.
 - A later session resumes from the previous session's saved output under the same experiment, bucket run ID and lifetime GPU budget, skipping latent preparation.
 - Kaggle's public API cannot cancel a running session; cancellation is done in the web UI.
+
+### Student distillation from the selected teacher (running; results pending)
+
+Launched 5 October 2026, 06:03 UTC, on Kaggle 2× T4.
+
+- **Teacher export:** a teacher run stopped early never reaches its own export stage. The notebook fetches the selected compact candidate (update 1,000, raw weights, 1.26 GB) from the private checkpoint bucket, builds the A teacher, loads the candidate strictly, exports it with the runner's Pocket safetensors export, and writes the receipt the student import expects (`scripts/pocket_training/selected_teacher_export.py` in the project).
+- **Student recipe:** initialised from the approved six-layer student (EMA 1,500); learning rate 5e-5 constant after 250 warm-up updates; EMA 0.999; global batch 64 (micro-batch 4 on each of two T4s, FP16); at most 12,000 updates. Evaluation every 1,000 updates: held-out loss on the development panel plus a speech panel at student settings (CFG 1, one decode step).
+- **Stopping (changed after the teacher overfit):** the plateau rule is the better of the EMA and raw speaker-macro development scores at each evaluation, with patience 2. Minimums are 1 corpus pass and 2 speech evaluations, instead of the original 50 passes and 6 evaluations. Per-speaker 3% regression limits still label candidates but no longer decide whether training continues. EMA and raw candidates from each evaluation go to the bucket's three rotating slots, so the best one stays retrievable.
+- **Expected duration:** about 50 min of setup (input staging, teacher export, latent preparation). The previous student run trained at 1.30 s per update, plus roughly 8–10 min of evaluation per 1,000 updates, so about 30 min per 1,000 updates. If held-out scores peak early, as the teacher's did, the run should stop after about 3,000–6,000 updates (1.5–3 h). The 12,000-update maximum would take about 6.5 h and still fits one 12-hour session.
+
+### Current end-to-end recipe for generating a cloned voice set
+
+1. **Corpus:** authentic recordings per speaker with verified transcripts, forced alignment, speaker labels, and held-out development, regression and final-test panels split by scene (section 6). Withhold rows that can't be verified.
+2. **Teacher adaptation:** start from the best existing teacher (here the A EMA500 initializer); LR 1e-5, global batch 64, evaluating held-out loss and a speech panel every 1,000 updates. Expect the best checkpoint early (here at about 8 passes); never force fixed minimum passes. Select on held-out and speech evidence.
+3. **Teacher export:** export the selected candidate to Pocket safetensors with a receipt (above).
+4. **Student distillation:** start from an existing student where one exists; LR 5e-5, batch 64; stop on held-out plateau; select by held-out and speech evidence, then human listening.
+5. **Inference:** one shared student plus a cached reference conditioning state per voice (sections 2 and 4); a clean 8–22 s reference per character; CPU FP32, two threads, CFG 1, one decode step, temperature 0.3.
+
