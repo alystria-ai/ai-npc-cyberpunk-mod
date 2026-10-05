@@ -34,6 +34,7 @@ import {atomicFile as atomic} from './guarded-file.mjs';
 import {readWorldSession} from './world-session.mjs';
 import {RelationshipRouting, relationshipContext, retireRelationshipConnections} from './relationship-routing.mjs';
 import {CompanionActions} from './companion-actions.mjs';
+import {RequestFileOwner, fileIdentity} from './request-ownership.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -235,7 +236,7 @@ function writeStreamManifest(document,current){
 const companionActions = new CompanionActions({createToken: () => 'drive-' + randomUUID(),
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options)});
 const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet)});
-let observed = '';
+let observed = '', observedIdentity = null;
 let lastAcceptedIdentity = '';
 let polling = false, active = null, stopped = false;
 let prefetchPolling = false, prefetchObserved = '', partyObserved = '', partyWasFresh = false;
@@ -818,12 +819,15 @@ async function tick() {
         && active === reactionRequest) reactionRequest.controller.abort();
     const stamp = await stat(inputPath).catch(() => null);
     if (!stamp) return;
+    // An unchanged file identity needs no read of the (large) request.
+    const stampIdentity = fileIdentity(stamp);
+    if (stampIdentity === observedIdentity) return;
     const raw = await readFile(inputPath, 'utf8');
     const signature = `${stamp.mtimeMs}:${stamp.size}:${raw}`;
-    if (signature === observed) return;
+    if (signature === observed) { observedIdentity = stampIdentity; return; }
     const input = parseInput(raw);
     if (!input) {
-      observed = signature;
+      observed = signature; observedIdentity = stampIdentity;
       prefetch.invalidate();
       // Lua replaces this small file in place. A transient partial write is
       // not a new target and must not cancel an otherwise valid active turn.
@@ -831,18 +835,18 @@ async function tick() {
       return;
     }
     const identity = inputIdentity(input);
-    if (identity === lastAcceptedIdentity) { observed = signature; return; }
+    if (identity === lastAcceptedIdentity) { observed = signature; observedIdentity = stampIdentity; return; }
     const lease = await reactionCurrent(input);
     // A missing/partial heartbeat has not accepted or rejected new input.
     // Leave its signature unseen so the next poll can retry the same file.
     if (lease === null) return;
-    observed = signature;
+    observed = signature; observedIdentity = stampIdentity;
     if (!lease) return;
     lastAcceptedIdentity = identity;
     void companionActions.revoke();
     active?.controller.abort();
     const controller = new AbortController();
-    const request = active = {input, raw, controller, receivedAt: Date.now()};
+    const request = active = {input, raw, owner: new RequestFileOwner(inputPath, raw, stamp), controller, receivedAt: Date.now()};
     // Native decision/history context is projected at actual submission. A
     // raw prediction cannot be substituted for that verified context.
     void processInput(request);
@@ -858,11 +862,11 @@ async function processInput(request, prepared) {
   let knowledgeTurn;
   const current = async () => {
     if (controller.signal.aborted || active !== request || stopped) return false;
-    // The complete request was validated once at admission. Comparing its
-    // exact bytes detects any replacement, including changed context under the
-    // same request ID, without repeatedly reparsing/hashing the large journal.
-    const submitted = await readFile(inputPath, 'utf8').catch(() => null);
-    return submitted !== null && submitted === request.raw && await reactionCurrent(input)
+    // The complete request was validated once at admission. Its file identity,
+    // and on any identity change its exact bytes, detect every replacement,
+    // including changed context under the same request ID, without rereading
+    // or reparsing the large journal on every playback poll and PCM packet.
+    return await request.owner.current() && await reactionCurrent(input)
       && (!knowledgeTurn || await knowledgeRouter.current(knowledgeTurn));
   };
   current.sync = () => !controller.signal.aborted && active === request && !stopped
@@ -892,7 +896,7 @@ async function processInput(request, prepared) {
     if (!await current()) return;
     companionActions.admit(knowledgeTurn, {source: 'private-text', signal: controller.signal,
       isCurrent: async () => !stopped && !controller.signal.aborted && await knowledgeRouter.current(knowledgeTurn)
-        && await readFile(inputPath, 'utf8').catch(() => '') === request.raw,
+        && await request.owner.current(),
       isCurrentSync: () => !stopped && !controller.signal.aborted && knowledgeRouter.currentSync(knowledgeTurn)});
     rememberKnowledgeTurn(knowledgeTurn);
     await measure(input, {receivedAt: request.receivedAt, preparation: {mode: prepared ? 'claimed' : 'none'},
@@ -1070,7 +1074,7 @@ async function pollKnowledge() {
 const initial = await stat(inputPath).catch(() => null);
 if (initial) {
   const raw = await readFile(inputPath, 'utf8');
-  observed = `${initial.mtimeMs}:${initial.size}:${raw}`;
+  observed = `${initial.mtimeMs}:${initial.size}:${raw}`; observedIdentity = fileIdentity(initial);
   const input = parseInput(raw); if (input) lastAcceptedIdentity = inputIdentity(input);
 }
 const controlPath = resolve(stateDirectory, 'bridge-control.json');
@@ -1129,7 +1133,9 @@ await pollSettings(false);
 await pollKnowledge();
 void localVoice.start().catch(error => console.error('[CyberpunkConvai] Local voice startup:', error.message));
 console.log('[CyberpunkConvai] Convai conversation bridge ready');
-const timer = setInterval(tick, 150);
+// A poll is one stat of the request file until Lua replaces it, so a short
+// interval costs little and removes up to 150 ms from every turn's start.
+const timer = setInterval(tick, 50);
 const micTimer = setInterval(() => { void pollMicrophone().catch(error => console.error('[CyberpunkConvai] Microphone poll:', error.message)); }, 150);
 const prefetchTimer = setInterval(() => { void pollPrefetch().catch(error => console.error('[CyberpunkConvai] Preparation poll:', error.message)); }, 150);
 const settingsTimer = setInterval(() => { void pollSettings().catch(error => console.error('[CyberpunkConvai] Settings poll:', error.message)); }, 500);
