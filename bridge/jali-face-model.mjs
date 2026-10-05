@@ -84,6 +84,9 @@ export class FaceModel {
   constructor(meta, t) {
     Object.assign(this, {meta, lookahead: meta.lookahead, mels: meta.mels, hop: meta.hop, window: meta.window, nfft: meta.nfft});
     this.controls = meta.controls; // [[outputIndex, nativeControl], ...]
+    // Optional voice-synchronous upper face: [[outputIndex, 'brows_raise'|'brows_lower'], ...]
+    this.upper = Array.isArray(meta.upper) ? meta.upper.filter(([index, name]) => Number.isInteger(index)
+      && ['brows_raise', 'brows_lower'].includes(name)) : [];
     this.mean = t.feat_mean.data; this.std = t.feat_std.data; this.scale = t.out_scale.data;
     this.fb = t.mel_fb.data; this.win = t.window.data; this.bins = this.nfft / 2 + 1;
     this.input = layer(t['inp.w'], t['inp.b']);
@@ -98,7 +101,7 @@ export class FaceModel {
         throw Error('Invalid facial model quantile map');
       this.qin = t.qmap_in.data; this.qout = t.qmap_out.data; this.qpoints = points;
     }
-    if (this.input.inp !== this.mels || this.controls.some(([index]) => !(index >= 0 && index < this.outputs)))
+    if (this.input.inp !== this.mels || [...this.controls, ...this.upper].some(([index]) => !(index >= 0 && index < this.outputs)))
       throw Error('Facial model shape mismatch');
     this.receptive = 3 + meta.dilations.reduce((sum, d) => sum + 2 * d, 0);
     this.silence = Float32Array.from(this.mean, (mean, i) => (meta.silence - mean) / this.std[i]);
@@ -185,8 +188,10 @@ export class FaceModel {
 // Output row r describes audio frame r - lookahead (centre (f*160+200)/16000 s).
 // A worker-thread mirror receives rows through append() without the network.
 export class FaceModelFrames {
-  constructor({lookahead, outputs, controls}) {
+  constructor({lookahead, outputs, controls, upper = []}) {
     Object.assign(this, {lookahead, outputs, controls: controls.map(([index]) => index)});
+    const raise = upper.find(([, name]) => name === 'brows_raise'), lower = upper.find(([, name]) => name === 'brows_lower');
+    this.upper = raise && lower ? [raise[0], lower[0]] : null;
     this.values = new Float32Array(400 * outputs); this.ready = 0; this.finished = false; this.duration = 0;
   }
   append(rows, {finished = false, duration = 0} = {}) {
@@ -205,14 +210,18 @@ export class FaceModelFrames {
     return frames <= 0 ? 0 : ((frames - 1) * 160 + 200) / 16000;
   }
   // Native weights (model control order) at audio time `seconds`, linear between 10 ms frames.
-  sample(seconds) {
+  sample(seconds, indices = this.controls) {
     const frame = (seconds * 16000 - 200) / 160 + this.lookahead;
     const left = Math.max(this.lookahead, Math.min(this.ready - 1, Math.floor(frame)));
     const right = Math.min(this.ready - 1, left + 1), mix = Math.max(0, Math.min(1, frame - left));
-    return this.controls.map(index => {
+    return indices.map(index => {
       const a = this.values[left * this.outputs + index] || 0, b = this.values[right * this.outputs + index] || 0;
       return a + (b - a) * mix;
     });
+  }
+  // [brow raise, brow lower] in native units, or null when the model has none.
+  sampleUpper(seconds) {
+    return this.upper ? this.sample(seconds, this.upper).map(value => Math.max(0, Math.min(1, value))) : null;
   }
 }
 

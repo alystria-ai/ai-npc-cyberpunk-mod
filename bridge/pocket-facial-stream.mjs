@@ -4,7 +4,7 @@ import {validateMouthCues} from './phonetic-lipsync.mjs';
 import {ConfirmedPhoneTimeline} from './phone-poses.mjs';
 import {PHONE_ANALYSIS_ENGINE,PHONE_ANALYSIS_FORMAT,PHONE_ANALYSIS_FRONTEND} from './phone-analysis-config.mjs';
 import {throwIfCancelled} from './transport-pool.mjs';
-import {JALI_TIMELINE_TRACKS, JALI_SOURCE, JALI_ARTICULATION, JALI_LEAD_SECONDS, jaliPose} from './jali-face.mjs';
+import {JALI_TIMELINE_TRACKS, JALI_SOURCE, JALI_ARTICULATION, JALI_LEAD_SECONDS, jaliPose, jaliUpperRow} from './jali-face.mjs';
 
 const RATE = 24000, MAX_FRAMES = RATE * 120, ENERGY_FRAMES = RATE / 30;
 const zero = () => SPEECH_TRACKS.map(() => 0);
@@ -222,7 +222,8 @@ export class PocketFacialStream {
     const key=`${geometryKey}:${this.audiblePosition}`;
     if(this.cached?.key===key)return this.cached.face;
     let rows=this.geometry?.key===geometryKey?this.geometry.frames:undefined;
-    if(!rows){
+    let upper=this.geometry?.key===geometryKey?this.geometry.upper:undefined;
+    if(!rows){upper=frames.upper?[]:undefined;
       const envelope=this.envelope(receivedFrames,sourceComplete),apartUp=JALI_TIMELINE_TRACKS.indexOf('lips_apart_up');
       const pose=seconds=>{
         const energyAt=sourceComplete?seconds:Math.min(seconds,Math.max(0,duration-1/RATE));
@@ -232,7 +233,9 @@ export class PocketFacialStream {
         const fallback=JALI_TIMELINE_TRACKS.map(()=>0);
         fallback[0]=.35*level;fallback[apartUp]=.12*level;fallback[apartUp+1]=.16*level;
         let values=fallback;const ahead=Math.min(duration,seconds+JALI_LEAD_SECONDS);
-        if(seconds>=start&&(ahead<=covered||(frames.finished&&!failed))){
+        const modelled=seconds>=start&&(ahead<=covered||(frames.finished&&!failed));
+        if(upper)upper.push(jaliUpperRow(frames,seconds,ahead,modelled));
+        if(modelled){
           const blend=clamp((seconds-start)/.06),model=jaliPose(frames,ahead);
           values=model.map((value,index)=>fallback[index]+(value-fallback[index])*blend);
         }
@@ -240,7 +243,7 @@ export class PocketFacialStream {
         return values.map(value=>rounded(value*edge));
       };
       rows=[];for(let index=0;index/60<duration;index++)rows.push([index/60,...pose(index/60)]);
-      rows.push([duration,...pose(duration)]);this.geometry={key:geometryKey,frames:rows};
+      rows.push([duration,...pose(duration)]);this.geometry={key:geometryKey,frames:rows,upper};
     }
     const modelled=this.audiblePosition>=start&&this.audiblePosition<Math.max(start,covered);
     const coverage={version:1,audiblePositionSeconds:this.audiblePosition,
@@ -248,7 +251,8 @@ export class PocketFacialStream {
       receivedSeconds:duration,pendingAnalyses:0};
     const face={version:1,requestId:this.input.requestId,entity:this.input.entity,generation:this.input.generation,
       continuous:true,complete:sourceComplete,duration,revision:++this.publicationRevision,tracks:[...JALI_TIMELINE_TRACKS],
-      frames:rows,source:modelled?JALI_SOURCE:'audio-envelope',...(modelled?{articulation:JALI_ARTICULATION}:{}),coverage};
+      frames:rows,source:modelled?JALI_SOURCE:'audio-envelope',...(modelled?{articulation:JALI_ARTICULATION}:{}),coverage,
+      ...(upper?.length===rows.length?{modelExpressions:{version:1,format:'jali-upper-v1',frames:upper}}:{})};
     this.cached={key,face};return face;
   }
   close() {

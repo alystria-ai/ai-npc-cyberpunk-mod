@@ -3,7 +3,7 @@ import {PHONETIC_TRACKS, PHONETIC_ARTICULATION, phoneticPose} from './phonetic-p
 import {validateMouthCues} from './phonetic-lipsync.mjs';
 import {PROVIDER_EXPRESSION_INDICES, ownedExpressionReceipt} from './companion-expressions.mjs';
 import {FaceModelFrames} from './jali-face-model.mjs';
-import {JALI_TIMELINE_TRACKS, JALI_SOURCE, JALI_ARTICULATION, JALI_LEAD_SECONDS, jaliPose} from './jali-face.mjs';
+import {JALI_TIMELINE_TRACKS, JALI_SOURCE, JALI_ARTICULATION, JALI_LEAD_SECONDS, jaliPose, jaliUpperRow} from './jali-face.mjs';
 
 // Conservative speech controls. Head/eye rotation stays with the companion
 // gaze controller. Local voices use audio-derived phonetic cues; the envelope
@@ -145,7 +145,7 @@ function mapArkit(v) {
 // Provider ARKit poses expressed in the model timeline's fixed track order.
 const JALI_FROM_SPEECH = JALI_TIMELINE_TRACKS.map(track => SPEECH_TRACKS.indexOf(track));
 function renderTimeline({owner, duration, segment, source, cues, envelope = [], first, last, sampleRate, expressionSignal, jali}) {
-  const frames = [], expressionFrames = source ? [] : undefined;
+  const frames = [], expressionFrames = source ? [] : undefined, upperFrames = jali?.frames?.upper ? [] : undefined;
   // Provider articulation includes quiet closures and anticipatory shapes.
   // Per-file RMS normalization cannot distinguish these from rest: gating it
   // erased whole 33ms poses and made a file cut change the same mouth shape.
@@ -184,11 +184,13 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
       // order, replaced by the game-trained model wherever it covers the audio.
       values = JALI_FROM_SPEECH.map(index => index < 0 ? 0 : values[index]);
       const ahead = Math.min(duration, at + JALI_LEAD_SECONDS);
-      if (jali.frames && at >= jali.start && (ahead <= jali.covered || jali.frames.finished)) {
+      const covered = jali.frames && at >= jali.start && (ahead <= jali.covered || jali.frames.finished);
+      if (covered) {
         const blend = clamp((at - jali.start) / .06), model = jaliPose(jali.frames, ahead);
         values = model.map((value, index) => values[index] + (value - values[index]) * blend);
         active = true;
       }
+      if (upperFrames) upperFrames.push(jaliUpperRow(jali.frames, at, ahead, covered));
     }
     if (active) {
       // Only actual utterance boundaries ease to/from neutral. Ordinary
@@ -214,6 +216,7 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
     ...(!source && cues ? {motion: 'local-phonetic-smooth-v1'} : {}),
     ...(segment ? {segment} : {}), tracks: jali ? [...JALI_TIMELINE_TRACKS] : [...SPEECH_TRACKS], frames,
     ...(expressionFrames ? {providerExpressions: {version: 1, format: 'arkit61-expression9', frames: expressionFrames}} : {}),
+    ...(upperFrames?.length === frames.length ? {modelExpressions: {version: 1, format: 'jali-upper-v1', frames: upperFrames}} : {}),
     ...(ownedExpressionReceipt(expressionSignal, owner) ? {expression: ownedExpressionReceipt(expressionSignal, owner)} : {})};
 }
 
@@ -221,16 +224,19 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
 // Cyberpunk's own dialogue lipsync. Only actual utterance edges ease to rest;
 // the model already closes the mouth in silence. No easing is added in Lua.
 export function renderJaliTimeline({owner, duration, frames, segment, first = true, last = true, expressionSignal}) {
-  const rows = [];
+  const rows = [], upper = [];
   const pose = at => {
-    const edge = clamp(Math.min(first ? at / .04 : 1, last ? (duration - at) / .04 : 1));
-    return jaliPose(frames, Math.min(duration, at + JALI_LEAD_SECONDS)).map(value => rounded(value * edge));
+    const edge = clamp(Math.min(first ? at / .04 : 1, last ? (duration - at) / .04 : 1)), ahead = Math.min(duration, at + JALI_LEAD_SECONDS);
+    const row = jaliUpperRow(frames, at, ahead);
+    if (row) upper.push(row);
+    return jaliPose(frames, ahead).map(value => rounded(value * edge));
   };
   for (let sample = 0; sample / 60 < duration; sample++) rows.push([sample / 60, ...pose(sample / 60)]);
   rows.push([duration, ...pose(duration)]);
   const receipt = ownedExpressionReceipt(expressionSignal, owner);
   return {version: 1, requestId: owner.requestId, entity: owner.entity, duration, source: JALI_SOURCE,
     articulation: JALI_ARTICULATION, ...(segment ? {segment} : {}), tracks: [...JALI_TIMELINE_TRACKS], frames: rows,
+    ...(upper.length === rows.length ? {modelExpressions: {version: 1, format: 'jali-upper-v1', frames: upper}} : {}),
     ...(receipt ? {expression: receipt} : {})};
 }
 

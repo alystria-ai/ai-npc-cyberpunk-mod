@@ -50,8 +50,11 @@ local function zeroExpression()
     local pose={};for _,track in ipairs(expressionTracks) do pose[track]=0 end;return pose
 end
 local function clamp(value,maximum) return math.max(0,math.min(maximum or 1,value)) end
+-- Cyberpunk's own dialogue lipsync (extracted JALI corpus) keeps corner-up
+-- around .10 during speech and raises brows to ~.44 at p95. These caps stay
+-- well inside that, so expressions read without becoming theatrical.
 local function expressionLimit(track)
-    return track:find('corner_up',1,true) and .09 or (track:find('corner_dn',1,true) and .08 or .10)
+    return track:find('corner_up',1,true) and .12 or (track:find('corner_dn',1,true) and .10 or .20)
 end
 M.expressions, M.expressionClock, M.expressionFrame = {}, 0, 0
 local function expressionSlot(entity)
@@ -140,9 +143,9 @@ local function mouthBudget(feature,phase)
     local closure=clamp(math.max(read('lips_together_up'),read('lips_together_dn'))/.85)
     local rounding=clamp(math.max(read('lips_l_funnel'),read('lips_r_funnel'))/.32
         +math.max(read('lips_l_purse'),read('lips_r_purse'))/.28)
-    return (phase=='speaking' and .30 or 1)*(1-closure)*(1-rounding)
+    return (phase=='speaking' and .60 or 1)*(1-closure)*(1-rounding)
 end
-local function expressionPose(slot,phase,feature,provider,blocked)
+local function expressionPose(slot,phase,feature,provider,blocked,upper)
     local target=zeroExpression()
     if slot.expiry and M.expressionClock>=slot.expiry then slot.emotion,slot.family,slot.expiry=nil,nil,nil end
     local family,strength=slot.family,({.35,.65,1})[slot.scale or 1]
@@ -189,12 +192,28 @@ local function expressionPose(slot,phase,feature,provider,blocked)
         -- Hard closure/rounding suppression happens after smoothing, too.
         feature[track]=math.min(slot.pose[track],expressionLimit(track)*(track:sub(1,5)=='lips_' and budget or 1))
     end
+    -- Voice-synchronous brows from the game-trained model (emphasis flashes,
+    -- focused frowns). Already smooth and on the audio clock: combined by max
+    -- with the smoothed emotional pose, never summed, and toned down where it
+    -- would contradict the emotion (raised brows in anger, lowered in joy).
+    if upper and not blocked then
+        local raise=.5*upper.raise*((family=='anger' or family=='disgust') and .4 or 1)
+        local lower=.5*upper.lower*((family=='joy' or family=='trust' or family=='surprise') and .3 or 1)
+        for _,side in ipairs({'l','r'}) do
+            for _,stem in ipairs({'raise_in','raise_out'}) do
+                local track='eye_'..side..'_brows_'..stem
+                feature[track]=math.min(expressionLimit(track),math.max(feature[track],raise))
+            end
+            local track='eye_'..side..'_brows_lower'
+            feature[track]=math.min(expressionLimit(track),math.max(feature[track],lower))
+        end
+    end
 end
-local function applyFeature(actor,feature,entity,phase,provider)
+local function applyFeature(actor,feature,entity,phase,provider,upper)
     local slot=expressionSlot(entity)
     local blocked=M.expressionBlocked or M.expressionPaused or not safeExpressionActor(actor)
     if blocked then slot.emotion,slot.family,slot.expiry=nil,nil,nil end
-    expressionPose(slot,phase,feature,provider,blocked)
+    expressionPose(slot,phase,feature,provider,blocked,upper)
     assert(actor:ConvaiFaceApply(feature),'Native facial layer rejected the frame')
     slot.written=M.expressionFrame
     slot.phase,slot.blocked,slot.applied=phase,blocked,(slot.applied or 0)+1
@@ -246,6 +265,18 @@ local function providerExpressions(timeline)
     end
     return value.frames
 end
+-- Optional model upper-face curve on the timeline's exact frame times.
+local function modelExpressions(timeline)
+    local value=timeline.modelExpressions
+    if timeline.source~='local-jali' and timeline.source~='audio-envelope' and timeline.source~='convai-arkit61' then return nil end
+    if type(value)~='table' or value.version~=1 or value.format~='jali-upper-v1'
+        or type(value.frames)~='table' or #value.frames~=#timeline.frames then return nil end
+    for index,frame in ipairs(value.frames) do
+        if type(frame)~='table' or #frame~=3 or frame[1]~=timeline.frames[index][1] then return nil end
+        for at=2,3 do if not finite(frame[at]) or frame[at]<0 or frame[at]>1 then return nil end end
+    end
+    return value.frames
+end
 local function reset(actor)
     local ok, done = pcall(function()
         return owns(actor) and actor:ConvaiFaceReset()
@@ -262,6 +293,7 @@ local function clear()
     M.continuous, M.timelineChanged = nil, nil
     M.localMotion, M.localPose, M.localPosePosition = nil, nil, nil
     M.providerExpressions=nil
+    M.modelExpressions=nil
 end
 
 function M.abandon(reason)
@@ -340,6 +372,7 @@ function M.start(context, timeline, actor, duration, expectedSegment)
     M.localMotion = timeline.motion == 'local-phonetic-smooth-v1'
     M.localPose, M.localPosePosition = retainedPose, retainedPosition
     M.providerExpressions=providerExpressions(timeline)
+    M.modelExpressions=modelExpressions(timeline)
     M.beginExpression(context,timeline.expression)
     return true
 end
@@ -422,6 +455,7 @@ function M.updateContinuous(context, timeline, actor, duration)
     M.localMotion = timeline.motion == 'local-phonetic-smooth-v1'
     M.timeline, M.source, M.articulation = timeline, timeline.source, timeline.articulation
     M.providerExpressions=providerExpressions(timeline)
+    M.modelExpressions=modelExpressions(timeline)
     M.beginExpression(context,timeline.expression)
     M.error, M.timelineChanged = nil, true
     -- A live tail can be re-interpolated or compacted. Keep the playback index
@@ -497,7 +531,12 @@ function M.sync(actor, position, requestId)
             local a,b=M.providerExpressions[M.index],M.providerExpressions[M.index+1]
             provider={};for i=2,10 do provider[i-1]=a[i]+(b[i]-a[i])*alpha end
         end
-        applyFeature(actor,M.feature,M.entity,'speaking',provider)
+        local upper
+        if M.modelExpressions then
+            local a,b=M.modelExpressions[M.index],M.modelExpressions[M.index+1]
+            upper={raise=a[2]+(b[2]-a[2])*alpha,lower=a[3]+(b[3]-a[3])*alpha}
+        end
+        applyFeature(actor,M.feature,M.entity,'speaking',provider,upper)
         M.position, M.lastPosition = M.continuous and heardPosition or position, M.continuous and heardPosition or position
         M.timelineChanged = nil
         M.state = position >= M.timeline.duration and 'holding-boundary' or 'playing'

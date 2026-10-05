@@ -32,7 +32,9 @@ def main():
         blob.append(raw)
         offset += len(raw)
     controls = [[k, c] for k, (_, names) in enumerate(lm.OUTPUTS[:meta['runtimeOutputs']]) for c in names]
-    meta.update(tensors=table, controls=controls)
+    names = [o[0] for o in lm.OUTPUTS]
+    upper = [[names.index(n), n] for n in lm.UPPER_OUTPUTS if n in meta['outputs']]
+    meta.update(tensors=table, controls=controls, upper=upper)
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / 'face-model.bin').write_bytes(b''.join(blob))
     (args.out / 'face-model.json').write_text(json.dumps(meta, indent=1), encoding='utf8')

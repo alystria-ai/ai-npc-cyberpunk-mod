@@ -6,7 +6,7 @@ const OUTPUT_CONTROLS = [['jaw_mid_open'], ['lips_together_up'], ['lips_together
   ['lips_l_funnel', 'lips_r_funnel'], ['lips_l_corner_stretch', 'lips_r_corner_stretch'], ['lips_l_stretch', 'lips_r_stretch'],
   ['lips_l_lower_raise', 'lips_r_lower_raise'], ['lips_l_upper_raise', 'lips_r_upper_raise'], ['lips_suck_up'], ['lips_suck_dn'],
   ['lips_puff_up', 'lips_puff_dn'], ['cheek_l_puff', 'cheek_r_puff'], ['tongue_mid_tip_up'], ['tongue_mid_fwd']];
-export function syntheticModel({channels = 6, dilations = [1, 2], lookahead = 3, seed = 7, quantiles} = {}) {
+export function syntheticModel({channels = 6, dilations = [1, 2], lookahead = 3, seed = 7, quantiles, upper = false} = {}) {
   let state = seed;
   const random = () => ((state = (state * 1103515245 + 12345) % 2147483648) / 2147483648) - .5;
   const mels = 80, outputs = 17, tensors = [], parts = [];
@@ -31,7 +31,8 @@ export function syntheticModel({channels = 6, dilations = [1, 2], lookahead = 3,
   }
   const controls = OUTPUT_CONTROLS.flatMap((names, index) => names.map(name => [index, name]));
   const meta = {version: 1, format: FACE_MODEL_FORMAT, lookahead, channels, dilations, sampleRate: 16000, hop: 160,
-    window: 400, nfft: 512, mels, silence: -10, tensors, controls};
+    window: 400, nfft: 512, mels, silence: -10, tensors, controls,
+    ...(upper ? {upper: [[15, 'brows_raise'], [16, 'brows_lower']]} : {})};
   return {meta, buffer: Buffer.concat(parts)};
 }
 export const speechLike = (seconds, rate) => Float32Array.from({length: Math.round(seconds * rate)}, (_, i) => {

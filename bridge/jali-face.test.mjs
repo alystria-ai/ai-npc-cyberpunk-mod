@@ -186,6 +186,30 @@ test('Omni phrase: model frames become a local-jali timeline the native adapter 
   `);
 });
 
+test('model brows reach the expression layer on the audio clock, bounded and softened against the emotion', () => {
+  const {meta, buffer} = syntheticModel({lookahead: 2, upper: true}), model = parseFaceModel(meta, buffer);
+  const pcm = speechLike(1.2, 24000), stream = new FaceModelStream(model, 24000);
+  stream.push(pcm); stream.finish();
+  const timeline = buildFacialTimeline({audio: wavBase64(pcm), jaliFrames: stream}, {requestId: 'brows', entity: 'Judy-1'});
+  const upper = timeline.modelExpressions;
+  assert.equal(upper.format, 'jali-upper-v1'); assert.equal(upper.frames.length, timeline.frames.length);
+  upper.frames.forEach((row, index) => assert.equal(row[0], timeline.frames[index][0]));
+  const at = upper.frames.reduce((best, row, index) => row[1] > upper.frames[best][1] ? index : best, 1), [, raise] = upper.frames[at];
+  assert(raise > 0, 'synthetic model raises the brows');
+  runLua(`
+    local timeline=${luaLiteral(timeline)}
+    local context={requestId='brows',entity='Judy-1',generation=1}
+    assert(face.start(context,timeline,judy,timeline.duration),face.error)
+    face.sync(judy,${at / 60},'brows')
+    local applied=judy.frames[#judy.frames]
+    assert(math.abs(applied.eye_l_brows_raise_in-math.min(.2,.5*${raise}))<1e-4,'model brow raise, halved and capped')
+    assert(applied.eye_r_brows_raise_out==applied.eye_l_brows_raise_in)
+    for k,v in pairs(applied) do assert(v<=1) end
+    local bad=${luaLiteral({...timeline, modelExpressions: {...upper, frames: upper.frames.slice(1)}})}
+    assert(face.start(context,bad,judy,timeline.duration) and face.modelExpressions==nil,'misaligned curves are ignored, speech continues')
+  `);
+});
+
 test('native ranges of the game lipsync pass validation; out-of-range or unknown model data is rejected', () => {
   const tracks = [...JALI_TIMELINE_TRACKS], row = time => [time, ...tracks.map(() => 0)];
   const base = {version: 1, requestId: 'r', entity: 'Judy-1', duration: 1, source: 'local-jali', articulation: 'jali-audio-v1', tracks};

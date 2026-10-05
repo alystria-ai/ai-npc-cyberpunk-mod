@@ -48,7 +48,12 @@ OUTPUTS = [  # (output name, native controls it drives)
     ('chin_raise', ['lips_chin_raise']),
     ('tongue_base_up', ['tongue_mid_base_up']),
     ('tongue_lift', ['tongue_mid_lift']),
+    # Upper face that follows the voice (emphasis brow flashes, frowning focus).
+    # Not mouth controls: the runtime hands them to the expression layer.
+    ('brows_raise', ['eye_l_brows_raise_in', 'eye_r_brows_raise_in', 'eye_l_brows_raise_out', 'eye_r_brows_raise_out']),
+    ('brows_lower', ['eye_l_brows_lower', 'eye_r_brows_lower']),
 ]
+UPPER_OUTPUTS = ['brows_raise', 'brows_lower']
 RUNTIME_OUTPUTS = 15
 # Same bounds as bridge/jali-face.mjs JALI_LIMITS and mod/facial-playback.lua.
 LIMITS = {'jaw_mid_open': .7, 'lips_together_up': 1, 'lips_together_dn': 1, 'lips_suck_dn': .8, 'lips_suck_up': .3,
@@ -286,6 +291,8 @@ def train(args):
     scale = np.maximum(np.percentile(ys, 99.5, axis=0), 0.02).astype(np.float32)
     weight = 1 / np.maximum(ys.std(0) / scale, 0.05)
     weight[RUNTIME_OUTPUTS:] *= 0.3
+    for name in UPPER_OUTPUTS:
+        weight[[o[0] for o in OUTPUTS].index(name)] *= 2
     weight[0] *= 1.5
     weight[1:3] *= 1.5
     weight = torch.tensor(weight / weight.mean(), dtype=torch.float32)

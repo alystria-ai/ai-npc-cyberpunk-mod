@@ -12,8 +12,8 @@ export const EXPRESSION_TRACKS = Object.freeze([
   'eye_l_brows_raise_out', 'eye_r_brows_raise_out', 'eye_l_brows_lower', 'eye_r_brows_lower',
 ]);
 export const EXPRESSION_POLICY = Object.freeze({
-  version: 1, restSmile: .025, cornerUpMax: .09, cornerDownMax: .08, browMax: .10,
-  speechMouthFactor: .30, attackSeconds: .18, releaseSeconds: .55,
+  version: 1, restSmile: .025, cornerUpMax: .12, cornerDownMax: .10, browMax: .20,
+  speechMouthFactor: .60, attackSeconds: .18, releaseSeconds: .55,
   positiveAfterSpeechMs: 4000, negativeAfterSpeechMs: 8000,
 });
 // The only provider channels admitted by the native expression adapter. Their

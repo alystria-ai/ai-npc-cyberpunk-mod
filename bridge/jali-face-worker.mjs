@@ -7,7 +7,7 @@ import {parseFaceModel, FaceModelStream} from './jali-face-model.mjs';
 const model = parseFaceModel(JSON.parse(readFileSync(workerData.meta, 'utf8')), readFileSync(workerData.weights));
 const streams = new Map();
 const send = (message, transfer) => parentPort.postMessage(message, transfer);
-send({type: 'ready', lookahead: model.lookahead, outputs: model.outputs, controls: model.controls});
+send({type: 'ready', lookahead: model.lookahead, outputs: model.outputs, controls: model.controls, upper: model.upper});
 
 parentPort.on('message', message => {
   const {id} = message;

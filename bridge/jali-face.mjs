@@ -164,6 +164,14 @@ const limits = JALI_TIMELINE_TRACKS.map(track => JALI_LIMITS[track] ?? .5);
 // Model weights at audio time `seconds`, in JALI_TIMELINE_TRACKS order and
 // within the native bounds (apart controls are zero: the game's own lipsync
 // never uses them).
+// Voice-synchronous brow curve row [time, raise, lower] for the expression
+// layer (format jali-upper-v1), or undefined when the model has no upper face.
+export function jaliUpperRow(frames, at, seconds, covered = true) {
+  const upper = covered ? frames?.sampleUpper(seconds) : null;
+  if (frames?.upper == null) return undefined;
+  return [at, ...(upper || [0, 0]).map(value => Math.round(value * 1e4) / 1e4)];
+}
+
 export function jaliPose(frames, seconds) {
   return [...frames.sample(seconds), 0, 0].map((value, index) => Math.max(0, Math.min(limits[index], value)));
 }
