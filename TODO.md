@@ -58,6 +58,8 @@ After the agents above finish:
 - Convai early audio-player open (latency item A): not done. The player fails with "admission expired" if no control arrives within 2 s of opening, so opening it at turn start would break slow Convai turns. Needs a different design (for example, open early with a longer or renewable admission window).
 - Movement design questions from the test triage: (1) a follow blocked beyond 6 m can still enter the "advance" detour mode (`block()` in `companion-actuator.lua`), but no current test reaches it. Decide whether to keep it for follow, and test it if so. (2) Initial follow admissions skip the 2-member planning turn, so each one costs one native navigation query (8 at once costs 8). The 192 physics-query cap still holds. Treated as intended.
 
+- Voice cloning setting (after the research runs finish): let the player choose how many reference clips (1, 2 or 10 s, 3 or 18 s), with a description of the measured trade-off (likeness vs time to first audio, per engine). User request, 2026-10-06.
+
 ### Later
 - Packaging a player release: ship the prebuilt voice client; use the auto-start supervisor instead of `packaging/runtime-bootstrap.mjs`; allow `red4ext/` paths in `release-plan.json`; first-run key setup; no keys, player data, audio or training data in the package.
 
