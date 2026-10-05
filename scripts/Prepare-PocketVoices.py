@@ -66,7 +66,7 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--model-sha256',required=True)
     parser.add_argument('--input-identity',required=True)
-    parser.add_argument('--threads',type=int,default=2)
+    parser.add_argument('--threads',type=int,default=4)
     print(json.dumps(prepare(parser.parse_args()),indent=2,ensure_ascii=False,allow_nan=False))
 
 
