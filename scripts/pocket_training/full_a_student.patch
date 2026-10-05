@@ -1,0 +1,234 @@
+Full A student overlay. runner.py applies on top of full_a_checkpoint.patch (the
+rolling teacher runner); student_transfer.py applies to the frozen v5 source.
+Build the overlay: copy those two bases plus rolling_bucket_checkpoints.py (as
+remote_checkpoints.py) into <candidate>/candidate/scripts/pocket_training/, apply
+this patch there, then run scripts/Pocket-FullAStudent.py prepare --candidate <candidate>.
+
+--- a/scripts/pocket_training/runner.py
++++ b/scripts/pocket_training/runner.py
+@@ -38,6 +38,11 @@
+ SOURCE_IGNORES = {".git", "__pycache__", ".pytest_cache", ".ruff_cache"}
+ EXIT_PAUSED = 10
+ EXIT_PRECISION = 75
++# Stop the student on held-out evidence alone: the better of its EMA and raw
++# macro dev scores at each speech evaluation, starting from the step-zero
++# student. Per-character gates still label candidates; they no longer decide
++# whether training continues.
++STUDENT_PLATEAU_RULE = "macro_dev_best_of_ema_raw_v1"
+ CALIBRATION_POLICY = {
+     "stats_ema_steps": 0,
+     "policy": "preserve_pretrained_latent_mean_and_std",
+@@ -264,9 +269,13 @@
+         identities["continuation_source"] = {Path(module.__file__).name: sha256_file(Path(module.__file__))
+             for module in (teacher_continuation, teacher_quality, teacher_data, native_primary_data, continuation_rollout, student_transfer)}
+         identities["continuation_source"]["runner.py"] = sha256_file(Path(__file__))
++    if raw.get("distill_plateau_rule") is not None:
++        if raw["distill_plateau_rule"] != STUDENT_PLATEAU_RULE or student_continuation is None:
++            raise ValueError("Unknown student plateau rule, or no patient student continuation to apply it to")
++        identities["distill_plateau_rule"] = STUDENT_PLATEAU_RULE
+     if raw.get("private_remote_checkpoints") is not None:
+-        if raw["private_remote_checkpoints"] is not True or continuation is None or student_continuation is not None:
+-            raise ValueError("Private remote checkpoints are supported only for the full A teacher continuation")
++        if raw["private_remote_checkpoints"] is not True or (continuation is None) == (student_continuation is None):
++            raise ValueError("Private remote checkpoints need exactly one full A teacher or student continuation")
+         remote_run_id = raw.get("remote_checkpoint_run_id")
+         if not isinstance(remote_run_id, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,40}", remote_run_id):
+             raise ValueError("remote_checkpoint_run_id must be a stable lowercase experiment ID")
+@@ -1192,14 +1201,15 @@
+     """Publish the immutable checkpoint while every training rank is stopped."""
+     if not spec.option("private_remote_checkpoints", False) or step < 1:
+         return
+-    if stage != "teacher":
+-        raise ValueError("Private remote publication is restricted to the full A teacher")
++    if stage not in ("teacher", "distill"):
++        raise ValueError("Private remote publication is restricted to full A teacher/student training")
+     checkpoint_sha = sha256_file(checkpoint)
+     stage_dir = spec.output / stage
+     exports: dict[str, Path] = {}
+     sidecars = [stage_dir / name for name in (
+         "quality-anchor.json", "candidate-index.json", "evaluation-completed.json",
+-        "heldout.json", "best.json", "metrics.json", "precision.json", "state.json", "args.yaml")]
++        "heldout.json", "best.json", "metrics.json", "precision.json", "state.json", "args.yaml",
++        "transferred-tensors.json")]
+     index = read_json(stage_dir / "candidate-index.json", {})
+     if index:
+         if index.get("input_identity") != spec.identity:
+@@ -1212,12 +1222,19 @@
+                 raise ValueError("Retained compact candidate changed before private publication")
+             exports[row["path"]] = candidate
+     ticket = runner_state.get("pending_evaluation")
++    # The scheduled publish runs just after this step's evaluation committed,
++    # when the pending ticket is already cleared: take the finished receipt's
++    # ticket so the speech panels (WAVs) for this step travel with it.
++    finished = read_json(stage_dir / "evaluation-completed.json", {})
++    if ticket is None and finished.get("input_identity") == spec.identity:
++        ticket = finished.get("ticket")
+     if isinstance(ticket, dict) and ticket.get("step") == step:
+         for kind in ("ema", "raw"):
+             quality = stage_dir / f"quality-step{step:09d}-{kind}.json"
+             if quality.is_file() and read_json(quality, {}).get("evaluation_ticket") == ticket:
+                 sidecars.append(quality)
+-                folder = spec.output / f"comparisons/teacher-rollout-step{step:06d}-{kind}"
++                prefix = "teacher-" if stage == "teacher" else ""
++                folder = spec.output / f"comparisons/{prefix}rollout-step{step:06d}-{kind}"
+                 sidecars.extend(p for p in (folder / "metrics.json", folder / "samples.json") if p.is_file())
+                 for row in read_json(folder / "samples.json", []):
+                     if row.get("audio"):
+@@ -1434,9 +1451,68 @@
+     return receipt
+ 
+ 
++def held_out_best_candidate(spec: Spec, stage: str) -> Path:
++    """The retained compact candidate with the lowest macro dev score.
++
++    Used for the final export when per-character gates leave no eligible
++    candidate; its receipt still says it is not listening-qualified.
++    """
++    index = read_json(spec.output / stage / "candidate-index.json", {})
++    best = index.get("diagnostic_best")
++    if not best or index.get("input_identity") != spec.identity:
++        return spec.output / stage / "candidates/no-held-out-candidate.pt"
++    path = (spec.output / best["path"]).resolve()
++    if not path.is_relative_to((spec.output / stage / "candidates").resolve()):
++        raise ValueError("Held-out best candidate escaped the owned candidate directory")
++    if not path.is_file() or sha256_file(path) != best["sha256"]:
++        raise ValueError("Held-out best compact candidate changed")
++    return path
++
++
++def student_plateau_local(spec: Spec, step: int, rows: int) -> bool:
++    """Rank-zero decision for STUDENT_PLATEAU_RULE over committed evaluations."""
++    policy = teacher_continuation.settings(spec, "distill")
++    if (not policy["stop_on_plateau"] or step < spec.raw["distill_min_steps"]
++            or step < spec.raw["distill_warmup_steps"]
++            or step * int(spec.option("effective_batch_size", 64)) / rows < policy["minimum_corpus_passes"]):
++        return False
++    index = read_json(spec.output / "distill/candidate-index.json", {})
++    anchor = read_json(spec.output / "distill/quality-anchor.json", {})
++    if index.get("input_identity") != spec.identity or anchor.get("input_identity") != spec.identity:
++        return False
++    by_step: dict[int, float] = {}
++    for row in index["evaluations"]:
++        score = float(row["score"])
++        by_step[row["step"]] = min(by_step.get(row["step"], math.inf), score if math.isfinite(score) else math.inf)
++    if len(by_step) < policy["minimum_speech_evaluations"]:
++        return False
++    best = float(anchor["hybrid"]["dev"]["score"])
++    best = best if math.isfinite(best) else math.inf
++    delta = float(spec.raw["minimum_relative_improvement"])
++    stagnant = 0
++    for evaluated in sorted(by_step):
++        score = by_step[evaluated]
++        if score < best - (max(abs(best) * delta, 1e-8) if math.isfinite(best) else 0):
++            best, stagnant = score, 0
++        else:
++            stagnant += 1
++    return stagnant >= policy["plateau_patience"]
++
++
++def plateau_after_evaluation(spec: Spec, step: int, rows: int, stage: str,
++                             device: Any, rank: int, world: int) -> bool:
++    if stage == "distill" and spec.raw.get("distill_plateau_rule") == STUDENT_PLATEAU_RULE:
++        return bool(teacher_continuation._rank_zero_result(
++            lambda: student_plateau_local(spec, step, rows), device, rank, world))
++    return teacher_continuation.plateau_reached(spec, step, rows, stage, device, rank, world)
++
++
+ def selected_checkpoint(spec: Spec, stage: str) -> Path:
+     if teacher_continuation.enabled(spec, stage):
+-        return teacher_continuation.selected_checkpoint(spec, stage)
++        selected = teacher_continuation.selected_checkpoint(spec, stage)
++        if stage == "distill" and spec.raw.get("distill_plateau_rule") and not selected.is_file():
++            return held_out_best_candidate(spec, stage)
++        return selected
+     if stage == "distill" and student_transfer.enabled(spec):
+         candidate = spec.output / "distill/quality-best.pt"
+         receipt = read_json(candidate.with_suffix(".json"), {})
+@@ -2129,11 +2205,12 @@
+             save_training(spec, stage, start_step, model, optimizer, ema, scaler, state, device, world, rank,
+                           publish_remote=start_step > 0)
+             return EXIT_PAUSED
+-        resumed_plateau = teacher_continuation.plateau_reached(spec, start_step, loader.size, stage, device, rank, world)
++        resumed_plateau = plateau_after_evaluation(spec, start_step, loader.size, stage, device, rank, world)
+         if resumed_plateau:
+             state.update(status="completed", stop_reason="heldout_plateau")
+     step = start_step
+     checkpoint_time = time.monotonic()
++    published_step = 0  # Do not spend a rolling slot republishing one step.
+     bad_gradients = 0
+     exit_code = 0
+     last_metrics: dict[str, Any] = {}
+@@ -2270,6 +2347,7 @@
+                 save_training(spec, stage, step, model, optimizer, ema, scaler, state, device, world, rank,
+                               publish_remote=True)
+                 checkpoint_time = time.monotonic()
++                published_step = step
+             validation_due = (step % args.valid_freq == 0 or step == execution_steps
+                               or (quality_run and step in spec.option("teacher_rollout_steps", []))
+                               or (student_quality_run and step in spec.option("rollout_steps", [])))
+@@ -2318,11 +2396,12 @@
+                     save_training(spec, stage, step, model, optimizer, ema, scaler, state, device, world, rank,
+                                   publish_remote=True)
+                     checkpoint_time = time.monotonic()
++                    published_step = step
+                 minimum_steps = max(1, int(spec.option(f"{stage}_min_steps", min(args.optim.warmup_steps, args.max_steps))))
+                 patience = max(1, int(spec.option("validation_patience", 8)))
+                 plateau = step >= minimum_steps and state["bad_validations"] >= patience
+                 if (quality_run or student_quality_run) and teacher_continuation.enabled(spec, stage):
+-                    plateau = teacher_continuation.plateau_reached(spec, step, loader.size, stage, device, rank, world)
++                    plateau = plateau_after_evaluation(spec, step, loader.size, stage, device, rank, world)
+                 if plateau:
+                     state.update(status="completed", stop_reason="heldout_plateau")
+                     break
+@@ -2330,9 +2409,11 @@
+             checkpoint_due = distributed_any(torch,
+                 (step % args.ckpt_freq == 0 or timed_checkpoint or validation_due) and not saved_before_evaluation, device, world)
+             if checkpoint_due:
++                publish = step % 1000 == 0 and spec.option("private_remote_checkpoints", False)
+                 save_training(spec, stage, step, model, optimizer, ema, scaler, state, device, world, rank,
+-                              publish_remote=step % 1000 == 0 and spec.option("private_remote_checkpoints", False))
++                              publish_remote=publish)
+                 checkpoint_time = time.monotonic()
++                published_step = step if publish else published_step
+         if step >= execution_steps and state.get("status") != "rejected":
+             state.update(status="completed", stop_reason="exposure_or_official_step_bound")
+         if quality_run or student_quality_run:
+@@ -2351,8 +2432,11 @@
+                     completed.append(probe_step)
+             state.update(probe_schedule=planned, probe_steps_reached=reached, probe_steps_completed=completed,
+                          unreached_probe_reasons={str(value): state.get("stop_reason", "not_reached") for value in planned if value not in reached})
++        # A stop right after a scheduled publish keeps the same weights and
++        # optimizer state already in the bucket; keep that slot for history.
+         save_training(spec, stage, step, model, optimizer, ema, scaler, state, device, world, rank,
+-                      publish_remote=step > 0 and spec.option("private_remote_checkpoints", False))
++                      publish_remote=step > 0 and step != published_step
++                      and spec.option("private_remote_checkpoints", False))
+         if rank == 0:
+             stage_state(spec, stage, **state, step=step, corpus_passes=step * 64 / loader.size,
+                         peak_allocated_bytes=torch.cuda.max_memory_allocated(device),
+--- a/scripts/pocket_training/student_transfer.py
++++ b/scripts/pocket_training/student_transfer.py
+@@ -228,14 +228,19 @@
+         return None
+     expected = teacher_continuation.expected_samples(spec, "distill") if teacher_continuation.enabled(spec, "distill") else 18
+     gate = not teacher_continuation.enabled(spec, "distill")
+-    if (not teacher_quality.speech_complete(accepted_speech, expected_samples=expected, asr_gate=gate)
+-            or not teacher_quality.speech_complete(hybrid_speech, expected_samples=expected, asr_gate=gate)):
+-        raise ValueError("Accepted student and transferred-head step-zero controls must complete declared probes")
++    if not teacher_quality.speech_complete(accepted_speech, expected_samples=expected, asr_gate=gate):
++        raise ValueError("The accepted student step-zero control must complete declared probes")
++    # The step-zero hybrid pairs the old student backbone with a newly trained
++    # teacher's frozen heads; training exists to fix that mismatch. Record its
++    # speech completeness instead of refusing to train. Candidates are still
++    # compared with the accepted student's speech.
++    hybrid_complete = teacher_quality.speech_complete(hybrid_speech, expected_samples=expected, asr_gate=gate)
+     result = {"input_identity": spec.identity, "new_run_step": 0,
+               "accepted_student_weights_sha256": spec.raw["student_anchor_expected_sha256"],
+               "target_teacher_weights_sha256": spec.raw["import_teacher_expected_sha256"],
+               "accepted": {**accepted_panels, "speech": accepted_speech, "heads": "original_accepted_student"},
+-              "hybrid": {**hybrid_panels, "speech": hybrid_speech, "heads": "new_frozen_teacher_copy"},
++              "hybrid": {**hybrid_panels, "speech": hybrid_speech, "heads": "new_frozen_teacher_copy",
++                         "speech_complete": hybrid_complete},
+               "transferred_tensors": transfer, "listening_qualified": False}
+     runner.teacher_rank_zero_commit(lambda: runner.atomic_json(path, result), device, rank, world)
+     return result
