@@ -15,7 +15,7 @@ const section = (start, end) => source.slice(source.indexOf(start), source.index
 const code = section('async function synthesizeReply(', 'async function status(')
   + section('function continuousSpeech(', 'async function respond(')
   + section('async function respond(', 'const micPath =');
-function fixture({local = false, available = true, audioFailure = false, continuous = false, voiceSelection} = {}) {
+function fixture({local = false, available = true, audioFailure = false, continuous = false, voiceSelection, jaliFace = null} = {}) {
   const calls = [], publications = [];
   const remote = {text: 'A complete reply. With two sentences.', sessionID: 'test-session',
     audio: silentWav().toString('base64'), faces: [{at: 0, values: [0.2]}],
@@ -23,8 +23,8 @@ function fixture({local = false, available = true, audioFailure = false, continu
   const selectedVoice = voiceSelection ?? {provider:'pocket',usesProfile: () => local};
   const sandbox = {remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json',
     localVoice: selectedVoice,
-    ownedPocketFace:()=>{},lipsync:{analyse:async()=>({mouthCues:[],mouthCuesFormat:'rhubarb-phonetic-v1'})},
-    jaliFace:null,
+    ownedPocketFace:()=>{},lipsync:{analyse:async()=>{calls.push('rhubarb');return{mouthCues:[],mouthCuesFormat:'rhubarb-phonetic-v1'};}},
+    jaliFace,
     splitSpeechText,streaming:0,writeStreamManifest:async value=>calls.push(['omni-manifest',value]),
     deliverPocketSpeech: async ({result,profile,speech}) => {
       calls.push(['pocket-stream',profile.key,result.text]);
@@ -323,6 +323,19 @@ test('Omni16 and32 use one original text reply then their separate native phrase
     const reply=f.publications.find(([path])=>path==='reply.json')[1];
     assert.ok(reply.audio&&reply.stream);assert.equal(reply.continuous,undefined);
   }
+});
+
+test('with local facial weights Omni phrases use the game-trained model and Rhubarb stays the fallback',async()=>{
+  const analysed=[],voice={provider:'omni',steps:32,usesProfile:()=>true,
+    async synthesize(){return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
+  const jaliFace={async analyseWav(audio){analysed.push(audio);return{jaliFrames:{model:true},timing:{lipEngine:'jali-audio-v1'}};}};
+  const f=fixture({voiceSelection:voice,continuous:true,jaliFace});
+  const result=await f.api.respond(f.input,f.profile,{current:async()=>true});
+  assert.equal(analysed.length,1);assert.deepEqual(result.jaliFrames,{model:true});
+  assert.equal(result.timing.lipEngine,'jali-audio-v1');assert.ok(!f.calls.includes('rhubarb'));
+  const failing=fixture({voiceSelection:voice,continuous:true,jaliFace:{async analyseWav(){throw Error('worker stopped');}}});
+  const fallback=await failing.api.respond(failing.input,failing.profile,{current:async()=>true});
+  assert.ok(failing.calls.includes('rhubarb'));assert.equal(fallback.jaliFrames,undefined);
 });
 
 test('voice playback Off yields one identified text request and never starts either local renderer',async()=>{
