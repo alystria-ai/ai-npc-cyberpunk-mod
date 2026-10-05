@@ -304,6 +304,12 @@ local function updatePreparationBanner()
     presentation.preparationApplied = current ~= nil
 end
 
+local function developerMode()
+    if not manager or type(manager.developerMode) ~= 'function' then return false end
+    local ok, enabled = pcall(manager.developerMode)
+    return ok and enabled == true
+end
+
 local function samplePreparationPopup(now, worldReady)
     local tracking = preparationPopup
     if not tracking then return nil end
@@ -311,8 +317,18 @@ local function samplePreparationPopup(now, worldReady)
     tracking.nextAt, tracking.worldReady = now + 1, worldReady
     local current = queue.invitationFeedback(tracking.id)
     if not current then preparationPopup = nil; return nil end
-    if current.failed and queue.claimPreparationFailure
-        and not queue.claimPreparationFailure(current.id, current.revision) then return nil end
+    if current.failed then
+        -- A failure is always visible, but only once per attempt and only in
+        -- gameplay. The paused menu shows it in the banner and must not
+        -- consume the claim, so it is posted when gameplay resumes.
+        if not worldReady then return nil end
+        if queue.claimPreparationFailure
+            and not queue.claimPreparationFailure(current.id, current.revision) then return nil end
+    elseif not developerMode() then
+        -- Routine progress (preparing memory, connecting, ready, joining) is
+        -- a Developer-mode popup; the manager banner still shows it.
+        return nil
+    end
     -- Native warning notifications can be hidden behind a paused menu. Keep
     -- only the current snapshot and announce it once again in gameplay, never
     -- a backlog of memory/connecting stages that may already be obsolete.
@@ -631,7 +647,7 @@ local function schema()
         })
         categories[#categories + 1] = category('development', 'Development', {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
-                'Show routine companion driving popups, including boarding and exit instructions. Failures and replies to Stop trip remain visible when off.'),
+                'Show routine companion popups: invitation progress (preparing, connecting, ready, joining) and driving instructions such as boarding and exit. Failures and replies to Stop trip remain visible when off.'),
         })
     end
     if view == 'characters' or view == 'party' or view == 'models' or view == 'settings' then

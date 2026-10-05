@@ -213,13 +213,18 @@ local group = {cancel = function() note('group-cancel') end,
 local phone = {configure = function(_, _, options) stats.phoneOptions = options end,
     update = noOp, abandon = function() note('phone-abandon') end}
 local manager = {subtitleStyle = 'game', configure = noOp, interfaceLanguage = function() return 'auto' end, profileEnabled = function() return true end,
-    developerMode = function() return false end, battleReactions = function() return false end, lootReactions = function() return false end,
+    developerMode = function() return stats.developer == true end, battleReactions = function() return false end, lootReactions = function() return false end,
     update = noOp, reset = function() note('manager-reset') end}
 local partyQueue
 local mcm = {configure = function(_, suppliedCompanions, factory, _, readiness)
     partyQueue = factory.new(suppliedCompanions, readiness)
-end, install = noOp, update = function(_, worldReady)
-    partyQueue.bind('fixture-player'); if worldReady then partyQueue.flush() end
+end, install = noOp, update = function(currentPlayer, worldReady)
+    partyQueue.bind('fixture-player')
+    if worldReady then
+        partyQueue.flush()
+        -- The real provider posts the queue's notices from this same update.
+        for _, notice in ipairs(partyQueue.takeNotices()) do currentPlayer:ConvaiPhoneFeedback(notice.message) end
+    end
 end, party = function() return partyQueue end, shutdown = function() partyQueue.bind(nil) end,
     resetSession = function() note('mcm-reset'); partyQueue.bind(nil) end}
 local battles = {capture = function() return {version = 1, status = 'unavailable'} end,
@@ -429,6 +434,51 @@ events.onUpdate(0.1); events.onUpdate(0.1)
 assert(stats.spawned == 1 and #json.decode(files['runtime/companion-invitations.json']).invitations == 0)
 local allowed = companions.canSpawn('judy-alvarez', nil)
 assert(allowed == false, 'a legacy direct spawn bypassed preparation')
+`));
+
+const phoneNoticeFixture = `
+events.onInit(); events.onUpdate(0)
+local function feedback()
+    local out = {}
+    for _, item in ipairs(stats.trace) do if item.kind == 'feedback' then out[#out + 1] = item.value end end
+    return out
+end
+player.phoneOpen, player.phoneRequest = true, '+judy'
+events.onUpdate(0)
+local request = json.decode(assert(files['runtime/companion-invitations.json']))
+local job = request.invitations[1]
+local function receipt(state)
+    files['runtime/companion-invitations-state.json'] = json.encode({version = 1,
+        worldToken = request.worldToken, generation = request.generation, updated = clock * 1000, bridgePid = 99,
+        invitations = {{id = job.id, revision = job.revision, modelKey = job.modelKey, profileKey = job.profileKey, state = state}}})
+end
+`;
+
+test('phone invitation progress posts no popup with Developer mode off and a failure waits for gameplay', () => run(`${phoneNoticeFixture}
+assert(#feedback() == 0, 'accepting the invitation posted routine preparation text')
+receipt('memory'); events.onUpdate(0)
+receipt('connecting'); events.onUpdate(0)
+receipt('ready'); events.onUpdate(0)
+assert(#feedback() == 0, 'routine phone progress posted with Developer mode off')
+assert(partyQueue.list()[1].state == 'ready-to-join')
+-- Failure first seen while the phone is open: no popup, no consumed claim.
+receipt('error'); events.onUpdate(0); events.onUpdate(0); events.onUpdate(0)
+assert(partyQueue.list()[1].state == 'failed' and #feedback() == 0, 'the open phone consumed the failure notice')
+player.phoneOpen = false; events.onUpdate(0.1)
+local posted = feedback()
+assert(#posted == 1 and posted[1]:find('could not prepare', 1, true), 'gameplay did not post the single failure notice')
+for _ = 1, 3 do events.onUpdate(0.1); player.phoneOpen = true; events.onUpdate(0); player.phoneOpen = false end
+assert(#feedback() == 1 and stats.spawned == 0, 'the failed attempt notified again')
+`));
+
+test('phone invitation progress posts with Developer mode on', () => run(`${phoneNoticeFixture}
+`.replace('events.onInit();', 'stats.developer = true; events.onInit();') + `
+local before = #feedback()
+assert(before == 2, 'the accepted invitation and its first stage should each post once')
+receipt('connecting'); events.onUpdate(0)
+assert(#feedback() == before + 1 and feedback()[before + 1]:find('connecting', 1, true))
+receipt('ready'); events.onUpdate(0); events.onUpdate(0)
+assert(#feedback() == before + 2 and feedback()[before + 2]:find('ready', 1, true))
 `));
 
 test('phone cancellation and save restoration reject earlier ready invitation receipts', () => run(`

@@ -1021,10 +1021,15 @@ const managerPopupFixture = `
     popupClock = popupClock + 1
     mcm.update(player, worldReady == true)
   end
+  -- Routine progress popups are Developer mode only; it defaults to Off.
+  local function developer(enabled)
+    assert(registered.applyBatch('manager', {{id = 'developerMode', value = enabled == true}}).ok)
+  end
 `;
 
-test('manager invitations use the phone native popup channel for each current preparation stage', () => {
+test('with Developer mode on, manager invitations use the phone native popup channel for each current preparation stage', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    developer(true)
     assert(invoke('tab:characters').ok)
     nativeCallback = true; assert(invoke('invite:johnny-silverhand').ok); nativeCallback = false
     assert(#popups == 0, 'invitation posted a popup inside its native action callback')
@@ -1049,6 +1054,7 @@ test('manager invitations use the phone native popup channel for each current pr
 
 test('leaving the manager replays only the current unresolved stage and keeps phone invitations independent', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
     popupTick(false)
     readiness.receipts['queued:1'] = {state = 'connecting'}
@@ -1059,7 +1065,9 @@ test('leaving the manager replays only the current unresolved stage and keeps ph
     assert(invoke('characters:back').ok and invoke('tab:settings').ok and invoke('memory').ok)
     assert(invoke('memory:choose').ok and invoke('memory:select:johnny-silverhand').ok)
     readiness.receipts['queued:1'] = {state = 'error', error = 'Private detail'}; popupTick(false)
-    assert(#popups == 3 and popups[3] == 'Johnny Silverhand: preparation failed. Cancel and invite again.',
+    assert(#popups == 2, 'the paused menu consumed the failure notice')
+    popupTick(true)
+    assert(#popups == 3 and popups[3] == 'Johnny Silverhand could not prepare: Private detail',
       'an unrelated footer action disabled the in-world notification')
     assert(party.dismiss('queued:1')); popupTick(true)
     assert(#popups == 3, 'cancelled progress replayed on returning to gameplay')
@@ -1071,6 +1079,7 @@ test('leaving the manager replays only the current unresolved stage and keeps ph
 
 test('manager popup identities distinguish duplicate copies and profile revisions then expire on world reset', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
     assert(invoke('invite:johnny-silverhand').ok); popupTick(false)
     assert(#popups == 2 and popups[1] == popups[2], 'new copy was deduplicated by its display text')
@@ -1088,23 +1097,82 @@ test('manager popup identities distinguish duplicate copies and profile revision
 
 test('a preparation popup hidden by the menu gets one gameplay presentation per stage', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
     mcm.update(player, true)
     assert(#popups == 2 and popups[1] == popups[2] and popups[2] == 'Johnny Silverhand: preparing memory...')
     for _ = 1, 3 do popupTick(true); popupTick(false) end
     popupTick(true); assert(#popups == 2, 'reopening the menu repeated a stage already shown in gameplay')
     readiness.receipts['queued:1'] = {state = 'error', error = 'Bridge unavailable'}; popupTick(false)
-    assert(#popups == 3 and popups[3] == 'Johnny Silverhand: preparation failed. Cancel and invite again.')
-    -- A failed attempt reports once; the notice shown while paused is the claim.
+    -- The paused menu shows the failure in its banner only and keeps the claim.
+    for _ = 1, 3 do popupTick(false) end
+    assert(#popups == 2, 'the paused menu consumed the single failure notice')
     popupTick(true)
-    assert(#popups == 3, 'the existing failure notice was duplicated by a second preparation failure')
+    assert(#popups == 3 and popups[3] == 'Johnny Silverhand could not prepare: Bridge unavailable',
+      'the failure was not posted when gameplay resumed')
+    -- A failed attempt reports once: gameplay is the claim.
     for _ = 1, 3 do popupTick(true); popupTick(false) end
-    assert(#popups == 3)
+    assert(#popups == 3, 'the existing failure notice was duplicated by a second preparation failure')
+  `);
+});
+
+test('with Developer mode off, routine preparation stages post no popup but a failure and the joined notice stay visible', () => {
+  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    assert(not manager.developerMode())
+    assert(invoke('tab:characters').ok)
+    nativeCallback = true; assert(invoke('invite:johnny-silverhand').ok); nativeCallback = false
+    popupTick(false)
+    readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
+    readiness.receipts['queued:1'] = {state = 'ready'}; popupTick(false)
+    assert(#popups == 0, 'a routine paused preparation stage posted a popup with Developer mode off')
+    assert(party.preparationFeedback().message == 'Johnny Silverhand is ready to join when you return to the game.',
+      'the manager banner snapshot must still describe the stage')
+    popupTick(true)
+    assert(#popups == 0 and #spawned == 1, 'the routine joining stage posted a popup with Developer mode off')
+    members[1].state = 'ready'; popupTick(true)
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand joined your group.')
+    for _ = 1, 3 do popupTick(true) end
+    assert(#popups == 1)
+  `);
+  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
+    popupTick(false)
+    readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
+    -- Turning Developer mode on shows the current stage once, not a backlog.
+    developer(true); popupTick(false)
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand: connecting...')
+    popupTick(false); assert(#popups == 1)
+    developer(false)
+    readiness.receipts['queued:1'] = {state = 'ready'}; popupTick(false); popupTick(true)
+    assert(#popups == 1, 'turning Developer mode off did not silence progress')
+  `);
+});
+
+test('a preparation failure first seen in the paused menu posts exactly one gameplay notice with Developer mode off', () => {
+  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
+    popupTick(false)
+    readiness.receipts['queued:1'] = {state = 'error', error = 'Bridge unavailable'}
+    for _ = 1, 4 do popupTick(false) end
+    assert(#popups == 0, 'the paused menu posted or consumed the failure notice')
+    assert(party.preparationFeedback().failed, 'the manager banner must still show the failure')
+    popupTick(true)
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand could not prepare: Bridge unavailable')
+    for _ = 1, 4 do popupTick(true); popupTick(false) end
+    assert(#popups == 1 and #spawned == 0, 'the failed attempt notified again or was retried')
+    -- An explicit retry that fails again is a new attempt with its own notice.
+    assert(invoke('characters:back').ok and invoke('tab:party').ok and invoke('assign:queued:1').ok)
+    assert(invoke('assign-profile:person-2').ok); popupTick(false)
+    readiness.receipts['queued:1'] = {state = 'error', error = 'Still unavailable'}
+    popupTick(false); assert(#popups == 1)
+    popupTick(true)
+    assert(#popups == 2 and popups[2] == 'Johnny Silverhand could not prepare: Still unavailable')
   `);
 });
 
 test('an already joined manager invitation cannot replay preparation when the game resumes', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
     readiness.receipts['queued:1'] = {state = 'ready'}
     party.flush(); members[1].state = 'ready'
@@ -1117,6 +1185,7 @@ test('an already joined manager invitation cannot replay preparation when the ga
 
 test('a deferred world spawn presents the joining stage only once before attachment', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
     readiness.receipts['queued:1'] = {state = 'ready'}
     local originalSpawn, attempts = api.spawn, 0
@@ -1135,7 +1204,7 @@ test('a deferred world spawn presents the joining stage only once before attachm
   `);
 });
 
-test('an immediate preparation failure posts one gameplay failure notice outside the callback', () => {
+test('an immediate preparation failure posts one gameplay failure notice outside the callback, regardless of Developer mode', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
     readiness.prepare = function() return false, 'Bridge unavailable' end
     assert(invoke('tab:characters').ok)

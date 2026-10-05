@@ -19,7 +19,7 @@ const sliceBetween = (from, to) => {
   assert(start >= 0 && end > start, `init.lua no longer contains ${from}`);
   return adapterSource.slice(start, end);
 };
-const phoneAdapter = sliceBetween('local function processPhoneAction(player)', 'local function updatePhoneInvitationFeedback(player)');
+const phoneAdapter = sliceBetween('local function processPhoneAction(player)', 'local function updatePhoneInvitationFeedback(');
 const groupAdapter = sliceBetween('local function groupAudience(player)', 'local function captureDiagnostic()');
 
 function run(code, prelude = '') {
@@ -38,6 +38,8 @@ const partyHarness = `
   queue.bind('world')
   local mcm={party=function() return queue end}
   local lastPhoneInvitation=nil
+  local developer=false
+  local manager={developerMode=function() return developer end}
   local logs={}
   local function log(line) logs[#logs+1]=line end
   local ui=convaiUiLocale
@@ -63,6 +65,24 @@ const partyHarness = `
     local rows=companions.list(); return rows[#rows]
   end
 `;
+
+test('a phone invitation that fails to start is reported once, in gameplay, and an accepted one is silent unless Developer mode is on', () => run(`${partyHarness}
+  local calls=0
+  local readiness={bind=function() end, newId=function(n) return 'invite:'..n end, cancel=function() end,
+    prepare=function() calls=calls+1; if calls==1 then return false,'Bridge unavailable' end; return true end,
+    status=function() return {state='memory'} end, spawned=function() end}
+  queue=(function() ${partySource} end)().new(companions,readiness)
+  queue.bind('world')
+  press('+judy')
+  assert(#phone.feedback==0,'the open phone posted a failure that the queue also posts in gameplay')
+  queue.flush()
+  local notices=queue.takeNotices()
+  assert(#notices==1 and notices[1].failed and notices[1].message:find('could not prepare: Bridge unavailable',1,true))
+  press('+judy')
+  assert(#phone.feedback==0,'an accepted invitation posted routine preparation text with Developer mode off')
+  developer=true; press('+judy')
+  assert(#phone.feedback==1 and phone.feedback[1]:find('preparing memory',1,true),phone.feedback[1])
+`));
 
 test('phone dismissal of a duplicated character removes only the most recent copy', () => run(`${partyHarness}
   local first,second=join('judy-alvarez'),join('judy-alvarez')

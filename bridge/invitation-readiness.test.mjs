@@ -221,6 +221,31 @@ receipt('error', {error = 'Preparation timed out'}); readiness.update(); queue.f
 assert(queue.list()[1].state == 'failed' and queue.list()[1].error == 'Preparation timed out' and #spawned == 0)
 `));
 
+test('a failure read through the paused snapshots keeps its one notice until the gameplay flush posts it', () => run(`
+assert(queue.invite('judy'))
+local id = queue.list()[1].id
+receipt('error', {error = 'Provider unavailable'}); readiness.update()
+-- The manager banner, the popup sampler and the phone read these while paused.
+for _ = 1, 3 do
+    assert(queue.list()[1].state == 'failed' and queue.preparationFeedback().failed and queue.invitationFeedback(id).failed)
+end
+assert(#queue.takeNotices() == 0 and #spawned == 0, 'a paused read posted the failure notice')
+queue.flush()
+local notices = queue.takeNotices()
+assert(#notices == 1 and notices[1].failed and notices[1].invitationId == id
+    and notices[1].message == 'Judy could not prepare: Provider unavailable')
+assert(queue.claimPreparationFailure(id, 1) == false, 'the gameplay flush left the failure claimable')
+for _ = 1, 3 do readiness.update(); queue.flush(); queue.list(); queue.preparationFeedback() end
+assert(#queue.takeNotices() == 0 and #spawned == 0, 'the failed attempt notified or spawned again')
+-- A claim taken by another gameplay reporter (popup or phone) is the one notice.
+assert(queue.assign(id, 'judy-alvarez', 'Judy') and queue.list()[1].state == 'preparing-memory')
+receipt('error', {error = 'Provider unavailable again'}); readiness.update()
+assert(queue.list()[1].state == 'failed' and queue.claimPreparationFailure(id, 2) == true)
+queue.flush()
+assert(#queue.takeNotices() == 0, 'a claimed failure also produced the queue notice')
+assert(queue.claimPreparationFailure(id, 2) == false)
+`));
+
 test('whole-second CET time accepts Date.now receipts from that second and rejects larger skew', () => run(`
 readiness = makeReadiness({now = function() return math.floor(ms / 1000) * 1000.0 end})
 queue = queueFactory.new(companions, readiness); queue.bind('player')
