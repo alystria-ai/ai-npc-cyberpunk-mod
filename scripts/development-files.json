@@ -106,6 +106,26 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/knowledge-probe.lua"
     },
     {
+      "source": "mod/fact-identity.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/fact-identity.lua"
+    },
+    {
+      "source": "mod/fact-identity-probe.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/fact-identity-probe.lua"
+    },
+    {
+      "source": "mod/knowledge-state.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/knowledge-state.lua"
+    },
+    {
+      "source": "mod/save-identity.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/save-identity.lua"
+    },
+    {
+      "source": "mod/save-identity-probe.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/save-identity-probe.lua"
+    },
+    {
       "source": "characters/world-knowledge.json",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/world-knowledge.json"
     },

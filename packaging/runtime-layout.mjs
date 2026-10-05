@@ -14,6 +14,7 @@ export const CLIENT_ASSETS = Object.freeze([
 // closure. Source tests compare this allowlist with the real entry point so a
 // newly imported module cannot silently become a missing package component.
 export const BRIDGE_MODULES = Object.freeze([
+  'bridge/analysis-pcm.mjs',
   'bridge/battle-context.mjs',
   'bridge/chat-memory-resets.mjs',
   'bridge/companion-actions.mjs',
@@ -22,6 +23,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/convai-bridge.mjs',
   'bridge/convai-continuous-speech.mjs',
   'bridge/conversation-style.mjs',
+  'bridge/distraction-context.mjs',
   'bridge/facial-timeline.mjs',
   'bridge/game-launch.mjs',
   'bridge/group-context.mjs',
@@ -29,11 +31,16 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/group-prefetch.mjs',
   'bridge/guarded-file.mjs',
   'bridge/intrinsic-character-context.mjs',
+  'bridge/jali-face-model.mjs',
+  'bridge/jali-face.mjs',
   'bridge/journal-history.mjs',
+  'bridge/local-pcm-host.mjs',
   'bridge/loot-context.mjs',
   'bridge/microphone-session.mjs',
   'bridge/party-connections.mjs',
+  'bridge/phone-analysis-config.mjs',
   'bridge/phone-chat.mjs',
+  'bridge/phone-poses.mjs',
   'bridge/phonetic-lipsync.mjs',
   'bridge/phonetic-poses.mjs',
   'bridge/player-knowledge.mjs',
@@ -41,15 +48,21 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/player-memory-control.mjs',
   'bridge/player-memory.mjs',
   'bridge/player-phone-knowledge.mjs',
+  'bridge/pocket-facial-stream.mjs',
+  'bridge/pocket-speech.mjs',
+  'bridge/pocket-voice.mjs',
   'bridge/protocol.mjs',
   'bridge/quest-context.mjs',
   'bridge/realtime-host.mjs',
   'bridge/relationship-routing.mjs',
+  'bridge/request-ownership.mjs',
+  'bridge/resident-phone-analysis.mjs',
   'bridge/resident-voice.mjs',
   'bridge/runtime-paths.mjs',
   'bridge/speech-audio.mjs',
   'bridge/speech-stream.mjs',
   'bridge/support-report.mjs',
+  'bridge/text-emotion.mjs',
   'bridge/transport-pool.mjs',
   'bridge/voice-preview.mjs',
   'bridge/voice-profile-registry.mjs',
@@ -57,6 +70,19 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/world-knowledge.mjs',
   'bridge/world-session.mjs',
   'bridge/zip-writer.mjs',
+]);
+// Files the production bridge starts at run time by path (worker threads and
+// Python workers) rather than by a static import, so the closure test cannot
+// see them. A source test scans the closure for these references. The phone
+// analysis worker is named by the prepared phone-analysis.json instead of a
+// literal path; its models and dependency tree are generated data, not source.
+export const BRIDGE_AUXILIARY_FILES = Object.freeze([
+  'bridge/jali-face-worker.mjs',
+  'bridge/resident-voice-worker.py',
+  'bridge/voice-cuda-graph.py',
+  'bridge/pocket-voice-worker.py',
+  'bridge/pocket_voice_runtime.py',
+  'bridge/phone-analysis-worker.py',
 ]);
 // These are the pinned external package entry points, not a replacement for the
 // full reviewed Playwright distributions and their transitive source/notices.
@@ -147,7 +173,7 @@ export function validateManifest(value) {
   const required = [...BRIDGE_MODULES, ...NODE_PACKAGE_ENTRIES,
     'Start-Runtime.ps1', value.bootstrapEntry,
     'bootstrap/runtime-layout.mjs', 'bootstrap/runtime-bootstrap.mjs',
-    'bridge/resident-voice-worker.py', 'bridge/voice-cuda-graph.py',
+    ...BRIDGE_AUXILIARY_FILES,
     'python/Lib/site-packages/omnivoice/__init__.py',
     'python/Lib/site-packages/omnivoice/models/omnivoice.py',
     'voice/voicestudio/backend/services/tts_backend.py', 'tools/rhubarb/rhubarb.exe',

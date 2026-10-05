@@ -1,8 +1,9 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile, readdir} from 'node:fs/promises';
+import {REVIEWED_INTRINSIC_PACKS} from './intrinsic-character-context.mjs';
 import {LOCAL_VOICE_KEYS, voiceSteps} from './resident-voice.mjs';
-import {BRIDGE_MODULES, CLIENT_ASSETS} from '../packaging/runtime-layout.mjs';
+import {BRIDGE_AUXILIARY_FILES, BRIDGE_MODULES, CLIENT_ASSETS} from '../packaging/runtime-layout.mjs';
 
 const plan = JSON.parse(await readFile(new URL('../packaging/release-plan.json', import.meta.url), 'utf8'));
 const development = JSON.parse(await readFile(new URL('../scripts/development-files.json', import.meta.url), 'utf8'));
@@ -82,10 +83,8 @@ test('file-loaded intrinsic history is an explicit runtime data dependency, sepa
   const history = runtime.plannedComponents.find(component => component.id === 'intrinsic-history');
   assert(history);
   assert.match(history.destination, /\/app\/research\/cyberpunk\/native-character-claims$/);
-  assert.deepEqual(history.sourceFiles, [
-    'research/cyberpunk/native-character-claims/jackie-welles.json',
-    'research/cyberpunk/native-character-claims/johnny-silverhand.json',
-  ]);
+  // The bridge opens exactly the reviewed packs it hashes; the plan must name each one.
+  assert.deepEqual(history.sourceFiles, REVIEWED_INTRINSIC_PACKS.map(pack => pack.file));
   assert.equal(history.includeRawGameExports, false);
   assert.equal(history.authorHashEncoding, 'canonical-json-v1');
   assert.equal(plan.voice.registry.schemaVersion, 2);
@@ -96,8 +95,25 @@ test('file-loaded intrinsic history is an explicit runtime data dependency, sepa
 test('runtime plan carries the reviewed bridge import closure and uses the real browser bundle filename', () => {
   const bridge = runtime.plannedComponents.find(component => component.id === 'bridge');
   assert.equal(bridge.status, 'source-import-closure-reviewed-not-packaged');
-  assert.deepEqual(bridge.sourceFiles, [...BRIDGE_MODULES,
-    'bridge/resident-voice-worker.py', 'bridge/voice-cuda-graph.py']);
+  assert.deepEqual(bridge.sourceFiles, [...BRIDGE_MODULES, ...BRIDGE_AUXILIARY_FILES]);
   const client = runtime.plannedComponents.find(component => component.id === 'browser-client');
   for (const file of CLIENT_ASSETS) assert(client.selection.includes(file), file);
+});
+
+test('every Lua file under mod/ and every file one loads by name is in the development and release manifests', async () => {
+  const lua = async folder => (await readdir(new URL(`../${folder}/`, import.meta.url), {withFileTypes: true}))
+    .flatMap(entry => entry.isFile() && entry.name.endsWith('.lua') ? [`${folder}/${entry.name}`] : []);
+  const files = [...await lua('mod'), ...await lua('mod/locales')];
+  const listed = new Set(development.files.map(file => file.source));
+  const released = new Set(scripts.files.map(file => file.source));
+  for (const file of files) {
+    assert(listed.has(file), `${file} is not in scripts/development-files.json`);
+    assert(released.has(file), `${file} is not in the release plan scripts archive`);
+  }
+  // Names given to dofile/loadfile resolve beside init.lua, so each must be installed too.
+  for (const file of files) {
+    const text = await readFile(new URL(`../${file}`, import.meta.url), 'utf8');
+    for (const match of text.matchAll(/(?:dofile|loadfile)\('([\w-]+\.lua)'/g))
+      assert(listed.has(`mod/${match[1]}`), `${file} loads ${match[1]}, which the development install omits`);
+  }
 });

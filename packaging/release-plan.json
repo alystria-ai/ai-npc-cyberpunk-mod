@@ -284,6 +284,26 @@
         {
           "source": "mod/companion-clearance.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-clearance.lua"
+        },
+        {
+          "source": "mod/fact-identity.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/fact-identity.lua"
+        },
+        {
+          "source": "mod/fact-identity-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/fact-identity-probe.lua"
+        },
+        {
+          "source": "mod/knowledge-state.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/knowledge-state.lua"
+        },
+        {
+          "source": "mod/save-identity.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/save-identity.lua"
+        },
+        {
+          "source": "mod/save-identity-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/save-identity-probe.lua"
         }
       ],
       "plannedDependencyComponents": [
@@ -381,6 +401,7 @@
           "selection": "explicit production import closure, excluding tests and retired modules",
           "status": "source-import-closure-reviewed-not-packaged",
           "sourceFiles": [
+            "bridge/analysis-pcm.mjs",
             "bridge/battle-context.mjs",
             "bridge/chat-memory-resets.mjs",
             "bridge/companion-actions.mjs",
@@ -389,6 +410,7 @@
             "bridge/convai-bridge.mjs",
             "bridge/convai-continuous-speech.mjs",
             "bridge/conversation-style.mjs",
+            "bridge/distraction-context.mjs",
             "bridge/facial-timeline.mjs",
             "bridge/game-launch.mjs",
             "bridge/group-context.mjs",
@@ -396,11 +418,16 @@
             "bridge/group-prefetch.mjs",
             "bridge/guarded-file.mjs",
             "bridge/intrinsic-character-context.mjs",
+            "bridge/jali-face-model.mjs",
+            "bridge/jali-face.mjs",
             "bridge/journal-history.mjs",
+            "bridge/local-pcm-host.mjs",
             "bridge/loot-context.mjs",
             "bridge/microphone-session.mjs",
             "bridge/party-connections.mjs",
+            "bridge/phone-analysis-config.mjs",
             "bridge/phone-chat.mjs",
+            "bridge/phone-poses.mjs",
             "bridge/phonetic-lipsync.mjs",
             "bridge/phonetic-poses.mjs",
             "bridge/player-knowledge.mjs",
@@ -408,15 +435,21 @@
             "bridge/player-memory-control.mjs",
             "bridge/player-memory.mjs",
             "bridge/player-phone-knowledge.mjs",
+            "bridge/pocket-facial-stream.mjs",
+            "bridge/pocket-speech.mjs",
+            "bridge/pocket-voice.mjs",
             "bridge/protocol.mjs",
             "bridge/quest-context.mjs",
             "bridge/realtime-host.mjs",
             "bridge/relationship-routing.mjs",
+            "bridge/request-ownership.mjs",
+            "bridge/resident-phone-analysis.mjs",
             "bridge/resident-voice.mjs",
             "bridge/runtime-paths.mjs",
             "bridge/speech-audio.mjs",
             "bridge/speech-stream.mjs",
             "bridge/support-report.mjs",
+            "bridge/text-emotion.mjs",
             "bridge/transport-pool.mjs",
             "bridge/voice-preview.mjs",
             "bridge/voice-profile-registry.mjs",
@@ -424,8 +457,12 @@
             "bridge/world-knowledge.mjs",
             "bridge/world-session.mjs",
             "bridge/zip-writer.mjs",
+            "bridge/jali-face-worker.mjs",
             "bridge/resident-voice-worker.py",
-            "bridge/voice-cuda-graph.py"
+            "bridge/voice-cuda-graph.py",
+            "bridge/pocket-voice-worker.py",
+            "bridge/pocket_voice_runtime.py",
+            "bridge/phone-analysis-worker.py"
           ]
         },
         {
@@ -532,8 +569,15 @@
           "id": "intrinsic-history",
           "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/app/research/cyberpunk/native-character-claims",
           "sourceFiles": [
+            "research/cyberpunk/native-character-claims/johnny-silverhand.json",
             "research/cyberpunk/native-character-claims/jackie-welles.json",
-            "research/cyberpunk/native-character-claims/johnny-silverhand.json"
+            "research/cyberpunk/native-character-claims/judy-alvarez.json",
+            "research/cyberpunk/native-character-claims/panam-palmer.json",
+            "research/cyberpunk/native-character-claims/kerry-eurodyne.json",
+            "research/cyberpunk/native-character-claims/evelyn-parker.json",
+            "research/cyberpunk/native-character-claims/river-ward.json",
+            "research/cyberpunk/native-character-claims/solomon-reed.json",
+            "research/cyberpunk/native-character-claims/songbird.json"
           ],
           "selection": "only reviewed canonical authored documents loaded by the production bridge",
           "includeRawGameExports": false,

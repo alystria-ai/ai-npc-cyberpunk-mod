@@ -8,7 +8,7 @@ import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {setTimeout as sleep} from 'node:timers/promises';
 import {build} from 'esbuild';
-import {ADAPTER_REVISION, BRIDGE_MODULES, bridgeEnvironment, CLIENT_ASSETS, inspectSetup, MOD_DIRECTORY,
+import {ADAPTER_REVISION, BRIDGE_AUXILIARY_FILES, BRIDGE_MODULES, bridgeEnvironment, CLIENT_ASSETS, inspectSetup, MOD_DIRECTORY,
   NODE_PACKAGE_ENTRIES, OMNI_REVISION, packageFile, packagePath,
   readJson, resolveRuntimeLayout, validateManifest, verifyManifestFiles} from './runtime-layout.mjs';
 import {atomicJson, recoverService, requestStop, serviceStatus, superviseRuntime} from './runtime-bootstrap.mjs';
@@ -78,7 +78,7 @@ async function cleanup(fix) {
 async function stageManifest(fix) {
   const fixed = [...BRIDGE_MODULES.filter(path => path !== 'bridge/convai-bridge.mjs'),
     ...NODE_PACKAGE_ENTRIES, 'node/node.exe', 'python/python.exe', 'browser/chrome.exe',
-    'bridge/resident-voice-worker.py', 'bridge/voice-cuda-graph.py',
+    ...BRIDGE_AUXILIARY_FILES,
     'python/Lib/site-packages/omnivoice/__init__.py',
     'python/Lib/site-packages/omnivoice/models/omnivoice.py',
     'voice/voicestudio/backend/services/tts_backend.py', 'tools/rhubarb/rhubarb.exe',
@@ -129,12 +129,39 @@ test('the explicit bridge allowlist covers the real production import closure an
   }
 });
 
+test('every worker the bridge starts by path is declared, with the siblings it imports', async () => {
+  // Worker threads and Python workers are not static imports, so the closure
+  // test cannot see them. Scan the closure for the two ways the bridge names one.
+  const root = resolve(source, '..'), referenced = new Set();
+  for (const module of BRIDGE_MODULES) {
+    const text = await readFile(resolve(root, module), 'utf8');
+    for (const match of text.matchAll(/new URL\('\.\/([\w.-]+\.mjs)',\s*import\.meta\.url\)/g))
+      if (!CLIENT_ASSETS.includes(match[1])) referenced.add(`bridge/${match[1]}`);
+    for (const match of text.matchAll(/['"`](bridge\/[\w.-]+\.py)['"`]/g)) referenced.add(match[1]);
+  }
+  for (const path of referenced) if (!BRIDGE_MODULES.includes(path))
+    assert(BRIDGE_AUXILIARY_FILES.includes(path), `${path} is started by the bridge but is not in BRIDGE_AUXILIARY_FILES`);
+  for (const path of BRIDGE_AUXILIARY_FILES) {
+    const text = await readFile(resolve(root, path), 'utf8');
+    if (path.endsWith('.mjs')) {
+      for (const match of text.matchAll(/from '\.\/([\w.-]+\.mjs)'/g))
+        assert([...BRIDGE_MODULES, ...BRIDGE_AUXILIARY_FILES].includes(`bridge/${match[1]}`), `${path} imports undeclared ${match[1]}`);
+    } else {
+      for (const match of text.matchAll(/^(?:from|import)\s+([A-Za-z_]\w*)/gm)) {
+        const sibling = `bridge/${match[1]}.py`;
+        if (sibling !== path && await stat(resolve(root, sibling)).then(() => true, () => false))
+          assert(BRIDGE_AUXILIARY_FILES.includes(sibling), `${path} imports undeclared ${sibling}`);
+      }
+    }
+  }
+});
+
 test('a prepared manifest cannot omit an imported bridge module, package entry point or player launcher', async () => {
   const fix = await fixture();
   try {
     const manifest = await stageManifest(fix);
     assert(validateManifest(manifest).fileMap.has('bridge/player-memory.mjs'));
-    for (const required of [...BRIDGE_MODULES, ...NODE_PACKAGE_ENTRIES, 'Start-Runtime.ps1']) {
+    for (const required of [...BRIDGE_MODULES, ...BRIDGE_AUXILIARY_FILES, ...NODE_PACKAGE_ENTRIES, 'Start-Runtime.ps1']) {
       assert.throws(() => validateManifest({...manifest,
         files: manifest.files.filter(file => file.path !== required)}),
       {code: 'invalid-manifest'}, required);
