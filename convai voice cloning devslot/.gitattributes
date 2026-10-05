@@ -1,5 +1,0 @@
-code/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
-references/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
-*.md text eol=lf
-.gitignore text eol=lf
-.gitattributes text eol=lf

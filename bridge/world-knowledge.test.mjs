@@ -387,7 +387,7 @@ test('untrusted-looking text stays quoted data, and raw scraped fields cannot en
 
 test('capture and pack limits fail closed without throwing on malformed optional input', () => {
   const invalidCaptures = [undefined, '{', [], {}, {...snapshot(), version: 2}, {...snapshot(), audience: undefined},
-    snapshot({facts: Object.fromEntries(Array.from({length: 513}, (_, i) => [`fact_${i}`, observation(1)]))}),
+    snapshot({facts: Object.fromEntries(Array.from({length: 1025}, (_, i) => [`fact_${i}`, observation(1)]))}),
     snapshot({audience: {channel: 'phone', profileKeys: ['judy-alvarez', 'panam-palmer']}}),
     snapshot({facts: {choice_a: {status: 'known', value: 1, present: true}}}),
     snapshot({gameTimeSeconds: -1}), snapshot({capturedAt: 'not-a-date'}),
@@ -430,4 +430,22 @@ test('a deep-frozen pack is reused across turns with identical results, other pa
   const invalid = deepFreeze({...pack(), version: 2});
   assert.equal(resolveKnowledge({pack: invalid, snapshot: snapshot(), profileKey: 'judy-alvarez'}).diagnostics.status, 'invalid-pack');
   assert.equal(resolveKnowledge({pack: invalid, snapshot: snapshot(), profileKey: 'judy-alvarez'}).diagnostics.status, 'invalid-pack');
+});
+
+test('fact and journal allowlists share the Lua collector capture limit', () => {
+  const sized = (facts, journal) => {
+    const value = pack();
+    for (let i = 0; i < facts; i++) value.factAllowlist['f' + i] = {evidenceRefs: ['native-branch']};
+    for (let i = 0; i < journal; i++) value.journalAllowlist[String(1000 + i)] = {questKey: 'the-choice', evidenceRefs: ['native-branch']};
+    return value;
+  };
+  assert.equal(validateKnowledgePack(sized(1021, 1022)).ok, true);
+  for (const value of [sized(1022, 0), sized(0, 1023)]) {
+    const result = validateKnowledgePack(value);
+    assert.equal(result.ok, false);
+    assert(result.errors.some(row => row.code === 'capture-limit'));
+  }
+  const many = n => Object.fromEntries(Array.from({length: n}, (_, i) => ['f' + i, observation(1, {present: true})]));
+  assert.equal(parseWorldSnapshot(snapshot({facts: many(1024)})).status, 'ready');
+  assert.equal(parseWorldSnapshot(snapshot({facts: many(1025)})).status, 'unavailable');
 });

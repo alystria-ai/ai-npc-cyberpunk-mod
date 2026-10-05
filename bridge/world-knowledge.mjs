@@ -1,8 +1,10 @@
 import {createHash} from 'node:crypto';
 
+// observations matches mod/world-knowledge.lua CAPTURE_LIMIT: a pack whose fact
+// or journal allowlist exceeds it would disable the Lua collector at load.
 const LIMIT = Object.freeze({snapshotBytes: 256 * 1024, packBytes: 16 * 1024 * 1024,
   profiles: 256, sources: 2048, evidence: 4096, inventory: 4096, rules: 2048,
-  observations: 512, activeQuests: 32, disclosures: 128, nodes: 128, depth: 8,
+  observations: 1024, activeQuests: 32, disclosures: 128, nodes: 128, depth: 8,
   children: 16, exclusiveGroups: 8, events: 64, errors: 64, traces: 128, context: 12000});
 const EXECUTABLE = new Set(['source-verified', 'live-verified']);
 const STATUSES = new Set(['unmapped', 'candidate', ...EXECUTABLE, 'disabled']);
@@ -179,6 +181,7 @@ function preparePack(value) {
   const inventory = (rows, type) => {
     const result = new Map(), path = `${type}Allowlist`;
     if (!plain(rows) || Object.keys(rows).length > LIMIT.inventory) { fail('invalid-inventory', path); return result; }
+    if (Object.keys(rows).length > LIMIT.observations) fail('capture-limit', path);
     for (const [key, row] of Object.entries(rows)) {
       if (!identifier(key) || !plain(row) || (type === 'journal' && !identifier(row.questKey))) {
         fail('invalid-inventory-entry', path); continue;

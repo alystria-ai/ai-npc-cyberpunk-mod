@@ -5,6 +5,10 @@
 local M = {}
 local Collector = {}; Collector.__index = Collector
 local MAX_SAFE = 9007199254740991
+-- Per-inventory observation bound (facts and journal separately). The bridge
+-- validator and pack builder enforce the same value so a large reviewed pack
+-- cannot silently disable collection at load.
+M.CAPTURE_LIMIT = 1024
 local STATES = {Active = 'active', Succeeded = 'succeeded', Failed = 'failed'}
 local CLASSES = {gameJournalQuest = true, gameJournalQuestPhase = true,
     gameJournalQuestObjective = true, gameJournalQuestSubObjective = true,
@@ -178,10 +182,10 @@ local function selectedInventory(pack, name, selected)
         if count > 4096 or not identifier(key) or not plain(row)
             or not list(row.evidenceRefs, 32, identifier, 1) then return nil, 'invalid-' .. name end
     end
-    if selected and not list(selected, 512, identifier) then return nil, 'invalid-selection' end
+    if selected and not list(selected, M.CAPTURE_LIMIT, identifier) then return nil, 'invalid-selection' end
     local keys = selected and clone(selected) or {}
     if not selected then
-        if count > 512 then return nil, 'selection-required' end
+        if count > M.CAPTURE_LIMIT then return nil, 'selection-required' end
         for key in pairs(inventory) do keys[#keys + 1] = key end
     end
     table.sort(keys)
@@ -235,7 +239,12 @@ function M.new(options)
         utcNow = options.utcNow or function() return os.date('!%Y-%m-%dT%H:%M:%SZ') end,
         batchSize = math.floor(bounded(options.batchSize, 32, 1, 128)),
         budgetSeconds = bounded(options.budgetSeconds, 0.002, 0.0001, 0.01),
-        maxAgeSeconds = bounded(options.maxAgeSeconds, 3, 0.25, 5),
+        -- The lease is measured from the start of the sampling cycle, so the
+        -- oldest observation in a published snapshot is at most this old. With
+        -- whole-second os.time and a short refresh, a cycle of d seconds keeps
+        -- the cache valid while ceil(d)+floor(d) <= maxAge; 5 s admits ~3 s
+        -- cycles (about twice the reviewed pack's observation count).
+        maxAgeSeconds = bounded(options.maxAgeSeconds, 5, 0.25, 5),
         refreshSeconds = bounded(options.refreshSeconds, 0.25, 0, 2),
         journalDepth = math.floor(bounded(options.journalDepth, 12, 1, 16)),
         serial = 0, reason = 'not-configured'}, Collector)

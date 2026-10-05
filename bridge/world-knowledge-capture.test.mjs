@@ -108,10 +108,19 @@ assert(not m:configure(pack,{gameVersion='2.32'}))
 assert(not m:configure(pack,{gameVersion='2.31',factKeys={'not_allowlisted'}}))
 local cycle={}; cycle[1]=cycle
 assert(not m:configure(pack,{gameVersion='2.31',factKeys=cycle}))
-for i=1,513 do fact('item'..i) end
+for i=1,1025 do fact('item'..i) end
 local ok,reason=m:configure(pack,{gameVersion='2.31'}); assert(not ok and reason=='selection-required')
 assert(m:configure(pack,{gameVersion='2.31',factKeys={'positive'}})); finish(m)
 assert(calls.facts==1 and m:capture(context).facts.positive.value==1)
+`));
+
+test('the default lease admits a three-second sampling cycle but still expires five seconds after it began', () => run(fixture + `
+for i=1,4 do fact('item'..i); values['item'..i]=1 end
+options.batchSize=1; local m=configured(); m:update(context)
+time=101; m:update(context); time=102; m:update(context); time=103; m:update(context); m:update(context)
+assert(m:capture(context).status=='ready', 'a cycle that took three seconds must stay usable')
+time=105; assert(m:capture(context).status=='ready')
+time=105.5; assert(m:capture(context).reason=='capture-expired')
 `));
 
 test('every request gets an independent audience, identity and snapshot copy', () => run(fixture + `
@@ -163,7 +172,7 @@ return {old=old,current=current}
 
 test('lease age includes the whole sampling window, and an expired cycle is discarded', () => run(fixture + `
 for i=1,3 do fact('item'..i); values['item'..i]=1 end
-options.batchSize=1; local m=configured(); m:update(context)
+options.batchSize=1; options.maxAgeSeconds=3; local m=configured(); m:update(context)
 time=102; m:update(context); m:update(context); m:update(context)
 assert(m:capture(context).status=='ready')
 time=103.1; assert(m:capture(context).reason=='capture-expired')
