@@ -29,7 +29,14 @@ test('Auto predicates exactly match the reviewed native pack rather than inferre
     assert(rule.audience.speakers.includes(profile));
     const expected = spec.all ? {all: spec.all.map(fact => ({type: 'fact', key: fact, op: 'eq', value: 1}))}
       : {type: 'fact', key: spec.positive, op: 'gte', value: 1};
-    assert.deepEqual(rule.condition, expected, spec.rule + ' source predicate changed; re-review routing');
+    if (profile === 'judy-alvarez') {
+      // Routing is deliberately weaker than the knowledge rule: the rule also waits for the late
+      // sq030_romance completion flag, but the game already treats V as Judy's partner once the hut
+      // writes sq030_judy_lover. Every routing fact must still be one of the rule's own facts.
+      const ruleFacts = rule.condition.all.map(row => row.key);
+      assert.deepEqual([...spec.all, ...spec.observed].sort(), [...ruleFacts].sort(), spec.rule + ' facts changed; re-review routing');
+      assert.deepEqual(spec.all, ['sq030_judy_lover']);
+    } else assert.deepEqual(rule.condition, expected, spec.rule + ' source predicate changed; re-review routing');
   }
 });
 

@@ -123,11 +123,21 @@ test('every confirming and contradicting fact is honoured per character, includi
       // An unknown/absent conflict does not assert rejection.
       assert.equal(select(profile, 'auto', state({...FACTS[profile], [conflict]: 'unknown'})).variant, 'romantic');
     }
-    for (const name of Object.keys(FACTS[profile])) {
+    const decisive = RELATIONSHIP_PROFILES[profile].all || [RELATIONSHIP_PROFILES[profile].positive];
+    for (const name of decisive) {
       const partial = {...FACTS[profile]}; delete partial[name];
-      if (Object.keys(FACTS[profile]).length > 1) assert.equal(select(profile, 'auto', state(partial)).variant, 'ordinary', name);
+      assert.equal(select(profile, 'auto', state(partial)).variant, 'ordinary', name);
+      assert.equal(select(profile, 'auto', state({...partial, [name]: 'unknown'})).variant, 'ordinary', name);
     }
   }
+  // Judy: the game treats V as her partner from the romance exit (sq030_judy_lover), which can precede
+  // sq030_romance by however long V takes to pick up their clothes. Neither the early morning-choice flag
+  // nor the late completion flag alone may select the alternate profile.
+  assert.equal(select('judy-alvarez', 'auto', state({sq030_judy_lover: 1})).variant, 'romantic');
+  assert.equal(select('judy-alvarez', 'auto', state({sq030_11_romance: 1, sq030_judy_lover: 1})).variant, 'romantic');
+  assert.equal(select('judy-alvarez', 'auto', state({sq030_11_romance: 1})).variant, 'ordinary');
+  assert.equal(select('judy-alvarez', 'auto', state({sq030_romance: 1})).variant, 'ordinary');
+  assert.equal(select('judy-alvarez', 'auto', state({sq030_11_romance: 1, sq030_romance: 1})).variant, 'ordinary');
   assert.equal(RELATIONSHIP_FACTS.length, 11);
   assert.deepEqual([...RELATIONSHIP_FACTS].sort(), [...new Set([...Object.keys(ALL_FACTS),
     'sq030_friendship', 'sq028_kerry_dislike'])].sort());
@@ -188,8 +198,9 @@ test('Lua capture reads exactly the bridge allowlist and its output selects the 
   }
   // Kerry's relationship fact is additive (setExactValue 0 in the beach scene), so >1 still counts.
   assert.equal(select('kerry-eurodyne', 'auto', parseRelationshipState(capture({sq028_kerry_relationship: 2}).json)).variant, 'romantic');
-  // Judy's three exact receipts must each be exactly 1.
-  assert.equal(select('judy-alvarez', 'auto', parseRelationshipState(capture({...FACTS['judy-alvarez'], sq030_romance: 2}).json)).variant, 'ordinary');
+  // Judy's decisive receipt is exact (the hut writes 1); the late completion flag is only observed.
+  assert.equal(select('judy-alvarez', 'auto', parseRelationshipState(capture({...FACTS['judy-alvarez'], sq030_judy_lover: 2}).json)).variant, 'ordinary');
+  assert.equal(select('judy-alvarez', 'auto', parseRelationshipState(capture({sq030_judy_lover: 1}).json)).variant, 'romantic');
   // A native facts read of the wrong game version publishes nothing usable.
   assert.equal(parseRelationshipState(capture(FACTS['judy-alvarez'], {version: '2.32'}).json), null);
 });

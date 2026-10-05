@@ -15,8 +15,15 @@ const sameWorld = (a, b) => binding(a) && binding(b)
 const fail = code => { throw Object.assign(Error('Relationship routing: ' + code), {code}); };
 const MODES = new Set(['auto', 'on', 'off']);
 export const RELATIONSHIP_PROFILES = Object.freeze({
+  // The hut quest writes sq030_judy_lover only on the scene's romance exit, which
+  // itself requires the morning commitment (sq030_11_romance). sq030_romance is
+  // written later, once V has also picked up their clothes, so requiring it left
+  // a player-paced window where the game already treats V as Judy's partner but
+  // Auto still chose the ordinary profile. Both are still captured (the Lua
+  // allowlist must match this one exactly) but only the lover fact decides.
   'judy-alvarez': Object.freeze({kind: 'relationship', rule: 'core-arcs.judy.committed',
-    all: Object.freeze(['sq030_11_romance', 'sq030_judy_lover', 'sq030_romance']), conflicts: Object.freeze(['sq030_friendship'])}),
+    all: Object.freeze(['sq030_judy_lover']), observed: Object.freeze(['sq030_11_romance', 'sq030_romance']),
+    conflicts: Object.freeze(['sq030_friendship'])}),
   'panam-palmer': Object.freeze({kind: 'relationship', rule: 'aldecaldos.native.panam-basilisk-intimacy',
     all: Object.freeze(['sq027_panzer_sex', 'sq027_panam_lover']), conflicts: Object.freeze([])}),
   'river-ward': Object.freeze({kind: 'relationship', rule: 'jr-native.river-relationship-committed',
@@ -27,7 +34,7 @@ export const RELATIONSHIP_PROFILES = Object.freeze({
     positive: 'q003_stout_sex_done', conflicts: Object.freeze([])}),
 });
 export const RELATIONSHIP_FACTS = Object.freeze([...new Set(Object.values(RELATIONSHIP_PROFILES)
-  .flatMap(row => [...(row.all || [row.positive]), ...row.conflicts]))]);
+  .flatMap(row => [...(row.all || [row.positive]), ...(row.observed || []), ...row.conflicts]))]);
 
 function freeze(value) {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
