@@ -28,6 +28,29 @@ local questContext = dofile('quest-context.lua')
 local battleObserver = dofile('battle-observer.lua')
 local battles = dofile('battle-reactions.lua').new()
 convaiBattleReactions = battles
+-- Companion tactics (Fight / Distract the marked target). The environment is
+-- filled in after sendRequest exists; see tacticEnv below.
+local tacticEnv = {}
+local function tacticModule(path, options, fallback)
+    local ok, module = pcall(dofile, path)
+    if ok and type(module) == 'table' and type(module.new) == 'function' then
+        local built, value = pcall(module.new, options)
+        if built and type(value) == 'table' then return value end
+        module = value
+    end
+    print('[CyberpunkConvai] ' .. path .. ' unavailable: ' .. tostring(module))
+    return fallback
+end
+local marking = tacticModule('companion-marking.lua', {owned = function(npc) return companions.owns(npc) end},
+    {current = function() return nil end, abandon = function() end,
+        mark = function() return false, 'Target marking is unavailable.' end})
+local tactics = tacticModule('companion-tactics.lua', {env = tacticEnv}, {
+    offer = function() return {available = false} end, start = function() return false, 'Companion tactics are unavailable.' end,
+    owns = function() return false end, decide = function() return nil end, busy = function() return false end,
+    canDeliver = function() return false end, received = function() return false end, interrupt = function() end,
+    update = function() end, abandon = function() end, cancel = function() end})
+companions.tactics = tactics
+convaiCompanionTactics, convaiTargetMarking = tactics, marking
 local lootObserver = dofile('loot-observer.lua')
 local loot = dofile('loot-reactions.lua').new()
 convaiLootObserver, convaiLootReactions = lootObserver, loot
@@ -169,6 +192,8 @@ gameplayActions = dofile('gameplay-actions.lua').new({
     end,
     offer = function(entity) return companions.chauffeurOffer(entity) end,
     queue = function(serial, offer, entity) return companions.queueChauffeur(serial, offer, entity) end,
+    tacticOffer = function(entity) return tactics.offer(entity) end,
+    queueTactic = function(kind, offer, entity) return tactics.start(kind, offer, entity) end,
     developerMode = manager.developerMode,
     feedback = function(state, reason)
         local player = Game.GetPlayer()
@@ -538,6 +563,11 @@ local function updateGaze(player, elapsed)
         convaiAttentionProbe = nil
     end
     if focusMode == 'chat' then return end
+    -- A distraction target keeps facing the companion, not V's crosshair.
+    if tactics.busy() then
+        if focusMode == 'gaze' then endFocus(player); focusMode, focusEntity = nil, nil; resetGaze() end
+        return
+    end
     gazePoll = gazePoll + elapsed
     if gazePoll < 0.2 then return end
     local step = gazePoll
@@ -678,6 +708,7 @@ local function beginText(groupMode)
             return
         end
         cancelAutomatic('manual-text')
+        tactics.interrupt('manual-text')
         gameplayActions.revoke('new-conversation')
         speech.stop('new-conversation')
         microphone.cancel()
@@ -734,6 +765,7 @@ local function toggleVoice(groupMode)
         local npc, key, name, body, entity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
         generation = generation + 1
         cancelAutomatic('microphone')
+        tactics.interrupt('microphone')
         gameplayActions.revoke('new-conversation')
         microphone.cancel('new-conversation')
         groupChat.cancel()
@@ -971,6 +1003,7 @@ local function updateBattles(player, elapsed, worldReady)
         elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
     end
     local busy = not worldReady or manual or not outputs.enabled or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() or automatic ~= nil
+        or (tactics ~= nil and tactics.busy())
     local function mayFollow(event, kind)
         if not event or busy then return false end
         if not lastAutomatic then return true end
@@ -1026,6 +1059,7 @@ end
 
 local function reactionCanDeliver(context, player)
     if not context.reaction then return true end
+    if context.reaction.kind == 'distraction' then return tactics ~= nil and tactics.canDeliver(context) end
     if not automatic or automatic.requestId ~= context.requestId then return false end
     -- A reply can become ready between the half-second observer samples. Read
     -- player scene/combat state and the owned speaker before playback.
@@ -1226,12 +1260,53 @@ local function updatePhoneInvitationFeedback(player)
     lastPhoneInvitation = nil
 end
 
+-- Distraction lines use the ordinary automatic-turn path: one request at a
+-- time, the shared reaction lease, speech, subtitles and lip-sync.
+tacticEnv.player = function() return Game.GetPlayer() end
+tacticEnv.actor = function(entity) return companions.readyActor(entity) end
+tacticEnv.marked = function(player) return marking.current(player) end
+tacticEnv.identify = function(npc) return profileIdentity(npc) end
+tacticEnv.converses = function(key) return supportedProfiles[key] == true and manager.profileEnabled(key) end
+tacticEnv.nextGeneration = function() generation = generation + 1; return generation end
+tacticEnv.idle = function()
+    return not pending and not speech.requestId and not subtitles.ownsUtterance() and not automatic and not active
+        and not groupChat.round and not (microphone.context and microphone.state ~= 'reply') and not phoneChat.pending
+end
+tacticEnv.send = function(context, npc) speech.target = npc; return sendRequest(context) end
+tacticEnv.pendingId = function() return pending and pending.requestId end
+tacticEnv.speaking = function(requestId) return speech.requestId == requestId or subtitles.ownsUtterance() end
+tacticEnv.transcript = function(requestId, turnGeneration, entity) return speech.transcript(requestId, turnGeneration, entity) end
+tacticEnv.stopTurn = function(requestId)
+    if pending and pending.requestId == requestId then pending, pendingKnowledgeOwner = nil, nil end
+    if speech.requestId == requestId then speech.stop('tactic-cancelled') end
+end
+tacticEnv.writeLease = function(requestId, valid, playbackAt)
+    local file = io.open('runtime/reaction-lease.json.tmp', 'wb')
+    if not file then return false end
+    file:write(json.encode({requestId = requestId, valid = valid == true, updated = os.time() * 1000,
+        playbackStartedAt = playbackAt})); file:close()
+    os.remove('runtime/reaction-lease.json')
+    return os.rename('runtime/reaction-lease.json.tmp', 'runtime/reaction-lease.json') ~= nil
+end
+tacticEnv.now = function() return os.time() * 1000 end
+tacticEnv.feedback = function(message)
+    local player = Game.GetPlayer()
+    if player then pcall(function() player:ConvaiPhoneFeedback(ui.t(message)) end) end
+end
+tacticEnv.log = function(line) log(line) end
+
 registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', function() beginText(false) end)
 registerHotkey('cyberpunk_convai_group_text', 'Cyberpunk Convai: group text chat', function() beginText(true) end)
 registerHotkey('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice', function() toggleVoice(false) end)
 registerHotkey('cyberpunk_convai_group_voice', 'Cyberpunk Convai: group voice chat', function() toggleVoice(true) end)
 registerHotkey('cyberpunk_convai_diagnostic', 'Cyberpunk Convai: capture NPC diagnostic', captureNpcDiagnostic)
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
+registerHotkey('cyberpunk_convai_mark_target', 'Cyberpunk Convai: mark target for companions', function()
+    local player = Game.GetPlayer()
+    if not player or not gameplayCanAcquire(player) then return end
+    local ok, _, message = pcall(marking.mark, player)
+    if ok and message then pcall(function() player:ConvaiPhoneFeedback(ui.t(message)) end) end
+end)
 
 local worldSuspended, sessionHasState = false, false
 local fastTravelActive
@@ -1244,6 +1319,8 @@ local function abandonSession(reason,preserveTransit)
     battles.reset()
     loot.reset(); lootObserver.reset(); lastAutomatic = nil
     battleSample, battlePeople, battlePoll = nil, {}, 0
+    if tactics then tactics.abandon() end
+    if marking then marking.abandon() end
     companions.abandon(preserveTransit==true)
     mcm.resetSession()
     speech.abandon()
@@ -1495,6 +1572,8 @@ registerForEvent('onUpdate', function(delta)
     local managerOk, managerError = pcall(manager.update, player, 0.1)
     if not managerOk then log('Manager update failed: ' .. tostring(managerError)) end
     if worldReady then companions.update(player, elapsedPoll, focusEntity) end
+    local tacticOk, tacticError = pcall(tactics.update, player, elapsedPoll, worldReady)
+    if not tacticOk then tactics.cancel('update-error'); log('Companion tactic update failed: ' .. tostring(tacticError)) end
     movementLog.update(worldReady and manager.developerMode(), elapsedPoll, companions.movementSnapshot)
     updateGroup(player)
     local battleOk, battleError = pcall(updateBattles, player, elapsedPoll, worldReady)
@@ -1598,6 +1677,7 @@ registerForEvent('onUpdate', function(delta)
                     local utterance = reply.stream or (type(reply.continuous) == 'table'
                         and {version=2,id=reply.continuous.id} or nil)
                     groupChat.received(pending.requestId, reply.text, reply.error ~= nil or (not speech.requestId and not subtitles.ownsUtterance()), listeners, utterance, reply.userText)
+                    tactics.received(pending.requestId, reply)
                     if type(microphone.received) == 'function' then microphone.received(pending.requestId) end
                     log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil))
                     if automatic and pending.requestId == automatic.requestId then

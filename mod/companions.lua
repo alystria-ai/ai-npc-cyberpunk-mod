@@ -752,6 +752,15 @@ local function chauffeurEntry(entity,serialToFind)
     end
 end
 
+-- Tactic hook (mod/companion-tactics.lua): read-only lookup of a ready copy on
+-- foot. M.tactics, when set, may own one copy's movement decision via
+-- owns(serial) and decide(serial,context,step); the actuator still issues it.
+function M.readyActor(entity)
+    local entry=chauffeurEntry(entity)
+    if not entry or vehicles.owns(fleet,entry.serial) then return nil end
+    return {serial=entry.serial,npc=entry.npc,profileKey=entry.profileKey,name=entry.profileName}
+end
+
 -- Offers and queue admission run only from gameplay. Menu callers use the
 -- cached snapshot and retain the exact serial/entity pair in their intent.
 function M.chauffeurOffer(entity)
@@ -1237,7 +1246,8 @@ function M.update(player,delta,focusEntity)
     for i=1,#order do
         local entry=order[(first+i-1)%#order+1]
         local ok,err=pcall(function()
-            if recoverDistant(entry,player) then return end
+            local tactic=M.tactics and M.tactics.owns(entry.serial)
+            if not tactic and recoverDistant(entry,player) then return end
             local id=tostring(entry.entityID.hash)
             local lane=travel.laneFrame(groupFrame,entry.lane)
             local travelTarget=space.offset(lane.position,lane.direction,slots[entry.lane][1],0)
@@ -1259,7 +1269,8 @@ function M.update(player,delta,focusEntity)
                 nearGroup=space.nearGroup(entry.position,groupFrame,entry.lane,others,id,entry.clearance),
                 yieldTarget=peerYieldPoint(entry.position,others,id,entry.clearance),others=others,
             }
-            local decision=behavior.decide(entry.person,context,step)
+            local decision=tactic and M.tactics.decide(entry.serial,context,step)
+                or behavior.decide(entry.person,context,step)
             -- Braking is already a committed stop. Never choose an alternative
             -- behind the actor if its original stop point becomes unavailable.
             if decision.phase=='approach' or decision.phase=='obstructed'
