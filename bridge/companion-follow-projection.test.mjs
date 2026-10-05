@@ -17,7 +17,7 @@ function run(code){
 // A body rooted at V's raw Z intersects that real support; the native navigation
 // point fits. This independently models the live .147-metre ground mismatch.
 const fixture=`
-local npc=spawn();npc.ai.commands={};npc.pos=Vector4.new(0,0,0)
+local npc=spawn();npc.ai.commands={};npc.pos=Vector4.new(0,2.5,0)
 player.pos=Vector4.new(0,8,0)
 local motor=dofile('companion-actuator.lua');local state=motor.new(npc)
 local helper=dofile('companion-clearance.lua')
@@ -39,7 +39,7 @@ Game.GetSpatialQueriesSystem=function() return {Overlap=function(_,extent,center
   local sidewalk=center.y>=5 and center.y<=7
   return group=='Static' and sidewalk and (realObstacle or center.z-extent.z<.147)
 end} end
-local context={position=npc.pos,direction=npc.forward,speed=0,player=player,slot=1,playerGap=8,
+local context={position=npc.pos,direction=npc.forward,speed=0,player=player,slot=1,playerGap=5.5,
   frame={position=player.pos},others={},id=npc.id.hash}
 local decision={operation={ticket='follow-projection',kind='follow',gait='Sprint'},look='none'}
 local function update(dt)
@@ -248,34 +248,29 @@ assert(stops==1 and #active(npc)==1 and state.destinationProjection.lateralShift
 assert(state.ticket=='follow-projection' and not state.cancellation)
 `));
 
-test('recovery horizon hands off below twelve metres to a fully projected safe stand-off',()=>run(fixture+`
--- This starts from a physically clear advance prefix, not a manufactured raw
--- destination receipt. The true raised support occupies the final stand-off.
+// October 5 native follow: a clear distant route is admitted as ONE native
+// follower on its six-metre horizon, which does not prove (or need) V's remote
+// stand-off. The follower is never walked through MoveTo legs here. Inside the
+// horizon the periodic route proof resolves the raised stand-off through native
+// projection, never V's raw height, and keeps the same owned follower.
+test('a distant native follower re-proves a raised stand-off through native projection inside the horizon',()=>run(fixture+`
 player.pos=Vector4.new(0,14)
 local supportY=player.pos.y-1.7
 Game.GetSpatialQueriesSystem=function() return {Overlap=function(_,extents,center,_,group)
   queries=queries+1
   return group=='Static' and math.abs(center.y-supportY)<.7 and center.z-extents.z<.147
 end} end
-update();assert(last(npc,'AIFollowTargetCommand'))
-motor.release(state)
-state.recoveryTicket='follow-projection'
-for i=1,20 do update() if last(npc,'AIMoveToCommand') then break end end
-local prefix=last(npc,'AIMoveToCommand');assert(prefix and state.execution.mode=='advance')
--- Native success at the verified prefix puts the actor within the full-goal
--- boundary. V remains still, with a sidewalk under its radial stand-off.
-npc.pos=prefix.movementTarget.position;prefix.state='Success'
+update();local follower=last(npc,'AIFollowTargetCommand')
+assert(follower and not last(npc,'AIMoveToCommand') and not state.blockedReason)
+assert(projections==0 and not state.destinationProjection,'a distant horizon proved an unused remote endpoint')
+-- Native following carries the copy to within the full-goal boundary of V.
+npc.pos=Vector4.new(0,7,0)
 local before=projections
-for i=1,30 do
-  update()
-  local current=active(npc)[1]
-  if current and current.kind=='AIMoveToCommand' then npc.pos=current.movementTarget.position;current.state='Success' end
-  if current and current.kind=='AIFollowTargetCommand' then break end
-end
-local followed=active(npc,'AIFollowTargetCommand')[1]
-assert(followed and not state.blockedReason,'the horizon-to-full boundary still body-tests raw V height')
+for i=1,20 do update() end
+assert(not state.blockedReason,'the horizon-to-full boundary still body-tests raw V height')
 assert(projections>before and state.destinationProjection.point.z==.147)
 assert(state.destinationProjection.requested.z==0 and state.ticket=='follow-projection')
+assert(active(npc)[1]==follower and #active(npc)==1,'a clear proof inside the horizon restarted the native follower')
 `));
 
 test('release and replacement discard pending follow projection admission without reviving it',()=>run(fixture+`

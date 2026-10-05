@@ -22,6 +22,24 @@ const counter=`
   } end
 `;
 
+// A distant follow proves a six-metre native prefix (October 5 native follow).
+// A dense native polyline makes that prefix cost more than one update's 192
+// queries, so quota continuation is still exercised for a remote goal.
+const denseRoute=`
+  do
+    local nav=Game.GetAINavigationSystem()
+    nav.CalculatePathForCharacter=function(_,origin,destination)
+      local dx,dy=destination.x-origin.x,destination.y-origin.y
+      local length=math.sqrt(dx*dx+dy*dy)
+      local path={origin}
+      for i=1,40 do path[#path+1]=Vector4.new(origin.x+dx/length*.15*i,origin.y+dy/length*.15*i,origin.z) end
+      path[#path+1]=destination
+      return {path=path,CalculateLength=function() return length end}
+    end
+    Game.GetAINavigationSystem=function() return nav end
+  end
+`;
+
 test('separate dofile adapters spend the exact same injected query allowance',()=>run(counter+`
   local one,two=dofile('companion-clearance.lua'),dofile('companion-clearance.lua')
   local budget=one.newBudget(); one.useBudget(budget); two.useBudget(budget)
@@ -57,6 +75,7 @@ test('eight clear six-metre follow admissions fit in one update including every 
 test('a long route continues across updates without repeating its verified prefix or releasing the hold',()=>run(`
   local npc=spawn(); npc.ai.commands={}; npc.pos=Vector4.new(0,0)
   ${counter}
+  ${denseRoute}
   local helper=dofile('companion-clearance.lua')
   local motor=dofile('companion-actuator.lua'); local state=motor.new(npc)
   player.pos=Vector4.new(0,100)
@@ -113,6 +132,7 @@ test('the real eight-copy update stays within 192 queries and gives deferred mem
 test('a partial receipt aging during busy frames stays pending instead of becoming a failed route',()=>run(`
   local npc=spawn(); npc.ai.commands={}; npc.pos=Vector4.new(0,0)
   ${counter}
+  ${denseRoute}
   local helper=dofile('companion-clearance.lua')
   local motor=dofile('companion-actuator.lua'); local state=motor.new(npc)
   player.pos=Vector4.new(0,100)
@@ -129,6 +149,7 @@ test('a partial receipt aging during busy frames stays pending instead of becomi
 test('actual coasting during quota deferral rebuilds the route from the new feet',()=>run(`
   local npc=spawn(); npc.ai.commands={}; npc.pos=Vector4.new(0,0)
   ${counter}
+  ${denseRoute}
   local helper=dofile('companion-clearance.lua')
   local motor=dofile('companion-actuator.lua'); local state=motor.new(npc)
   player.pos=Vector4.new(0,100)
