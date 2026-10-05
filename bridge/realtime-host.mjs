@@ -241,7 +241,12 @@ export class RealtimeHost {
           if (!settled && control !== undefined)
             await abortable(page.evaluate(({token, control}) => window.convaiRealtime.continuousControl(token, control), {token, control}), controller.signal);
         }
-        if (!settled) await abortable(new Promise(resolve => setTimeout(resolve, 40)), controller.signal);
+        // A look-ahead turn that is only buffering polls less often.
+        if (!settled) await abortable(new Promise(resolve => {
+          const timer = setTimeout(resolve, liveSpeech.pollMs?.() ?? 40);
+          // Released from its hold: poll at once instead of finishing the slow wait.
+          liveSpeech.wake?.()?.then(() => { clearTimeout(timer); resolve(); });
+        }), controller.signal);
       }
       return request;
     })();
@@ -300,6 +305,9 @@ export class RealtimeHost {
   }
   reply(config, options) { return this.run(config, 'reply', options); }
   warm(config, options) { return this.run(config, 'warm', options); }
+  // True while a local PCM turn still owns the single renderer page, including
+  // its drain and retirement after the audible end.
+  get localPcmBusy() { return !!this.localPcm?.active; }
   async playLocalPcm(config, producer, options = {}) {
     const {signal, current = () => true} = options;
     throwIfCancelled(signal);

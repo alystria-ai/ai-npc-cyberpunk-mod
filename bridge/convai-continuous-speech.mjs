@@ -14,10 +14,15 @@ const quiet = () => ({allow: false, paused: true, volume: 0, pan: 0});
 export class ConvaiContinuousSpeech {
   constructor({input, profile, current, signal, readControl, writeState, writeReply,
     onPublished = async () => {}, onStarted = async () => {}, onGenerated = async () => {},
+    // hold(): true while this turn is a look-ahead that must keep buffering and
+    // publish nothing. onText(text, userText): the complete reply text is known.
+    hold = () => false, onHeld = () => {}, onText = () => {},
     now = Date.now, token = randomUUID(), faceBuilder, jaliFace}) {
     this.input = input; this.profile = profile; this.current = current; this.signal = signal;
     this.readControl = readControl; this.writeState = writeState; this.writeReply = writeReply;
     this.onPublished = onPublished; this.onStarted = onStarted; this.onGenerated = onGenerated;
+    this.hold = hold; this.onHeld = onHeld; this.onText = onText; this.textAnnounced = false;
+    this.woken = new Promise(resolve => { this.resolveWake = resolve; });
     this.faceBuilder = faceBuilder || ((snapshot, input, jali) => buildProviderFacialTimeline(snapshot, input, jali));
     // Optional game-trained model on an analysis copy of the same PCM. The
     // track layout is fixed for the whole stream; provider poses remain the
@@ -29,10 +34,17 @@ export class ConvaiContinuousSpeech {
     this.published = false; this.started = false; this.generated = false; this.ended = false;
   }
 
-  get options() { return {token: this.token, onFrame: snapshot => this.frame(snapshot), pcmCursor: () => this.pcmCursor()}; }
+  get options() {
+    return {token: this.token, onFrame: snapshot => this.frame(snapshot), pcmCursor: () => this.pcmCursor(),
+      // A held look-ahead turn only buffers: the host may poll it less often.
+      pollMs: () => this.hold() ? 120 : undefined, wake: () => this.hold() ? this.woken : undefined};
+  }
 
   // Next analysis frame wanted from the renderer, or undefined (no model).
   pcmCursor() { return this.model && !this.model.failed && !this.modelFinished ? this.pcmFrames : undefined; }
+
+  // The hold ended: let the host poll immediately instead of finishing its slow wait.
+  wakeUp() { this.resolveWake?.(); }
 
   dropModel() { this.model?.close(); this.model = null; this.modelDropped = true; }
 
@@ -120,6 +132,10 @@ export class ConvaiContinuousSpeech {
     // A device timestamp may be quantized by one render quantum. Never move
     // the native face/subtitle clock backwards when that estimate changes.
     this.position = Math.max(this.position, Math.min(duration, snapshot.positionSeconds));
+    // A look-ahead turn only buffers: the renderer receives the quiet control, so
+    // nothing is audible, and no state, reply or receipt is published until the
+    // game has submitted this exact turn. The facial model keeps analysing.
+    if (this.hold()) { this.feedModel(snapshot); this.onHeld(duration, snapshot.textComplete); return quiet(); }
     // Admission needs validated PCM and reply text, not a 400 ms prefix: the
     // renderer itself withholds sound until 400 ms is buffered (or EOF). The
     // game's lease round trip therefore overlaps buffering instead of following it.
@@ -133,6 +149,12 @@ export class ConvaiContinuousSpeech {
       return quiet();
     }
 
+    // The next group speaker's turn is prepared from this complete text. Announce
+    // it before the state that carries it is committed, so the game cannot
+    // publish a prediction for a source the bridge has not yet recorded.
+    if (!this.textAnnounced && snapshot.textComplete && snapshot.text.trim()) {
+      this.textAnnounced = true; this.onText(snapshot.text, snapshot.userText);
+    }
     this.feedModel(snapshot);
     const jali = this.jaliState(duration);
     const faceKey = `${snapshot.faces?.length || 0}:${snapshot.receivedFrames}:${snapshot.sourceComplete}:${snapshot.face?.revision || 0}`

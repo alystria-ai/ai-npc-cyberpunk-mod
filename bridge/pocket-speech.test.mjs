@@ -94,3 +94,22 @@ test('actual Pocket delivery wires the ready resident analyser while admitting o
   assert.equal(seen[1].face.recognition.format,'pocketsphinx-allphone-live-v1');
   assert.equal(response.sessionID,result.sessionID);assert.equal(response.liveDelivery.ended,true);
 });
+
+test('a prefetched Pocket turn replays its buffered PCM in order into the renderer and never synthesizes twice',async()=>{
+  const {BufferedPcm}=await import('./group-lookahead.mjs');
+  let calls=0;const emitted=[],pushed=[];
+  const synth=new BufferedPcm({synthesize:async onPcm=>{
+    calls++;await onPcm(packet(1,0));await onPcm(packet(2,9600));return {frames:19200};}});
+  synth.start();await new Promise(done=>setImmediate(done));
+  assert.equal(synth.packets.length,2,'both packets were produced before the renderer was owned');
+  const speech={token:'owned-token',published:true,ended:true,generated:true,fail:async()=>{}};
+  const host={async playLocalPcm(config,produce){
+    assert.equal(config.text,result.text);
+    const produced=await produce(async value=>{emitted.push(value.index);},{signal:new AbortController().signal});
+    return {...produced,timing:{voiceProvider:'pocket'}};
+  }};
+  const voice={synthesizeStream:async()=>{throw Error('must not synthesize again');}};
+  const reply=await deliverPocketSpeech({input,profile,result,current:async()=>true,voice,host,speech,prefetched:synth,
+    jaliFace:null,phoneAnalysis:undefined});
+  assert.equal(calls,1);assert.deepEqual(emitted,[1,2]);assert.equal(reply.continuous,true);void pushed;
+});

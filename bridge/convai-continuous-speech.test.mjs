@@ -283,3 +283,67 @@ test('the final drained state is retried, and persistent or other write errors s
   for (let poll = 0; poll < 20; poll++) assert.deepEqual(await h.stream.frame(h.snapshot()), QUIET);
   await assert.rejects(h.stream.frame(h.snapshot()), /file in use/);
 });
+
+function heldFixture(input = owner) {
+  const f = fixture(input), texts = [];
+  f.held = true; f.heldFrames = [];
+  const base = f.stream;
+  f.stream = new ConvaiContinuousSpeech({input, profile: {key: 'judy-alvarez'}, token: 'continuous-1',
+    signal: f.abort.signal, now: () => f.now, current: async () => f.current,
+    readControl: async () => { f.events.push('control'); return f.raw; },
+    writeState: async value => { f.events.push('state'); f.states.push(structuredClone(value)); return true; },
+    writeReply: async value => { f.events.push('reply'); f.replies.push(structuredClone(value)); return true; },
+    onPublished: async value => { f.events.push('published'); f.published.push(value); },
+    onStarted: async value => f.started.push(value), onGenerated: async value => { f.events.push('generated'); f.generated.push(value); },
+    hold: () => f.held, onHeld: (seconds, complete) => f.heldFrames.push([seconds, complete]),
+    onText: (text, userText) => { f.events.push('text'); texts.push([text, userText]); }});
+  f.texts = texts; void base;
+  return f;
+}
+
+test('a held look-ahead buffers silently: no state, reply, receipt or text announcement reaches the game', async () => {
+  const f = heldFixture();
+  const snapshot = f.snapshot({receivedFrames: 48000, textComplete: true, sourceComplete: true});
+  assert.deepEqual(await f.stream.frame(snapshot), QUIET);
+  assert.deepEqual(await f.stream.frame({...snapshot, positionSeconds: 0}), QUIET);
+  assert.equal(f.states.length, 0); assert.equal(f.replies.length, 0); assert.equal(f.published.length, 0);
+  assert.equal(f.generated.length, 0); assert.equal(f.texts.length, 0); assert.equal(f.events.includes('control'), false);
+  assert.deepEqual(f.heldFrames[0], [2, true]);
+  assert.equal(f.stream.options.pollMs(), 120);
+});
+
+test('a held look-ahead still enforces cancellation and rejects a corrupt renderer snapshot', async () => {
+  const f = heldFixture();
+  f.current = false;
+  await assert.rejects(f.stream.frame(f.snapshot()), /owner changed/);
+  const g = heldFixture();
+  await assert.rejects(g.stream.frame(g.snapshot({sampleRate: 100})), /Invalid continuous speech state/);
+  const h = heldFixture(); h.abort.abort();
+  await assert.rejects(h.stream.frame(h.snapshot()), /owner changed/);
+});
+
+test('releasing the hold publishes the buffered turn at once: text first, then one state, one admission, then generation', async () => {
+  const f = heldFixture();
+  const snapshot = f.snapshot({receivedFrames: 96000, textComplete: true, sourceComplete: true});
+  await f.stream.frame(snapshot);
+  f.held = false; f.control();
+  await f.stream.frame(snapshot);
+  assert.deepEqual(f.events.filter(name => name !== 'control'), ['text', 'state', 'reply', 'published', 'generated']);
+  assert.equal(f.replies.length, 1); assert.equal(f.replies[0].text, 'Hey V.');
+  assert.equal(f.states[0].bufferedDuration, 4); assert.equal(f.states[0].textComplete, true);
+  assert.equal(f.stream.options.pollMs(), undefined);
+  await f.stream.frame({...snapshot, positionSeconds: .1});
+  assert.equal(f.replies.length, 1); assert.equal(f.texts.length, 1);
+});
+
+test('the complete text is announced once, only after publication rules allow it, with the microphone transcript', async () => {
+  const f = heldFixture({...owner, source: 'microphone', group: {index: 1}}); f.held = false;
+  await f.stream.frame(f.snapshot({textComplete: true}));
+  assert.equal(f.texts.length, 0, 'no transcript, no admission and no announcement');
+  f.control();
+  await f.stream.frame(f.snapshot({textComplete: false, userText: 'Say hi', receivedFrames: 24000}));
+  assert.equal(f.texts.length, 0, 'incomplete text is not announced');
+  await f.stream.frame(f.snapshot({textComplete: true, userText: 'Say hi', receivedFrames: 36000}));
+  await f.stream.frame(f.snapshot({textComplete: true, userText: 'Say hi', receivedFrames: 48000}));
+  assert.deepEqual(f.texts, [['Hey V.', 'Say hi']]);
+});
