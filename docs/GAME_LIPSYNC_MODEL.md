@@ -63,23 +63,40 @@ protrusion, chin drop; lip contact = inner aperture < 1 mm during speech).
 
 ### Results (150 held-out lines, 10.0 min of speech, 16 unseen speakers)
 
-| Metric | Pocket (before) | Omni (before) | Game-trained model | game curves (graph controls) |
-| --- | ---: | ---: | ---: | ---: |
-| Inner lip aperture r | 0.41 | 0.51 | 0.82 | 0.99 |
-| Inner aperture error (mm) | 2.19 | 1.98 | 1.24 | 0.37 |
-| Mouth width r | 0.19 | 0.22 | 0.51 | 1.00 |
-| Lip protrusion r | 0.21 | 0.27 | 0.67 | 1.00 |
-| Chin drop r | 0.44 | 0.56 | 0.86 | 1.00 |
-| Jaw control r | 0.48 | 0.58 | 0.86 | 1.00 |
-| Lip contact control r | 0.14 | 0.31 | 0.66 | 1.00 |
-| Purse r | 0.28 | 0.31 | 0.60 | 1.00 |
-| Corner stretch r | 0.16 | 0.38 | 0.66 | 1.00 |
-| Lower roll r | 0.24 | 0.22 | 0.69 | 1.00 |
-| Lip-contact recall | 0.12 | 0.38 | 0.54 | 0.88 |
-| Lip-contact precision | 0.12 | 0.19 | 0.38 | 0.72 |
-| F/V contact recall | 0.00 | 0.00 | 0.64 | 1.00 |
-| Rounding recall | 0.29 | 0.43 | 0.64 | 1.00 |
-| Rounding precision | 0.28 | 0.26 | 0.37 | 0.53 |
+| Metric | Pocket (before) | Omni (before) | Game-trained model | game curves (graph controls) |
+
+| --- | ---: | ---: | ---: | ---: |
+
+| Inner lip aperture r | 0.41 | 0.51 | 0.82 | 0.99 |
+
+| Inner aperture error (mm) | 2.19 | 1.98 | 1.24 | 0.37 |
+
+| Mouth width r | 0.19 | 0.22 | 0.51 | 1.00 |
+
+| Lip protrusion r | 0.21 | 0.27 | 0.67 | 1.00 |
+
+| Chin drop r | 0.44 | 0.56 | 0.86 | 1.00 |
+
+| Jaw control r | 0.48 | 0.58 | 0.86 | 1.00 |
+
+| Lip contact control r | 0.14 | 0.31 | 0.66 | 1.00 |
+
+| Purse r | 0.28 | 0.31 | 0.60 | 1.00 |
+
+| Corner stretch r | 0.16 | 0.38 | 0.66 | 1.00 |
+
+| Lower roll r | 0.24 | 0.22 | 0.69 | 1.00 |
+
+| Lip-contact recall | 0.12 | 0.38 | 0.54 | 0.88 |
+
+| Lip-contact precision | 0.12 | 0.19 | 0.38 | 0.72 |
+
+| F/V contact recall | 0.00 | 0.00 | 0.64 | 1.00 |
+
+| Rounding recall | 0.29 | 0.43 | 0.64 | 1.00 |
+
+| Rounding precision | 0.28 | 0.26 | 0.37 | 0.53 |
+
 | Timing (ms late vs game) | 67 | 67 | 0 | 0 |
 
 "Game curves (graph controls)" is the ceiling: the game's own curves played
@@ -99,6 +116,17 @@ speech-time mouth statistics match its statistics on game audio (lip contact
 frame), so it transfers to TTS rather than collapsing. Known limit: it widens
 the mouth less than the game does (width p95 +1.5 mm vs +7.5 mm in the game's
 curves); wide "ee" shapes are under-articulated relative to the source.
+
+The table's model column is the interim model (3.4 h of speech). The shipped
+weights add brow outputs and 6.5 h of speech (fine-tuned); on a second held-out
+set (150 lines, 31 unseen speakers) they score aperture r 0.82, lip contact r
+0.73, contact recall 0.55 / precision 0.42, F/V recall 0.71, rounding recall
+0.68, 0 ms lag (interim on the same lines: 0.81, 0.71, 0.54/0.40, 0.69, 0.68).
+Size/latency: 0.66 M weights, 2.7 MB; JS real-time factor 0.25–0.32 measured
+with the game and Pocket-training jobs running; poses 218 ms behind received
+audio. Synthetic larger networks cost 0.51 (224 ch), 0.62 (256 ch) and 0.75
+(256 ch, 8 blocks) at the same load, so the network was not enlarged: doubling
+data gave only +0.01–0.03, and the CPU headroom matters more.
 
 These are objective proxies on bone-origin landmarks, not a rendered visual
 judgement; the in-game check remains the acceptance test.
