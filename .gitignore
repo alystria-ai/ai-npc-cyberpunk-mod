@@ -17,3 +17,6 @@
 __pycache__/
 *.pyc
 /Cyberpunk2077.exe-*.txt
+
+# Voice cloning devslot now lives outside the repo (Downloads).
+convai voice cloning devslot/
