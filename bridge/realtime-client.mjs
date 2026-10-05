@@ -242,6 +242,8 @@ async function connect(config) {
         outerResponseIdPresent: typeof message?.response_id === 'string',
         outerTurnIdPresent: message?.neurosync_turn_id !== undefined || message?.turn_id !== undefined,
         responseOwnerEstablished: !!turn?.emotion?.owner,
+        audioPacketsBefore: turn?.dataAudio?.packetCount ?? 0, textCharactersBefore: turn?.text?.length ?? 0,
+        terminalBefore: !!turn?.dataAudio?.terminal,
         reliable: kind === 0, pinnedParticipant: participant === audioParticipant};
       if (reason !== 'accepted') {
         observed.skippedEmotionEvents++;
@@ -306,7 +308,9 @@ async function connect(config) {
       const valid = kind === 0 && participant === audioParticipant && currentParticipant(connection, participant)
         && verifiedProvider?.connection === connection && turn?.epoch === connectionEpoch && !turn.error;
       if (valid && turn.dataAudio?.owner) turn.emotion.observeOwner(turn.dataAudio.owner);
-      if (valid && turn.emotion.accept(data)) { observed.acceptedEmotionEvents++; noteEmotion('accepted'); }
+      if (valid && turn.emotion.acceptOrdered(data, {terminal: !!turn.dataAudio?.terminal, textStarted: turn.text.length > 0})) {
+        observed.acceptedEmotionEvents++; noteEmotion('accepted');
+      }
       else noteEmotion(!turn ? 'no-active-response' : turn.error ? 'failed-response'
         : kind !== 0 ? 'unreliable-packet' : participant !== audioParticipant ? 'foreign-participant'
         : !currentParticipant(connection, participant) ? 'retired-participant'

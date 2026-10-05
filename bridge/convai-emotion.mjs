@@ -49,12 +49,32 @@ export class ConvaiEmotion {
     }
     this.owner = {...this.owner, ...next}; return true;
   }
+  // Live October 5 probe: Convai sends exactly one bot-emotion per voiced
+  // turn on the reliable, ordered data channel of the pinned provider, with
+  // no response/turn id in either envelope (text-only turns send none). It
+  // arrives after this turn's LLM text and before its first audio packet.
+  // Such an id-less event belongs to this response only when the caller has
+  // seen this response's own owner or its own reply text, and not yet its
+  // terminal, on that same channel; a second one in a response is ambiguous.
+  acceptOrdered(value, {terminal = false, textStarted = false} = {}) {
+    if (owner(value) || value?.response_id !== undefined || value?.turn_id !== undefined
+        || value?.neurosync_turn_id !== undefined) return this.accept(value);
+    if (this.ambiguous) { this.lastReason = 'ambiguous-owner'; return false; }
+    if (!this.owner && !textStarted) { this.lastReason = 'response-owner-not-established'; return false; }
+    if (terminal) { this.lastReason = 'after-response-terminal'; return false; }
+    if (this.orderedSeen) { this.ambiguous = true; this.signal = undefined; this.lastReason = 'repeated-ownerless'; return false; }
+    this.orderedSeen = true;
+    return this.admit(value, 'ordered');
+  }
   accept(value) {
     const incoming = owner(value);
     if (this.ambiguous) { this.lastReason = 'ambiguous-owner'; return false; }
     if (!incoming) { this.lastReason = 'missing-or-invalid-event-owner'; return false; }
     if (!this.owner) { this.lastReason = 'response-owner-not-established'; return false; }
     if (!matches(this.owner, incoming)) { this.lastReason = 'different-response-owner'; return false; }
+    return this.admit(value, 'response-id');
+  }
+  admit(value, basis) {
     // Copy the two public fields into this realm before strict normalization.
     const parsed = normalizeConvaiEmotion({emotion: value.emotion,
       ...(value.scale !== undefined ? {scale: value.scale} : {})});
@@ -64,7 +84,7 @@ export class ConvaiEmotion {
       this.lastReason = 'duplicate'; return false;
     }
     this.signal = {version: 1, correlated: true, sequence: ++this.sequence,
-      emotion: parsed.emotion, scale: parsed.scale};
+      emotion: parsed.emotion, scale: parsed.scale, basis};
     this.lastReason = 'accepted'; return true;
   }
   snapshot() { return this.signal ? {...this.signal} : undefined; }

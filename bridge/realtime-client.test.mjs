@@ -300,16 +300,15 @@ test('raw reliable owned emotion reaches the native Convai result without leakin
   c.data(data.pcm());c.data(data.stats);c.data(data.terminal);finalText(c);
   const result=await pending;
   assert.deepEqual(JSON.parse(JSON.stringify(result.expressionSignal)),
-    {version:1,correlated:true,sequence:0,emotion:'Grief',scale:2});
+    {version:1,correlated:true,sequence:0,emotion:'Grief',scale:2,basis:'response-id'});
   assert.equal(JSON.stringify(result.expressionSignal).includes(data.owner.response_id),false);
   assert.equal(api.diagnostics().wire.acceptedEmotionEvents,1);await api.close();
 });
 
-test('ownerless, stale, foreign, unreliable and malformed emotion cannot delay or fail speech',async()=>{
+test('stale, foreign, unreliable and malformed emotion cannot delay or fail speech',async()=>{
   const {api,clients}=fixture();await api.warm(config);
   const pending=api.reply(config);await flush();const c=clients[0],data=audioFixture();c.data(data.faces);
   for (const [body,options] of [
-    [{emotion:'Joy',scale:3},{}],
     [{...data.owner,response_id:'old-response',emotion:'Joy',scale:3},{}],
     [{...data.owner,emotion:'Joy',scale:3},{kind:1}],
     [{...data.owner,emotion:'Joy',scale:3},{participant:{identity:c.peer.identity}}],
@@ -319,7 +318,42 @@ test('ownerless, stale, foreign, unreliable and malformed emotion cannot delay o
   c.data(data.pcm());c.data(data.stats);c.data(data.terminal);finalText(c);
   const result=await pending;assert.equal(result.expressionSignal,undefined);
   assert.equal(result.text,'Hello V.');assert.equal(c.isBotReady,true);
-  assert.equal(api.diagnostics().wire.skippedEmotionEvents,5);await api.close();
+  assert.equal(api.diagnostics().wire.skippedEmotionEvents,4);await api.close();
+});
+
+// Live Convai (October 5) sends one bot-emotion per voiced turn without any
+// response or turn id; the reliable ordered channel ties it to the response
+// whose own audio owner has already arrived and whose terminal has not.
+test('one id-less emotion between this response owner and its terminal is admitted; others are not',async()=>{
+  const {api,clients}=fixture();await api.warm(config);
+  let pending=api.reply(config);await flush();let c=clients[0],data=audioFixture({sequence:1});
+  c.data({label:'rtvi-ai',type:'bot-emotion',data:{emotion:'Joy',scale:2}});
+  c.data(data.faces);c.data(data.pcm());c.data(data.stats);c.data(data.terminal);finalText(c,'Reply 1.','r1');
+  assert.equal((await pending).expressionSignal,undefined,'before this response owner or its text is known');
+  pending=api.reply(config);await flush();data=audioFixture({sequence:2});
+  c.data(data.faces);c.data({label:'rtvi-ai',type:'bot-emotion',data:{emotion:'Grief',scale:2}});
+  c.data(data.pcm());c.data(data.stats);c.data(data.terminal);finalText(c,'Reply 2.','r2');
+  assert.deepEqual(JSON.parse(JSON.stringify((await pending).expressionSignal)),
+    {version:1,correlated:true,sequence:0,emotion:'Grief',scale:2,basis:'ordered'});
+  pending=api.reply(config);await flush();data=audioFixture({sequence:3});
+  c.data(data.faces);c.data({label:'rtvi-ai',type:'bot-emotion',data:{emotion:'Joy',scale:1}});
+  c.data({label:'rtvi-ai',type:'bot-emotion',data:{emotion:'Anger',scale:3}});
+  c.data(data.pcm());c.data(data.stats);c.data(data.terminal);finalText(c,'Reply 3.','r3');
+  assert.equal((await pending).expressionSignal,undefined,'two id-less events in one response are ambiguous');
+  // As observed live: the label follows this turn's reply text, before audio.
+  pending=api.reply(config);await flush();data=audioFixture({sequence:9});
+  c.chatMessages=[...c.chatMessages,{id:'early',type:'bot-llm-text',content:'Calm down.',isStreaming:true}];
+  c.handlers.get('messagesChange')(c.chatMessages);
+  c.data({label:'rtvi-ai',type:'bot-emotion',data:{emotion:'Interest',scale:1}});
+  c.data(data.faces);c.data(data.pcm());c.data(data.stats);c.data(data.terminal);
+  c.chatMessages=c.chatMessages.map(row=>row.id==='early'?{...row,isStreaming:false}:row);c.state.isThinking=false;
+  c.handlers.get('messagesChange')(c.chatMessages);
+  assert.equal((await pending).expressionSignal?.emotion,'Interest');
+  pending=api.reply(config);await flush();data=audioFixture({sequence:4});
+  c.data(data.faces);c.data(data.pcm());c.data(data.stats);c.data(data.terminal);
+  c.data({label:'rtvi-ai',type:'bot-emotion',data:{emotion:'Joy',scale:1}});finalText(c,'Reply 4.','r4');
+  assert.equal((await pending).expressionSignal,undefined,'after the response terminal');
+  await api.close();
 });
 
 test('Omni text generation admits emotion only after its explicit raw LLM response owner and rejects retired turns',async()=>{
