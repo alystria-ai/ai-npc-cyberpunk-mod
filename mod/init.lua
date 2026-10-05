@@ -1225,15 +1225,13 @@ local function processPhoneAction(player)
         player:ConvaiPhoneFeedback(tostring(message))
         return
     end
-    local party = queue.list()
-    for index = #party, 1, -1 do
-        if party[index].key == key then
-            local accepted, message = queue.dismiss(party[index].id)
-            if lastPhoneInvitation and lastPhoneInvitation.id == party[index].id then lastPhoneInvitation = nil end
-            log('Phone dismissal requested for ' .. key)
-            player:ConvaiPhoneFeedback(tostring(message))
-            return
-        end
+    -- One copy per request: the queue picks it by the character it speaks as.
+    local accepted, message, dismissedId = queue.dismissCharacter(key)
+    if accepted ~= nil then
+        if dismissedId and lastPhoneInvitation and lastPhoneInvitation.id == dismissedId then lastPhoneInvitation = nil end
+        log('Phone dismissal ' .. (accepted and 'requested' or 'refused') .. ' for ' .. key)
+        player:ConvaiPhoneFeedback(tostring(message))
+        return
     end
     log('Phone dismiss: no active copy of ' .. key)
     player:ConvaiPhoneFeedback(ui.t('{name} is not in your group.',{name=name}))

@@ -228,6 +228,34 @@ function M.new(companions, readiness, options)
         return true, feedback
     end
 
+    -- Phone "dismiss this character". A copy belongs to the character it
+    -- speaks as; a copy with no conversation profile belongs to its model.
+    -- Exactly one copy is chosen, newest first: pending invitations, then
+    -- joined copies by serial. Copies already leaving are used only when no
+    -- other copy exists (a repeat press is then harmless), and a refused copy
+    -- (a chauffeur driver) yields to another copy of the same character.
+    -- Returns nil when the character is absent, else accepted, message, id.
+    function Q.dismissCharacter(key)
+        local ranked = {}
+        for _, state in ipairs({'present', 'leaving'}) do
+            local members = Q.list()
+            for index = #members, 1, -1 do
+                local item = members[index]
+                if (item.profileKey or item.key) == key and (item.state == 'leaving') == (state == 'leaving') then
+                    ranked[#ranked + 1] = item
+                end
+            end
+        end
+        local refused
+        for _, item in ipairs(ranked) do
+            local accepted, message = Q.dismiss(item.id)
+            if accepted then return true, message, item.id end
+            refused = refused or message
+        end
+        if refused then return false, refused end
+        return nil
+    end
+
     function Q.undoDismiss(id)
         local member = find(id)
         if not member or not member.serial or not leaves[member.serial] then
