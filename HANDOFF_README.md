@@ -415,7 +415,7 @@ The first 400 ms source prefix arrived in 375.1–532.3 ms; a fresh worker start
 
 Omni uses a shared FP16 CUDA model with 16/32 sampler steps. Those numbers are **not precision or training epochs**. Chris's TensorRT/FP8 reports were useful research input, not evidence that our runtime runs TensorRT or achieves his timings. See the dedicated findings folder for licensing and exact comparisons; do not silently reinterpret third-party benchmark numbers as local measurements.
 
-Technical reference: [voice cloning findings](convai%20voice%20cloning%20devslot/FINDINGS.md). Its listening audio was removed on October 5 to keep the folder technical; the manifests still record each removed clip. Sections 1–11 cover the earlier 72-speaker stage; section 12 covers the 79-identity corpus and the October 5 teacher continuation.
+Technical reference: voice cloning findings, now outside the repo at `C:\Users\akshi\Downloads\convai voice cloning devslot\FINDINGS.md` (moved October 5). Its listening audio was removed on October 5 to keep the folder technical; the manifests still record each removed clip. Sections 1–11 cover the earlier 72-speaker stage; section 12 covers the 79-identity corpus and the October 5 teacher continuation.
 
 ## 9. Frozen expanded corpus and training plan
 
