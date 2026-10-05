@@ -1,6 +1,6 @@
 'use strict';
-// Reference picker front end. Cards render only when opened; audio elements use preload="none" and are never created
-// for closed cards, so the page stays light even with every voice listed.
+// Voice report: the research listening report with the reference controls in the same row. Rows build lazily as you
+// scroll, audio elements never preload, and every action updates the page in place (no reloads, no scroll jumps).
 
 const $ = selector => document.querySelector(selector);
 function h(tag, props = {}, ...children) {
@@ -10,371 +10,572 @@ function h(tag, props = {}, ...children) {
     if (key === 'class') el.className = value;
     else if (key.startsWith('on')) el.addEventListener(key.slice(2), value);
     else if (key === 'dataset') Object.assign(el.dataset, value);
-    else if (key in el && key !== 'list') el[key] = value;
+    else if (key in el && key !== 'list' && key !== 'colspan' && key !== 'rowspan') el[key] = value;
     else el.setAttribute(key, value === true ? '' : value);
   }
   for (const child of children.flat()) if (child !== null && child !== undefined && child !== false) el.append(child.nodeType ? child : document.createTextNode(String(child)));
   return el;
 }
-
-const state = {voices: [], entries: new Map(), lines: {}, queue: null, jobSeen: new Map()};
+// replaceChildren that drops false/null/undefined and flattens lists (the native one would print "false").
+function fill(el, ...children) {
+  el.replaceChildren(...children.flat(Infinity).filter(child => child !== null && child !== undefined && child !== false)
+    .map(child => child.nodeType ? child : document.createTextNode(String(child))));
+  return el;
+}
 const store = {
   get(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } },
   set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* private window */ } },
 };
 
+// The four clip sets of a voice (each with its own reroll, hand-picking, renders, Keep and Reject) and the renders they feed.
+const SETS = {
+  pocket: {label: 'Pocket · 18 s', budget: 18, slots: ['pocket'], engine: 'Pocket'},
+  'pocket-short': {label: 'Pocket · 10 s', budget: 10, slots: ['pockets'], engine: 'Pocket'},
+  omni: {label: 'OmniVoice · 18 s', budget: 18, slots: ['omni16', 'omni32'], engine: 'OmniVoice'},
+  'omni-short': {label: 'OmniVoice · 10 s', budget: 10, slots: ['omni16s', 'omni32s'], engine: 'OmniVoice'},
+};
+const PICKS = [
+  {slot: 'pocket', set: 'pocket', label: 'Pocket · 18 s set'}, {slot: 'pockets', set: 'pocket-short', label: 'Pocket · 10 s set'},
+  {slot: 'omni16', set: 'omni', label: 'OmniVoice 16 · 18 s set'}, {slot: 'omni32', set: 'omni', label: 'OmniVoice 32 · 18 s set'},
+  {slot: 'omni16s', set: 'omni-short', label: 'OmniVoice 16 · 10 s set'}, {slot: 'omni32s', set: 'omni-short', label: 'OmniVoice 32 · 10 s set'},
+];
+const SLOT_LABEL = Object.fromEntries(PICKS.map(item => [item.slot, item.label]));
+const MATRIX_GROUPS = new Set(['standard', 'clips', 'decoder']);
+const STATE_TEXT = {missing: 'not rendered for this set', queued: 'queued', running: 'rendering…', 'gpu-busy': 'GPU busy, queued', error: 'failed'};
+
+const state = {research: null, summary: [], entries: new Map(), order: [], rendered: 0, groups: {}, columns: [], current: null, queue: null, observer: null};
+
+// ---- small helpers ----------------------------------------------------------------------------------------------------
+const shortId = id => id.startsWith('live:') ? "today's reference" : id.split('/').slice(1).join('/');
+const seconds = value => `${Number(value).toFixed(1)} s`;
+const timeOf = ts => ts ? new Date(ts).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}) : 'start';
 let toastTimer;
-function toast(message, bad = false) {
-  const el = $('#toast'); el.textContent = message; el.hidden = false; el.style.background = bad ? 'var(--bad)' : '';
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, bad ? 7000 : 3500);
+function toast(message, {bad = false, undo = null} = {}) {
+  const el = $('#toast'), button = $('#toast-undo');
+  $('#toast-text').textContent = message; el.hidden = false; el.classList.toggle('err', bad);
+  button.hidden = !undo; button.onclick = undo ? () => { el.hidden = true; undo(); } : null;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, bad ? 8000 : undo ? 7000 : 3500);
 }
 async function api(path, body) {
-  const response = await fetch(path, body === undefined ? {cache: 'no-store'}
-    : {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
+  const response = await fetch(path, body === undefined ? {cache: 'no-store'} : {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw Error(data.error || `Request failed (${response.status})`);
   return data;
 }
+const metricsText = metrics => [metrics.pls != null && `PLS ${metrics.pls.toFixed(metrics.pls % 1 ? 1 : 0)}`, metrics.ecapa != null && `ECAPA ${metrics.ecapa.toFixed(2)}`,
+  metrics.wer != null && `WER ${metrics.wer.toFixed(1)}%`].filter(Boolean).join(' · ');
 
-const shortId = id => id.startsWith('live:') ? id : id.split('/').slice(1).join('/');
-const seconds = value => `${Number(value).toFixed(1)} s`;
-const timeOf = ts => ts ? new Date(ts).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}) : '';
-const ENGINE_NAMES = {pocket: 'Pocket', omni: 'OmniVoice', 'omni-short': 'Omni short (≤10 s)'};
-
-// ---- audio: one at a time, every play logged ------------------------------------------------------------------------
+// ---- audio: one at a time, every play logged, keyboard control -------------------------------------------------------
+function audioEl(url, dataset) { return h('audio', {controls: true, preload: 'none', src: url, dataset}); }
 document.addEventListener('play', event => {
   const audio = event.target;
   if (!(audio instanceof HTMLAudioElement)) return;
   for (const other of document.querySelectorAll('audio')) if (other !== audio && !other.paused) other.pause();
+  const cell = audio.closest('td.cell');
+  if (cell) markCurrent(cell);
   const {voice, what, target} = audio.dataset;
   if (voice && what) api(`/api/play/${voice}`, {what, target}).catch(() => {});
 }, true);
-const isPlayingIn = el => [...el.querySelectorAll('audio')].some(audio => !audio.paused && !audio.ended);
-function player(url, dataset) {
-  return h('audio', {controls: true, preload: 'none', src: url, dataset});
+function markCurrent(cell) {
+  state.current?.classList.remove('now');
+  state.current = cell; cell?.classList.add('now');
 }
+const visibleCells = row => [...row.querySelectorAll('td.cell')].filter(cell => cell.offsetParent !== null && cell.querySelector('audio'));
+function playCell(cell) {
+  const audio = cell?.querySelector('audio');
+  if (!audio) return;
+  markCurrent(cell); cell.scrollIntoView({block: 'nearest', inline: 'nearest'});
+  audio.currentTime = 0; audio.play().catch(() => {});
+}
+document.addEventListener('keydown', event => {
+  const target = event.target;
+  if (event.ctrlKey || event.metaKey || event.altKey || target.closest?.('input, textarea, select, [contenteditable]')) return;
+  if (target.closest?.('button') && event.key === ' ') return;
+  const cell = target.closest?.('td.cell') ?? state.current;
+  if (event.key === ' ' && (target.closest?.('td.cell') || target instanceof HTMLAudioElement || state.current)) {
+    const audio = cell?.querySelector('audio');
+    if (!audio) return;
+    event.preventDefault();
+    if (audio.paused) { markCurrent(cell); audio.play().catch(() => {}); } else audio.pause();
+    return;
+  }
+  if (!cell || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+  const row = cell.parentElement, cells = visibleCells(row), at = cells.indexOf(cell);
+  let next = null;
+  if (event.key === 'ArrowRight') next = cells[at + 1] ?? cells[0];
+  else if (event.key === 'ArrowLeft') next = cells[at - 1] ?? cells.at(-1);
+  else {
+    const rowsNow = () => [...document.querySelectorAll('tbody.voice')].filter(body => body.offsetParent !== null);
+    let rows = rowsNow(), index = rows.indexOf(row.parentElement);
+    if (event.key === 'ArrowDown' && index === rows.length - 1 && state.rendered < state.order.length) { renderMore(3); rows = rowsNow(); }
+    const neighbour = rows[index + (event.key === 'ArrowDown' ? 1 : -1)];
+    if (neighbour) next = neighbour.querySelector(`td.cell[data-col="${cell.dataset.col}"]`);
+  }
+  if (next?.querySelector('audio')) { event.preventDefault(); playCell(next); next.focus({preventScroll: true}); }
+});
 
-// ---- list -------------------------------------------------------------------------------------------------------------
-async function loadState() {
-  const summary = await api('/api/state');
-  state.summary = summary;
-  state.voices = summary.voices.sort((a, b) => Number(b.proposed) - Number(a.proposed) || a.key.localeCompare(b.key));
-  const list = $('#list');
-  for (const voice of state.voices) {
-    let entry = state.entries.get(voice.key);
-    if (!entry) {
-      entry = {key: voice.key, open: false, data: null, el: h('section', {class: 'card', id: `voice-${voice.key}`}), body: null};
-      entry.head = h('div', {class: 'head', tabIndex: 0, role: 'button', 'aria-expanded': 'false', onclick: () => toggle(entry.key),
-        onkeydown: event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle(entry.key); } }});
-      entry.el.append(entry.head);
-      state.entries.set(voice.key, entry);
-      list.append(entry.el);
+// ---- columns -------------------------------------------------------------------------------------------------------------
+function buildColumns() {
+  const research = state.research?.columns ?? [];
+  const lastMatrix = research.map(col => MATRIX_GROUPS.has(col.group)).lastIndexOf(true);
+  const picks = PICKS.map(item => ({id: `p:${item.slot}`, pick: item, group: 'picks', spanLabel: 'Your picks', label: item.label, title: item.label, metrics: {}}));
+  const columns = research.map(col => ({...col, id: col.cond ? `c:${col.cond}` : `x:${col.family}:${col.variant}`}));
+  columns.splice(lastMatrix + 1, 0, ...picks);
+  state.columns = columns;
+}
+const groupShown = id => state.groups[id] ?? true;
+function renderGroups() {
+  const box = $('#groups');
+  const groups = [...(state.research?.groups ?? [])];
+  fill(box, h('span', {class: 'muted'}, 'Columns:'), ...groups.map(group => {
+    const count = state.columns.filter(col => col.group === group.id && !col.placeholder).length;
+    if (group.id !== 'picks' && !count) return null;
+    return h('button', {class: 'chip', 'aria-pressed': String(groupShown(group.id)), title: `${groupShown(group.id) ? 'Hide' : 'Show'} ${group.label}`,
+      onclick: () => { state.groups[group.id] = !groupShown(group.id); store.set('groups', state.groups); applyGroups(); }}, `${group.label}${group.id === 'picks' ? '' : ` (${count})`}`);
+  }));
+}
+function applyGroups() {
+  let css = '';
+  for (const group of state.research?.groups ?? []) if (!groupShown(group.id)) css += `.report .g-${group.id}{display:none}\n`;
+  $('#group-style').textContent = css;
+  renderGroups(); renderHead();
+}
+function renderHead() {
+  const visible = state.columns.filter(col => groupShown(col.group));
+  const first = h('tr', {}, h('th', {class: 'voicecell', rowspan: 2}, 'Voice and game line'));
+  const second = h('tr');
+  for (let at = 0; at < visible.length;) {
+    const col = visible[at];
+    if (!col.spanLabel) {
+      first.append(h('th', {rowspan: 2, class: `g-${col.group}`, title: col.title}, col.label, h('div', {class: 'm'}, metricsText(col.metrics))));
+      at++; continue;
     }
-    entry.summary = voice;
-    renderHead(entry);
+    let end = at;
+    while (end < visible.length && visible[end].spanLabel === col.spanLabel) end++;
+    first.append(h('th', {colspan: end - at, class: 'span'}, col.spanLabel));
+    for (const item of visible.slice(at, end)) second.append(h('th', {title: item.title}, item.label, h('div', {class: 'm'}, item.placeholder ? 'not rendered yet' : metricsText(item.metrics))));
+    at = end;
   }
-  applyFilter();
-}
-function renderHead(entry) {
-  const voice = entry.summary;
-  entry.head.replaceChildren(...[
-    h('span', {class: 'name'}, voice.name),
-    voice.kept.includes('pocket') && h('span', {class: 'badge good'}, 'Pocket kept'),
-    voice.kept.includes('omni') && h('span', {class: 'badge good'}, 'Omni kept'),
-    voice.kept.includes('omni-short') && h('span', {class: 'badge good'}, 'Omni short (≤10 s) kept'),
-    voice.rejected > 0 && h('span', {class: 'badge bad'}, `${voice.rejected} rejected`),
-    voice.job && h('span', {class: 'badge busy'}, voice.job === 'running' ? 'rendering' : 'queued'),
-    !voice.proposed && h('span', {class: 'badge'}, 'no proposed set'),
-    h('span', {class: 'muted'}, voice.poolSize ? `${voice.poolSize} clips` : 'no pool clips'),
-  ].filter(Boolean));
-  entry.head.setAttribute('aria-expanded', String(entry.open));
-}
-function applyFilter() {
-  const text = $('#search').value.trim().toLowerCase(), mode = $('#status').value;
-  let shown = 0;
-  for (const entry of state.entries.values()) {
-    const voice = entry.summary;
-    const matches = (!text || voice.key.includes(text) || voice.name.toLowerCase().includes(text))
-      && (mode === 'all' || (mode === 'proposal' && voice.proposed) || (mode === 'undecided' && !voice.kept.length)
-        || (mode === 'kept' && voice.kept.length) || (mode === 'rejected' && voice.rejected));
-    entry.el.hidden = !matches;
-    if (matches) shown++;
-  }
-  $('#count').textContent = `${shown} of ${state.entries.size} voices`;
-  store.set('filter', {mode, text});
+  $('#thead').replaceChildren(first, second);
+  requestAnimationFrame(() => document.documentElement.style.setProperty('--head-row', `${first.getBoundingClientRect().height}px`));
 }
 
-async function toggle(key, force) {
-  const entry = state.entries.get(key);
-  entry.open = force ?? !entry.open;
-  if (!entry.open) { entry.body?.remove(); entry.body = null; renderHead(entry); return; }
-  renderHead(entry);
-  await refresh(key);
-  if (location.hash !== `#${key}`) history.replaceState(null, '', `#${key}`);
+// ---- rows ---------------------------------------------------------------------------------------------------------------
+function entryFor(voice) {
+  let entry = state.entries.get(voice.key);
+  if (entry) { entry.summary = voice; return entry; }
+  entry = {key: voice.key, summary: voice, line: 0, card: null, open: false, tab: 'omni', prev: {}, pending: false, tbody: h('tbody', {class: 'voice', id: `voice-${voice.key}`})};
+  state.entries.set(voice.key, entry);
+  buildRow(entry);
+  if (voice.picker) loadCard(entry).catch(() => {});
+  return entry;
 }
-async function refresh(key, {force = false} = {}) {
-  const entry = state.entries.get(key);
-  const data = await api(`/api/voice/${key}?line=${state.lines[key] ?? 0}`);
-  entry.data = data;
-  if (!force && entry.body && isPlayingIn(entry.body)) { entry.pending = true; return; }   // never cut off what is playing
-  entry.pending = false;
-  render(entry);
+function linesOf(entry) {
+  const research = state.research?.voices[entry.key]?.lines ?? [];
+  const lines = entry.card?.lines?.length ? entry.card.lines.map(line => ({index: line.index, text: line.text})) : research;
+  return lines.length ? lines : [{index: 0, text: entry.card?.text ?? ''}];
+}
+function buildRow(entry) {
+  const key = entry.key, voice = entry.summary;
+  entry.main = h('tr', {class: 'main'});
+  entry.refs = h('tr', {class: 'refs', hidden: true});
+  entry.tbody.replaceChildren(entry.main, entry.refs);
+  entry.left = h('td', {class: 'voicecell'});
+  rebuildCells(entry);
+  renderLeft(entry);
+  void key; void voice;
+}
+function hasAudio(entry, col) {
+  if (col.placeholder || !col.cond) return false;
+  const voices = state.research?.voices[entry.key];
+  if (!voices) return false;
+  const lineKey = `${entry.key}|${entry.line}`;
+  return col.have ? col.have.includes(lineKey) : entry.line < voices.lines.length;
+}
+function rebuildCells(entry) {
+  const cells = [entry.left];
+  entry.cells = new Map();
+  for (const col of state.columns) {
+    const td = h('td', {class: `cell g-${col.group}${col.pick ? ' pick group-picks' : ''}`, tabIndex: 0, dataset: {col: col.id}});
+    entry.cells.set(col.id, td); cells.push(td);
+    if (!col.pick) {
+      if (hasAudio(entry, col)) {
+        td.append(audioEl(`/audio/research/${col.cond}/${entry.key}/${entry.line}`, {voice: entry.key, what: 'research', target: col.cond}));
+        const ecapa = state.research.ecapa?.[col.cond]?.[entry.key];
+        if (ecapa != null) td.append(h('div', {class: 'cap', title: 'ECAPA speaker similarity for this voice (average of its lines)'}, `ECAPA ${ecapa.toFixed(2)}`));
+      } else { td.classList.add('na'); td.textContent = col.placeholder ? 'not rendered yet' : state.research?.voices[entry.key] ? '–' : ''; }
+    }
+  }
+  entry.main.replaceChildren(...cells);
+  renderPickCells(entry);
+}
+
+function renderLeft(entry) {
+  const voice = entry.summary, key = entry.key, card = entry.card, lines = linesOf(entry);
+  const verdict = card ? card.verdict?.value ?? null : voice.verdict;
+  entry.tbody.classList.toggle('verdict-bad', verdict === 'bad');
+  entry.tbody.classList.toggle('verdict-fine', verdict === 'fine');
+  const badges = [
+    ...(card ? Object.keys(card.kept) : voice.kept).map(engine => h('span', {class: 'badge good', title: `Kept ${engine}`}, `${SETS[engine]?.label ?? engine} kept`)),
+    (card ? card.rejected.length : voice.rejected) > 0 && h('span', {class: 'badge bad'}, `${card ? card.rejected.length : voice.rejected} rejected`),
+    entry.working && h('span', {class: 'badge busy'}, entry.working),
+  ];
+  fill(entry.left,
+    h('div', {class: 'vname'}, voice.name),
+    h('div', {class: 'vline', title: 'The held-out game line every sample in this row says'}, lines[entry.line]?.text ? `“${lines[entry.line].text}”` : ''),
+    !state.research?.voices[entry.key] && h('div', {class: 'meta'}, 'No research audio for this voice yet.'),
+    lines.length > 1 && h('div', {class: 'vtools'}, h('span', {class: 'muted'}, 'Line'), lines.map(line => h('button', {class: 'small' + (line.index === entry.line ? ' primary' : ''), 'aria-pressed': String(line.index === entry.line),
+      onclick: () => setLine(entry, line.index)}, String(line.index + 1)))),
+    h('div', {class: 'vtools'},
+      h('button', {class: 'small' + (verdict === 'fine' ? ' good' : ''), 'aria-pressed': String(verdict === 'fine'), onclick: () => setVerdict(entry, 'fine')}, verdict === 'fine' ? '✓ Sounds fine' : 'Sounds fine'),
+      h('button', {class: 'small' + (verdict === 'bad' ? ' bad' : ''), 'aria-pressed': String(verdict === 'bad'), onclick: () => setVerdict(entry, 'bad')}, verdict === 'bad' ? '✗ Bad, fix references' : 'Bad, fix references')),
+    h('div', {class: 'vtools'},
+      h('button', {class: 'small', onclick: () => playRow(entry), title: 'Play the visible samples of this row one after another'}, '▶ Play row'),
+      voice.picker ? h('button', {class: 'small' + (entry.open ? ' primary' : ''), 'aria-expanded': String(entry.open), onclick: () => togglePanel(entry)}, entry.open ? 'Reference clips ▴' : 'Reference clips ▾')
+        : h('span', {class: 'muted'}, 'no reference panel')),
+    h('div', {class: 'vtools'}, badges.filter(Boolean)));
+}
+function playRow(entry) {
+  const cells = visibleCells(entry.main);
+  let at = 0;
+  const next = () => {
+    const cell = cells[at++];
+    if (!cell) return;
+    cell.querySelector('audio').addEventListener('ended', next, {once: true});
+    playCell(cell);
+  };
+  next();
+}
+
+async function setLine(entry, line) {
+  entry.line = line;
+  rebuildCells(entry); renderLeft(entry);
+  await loadCard(entry);
+}
+async function setVerdict(entry, value) {
+  const previous = (entry.card ? entry.card.verdict?.value : entry.summary.verdict) ?? '';
+  const next = previous === value ? '' : value;
+  const apply = verdict => { if (entry.card) entry.card.verdict = verdict ? {value: verdict} : null; entry.summary.verdict = verdict || null; renderLeft(entry); };
+  apply(next);                                          // immediate feedback
+  try { await api(`/api/voice/${entry.key}/verdict`, {value: next, line: entry.line}); } catch (error) { apply(previous); toast(error.message, {bad: true}); return; }
+  toast(next === 'fine' ? `${entry.summary.name}: sounds fine` : next === 'bad' ? `${entry.summary.name}: bad, fix references` : 'Verdict cleared',
+    {undo: async () => { apply(previous); await api(`/api/voice/${entry.key}/verdict`, {value: previous, line: entry.line}).catch(() => {}); }});
+}
+
+// ---- cards (the picker side of a row) ------------------------------------------------------------------------------------
+async function loadCard(entry) {
+  const card = await api(`/api/voice/${entry.key}?line=${entry.line}`);
+  applyCard(entry, card);
+}
+function applyCard(entry, card) {
+  entry.card = card;
+  entry.working = card.job && ['queued', 'running', 'waiting-gpu'].includes(card.job.status)
+    ? (card.job.status === 'waiting-gpu' ? 'GPU busy, queued' : card.job.status === 'running' ? `rendering ${card.job.done}/${card.job.total}` : 'queued') : null;
+  entry.summary.verdict = card.verdict?.value ?? null; entry.summary.kept = Object.keys(card.kept); entry.summary.rejected = card.rejected.length;
+  renderLeft(entry); renderPickCells(entry);
+  if (entry.open) { if (entry.refs.querySelector('audio') && [...entry.refs.querySelectorAll('audio')].some(audio => !audio.paused)) entry.pending = true; else renderPanel(entry); }
 }
 document.addEventListener('pause', event => {
-  const body = event.target.closest?.('.body');
-  const entry = body && [...state.entries.values()].find(item => item.body === body);
-  if (entry?.pending && !isPlayingIn(body)) { entry.pending = false; render(entry); }
+  const row = event.target.closest?.('tr.refs');
+  const entry = row && [...state.entries.values()].find(item => item.refs === row);
+  if (entry?.pending) { entry.pending = false; renderPanel(entry); }
 }, true);
 
-// ---- card ---------------------------------------------------------------------------------------------------------------
-async function act(key, action, body = {}, message) {
-  const entry = state.entries.get(key);
+function renderPickCells(entry) {
+  const card = entry.card;
+  for (const item of PICKS) {
+    const td = entry.cells.get(`p:${item.slot}`);
+    if (!td) continue;
+    const sample = card?.samples[item.slot], info = card?.sets[item.set];
+    const was = entry.prev[item.slot];
+    td.classList.toggle('busy', sample && ['queued', 'running', 'gpu-busy'].includes(sample.state));
+    if (!entry.summary.picker) { fill(td, h('span', {class: 'muted'}, 'no reference panel')); td.classList.add('na'); continue; }
+    if (!card) { fill(td, h('span', {class: 'muted'}, '…')); continue; }
+    if (!info) { fill(td, h('span', {class: 'muted'}, 'no clip set yet'), h('div', {class: 'cap'}, h('button', {class: 'small', onclick: () => openPanel(entry, item.set)}, 'Choose clips'))); continue; }
+    const caption = h('div', {class: 'cap', title: info.clips.map(clip => `${shortId(clip.id)} ${seconds(clip.seconds)}`).join('\n')}, `${info.clips.length} clip${info.clips.length === 1 ? '' : 's'} · ${seconds(info.seconds)}`);
+    if (sample?.exists) {
+      const url = sample.url, existing = td.querySelector('audio');
+      if (existing?.getAttribute('src') !== url) fill(td, audioEl(url, {voice: entry.key, what: 'sample', target: item.slot}), caption);
+      else existing.nextSibling?.replaceWith(caption);
+      if (was && was !== 'ready') { td.classList.remove('fresh'); void td.offsetWidth; td.classList.add('fresh'); }
+    } else {
+      const working = ['queued', 'running', 'gpu-busy'].includes(sample?.state);
+      fill(td, h('div', {class: 'state' + (working ? ' working' : '')}, STATE_TEXT[sample?.state] ?? 'not rendered'),
+        sample?.state === 'error' && sample.error ? h('div', {class: 'cap warn'}, sample.error) : null,
+        !working ? h('button', {class: 'small', title: `Render this set with ${SETS[item.set].engine}`, onclick: () => renderSlots(entry, [item.slot])}, 'Render') : null, caption);
+    }
+    entry.prev[item.slot] = sample?.state ?? 'missing';
+  }
+}
+
+// ---- actions ---------------------------------------------------------------------------------------------------------------
+async function act(entry, action, body = {}, message, {quiet = false, undo = null} = {}) {
   try {
-    entry.data = await api(`/api/voice/${key}/${action}`, {...body, line: state.lines[key] ?? 0});
-    render(entry);
-    await loadState();
-    if (message) toast(message);
-    return true;
-  } catch (error) { toast(error.message, true); return false; }
+    const card = await api(`/api/voice/${entry.key}/${action}`, {...body, line: entry.line});
+    applyCard(entry, card);
+    if (message && !quiet) toast(message, {undo});
+    return card;
+  } catch (error) { toast(error.message, {bad: true}); renderPanel(entry); return null; }
+}
+async function renderSlots(entry, slots, force = false) {
+  const card = await act(entry, 'regenerate', {slots, force}, 'Queued');
+  if (card) entry.working = entry.working ?? 'queued';
+}
+async function rerollAndRender(entry, set) {
+  const card = await act(entry, 'reroll', {set}, null, {quiet: true});
+  if (!card) return;
+  toast(`New ${SETS[set].label} set drawn`);
+  if ($('#autogen').checked) await renderSlots(entry, SETS[set].slots);
 }
 
-function render(entry) {
-  const data = entry.data, key = entry.key;
-  const old = entry.body;
-  entry.body = h('div', {class: 'body'},
-    controls(data), originalBlock(data), samplesBlock(data),
-    setBlock(data, 'full'), setBlock(data, 'short'), noteBlock(data), keptBlock(data), poolBlock(data));
-  if (old) old.replaceWith(entry.body); else entry.el.append(entry.body);
-  entry.pool = null;
-  renderHead(entry);
+// ---- reference panel (opens in place under the row) --------------------------------------------------------------------
+function togglePanel(entry) { entry.open ? closePanel(entry) : openPanel(entry); }
+function openPanel(entry, tab) {
+  if (tab) entry.tab = tab;
+  entry.open = true; entry.refs.hidden = false;
+  renderLeft(entry); renderPanel(entry);
+  if (!entry.card) loadCard(entry).catch(error => toast(error.message, {bad: true}));
+}
+function closePanel(entry) { entry.open = false; entry.refs.hidden = true; renderLeft(entry); }
+
+function renderPanel(entry) {
+  const card = entry.card;
+  if (!card) { entry.refs.replaceChildren(h('td', {colspan: 99}, h('div', {class: 'panel muted'}, 'Loading…'))); return; }
+  const job = card.job && ['queued', 'running', 'waiting-gpu'].includes(card.job.status) ? card.job : null;
+  const missing = Object.values(card.samples).filter(sample => !sample.exists).length;
+  const progress = job ? h('div', {class: 'row'}, h('div', {class: 'progress', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': job.total, 'aria-valuenow': job.done},
+    h('i', {style: `width:${job.total ? Math.round(100 * job.done / job.total) : 0}%`})),
+    h('span', {class: 'muted'}, job.status === 'waiting-gpu' ? `GPU busy, queued (${job.waitReason ?? 'another process holds the GPU'}); Pocket renders still run` : job.status === 'queued' ? 'Queued' : `Rendering ${job.done}/${job.total}${job.current ? ' · ' + job.current : ''}`)) : null;
+  const tabs = h('div', {class: 'tabs', role: 'tablist'}, Object.entries(SETS).map(([set, spec]) => {
+    const kept = card.kept[set], info = card.sets[set];
+    return h('button', {role: 'tab', 'aria-selected': String(entry.tab === set), onclick: () => { entry.tab = set; renderPanel(entry); }},
+      spec.label, kept?.isCurrent ? ' ✓' : kept ? ' (kept: other set)' : '', card.rejectedNow[set] ? ' ✗' : '', info ? '' : ' (no set)');
+  }));
+  const kept = Object.entries(card.kept);
+  const panel = h('div', {class: 'panel'},
+    h('div', {class: 'row'}, h('strong', {}, `Reference clips · ${card.name}`), h('span', {class: 'spacer', style: 'flex:1'}),
+      h('button', {class: 'primary', disabled: !!job, title: missing ? 'Render every missing sample for this voice' : 'All samples exist for these sets; render them again',
+        onclick: () => renderSlots(entry, null, !missing)}, job ? (job.status === 'waiting-gpu' ? 'Waiting for GPU' : 'Rendering…') : missing ? `Render this voice (${missing} missing)` : 'Re-render this voice'),
+      h('button', {class: 'small', onclick: () => closePanel(entry)}, 'Close')),
+    progress, tabs, setBlock(entry, card, entry.tab),
+    kept.length ? h('div', {class: 'block'}, h('h3', {}, 'Kept for this voice'), kept.map(([engine, item]) => h('div', {class: 'kept' + (item.isCurrent ? '' : ' stale')},
+      `${SETS[engine].label}: ${item.clips.map(clip => shortId(clip.id)).join(', ')} · ${item.seconds ?? '?'} s · ${timeOf(item.ts)}`,
+      item.isCurrent ? ' · shown above' : [' · not the set shown ', h('button', {class: 'small', onclick: () => act(entry, 'restore', {set: engine, clips: item.clips.map(clip => clip.id)}, 'Showing the kept set')}, 'Show it')],
+      item.note ? ` · “${item.note}”` : ''))) : null,
+    noteBlock(entry, card));
+  entry.refs.replaceChildren(h('td', {colspan: 99}, panel));
 }
 
-function controls(data) {
-  const key = data.key;
-  const samples = Object.values(data.samples), missing = samples.filter(sample => !sample.exists).length;
-  const busy = data.job && ['queued', 'running'].includes(data.job.status);
-  const sequence = h('button', {class: 'small', onclick: event => playSequence(event.target.closest('.body'))}, 'Play all in order');
-  return h('div', {class: 'row'},
-    data.lines.length > 1 && h('span', {class: 'row'}, 'Line:', data.lines.map(line => h('button', {class: 'small' + (line.index === data.line ? ' primary' : ''),
-      onclick: async () => { state.lines[key] = line.index; await refresh(key, {force: true}); }}, `${line.index + 1}`))),
-    h('button', {class: 'primary', disabled: busy, title: missing ? 'Render the missing samples for this voice only' : 'Everything is already rendered for these sets; re-render anyway',
-      onclick: () => act(key, 'regenerate', {force: !missing}, missing ? 'Queued' : 'Queued a full re-render')},
-      busy ? `Rendering ${data.job.done}/${data.job.total}${data.job.current ? ' · ' + data.job.current : ''}` : missing ? `Regenerate this voice (${missing} missing)` : 'Re-render all'),
-    sequence,
-    data.job?.status === 'error' && h('span', {class: 'badge bad', title: data.job.error}, 'last render failed'));
-}
-
-function originalBlock(data) {
-  return h('div', {class: 'block'}, h('h3', {}, data.hasLine ? 'Original game line' : 'No held-out game line for this voice'),
-    h('div', {class: 'quote'}, `“${data.text}”`),
-    data.hasLine ? player(data.lines[data.line].audio, {voice: data.key, what: 'original', target: data.lines[data.line].text.slice(0, 40)})
-      : h('div', {class: 'muted'}, 'The samples use a neutral test sentence instead.'),
-    h('div', {class: 'muted'}, 'All samples below say exactly this text.'));
-}
-
-function sampleCell(data, slot) {
-  const sample = data.samples[slot];
-  if (!sample) return null;
-  const clips = sample.clips;
-  const label = sample.live ? `Today: ${sample.engine === 'pocket' ? 'Pocket' : 'OmniVoice ' + sample.steps + ' steps'} (1 clip)`
-    : sample.engine === 'pocket' ? `Pocket (${clips}-clip)` : `OmniVoice ${sample.steps} steps${sample.set === 'short' ? ' · Omni short (≤10 s)' : ''}`;
-  const texts = {missing: 'not generated yet', queued: 'waiting in the queue', running: 'rendering…', error: sample.error || 'failed'};
-  return h('div', {class: 'cell'}, h('div', {class: 'label'}, label),
-    sample.exists ? player(sample.url, {voice: data.key, what: 'sample', target: slot}) : null,
-    h('div', {class: 'state' + (sample.state === 'error' ? ' err' : '')}, sample.exists ? '' : texts[sample.state] ?? sample.state));
-}
-function samplesBlock(data) {
-  const new_ = ['pocket', 'omni16', 'omni32', 'omni16s'].map(slot => sampleCell(data, slot)).filter(Boolean);
-  const old = ['live-pocket', 'live-omni16', 'live-omni32'].map(slot => sampleCell(data, slot)).filter(Boolean);
-  return h('div', {class: 'block'}, h('h3', {}, 'Same line with the reference set below'), h('div', {class: 'grid'}, new_),
-    old.length ? [h('h3', {style: 'margin-top:12px'}, 'Same line with today’s single reference'), h('div', {class: 'grid'}, old)] : null);
-}
-
-// Loudness against the voice's median clip; far from the median tends to make OmniVoice worse (research finding).
 function loudnessNote(db) {
   if (db === null || db === undefined) return null;
   const far = Math.abs(db) > 3;
   return h('div', {class: 'meta' + (far ? ' warn' : ''), title: 'Gated speech loudness relative to this voice’s median clip. Beyond ±3 dB the reference tends to hurt OmniVoice.'},
     `loudness ${db > 0 ? '+' : ''}${db.toFixed(1)} dB vs median${far ? ' (outside ±3 dB)' : ''}`);
 }
-function setBlock(data, set) {
-  const key = data.key, info = data.sets[set], budget = set === 'short' ? 10 : 18;
-  const title = set === 'short' ? 'Omni short (≤10 s) set' : 'Reference set for Pocket and OmniVoice (18 s at most)';
-  const engines = set === 'short' ? ['omni-short'] : ['pocket', 'omni'];
+
+function setBlock(entry, card, set) {
+  const key = entry.key, spec = SETS[set], info = card.sets[set];
+  const slots = spec.slots.map(slot => ({slot, sample: card.samples[slot]}));
+  const job = card.job && ['queued', 'running', 'waiting-gpu'].includes(card.job.status) ? card.job : null;
+  const samples = h('div', {class: 'grid'}, slots.map(({slot, sample}) => h('div', {class: 'mini'}, h('div', {class: 'label'}, SLOT_LABEL[slot]),
+    sample?.exists ? audioEl(sample.url, {voice: key, what: 'sample', target: slot}) : h('div', {class: 'meta'}, STATE_TEXT[sample?.state] ?? 'not rendered for this set'))));
   if (!info) {
-    return h('div', {class: 'block'}, h('h3', {}, title), h('div', {class: 'muted'}, 'No Omni short (≤10 s) set exists for this voice yet.'),
-      h('div', {class: 'row'}, data.poolSize ? h('button', {onclick: () => rerollAndGenerate(key, set)}, 'Draw a ≤10 s set') : null));
+    return h('div', {class: 'block'}, h('h3', {}, spec.label), h('div', {class: 'muted'}, 'No clip set yet for this variant.'),
+      h('div', {class: 'row', style: 'margin-top:6px'}, card.poolSize ? h('button', {onclick: () => rerollAndRender(entry, set)}, `Draw a ${spec.budget} s set`) : h('span', {class: 'muted'}, 'This voice has no pool clips.')),
+      card.poolSize ? poolBlock(entry, card, set) : null);
   }
-  const history = data.history[set].filter(item => !item.current);
+  const history = card.history[set].filter(item => !item.current);
   const sel = h('select', {'aria-label': 'Earlier sets'}, h('option', {value: ''}, `Earlier sets (${history.length})`),
-    history.map((item, at) => h('option', {value: String(at)}, `${item.ts ? timeOf(item.ts) : 'start'} · ${item.clips.length} clips · ${item.seconds ?? '?'} s · ${item.action}`)));
-  return h('div', {class: 'block'}, h('h3', {}, `${title} · ${info.source}`),
+    history.map((item, at) => h('option', {value: String(at)}, `${timeOf(item.ts)} · ${item.clips.length} clips · ${item.seconds ?? '?'} s · ${item.action}`)));
+  const kept = card.kept[set], isKept = !!kept?.isCurrent, rejected = card.rejectedNow[set];
+  const keep = () => {
+    if (isKept) return act(entry, 'unkeep', {engine: set}, `Un-kept ${spec.label}`, {undo: () => act(entry, 'keep', {engine: set, clips: kept.clips.map(clip => clip.id)}, 'Kept again')});
+    const previous = kept && !kept.isCurrent ? kept.clips.map(clip => clip.id) : null;
+    return act(entry, 'keep', {engine: set, note: noteValue(key)}, `Kept ${spec.label} for ${card.name}`,
+      {undo: () => previous ? act(entry, 'keep', {engine: set, clips: previous}, 'Back to the earlier kept set') : act(entry, 'unkeep', {engine: set}, 'Un-kept')});
+  };
+  const reject = () => rejected
+    ? act(entry, 'unreject', {set}, 'Rejection removed')
+    : act(entry, 'reject', {set, note: noteValue(key)}, `Rejected: ${spec.label}. Rerolls will avoid this set`, {undo: () => act(entry, 'unreject', {set}, 'Rejection removed')});
+  const rendering = slots.some(({sample}) => ['queued', 'running', 'gpu-busy'].includes(sample?.state));
+  const missing = slots.filter(({sample}) => !sample?.exists).length;
+  return h('div', {class: 'block'},
+    h('h3', {}, `${spec.label} set · ${info.source}`),
     info.clips.map((clip, at) => h('div', {class: 'clip'},
-      clip.missing ? h('div', {class: 'muted'}, `${clip.id} (missing)`) : player(clip.audio, {voice: key, what: 'clip', target: clip.id}),
-      h('div', {}, h('div', {class: 'text'}, clip.transcript),
+      clip.missing ? h('div', {class: 'muted'}, `${clip.id} (missing)`) : audioEl(clip.audio, {voice: key, what: 'clip', target: clip.id}),
+      h('div', {}, h('div', {}, clip.transcript),
         h('div', {class: 'meta'}, `${at + 1}. ${clip.label ?? shortId(clip.id)} · ${seconds(clip.seconds)}`
-          + (clip.typicality !== null && clip.typicality !== undefined ? ` · typical ${Math.round(clip.typicality)}` : '')
-          + (clip.delivery ? ` · ${clip.delivery}-processed` : '')),
+          + (clip.typicality !== null && clip.typicality !== undefined ? ` · typical ${Math.round(clip.typicality)}` : '') + (clip.delivery ? ` · ${clip.delivery}-processed` : '')),
         loudnessNote(clip.loudness)))),
-    h('div', {class: 'total'}, `${info.clips.length} clip${info.clips.length === 1 ? '' : 's'}, ${seconds(info.seconds)} of ${budget} s (with 0.4 s gaps)`),
-    h('div', {class: 'row', style: 'margin-top:8px'},
-      h('button', {disabled: !data.poolSize, title: data.poolSize ? 'Draw a different set of whole clips from this voice’s pool' : 'This voice has no spare clips', onclick: () => rerollAndGenerate(key, set)}, 'Reroll'),
-      sel, h('button', {class: 'small', onclick: () => { if (sel.value !== '') act(key, 'restore', {set, clips: history[Number(sel.value)].clips}, 'Restored'); }}, 'Restore'),
-      h('span', {class: 'spacer'}),
-      engines.map(engine => {
-        const kept = data.kept[engine];
-        const isKept = kept?.isCurrent;
-        return h('button', {class: isKept ? 'good' : '', title: isKept ? 'Click to un-keep' : '',
-          onclick: () => isKept ? act(key, 'unkeep', {engine}, 'Un-kept') : act(key, 'keep', {engine, note: currentNote(key)}, `Kept for ${ENGINE_NAMES[engine]}`)},
-          isKept ? `Kept for ${ENGINE_NAMES[engine]} ✓` : `Keep for ${ENGINE_NAMES[engine]}`);
-      }),
-      h('button', {class: data.rejectedNow[set] ? 'bad' : '', disabled: data.rejectedNow[set],
-        onclick: () => act(key, 'reject', {set, note: currentNote(key)}, 'Rejected; rerolls will avoid this set')}, data.rejectedNow[set] ? 'Rejected' : 'Reject')));
-}
-async function rerollAndGenerate(key, set) {
-  const ok = await act(key, 'reroll', {set}, 'New set drawn');
-  if (ok && $('#autogen').checked) await act(key, 'regenerate', {}, 'Rendering this voice');
+    h('div', {class: 'total'}, `${info.clips.length} clip${info.clips.length === 1 ? '' : 's'}, ${seconds(info.seconds)} of ${spec.budget} s (with 0.4 s gaps)`),
+    h('h3', {style: 'margin-top:10px'}, 'Samples made from this set'), samples,
+    h('div', {class: 'row', style: 'margin-top:10px'},
+      h('button', {disabled: !card.poolSize, title: card.poolSize ? 'Draw a different set of whole clips from this voice’s pool' : 'This voice has no spare clips', onclick: () => rerollAndRender(entry, set)}, 'Reroll'),
+      sel, h('button', {class: 'small', onclick: () => { if (sel.value !== '') act(entry, 'restore', {set, clips: history[Number(sel.value)].clips}, 'Restored'); }}, 'Restore'),
+      h('button', {class: 'primary', disabled: rendering || !!job && false, onclick: () => renderSlots(entry, spec.slots, !missing)},
+        rendering ? 'Rendering…' : missing ? `Render ${spec.engine} for this set` : `Re-render ${spec.engine}`),
+      h('span', {style: 'flex:1'}),
+      h('button', {class: isKept ? 'good' : '', 'aria-pressed': String(isKept), onclick: keep}, isKept ? `Kept ✓ (click to undo)` : `Keep for ${spec.label}`),
+      h('button', {class: rejected ? 'bad' : '', 'aria-pressed': String(rejected), onclick: reject}, rejected ? 'Rejected ✗ (click to undo)' : 'Reject')),
+    poolBlock(entry, card, set));
 }
 
 const noteBoxes = new Map();
-const currentNote = key => noteBoxes.get(key)?.value ?? undefined;
-function noteBlock(data) {
-  const box = h('textarea', {placeholder: 'Optional note about this voice or set (saved with Keep / Reject)', value: data.note ?? ''});
-  noteBoxes.set(data.key, box);
+const noteValue = key => noteBoxes.get(key)?.value;
+function noteBlock(entry, card) {
+  const box = h('textarea', {placeholder: 'Optional note about this voice or set (saved with Keep and Reject)', value: card.note ?? ''});
+  noteBoxes.set(entry.key, box);
   return h('div', {class: 'block'}, h('h3', {}, 'Note'), box,
-    h('div', {class: 'row', style: 'margin-top:6px'}, h('button', {class: 'small', onclick: () => act(data.key, 'note', {note: box.value}, 'Note saved')}, 'Save note')));
+    h('div', {class: 'row', style: 'margin-top:6px'}, h('button', {class: 'small', onclick: () => act(entry, 'note', {note: box.value}, 'Note saved')}, 'Save note')));
 }
 
-function keptBlock(data) {
-  const rows = Object.entries(data.kept);
-  if (!rows.length) return null;
-  return h('div', {class: 'block'}, h('h3', {}, 'Kept'), rows.map(([engine, kept]) => h('div', {class: 'kept' + (kept.isCurrent ? '' : ' stale'), style: 'margin:4px 0'},
-    `${ENGINE_NAMES[engine]}: ${kept.clips.map(clip => shortId(clip.id)).join(', ')} · ${kept.seconds ?? '?'} s · ${timeOf(kept.ts)}`,
-    kept.isCurrent ? ' · this is the set shown above' : [' · a different set from the one shown ',
-      h('button', {class: 'small', onclick: () => act(data.key, 'restore', {set: engine === 'omni-short' ? 'short' : 'full', clips: kept.clips.map(clip => clip.id)}, 'Showing the kept set')}, 'Show it')],
-    kept.note ? ` · “${kept.note}”` : '')));
-}
-
-// ---- manual clip browser ----------------------------------------------------------------------------------------------
-function poolBlock(data) {
-  const key = data.key;
-  const details = h('details', {}, h('summary', {}, `Choose clips by hand${data.poolSize ? ` (${data.poolSize} in the pool)` : ''}`));
+// ---- hand-picking ------------------------------------------------------------------------------------------------------
+function poolBlock(entry, card, set) {
+  const details = h('details', {}, h('summary', {}, `Choose clips by hand${card.poolSize ? ` (${card.poolSize} in the pool)` : ''}`));
   details.addEventListener('toggle', async () => {
     if (!details.open || details.dataset.loaded) return;
     details.dataset.loaded = '1';
-    try {
-      const {clips} = await api(`/api/pool/${key}`);
-      details.append(poolTable(data, clips));
-    } catch (error) { toast(error.message, true); }
+    try { const {clips} = await api(`/api/pool/${entry.key}`); details.append(poolTable(entry, card, set, clips)); } catch (error) { toast(error.message, {bad: true}); }
   });
-  return h('div', {class: 'block'}, details);
+  return h('div', {style: 'margin-top:8px'}, details);
 }
-function poolTable(data, clips) {
-  const key = data.key;
-  const selected = new Set();
-  let target = 'full', sortMode = 'typical', filter = '', limit = 150;
-  const budgets = {full: 18, short: 10};
-  const status = h('div', {class: 'total'});
-  const body = h('tbody');
-  const useButton = h('button', {class: 'primary', disabled: true});
+function poolTable(entry, card, set, clips) {
+  const key = entry.key, budget = SETS[set].budget, selected = new Set(card.sets[set]?.ids ?? []);
+  let sortMode = 'typical', filter = '', limit = 150;
+  const status = h('div', {class: 'total'}), body = h('tbody'), useButton = h('button', {class: 'primary', disabled: true});
   const sorter = {typical: (a, b) => (b.ty ?? -1) - (a.ty ?? -1), longest: (a, b) => b.d - a.d, shortest: (a, b) => a.d - b.d,
     words: (a, b) => b.t.length - a.t.length, loud: (a, b) => Math.abs(a.rel ?? 99) - Math.abs(b.rel ?? 99)};
-  const total = () => [...selected].reduce((sum, id) => sum + clips.find(clip => clip.id === id).d, 0) + Math.max(0, selected.size - 1) * 0.4;
+  const total = () => [...selected].reduce((sum, id) => sum + (clips.find(clip => clip.id === id)?.d ?? 0), 0) + Math.max(0, selected.size - 1) * 0.4;
   function update() {
-    const used = total(), over = used > budgets[target] + 1e-6;
-    status.textContent = selected.size ? `${selected.size} clip${selected.size === 1 ? '' : 's'} ticked, ${seconds(used)} of ${budgets[target]} s${over ? ' (too long)' : ''}` : 'Tick up to three clips.';
+    const used = total(), over = used > budget + 1e-6;
+    status.textContent = selected.size ? `${selected.size} clip${selected.size === 1 ? '' : 's'} ticked, ${seconds(used)} of ${budget} s${over ? ' (too long)' : ''}` : 'Tick up to three clips.';
     useButton.disabled = !selected.size || over;
-    useButton.textContent = `Use ticked clips as the ${budgets[target]} s set`;
+    useButton.textContent = `Use ticked clips as the ${SETS[set].label} set`;
     for (const box of body.querySelectorAll('input[type=checkbox]')) box.disabled = !box.checked && selected.size >= 3;
   }
   function rows() {
     const needle = filter.toLowerCase();
     const list = clips.filter(clip => !needle || clip.t.toLowerCase().includes(needle) || clip.id.includes(needle)).sort(sorter[sortMode]);
     body.replaceChildren(...list.slice(0, limit).map(clip => h('tr', {},
-      h('td', {}, h('input', {type: 'checkbox', checked: selected.has(clip.id), 'aria-label': `Tick ${shortId(clip.id)}`, onchange: event => {
-        if (event.target.checked) selected.add(clip.id); else selected.delete(clip.id);
-        update();
-      }})),
-      h('td', {}, player(clip.audio, {voice: key, what: 'clip', target: clip.id})),
-      h('td', {}, seconds(clip.d)), h('td', {title: 'How typical of this voice: percentile of the clip’s speaker-embedding similarity to the voice’s average'}, clip.ty === null || clip.ty === undefined ? '' : Math.round(clip.ty)),
-      h('td', {class: clip.rel !== null && clip.rel !== undefined && Math.abs(clip.rel) > 3 ? 'warn' : ''}, clip.rel === null || clip.rel === undefined ? '' : `${clip.rel > 0 ? '+' : ''}${clip.rel.toFixed(1)}`),
-      h('td', {}, clip.label ? [h('strong', {}, clip.label), ' · '] : null, clip.t, h('div', {class: 'meta muted'}, shortId(clip.id) + (clip.k ? ` · ${clip.k}-processed` : ''))))));
+      h('td', {}, h('input', {type: 'checkbox', checked: selected.has(clip.id), 'aria-label': `Tick ${shortId(clip.id)}`, onchange: event => { if (event.target.checked) selected.add(clip.id); else selected.delete(clip.id); update(); }})),
+      h('td', {}, audioEl(clip.audio, {voice: key, what: 'clip', target: clip.id})),
+      h('td', {}, seconds(clip.d)),
+      h('td', {title: 'How typical of this voice (0-100)'}, clip.ty == null ? '' : Math.round(clip.ty)),
+      h('td', {class: clip.rel != null && Math.abs(clip.rel) > 3 ? 'warn' : ''}, clip.rel == null ? '' : `${clip.rel > 0 ? '+' : ''}${clip.rel.toFixed(1)}`),
+      h('td', {}, clip.label ? [h('strong', {}, clip.label), ' · '] : null, clip.t, h('div', {class: 'meta'}, shortId(clip.id) + (clip.k ? ` · ${clip.k}-processed` : ''))))));
     if (list.length > limit) body.append(h('tr', {}, h('td', {colspan: 6}, h('button', {class: 'small', onclick: () => { limit += 300; rows(); }}, `Show more (${list.length - limit} left)`))));
     update();
   }
-  for (const id of data.sets[target]?.ids ?? []) selected.add(id);
-  useButton.onclick = async () => { if (await act(key, 'set', {set: target, clips: [...selected]}, 'Set chosen')) { if ($('#autogen').checked) await act(key, 'regenerate', {}, 'Rendering this voice'); } };
-  const sortSelect = h('select', {onchange: event => { sortMode = event.target.value; rows(); }},
-    h('option', {value: 'typical'}, 'Most typical first'), h('option', {value: 'longest'}, 'Longest first'), h('option', {value: 'shortest'}, 'Shortest first'), h('option', {value: 'words'}, 'Longest text first'), h('option', {value: 'loud'}, 'Closest to median loudness'));
-  const targetSelect = h('select', {onchange: event => { target = event.target.value; selected.clear(); for (const id of data.sets[target]?.ids ?? []) selected.add(id); rows(); }},
-    h('option', {value: 'full'}, 'For the 18 s set (Pocket and OmniVoice)'), h('option', {value: 'short'}, 'For the Omni short (≤10 s) set'));
-  const search = h('input', {type: 'search', placeholder: 'Search the text', oninput: event => { filter = event.target.value; limit = 150; rows(); }});
-  const table = h('table', {class: 'pool'}, h('thead', {}, h('tr', {}, h('th', {}, ''), h('th', {}, 'Play'), h('th', {}, 'Length'),
-    h('th', {title: 'Typicality (0-100)'}, 'Typical'), h('th', {title: 'Loudness relative to the voice’s median clip'}, 'Loud (dB)'), h('th', {}, 'Text'))), body);
-  const wrap = h('div', {}, h('div', {class: 'row', style: 'margin:8px 0'}, targetSelect, sortSelect, search, useButton), status,
-    h('div', {class: 'pool-wrap'}, table),
-    h('div', {class: 'muted', style: 'margin-top:6px'}, 'The held-out evaluation lines are not in this list. "Typical" is the research agent’s own criterion: how close the clip is to the voice’s average speaker embedding.'));
-  rows();
-  return wrap;
-}
-
-// ---- play everything in order ----------------------------------------------------------------------------------------
-let sequenceRun = 0;
-function playSequence(body) {
-  const run = ++sequenceRun;
-  const elements = [...body.querySelectorAll('.block:nth-child(2) audio, .block:nth-child(3) audio')];
-  let at = 0;
-  const next = () => {
-    if (run !== sequenceRun || at >= elements.length) return;
-    const audio = elements[at++];
-    audio.currentTime = 0;
-    audio.addEventListener('ended', next, {once: true});
-    audio.play().catch(() => {});
+  useButton.onclick = async () => {
+    const ok = await act(entry, 'set', {set, clips: [...selected]}, 'Set chosen');
+    if (ok && $('#autogen').checked) await renderSlots(entry, SETS[set].slots);
   };
-  next();
+  const sortSelect = h('select', {'aria-label': 'Sort', onchange: event => { sortMode = event.target.value; rows(); }},
+    h('option', {value: 'typical'}, 'Most typical first'), h('option', {value: 'loud'}, 'Closest to median loudness'), h('option', {value: 'longest'}, 'Longest first'),
+    h('option', {value: 'shortest'}, 'Shortest first'), h('option', {value: 'words'}, 'Longest text first'));
+  const search = h('input', {type: 'search', placeholder: 'Search the text', 'aria-label': 'Search the text', oninput: event => { filter = event.target.value; limit = 150; rows(); }});
+  rows();
+  return h('div', {}, h('div', {class: 'row', style: 'margin:8px 0'}, sortSelect, search, useButton), status,
+    h('div', {class: 'pool-wrap'}, h('table', {class: 'pool'}, h('thead', {}, h('tr', {}, h('th'), h('th', {}, 'Play'), h('th', {}, 'Length'), h('th', {title: 'Typicality'}, 'Typical'), h('th', {title: 'Loudness vs the voice median (dB)'}, 'Loud'), h('th', {}, 'Text'))), body)),
+    h('div', {class: 'meta', style: 'margin-top:6px'}, 'The held-out evaluation lines are not in this list. Typical is the research agent’s own criterion: closeness to the voice’s average speaker embedding.'));
 }
 
-// ---- queue ------------------------------------------------------------------------------------------------------------
+// ---- list, filter, lazy rows --------------------------------------------------------------------------------------------
+function filtered() {
+  const text = $('#search').value.trim().toLowerCase(), mode = $('#status').value;
+  return state.summary.filter(voice => {
+    if (text && !voice.key.includes(text) && !voice.name.toLowerCase().includes(text)) return false;
+    const entry = state.entries.get(voice.key), verdict = entry?.card ? entry.card.verdict?.value ?? null : voice.verdict, kept = entry?.card ? Object.keys(entry.card.kept) : voice.kept;
+    return mode === 'all' || (mode === 'new' && !verdict) || (mode === 'bad' && verdict === 'bad') || (mode === 'fine' && verdict === 'fine')
+      || (mode === 'kept' && kept.length) || (mode === 'panel' && voice.picker);
+  });
+}
+function resetList() {
+  state.order = filtered(); state.rendered = 0;
+  for (const body of document.querySelectorAll('#report tbody.voice')) body.remove();
+  $('#count').textContent = `${state.order.length} of ${state.summary.length} voices`;
+  store.set('filter', {mode: $('#status').value, text: $('#search').value});
+  renderMore();
+}
+function renderMore(count = 10) {
+  const table = $('#report');
+  for (let made = 0; made < count && state.rendered < state.order.length; made++) {
+    const voice = state.order[state.rendered++];
+    table.append(entryFor(voice).tbody);
+  }
+  if (state.rendered < state.order.length) state.observer.observe($('#sentinel')); else state.observer.unobserve($('#sentinel'));
+}
+
+// ---- data loading, queue ----------------------------------------------------------------------------------------------------
+async function loadResearch(rescan = false) {
+  state.research = await api(`/api/research${rescan ? '?rescan=1' : ''}`);
+  state.groups = {...Object.fromEntries((state.research.groups ?? []).map(group => [group.id, group.shown])), ...store.get('groups', {})};
+  buildColumns(); renderGroups(); applyGroups();
+}
+async function loadSummary() {
+  const summary = await api('/api/state');
+  state.summary = summary.voices;
+  for (const voice of state.summary) { const entry = state.entries.get(voice.key); if (entry) entry.summary = {...voice, verdict: entry.card ? entry.card.verdict?.value ?? null : voice.verdict}; }
+}
 async function pollQueue() {
   try {
     const queue = await api('/api/queue');
-    const running = queue.jobs.find(job => job.status === 'running');
+    const running = queue.jobs.find(job => job.status === 'running'), waitingGpu = queue.jobs.filter(job => job.status === 'waiting-gpu').length;
     const pill = $('#queue');
     pill.className = 'pill' + (running || queue.waiting ? ' busy' : '');
     pill.textContent = running ? `Rendering ${running.voice} ${running.done}/${running.total}${running.current ? ' · ' + running.current : ''}${queue.waiting ? ` · ${queue.waiting} waiting` : ''}`
-      : queue.waiting ? `${queue.waiting} waiting` : 'Idle';
-    pill.title = `Pocket: ${queue.engines.pocket} · OmniVoice: ${queue.engines.omni}`;
-    let changed = false;
-    for (const job of queue.jobs) {
-      const seen = state.jobSeen.get(job.id), signature = `${job.status}:${job.done}`;
-      if (seen !== signature) {
-        state.jobSeen.set(job.id, signature);
-        const entry = state.entries.get(job.voice);
-        if (entry?.open && seen !== undefined) refresh(job.voice).catch(() => {});
-        if (seen !== undefined && ['done', 'error'].includes(job.status)) changed = true;
-        if (seen === undefined && !['done', 'error'].includes(job.status)) changed = true;
-      }
+      : waitingGpu ? `GPU busy, ${waitingGpu} queued` : queue.waiting ? `${queue.waiting} waiting` : 'Idle';
+    const gpu = $('#gpu');
+    gpu.hidden = !queue.gpu?.known;
+    if (queue.gpu?.known) {
+      gpu.textContent = `GPU ${(queue.gpu.usedMiB / 1024).toFixed(1)} / ${(queue.gpu.totalMiB / 1024).toFixed(1)} GB${queue.gpu.busy ? ' · busy: OmniVoice renders wait' : ''}`;
+      gpu.className = 'pill' + (queue.gpu.busy ? ' warn' : '');
     }
-    if (changed) await loadState();
+    pill.title = `Pocket: ${queue.engines.pocket} · OmniVoice: ${queue.engines.omni}`;
+    for (const job of queue.jobs) {
+      const signature = `${job.status}:${job.done}:${job.waitReason ?? ''}`, seen = state.jobSeen.get(job.id);
+      if (seen === signature) continue;
+      state.jobSeen.set(job.id, signature);
+      const entry = state.entries.get(job.voice);
+      if (entry && (seen !== undefined || !['done', 'error'].includes(job.status))) loadCard(entry).catch(() => {});
+    }
   } catch { $('#queue').textContent = 'Server not reachable'; }
 }
+state.jobSeen = new Map();
 
-// ---- start ------------------------------------------------------------------------------------------------------------
-$('#search').addEventListener('input', applyFilter);
-$('#status').addEventListener('change', applyFilter);
+// ---- start -------------------------------------------------------------------------------------------------------------------
+document.head.append(h('style', {id: 'group-style'}));
+$('#search').addEventListener('input', resetList);
+$('#status').addEventListener('change', resetList);
 $('#autogen').checked = store.get('autogen', true);
 $('#autogen').addEventListener('change', event => store.set('autogen', event.target.checked));
-$('#gen-listed').addEventListener('click', async () => {
-  const keys = [...state.entries.values()].filter(entry => !entry.el.hidden).map(entry => entry.key);
-  if (!keys.length || !confirm(`Queue sample generation for ${keys.length} voice${keys.length === 1 ? '' : 's'}? Voices whose samples already exist are skipped, but a full voice takes roughly a minute.`)) return;
-  try { const result = await api('/api/generate-missing', {voices: keys}); toast(`Queued ${result.queued} voices`); await loadState(); } catch (error) { toast(error.message, true); }
-});
+$('#rescan').addEventListener('click', async () => { try { await loadResearch(true); for (const entry of state.entries.values()) { rebuildCells(entry); renderLeft(entry); } toast(`${state.research.columns.length} research columns`); } catch (error) { toast(error.message, {bad: true}); } });
+state.observer = new IntersectionObserver(items => { if (items.some(item => item.isIntersecting)) renderMore(8); }, {root: $('#report-wrap'), rootMargin: '600px'});
+// The report scrolls inside its own frame (sticky headers and voice column), sized to what is left under the bar.
+const sizeFrame = () => document.documentElement.style.setProperty('--bar-h', `${document.querySelector('.bar').getBoundingClientRect().height}px`);
+const sizeWrap = () => document.documentElement.style.setProperty('--wrap-w', `${$('#report-wrap').clientWidth}px`);
+new ResizeObserver(() => { sizeFrame(); sizeWrap(); }).observe(document.querySelector('.bar')); new ResizeObserver(sizeWrap).observe($('#report-wrap')); sizeFrame(); sizeWrap();
+$('#columns-box').open = window.innerWidth > 700;
 (async () => {
-  const saved = store.get('filter', {mode: 'proposal', text: ''});
-  $('#status').value = saved.mode ?? 'proposal'; $('#search').value = saved.text ?? '';
-  try { await loadState(); } catch (error) { toast(error.message, true); return; }
-  const wanted = location.hash.slice(1);
-  if (wanted && state.entries.has(wanted)) { state.entries.get(wanted).el.hidden = false; await toggle(wanted, true); state.entries.get(wanted).el.scrollIntoView(); }
+  const saved = store.get('filter', {mode: 'all', text: ''});
+  $('#status').value = saved.mode ?? 'all'; $('#search').value = saved.text ?? '';
+  try { await Promise.all([loadResearch(), loadSummary()]); } catch (error) { toast(error.message, {bad: true}); return; }
+  resetList();
+  const wanted = location.hash.slice(1), at = state.order.findIndex(voice => voice.key === wanted);
+  if (at >= 0) {
+    renderMore(at + 1 - state.rendered);
+    const entry = state.entries.get(wanted);
+    if (entry.summary.picker) openPanel(entry);
+    const wrap = $('#report-wrap');                      // scroll only the report frame, never the page
+    wrap.scrollTop = entry.tbody.offsetTop - ($('#thead').getBoundingClientRect().height);
+  }
   await pollQueue();
   setInterval(() => { if (!document.hidden) pollQueue(); }, 1500);
+  // New research columns or audio appear on their own; rows are rebuilt only when something changed and nothing is playing.
+  setInterval(async () => {
+    if (document.hidden || [...document.querySelectorAll('audio')].some(audio => !audio.paused)) return;
+    const before = JSON.stringify(state.research.columns.map(col => [col.cond, col.group, col.voices]));
+    try { await loadResearch(true); } catch { return; }
+    if (before !== JSON.stringify(state.research.columns.map(col => [col.cond, col.group, col.voices]))) for (const entry of state.entries.values()) { rebuildCells(entry); renderLeft(entry); }
+  }, 60_000);
 })();

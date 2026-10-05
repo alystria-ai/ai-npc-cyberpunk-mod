@@ -67,11 +67,12 @@ export class Pool {
   // Starting candidate sets: the research agent's proposed configs, else today's single reference.
   startingSet(key, set) {
     const voice = this.voice(key), proposed = voice.proposed;
-    if (set === 'short') return proposed['omni-short']?.clips ? [...proposed['omni-short'].clips] : null;
-    if (proposed.omni?.clips) return [...proposed.omni.clips];
-    if (proposed.pocket?.clips) return [...proposed.pocket.clips];
-    const live = voice.live.omni ? 'omni' : 'pocket';
-    return voice.live[live]?.exists ? [LIVE_PREFIX + live] : null;
+    if (proposed[set]?.clips) return [...proposed[set].clips];
+    // The research agent rendered Pocket's 10 s two-clip samples from the same 10 s sets as OmniVoice's.
+    if (set === 'pocket-short') return proposed['omni-short']?.clips ? [...proposed['omni-short'].clips] : null;
+    if (set === 'omni-short') return null;
+    const live = voice.live[set];
+    return live?.exists ? [LIVE_PREFIX + set] : null;
   }
   validateSet(key, set, ids) {
     const budget = SETS[set]?.budget;

@@ -1,57 +1,64 @@
 # Shared local voices
 
-## Reference picker: choosing reference clips by ear
+## Voice report and reference picker (one page)
 
-`scripts/Reference-Picker.mjs` is a small local web app for choosing which game clips become each character's voice
-reference. Three-clip references sounded good on Pocket but were hit or miss on OmniVoice, so the picker lets the
-listener compare sets of clips and records what was liked.
-
-Start it with one command (any of these) and open the page it prints:
+`scripts/Reference-Picker.mjs` serves the research listening report and the reference-clip controls on one page. Open the
+report, listen, and touch reference audio only for the voices whose generated audio sounds bad.
 
 ```
 npm run reference-picker            # or: node scripts/Reference-Picker.mjs [--port 8765] [--open]
 Reference-Picker.bat                # double-click; opens http://127.0.0.1:8765/
 ```
 
-It listens on 127.0.0.1 only, in its own processes, with its own lock and prompt-cache folders, so a running bridge or
-game is not disturbed (it does need free GPU memory for OmniVoice). Generated audio goes to
+The server is headless and long-lived: it never opens a browser unless `--open` is given (the `.bat` does), it listens on
+127.0.0.1 only, it writes `runtime/reference-picker.json` (`port`, `pid`, `started`, `url`), and if one is already running
+it prints that one's URL and exits 0. Everything is done from buttons on the page; no setup steps. It runs its own
+processes with private lock and prompt-cache folders, so a running bridge or game is not disturbed. Generated audio goes to
 `E:\CyberpunkConvai-offload\work\reference-picker\` (`samples/`, `refs/`, `logs/`, `pool-index.json`). The live configs
-`runtime/pocket-voices.json` and `runtime/local-voices.json` are only read.
+`runtime/pocket-voices.json` and `runtime/local-voices.json` and the research folder
+(`E:\CyberpunkConvai-offload\work\likeness-phase1`) are only read. `--fake-render` renders short tones instead of speech
+(for trying the page without any model); `--runtime <dir>` moves the log and status file.
 
-**One card per voice** (the 65 voices with a proposed three-clip set are listed first; the filter shows all 75 with a
-live reference):
+**The report.** One row per voice (every voice with research audio, 67 today, plus voices that only have a picker panel):
+the game line and every model column, with PLS / ECAPA guard / WER under each column header (from the research
+`summary-table.md` and `page/index.html`) and per-voice ECAPA under each cell where it exists. Columns are discovered on every
+scan from `out/gen`, `page/audio`, the summary table and the page header, so new research columns (for example Pocket through
+the new Mimi decoder) appear on their own when their files land. Layout: Original, Pocket base, Pocket teacher FT, then
+matching blocks `1 clip | 2 clips (10 s) | 3 clips (18 s)` for Pocket (student FT), OmniVoice 16 steps and OmniVoice 32
+steps (and any Mimi-decoder Pocket), then your own picks, auto-selected, loudness-matched, LoRA and other research renders.
+Column groups can be hidden or shown (loudness-matched, LoRA and "other" start hidden). Each row has a line switch (the
+two held-out lines), a quick verdict (**Sounds fine** / **Bad, fix references**, undoable) and **Play row**. Keyboard:
+Space plays or pauses, the left and right arrows play the previous or next sample in the row, up and down play the same
+column on the previous or next voice.
 
-- the original held-out game line (the research agent's evaluation lines, two per voice when available) with its text;
-- the **18 s set** shared by Pocket and OmniVoice (starts as the proposed `*.multiref.json` set) and the **Omni short
-  (<=10 s) set** (starts as `local-voices.multiref10.json`), each clip playable with its id, length, typicality and
-  loudness relative to the voice's median (outside +-3 dB is flagged);
-- samples of the same text: Pocket (N-clip), OmniVoice 16 steps, OmniVoice 32 steps, OmniVoice 16 steps with the short
-  set, and today's single-reference Pocket, OmniVoice 16 and OmniVoice 32 for comparison. "Play all in order" plays them
-  back to back;
-- **Reroll** (per set) draws a different set of whole clips from the voice's pool: at most three clips, joined length
-  within the budget (18 s or 10 s, counting 0.4 s gaps), no clip from the current set when possible, never a rejected
-  set, and favouring typical clips whose loudness is within about 3 dB of the voice's median. The held-out evaluation
-  lines are not in any pool;
-- **Choose clips by hand** lists the pool sorted by typicality, length, text length or loudness; tick up to three;
-- **Regenerate this voice** renders only this voice (Pocket on CPU, then OmniVoice) in one queue shared by all
-  requests, so only one render runs at a time; progress shows in the top bar and on the card. "Generate after
-  reroll" (on by default) does it automatically;
-- **Keep for Pocket**, **Keep for OmniVoice** and **Keep for Omni short** are separate, plus **Reject** (rerolls
-  avoid rejected sets), **Restore** for earlier sets and a note box.
+**Reference clips (collapsed under each voice).** Four clip sets per voice, one tab each: Pocket 18 s, Pocket 10 s,
+OmniVoice 18 s and OmniVoice 10 s (they start from the research agent's proposed three-clip and 10 s sets). For each:
+play every clip (id, length, typicality, loudness against the voice median, flagged beyond +-3 dB), the samples made from
+exactly that set, **Reroll** (a different set of whole clips, at most three, joined length within 18 s or 10 s counting 0.4 s
+gaps, no clip from the current set when possible, never a rejected set, favouring typical clips close to the voice's median
+loudness; the held-out lines are never in a pool), **Choose clips by hand**, **Restore** an earlier set, **Render**, **Keep**
+and **Reject** (both toggles with an Undo toast) and a note. Renders appear as "Your picks" columns in the voice's row next
+to the research columns and flash briefly when they land.
+
+**Rendering.** Pocket runs on the CPU through the bridge's own `PocketVoice`; OmniVoice runs in a separate persistent
+worker (FP16, CUDA, steps 16 and 32; the 10 s set at both). Requests share one queue. OmniVoice renders wait ("GPU busy,
+queued") while another process holds most of the GPU (more than 60% of VRAM in use, or under 4.5 GB free; `--gpu-busy-fraction`);
+Pocket renders never wait for it.
 
 **Log.** Every action is appended to `runtime/reference-picks.jsonl`, one JSON object per line:
-`{"seq", "ts", "voice", "engine", "set", "action", "clips": [ids], "seconds", "note", ...}`. `engine` is `pocket`, `omni`,
-`omni-short`, `pocket+omni` (the shared 18 s set) or `all`; `action` is `reroll`, `manual-set`, `restore`, `keep`,
-`unkeep`, `reject`, `note`, `regenerate`, `regenerate-done`, `regenerate-failed` or `play` (which sample, clip or
-original was played). `runtime/reference-picks.json` is derived from the log: the kept set per voice and engine, plus
-rejections, notes, current candidate sets and play counts. Clip ids are `<voice>/<string id>[/female|male]`.
+`{"seq", "ts", "voice", "engine", "set", "action", "clips": [ids], "seconds", "note", ...}`. `engine` and `set` are
+`pocket`, `pocket-short`, `omni` or `omni-short` (or `all`); `action` is `reroll`, `manual-set`, `restore`, `keep`, `unkeep`,
+`reject`, `unreject`, `note`, `verdict` (`fine` / `bad` / empty), `regenerate`, `regenerate-done`, `regenerate-failed` or
+`play` (`what` is `research` with the column as `target`, `sample` with the slot, or `clip`). `runtime/reference-picks.json`
+is derived from the log: the kept set per voice and engine, verdicts, rejections, notes, current candidate sets, play counts
+and each voice's most-played columns. Clip ids are `<voice>/<string id>[/female|male]`.
 
 **Apply the picks.** `node scripts/Apply-ReferencePicks.mjs [--dry-run] [--only voice,voice] [--no-validate]` replays the log
-and, for each kept set, concatenates the whole clips into `runtime/voice-references/picked/{pocket,omni,omni-short}/<voice>.wav`
+and, for each kept set, concatenates the whole clips into `runtime/voice-references/picked/{pocket,pocket-short,omni,omni-short}/<voice>.wav`
 exactly as the research agent's proposed references were built (24 kHz mono 16-bit, torchaudio-style resampling, 0.4 s
 of silence between clips, no EQ or denoise) and writes NEW configs by copying the live ones and replacing the kept
-voices only: `runtime/pocket-voices.picked.json`, `runtime/local-voices.picked.json` and
-`runtime/local-voices.picked-short.json`. It then dry-runs each through the bridge's own loaders (Node
+voices only: `runtime/pocket-voices.picked.json`, `runtime/pocket-voices.picked-short.json`, `runtime/local-voices.picked.json`
+and `runtime/local-voices.picked-short.json`. It then dry-runs each through the bridge's own loaders (Node
 `createVoiceProfileRegistry` / `validatePocketConfig`, and the Python `validate_config` of `resident-voice-worker.py`
 and `pocket_voice_runtime.py`, including the 20 s Omni reference limit and transcript rules) without loading a model.
 It never writes the live configs; switching to a picked config is a separate, approved step.

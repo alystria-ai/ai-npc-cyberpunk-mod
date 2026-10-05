@@ -7,19 +7,20 @@ import {derivedPicks, parseLog, PickStore, readPicks, replayPicks} from './picks
 
 test('replay rebuilds candidates, history, kept, rejected, notes and plays', () => {
   const log = [
-    {seq: 1, ts: 't1', voice: 'a', set: 'full', action: 'reroll', clips: ['a/1', 'a/2'], seconds: 8},
-    {seq: 2, ts: 't2', voice: 'a', set: 'full', action: 'manual-set', clips: ['a/3'], seconds: 4},
+    {seq: 1, ts: 't1', voice: 'a', set: 'pocket', action: 'reroll', clips: ['a/1', 'a/2'], seconds: 8},
+    {seq: 2, ts: 't2', voice: 'a', set: 'pocket', action: 'manual-set', clips: ['a/3'], seconds: 4},
     {seq: 3, ts: 't3', voice: 'a', engine: 'pocket', action: 'keep', clips: ['a/3'], seconds: 4, note: 'good'},
     {seq: 4, ts: 't4', voice: 'a', engine: 'omni', action: 'keep', clips: ['a/1', 'a/2']},
     {seq: 5, ts: 't5', voice: 'a', engine: 'omni', action: 'unkeep', clips: ['a/1', 'a/2']},
-    {seq: 6, ts: 't6', voice: 'a', set: 'full', action: 'reject', clips: ['a/3'], note: 'no'},
+    {seq: 6, ts: 't6', voice: 'a', set: 'pocket', action: 'reject', clips: ['a/3'], note: 'no'},
     {seq: 7, ts: 't7', voice: 'a', action: 'note', note: 'hello'},
     {seq: 8, ts: 't8', voice: 'a', action: 'play', what: 'sample', target: 'omni16'},
     {seq: 9, ts: 't9', voice: 'a', action: 'play', what: 'sample', target: 'omni16'},
   ];
   const state = replayPicks(log), row = state.voices.a;
-  assert.deepEqual(row.candidate.full, ['a/3']);
-  assert.deepEqual(row.history.full.map(item => item.clips.join()), ['a/3', 'a/1,a/2']);
+  assert.deepEqual(row.candidate.pocket, ['a/3']);
+  assert.equal(row.candidate.omni, null);                         // each engine variant has its own set
+  assert.deepEqual(row.history.pocket.map(item => item.clips.join()), ['a/3', 'a/1,a/2']);
   assert.deepEqual(Object.keys(row.kept), ['pocket']);
   assert.equal(row.kept.pocket.note, 'good');
   assert.equal(row.rejected.length, 1);
@@ -49,4 +50,26 @@ test('the store appends in order, survives restarts and writes the derived json'
   await next.load();
   await next.append({voice: 'a', action: 'note', note: 'n'});
   assert.equal(next.state.lastSeq, 3);
+});
+
+test('verdicts, undoing a rejection, per-column play counts and old shared-set lines', () => {
+  const state = replayPicks([
+    {seq: 1, ts: 't1', voice: 'a', action: 'verdict', verdict: 'bad', line: 1},
+    {seq: 2, ts: 't2', voice: 'a', set: 'omni', action: 'reject', clips: ['a/1']},
+    {seq: 3, ts: 't3', voice: 'a', set: 'omni', action: 'unreject', clips: ['a/1']},
+    {seq: 4, ts: 't4', voice: 'a', action: 'play', what: 'research', target: 'omni__s16_g2'},
+    {seq: 5, ts: 't5', voice: 'a', action: 'play', what: 'research', target: 'omni__s16_g2'},
+    {seq: 6, ts: 't6', voice: 'a', action: 'play', what: 'sample', target: 'pocket'},
+    {seq: 7, ts: 't7', voice: 'b', set: 'full', action: 'reroll', clips: ['b/1']},                 // older log: one shared set
+    {seq: 8, ts: 't8', voice: 'b', action: 'verdict', verdict: 'fine'},
+    {seq: 9, ts: 't9', voice: 'b', action: 'verdict', verdict: ''},
+  ]);
+  assert.equal(state.voices.a.verdict.value, 'bad');
+  assert.equal(state.voices.a.rejected.length, 0);
+  assert.deepEqual([state.voices.b.candidate.pocket, state.voices.b.candidate.omni], [['b/1'], ['b/1']]);
+  assert.equal(state.voices.b.verdict, null);
+  const derived = derivedPicks(state);
+  assert.deepEqual(derived.voices.a.topColumns[0], {column: 'research:omni__s16_g2', plays: 2});
+  assert.equal(derived.columnPlays['research:omni__s16_g2'], 2);
+  assert.equal(derived.voices.a.verdict.value, 'bad');
 });

@@ -4,32 +4,38 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Reference picker</title>
+<title>Voice report</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="bar">
   <div class="bar-row">
-    <h1>Reference picker</h1>
-    <div id="queue" class="pill" title="Render queue">Idle</div>
+    <h1>Voice report</h1>
+    <div id="queue" class="pill" title="Render queue" aria-live="polite">Idle</div>
+    <div id="gpu" class="pill" hidden></div>
     <div class="spacer"></div>
-    <label class="check"><input type="checkbox" id="autogen" checked> Generate after reroll</label>
+    <label class="check"><input type="checkbox" id="autogen" checked> Render after reroll</label>
   </div>
   <div class="bar-row">
-    <input id="search" type="search" placeholder="Filter voices" autocomplete="off">
-    <select id="status" aria-label="Status filter">
+    <input id="search" type="search" placeholder="Filter voices" autocomplete="off" aria-label="Filter voices">
+    <select id="status" aria-label="Which voices">
       <option value="all">All voices</option>
-      <option value="proposal">With a proposed set</option>
-      <option value="undecided">Nothing kept yet</option>
+      <option value="new">No verdict yet</option>
+      <option value="bad">Bad, fix references</option>
+      <option value="fine">Sounds fine</option>
       <option value="kept">Something kept</option>
-      <option value="rejected">Has rejections</option>
+      <option value="panel">Has a reference panel</option>
     </select>
-    <button id="gen-listed" title="Queue sample generation for every voice listed below">Generate samples for listed voices</button>
     <span id="count" class="muted"></span>
+    <button id="rescan" class="small" title="Look for new research columns and audio">Rescan research files</button>
   </div>
+  <details id="columns-box" open><summary class="muted">Columns shown</summary><div class="bar-row" id="groups" role="group" aria-label="Column groups"></div></details>
 </header>
-<main id="list" aria-live="polite"></main>
-<div id="toast" role="status" hidden></div>
+<main>
+  <div id="report-wrap" class="report-wrap"><table class="report" id="report"><thead id="thead"></thead></table><div id="sentinel" aria-hidden="true"></div></div>
+  <p class="muted help">Space plays or pauses the current sample. Left and right arrows play the previous or next sample in the row; up and down play the same column on the previous or next voice. The research columns are read only.</p>
+</main>
+<div id="toast" role="status" hidden><span id="toast-text"></span> <button id="toast-undo" class="small" hidden>Undo</button></div>
 <script src="app.js"></script>
 </body>
 </html>

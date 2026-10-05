@@ -39,9 +39,9 @@ test('reroll copes with tiny pools and returns null when nothing else exists', (
 test('manual sets are validated against the budget', () => {
   const live = {omni: {exists: true, d: 5, transcript: 't', reference: 'r.wav', sha256: 'x'}};
   const pool = new Pool({dataRoot: '/data', voices: {v: {live, clips: [clip(0, 9), clip(1, 9), clip(2, 2)], proposed: {}, loudMedian: -20}}}, {project: '/p'});
-  assert.throws(() => pool.validateSet('v', 'full', ['v/0', 'v/1']), /18 s/);
-  assert.equal(pool.validateSet('v', 'full', ['v/0', 'v/2']).seconds, 11.4);
-  assert.throws(() => pool.validateSet('v', 'short', ['v/0', 'v/2']), /10 s/);
-  assert.throws(() => pool.validateSet('v', 'full', ['v/0', 'v/0']));
-  assert.throws(() => pool.validateSet('v', 'full', ['v/9']), /Unknown clip/);
+  assert.throws(() => pool.validateSet('v', 'omni', ['v/0', 'v/1']), /18 s/);
+  assert.equal(pool.validateSet('v', 'omni', ['v/0', 'v/2']).seconds, 11.4);
+  assert.throws(() => pool.validateSet('v', 'omni-short', ['v/0', 'v/2']), /10 s/);
+  assert.throws(() => pool.validateSet('v', 'omni', ['v/0', 'v/0']));
+  assert.throws(() => pool.validateSet('v', 'omni', ['v/9']), /Unknown clip/);
 });

@@ -10,6 +10,7 @@
 //   * copies the live config and replaces only those voices' entries (reference, sha256, transcript = the clips'
 //     transcripts joined with spaces, plus a "pick" note of the clip ids):
 //       Pocket       kept "pocket"      -> runtime/pocket-voices.picked.json        (from runtime/pocket-voices.json)
+//       Pocket 10 s  kept "pocket-short"-> runtime/pocket-voices.picked-short.json  (from runtime/pocket-voices.json)
 //       OmniVoice    kept "omni"        -> runtime/local-voices.picked.json         (from runtime/local-voices.json)
 //       Omni, short  kept "omni-short"  -> runtime/local-voices.picked-short.json   (from runtime/local-voices.json)
 // then dry-runs every written config through the bridge's own loaders (createVoiceProfileRegistry /
@@ -31,6 +32,7 @@ import {validatePocketConfig} from '../bridge/pocket-voice.mjs';
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 export const OUTPUTS = Object.freeze({
   pocket: {live: 'runtime/pocket-voices.json', out: 'runtime/pocket-voices.picked.json', folder: 'pocket', maxSeconds: 30, label: 'Pocket'},
+  'pocket-short': {live: 'runtime/pocket-voices.json', out: 'runtime/pocket-voices.picked-short.json', folder: 'pocket-short', maxSeconds: 10, label: 'Pocket 10 s'},
   omni: {live: 'runtime/local-voices.json', out: 'runtime/local-voices.picked.json', folder: 'omni', maxSeconds: 20, label: 'OmniVoice'},
   'omni-short': {live: 'runtime/local-voices.json', out: 'runtime/local-voices.picked-short.json', folder: 'omni-short', maxSeconds: 10, label: 'OmniVoice short'},
 });
@@ -107,7 +109,7 @@ export async function validateOutputs({project, report, log = () => {}}) {
     const picked = entry.changed.map(item => item.voice);
     const result = {engine, config: spec.out};
     // Node loaders (what the bridge process uses).
-    if (engine === 'pocket') {
+    if (engine.startsWith('pocket')) {
       const checked = validatePocketConfig(config);
       result.node = {voices: checked.registry.keys.length};
       for (const voice of picked) if (!checked.registry.has(voice)) throw Error(`Pocket loader rejected ${voice}`);
@@ -117,8 +119,8 @@ export async function validateOutputs({project, report, log = () => {}}) {
       for (const voice of picked) if (!registry.has(voice)) throw Error(`Omni registry rejected ${voice}`);
     }
     // Python loaders (what the worker processes use): file hash, WAV structure, 20 s Omni limit, transcript rules.
-    const python = engine === 'pocket' ? config.runtime.pythonExecutable : resolve(project, 'vendor/reference-voicestudio/.venv/Scripts/python.exe');
-    const run = spawnSync(python, ['-B', resolve(project, 'scripts/reference-picker/validate-config.py'), engine === 'pocket' ? 'pocket' : 'omni', path],
+    const python = engine.startsWith('pocket') ? config.runtime.pythonExecutable : resolve(project, 'vendor/reference-voicestudio/.venv/Scripts/python.exe');
+    const run = spawnSync(python, ['-B', resolve(project, 'scripts/reference-picker/validate-config.py'), engine.startsWith('pocket') ? 'pocket' : 'omni', path],
       {cwd: project, encoding: 'utf8', env: {...process.env, PYTHONUTF8: '1', CUDA_VISIBLE_DEVICES: '-1'}, timeout: 300_000});
     let python_result;
     try { python_result = JSON.parse(run.stdout.trim().split('\n').at(-1)); } catch { python_result = {ok: false, error: (run.stderr || run.stdout || 'no output').slice(-400)}; }

@@ -6,27 +6,33 @@
 // quick inspection; Apply-ReferencePicks.mjs replays the log itself and does not trust the JSON.
 //
 // One log line:
-//   {"seq":12,"ts":"2026-10-06T01:02:03.456Z","voice":"judy-alvarez","engine":"pocket+omni","set":"full",
+//   {"seq":12,"ts":"2026-10-06T01:02:03.456Z","voice":"judy-alvarez","engine":"pocket","set":"pocket",
 //    "action":"reroll","clips":["judy-alvarez/..","judy-alvarez/.."],"seconds":17.4,"line":0,"note":"",...}
-// engine is "pocket", "omni", "omni-short", "pocket+omni" (the shared 18 s candidate set) or "all".
-// actions: reroll | manual-set | restore | keep | unkeep | reject | note | regenerate | regenerate-done |
-//          regenerate-failed | play | session-start
+// engine and set are "pocket", "pocket-short", "omni" or "omni-short" (each has its own clip set), or engine "all".
+// actions: reroll | manual-set | restore | keep | unkeep | reject | unreject | note | verdict | regenerate | regenerate-done |
+//          regenerate-failed | play
+// verdict: "fine" (the generated audio sounds fine) | "bad" (bad, fix the references) | "" (cleared).
+// play: what is "research" (a column of the research listening report; target = its condition id), "sample" (one of
+//       the user's own renders; target = its slot) or "clip" (a reference clip; target = its id).
 import {appendFile, mkdir, readFile, rename, writeFile} from 'node:fs/promises';
 import {dirname} from 'node:path';
 
-export const ENGINES = Object.freeze(['pocket', 'omni', 'omni-short']);
+export const ENGINES = Object.freeze(['pocket', 'pocket-short', 'omni', 'omni-short']);
+// Each engine variant has its own candidate clip set: Pocket and OmniVoice, each with an 18 s and a 10 s set. The set id is the
+// engine id. (Older log lines used set "full" for one shared Pocket+Omni set; replay applies those to both.)
 export const SETS = Object.freeze({
-  full: {budget: 18, engines: ['pocket', 'omni'], label: '18 s set'},
-  short: {budget: 10, engines: ['omni-short'], label: '10 s set'},
+  pocket: {budget: 18, label: 'Pocket 18 s set'},
+  'pocket-short': {budget: 10, label: 'Pocket 10 s set'},
+  omni: {budget: 18, label: 'OmniVoice 18 s set'},
+  'omni-short': {budget: 10, label: 'OmniVoice 10 s set'},
 });
-export const engineSet = engine => engine === 'omni-short' ? 'short' : 'full';
-export const setEngineLabel = set => set === 'short' ? 'omni-short' : 'pocket+omni';
+export const engineSet = engine => engine;
 
 const SET_ACTIONS = new Set(['reroll', 'manual-set', 'restore']);
 const HISTORY_LIMIT = 40;
 
-export const emptyVoice = () => ({candidate: {full: null, short: null}, history: {full: [], short: []},
-  kept: {}, rejected: [], note: '', plays: {}, updated: null});
+export const emptyVoice = () => ({candidate: {pocket: null, 'pocket-short': null, omni: null, 'omni-short': null}, history: {pocket: [], 'pocket-short': [], omni: [], 'omni-short': []},
+  kept: {}, rejected: [], note: '', verdict: null, plays: {}, updated: null});
 
 export function parseLog(text) {
   const entries = [];
@@ -42,19 +48,29 @@ export function applyEntry(state, entry) {
   if (typeof voice !== 'string' || !voice) return state;
   const row = state.voices[voice] ??= emptyVoice();
   row.updated = entry.ts ?? row.updated;
-  if (SET_ACTIONS.has(entry.action) && Array.isArray(entry.clips) && SETS[entry.set]) {
-    row.candidate[entry.set] = [...entry.clips];
-    const key = entry.clips.join('|');
-    row.history[entry.set] = [{clips: [...entry.clips], seconds: entry.seconds ?? null, ts: entry.ts, action: entry.action},
-      ...row.history[entry.set].filter(item => item.clips.join('|') !== key)].slice(0, HISTORY_LIMIT);
+  if (SET_ACTIONS.has(entry.action) && Array.isArray(entry.clips) && (SETS[entry.set] || entry.set === 'full' || entry.set === 'short')) {
+    const targets = entry.set === 'full' ? ['pocket', 'omni'] : entry.set === 'short' ? ['omni-short'] : [entry.set];
+    for (const target of targets) {
+      row.candidate[target] = [...entry.clips];
+      const key = entry.clips.join('|');
+      row.history[target] = [{clips: [...entry.clips], seconds: entry.seconds ?? null, ts: entry.ts, action: entry.action},
+        ...row.history[target].filter(item => item.clips.join('|') !== key)].slice(0, HISTORY_LIMIT);
+    }
   } else if (entry.action === 'keep' && ENGINES.includes(entry.engine) && Array.isArray(entry.clips)) {
     row.kept[entry.engine] = {clips: [...entry.clips], seconds: entry.seconds ?? null, ts: entry.ts, note: entry.note ?? ''};
   } else if (entry.action === 'unkeep' && ENGINES.includes(entry.engine)) {
     delete row.kept[entry.engine];
   } else if (entry.action === 'reject' && Array.isArray(entry.clips)) {
-    row.rejected.push({set: entry.set ?? null, engine: entry.engine, clips: [...entry.clips], ts: entry.ts, note: entry.note ?? ''});
+    const legacy = {full: ['pocket', 'omni'], short: ['omni-short']}[entry.set];
+    for (const set of legacy ?? [entry.set ?? null]) row.rejected.push({set, engine: entry.engine, clips: [...entry.clips], ts: entry.ts, note: entry.note ?? ''});
+  } else if (entry.action === 'unreject' && Array.isArray(entry.clips)) {
+    const key = entry.clips.join('|');
+    const at = row.rejected.findLastIndex(item => item.set === (entry.set ?? null) && item.clips.join('|') === key);
+    if (at >= 0) row.rejected.splice(at, 1);
   } else if (entry.action === 'note') {
     row.note = entry.note ?? '';
+  } else if (entry.action === 'verdict') {
+    row.verdict = entry.verdict ? {value: entry.verdict, ts: entry.ts, line: entry.line ?? 0} : null;
   } else if (entry.action === 'play') {
     const key = `${entry.what ?? 'audio'}:${entry.target ?? ''}`;
     row.plays[key] = (row.plays[key] ?? 0) + 1;
@@ -80,14 +96,18 @@ export async function readPicks(logPath) {
 
 // The JSON written beside the log: kept sets per voice and engine first, then the working state.
 export function derivedPicks(state, {source = 'runtime/reference-picks.jsonl', now = new Date()} = {}) {
-  const voices = {};
+  const voices = {}, columns = {};
   for (const [key, row] of Object.entries(state.voices)) {
     const plays = Object.values(row.plays).reduce((a, b) => a + b, 0);
-    if (!Object.keys(row.kept).length && !row.rejected.length && !row.note && !row.candidate.full && !row.candidate.short && !plays) continue;
-    voices[key] = {kept: row.kept, rejected: row.rejected, note: row.note,
-      candidate: {full: row.candidate.full, short: row.candidate.short}, plays: row.plays, updated: row.updated};
+    if (!Object.keys(row.kept).length && !row.rejected.length && !row.note && !row.verdict && !Object.values(row.candidate).some(Boolean) && !plays) continue;
+    // Which research columns and own renders were played most for this voice (what:target -> count).
+    const topColumns = Object.entries(row.plays).filter(([name]) => name.startsWith('research:') || name.startsWith('sample:'))
+      .sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, count]) => ({column: name, plays: count}));
+    for (const [name, count] of Object.entries(row.plays)) if (name.startsWith('research:') || name.startsWith('sample:')) columns[name] = (columns[name] ?? 0) + count;
+    voices[key] = {verdict: row.verdict, kept: row.kept, rejected: row.rejected, note: row.note,
+      candidate: row.candidate, topColumns, plays: row.plays, updated: row.updated};
   }
-  return {version: 1, updated: now.toISOString(), source, entries: state.entries, voices};
+  return {version: 1, updated: now.toISOString(), source, entries: state.entries, columnPlays: columns, voices};
 }
 
 async function writeAtomic(path, text) {

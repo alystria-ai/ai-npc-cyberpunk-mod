@@ -9,14 +9,15 @@ import {basename, dirname, resolve} from 'node:path';
 import {PocketVoice} from '../../bridge/pocket-voice.mjs';
 import {concatClips, encodeWav, readWav, REFERENCE_RATE} from './audio.mjs';
 
+// The renders the picker makes for a voice. Today's single-reference versions are not rendered here: the research
+// report already has them (Pocket student FT, OmniVoice 16 / 32), made with the same settings.
 export const SLOTS = Object.freeze([
-  {slot: 'pocket', engine: 'pocket', set: 'full', label: 'Pocket'},
-  {slot: 'omni16', engine: 'omni', steps: 16, set: 'full', label: 'OmniVoice 16 steps'},
-  {slot: 'omni32', engine: 'omni', steps: 32, set: 'full', label: 'OmniVoice 32 steps'},
-  {slot: 'omni16s', engine: 'omni', steps: 16, set: 'short', label: 'OmniVoice 16 steps, short set'},
-  {slot: 'live-pocket', engine: 'pocket', live: true, label: 'Pocket, today'},
-  {slot: 'live-omni16', engine: 'omni', steps: 16, live: true, label: 'OmniVoice 16 steps, today'},
-  {slot: 'live-omni32', engine: 'omni', steps: 32, live: true, label: 'OmniVoice 32 steps, today'},
+  {slot: 'pocket', engine: 'pocket', set: 'pocket', label: 'Pocket'},
+  {slot: 'pockets', engine: 'pocket', set: 'pocket-short', label: 'Pocket, 10 s set'},
+  {slot: 'omni16', engine: 'omni', steps: 16, set: 'omni', label: 'OmniVoice 16 steps'},
+  {slot: 'omni32', engine: 'omni', steps: 32, set: 'omni', label: 'OmniVoice 32 steps'},
+  {slot: 'omni16s', engine: 'omni', steps: 16, set: 'omni-short', label: 'OmniVoice 16 steps, 10 s set'},
+  {slot: 'omni32s', engine: 'omni', steps: 32, set: 'omni-short', label: 'OmniVoice 32 steps, 10 s set'},
 ]);
 
 const sha256Of = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -30,6 +31,7 @@ export class Engines {
     this.omni = null;
     this.state = {pocket: 'idle', omni: 'idle'};
   }
+  get omniResident() { return !!this.omni?.loaded; }
 
   // ---- reference audio ----
   // Concatenate whole clips (see audio.mjs) into refs/<sha256>.wav, a content-addressed file the Pocket worker's
