@@ -11,6 +11,7 @@ The single working document for development: open items first, then a dated log,
 
 ### Waiting for one combined install and in-game test
 After the agents above finish:
+- Install order for lip sync: install the new `facial-playback.lua` before (or together with) the model weights in `runtime/lipsync-model/face-model.*`. Old Lua rejects the new timelines, so the mouth would stay idle.
 - Restart the bridge, now via the auto-start supervisor, which loads the latency fixes and Pocket's 4 threads.
 - First launch with auto-start: check `red4ext/plugins/CyberpunkConvaiLauncher/launcher.log`, talk without starting the bridge by hand, and confirm the bridge stops when the game exits.
 - Memory picker messages ("…deleted nothing") and Fight / Distract actions (needs the "mark target for companions" binding set in CET) and the question-rule change in game.
@@ -28,6 +29,7 @@ After the agents above finish:
 
 - After all agents finish: run the full `npm test` and triage what fails. Last seen: about 7 installer and binding-setup failures, plus the bridge-import allowlist.
 - After the Help agent finishes (it is editing `mcm.lua` and the locales): update the loot setting's help text, which still says battle and loot comments play separately, in all 10 locales. Also delete the unused `loot.capture({forBattle=true})`.
+- Convai early audio-player open (latency item A): not done. The player fails with "admission expired" if no control arrives within 2 s of opening, so opening it at turn start would break slow Convai turns. Needs a different design (for example, open early with a longer or renewable admission window).
 - `packaging/runtime-bootstrap.test.mjs` fails: its allowlist lacks newer bridge modules (`analysis-pcm`, `distraction-context`, `jali-face*` and others). Fix it once the lip-sync and actions modules are final. `bridge-startup.test.mjs` times out under full-suite load but passes alone.
 - Movement design questions from the test triage: (1) a follow blocked beyond 6 m can still enter the "advance" detour mode (`block()` in `companion-actuator.lua`), but no current test reaches it. Decide whether to keep it for follow, and test it if so. (2) Initial follow admissions skip the 2-member planning turn, so each one costs one native navigation query (8 at once costs 8). The 192 physics-query cap still holds. Treated as intended.
 
