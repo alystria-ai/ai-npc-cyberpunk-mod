@@ -9,7 +9,7 @@ return {
     ["Waiting for walking ownership to resume."] = "正在等待恢復步行控制。",
     ["Development"] = "開發",
     ["Developer mode"] = "開發者模式",
-    ["Show routine companion popups: invitation progress (preparing, connecting, ready, joining) and driving instructions such as boarding and exit. Failures and replies to Stop trip remain visible when off."] = "顯示夥伴的一般彈出通知：邀請進度（準備、連線、就緒、加入）以及上車、下車等駕駛提示。關閉後仍會顯示故障訊息及停止行程的回應。",
+    ["Show routine companion popups: the joining step, dismissal confirmations, and driving instructions such as boarding and exit. Preparation progress, joined notices, failures and replies to Stop trip remain visible when off."] = "顯示夥伴的一般彈出通知：加入步驟、解散確認，以及上車、下車等駕駛提示。關閉後仍會顯示準備進度、加入完成通知、故障訊息及停止行程的回應。",
     ["0 results"] = "0 項結果",
     ["10 cm higher"] = "提高 10 公分",
     ["10 cm lower"] = "降低 10 公分",

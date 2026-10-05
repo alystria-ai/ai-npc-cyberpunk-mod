@@ -9,7 +9,7 @@ return {
     ["Waiting for walking ownership to resume."] = "보행 제어가 재개될 때까지 기다리는 중입니다.",
     ["Development"] = "개발",
     ["Developer mode"] = "개발자 모드",
-    ["Show routine companion popups: invitation progress (preparing, connecting, ready, joining) and driving instructions such as boarding and exit. Failures and replies to Stop trip remain visible when off."] = "동료의 일반 알림을 표시합니다. 초대 진행 상황(준비, 연결, 준비 완료, 합류)과 탑승·하차 같은 운전 안내가 해당됩니다. 꺼져 있어도 오류와 운행 중지에 대한 응답은 표시됩니다.",
+    ["Show routine companion popups: the joining step, dismissal confirmations, and driving instructions such as boarding and exit. Preparation progress, joined notices, failures and replies to Stop trip remain visible when off."] = "동료의 일반 알림을 표시합니다. 합류 단계, 내보내기 확인, 탑승·하차 같은 운전 안내가 해당됩니다. 꺼져 있어도 준비 진행 상황, 합류 완료 알림, 오류, 운행 중지에 대한 응답은 표시됩니다.",
   ["0 results"] = "결과 0개",
   ["10 cm higher"] = "10 cm 높게",
   ["10 cm lower"] = "10 cm 낮게",
