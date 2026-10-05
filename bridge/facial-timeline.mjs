@@ -152,7 +152,7 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
   // Trust valid ARKit timing/neutral poses; retain energy for local fallback.
   // A held provider pose may remain during its silent audio until the source
   // changes, expires below, or the utterance ends. Do not invent neutral poses.
-  const fps = cues ? 60 : facialFps(source);
+  const fps = cues || (jali && !source) ? 60 : facialFps(source);
   let index = 0;
   const poseAt = at => {
     // An intermediate segment ends inside one spoken utterance. Clamp the
@@ -162,8 +162,9 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
     const energyFrame = energyAt * 30, energyIndex = Math.floor(energyFrame);
     const level = (envelope[energyIndex] || 0) * (1 - energyFrame + energyIndex)
       + (envelope[energyIndex + 1] ?? (segment && !last ? envelope[energyIndex] || 0 : 0)) * (energyFrame - energyIndex);
-    let values = zero(), providerValues;
+    let values = zero(), providerValues, active = false;
     if (source || level > 0 || cues) {
+      active = true;
       if (source) {
         while (index + 1 < source.length && source[index + 1].at <= at) index++;
         const left = source[index], right = source[index + 1];
@@ -177,20 +178,25 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
       } else {
         values[0] = 0.35 * level; values[1] = 0.12 * level; values[2] = 0.16 * level;
       }
-      if (jali) {
-        values = JALI_FROM_SPEECH.map(index => index < 0 ? 0 : values[index]);
-        const ahead = Math.min(duration, at + JALI_LEAD_SECONDS);
-        if (jali.frames && at >= jali.start && (ahead <= jali.covered || jali.frames.finished)) {
-          const blend = clamp((at - jali.start) / .06), model = jaliPose(jali.frames, ahead);
-          values = model.map((value, index) => values[index] + (value - values[index]) * blend);
-        }
+    }
+    if (jali) {
+      // Model-driven stream: provider poses (if any) in the fixed model track
+      // order, replaced by the game-trained model wherever it covers the audio.
+      values = JALI_FROM_SPEECH.map(index => index < 0 ? 0 : values[index]);
+      const ahead = Math.min(duration, at + JALI_LEAD_SECONDS);
+      if (jali.frames && at >= jali.start && (ahead <= jali.covered || jali.frames.finished)) {
+        const blend = clamp((at - jali.start) / .06), model = jaliPose(jali.frames, ahead);
+        values = model.map((value, index) => values[index] + (value - values[index]) * blend);
+        active = true;
       }
+    }
+    if (active) {
       // Only actual utterance boundaries ease to/from neutral. Ordinary
       // replies and v1 phrase timelines retain their original edge behavior.
       // No audio samples or gaze channels are changed by these pose flags.
       const edge = clamp(Math.min(first ? at / .04 : 1, last ? (duration - at) / .04 : 1));
       values = values.map(v => rounded(v * edge));
-    } else if (jali) values = JALI_TIMELINE_TRACKS.map(() => 0);
+    }
     if (expressionFrames) expressionFrames.push([at,
       ...PROVIDER_EXPRESSION_INDICES.map(i => rounded(clamp(providerValues?.[i] ?? 0)))]);
     return values;
@@ -255,16 +261,17 @@ export function buildProviderFacialTimeline(result, owner, jali) {
       || !Number.isSafeInteger(owner.generation) || owner.generation < 0 || owner.generation > 2147483647
       || !Number.isFinite(result.duration) || result.duration <= 0 || result.duration > 120
       || typeof result.complete !== 'boolean') return undefined;
-  const source = validFaces(result, result.duration);
-  if (!source || source[0].at !== 0) return undefined;
+  let source = validFaces(result, result.duration);
+  if (source && source[0].at !== 0) source = null;
   // A normal sampled timeline can end up to one frame before its PCM cursor.
   // Longer missing tails are incomplete, rather than permission to animate a
   // large neutral/frozen suffix. Ahead-delivered data is valid and not truncated
   // in the caller; retain one bracketing future pose for this prefix's endpoint.
-  const tolerance = Math.min(.1, sourceSpacing(source) ?? 1 / 30);
-  if (source.at(-1).at + tolerance + 1e-7 < result.duration) return undefined;
-  const right = source.findIndex(frame => frame.at >= result.duration);
-  const window = right >= 0 ? source.slice(0, right + 1) : source;
+  // A model-driven stream needs no provider poses: it renders what it covers.
+  const tolerance = source ? Math.min(.1, sourceSpacing(source) ?? 1 / 30) : 0;
+  if (!jali && (!source || source.at(-1).at + tolerance + 1e-7 < result.duration)) return undefined;
+  const right = source ? source.findIndex(frame => frame.at >= result.duration) : -1;
+  const window = source ? (right >= 0 ? source.slice(0, right + 1) : source) : undefined;
   const line = renderTimeline({owner, duration: result.duration, source: window,
     first: true, last: result.complete, expressionSignal: result.expressionSignal, jali});
   // A growing timeline crosses repeated game polls; preserve the same load/

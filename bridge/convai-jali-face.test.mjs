@@ -95,6 +95,20 @@ test('a gap in analysis PCM drops the model for that stream and keeps the provid
   f.abort.abort();
 });
 
+test('a model-driven Convai stream still animates when provider poses are late or missing', async () => {
+  const {meta, buffer} = syntheticModel({lookahead: 2}), jaliFace = inProcessFace(parseFaceModel(meta, buffer)), f = fixture({jaliFace});
+  const source = new AnalysisPcm(1); source.append(pcm16(speechLike(.5, 24000)), 0);
+  const base = {version: 1, token: 'continuous-1', sampleRate: 24000, channels: 1, receivedFrames: 12000, positionSeconds: 0,
+    text: 'Hey V.', textComplete: true, sourceComplete: true, ended: false, underruns: 0, state: 'playing', faces: []};
+  await f.stream.frame(base);
+  await f.stream.frame({...base, pcm: source.slice(0)});
+  const face = f.states.at(-1).face;
+  assert.equal(face.source, 'local-jali'); assert.deepEqual(face.tracks, [...JALI_TIMELINE_TRACKS]);
+  assert.equal(face.providerExpressions, undefined);
+  assert(face.frames.some(frame => frame.slice(1).some(v => v > 0)), 'the model drives the mouth');
+  f.abort.abort();
+});
+
 test('without a model the Convai provider timeline is unchanged', async () => {
   const f = fixture();
   await f.stream.frame({version: 1, token: 'continuous-1', sampleRate: 24000, channels: 1, receivedFrames: 12000,

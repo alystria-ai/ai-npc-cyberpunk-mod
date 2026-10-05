@@ -18,7 +18,7 @@ export class AnalysisPcm {
     this.frames += bytes.length / (2 * this.channels);
   }
   // Mono PCM16 (channel average) for frames [from, from + count), base64.
-  slice(from, maxFrames = MAX_SLICE_FRAMES) {
+  slice(from, maxFrames = MAX_SLICE_FRAMES / 2) { // ~1 s per poll keeps each playback update small
     if (!Number.isSafeInteger(from) || from < 0 || from > this.frames) return undefined;
     const count = Math.min(maxFrames, this.frames - from);
     if (!count) return undefined;
