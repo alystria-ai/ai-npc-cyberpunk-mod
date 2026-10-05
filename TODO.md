@@ -10,7 +10,8 @@ The single working document for development: open items first, then a dated log,
 - **Quest outcomes** (agent with Sonnet helpers): review the pipeline, map every outcome that has a reliable native predicate, then merge and verify the pack.
 - **Combat + loot comment queue and Legendary pickup comments** (agent).
 - **Stale voice after reassign** (agent): retire a copy's in-flight private reply when its profile is reassigned.
-- **Old test failures** (agent): 2 `manager.test.mjs` tests and 1 `invitation-readiness` test, judged out of date, real bug or broken setup.
+- **Invitation notices** (agent): routine preparation/driving popups shown in Developer mode only; a failure seen while paused gets posted once in gameplay.
+- **Phone Chat tab icon** (agent): replace the rectangle-drawn bubble with native atlas artwork.
 - **Relationship routing review** (agent): verify Auto/On/Off routing and quest predicates for Judy, Panam, River, Kerry and Meredith, with tests.
 - **22 old movement test failures** (agent): judged out of date, real bug or broken setup.
 - **Group chat speed** (agent): request the next speaker as soon as the previous one's text is known, and prefetch its audio.
@@ -53,6 +54,7 @@ After the agents above finish:
 - Bridge auto-start: a RED4ext plugin starts a Node supervisor with the game and stops it on exit (installed; first launch not yet checked).
 - Conversation: the "always ask a follow-up question" rule is removed from prompts and all 84 profiles' speaking style, and re-pushed to Convai. The MCM toggle is gone.
 - Actions: Fight and Distract are implemented (`docs/COMPANION_TACTICS.md`), not yet tried in game.
+- Old manager/invitation test failures: all three were out of date after commit 986ad09 (failure latch); tests aligned, no production change.
 - Duplicate copies: phone dismiss now removes one copy by the character it speaks as, newest first, and skips a chauffeur driver if another copy can go (16 tests). Cars: dismissing one passenger no longer makes everyone re-board, and only the chauffeur driver leaving cancels a trip.
 - Phone contacts: mapping covers all 102 catalog contacts every session, so mid-session unlocks already work for J-invites (test added). Memory picker now says nothing was deleted when backing out or cancelling.
 - Housekeeping: `world-lifecycle` (15/15) and `knowledge-integration` (26/26) fixtures repaired, `movement-log.lua` added to the install manifests, UI catalog regenerated, retired follow-up strings removed.
