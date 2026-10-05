@@ -185,10 +185,10 @@ def prepare():
     return {"prepared": str(folder), "steps": 100, "source_sha256": sha(folder / "kernel.ipynb")}
 
 
-def connected(folder, action, *, allowed_root=None, required_purpose=None):
+def connected(folder, action, *, allowed_root=None, required_purpose=None, name_prefix=None):
     folder = folder.resolve()
     expected_root = DEST if allowed_root is None else Path(allowed_root).resolve()
-    prefix = "cp2077-observable-" if required_purpose is None else "cp2077-full-a-live-"
+    prefix = name_prefix or ("cp2077-observable-" if required_purpose is None else "cp2077-full-a-live-")
     if (not expected_root.is_relative_to(ROOT / "runtime") or folder.parent != expected_root
             or not folder.name.startswith(prefix)):
         raise ValueError("Exact owned probe folder required")
@@ -234,8 +234,10 @@ def connected(folder, action, *, allowed_root=None, required_purpose=None):
                         raise ValueError("Private input identity changed")
                 quota = client.kernels.kernels_api_client.get_accelerator_quota_statistics(ApiGetAcceleratorQuotaStatisticsRequest()).gpu_quota
                 remaining = (quota.total_time_allowed - quota.time_used - quota.time_reserved).total_seconds()
-                if remaining < approval["timeout_seconds"] + 25200:
-                    raise ValueError("Probe would consume the student reserve")
+                # Teacher-side jobs keep seven hours for the student; the
+                # student itself is that reserve and declares zero.
+                if remaining < approval["timeout_seconds"] + approval.get("quota_reserve_seconds", 25200):
+                    raise ValueError("Job would consume the declared quota reserve")
                 try:
                     existing = auth.get_kernel(client, approval["slug"])
                     if existing is not None and existing.metadata is not None:
