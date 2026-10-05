@@ -33,7 +33,7 @@ The single working document for development: open items first, then a dated log,
 
 - HF checkpoint bucket checked 2026-10-05: exactly 3 teacher slots (`full-a-20261005-c5e2605b`, 6.3 GB each; slot-2 also holds the selected `candidates/step000001000-raw.pt`) and 3 student slots (1.7 GB each), 24 GB total, no stray files.
 
-### Combined install done (2026-10-05 22:53), in-game test pending
+### Combined install done (2026-10-05 22:53), in-game test planned for 2026-10-07 (the user wants to finish the voice work first)
 Installed from a clean HEAD worktree (`e10bd4f`, at `E:/CyberpunkConvai-offload/work/install-head`) with `Install-DevelopmentMod.ps1`; contents match HEAD, ignoring CRLF. Rollback receipt: `E:/CyberpunkConvai-offload/backups/development-install-20261005-225343-*/manifest.json`. Lip sync weights copied to `runtime/lipsync-model/`. The hand-started bridge was stopped; the RED4ext launcher starts the supervisor (`--build-voice-client`) with the game. The voice default is OmniVoice 16 steps; Pocket = student 5,000.
 
 ### Test checklist for that session
