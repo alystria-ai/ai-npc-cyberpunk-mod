@@ -130,9 +130,59 @@ private let m_convaiSelected: Bool;
 @addField(PhoneContactItemVirtualController)
 private let m_convaiLabelWidth: Float;
 
+@addField(PhoneContactItemVirtualController)
+private let m_convaiFeedback: wref<inkText>;
+
+// Immediate J/L confirmation in the selected row. The HUD notice cannot be it:
+// the HUD "warning" entry is not visible in the ModalPopup game context that the
+// open contact list pushes, so it can only appear after the phone closes. The
+// line hangs from a zero-size canvas placed after the name in its vertical
+// column: the column keeps its height, so the name, the fixed 1000x100 row and
+// the list never move, and the line lines up under the name.
+@addMethod(PhoneContactItemVirtualController)
+private final func ConvaiShowActionFeedback(message: String) -> Void {
+    if !IsDefined(this.m_convaiFeedback) {
+        let label: wref<inkWidget> = inkWidgetRef.Get(this.m_label);
+        let column: ref<inkCompoundWidget> = IsDefined(label) ? label.GetParentWidget() as inkCompoundWidget : null;
+        if !IsDefined(column) {
+            return;
+        };
+        let anchor: ref<inkCanvas> = new inkCanvas();
+        anchor.SetName(n"convaiActionFeedbackAnchor");
+        anchor.SetSize(new Vector2(0.0, 0.0));
+        anchor.SetHAlign(inkEHorizontalAlign.Left);
+        anchor.SetVAlign(inkEVerticalAlign.Top);
+        anchor.SetInteractive(false);
+        anchor.Reparent(column);
+        let feedback: ref<inkText> = new inkText();
+        feedback.SetName(n"convaiActionFeedback");
+        feedback.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
+        feedback.SetFontStyle(n"Medium");
+        feedback.SetFontSize(22);
+        feedback.SetSize(new Vector2(600.0, 26.0));
+        // Start just inside the 66-unit name box, below the 50-point glyphs.
+        feedback.SetMargin(new inkMargin(0.0, -9.0, 0.0, 0.0));
+        feedback.SetHAlign(inkEHorizontalAlign.Left);
+        feedback.SetVAlign(inkEVerticalAlign.Top);
+        feedback.SetAnchor(inkEAnchor.TopLeft);
+        feedback.SetAnchorPoint(new Vector2(0.0, 0.0));
+        feedback.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
+        feedback.BindProperty(n"tintColor", n"MainColors.Blue");
+        feedback.SetInteractive(false);
+        feedback.Reparent(anchor);
+        this.m_convaiFeedback = feedback;
+    };
+    this.m_convaiFeedback.SetText(message);
+    this.m_convaiFeedback.SetVisible(StrLen(message) > 0);
+}
+
 @addMethod(PhoneContactItemVirtualController)
 private final func ConvaiLayoutActions(selected: Bool) -> Void {
     this.m_convaiSelected = selected;
+    // Feedback belongs to one press on one contact; recycled rows start clean.
+    if IsDefined(this.m_convaiFeedback) {
+        this.m_convaiFeedback.SetVisible(false);
+    };
     let visible: Bool = selected && StrLen(this.ConvaiContactKey()) > 0;
     let player: ref<PlayerPuppet> = GetPlayer(GetGameInstance()) as PlayerPuppet;
     let available: Bool = IsDefined(player) && player.ConvaiPhoneContactAvailable(this.ConvaiContactKey());
@@ -212,10 +262,11 @@ public final func ConvaiRequestCompanion(join: Bool) -> Bool {
     if !this.m_convaiSelected || StrLen(key) == 0 || !IsDefined(player) {
         return false;
     };
-    // Feedback goes to the HUD notice only. An extra line inside the row made
-    // it taller; under a hovering cursor the list then re-selected neighbours
-    // in a loop and raced through every contact.
-    return player.ConvaiPhoneQueue(key, join);
+    let accepted: Bool = player.ConvaiPhoneQueue(key, join);
+    this.ConvaiShowActionFeedback(accepted
+        ? (join ? "INVITE QUEUED - CLOSE PHONE" : "DISMISS QUEUED - CLOSE PHONE")
+        : (player.ConvaiPhoneContactAvailable(key) ? "CLOSE PHONE TO CONTINUE" : "COMPANION UNAVAILABLE"));
+    return accepted;
 }
 
 @addField(PlayerPuppet)
@@ -281,7 +332,7 @@ public final func ConvaiPhoneQueue(key: String, join: Bool) -> Bool {
     };
     if ArraySize(this.m_convaiPhoneRequests) < 8 {
         ArrayPush(this.m_convaiPhoneRequests, (join ? "+" : "-") + key);
-        this.ConvaiPhoneFeedback(this.m_convaiPhoneContactNames[index] + (join ? ": invite queued. Close the phone to continue." : ": dismiss queued. Close the phone to continue."));
+        this.ConvaiPhoneFeedback(this.m_convaiPhoneContactNames[index] + (join ? ": invite queued." : ": dismiss queued."));
         return true;
     };
     this.ConvaiPhoneFeedback("Close the phone to finish the pending companion requests.");
