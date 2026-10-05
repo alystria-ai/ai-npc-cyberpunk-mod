@@ -273,7 +273,11 @@ def train(args):
     torch.set_num_threads(args.threads)
     names = json.loads((Path(args.corpus) / 'track-names.json').read_text())
     lines = load_corpus(Path(args.corpus), names, args.manifest)
-    train_lines, test_lines = split_lines(lines)
+    if args.split:  # the exact held-out lines that evaluation uses (make_split.py)
+        held = set(json.loads(Path(args.split).read_text())['test'])
+        train_lines, test_lines = [l for l in lines if l['key'] not in held], [l for l in lines if l['key'] in held]
+    else:
+        train_lines, test_lines = split_lines(lines)
     hours = sum(len(l['audio']) for l in train_lines) / SAMPLE_RATE / 3600
     print(f'{len(lines)} lines; train {len(train_lines)} test {len(test_lines)}; {hours:.2f} h train', flush=True)
     feats = np.concatenate([log_mel(l['audio']) for l in train_lines[::4]])
@@ -399,9 +403,9 @@ def export(net, args, mean, std, scale, dil, qin=None, qout=None):
 def main():
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--corpus', default=str(root / 'runtime/lipsync-corpus'))
+    parser.add_argument('--corpus', default=str(root / 'runtime/lipsync-corpus2'))
     parser.add_argument('--out', default=str(root / 'runtime/lipsync-model/model.npz'))
-    parser.add_argument('--lookahead', type=int, default=12)
+    parser.add_argument('--lookahead', type=int, default=20)
     parser.add_argument('--channels', type=int, default=160)
     parser.add_argument('--dilations', default='1,2,4,8,16,1')
     parser.add_argument('--epochs', type=int, default=30)
@@ -412,6 +416,7 @@ def main():
     parser.add_argument('--contact-quantile', type=float, default=.5)
     parser.add_argument('--manifest', default='manifest.jsonl')
     parser.add_argument('--loss', choices=['l1', 'mse'], default='mse')
+    parser.add_argument('--split', help='split.json from make_split.py')
     args = parser.parse_args()
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     train(args)

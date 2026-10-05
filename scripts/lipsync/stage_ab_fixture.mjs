@@ -1,7 +1,7 @@
 // In-game A/B replay of the SAME audio with the previous local lip-sync and the
 // game-trained model, through mod/speech-replay-probe.lua (no provider request).
 //
-//   node scripts/lipsync/stage_ab_fixture.mjs <wav> <old|new> [--profile judy-alvarez] [--install]
+//   node scripts/lipsync/stage_ab_fixture.mjs <wav> <old|new> [--faces source.json] [--profile judy-alvarez] [--install]
 //
 // Without --install it only writes the timeline next to the WAV for review.
 // With --install it writes audio slot 7 and runtime/speech-fixture.json in the
@@ -11,12 +11,13 @@
 import {readFile, writeFile} from 'node:fs/promises';
 import {resolve, dirname, basename} from 'node:path';
 import {randomUUID} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
 import {buildFacialTimeline} from '../../bridge/facial-timeline.mjs';
 import {PhoneticLipsync} from '../../bridge/phonetic-lipsync.mjs';
 import {JaliFace} from '../../bridge/jali-face.mjs';
 import {storeSpeech} from '../../bridge/speech-audio.mjs';
 
-const project = resolve(dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '../..');
+const project = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const [wavPath, mode] = process.argv.slice(2);
 const flag = name => process.argv.includes(name);
 const option = (name, fallback) => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : fallback; };
@@ -41,7 +42,10 @@ function bakeEase(face) {
 }
 
 let face;
-if (mode === 'old') {
+if (mode === 'old' && option('--faces')) {
+  // Convai: the provider's ARKit timeline through the v10 retarget.
+  face = buildFacialTimeline({audio, ...JSON.parse(await readFile(option('--faces'), 'utf8'))}, owner);
+} else if (mode === 'old') {
   const cues = await new PhoneticLipsync({project}).analyse(audio);
   face = bakeEase(buildFacialTimeline({audio, ...cues}, owner));
 } else {

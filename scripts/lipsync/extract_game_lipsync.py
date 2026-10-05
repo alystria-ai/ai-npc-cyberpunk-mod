@@ -100,7 +100,7 @@ def dense_tracks(extras, duration, rig_tracks, canonical):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--game', type=Path, default=Path(r'E:\SteamLibrary\steamapps\common\Cyberpunk 2077'))
-    parser.add_argument('--out', type=Path, default=PROJECT / 'runtime/lipsync-corpus')
+    parser.add_argument('--out', type=Path, default=PROJECT / 'runtime/lipsync-corpus2')
     parser.add_argument('--per-cast', type=int, default=6, help='anims files per main-cast actor')
     parser.add_argument('--others', type=int, default=120, help='random other anims files')
     parser.add_argument('--batch', type=int, default=12)

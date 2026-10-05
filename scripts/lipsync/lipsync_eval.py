@@ -149,6 +149,18 @@ def line_metrics(gt_rows, cand_rows, cand_tracks, gt_geo, cand_geo):
                         falseOpenMm=float(np.mean(cand_geo[target, 0])) if target.any() else float('nan'),
                         precision=float((hit & target).sum() / max(1, (hit & speaking).sum())))
     m['lagMs'] = best_lag(gt_geo[:, 0], cand_geo[:, 0])
+    # Event recall in track space: F/V (lower lip to upper teeth: lower contact
+    # without upper contact) and lip rounding (purse), as the game authors them.
+    def col(rows, tracks, name):
+        return rows[:, tracks.index(name)] if name in tracks else np.zeros(len(rows))
+    g_up, g_dn = gt_rows[:, LPS['lips_together_up']], gt_rows[:, LPS['lips_together_dn']]
+    c_up, c_dn = col(cand_rows, cand_tracks, 'lips_together_up'), col(cand_rows, cand_tracks, 'lips_together_dn')
+    fv = (g_dn > .5) & (g_up < .2)
+    m['fv'] = dict(gtFrames=int(fv.sum()), recall=float(((c_dn > .35) & (c_dn - c_up > .2))[fv].mean()) if fv.any() else float('nan'))
+    g_round = gt_rows[:, LPS['lips_l_purse']] > .15
+    c_round = np.maximum(col(cand_rows, cand_tracks, 'lips_l_purse'), col(cand_rows, cand_tracks, 'lips_l_funnel')) > .1
+    m['rounding'] = dict(gtFrames=int(g_round.sum()), recall=float(c_round[g_round].mean()) if g_round.any() else float('nan'),
+                         precision=float(g_round[c_round].mean()) if c_round.any() else float('nan'))
     return m
 
 
@@ -169,7 +181,7 @@ def aggregate(per_line):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--corpus', type=Path, default=PROJECT / 'runtime/lipsync-corpus')
+    parser.add_argument('--corpus', type=Path, default=PROJECT / 'runtime/lipsync-corpus2')
     parser.add_argument('--split', type=Path, help='JSON with {"test": [keys]}')
     parser.add_argument('--limit', type=int, default=120)
     parser.add_argument('--model', type=Path, help='trained model .npz for the model candidate')
