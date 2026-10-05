@@ -131,6 +131,20 @@ export class GroupScenario {
     }
   }
 
+  // The game rewrites its playback control continuously; the bridge stops a
+  // speaker whose control file goes stale.
+  renewLease(pending) {
+    return write(join(this.runtime, 'continuous-control.json'), JSON.stringify({version: 1, id: pending.continuous.id,
+      requestId: pending.input.requestId, generation: pending.input.generation, entity: pending.input.entity,
+      sequence: ++this.controlSequence, updated: Date.now(), allow: true, paused: false, volume: 1, pan: 0}));
+  }
+
+  // For a hook that must wait inside the game loop: keep the current speaker's
+  // control fresh while the condition is pending.
+  waitHolding(pending, predicate, label, timeoutMs = 30000) {
+    return this.waitFor(async () => { await this.renewLease(pending); return predicate(); }, label, timeoutMs);
+  }
+
   async step() {
     const pending = this.pending;
     if (!pending) return;
@@ -142,9 +156,7 @@ export class GroupScenario {
     if (reply?.requestId) this.replyIds.add(reply.requestId);
     if (reply?.error && !this.replyErrors.some(row => row.requestId === reply.requestId)) this.replyErrors.push(reply);
     if (!pending.admitted) return;
-    await write(join(this.runtime, 'continuous-control.json'), JSON.stringify({version: 1, id: pending.continuous.id,
-      requestId: pending.input.requestId, generation: pending.input.generation, entity: pending.input.entity,
-      sequence: ++this.controlSequence, updated: Date.now(), allow: true, paused: false, volume: 1, pan: 0}));
+    await this.renewLease(pending);
     const state = await readJson(join(this.runtime, 'continuous-speech.json'));
     if (state?.requestId !== pending.input.requestId || state.id !== pending.continuous.id) return;
     pending.text = state.text;

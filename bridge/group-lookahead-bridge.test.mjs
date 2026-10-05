@@ -17,6 +17,10 @@ async function run(options, drive) {
   const scenario = new GroupScenario(options);
   try { await scenario.start(); return await drive(scenario); } finally { await scenario.stop(); }
 }
+// The held turn may only be cancelled or replaced once the bridge has really
+// started it; a fixed delay is not enough when the machine is busy.
+const heldStarted = (scenario, pending) => scenario.waitHolding(pending, async () => (await scenario.events())
+  .some(row => row.event === 'reply-start' && row.characterId === PANAM.characterId), 'the held Panam request to start');
 async function finishRound(scenario) {
   await scenario.begin(); await scenario.waitFor(() => scenario.done, 'the round to finish', 90000);
 }
@@ -61,9 +65,9 @@ describe('group look-ahead in the real bridge', {concurrency: 3, timeout: 240000
   it('a new message cancels the held next speaker: no audio, no reply for it, and the new round proceeds', async () => {
     await run({hooks: {
       stopAfterSpeaker: () => false,
-      afterPrediction: async scenario => {
+      afterPrediction: async (scenario, pending) => {
         if (scenario.round !== 1 || scenario.interrupted) return;
-        scenario.interrupted = true; await sleep(700);
+        scenario.interrupted = true; await heldStarted(scenario, pending); await sleep(200);
         scenario.oldPanam = scenario.nextInput;
         await scenario.begin('Actually, new question for everyone.');   // clears the prediction and submits Judy again
       },
@@ -84,8 +88,8 @@ describe('group look-ahead in the real bridge', {concurrency: 3, timeout: 240000
   it('dismissing the audience cancels the held turn cleanly and leaves the bridge ready for the next conversation', async () => {
     await run({hooks: {
       stopAfterSpeaker: () => true,
-      afterPrediction: async scenario => {
-        await sleep(700); scenario.heldId = scenario.nextInput.requestId; scenario.nextInput = null;
+      afterPrediction: async (scenario, pending) => {
+        await heldStarted(scenario, pending); await sleep(200); scenario.heldId = scenario.nextInput.requestId; scenario.nextInput = null;
         await scenario.publishPrediction(null);
       },
     }}, async scenario => {
@@ -138,7 +142,7 @@ describe('group look-ahead in the real bridge', {concurrency: 3, timeout: 240000
     await run({hooks: {
       afterPrediction: async (scenario, pending) => {
         if (republished || scenario.round !== 1) return;
-        republished = true; await sleep(500);
+        republished = true; await heldStarted(scenario, pending); await sleep(200);
         // The game rebuilt the same prediction (new request identity, same context).
         const changed = scenario.inputFor(2, scenario.nextInput.group.heard);
         scenario.nextInput = changed;

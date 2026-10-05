@@ -4,12 +4,23 @@ import {mkdtemp, mkdir, readFile, writeFile, cp, rm, readdir, realpath} from 'no
 import {tmpdir} from 'node:os';
 import {resolve, join, dirname, basename} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {execFile} from 'node:child_process';
+import {execFile, execFileSync} from 'node:child_process';
 import {promisify} from 'node:util';
 import {readProvisionState} from '../scripts/provision-state.mjs';
 
 const exec = promisify(execFile), root = fileURLToPath(new URL('..', import.meta.url));
 const manifest = JSON.parse(await readFile(join(root, 'scripts/development-files.json'), 'utf8'));
+// The development scripts target PowerShell 7. Without it the installer tests
+// still run under Windows PowerShell 5.1 (process-scoped execution policy only;
+// nothing on the machine changes), but Set-DevelopmentBindings.ps1 needs
+// ConvertFrom-Json -AsHashtable, which exists only in 7+.
+const hasPwsh = (() => {
+  try { execFileSync('pwsh.exe', ['-NoProfile', '-NonInteractive', '-Command', 'exit 0'], {windowsHide: true, timeout: 30000, stdio: 'ignore'}); return true; }
+  catch { return false; }
+})();
+const shell = hasPwsh ? ['pwsh.exe', ['-NoProfile', '-NonInteractive']] : ['powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass']];
+const skipWithoutPwsh = hasPwsh ? false : 'PowerShell 7 (pwsh.exe) is not installed; Set-DevelopmentBindings.ps1 uses ConvertFrom-Json -AsHashtable';
+const json = async path => JSON.parse((await readFile(path, 'utf8')).replace(/^﻿/, ''));
 async function fixture(run) {
   const folder = await mkdtemp(join(tmpdir(), 'convai-development-tools-'));
   try { return await run(folder); }
@@ -24,7 +35,7 @@ async function put(path, data) { await mkdir(dirname(path), {recursive: true}); 
 async function ps(folder, script, env = {}) {
   const entry = join(folder, 'test-driver.ps1');
   await writeFile(entry, "$ErrorActionPreference = 'Stop'\n" + script);
-  return exec('pwsh.exe', ['-NoProfile', '-NonInteractive', '-File', entry], {
+  return exec(shell[0], [...shell[1], '-File', entry], {
     windowsHide: true, timeout: 30000, maxBuffer: 100000,
     env: {...process.env, CONVAI_TEST_ROOT: folder, CONVAI_TEST_SOURCE: root, ...env},
   });
@@ -62,7 +73,7 @@ test('native install quarantines only the retired owned file and records old byt
 & (Join-Path $env:CONVAI_TEST_SOURCE 'scripts/Install-DevelopmentMod.ps1') -ProjectDirectory (Join-Path $env:CONVAI_TEST_ROOT 'project') -GameDirectory (Join-Path $env:CONVAI_TEST_ROOT 'game')`);
   await assert.rejects(readFile(retired), {code: 'ENOENT'});
   const backups = join(folder, 'project/backups'), backup = join(backups, (await readdir(backups))[0]);
-  const receipt = JSON.parse(await readFile(join(backup, 'manifest.json'), 'utf8'));
+  const receipt = await json(join(backup, 'manifest.json'));
   assert.equal(receipt.complete, true); assert.equal(receipt.files.length, manifest.files.length);
   assert.deepEqual(receipt.quarantined.map(f => f.path), manifest.retiredNative);
   assert.equal(await readFile(join(backup, manifest.retiredNative[0]), 'utf8'), 'retired crash-prone code');
@@ -101,7 +112,7 @@ Get-DevelopmentFiles -ProjectDirectory (Join-Path $env:CONVAI_TEST_ROOT 'project
   await assert.rejects(ps(folder, script), /Unrecognized retired native component/);
 }));
 
-test('binding setup fills F7 F8 and F10 and preserves custom manager/text assignments', async () => fixture(async folder => {
+test('binding setup fills F7 F8 and F10 and preserves custom manager/text assignments', {skip: skipWithoutPwsh}, async () => fixture(async folder => {
   const file = join(folder, 'game/bin/x64/plugins/cyber_engine_tweaks/bindings.json');
   const initial = {CyberpunkConvai: {cyberpunk_convai_manager: 32369622321725440, cyberpunk_convai_text: 99}, OtherMod: {other: 77}};
   await put(file, JSON.stringify(initial));
@@ -113,7 +124,7 @@ test('binding setup fills F7 F8 and F10 and preserves custom manager/text assign
   for (const [action, vk] of [['voice', 0x76], ['group_text', 0x77], ['group_voice', 0x79]]) assert.equal(result.CyberpunkConvai[`cyberpunk_convai_${action}`], vk * 2 ** 48);
 }));
 
-test('binding conflicts, including same-mod assignments, fail before changing the file', async () => fixture(async folder => {
+test('binding conflicts, including same-mod assignments, fail before changing the file', {skip: skipWithoutPwsh}, async () => fixture(async folder => {
   const file = join(folder, 'game/bin/x64/plugins/cyber_engine_tweaks/bindings.json');
   const initial = JSON.stringify({CyberpunkConvai: {custom_action: 0x79 * 2 ** 48}});
   await put(file, initial);

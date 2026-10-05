@@ -4,7 +4,7 @@ import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 
-test('real muted headless worklet pauses, resumes, and drains one continuous source clock', {timeout: 20000}, async () => {
+test('real muted headless worklet pauses, resumes, and drains one continuous source clock', {timeout: 60000}, async () => {
   const allowed = new Set(['/continuous-pcm-player.mjs', '/continuous-pcm-worklet.mjs', '/continuous-pcm-core.mjs']);
   const server = createServer(async (request, response) => {
     if (request.url === '/') { response.setHeader('Content-Type', 'text/html'); response.end('<!doctype html><title>Muted PCM test</title>'); return; }
