@@ -119,6 +119,35 @@ test('the worker ACK follows the renderer copy, and completion waits for device 
   assert.equal(result.timing.voiceGenerationMs, 20);
 });
 
+test('synthesis starts while the renderer opens, and its packets wait for that renderer', {timeout: 5000}, async t => {
+  const gate = deferred(), players = [];
+  const host = new LocalPcmHost({pollMs: 5, timeoutMs: 3000, cleanupTimeoutMs: 100, createPage: async () => {
+    await gate.promise;
+    const client = new LocalPcmClient({createPlayer: () => { const player = new OfflinePlayer(); players.push(player); return player; }});
+    return {closed: false, window: {localPcm: client}, isClosed() { return this.closed; },
+      async close() { this.closed = true; if (client.active) await client.stop(client.active.token); },
+      async evaluate(fn, payload) { return runInNewContext(`(${fn.toString()})(payload)`, {window: this.window, payload}); }};
+  }});
+  t.after(() => host.close());
+  let producerStarted = false, emitted = false;
+  const pending = host.play({token: 'overlapped-start', text: 'Whole reply'}, async emit => {
+    producerStarted = true;
+    await emit(packet()); emitted = true;
+  }, {onFrame: () => control});
+  pending.catch(() => {});
+  await until(() => producerStarted);
+  await sleep(20);
+  assert.equal(players.length, 0, 'the renderer is still opening');
+  assert.equal(emitted, false, 'the first packet must wait for the opened renderer');
+  gate.resolve();
+  await until(() => players[0]?.sealed);
+  assert.equal(players[0].copies.length, 1); assert.equal(emitted, true);
+  players[0].finish();
+  const result = await pending;
+  assert.equal(result.frames, 9600); assert.equal(result.snapshot.ended, true);
+  assert.equal(typeof result.timing.localPcmRendererReadyMs, 'number');
+});
+
 test('a drained page can render a fresh utterance without carrying its previous owner or text', {timeout: 5000}, async t => {
   const {host, pages, players, track} = fixture(t);
   for (const [playerIndex, token] of ['first', 'second'].entries()) {

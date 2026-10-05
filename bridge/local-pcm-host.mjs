@@ -112,7 +112,7 @@ export class LocalPcmHost {
     if (signal?.aborted) cancel();
     const deadline = setTimeout(() => controller.abort(Error('Local PCM playback timed out')), this.timeoutMs);
     let producerTask, pump, page, result, final, succeeded = false, frames = 0, index = 0, identity;
-    let emitting = false, firstAcceptedMs = null;
+    let emitting = false, firstAcceptedMs = null, rendererReady, rendererReadyMs = null;
     const started = this.now();
     const check = async () => {
       if (controller.signal.aborted) throw controller.signal.reason || cancelled();
@@ -128,6 +128,8 @@ export class LocalPcmHost {
       const owned = ownedLocalPcmPacket(packet, {token: turn.token, frames, index, identity});
       emitting = true;
       try {
+        // The renderer opens while synthesis starts; samples wait for it here.
+        await rendererReady;
         await check();
         const ack = await evaluate(packet => window.localPcm.append(packet), owned.packet);
         await check();
@@ -142,22 +144,31 @@ export class LocalPcmHost {
     };
     try {
       await check();
-      if (this.page?.isClosed?.()) this.page = null;
-      if (!this.page) {
-        const creating = Promise.resolve().then(() => this.createPage());
-        // A factory may finish after cancellation. It may never donate that
-        // late page to another turn or leave it rendering outside its owner.
-        creating.then(value => {
-          if (controller.signal.aborted || this.active !== turn || this.epoch !== epoch)
-            void this.dispose(value).catch(() => {});
-        }, () => {});
-        page = await this.bounded(creating, this.commandTimeoutMs, 'Local PCM page startup timed out', controller.signal);
-        await check(); this.page = page;
-      } else page = this.page;
-      turn.page = page;
-      await evaluate(config => window.localPcm.begin(config), config);
-      await check();
+      // Opening the page and its AudioContext/worklet (about 100 ms warm, about
+      // 1 s for the first page) overlaps the producer's first-packet latency
+      // instead of preceding it. Packets and the clock pump wait for it; the
+      // renderer still plays nothing before the game's admission.
+      rendererReady = (async () => {
+        if (this.page?.isClosed?.()) this.page = null;
+        if (!this.page) {
+          const creating = Promise.resolve().then(() => this.createPage());
+          // A factory may finish after cancellation. It may never donate that
+          // late page to another turn or leave it rendering outside its owner.
+          creating.then(value => {
+            if (controller.signal.aborted || this.active !== turn || this.epoch !== epoch)
+              void this.dispose(value).catch(() => {});
+          }, () => {});
+          page = await this.bounded(creating, this.commandTimeoutMs, 'Local PCM page startup timed out', controller.signal);
+          await check(); this.page = page;
+        } else page = this.page;
+        turn.page = page;
+        await evaluate(config => window.localPcm.begin(config), config);
+        await check();
+        rendererReadyMs = this.now() - started;
+      })();
+      rendererReady.catch(() => {});
       pump = (async () => {
+        await rendererReady;
         while (true) {
           await check();
           const snapshot = await this.bounded(localSnapshotForHost(page, turn.token, controller.signal),
@@ -191,6 +202,9 @@ export class LocalPcmHost {
       producerTask = (async () => {
         await check();
         result = await producer(emit, {signal: controller.signal});
+        // A cancelled or failed renderer startup reports itself before any
+        // judgement of the producer's output.
+        await rendererReady;
         await check();
         if (!frames || emitting) throw Error('Local PCM producer did not finish its owned copies');
         await evaluate(value => window.localPcm.seal(value), {token: turn.token, totalFrames: frames});
@@ -201,11 +215,14 @@ export class LocalPcmHost {
       succeeded = true;
       return {...result, streamed: true, engine: 'pocket-tts', voiceProvider: 'pocket',
         sampleRate: 24000, channels: 1, frames, duration: frames / 24000,
-        snapshot: final, timing: {...result?.timing, localPcmFirstAcceptedMs: firstAcceptedMs,
-          localPcmDeviceDrainMs: this.now() - started}};
+        snapshot: final, timing: {...result?.timing, localPcmRendererReadyMs: rendererReadyMs,
+          localPcmFirstAcceptedMs: firstAcceptedMs, localPcmDeviceDrainMs: this.now() - started}};
     } finally {
       controller.abort(); clearTimeout(deadline); signal?.removeEventListener('abort', cancel);
       void producerTask?.catch(() => {}); void pump?.catch(() => {});
+      // Let an aborted startup settle so its page is either known here or
+      // already handed to the late-page disposal above.
+      await rendererReady?.catch(() => {});
       let retired = false;
       if (page && !page.isClosed?.()) {
         try {
