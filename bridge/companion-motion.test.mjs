@@ -463,3 +463,15 @@ test('catch-up pace never overrides another time dilation effect',()=>run(paced+
   for i=1,20 do player.pos=Vector4.new(0,i*1.2,0); tick(1) end
   assert(dilation.reason=='SandevistanSlowMotion' and dilation.value==.2,'catch-up pace replaced another effect')
 `));
+
+test('a close follower keeps pace while V keeps running, then eases off when V stops',()=>run(paced+`
+  -- V runs steadily at 8 m/s; the follower is already only 3 m behind.
+  for i=1,12 do player.pos=Vector4.new(0,i*4,0); npc.pos=Vector4.new(0,i*4-3,0); tick(1) end
+  assert(dilation.reason=='ConvaiCatchUp' and dilation.value>1.4,
+    'a close follower dropped its pace while V kept running: '..tostring(dilation.value))
+  local running=dilation.value
+  tick(1)
+  assert(dilation.value==nil or dilation.value<running,'pace did not start easing once V stopped')
+  tick(4)
+  assert(dilation.reason==nil,'pace stayed on after V stopped')
+`));

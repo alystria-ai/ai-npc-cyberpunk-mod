@@ -976,27 +976,43 @@ local catchUp={distance=60,after=2,cooldown=8,behind=4}
 -- Vanilla followers raise their individual time dilation with distance to
 -- their destination (FollowerTasks.script, AIFollowerInterpolateFollowingSpeed).
 -- These copies do not run that behavior task, so apply the same ramp here.
-local pace={reason='ConvaiCatchUp',near=6,far=30,max=1.6,easeOut='KereznikovDodgeEaseOut'}
-local function paceFollower(entry)
-    local npc,reason=entry.npc,CName.new(pace.reason)
+local pace={reason='ConvaiCatchUp',near=6,far=30,max=1.6,close=3,rate=.6,
+    easeOut='KereznikovDodgeEaseOut',native={Sprint=5.4,Run=3.6,Walk=1.5}}
+-- A person keeping up with a running friend matches their speed and only
+-- runs harder while behind; they do not slow down just because they arrived.
+local function paceTarget(entry,frame)
     local motor=entry.motor
-    local alpha=0
-    if motor.kind=='follow' and motor.stage=='following' and entry.playerGap then
-        alpha=math.max(0,math.min(1,(entry.playerGap-pace.near)/(pace.far-pace.near)))
-    end
+    -- Close followers travel alongside V in their lane (a move at V's gait),
+    -- not by native follow; both are pacing V while V moves.
+    local following=motor.kind=='follow' and motor.stage=='following'
+    local alongside=motor.kind=='move' and (motor.stage=='walking' or motor.stage=='walking-leg')
+        and frame and frame.moving
+    if not (following or alongside) or not entry.playerGap then return 1 end
+    local native=pace.native[motor.gait] or pace.native.Sprint
+    local match=math.min(pace.max,math.max(1,(frame and frame.speed or 0)/native))
+    if entry.playerGap<pace.close then return match end
+    local alpha=math.max(0,math.min(1,(entry.playerGap-pace.near)/(pace.far-pace.near)))
+    return math.max(match,1+alpha*(pace.max-1))
+end
+local function paceFollower(entry,frame,step)
+    local npc,reason=entry.npc,CName.new(pace.reason)
     local mine=npc:HasIndividualTimeDilation(reason)
-    if alpha<=0 then
+    -- Never override another effect's dilation (slow motion, hit reactions).
+    if not mine and npc:HasIndividualTimeDilation() then entry.pace=nil; return end
+    local current=mine and entry.pace or 1
+    local target=paceTarget(entry,frame)
+    -- Speed up and ease off smoothly, as legs would.
+    local limit=pace.rate*math.max(step or 0,0)
+    local value=current+math.max(-limit,math.min(limit,target-current))
+    if value<=1.001 then
         if mine then npc:UnsetIndividualTimeDilation(CName.new(pace.easeOut)) end
         entry.pace=nil
         return
     end
-    -- Never override another effect's dilation (slow motion, hit reactions).
-    if not mine and npc:HasIndividualTimeDilation() then entry.pace=nil; return end
-    local value=1+alpha*(pace.max-1)
-    if not mine or not entry.pace or math.abs(entry.pace-value)>.02 then
+    if not mine or not entry.pace or math.abs(entry.pace-value)>.01 then
         npc:SetIndividualTimeDilation(reason,value,-1.0,CName.new(''),CName.new(''))
-        entry.pace=value
     end
+    entry.pace=value
 end
 local function stopPace(entry)
     if not entry.pace or not entry.npc then return end
@@ -1248,7 +1264,7 @@ function M.update(player,delta,focusEntity)
             if not equipment.holdsMovement(entry.equipment) then
                 actuator.resumeHold(entry.motor)
                 if actuator.apply(entry.motor,decision,context,budget>0) then budget=budget-1 end
-                local paced,paceError=pcall(paceFollower,entry)
+                local paced,paceError=pcall(paceFollower,entry,groupFrame,step)
                 entry.paceError=not paced and tostring(paceError) or nil
             end
             entry.error=nil

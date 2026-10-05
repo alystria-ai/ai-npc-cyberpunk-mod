@@ -33,8 +33,16 @@ exactly that (`FollowerTasks.script`, `AIFollowerInterpolateFollowingSpeed`
 sets an individual time dilation from distance), but these copies do not run
 that behavior task. While natively following, a copy's time dilation now ramps
 from 1.0 at 6 m to 1.6 at 30 m (~8.6 m/s at sprint, faster than V's ~8), under
-its own reason so it never replaces another effect's dilation, and eases out
-when the gap closes, in a vehicle or on dismissal. Out-of-view teleport catch-up
+its own reason so it never replaces another effect's dilation.
+
+The next retest kept up but showed a slow-down once a follower arrived: under
+6 m the ramp fell to 1.0 and, running alongside V in its lane (a move at sprint
+gait rather than native follow), the copy dropped to ~5.4 m/s and lost V again.
+Pace now matches V the way a person would: the larger of V's speed over the
+copy's natural gait speed and the distance ramp, applied to native following
+and to alongside travel while V moves, limited to matching within 3 m, and
+changed at most 0.6 per second. It eases back to 1.0 when V stops, in a vehicle
+or on dismissal. Out-of-view teleport catch-up
 is now a backstop for gaps over 60 m.
 
 ## October 5 out-of-view catch-up (user decision)
