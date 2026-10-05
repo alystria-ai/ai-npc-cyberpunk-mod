@@ -14,6 +14,11 @@ The new producer/consumer checks exercise delayed chunks, pause, cancellation,
 stale identities, ring reuse, partial failure, quality changes and save unload.
 **In-game phrase gaps, latency and visible articulation remain to be measured.**
 
+Group rounds generate the next speaker while the previous one is audible and hold it
+until the game submits it (docs/GROUP_VOICE.md, "Look-ahead"). An Omni look-ahead waits
+until the previous speaker's phrases have all been produced before queueing GPU work, so
+the FIFO worker never delays that speaker's own next phrase.
+
 ## Producer and consumer contract
 
 - `splitSpeechText` prefers sentence/clause boundaries, with a shorter first

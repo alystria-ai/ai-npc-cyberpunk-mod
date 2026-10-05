@@ -58,6 +58,83 @@ duplicate stands. Dismissing or reassigning the copy that is waiting or speaking
 ends the round even when another copy of that profile remains; the duplicate
 never takes over the turn. Changes to a silent duplicate do not affect the round.
 
+## Look-ahead: the next speaker is generated while the previous one talks
+
+Before October 5, 2026 every speaker change paid a whole new request. Lua submits
+speaker N+1 only after N has been heard (`group-chat.lua` stage `next`), so the bridge
+started that request after N's last sample: about 2-3 s on Convai speech (3.0 s mean in
+five live measurements) and 3-6 s on Omni. `group-prefetch.mjs` did not help: its
+text-preparation cache was disconnected from the bridge when identified player memory was
+added (a speculative turn can not be rolled back), and the prediction file only warmed the
+next character's connection, after N had already ended.
+
+Now `bridge/group-lookahead.mjs` runs the predicted turn early, through the normal
+pipeline, and holds it back from the game:
+
+1. When N's complete reply text is known, Lua already publishes the turn it will submit for
+   N+1 (`group-prefetch.json`: heard context includes N's text; cleared with `{}` whenever
+   the audience, delivery or round changes). The bridge validates it against N's live
+   reply (same round, audience and order, N's text as the last heard line, N's request
+   file still current) and starts it. No Lua change is needed.
+2. The held turn does everything a submitted turn does (world/memory admission, the
+   speaker's own session and group audience, Convai request), but nothing reaches the
+   game files, so there is still exactly one speech owner, one set of subtitles and one
+   voice at a time:
+   - Convai speech: the character's own page receives the stream; the renderer gets the
+     quiet control, so PCM buffers silently. No state, reply, receipt or text
+     announcement is published (`ConvaiContinuousSpeech` `hold`). The stream is never
+     split into phrase requests.
+   - Pocket: Convai text-only, then the complete text goes to Pocket once; its PCM is kept
+     in memory (`BufferedPcm`) and drained in order into the single renderer after the
+     claim (the renderer page is still owned by the previous speaker until then).
+   - Omni: first phrase synthesized into memory (phrase scheduling unchanged); its GPU
+     work waits until the previous speaker's phrases have been produced, because the
+     worker is FIFO and would otherwise delay that speaker's own next phrase.
+3. After N is heard Lua submits the identical turn. The bridge adopts it (the turn key
+   covers request, generation, speaker, text, audience and heard lines, journal and battle
+   context; the world/journal snapshots Lua recaptures at submission are deliberately not
+   part of it), releases the hold and the buffered audio is published at once.
+   If it was not finished yet it simply finishes: the wait is the remaining generation
+   time only, never more than a serial request, and never a second voice.
+
+Cancellation: a new message, a dismissal, an audience change, an undelivered or
+interrupted speaker, party removal, world/memory reset, microphone start and bridge
+shutdown cancel the held turn (`dropPrefetch`). Its page is discarded, its Pocket request
+aborted and nothing is published, so no orphaned stream or late audio. A submitted turn
+that differs from the prediction discards the held one and runs as an ordinary request. A
+held turn that fails publishes nothing and the submitted turn runs normally. Held turns
+expire after 150 s.
+
+Limits. The third speaker's turn can only start once the second is audible (Lua publishes
+the prediction for the speaker being heard), so a very short second reply leaves part of
+the third request's latency. The held turn keeps the world/journal snapshot of the moment
+the prediction was published (seconds before submission, still bound to the live world).
+Convai records the held speaker's turn when it is sent: as for any generated but
+undelivered turn, an interrupted round can leave that speaker's unheard reply in provider
+memory (the bridge records it as `cancelled-turn`, never as delivered).
+
+Measured (silence between one speaker's last audio and the next speaker's first audio):
+
+| Setting | Serial (before) | Look-ahead (after) |
+| --- | ---: | ---: |
+| Fixture, real bridge, simulated game and provider (1.5 s first audio) | 1.79-1.94 s (original bridge, 4 gaps) | 0.20-0.32 s |
+| Live Convai speech, test user, warm pages, silent renderer | 2.2-3.4 s (5 runs, median 3.0 s) | 0.38-0.88 s (5 runs, median 0.78 s) |
+
+Both include modelled game round trips (150 ms to submit, 120 ms to admit) and the
+renderer's own start; `node scripts/Measure-GroupGap.mjs --fixture` and `--live` repeat
+them. The next speaker's request started 1.9-2.2 s before the previous one ended, and
+finished (buffered, text complete) 0.2-0.4 s before the game submitted it in four of five
+live runs. In-game numbers: `runtime/bridge-latency.json` rows of a held turn carry
+`preparation.mode: "lookahead"` and `lookahead` (`startedAt`, `readyAt`, `claimedAt`,
+`readyBeforeClaim`); the gap is the later turn's `continuousPlaybackFirstObservedAt` minus
+the earlier turn's `continuousPlaybackCompleteAt`.
+
+`npm run test:group-voice` includes `group-lookahead.test.mjs` (module, buffered PCM),
+`group-lookahead-bridge.test.mjs` (the real bridge against a simulated game/provider:
+gap, ordering, partial overlap, new message, dismissal, mismatch, failure, replaced
+prediction) and the hold tests in `convai-continuous-speech.test.mjs` and
+`voice-routing.test.mjs`.
+
 One persistent player identity is retained across private/group/microphone and
 phone conversations. Group session separation does not create extra player IDs.
 
