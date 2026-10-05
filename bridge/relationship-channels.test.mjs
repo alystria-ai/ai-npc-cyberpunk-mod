@@ -552,3 +552,25 @@ test('warmed party connections follow the selection: the old provider ID is reti
   assert(retained.at(-1).every(config => config.endUserId === USER));
   assert.equal(new Set(retained.at(-1).map(config => config.scope)).size, retained.at(-1).length);
 });
+
+test('describe() reports each supported character\'s next route without provider IDs or native values', () => {
+  const h = harness({modes: {'river-ward': 'on', 'kerry-eurodyne': 'off'},
+    facts: {...FACTS['judy-alvarez'], ...FACTS['kerry-eurodyne']}});
+  const rows = Object.fromEntries(h.routes.describe(world).map(row => [row.profileKey, row]));
+  assert.deepEqual(Object.keys(rows).sort(), [...PROFILES].sort());
+  assert.deepEqual(rows['judy-alvarez'], {profileKey: 'judy-alvarez', mode: 'auto', status: 'ready',
+    variant: 'romantic', reason: 'verified-current-save', confirmedInSave: true});
+  assert.deepEqual(rows['panam-palmer'], {profileKey: 'panam-palmer', mode: 'auto', status: 'ready',
+    variant: 'ordinary', reason: 'auto-unconfirmed', confirmedInSave: false});
+  assert.equal(rows['river-ward'].variant, 'romantic'); assert.equal(rows['river-ward'].confirmedInSave, false);
+  assert.equal(rows['kerry-eurodyne'].variant, 'ordinary'); assert.equal(rows['kerry-eurodyne'].confirmedInSave, true);
+  assert.doesNotMatch(JSON.stringify(rows), /-ord|-rom|sq0\d\d|q003/);
+  // Evidence loss is visible rather than silently ordinary.
+  h.tick(6000); h.routes.update(h.settings, undefined, {boundary: world});
+  const stale = h.routes.describe(world).find(row => row.profileKey === 'judy-alvarez');
+  assert.equal(stale.status, 'unavailable'); assert.equal(stale.variant, null);
+  assert.deepEqual(h.routes.describe(null).filter(row => row.mode === 'auto').map(row => row.status), ['unavailable', 'unavailable', 'unavailable']);
+  const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(source, /relationshipRoutes\.describe\(currentBoundary\(\)\)/);
+  assert.match(source, /'relationship-routing\.json'/);
+});

@@ -173,6 +173,20 @@ export class RelationshipRouting {
       boundary, now: this.now(), registry: this.registry});
   }
   consumeRouteChanges() { const keys = [...this.changes]; this.changes.clear(); return keys; }
+  /** What the next admitted turn of each supported character would use. Names
+   * and reasons only: no provider IDs, dialogue or native values. */
+  describe(boundary) {
+    const rows = [];
+    for (const profileKey of Object.keys(RELATIONSHIP_PROFILES)) {
+      if (!Object.hasOwn(this.providerIds, profileKey)) continue;
+      let selected;
+      try { selected = this.select(profileKey, boundary); } catch { selected = {status: 'unavailable', reason: 'invalid-selection'}; }
+      rows.push({profileKey, mode: this.modes[profileKey] ?? 'auto', status: selected.status,
+        variant: selected.variant ?? null, reason: selected.reason ?? null,
+        confirmedInSave: selected.saveRelationship?.status === 'confirmed'});
+    }
+    return rows;
+  }
   providerKeyForGuard(profileKey, guard) {
     if (!key(profileKey) || !id(guard?.characterId)) fail('INVALID_MEMORY_GUARD');
     const providerKey = Object.keys(this.providerIds).find(candidate => this.providerIds[candidate] === guard.characterId

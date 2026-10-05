@@ -306,6 +306,17 @@ function voiceBoundaryBusy() {
   return !!(active || streaming || polling || micPolling || mic.current || prefetchPolling || memoryQuiescing
     || phone.active || relationshipRouteReservation || lookahead.busy);
 }
+// Read-only observability for the Relationships setting: which profile variant
+// the next turn of each supported character will use, and why. Rewritten only
+// when a decision changes. It never contains provider IDs or native values.
+let relationshipRoutesPublished = '';
+function publishRelationshipRoutes() {
+  const routes = relationshipRoutes.describe(currentBoundary()), signature = JSON.stringify(routes);
+  if (signature === relationshipRoutesPublished) return;
+  relationshipRoutesPublished = signature;
+  void atomic(resolve(runtime, 'relationship-routing.json'), JSON.stringify({version: 1, updated: Date.now(), routes}))
+    .catch(() => { relationshipRoutesPublished = ''; });
+}
 function syncRelationshipRoutes() {
   for (const profile of relationshipRoutes.consumeRouteChanges()) relationshipRoutePending.set(profile, relationshipRoutes.revision);
   if (relationshipRouteReservation) return relationshipRouteSync;
@@ -1225,6 +1236,7 @@ async function pollSettings(checkShutdown = true) {
       dropPrefetch(); prefetchObserved = '';
     }
     await syncRelationshipRoutes(); await syncVoiceRoutes();
+    publishRelationshipRoutes();
     if (Date.now() - lastVoiceHeartbeat >= 5000) {
       lastVoiceHeartbeat = Date.now(); localVoice.publish(localVoice.state);
     }
