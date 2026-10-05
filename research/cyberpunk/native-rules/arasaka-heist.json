@@ -1395,7 +1395,7 @@
         "type": "fact",
         "key": "q110_08a_netwatch_deal",
         "op": "gte",
-        "value": 1
+        "value": 2
       },
       "narrativeLinks": [
         {

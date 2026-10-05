@@ -6932,7 +6932,7 @@
       "questKey": "burning-desire",
       "topic": "v.jesse.callback",
       "outcome": "paid",
-      "status": "source-verified",
+      "status": "disabled",
       "reviewed": true,
       "gameVersions": [
         "2.31"
@@ -6973,7 +6973,8 @@
           "decisionId": "heywood.jesse.callback",
           "outcomeKey": "paid"
         }
-      ]
+      ],
+      "notes": "Disabled 2026-10-05: its only predicate is whole-quest completion of mq012_stud, which also completes on the dead-passenger route, so it could tell a dead Jesse that he called and paid V."
     },
     {
       "id": "heywood.dennis.extraction.delivered",

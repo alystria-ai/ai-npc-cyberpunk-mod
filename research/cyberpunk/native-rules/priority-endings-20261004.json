@@ -3062,10 +3062,12 @@
       "stable": true,
       "statement": "Judy told V she would leave Night City instead of staying with V at the Afterlife.",
       "sourceIds": [
-        "priority-endings.source.e3d9d005ac91"
+        "priority-endings.source.e3d9d005ac91",
+        "priority-endings.source.c8cb8f984140"
       ],
       "evidenceRefs": [
-        "priority-endings.evidence.773b06d51d9b"
+        "priority-endings.evidence.773b06d51d9b",
+        "priority-endings.evidence.b073e1d2cf20"
       ],
       "narrativeLinks": [
         {
@@ -3088,10 +3090,20 @@
         ]
       },
       "condition": {
-        "type": "fact",
-        "key": "q203_fact_lover_says_goodbye",
-        "op": "gte",
-        "value": 1
+        "all": [
+          {
+            "type": "fact",
+            "key": "q203_fact_lover_says_goodbye",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q115_judy_romance_chosen",
+            "op": "gte",
+            "value": 1
+          }
+        ]
       }
     },
     {
@@ -3110,10 +3122,12 @@
       "stable": true,
       "statement": "Panam and V took different roads after Mikoshi; Panam left Night City while V stayed for the Afterlife job.",
       "sourceIds": [
-        "priority-endings.source.1a92b29027ba"
+        "priority-endings.source.1a92b29027ba",
+        "priority-endings.source.c8cb8f984140"
       ],
       "evidenceRefs": [
-        "priority-endings.evidence.1963aaf6dd81"
+        "priority-endings.evidence.1963aaf6dd81",
+        "priority-endings.evidence.ead19fd4b944"
       ],
       "narrativeLinks": [
         {
@@ -3136,10 +3150,20 @@
         ]
       },
       "condition": {
-        "type": "fact",
-        "key": "q203_fact_relationship_dialogue_over",
-        "op": "gte",
-        "value": 1
+        "all": [
+          {
+            "type": "fact",
+            "key": "q203_fact_relationship_dialogue_over",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q115_panam_romance_chosen",
+            "op": "gte",
+            "value": 1
+          }
+        ]
       }
     },
     {
@@ -3918,7 +3942,7 @@
             "type": "fact",
             "key": "q110_08a_netwatch_deal",
             "op": "gte",
-            "value": 1
+            "value": 2
           },
           {
             "type": "journal",
