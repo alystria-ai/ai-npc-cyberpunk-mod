@@ -61,7 +61,30 @@ work = Path("/kaggle/working"); code = work / "code/pocket_training"; code.mkdir
 (code.parent / "pocket_training/__init__.py").write_text("")
 (code / "mimi_decoder.py").write_text(TRAINER_SOURCE)
 (work / "holdout-ids.json").write_text(json.dumps(HOLDOUT))
-subprocess.run([sys.executable, "-m", "pip", "install", "-q", "einops", "sentencepiece", "tokenizers", "typer"], check=False)
+subprocess.run([sys.executable, "-m", "pip", "install", "-q", "einops", "sentencepiece", "tokenizers", "typer", "psutil",
+                "huggingface_hub==1.33.0"], check=False)
+RUN_ID = "__RUN_ID__"
+BUCKET = "akshitireddy/cyberpunk-pocket-rolling-checkpoints"
+upload_state = {"next": 0, "last": 0.0}
+
+def publish():
+    """Copy logs and the current best/last decoders to the next of three fixed slots under runs/<run>/."""
+    try:
+        from huggingface_hub import HfApi
+        api = HfApi()
+        slot = upload_state["next"] % 3
+        files = [(str(p), f"runs/{RUN_ID}/slot-{slot}/{p.parent.name}/{p.name}")
+                 for d in sorted(work.glob("mimi-dec-*")) if d.is_dir()
+                 for p in [d / "log.jsonl", d / "decoder-best.safetensors", d / "decoder-last.safetensors", d / "summary.json"]
+                 if p.is_file()]
+        files += [(str(p), f"runs/{RUN_ID}/slot-{slot}/{p.name}") for p in work.glob("mimi-dec-*.log")]
+        if files:
+            api.batch_bucket_files(BUCKET, add=files, token=os.environ["HF_TOKEN"])
+            print("PUBLISHED slot", slot, len(files), flush=True)
+            upload_state["next"] += 1
+    except Exception as error:
+        print("PUBLISH_FAILED", type(error).__name__, flush=True)
+
 procs = []
 for gpu, (name, extra) in enumerate(sorted(VARIANTS.items())):
     out = work / f"mimi-dec-{name}"
@@ -74,8 +97,15 @@ for gpu, (name, extra) in enumerate(sorted(VARIANTS.items())):
     log = open(work / f"mimi-dec-{name}.log", "w")
     procs.append((name, subprocess.Popen(cmd, env=env, stdout=log, stderr=subprocess.STDOUT), work / f"mimi-dec-{name}.log"))
 seen = {}
+import psutil, shutil
 while any(p.poll() is None for _, p, _ in procs):
     time.sleep(60)
+    vm = psutil.virtual_memory()
+    print("RESOURCES host_used_gib", round((vm.total - vm.available) / 2**30, 1), "of", round(vm.total / 2**30, 1),
+          "disk_free_gib", round(shutil.disk_usage("/kaggle/working").free / 2**30, 1), flush=True)
+    if time.time() - upload_state["last"] > 900:
+        upload_state["last"] = time.time()
+        publish()
     for name, p, path in procs:
         lines = path.read_text(errors="replace").splitlines()
         for line in lines[seen.get(name, 0):]:
@@ -85,6 +115,7 @@ while any(p.poll() is None for _, p, _ in procs):
         seen[name] = len(lines)
 for name, p, path in procs:
     print("EXIT", name, p.returncode, path.read_text(errors="replace")[-2000:], flush=True)
+publish()
 '''
 
 
@@ -102,7 +133,11 @@ def prepare(holdout: Path, hours: float):
         raise ValueError("Held-out evaluation IDs are required")
     trainer = TRAINER.read_text(encoding="utf-8")
     compile(trainer, "mimi_decoder.py", "exec")
-    source = (NOTEBOOK.replace("__NONCE__", nonce).replace("__TRAINER__", repr(trainer))
+    token = (ROOT / "runtime/huggingface-checkpoint-token.txt").read_text().strip()
+    if not token.startswith("hf_"):
+        raise ValueError("Private checkpoint credential missing")
+    run_id = "mimi-decoder-" + nonce
+    source = ('import os\nos.environ["HF_TOKEN"] = ' + repr(token) + '\n' + NOTEBOOK.replace("__NONCE__", nonce).replace("__RUN_ID__", run_id).replace("__TRAINER__", repr(trainer))
               .replace("__HOLDOUT__", repr(ids)).replace("__VARIANTS__", repr(VARIANTS)).replace("__HOURS__", repr(hours)))
     compile(source, "mimi-decoder-notebook.py", "exec")
     cell = lambda text: {"id": uuid.uuid4().hex[:12], "cell_type": "code", "execution_count": None,
@@ -118,7 +153,9 @@ def prepare(holdout: Path, hours: float):
     core.atomic(folder / "approval.json", {
         "slug": meta["id"], "nonce": nonce, "purpose": PURPOSE, "policy": "mimi_decoder_gan_v1",
         "source_sha256": core.sha(folder / "kernel.ipynb"), "datasets": DATASETS, "timeout_seconds": timeout,
-        "quota_reserve_seconds": 0, "execution_type": "SAVE_AND_RUN_ALL", "contains_private_checkpoint_credential": False,
+        "quota_reserve_seconds": 0, "execution_type": "SAVE_AND_RUN_ALL", "contains_private_checkpoint_credential": True,
+        "checkpoint_storage": {"kind": "private_bucket", "bucket_id": "akshitireddy/cyberpunk-pocket-rolling-checkpoints",
+                               "path": "runs/" + run_id, "max_slots": 3},
         "automatic_model_promotion": False, "authorized_save_calls": 1, "launcher_sha256": core.sha(CORE_PATH),
         "mimi_launcher_sha256": core.sha(Path(__file__)), "trainer_sha256": sha_text(trainer), "selected_ids": [],
         "variants": VARIANTS, "hours_per_variant": hours, "heldout_ids": len(ids),

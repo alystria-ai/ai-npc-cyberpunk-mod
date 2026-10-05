@@ -154,6 +154,21 @@ def high_band_db(y, x, device):
     return float((a[lo:] - b[lo:]).abs().mean())
 
 
+def resources(device) -> dict:
+    """Host RSS, free disk and GPU memory, logged with training progress (a crash leaves a trail)."""
+    import shutil
+    import torch
+    out = {"gpu_alloc_gib": round(torch.cuda.memory_allocated(device) / 2**30, 2) if torch.cuda.is_available() else 0}
+    try:
+        import psutil
+        out["rss_gib"] = round(psutil.Process().memory_info().rss / 2**30, 2)
+        out["host_free_gib"] = round(psutil.virtual_memory().available / 2**30, 2)
+    except ImportError:
+        pass
+    out["disk_free_gib"] = round(shutil.disk_usage(".").free / 2**30, 1)
+    return out
+
+
 def decode(mimi, latents):
     from pocket_tts.modules.stateful_module import init_states
     state = init_states(mimi, latents.shape[0], (latents.shape[1] + 8) * 16)
@@ -184,7 +199,7 @@ def main(argv=None) -> int:
     p.add_argument("--eval-limit", type=int, default=80)
     p.add_argument("--seed", type=int, default=1234)
     p.add_argument("--device", default="cuda")
-    p.add_argument("--loader-threads", type=int, default=4)
+    p.add_argument("--loader-threads", type=int, default=2)
     p.add_argument("--snapshot-every", type=int, default=10000)
     args = p.parse_args(argv)
 
@@ -237,7 +252,7 @@ def main(argv=None) -> int:
     crops = Crops(rows, args.seconds, args.seed)
     import queue
     import threading
-    ready: "queue.Queue" = queue.Queue(maxsize=8)
+    ready: "queue.Queue" = queue.Queue(maxsize=4)
 
     def producer(worker: int):
         local = Crops(rows, args.seconds, args.seed + 7919 * (worker + 1))
@@ -342,7 +357,8 @@ def main(argv=None) -> int:
             record.update(loss_mel=float(loss_mel), loss_adv=float(loss_adv), loss_fm=float(loss_fm))
         step += 1
         if step % 50 == 0:
-            log({"event": "train", "step": step, **record, "elapsed": round(time.monotonic() - started, 1)})
+            log({"event": "train", "step": step, **record, "elapsed": round(time.monotonic() - started, 1),
+                 **resources(device)})
         if step % args.eval_every == 0:
             for use_ema in (True, False):
                 metrics = evaluate(step, use_ema)
