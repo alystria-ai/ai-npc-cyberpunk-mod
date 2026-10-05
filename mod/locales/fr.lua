@@ -478,4 +478,9 @@ return {
     ["The selected local model starts preparing as soon as you select it here and stays warm once your choice is saved. Discarding changes or leaving without saving cancels the preview; no game restart is needed."] = "Le modèle local choisi commence à se préparer dès sa sélection ici et reste prêt une fois votre choix enregistré. Abandonner les modifications ou quitter sans enregistrer annule l’aperçu ; aucun redémarrage du jeu n’est nécessaire.",
     ["OmniVoice 16"] = "OmniVoice 16",
     ["OmniVoice 32"] = "OmniVoice 32",
+    ["The conversation service is starting. Try again in a few seconds."] = "Le service de conversation démarre. Réessayez dans quelques secondes.",
+    ["The conversation service restarted. Please try again."] = "Le service de conversation a redémarré. Veuillez réessayer.",
+    ["The conversation service needs your Convai API key. Add it, then restart the game."] = "Le service de conversation a besoin de votre clé d'API Convai. Ajoutez-la, puis redémarrez le jeu.",
+    ["The conversation service could not start. Check bridge-service.log, then restart the game."] = "Le service de conversation n'a pas pu démarrer. Consultez bridge-service.log, puis redémarrez le jeu.",
+    ["The conversation service is not running. Restart the game to start it again."] = "Le service de conversation n'est pas lancé. Redémarrez le jeu pour le relancer.",
 }

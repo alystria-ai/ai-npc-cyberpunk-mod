@@ -1,0 +1,182 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import fengari from 'fengari';
+
+const source = readFileSync(new URL('../mod/service-status.lua', import.meta.url), 'utf8');
+const catalog = JSON.parse(readFileSync(new URL('../localization/en.json', import.meta.url), 'utf8')).strings;
+const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
+
+// Files hold keys into a decoded-table registry, as other adapter fixtures do.
+// Translation is visible (T:) so every message is proven to pass through ui.t.
+const fixture = `
+local clock, reads, registry, serial = 1800000000.0, {}, {}, 0
+files = {}
+function put(path, value)
+    if value == nil then files[path] = nil; return end
+    serial = serial + 1; local key = 'json-' .. serial; registry[key] = value; files[path] = key
+end
+json = {decode = function(raw)
+    if raw == 'malformed' then error('malformed json') end
+    return assert(registry[raw], 'unexpected JSON input ' .. tostring(raw))
+end}
+io = {open = function(path, mode)
+    assert(mode == 'rb', 'status reads only'); reads[path] = (reads[path] or 0) + 1
+    if files[path] == nil then return nil end
+    return {read = function() return files[path] end, close = function() return true end}
+end}
+os.time = function() return clock end
+function advance(seconds) clock = clock + seconds end
+function now() return clock end
+function ms(offset) return (clock + (offset or 0)) * 1000.0 end
+function readsOf(path) return reads[path] or 0 end
+convaiUiLocale = {version = 1, t = function(text) return 'T:' .. text end}
+dofile = function(path) error('unexpected dependency ' .. path) end
+local status = (function() ${source} end)()
+`;
+
+function run(body) {
+  const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
+  try {
+    const program = fixture + body;
+    const result = lauxlib.luaL_dostring(state, to_luastring(program));
+    const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
+    const line = Number(/\]:(\d+):/.exec(error)?.[1]);
+    assert.equal(result, lua.LUA_OK, error + (line ? `\n${program.split('\n')[line - 1]}` : ''));
+  } finally { lua.lua_close(state); }
+}
+
+const messages = {
+  starting: 'The conversation service is starting. Try again in a few seconds.',
+  restarted: 'The conversation service restarted. Please try again.',
+  setup: 'The conversation service needs your Convai API key. Add it, then restart the game.',
+  failed: 'The conversation service could not start. Check bridge-service.log, then restart the game.',
+  stopped: 'The conversation service is not running. Restart the game to start it again.',
+};
+const lua_ = value => JSON.stringify('T:' + value);
+
+test('every service message is a catalogued English UI key', () => {
+  for (const text of Object.values(messages)) assert.equal(catalog[text], text, text);
+  for (const text of Object.values(messages)) assert(source.includes(`ui.t('${text}')`), `ui.t literal for ${text}`);
+});
+
+test('with no evidence at all the adapter keeps its previous behaviour', () => run(`
+  assert(status.unavailable() == nil)
+  assert(status.blockedMessage() == nil)
+  assert(status.lostSince(now() - 10) == nil)
+  assert(status.notice() == nil)
+`));
+
+test('a fresh bridge heartbeat always allows conversations', () => run(`
+  put('runtime/bridge-service.json', {state = 'failed', code = 'bridge-crashed', since = ms(-5), updated = ms()})
+  put('runtime/knowledge-status.json', {version = 1, updated = ms(-1)})
+  assert(status.unavailable() == nil, 'knowledge heartbeat')
+  advance(1)
+  put('runtime/knowledge-status.json', {version = 1, updated = ms(-60)})
+  put('runtime/local-voice-state.json', {state = 'ready', bridgePid = 7, updated = ms(-6)})
+  assert(status.unavailable() == nil, 'voice heartbeat')
+  advance(1)
+  put('runtime/knowledge-status.json', {version = 1, updated = ms(-1)})
+  assert(status.notice() == nil, 'a live bridge supersedes a failure notice')
+`));
+
+test('supervisor states map to starting, ready and stopped explanations', () => run(`
+  put('runtime/knowledge-status.json', {version = 1, updated = ms(-3600)})
+  for _, state in ipairs({'starting', 'restarting', 'stopping'}) do
+    advance(1)
+    put('runtime/bridge-service.json', {state = state, code = 'x', since = ms(-2), updated = ms(-1)})
+    local message, kind = status.blockedMessage()
+    assert(kind == 'starting' and message == ${lua_(messages.starting)}, state)
+  end
+  advance(1)
+  put('runtime/bridge-service.json', {state = 'ready', code = 'bridge-ready', since = ms(-30), updated = ms(-2)})
+  assert(status.unavailable() == nil, 'the supervisor confirms a running bridge')
+  advance(1)
+  put('runtime/bridge-service.json', {state = 'stopped', code = 'stop-requested', since = ms(-2), updated = ms(-1)})
+  assert(select(2, status.blockedMessage()) == 'stopped')
+  advance(1)
+  put('runtime/bridge-service.json', {state = 'ready', code = 'bridge-ready', since = ms(-300), updated = ms(-120)})
+  local message, kind = status.blockedMessage()
+  assert(kind == 'stopped' and message == ${lua_(messages.stopped)}, 'a stale supervisor is not trusted')
+`));
+
+test('stale traces without a supervisor mean the service is not running', () => run(`
+  put('runtime/knowledge-status.json', {version = 1, updated = ms(-25)})
+  local message, kind = status.blockedMessage()
+  assert(kind == 'stopped' and message == ${lua_(messages.stopped)})
+`));
+
+test('failures distinguish missing setup from other errors, including launcher failures from this session', () => run(`
+  put('runtime/bridge-service.json', {state = 'failed', code = 'missing-key', since = ms(-4), updated = ms(-1)})
+  local message, kind = status.blockedMessage()
+  assert(kind == 'setup' and message == ${lua_(messages.setup)})
+  advance(1)
+  put('runtime/bridge-service.json', {state = 'failed', code = 'voice-client-build-failed', since = ms(-4), updated = ms(-1)})
+  message, kind = status.blockedMessage()
+  assert(kind == 'failed' and message == ${lua_(messages.failed)})
+  -- The launcher writes once at game start and has no heartbeat.
+  advance(600)
+  put('runtime/bridge-service.json', {state = 'failed', code = 'launcher-program-missing', source = 'launcher',
+      since = ms(-600 - 60), updated = ms(-600 - 60)})
+  assert(select(2, status.blockedMessage()) == 'failed', 'a launcher failure from this game session')
+  advance(1)
+  put('runtime/bridge-service.json', {state = 'failed', code = 'launcher-program-missing', source = 'launcher',
+      since = ms(-7200), updated = ms(-7200)})
+  assert(select(2, status.blockedMessage()) == 'stopped', 'an old launcher failure is only a stale trace')
+`));
+
+test('a request is retired early only when the supervisor saw its bridge exit afterwards', () => run(`
+  local sent = now()
+  advance(3)
+  put('runtime/bridge-service.json', {state = 'restarting', code = 'bridge-exited', since = ms(-1), updated = ms()})
+  assert(status.lostSince(sent) == ${lua_(messages.starting)})
+  advance(1)
+  put('runtime/bridge-service.json', {state = 'ready', code = 'bridge-ready', restarts = 1, since = ms(-1), updated = ms()})
+  assert(status.lostSince(sent) == ${lua_(messages.restarted)}, 'the replacement never saw the request')
+  advance(1)
+  put('runtime/bridge-service.json', {state = 'ready', code = 'bridge-ready', restarts = 0, since = ms(-1), updated = ms()})
+  assert(status.lostSince(sent) == nil, 'a first start can still process a request written before ready')
+  advance(1)
+  put('runtime/bridge-service.json', {state = 'restarting', code = 'bridge-exited', since = (sent - 30) * 1000, updated = ms()})
+  assert(status.lostSince(sent) == nil, 'a restart that began before the request is not this request')
+  advance(1)
+  put('runtime/bridge-service.json', {state = 'failed', code = 'missing-key', since = ms(-1), updated = ms()})
+  assert(status.lostSince(sent) == ${lua_(messages.setup)})
+  advance(1)
+  put('runtime/bridge-service.json', {state = 'stopped', code = 'stop-requested', since = ms(-1), updated = ms(-60)})
+  assert(status.lostSince(sent) == nil, 'stale supervisor status')
+  advance(1)
+  put('runtime/bridge-service.json', nil)
+  put('runtime/knowledge-status.json', {version = 1, updated = ms(-60)})
+  assert(status.lostSince(sent) == nil, 'a heartbeat gap alone never retires a request')
+`));
+
+test('a failure is announced once per episode and checks are throttled', () => run(`
+  put('runtime/bridge-service.json', {state = 'failed', code = 'missing-key', since = ms(-5), updated = ms()})
+  assert(status.notice() == ${lua_(messages.setup)})
+  advance(1)
+  assert(status.notice() == nil, 'throttled')
+  advance(5)
+  put('runtime/bridge-service.json', {state = 'failed', code = 'missing-key', since = ms(-11), updated = ms()})
+  assert(status.notice() == nil, 'same failure episode')
+  advance(5)
+  put('runtime/bridge-service.json', {state = 'failed', code = 'bridge-crashed', since = ms(-1), updated = ms()})
+  assert(status.notice() == ${lua_(messages.failed)}, 'a new failure is announced')
+  advance(5)
+  put('runtime/bridge-service.json', {state = 'starting', code = 'x', since = ms(-1), updated = ms()})
+  assert(status.notice() == nil)
+`));
+
+test('status files are read at most once a second and malformed files are ignored', () => run(`
+  put('runtime/knowledge-status.json', {version = 1, updated = ms(-60)})
+  put('runtime/bridge-service.json', {state = 'starting', code = 'x', since = ms(-1), updated = ms()})
+  for _ = 1, 5 do status.unavailable() end
+  assert(readsOf('runtime/knowledge-status.json') == 1 and readsOf('runtime/bridge-service.json') == 1)
+  advance(1)
+  status.unavailable()
+  assert(readsOf('runtime/bridge-service.json') == 2)
+  advance(1)
+  files['runtime/bridge-service.json'] = 'malformed'
+  files['runtime/knowledge-status.json'] = 'malformed'
+  assert(status.unavailable() == nil, 'unreadable evidence is no evidence')
+`));

@@ -443,6 +443,9 @@ function M.update(player, delta)
             M.errors[submission.contact] = 'Conversations are disabled for this contact.'
         elseif M.pending then
             M.errors[submission.contact] = 'Wait for your previous reply before sending another message.'
+        elseif type(M.serviceBlocked) == 'function' and M.serviceBlocked() then
+            -- Already localized by init.lua; the draft stays in the editor.
+            M.errors[submission.contact] = M.serviceBlocked()
         else
             M.serial = M.serial + 1
             local before = M.bindingKey

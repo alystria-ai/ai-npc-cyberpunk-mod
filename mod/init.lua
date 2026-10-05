@@ -1,6 +1,16 @@
 -- Cyberpunk Convai game adapter. It never renders an ImGui text field.
 -- Owns native composers, targeted turns, party connections and live diagnostics.
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
+-- Optional: explains a missing or starting conversation service. The adapter
+-- keeps working unchanged if this module is absent.
+local serviceStatusLoaded, serviceStatus = pcall(dofile, 'service-status.lua')
+if not serviceStatusLoaded or type(serviceStatus) ~= 'table' then serviceStatus = nil end
+local function serviceCall(name, ...)
+    if not serviceStatus or type(serviceStatus[name]) ~= 'function' then return nil end
+    local ok, first, second = pcall(serviceStatus[name], ...)
+    if ok then return first, second end
+    return nil
+end
 local companions = dofile('companions.lua')
 local movementLog = dofile('movement-log.lua')
 local subtitles = dofile('subtitles.lua')
@@ -221,6 +231,8 @@ phoneChat.captureBattle = battles.capture
 microphone.captureBattle = battles.capture
 convaiPhoneChat = phoneChat
 convaiGroupChat = groupChat
+-- Phone Chat keeps the draft and shows this inline when no service can reply.
+phoneChat.serviceBlocked = function() return (serviceCall('blockedMessage', os.time())) end
 groupChat.onPreparation = function(preparation)
     if preparation and not attachKnowledge(preparation.input) then preparation = nil end
     local f = io.open('runtime/group-prefetch.json.tmp', 'wb')
@@ -642,12 +654,23 @@ local function acceptVoiceSubmission(context)
     return true
 end
 
+-- Explain an unavailable conversation service before the player types or
+-- speaks. Without any service evidence the conversation proceeds as before.
+local function conversationServiceBlocked(player)
+    local message, kind = serviceCall('blockedMessage', os.time())
+    if type(message) ~= 'string' then return false end
+    pcall(function() player:ConvaiPhoneFeedback(message) end)
+    log('Conversation service unavailable: ' .. tostring(kind))
+    return true
+end
+
 local function beginText(groupMode)
     local ok, err = pcall(function()
         local player = Game.GetPlayer()
         if not player or not gameplayCanAcquire(player) then return end
         local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_text')
         if not primary then return end
+        if conversationServiceBlocked(player) then return end
         local npc, key, name, bodyType, identity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
         generation = generation + 1
         if not player:ConvaiOpenComposer(name) then
@@ -707,6 +730,7 @@ local function toggleVoice(groupMode)
         if not gameplayCanAcquire(player) then return end
         local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_voice')
         if not primary then return end
+        if conversationServiceBlocked(player) then return end
         local npc, key, name, body, entity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
         generation = generation + 1
         cancelAutomatic('microphone')
@@ -1463,6 +1487,11 @@ registerForEvent('onUpdate', function(delta)
         if not ok then log('Phone catalog registration failed: ' .. tostring(err)) end
         phoneCatalogReady = ok
     end
+    if worldReady then
+        -- Once per failure: a service that cannot start is reported before the player tries to talk.
+        local notice = serviceCall('notice', os.time())
+        if notice then pcall(function() player:ConvaiPhoneFeedback(notice) end) end
+    end
     local managerOk, managerError = pcall(manager.update, player, 0.1)
     if not managerOk then log('Manager update failed: ' .. tostring(managerError)) end
     if worldReady then companions.update(player, elapsedPoll, focusEntity) end
@@ -1515,14 +1544,21 @@ registerForEvent('onUpdate', function(delta)
             microphone.cancel(); groupChat.cancel()
         end
     end
-    if pending and os.time() - pending.sentAt >= 90 then
+    -- The supervisor reports when the bridge holding this request has exited;
+    -- its reply can no longer arrive, so retire the request now, not at 90 s.
+    local serviceLost = pending and serviceCall('lostSince', pending.sentAt, os.time()) or nil
+    if pending and (os.time() - pending.sentAt >= 90 or serviceLost) then
         -- The request owns its deadline. Focus expiry must never discard only
         -- pending while leaving a microphone/group waiting forever. Retire it
         -- before reading replies so a result at/after the deadline stays late.
         local expired = pending
         gameplayActions.revoke('reply-timeout', expired.requestId)
-        if not expired.reaction then player:ConvaiPhoneFeedback(ui.t('No reply arrived. Check that the Convai bridge is running.')) end
-        log('Conversation timed out: generation=' .. expired.generation)
+        if not expired.reaction then
+            local explained = serviceLost or serviceCall('blockedMessage', os.time())
+            player:ConvaiPhoneFeedback(explained or ui.t('No reply arrived. Check that the Convai bridge is running.'))
+        end
+        log((serviceLost and 'Conversation retired after the service exited: generation=' or 'Conversation timed out: generation=')
+            .. expired.generation)
         local round = groupChat.round
         if expired.reaction then
             cancelAutomatic('reply-timeout')

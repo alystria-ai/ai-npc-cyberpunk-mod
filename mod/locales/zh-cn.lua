@@ -478,4 +478,9 @@ return {
     ["The selected local model starts preparing as soon as you select it here and stays warm once your choice is saved. Discarding changes or leaving without saving cancels the preview; no game restart is needed."] = "在此选中本地模型即开始准备，保存选择后会保持预热就绪。放弃更改或未保存就离开将取消预览；无需重启游戏。",
     ["OmniVoice 16"] = "OmniVoice 16",
     ["OmniVoice 32"] = "OmniVoice 32",
+    ["The conversation service is starting. Try again in a few seconds."] = "对话服务正在启动，请几秒后重试。",
+    ["The conversation service restarted. Please try again."] = "对话服务已重新启动，请重试。",
+    ["The conversation service needs your Convai API key. Add it, then restart the game."] = "对话服务需要你的 Convai API 密钥。请添加密钥，然后重新启动游戏。",
+    ["The conversation service could not start. Check bridge-service.log, then restart the game."] = "对话服务无法启动。请检查 bridge-service.log，然后重新启动游戏。",
+    ["The conversation service is not running. Restart the game to start it again."] = "对话服务未运行。重新启动游戏即可再次启动该服务。",
 }

@@ -478,4 +478,9 @@ return {
     ["The selected local model starts preparing as soon as you select it here and stays warm once your choice is saved. Discarding changes or leaving without saving cancels the preview; no game restart is needed."] = "여기서 로컬 모델을 선택하면 즉시 준비를 시작하며 선택을 저장한 뒤에도 준비된 상태를 유지합니다. 변경 사항을 취소하거나 저장하지 않고 나가면 미리 준비가 중단됩니다. 게임을 다시 시작할 필요는 없습니다.",
     ["OmniVoice 16"] = "OmniVoice 16",
     ["OmniVoice 32"] = "OmniVoice 32",
+    ["The conversation service is starting. Try again in a few seconds."] = "대화 서비스를 시작하는 중입니다. 몇 초 후에 다시 시도하세요.",
+    ["The conversation service restarted. Please try again."] = "대화 서비스가 다시 시작되었습니다. 다시 시도하세요.",
+    ["The conversation service needs your Convai API key. Add it, then restart the game."] = "대화 서비스에 Convai API 키가 필요합니다. 키를 추가한 후 게임을 다시 시작하세요.",
+    ["The conversation service could not start. Check bridge-service.log, then restart the game."] = "대화 서비스를 시작하지 못했습니다. bridge-service.log를 확인한 후 게임을 다시 시작하세요.",
+    ["The conversation service is not running. Restart the game to start it again."] = "대화 서비스가 실행 중이 아닙니다. 게임을 다시 시작하면 서비스도 다시 시작됩니다.",
 }
