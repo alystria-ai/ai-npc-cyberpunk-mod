@@ -76,3 +76,13 @@ test('the picker offers only auto-best sets its pool can load', async () => {
   assert.equal(offered.omni.today, 0.6);
   assert.deepEqual(await new Autobest({project: root, file: join(root, 'missing.json')}).forVoice('v', pool), {});
 });
+
+test('a "best" set the picker cannot hold falls back to the best set of at most three clips', async () => {
+  const {Autobest} = await import('./autobest.mjs');
+  const {root, pool} = await project();
+  await writeFile(join(root, 'runtime/autobest-sets.json'), JSON.stringify({voices: {v: {omni: {
+    best: set(['v/0', 'v/1', 'v/2', 'v/3'], 13.2), best3: set(['v/2', 'v/3'], 6.4)}}}}));
+  const offered = await new Autobest({project: root}).forVoice('v', pool);
+  assert.deepEqual(offered.omni.ids, ['v/2', 'v/3']);
+  assert.equal(offered.omni.fallback, 'best3');
+});

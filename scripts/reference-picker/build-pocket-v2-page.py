@@ -43,6 +43,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=Path("E:/CyberpunkConvai-offload/work/pocket-v2/page"))
     parser.add_argument("--line-ecapa", type=Path, default=Path(os.environ.get("TEMP", ".")) / "t_score_cache.json")
+    parser.add_argument("--override", type=Path, action="append", default=[],
+                        help="JSON {voice: {note, conditions: {condition: {files: [wav per line], ecapa: [per line], text}}}}: "
+                             "renders that replace one voice's audio in the given columns (e.g. a user-chosen clip pool)")
     args = parser.parse_args()
     panel = json.loads((OUT / "panel.json").read_text(encoding="utf-8"))
     scores = json.loads((OUT / "np_scores_v2.json").read_text(encoding="utf-8"))["shown_all_lines"]
@@ -64,6 +67,23 @@ def main() -> int:
             if not dest.is_file() or dest.stat().st_size != src.stat().st_size:
                 shutil.copy2(src, dest)
             files[(c, r["speaker"], r["line"])] = f"audio/{c}/{r['file']}"
+
+    overrides: dict = {}
+    for path in args.override:
+        for voice, item in json.loads(path.read_text(encoding="utf-8")).items():
+            overrides.setdefault(voice, {"note": "", "conditions": {}})
+            overrides[voice]["note"] = item.get("note", overrides[voice]["note"])
+            overrides[voice]["conditions"].update(item.get("conditions", {}))
+    override_ecapa = {}
+    for voice, item in overrides.items():
+        for c, entry in item["conditions"].items():
+            for line, src in enumerate(entry["files"]):
+                dest = audio / c / f"{voice}__{line}.set.wav"
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, dest)
+                files[(c, voice, line)] = f"audio/{c}/{dest.name}"
+                if entry.get("ecapa"):
+                    override_ecapa[(c, voice, line)] = entry["ecapa"][line]
 
     def head_scores(c):
         s = scores.get(c, {})
@@ -98,10 +118,14 @@ def main() -> int:
                     cells.append("<td>—</td>")
                     continue
                 e = line_ecapa.get(f"{c}/{voice}__{line}.wav")
+                if (c, voice, line) in override_ecapa:
+                    e = override_ecapa[(c, voice, line)]
                 sub = f"<br><span class='s'>{e:.2f}</span>" if isinstance(e, (int, float)) and c != ORIGINAL else ""
                 cells.append(f"<td><audio controls preload='none' src='{src}'></audio>{sub}</td>")
             out.append("<tr>" + "".join(cells) + "</tr>")
         out.append("</table>")
+        if voice in overrides and overrides[voice]["note"]:
+            out.append(f"<p class='note'>{overrides[voice]['note']}</p>")
     out.append("</body></html>")
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "index.html").write_text("\n".join(out), encoding="utf-8")

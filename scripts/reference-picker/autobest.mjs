@@ -26,11 +26,17 @@ export class Autobest {
     if (!row) return out;
     for (const engine of ['pocket', 'omni']) {
       for (const [variant, suffix] of Object.entries(VARIANTS)) {
-        const found = row[engine]?.[variant], set = engine + suffix;
-        if (!found?.ids?.length || found.ids.some(id => id.startsWith('live:'))) continue;
-        try { pool.validateSet(key, set, found.ids); } catch { continue; }
+        const set = engine + suffix;
+        // "best3" is the best set of at most three clips; it stands in for a "best" the picker cannot hold (more than 3 clips)
+        let found = row[engine]?.[variant];
+        const loadable = candidate => {
+          if (!candidate?.ids?.length || candidate.ids.some(id => id.startsWith('live:'))) return false;
+          try { pool.validateSet(key, set, candidate.ids); return true; } catch { return false; }
+        };
+        if (!loadable(found) && variant === 'best' && loadable(row[engine]?.best3)) found = {...row[engine].best3, fallback: 'best3'};
+        if (!loadable(found)) continue;
         out[set] = {ids: found.ids, seconds: found.seconds, ecapa: found.ecapa, ecapaSe: found.ecapa_se ?? null, pls: found.pls ?? null,
-          today: row[engine]?.today?.ecapa ?? null, engine: json.engines?.[engine]?.tag ?? engine, generated: json.generated ?? null};
+          today: row[engine]?.today?.ecapa ?? null, fallback: found.fallback ?? null, engine: json.engines?.[engine]?.tag ?? engine, generated: json.generated ?? null};
       }
     }
     return out;
