@@ -213,10 +213,15 @@ end
 local function exitWorkspot(s, npc, mode)
     local ws = workspots()
     -- SendFastExitSignal(actor, dirLS, stayInWorkspotIfFailed, playSlowExitIfFailed, instant, tryBlendToWalk)
-    local calls = mode == 'slow' and {function() return ws:SendSlowExitSignal(npc, CName.new('None'), true) end,
-            function() return ws:SendSlowExitSignal(npc) end}
-        or {function() return ws:SendFastExitSignal(npc, Vector3.new(0, 0, 0), false, false, false, true) end,
+    local calls = mode == 'instant' and {function() return ws:SendFastExitSignal(npc, Vector3.new(0, 0, 0), false, true, true, false) end,
+            function() return ws:StopInDevice(npc, Vector4.new(0, 0, 0, 0), Quaternion.new(0, 0, 0, 1)) end,
             function() return ws:SendFastExitSignal(npc) end}
+        or mode == 'slow' and {function() return ws:SendSlowExitSignal(npc, CName.new('None'), true) end,
+            function() return ws:SendSlowExitSignal(npc) end}
+        or s.exitArgs == 'full' and {function() return ws:SendFastExitSignal(npc, Vector3.new(0, 0, 0), false, true, false, true) end,
+            function() return ws:SendFastExitSignal(npc) end}
+        -- Native defaults: the only exit observed to leave the AI healthy (Oct 6).
+        or {function() return ws:SendFastExitSignal(npc) end}
     local ok, result, _, errors = attempt('exit-' .. mode, calls)
     log('exit', {serial = s.serial, mode = mode, ok = ok, result = tostring(result), errors = errors})
     return ok
@@ -331,8 +336,9 @@ local function requestExit(s, reason, instant)
     if s.phase ~= 'active' and s.phase ~= 'exiting' and s.phase ~= 'stopping' then finish(s, reason); return end
     s.exitReason, s.exitRequestedAt = s.exitReason or reason, s.exitRequestedAt or now()
     if instant then
+        -- Instant fast exit, not StopNpcInWorkspot (which preceded every wedge).
         s.phase = 'stopping'
-        if npc then stopWorkspot(s, npc, 'npc') end
+        if npc then exitWorkspot(s, npc, 'instant') end
     elseif s.phase == 'active' then
         s.phase = 'exiting'
         if npc then
@@ -355,7 +361,12 @@ local function begin(s, words)
     s.api = option(words, 'api', 'auto')
     s.autoReturn = option(words, 'return', 'on') ~= 'off'
     s.slide, s.slideTime = option(words, 'slide', 'dont'), option(words, 'slidetime', '0')
-    s.exitStyle = option(words, 'exit', 'device') -- device (StopInDevice, as AMM) | npc | fast
+    s.exitStyle = option(words, 'exit', 'fast') -- fast (native defaults) | device | npc
+    s.exitArgs = option(words, 'exitargs', 'default') -- default | full
+    s.patience = option(words, 'patience', '3')
+    s.harsh = option(words, 'harsh', 'off') == 'on'
+    -- force=on starts even when the copy is not settled (recovery experiments).
+    s.force = option(words, 'force', 'off') == 'on'
     s.keepDevice = option(words, 'keepdevice', 'on') ~= 'off'
     s.phase, s.startedAt, s.startPosition = s.variant == 'suspend' and 'suspending' or 'spawning', now(), position(entry.npc)
     s.beganTick, s.escalated1, s.escalated2 = M.tickCount, nil, nil
@@ -504,7 +515,7 @@ COMMANDS.guard = function(words)
 end
 COMMANDS.clear = function()
     for _, s in pairs(M.states) do
-        if s.phase ~= 'off' and s.entry and s.entry.npc then pcall(stopWorkspot, s, s.entry.npc, 'npc') end
+        if s.phase ~= 'off' and s.entry and s.entry.npc then pcall(exitWorkspot, s, s.entry.npc, 'instant') end
         finish(s, 'clear', true)
     end
     return true, 'cleared'
@@ -580,7 +591,7 @@ end
 local function advance(s, context)
     local npc = s.entry.npc
     if s.phase == 'suspending' then
-        if not context.idle then finish(s, 'not settled before start'); return end
+        if not context.idle and not s.force then finish(s, 'not settled before start'); return end
         s.resumeHold = context.resumeHold
         local ok, ready, reason = pcall(context.suspendHold)
         if ok and ready == true then s.suspended = true; s.phase = 'spawning'; log('hold-suspended', {serial = s.serial})
@@ -588,7 +599,7 @@ local function advance(s, context)
         return
     end
     if s.phase == 'spawning' then
-        if not context.idle then finish(s, 'not settled before start'); return end
+        if not context.idle and not s.force then finish(s, 'not settled before start'); return end
         if s.deviceID and not s.deviceChecked then
             s.deviceChecked = true
             local ok, managed = pcall(function() return Game.GetDynamicEntitySystem():IsManaged(s.deviceID) end)
@@ -626,10 +637,14 @@ local function advance(s, context)
         local value = inWorkspot(npc)
         if value ~= true then finish(s, s.exitReason or 'exited'); return end
         local waited = now() - (s.exitRequestedAt or now())
-        -- Watchdog: fast exit -> StopNpcInWorkspot -> StopInDevice -> give up.
-        if waited > 0.6 and not s.escalated1 then s.escalated1 = true; stopWorkspot(s, npc, 'npc') end
-        if waited > 1.2 and not s.escalated2 then s.escalated2 = true; stopWorkspot(s, npc, 'device') end
-        if waited > 2.5 then s.failure = 'still in workspot after escalation'; finish(s, 'stuck'); s.phase = 'failed' end
+        -- Watchdog. Every wedge so far followed a StopNpcInWorkspot escalation at
+        -- .6 s; the one clean case was a fast exit that finished on its own. Wait
+        -- `patience` s (default 3), then StopInDevice; StopNpcInWorkspot only
+        -- with harsh=on.
+        local patience = tonumber(s.patience) or 3
+        if waited > patience and not s.escalated1 then s.escalated1 = true; stopWorkspot(s, npc, 'device') end
+        if s.harsh and waited > patience + 1.5 and not s.escalated2 then s.escalated2 = true; stopWorkspot(s, npc, 'npc') end
+        if waited > patience + 3 then s.failure = 'still in workspot after escalation'; finish(s, 'stuck'); s.phase = 'failed' end
         return
     end
     s.escalated1, s.escalated2 = nil, nil

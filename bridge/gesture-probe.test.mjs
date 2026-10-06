@@ -116,8 +116,10 @@ test('movement asks for a fast exit, escalates if stuck, then releases the body'
   assert(count('fastExit')==0,'unsettled must persist .8 s')
   step(.4)
   assert(count('fastExit')==1 and held,'fast exit first; movement still waits')
-  step(.7)
-  assert(count('stopNpc')==1,'escalate to StopNpcInWorkspot after .6 s')
+  step(1.0)
+  assert(count('stopNpc')==0 and count('stopDevice')==0,'a native exit gets time to finish')
+  step(2.2)
+  assert(count('stopDevice')==1 and count('stopNpc')==0,'StopInDevice after patience, never StopNpcInWorkspot')
   npc.inWorkspot=false;step(.1)
   assert(not held and m.states[1].phase=='off' and count('delete')==1,'released and device deleted')
   assert(lastLog('finished').reason=='movement:unsettled')
@@ -128,7 +130,7 @@ test('V walking away more than .75 m ends the stance even if the frame looks set
   for i=1,3 do player.pos={x=i*.15,y=0,z=0};step(.1) end
   assert(count('fastExit')==0,'a walking step under .75 m is fine')
   for i=4,6 do player.pos={x=i*.15,y=0,z=0};step(.1) end
-  assert(count('stopDevice')==1 and count('fastExit')==0,'default exit is StopInDevice')
+  assert(count('fastExit')==1,'default exit is the native fast exit')
   assert(lastLog('guard').reason=='player-moved')
 `));
 
@@ -151,7 +153,7 @@ test('a queued command that never starts after the exit is recovered once', () =
 test('combat stops the workspot instantly', () => run(`
   start()
   context.combat=true;step(.1)
-  assert(count('stopNpc')==1 and count('fastExit')==0)
+  assert(count('stopNpc')==0 and count('fastExit')==1,'instant fast exit')
   npc.inWorkspot=false;step(.1)
   assert(not held and lastLog('finished').reason=='combat')
 `));
@@ -159,7 +161,7 @@ test('combat stops the workspot instantly', () => run(`
 test('a copy taken by transport or not observed is stopped on the next tick', () => run(`
   start()
   step(.1,false);step(.1,false)
-  assert(count('stopNpc')==1,'unobserved copy must be stopped')
+  assert(count('fastExit')==1,'unobserved copy must be stopped')
   assert(lastLog('exit-requested').reason=='unobserved')
 `));
 
