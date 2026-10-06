@@ -88,7 +88,12 @@ class Crops:
         for i in idx:
             r = self.rows[i]
             span = max(0.0, r["duration"] - self.seconds)
-            w = load_window(r["path"], r["start"] + self.rng.uniform(0, span), min(self.seconds, r["duration"]))
+            try:
+                w = load_window(r["path"], r["start"] + self.rng.uniform(0, span), min(self.seconds, r["duration"]))
+            except (OSError, RuntimeError) as error:       # a clip deleted or locked mid-run must not kill the loader
+                print(json.dumps({"event": "clip-unreadable", "path": r["path"], "error": str(error)[:120]}), flush=True)
+                r = self.rows[self.rng.randrange(len(self.rows))]
+                w = load_window(r["path"], r["start"], min(self.seconds, r["duration"]))
             if len(w) < self.samples:
                 w = torch.nn.functional.pad(w, (0, self.samples - len(w)))
             out.append(w[: self.samples])
@@ -208,10 +213,10 @@ def _band_bins(n_fft: int, lo: float, hi: float):
 
 
 def anchor_loss(y, ref, lo: float = MID_LO, hi: float = MID_HI):
-    """Complex-STFT L1 between the decoder output and the frozen pretrained decoder's output for the same latents,
-    in [lo, hi) Hz (default 0.5-4 kHz) only, normalised by the reference magnitude (about 1.4 for unrelated phase, 0 when identical).
-    Anchors the mid-band PHASE to the pretrained decoder, which the mel loss cannot constrain, and leaves magnitude
-    and everything outside the band to the mel loss and the GAN."""
+    """Magnitude-weighted PHASE distance to the frozen pretrained decoder's output for the same latents, in [lo, hi) Hz:
+    mean over bins of |ref| * |e^(j*phase(y)) - e^(j*phase(ref))|, divided by mean |ref| (about 1.4 for unrelated phase, 0
+    when the phases agree). The decoder's own magnitude is free, so the mel loss can still brighten and fill the mids and
+    highs; only the phase is anchored (a complex L1 would also pull the magnitude back towards the darker pretrained one)."""
     import torch
     total = 0.0
     for n_fft in (512, 1024, 2048):
@@ -220,7 +225,9 @@ def anchor_loss(y, ref, lo: float = MID_LO, hi: float = MID_HI):
         b = torch.stft(ref.squeeze(1), n_fft, n_fft // 4, window=win, return_complex=True)
         k0, k1 = _band_bins(n_fft, lo, hi)
         a, b = a[:, k0:k1], b[:, k0:k1]
-        total = total + (a - b).abs().mean() / (b.abs().mean() + 1e-6)
+        weight = b.abs()
+        distance = (a / (a.abs() + 1e-6) - b / (weight + 1e-6)).abs()
+        total = total + (weight * distance).sum() / (weight.sum() + 1e-6)
     return total / 3
 
 
@@ -292,6 +299,8 @@ def main(argv=None) -> int:
     p.add_argument("--lambda-grid", type=float, default=0.0, help="Hinge on excess 200 Hz line-comb contrast (dB)")
     p.add_argument("--lambda-anchor", type=float, default=0.0,
                    help="Complex-STFT L1 to the frozen pretrained decoder in 0.5-4 kHz (anchors the mid-band phase)")
+    p.add_argument("--init-decoder", type=Path, default=None,
+                   help="Start from these decoder tensors (e.g. an earlier EMA export) instead of the pretrained decoder; the phase anchor and gate still use the pretrained one")
     p.add_argument("--watch-voice", default="carol-emeka",
                    help="Voice whose held-out lines are evaluated first and gated separately (the most sensitive voice)")
     p.add_argument("--coherence-floor", type=float, default=0.92,
@@ -339,6 +348,13 @@ def main(argv=None) -> int:
     ref_mimi = copy.deepcopy(mimi).eval()                           # pretrained decoder, frozen: phase reference + gate
     for q in ref_mimi.parameters():
         q.requires_grad_(False)
+    if args.init_decoder is not None:
+        init = {k.removeprefix("mimi."): v for k, v in safetensors.torch.load_file(str(args.init_decoder)).items()}
+        mimi.load_state_dict(init, strict=False)
+        with torch.no_grad():
+            for n, p_ in mimi.named_parameters():
+                if n in ema:
+                    ema[n] = p_.detach().clone()
 
     holdout = set(json.loads(args.holdout_ids.read_text()))
     excluded = load_exclusions(args.exclude_ids)
