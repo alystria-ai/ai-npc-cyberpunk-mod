@@ -538,7 +538,7 @@ def make_plans(index, voices, scorer, out_dir: Path, engine: str = "pocket"):
         print(f"{voice}: plan with {len(files)} clips, split {search.split_key}", flush=True)
 
 
-def verify(engine_tag_from: Path, renderer, scorer, index, out_root, voices, sizes):
+def verify(engine_tag_from: Path, renderer, scorer, index, out_root, voices, sizes, plan_dir=None):
     """Re-score another run's winners with this renderer (OmniVoice 32 steps) on the same fresh lines."""
     for voice in voices:
         source = engine_tag_from / voice / "result.json"
@@ -546,7 +546,8 @@ def verify(engine_tag_from: Path, renderer, scorer, index, out_root, voices, siz
         if not source.is_file() or target.is_file():
             continue
         result = json.loads(source.read_text(encoding="utf-8"))
-        search = Search("omni", renderer, scorer, voice, index, out_root, sizes)
+        plan = json.loads((plan_dir / f"{voice}.json").read_text(encoding="utf-8")) if plan_dir and (plan_dir / f"{voice}.json").is_file() else None
+        search = Search("omni", renderer, scorer, voice, index, out_root, sizes, plan=plan)
         search.screen()
         final, seeds = search.split["final"], search.final_seeds
         sets = {name: tuple(row["ids"]) for name, row in result["picks"].items() if row}
@@ -621,7 +622,7 @@ def main(argv=None) -> int:
     started = time.time()
     try:
         if args.verify_from:
-            verify(out_root / args.verify_from, renderer, scorer, index, out_root, voices, SIZES["omni"])
+            verify(out_root / args.verify_from, renderer, scorer, index, out_root, voices, SIZES["omni"], args.plan_dir)
             return 0
         prune = out_root / args.prune_from if args.prune_from else None
         for voice in voices:
