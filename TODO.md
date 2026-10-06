@@ -72,6 +72,8 @@ After the agents above finish:
 - Gesture round 2 (agent, needs a game restart): start only within 4 m and settled; end if the gap exceeds 4.5 m; fix `waitingWithGroup` in `companion-behavior.lua` (it held Johnny "settled" at 26 m beside Judy's group); more and bigger gestures, Judy's own, smoother enter and exit blends; controller hot-reload.
 - Tactics native targets: committed in `0df3948`, waiting to be installed with the next restart (`companion-marking.lua`, `companion-tactics.lua`, `init.lua`, locales; a bridge restart for the prompt text).
 
+- Expressions (live 2026-10-07): the face-test probe showed the write path works (full smile, frown, brows and jaw visible); strengths were far too low (≤0.2, resting 0.06; a smile reads at about 0.35–0.5). Retune in progress (joy about 0.45, resting about 0.15, sadness and anger brows about 0.45). Next round (user approved): a per-phrase multi-emotion timeline with a much richer local text analysis (lexicon, intensifiers, negation, contrast, sarcasm cues, mixed states), Convai's own label as the baseline when present. The user prefers this over a single model-tagged mood.
+
 ### Not yet tested in game
 - Cars: fast-travel recovery, the "drive for me" chauffeur after today's changes, alternate owned cars, the boarding pause when V doesn't get in, overhead captions while boarding.
 - Movement: the spawn-pocket placement fix (exit sweep) hasn't come up in play.
@@ -113,6 +115,9 @@ atural-speech\page\index.html` (and `/natural-speech/` on the picker after its n
 - Mixed voice providers in one group (and their cancellation).
 
 ## Captain's log
+
+**2026-10-06 (expressions v2): live face-test retune**
+- Live sweep on Judy: write path fine, strengths too low (smile reads at .35-.5). Policy v2: joy .45 (scale 2 .30), trust .25, sadness corners .40 + brows .45, anger lower .45, surprise brows .50, caps .50/.55, rest smile .10, model brow gain .8. Probe jaw-sticking bug fixed. Install: `mod/facial-playback.lua`, `mod/face-test.lua`; no bridge restart needed (cue logic unchanged since the earlier restart). Judge naturalness in game; only numbers change.
 
 **2026-10-07: Fight / Distract use the game's own tagging**
 - Removed the "mark target for companions" CET binding. `mod/companion-marking.lua` now picks the target when a companion request is admitted: closest scanner-tagged (`IsTaggedinFocusMode`) combat-capable NPC within 50 m, else the NPC V looks at within 30 m, else the closest one within 50 m. Combat-capable = gang/police/cyberpsycho/machine/armed; civilians, crowd, children, vendors, invulnerable, story-controlled, friendly non-police and companions are skipped. Choices are logged as `Tactic target: ...`. Spec in `docs/COMPANION_TACTICS.md`; fixture tests in `bridge/companion-tactics.test.mjs`; not yet tested in game.
