@@ -75,7 +75,8 @@ function wav(duration = 1) {
 
 test('managed idle copies receive one subtle native expression each and retain no actor handles',()=>run(`
  tick(.1);assert(#a.frames==1 and #b.frames==1)
- assert(last(a).lips_l_corner_up>0 and last(a).lips_l_corner_up<.025)
+ -- Visible, not the former invisible .025: the game's own authored smile is .10.
+ assert(last(a).lips_l_corner_up>=.02 and last(a).lips_l_corner_up<=.06,last(a).lips_l_corner_up)
  assert(last(a).jaw_mid_open==nil and last(a).eye_l_blink==nil and last(a).HeadYaw==nil)
  for _,slot in pairs(face.expressions) do for _,value in pairs(slot) do assert(value~=a and value~=b and value~=player) end end
  tick(.1);assert(#a.frames==2 and #b.frames==2)
@@ -187,4 +188,50 @@ test('an Omni/envelope timeline cannot claim provider expression authority by ad
   run(`assert(face.start(context,${literal(line)},a,1));assert(face.providerExpressions==nil)
   face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.3,context.requestId)
   assert(face.active and last(a).eye_l_brows_lower==0 and last(a).eye_l_brows_raise_out==0)`);
+});
+
+test('October 6: speech without any intent still smiles, and a text cue shows at the games authored strength', ()=>{
+  const line=buildFacialTimeline({audio:wav(),mouthCuesFormat:'rhubarb-phonetic-v1',
+    mouthCues:[{start:0,end:.5,value:'C'},{start:.5,end:1,value:'C'}]},owner);
+  delete line.motion;
+  const warm=buildFacialTimeline({audio:wav(),mouthCuesFormat:'rhubarb-phonetic-v1',
+    mouthCues:[{start:0,end:.5,value:'C'},{start:.5,end:1,value:'C'}],expressionSignal:signal('Trust',2)},owner);
+  delete warm.motion;
+  const curious=buildFacialTimeline({audio:wav(),mouthCuesFormat:'rhubarb-phonetic-v1',
+    mouthCues:[{start:0,end:.5,value:'C'},{start:.5,end:1,value:'C'}],expressionSignal:signal('Interest',2)},owner);
+  delete curious.motion;
+  run(`tick(.1);speech.target=a
+  local function speak(timeline,id)
+   local ctx=context
+   assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=1},face=timeline}))
+   for i=1,12 do cursor=.2+.03*i;tick(.1) end
+   local frame=last(a);speech.stop('cancelled');for _=1,12 do tick(.1) end;return frame
+  end
+  -- No receipt: the resting smile now carries into speech (was zero).
+  local none=speak(${literal(line)},'none')
+  assert(none.lips_l_corner_up>=.04 and none.lips_l_corner_up<=.06,none.lips_l_corner_up)
+  -- A Trust scale-2 cue (the default for warm characters): ~2x the resting smile.
+  local trust=speak(${literal(warm)},'trust')
+  assert(trust.lips_l_corner_up>=.07 and trust.lips_l_corner_up<=.12,'trust '..trust.lips_l_corner_up)
+  -- Interest lifts the brows, not the mouth.
+  local interest=speak(${literal(curious)},'interest')
+  assert(interest.eye_l_brows_raise_out>=.05 and interest.lips_l_corner_up<.01,'interest '..interest.eye_l_brows_raise_out..' '..interest.lips_l_corner_up)
+  `);
+});
+
+test('the per-turn expression receipt publishes emotion, scale and the peak pose written while speaking', ()=>{
+  const line=buildFacialTimeline({audio:wav(),mouthCuesFormat:'rhubarb-phonetic-v1',
+    mouthCues:[{start:0,end:.5,value:'C'},{start:.5,end:1,value:'C'}],expressionSignal:signal('Sadness',3)},owner);
+  delete line.motion;
+  run(`tick(.1);speech.target=a
+  assert(face.status().expressions.lastSpeech==nil)
+  assert(speech.start(context,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=1},face=${literal(line)}}))
+  for i=1,10 do cursor=.2+.03*i;tick(.1) end
+  local turn=face.status().expressions.lastSpeech
+  assert(turn,'no receipt');assert(turn.entity==a.id,'entity');assert(turn.requestId==context.requestId,'request');assert(turn.frames>5,'frames '..turn.frames)
+  assert(turn.emotion=='Sadness' and turn.family=='sadness' and turn.scale==3,tostring(turn.emotion))
+  assert(turn.peak.lips_l_corner_dn>=.08 and turn.peak.eye_l_brows_raise_in>=.12 and turn.peak.lips_l_corner_up==0)
+  speech.stop('cancelled');tick(.1)
+  assert(face.status().expressions.lastSpeech==turn,'the receipt stays readable after speech')
+  `);
 });

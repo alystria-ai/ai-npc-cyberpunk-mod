@@ -38,11 +38,16 @@ test('unknown provider labels preserve data distinction and never imply joy', ()
   assert.deepEqual(corners(expressionTarget({emotion: unknown})), [0, 0]);
 });
 
-test('calm idle has a small default smile; processing/voice has no invented smile', () => {
+test('calm idle and speech with no intent keep a visible resting smile; processing has none', () => {
   const idle = expressionTarget();
-  assert.ok(idle.lips_l_corner_up > 0 && idle.lips_l_corner_up < .04);
+  // Not a barely-there .025: a relaxed smile at about 60 % of the game's own
+  // authored smile offset (.10), so it can actually be seen on a face.
+  assert.ok(idle.lips_l_corner_up >= .05 && idle.lips_l_corner_up <= .08);
   assert.equal(idle.lips_l_corner_up, idle.lips_r_corner_up);
-  for (const phase of ['listening', 'thinking', 'speaking'])
+  // Speaking without any emotion used to drop the smile entirely (dead face).
+  const speaking = expressionTarget({phase: 'speaking'});
+  assert.ok(Math.abs(speaking.lips_l_corner_up - idle.lips_l_corner_up * EXPRESSION_POLICY.speechMouthFactor) < 1e-12);
+  for (const phase of ['listening', 'thinking'])
     assert.deepEqual(corners(expressionTarget({phase})), [0, 0]);
   assert.ok(Object.values(expressionTarget({blocked: true})).every(value => value === 0));
 });
@@ -54,13 +59,27 @@ for (const label of ['Anger', 'Rage', 'Grief', 'Sadness', 'Fear', 'Disgust']) {
     assert.deepEqual(corners(target), [0, 0]);
     assert.ok(emotionSuppressesSmile(emotion));
     assert.ok(Object.values(target).some(value => value > 0));
-    assert.ok(Object.values(target).every(value => value >= 0 && value <= .10));
+    assert.ok(Object.values(target).every(value => value >= 0 && value <= .32), 'within the authored frown/brow range');
     const smoother = new ExpressionSmoother();
     smoother.update(expressionTarget({emotion: {emotion: 'Joy', scale: 3}}), .1);
     const result = smoother.update(target, 1 / 60, {suppressSmile: emotionSuppressesSmile(emotion)});
     assert.deepEqual(corners(result), [0, 0], 'A decaying smile must not persist through negative intent');
   });
 }
+
+test('emotions are visible: strengths reach the games authored mood offsets, scale 3 does not exceed their caps', () => {
+  const peak = (emotion, scale) => expressionTarget({emotion: {emotion, scale}});
+  // Game lipsync authors a held smile of .10 (corners) and a frown of .20 (corners) / .324 (brow lower).
+  assert.ok(peak('Joy', 2).lips_l_corner_up >= .10, 'a medium smile matches the games authored smile');
+  assert.ok(peak('Joy', 3).lips_l_corner_up <= EXPRESSION_POLICY.cornerUpMax);
+  assert.ok(peak('Trust', 2).lips_l_corner_up >= .08, 'the default warmth cue shows');
+  assert.ok(peak('Sadness', 3).lips_l_corner_dn >= .10 && peak('Sadness', 3).eye_l_brows_raise_in >= .12);
+  assert.ok(peak('Anger', 3).eye_l_brows_lower >= .15 && peak('Anger', 3).eye_l_brows_lower <= EXPRESSION_POLICY.browLowerMax);
+  assert.ok(peak('Surprise', 3).eye_l_brows_raise_out >= .12);
+  assert.ok(peak('Interest', 2).eye_l_brows_raise_out >= .05, 'a curious brow lift shows');
+  for (const name of ['Joy', 'Trust', 'Sadness', 'Anger', 'Fear', 'Disgust', 'Surprise', 'Interest'])
+    for (const value of Object.values(peak(name, 3))) assert.ok(value <= EXPRESSION_POLICY.browLowerMax);
+});
 
 test('positive intensity progresses gently without opening the jaw', () => {
   const values = [1, 2, 3].map(scale => expressionTarget({emotion: {emotion: 'Joy', scale}}));

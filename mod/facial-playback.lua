@@ -50,12 +50,19 @@ local function zeroExpression()
     local pose={};for _,track in ipairs(expressionTracks) do pose[track]=0 end;return pose
 end
 local function clamp(value,maximum) return math.max(0,math.min(maximum or 1,value)) end
--- Cyberpunk's own dialogue lipsync (extracted JALI corpus) keeps corner-up
--- around .10 during speech and raises brows to ~.44 at p95. These caps stay
--- well inside that, so expressions read without becoming theatrical.
+-- Cyberpunk's own dialogue lipsync (6938 extracted lines) holds ONE constant
+-- mood offset per line on these controls: smile = corner up .10 + brows raise
+-- .10 (39 % of lines), frown = corner down .20 + brows lower .324 (20 %).
+-- The caps follow those authored offsets with headroom for the strongest
+-- (scale 3) feelings. Mirrors EXPRESSION_POLICY in companion-expressions.mjs.
 local function expressionLimit(track)
-    return track:find('corner_up',1,true) and .12 or (track:find('corner_dn',1,true) and .10 or .20)
+    if track:find('corner_up',1,true) then return .20 end
+    if track:find('corner_dn',1,true) then return .20 end
+    return track:find('lower',1,true) and .32 or .25
 end
+local scaleStrength={.5,.8,1}
+local restSmile=.06
+local speechMouthFactor=.85
 M.expressions, M.expressionClock, M.expressionFrame = {}, 0, 0
 local function expressionSlot(entity)
     if not M.expressions[entity] then M.expressions[entity]={pose=zeroExpression(),sequence=-1} end
@@ -143,29 +150,29 @@ local function mouthBudget(feature,phase)
     local closure=clamp(math.max(read('lips_together_up'),read('lips_together_dn'))/.85)
     local rounding=clamp(math.max(read('lips_l_funnel'),read('lips_r_funnel'))/.32
         +math.max(read('lips_l_purse'),read('lips_r_purse'))/.28)
-    return (phase=='speaking' and .60 or 1)*(1-closure)*(1-rounding)
+    return (phase=='speaking' and speechMouthFactor or 1)*(1-closure)*(1-rounding)
 end
 local function expressionPose(slot,phase,feature,provider,blocked,upper)
     local target=zeroExpression()
     if slot.expiry and M.expressionClock>=slot.expiry then slot.emotion,slot.family,slot.expiry=nil,nil,nil end
-    local family,strength=slot.family,({.35,.65,1})[slot.scale or 1]
+    local family,strength=slot.family,scaleStrength[slot.scale or 1]
     local function pair(stem,value) target['lips_l_'..stem]=value;target['lips_r_'..stem]=value end
     local function brows(stem,value) target['eye_l_brows_'..stem]=value;target['eye_r_brows_'..stem]=value end
-    if family=='joy' then pair('corner_up',.085*strength);brows('raise_out',.04*strength)
-    elseif family=='trust' then pair('corner_up',.055*strength)
-    elseif family=='sadness' then pair('corner_dn',.065*strength);brows('raise_in',.085*strength)
-    elseif family=='anger' then pair('corner_dn',.04*strength);brows('lower',.085*strength)
-    elseif family=='fear' then pair('corner_dn',.025*strength);brows('raise_in',.08*strength);brows('raise_out',.05*strength)
-    elseif family=='disgust' then pair('corner_dn',.055*strength);brows('lower',.06*strength)
-    elseif family=='surprise' then brows('raise_in',.04*strength);brows('raise_out',.08*strength)
-    elseif family=='anticipation' then brows('raise_out',.035*strength)
-    elseif family~='unknown' and phase=='idle' then pair('corner_up',.025) end
+    if family=='joy' then pair('corner_up',.20*strength);brows('raise_out',.08*strength)
+    elseif family=='trust' then pair('corner_up',.12*strength)
+    elseif family=='sadness' then pair('corner_dn',.12*strength);brows('raise_in',.16*strength)
+    elseif family=='anger' then pair('corner_dn',.08*strength);brows('lower',.20*strength)
+    elseif family=='fear' then pair('corner_dn',.05*strength);brows('raise_in',.15*strength);brows('raise_out',.10*strength)
+    elseif family=='disgust' then pair('corner_dn',.10*strength);brows('lower',.14*strength)
+    elseif family=='surprise' then brows('raise_in',.08*strength);brows('raise_out',.16*strength)
+    elseif family=='anticipation' then brows('raise_out',.08*strength)
+    elseif family~='unknown' and (phase=='idle' or phase=='speaking') then pair('corner_up',restSmile) end
     if provider then
-        local source={eye_l_brows_lower=.08*provider[5],eye_r_brows_lower=.08*provider[6],
-            eye_l_brows_raise_in=.08*provider[7],eye_r_brows_raise_in=.08*provider[7],
-            eye_l_brows_raise_out=.07*provider[8],eye_r_brows_raise_out=.07*provider[9]}
-        if family=='joy' or family=='trust' then source.lips_l_corner_up=.06*provider[1];source.lips_r_corner_up=.06*provider[2]
-        else source.lips_l_corner_dn=.06*provider[3];source.lips_r_corner_dn=.06*provider[4] end
+        local source={eye_l_brows_lower=.25*provider[5],eye_r_brows_lower=.25*provider[6],
+            eye_l_brows_raise_in=.20*provider[7],eye_r_brows_raise_in=.20*provider[7],
+            eye_l_brows_raise_out=.18*provider[8],eye_r_brows_raise_out=.18*provider[9]}
+        if family=='joy' or family=='trust' then source.lips_l_corner_up=.14*provider[1];source.lips_r_corner_up=.14*provider[2]
+        else source.lips_l_corner_dn=.14*provider[3];source.lips_r_corner_dn=.14*provider[4] end
         for track,value in pairs(source) do target[track]=math.max(target[track],value) end
         if (source.lips_l_corner_dn or 0)>.005 or (source.lips_r_corner_dn or 0)>.005
             or source.eye_l_brows_lower>.01 or source.eye_r_brows_lower>.01 then pair('corner_up',0) end
@@ -198,9 +205,11 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper)
     -- would contradict the emotion (raised brows in anger, lowered in joy).
     if upper and not blocked then
         -- Held-out game lines: audio predicts brow raises only loosely (r .29)
-        -- and lowering hardly at all (r .13), so raises stay light and the
-        -- predicted lowering is not used (neutral when unsure).
-        local raise=.35*upper.raise*((family=='anger' or family=='disgust') and .4 or 1)
+        -- and lowering hardly at all (r .13), so the predicted lowering is not
+        -- used (neutral when unsure). The model output is already a regressed
+        -- (shrunk) estimate, so the old extra 35 % gain halved it twice and the
+        -- raises (speech mean .10) never showed; .65 keeps flashes visible.
+        local raise=.65*upper.raise*((family=='anger' or family=='disgust') and .4 or 1)
         local lower=0*upper.lower
         for _,side in ipairs({'l','r'}) do
             for _,stem in ipairs({'raise_in','raise_out'}) do
@@ -221,6 +230,20 @@ local function applyFeature(actor,feature,entity,phase,provider,upper)
     slot.written=M.expressionFrame
     slot.phase,slot.blocked,slot.applied=phase,blocked,(slot.applied or 0)+1
     slot.appliedPose={};for _,track in ipairs(expressionTracks) do slot.appliedPose[track]=feature[track] end
+    if phase=='speaking' then
+        -- Peak pose per speech turn, published in speech-state.json so one
+        -- in-game reply shows the emotion label, scale and written values.
+        local turn=M.lastSpeechExpression
+        if not turn or turn.requestId~=slot.requestId or turn.entity~=entity then
+            turn={entity=entity,requestId=slot.requestId,frames=0,peak=zeroExpression()}
+            M.lastSpeechExpression=turn
+        end
+        turn.emotion,turn.family,turn.scale,turn.blocked=slot.emotion,slot.family,slot.scale,blocked
+        turn.frames=turn.frames+1
+        for _,track in ipairs(expressionTracks) do
+            if feature[track]>turn.peak[track] then turn.peak[track]=feature[track] end
+        end
+    end
 end
 -- Cached diagnostics for a parent-owned live probe. No native reads, actor
 -- handles, speech weights, remote owners or dialogue appear in this snapshot.
@@ -560,7 +583,7 @@ end
 function M.status()
     return {state = M.state or 'idle', source = M.source, articulation = M.articulation, position = M.position,
         applied = M.applied or 0, restored = M.restored, error = M.error,
-        expressions = {clock=M.expressionClock,error=M.expressionError}}
+        expressions = {clock=M.expressionClock,error=M.expressionError,lastSpeech=M.lastSpeechExpression}}
 end
 
 convaiFacialPlayback = M

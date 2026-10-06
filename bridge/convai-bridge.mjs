@@ -452,12 +452,19 @@ async function synthesizeReply(input, result, signal, current, profile = profile
   if(localVoice.playbackEnabled===false)return{...result,audio:undefined,faces:[],captions:[]};
   if (!localVoice.usesProfile(input.profileKey)) return {...result, timing: {...result.timing, voiceProvider: 'convai'}};
   throwIfCancelled(signal);
-  // Text-only Convai turns carry no emotion (live probe): use a conservative
-  // cue from this reply's own text; no cue keeps the face neutral.
+  // Text-only Convai turns carry no emotion (live probe): derive a cue from
+  // this reply's own text (lexicon, then tone, then the character's resting
+  // warmth), so a local voice always has a face. The receipt below records
+  // what was derived for this turn, with no dialogue text.
   if (result.expressionSignal === undefined) {
-    const cue = textExpressionSignal(result.text);
+    const cue = textExpressionSignal(result.text, {profile: input.profileKey});
     if (cue) result = {...result, expressionSignal: cue};
   }
+  const expression = result.expressionSignal;
+  atomic(resolve(runtime, 'expression-receipt.json'), JSON.stringify({version: 1, updated: Date.now(),
+    requestId: input.requestId, profile: input.profileKey, provider: localVoice.provider,
+    emotion: expression?.emotion ?? null, scale: expression?.scale ?? null, basis: expression?.basis ?? null,
+    delivered: expression !== undefined})).catch(() => {});
   const ahead = current?.ahead;
   if(localVoice.provider==='omni'){
     // The one GPU worker is FIFO. A look-ahead phrase queued while the speaker

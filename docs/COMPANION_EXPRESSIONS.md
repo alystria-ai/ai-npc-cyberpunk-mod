@@ -1,5 +1,71 @@
 # Companion expressions
 
+## October 6: why the face looked blank on local voices, and the recalibration
+
+User report (Omni 32, Judy): lip sync good, "I don't see any expression ever".
+Traced from the installed runtime and the code, not guessed:
+
+1. **The wiring was fine.** An October 5 `companion-systems.json` capture shows the
+   native writer applying the idle pose to every managed copy (about 24,000
+   `ConvaiFaceApply` calls, `lips_*_corner_up = 0.025`), and the current
+   `reply.json` of a Judy Omni turn carries `jali-audio-v1` frames plus
+   `modelExpressions` (`jali-upper-v1`). The Omni route copies the bridge's
+   `expressionSignal` onto every phrase, and `ownedExpressionReceipt` binds it
+   to the request. Nothing dropped the field.
+2. **No cue was produced.** That reply ("... I'm just glad I've got someone I can
+   actually trust ...") scored one Joy hit; the cue needed two (score >= 1.5 and
+   a margin), so the turn had no `expression` receipt at all, as most ordinary
+   replies would not.
+3. **Even a cue was nearly invisible.** Joy scale 2 wrote .085 x .65 = .055, then
+   speech kept 60 % = .033; the voice-time resting smile did not exist at all
+   (it was idle-only) and idle was .025.
+4. **The calibration target was misread.** The earlier note "the game holds
+   corners at about .10" is true but means something specific. Across 6938
+   extracted dialogue lines, the game's lipsync does not animate these controls
+   smoothly. Each line holds one constant mood offset: smile = corner up .10 with
+   brows raise .10 (39 % of lines), frown = corner down .20 with brows lower .324
+   (20 %); nothing else (values are exactly those constants, 500-line sample).
+   Our caps (.12 up, .10 down, .20 brows) sat at or below that, frowns at half the
+   game's own, and every emotion was then scaled down again by 35-65 % and by the
+   speech factor.
+
+Changes (Lua `mod/facial-playback.lua` and the mirrored pure policy in
+`bridge/companion-expressions.mjs`):
+
+- Strength by scale (1..3): .5 / .8 / 1 (was .35 / .65 / 1). Joy corners up
+  .20 x strength, Trust .12, Sadness down .12 with brows raise-in .16, Anger down
+  .08 with brows lower .20, Fear down .05 with raise-in .15 and raise-out .10,
+  Disgust down .10 with lower .14, Surprise raise-in .08 and raise-out .16,
+  Interest/anticipation raise-out .08. Caps: corners up .20, corners down .20
+  (the game's frown), brows raise .25, brows lower .32 (the game's .324).
+- Speaking keeps 85 % of mouth emotion (was 60 %); closed lips and rounded
+  O/U still remove it after smoothing, so visemes keep the mouth.
+- Resting smile .06 (was .025), shown while idle **and while speaking** when no
+  emotion is known. It is roughly 60 % of the game's own authored smile.
+- Model brows from the audio use gain .65 (was .35). The model output is already
+  a regressed, shrunk estimate; the extra .35 shrank it twice. Still max-combined
+  with the emotion pose, cap .25, predicted lowering still ignored.
+- Convai provider pose multipliers raised in step (brows .25/.20/.18, corners
+  .14) because they were chosen against the old invisible caps.
+- Local voices: `bridge/text-emotion.mjs` now **always** returns a cue. Order: a
+  lexicon feeling when one clearly leads (one clear word is enough, weighted
+  cues, Joy and Trust reinforce each other, negated positives cancel); else the
+  tone (a question lifts the brows with Interest, an exclamation smiles, a
+  refused positive such as "not happy" stays flat); else the character's resting
+  warmth (Trust scale 2 for warm companions such as Judy, Jackie, Panam, Kerry,
+  scale 1 for everyone else, flat Interest for cold ones such as Adam Smasher or
+  Yorinobu). It is a local heuristic with no model or network request and still
+  one cue per reply.
+- Diagnostics: the bridge writes `runtime/expression-receipt.json` per local
+  turn (request, profile, provider, emotion, scale, basis, delivered; no
+  dialogue), and `speech-state.json` face.expressions.lastSpeech now holds the
+  emotion label, family, scale, frame count and the peak pose written to the rig
+  during that turn. Both are readable after one in-game reply.
+
+Not verified in game: whether .10-.20 reads as natural on Judy's graph (it does
+not use the game's authored mood animation, so these offsets are all there is).
+If it looks too strong or too weak, only the numbers above change.
+
 ## October 5: what Convai actually sends, game-informed ranges, all routes
 
 **Live probe** (`scripts/lipsync/probe_convai_emotion.mjs`, four short turns as

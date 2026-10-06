@@ -411,15 +411,25 @@ test('with local facial weights Omni phrases use the game-trained model and Rhub
   assert.ok(failing.calls.includes('rhubarb'));assert.equal(fallback.jaliFrames,undefined);
 });
 
-test('local voices take a conservative emotion cue from the reply text; Convai voices keep provider metadata',async()=>{
+test('local voices always get a text cue (feeling, tone or character warmth); Convai voices keep provider metadata',async()=>{
   const voice={provider:'omni',steps:32,usesProfile:()=>true,
     async synthesize(){return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
   const f=fixture({voiceSelection:voice,continuous:true});
   f.remote.text='I miss him. Jackie was family, and now he is gone. Sorry.';
   const local=await f.api.respond(f.input,f.profile,{current:async()=>true});
-  assert.deepEqual(local.expressionSignal,{version:1,correlated:true,sequence:0,emotion:'Sadness',scale:1,basis:'text'});
+  assert.deepEqual({...local.expressionSignal,scale:undefined},{version:1,correlated:true,sequence:0,emotion:'Sadness',scale:undefined,basis:'text'});
+  // October 6: a plain reply used to leave the face neutral. It now gets the
+  // character's resting warmth, and a receipt records what was derived.
   const plain=fixture({voiceSelection:voice,continuous:true});plain.remote.text='Meet me at the Afterlife at nine.';
-  assert.equal((await plain.api.respond(plain.input,plain.profile,{current:async()=>true})).expressionSignal,undefined);
+  plain.input.profileKey='judy-alvarez';plain.profile.key='judy-alvarez';
+  assert.deepEqual((await plain.api.respond(plain.input,plain.profile,{current:async()=>true})).expressionSignal,
+    {version:1,correlated:true,sequence:0,emotion:'Trust',scale:2,basis:'default'});
+  const receipt=plain.publications.find(([path])=>path.endsWith('expression-receipt.json'));
+  assert.deepEqual({...receipt[1],updated:undefined},{version:1,updated:undefined,requestId:'r1',profile:'judy-alvarez',provider:'omni',
+    emotion:'Trust',scale:2,basis:'default',delivered:true});
+  const cold=fixture({voiceSelection:voice,continuous:true});cold.remote.text='Meet me at the Afterlife at nine.';
+  cold.input.profileKey='adam-smasher';
+  assert.equal((await cold.api.respond(cold.input,cold.profile,{current:async()=>true})).expressionSignal.emotion,'Interest');
   const remote=fixture();remote.remote.text='I miss him. Sorry.';
   assert.equal((await remote.api.respond(remote.input,remote.profile,{current:async()=>true})).expressionSignal,undefined);
 });

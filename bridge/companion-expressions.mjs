@@ -12,8 +12,16 @@ export const EXPRESSION_TRACKS = Object.freeze([
   'eye_l_brows_raise_out', 'eye_r_brows_raise_out', 'eye_l_brows_lower', 'eye_r_brows_lower',
 ]);
 export const EXPRESSION_POLICY = Object.freeze({
-  version: 1, restSmile: .025, cornerUpMax: .12, cornerDownMax: .10, browMax: .20,
-  speechMouthFactor: .60, attackSeconds: .18, releaseSeconds: .55,
+  // October 6 recalibration. The game's own dialogue lipsync (6938 extracted
+  // lines) does not vary these controls smoothly: it holds one constant mood
+  // offset per line. Smile = corner up .10 with brows raise .10 (39 % of
+  // lines); frown = corner down .20 with brows lower .324 (20 %). The earlier
+  // caps (.12/.10/.20, speech 60 %, rest .025) were below those authored
+  // offsets (frowns at half strength), so every expression was invisible.
+  version: 1, restSmile: .06, cornerUpMax: .20, cornerDownMax: .20, browRaiseMax: .25, browLowerMax: .32,
+  speechMouthFactor: .85, attackSeconds: .18, releaseSeconds: .55,
+  // Categorical scale 1..3 (Convai) -> fraction of the family's full pose.
+  scaleStrength: Object.freeze([.5, .8, 1]),
   positiveAfterSpeechMs: 4000, negativeAfterSpeechMs: 8000,
 });
 // The only provider channels admitted by the native expression adapter. Their
@@ -32,7 +40,8 @@ export function ownedExpressionReceipt(signal, owner) {
 }
 const limits = Object.freeze(Object.fromEntries(EXPRESSION_TRACKS.map(track => [track,
   track.includes('corner_up') ? EXPRESSION_POLICY.cornerUpMax
-    : track.includes('corner_dn') ? EXPRESSION_POLICY.cornerDownMax : EXPRESSION_POLICY.browMax])));
+    : track.includes('corner_dn') ? EXPRESSION_POLICY.cornerDownMax
+      : track.includes('lower') ? EXPRESSION_POLICY.browLowerMax : EXPRESSION_POLICY.browRaiseMax])));
 const zero = () => Object.fromEntries(EXPRESSION_TRACKS.map(track => [track, 0]));
 const negative = new Set(['anger', 'sadness', 'fear', 'disgust']);
 // These are rendering aliases for explicit provider labels, not a claim that
@@ -122,15 +131,15 @@ function providerPose(frame, family) {
   if (!plain(frame) || frame.format !== 'arkit61' || !Array.isArray(frame.values)
     || frame.values.length !== 61 || !frame.values.every(finite)) return null;
   const out = zero(), v = index => clamp(frame.values[index]);
-  out.eye_l_brows_lower = .08 * v(41); out.eye_r_brows_lower = .08 * v(42);
-  brows(out, 'raise_in', .08 * v(43));
-  out.eye_l_brows_raise_out = .07 * v(44); out.eye_r_brows_raise_out = .07 * v(45);
+  out.eye_l_brows_lower = .25 * v(41); out.eye_r_brows_lower = .25 * v(42);
+  brows(out, 'raise_in', .20 * v(43));
+  out.eye_l_brows_raise_out = .18 * v(44); out.eye_r_brows_raise_out = .18 * v(45);
   // Smile is also an "ee" speech shape. Only explicit positive metadata grants
   // additional smile intent; source smile values never classify the dialogue.
   if (family === 'joy' || family === 'trust') {
-    out.lips_l_corner_up = .06 * v(23); out.lips_r_corner_up = .06 * v(24);
+    out.lips_l_corner_up = .14 * v(23); out.lips_r_corner_up = .14 * v(24);
   } else {
-    out.lips_l_corner_dn = .06 * v(25); out.lips_r_corner_dn = .06 * v(26);
+    out.lips_l_corner_dn = .14 * v(25); out.lips_r_corner_dn = .14 * v(26);
   }
   return out;
 }
@@ -152,18 +161,19 @@ export function expressionTarget({emotion = null, phase = 'idle', speechPose = {
   const out = zero();
   if (blocked) return out;
   const parsed = normalizeConvaiEmotion(emotion), family = parsed?.family;
-  const strength = parsed ? [.35, .65, 1][parsed.scale - 1] : 0;
+  const strength = parsed ? EXPRESSION_POLICY.scaleStrength[parsed.scale - 1] : 0;
   switch (family) {
-    case 'joy': pair(out, 'corner_up', .085 * strength); brows(out, 'raise_out', .04 * strength); break;
-    case 'trust': pair(out, 'corner_up', .055 * strength); break;
-    case 'sadness': pair(out, 'corner_dn', .065 * strength); brows(out, 'raise_in', .085 * strength); break;
-    case 'anger': pair(out, 'corner_dn', .04 * strength); brows(out, 'lower', .085 * strength); break;
-    case 'fear': pair(out, 'corner_dn', .025 * strength); brows(out, 'raise_in', .08 * strength); brows(out, 'raise_out', .05 * strength); break;
-    case 'disgust': pair(out, 'corner_dn', .055 * strength); brows(out, 'lower', .06 * strength); break;
-    case 'surprise': brows(out, 'raise_in', .04 * strength); brows(out, 'raise_out', .08 * strength); break;
-    case 'anticipation': brows(out, 'raise_out', .035 * strength); break;
+    case 'joy': pair(out, 'corner_up', .20 * strength); brows(out, 'raise_out', .08 * strength); break;
+    case 'trust': pair(out, 'corner_up', .12 * strength); break;
+    case 'sadness': pair(out, 'corner_dn', .12 * strength); brows(out, 'raise_in', .16 * strength); break;
+    case 'anger': pair(out, 'corner_dn', .08 * strength); brows(out, 'lower', .20 * strength); break;
+    case 'fear': pair(out, 'corner_dn', .05 * strength); brows(out, 'raise_in', .15 * strength); brows(out, 'raise_out', .10 * strength); break;
+    case 'disgust': pair(out, 'corner_dn', .10 * strength); brows(out, 'lower', .14 * strength); break;
+    case 'surprise': brows(out, 'raise_in', .08 * strength); brows(out, 'raise_out', .16 * strength); break;
+    case 'anticipation': brows(out, 'raise_out', .08 * strength); break;
     case 'unknown': break; // A new provider label must not become a happy face.
-    default: if (phase === 'idle') pair(out, 'corner_up', EXPRESSION_POLICY.restSmile);
+    // No intent: the resting smile shows while idle and while talking.
+    default: if (phase === 'idle' || phase === 'speaking') pair(out, 'corner_up', EXPRESSION_POLICY.restSmile);
   }
   if (providerFrame !== undefined) {
     const source = providerPose(providerFrame, family);
