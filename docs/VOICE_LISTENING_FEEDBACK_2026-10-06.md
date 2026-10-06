@@ -40,3 +40,10 @@ The user's per-character verdicts from the report page (http://127.0.0.1:8765/),
 ## 2026-10-07
 ### Adam Smasher (user-chosen pool)
 - The user picked 11 candidate clips by ear: 1653087655475433472, 1776711517152501760, 1876330591075450880, 1876331655187152896, 1995324830177058816, 1995048870861103104, 1995076448980328448, 1792270501449261056, 1792271201864474624, 1792275223900020748, 1792275223900020764. The search picks the count and order per engine, scored against Adam's two page lines (the user accepts the overfit). The report is updated afterwards.
+
+### Alex (2026-10-07, final page)
+- New Pocket student + decoder v2 with 3 clips sounds better than Pocket base. Subtle, but the last few percent is what makes the experience.
+- OmniVoice 16 and 32 sound about the same.
+- The new Pocket student has about reached OmniVoice quality; on the second line Pocket beats Omni.
+- 1 clip sounds bad; 2 clips (10 s) sound about as good as 3. Never use 1 clip; at least 2.
+- Omni's remaining advantage: laughs, sighs and other emotional tags (natural speech), so it isn't obsolete.

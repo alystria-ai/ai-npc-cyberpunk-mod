@@ -81,6 +81,14 @@ atural-speech\page\index.html` (and `/natural-speech/` on the picker after its n
 
 - OmniVoice precision test (2026-10-06): no lower-precision variant is faster than FP16 with the CUDA graph (BF16 same speed at best; INT8 and FP8 12%–2× slower). Quality is unchanged within noise for BF16, FP8 and INT8-on-BF16. INT8 on FP16 is broken (garbage). Only gain: 0.3–0.5 GB less VRAM. Decision: keep FP16. Scripts `scripts/Measure-OmniPrecision.mjs` and `scripts/Score-OmniPrecision.py`; WAVs in `runtime/effect-examples/omni-precision/`.
 
+### After the user finishes reviewing the voice report (REMIND THE USER)
+- Decide whether to drop OmniVoice entirely, or keep it as an optional pack. The user's view so far: the new Pocket student + decoder v2 reaches or beats Omni on several voices (similar ECAPA, better PLS); Omni's edge is laughs, sighs and emotional tags.
+- Proposed voice settings: Pocket TTS (recommended, default, shipped with the mod), OmniVoice 16 · 2 clips, OmniVoice 16 · 3 clips, OmniVoice 32 · 2 clips, OmniVoice 32 · 3 clips, Convai. No 1-clip options. The Omni entries are greyed out unless the user installs an optional Omni pack (about 2 GB, GPU), described as "maybe 5–10% better in some cases, not recommended for latency".
+- Drop the idea of an in-game clip-count setting (there is none today); the clips are chosen per character by listening and search.
+- Run the clip-set search for all remaining voices (only the user's 29 are done), with a minimum of 2 clips.
+- Switch the runtime Pocket voice to the new student + decoder v2, and apply the chosen or Auto-best reference sets (min 2 clips) for both engines.
+- Latency reference: Omni 16 first audio 1.17 s (1 clip), about 1.26 s (2 clips, 10 s), 1.62 s (3 clips, 18 s); Omni 32 1.83 / about 1.97 / 2.86 s. Pocket about 0.15 s regardless of clip count; only the one-time voice prep grows (0.5→1.4 s).
+
 ### Later
 - Packaging a player release: ship the prebuilt voice client; use the auto-start supervisor instead of `packaging/runtime-bootstrap.mjs`; allow `red4ext/` paths in `release-plan.json`; first-run key setup; no keys, player data, audio or training data in the package.
 
