@@ -81,3 +81,5 @@ table.compare audio { width: 100%; min-width: 200px; height: 32px; display: bloc
 table.compare .state { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
 table.compare .state.working { color: var(--ink); background: linear-gradient(90deg, transparent, var(--warn-bg), transparent) 0 0 / 200% 100%; animation: shimmer 1.4s linear infinite; border-radius: 4px; padding: 2px 4px; }
 @media (max-width: 700px) { .character-main { padding: 8px 8px 80px; } table.compare th[scope=row] { width: auto; } }
+
+.badge.combat { display: inline-block; padding: 0 6px; border-radius: 8px; background: #a33; color: #fff; font-size: 11px; }

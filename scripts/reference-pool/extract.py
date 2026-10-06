@@ -65,6 +65,27 @@ def words_of(text: str) -> list[str]:
     return re.findall(r"[A-Za-z0-9']+", text)
 
 
+_SOURCE = {}
+
+
+def source_combat(sid: str) -> str | None:
+    """The game's own verdict that a line is combat (a voiceset bark with a combat trigger, a Combat-context line, a fight-triggered quest line;
+    scripts/combat_flags/source_signal.py over the scene index), or None.  Skipped when the scene index has not been built."""
+    if "by_sid" not in _SOURCE:
+        sys.path.insert(0, str(ROOT / "scripts/combat_flags"))
+        try:
+            import source_signal
+            _SOURCE["module"] = source_signal
+            _SOURCE["by_sid"], _SOURCE["fight"] = source_signal.load_by_sid() if source_signal.SCENE_LINES.is_file() else ({}, {})
+        except Exception:      # the pool builder must keep working without the combat tools
+            _SOURCE["by_sid"], _SOURCE["fight"] = {}, {}
+    rows = _SOURCE["by_sid"].get(str(sid))
+    if not rows:
+        return None
+    verdict = _SOURCE["module"].classify_lines(rows, _SOURCE["fight"])
+    return verdict["reasons"][0] if verdict["tier"] == "strong" else None
+
+
 def prefilter(entry: dict) -> str | None:
     """Why a catalogued line can never be a reference, or None."""
     if entry["heldOut"]:
@@ -88,6 +109,8 @@ def prefilter(entry: dict) -> str | None:
         return "markup"
     if BARK.search(entry["stem"]) and "!" in text:
         return "bark"
+    if source_combat(entry["sid"]):
+        return "combat"        # the game marks it as combat (scripts/combat_flags); weaker evidence is judged later by build_flags.py
     return None
 
 

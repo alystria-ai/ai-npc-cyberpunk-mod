@@ -30,7 +30,10 @@ ${built.stderr || built.stdout}`);
 
 // Clips the effect detector flagged (comb filter, tone, reverb, band limit; clip.fx lists the reasons) stay in the index, so a
 // starting set that already uses one still resolves, but they are never drawn or listed.
-const isUsable = clip => !clip.fx?.length;
+const isUsable = clip => !clip.fx?.length && !clip.cb;
+// Clips flagged as combat or shouted delivery (scripts/combat_flags/, clip.cb = {s: score, w: [reasons]}) are never drawn by Reroll or
+// the clip search, but they stay browsable on the character page (with a "combat" badge) in case a hand pick wants one.
+const isBrowsable = clip => !clip.fx?.length;
 
 export class Pool {
   // index: pool-index.json; project: repository root (for the live references).
@@ -89,7 +92,7 @@ export class Pool {
     }
     return {clips, seconds: Math.round(seconds * 100) / 100};
   }
-  // The clip list for browsing: every usable clip of the voice (held-out lines were removed by the index builder).
+  // The clip list for browsing: every clip of the voice except effect-heavy ones, combat-flagged clips included and marked (held-out lines were removed by the index builder).
   browse(key) {
     const voice = this.voice(key), list = [];
     for (const engine of ['omni', 'pocket']) {
@@ -98,10 +101,10 @@ export class Pool {
         list.push({id: live.id, d: live.d, t: live.t, ty: null, g: null, k: null, s: 'live', rel: live.rel, label: `Today's ${engine === 'omni' ? 'OmniVoice' : 'Pocket'} reference`, sha256: live.sha256});
       }
     }
-    for (const clip of voice.clips.filter(isUsable)) list.push({id: clip.id, d: clip.d, t: clip.t, ty: clip.ty, g: clip.g, k: clip.k, s: clip.s, rel: clip.rel, src: clip.src});
+    for (const clip of voice.clips.filter(isBrowsable)) list.push({id: clip.id, d: clip.d, t: clip.t, ty: clip.ty, g: clip.g, k: clip.k, s: clip.s, rel: clip.rel, src: clip.src, ...(clip.cb ? {cb: clip.cb} : {})});
     return list;
   }
-  // The voice's usable clips (what reroll draws from): everything except effect-heavy lines.
+  // The voice's usable clips (what reroll draws from): everything except effect-heavy and combat or shouted lines.
   rerollClips(key) { return this.voice(key).clips.filter(isUsable); }
   usableCount(key) { return this.rerollClips(key).length; }
 }

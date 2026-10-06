@@ -43,6 +43,17 @@ class CommonTests(unittest.TestCase):
         self.assertEqual(len(common.VoicePool(index, "v").clips), 1)
         self.assertEqual(len({c.id for c in pool.clips}), len(pool.clips))
 
+    def test_combat_clips_are_neither_candidates_nor_targets(self):
+        pool = fake_pool(30)
+        for clip in pool.clips[10:20]:
+            clip["cb"] = {"s": 0.9, "w": ["voiceset combat line"]}
+        flagged = {c.id for c in pool.clips if c.get("cb")}
+        split = common.split_voice(pool)
+        self.assertTrue(split["ok"])
+        used = set(split["holdout"]) | set(split["dev"]) | set(split["final"]) | set(split["candidates"])
+        self.assertFalse(flagged & used)
+        self.assertEqual(split["n_valid"], 19)   # 30 clips minus the media clip minus the ten combat clips
+
     def test_tiny_pool_is_refused(self):
         self.assertFalse(common.split_voice(fake_pool(4))["ok"])
 

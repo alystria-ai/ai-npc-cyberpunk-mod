@@ -87,3 +87,16 @@ test('clips flagged as effect-heavy (fx) stay resolvable but are left out of bro
   assert.equal(pool.usableCount('v'), 10);
   for (let run = 0; run < 40; run++) assert.ok(rerollSet(pool.rerollClips('v'), {budget: 18, rng: seeded(run + 1)}).ids.every(id => id !== 'v/50' && id !== 'v/51'));
 });
+
+test('clips flagged as combat or shouted (cb) are never drawn by reroll or counted, but stay browsable, marked, and can be hand-picked', () => {
+  const cb = {s: 0.9, w: ['voiceset line in a combat context']};
+  const clips = [...Array.from({length: 10}, (_, n) => clip(n, 4)), clip(60, 4, {cb}), clip(61, 4, {cb, fx: ['comb']})];
+  const pool = new Pool({dataRoot: '/data', voices: {v: {live: {omni: {exists: false}}, clips, proposed: {}, loudMedian: -20}}}, {project: '/p'});
+  assert.equal(pool.usableCount('v'), 10);
+  const browse = pool.browse('v');
+  assert.deepEqual(browse.find(item => item.id === 'v/60').cb, cb);
+  assert.equal(browse.find(item => item.id === 'v/0').cb, undefined);
+  assert.ok(!browse.some(item => item.id === 'v/61'));                           // effect-flagged stays hidden, combat or not
+  for (let run = 0; run < 40; run++) assert.ok(rerollSet(pool.rerollClips('v'), {budget: 18, rng: seeded(run + 1)}).ids.every(id => id !== 'v/60'));
+  assert.equal(pool.validateSet('v', 'omni', ['v/60']).seconds, 4);                // a deliberate hand pick is still allowed
+});

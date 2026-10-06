@@ -141,7 +141,9 @@ function poolTable(engine, v, clips) {
   }
   function rows() {
     const needle = ps.filter.toLowerCase();
-    const fromSource = clip => ps.source === 'all' || (ps.source === 'new') === (clip.s === 'expanded');
+    // Combat or shouted lines (clip.cb) are never drawn automatically; here they are hidden unless asked for, and marked.
+    const fromSource = clip => ps.source === 'combat' ? !!clip.cb : ps.source === 'everything' ? true
+      : !clip.cb && (ps.source === 'all' || (ps.source === 'new') === (clip.s === 'expanded'));
     const list = clips.filter(clip => fromSource(clip) && (!needle || clip.t.toLowerCase().includes(needle) || clip.id.includes(needle))).sort(sorter[ps.sort]);
     body.replaceChildren(...list.slice(0, ps.limit).map(clip => h('tr', {},
       h('td', {}, h('input', {type: 'checkbox', checked: selected.has(clip.id), 'aria-label': `Tick ${shortId(clip.id)}`, onchange: event => {
@@ -152,7 +154,8 @@ function poolTable(engine, v, clips) {
       h('td', {}, seconds(clip.d)),
       h('td', {title: 'How typical of this character (0-100)'}, clip.ty == null ? '' : Math.round(clip.ty)),
       h('td', {class: clip.rel != null && Math.abs(clip.rel) > 3 ? 'warn' : ''}, clip.rel == null ? '' : `${clip.rel > 0 ? '+' : ''}${clip.rel.toFixed(1)}`),
-      h('td', {}, clip.label ? [h('strong', {}, clip.label), ' · '] : null, clip.t, h('div', {class: 'meta'}, shortId(clip.id) + (clip.s === 'expanded' ? ' · added from the game files' : '') + (clip.k ? ` · ${clip.k}-processed` : ''))))));
+      h('td', {}, clip.label ? [h('strong', {}, clip.label), ' · '] : null, clip.t, h('div', {class: 'meta'}, shortId(clip.id) + (clip.s === 'expanded' ? ' · added from the game files' : '') + (clip.k ? ` · ${clip.k}-processed` : ''),
+        clip.cb ? [' · ', h('span', {class: 'badge combat', title: `Flagged as combat or shouted delivery (score ${clip.cb.s}): ${(clip.cb.w ?? []).join('; ')}`}, 'combat')] : null))))));
     if (list.length > ps.limit) body.append(h('tr', {}, h('td', {colspan: 6}, h('button', {class: 'small', onclick: () => { ps.limit += 300; rows(); }}, `Show more (${list.length - ps.limit} left)`))));
     update();
   }
@@ -166,7 +169,8 @@ function poolTable(engine, v, clips) {
   sortSelect.value = ps.sort;
   const search = h('input', {type: 'search', placeholder: 'Search the text', 'aria-label': 'Search the text', value: ps.filter, oninput: event => { ps.filter = event.target.value; ps.limit = 150; rows(); }});
   const sourceSelect = h('select', {'aria-label': 'Which clips', value: ps.source, onchange: event => { ps.source = event.target.value; ps.limit = 150; rows(); }},
-    h('option', {value: 'all'}, 'All clips'), h('option', {value: 'new'}, 'Only the newly added clips'), h('option', {value: 'old'}, 'Only the original clips'));
+    h('option', {value: 'all'}, 'All clips (combat lines hidden)'), h('option', {value: 'new'}, 'Only the newly added clips'), h('option', {value: 'old'}, 'Only the original clips'),
+    h('option', {value: 'combat'}, `Only combat or shouted lines (${clips.filter(clip => clip.cb).length})`), h('option', {value: 'everything'}, 'Everything, combat lines included'));
   sourceSelect.value = ps.source;
   rows();
   return h('div', {}, h('div', {class: 'row', style: 'margin:8px 0'}, sourceSelect, sortSelect, search, useButton), status,

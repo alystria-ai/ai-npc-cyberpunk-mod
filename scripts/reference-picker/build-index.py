@@ -39,6 +39,18 @@ MAX_CLIP_SECONDS = 18.0
 MIN_CLIP_SECONDS = 0.8
 EXPANDED = Path("E:/CyberpunkConvai-offload/work/reference-pool-expanded")
 EFFECT_EXCLUSIONS = ROOT / "scripts/phone_detect/effect-exclusions.json"   # clip id -> {reasons: [band-limited, comb, tone, reverb]}
+COMBAT_FLAGS = ROOT / "scripts/phone_detect/combat-flags.json"             # "voice/stringId" -> {combat, score, reasons} (scripts/combat_flags/)
+
+
+def combat_flag(flags: dict, clip_id: str):
+    """The combat/shouted-delivery flag of a pool clip id.  Flag keys are 'voice/stringId' plus any recording suffix (.holocall, .m, ...),
+    with the dataset's trailing /female or /male removed; a clip with no flag of its own takes the flag of its string id."""
+    import re
+    key = re.sub(r"/(female|male)$", "", clip_id)
+    if key in flags:
+        return flags[key]
+    match = re.match(r"([^/]+)/(\d+)", clip_id)
+    return flags.get(f"{match[1]}/{match[2]}") if match else None
 
 
 def gated_rms_db(path: Path) -> float | None:
@@ -139,6 +151,11 @@ def main() -> int:
     # "fx": [reasons] so starting sets still resolve, but the picker never draws or lists them.
     effects = read_json(EFFECT_EXCLUSIONS)["clips"] if EFFECT_EXCLUSIONS.is_file() else {}
 
+    # Combat or shouted delivery (scripts/combat_flags/, game metadata first, acoustics as the backup): kept in the index as
+    # "cb": {s: score, w: [reasons]} so the picker and the clip search never draw or score on them, while the character page
+    # still lists them with a "combat" badge.
+    combat = read_json(COMBAT_FLAGS)["clips"] if COMBAT_FLAGS.is_file() else {}
+
     live = {"pocket": read_json(ROOT / "runtime/pocket-voices.json")["voices"],
             "omni": read_json(ROOT / "runtime/local-voices.json")["voices"]}
     proposals = {"pocket": read_json(ROOT / "runtime/pocket-voices.multiref.json")["voices"],
@@ -196,6 +213,9 @@ def main() -> int:
         for clip in clips:
             if clip["id"] in effects:
                 clip["fx"] = effects[clip["id"]]["reasons"]
+            flag = combat_flag(combat, clip["id"])
+            if flag and flag.get("combat"):
+                clip["cb"] = {"s": flag["score"], "w": flag["reasons"]}
         levels = sorted(clip["lv"] for clip in clips if clip["lv"] is not None)
         median = levels[len(levels) // 2] if levels else None
         lines = []
@@ -225,7 +245,8 @@ def main() -> int:
              "sources": {"evaluationSets": str(LIKENESS / "evaluation-sets.json"), "panel": str(LIKENESS / evaluation["evaluation_lines"]["file"]), "embeddings": str(LIKENESS / "multiref_emb.pt"),
                          "clipsTotal": sum(len(v["clips"]) for v in voices.values()),
                          "clipsExpanded": sum(1 for v in voices.values() for c in v["clips"] if c.get("s") == "expanded"),
-                         "clipsEffectFlagged": sum(1 for v in voices.values() for c in v["clips"] if c.get("fx"))}}
+                         "clipsEffectFlagged": sum(1 for v in voices.values() for c in v["clips"] if c.get("fx")),
+                         "clipsCombatFlagged": sum(1 for v in voices.values() for c in v["clips"] if c.get("cb"))}}
     args.out.parent.mkdir(parents=True, exist_ok=True)
     cache_path.write_text(json.dumps(cache), encoding="utf-8")
     temporary = args.out.with_name(args.out.name + ".tmp")
