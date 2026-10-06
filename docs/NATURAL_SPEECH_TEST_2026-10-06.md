@@ -147,3 +147,9 @@ Source: the speaking-style fields in `characters/profile-text/<key>.txt`, which 
   - A per-character history blocks reusing the same device or position within a window.
   - Frequency is low and varied.
   - Tags only on OmniVoice; nothing on Pocket beyond punctuation.
+
+## Design decision (user, 2026-10-06): the model chooses, the bridge doesn't insert
+- The bridge never adds fillers or tags itself.
+- When the "Natural speech" setting is on, the dynamic context tells the character which devices are available for the active voice (on OmniVoice the supported tags, such as [laughter] and [sigh], plus suitable fillers for that character; on Pocket, punctuation only), with guidance to use them sparingly, only when the moment calls for it, never as a habit, and never repeating the same device or position in recent replies.
+- The per-character style notes (Judy may hesitate; Johnny is fluent and rarely uses any) go into the same context block.
+- Needed alongside it: strip tags from subtitles and captions, and decide whether stored conversation memory keeps or strips them (stripping avoids self-imitation). Off: no block is sent at all.
