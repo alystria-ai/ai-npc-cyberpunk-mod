@@ -36,6 +36,13 @@ class CommonTests(unittest.TestCase):
         self.assertNotIn("v/5", cands)           # media-processed clips are not candidates
         self.assertEqual(len(a["dev"]), 2); self.assertEqual(len(a["final"]), 4)
 
+    def test_duplicate_ids_in_the_index_are_dropped(self):
+        pool = fake_pool(30)
+        index = {"dataRoot": "C:/data", "voices": {"v": {"clips": [{"id": "v/1", "d": 3.0, "t": "a b c d", "p": "a.wav"}, {"id": "v/1", "d": 3.0, "t": "a b c d", "p": "b.wav"}],
+                                                         "loudMedian": None, "live": {}, "proposed": {}}}}
+        self.assertEqual(len(common.VoicePool(index, "v").clips), 1)
+        self.assertEqual(len({c.id for c in pool.clips}), len(pool.clips))
+
     def test_tiny_pool_is_refused(self):
         self.assertFalse(common.split_voice(fake_pool(4))["ok"])
 

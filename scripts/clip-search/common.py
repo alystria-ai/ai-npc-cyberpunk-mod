@@ -56,7 +56,11 @@ class VoicePool:
         self.proposed = voice.get("proposed", {})
         self.loud_median = voice.get("loudMedian")
         self.clips: list[Clip] = []
+        seen = set()
         for clip in voice["clips"]:
+            if clip["id"] in seen:                 # the index can list one id twice (e.g. a training and an expanded copy)
+                continue
+            seen.add(clip["id"])
             self.clips.append(Clip({**clip, "path": str(root / clip["p"])}))
         self.by_id = {clip.id: clip for clip in self.clips}
 

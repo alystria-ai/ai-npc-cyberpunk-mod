@@ -116,22 +116,21 @@ def main(argv=None) -> int:
                 continue
             data["voices"].setdefault(result["voice"], {})[engine] = voice_entry(result)
     out = [data]
-    rows = ["| Voice | Engine | Best set | Clips | Seconds | ECAPA (±SE) | PLS | Today ECAPA | Gain | 10 s set | Single |",
-            "|---|---|---|---|---|---|---|---|---|---|---|"]
+    rows = ["| Voice | Engine | Winner (clips, s) | ECAPA ±SE | PLS | Today ECAPA / PLS | Call | 1 clip ECAPA / PLS | 2 clips | 3 clips | 10 s set | Tied sets |",
+            "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    def cell(row):
+        return f"{row['ecapa']:.3f} / {row.get('pls', '')}" if row else ""
     for voice in shown:
         for engine in ("omni", "pocket"):
             entry = data["voices"].get(voice, {}).get(engine)
             if not entry or not entry.get("best"):
-                rows.append(f"| {voice} | {engine} | not searched | | | | | | | | |")
+                rows.append(f"| {voice} | {engine} | not searched | | | | | | | | | |")
                 continue
-            best, today = entry["best"], entry.get("today")
-            gain = f"{best['ecapa'] - today['ecapa']:+.3f}" if today else ""
-            short, single = entry.get("short"), entry.get("single")
-            short_text = f"{short['k']} clip(s) {short['seconds']} s, {short['ecapa']:.3f}" if short else ""
-            single_text = f"{single['ecapa']:.3f}" if single else ""
-            today_text = f"{today['ecapa']:.3f}" if today else ""
-            rows.append(f"| {voice} | {engine} | {', '.join(i.split('/')[-1][-8:] for i in best['ids'])} | {best['k']} | {best['seconds']} | "
-                        f"{best['ecapa']:.3f} (±{best['ecapa_se']:.3f}) | {best.get('pls', '')} | {today_text} | {gain} | {short_text} | {single_text} |")
+            best, today, by_k, sig = entry["best"], entry.get("today"), entry.get("byK", {}), entry.get("significance", {})
+            short = entry.get("short")
+            rows.append(f"| {voice} | {engine} | {best['k']} ({best['seconds']} s) | {best['ecapa']:.3f} ±{best['ecapa_se']:.3f} | {best.get('pls', '')} | "
+                        f"{cell(today)} | {sig.get('call', '')} | {cell(by_k.get('1'))} | {cell(by_k.get('2'))} | {cell(by_k.get('3'))} | "
+                        f"{short['k']} clip(s) {short['ecapa']:.3f} | {sig.get('tied_sets', '')} |")
     results_dir = common.WORK / "results"
     results_dir.mkdir(parents=True, exist_ok=True)
     text = json.dumps(data, indent=1)

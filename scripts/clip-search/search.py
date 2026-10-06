@@ -521,7 +521,13 @@ def main(argv=None) -> int:
                 while not (prune / voice / "result.json").is_file() and waited < args.prune_wait_min * 60:
                     time.sleep(20); waited += 20
             search = Search(args.engine, renderer, scorer, voice, index, out_root, SIZES[args.engine])
-            result = search.run(prune)
+            try:
+                result = search.run(prune)
+            except Exception as error:               # a night's run must survive one voice's failure
+                import traceback
+                traceback.print_exc()
+                print(f"{voice}: FAILED ({type(error).__name__}: {error})", flush=True)
+                continue
             if "skipped" in result:
                 print(f"{voice}: skipped ({result['skipped']})")
                 continue
