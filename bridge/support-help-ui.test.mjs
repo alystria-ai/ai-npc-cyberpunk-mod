@@ -228,7 +228,7 @@ test('Settings offers Help, and the Help page has one parent Back, guidance, the
   local help = row('help')
   assert(help and help.value == 'Open' and not help.disabled and category('help') and category('help').name == 'Help')
   assert(invoke('help').ok and mcm.inspect().view == 'help')
-  assert(loaded.categories[1].settings[1].id == 'help:back' and countBack() == 1, 'parent Back must be first and unique')
+  assert(mcm.inspect().back.id == 'help:back' and countBack() == 0, 'parent Back must be the bottom-bar action only')
   assert(not category('navigation') and not row('party-count'))
   for _, id in ipairs({'help-steps', 'help-service', 'help:generate', 'help-last', 'help:copy', 'help-log-mod',
     'help-log-bridge', 'help-log-launcher', 'help-log-cet', 'help-log-redscript', 'help-log-red4ext', 'help-log-reports'}) do

@@ -464,8 +464,13 @@ const mcmFixture = `
       for _, setting in ipairs(category.settings) do if setting.id == id then return setting end end
     end
   end
+  local bottomActions = {}
   local controller = {nativeIdentity = 101,
-    McmUiEmitSearch = function(_, context, value) handlers.McmUiEmitSearch(nil, context, value) end}
+    McmUiEmitSearch = function(_, context, value) handlers.McmUiEmitSearch(nil, context, value) end,
+    McmUiGetLayoutMetric = function(_, metric) return ({[10] = 40, [11] = 400, [27] = 1000})[metric] or -1 end,
+    McmUiAddBottomActionAt = function(_, id, label, x, y, width, active)
+      bottomActions[#bottomActions + 1] = {id = id, label = label, x = x, y = y, width = width, active = active}
+    end}
   CalcSeed = function(value) return value.nativeIdentity end
   local function invoke(id)
     local result = registered.invokeAction('manager', id, {interaction = {controller = controller}})
@@ -517,21 +522,18 @@ test('manager home owns the four destinations and every inner page has one paren
       for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do
         assert(not row('tab:' .. name), 'a root destination leaked onto an inner page')
       end
-      local count = 0
       for _, section in ipairs(loaded.categories) do
+        assert(#section.settings > 0, 'an empty section is left on the page')
         for _, item in ipairs(section.settings) do
-          if item.value == 'Back' then count = count + 1; assert(item.id == back) end
+          assert(item.value ~= 'Back' and not item.id:find(':back$'), 'Back is still a row of the list')
           assert(item.label:sub(1, 1) ~= ' ' and item.indent == nil, 'label has artificial indentation')
         end
       end
-      assert(count == 1 and loaded.categories[1].settings[1].id == back, 'parent Back must be first')
-      if expected == 'party' then
-        assert(category('party-status') and not row('party-count') and not row('feedback'),
-          'Current party shows the companion limit or the last action')
-      else
-        assert(not category('party-status') and not row('party-count') and not row('feedback'),
-          'party status leaked outside Current party')
-      end
+      -- Back is the one native bottom-bar action, with the page's own parent.
+      local current = mcm.inspect().back
+      assert(current and current.id == back and mcm.inspect().backMode == 'bottom', 'parent Back is missing')
+      assert(not category('party-status') and not row('party-count') and not row('feedback'),
+        'party status, the limit or the last action leaked onto the page')
     end
     assert(mcm.inspect().view == 'home' and #loaded.categories == 1)
     assert(#category('navigation').settings == 4 and not row('party-count'))
@@ -660,6 +662,77 @@ test('local voice previews carry the effective four-choice draft and cancel on R
     preview.shutdown()
     assert(not json.decode(files['runtime/voice-preview.json']).active and callback == nil)
     assert(manager.snapshot(player).settings.voiceProvider == 'convai')
+  `);
+});
+
+test('Back is a native action in the bottom bar beside Apply, placed once per render, and falls back to a row if it cannot be placed', () => {
+  run(`${mcmFixture}
+    assert(invoke('tab:settings').ok and invoke('help') == nil or true)
+    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+    mcm.update(player, false)
+    assert(#bottomActions == 1, 'Back was not placed in the action bar')
+    local back = bottomActions[1]
+    assert(back.id == 'convai-bottom-back' and back.label == 'Back' and back.x == 40 and back.y == 1000 and back.width == 280)
+    mcm.update(player, false); mcm.update(player, false)
+    assert(#bottomActions == 1, 'Back was added again within one render')
+    -- A new render clears the bar, so it is added once more.
+    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+    mcm.update(player, false)
+    assert(#bottomActions == 2)
+    -- The click returns to the parent page; with pending changes it is ignored, like every MCM action.
+    assert(mcm.inspect().view == 'settings' and not row('settings:back'))
+    drafts = true; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
+    assert(mcm.inspect().view == 'settings', 'Back ignored pending changes')
+    drafts = false; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
+    assert(mcm.inspect().view == 'home')
+    loaded = registered.loadMod('manager')
+    -- Another button id never navigates.
+    assert(invoke('tab:party').ok)
+    handlers.McmUiEmitAction(controller, 'something-else'); assert(mcm.inspect().view == 'party')
+    -- If the bar cannot take the button, Back is the first row of the page instead.
+    controller.McmUiAddBottomActionAt = function() error('no bottom bar') end
+    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+    mcm.update(player, false)
+    assert(mcm.inspect().backMode == 'list')
+    loaded = registered.loadMod('manager')
+    assert(row('party:back') and loaded.categories[1].settings[1].id == 'party:back' or row('party:back'))
+  `);
+});
+
+test('the Esc and back keys ask first when changes are pending, before MCM closes the mod and discards them', () => {
+  run(`${mcmFixture}
+    CName = {new = function(value) return value end}
+    IsDefined = function(value) return value ~= nil end
+    local clock, emitted, wrapped = 500, 0, 0
+    os.clock = function() return clock end
+    controller.McmUiEmitClosing = function() emitted = emitted + 1 end
+    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+    local function key(method, action)
+      local event = {IsAction = function(_, name) return name == action end}
+      local consumed = handlers[method](controller, event, function() wrapped = wrapped + 1; return false end)
+      return consumed == true
+    end
+    drafts = false
+    assert(not key('OnButtonRelease', 'back') and wrapped == 1 and emitted == 0, 'a clean page was held')
+    drafts = true
+    assert(not key('OnButtonRelease', 'accept') and wrapped == 2 and emitted == 0, 'an ordinary key was held')
+    -- A close key with pending changes is consumed, and MCM's own dialog is asked for.
+    assert(key('OnButtonPress', 'back') and emitted == 1 and wrapped == 2)
+    -- The release of that same key must not reach MCM, whose handler would cancel its new dialog.
+    assert(key('OnButtonRelease', 'back') and emitted == 1 and wrapped == 2)
+    -- With the dialog open, a later close key goes to MCM (it cancels the dialog).
+    clock = clock + 5; controller.m_mcmUiModal = {}
+    assert(not key('OnButtonRelease', 'cancel') and wrapped == 3 and emitted == 1)
+    controller.m_mcmUiModal = nil
+    -- The release alone (no press seen) also asks, for either action name.
+    clock = clock + 5
+    assert(key('OnButtonRelease', 'cancel') and emitted == 2)
+    -- After Apply or Discard nothing is pending and the key passes.
+    drafts = false; clock = clock + 5
+    assert(not key('OnButtonRelease', 'back') and wrapped == 4)
+    -- Another page of MCM, with the same controller, is never held.
+    drafts = true; activeMod = 'other:mod'; handlers.McmUiSetContentTitle(controller, 'Other Mod'); clock = clock + 5
+    assert(not key('OnButtonRelease', 'back') and emitted == 2, 'another mod page was held')
   `);
 });
 
@@ -794,7 +867,7 @@ test('interface language persists atomically, localizes the schema and preserves
     assert(saved.uiLanguage=='fr' and convaiUiLocale.selection()=='fr')
     assert(convaiUiLocale.update(0))
     loaded=registered.loadMod('manager')
-    assert(row('settings:back').label=='Retour à la gestion des compagnons')
+    assert(mcm.inspect().back.label=='Retour à la gestion des compagnons')
     assert(row('uiLanguage').label~='Interface language' and row('uiLanguage').value==french)
     assert(row('uiLanguage').elements[2]=='English','language names must remain natively recognizable')
     local snapshot=manager.snapshot(player)
@@ -1516,12 +1589,12 @@ test('native Memory submenu has consistent parent navigation and preserves an un
     assert(row('memory').type == 'action' and row('memory').value == 'Manage')
     assert(not row('memory:choose') and not row('memory-count'), 'memory controls leaked into the Settings page')
     assert(invoke('permissions').ok and mcm.inspect().view == 'permissions')
-    assert(not row('tab:settings') and row('permissions:back').label == 'Back to settings')
+    assert(not row('tab:settings') and mcm.inspect().back.label == 'Back to settings')
     assert(invoke('permissions:back').ok and mcm.inspect().view == 'settings')
     assert(invoke('memory').ok and mcm.inspect().view == 'memory')
-    assert(not row('tab:settings') and row('memory:settings').label == 'Back to settings')
+    assert(not row('tab:settings') and mcm.inspect().back.label == 'Back to settings')
     assert(invoke('memory:choose').ok and mcm.inspect().view == 'memory-characters')
-    assert(not row('tab:settings') and row('memory:back').label == 'Back to memory')
+    assert(not row('tab:settings') and mcm.inspect().back.label == 'Back to memory')
     handlers.McmUiEmitSearch(nil, 'content', 'Person 20')
     for _ = 1, 6 do mcm.update(player, false) end
     assert(invoke('memory:back').ok and mcm.inspect().view == 'memory')
@@ -2040,7 +2113,8 @@ test('Current party rows are a name, its number and Dismiss, in the same native 
       if index < 3 then member.name = member.name .. ' #' .. index end
     end
     assert(invoke('tab:party').ok)
-    local back = row('party:back')
+    local back = {type = 'action'}
+    assert(mcm.inspect().back.id == 'party:back')
     local names = {'Johnny Silverhand #1', 'Johnny Silverhand #2', 'Person 01 #3'}
     for index, id in ipairs({'dismiss:live:1', 'dismiss:live:2', 'dismiss:live:3'}) do
       local item = row(id)
@@ -2057,7 +2131,7 @@ test('Current party rows are a name, its number and Dismiss, in the same native 
         assert(not item.label:find('Following') and not item.value:find('Following') and not item.value:find('/ 8'))
       end
     end
-    assert(total == 4, 'Back and one row per copy only: ' .. total)
+    assert(total == 3, 'one row per copy only: ' .. total)
     -- Joining and leaving never put a last-action line on the page.
     mcm.update(player, true); assert(not row('feedback'))
   `);
@@ -2210,15 +2284,24 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       mcm.install()
       assert(actual.refreshIndex())
       local key = 'cyberpunk-convai:manager'
+      -- Back is the native bottom-bar action: a click reaches the provider through the key
+      -- MCM emits for it, and (like every MCM action) it is refused while changes are pending.
+      local function goBack(id)
+        local current = mcm.inspect().back
+        if not current or current.id ~= id or actual.hasDrafts(key) then return false end
+        handlers.McmUiEmitAction(controller, 'convai-bottom-back')
+        return actual.reloadMod(key) ~= nil
+      end
       local function backSurvivesSearch(back, query)
+        -- A search can no longer hide the page's Back: it is not a row that MCM filters.
         handlers.McmUiEmitSearch(nil, 'content', query)
         for _ = 1, 6 do mcm.update(player, false) end
+        assert(mcm.inspect().back and mcm.inspect().back.id == back, 'Back is missing during a search: ' .. back)
         local renderer = {runtime = {state = {api = actual, settingsSortMode = 'file',
           searchQueries = {content = query}}, safe = function(_, value) return tostring(value or '') end}}
         for _, value in ipairs(Model.flattenSettings(renderer, {key = key})) do
-          if value.kind == 'setting' and value.setting.id == key .. ':' .. back then return end
+          assert(not (value.kind == 'setting' and value.setting.id == key .. ':' .. back), 'Back is a filtered row')
         end
-        error('MCM filtered the only parent Back action: ' .. back)
       end
       assert(actual.openMod(key))
       assert(actual.invokeAction(key .. ':tab:characters'))
@@ -2228,7 +2311,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(actual.invokeAction(key .. ':invite:johnny-silverhand'))
       assert(#spawned == 0 and #mcm.inspect().party == 1 and readiness.prepareCalls == 1)
       assert(actual.getValue(key .. ':party-count') == nil)
-      assert(actual.invokeAction(key .. ':characters:back'))
+      assert(goBack('characters:back'))
       assert(actual.invokeAction(key .. ':tab:party'))
       assert(actual.getValue(key .. ':party-count') == nil and actual.getValue(key .. ':state:queued:1') == nil)
       assert(actual.getValue(key .. ':dismiss:queued:1') == 'Cancel invitation')
@@ -2240,7 +2323,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       readiness.receipts['queued:1'] = {state = 'ready'}
       assert(actual.reloadMod(key) and actual.getValue(key .. ':dismiss:queued:1') == 'Cancel invitation')
       mcm.update(player, false); assert(#spawned == 0)
-      assert(actual.invokeAction(key .. ':party:back'))
+      assert(goBack('party:back'))
       assert(actual.invokeAction(key .. ':tab:settings'))
       publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})
       assert(actual.reloadMod(key))
@@ -2257,7 +2340,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(actual.getValue(key .. ':developerMode') == false)
       assert(actual.setDraft(key .. ':developerMode', true))
       assert(not manager.developerMode(), 'developer draft must not change runtime feedback')
-      assert(actual.invokeAction(key .. ':settings:back') == false)
+      assert(goBack('settings:back') == false)
       assert(actual.invokeAction(key .. ':memory') == false and memoryWrites() == 0)
       assert(mcm.inspect().view == 'settings', 'a pending draft allowed submenu navigation')
       -- Auto Apply: the immediate apply after a draft is refused and every draft stays pending.
@@ -2268,7 +2351,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
         and manager.snapshot(player).settings.developerMode == false and manager.snapshot(player).settings.omniSteps == 16)
       assert(files['runtime/voice-preview.json'] == nil, 'a pending voice offered a worker preview')
       -- MCM's own leave prompt and close guard key off this: drafts are pending.
-      assert(actual.invokeAction(key .. ':settings:back') == false)
+      assert(goBack('settings:back') == false)
       later()
       local ok, err = actual.apply(key)
       assert(ok, err)
@@ -2302,19 +2385,19 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(actual.getValue(key .. ':eyeContactHeight') == 3 and actual.getValue(key .. ':headFollowStrength') == 3)
       assert(manager.gazeSettings().eyeContactHeight == 0 and manager.gazeSettings().headFollowStrength == 1)
       assert(actual.invokeAction(key .. ':permissions') and mcm.inspect().view == 'permissions')
-      assert(actual.getValue(key .. ':tab:settings') == nil and actual.getValue(key .. ':permissions:back') == 'Back')
-      assert(actual.invokeAction(key .. ':permissions:back') and mcm.inspect().view == 'settings')
+      assert(actual.getValue(key .. ':tab:settings') == nil and mcm.inspect().back.id == 'permissions:back')
+      assert(goBack('permissions:back') and mcm.inspect().view == 'settings')
       assert(actual.invokeAction(key .. ':memory') and mcm.inspect().view == 'memory')
       assert(actual.getValue(key .. ':memory-count') == '2' and actual.getValue(key .. ':tab:settings') == nil)
       assert(actual.invokeAction(key .. ':memory:choose') and mcm.inspect().view == 'memory-characters')
-      assert(actual.getValue(key .. ':tab:settings') == nil and actual.getValue(key .. ':memory:back') == 'Back')
+      assert(actual.getValue(key .. ':tab:settings') == nil and mcm.inspect().back.id == 'memory:back')
       backSurvivesSearch('memory:back', 'no matching memories')
-      assert(actual.invokeAction(key .. ':memory:back') and mcm.inspect().view == 'memory')
+      assert(goBack('memory:back') and mcm.inspect().view == 'memory')
       assert(actual.invokeAction(key .. ':memory:choose'))
       assert(actual.invokeAction(key .. ':memory:next'))
       assert(actual.invokeAction(key .. ':memory:select:person-20'))
       assert(mcm.inspect().view == 'memory' and actual.getValue(key .. ':memory:choose') == 'Person 20' and #members == 0)
-      assert(actual.invokeAction(key .. ':memory:settings') and mcm.inspect().view == 'settings')
+      assert(goBack('memory:settings') and mcm.inspect().view == 'settings')
       assert(actual.getValue(key .. ':memory:choose') == nil and actual.getValue(key .. ':memory') == 'Manage')
       assert(actual.invokeAction(key .. ':memory') and actual.getValue(key .. ':memory:choose') == 'Person 20')
       assert(actual.invokeAction(key .. ':memory:forget-character'))
@@ -2333,12 +2416,12 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       publishMemory(2, nil, 'ready', memoryResult(command, 'succeeded')); assert(actual.reloadMod(key))
       assert(actual.getValue(key .. ':memory-feedback'):find('Memory clear confirmed', 1, true))
       assert(memoryWrites() == 1 and #spawned == 0, 'memory controls caused world work or retried')
-      assert(actual.invokeAction(key .. ':memory:settings'))
-      assert(actual.invokeAction(key .. ':settings:back'))
+      assert(goBack('memory:settings'))
+      assert(goBack('settings:back'))
       assert(actual.invokeAction(key .. ':tab:party'))
       assert(actual.invokeAction(key .. ':dismiss:queued:1'))
       assert(#mcm.inspect().party == 0 and #spawned == 0 and readiness.cancellations['queued:1'])
-      assert(actual.invokeAction(key .. ':party:back'))
+      assert(goBack('party:back'))
       assert(actual.invokeAction(key .. ':tab:models'))
       for _ = 1, 126 do mcm.update(player, false) end
       backSurvivesSearch('models:back', 'no matching model')

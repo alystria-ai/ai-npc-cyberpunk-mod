@@ -28,6 +28,12 @@ local VOICE_CHOICES = {{'omni', 16}, {'omni', 32}, {'pocket'}, {'convai'}}
 -- No voice model is prepared from a draft: nothing reaches the conversation
 -- service until Apply.
 local voicePreview = dofile('voice-preview.lua').new()
+-- The page's Back link sits in MCM's bottom action bar, with Revert, Apply and
+-- Defaults, as a native bottom action (MCM has no provider API for that bar, so
+-- the button is added after each render). If it cannot be added, Back returns to
+-- the first row of the page.
+local BACK_ID = 'convai-bottom-back'
+local backMode, currentBack = 'bottom', nil
 -- Help page: log locations and the shareable support report. Optional: the
 -- manager works without it, and a load failure only hides the Help entry.
 local support, supportSignature
@@ -205,6 +211,9 @@ local function action(id, label, value, description, callback, enabled, raw)
     if id == 'memory:choose' and value ~= 'Choose a character' then raw.value = true end
     if id == 'models:previous' or id == 'models:next' or id == 'memory:previous' or id == 'memory:next' then raw.description = true end
     local descriptionText = raw.description and description or ui.t(description)
+    if id:match(':back$') or id == 'memory:settings' then
+        currentBack = {id = id, label = raw.label and label or ui.t(label), callback = callback}
+    end
     if (id:match(':back$') or id == 'memory:settings') and modelQuery ~= '' then
         -- MCM searches action descriptions too. Keep the sole parent link
         -- visible even for an empty result set, without changing its label.
@@ -409,6 +418,7 @@ local function schema()
     queue.bind(owner)
     local snapshot, party = manager.snapshot(currentPlayer), queue.list()
     actions = {}
+    currentBack = nil
     local categories = {}
     local rows = {}
     -- The party has a fixed number of formation places. It is not shown: a full
@@ -698,6 +708,16 @@ local function schema()
         table.insert(categories[1].settings, 1, action(view .. ':back', 'Back to Companion Manager', 'Back',
             'Return to Companion Manager.', function(context) return navigate('home', context) end))
     end
+    if currentBack and backMode == 'bottom' then
+        -- Back lives in the bottom action bar. Its callback stays registered.
+        for index = #categories, 1, -1 do
+            local list = categories[index].settings
+            for position = #list, 1, -1 do
+                if list[position].id == currentBack.id then table.remove(list, position) end
+            end
+            if #list == 0 then table.remove(categories, index) end
+        end
+    end
     return {name = ui.t(LABEL), description = ui.t('Your companions, character models and conversation settings.'), categories = categories}
 end
 
@@ -716,6 +736,13 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
         listMods = function()
             return {complete = true, revision = tostring(ui.revision()), mods = {{id = MOD, name = ui.t(LABEL),
                 description = ui.t('Invite characters, manage your group, browse game models and configure conversations.')}}}
+        end,
+        closeMod = function(id)
+            if id == MOD then
+                local ok, pending = pcall(function() return api and api.hasDrafts(MOD_KEY) end)
+                if ok and pending == true then log('Probe: closeMod with unapplied changes (MCM discards them)') end
+            end
+            return true
         end,
         loadMod = function(id)
             if id ~= MOD then return nil, ui.t('Unknown mod.') end
@@ -819,6 +846,28 @@ local function connect()
     return true
 end
 
+-- Place the Back link in the bottom action bar, from top-level update after a
+-- render (a new render clears it). Every native call is guarded: on any failure
+-- Back goes back to a row of the page.
+local function placeBackButton()
+    if backMode ~= 'bottom' or not currentBack or not presentation.active
+        or presentation.backPlaced or not presentation.controller then return end
+    presentation.backPlaced = true
+    local controller = presentation.controller
+    local ok, err = pcall(function()
+        local x, y = controller:McmUiGetLayoutMetric(10), controller:McmUiGetLayoutMetric(27)
+        local width = controller:McmUiGetLayoutMetric(11)
+        if type(x) ~= 'number' or type(y) ~= 'number' or type(width) ~= 'number' or x < 0 or y < 0 or width <= 0 then
+            error('layout metrics are unavailable')
+        end
+        controller:McmUiAddBottomActionAt(BACK_ID, ui.t('Back'), x, y, math.min(width, 280), false)
+    end)
+    if not ok then
+        backMode, refreshQueued = 'list', true
+        log('Back could not be placed in the action bar; using a row instead: ' .. tostring(err))
+    end
+end
+
 function M.install()
     if not connect() then return false end
     if hooksInstalled then return end
@@ -903,35 +952,106 @@ function M.install()
             if not hovered then presentation.pending = true end
         end
     end)
+    Observe('SettingsMainGameController', 'McmUiEmitAction', function(controller, id)
+        if id ~= BACK_ID or not currentBack or not api or not active() then return end
+        local ok, pending = pcall(api.hasDrafts, MOD_KEY)
+        if ok and pending == true then
+            -- MCM refuses navigation while changes are pending, and so does this.
+            log('Back ignored: apply or revert the pending changes first')
+            return
+        end
+        currentBack.callback({interaction = {controller = controller}})
+        refreshQueued = true
+    end)
     Observe('SettingsMainGameController', 'McmUiEmitSearch', function(_, context, value)
         if context == 'content' and active() then
             modelQuery, modelPage, searchFrames = tostring(value or ''):sub(1, 100), 1, 6
         end
     end)
-    -- Leaving Settings with unapplied changes must ask first. MCM asks only when its
-    -- own "cancel" key handler runs; Esc, the pause menu's back, and F4 close the
-    -- screen through RequestClose without necessarily passing there (the live test
-    -- left without a prompt). Every one of those ends in RequestClose, so guard
-    -- that: with drafts pending, hand the request to MCM's own closing handler
+    -- Leaving Settings with unapplied changes must ask first. MCM asks only from its
+    -- own "cancel" key handler, and by the time RequestClose runs MCM's own observer
+    -- has already closed the mod and discarded the drafts (the live Esc left with no
+    -- prompt). So the question is raised earlier, from the key event itself, and
+    -- RequestClose stays as a second guard. Both hand over to MCM's closing handler
     -- (McmUiEmitClosing), which shows its "Unsaved changes" dialog and resumes the
-    -- close itself after Apply or Discard. With nothing pending it passes through.
-    local closeAsk = {count = 0, since = -1000}
-    Override('SettingsMainGameController', 'RequestClose', function(controller, wrapped)
-        local pending = false
-        if api and active() then
-            local ok, value = pcall(api.hasDrafts, MOD_KEY)
-            pending = ok and value == true
+    -- close itself after Apply or Discard. With nothing pending nothing is held.
+    local probeBudget = 60
+    local function probe(text)
+        if probeBudget > 0 then probeBudget = probeBudget - 1; log('Probe: ' .. text) end
+    end
+    local function pendingDrafts()
+        if not api then return false end
+        local ok, value = pcall(api.hasDrafts, MOD_KEY)
+        return ok and value == true
+    end
+    local CLOSE_ACTIONS = {'back', 'cancel', 'OpenPauseMenu', 'close', 'pause_menu', 'UI_Cancel', 'UI_Back'}
+    local function closeActions(event)
+        local names = {}
+        for _, name in ipairs(CLOSE_ACTIONS) do
+            local ok, hit = pcall(function() return event:IsAction(CName.new(name)) end)
+            if ok and hit then names[#names + 1] = name end
         end
-        if not pending then closeAsk.count = 0; return wrapped() end
+        return names
+    end
+    local ask = {at = -1000, suppressUntil = -1000, count = 0}
+    local function askBeforeLeaving(controller, why)
         local now = os.clock()
-        if now - closeAsk.since > 10 then closeAsk.count = 0 end
-        closeAsk.since, closeAsk.count = now, closeAsk.count + 1
-        log('Close requested with unapplied changes; asking (' .. closeAsk.count .. ')')
+        if now - ask.at > 10 then ask.count = 0 end
+        ask.at, ask.count = now, ask.count + 1
+        ask.suppressUntil = now + 1.5
+        log('Unapplied changes: asking before leaving (' .. why .. ', ' .. ask.count .. ')')
+        local asked, err = pcall(function() controller:McmUiEmitClosing() end)
+        if not asked then log('Could not ask before leaving: ' .. tostring(err)) end
+        return asked
+    end
+    local function modalOpen(controller)
+        local ok, open = pcall(function() return IsDefined(controller.m_mcmUiModal) end)
+        if ok then return open == true end
+        return os.clock() - ask.at < 20
+    end
+    local function hookInput(method)
+        local hooked, hookError = pcall(Override, 'SettingsMainGameController', method, function(controller, event, wrapped)
+            if presentation.active and ownsPresentation(controller) then
+                local names = closeActions(event)
+                if #names > 0 then
+                    local pending = pendingDrafts()
+                    probe(method .. ' [' .. table.concat(names, ',') .. '] drafts=' .. tostring(pending))
+                    local isClose = false
+                    for _, name in ipairs(names) do if name == 'back' or name == 'cancel' then isClose = true end end
+                    if pending and isClose and ask.count < 5 then
+                        local now = os.clock()
+                        if method == 'OnButtonRelease' and now < ask.suppressUntil then return true end
+                        if not modalOpen(controller) and askBeforeLeaving(controller, method) then return true end
+                    end
+                end
+            end
+            return wrapped(event)
+        end)
+        if not hooked then probe('could not hook ' .. method .. ': ' .. tostring(hookError)) end
+    end
+    hookInput('OnButtonRelease')
+    hookInput('OnButtonPress')
+    -- Cheap probes naming the real close path, for the live test.
+    for _, candidate in ipairs({
+        {'SettingsMainGameController', 'OnBack'}, {'SettingsMainGameController', 'OnBackClick'},
+        {'SettingsMainGameController', 'OnCloseSettingsScreen'}, {'SettingsMainGameController', 'forceCloseSettings'},
+        {'SettingsMainGameController', 'GoBack'}, {'SettingsMainGameController', 'CloseSettings'},
+        {'SettingsMainGameController', 'OnHandleGlobalRelease'}, {'PauseMenuGameController', 'OnBack'},
+        {'PauseMenuGameController', 'OnCloseMenu'}, {'PauseMenuGameController', 'OnHandleGlobalRelease'},
+    }) do
+        local ok = pcall(Observe, candidate[1], candidate[2], function()
+            if presentation.active then probe(candidate[1] .. '.' .. candidate[2] .. ' drafts=' .. tostring(pendingDrafts())) end
+        end)
+        if not ok then probeBudget = probeBudget end
+    end
+    Override('SettingsMainGameController', 'RequestClose', function(controller, wrapped)
+        local pending = (presentation.active or active()) and pendingDrafts()
+        probe('RequestClose drafts=' .. tostring(pending))
+        if not pending then return wrapped() end
         -- Never trap the player: if MCM cannot show its dialog, or the request is
         -- repeated many times, let the close through.
-        if closeAsk.count > 4 then log('Close allowed after repeated requests'); return wrapped() end
-        local asked, err = pcall(function() controller:McmUiEmitClosing() end)
-        if not asked then log('Could not ask before closing: ' .. tostring(err)); return wrapped() end
+        if ask.count >= 5 then log('Close allowed after repeated requests'); return wrapped() end
+        if not askBeforeLeaving(controller, 'RequestClose') then return wrapped() end
     end)
 end
 
@@ -995,6 +1115,8 @@ function M.update(currentPlayer, worldReady)
     -- our translated sidebar item readable when another mod is selected.
     fontPresentation.update()
     if not active() then return end
+    local placed, placeError = pcall(placeBackButton)
+    if not placed then lastError = 'Back button: ' .. tostring(placeError) end
     local styleOk, styleError = pcall(styleCompletedPage)
     if not styleOk then lastError = 'Settings presentation: ' .. tostring(styleError) end
     local bannerOk, bannerError = pcall(updatePreparationBanner)
@@ -1054,6 +1176,7 @@ function M.inspect()
     return {available = api ~= nil, active = active(), view = view, entry = entry.state(),
         presentation = {active = presentation.active, pending = presentation.pending, title = presentation.title, rows = rowCount},
         entryDetails = entry.inspect and entry.inspect() or nil,
+        back = currentBack and {id = currentBack.id, label = currentBack.label} or nil, backMode = backMode,
         party = queue.list(), feedback = queue.message(), error = lastError,
         voicePreview = voicePreview.inspect(),
         fonts = fontPresentation.inspect(),

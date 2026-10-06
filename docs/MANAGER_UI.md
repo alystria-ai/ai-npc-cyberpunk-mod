@@ -64,6 +64,18 @@ no longer open it.
   (`bridge/voice-preview.mjs`, `mod/voice-preview.lua` and `previewSettleMs` remain but are
   unused by this page.)
 
+**Back is a native bottom-bar action.** MCM has no provider API for its Revert / Apply / Defaults
+bar, so after each render the provider adds one native bottom action there with
+`McmUiAddBottomActionAt` (the sidebar's left edge, `bottomActionY`, labelled **Back**). Its click
+arrives through `McmUiEmitAction`; it navigates to the page's parent and is ignored while changes
+are pending, like every MCM action. A search cannot hide it. If the bar rejects the button, Back
+returns to the first row of the page (`inspect().backMode == 'list'`). The bar label is the short
+**Back**; the parent's name is in `inspect().back.label`. In a language MCM itself does not have
+fonts for, the label may use MCM's font.
+
+Esc probes: `runtime/mcm.log` records "Probe:" lines for the close key events and candidate close
+handlers while the page is open (at most 60 per session), and for a close with unapplied changes.
+
 Every inner page starts with one **Back** action. Characters, Current party,
 Model browser and Settings return to the manager home; Relationships, Memory
 and Character conversations return to Settings. The memory character picker
