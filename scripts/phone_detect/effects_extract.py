@@ -35,8 +35,9 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--work", type=Path, default=Path("E:/CyberpunkConvai-offload/work/phone-detect"))
     parser.add_argument("--jobs", type=int, default=20)
+    parser.add_argument("--meta", type=Path, default=None, help="clip list (default: WORK/meta.json); an expanded-pool list works too")
     args = parser.parse_args()
-    meta = json.loads((args.work / "meta.json").read_text(encoding="utf-8"))
+    meta = json.loads((args.meta or args.work / "meta.json").read_text(encoding="utf-8"))
     jobs = [(k, m["path"], m["start"], m["duration"]) for k, m in meta.items()]
     results = {}
     with ProcessPoolExecutor(args.jobs) as pool:
