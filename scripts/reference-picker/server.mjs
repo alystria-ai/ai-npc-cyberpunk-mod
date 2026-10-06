@@ -9,6 +9,7 @@ import {FALLBACK_TEXT, LIVE_PREFIX, Pool, rerollSet} from './pool.mjs';
 import {GpuMonitor} from './gpu.mjs';
 import {Research, resolveShown} from './research.mjs';
 import {engineSet, ENGINES, PickStore, SETS} from './picks.mjs';
+import {isNaturalSpeechPath, serveNaturalSpeech} from './natural-speech-page.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const TYPES = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -44,9 +45,9 @@ export class Picker {
   }
   describeClip(key, id) {
     const clip = this.pool.clip(key, id);
-    if (!clip) return {id, missing: true, ph: false};
+    if (!clip) return {id, missing: true};
     const url = id.startsWith('live:') ? `/audio/live/${id.slice(5)}/${key}` : `/audio/clip/${key}/${encodeURIComponent(id)}`;
-    return {id, seconds: round(clip.d), transcript: clip.t, typicality: clip.ty, loudness: clip.rel ?? null, delivery: clip.k, ph: !!clip.ph, audio: url,
+    return {id, seconds: round(clip.d), transcript: clip.t, typicality: clip.ty, loudness: clip.rel ?? null, delivery: clip.k, audio: url,
       label: id.startsWith('live:') ? `today's ${id.slice(5) === 'omni' ? 'OmniVoice' : 'Pocket'} reference` : null};
   }
   describeSet(key, set) {
@@ -156,7 +157,7 @@ export class Picker {
       rejectedNow[set] = !!ids && state.rejected.some(item => item.set === set && item.clips.join('|') === ids);
     }
     const active = this.activeJob(key, 'candidate'), activeCurrent = this.activeJob(key, 'current');
-    return {key, name: titleCase(key), poolSize: voice.clips.length, lines: lines.map((line, at) => ({index: at, text: line.t, seconds: round(line.d), split: line.split, ph: this.pool.linePhone(line),
+    return {key, name: titleCase(key), poolSize: voice.clips.length, lines: lines.map((line, at) => ({index: at, text: line.t, seconds: round(line.d), split: line.split,
         audio: `/audio/line/${key}/${at}`})), line: index, text, hasLine: lines.length > 0,
       sets, current, history: Object.fromEntries(Object.keys(SETS).map(set => [set, this.historyOf(key, set, sets[set])])),
       kept, rejected: state.rejected, rejectedNow, note: state.note, verdict: state.verdict,
@@ -207,18 +208,15 @@ export class Picker {
   }
 
   // ---- actions ----
-  // Phone-flagged clips are left out of the draw unless allowPhone is true.
-  async reroll(key, set, allowPhone = false) {
+  async reroll(key, set) {
     if (!SETS[set]) throw fail(400, 'Unknown set');
     const voice = this.pool.voice(key), state = this.store.voice(key);
     const current = this.candidate(key, set)?.ids ?? [];
     const clips = this.pool.rerollClips(key);
     const pick = rerollSet(clips, {budget: SETS[set].budget, current, recent: state.history[set].slice(0, 15).map(item => item.clips),
-      rejected: state.rejected.filter(item => item.set === set).map(item => item.clips), allowPhone, count: SETS[set].count ?? 3});
+      rejected: state.rejected.filter(item => item.set === set).map(item => item.clips), count: SETS[set].count ?? 3});
     if (!pick) {
-      const phone = clips.filter(clip => clip.ph).length;
-      throw fail(409, `${titleCase(key)} has no other usable clips to draw from (${voice.clips.length} in the pool`
-        + (!allowPhone && phone ? `, ${phone} of them phone-processed and excluded; tick "Include phone clips in Reroll" to allow them` : '') + ')');
+      throw fail(409, `${titleCase(key)} has no other usable clips to draw from (${voice.clips.length} in the pool)`);
     }
     await this.store.append({voice: key, engine: set, set, action: 'reroll', clips: pick.ids,
       seconds: pick.seconds, previous: current});
@@ -382,6 +380,7 @@ export class Picker {
       this.guard(request);
       // Audio routes take the raw pathname: clip ids contain '/', so segments must be decoded after splitting.
       if (request.method === 'GET' && path.startsWith('/audio/')) return await this.audio(request, response, url.pathname);
+      if ((request.method === 'GET' || request.method === 'HEAD') && isNaturalSpeechPath(path)) return serveNaturalSpeech(request, response, path);       // read-only listening page
       if (path.startsWith('/api/')) return await this.api(request, response, path, url);
       if (request.method === 'GET' && /^\/voice\/[a-z0-9-]+\/?$/.test(path)) return await this.staticFile(response, '/voice.html');       // the character page (reference clips)
       if (request.method === 'GET') return await this.staticFile(response, path);
@@ -444,7 +443,7 @@ export class Picker {
     }
     this.pool.voice(key);
     switch (parts[2]) {
-      case 'reroll': await this.reroll(key, body.set, body.allowPhone === true); break;
+      case 'reroll': await this.reroll(key, body.set); break;
       case 'set': await this.setManual(key, body.set, body.clips); break;
       case 'restore': await this.setManual(key, body.set, body.clips, 'restore'); break;
       case 'keep': await this.keep(key, body.engine, typeof body.note === 'string' ? body.note : undefined, line, Array.isArray(body.clips) ? body.clips : undefined); break;

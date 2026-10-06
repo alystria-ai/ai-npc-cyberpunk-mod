@@ -39,7 +39,6 @@ button:disabled { opacity: .55; cursor: default; }
 .chipset.overridden button.chip { opacity: .5; }
 button.chip.quick { font-weight: 600; }
 #scores-note { font-size: 12px; margin: 2px 0 0; }
-.badge.phone { background: var(--warn-bg); color: var(--ink); padding: 0 5px; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .check { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
 main { padding: 8px 16px 8px; }

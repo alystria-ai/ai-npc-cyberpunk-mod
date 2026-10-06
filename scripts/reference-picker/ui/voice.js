@@ -21,7 +21,7 @@ const SET_INFO = {
 const BUDGET = {1: 9, 2: 10, 3: 18};
 const slotLabel = slot => slot.startsWith('pocket') ? 'Pocket' : slot.startsWith('omni16') ? 'OmniVoice, 16 steps' : 'OmniVoice, 32 steps';
 
-const state = {card: null, line: 0, lengths: store.get('lengths', {}), includePhone: store.get('includePhone', false) === true, autogen: store.get('autogen', true) !== false,
+const state = {card: null, line: 0, lengths: store.get('lengths', {}), autogen: store.get('autogen', true) !== false,
   poolClips: null, poolOpen: {}, pool: {}, ticks: {}, pending: false};
 const lengthOf = engine => [1, 2, 3].includes(state.lengths[engine.id]) ? state.lengths[engine.id] : 3;
 
@@ -50,15 +50,8 @@ function clipList(clips) {
   return h('div', {class: 'cliplist'}, clips.map((clip, at) => h('div', {class: 'clip'},
     clip.missing ? h('div', {class: 'muted'}, `${clip.id} (missing)`) : audioEl(clip.audio, {voice: key, what: 'clip', target: clip.id}),
     h('div', {}, h('div', {}, clip.transcript),
-      h('div', {class: 'meta'}, `${at + 1}. ${clip.label ?? shortId(clip.id)} · ${seconds(clip.seconds)}`, clip.ph ? [' ', phoneBadge()] : null,
+      h('div', {class: 'meta'}, `${at + 1}. ${clip.label ?? shortId(clip.id)} · ${seconds(clip.seconds)}`,
         clip.loudness !== null && clip.loudness !== undefined && Math.abs(clip.loudness) > 3 ? h('span', {class: 'warn', title: 'Much louder or quieter than this character’s usual clips; that tends to make OmniVoice worse.'}, ` · loudness ${clip.loudness > 0 ? '+' : ''}${clip.loudness.toFixed(1)} dB`) : null)))));
-}
-function phoneToggle() {
-  const box = h('input', {type: 'checkbox', class: 'include-phone', checked: state.includePhone, onchange: event => {
-    state.includePhone = event.target.checked; store.set('includePhone', state.includePhone);
-    for (const other of document.querySelectorAll('input.include-phone')) other.checked = state.includePhone;
-  }});
-  return h('label', {class: 'check', title: 'Off: “Try different clips” never picks phone/holocall-processed clips. On: they can be picked like any other clip.'}, box, 'Include phone clips');
 }
 function autogenToggle() {
   const box = h('input', {type: 'checkbox', class: 'autogen', checked: state.autogen, onchange: event => {
@@ -116,7 +109,7 @@ async function generate(engine, target) {
 }
 async function tryDifferent(engine) {
   const v = view(engine);
-  const card = await act('reroll', {set: v.set, allowPhone: state.includePhone}, null);
+  const card = await act('reroll', {set: v.set}, null);
   if (!card) return;
   toast('New clips drawn');
   if (state.autogen) await act('regenerate', {slots: v.slots, target: 'candidate', force: false}, null);
@@ -132,7 +125,7 @@ const keepCurrent = engine => act('dismiss', {set: view(engine).set}, 'Keeping t
 // ---- hand-picking -----------------------------------------------------------------------------------------------------------
 function poolTable(engine, v, clips) {
   const set = v.set, count = SET_INFO[set].n, budget = BUDGET[count];
-  const ps = state.pool[set] ??= {sort: 'typical', filter: '', hidePhone: false, limit: 150};
+  const ps = state.pool[set] ??= {sort: 'typical', filter: '', limit: 150};
   const candidateKey = (v.candidate?.ids ?? []).join('|');
   if (state.ticks[set]?.from !== candidateKey) state.ticks[set] = {from: candidateKey, ids: new Set(v.candidate?.ids ?? [])};
   const selected = state.ticks[set].ids;
@@ -150,7 +143,7 @@ function poolTable(engine, v, clips) {
   }
   function rows() {
     const needle = ps.filter.toLowerCase();
-    const list = clips.filter(clip => !(ps.hidePhone && clip.ph) && (!needle || clip.t.toLowerCase().includes(needle) || clip.id.includes(needle))).sort(sorter[ps.sort]);
+    const list = clips.filter(clip => (!needle || clip.t.toLowerCase().includes(needle) || clip.id.includes(needle))).sort(sorter[ps.sort]);
     body.replaceChildren(...list.slice(0, ps.limit).map(clip => h('tr', {},
       h('td', {}, h('input', {type: 'checkbox', checked: selected.has(clip.id), 'aria-label': `Tick ${shortId(clip.id)}`, onchange: event => {
         if (event.target.checked) { if (count === 1) selected.clear(); selected.add(clip.id); } else selected.delete(clip.id);
@@ -160,7 +153,7 @@ function poolTable(engine, v, clips) {
       h('td', {}, seconds(clip.d)),
       h('td', {title: 'How typical of this character (0-100)'}, clip.ty == null ? '' : Math.round(clip.ty)),
       h('td', {class: clip.rel != null && Math.abs(clip.rel) > 3 ? 'warn' : ''}, clip.rel == null ? '' : `${clip.rel > 0 ? '+' : ''}${clip.rel.toFixed(1)}`),
-      h('td', {}, clip.label ? [h('strong', {}, clip.label), ' · '] : null, clip.t, h('div', {class: 'meta'}, shortId(clip.id) + (clip.k ? ` · ${clip.k}-processed` : ''), clip.ph ? [' ', phoneBadge()] : null)))));
+      h('td', {}, clip.label ? [h('strong', {}, clip.label), ' · '] : null, clip.t, h('div', {class: 'meta'}, shortId(clip.id) + (clip.k ? ` · ${clip.k}-processed` : ''))))));
     if (list.length > ps.limit) body.append(h('tr', {}, h('td', {colspan: 6}, h('button', {class: 'small', onclick: () => { ps.limit += 300; rows(); }}, `Show more (${list.length - ps.limit} left)`))));
     update();
   }
@@ -173,10 +166,8 @@ function poolTable(engine, v, clips) {
     h('option', {value: 'shortest'}, 'Shortest first'), h('option', {value: 'words'}, 'Longest text first'));
   sortSelect.value = ps.sort;
   const search = h('input', {type: 'search', placeholder: 'Search the text', 'aria-label': 'Search the text', value: ps.filter, oninput: event => { ps.filter = event.target.value; ps.limit = 150; rows(); }});
-  const hideBox = h('label', {class: 'check', title: 'Leave phone/holocall-processed clips out of this list'},
-    h('input', {type: 'checkbox', checked: ps.hidePhone, onchange: event => { ps.hidePhone = event.target.checked; ps.limit = 150; rows(); }}), 'Hide phone clips');
   rows();
-  return h('div', {}, h('div', {class: 'row', style: 'margin:8px 0'}, sortSelect, search, hideBox, useButton), status,
+  return h('div', {}, h('div', {class: 'row', style: 'margin:8px 0'}, sortSelect, search, useButton), status,
     h('div', {class: 'pool-wrap'}, h('table', {class: 'pool'}, h('thead', {}, h('tr', {}, h('th'), h('th', {}, 'Play'), h('th', {}, 'Length'), h('th', {title: 'How typical of this character'}, 'Typical'),
       h('th', {title: 'Loudness compared with this character’s usual clips (dB)'}, 'Loudness'), h('th', {}, 'Text'))), body)),
     h('div', {class: 'meta', style: 'margin-top:6px'}, 'The two game lines used for the samples are not in this list. Typical means how close a clip is to this character’s average voice.'));
@@ -218,7 +209,7 @@ function engineSection(engine) {
     h('div', {class: 'step'}, h('h3', {}, '2. Try different clips'),
       h('div', {class: 'row'}, h('button', {disabled: !card.poolSize || working, onclick: () => tryDifferent(engine),
         title: card.poolSize ? 'Draw a different set of whole clips from this character’s clips' : 'This character has no spare clips'}, 'Try different clips'),
-        phoneToggle(), autogenToggle()),
+        autogenToggle()),
       v.hasNew ? [h('div', {class: 'meta', style: 'margin-top:8px'}, 'New clips (not kept yet)'), clipList(v.candidate.clips)]
         : !noClips ? h('div', {class: 'meta', style: 'margin-top:6px'}, 'No new clips yet.') : null,
       h('div', {style: 'margin-top:8px'}, handPick(engine, v))),

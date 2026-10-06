@@ -1,6 +1,6 @@
 // Clip pool access for the reference picker: per-voice clips, starting sets, the reroll and manual-set rules.
 import {spawnSync} from 'node:child_process';
-import {existsSync, mkdirSync, readFileSync, statSync} from 'node:fs';
+import {existsSync, mkdirSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {joinedSeconds} from './audio.mjs';
@@ -28,37 +28,10 @@ ${built.stderr || built.stdout}`);
   return path;
 }
 
-// Phone/holocall flags (runtime/voice-data-phone-flags.json, schema voice-data-phone-flags/v1) are produced outside the
-// picker and joined at serve time: the file is re-read whenever its mtime or size changes, and a missing or invalid file
-// simply means "no flags" (every clip then falls back to the dataset's own delivery kind).
-export const PHONE_FLAGS_FILE = 'runtime/voice-data-phone-flags.json';
-export class PhoneFlags {
-  constructor(path) { this.path = path; this.stamp = null; this.data = {clips: {}, live: {}, lines: {}}; }
-  load() {
-    let stamp = null;
-    try { const stat = statSync(this.path); stamp = `${stat.mtimeMs}:${stat.size}`; } catch { /* no file */ }
-    if (stamp === this.stamp) return this.data;
-    this.stamp = stamp;
-    this.data = {clips: {}, live: {}, lines: {}};
-    if (!stamp) return this.data;
-    try {
-      const raw = JSON.parse(readFileSync(this.path, 'utf8').replace(/^\uFEFF/, ''));
-      const plain = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-      this.data = {clips: plain(raw.clips), live: plain(raw.live_references), lines: plain(raw.evaluation_lines)};
-    } catch { /* invalid file: no flags until it changes */ }
-    return this.data;
-  }
-  // true / false when the file has an entry with a boolean "phone", else null.
-  clip(id) { return flagOf(this.load().clips[id]); }
-  live(engine, voice) { return flagOf(this.load().live[engine]?.[voice]); }
-  line(id) { return flagOf(this.load().lines[id]); }
-}
-const flagOf = entry => typeof entry?.phone === 'boolean' ? entry.phone : null;
-
 export class Pool {
-  // index: pool-index.json; project: repository root (for the live references and the phone flags).
-  constructor(index, {project, flagsPath = resolve(project, PHONE_FLAGS_FILE)}) {
-    this.index = index; this.project = project; this.flags = new PhoneFlags(flagsPath);
+  // index: pool-index.json; project: repository root (for the live references).
+  constructor(index, {project}) {
+    this.index = index; this.project = project;
     // Only characters the mod actually has a voice for: the live configs decide.
     this.keys = Object.keys(index.voices).filter(key => Object.keys(index.voices[key].live).length).sort();
     this.byId = new Map();
@@ -71,10 +44,6 @@ export class Pool {
     }
   }
   has(key) { return this.byId.has(key); }
-  // Phone-processed according to the flags file, else according to the dataset's delivery kind.
-  phone(clip) { return this.flags.clip(clip.id) ?? clip.k === 'phone'; }
-  livePhone(key, engine) { return this.flags.live(engine, key) ?? false; }
-  linePhone(line) { return this.flags.line(line.id) ?? false; }
   voice(key) { if (!this.has(key)) throw Object.assign(Error(`Unknown voice ${key}`), {status: 404}); return this.index.voices[key]; }
   // A clip id of this voice -> {id, d (s), t, path (absolute), ...}. "live:pocket" / "live:omni" are today's
   // single references (so a kept voice with no multi-clip set still has something to show and to reuse).
@@ -82,11 +51,10 @@ export class Pool {
     if (typeof id === 'string' && id.startsWith(LIVE_PREFIX)) {
       const live = this.voice(key).live[id.slice(LIVE_PREFIX.length)];
       if (!live?.exists) return null;
-      return {id, d: live.d, t: live.transcript, path: resolve(this.project, live.reference), ty: null, g: null, k: null, s: 'live', rel: live.rel, sha256: live.sha256,
-        ph: this.livePhone(key, id.slice(LIVE_PREFIX.length))};
+      return {id, d: live.d, t: live.transcript, path: resolve(this.project, live.reference), ty: null, g: null, k: null, s: 'live', rel: live.rel, sha256: live.sha256};
     }
     const clip = this.byId.get(key)?.get(id);
-    return clip ? {...clip, path: resolve(this.index.dataRoot, clip.p), ph: this.phone(clip)} : null;
+    return clip ? {...clip, path: resolve(this.index.dataRoot, clip.p)} : null;
   }
   clips(key, ids) {
     const found = ids.map(id => this.clip(key, id));
@@ -127,14 +95,14 @@ export class Pool {
     for (const engine of ['omni', 'pocket']) {
       const live = this.clip(key, LIVE_PREFIX + engine);
       if (live && !list.some(item => item.sha256 === live.sha256)) {
-        list.push({id: live.id, d: live.d, t: live.t, ty: null, g: null, k: null, s: 'live', rel: live.rel, label: `Today's ${engine === 'omni' ? 'OmniVoice' : 'Pocket'} reference`, sha256: live.sha256, ph: live.ph});
+        list.push({id: live.id, d: live.d, t: live.t, ty: null, g: null, k: null, s: 'live', rel: live.rel, label: `Today's ${engine === 'omni' ? 'OmniVoice' : 'Pocket'} reference`, sha256: live.sha256});
       }
     }
-    for (const clip of voice.clips) list.push({id: clip.id, d: clip.d, t: clip.t, ty: clip.ty, g: clip.g, k: clip.k, s: clip.s, rel: clip.rel, ph: this.phone(clip)});
+    for (const clip of voice.clips) list.push({id: clip.id, d: clip.d, t: clip.t, ty: clip.ty, g: clip.g, k: clip.k, s: clip.s, rel: clip.rel, src: clip.src});
     return list;
   }
-  // The voice's clips with the phone flag joined in (what reroll draws from).
-  rerollClips(key) { return this.voice(key).clips.map(clip => ({...clip, ph: this.phone(clip)})); }
+  // The voice's clips (what reroll draws from).
+  rerollClips(key) { return this.voice(key).clips; }
 }
 
 // ---- reroll -------------------------------------------------------------------------------------------------------
@@ -147,15 +115,14 @@ const words = text => text.trim().split(/\s+/).filter(Boolean).length;
 // agent considered (2-9 s) unless the voice has too few of those. Research finding: a reference whose loudness is
 // far from the character's typical lines makes OmniVoice worse and typicality predicts speaker-ID gain, so only
 // clips within LOUDNESS_WINDOW_DB of the voice's median loudness are drawn when there are enough of them.
-// Phone-flagged clips (clip.ph) are never drawn unless allowPhone is set; other media-processed clips are avoided
-// unless the voice has nothing else, and with allowPhone the non-phone clips are still preferred.
-export function rerollSet(allClips, {budget, current = [], recent = [], rejected = [], rng = Math.random, count = 3, allowPhone = false} = {}) {
-  const clips = allowPhone ? allClips : allClips.filter(clip => !clip.ph);
+// Phone-processed clips count like any other; media-processed clips (clip.k === 'media') are avoided unless the voice
+// has nothing else.
+export function rerollSet(clips, {budget, current = [], recent = [], rejected = [], rng = Math.random, count = 3} = {}) {
   const lengthOk = clip => clip.d >= 2 && clip.d <= 9 && words(clip.t) >= MIN_WORDS;
   const loud = clip => clip.rel == null || Math.abs(clip.rel) <= LOUDNESS_WINDOW_DB;
-  let pool = clips.filter(clip => lengthOk(clip) && clip.d <= budget && !clip.k && !clip.ph && loud(clip));
-  if (pool.length < 6) pool = clips.filter(clip => clip.d >= 1 && clip.d <= budget && words(clip.t) >= 2 && !clip.k && !clip.ph && loud(clip));
-  if (pool.length < 6) pool = clips.filter(clip => clip.d >= 1 && clip.d <= budget && words(clip.t) >= 2 && !clip.k && !clip.ph);
+  let pool = clips.filter(clip => lengthOk(clip) && clip.d <= budget && clip.k !== 'media' && loud(clip));
+  if (pool.length < 6) pool = clips.filter(clip => clip.d >= 1 && clip.d <= budget && words(clip.t) >= 2 && clip.k !== 'media' && loud(clip));
+  if (pool.length < 6) pool = clips.filter(clip => clip.d >= 1 && clip.d <= budget && words(clip.t) >= 2 && clip.k !== 'media');
   if (pool.length < 4) pool = clips.filter(clip => clip.d >= 1 && clip.d <= budget && words(clip.t) >= 2);
   if (!pool.length) return null;
   const weight = clip => (0.2 + (clip.ty ?? 50) / 100) * (clip.rel == null ? 1 : 1 - Math.min(Math.abs(clip.rel), LOUDNESS_WINDOW_DB) / (2 * LOUDNESS_WINDOW_DB));

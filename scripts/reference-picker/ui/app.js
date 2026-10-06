@@ -3,7 +3,7 @@
 // the character's reference-clip page in a new tab. Rows build lazily as you scroll, audio elements never preload, and every
 // action updates the page in place (no reloads, no scroll jumps). Helpers live in common.js.
 
-const MATRIX_GROUPS = new Set(['standard', 'clips', 'decoder', 'nophone']);
+const MATRIX_GROUPS = new Set(['standard', 'clips', 'decoder']);
 const state = {research: null, summary: [], entries: new Map(), order: [], rendered: 0, groups: {}, quick: {recommended: false, original: true},
   columns: [], current: null, observer: null};
 
@@ -59,7 +59,7 @@ function buildColumns() {
 }
 const groupShown = id => state.groups[id] ?? true;
 // Quick filters: "Original" shows or hides the original-line column in every mode; "Recommended" shows only the
-// recommended columns (and their phone-free replacements) and overrides the group chips.
+// recommended columns and overrides the group chips.
 const isOriginal = col => col.role === 'original';
 function columnShown(col) {
   if (isOriginal(col)) return state.quick.original;
@@ -67,7 +67,7 @@ function columnShown(col) {
   return groupShown(col.group);
 }
 const QUICK = [
-  {id: 'recommended', label: 'Recommended', title: 'Show only the recommended columns: the 18 s three-clip renders of Pocket student + new decoder, OmniVoice 16 and OmniVoice 32, each with its phone-free version next to it'},
+  {id: 'recommended', label: 'Recommended', title: 'Show only the recommended columns: the 18 s three-clip renders of Pocket student + new decoder, OmniVoice 16 and OmniVoice 32'},
   {id: 'original', label: 'Original', title: 'The original game line column'},
 ];
 function setQuick(id, value) { state.quick[id] = value; store.set('quick', state.quick); applyGroups(); }

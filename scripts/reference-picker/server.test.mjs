@@ -165,8 +165,8 @@ test('research columns, audio and voices without a picker panel', async () => {
     assert.equal((await fetch(base + '/audio/research/omni__s16_g2/v/1')).status, 404);
     assert.equal((await fetch(base + '/audio/research/..%2fx/v/0')).status, 404);
     assert.equal((await call('/api/voice/solo/verdict', {value: 'fine'})).status, 200);   // verdicts work without a panel
-    // New conditions land on disk (Pocket through the new decoder, a phone-free render): they appear on the next scan.
-    for (const cond of ['ft6-s5000raw__decA_multiC', 'omni__s16_g2_multiCnp']) {
+    // New conditions land on disk (Pocket through the new decoder): they appear on the next scan.
+    for (const cond of ['ft6-s5000raw__decA_multiC', 'omni__s16_g2_multiCnp']) {   // the second is an old phone-free render: ignored
       await mkdir(join(research, 'out/gen', cond), {recursive: true});
       await writeFile(join(research, 'out/gen', cond, 'v__0.wav'), encodeWav(new Float32Array(2400), 24000));
     }
@@ -175,9 +175,8 @@ test('research columns, audio and voices without a picker panel', async () => {
     assert.equal(decoder.group, 'decoder');
     assert.equal(decoder.variant, 'two');
     const conds = later.columns.map(column => column.cond);
-    assert.equal(conds.indexOf('omni__s16_g2_multiCnp'), conds.indexOf('omni__s16_g2_multiC') + 1);   // next to the one it replaces
-    assert.equal(later.columns.find(column => column.cond === 'omni__s16_g2_multiCnp').group, 'nophone');
-    assert.ok(!later.columns.some(column => column.placeholder && /phone-free/.test(column.label)));
+    assert.ok(!conds.includes('omni__s16_g2_multiCnp'));
+    assert.ok(!later.columns.some(column => column.group === 'nophone' || /phone-free/.test(column.label ?? '')));
   } finally { await running.close(); }
 });
 
@@ -196,48 +195,6 @@ test('only loopback hosts and JSON posts are accepted', async () => {
     assert.equal(await raw(port, {method: 'POST', path: '/api/voice/v/reroll', headers: {'content-type': 'text/plain'}, body: '{}'}), 415);
     assert.equal(await raw(port, {method: 'POST', path: '/api/voice/v/reroll', headers: {'content-type': 'application/json', origin: 'http://evil.example'}, body: '{}'}), 403);
     assert.equal(await raw(port, {path: '/..%2f..%2fpackage.json'}), 404);
-  } finally { await running.close(); }
-});
-
-const writeFlags = (root, flags) => writeFile(join(root, 'runtime/voice-data-phone-flags.json'), JSON.stringify({schema: 'voice-data-phone-flags/v1', clips: {}, live_references: {}, evaluation_lines: {}, ...flags}));
-const phone = (...ids) => Object.fromEntries(ids.map(id => [`v/${id}`, {phone: true, score: 0.9}]));
-
-test('phone flags: ph on every clip the API returns, reroll leaves phone clips out unless allowPhone', async () => {
-  const {running, call, root} = await fixture();
-  try {
-    // No flags file yet: nothing is phone (the fixture clips have no delivery kind).
-    let card = (await call('/api/voice/v')).body;
-    assert.ok(card.sets.pocket.clips.every(clip => clip.ph === false));
-    assert.ok((await call('/api/pool/v')).body.clips.every(clip => clip.ph === false));
-
-    // Flags are picked up without a restart (the file is re-read when it changes).
-    await writeFlags(root, {clips: phone(1, 6, 7), live_references: {pocket: {v: {phone: true}}, omni: {v: {phone: true}}}});
-    card = (await call('/api/voice/v')).body;
-    assert.deepEqual(card.sets.pocket.clips.map(clip => clip.ph), [false, true, false]);
-    const pool = (await call('/api/pool/v')).body.clips;
-    assert.deepEqual(pool.filter(clip => clip.ph).map(clip => clip.id).sort(), ['live:omni', 'v/1', 'v/6', 'v/7']);   // the identical pocket reference is listed once
-    card = (await call('/api/voice/v/set', {set: 'pocket', clips: ['live:pocket']})).body;
-    assert.equal(card.sets.pocket.clips[0].ph, true);
-
-    // Default reroll never draws a phone clip.
-    for (let round = 0; round < 5; round++) {
-      card = (await call('/api/voice/v/reroll', {set: 'omni'})).body;
-      assert.ok(card.sets.omni.clips.every(clip => !clip.ph), JSON.stringify(card.sets.omni.ids));
-    }
-
-    // Every clip phone: the default reroll is refused with a clear message, allowPhone draws them.
-    await writeFlags(root, {clips: phone(0, 1, 2, 3, 4, 5, 6, 7)});
-    const refused = await call('/api/voice/v/reroll', {set: 'omni'});
-    assert.equal(refused.status, 409);
-    assert.match(refused.body.error, /phone/);
-    assert.equal((await call('/api/voice/v/reroll', {set: 'omni', allowPhone: false})).status, 409);
-    const allowed = await call('/api/voice/v/reroll', {set: 'omni', allowPhone: true});
-    assert.equal(allowed.status, 200);
-    assert.ok(allowed.body.sets.omni.clips.every(clip => clip.ph));
-
-    // A broken file means no flags rather than an error.
-    await writeFile(join(root, 'runtime/voice-data-phone-flags.json'), '{not json');
-    assert.ok((await call('/api/pool/v')).body.clips.every(clip => clip.ph === false));
   } finally { await running.close(); }
 });
 

@@ -29,8 +29,6 @@ const store = {
 const shortId = id => id.startsWith('live:') ? "today's reference" : id.split('/').slice(1).join('/');
 const seconds = value => `${Number(value).toFixed(1)} s`;
 const timeOf = ts => ts ? new Date(ts).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}) : 'start';
-// Phone/holocall-processed (band-limited) clips are marked wherever a clip is listed.
-const phoneBadge = () => h('span', {class: 'badge phone', title: 'Phone/holocall-processed clip (band-limited)'}, '📞');
 
 let toastTimer;
 function toast(message, {bad = false, undo = null} = {}) {

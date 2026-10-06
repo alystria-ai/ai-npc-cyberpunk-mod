@@ -5,8 +5,8 @@
 //   out/summary-table.md   PLS / ECAPA guard / WER per condition (the numbers shown under each column header)
 //   out/gen/<cond>/<voice>__<line>.wav and page/audio/<cond>/<voice>.wav   the audio itself (line 0 on the page)
 //   out/panel.json         the two held-out game lines per voice (text)
-//   out/scores_per_speaker.json   per-voice ECAPA where it was measured (np_per_speaker.json adds the phone-free renders)
-// Columns are discovered on every scan, so new conditions (for example phone-free renders) show up as soon as their
+//   out/scores_per_speaker.json   per-voice ECAPA where it was measured 
+// Columns are discovered on every scan, so new conditions show up as soon as their
 // files land. Only conditions on the allowlist below are columns at all; every other render directory (research
 // leftovers, LoRA, loudness-matched, codec round trips, ...) is ignored: it gets no column and no placeholder.
 import {existsSync, readdirSync, readFileSync, statSync} from 'node:fs';
@@ -27,47 +27,41 @@ export const GROUPS = Object.freeze([
   {id: 'standard', label: 'Standard', shown: true},
   {id: 'clips', label: 'Multi-clip references', shown: true},
   {id: 'decoder', label: 'New Mimi decoder', shown: true},
-  {id: 'nophone', label: 'Phone-free references', shown: true},
 ]);
 export const ORIGINAL = 'REAL-target-copy';
-// What the "Recommended" quick filter shows (besides the Original column); each one's phone-free replacement
-// (the same name with "np" appended) is shown next to it when it exists.
+// What the "Recommended" quick filter shows (besides the Original column).
 export const RECOMMENDED = Object.freeze(['ft6-s5000raw__decA_multiB', 'omni__s16_g2_multiB', 'omni__s32_g2_multiB']);
-const RECOMMENDED_SET = new Set([...RECOMMENDED, ...RECOMMENDED.map(cond => `${cond}np`)]);
+const RECOMMENDED_SET = new Set(RECOMMENDED);
 
 const unescapeHtml = text => text.replace(/<[^>]*>/g, '').replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&')
   .replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
 const number = text => { const value = Number.parseFloat(text); return Number.isFinite(value) ? value : null; };
 
 // Variant of a render condition, so Pocket and OmniVoice line up as "1 clip | 2 clips (10 s) | 3 clips (18 s)".
-// A phone-free variant (references without phone-processed clips; condition name ends in "np") sits right after the
-// variant it replaces.
-export const VARIANT_LABELS = {single: '1 clip', two: '2 clips (10 s)', twoNp: '2 clips (10 s), phone-free',
-  three: '3 clips (18 s)', threeNp: '3 clips (18 s), phone-free'};
+export const VARIANT_LABELS = {single: '1 clip', two: '2 clips (10 s)', three: '3 clips (18 s)'};
 const MATRIX_VARIANTS = ['single', 'two', 'three'];
-const VARIANT_ORDER = ['single', 'two', 'twoNp', 'three', 'threeNp'];
+const VARIANT_ORDER = ['single', 'two', 'three'];
 const LETTER_VARIANT = {C: 'two', B: 'three'};
-// The allowlist: one pattern per family. Group 1 is the multi-clip letter (B = 18 s, C = 10 s), group 2 is "np".
+// The allowlist: one pattern per family. Group 1 is the multi-clip letter (B = 18 s, C = 10 s).
 const FAMILIES = [
-  {family: 'pocket', label: 'Pocket student, old decoder', rank: 3, pattern: /^ft6-s5000raw__(?:cfg1|multi([BC])(np)?)$/, group: 'standard'},
-  {family: 'pocket-dec', label: 'Pocket student, new decoder', rank: 4, pattern: /^ft6-s5000raw__decA(?:_multi([BC])(np)?)?$/, group: 'decoder'},
-  {family: 'omni16', label: 'OmniVoice 16 steps', rank: 5, pattern: /^omni__s16_g2(?:_multi([BC])(np)?)?$/, group: 'standard'},
-  {family: 'omni32', label: 'OmniVoice 32 steps', rank: 6, pattern: /^omni__s32_g2(?:_multi([BC])(np)?)?$/, group: 'standard'},
+  {family: 'pocket', label: 'Pocket student, old decoder', rank: 3, pattern: /^ft6-s5000raw__(?:cfg1|multi([BC]))$/, group: 'standard'},
+  {family: 'pocket-dec', label: 'Pocket student, new decoder', rank: 4, pattern: /^ft6-s5000raw__decA(?:_multi([BC]))?$/, group: 'decoder'},
+  {family: 'omni16', label: 'OmniVoice 16 steps', rank: 5, pattern: /^omni__s16_g2(?:_multi([BC]))?$/, group: 'standard'},
+  {family: 'omni32', label: 'OmniVoice 32 steps', rank: 6, pattern: /^omni__s32_g2(?:_multi([BC]))?$/, group: 'standard'},
 ];
 const FIXED = {[ORIGINAL]: {family: 'original', familyLabel: 'Original', rank: 0}, 'base6-2609__cfg1': {family: 'pocket-base', familyLabel: 'Pocket base', rank: 1}};
 
-// {allowed, family, familyLabel, variant, rank, noPhone, group}. allowed is false for everything not on the allowlist.
+// {allowed, family, familyLabel, variant, rank, group}. allowed is false for everything not on the allowlist.
 export function classify(cond) {
   const fixed = FIXED[cond];
-  if (fixed) return {...fixed, allowed: true, variant: 'single', noPhone: false, group: 'standard'};
+  if (fixed) return {...fixed, allowed: true, variant: 'single', group: 'standard'};
   for (const item of FAMILIES) {
     const match = item.pattern.exec(cond);
     if (!match) continue;
-    const [, letter, np] = match, base = LETTER_VARIANT[letter] ?? 'single';
-    const variant = np ? `${base}Np` : base;
-    return {allowed: true, family: item.family, familyLabel: item.label, variant, rank: item.rank, noPhone: !!np, group: np ? 'nophone' : letter ? (item.group === 'decoder' ? 'decoder' : 'clips') : item.group};
+    const [, letter] = match, variant = LETTER_VARIANT[letter] ?? 'single';
+    return {allowed: true, family: item.family, familyLabel: item.label, variant, rank: item.rank, group: letter ? (item.group === 'decoder' ? 'decoder' : 'clips') : item.group};
   }
-  return {allowed: false, family: cond, familyLabel: '', variant: 'single', rank: 99, noPhone: false, group: null};
+  return {allowed: false, family: cond, familyLabel: '', variant: 'single', rank: 99, group: null};
 }
 // Group id of a condition, or null when it is not shown at all.
 export const groupOf = cond => classify(cond).group;
@@ -120,7 +114,7 @@ export class Research {
     const page = parsePage(read(join(root, 'page', 'index.html'), ''));
     const panel = (() => { try { return readJsonLoose(join(root, 'out', 'panel.json')); } catch { return {}; } })();
     const readOptional = name => { try { return readJsonLoose(join(root, 'out', name)); } catch { return {}; } };
-    const perSpeaker = {...readOptional('scores_per_speaker.json'), ...readOptional('np_per_speaker.json')};   // np_: phone-free renders
+    const perSpeaker = readOptional('scores_per_speaker.json');
 
     // audio index: cond -> Set("voice|line")
     const audio = new Map();
@@ -153,22 +147,20 @@ export class Research {
       const info = classify(cond), inMatrix = info.rank >= 3;
       const voices = [...audio.get(cond)].map(key => key.split('|')[0]);
       return {cond, title: inMatrix ? `${info.familyLabel}, ${VARIANT_LABELS[info.variant]}` : info.familyLabel, group: info.group, source, metrics, voices: new Set(voices).size,
-        have: audio.get(cond), family: info.family, variant: info.variant, noPhone: info.noPhone, role: cond === ORIGINAL ? 'original' : undefined,
+        have: audio.get(cond), family: info.family, variant: info.variant, role: cond === ORIGINAL ? 'original' : undefined,
         recommended: RECOMMENDED_SET.has(cond), spanLabel: inMatrix ? info.familyLabel : '', label: inMatrix ? VARIANT_LABELS[info.variant] : info.familyLabel,
         sort: [info.rank, VARIANT_ORDER.indexOf(info.variant)]};
     });
-    // Keep the 1 | 2 | 3 blocks aligned: a variant that has not been rendered yet shows as an empty column. Phone-free
-    // variants get no placeholder; they appear only once rendered.
+    // Keep the 1 | 2 | 3 blocks aligned: a variant that has not been rendered yet shows as an empty column.
     for (const item of FAMILIES.filter(entry => entry.family !== 'pocket-dec')) {
       for (const variant of MATRIX_VARIANTS) {
         if (raw.some(column => column.family === item.family && column.variant === variant)) continue;
         raw.push({cond: null, placeholder: true, title: `${item.label}, ${VARIANT_LABELS[variant]}`, group: variant === 'single' ? item.group : 'clips', source: 'placeholder',
-          metrics: {pls: null, ecapa: null, wer: null}, voices: 0, family: item.family, variant, noPhone: false, recommended: false, spanLabel: item.label, label: VARIANT_LABELS[variant],
+          metrics: {pls: null, ecapa: null, wer: null}, voices: 0, family: item.family, variant, recommended: false, spanLabel: item.label, label: VARIANT_LABELS[variant],
           sort: [item.rank, VARIANT_ORDER.indexOf(variant)]});
       }
     }
-    // Original, Pocket base, then the 1 | 2 | 3 blocks (Pocket old decoder, Pocket new decoder, OmniVoice 16, OmniVoice 32),
-    // each phone-free column right after the one it replaces.
+    // Original, Pocket base, then the 1 | 2 | 3 blocks (Pocket old decoder, Pocket new decoder, OmniVoice 16, OmniVoice 32).
     raw.sort((a, b) => a.sort[0] - b.sort[0] || a.sort[1] - b.sort[1] || (a.cond ?? '').localeCompare(b.cond ?? ''));
     // `have` is null when a column covers every voice and line of the Original column, else the list that exists.
     const everything = audio.get('REAL-target-copy') ?? new Set();
