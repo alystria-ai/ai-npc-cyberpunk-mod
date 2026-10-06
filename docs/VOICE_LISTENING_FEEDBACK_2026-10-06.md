@@ -29,3 +29,7 @@ The user's per-character verdicts from the report page (http://127.0.0.1:8765/),
 - The clip-set search is paused until the retrained decoder exists.
 - Metric priority: ECAPA (speaker identity) is primary, PLS secondary, and WER is skipped (too slow).
 - Per-character automatic search for the best clip set (which clips, and 1/2/3), scored by ECAPA, with the results offered as "Auto-best" in the picker.
+
+### Decoder A "holographic" follow-up
+- The Carol set: only decoder A sounds holographic; the pretrained decoder is normal. Removing decoder A's 200 Hz line comb made no audible difference, so the comb isn't the cause.
+- The user doesn't want character effects (no DSP chains). Adam Smasher can just sound menacing, and Johnny human (his companion form is flesh). The goal is only that the holographic sound never appears unexpectedly.
