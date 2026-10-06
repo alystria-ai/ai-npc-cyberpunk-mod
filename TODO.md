@@ -78,6 +78,8 @@ atural-speech\page\index.html` (and `/natural-speech/` on the picker after its n
 - Voice cloning setting (after the research runs finish): let the player choose how many reference clips (1, 2 or 10 s, 3 or 18 s), with a description of the measured trade-off (likeness vs time to first audio, per engine). User request, 2026-10-06.
 
 
+- OmniVoice precision test (2026-10-06): no lower-precision variant is faster than FP16 with the CUDA graph (BF16 same speed at best; INT8 and FP8 12%–2× slower). Quality is unchanged within noise for BF16, FP8 and INT8-on-BF16. INT8 on FP16 is broken (garbage). Only gain: 0.3–0.5 GB less VRAM. Decision: keep FP16. Scripts `scripts/Measure-OmniPrecision.mjs` and `scripts/Score-OmniPrecision.py`; WAVs in `runtime/effect-examples/omni-precision/`.
+
 ### Later
 - Packaging a player release: ship the prebuilt voice client; use the auto-start supervisor instead of `packaging/runtime-bootstrap.mjs`; allow `red4ext/` paths in `release-plan.json`; first-run key setup; no keys, player data, audio or training data in the package.
 
