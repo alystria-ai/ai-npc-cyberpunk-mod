@@ -157,6 +157,9 @@ atural-speech\`). Pause numbers from silence detection only (no Whisper). Script
 - Disk offload (2026-10-05, C: was nearly full): these folders were moved to `E:\CyberpunkConvai-offload\<same relative path>`, and each original path is now a directory junction: `runtime/voice-data-expansion-20261004` and `-20261003`, `research/cyberpunk/cache`, `vendor/reference-voicestudio`, `vendor/reference-omnivoice-training`, `runtime/lipsync-corpus`, `runtime/lipsync-corpus2`. `runtime/voice-comparisons` was moved except 6 locked WavLM cache files (no junction). Deleted: `vendor/voice-cache` (uv cache), `runtime/kaggle-pocket-training-output`, `runtime/kaggle-pocket-student-correction-output`, and `pocket-tts-env`'s `torch/lib/dnnl.lib` (build-only). WSL Ubuntu's disk moved to `E:\WSL\Ubuntu\ext4.vhdx` (sparse mode on). The unused WSL folder `~/.local/share/cyberpunk-convai` (21 GB of old Oct 2–4 training staging; the mod's Pocket worker runs on Windows) was deleted. Write big new files to `E:\CyberpunkConvai-offload\work\`.
 - Movement trace (Developer mode): `<mod>\runtime\movement-trace.ndjson` (+ `.previous`); read-only diagnostics via `<mod>\runtime\diagnostic-request.txt` (`companion-systems:<nonce>` reports the vehicle fleet).
 
+**Backup remote**
+- Private GitHub repo: https://github.com/alystria-ai/cyberpunk-convai (remote `alystria`, branch `main`), first pushed 2026-10-06 at the user's request. The code and recipes matter most. To push: `gh auth switch -u alystria-ai`, `git push alystria main`, then `gh auth switch -u AkshitIreddy` (the user's default active account). Before each push, check for secrets (real credential values and token patterns, excluding the planted fakes in `bridge/support-report-fixture.mjs`) and for no audio, weights or notebooks.
+
 **Never touch**
 - `scripts/Test-GameInput.ps1`: don't read, run or stage it.
 - `mod/diagnostics.lua`: don't edit or stage it.
