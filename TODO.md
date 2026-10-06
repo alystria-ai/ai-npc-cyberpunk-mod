@@ -77,6 +77,10 @@ After the agents above finish:
 
 ## Captain's log
 
+**2026-10-06 (expressions): why local voices had no visible face, and the fix**
+- Root cause: the wiring was fine (rest pose written about 24,000 times; Omni timelines carry `jali-audio-v1` plus `modelExpressions`), but (1) the text cue needed two lexicon hits, so Judy's reply produced no receipt, (2) the resting smile was .025 and idle-only, and (3) the caps were calibrated against a misread game number. The game's lipsync holds a constant per-line mood offset (smile .10 + brows raise .10 in 39% of 6938 lines, frown .20 + brows lower .324 in 20%); our caps and scaling were at or below it.
+- Fix: strengths .5/.8/1, caps up/down .20, brow raise .25, lower .32, speech keeps 85%, rest smile .06 in idle and speech, model brow gain .65, and `text-emotion.mjs` now always returns a cue (lexicon, tone, then character warmth; cold characters flat). New per-turn receipts: `runtime/expression-receipt.json` and `speech-state.json` face.expressions.lastSpeech (peak pose). Details in `docs/COMPANION_EXPRESSIONS.md`. Install: `mod/facial-playback.lua` (CET reload) and a bridge restart. Not seen in game yet; if too strong or weak only the numbers change.
+
 **2026-10-06 (later): phone-free references and the simplified page**
 - Phone detector (spectral bandwidth, bass and high-band relative to each voice, plus the dataset's delivery metadata). Share of phone clips: training set 23.4% overall (songbird 69%, solomon-reed 31%, regina-jones 84%, t-bug 94%), 6 of 75 live single references (none among the 29 shown characters), 8-10% of clips in the proposed multi-clip sets, 18 of 134 held-out lines (10 of 58 for the shown characters). Validation sample and spectra on E: `work/phone-detect/validation`.
 - Rebuilt phone-free 10 s and 18 s sets as proposed configs; re-rendered the recommended three (Pocket decA on CPU, OmniVoice 16 and 32 on the GPU) for the 29 shown characters and scored them (PLS, ECAPA, WER). The auto-selector was not re-run (earlier tie with most-typical, confirmed on the shown voices).
