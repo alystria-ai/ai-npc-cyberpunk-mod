@@ -10,7 +10,10 @@ local selection = dofile('gesture-selection.lua')
 local M = {}
 local HOLDING = {spawning = true, starting = true, active = true, exiting = true, recovering = true}
 M.policy = {linger = 2.5, patience = 3, giveUp = 6, unsettled = .8, playerMoved = .75, playerRunning = 2.5,
-    wedgeAfter = 1.5, healthWindow = 10, recoveryHold = .9, recoveryLimit = 2, failureCooldown = 30, minimumSpeech = 5}
+    wedgeAfter = 1.5, healthWindow = 10, recoveryHold = .9, recoveryLimit = 2, failureCooldown = 30, minimumSpeech = 5,
+    -- Signature idle flavour (characters marked flavour in the catalog only):
+    -- after this long settled, now and then, for a short while.
+    flavourSettled = 20, flavourFirst = {45, 90}, flavourGap = {60, 150}, flavourLength = {18, 30}}
 
 local function distance(a, b)
     if not a or not b then return 0 end
@@ -43,6 +46,7 @@ function M.new(options)
         enabled = options.enabled or function() return false end,
         speech = options.speech or function() return nil end,
         listening = options.listening or function() return nil end,
+        thinking = options.thinking or function() return nil end,
         allowed = options.allowed or nativeAllowed, native = options.native or workspot,
         random = options.random, log = options.log or function() end, errors = {}}
     local native, policy = self.native, M.policy
@@ -84,6 +88,7 @@ function M.new(options)
             return 'short', nil
         end
         if self.listening() == entity then return 'listening', {} end
+        if self.thinking() == entity then return 'thinking', nil end
         return nil
     end
 
@@ -104,12 +109,16 @@ function M.new(options)
         return nil
     end
 
-    local function begin(s, known, family, recovery)
+    local function between(range) return range[1] + (range[2] - range[1]) * ((self.random or math.random)()) end
+    local function begin(s, known, family, recovery, flavour)
         s.phase, s.since = recovery and 'recovering' or 'spawning', self.clock
+        s.flavour = flavour == true
+        s.component = flavour and self.catalog.idleComponents[known.idle] or family.component
+        s.flavourUntil = flavour and self.clock + between(policy.flavourLength) or nil
         s.known, s.family, s.rig, s.character = known, family, known.rig, known.key
         s.deviceMoved, s.clip, s.exitAt, s.playerAnchor, s.unsettledSince = false, nil, nil, copy(self.playerPosition), nil
         s.recovery, s.playAt = recovery == true, nil
-        note(s, recovery and 'recovery-begin' or 'begin', {family = known.talk})
+        note(s, recovery and 'recovery-begin' or (flavour and 'flavour-begin') or 'begin', {family = known.talk, component = s.component})
     end
     local function finish(s, reason)
         note(s, 'finished', {reason = reason, exitLatency = s.exitAt and self.clock - s.exitAt})
@@ -148,11 +157,11 @@ function M.new(options)
                 return
             end
             s.device = device
-            local ok, result = native.play(device, npc, s.family.component)
+            local ok, result = native.play(device, npc, s.component or s.family.component)
             if not ok then fail(s, 'play: ' .. tostring(result)); return end
             s.playAt = self.clock
             if s.phase == 'spawning' then s.phase = 'starting' end
-            note(s, 'play', {component = s.family.component})
+            note(s, 'play', {component = s.component})
             return
         end
         if s.phase == 'starting' or s.phase == 'recovering' then
@@ -191,6 +200,13 @@ function M.new(options)
         if moved > policy.playerMoved or (self.playerSpeed or 0) > policy.playerRunning
             or (s.unsettledSince and self.clock - s.unsettledSince > policy.unsettled) then
             requestExit(s, 'movement', false); return
+        end
+        if s.flavour then
+            -- Signature idle: leave when its time is up or a conversation starts
+            -- (the talk stance follows from the next settled tick).
+            if mode ~= nil then requestExit(s, 'conversation', false)
+            elseif self.clock >= s.flavourUntil then requestExit(s, 'flavour ended', false) end
+            return
         end
         if mode == 'speaking' or mode == 'listening' then s.lingerUntil = self.clock + policy.linger
         elseif self.clock >= (s.lingerUntil or 0) and not s.clip then requestExit(s, 'reply ended', false); return end
@@ -246,7 +262,18 @@ function M.new(options)
             if s.phase == 'off' then
                 health(s, context)
                 if s.phase ~= 'off' then return end
-                if not self.enabled() or (mode ~= 'speaking' and mode ~= 'listening') then return end
+                if context.idle and context.settled and not context.combat then s.settledSince = s.settledSince or self.clock
+                else s.settledSince = nil end
+                if not self.enabled() then return end
+                local flavour = false
+                if mode ~= 'speaking' and mode ~= 'listening' then
+                    local known = characterOf(entry)
+                    if mode ~= nil or not known or not known.flavour or not known.idle
+                        or not self.catalog.idleComponents[known.idle] or not s.settledSince then return end
+                    s.nextFlavourAt = s.nextFlavourAt or self.clock + between(policy.flavourFirst)
+                    if self.clock - s.settledSince < policy.flavourSettled or self.clock < s.nextFlavourAt then return end
+                    flavour = true
+                end
                 if self.clock < (s.cooldownUntil or 0) then return end
                 if not (context.idle and context.settled) or context.combat then return end
                 local known, family = characterOf(entry)
@@ -254,7 +281,8 @@ function M.new(options)
                 if native.inWorkspot(entry.npc) ~= false then return end -- seats and scenes own their workspots
                 local allowed = self.allowed(entry.npc, self.player)
                 if not allowed then return end
-                begin(s, known, family, false)
+                begin(s, known, family, false, flavour)
+                if flavour then s.nextFlavourAt = self.clock + between(policy.flavourGap) end
             end
             if not self.enabled() and s.phase == 'active' then requestExit(s, 'disabled', false) end
             advance(s, context, mode, info)

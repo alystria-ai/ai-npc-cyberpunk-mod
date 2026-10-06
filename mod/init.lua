@@ -419,6 +419,7 @@ do
             enabled = function() return manager.bodyGestures() end,
             speech = speechFor,
             listening = function() return convaiFacialPlayback and convaiFacialPlayback.listeningEntity end,
+            thinking = function() return convaiFacialPlayback and convaiFacialPlayback.thinkingEntity end,
             log = function(kind, fields)
                 if manager.developerMode() then
                     local ok, text = pcall(json.encode, fields)

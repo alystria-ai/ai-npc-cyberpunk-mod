@@ -6241,6 +6241,7 @@ return {
             rig = "woman_base",
             talk = "on_hips",
             idle = "panam",
+            flavour = true,
         },
         ["Character.Rogue"] = {
             key = "rogue",
@@ -6255,20 +6256,23 @@ return {
         ["Character.Silverhand"] = {
             key = "johnny",
             rig = "man_base",
-            talk = "arms_crossed",
+            talk = "on_sides",
             idle = "johnny",
+            flavour = true,
         },
         ["CyberpunkConvai.JohnnyCompanion"] = {
             key = "johnny",
             rig = "man_base",
-            talk = "arms_crossed",
+            talk = "on_sides",
             idle = "johnny",
+            flavour = true,
         },
         ["Character.Kerry"] = {
             key = "kerry",
             rig = "man_base",
             talk = "kerry",
             idle = "kerry",
+            flavour = true,
         },
         ["Character.Victor_Vector"] = {
             key = "viktor",
@@ -6280,12 +6284,14 @@ return {
             rig = "man_base",
             talk = "takemura",
             idle = "takemura",
+            flavour = true,
         },
         ["Character.Jackie"] = {
             key = "jackie",
             rig = "man_big",
             talk = "on_sides",
             idle = "jackie",
+            flavour = true,
         },
         ["Character.Sobchak"] = {
             key = "river",

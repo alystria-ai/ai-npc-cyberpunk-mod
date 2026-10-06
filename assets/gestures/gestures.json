@@ -99,15 +99,15 @@
   },
   "characters": {
     "Character.Judy": {"key": "judy", "rig": "woman_base", "talk": "arms_crossed", "idle": "judy"},
-    "Character.Panam": {"key": "panam", "rig": "woman_base", "talk": "on_hips", "idle": "panam"},
+    "Character.Panam": {"key": "panam", "rig": "woman_base", "talk": "on_hips", "idle": "panam", "flavour": true},
     "Character.Rogue": {"key": "rogue", "rig": "woman_base", "talk": "arms_crossed"},
     "Character.Misty": {"key": "misty", "rig": "woman_base", "talk": "on_sides"},
-    "Character.Silverhand": {"key": "johnny", "rig": "man_base", "talk": "arms_crossed", "idle": "johnny"},
-    "CyberpunkConvai.JohnnyCompanion": {"key": "johnny", "rig": "man_base", "talk": "arms_crossed", "idle": "johnny"},
-    "Character.Kerry": {"key": "kerry", "rig": "man_base", "talk": "kerry", "idle": "kerry"},
+    "Character.Silverhand": {"key": "johnny", "rig": "man_base", "talk": "on_sides", "idle": "johnny", "flavour": true},
+    "CyberpunkConvai.JohnnyCompanion": {"key": "johnny", "rig": "man_base", "talk": "on_sides", "idle": "johnny", "flavour": true},
+    "Character.Kerry": {"key": "kerry", "rig": "man_base", "talk": "kerry", "idle": "kerry", "flavour": true},
     "Character.Victor_Vector": {"key": "viktor", "rig": "man_base", "talk": "on_sides"},
-    "Character.Takemura": {"key": "takemura", "rig": "man_base", "talk": "takemura", "idle": "takemura"},
-    "Character.Jackie": {"key": "jackie", "rig": "man_big", "talk": "on_sides", "idle": "jackie"},
+    "Character.Takemura": {"key": "takemura", "rig": "man_base", "talk": "takemura", "idle": "takemura", "flavour": true},
+    "Character.Jackie": {"key": "jackie", "rig": "man_big", "talk": "on_sides", "idle": "jackie", "flavour": true},
     "Character.Sobchak": {"key": "river", "rig": "man_big", "talk": "on_sides"}
   },
   "idleWorkspots": {

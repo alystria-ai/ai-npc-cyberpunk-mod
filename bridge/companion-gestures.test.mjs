@@ -168,3 +168,20 @@ test('unknown characters are left alone', () => run(`
   entry.record='Character.Somebody';speaking={knownEnd=20,at=0};step(2)
   assert(count('play')==0)
 `));
+
+test('Johnny takes his signature idle now and then when settled, never Judy, and leaves it for a conversation', () => run(`
+  step(130)
+  assert(count('play')==0,'Judy keeps her vanilla idle (no flavour)')
+  entry.record='Character.Silverhand';entry.serial=2;calls={};logs={}
+  step(115)
+  local began=lastLog('flavour-begin')
+  assert(began and began.fields.component=='convai_idle_johnny','signature idle component')
+  step(31)
+  assert(lastLog('finished') and lastLog('finished').fields.reason=='flavour ended')
+  step(160)
+  assert(#(function() local n={};for _,l in ipairs(logs) do if l.kind=='flavour-begin' then n[#n+1]=l end end;return n end)()>=2,'repeats with a gap')
+  speaking={knownEnd=20,at=0};step(.3)
+  if lastLog('flavour-begin') and not lastLog('exit') then end
+  step(1.5)
+  assert(last('play').component=='convai_talk_on_sides','Johnny talks from hands at sides like his idle: '..tostring(last('play').component))
+`));
