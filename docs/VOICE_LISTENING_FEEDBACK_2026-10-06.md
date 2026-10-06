@@ -36,3 +36,7 @@ The user's per-character verdicts from the report page (http://127.0.0.1:8765/),
 - Control verdict (Carol line 0): holographic in 04 (A with pretrained highs) and 10 (A highs replaced by noise); fine in 05, 06 (A with pretrained mids 1.5–4 kHz) and 07 (A levels with pretrained phase); 09 sounds low quality; 11 and 12 a little. Conclusion: the cause is decoder A's mid-band (about 1.5–4 kHz) phase, not the highs or the 200 Hz comb.
 - Confirmation set: Carol 13 (pretrained phase only in 1.5–4 kHz) still a bit holographic; Judy and Takemura 13 and 14 both OK. So phase below 1.5 kHz contributes for Carol (full-band phase swap 07 was fine). The decoder fix widens the phase anchor to 0.5–4 kHz.
 - Carol 15 (pretrained phase in 0.5–4 kHz): only a faint tint at the end of "well" in line 0, the same as the pretrained decoder; line 1 clean. Fix accepted. The retrain (0.5–4 kHz phase anchor, exclusion list) goes ahead once the expanded pool lands.
+
+## 2026-10-07
+### Adam Smasher (user-chosen pool)
+- The user picked 11 candidate clips by ear: 1653087655475433472, 1776711517152501760, 1876330591075450880, 1876331655187152896, 1995324830177058816, 1995048870861103104, 1995076448980328448, 1792270501449261056, 1792271201864474624, 1792275223900020748, 1792275223900020764. The search picks the count and order per engine, scored against Adam's two page lines (the user accepts the overfit). The report is updated afterwards.
