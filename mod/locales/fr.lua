@@ -120,7 +120,6 @@ return {
     ["Cyberpunk Convai: companion manager"] = "Cyberpunk Convai : gestion des compagnons",
     ["Cyberpunk Convai: group text chat"] = "Cyberpunk Convai : chat textuel de groupe",
     ["Cyberpunk Convai: group voice chat"] = "Cyberpunk Convai : chat vocal de groupe",
-    ["Cyberpunk Convai: mark target for companions"] = "Cyberpunk Convai : marquer la cible pour les compagnons",
     ["Cyberpunk Convai: talk by text"] = "Cyberpunk Convai : parler par texte",
     ["Cyberpunk Convai: talk by voice"] = "Cyberpunk Convai : parler au micro",
     ["DETAILS  {page} / {pages}"] = "DÉTAILS  {page} / {pages}",

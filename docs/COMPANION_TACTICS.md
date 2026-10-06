@@ -1,17 +1,38 @@
 # Companion tactics: Fight and Distract
 
-## Marking a target
+## Choosing the target
 
-Bind **Cyberpunk Convai: mark target for companions** in CET. Aim at a person
-and press it; the game's own focus-mode tag highlights them. Press it again on
-the same person (or on nobody) to clear the mark. Managed companions, dead and
-defeated NPCs cannot be marked, and a mark is dropped beyond 90 m. Without an
-explicit mark, exactly one scanner-tagged NPC within 50 m also counts; several
-tagged NPCs count as ambiguous.
+The mod has no marking key of its own. It reads the game's native marking: tag an
+enemy with the scanner (focus mode) as usual. The target is chosen when you talk
+to the companion, in this order:
+
+1. **Tagged.** The closest scanner-tagged valid NPC within 50 m (several tags are
+   fine; the nearest wins).
+2. **Looked at.** Nobody valid is tagged: the NPC under the crosshair (the game's
+   look-at target, else the one closest to the crosshair) if valid and within 30 m.
+3. **Nearest.** Otherwise the closest valid NPC within 50 m.
+
+Valid means alive (not dead or defeated) and combat-capable: gang members, police,
+corpo and military security, cyberpsychos, drones, mechs, androids, or anyone with
+a weapon in hand. The NPC does not have to be hostile yet. Never targets: managed
+companions or other player companions, crowd and civilians, children, vendors,
+invulnerable NPCs, NPCs under story/scene control, and friendly NPCs other than
+police. Tags on those NPCs are ignored. The game signals read are
+`IsTaggedinFocusMode`, `IsCrowd`, `IsCharacterCivilian`, `IsCharacterChildren`,
+`IsVendor`, `IsInvulnerable` (plus the `IsInvulnerable` stat), `IsOnAutonomousAI`,
+`IsPlayerCompanion`, `IsCharacterGanger`/`Police`/`Cyberpsycho`, `GetNPCType`
+(Android, Mech, Drone), `ScriptedPuppet.GetWeaponRight` and the attitude toward V,
+all present in the 2.31 script cache. A signal that errors is skipped (an
+unreadable exclusion never blocks a target, but a target still needs one positive
+combat signal). Every choice is logged as `Tactic target: <source> <name> <id> ...
+skipped crowd=2 civilian=1`.
+
+Because civilians are not targets, a distraction of a tagged civilian is not
+offered; the target must be a combat-capable NPC with a conversation profile.
 
 ## Asking a companion
 
-Talk to the companion privately (text or voice) while a target is marked within
+Talk to the companion privately (text or voice) while a target is chosen within
 60 m. The request carries a game-captured offer (companion, target, allowed
 kinds) and the character sees four Convai actions:
 
@@ -68,7 +89,7 @@ and world teardown cancel it; teardown forgets handles without native calls.
 Automatic battle/loot reactions and gaze focus wait during the approach and
 conversation.
 
-Source: `mod/companion-marking.lua`, `mod/companion-tactics.lua`,
+Source: `mod/companion-marking.lua` (target selection), `mod/companion-tactics.lua`,
 `mod/tactic-perception.lua`, `mod/gameplay-actions.lua`,
 `bridge/companion-actions.mjs`, `bridge/distraction-context.mjs`. Tests:
 `bridge/companion-tactics.test.mjs`, `bridge/companion-tactic-actions.test.mjs`,

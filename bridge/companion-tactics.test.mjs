@@ -278,27 +278,66 @@ test('perception: nearby NPCs barely notice V, hostility to the companion is pau
 
 const markingWorld = `
 local Marking=(function() ${markingSource} end)()
-local function npc(id,x,name) return {id=id,pos={x=x,y=0,z=0},valid=true,name=name,tagged=false} end
+local function npc(id,x,name,facts) return {id=id,pos={x=x,y=0,z=0},valid=true,name=name,tagged=false,facts=facts or {ganger=true}} end
 player={pos={x=0,y=0,z=0}}
 judy=npc('44ULL',2,'Judy'); ganger=npc('77ULL',20,'Tyger Claw'); other=npc('78ULL',25,'Valentino')
-aimed,taggedNear=nil,{}
+civilian=npc('90ULL',4,'Passerby',{civilian=true}); crowd=npc('91ULL',5,'Crowd',{crowd=true,armed=true})
+cop=npc('92ULL',30,'NCPD Officer',{police=true,friendly=true}); guard=npc('93ULL',40,'Arasaka Guard',{armed=true})
+ally=npc('94ULL',6,'Rogue',{ganger=true,friendly=true}); scripted=npc('95ULL',7,'Scene Ganger',{ganger=true,story=true})
+immortal=npc('96ULL',8,'Boss',{ganger=true,invulnerable=true}); clerk=npc('97ULL',9,'Clerk',{})
+drone=npc('98ULL',45,'Security Drone',{machine=true}); far=npc('99ULL',48,'Far Ganger')
+world,aimed,logs={judy,ganger,other,civilian,crowd,cop,guard,ally,scripted,immortal,clerk,drone,far},nil,{}
 native={aimed=function() return aimed end,key=function(o) return o.id end,valid=function(o) return o.valid end,
   position=function(o) return o.pos end,name=function(o) return o.name end,tagged=function(o) return o.tagged end,
-  tag=function(o) o.tagged=true end,untag=function(o) o.tagged=false end,nearbyTagged=function() return taggedNear end}
-K=Marking.new({native=native,owned=function(o) return o==judy end})
+  nearby=function(_,radius) local r={} for _,o in ipairs(world) do if o.pos.x<=radius then r[#r+1]=o end end return r end,
+  facts=function(o) return o.facts end}
+K=Marking.new({native=native,owned=function(o) return o==judy end,log=function(l) logs[#logs+1]=l end})
 `;
 
-test('marking: aim and press marks with the native tag, again clears, companions and dead NPCs are never marked', () => run(markingWorld + `
-  aimed=judy; assert(not K.mark(player),'a managed companion is not a target')
-  aimed=ganger; local ok,message=K.mark(player); assert(ok and message:find('Tyger Claw') and ganger.tagged)
-  local current,info=K.current(player); assert(current==ganger and info.source=='marked')
-  ok,message=K.mark(player); assert(ok and message:find('cleared') and not ganger.tagged)
-  other.tagged=true; aimed=other; K.mark(player); K.clear(); assert(other.tagged,'a tag V placed stays')
-  aimed=ganger; K.mark(player); ganger.valid=false; assert(K.current(player)==nil and not ganger.tagged)
-  ganger.valid=true; K.mark(player); ganger.pos={x=200,y=0,z=0}; assert(K.current(player)==nil); ganger.pos={x=20,y=0,z=0}
-  taggedNear={other}; current,info=K.current(player); assert(current==other and info.source=='tagged')
-  taggedNear={other,ganger}; current,info=K.current(player); assert(current==nil and info.ambiguous)
-  taggedNear={judy}; assert(K.current(player)==nil)
+test('target: the verdict needs positive combat evidence and rejects civilians, crowd, children, vendors, invulnerable, story, friendly non-police and companions', () => run(`
+  local Marking=(function() ${markingSource} end)()
+  local V=Marking.verdict
+  for _,kind in ipairs({'ganger','police','cyberpsycho','machine','armed'}) do local f={} f[kind]=true; assert(V(f)==true,kind) end
+  assert(V({})==false and select(2,V({}))=='not-combat-capable' and V(nil)==false)
+  for _,kind in ipairs({'companion','crowd','civilian','children','vendor','invulnerable','story'}) do
+    local f={ganger=true,armed=true} f[kind]=true; local ok,reason=V(f); assert(ok==false and reason==(kind=='story' and 'story-controlled' or kind),kind)
+  end
+  assert(V({ganger=true,friendly=true})==false and select(2,V({ganger=true,friendly=true}))=='friendly')
+  assert(V({police=true,friendly=true})==true,'friendly-attitude police stay targets')
+`));
+
+test('target: the closest tagged combat-capable NPC wins, even beyond the crosshair and nearer enemies', () => run(markingWorld + `
+  aimed=ganger; guard.tagged=true; other.tagged=true
+  local current,info=K.current(player); assert(current==other and info.source=='tagged' and info.id=='78ULL' and info.distance==25)
+  other.tagged=false; current,info=K.current(player); assert(current==guard and info.source=='tagged')
+  guard.tagged=false; cop.tagged=true; current,info=K.current(player); assert(current==cop and info.source=='tagged','a tagged cop counts')
+  cop.tagged=false; far.tagged=true; far.pos={x=60,y=0,z=0}; current,info=K.current(player); assert(info.source~='tagged','tags beyond 50 m are ignored')
+`));
+
+test('target: tags on civilians, crowd, companions, scripted, invulnerable, dead or out of reach NPCs are ignored', () => run(markingWorld + `
+  for _,o in ipairs({judy,civilian,crowd,ally,scripted,immortal,clerk}) do o.tagged=true end
+  aimed=nil; local current,info=K.current(player); assert(current==ganger and info.source=='nearest','nothing tagged is eligible: nearest eligible instead')
+  ganger.tagged=true; ganger.valid=false; current,info=K.current(player); assert(current~=ganger)
+  ganger.valid=true; current,info=K.current(player); assert(current==ganger and info.source=='tagged')
+`));
+
+test('target: untagged falls back to the look-at target within 30 m, else the closest eligible NPC within 50 m', () => run(markingWorld + `
+  aimed=other; local current,info=K.current(player); assert(current==other and info.source=='aimed' and info.name=='Valentino')
+  aimed=guard; current,info=K.current(player); assert(current==ganger and info.source=='nearest','aimed beyond 30 m falls to the closest')
+  aimed=civilian; current,info=K.current(player); assert(current==ganger and info.source=='nearest','an aimed civilian is skipped')
+  aimed=judy; current,info=K.current(player); assert(current==ganger and info.source=='nearest','a companion is never aimed at')
+  aimed=nil; ganger.valid=false; current,info=K.current(player); assert(current==other and info.source=='nearest')
+  other.valid=false; current,info=K.current(player); assert(current==cop and info.distance==30 and info.source=='nearest','friendly police count')
+  cop.valid=false; guard.valid=false; drone.valid=false; far.pos={x=51,y=0,z=0}
+  current,info=K.current(player); assert(current==nil and info==nil,'nothing eligible within 50 m')
+  assert(K.current(nil)==nil)
+`));
+
+test('target: the choice is logged with what was skipped, and unreadable natives never raise', () => run(markingWorld + `
+  K.current(player); assert(#logs==1 and logs[1]:find('nearest Tyger Claw 77ULL') and logs[1]:find('civilian=1') and logs[1]:find('crowd=1') and logs[1]:find('companion=1'),logs[1])
+  native.facts=function() error('native') end; local current,info=K.current(player); assert(current==nil and logs[2]:find('none') and logs[2]:find('unreadable'))
+  native.nearby=function() error('native') end; assert(K.current(player)==nil)
+  K.abandon()
 `));
 
 test('companions hand exactly one owned copy to the tactic decision and resume following afterwards', () => run(`${companionEngine}

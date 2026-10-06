@@ -1,4 +1,4 @@
--- Companion tactics against the target V marked: Fight, and Distract with three
+-- Companion tactics against the target chosen from the game's own tagging: Fight, and Distract with three
 -- endings (return to the planning spot, attack the target, rejoin V).
 --
 -- Ownership: while a tactic runs, this module supplies the movement decision for
@@ -243,11 +243,11 @@ function M.new(options)
             local ok, npc, detail = pcall(env.marked, player)
             if ok then target, info = npc, detail end
         end
-        if not target or not info or not info.id then return {available = false, reason = 'No marked target'} end
-        if info.id == entity or not get(native.alive, target) then return {available = false, reason = 'Marked target unavailable'} end
+        if not target or not info or not info.id then return {available = false, reason = 'No target'} end
+        if info.id == entity or not get(native.alive, target) then return {available = false, reason = 'Target unavailable'} end
         local targetAt, playerAt = get(native.position, target), get(native.position, player)
         local gap = targetAt and playerAt and math.sqrt((targetAt.x - playerAt.x)^2 + (targetAt.y - playerAt.y)^2 + (targetAt.z - playerAt.z)^2) or math.huge
-        if gap > settings.maxOfferDistance then return {available = false, reason = 'Marked target too far away'} end
+        if gap > settings.maxOfferDistance then return {available = false, reason = 'Target too far away'} end
         local kinds = {'fight'}
         local combat = get(native.playerInCombat, player) or get(native.inCombat, target) or get(native.inCombat, actor.npc)
         local voice = converses(target)
@@ -277,12 +277,12 @@ function M.new(options)
         local captured = offers[entity]
         if not captured or captured.targetId ~= offer.target.id or captured.serial ~= offer.actor.serial
             or clock - captured.at > settings.offerTtl then
-            return false, 'The marked target changed. Mark them again.'
+            return false, 'The target changed. Ask again.'
         end
         local actor = actorFor(entity)
         if not actor or actor.serial ~= offer.actor.serial then return false, 'That companion is no longer ready.' end
         if not get(native.alive, captured.target) or get(native.key, captured.target) ~= captured.targetId then
-            return false, 'The marked target is gone.'
+            return false, 'The target is gone.'
         end
         local player = get(env.player)
         if not player or get(native.playerMounted, player) then return false, 'Step out of the vehicle first.' end

@@ -120,7 +120,6 @@ return {
   ["Cyberpunk Convai: companion manager"] = "Cyberpunk Convai: 동료 관리",
   ["Cyberpunk Convai: group text chat"] = "Cyberpunk Convai: 그룹 텍스트 채팅",
   ["Cyberpunk Convai: group voice chat"] = "Cyberpunk Convai: 그룹 음성 채팅",
-  ["Cyberpunk Convai: mark target for companions"] = "Cyberpunk Convai: 동료를 위해 대상 표시",
   ["Cyberpunk Convai: talk by text"] = "Cyberpunk Convai: 텍스트로 대화",
   ["Cyberpunk Convai: talk by voice"] = "Cyberpunk Convai: 음성으로 대화",
   ["DETAILS  {page} / {pages}"] = "상세 정보  {page} / {pages}",

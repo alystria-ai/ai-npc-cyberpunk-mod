@@ -1,14 +1,37 @@
--- V's marked target for companion tactics. The player aims at an NPC and
--- presses the Mark target binding; pressing it again on the same NPC clears the
--- mark. The game's own focus-mode tag is applied as the visible confirmation,
--- and when nothing was marked explicitly, exactly one scanner-tagged NPC nearby
--- also counts. Only plain identities and one live handle are retained.
+-- The target for companion tactics (Fight / Distract), chosen from the game's
+-- own target marking. Nothing is bound or tagged by this mod. When a companion
+-- request is admitted the choice is, in order:
+--   1. the closest NPC V tagged in the scanner (focus mode) within tagRadius;
+--   2. the NPC V is looking at (look-at, then closest to crosshair) within
+--      aimRadius;
+--   3. the closest eligible NPC within nearRadius.
+-- Eligible means a living, combat-capable NPC that is not a companion: gang
+-- members, police, corpo and military security, cyberpsychos, drones, mechs,
+-- androids or anyone carrying a weapon. Crowd, civilians, children, vendors,
+-- invulnerable and story-controlled NPCs, and friendly non-police NPCs are
+-- never targets. Only plain identities and one live handle are returned.
 local M = {}
-local DEFAULTS = {aimDistance = 60, keepDistance = 90, taggedRadius = 50}
+local DEFAULTS = {aimRadius = 30, nearRadius = 50, taggedRadius = 50}
 
 local function distance(a, b)
     if not a or not b then return math.huge end
     return math.sqrt((a.x - b.x)^2 + (a.y - b.y)^2 + (a.z - b.z)^2)
+end
+
+-- Pure decision over plain facts (see nativeAdapter.facts). Returns true and
+-- 'combatant', or false and the reason the NPC is not a target.
+function M.verdict(facts)
+    local f = facts or {}
+    if f.companion then return false, 'companion' end
+    if f.crowd then return false, 'crowd' end
+    if f.civilian then return false, 'civilian' end
+    if f.children then return false, 'children' end
+    if f.vendor then return false, 'vendor' end
+    if f.invulnerable then return false, 'invulnerable' end
+    if f.story then return false, 'story-controlled' end
+    if f.friendly and not f.police then return false, 'friendly' end
+    if f.ganger or f.police or f.cyberpsycho or f.machine or f.armed then return true, 'combatant' end
+    return false, 'not-combat-capable'
 end
 
 -- CET adapter. Every call is guarded by the caller; nothing here caches natives.
@@ -40,10 +63,9 @@ function M.nativeAdapter()
         local p = object:GetWorldPosition(); return {x = p.x, y = p.y, z = p.z}
     end
     function N.name(npc) return tostring(npc:GetTweakDBFullDisplayName(true) or 'NPC') end
+    -- The game's own tag, set with the scanner (focus mode).
     function N.tagged(npc) return npc:IsTaggedinFocusMode() == true end
-    function N.tag(npc) GameObject.TagObject(npc) end
-    function N.untag(npc) GameObject.UntagObject(npc) end
-    function N.nearbyTagged(player, radius)
+    function N.nearby(player, radius)
         local query = npcQuery(radius)
         query.testedSet = Enum.new('TargetingSet', 'Complete')
         local _, parts = Game.GetTargetingSystem():GetTargetParts(player, query)
@@ -53,10 +75,47 @@ function M.nativeAdapter()
             local entity = component and component:GetEntity()
             if entity and entity:IsNPC() then
                 local key = tostring(entity:GetEntityID().hash)
-                if not seen[key] and entity:IsTaggedinFocusMode() then seen[key] = true; result[#result + 1] = entity end
+                if not seen[key] then seen[key] = true; result[#result + 1] = entity end
             end
         end
         return result
+    end
+    -- Plain facts about one NPC. A signal that errors is left nil (and listed in
+    -- facts.unreadable); an unreadable exclusion never blocks a target, but a
+    -- target still needs positive evidence of combat capability.
+    function N.facts(npc, player)
+        local f, unreadable = {}, {}
+        local function read(name, fn)
+            local ok, value = pcall(fn)
+            if ok then f[name] = value == true else unreadable[#unreadable + 1] = name end
+        end
+        read('companion', function() return npc:IsPlayerCompanion() end)
+        read('crowd', function() return npc:IsCrowd() end)
+        read('civilian', function() return npc:IsCharacterCivilian() end)
+        read('children', function() return npc:IsCharacterChildren() end)
+        read('vendor', function() return npc:IsVendor() end)
+        read('invulnerable', function()
+            return npc:IsInvulnerable()
+                or Game.GetStatsSystem():GetStatBoolValue(npc:GetEntityID(), Enum.new('gamedataStatType', 'IsInvulnerable'))
+        end)
+        -- Not on autonomous AI: a scripted scene or quest owns the NPC.
+        read('story', function() return not npc:IsOnAutonomousAI() end)
+        read('friendly', function()
+            return tostring(npc:GetAttitudeAgent():GetAttitudeTowards(player:GetAttitudeAgent())):find('AIA_Friendly', 1, true) ~= nil
+        end)
+        read('ganger', function() return npc:IsCharacterGanger() end)
+        read('police', function() return npc:IsCharacterPolice() end)
+        read('cyberpsycho', function() return npc:IsCharacterCyberpsycho() end)
+        read('machine', function()
+            local kind = npc:GetNPCType()
+            for _, name in ipairs({'Android', 'Mech', 'Drone'}) do
+                if kind == Enum.new('gamedataNPCType', name) then return true end
+            end
+            return false
+        end)
+        read('armed', function() return ScriptedPuppet.GetWeaponRight(npc) ~= nil end)
+        f.unreadable = unreadable
+        return f
     end
     return N
 end
@@ -66,71 +125,80 @@ function M.new(options)
     local K, native, owned = {}, options.native or M.nativeAdapter(), options.owned or function() return false end
     local settings = {}
     for key, value in pairs(DEFAULTS) do settings[key] = options[key] or value end
-    local mark -- {npc, id, name, taggedByUs}
+    local log = options.log
 
     local function guarded(fn, ...)
         local ok, value = pcall(fn, ...)
         return ok and value or nil
     end
-    local function eligible(npc)
-        return npc ~= nil and guarded(native.valid, npc) == true and not guarded(owned, npc)
+
+    -- Returns true, or false and the rejection reason.
+    local function eligible(npc, player)
+        if npc == nil then return false, 'missing' end
+        if guarded(native.valid, npc) ~= true then return false, 'invalid' end
+        if guarded(owned, npc) then return false, 'companion' end
+        local facts = guarded(native.facts, npc, player)
+        if type(facts) ~= 'table' then return false, 'unreadable' end
+        return M.verdict(facts)
     end
 
-    function K.clear(reason)
-        local prior = mark
-        mark = nil
-        if prior and prior.taggedByUs then pcall(native.untag, prior.npc) end
-        return prior ~= nil
-    end
+    -- Drop any handle without native calls (world teardown). Nothing is held
+    -- between requests, so this only exists for the shared teardown path.
+    function K.abandon() end
 
-    -- Drop the handle without native calls (world teardown).
-    function K.abandon() mark = nil end
-
-    function K.mark(player)
-        if not player then return false, 'Player unavailable' end
-        local npc = guarded(native.aimed, player, settings.aimDistance)
-        if not eligible(npc) then
-            if mark then K.clear('cleared'); return true, 'Target mark cleared.' end
-            return false, 'Aim at a person to mark them for your companions.'
-        end
+    local function describe(npc, source, playerAt)
         local id = guarded(native.key, npc)
-        if not id then return false, 'That target cannot be marked.' end
-        if mark and mark.id == id then K.clear('toggled'); return true, 'Target mark cleared.' end
-        K.clear('replaced')
-        local wasTagged = guarded(native.tagged, npc) == true
-        if not wasTagged then pcall(native.tag, npc) end
-        mark = {npc = npc, id = id, name = guarded(native.name, npc) or 'NPC', taggedByUs = not wasTagged}
-        return true, 'Marked ' .. mark.name .. ' for your companions.', mark.name
-    end
-
-    -- Returns the current live target, its identity and how it was chosen.
-    function K.current(player)
-        if mark then
-            local far = player and distance(guarded(native.position, player), guarded(native.position, mark.npc)) or math.huge
-            if not eligible(mark.npc) or guarded(native.key, mark.npc) ~= mark.id or far > settings.keepDistance then
-                K.clear('target-lost')
-            else
-                return mark.npc, {id = mark.id, name = mark.name, source = 'marked'}
-            end
-        end
-        if not player then return nil end
-        local tagged = guarded(native.nearbyTagged, player, settings.taggedRadius) or {}
-        local found
-        for _, npc in ipairs(tagged) do
-            if eligible(npc) then
-                if found then return nil, {ambiguous = true} end
-                found = npc
-            end
-        end
-        if not found then return nil end
-        local id = guarded(native.key, found)
         if not id then return nil end
-        return found, {id = id, name = guarded(native.name, found) or 'NPC', source = 'tagged'}
+        return npc, {id = id, name = guarded(native.name, npc) or 'NPC', source = source,
+            distance = distance(playerAt, guarded(native.position, npc))}
     end
 
-    function K.snapshot()
-        return {marked = mark ~= nil, id = mark and mark.id, name = mark and mark.name}
+    -- Returns the live target and {id, name, source, distance}, or nil.
+    function K.current(player)
+        if not player then return nil end
+        local playerAt = guarded(native.position, player)
+        local rejected = {}
+        local function reject(reason) rejected[reason] = (rejected[reason] or 0) + 1 end
+
+        local nearest, nearestAt, tagged, taggedAt
+        local radius = math.max(settings.nearRadius, settings.taggedRadius)
+        for _, npc in ipairs(guarded(native.nearby, player, radius) or {}) do
+            local ok, reason = eligible(npc, player)
+            if not ok then reject(reason) else
+                local gap = distance(playerAt, guarded(native.position, npc))
+                if gap <= settings.nearRadius and (not nearestAt or gap < nearestAt) then nearest, nearestAt = npc, gap end
+                if gap <= settings.taggedRadius and guarded(native.tagged, npc) == true
+                    and (not taggedAt or gap < taggedAt) then tagged, taggedAt = npc, gap end
+            end
+        end
+
+        local choice, source
+        if tagged then choice, source = tagged, 'tagged' end
+        if not choice then
+            local aimedNpc = guarded(native.aimed, player, settings.aimRadius)
+            if aimedNpc ~= nil then
+                local ok, reason = eligible(aimedNpc, player)
+                if not ok then reject('aimed-' .. reason)
+                elseif distance(playerAt, guarded(native.position, aimedNpc)) <= settings.aimRadius then
+                    choice, source = aimedNpc, 'aimed'
+                end
+            end
+        end
+        if not choice and nearest then choice, source = nearest, 'nearest' end
+
+        local npc, info
+        if choice then npc, info = describe(choice, source, playerAt) end
+        if log then
+            local parts = {}
+            for reason, count in pairs(rejected) do parts[#parts + 1] = reason .. '=' .. count end
+            table.sort(parts)
+            pcall(log, 'Tactic target: ' .. (info and (info.source .. ' ' .. info.name .. ' ' .. info.id
+                .. ' at ' .. string.format('%.0f', info.distance) .. 'm') or 'none')
+                .. (#parts > 0 and ('; skipped ' .. table.concat(parts, ' ')) or ''))
+        end
+        return npc, info
     end
+
     return K
 end
 

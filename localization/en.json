@@ -40,7 +40,7 @@
     ]
   },
   "counts": {
-    "strings": 543,
+    "strings": 542,
     "dynamicTemplates": 68,
     "contexts": 35
   },
@@ -186,7 +186,6 @@
     "Cyberpunk Convai: companion manager": "Cyberpunk Convai: companion manager",
     "Cyberpunk Convai: group text chat": "Cyberpunk Convai: group text chat",
     "Cyberpunk Convai: group voice chat": "Cyberpunk Convai: group voice chat",
-    "Cyberpunk Convai: mark target for companions": "Cyberpunk Convai: mark target for companions",
     "Cyberpunk Convai: talk by text": "Cyberpunk Convai: talk by text",
     "Cyberpunk Convai: talk by voice": "Cyberpunk Convai: talk by voice",
     "DETAILS  {page} / {pages}": "DETAILS  {page} / {pages}",
@@ -594,7 +593,6 @@
       "Cyberpunk Convai: companion manager",
       "Cyberpunk Convai: group text chat",
       "Cyberpunk Convai: group voice chat",
-      "Cyberpunk Convai: mark target for companions",
       "Cyberpunk Convai: talk by text",
       "Cyberpunk Convai: talk by voice"
     ],
@@ -2242,7 +2240,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:844"
+        "mod/init.lua:845"
       ]
     },
     "Connecting this character for conversation. This copy has a reserved place. You can change its conversation profile or cancel the invitation.": {
@@ -2522,7 +2520,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1477"
+        "mod/init.lua:1478"
       ]
     },
     "Cyberpunk Convai: group text chat": {
@@ -2530,7 +2528,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1473"
+        "mod/init.lua:1474"
       ]
     },
     "Cyberpunk Convai: group voice chat": {
@@ -2538,15 +2536,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1475"
-      ]
-    },
-    "Cyberpunk Convai: mark target for companions": {
-      "contexts": [
-        "cet.bindings"
-      ],
-      "references": [
-        "mod/init.lua:1478"
+        "mod/init.lua:1476"
       ]
     },
     "Cyberpunk Convai: talk by text": {
@@ -2554,7 +2544,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1472"
+        "mod/init.lua:1473"
       ]
     },
     "Cyberpunk Convai: talk by voice": {
@@ -2562,7 +2552,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1474"
+        "mod/init.lua:1475"
       ]
     },
     "DETAILS  {page} / {pages}": {
@@ -2716,7 +2706,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:552"
+        "mod/init.lua:553"
       ]
     },
     "Fast travel cancelled the companion trip.": {
@@ -2840,7 +2830,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:692"
+        "mod/init.lua:693"
       ]
     },
     "Group chat needs two characters nearby. Use {key} for one person.": {
@@ -2849,7 +2839,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:691"
+        "mod/init.lua:692"
       ]
     },
     "Head tracking strength": {
@@ -3402,7 +3392,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1811"
+        "mod/init.lua:1806"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -3606,7 +3596,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:458"
+        "mod/init.lua:459"
       ]
     },
     "Please wait for the current requests to finish.": {
@@ -3690,7 +3680,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:808"
+        "mod/init.lua:809"
       ]
     },
     "Press your Talk by voice shortcut to finish recording.": {
@@ -3698,7 +3688,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:809"
+        "mod/init.lua:810"
       ]
     },
     "Previous": {
@@ -5146,7 +5136,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/init.lua:806"
+        "mod/init.lua:807"
       ]
     },
     "V changed seats or vehicles.": {
@@ -5691,7 +5681,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:681"
+        "mod/init.lua:682"
       ]
     },
     "{name} is joining your party.": {
@@ -5720,7 +5710,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:1405"
+        "mod/init.lua:1406"
       ]
     },
     "{name} is preparing memory and conversation.": {
@@ -5746,7 +5736,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1423"
+        "mod/init.lua:1424"
       ]
     },
     "{name} joined your group.": {
@@ -5825,7 +5815,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1422"
+        "mod/init.lua:1423"
       ]
     },
     "{name}: conversation profile cleared.": {
@@ -5877,7 +5867,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1424"
+        "mod/init.lua:1425"
       ]
     },
     "{name}: preparing memory...": {
@@ -5886,7 +5876,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1421"
+        "mod/init.lua:1422"
       ]
     },
     "{requested} is unavailable. Companions are using {voice} instead.": {
@@ -6119,7 +6109,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:691"
+        "mod/init.lua:692"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6352,7 +6342,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/init.lua:806"
+        "mod/init.lua:807"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6465,7 +6455,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:681"
+        "mod/init.lua:682"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6502,7 +6492,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1405"
+        "mod/init.lua:1406"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6539,7 +6529,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1423"
+        "mod/init.lua:1424"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6648,7 +6638,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1422"
+        "mod/init.lua:1423"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6721,7 +6711,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1424"
+        "mod/init.lua:1425"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6733,7 +6723,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1421"
+        "mod/init.lua:1422"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

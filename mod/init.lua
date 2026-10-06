@@ -41,9 +41,9 @@ local function tacticModule(path, options, fallback)
     print('[CyberpunkConvai] ' .. path .. ' unavailable: ' .. tostring(module))
     return fallback
 end
-local marking = tacticModule('companion-marking.lua', {owned = function(npc) return companions.owns(npc) end},
-    {current = function() return nil end, abandon = function() end,
-        mark = function() return false, 'Target marking is unavailable.' end})
+local marking = tacticModule('companion-marking.lua', {owned = function(npc) return companions.owns(npc) end,
+    log = function(line) if tacticEnv.log then tacticEnv.log(line) end end},
+    {current = function() return nil end, abandon = function() end})
 local tactics = tacticModule('companion-tactics.lua', {env = tacticEnv}, {
     offer = function() return {available = false} end, start = function() return false, 'Companion tactics are unavailable.' end,
     owns = function() return false end, decide = function() return nil end, busy = function() return false end,
@@ -1476,12 +1476,6 @@ registerHotkey('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice', func
 registerHotkey('cyberpunk_convai_group_voice', 'Cyberpunk Convai: group voice chat', function() toggleVoice(true) end)
 registerHotkey('cyberpunk_convai_diagnostic', 'Cyberpunk Convai: capture NPC diagnostic', captureNpcDiagnostic)
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
-registerHotkey('cyberpunk_convai_mark_target', 'Cyberpunk Convai: mark target for companions', function()
-    local player = Game.GetPlayer()
-    if not player or not gameplayCanAcquire(player) then return end
-    local ok, _, message = pcall(marking.mark, player)
-    if ok and message then pcall(function() player:ConvaiPhoneFeedback(ui.t(message)) end) end
-end)
 
 local worldSuspended, sessionHasState = false, false
 local fastTravelActive
