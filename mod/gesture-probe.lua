@@ -484,6 +484,14 @@ COMMANDS.diag = function(words)
         return true, out
     end)
 end
+-- Hot reload without CET "Reload all mods" (which despawns companions): the
+-- file rebinds its functions onto this same table, so states and the
+-- companions hook survive. Install the new gesture-probe.lua, then send reload.
+COMMANDS.reload = function()
+    local ok, result = pcall(dofile, 'gesture-probe.lua')
+    if not ok then return false, tostring(result) end
+    return true, {reloaded = result == M, states = (function() local n = 0; for _ in pairs(M.states) do n = n + 1 end; return n end)()}
+end
 COMMANDS.autounstick = function(words) M.autoUnstick = words[2] ~= 'off'; return true, {autoUnstick = M.autoUnstick} end
 COMMANDS.guard = function(words)
     M.guard = words[2] ~= 'off'
