@@ -10,6 +10,7 @@ local selection = dofile('gesture-selection.lua')
 local M = {}
 local HOLDING = {spawning = true, starting = true, active = true, exiting = true, recovering = true}
 M.policy = {linger = 2.5, patience = 3, giveUp = 6, unsettled = .8, playerMoved = .75, playerRunning = 2.5,
+    nearStart = 4.0, nearKeep = 4.5, socialPhases = {settled = true, attend = true},
     wedgeAfter = 1.5, healthWindow = 10, recoveryHold = .9, recoveryLimit = 2, failureCooldown = 30, minimumSpeech = 5,
     -- Signature idle flavour (characters marked flavour in the catalog only):
     -- after this long settled, now and then, for a short while.
@@ -197,6 +198,7 @@ function M.new(options)
         if not allowed then requestExit(s, reason or 'guard', false); return end
         if context.settled then s.unsettledSince = nil else s.unsettledSince = s.unsettledSince or self.clock end
         local moved = distance(s.playerAnchor, self.playerPosition)
+        if (tonumber(s.entry.playerGap) or 0) > policy.nearKeep then requestExit(s, 'too far', false); return end
         if moved > policy.playerMoved or (self.playerSpeed or 0) > policy.playerRunning
             or (s.unsettledSince and self.clock - s.unsettledSince > policy.unsettled) then
             requestExit(s, 'movement', false); return
@@ -262,7 +264,9 @@ function M.new(options)
             if s.phase == 'off' then
                 health(s, context)
                 if s.phase ~= 'off' then return end
-                if context.idle and context.settled and not context.combat then s.settledSince = s.settledSince or self.clock
+                if context.idle and context.settled and not context.combat
+                    and (tonumber(entry.playerGap) or math.huge) <= policy.nearStart
+                    and (not context.phase or policy.socialPhases[context.phase]) then s.settledSince = s.settledSince or self.clock
                 else s.settledSince = nil end
                 if not self.enabled() then return end
                 local flavour = false
@@ -276,6 +280,9 @@ function M.new(options)
                 end
                 if self.clock < (s.cooldownUntil or 0) then return end
                 if not (context.idle and context.settled) or context.combat then return end
+                -- Only beside V, in a social stance: never for a copy left behind.
+                if (tonumber(entry.playerGap) or math.huge) > policy.nearStart then return end
+                if context.phase and not policy.socialPhases[context.phase] then return end
                 local known, family = characterOf(entry)
                 if not known then return end
                 if native.inWorkspot(entry.npc) ~= false then return end -- seats and scenes own their workspots

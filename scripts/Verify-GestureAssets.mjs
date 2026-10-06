@@ -25,7 +25,9 @@ function summarizeWorkspot(json) {
     const sets = tree.finalAnimsets.map((set) => [set.rig.DepotPath.$value,
         set.animations.cinematics.map((entry) => entry.animSet.DepotPath.$value).join('|'),
         set.loadingHandles.map((entry) => entry.DepotPath.$value).join('|')].join('>'));
-    return { clips: clips.sort(), sets, slot: tree.animGraphSlotName.$value, idCounter: tree.idCounter };
+    return { clips: clips.sort(), sets, slot: tree.animGraphSlotName.$value, idCounter: tree.idCounter,
+        blend: [tree.inertializationDurationEnter, tree.inertializationDurationExitNatural, tree.inertializationDurationExitForced]
+            .map((value) => Math.round(Number(value) * 1000) / 1000) };
 }
 function summarizeEntity(json) {
     const root = json.Data.RootChunk;

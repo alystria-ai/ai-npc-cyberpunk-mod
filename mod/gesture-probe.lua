@@ -531,6 +531,25 @@ COMMANDS.reload = function()
     if not ok then return false, tostring(result) end
     return true, {reloaded = result == M, states = (function() local n = 0; for _ in pairs(M.states) do n = n + 1 end; return n end)()}
 end
+-- Swap the Stage 1 controller (companion-gestures.lua, gesture-selection.lua,
+-- gesture-workspot.lua, gesture-catalog.lua) without a CET reload.
+COMMANDS['reload-controller'] = function()
+    local old = convaiGestures
+    if old and old.states then
+        for _, state in pairs(old.states) do
+            if state.phase ~= 'off' and state.entry then pcall(old.release, state.entry, 'reload') end
+        end
+    end
+    if not convaiGestureOptions then return false, 'this init.lua predates hot reload' end
+    local ok, controller = pcall(function() return dofile('companion-gestures.lua').new(convaiGestureOptions) end)
+    if not ok then return false, tostring(controller) end
+    convaiGestures = controller
+    return true, {reloaded = true, families = (function()
+        local list = {}
+        for key in pairs(controller.catalog.families or {}) do list[#list + 1] = key end
+        return list
+    end)()}
+end
 COMMANDS.autounstick = function(words) M.autoUnstick = words[2] ~= 'off'; return true, {autoUnstick = M.autoUnstick} end
 COMMANDS.guard = function(words)
     M.guard = words[2] ~= 'off'

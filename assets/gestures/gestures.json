@@ -297,5 +297,12 @@
   },
   "experimentalIdles": [
     "johnny_smoke"
-  ]
+  ],
+  "blend": {
+    "enter": 1.1,
+    "exitNatural": 1,
+    "exitForced": 0.25,
+    "transition": 1,
+    "clipOut": 0.7
+  }
 }

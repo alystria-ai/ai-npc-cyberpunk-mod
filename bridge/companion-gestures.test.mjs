@@ -54,9 +54,9 @@ local c=m.new({enabled=function() return enabled end,
   log=function(kind,fields) logs[#logs+1]={kind=kind,fields=fields} end})
 local player={pos={x=0,y=0,z=0}}
 function player:GetWorldPosition() return self.pos end
-local entry={serial=1,record='Character.Judy',entityID={hash='77'},npc=npc,
+local entry={serial=1,record='Character.Judy',entityID={hash='77'},npc=npc,playerGap=1.8,
   motor={kind='hold',feedback={state='AICommandState : Executing (2)'}}}
-local context={idle=true,settled=true,combat=false}
+local context={idle=true,settled=true,combat=false,phase='settled'}
 local held=false
 local function step(seconds,observe)
   for i=1,math.max(1,math.floor(seconds/.1+.5)) do
@@ -184,4 +184,17 @@ test('Johnny takes his signature idle now and then when settled, never Judy, and
   if lastLog('flavour-begin') and not lastLog('exit') then end
   step(1.5)
   assert(last('play').component=='convai_talk_johnny','Johnny talks from his hand-in-pocket set: '..tostring(last('play').component))
+`));
+
+test('never starts for a copy left behind or not in a social stance; leaves when V gets far', () => run(`
+  entry.playerGap=10;speaking={knownEnd=20,at=0};step(2)
+  assert(count('play')==0,'too far to start')
+  entry.record='Character.Silverhand';step(200)
+  assert(count('play')==0,'no flavour idle for a copy left behind')
+  entry.record='Character.Judy';entry.playerGap=1.8;context.phase='catch_up';step(1)
+  assert(count('play')==0,'not while catching up')
+  context.phase='attend';step(.6)
+  assert(count('play')==1 and held)
+  entry.playerGap=5;step(.1)
+  assert(count('exit')==1 and lastLog('exit').fields.reason=='too far')
 `));

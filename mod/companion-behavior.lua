@@ -190,7 +190,10 @@ function M.decide(s,c,dt)
         if c.playerGap>5.5 then return recover(s,c,'The group has moved away') end
         return emit(s,glance(c))
     end
+    -- Only members actually standing with the gathering wait with it. A copy
+    -- left far behind (another companion keeps V's gathering alive) catches up.
     local waitingWithGroup=c.frame.localInteraction and (s.phase=='settled' or social[s.phase])
+        and c.playerGap<=10.0
     if c.playerGap>5.0 and not arrivals[s.phase] and not waitingWithGroup then
         enter(s,'catch_up','Reach the stopped group before choosing a stance')
         operation(s,'follow',nil,pace(c,true),false,false)

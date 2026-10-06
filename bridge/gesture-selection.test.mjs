@@ -78,9 +78,10 @@ test('never repeats the previous clip and spreads clips through history', () => 
 test('clips start only after the previous one ends plus a gap, first one shortly after speech starts', () => run(`
   local s=m.new(lcg)
   local played=run(s,60)
-  assert(played[1].at>=.3 and played[1].at<=.9,'first at '..played[1].at)
+  assert(played[1].at>=.1 and played[1].at<=.5,'first at '..played[1].at)
   for i=2,#played do
-    assert(played[i].at>=played[i-1].at+played[i-1].duration+1.5-1e-6,'gap too small at '..i)
+    local gap=played[i].at-(played[i-1].at+played[i-1].duration)
+    assert(gap>=.6-1e-6 and gap<=1.7,'gap '..gap..' at '..i)
   end
 `));
 
@@ -156,4 +157,34 @@ test('the generated catalog works with the policy for every rig and maps signatu
   end
   assert(m.idleComponent(catalog,'johnny')=='convai_idle_johnny')
   assert(m.idleComponent(catalog,'river')=='convai_idle_generic')
+`));
+
+test('talk favours expressive hand gestures over head flicks and nods', () => run(`
+  assert(m.expressiveness('stand__arms_crossed_front__01__describe_down__01')>m.expressiveness('stand__arms_crossed_front__01__head_flick_down__02'))
+  assert(m.expressiveness('judy__stand_2h_arms_crossed__01__gesture__01')>1)
+  local expressiveClips={
+    clip('b__head_flick_down__01','neutral',all),clip('b__head_flick_up__01','neutral',all),
+    clip('b__describe_left__01','neutral',all),clip('b__talk_explain__01','neutral',all),clip('b__shrug__01','shrug',all),
+    clip('b__describe_down__01','neutral',all),clip('b__talk__neutral__01','neutral',all),clip('b__talk__neutral__02','neutral',all),
+    clip('b__point__01','neutral',all),clip('b__what__neutral__01','question',all)}
+  local expressive,subtle=0,0
+  for i=1,20 do
+    local s=m.new(lcg)
+    for t=0,30,.1 do
+      local item=m.next(s,{now=t,mode='speaking',rig='woman_base',character='judy',family='neutral',scale=2,remaining=30,total=30,clips=expressiveClips})
+      if item then if item.clip.name:find('head_flick') then subtle=subtle+1 else expressive=expressive+1 end end
+    end
+  end
+  assert(expressive>subtle*3,'expressive '..expressive..' subtle '..subtle)
+`));
+
+test('a ten-second reply gets several gestures, not two', () => run(`
+  local n=0
+  for i=1,10 do
+    local s=m.new(lcg)
+    for t=0,10,.1 do
+      if m.next(s,{now=t,mode='speaking',rig='woman_base',character='judy',family='neutral',scale=1,remaining=10-t,total=10,clips=clips}) then n=n+1 end
+    end
+  end
+  assert(n/10>=2.0,'average '..(n/10))
 `));

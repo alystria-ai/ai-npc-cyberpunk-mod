@@ -382,3 +382,18 @@ test('a rejected attention footstep is skipped: the companion stays settled and 
     assert(not (row.operation and row.operation.kind=='move'),'a skipped attention step was replaced by a move')
   end
 `));
+
+test('a settled copy far from V catches up even while V is inside another companion gathering', () => run(`${fixture}
+  local behavior=dofile('companion-behavior.lua')
+  local function context(gap)
+    return {speed=0,selected=false,combat=false,playerGap=gap,targetGap=gap,facingError=10,
+      position={x=gap,y=0,z=0},motion={},comfortable=false,nearGroup=false,
+      frame={moving=false,localInteraction=true,epoch=1,speed=0,rawSpeed=0,position={x=0,y=0,z=0},stop=1}}
+  end
+  local near=behavior.new(1);near.phase,near.epoch='settled',1
+  local d=behavior.decide(near,context(2.5),.1)
+  assert(d.phase=='settled','a nearby member keeps waiting with the gathering')
+  local far=behavior.new(2);far.phase,far.epoch='settled',1
+  d=behavior.decide(far,context(25.9),.1)
+  assert(d.phase=='catch_up' and d.operation.kind=='follow','a copy left 26 m behind must catch up: '..tostring(d.phase))
+`));

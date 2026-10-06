@@ -12,7 +12,7 @@ M.families = {
     unknown = {'neutral'},
 }
 -- Calm filler mixed into emotional speech so emotion colours, not dominates.
-M.filler = {'neutral', 'shrug'}
+M.filler = {'neutral', 'shrug', 'emphatic', 'question'}
 -- Never played, whatever a catalog contains (user decision: no rude/strong gestures).
 M.banned = {'threaten', 'fuck_you', 'clap', 'thumb_up', 'middle_finger', 'cheer', 'dance', 'step', 'turn'}
 -- Per character pacing: rate > 1 gestures more often.
@@ -21,7 +21,19 @@ M.profiles = {
     jackie = {rate = 1.1}, viktor = {rate = .85}, judy = {rate = 1}, river = {rate = .9},
     rogue = {rate = .85}, misty = {rate = .8},
 }
-local gaps = {{1.5, 4.0}, {1.2, 3.0}, {.8, 2.0}} -- seconds between clips, by intensity 1..3
+-- Seconds between clips by intensity 1..3. Live feedback (Oct 7): two clips
+-- in ten seconds read as no gestures at all; keep hands busy while speaking.
+local gaps = {{.6, 1.6}, {.4, 1.2}, {.3, .9}}
+-- Expressive hand/arm gestures read from a distance; head flicks and nods
+-- barely register, so they are mostly left for listening.
+local subtle = {'head_flick', 'nod', 'yes__head', 'no__head', 'look_', 'shuffle', 'scratch', 'weight_shift', 'breathe'}
+local expressive = {'explain', 'describe', 'demonstrate', 'gesture', 'point', 'shrug', 'calm_down', 'this_or_that',
+    'confident', 'what', 'whatever', 'talk', '2h_', 'flick', 'rub_hands', 'me__'}
+function M.expressiveness(name)
+    for _, word in ipairs(subtle) do if name:find(word, 1, true) then return .2 end end
+    for _, word in ipairs(expressive) do if name:find(word, 1, true) then return 2.5 end end
+    return 1
+end
 M.minimumSpeech = 5 -- seconds of reply audio before talk gestures are used at all
 local HISTORY, COOLDOWN = 4, 30
 
@@ -71,7 +83,7 @@ local function pick(s, list, now, remaining, repeatable)
         local total, pool = 0, {}
         for _, item in ipairs(list) do
             if eligible(item, strict) then
-                local weight = item.clip.character and 3 or 1
+                local weight = (item.clip.character and 3 or 1) * (repeatable and 1 or M.expressiveness(item.clip.name))
                 total = total + weight
                 pool[#pool + 1] = {item = item, weight = weight}
             end
@@ -99,11 +111,18 @@ local function speaking(s, input)
     local family = M.families[input.family or 'neutral'] and input.family or 'unknown'
     local order = M.families[family]
     local useEmotion = family ~= 'neutral' and family ~= 'unknown' and s.random() < .6
-    local categories = useEmotion and order or M.filler
-    for _, category in ipairs(categories) do
-        local item = pick(s, candidates(input.clips, input.rig, input.character, category), input.now, input.remaining)
+    if useEmotion then
+        local item = pick(s, candidates(input.clips, input.rig, input.character, order[1]), input.now, input.remaining)
         if item then return item end
     end
+    -- Calm talk: one weighted pool across the filler categories, so shrugs,
+    -- questions and emphatic hands mix with ordinary talking gestures.
+    local pool = {}
+    for _, category in ipairs(M.filler) do
+        for _, item in ipairs(candidates(input.clips, input.rig, input.character, category)) do pool[#pool + 1] = item end
+    end
+    local item = pick(s, pool, input.now, input.remaining)
+    if item then return item end
     -- Emotion clips did not fit or were exhausted: fall back across all.
     for _, category in ipairs(order) do
         local item = pick(s, candidates(input.clips, input.rig, input.character, category), input.now, input.remaining)
@@ -118,7 +137,7 @@ function M.next(s, input)
     local now = input.now or 0
     if input.mode ~= s.mode then
         s.mode = input.mode
-        if input.mode == 'speaking' then s.nextAt = now + between(s, .3, .8)
+        if input.mode == 'speaking' then s.nextAt = now + between(s, .1, .4)
         elseif input.mode == 'listening' then s.nextAt = now + between(s, 2, 4)
         else s.nextAt = math.huge end
     end

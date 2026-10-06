@@ -138,10 +138,17 @@ for (const [familyKey, family] of Object.entries(source.families)) {
         return shape;
     });
     tree.blacklistVisualTags = { $type: 'redTagList', tags: [] };
+    // Pose blends: a slow enter from the companion's own idle into the stance
+    // and a slow natural exit back (live feedback: no visible pose pop).
+    const blend = source.blend ?? {};
+    tree.inertializationDurationEnter = blend.enter ?? tree.inertializationDurationEnter;
+    tree.inertializationDurationExitNatural = blend.exitNatural ?? tree.inertializationDurationExitNatural;
+    tree.inertializationDurationExitForced = blend.exitForced ?? tree.inertializationDurationExitForced;
+    tree.autoTransitionBlendTime = blend.transition ?? tree.autoTransitionBlendTime;
     const rootData = tree.rootEntry.Data;
     const keep = (type) => rootData.list.filter((node) => node.Data.$type === type);
     const templateClip = keep('workSequence')[0].Data.list[0].Data.list[0].Data;
-    const animClip = (name, id) => ({ HandleId: '0', Data: { ...clone(templateClip), animName: cname(name), blendOutTime: 0.5, id: entryId(id) } });
+    const animClip = (name, id) => ({ HandleId: '0', Data: { ...clone(templateClip), animName: cname(name), blendOutTime: (source.blend ?? {}).clipOut ?? 0.5, id: entryId(id) } });
     const sequence = (id, list, loop) => ({ HandleId: '0', Data: {
         $type: 'workSequence', category: 'Any', disableAutoTransition: 0, flags: 0, id: entryId(id),
         idleAnim: cname(family.idle), list, loopInfinitely: loop ? 1 : 0, previousLoopInfinitely: 0 } });
@@ -171,7 +178,7 @@ for (const [familyKey, family] of Object.entries(source.families)) {
     for (const clip of clips) counts[clip.category] = (counts[clip.category] || 0) + 1;
     report.push(`${familyKey}: ${clips.length} clips ${JSON.stringify(counts)} skipped ${JSON.stringify(skipped)}`);
     catalogFamilies[familyKey] = {
-        component: family.component, workspot: family.workspot, rigs: rigKeys,
+        component: family.component, workspot: family.workspot, rigs: rigKeys, blend: source.blend,
         idle: { name: family.idle, sequenceId: idleId, clipId: idleId + 1,
             perRig: Object.fromEntries(rigKeys.map((rigKey) => [rigKey, { duration: round(perRigClips[rigKey].get(family.idle).duration) }])) },
         clips: clips.map(({ name, category, character, sequenceId, clipId, perRig }) => ({ name, category, character, sequenceId, clipId, perRig })),

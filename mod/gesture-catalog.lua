@@ -12,6 +12,13 @@ return {
                 "man_base",
                 "man_big",
             },
+            blend = {
+                enter = 1.1,
+                exitNatural = 1,
+                exitForced = 0.25,
+                transition = 1,
+                clipOut = 0.7,
+            },
             idle = {
                 name = "stand__2h_on_sides__01",
                 sequenceId = 100,
@@ -2892,6 +2899,13 @@ return {
                 "man_base",
                 "man_big",
             },
+            blend = {
+                enter = 1.1,
+                exitNatural = 1,
+                exitForced = 0.25,
+                transition = 1,
+                clipOut = 0.7,
+            },
             idle = {
                 name = "stand__arms_crossed_front__01",
                 sequenceId = 100,
@@ -5253,6 +5267,13 @@ return {
                 "woman_base",
                 "man_big",
             },
+            blend = {
+                enter = 1.1,
+                exitNatural = 1,
+                exitForced = 0.25,
+                transition = 1,
+                clipOut = 0.7,
+            },
             idle = {
                 name = "stand__2h_on_hip__01",
                 sequenceId = 100,
@@ -5899,6 +5920,13 @@ return {
             rigs = {
                 "man_base",
             },
+            blend = {
+                enter = 1.1,
+                exitNatural = 1,
+                exitForced = 0.25,
+                transition = 1,
+                clipOut = 0.7,
+            },
             idle = {
                 name = "kerry__stand__2h_on_hip__01",
                 sequenceId = 100,
@@ -6122,6 +6150,13 @@ return {
             rigs = {
                 "man_base",
             },
+            blend = {
+                enter = 1.1,
+                exitNatural = 1,
+                exitForced = 0.25,
+                transition = 1,
+                clipOut = 0.7,
+            },
             idle = {
                 name = "takemura__stand__2h_on_sides__01",
                 sequenceId = 100,
@@ -6224,6 +6259,13 @@ return {
             workspot = "cyberpunk_convai\\gestures\\convai_talk_johnny.workspot",
             rigs = {
                 "man_base",
+            },
+            blend = {
+                enter = 1.1,
+                exitNatural = 1,
+                exitForced = 0.25,
+                transition = 1,
+                clipOut = 0.7,
             },
             idle = {
                 name = "johnny__stand__lh_pocket__01",
