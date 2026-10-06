@@ -18,6 +18,9 @@ export const SLOTS = Object.freeze([
   {slot: 'omni32', engine: 'omni', steps: 32, set: 'omni', label: 'OmniVoice 32 steps'},
   {slot: 'omni16s', engine: 'omni', steps: 16, set: 'omni-short', label: 'OmniVoice 16 steps, 10 s set'},
   {slot: 'omni32s', engine: 'omni', steps: 32, set: 'omni-short', label: 'OmniVoice 32 steps, 10 s set'},
+  {slot: 'pocket1', engine: 'pocket', set: 'pocket-single', label: 'Pocket, single clip'},
+  {slot: 'omni16one', engine: 'omni', steps: 16, set: 'omni-single', label: 'OmniVoice 16 steps, single clip'},
+  {slot: 'omni32one', engine: 'omni', steps: 32, set: 'omni-single', label: 'OmniVoice 32 steps, single clip'},
 ]);
 
 const sha256Of = bytes => createHash('sha256').update(bytes).digest('hex');

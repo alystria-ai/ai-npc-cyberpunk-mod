@@ -84,3 +84,18 @@ test('Pocket 10 s and 18 s sets are separate outputs of the Pocket config', asyn
   assert.equal(short.voices.v.reference, 'runtime/voice-references/picked/pocket-short/v.wav');
   assert.ok(report.engines['pocket-short'].changed[0].seconds <= 10);
 });
+
+test('single-clip kept sets are their own outputs', async () => {
+  const {root, pool} = await project();
+  const pick = replayPicks([
+    {seq: 1, ts: 't', voice: 'v', engine: 'omni-single', action: 'keep', clips: ['v/2']},
+    {seq: 2, ts: 't', voice: 'v', engine: 'pocket-single', action: 'keep', clips: ['v/1']},
+  ]);
+  const report = await applyPicks({project: root, pool, pick, validate: false});
+  const omni = JSON.parse(await readFile(join(root, 'runtime/local-voices.picked-single.json'), 'utf8'));
+  assert.equal(omni.voices.v.reference, 'runtime/voice-references/picked/omni-single/v.wav');
+  assert.equal(omni.voices.v.transcript, 'Clip 2.');
+  const pocket = JSON.parse(await readFile(join(root, 'runtime/pocket-voices.picked-single.json'), 'utf8'));
+  assert.equal(pocket.voices.v.pick.clips.length, 1);
+  assert.equal(report.engines['omni-single'].changed[0].seconds, 3);
+});

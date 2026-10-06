@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {mkdtemp, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {Pool, rerollSet} from './pool.mjs';
 import {joinedSeconds} from './audio.mjs';
 
@@ -34,6 +37,38 @@ test('reroll copes with tiny pools and returns null when nothing else exists', (
   assert.equal(rerollSet([], {budget: 18}), null);
   assert.deepEqual(rerollSet([clip(0, 5)], {budget: 18, rng: seeded(3)}).ids, ['v/0']);
   assert.equal(rerollSet([clip(0, 5)], {budget: 18, current: ['v/0']}), null);
+});
+
+test('reroll leaves phone-flagged clips out unless allowPhone, and never falls back to them by default', () => {
+  const clips = [...Array.from({length: 10}, (_, n) => clip(n, 4)), ...Array.from({length: 4}, (_, n) => clip(100 + n, 4, {ph: true}))];
+  for (let run = 0; run < 60; run++) {
+    assert.ok(rerollSet(clips, {budget: 18, rng: seeded(run + 11)}).ids.every(id => !id.startsWith('v/10')));
+  }
+  const phoneOnly = Array.from({length: 6}, (_, n) => clip(n, 4, {ph: true}));
+  assert.equal(rerollSet(phoneOnly, {budget: 18, rng: seeded(2)}), null);
+  assert.ok(rerollSet(phoneOnly, {budget: 18, rng: seeded(2), allowPhone: true}).ids.length >= 1);
+  // with allowPhone the clean clips are still preferred
+  const mixed = [...Array.from({length: 8}, (_, n) => clip(n, 4)), clip(100, 4, {ph: true})];
+  for (let run = 0; run < 40; run++) assert.ok(!rerollSet(mixed, {budget: 18, rng: seeded(run + 3), allowPhone: true}).ids.includes('v/100'));
+});
+
+test('phone flag: the flags file wins, the dataset delivery kind is the fallback, and the file is re-read when it changes', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'flags-'));
+  const flagsPath = join(dir, 'flags.json');
+  const live = {omni: {exists: true, d: 5, transcript: 't', reference: 'r.wav', sha256: 'x'}};
+  const clips = [clip(0, 4, {k: 'phone'}), clip(1, 4), clip(2, 4, {k: 'phone'}), clip(3, 4, {k: 'media'})];
+  const pool = new Pool({dataRoot: '/data', voices: {v: {live, clips, proposed: {}, loudMedian: -20, lines: [{id: 'v/line', t: 'x', d: 2, exists: true}]}}}, {project: dir, flagsPath});
+  const ph = () => pool.browse('v').map(item => item.ph);
+  assert.deepEqual(ph(), [false, true, false, true, false]);                                   // live omni first, then the clips; no file: kind === 'phone'
+  await writeFile(flagsPath, JSON.stringify({schema: 'voice-data-phone-flags/v1', clips: {'v/0': {phone: false}, 'v/1': {phone: true}}, live_references: {omni: {v: {phone: true}}}, evaluation_lines: {'v/line': {phone: true}}}));
+  assert.deepEqual(ph(), [true, false, true, true, false]);
+  assert.equal(pool.clip('v', 'live:omni').ph, true);
+  assert.equal(pool.linePhone({id: 'v/line'}), true);
+  assert.equal(pool.rerollClips('v').filter(item => item.ph).length, 2);
+  await writeFile(flagsPath, JSON.stringify({clips: {'v/3': {phone: true}}, extra: 'a longer file so the size changes'}));
+  assert.deepEqual(ph(), [false, true, false, true, true]);
+  await writeFile(flagsPath, 'garbage');
+  assert.deepEqual(ph(), [false, true, false, true, false]);
 });
 
 test('manual sets are validated against the budget', () => {

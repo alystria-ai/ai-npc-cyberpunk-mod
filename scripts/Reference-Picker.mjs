@@ -7,12 +7,13 @@
 //          --runtime <dir> (log and status file location; default runtime/)
 //          --fake-render (UI trials: renders short tones instead of speech; no models, no GPU)
 //
-// Main view: the research agent's listening report (read only: E:/CyberpunkConvai-offload/work/likeness-phase1), one row
-// per voice with every model column, scores under the headers, column groups you can hide, and a quick verdict. Under
-// each voice a collapsed "Reference clips" panel: the current clip sets, reroll, hand-pick, regenerate this voice only
-// (extra "Your pick" columns in that row) and Keep / Reject per engine. Every action is appended to
-// runtime/reference-picks.jsonl; runtime/reference-picks.json is the derived current state. Apply-ReferencePicks.mjs
-// turns kept sets into proposed configs. The live voice configs are only ever read.
+// Main view (/): the research agent's listening report (read only: E:/CyberpunkConvai-offload/work/likeness-phase1), one row
+// per shown voice (scripts/reference-picker/shown-voices.json) with the allowlisted model columns, scores under the headers,
+// quick filters (Recommended, Original) and column groups, a quick verdict per voice, and a "Change reference clips" button
+// that opens the character page (/voice/<key>) in a new tab. The character page has one flow per engine (Pocket, OmniVoice):
+// current clips, try different clips or choose by hand, generate samples, compare with the current sample, then "Use these clips"
+// (Keep) or "Keep current". Every action is appended to runtime/reference-picks.jsonl; runtime/reference-picks.json is the
+// derived current state. Apply-ReferencePicks.mjs turns kept sets into proposed configs. The live voice configs are only read.
 //
 // Runs headless as a long-lived process on 127.0.0.1 only: it never opens a browser unless --open is given, writes
 // runtime/reference-picker.json ({port, pid, started, url}), and if a picker is already running it prints that one's

@@ -13,6 +13,8 @@
 //       Pocket 10 s  kept "pocket-short"-> runtime/pocket-voices.picked-short.json  (from runtime/pocket-voices.json)
 //       OmniVoice    kept "omni"        -> runtime/local-voices.picked.json         (from runtime/local-voices.json)
 //       Omni, short  kept "omni-short"  -> runtime/local-voices.picked-short.json   (from runtime/local-voices.json)
+//       Pocket 1 clip kept "pocket-single" -> runtime/pocket-voices.picked-single.json (from runtime/pocket-voices.json)
+//       Omni 1 clip   kept "omni-single"   -> runtime/local-voices.picked-single.json  (from runtime/local-voices.json)
 // then dry-runs every written config through the bridge's own loaders (createVoiceProfileRegistry /
 // validatePocketConfig in Node, validate_config of resident-voice-worker.py and pocket_voice_runtime.py in Python):
 // no model is loaded and no worker is started. The live configs (runtime/pocket-voices.json, runtime/local-voices.json)
@@ -33,8 +35,10 @@ const sha256 = value => createHash('sha256').update(value).digest('hex');
 export const OUTPUTS = Object.freeze({
   pocket: {live: 'runtime/pocket-voices.json', out: 'runtime/pocket-voices.picked.json', folder: 'pocket', maxSeconds: 30, label: 'Pocket'},
   'pocket-short': {live: 'runtime/pocket-voices.json', out: 'runtime/pocket-voices.picked-short.json', folder: 'pocket-short', maxSeconds: 10, label: 'Pocket 10 s'},
+  'pocket-single': {live: 'runtime/pocket-voices.json', out: 'runtime/pocket-voices.picked-single.json', folder: 'pocket-single', maxSeconds: 10, label: 'Pocket single clip'},
   omni: {live: 'runtime/local-voices.json', out: 'runtime/local-voices.picked.json', folder: 'omni', maxSeconds: 20, label: 'OmniVoice'},
   'omni-short': {live: 'runtime/local-voices.json', out: 'runtime/local-voices.picked-short.json', folder: 'omni-short', maxSeconds: 10, label: 'OmniVoice short'},
+  'omni-single': {live: 'runtime/local-voices.json', out: 'runtime/local-voices.picked-single.json', folder: 'omni-single', maxSeconds: 10, label: 'OmniVoice single clip'},
 });
 const LIVE_FILES = ['runtime/pocket-voices.json', 'runtime/local-voices.json'];
 

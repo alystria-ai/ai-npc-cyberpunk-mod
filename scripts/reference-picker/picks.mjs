@@ -8,7 +8,7 @@
 // One log line:
 //   {"seq":12,"ts":"2026-10-06T01:02:03.456Z","voice":"judy-alvarez","engine":"pocket","set":"pocket",
 //    "action":"reroll","clips":["judy-alvarez/..","judy-alvarez/.."],"seconds":17.4,"line":0,"note":"",...}
-// engine and set are "pocket", "pocket-short", "omni" or "omni-short" (each has its own clip set), or engine "all".
+// engine and set are "pocket", "pocket-short", "pocket-single", "omni", "omni-short" or "omni-single" (each has its own clip set), or engine "all".
 // actions: reroll | manual-set | restore | keep | unkeep | reject | unreject | note | verdict | regenerate | regenerate-done |
 //          regenerate-failed | play
 // verdict: "fine" (the generated audio sounds fine) | "bad" (bad, fix the references) | "" (cleared).
@@ -17,21 +17,24 @@
 import {appendFile, mkdir, readFile, rename, writeFile} from 'node:fs/promises';
 import {dirname} from 'node:path';
 
-export const ENGINES = Object.freeze(['pocket', 'pocket-short', 'omni', 'omni-short']);
-// Each engine variant has its own candidate clip set: Pocket and OmniVoice, each with an 18 s and a 10 s set. The set id is the
-// engine id. (Older log lines used set "full" for one shared Pocket+Omni set; replay applies those to both.)
+export const ENGINES = Object.freeze(['pocket', 'pocket-short', 'pocket-single', 'omni', 'omni-short', 'omni-single']);
+// Each engine variant has its own candidate clip set: Pocket and OmniVoice, each with an 18 s (three clips), a 10 s (two clips)
+// and a single-clip (one clip of at most 9 s) set. The set id is the engine id. (Older log lines used set "full" for one shared Pocket+Omni set; replay applies those to both.)
 export const SETS = Object.freeze({
-  pocket: {budget: 18, label: 'Pocket 18 s set'},
-  'pocket-short': {budget: 10, label: 'Pocket 10 s set'},
-  omni: {budget: 18, label: 'OmniVoice 18 s set'},
-  'omni-short': {budget: 10, label: 'OmniVoice 10 s set'},
+  pocket: {budget: 18, count: 3, label: 'Pocket 18 s set'},
+  'pocket-short': {budget: 10, count: 2, label: 'Pocket 10 s set'},
+  'pocket-single': {budget: 9, count: 1, label: 'Pocket single-clip set'},
+  omni: {budget: 18, count: 3, label: 'OmniVoice 18 s set'},
+  'omni-short': {budget: 10, count: 2, label: 'OmniVoice 10 s set'},
+  'omni-single': {budget: 9, count: 1, label: 'OmniVoice single-clip set'},
 });
 export const engineSet = engine => engine;
 
 const SET_ACTIONS = new Set(['reroll', 'manual-set', 'restore']);
 const HISTORY_LIMIT = 40;
 
-export const emptyVoice = () => ({candidate: {pocket: null, 'pocket-short': null, omni: null, 'omni-short': null}, history: {pocket: [], 'pocket-short': [], omni: [], 'omni-short': []},
+const perSet = make => Object.fromEntries(Object.keys(SETS).map(set => [set, make()]));
+export const emptyVoice = () => ({candidate: perSet(() => null), history: perSet(() => []),
   kept: {}, rejected: [], note: '', verdict: null, plays: {}, updated: null});
 
 export function parseLog(text) {

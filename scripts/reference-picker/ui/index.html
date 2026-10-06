@@ -11,10 +11,7 @@
 <header class="bar">
   <div class="bar-row">
     <h1>Voice report</h1>
-    <div id="queue" class="pill" title="Render queue" aria-live="polite">Idle</div>
-    <div id="gpu" class="pill" hidden></div>
-    <div class="spacer"></div>
-    <label class="check"><input type="checkbox" id="autogen" checked> Render after reroll</label>
+    <span class="muted">Listen, then mark each character fine or bad. "Change reference clips" opens that character's own page.</span>
   </div>
   <div class="bar-row">
     <input id="search" type="search" placeholder="Filter voices" autocomplete="off" aria-label="Filter voices">
@@ -23,19 +20,20 @@
       <option value="new">No verdict yet</option>
       <option value="bad">Bad, fix references</option>
       <option value="fine">Sounds fine</option>
-      <option value="kept">Something kept</option>
-      <option value="panel">Has a reference panel</option>
+      <option value="kept">Clips kept</option>
+      <option value="panel">Reference clips can be changed</option>
     </select>
     <span id="count" class="muted"></span>
     <button id="rescan" class="small" title="Look for new research columns and audio">Rescan research files</button>
   </div>
-  <details id="columns-box" open><summary class="muted">Columns shown</summary><div class="bar-row" id="groups" role="group" aria-label="Column groups"></div></details>
+  <details id="columns-box" open><summary class="muted">Columns shown</summary><div class="bar-row" id="groups" aria-label="Column filters"></div><div id="scores-note" class="muted"></div></details>
 </header>
 <main>
   <div id="report-wrap" class="report-wrap"><table class="report" id="report"><thead id="thead"></thead></table><div id="sentinel" aria-hidden="true"></div></div>
   <p class="muted help">Space plays or pauses the current sample. Left and right arrows play the previous or next sample in the row; up and down play the same column on the previous or next voice. The research columns are read only.</p>
 </main>
 <div id="toast" role="status" hidden><span id="toast-text"></span> <button id="toast-undo" class="small" hidden>Undo</button></div>
+<script src="common.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

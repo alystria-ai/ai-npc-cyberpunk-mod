@@ -5,9 +5,9 @@ import {readFile, mkdir, writeFile} from 'node:fs/promises';
 import {basename, dirname, extname, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {Engines, SLOTS} from './engines.mjs';
-import {FALLBACK_TEXT, Pool, rerollSet} from './pool.mjs';
+import {FALLBACK_TEXT, LIVE_PREFIX, Pool, rerollSet} from './pool.mjs';
 import {GpuMonitor} from './gpu.mjs';
-import {Research} from './research.mjs';
+import {Research, resolveShown} from './research.mjs';
 import {engineSet, ENGINES, PickStore, SETS} from './picks.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -17,10 +17,18 @@ const titleCase = key => key.split('-').map(part => part.charAt(0).toUpperCase()
 const fail = (status, message) => Object.assign(Error(message), {status});
 const ACTIVE = new Set(['queued', 'running', 'waiting-gpu']);
 const round = value => Math.round(value * 100) / 100;
+// The research report's render of the same kind of reference, per render slot: used as the current clips' sample when the
+// current clips are the research agent's own proposal (multi-clip) or today's single reference.
+const RESEARCH_SLOTS = {
+  multi: {pocket: 'ft6-s5000raw__multiB', pockets: 'ft6-s5000raw__multiC', omni16: 'omni__s16_g2_multiB', omni32: 'omni__s32_g2_multiB', omni16s: 'omni__s16_g2_multiC', omni32s: 'omni__s32_g2_multiC'},
+  single: {pocket: 'ft6-s5000raw__cfg1', pockets: 'ft6-s5000raw__cfg1', pocket1: 'ft6-s5000raw__cfg1', omni16: 'omni__s16_g2', omni32: 'omni__s32_g2', omni16s: 'omni__s16_g2', omni32s: 'omni__s32_g2',
+    omni16one: 'omni__s16_g2', omni32one: 'omni__s32_g2'},
+};
 
 export class Picker {
-  constructor({project, work, pool, store, engines, research = new Research({root: null}), gpu = new GpuMonitor(), uiDirectory = resolve(here, 'ui'), now = () => Date.now(), gpuRecheckMs = 5000}) {
+  constructor({project, work, pool, store, engines, research = new Research({root: null}), gpu = new GpuMonitor(), uiDirectory = resolve(here, 'ui'), now = () => Date.now(), gpuRecheckMs = 5000, shownVoices}) {
     Object.assign(this, {project, work, pool, store, engines, research, gpu, uiDirectory, now, gpuRecheckMs});
+    this.shown = shownVoices === undefined ? research.shown : resolveShown(shownVoices);       // voices that become rows (null: all)
     this.jobs = []; this.running = false; this.sequence = 0;
     this.references = new Map();
   }
@@ -36,9 +44,9 @@ export class Picker {
   }
   describeClip(key, id) {
     const clip = this.pool.clip(key, id);
-    if (!clip) return {id, missing: true};
+    if (!clip) return {id, missing: true, ph: false};
     const url = id.startsWith('live:') ? `/audio/live/${id.slice(5)}/${key}` : `/audio/clip/${key}/${encodeURIComponent(id)}`;
-    return {id, seconds: round(clip.d), transcript: clip.t, typicality: clip.ty, loudness: clip.rel ?? null, delivery: clip.k, audio: url,
+    return {id, seconds: round(clip.d), transcript: clip.t, typicality: clip.ty, loudness: clip.rel ?? null, delivery: clip.k, ph: !!clip.ph, audio: url,
       label: id.startsWith('live:') ? `today's ${id.slice(5) === 'omni' ? 'OmniVoice' : 'Pocket'} reference` : null};
   }
   describeSet(key, set) {
@@ -69,12 +77,14 @@ export class Picker {
     return this.references.get(cacheKey);
   }
   // Every slot that could be on the card, with the file it would produce.
-  async slotsFor(key, lineIndex) {
-    const voice = this.pool.voice(key), {text, index} = this.line(key, lineIndex), out = [];
+  // target "candidate" (the clips shown as the new set) or "current" (what the engine uses now: kept, proposed or today's reference).
+  async slotsFor(key, lineIndex, target = 'candidate', only = null) {
+    const {text, index} = this.line(key, lineIndex), out = [];
     for (const definition of SLOTS) {
-      const candidate = this.candidate(key, definition.set);
-      if (!candidate) continue;
-      const ids = candidate.ids, transcript = this.pool.transcript(key, ids);
+      if (only && definition.set !== only) continue;
+      const ids = target === 'current' ? this.currentIds(key, definition.set) : this.candidate(key, definition.set)?.ids;
+      if (!ids) continue;
+      const transcript = this.pool.transcript(key, ids);
       const reference = await this.reference(key, ids);
       const id = await this.engines.sampleId(definition, reference, transcript, text);
       const file = `${definition.slot}-${id}.wav`, path = resolve(this.work, 'samples', key, `line${index}`, file);
@@ -84,10 +94,54 @@ export class Picker {
     return out;
   }
   jobFor(key) { return [...this.jobs].reverse().find(job => job.voice === key) ?? null; }
+  activeJob(key, target) { return [...this.jobs].reverse().find(job => job.voice === key && (job.target ?? 'candidate') === target && ACTIVE.has(job.status)) ?? null; }
+
+  // ---- current clips: what an engine uses now ----
+  // The set the user kept, else the research agent's proposal, else today's single reference for that engine.
+  currentIds(key, set) {
+    const kept = this.store.voice(key).kept[set];
+    if (kept) return [...kept.clips];
+    const start = this.pool.startingSet(key, set);
+    if (start) return start;
+    const engine = set.startsWith('pocket') ? 'pocket' : 'omni';
+    return this.pool.voice(key).live[engine]?.exists ? [LIVE_PREFIX + engine] : null;
+  }
+  currentSource(key, set) {
+    if (this.store.voice(key).kept[set]) return 'kept';
+    const start = this.pool.startingSet(key, set);
+    return start && !start[0]?.startsWith(LIVE_PREFIX) ? 'proposed' : 'today';
+  }
+  // Research listening-report renders of the current clips, per slot, when the current clips are the research agent's own.
+  researchFor(key, set, ids, index) {
+    const start = this.pool.startingSet(key, set), out = {};
+    if (!start || start.join('|') !== ids.join('|')) return out;
+    const kind = ids.every(id => id.startsWith(LIVE_PREFIX)) ? 'single' : 'multi', audio = this.research.scan().audio;
+    for (const [slot, cond] of Object.entries(RESEARCH_SLOTS[kind])) {
+      if (SLOTS.find(item => item.slot === slot)?.set === set && audio.get(cond)?.has(`${key}|${index}`)) out[slot] = {cond, url: `/audio/research/${cond}/${key}/${index}`};
+    }
+    return out;
+  }
+  async describeCurrent(key, set, index, candidateSlots) {
+    const ids = this.currentIds(key, set);
+    if (!ids) return null;
+    const candidate = this.candidate(key, set)?.ids, hasNew = !!candidate && candidate.join('|') !== ids.join('|');
+    const sameAsCandidate = !!candidate && !hasNew;
+    const rendered = sameAsCandidate ? candidateSlots.filter(slot => slot.set === set) : await this.slotsFor(key, index, 'current', set);
+    const job = this.activeJob(key, sameAsCandidate ? 'candidate' : 'current'), research = this.researchFor(key, set, ids, index), samples = {};
+    for (const slot of rendered) {
+      const found = research[slot.slot];
+      samples[slot.slot] = {label: slot.label, steps: slot.steps ?? null, ...(found ? {exists: true, url: found.url, state: 'ready', from: 'research', cond: found.cond}
+        : {exists: slot.exists, url: slot.exists ? slot.url : null, state: slot.exists ? 'ready' : this.slotState(job, slot), from: 'render',
+          error: job?.slots.find(item => item.slot === slot.slot)?.error ?? null})};
+    }
+    return {ids, source: this.currentSource(key, set), clips: ids.map(id => this.describeClip(key, id)), seconds: this.pool.seconds(key, ids), hasNew, samples};
+  }
   async card(key, lineIndex = 0) {
     const voice = this.pool.voice(key), state = this.store.voice(key);
     const {lines, index, text} = this.line(key, lineIndex);
     const slots = await this.slotsFor(key, index), job = this.jobFor(key);
+    const current = {};
+    for (const set of Object.keys(SETS)) current[set] = await this.describeCurrent(key, set, index, slots);
     const sets = Object.fromEntries(Object.keys(SETS).map(set => [set, this.describeSet(key, set)]));
     const kept = {};
     for (const engine of ENGINES) {
@@ -101,16 +155,17 @@ export class Picker {
       const ids = sets[set]?.ids.join('|');
       rejectedNow[set] = !!ids && state.rejected.some(item => item.set === set && item.clips.join('|') === ids);
     }
-    const active = job && ACTIVE.has(job.status) ? job : null;
-    return {key, name: titleCase(key), poolSize: voice.clips.length, lines: lines.map((line, at) => ({index: at, text: line.t, seconds: round(line.d), split: line.split,
+    const active = this.activeJob(key, 'candidate'), activeCurrent = this.activeJob(key, 'current');
+    return {key, name: titleCase(key), poolSize: voice.clips.length, lines: lines.map((line, at) => ({index: at, text: line.t, seconds: round(line.d), split: line.split, ph: this.pool.linePhone(line),
         audio: `/audio/line/${key}/${at}`})), line: index, text, hasLine: lines.length > 0,
-      sets, history: Object.fromEntries(Object.keys(SETS).map(set => [set, this.historyOf(key, set, sets[set])])),
+      sets, current, history: Object.fromEntries(Object.keys(SETS).map(set => [set, this.historyOf(key, set, sets[set])])),
       kept, rejected: state.rejected, rejectedNow, note: state.note, verdict: state.verdict,
       samples: Object.fromEntries(slots.map(slot => [slot.slot, {label: slot.label, engine: slot.engine, steps: slot.steps, set: slot.set ?? null,
         clips: slot.ids.length, exists: slot.exists, url: slot.exists ? slot.url : null,
         state: slot.exists ? 'ready' : this.slotState(active, slot),
         error: active?.slots.find(item => item.slot === slot.slot)?.error ?? null}])),
-      job: job ? this.publicJob(job) : null};
+      job: job ? this.publicJob(job) : null,
+      jobs: {candidate: active ? this.publicJob(active) : null, current: activeCurrent ? this.publicJob(activeCurrent) : null}};
   }
   slotState(job, slot) {
     const queued = job?.slots.find(item => item.slot === slot.slot);
@@ -127,13 +182,13 @@ export class Picker {
     return list.map(item => ({...item, current: item.clips.join('|') === current?.ids.join('|')}));
   }
   publicJob(job) {
-    return {id: job.id, voice: job.voice, line: job.line, status: job.status, done: job.done, total: job.total, current: job.current,
+    return {id: job.id, voice: job.voice, line: job.line, target: job.target ?? 'candidate', requested: job.requested ?? null, status: job.status, done: job.done, total: job.total, current: job.current,
       error: job.error, waitReason: job.waitReason ?? null, queuedAt: job.queuedAt, startedAt: job.startedAt, finishedAt: job.finishedAt,
       slots: job.slots.map(({slot, state, error, tookMs}) => ({slot, state, error, tookMs}))};
   }
   summary() {
     const research = this.research.scan();
-    const keys = [...new Set([...this.pool.keys, ...Object.keys(research.voices)])].sort();
+    const keys = [...new Set([...this.pool.keys, ...Object.keys(research.voices)])].filter(key => !this.shown || this.shown.has(key)).sort();
     return {work: this.work, log: this.store.logPath, picks: this.store.jsonPath, engines: this.engines.state, research: research.enabled,
       voices: keys.map(key => {
         const state = this.store.voice(key), job = this.jobFor(key);
@@ -152,15 +207,29 @@ export class Picker {
   }
 
   // ---- actions ----
-  async reroll(key, set) {
+  // Phone-flagged clips are left out of the draw unless allowPhone is true.
+  async reroll(key, set, allowPhone = false) {
     if (!SETS[set]) throw fail(400, 'Unknown set');
     const voice = this.pool.voice(key), state = this.store.voice(key);
     const current = this.candidate(key, set)?.ids ?? [];
-    const pick = rerollSet(voice.clips, {budget: SETS[set].budget, current, recent: state.history[set].slice(0, 15).map(item => item.clips),
-      rejected: state.rejected.filter(item => item.set === set).map(item => item.clips)});
-    if (!pick) throw fail(409, `${titleCase(key)} has no other usable clips to draw from (${voice.clips.length} in the pool)`);
+    const clips = this.pool.rerollClips(key);
+    const pick = rerollSet(clips, {budget: SETS[set].budget, current, recent: state.history[set].slice(0, 15).map(item => item.clips),
+      rejected: state.rejected.filter(item => item.set === set).map(item => item.clips), allowPhone, count: SETS[set].count ?? 3});
+    if (!pick) {
+      const phone = clips.filter(clip => clip.ph).length;
+      throw fail(409, `${titleCase(key)} has no other usable clips to draw from (${voice.clips.length} in the pool`
+        + (!allowPhone && phone ? `, ${phone} of them phone-processed and excluded; tick "Include phone clips in Reroll" to allow them` : '') + ')');
+    }
     await this.store.append({voice: key, engine: set, set, action: 'reroll', clips: pick.ids,
       seconds: pick.seconds, previous: current});
+  }
+  // "Keep current": turn the new clips down (logged as a rejection, so Reroll avoids them) and show the current clips again (logged as a restore).
+  async dismiss(key, set) {
+    if (!SETS[set]) throw fail(400, 'Unknown set');
+    const candidate = this.candidate(key, set), current = this.currentIds(key, set);
+    if (!candidate || !current || candidate.ids.join('|') === current.join('|')) return;
+    await this.reject(key, set);
+    await this.setManual(key, set, current, 'restore');
   }
   async setManual(key, set, ids, action = 'manual-set') {
     const {seconds} = this.pool.validateSet(key, set, ids);
@@ -207,27 +276,30 @@ export class Picker {
     const entry = {voice: key, action: 'play', what, target: String(body.target ?? '').slice(0, 200)};
     if (what === 'sample') {
       const slot = SLOTS.find(item => item.slot === body.target);
-      if (slot) { entry.engine = slot.set; entry.clips = this.candidate(key, slot.set)?.ids ?? []; }
+      if (slot) {
+        entry.engine = slot.set;
+        if (body.current === true) { entry.current = true; entry.clips = this.currentIds(key, slot.set) ?? []; } else entry.clips = this.candidate(key, slot.set)?.ids ?? [];
+      }
     }
     await this.store.append(entry);
   }
 
   // ---- jobs ----
-  enqueue(key, {line = 0, force = false, slots} = {}) {
+  enqueue(key, {line = 0, force = false, slots, target = 'candidate'} = {}) {
     this.pool.voice(key);
     const known = new Set(SLOTS.map(item => item.slot));
     if (slots && (!Array.isArray(slots) || slots.some(slot => !known.has(slot)))) throw fail(400, 'Unknown render slot');
-    const existing = this.jobs.find(job => job.voice === key && job.line === line && ['queued', 'waiting-gpu'].includes(job.status));
+    const existing = this.jobs.find(job => job.voice === key && job.line === line && (job.target ?? 'candidate') === target && ['queued', 'waiting-gpu'].includes(job.status));
     if (existing) {                                  // one pending job per voice and line; widen it instead of queueing twice
       existing.requested = existing.requested && slots ? [...new Set([...existing.requested, ...slots])] : null;
       existing.force ||= force;
       return existing;
     }
-    const job = {id: ++this.sequence, voice: key, line, force, requested: slots ?? null, status: 'queued', done: 0, total: 0, current: null,
+    const job = {id: ++this.sequence, voice: key, line, target, force, requested: slots ?? null, status: 'queued', done: 0, total: 0, current: null,
       error: null, queuedAt: this.now(), slots: [], startedAt: null, finishedAt: null};
     this.jobs.push(job);
     this.store.append({voice: key, engine: slots?.length === 1 || slots?.every(slot => slot.startsWith('omni')) ? (slots[0] === 'pocket' ? 'pocket' : 'omni') : 'all',
-      action: 'regenerate', line, force, slots: slots ?? null,
+      action: 'regenerate', line, force, slots: slots ?? null, ...(target === 'current' ? {target} : {}),
       sets: Object.fromEntries(Object.keys(SETS).map(set => [set, this.candidate(key, set)?.ids ?? null]))}).catch(() => {});
     queueMicrotask(() => this.drain());
     return job;
@@ -255,7 +327,7 @@ export class Picker {
   async run(job) {
     const store = this.store;
     try {
-      const wanted = (await this.slotsFor(job.voice, job.line)).filter(slot => !job.requested || job.requested.includes(slot.slot));
+      const wanted = (await this.slotsFor(job.voice, job.line, job.target)).filter(slot => !job.requested || job.requested.includes(slot.slot));
       job.slots = wanted.filter(slot => job.force || !slot.exists).map(slot => ({...slot, state: 'queued', error: null}));
       job.total = job.slots.length; job.done = 0;
       // Only OmniVoice needs the GPU. When another process holds it, Pocket (CPU) still renders now and the
@@ -310,6 +382,7 @@ export class Picker {
       this.guard(request);
       if (request.method === 'GET' && path.startsWith('/audio/')) return await this.audio(request, response, path);
       if (path.startsWith('/api/')) return await this.api(request, response, path, url);
+      if (request.method === 'GET' && /^\/voice\/[a-z0-9-]+\/?$/.test(path)) return await this.staticFile(response, '/voice.html');       // the character page (reference clips)
       if (request.method === 'GET') return await this.staticFile(response, path);
       throw fail(405, 'Method not allowed');
     } catch (error) {
@@ -370,7 +443,7 @@ export class Picker {
     }
     this.pool.voice(key);
     switch (parts[2]) {
-      case 'reroll': await this.reroll(key, body.set); break;
+      case 'reroll': await this.reroll(key, body.set, body.allowPhone === true); break;
       case 'set': await this.setManual(key, body.set, body.clips); break;
       case 'restore': await this.setManual(key, body.set, body.clips, 'restore'); break;
       case 'keep': await this.keep(key, body.engine, typeof body.note === 'string' ? body.note : undefined, line, Array.isArray(body.clips) ? body.clips : undefined); break;
@@ -378,7 +451,8 @@ export class Picker {
       case 'unkeep': await this.unkeep(key, body.engine); break;
       case 'reject': await this.reject(key, body.set, typeof body.note === 'string' ? body.note : undefined); break;
       case 'note': await this.note(key, body.note); break;
-      case 'regenerate': this.enqueue(key, {line, force: body.force === true, slots: Array.isArray(body.slots) ? body.slots : undefined}); break;
+      case 'regenerate': this.enqueue(key, {line, force: body.force === true, slots: Array.isArray(body.slots) ? body.slots : undefined, target: body.target === 'current' ? 'current' : 'candidate'}); break;
+      case 'dismiss': await this.dismiss(key, body.set); break;
       default: throw fail(404, 'Unknown request');
     }
     return this.json(response, await this.card(key, line));
@@ -420,8 +494,8 @@ export class Picker {
   }
 }
 
-export async function startPicker({project, work, port = 8765, store, engines, pool, research, gpu, gpuRecheckMs}) {
-  const picker = new Picker({project, work, pool, store, engines, research, gpu, gpuRecheckMs});
+export async function startPicker({project, work, port = 8765, store, engines, pool, research, gpu, gpuRecheckMs, shownVoices}) {
+  const picker = new Picker({project, work, pool, store, engines, research, gpu, gpuRecheckMs, shownVoices});
   const server = createServer((request, response) => picker.handle(request, response));
   await new Promise((done, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', done); });
   return {picker, server, port: server.address().port, close: async () => { await new Promise(done => server.close(done)); server.closeAllConnections?.(); await engines.close(); await store.flush(); await store.writeDerived(); }};
