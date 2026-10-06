@@ -205,3 +205,17 @@ test('measured hand reach drives the choice: clips under 15 cm are almost never 
   end
   assert(big>small*8,'big '..big..' small '..small)
 `));
+
+test('symbolic gestures are never chosen: Judy gesture 02 (thumbs-up), measured symbolic clips, strong names', () => run(`
+  assert(not m.allowed('judy__stand_2h_arms_crossed__01__gesture__02'))
+  assert(m.allowed('judy__stand_2h_arms_crossed__01__gesture__03'))
+  for _,name in ipairs({'stand__arms_crossed_front__01__go_away__angry__02','stand__2h_on_sides__01__salute__01','stand__arms_crossed_front__01__draw_gun__01','stand__arms_crossed_front__01__be_quiet__angry__03'}) do
+    assert(not m.allowed(name),name)
+  end
+  local pool={clip('d__talk__neutral__01','neutral',all),clip('d__describe__01','neutral',all)}
+  pool[2].symbolic=true
+  for t=0,30,.1 do
+    local item=m.next(m.new(lcg),{now=t,mode='speaking',rig='woman_base',character='judy',family='neutral',scale=2,remaining=30,total=30,clips=pool})
+    if item then assert(item.clip.name~='d__describe__01','measured symbolic clip chosen') end
+  end
+`));

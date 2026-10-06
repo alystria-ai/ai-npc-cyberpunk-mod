@@ -14,7 +14,15 @@ M.families = {
 -- Calm filler mixed into emotional speech so emotion colours, not dominates.
 M.filler = {'neutral', 'shrug', 'emphatic', 'question'}
 -- Never played, whatever a catalog contains (user decision: no rude/strong gestures).
-M.banned = {'threaten', 'fuck_you', 'clap', 'thumb_up', 'middle_finger', 'cheer', 'dance', 'step', 'turn'}
+M.banned = {'threaten', 'fuck_you', 'clap', 'thumb_up', 'middle_finger', 'cheer', 'dance', 'step', 'turn',
+    -- Symbolic or strong gestures, excluded by default (user decision, Oct 7):
+    'fist', 'salute', 'go_away', 'come_closer', 'taunt', 'shoot', 'draw_gun', 'aim', 'kill', 'slit',
+    'crack_knuckles', 'cracking_knuckles', 'be_quiet', 'shush', 'stop__angry', 'me__angry', 'talk_to_hand',
+    -- Verified in the Oct 7 capture: a raised thumbs-up shape while Judy talks.
+    'judy__stand_2h_arms_crossed__01__gesture__02'}
+-- Clips found to contain symbolic hand shapes by measurement (thumbs-up,
+-- middle finger), generated into the catalog as clip.symbolic=true.
+function M.symbolic(clip) return clip.symbolic == true end
 -- Per character pacing: rate > 1 gestures more often.
 M.profiles = {
     takemura = {rate = .7}, johnny = {rate = 1.2}, panam = {rate = 1.15}, kerry = {rate = 1.15},
@@ -66,7 +74,7 @@ local function candidates(clips, rig, character, category)
     local list = {}
     for _, clip in ipairs(clips or {}) do
         local onRig = clip.perRig and clip.perRig[rig]
-        if onRig and clip.category == category and M.allowed(clip.name)
+        if onRig and clip.category == category and M.allowed(clip.name) and not M.symbolic(clip)
             and (clip.character == nil or clip.character == character) then
             list[#list + 1] = {clip = clip, duration = onRig.duration, reach = onRig.reach}
         end
