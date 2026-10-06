@@ -28,7 +28,7 @@ no longer open it.
   catalogue by name or record. Use MCM's **Search settings** field. Models without
   a researched identity join as followers without AI conversations.
 - **Settings:** conversation participation, Memory and Relationships submenus,
-  voice playback, subtitles, automatic reactions, interface language and
+  **Auto-connect nearby characters** (off by default, see below), voice playback, subtitles, automatic reactions, interface language and
   Developer mode. The global voice choices are **OmniVoice 16 steps (default),
   OmniVoice 32 steps, Pocket TTS and Convai cloud voice**, in that order, with
   service readiness alongside. If the chosen voice cannot run, the status line
@@ -214,6 +214,32 @@ joining step once, never a backlog. The phone's own "invite queued" notice
 comes from the native phone script and is unchanged, as is its "will leave when
 you return to the game" reply to a dismissal request.
 
+### One merged notice for invitations made together
+
+Manager and phone invitations share one **notice board** (`M.newBoard` in
+`mod/manager-party.lua`, reached as `queue.board()`). Every invitation in flight is an entry;
+the board turns all of them into ONE compact notice that replaces the previous one instead of
+a stream of per-character popups:
+
+- One invitation keeps its original wording and is never delayed (`Judy: preparing
+  memory...`, `Judy joined your group.`).
+- Several at once: `Preparing Judy and Johnny…`, then `Connecting Judy and Johnny…`, then (paused)
+  `Judy and Johnny are ready to join when you return to the game.`, then `Judy and Johnny joined
+  your group.`. The shared verb follows the slowest copy, so one character finishing first does
+  not change the text. Up to three names are listed; more are summarised (`Judy, Johnny and 3 others
+  joined your group.`). Phone-only batches say `Close the phone to join.` instead.
+- A failure is mentioned beside the successes in the same notice (`Johnny joined your group.` /
+  `Judy could not join: ...`); more than two failures end with `N more companions also failed.`
+- While more than one outcome is in flight, a change waits until 400 ms after the last notice
+  (`WINDOW_MS`), so near-simultaneous stages merge into one update. A lone invitation is posted at
+  once. The paused-menu rules below still apply: a stage hidden by the menu is shown once more in
+  gameplay, and nothing is replayed after cancellation or a world change (`queue.bind` resets the board).
+- The visibility rules are unchanged: preparing, connecting, ready and joined always show; the
+  joining step and the phone acknowledgement stay Developer-only; every failure always shows.
+- `mod/mcm.lua` posts the board's note from its top-level update (and commits it only after the
+  native call succeeded); `mod/init.lua` (`updatePhoneInvitationFeedback`) asks the same board for
+  phone invitations, so whichever runs first posts and the other finds nothing new.
+
 Each ticket, profile revision and preparation stage is posted once while paused.
 Because the menu may hide native notifications, the first gameplay frame samples
 the current state again and presents it once there. It retains no stage backlog.
@@ -237,6 +263,44 @@ notices (including one first seen while paused), cancellation, phone ownership
 and already joined tickets. A world spawn deferred by the shared query budget
 keeps the same joining notification when admission later succeeds.
 Their visibility in the running game remains the live acceptance gate.
+
+## Auto-connect nearby characters
+
+**Settings → Conversations → Auto-connect nearby characters** (default **Off**). The talk key already
+works on any NPC within 8 m whose record or name resolves to a profile (`profileIdentity` →
+`characterCatalog.resolve`), so the game's own Judy met in the world can talk. The connection used to
+open only when the chat did (`warmConversation` → `runtime/conversation-prewarm.json`), which costs a wait on
+the first reply.
+
+- **Off:** connect on talk, as before. Starting a text or voice chat with a world character that is not
+  connected yet shows `Preparing connection to Judy… (turn on Auto-connect to skip this wait)`. The hint in
+  brackets appears the first **two** times per game session only; later waits show `Preparing connection to
+  Judy…`. A character already connected (a copy in the party, or one the bridge reports ready in
+  `runtime/party-connection-state.json`) shows nothing. Group chat shows no wait notice. With a voice chat
+  the line is joined to `Connecting microphone - wait for Listening`.
+- **On** (`mod/auto-connect.lua`): a character with a profile that V looks at for 0.6 s (the existing gaze
+  sample in `updateGaze`), or stands within 5 m of (a 1 Hz `GetTargetParts` scan, the idiom of
+  `companion-marking.lua`), is warmed: the Lua side publishes up to **two** profile keys to
+  `runtime/nearby-connections.json` (`{updated, profiles}`, rewritten on change and every 2 s) and
+  `bridge/nearby-warm.mjs` opens their private connection (`PartyConnections.setNearby`, role `nearby`, the
+  lowest priority: it takes optional group slots and never evicts a party, invitation or composer connection)
+  and prepares their local voice with `localVoice.prepareProfile` (one voice at a time, only while no turn,
+  microphone or voice change is running; a failed voice is retried after 30 s).
+- **Limits:** at most 2 warm at once; one new start every 3 s; no new start in combat, a scripted scene, a
+  call, a dialogue or a vehicle (the same `battleSample` gate as automatic reactions) and not while a menu
+  pauses the game; a looked-at character may replace the idlest unwanted one; a character is released 40 s after
+  it stops being wanted, or after 10 minutes without a conversation, and then waits 20 s (3 minutes after the age
+  release) before it can be warmed again. A conversation in progress keeps its connection. Party members are
+  never listed here.
+- **Release:** the setting turned off, a world change and CET shutdown publish an empty list at once; the bridge
+  also treats a list not refreshed for 8 s as empty (a paused, crashed or closed game), which closes the
+  connections. The composer hint (`conversation-prewarm.json`) is untouched and still wins for the character
+  being talked to.
+- **Not done by it:** it sends no message, creates no memory and records no contact; it is a connection and
+  voice warm-up, like the composer hint.
+- Tests: `bridge/auto-connect.test.mjs` (policy), `bridge/nearby-warm.test.mjs` and the nearby cases in
+  `bridge/party-connections.test.mjs` (bridge), `bridge/world-lifecycle.test.mjs` (the talk notice and the real
+  adapter's gaze warm-up) and the setting in `bridge/manager.test.mjs`.
 
 ## Native section and option styling — October 2
 

@@ -40,6 +40,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/local-pcm-host.mjs',
   'bridge/loot-context.mjs',
   'bridge/microphone-session.mjs',
+  'bridge/nearby-warm.mjs',
   'bridge/party-connections.mjs',
   'bridge/phone-analysis-config.mjs',
   'bridge/phone-chat.mjs',

@@ -206,6 +206,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/invitation-readiness.lua"
         },
         {
+          "source": "mod/auto-connect.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/auto-connect.lua"
+        },
+        {
           "source": "mod/manager.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/manager.lua"
         },
@@ -455,6 +459,7 @@
             "bridge/local-pcm-host.mjs",
             "bridge/loot-context.mjs",
             "bridge/microphone-session.mjs",
+            "bridge/nearby-warm.mjs",
             "bridge/party-connections.mjs",
             "bridge/phone-analysis-config.mjs",
             "bridge/phone-chat.mjs",

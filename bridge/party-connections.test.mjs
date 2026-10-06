@@ -317,3 +317,56 @@ test('cancelled retirement retains its exact pending disposal until a later owne
   assert.deepEqual(f.refreshes, [connectionKey('alex', 'private')]);
   await f.connections.clear();
 });
+
+test('nearby characters get a private connection at the lowest priority and never evict a protected one', async () => {
+  const f = fixture(); f.heartbeat(['alex']);
+  await f.connections.setNearby(['judy', 'panam', 'kerry']);
+  // Only two are kept; the party member is still first.
+  assert.deepEqual(f.connections.plan().map(spec => [spec.profile, spec.scope, spec.role]),
+    [['alex', 'private', 'party'], ['judy', 'private', 'nearby'], ['panam', 'private', 'nearby']]);
+  await f.step(0); await f.step(500); await f.step(500);
+  assert.deepEqual(f.calls.map(call => call.profile), ['alex', 'judy', 'panam']);
+  assert(f.live.has(connectionKey('judy', 'private')) && f.live.has(connectionKey('panam', 'private')));
+  assert(!f.live.has(connectionKey('kerry', 'private')));
+  // The same list again is a no-op, not a reconnect.
+  const revision = f.connections.revision;
+  await f.connections.setNearby(['judy', 'panam']); assert.equal(f.connections.revision, revision);
+  // A change closes the dropped page only.
+  await f.connections.setNearby(['panam']);
+  assert(!f.live.has(connectionKey('judy', 'private')) && f.live.has(connectionKey('panam', 'private')));
+  await f.connections.setNearby([]);
+  assert(!f.live.has(connectionKey('panam', 'private')) && f.live.has(connectionKey('alex', 'private')));
+});
+
+test('a full party keeps all eight private connections when nearby characters are listed', async () => {
+  const f = fixture(); f.heartbeat(profiles);
+  await f.connections.setNearby(['nearby']);
+  const specs = f.connections.plan();
+  for (const profile of profiles) assert(specs.some(spec => spec.profile === profile && spec.role === 'party'));
+  assert(specs.length <= CONNECTION_LIMIT);
+  assert(specs.some(spec => spec.profile === 'nearby' && spec.role === 'nearby'));
+});
+
+test('a nearby character that is also the composer target or a party member keeps its stronger role, and unknown or invalid names are refused', async () => {
+  const f = fixture(); f.heartbeat(['alex']);
+  await f.connections.setNearby(['alex', 'judy']);
+  assert.deepEqual(f.connections.plan().map(spec => [spec.profile, spec.role]), [['alex', 'party'], ['judy', 'nearby']]);
+  await f.connections.setComposer({scope: 'private', audience: ['judy']});
+  assert.deepEqual(f.connections.plan().map(spec => [spec.profile, spec.role]), [['alex', 'party'], ['judy', 'target']]);
+  await f.connections.setNearby(['stranger']);   // unknown to this host: planned out
+  assert(!f.connections.plan().some(spec => spec.profile === 'stranger'));
+  assert.throws(() => f.connections.setNearby(['bad/key']), /Invalid nearby profiles/);
+  assert.throws(() => f.connections.setNearby('judy'), /Invalid nearby profiles/);
+});
+
+test('nearby characters are dropped when the party heartbeat goes stale or the connections are cleared', async () => {
+  const f = fixture(); f.heartbeat(['alex']);
+  await f.connections.setNearby(['judy']);
+  assert(f.connections.plan().some(spec => spec.profile === 'judy'));
+  await f.step(7000); await f.step(0);   // the heartbeat is older than the staleness limit
+  assert.equal(f.connections.plan().length, 0);
+  f.heartbeat(['alex']);
+  assert.deepEqual(f.connections.nearby, [], 'a stale party kept the nearby list');
+  await f.connections.setNearby(['judy']); await f.connections.clear();
+  assert.deepEqual(f.connections.nearby, []);
+});

@@ -138,7 +138,8 @@ world notification share one failure notice per attempt.
 
 Failure notices are never hidden by Developer mode, but they are posted only in
 gameplay. The shared claim (`claimPreparationFailure`) is taken by the first
-gameplay reporter: the world flush, the manager popup sampler or the phone. A
+gameplay reporter, which is now always the world flush (the manager sampler and the
+phone's own failure line were folded into the notice board and never reach it first). A
 failure first observed while the pause menu, phone or manager is open does not
 take it; those only update the in-menu banner or list, and the notice is posted
 once when gameplay resumes. A failure found while the invitation is created is
@@ -148,6 +149,11 @@ joined are posted as popups in every mode, so a slow preparation is not mistaken
 for a failure. Only the joining step, the phone's preparing acknowledgement and
 the dismissed notice need Developer mode; the manager banner and Current party
 list show every stage either way.
+
+Invitations made together share one merged notice (`Preparing Judy and Johnny…`, `Judy and Johnny joined
+your group.`, failures beside the successes). The claim rules above are unchanged: the notice board
+(`queue.board()`, see `docs/MANAGER_UI.md`, "One merged notice for invitations made together") never takes
+the failure claim; failures arrive as the queue's own gameplay outcome notices and are merged there.
 
 Hanako's reported failure was followed by a read-only provider check confirming
 the correct owned profile and enabled memory. The original exception had been

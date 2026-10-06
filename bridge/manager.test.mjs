@@ -1102,10 +1102,72 @@ test('manager popup identities distinguish duplicate copies then expire on world
     assert(invoke('invite:johnny-silverhand').ok); popupTick(false)
     assert(#popups == 2 and popups[1] == popups[2], 'new copy was deduplicated by its display text')
     assert(party.dismiss('queued:2')); popupTick(false)
+    assert(#popups == 2, 'cancelling the latest copy replayed its progress')
+    -- The older copy is still in flight: its own next stage is reported (the
+    -- notice board follows every invitation, not only the latest one).
     readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
-    assert(#popups == 2, 'removing the latest copy revived an older progress popup')
+    assert(#popups == 3 and popups[3] == 'Johnny Silverhand: connecting...')
     mcm.resetSession(); popupTick(true)
-    assert(#popups == 2 and #spawned == 0, 'world reset retained a stale popup or invitation')
+    assert(#popups == 3 and #spawned == 0, 'world reset retained a stale popup or invitation')
+  `);
+});
+
+test('Auto-connect nearby characters is off by default, offered under Conversations and saved with the settings', () => {
+  run(`${mcmFixture}
+    assert(manager.autoConnectNearby() == false and manager.snapshot(player).settings.autoConnectNearby == false)
+    assert(invoke('tab:settings').ok)
+    local auto = assert(row('autoConnectNearby'), 'the setting is not offered')
+    assert(auto.type == 'bool' and auto.value == false and auto.defaultValue == false and auto.capabilities.draft)
+    assert(auto.label == 'Auto-connect nearby characters')
+    local conversations
+    for _, category in ipairs(loaded.categories) do if category.id == 'conversation-controls' then conversations = category end end
+    local found = false
+    for _, item in ipairs(conversations.settings) do if item.id == 'autoConnectNearby' then found = true end end
+    assert(found, 'the setting is not in the Conversations section')
+    assert(registered.applyBatch('manager', {{id = 'autoConnectNearby', value = true}}).ok)
+    assert(manager.autoConnectNearby() == true and saved.autoConnectNearby == true)
+    loaded = registered.loadMod('manager'); assert(row('autoConnectNearby').value == true)
+    -- It does not disturb the other settings, and only a boolean is accepted.
+    assert(manager.snapshot(player).settings.voice == true)
+    assert(not manager.applySettings(player, {autoConnectNearby = 'yes'}) and manager.autoConnectNearby() == true)
+    assert(registered.applyBatch('manager', {{id = 'autoConnectNearby', value = false}}).ok and not manager.autoConnectNearby())
+  `);
+});
+
+test('invitations made together share one popup that updates in place, and one joined summary', () => {
+  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand: preparing memory...')
+    assert(invoke('invite:person-1').ok); popupTick(false)
+    assert(#popups == 2 and popups[2] == 'Preparing Johnny Silverhand and Person 01…', popups[#popups])
+    readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
+    assert(#popups == 2, 'the slower copy still decides the shared stage')
+    readiness.receipts['queued:2'] = {state = 'connecting'}; popupTick(false)
+    assert(#popups == 3 and popups[3] == 'Connecting Johnny Silverhand and Person 01…')
+    readiness.receipts['queued:1'] = {state = 'ready'}; readiness.receipts['queued:2'] = {state = 'ready'}
+    popupTick(false)
+    assert(#popups == 4 and popups[4] == 'Johnny Silverhand and Person 01 are ready to join when you return to the game.')
+    popupTick(true)
+    assert(#spawned == 2 and #popups == 4, 'the routine joining step posted with Developer mode off')
+    members[1].state = 'ready'; members[2].state = 'ready'; popupTick(true)
+    assert(#popups == 5 and popups[5] == 'Johnny Silverhand and Person 01 joined your group.', popups[#popups])
+    for _ = 1, 4 do popupTick(true) end
+    assert(#popups == 5, 'the finished burst repeated')
+  `);
+});
+
+test('one companion failing to prepare is reported without hiding the other one joining', () => {
+  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok and invoke('invite:person-1').ok)
+    popupTick(false)
+    readiness.receipts['queued:1'] = {state = 'ready'}
+    readiness.receipts['queued:2'] = {state = 'error', error = 'Bridge unavailable'}
+    popupTick(false); popupTick(true)
+    members[1].state = 'ready'; popupTick(true)
+    local last = popups[#popups]
+    assert(last:find('Johnny Silverhand joined your group.', 1, true) and last:find('Person 01 could not prepare: Bridge unavailable', 1, true), last)
+    for _ = 1, 4 do popupTick(true) end
+    assert(popups[#popups] == last, 'the outcome was repeated')
   `);
 });
 

@@ -12,7 +12,6 @@ local lastError = ''
 local actionFeedback, memoryActionCommand
 local preparationTarget, preparationStatus, preparationActionFeedback
 local preparationAt = 0
-local preparationPopup
 local presentation = {active = false, rows = {}}
 local voiceSelectors = {}
 local localeRevision = -1
@@ -340,37 +339,10 @@ local function developerMode()
     return ok and enabled == true
 end
 
-local function samplePreparationPopup(now, worldReady)
-    local tracking = preparationPopup
-    if not tracking then return nil end
-    if now < tracking.nextAt and tracking.worldReady == worldReady then return nil end
-    tracking.nextAt, tracking.worldReady = now + 1, worldReady
-    local current = queue.invitationFeedback(tracking.id)
-    if not current then preparationPopup = nil; return nil end
-    if current.failed then
-        -- A failure is always visible, but only once per attempt and only in
-        -- gameplay. The paused menu shows it in the banner and must not
-        -- consume the claim, so it is posted when gameplay resumes.
-        if not worldReady then return nil end
-        if queue.claimPreparationFailure
-            and not queue.claimPreparationFailure(current.id, current.revision) then return nil end
-    end
-    -- Native warning notifications can be hidden behind a paused menu. Keep
-    -- only the current snapshot and announce it once again in gameplay, never
-    -- a backlog of memory/connecting stages that may already be obsolete.
-    if worldReady and (current.state == 'ready' or current.state == 'model-only') then
-        current.state = 'joining'
-        current.signature = table.concat({current.id, tostring(current.revision), 'joining'}, '|')
-        current.message = ui.t('{name} is joining your party.', {name = current.name})
-    end
-    -- Progress the player waits on (preparing memory, connecting) and the
-    -- "ready to join when you return" instruction are always shown, so a slow
-    -- preparation is not mistaken for a failure. "Joining" asks nothing of the
-    -- player and is a Developer-mode popup; the manager banner shows it anyway.
-    if current.state == 'joining' and not developerMode() then return nil end
-    if current.signature == tracking.shown
-        and (not worldReady or current.signature == tracking.shownInGameplay) then return nil end
-    return current
+-- Invitation progress and outcomes from the manager and the phone are merged
+-- into one compact notice by the queue's notice board (mod/manager-party.lua).
+local function invitationBoard()
+    return queue and type(queue.board) == 'function' and queue.board() or nil
 end
 
 local function memorySettings(snapshot)
@@ -657,6 +629,8 @@ local function schema()
             action('relationships', 'Relationships', 'Manage',
                 'Choose ordinary or romantic conversations for supported characters.',
                 function(context) return navigate('relationships', context) end),
+            setting('autoConnectNearby', 'Auto-connect nearby characters', 'bool', snapshot.settings.autoConnectNearby, false,
+                'Prepare the conversation with a character you look at or walk up to, so they answer without a wait. Off by default: the connection is made when you start talking. It uses a little memory and bandwidth, and pauses during combat and scenes.'),
         })
         local heights,strengths=manager.gazeChoices()
         local heightIndex,strengthIndex=3,3
@@ -765,7 +739,8 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
             actionFeedback = ok == true and ui.t(reason) or nil
             preparationActionFeedback = false
             if actionId:match('^invite:') and type(invitationId) == 'string' then
-                preparationPopup = {id = invitationId, nextAt = 0}
+                local board = invitationBoard()
+                if board then board.track(invitationId, 'manager') end
             end
             if ok == true and actionId:match('^invite:') then
                 preparationTarget = true
@@ -788,7 +763,8 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
             for _, change in ipairs(changes) do
                 local key = change.id
                 if key == 'voice' or key == 'subtitles' or key == 'followUpQuestions' or key == 'developerMode'
-                    or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' then values[key] = change.value
+                    or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures'
+                    or key == 'autoConnectNearby' then values[key] = change.value
                 elseif key == 'subtitleStyle' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose Above speaker or Dialogue HUD.')} end
                     values.subtitleStyle = change.value == 1 and 'overhead' or 'dialogue'
@@ -939,19 +915,20 @@ end
 
 function M.update(currentPlayer, worldReady)
     local currentOwner = identity(currentPlayer)
-    local messages, notifiedInvitations = {}, {}
+    local messages = {}
     if currentOwner ~= owner then
         owner = currentOwner; queue.bind(owner); lastSignature = ''; refreshQueued = true
         if preparationActionFeedback then actionFeedback = nil end
         preparationTarget, preparationStatus, preparationActionFeedback = nil, nil, false
-        preparationPopup = nil
     end
+    local board = invitationBoard()
     if worldReady then
         queue.flush()
         for _, notice in ipairs(queue.takeNotices()) do
             log(notice.message)
-            messages[#messages + 1] = notice.message
-            if notice.invitationId then notifiedInvitations[notice.invitationId] = true end
+            -- An invitation outcome joins the merged notice; anything else is its own line.
+            if board and notice.info then board.event(notice)
+            else messages[#messages + 1] = notice.message end
         end
     end
     entry.update()
@@ -974,16 +951,13 @@ function M.update(currentPlayer, worldReady)
         local voiceNotice = manager.takeVoiceFallbackNotice()
         if voiceNotice then log(voiceNotice); messages[#messages + 1] = voiceNotice end
     end
-    local progress = samplePreparationPopup(now, worldReady == true)
-    if progress and not notifiedInvitations[progress.id] then messages[#messages + 1] = progress.message end
+    local progress = board and board.take(worldReady == true)
+    if progress then messages[#messages + 1] = progress.message end
     if #messages > 0 and currentPlayer then
         -- The same native neutral warning channel used by phone invitations.
         -- Calls happen only here in top-level update, never inside MCM hooks.
         local sent = pcall(function() currentPlayer:ConvaiPhoneFeedback(table.concat(messages, '\n')) end)
-        if sent and progress and preparationPopup and preparationPopup.id == progress.id then
-            preparationPopup.shown = progress.signature
-            if worldReady then preparationPopup.shownInGameplay = progress.signature end
-        end
+        if sent and progress then progress.commit() end
     end
     if now >= pollAt then pollAt = now + 1; M.install() end
     -- Read MCM's supported effective draft values from top-level update. The
@@ -1071,7 +1045,6 @@ function M.resetSession()
     actionFeedback = nil
     memoryActionCommand = nil
     preparationTarget, preparationStatus, preparationActionFeedback, preparationAt = nil, nil, false, 0
-    preparationPopup = nil
     owner, lastSignature, refreshQueued = nil, '', true
     stagedVoice = nil
     presentation = {active = false, rows = {}}
@@ -1086,7 +1059,6 @@ function M.shutdown(worldReady)
     queue.bind(nil)
     if preparationActionFeedback then actionFeedback = nil end
     preparationTarget, preparationStatus, preparationActionFeedback, preparationAt = nil, nil, false, 0
-    preparationPopup = nil
     entry.reset()
     stagedVoice = nil
     voicePreview.shutdown()

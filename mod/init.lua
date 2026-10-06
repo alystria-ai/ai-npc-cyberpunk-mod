@@ -333,7 +333,6 @@ local gazeLost = 0
 local gazePoll = 0
 local focusedCrowd = nil
 local releasedCrowd = nil
-local lastPhoneInvitation = nil
 local automatic, battleSample, battlePeople, battlePoll = nil, nil, {}, 0
 local lastAutomatic = nil
 local cancelAutomatic = function() end
@@ -400,6 +399,56 @@ local function log(line)
         file:close()
     end
     print('[CyberpunkConvai] ' .. line)
+end
+
+-- Auto-connect nearby characters (docs/MANAGER_UI.md). Off by default, and a
+-- missing module only removes the feature. The module decides which world
+-- characters to prepare; the bridge opens their connection and local voice.
+local autoConnect
+do
+    local function scanNearbyCharacters(player, radius)
+        local query = TargetSearchQuery.new()
+        query.searchFilter = Game['TSF_NPC;']()
+        query.maxDistance = radius
+        query.includeSecondaryTargets = false
+        query.filterObjectByDistance = true
+        query.ignoreInstigator = true
+        query.testedSet = Enum.new('TargetingSet', 'Complete')
+        local _, parts = Game.GetTargetingSystem():GetTargetParts(player, query)
+        local origin = player:GetWorldPosition()
+        local rows, seen = {}, {}
+        for _, part in ipairs(parts or {}) do
+            local component = TS_TargetPartInfo.GetComponent(part)
+            local entity = component and component:GetEntity()
+            if entity and entity:IsNPC() and entity:IsAttached() and not entity:IsDeadNoStatPool()
+                and not companions.owns(entity) then
+                local id = tostring(entity:GetEntityID().hash)
+                if not seen[id] then
+                    seen[id] = true
+                    local key, name = profileIdentity(entity)
+                    if key and supportedProfiles[key] and manager.profileEnabled(key) then
+                        local position = entity:GetWorldPosition()
+                        rows[#rows + 1] = {key = key, name = name, entity = id,
+                            distance = math.sqrt((position.x - origin.x)^2 + (position.y - origin.y)^2 + (position.z - origin.z)^2)}
+                    end
+                end
+            end
+        end
+        return rows
+    end
+    local loaded, module = pcall(dofile, 'auto-connect.lua')
+    if loaded and type(module) == 'table' and type(module.new) == 'function' then
+        local built, value = pcall(module.new, {
+            enabled = function() return type(manager.autoConnectNearby) == 'function' and manager.autoConnectNearby() == true end,
+            scan = scanNearbyCharacters,
+            party = function(key)
+                for _, member in ipairs(companions.connectionProfiles()) do if member == key then return true end end
+                return false
+            end,
+            log = function(line) log(line) end})
+        if built and type(value) == 'table' then autoConnect = value
+        else print('[CyberpunkConvai] auto-connect.lua unavailable: ' .. tostring(value)) end
+    else print('[CyberpunkConvai] auto-connect.lua unavailable: ' .. tostring(module)) end
 end
 
 -- Body gestures (docs/COMPANION_GESTURES.md): the controller is always loaded
@@ -640,16 +689,22 @@ local function updateGaze(player, elapsed)
     gazePoll = 0
     local canFocus = gameplayCanAcquire(player)
     local npc, identity
+    local lookKey, lookEntity, lookName
     if canFocus then
         local found, result = pcall(targetAtCrosshair)
         if found and result then
-            local key = profileIdentity(result)
+            local key, canonical = profileIdentity(result)
+            if key and supportedProfiles[key] and manager.profileEnabled(key) and not companions.owns(result) then
+                lookKey, lookName, lookEntity = key, canonical, tostring(result:GetEntityID().hash)
+            end
             if manager.profileEnabled(key) then
                 npc = result
                 identity = tostring(result:GetEntityID().hash)
             end
         end
     end
+    -- Auto-connect counts how long V keeps facing one profiled character.
+    if autoConnect then pcall(autoConnect.look, lookKey, lookEntity, lookName, step) end
     if focusMode == 'gaze' then
         if identity == focusEntity then gazeLost = 0; return end
         gazeLost = gazeLost + step
@@ -774,6 +829,9 @@ local function beginText(groupMode)
         if not primary then return end
         if conversationServiceBlocked(player) then return end
         local npc, key, name, bodyType, identity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
+        -- A character that is not connected yet makes V wait: say so (mod/auto-connect.lua).
+        local connectNote = autoConnect and not participants and not companions.owns(npc)
+            and autoConnect.talkNotice(key, name) or nil
         generation = generation + 1
         if not player:ConvaiOpenComposer(name) then
             log('Native composer unavailable (check redscript and Codeware)')
@@ -801,6 +859,7 @@ local function beginText(groupMode)
         active = {generation = generation, entity = identity, name = name, bodyType = bodyType,
             profileKey = key, participants = participants}
         warmConversation(participants, key)
+        if connectNote then pcall(function() player:ConvaiPhoneFeedback(connectNote) end) end
         pending = nil
         log('Composer opened: generation=' .. generation .. ' actor=' .. identity .. ' name=' .. name)
     end)
@@ -835,6 +894,8 @@ local function toggleVoice(groupMode)
         if not primary then return end
         if conversationServiceBlocked(player) then return end
         local npc, key, name, body, entity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
+        local connectNote = autoConnect and not participants and not companions.owns(npc)
+            and autoConnect.talkNotice(key, name) or nil
         generation = generation + 1
         cancelAutomatic('microphone')
         tactics.interrupt('microphone')
@@ -856,7 +917,8 @@ local function toggleVoice(groupMode)
         if microphone.begin(context, function() return voiceTargetValid(npc, context) end) then
             beginFocus(player, npc)
             focusMode, focusEntity, focusUntil = 'chat', entity, os.time() + 120
-            player:ConvaiPhoneFeedback(ui.t('Connecting microphone - wait for Listening'))
+            local micNote = ui.t('Connecting microphone - wait for Listening')
+            player:ConvaiPhoneFeedback(connectNote and (connectNote .. '\n' .. micNote) or micNote)
         else
             groupChat.cancel(); warmConversation(nil, nil)
         end
@@ -1391,7 +1453,8 @@ local function processPhoneAction(player)
             local party = queue.list()
             for index = #party, 1, -1 do
                 if party[index].key == key and not party[index].serial then
-                    lastPhoneInvitation = {id = party[index].id}
+                    local board = type(queue.board) == 'function' and queue.board() or nil
+                    if board then board.track(party[index].id, 'phone') end
                     preparing = party[index].state == 'preparing-memory' or party[index].state == 'connecting'
                     break
                 end
@@ -1411,7 +1474,6 @@ local function processPhoneAction(player)
     -- One copy per request: the queue picks it by the character it speaks as.
     local accepted, message, dismissedId = queue.dismissCharacter(key)
     if accepted ~= nil then
-        if dismissedId and lastPhoneInvitation and lastPhoneInvitation.id == dismissedId then lastPhoneInvitation = nil end
         log('Phone dismissal ' .. (accepted and 'requested' or 'refused') .. ' for ' .. key)
         player:ConvaiPhoneFeedback(tostring(message))
         return
@@ -1420,30 +1482,16 @@ local function processPhoneAction(player)
     player:ConvaiPhoneFeedback(ui.t('{name} is not in your group.',{name=name}))
 end
 
+-- Phone invitations follow the same notice board as the manager's, so several
+-- companions invited together share one compact, in-place notice. A failure is
+-- delivered with the queue's own outcome notice once gameplay resumes, never
+-- while the paused phone could hide and consume it.
 local function updatePhoneInvitationFeedback(player, worldReady)
-    if not lastPhoneInvitation then return end
     local queue = mcm.party and mcm.party()
-    if not queue then return end
-    for _, member in ipairs(queue.list()) do
-        if member.id == lastPhoneInvitation.id then
-            if member.state == lastPhoneInvitation.state and lastPhoneInvitation.localeRevision == ui.revision() then return end
-            local failed = member.state == 'failed'
-            -- A failure waits for gameplay so the paused phone/menu cannot
-            -- consume its single notice. Progress is always shown so a slow
-            -- preparation is not mistaken for a failure.
-            if failed and not worldReady then return end
-            lastPhoneInvitation.state, lastPhoneInvitation.localeRevision = member.state, ui.revision()
-            local message = ui.t('{name}: preparing memory...',{name=member.name})
-            if member.state == 'connecting' then message = ui.t('{name}: connecting...',{name=member.name})
-            elseif member.state == 'ready-to-join' then message = ui.t('{name} is ready. Close the phone to join.',{name=member.name})
-            elseif member.state == 'failed' then message = ui.t('{name}: preparation failed. Cancel and invite again.',{name=member.name}) end
-            if member.state == 'failed' and queue.claimPreparationFailure
-                and not queue.claimPreparationFailure(member.id, member.revision) then return end
-            pcall(function() player:ConvaiPhoneFeedback(message) end)
-            return
-        end
-    end
-    lastPhoneInvitation = nil
+    local board = queue and type(queue.board) == 'function' and queue.board() or nil
+    if not board then return end
+    local note = board.take(worldReady == true)
+    if note and pcall(function() player:ConvaiPhoneFeedback(note.message) end) then note.commit() end
 end
 
 -- Distraction lines use the ordinary automatic-turn path: one request at a
@@ -1513,11 +1561,12 @@ local function abandonSession(reason,preserveTransit)
     phoneChat.abandon()
     active, pending, focusUntil, focusMode, focusEntity = nil, nil, nil, nil, nil
     pendingKnowledgeOwner = nil
-    focusedCrowd, releasedCrowd, lastPhoneInvitation = nil, nil, nil
+    focusedCrowd, releasedCrowd = nil, nil
     phoneCatalogReady = false
     resetGaze()
     manager.reset()
     warmConversation(nil, nil)
+    if autoConnect then pcall(autoConnect.reset) end
     publishPartyConnections(true)
     sessionHasState, poll = false, 0
     log('Session references released: ' .. reason)
@@ -1690,6 +1739,7 @@ registerForEvent('onUpdate', function(delta)
     updatePhoneInvitationFeedback(menuPlayer, worldReady)
     -- Retain prepared and attached party connections while game time is paused.
     publishPartyConnections(false)
+    if autoConnect then pcall(autoConnect.heartbeat) end
     local phoneOk, phoneError = pcall(phoneLayout.refresh)
     if not phoneOk then phoneLayout.lastError = tostring(phoneError) end
     local styleOk, styleError = pcall(phoneChatStyle.refresh)
@@ -1796,6 +1846,15 @@ registerForEvent('onUpdate', function(delta)
         log('Crowd movement after gaze release: ' .. (ok and tostring(result) or 'unavailable: ' .. tostring(result)))
     end
     updateGaze(player, 0.1)
+    if autoConnect then
+        local blocked = battleSample == nil or not battleSample.available or battleSample.blocked == true
+            or battleSample.combat == true or tactics.busy()
+        local talking = (active and active.profileKey) or (pending and pending.profileKey)
+            or (microphone.context and microphone.context.profileKey) or nil
+        local ok, err = pcall(autoConnect.update, elapsedPoll, {worldReady = worldReady == true, blocked = blocked,
+            player = player, talking = talking})
+        if not ok then log('Auto-connect update failed: ' .. tostring(err)) end
+    end
     if pending then
         local currentOwner = knowledgeOwner(refreshKnowledgeFrame())
         if currentOwner.paused then return end
@@ -1928,6 +1987,7 @@ registerForEvent('onShutdown', function()
     mcm.shutdown(liveWorld)
     groupChat.cancel()
     warmConversation(nil, nil)
+    if autoConnect then pcall(autoConnect.reset) end
     microphone.cancel()
     if liveWorld then speech.stop('shutdown'); subtitles.clear()
     else speech.abandon(); subtitles.abandon() end

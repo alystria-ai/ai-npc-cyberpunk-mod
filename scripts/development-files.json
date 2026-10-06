@@ -250,6 +250,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/invitation-readiness.lua"
     },
     {
+      "source": "mod/auto-connect.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/auto-connect.lua"
+    },
+    {
       "source": "mod/manager.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/manager.lua"
     },

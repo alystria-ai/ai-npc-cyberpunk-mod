@@ -3,6 +3,211 @@
 local M = {}
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 
+-- The invitation notice board. Every invitation in flight (manager or phone) is
+-- one entry, and the board turns all of them into ONE compact notice that
+-- replaces the previous one: "Preparing Judy and Johnny...", then "Judy and
+-- Johnny joined your group.". A lone invitation keeps its original wording and
+-- is never delayed. While several invitations are in flight, a change waits
+-- until WINDOW_MS after the last notice, so near-simultaneous stages merge into
+-- one update instead of a stream. Visibility rules are unchanged: preparing,
+-- connecting, ready and joined always show, the routine "joining" step is
+-- Developer-mode only, and every failure shows, together with the successes.
+local WINDOW_MS = 400
+local MAX_LISTED = 3
+local RANKS = {memory = 1, connecting = 2, ready = 3, joining = 4}
+
+-- Whole wall-clock seconds are exact but coarse; os.clock supplies the fraction.
+local function newClock()
+    local lastFine, virtual, base = os.clock(), 0, os.time()
+    return function()
+        local fine = os.clock()
+        if fine > lastFine then virtual = virtual + (fine - lastFine) * 1000 end
+        lastFine = fine
+        local wall = (os.time() - base) * 1000
+        if wall > virtual then virtual = wall end
+        return virtual
+    end
+end
+
+local function uniqueNames(items)
+    local names, seen = {}, {}
+    for _, item in ipairs(items) do
+        if item.name and not seen[item.name] then seen[item.name] = true; names[#names + 1] = item.name end
+    end
+    return names
+end
+
+-- "Judy", "Judy and Johnny", "Judy, Johnny and Panam", "Judy, Johnny and 3 others".
+local function listNames(names)
+    local count = #names
+    if count <= 1 then return names[1] or '' end
+    if count == 2 then return ui.t('{first} and {second}', {first = names[1], second = names[2]}) end
+    if count <= MAX_LISTED then
+        return ui.t('{first}, {second} and {third}', {first = names[1], second = names[2], third = names[3]})
+    end
+    return ui.t('{first}, {second} and {count} others', {first = names[1], second = names[2], count = count - 2})
+end
+
+function M.newBoard(options)
+    options = options or {}
+    local B = {}
+    local now = options.now or newClock()
+    local entries, burst = {}, {joined = {}, failures = {}, fresh = false}
+    local shownCore, shownGameplayCore, lastAt, lastWorld
+
+    local function developerMode()
+        if type(options.developerMode) ~= 'function' then return false end
+        local ok, enabled = pcall(options.developerMode)
+        return ok and enabled == true
+    end
+
+    function B.reset()
+        entries, burst = {}, {joined = {}, failures = {}, fresh = false}
+        shownCore, shownGameplayCore, lastAt, lastWorld = nil, nil, nil, nil
+    end
+
+    -- Start following an invitation. A new one is always announced, even when
+    -- its text equals the previous notice (two copies of one character).
+    function B.track(id, source)
+        if type(id) ~= 'string' then return end
+        for _, entry in ipairs(entries) do if entry.id == id then return end end
+        entries[#entries + 1] = {id = id, source = source or 'manager'}
+    end
+
+    -- Completed outcomes handed over by the party queue (joined or failed).
+    function B.event(notice)
+        local info = type(notice) == 'table' and notice.info or nil
+        if type(info) ~= 'table' then return end
+        if info.kind == 'joined' then
+            burst.joined[#burst.joined + 1] = {name = info.name, message = notice.message, warning = info.warning}
+        elseif info.kind == 'failed' then
+            burst.failures[#burst.failures + 1] = {name = info.name, message = notice.message}
+        else return end
+        burst.fresh = true
+    end
+
+    -- Refresh every entry from the queue. Entries the queue no longer lists
+    -- (joined, cancelled, removed) are finished; a failed one stays listed but
+    -- is no longer in flight, its failure arrives as an event.
+    local function sample(worldReady)
+        local inflight = {}
+        for index = #entries, 1, -1 do
+            local entry = entries[index]
+            local ok, current = pcall(options.feedback, entry.id)
+            if not ok or type(current) ~= 'table' then table.remove(entries, index)
+            else
+                entry.name, entry.revision = current.name, current.revision
+                entry.failed = current.failed == true or current.state == 'error'
+                local stage = current.state
+                if stage == 'model-only' then stage = 'ready' end
+                -- In gameplay a ready invitation is already being created.
+                if worldReady and stage == 'ready' then stage = 'joining' end
+                entry.stage = RANKS[stage] and stage or 'memory'
+            end
+        end
+        for _, entry in ipairs(entries) do if not entry.failed then inflight[#inflight + 1] = entry end end
+        return inflight
+    end
+
+    local function progress(inflight, developer)
+        if #inflight == 0 then return nil end
+        local lowest, allPhone = 'joining', true
+        for _, entry in ipairs(inflight) do
+            if RANKS[entry.stage] < RANKS[lowest] then lowest = entry.stage end
+            if entry.source ~= 'phone' then allPhone = false end
+        end
+        if lowest == 'joining' and not developer then return nil end
+        local names = uniqueNames(inflight)
+        if #names <= 1 then
+            local name = names[1]
+            if lowest == 'memory' then return ui.t('{name}: preparing memory...', {name = name}) end
+            if lowest == 'connecting' then return ui.t('{name}: connecting...', {name = name}) end
+            if lowest == 'ready' then
+                return allPhone and ui.t('{name} is ready. Close the phone to join.', {name = name})
+                    or ui.t('{name} is ready to join when you return to the game.', {name = name})
+            end
+            return ui.t('{name} is joining your party.', {name = name})
+        end
+        local list = listNames(names)
+        if lowest == 'memory' then return ui.t('Preparing {names}…', {names = list}) end
+        if lowest == 'connecting' then return ui.t('Connecting {names}…', {names = list}) end
+        if lowest == 'ready' then
+            return allPhone and ui.t('{names} are ready. Close the phone to join.', {names = list})
+                or ui.t('{names} are ready to join when you return to the game.', {names = list})
+        end
+        return ui.t('{names} are joining your party.', {names = list})
+    end
+
+    local function compose(inflight, developer)
+        local lines = {}
+        if #burst.joined > 0 then
+            local names = uniqueNames(burst.joined)
+            local line = #names <= 1 and burst.joined[1].message
+                or ui.t('{names} joined your group.', {names = listNames(names)})
+            if #names > 1 then
+                for _, item in ipairs(burst.joined) do
+                    if item.warning then line = line .. ' ' .. item.warning; break end
+                end
+            end
+            lines[#lines + 1] = line
+        end
+        for index, failure in ipairs(burst.failures) do
+            if index > 2 then
+                lines[#lines + 1] = ui.t('{count} more companions also failed.', {count = #burst.failures - 2})
+                break
+            end
+            lines[#lines + 1] = failure.message
+        end
+        local line = progress(inflight, developer)
+        if line then lines[#lines + 1] = line end
+        return table.concat(lines, '\n')
+    end
+
+    -- Returns nil (nothing to say now) or {message, commit}. The caller invokes
+    -- commit() only after the message was really posted.
+    function B.take(worldReady)
+        worldReady = worldReady == true
+        local developer = developerMode()
+        local inflight = sample(worldReady)
+        local text = compose(inflight, developer)
+        if text == '' then
+            if #inflight == 0 then burst = {joined = {}, failures = {}, fresh = false} end
+            return nil
+        end
+        local core = table.concat({text, tostring(ui.revision()), developer and 'developer' or 'normal'}, '|')
+        -- A copy not announced yet, or one whose profile was chosen again (a new
+        -- revision), is announced even when its text equals the previous notice.
+        local fresh = burst.fresh
+        for _, entry in ipairs(inflight) do if entry.announced ~= entry.revision then fresh = true end end
+        if not fresh and core == shownCore and (not worldReady or core == shownGameplayCore) then
+            if #inflight == 0 then burst = {joined = {}, failures = {}, fresh = false} end
+            return nil
+        end
+        -- Several outcomes in flight: let near-simultaneous changes merge.
+        local contested = #inflight + #burst.joined + #burst.failures >= 2
+        local at = now()
+        if contested and lastAt and lastWorld == worldReady and at - lastAt < WINDOW_MS then return nil end
+        return {message = text, commit = function()
+            shownCore, lastAt, lastWorld = core, at, worldReady
+            if worldReady then shownGameplayCore = core end
+            for _, entry in ipairs(inflight) do entry.announced = entry.revision end
+            burst.fresh = false
+            if #inflight == 0 then burst = {joined = {}, failures = {}, fresh = false} end
+        end}
+    end
+
+    function B.inspect()
+        local result = {entries = {}, joined = #burst.joined, failures = #burst.failures}
+        for _, entry in ipairs(entries) do
+            result.entries[#result.entries + 1] = {id = entry.id, name = entry.name, stage = entry.stage,
+                source = entry.source, failed = entry.failed == true}
+        end
+        return result
+    end
+
+    return B
+end
+
 function M.new(companions, readiness, options)
     options = options or {}
     local Q = {}
@@ -14,7 +219,7 @@ function M.new(companions, readiness, options)
     local feedback = ''
     local stopIntent, tripFeedback = false, nil
     local tripGeneration, tripNotices = nil, {}
-    local preparationId
+    local preparationId, noticeBoard
 
     local function developerMode()
         if type(options.developerMode) ~= 'function' then return false end
@@ -24,10 +229,12 @@ function M.new(companions, readiness, options)
 
     -- The in-menu feedback line always updates. A routine result (a successful
     -- dismissal) is posted as a gameplay notice only in Developer mode.
-    local function report(message, failed, invitationId, routine)
+    -- info ({kind = 'joined' | 'failed', name}) lets the notice board merge an
+    -- invitation outcome with the others; a plain notice has no info.
+    local function report(message, failed, invitationId, routine, info)
         feedback = message
         if routine and failed ~= true and not developerMode() then return end
-        notices[#notices + 1] = {message = message, failed = failed == true, invitationId = invitationId}
+        notices[#notices + 1] = {message = message, failed = failed == true, invitationId = invitationId, info = info}
     end
 
     function Q.bind(identity)
@@ -38,6 +245,7 @@ function M.new(companions, readiness, options)
             stopIntent, tripFeedback = false, nil
             tripGeneration, tripNotices = nil, {}
             preparationId = nil
+            if noticeBoard then noticeBoard.reset() end
             return true
         end
         return false
@@ -118,6 +326,15 @@ function M.new(companions, readiness, options)
             end
         end
         return nil
+    end
+
+    -- The shared notice board for manager and phone invitations (see M.newBoard).
+    function Q.board()
+        if not noticeBoard then
+            noticeBoard = M.newBoard({feedback = function(id) return Q.invitationFeedback(id) end,
+                developerMode = developerMode})
+        end
+        return noticeBoard
     end
 
     function Q.list()
@@ -203,7 +420,8 @@ function M.new(companions, readiness, options)
         if not ok then
             job.preparationError = job.error
             job.failureNotified = true
-            report(ui.t('{name} could not prepare: {reason}', {name = job.name, reason = reason}), true, job.id)
+            report(ui.t('{name} could not prepare: {reason}', {name = job.name, reason = reason}), true, job.id,
+                nil, {kind = 'failed', name = job.name})
             return false, feedback, id
         end
         feedback = readiness and ui.t(job.profileKey and '{name} is preparing memory and conversation.'
@@ -363,13 +581,15 @@ function M.new(companions, readiness, options)
                 attaching[serial] = nil
             elseif member and member.state == 'ready' then
                 if readiness then readiness.finish(job) end
-                report(ui.t('{name} joined your group.', {name = member.name}) .. (job.warning and (' ' .. job.warning) or ''))
+                report(ui.t('{name} joined your group.', {name = member.name}) .. (job.warning and (' ' .. job.warning) or ''),
+                    nil, nil, nil, {kind = 'joined', name = member.name, warning = job.warning})
                 attaching[serial] = nil
             elseif not member or member.state == 'failed' or member.state == 'missing' or member.state == 'dead' then
                 if readiness then readiness.cancel(job) end
                 report(ui.t('{name} could not join: {reason}', {name = job.name,
                     reason = member and ui.t(member.error) or ui.t(member and member.state == 'dead'
-                        and 'The character died before joining.' or 'The character was removed before joining.')}), true)
+                        and 'The character died before joining.' or 'The character was removed before joining.')}), true,
+                    nil, nil, {kind = 'failed', name = job.name})
                 attaching[serial] = nil
             end
         end
@@ -405,13 +625,15 @@ function M.new(companions, readiness, options)
                 else
                     job.error = tostring(called and err or serial)
                     if readiness then readiness.cancel(job) end
-                    report(ui.t('{name} could not join: {reason}', {name = job.name, reason = ui.t(job.error)}), true, job.id)
+                    report(ui.t('{name} could not join: {reason}', {name = job.name, reason = ui.t(job.error)}), true, job.id,
+                        nil, {kind = 'failed', name = job.name})
                     remaining[#remaining + 1] = job
                 end
             else
                 if status.state == 'error' and Q.claimPreparationFailure(job.id, job.revision) then
                     job.preparationError = status.error
-                    report(ui.t('{name} could not prepare: {reason}', {name = job.name, reason = tostring(status.error)}), true, job.id)
+                    report(ui.t('{name} could not prepare: {reason}', {name = job.name, reason = tostring(status.error)}), true, job.id,
+                        nil, {kind = 'failed', name = job.name})
                 end
                 remaining[#remaining + 1] = job
             end

@@ -11,6 +11,7 @@ const subtitleOwnership = subtitlesSource.slice(subtitlesSource.indexOf('functio
 const questSource = readFileSync(new URL('../mod/quest-context.lua', import.meta.url), 'utf8');
 const invitationSource = readFileSync(new URL('../mod/invitation-readiness.lua', import.meta.url), 'utf8');
 const partyQueueSource = readFileSync(new URL('../mod/manager-party.lua', import.meta.url), 'utf8');
+const autoConnectSource = readFileSync(new URL('../mod/auto-connect.lua', import.meta.url), 'utf8');
 const gameplayActionsSource = readFileSync(new URL('../mod/gameplay-actions.lua', import.meta.url), 'utf8');
 const microphoneSource = readFileSync(new URL('../mod/microphone.lua', import.meta.url), 'utf8');
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
@@ -184,8 +185,12 @@ end, list = function() return copy(members) end,
     dismissAll = function() note('companions-dismiss-all') end}
 function companions.definition(key)
     if key == 'judy-alvarez' then return {name = 'Judy', id = 'Character.Judy', profileKey = key, profileName = 'Judy'} end
+    if key == 'johnny-silverhand' then return {name = 'Johnny', id = 'Character.Silverhand', profileKey = key, profileName = 'Johnny'} end
 end
-function companions.phoneContactKey(contact) if contact == 'judy' then return 'judy-alvarez', nil, 'Judy' end end
+function companions.phoneContactKey(contact)
+    if contact == 'judy' then return 'judy-alvarez', nil, 'Judy' end
+    if contact == 'johnny' then return 'johnny-silverhand', nil, 'Johnny' end
+end
 function companions.spawn(key, job)
     local allowed, reason = companions.canSpawn(key, job); assert(allowed, reason)
     stats.spawned = stats.spawned + 1
@@ -281,9 +286,10 @@ dofile = function(path)
     if prohibited(path) then deny('module ' .. path) end
     if path == 'quest-context.lua' then return (function() ${questSource} end)() end
     if path == 'invitation-readiness.lua' then return (function() ${invitationSource} end)() end
+    if path == 'auto-connect.lua' then return (function() ${autoConnectSource} end)() end
     return assert(modules[path], 'Unexpected mod dependency: ' .. path)
 end
-files['conversation-characters.json'] = json.encode({{key = 'judy-alvarez', name = 'Judy'}})
+files['conversation-characters.json'] = json.encode({{key = 'judy-alvarez', name = 'Judy'}, {key = 'johnny-silverhand', name = 'Johnny'}})
 files['world-knowledge.json'] = json.encode({id = 'lifecycle-reviewed-pack'})
 
 local function published() return json.decode(assert(files['runtime/world-session.json'])) end
@@ -473,6 +479,100 @@ local posted = feedback()
 assert(#posted == 4 and posted[4]:find('could not prepare', 1, true), 'gameplay did not post the single failure notice')
 for _ = 1, 3 do events.onUpdate(0.1); player.phoneOpen = true; events.onUpdate(0); player.phoneOpen = false end
 assert(#feedback() == 4 and stats.spawned == 0, 'the failed attempt notified again')
+`));
+
+test('two phone invitations share one progress notice and one joined summary', () => run(`
+events.onInit(); events.onUpdate(0)
+local function feedback()
+    local out = {}
+    for _, item in ipairs(stats.trace) do if item.kind == 'feedback' then out[#out + 1] = item.value end end
+    return out
+end
+player.phoneOpen, player.phoneRequest = true, '+judy'
+events.onUpdate(0)
+assert(#feedback() == 1 and feedback()[1] == 'Judy: preparing memory...')
+clock = clock + 2
+player.phoneRequest = '+johnny'; events.onUpdate(0)
+assert(#feedback() == 2 and feedback()[2] == 'Preparing Judy and Johnny…', feedback()[#feedback()])
+local request = json.decode(assert(files['runtime/companion-invitations.json']))
+assert(#request.invitations == 2)
+local function receipt(state)
+    local rows = {}
+    for _, job in ipairs(request.invitations) do
+        rows[#rows + 1] = {id = job.id, revision = job.revision, modelKey = job.modelKey, profileKey = job.profileKey, state = state}
+    end
+    files['runtime/companion-invitations-state.json'] = json.encode({version = 1,
+        worldToken = request.worldToken, generation = request.generation, updated = clock * 1000, bridgePid = 99, invitations = rows})
+end
+clock = clock + 2; receipt('connecting'); events.onUpdate(0)
+assert(#feedback() == 3 and feedback()[3] == 'Connecting Judy and Johnny…')
+clock = clock + 2; receipt('ready'); events.onUpdate(0)
+assert(#feedback() == 4 and feedback()[4] == 'Judy and Johnny are ready. Close the phone to join.')
+events.onUpdate(0); assert(#feedback() == 4)
+`));
+
+const worldCharacterFixture = `
+events.onInit(); events.onUpdate(0)
+local function feedback()
+    local out = {}
+    for _, item in ipairs(stats.trace) do if item.kind == 'feedback' then out[#out + 1] = item.value end end
+    return out
+end
+privateConversation()
+-- Judy met in the world: not one of V's copies, resolved by the character catalogue.
+companions.owns = function() return false end
+companions.identity = function() return nil, nil, false end
+modules['character-catalog.lua'].resolve = function() return 'judy-alvarez', 'Judy' end
+do
+    local actor = targeting.GetObjectClosestToCrosshair()
+    function actor:GetTweakDBFullDisplayName() return 'Judy' end
+end
+`;
+
+test('starting a conversation with a world character that is not connected explains the wait, mentioning Auto-connect only twice', () => run(`${worldCharacterFixture}
+local function talk()
+    hotkeys.cyberpunk_convai_text(); assert(player.composerOpen)
+    player.composerOpen = false; events.onUpdate(0.1); clock = clock + 1
+end
+talk(); talk(); talk()
+local posted = feedback()
+assert(#posted == 3, #posted)
+assert(posted[1] == 'Preparing connection to Judy… (turn on Auto-connect to skip this wait)')
+assert(posted[2] == posted[1])
+assert(posted[3] == 'Preparing connection to Judy…', 'the hint nagged a third time')
+-- Once the bridge reports the connection ready, nothing is said.
+files['runtime/party-connection-state.json'] = json.encode({connections = {{profile = 'judy-alvarez', scope = 'private', state = 'ready'}}})
+talk(); assert(#feedback() == 3, 'a connected character still showed the wait notice')
+`));
+
+test('a copy in the party never shows the connection wait notice', () => run(`${worldCharacterFixture}
+companions.owns = function() return true end
+hotkeys.cyberpunk_convai_text(); assert(player.composerOpen)
+assert(#feedback() == 0)
+`));
+
+test('with Auto-connect on, looking at a world character publishes it for the bridge and releasing publishes an empty list', () => run(`${worldCharacterFixture}
+manager.autoConnectNearby = function() return true end
+-- The fixture's json.encode returns tokens, so read the hand-written document directly.
+local function published()
+    local raw = files['runtime/nearby-connections.json']
+    if not raw then return nil end
+    local list = {}
+    for token in raw:match('"profiles":%[(.-)%]'):gmatch('[^,]+') do list[#list + 1] = json.decode(token) end
+    return {profiles = list, updated = tonumber(raw:match('"updated":(%d+)'))}
+end
+-- The crosshair target, held for a moment.
+for _ = 1, 12 do events.onUpdate(0.1) end
+local list = assert(published(), 'no nearby-connections publication')
+assert(#list.profiles == 1 and list.profiles[1] == 'judy-alvarez')
+assert(list.updated == clock * 1000)
+-- A talk now needs no wait notice only once connected; until then it is explained without the hint.
+hotkeys.cyberpunk_convai_text(); assert(player.composerOpen); player.composerOpen = false; events.onUpdate(0.1)
+assert(feedback()[#feedback()] == 'Preparing connection to Judy…')
+-- The setting off releases it at once.
+manager.autoConnectNearby = function() return false end
+events.onUpdate(0.1)
+assert(#published().profiles == 0)
 `));
 
 test('phone invitation acknowledgement also posts with Developer mode on', () => run(`${phoneNoticeFixture}

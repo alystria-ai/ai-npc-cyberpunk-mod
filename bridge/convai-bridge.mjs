@@ -23,6 +23,7 @@ import {GroupPrefetch, parsedInputIdentity, parsePrewarm} from './group-prefetch
 import {GroupLookahead, validateLookahead, waitUntil, BufferedPcm} from './group-lookahead.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {PartyConnections, parsePartyConnections} from './party-connections.mjs';
+import {NearbyWarm} from './nearby-warm.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {ResidentPhoneAnalysis} from './resident-phone-analysis.mjs';
@@ -229,6 +230,7 @@ const statusPath = resolve(runtime, 'bridge-status.json');
 const prefetchPath = resolve(runtime, 'group-prefetch.json');
 const prewarmPath = resolve(runtime, 'conversation-prewarm.json');
 const partyPath = resolve(runtime, 'party-connections.json');
+const nearbyPath = resolve(runtime, 'nearby-connections.json');
 const sessions = new Map();
 const realtimeSessions = new Map();
 const audioDepot = resolve(game, 'r6/audioware/CyberpunkConvai');
@@ -298,6 +300,13 @@ const connections = new PartyConnections({host: realtime,
     return connectionMetricsWriting;
   },
 });
+// "Auto-connect nearby characters": the game lists up to two characters it is looking at or
+// standing near; their connection and local voice are prepared ahead (bridge/nearby-warm.mjs).
+const nearbyWarm = new NearbyWarm({connections, isKnown: profile => Object.hasOwn(ids, profile),
+  canPrepare: () => !stopped && !memoryQuiescing && !active && !mic.current && !micPolling && !lookahead.busy
+    && !voiceRouteReservation && !relationshipRouteReservation && !localVoice.pending && !localVoice.availabilityPending,
+  prepareVoice: (profile, options) => localVoice.prepareProfile(profile, options),
+  onError: error => console.error('[CyberpunkConvai] Nearby warm-up:', error.message)});
 let voiceRouteSync = Promise.resolve();
 const voiceRoutePending = new Map();
 let voiceRouteReservation = false;
@@ -1131,6 +1140,7 @@ async function pollPrefetch() {
         await connections.setComposer(hint);
       }
     }
+    await nearbyWarm.apply(await readFile(nearbyPath, 'utf8').catch(() => ''));
   } finally { prefetchPolling = false; }
 }
 

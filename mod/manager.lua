@@ -324,6 +324,7 @@ local function loadSettings()
     if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = true, true end
     if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = true, true end
     if type(settings.bodyGestures) ~= 'boolean' then settings.bodyGestures, settingsNeedSave = false, true end
+    if type(settings.autoConnectNearby) ~= 'boolean' then settings.autoConnectNearby, settingsNeedSave = false, true end
     if not isChoice(settings.eyeContactHeight, eyeContactHeights) then
         settings.eyeContactHeight, settingsNeedSave = 0, true
     end
@@ -435,6 +436,14 @@ end
 function M.bodyGestures()
     loadSettings()
     return settings.bodyGestures == true
+end
+
+-- Off by default: a connection is made when the player starts talking. On, the
+-- connection and local voice of a character the player looks at or walks up to
+-- are prepared ahead (mod/auto-connect.lua).
+function M.autoConnectNearby()
+    loadSettings()
+    return settings.autoConnectNearby == true
 end
 
 -- Read by the ordinary companion update, never by a native menu callback.
@@ -913,6 +922,7 @@ function M.snapshot(player)
             battleReactions = settings.battleReactions,
             lootReactions = settings.lootReactions,
             bodyGestures = settings.bodyGestures,
+            autoConnectNearby = settings.autoConnectNearby,
             eyeContactHeight = settings.eyeContactHeight,
             headFollowStrength = settings.headFollowStrength,
             voiceProvider = settings.voiceProvider,
@@ -954,7 +964,7 @@ function M.applySettings(player, values)
     for key, value in pairs(settings.relationshipModes) do nextSettings.relationshipModes[key] = value end
     for key, value in pairs(values) do
         if key == 'voice' or key == 'subtitles' or key == 'followUpQuestions' or key == 'developerMode'
-            or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' then
+            or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'relationshipModes' then

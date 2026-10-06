@@ -9,7 +9,7 @@ import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const files = [
-  'mod/mcm.lua', 'mod/manager.lua', 'mod/manager-party.lua', 'mod/init.lua',
+  'mod/mcm.lua', 'mod/manager.lua', 'mod/manager-party.lua', 'mod/init.lua', 'mod/auto-connect.lua',
   'mod/companions.lua', 'mod/companion-vehicles.lua', 'mod/companion-vehicle-native.lua', 'mod/companion-chauffeur.lua',
   'mod/companion-chauffeur-native.lua', 'mod/gameplay-actions.lua',
   'mod/companion-clearance.lua', 'mod/companion-placement.lua',
@@ -316,10 +316,10 @@ const templates = [
   ['party.feedback', '{name} joined your party.', 'mod/manager.lua', ' joined your party.'],
   ['party.feedback', '{name} is no longer attached to the world. Dismiss this copy to free its place.', 'mod/manager.lua', ' is no longer attached to the world. Dismiss this copy to free its place.'],
   ['phone.feedback', '{name} is not in your group.', 'mod/init.lua', ' is not in your group.'],
-  ['phone.feedback', '{name}: preparing memory...', 'mod/init.lua', ': preparing memory...'],
-  ['phone.feedback', '{name}: connecting...', 'mod/init.lua', ': connecting...'],
-  ['phone.feedback', '{name} is ready. Close the phone to join.', 'mod/init.lua', ' is ready. Close the phone to join.'],
-  ['phone.feedback', '{name}: preparation failed. Cancel and invite again.', 'mod/init.lua', ': preparation failed. Cancel and invite again.'],
+  ['phone.feedback', '{name}: preparing memory...', 'mod/manager-party.lua', ': preparing memory...'],
+  ['phone.feedback', '{name}: connecting...', 'mod/manager-party.lua', ': connecting...'],
+  ['phone.feedback', '{name} is ready. Close the phone to join.', 'mod/manager-party.lua', ' is ready. Close the phone to join.'],
+  ['phone.feedback', '{name}: preparation failed. Cancel and invite again.', 'mod/manager-party.lua', ': preparation failed. Cancel and invite again.'],
   ['world.conversation', '{name} does not have a conversation profile configured yet.', 'mod/init.lua', ' does not have a conversation profile configured yet.'],
   ['world.conversation', 'Group chat needs two characters nearby. Use {key} for one person.', 'mod/init.lua', 'Group chat needs two characters nearby. Use ', ' for one person.'],
   ['world.microphone', 'Use {key} to finish this recording.', 'mod/init.lua', 'Use ', ' to finish this recording.'],
