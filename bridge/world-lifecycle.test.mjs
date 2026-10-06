@@ -451,6 +451,9 @@ local function feedback()
 end
 player.phoneOpen, player.phoneRequest = true, '+judy'
 events.onUpdate(0)
+-- Routine progress waits one second (a quick summon shows none), so let it pass.
+local early = #feedback()
+clock = clock + 2; events.onUpdate(0)
 local request = json.decode(assert(files['runtime/companion-invitations.json']))
 local job = request.invitations[1]
 local function receipt(state)
@@ -462,12 +465,13 @@ end
 
 test('phone invitation progress is always shown, the acknowledgement is Developer-only, and a failure waits for gameplay', () => run(`${phoneNoticeFixture}
 local function has(text) for _, line in ipairs(feedback()) do if line:find(text, 1, true) then return true end end return false end
--- Accepting posts only the progress line; the acknowledgement is Developer-only.
-assert(#feedback() == 1 and has('preparing memory...') and not has('preparing memory and conversation'))
+-- Accepting posts only the progress line, after the notice delay; the acknowledgement is Developer-only.
+assert(early == 0, 'progress showed before the notice delay')
+assert(#feedback() == 1 and has('Preparing Judy…') and not has('memory'))
 receipt('memory'); events.onUpdate(0)
 assert(#feedback() == 1)
 receipt('connecting'); events.onUpdate(0)
-assert(#feedback() == 2 and has('connecting...'))
+assert(#feedback() == 2 and has('Connecting Judy…'))
 receipt('ready'); events.onUpdate(0)
 assert(#feedback() == 3 and has('Close the phone to join'), 'the instruction to close the phone must be shown')
 assert(partyQueue.list()[1].state == 'ready-to-join')
@@ -490,9 +494,12 @@ local function feedback()
 end
 player.phoneOpen, player.phoneRequest = true, '+judy'
 events.onUpdate(0)
-assert(#feedback() == 1 and feedback()[1] == 'Judy: preparing memory...')
+clock = clock + 2; events.onUpdate(0)
+assert(#feedback() == 1 and feedback()[1] == 'Preparing Judy…')
 clock = clock + 2
 player.phoneRequest = '+johnny'; events.onUpdate(0)
+assert(#feedback() == 1, 'the second invitation showed progress inside the notice delay')
+clock = clock + 2; events.onUpdate(0)
 assert(#feedback() == 2 and feedback()[2] == 'Preparing Judy and Johnny…', feedback()[#feedback()])
 local request = json.decode(assert(files['runtime/companion-invitations.json']))
 assert(#request.invitations == 2)
@@ -578,10 +585,10 @@ assert(#published().profiles == 0)
 test('phone invitation acknowledgement also posts with Developer mode on', () => run(`${phoneNoticeFixture}
 `.replace('events.onInit();', 'stats.developer = true; events.onInit();') + `
 local before = #feedback()
-assert(before == 2, 'the acknowledgement and the first progress line should each post once')
-assert(feedback()[1]:find('preparing memory and conversation', 1, true) and feedback()[2]:find('preparing memory...', 1, true))
+assert(early == 1 and before == 2, 'the acknowledgement posts at once and the first progress line after the delay')
+assert(feedback()[1] == 'Preparing Judy…' and feedback()[2] == 'Preparing Judy…')
 receipt('connecting'); events.onUpdate(0)
-assert(#feedback() == before + 1 and feedback()[before + 1]:find('connecting', 1, true))
+assert(#feedback() == before + 1 and feedback()[before + 1]:find('Connecting', 1, true))
 receipt('ready'); events.onUpdate(0); events.onUpdate(0)
 assert(#feedback() == before + 2 and feedback()[before + 2]:find('Close the phone', 1, true))
 `));

@@ -1460,7 +1460,7 @@ local function processPhoneAction(player)
                 end
             end
         end
-        -- The "is preparing memory and conversation" acknowledgement repeats the
+        -- The "Preparing {name}…" acknowledgement repeats the
         -- phone's own "invite queued" and the progress notice that follows, so
         -- it is a Developer-mode popup. An invitation that is already ready
         -- tells the player to return to the game and is always shown. A failed

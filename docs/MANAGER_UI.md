@@ -181,7 +181,7 @@ text. Other providers and failure messages retain MCM's ordinary rendering.
 No MCM source or saved preferences are modified.
 
 While an invitation prepares with the manager open, that same status banner
-updates through **preparing memory**, **connecting**, **ready to join** or a
+updates through **Preparing {name}…**, **Connecting {name}…**, **ready to join** or a
 preparation failure. It tracks the latest requested pending copy and revision;
 cancelling that copy, spawning it or resetting the world clears its progress.
 It does not restore an older copy's banner after cancellation. Navigation keeps
@@ -209,7 +209,9 @@ Direct phone invitations use the same rules.
 default Off). The player must see that a slow preparation is progressing, so
 these are always shown, for manager and phone invitations alike:
 
-- **preparing memory…** and **connecting…**;
+- **Preparing {name}…** (the memory check, voice conditioning and connection start) and
+  **Connecting {name}…**, once an invitation has been in flight for a second: a quick summon shows
+  no progress, only its joined notice;
 - **ready to join when you return to the game** (manager) and **ready, close the
   phone to join** (phone), because each tells the player to do something;
 - **joined your group**;
@@ -218,7 +220,7 @@ these are always shown, for manager and phone invitations alike:
 These are Developer mode only:
 
 - **is joining your party**, which asks nothing of the player;
-- the phone's acknowledgement **is preparing memory and conversation**, which
+- the phone's acknowledgement **Preparing {name}…**, which
   repeats the native **invite queued** notice and the progress line that follows
   at once (an invitation that is already ready still gets its ready message);
 - the **dismissed** result (the in-menu feedback line still reports it, and a
@@ -238,8 +240,12 @@ Manager and phone invitations share one **notice board** (`M.newBoard` in
 the board turns all of them into ONE compact notice that replaces the previous one instead of
 a stream of per-character popups:
 
-- One invitation keeps its original wording and is never delayed (`Judy: preparing
-  memory...`, `Judy joined your group.`).
+- One invitation reads `Preparing Judy…`, `Connecting Judy…`, `Judy joined your group.`. Preparing
+  and connecting appear only after the invitation is one second old (`SHOW_DELAY_MS`), per
+  invitation: a quick summon goes straight to `Judy joined your group.`, and a merged notice names
+  only the invitations already shown (two made together, one quick and one slow, shows only the
+  slow one's progress and still ends in one merged joined notice). Failures and the ready lines,
+  which tell the player to act, are never delayed.
 - Several at once: `Preparing Judy and Johnny…`, then `Connecting Judy and Johnny…`, then (paused)
   `Judy and Johnny are ready to join when you return to the game.`, then `Judy and Johnny joined
   your group.`. The shared verb follows the slowest copy, so one character finishing first does
@@ -248,8 +254,7 @@ a stream of per-character popups:
 - A failure is mentioned beside the successes in the same notice (`Johnny joined your group.` /
   `Judy could not join: ...`); more than two failures end with `N more companions also failed.`
 - While more than one outcome is in flight, a change waits until 400 ms after the last notice
-  (`WINDOW_MS`), so near-simultaneous stages merge into one update. A lone invitation is posted at
-  once. The paused-menu rules below still apply: a stage hidden by the menu is shown once more in
+  (`WINDOW_MS`), so near-simultaneous stages merge into one update. The paused-menu rules below still apply: a stage hidden by the menu is shown once more in
   gameplay, and nothing is replayed after cancellation or a world change (`queue.bind` resets the board).
 - The visibility rules are unchanged: preparing, connecting, ready and joined always show; the
   joining step and the phone acknowledgement stay Developer-only; every failure always shows.

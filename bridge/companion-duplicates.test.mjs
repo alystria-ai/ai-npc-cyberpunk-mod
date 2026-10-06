@@ -81,7 +81,7 @@ test('a phone invitation that fails to start is reported once, in gameplay, and 
   press('+judy')
   assert(#phone.feedback==0,'an accepted invitation posted routine preparation text with Developer mode off')
   developer=true; press('+judy')
-  assert(#phone.feedback==1 and phone.feedback[1]:find('preparing memory',1,true),phone.feedback[1])
+  assert(#phone.feedback==1 and phone.feedback[1]:find('Preparing',1,true),phone.feedback[1])
 `));
 
 test('phone dismissal of a duplicated character removes only the most recent copy', () => run(`${partyHarness}

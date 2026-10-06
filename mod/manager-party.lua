@@ -6,13 +6,20 @@ local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 -- The invitation notice board. Every invitation in flight (manager or phone) is
 -- one entry, and the board turns all of them into ONE compact notice that
 -- replaces the previous one: "Preparing Judy and Johnny...", then "Judy and
--- Johnny joined your group.". A lone invitation keeps its original wording and
--- is never delayed. While several invitations are in flight, a change waits
--- until WINDOW_MS after the last notice, so near-simultaneous stages merge into
--- one update instead of a stream. Visibility rules are unchanged: preparing,
--- connecting, ready and joined always show, the routine "joining" step is
--- Developer-mode only, and every failure shows, together with the successes.
+-- Johnny joined your group.". A lone invitation keeps its original wording.
+-- While several invitations are in flight, a change waits until WINDOW_MS after
+-- the last notice, so near-simultaneous stages merge into one update instead of
+-- a stream. Visibility rules: preparing, connecting, ready and joined show, the
+-- routine "joining" step is Developer-mode only, and every failure shows,
+-- together with the successes.
+-- "Preparing" and "Connecting" (the memory check, voice conditioning and
+-- connection start) are shown only once an invitation has been in flight for
+-- SHOW_DELAY_MS, so a quick summon (a warm character, a cached voice) goes
+-- straight to "joined" with no flicker of progress. The delay is per
+-- invitation: a merged notice names only the ones already shown. Failures and
+-- the "ready" lines, which ask the player to act, are never delayed.
 local WINDOW_MS = 400
+local SHOW_DELAY_MS = 1000
 local MAX_LISTED = 3
 local RANKS = {memory = 1, connecting = 2, ready = 3, joining = 4}
 
@@ -71,7 +78,7 @@ function M.newBoard(options)
     function B.track(id, source)
         if type(id) ~= 'string' then return end
         for _, entry in ipairs(entries) do if entry.id == id then return end end
-        entries[#entries + 1] = {id = id, source = source or 'manager'}
+        entries[#entries + 1] = {id = id, source = source or 'manager', startedAt = now()}
     end
 
     -- Completed outcomes handed over by the party queue (joined or failed).
@@ -109,6 +116,17 @@ function M.newBoard(options)
         return inflight
     end
 
+    -- The invitations whose progress may be named now. Preparing and connecting
+    -- wait out the show delay; ready and joining never do.
+    local function visible(inflight, at)
+        local shown = {}
+        for _, entry in ipairs(inflight) do
+            local routine = entry.stage == 'memory' or entry.stage == 'connecting'
+            if not routine or at - (entry.startedAt or at) >= SHOW_DELAY_MS then shown[#shown + 1] = entry end
+        end
+        return shown
+    end
+
     local function progress(inflight, developer)
         if #inflight == 0 then return nil end
         local lowest, allPhone = 'joining', true
@@ -120,8 +138,8 @@ function M.newBoard(options)
         local names = uniqueNames(inflight)
         if #names <= 1 then
             local name = names[1]
-            if lowest == 'memory' then return ui.t('{name}: preparing memory...', {name = name}) end
-            if lowest == 'connecting' then return ui.t('{name}: connecting...', {name = name}) end
+            if lowest == 'memory' then return ui.t('Preparing {name}…', {name = name}) end
+            if lowest == 'connecting' then return ui.t('Connecting {name}…', {name = name}) end
             if lowest == 'ready' then
                 return allPhone and ui.t('{name} is ready. Close the phone to join.', {name = name})
                     or ui.t('{name} is ready to join when you return to the game.', {name = name})
@@ -168,10 +186,12 @@ function M.newBoard(options)
     function B.take(worldReady)
         worldReady = worldReady == true
         local developer = developerMode()
-        local inflight = sample(worldReady)
+        local at = now()
+        local active = sample(worldReady)
+        local inflight = visible(active, at)
         local text = compose(inflight, developer)
         if text == '' then
-            if #inflight == 0 then burst = {joined = {}, failures = {}, fresh = false} end
+            if #active == 0 then burst = {joined = {}, failures = {}, fresh = false} end
             return nil
         end
         local core = table.concat({text, tostring(ui.revision()), developer and 'developer' or 'normal'}, '|')
@@ -180,19 +200,18 @@ function M.newBoard(options)
         local fresh = burst.fresh
         for _, entry in ipairs(inflight) do if entry.announced ~= entry.revision then fresh = true end end
         if not fresh and core == shownCore and (not worldReady or core == shownGameplayCore) then
-            if #inflight == 0 then burst = {joined = {}, failures = {}, fresh = false} end
+            if #active == 0 then burst = {joined = {}, failures = {}, fresh = false} end
             return nil
         end
         -- Several outcomes in flight: let near-simultaneous changes merge.
-        local contested = #inflight + #burst.joined + #burst.failures >= 2
-        local at = now()
+        local contested = #active + #burst.joined + #burst.failures >= 2
         if contested and lastAt and lastWorld == worldReady and at - lastAt < WINDOW_MS then return nil end
         return {message = text, commit = function()
             shownCore, lastAt, lastWorld = core, at, worldReady
             if worldReady then shownGameplayCore = core end
             for _, entry in ipairs(inflight) do entry.announced = entry.revision end
             burst.fresh = false
-            if #inflight == 0 then burst = {joined = {}, failures = {}, fresh = false} end
+            if #active == 0 then burst = {joined = {}, failures = {}, fresh = false} end
         end}
     end
 
@@ -292,8 +311,8 @@ function M.new(companions, readiness, options)
         for _, job in ipairs(joins) do
             if job.id == (id or preparationId) then
                 local status = preparation(job)
-                local text = '{name}: preparing memory...'
-                if status.state == 'connecting' then text = '{name}: connecting...'
+                local text = 'Preparing {name}…'
+                if status.state == 'connecting' then text = 'Connecting {name}…'
                 elseif status.state == 'ready' or status.state == 'model-only' then
                     text = '{name} is ready to join when you return to the game.'
                 elseif status.state == 'error' then
@@ -424,7 +443,7 @@ function M.new(companions, readiness, options)
                 nil, {kind = 'failed', name = job.name})
             return false, feedback, id
         end
-        feedback = readiness and ui.t(job.profileKey and '{name} is preparing memory and conversation.'
+        feedback = readiness and ui.t(job.profileKey and 'Preparing {name}…'
             or '{name} is ready to join when you return to the game.', {name = job.name})
             or ui.t('{name} will join when you return to the game.', {name = job.name})
         return true, feedback, id

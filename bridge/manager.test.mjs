@@ -1032,11 +1032,11 @@ test('paused invitation preparation snapshots follow the newest ticket and revis
     assert(party.invite('johnny-silverhand'))
     local first = party.preparationFeedback()
     assert(first.id == 'queued:1' and first.revision == 1 and first.state == 'memory')
-    assert(first.message == 'Johnny Silverhand: preparing memory...' and not first.failed)
+    assert(first.message == 'Preparing Johnny Silverhand…' and not first.failed)
     assert(party.preparationFeedback().signature == first.signature)
     readiness.receipts[first.id] = {state = 'connecting'}
     local connecting = party.preparationFeedback()
-    assert(connecting.message == 'Johnny Silverhand: connecting...' and connecting.signature ~= first.signature)
+    assert(connecting.message == 'Connecting Johnny Silverhand…' and connecting.signature ~= first.signature)
     assert(party.invite('person-1'))
     local latest = party.preparationFeedback()
     assert(latest.id == 'queued:2' and latest.signature ~= first.signature)
@@ -1095,14 +1095,16 @@ const managerBannerFixture = `
 `;
 
 const managerPopupFixture = `
-  local popupClock, nativeCallback, popups = 1000, false, {}
+  local popupClock, nativeCallback, popups, popupStep = 1000, false, {}, 2
   os.time = function() return popupClock end
   function player:ConvaiPhoneFeedback(message)
     assert(not nativeCallback, 'manager action callback posted a native popup')
     popups[#popups + 1] = message
   end
+  -- One tick is two seconds: longer than the notice board's one-second delay
+  -- before routine progress shows, so existing flows still see each stage.
   local function popupTick(worldReady)
-    popupClock = popupClock + 1
+    popupClock = popupClock + popupStep
     mcm.update(player, worldReady == true)
   end
   -- Routine progress popups are Developer mode only; it defaults to Off.
@@ -1118,11 +1120,11 @@ test('with Developer mode on, manager invitations use the phone native popup cha
     nativeCallback = true; assert(invoke('invite:johnny-silverhand').ok); nativeCallback = false
     assert(#popups == 0, 'invitation posted a popup inside its native action callback')
     popupTick(false)
-    assert(#popups == 1 and popups[1] == 'Johnny Silverhand: preparing memory...')
+    assert(#popups == 1 and popups[1] == 'Preparing Johnny Silverhand…')
     for _ = 1, 5 do popupTick(false) end
     assert(#popups == 1, 'same ticket/revision/state repeated its popup')
     readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
-    assert(#popups == 2 and popups[2] == 'Johnny Silverhand: connecting...')
+    assert(#popups == 2 and popups[2] == 'Connecting Johnny Silverhand…')
     readiness.receipts['queued:1'] = {state = 'ready'}; popupTick(false)
     assert(#popups == 3 and popups[3] == 'Johnny Silverhand is ready to join when you return to the game.')
     assert(#spawned == 0)
@@ -1144,7 +1146,7 @@ test('leaving the manager replays only the current unresolved stage and keeps ph
     readiness.receipts['queued:1'] = {state = 'connecting'}
     -- Resume inside the same clock second: do not reuse the paused memory sample.
     mcm.update(player, true)
-    assert(#popups == 2 and popups[2] == 'Johnny Silverhand: connecting...')
+    assert(#popups == 2 and popups[2] == 'Connecting Johnny Silverhand…')
     popupTick(true); assert(#popups == 2)
     assert(invoke('characters:back').ok and invoke('tab:settings').ok and invoke('memory').ok)
     assert(invoke('memory:choose').ok and invoke('memory:select:johnny-silverhand').ok)
@@ -1172,7 +1174,7 @@ test('manager popup identities distinguish duplicate copies then expire on world
     -- The older copy is still in flight: its own next stage is reported (the
     -- notice board follows every invitation, not only the latest one).
     readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
-    assert(#popups == 3 and popups[3] == 'Johnny Silverhand: connecting...')
+    assert(#popups == 3 and popups[3] == 'Connecting Johnny Silverhand…')
     mcm.resetSession(); popupTick(true)
     assert(#popups == 3 and #spawned == 0, 'world reset retained a stale popup or invitation')
   `);
@@ -1203,7 +1205,7 @@ test('Auto-connect nearby characters is off by default, offered under Conversati
 test('invitations made together share one popup that updates in place, and one joined summary', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
-    assert(#popups == 1 and popups[1] == 'Johnny Silverhand: preparing memory...')
+    assert(#popups == 1 and popups[1] == 'Preparing Johnny Silverhand…')
     assert(invoke('invite:person-1').ok); popupTick(false)
     assert(#popups == 2 and popups[2] == 'Preparing Johnny Silverhand and Person 01…', popups[#popups])
     readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
@@ -1242,7 +1244,7 @@ test('a preparation popup hidden by the menu gets one gameplay presentation per 
     developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
     mcm.update(player, true)
-    assert(#popups == 2 and popups[1] == popups[2] and popups[2] == 'Johnny Silverhand: preparing memory...')
+    assert(#popups == 2 and popups[1] == popups[2] and popups[2] == 'Preparing Johnny Silverhand…')
     for _ = 1, 3 do popupTick(true); popupTick(false) end
     popupTick(true); assert(#popups == 2, 'reopening the menu repeated a stage already shown in gameplay')
     readiness.receipts['queued:1'] = {state = 'error', error = 'Bridge unavailable'}; popupTick(false)
@@ -1258,16 +1260,37 @@ test('a preparation popup hidden by the menu gets one gameplay presentation per 
   `);
 });
 
+test('a quick manager invitation shows no preparing or connecting popup, but the ready instruction and joined notice are immediate', () => {
+  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    popupStep = 0.2
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
+    popupTick(false)
+    readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
+    assert(#popups == 0, 'routine progress showed for an invitation under a second old: ' .. tostring(popups[1]))
+    -- The instruction to return to the game is never held back by the delay.
+    readiness.receipts['queued:1'] = {state = 'ready'}; popupTick(false)
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand is ready to join when you return to the game.', popups[1])
+    popupTick(true); assert(#spawned == 1 and #popups == 1)
+    members[1].state = 'ready'; popupTick(true)
+    assert(#popups == 2 and popups[2] == 'Johnny Silverhand joined your group.', popups[#popups])
+    -- A slower invitation does show its progress after the delay.
+    assert(invoke('invite:person-1').ok)
+    popupTick(false); popupTick(false); assert(#popups == 2, 'progress showed inside the delay')
+    popupStep = 2; popupTick(false)
+    assert(#popups == 3 and popups[3] == 'Preparing Person 01…', popups[#popups])
+  `);
+});
+
 test('with Developer mode off, preparation progress and the joined notice stay visible and only the joining step is hidden', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
     assert(not manager.developerMode())
     assert(invoke('tab:characters').ok)
     nativeCallback = true; assert(invoke('invite:johnny-silverhand').ok); nativeCallback = false
     popupTick(false)
-    assert(#popups == 1 and popups[1] == 'Johnny Silverhand: preparing memory...',
+    assert(#popups == 1 and popups[1] == 'Preparing Johnny Silverhand…',
       'a slow preparation must show progress so it is not mistaken for a failure')
     readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
-    assert(#popups == 2 and popups[2] == 'Johnny Silverhand: connecting...')
+    assert(#popups == 2 and popups[2] == 'Connecting Johnny Silverhand…')
     readiness.receipts['queued:1'] = {state = 'ready'}; popupTick(false)
     assert(#popups == 3 and popups[3] == 'Johnny Silverhand is ready to join when you return to the game.',
       'the instruction to return to the game must be shown')
@@ -1298,7 +1321,7 @@ test('a preparation failure first seen in the paused menu posts exactly one game
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
     popupTick(false)
-    assert(#popups == 1 and popups[1] == 'Johnny Silverhand: preparing memory...')
+    assert(#popups == 1 and popups[1] == 'Preparing Johnny Silverhand…')
     readiness.receipts['queued:1'] = {state = 'error', error = 'Bridge unavailable'}
     for _ = 1, 4 do popupTick(false) end
     assert(#popups == 1, 'the paused menu posted or consumed the failure notice')
@@ -1310,7 +1333,7 @@ test('a preparation failure first seen in the paused menu posts exactly one game
     -- Cancelling and inviting again is a new attempt with its own notice.
     assert(invoke('characters:back').ok and invoke('tab:party').ok and invoke('dismiss:queued:1').ok)
     assert(invoke('party:back').ok and invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
-    assert(#popups == 3 and popups[3] == 'Johnny Silverhand: preparing memory...')
+    assert(#popups == 3 and popups[3] == 'Preparing Johnny Silverhand…')
     readiness.receipts['queued:2'] = {state = 'error', error = 'Still unavailable'}
     popupTick(false); assert(#popups == 3)
     popupTick(true)
@@ -1375,16 +1398,16 @@ test('manager invitation banner follows paused preparation without reloading dra
     paint('Completed: Johnny Silverhand')
     local reloadBefore = reloads
     tick()
-    assert(banner.text == 'Johnny Silverhand: preparing memory...' and rootReads == 1)
+    assert(banner.text == 'Preparing Johnny Silverhand…' and rootReads == 1)
     assert(not row('party-count') and not row('feedback') and not row('tab:settings'))
     local writes = banner.writes
     tick(); tick()
     assert(banner.writes == writes, 'unchanged preparation repainted every frame')
     readiness.receipts['queued:1'] = {state = 'connecting'}; tick()
-    assert(banner.text == 'Johnny Silverhand: connecting...' and banner.writes == writes + 1)
+    assert(banner.text == 'Connecting Johnny Silverhand…' and banner.writes == writes + 1)
     writes = banner.writes
     paint('Completed: Johnny Silverhand'); tick()
-    assert(banner.text == 'Johnny Silverhand: connecting...' and banner.writes == writes,
+    assert(banner.text == 'Connecting Johnny Silverhand…' and banner.writes == writes,
       'a page rebuild lost or duplicated the cached preparation update')
     readiness.receipts['queued:1'] = {state = 'ready'}; tick()
     assert(banner.text == 'Johnny Silverhand is ready to join when you return to the game.')
@@ -1403,7 +1426,7 @@ test('preparation banners preserve native errors, memory action feedback, foreig
     paint('Action failed', nil, 2); tick()
     assert(banner.text == 'Action failed' and banner.writes == 0, 'native error was replaced')
     paint('Completed: Johnny Silverhand'); tick()
-    assert(banner.text == 'Johnny Silverhand: preparing memory...', 'preparation did not resume on an eligible banner')
+    assert(banner.text == 'Preparing Johnny Silverhand…', 'preparation did not resume on an eligible banner')
     assert(invoke('characters:back').ok and invoke('tab:settings').ok and invoke('memory').ok)
     memoryClock = clock
     publishMemory(1, {{profileKey = 'person-20'}}); loaded = registered.loadMod('manager')
@@ -1414,7 +1437,7 @@ test('preparation banners preserve native errors, memory action feedback, foreig
     assert(invoke('memory:settings').ok and invoke('settings:back').ok and invoke('tab:characters').ok)
     assert(invoke('invite:person-1').ok)
     paint('Completed: Person 01'); tick()
-    assert(banner.text == 'Person 01: preparing memory...')
+    assert(banner.text == 'Preparing Person 01…')
     activeMod = 'other:mod'
     paint('Foreign status', 'Another mod'); tick()
     assert(banner.text == 'Foreign status')
@@ -2637,6 +2660,7 @@ test('invalid character/NPC/AI records fail cleanly and only owned entity IDs ar
 
 test('a voice that could not run is announced once in gameplay, again only after a new fallback', () => {
   run(`${mcmFixture}${managerPopupFixture}
+    popupStep = 1 -- the voice state file goes stale after a few seconds
     local state = {state = 'ready', provider = 'pocket', requestedProvider = 'omni', requestedOmniSteps = 16,
       omniSteps = 32, routedProfiles = {'johnny-silverhand'}, fallback = {from = 'omni', to = 'pocket'},
       updated = popupClock * 1000}

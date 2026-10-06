@@ -24,7 +24,7 @@ const translations = {
   'Companion preparation returned an invalid state.': 'État de préparation invalide.',
   'The character died before joining.': 'Le personnage est mort avant son arrivée.',
   'The character was removed before joining.': 'Le personnage a disparu avant son arrivée.',
-  '{name} is preparing memory and conversation.': 'Préparation de la mémoire et de la conversation de {name}.',
+  'Preparing {name}…': 'Préparation de {name}…',
   '{name} is ready to join when you return to the game.': '{name} est prêt à vous rejoindre en jeu.',
   '{name} will join when you return to the game.': '{name} vous rejoindra en jeu.',
   '{name} will leave when you return to the game.': '{name} partira à votre retour en jeu.',
@@ -200,7 +200,7 @@ test('a successful dismissal posts its gameplay notice only in Developer mode; i
 test('English readiness, failures and microphone notices preserve original wording', () => run(`
   local env = makeParty(true); local q = env.queue
   local ok, message = q.invite('known')
-  assert(ok and message == actorName .. ' is preparing memory and conversation.')
+  assert(ok and message == 'Preparing ' .. actorName .. '…')
   ok, message = q.invite('model')
   assert(ok and message == actorName .. ' is ready to join when you return to the game.')
   q.flush(); env.members[1].state = 'dead'; table.remove(env.members, 2); q.flush()
@@ -235,7 +235,7 @@ test('English readiness, failures and microphone notices preserve original wordi
 test('French party events translate templates while preserving names, profile names and queue identity', () => run(`
   local env = makeParty(true); local q = env.queue
   local ok, message = q.invite('known')
-  assert(ok and message == 'Préparation de la mémoire et de la conversation de ' .. actorName .. '.')
+  assert(ok and message == 'Préparation de ' .. actorName .. '…')
   assert(q.list()[1].name == actorName and q.list()[1].id == 'queued:1')
   ok, message = q.assign('queued:1', 'panam', profileName)
   assert(ok and message == 'Profil ' .. profileName .. ' choisi pour ' .. actorName .. '.')

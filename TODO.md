@@ -118,6 +118,10 @@ atural-speech\page\index.html` (and `/natural-speech/` on the picker after its n
 
 ## Captain's log
 
+**2026-10-07: invitation notice wording and show delay**
+- The earliest stage covers the memory check, voice conditioning and connection start, so "{name}: preparing memory..." became "Preparing {name}…" (same as the merged "Preparing {names}…") and "{name}: connecting..." became "Connecting {name}…". The manager's long invite line "{name} is preparing memory and conversation." now reuses "Preparing {name}…". Nine locales + `localization/en.json` (regenerated) + `Extract-UiCatalog.mjs` templates updated.
+- Show delay: `M.newBoard` (`mod/manager-party.lua`) names a preparing or connecting invitation only once it is 1 s old (`SHOW_DELAY_MS`, per invitation), so a quick summon shows only `Judy joined your group.`. Failures, the ready lines (they ask the player to act) and the Developer joining step are never delayed. Mixed quick + slow: only the slow one's progress is named, the outcome stays one merged notice (the quick one's joined line shows beside the slow one's progress meanwhile). Tests in `bridge/invitation-notices.test.mjs`, `bridge/manager.test.mjs`; popup fixtures now tick 2 s so existing flows still see each stage. Needs CET reload only.
+
 **2026-10-07: install and test round**
 - Installed a655725 + d0891f8 (CET reload, bridge restart). The user confirmed one merged notice and Apply staging; the Esc leave prompt didn't appear (UI agent on it).
 - Gestures 857a2a2/7437d8a: all 23 spawnable tier-1 characters gesture from their own vanilla idle (only Judy idles arms-folded); demonstrate/stretch/exercise clips and reach >90 cm excluded; the finger-shape scan can't detect hand shapes (glTF lacks finger data), so exclusions use names, the reach cap and captures. Lua installed + `reload-controller` live; archive 64F305B2…2230 waits for the next game restart, then capture checks on a woman (Panam/Misty), a man (Johnny/Viktor) and Jackie/River with V about 4 m back.

@@ -37,18 +37,22 @@ const fixture = `
     board.event({message = name .. ' joined your group.' .. (warning and (' ' .. warning) or ''),
       info = {kind = 'joined', name = name, warning = warning}})
   end
+  -- Routine progress (preparing, connecting) shows once an invitation is a second old.
+  local function settle() clock = clock + 1000 end
   local function failed(name, reason)
     board.event({message = name .. ' could not join: ' .. reason, failed = true, info = {kind = 'failed', name = name}})
   end
 `;
 
-test('a lone invitation keeps its original wording, is never delayed and does not repeat', () => {
+test('a lone invitation keeps its original wording, shows progress after the delay and does not repeat', () => {
   run(`${fixture}
     set('a', 'Judy', 'memory'); board.track('a', 'manager')
-    assert(post() == 'Judy: preparing memory...')
+    assert(post() == nil, 'progress showed before the delay')
+    settle()
+    assert(post() == 'Preparing Judy…')
     assert(post() == nil, 'an unchanged stage repeated')
     set('a', 'Judy', 'connecting')
-    assert(post() == 'Judy: connecting...', 'a lone stage change waited for the coalescing window')
+    assert(post() == 'Connecting Judy…', 'a lone stage change waited for the coalescing window')
     set('a', 'Judy', 'ready')
     assert(post() == 'Judy is ready to join when you return to the game.')
     -- Gameplay: ready becomes the routine joining step, which is Developer-only.
@@ -64,9 +68,12 @@ test('a lone invitation keeps its original wording, is never delayed and does no
 test('invitations in flight together share one notice that is replaced in place', () => {
   run(`${fixture}
     set('a', 'Judy', 'memory'); board.track('a', 'manager')
-    assert(post() == 'Judy: preparing memory...')
+    settle()
+    assert(post() == 'Preparing Judy…')
     clock = clock + 5000
     set('b', 'Johnny', 'memory'); board.track('b', 'manager')
+    assert(post() == nil, 'the second invitation was named before its delay')
+    settle()
     assert(post() == 'Preparing Judy and Johnny…')
     clock = clock + 5000
     -- One finishes first: the shared verb follows the slowest, so nothing changes.
@@ -88,6 +95,8 @@ test('near-simultaneous changes merge inside the coalescing window and nothing i
   run(`${fixture}
     set('a', 'Judy', 'memory'); set('b', 'Johnny', 'memory')
     board.track('a'); board.track('b')
+    assert(post() == nil)
+    settle()
     assert(post() == 'Preparing Judy and Johnny…')
     clock = clock + 100
     set('a', 'Judy', 'connecting'); set('b', 'Johnny', 'connecting')
@@ -113,6 +122,7 @@ test('many names are summarised instead of listed', () => {
   run(`${fixture}
     local names = {'Judy', 'Johnny', 'Panam', 'River', 'Kerry'}
     for index, name in ipairs(names) do set('c' .. index, name, 'memory'); board.track('c' .. index) end
+    settle()
     assert(post() == 'Preparing Judy, Johnny and 3 others…')
     for index in ipairs(names) do states['c' .. index] = nil end
     for _, name in ipairs(names) do joined(name) end
@@ -128,7 +138,7 @@ test('many names are summarised instead of listed', () => {
 test('a failure for one companion is reported next to the success of the others', () => {
   run(`${fixture}
     set('a', 'Judy', 'memory'); set('b', 'Johnny', 'memory'); board.track('a'); board.track('b')
-    post()
+    settle(); post()
     clock = clock + 5000
     states.b = nil; joined('Johnny')
     set('a', 'Judy', 'error'); failed('Judy', 'Bridge unavailable')
@@ -147,10 +157,10 @@ test('a failure for one companion is reported next to the success of the others'
 
 test('a paused menu announces progress once and gameplay announces it once more', () => {
   run(`${fixture}
-    set('a', 'Judy', 'memory'); board.track('a')
-    assert(post(false) == 'Judy: preparing memory...')
+    set('a', 'Judy', 'memory'); board.track('a'); settle()
+    assert(post(false) == 'Preparing Judy…')
     assert(post(false) == nil)
-    assert(post(true) == 'Judy: preparing memory...', 'the notice hidden by the menu was not shown in gameplay')
+    assert(post(true) == 'Preparing Judy…', 'the notice hidden by the menu was not shown in gameplay')
     assert(post(true) == nil and post(false) == nil and post(true) == nil)
     -- A failure first seen while paused is never posted there (the banner owns it).
     set('a', 'Judy', 'error')
@@ -160,9 +170,9 @@ test('a paused menu announces progress once and gameplay announces it once more'
 
 test('a notice that could not be posted is retried, and a new copy is always announced', () => {
   run(`${fixture}
-    set('a', 'Judy', 'memory'); board.track('a')
+    set('a', 'Judy', 'memory'); board.track('a'); settle()
     local note = board.take(false)
-    assert(note and note.message == 'Judy: preparing memory...')
+    assert(note and note.message == 'Preparing Judy…')
     -- No commit: the player was unavailable.
     local retry = board.take(false)
     assert(retry and retry.message == note.message)
@@ -170,19 +180,21 @@ test('a notice that could not be posted is retried, and a new copy is always ann
     assert(board.take(false) == nil)
     clock = clock + 5000
     set('b', 'Judy', 'memory'); board.track('b')
-    assert(post() == 'Judy: preparing memory...', 'a second copy with the same text was swallowed')
+    assert(post() == nil, 'the second copy showed progress inside its delay')
+    settle()
+    assert(post() == 'Preparing Judy…', 'a second copy with the same text was swallowed')
     -- Cancelling a copy does not replay anything.
     states.b = nil
     assert(post() == nil)
     -- A new revision (the profile was chosen again) is announced again.
     set('a', 'Judy', 'memory', 2)
-    assert(post() == 'Judy: preparing memory...')
+    assert(post() == 'Preparing Judy…')
   `);
 });
 
 test('a world change discards every entry and pending outcome', () => {
   run(`${fixture}
-    set('a', 'Judy', 'memory'); board.track('a'); post()
+    set('a', 'Judy', 'memory'); board.track('a'); settle(); assert(post() == 'Preparing Judy…')
     joined('Johnny')
     board.reset()
     states.a = nil
@@ -202,5 +214,100 @@ test('phone invitations use the phone wording and mix with manager ones in neutr
     set('c', 'Panam', 'ready'); board.track('c', 'manager')
     clock = clock + 5000
     assert(post() == 'Judy, Johnny and Panam are ready to join when you return to the game.')
+  `);
+});
+
+test('a quick invitation shows no progress at all, only the joined outcome', () => {
+  run(`${fixture}
+    set('a', 'Judy', 'memory'); board.track('a', 'manager')
+    assert(post() == nil)
+    clock = clock + 400
+    set('a', 'Judy', 'connecting')
+    assert(post() == nil, 'connecting showed inside the delay')
+    clock = clock + 400
+    set('a', 'Judy', 'ready')
+    -- Gameplay: ready is already the routine joining step, which is Developer-only.
+    assert(post(true) == nil, 'the joining step showed with Developer mode off')
+    states.a = nil; joined('Judy')
+    assert(post(true) == 'Judy joined your group.', 'the quick summon did not announce that it joined')
+    assert(post(true) == nil and #board.inspect().entries == 0 and board.inspect().joined == 0)
+    -- Just under a second still hides progress; a second shows it.
+    clock = clock + 5000
+    set('b', 'Panam', 'memory'); board.track('b', 'manager')
+    clock = clock + 999
+    assert(post() == nil)
+    clock = clock + 1
+    assert(post() == 'Preparing Panam…')
+  `);
+});
+
+test('the show delay hides only routine progress: ready lines and the Developer joining step are immediate', () => {
+  run(`${fixture}
+    set('a', 'Judy', 'ready'); board.track('a', 'phone')
+    assert(post() == 'Judy is ready. Close the phone to join.', 'the instruction to close the phone was delayed')
+    board.reset(); states.a = nil
+    developer = true
+    set('c', 'River', 'ready'); board.track('c', 'manager')
+    assert(post(true) == 'River is joining your party.', 'the Developer joining step was delayed')
+  `);
+});
+
+test('one quick and one slow invitation made together: the slow one alone is named, the outcome is one merged notice', () => {
+  run(`${fixture}
+    set('a', 'Judy', 'memory'); set('b', 'Johnny', 'memory')
+    board.track('a', 'manager'); board.track('b', 'manager')
+    assert(post() == nil)
+    clock = clock + 300
+    -- Judy is quick: she joins before anything was shown. Johnny is still hidden.
+    states.a = nil; joined('Judy')
+    assert(post(true) == 'Judy joined your group.', 'the quick one did not announce itself, or named the hidden one')
+    clock = clock + 700
+    local line = post(true)
+    assert(line == 'Judy joined your group.\\nPreparing Johnny…', line)
+    assert(not line:find('Judy and Johnny', 1, true), 'the progress named the quick invitation')
+    clock = clock + 5000
+    set('b', 'Johnny', 'connecting')
+    assert(post(true) == 'Judy joined your group.\\nConnecting Johnny…')
+    clock = clock + 5000
+    states.b = nil; joined('Johnny')
+    assert(post(true) == 'Judy and Johnny joined your group.', 'the final outcome was not one merged notice')
+    assert(post(true) == nil and board.inspect().joined == 0)
+  `);
+});
+
+test('two quick invitations announce one merged joined notice and no progress', () => {
+  run(`${fixture}
+    set('a', 'Judy', 'memory'); set('b', 'Johnny', 'memory')
+    board.track('a', 'manager'); board.track('b', 'manager')
+    clock = clock + 300
+    states.a = nil; joined('Judy')
+    assert(post(true) == 'Judy joined your group.')
+    clock = clock + 100
+    states.b = nil; joined('Johnny')
+    assert(post(true) == nil, 'a second outcome inside the window was not merged')
+    clock = clock + 400
+    assert(post(true) == 'Judy and Johnny joined your group.')
+    assert(post(true) == nil)
+  `);
+});
+
+test('a failure is never delayed, even while other invitations are still hidden', () => {
+  run(`${fixture}
+    -- A lone invitation failing at once.
+    set('a', 'Judy', 'memory'); board.track('a', 'manager')
+    clock = clock + 50
+    set('a', 'Judy', 'error'); failed('Judy', 'Bridge unavailable')
+    assert(post(true) == 'Judy could not join: Bridge unavailable', 'a lone early failure was delayed')
+    assert(post(true) == nil and board.inspect().failures == 0)
+    -- One fails and one is still preparing (hidden): the failure shows alone, now.
+    clock = clock + 5000
+    set('b', 'Johnny', 'memory'); set('c', 'Panam', 'memory')
+    board.track('b', 'manager'); board.track('c', 'manager')
+    clock = clock + 100
+    set('b', 'Johnny', 'error'); failed('Johnny', 'No route')
+    assert(post(true) == 'Johnny could not join: No route', 'a failure waited for the progress delay')
+    -- The remaining invitation is named once its own delay passes.
+    clock = clock + 900
+    assert(post(true) == 'Johnny could not join: No route\\nPreparing Panam…')
   `);
 });
