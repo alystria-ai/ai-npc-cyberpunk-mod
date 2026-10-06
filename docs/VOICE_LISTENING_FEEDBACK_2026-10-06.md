@@ -47,3 +47,4 @@ The user's per-character verdicts from the report page (http://127.0.0.1:8765/),
 - The new Pocket student has about reached OmniVoice quality; on the second line Pocket beats Omni.
 - 1 clip sounds bad; 2 clips (10 s) sound about as good as 3. Never use 1 clip; at least 2.
 - Omni's remaining advantage: laughs, sighs and other emotional tags (natural speech), so it isn't obsolete.
+- Why Adam was switched (user): his combat dialogue sounds very different from his normal conversation, and the dataset had more combat than conversation for him, so references and targets drawn from it sounded wrong. A combat-delivery flag is being built for all voices.
