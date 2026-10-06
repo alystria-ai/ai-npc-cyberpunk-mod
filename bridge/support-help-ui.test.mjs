@@ -72,7 +72,7 @@ const managerFixture = `
   function api.registerDefinition(key, value) defs[key] = value; return true end
   function api.list() return members end
   function api.spawn(key)
-    if #members >= 8 then return nil, 'Your party has eight copies. Dismiss one first.' end
+    if #members >= 8 then return nil, 'There is no room for another companion. Dismiss one first.' end
     nextSerial = nextSerial + 1
     spawned[#spawned + 1] = key
     local def = assert(defs[key])

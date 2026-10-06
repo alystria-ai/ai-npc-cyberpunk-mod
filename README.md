@@ -15,7 +15,7 @@ Talk with Night City characters, invite travelling companions, and keep in touch
 - Private text and microphone conversations with supported nearby characters, with voiced replies, subtitles, and facial animation.
 - Group conversations with up to three distinct speakers. The person you address speaks first, and the input box shows that person's name. Additional copies of the same character do not become extra speakers.
 - Group turns retain each copy's assigned identity. Reassigning, dismissing or disabling the current speaker retires that round; changed later participants leave its audience.
-- A private reply belongs to the profile its copy had when you asked. Reassigning that copy in Current party while the reply is still being generated or spoken cancels it (voice, captions and facial animation); other copies and conversations are unaffected.
+- A private reply belongs to the profile its copy had when you asked. Reassigning that copy while the reply is still being generated or spoken cancels it (voice, captions and facial animation); other copies and conversations are unaffected.
 - Characters ask questions only when their personality and the moment call for it; nothing forces a question onto a reply. In groups, earlier speakers leave the floor to the next one, and automatic comments do not ask questions.
 - A dedicated **Chat** tab beside the phone's Messages and Contacts tabs. Choose a contact to open their conversation directly, then type in the composer at the bottom.
 - Independent Chat histories and drafts that persist across launches. Contacts unlocked later become available when the phone catalog refreshes. Phone Chat works without summoning the character.
@@ -25,7 +25,7 @@ The catalog currently contains **79 conversation profiles**: 77 named characters
 ### Your companions
 
 - Invite characters through **Companion Manager → Characters**, or use the selected phone contact's invite control.
-- Keep up to **eight copies** in your party, including invitations being prepared. **Current party** lets you dismiss a particular copy or change its conversation profile.
+- Keep several copies in your party, including invitations being prepared. **Current party** lists each copy as "Name #number" and lets you dismiss a particular one; it disappears at once.
 - Search installed character models through **Model browser**, including characters outside the phone catalog. A model can follow without an AI profile, or use a profile you assign separately.
 - Companions walk beside V, run to catch up, settle into loose positions, and respond to direct attention without reforming the whole group around camera turns. Close eye contact does not make a settled companion back away.
 - Native combat AI, post-combat holstering, and moving green companion markers on the minimap.

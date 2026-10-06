@@ -261,7 +261,7 @@ local function spawnCopy(key, invitation, returning)
             return nil, checked and reason or 'Companion preparation is unavailable.'
         end
     end
-    if not returning and #entries >= #slots then return nil, 'Your party has eight copies. Dismiss one first.' end
+    if not returning and #entries >= #slots then return nil, 'There is no room for another companion. Dismiss one first.' end
     local player = Game.GetPlayer()
     local system = Game.GetDynamicEntitySystem()
     if not player or not system or not system:IsReady() then return nil, 'World is not ready' end
@@ -690,7 +690,7 @@ function M.list()
         local phase=attention and attention.phase or p.phase
         local focused=phase and phase:find('attend',1,true)~=nil or false
         rows[#rows+1]={
-            serial=e.serial,key=e.key,name=e.name..(totals[e.key]>1 and (' #'..seen[e.key]) or ''),
+            serial=e.serial,key=e.key,baseName=e.name,name=e.name..(totals[e.key]>1 and (' #'..seen[e.key]) or ''),
             profileKey=e.profileKey,profileName=e.profileName,record=e.record,slot=e.slot,lane=e.lane,
             spawnRecord=e.spawnRecord,
             entityID=tostring(e.entityID.hash),state=e.state,error=e.error,

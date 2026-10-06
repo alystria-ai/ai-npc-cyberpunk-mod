@@ -8,6 +8,9 @@ function M.new(companions, readiness, options)
     local Q = {}
     local owner, sequence, joins, leaves = nil, 0, {}, {}
     local attaching, notices = {}, {}
+    -- A dismissal that the game refused. The copy stays in the party, so its
+    -- row returns with this reason beside it until the next attempt.
+    local dismissErrors = {}
     local feedback = ''
     local stopIntent, tripFeedback = false, nil
     local tripGeneration, tripNotices = nil, {}
@@ -31,7 +34,7 @@ function M.new(companions, readiness, options)
         local changed = readiness and readiness.bind(identity) == true
         if identity ~= owner or changed then
             owner, joins, leaves, feedback = identity, {}, {}, ''
-            attaching, notices = {}, {}
+            attaching, notices, dismissErrors = {}, {}, {}
             stopIntent, tripFeedback = false, nil
             tripGeneration, tripNotices = nil, {}
             preparationId = nil
@@ -124,7 +127,9 @@ function M.new(companions, readiness, options)
             local item = {}
             for key, value in pairs(member) do item[key] = value end
             item.id = 'live:' .. member.serial
+            -- A dismissal is shown at once. The world deletion waits for flush().
             if leaves[member.serial] then item.state = 'leaving' end
+            item.dismissError = dismissErrors[member.serial]
             result[#result + 1] = item
         end
         local states = {memory = 'preparing-memory', connecting = 'connecting', ready = 'ready-to-join',
@@ -182,7 +187,7 @@ function M.new(companions, readiness, options)
         if not owner then return false, ui.t('Load a save before inviting a companion.') end
         local definition = companions.definition(key)
         if not definition then return false, ui.t('That character model is unavailable.') end
-        if Q.count() >= 8 then return false, ui.t('Your party has eight copies. Dismiss one first.') end
+        if Q.count() >= 8 then return false, ui.t('There is no room for another companion. Dismiss one first.') end
         sequence = sequence + 1
         local id = 'queued:' .. sequence
         if readiness and readiness.newId then
@@ -215,7 +220,7 @@ function M.new(companions, readiness, options)
             if trip.active and trip.driverSerial == member.serial then
                 return false, ui.t('Stop the trip and step out before dismissing your driver.')
             end
-            leaves[member.serial] = true
+            leaves[member.serial], dismissErrors[member.serial] = true, nil
             if attaching[member.serial] and readiness then readiness.cancel(attaching[member.serial]) end
             feedback = ui.t('{name} will leave when you return to the game.', {name = member.name})
         else
@@ -373,6 +378,10 @@ function M.new(companions, readiness, options)
             if leaves[member.serial] then
                 local called, ok, err = pcall(companions.dismiss, member.serial)
                 leaves[member.serial] = nil
+                -- The row was hidden optimistically. A refused deletion keeps the
+                -- real slot, so the copy is listed again with the reason.
+                dismissErrors[member.serial] = not (called and ok)
+                    and tostring((called and err) or (not called and ok) or ui.t('The copy could not be dismissed.')) or nil
                 report(called and ok and ui.t('{name} dismissed.', {name = member.name})
                     or (member.name .. ': ' .. tostring(called and err or ok)), not (called and ok), nil, true)
             end

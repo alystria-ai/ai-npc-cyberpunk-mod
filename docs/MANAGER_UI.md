@@ -14,13 +14,19 @@ no longer open it.
 - **Characters:** searchable researched profiles, including Johnny Silverhand
   and Adam Smasher, with Invite / Add copy actions for available models.
   This catalogue is independent of phone contacts and quest unlocks.
-- **Current party:** each actual or invited copy has its own state, conversation
-  profile action and dismissal. Invitations can be cancelled before spawning;
-  pending dismissals can be undone if their places have not been reused.
+- **Current party:** one row per actual or invited copy, "Name #number" with
+  **Dismiss** (or **Cancel invitation**) on the right. It is the same native action
+  row as Back, so the name uses the same font role and size. The page shows no
+  status text, party count, per-copy conversation entry or last-action line.
+  A dismissed copy leaves the list at once, even while the game is paused; the
+  world deletion is queued and runs after gameplay resumes. If the game refuses
+  it, the row returns with the reason beside it. The party keeps a fixed number
+  of formation places that is never displayed: a full party answers an
+  invitation with a message instead.
 - **Model browser:** discovers installed Character records in batches of 48,
   shows at most 18 model results per page and searches the full discovered
   catalogue by name or record. Use MCM's **Search settings** field. Models without
-  a researched identity can be assigned one through Current party.
+  a researched identity join as followers without AI conversations.
 - **Settings:** conversation participation, Memory and Relationships submenus,
   voice playback, subtitles, automatic reactions, interface language and
   Developer mode. The global voice choices are **OmniVoice 16 steps (default),
@@ -33,10 +39,9 @@ no longer open it.
 Every inner page starts with one **Back** action. Characters, Current party,
 Model browser and Settings return to the manager home; Relationships, Memory
 and Character conversations return to Settings. The memory character picker
-returns to Memory, and conversation profile selection returns to Current party
-without changing the profile. Navigation clears the previous page's search.
+returns to Memory, and the removed per-copy conversation page no longer exists. Navigation clears the previous page's search.
 The parent Back action remains visible when a search has no matching results.
-**Your group**, including the count and persistent party feedback, appears only
+**Your group** (the Back action and the companion driver's trip status) appears only
 on Current party. Invitation actions still show their immediate native action
 banner on the catalogue page.
 

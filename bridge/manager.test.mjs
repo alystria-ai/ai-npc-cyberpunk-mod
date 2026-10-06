@@ -76,7 +76,7 @@ const managerFixture = `
   function api.registerDefinition(key, value) defs[key] = value; return true end
   function api.list() return members end
   function api.spawn(key)
-    if #members >= 8 then return nil, 'Your party has eight copies. Dismiss one first.' end
+    if #members >= 8 then return nil, 'There is no room for another companion. Dismiss one first.' end
     nextSerial = nextSerial + 1
     spawned[#spawned + 1] = key
     local def = assert(defs[key])
@@ -181,7 +181,7 @@ test('MCM dismissals free planned places, cannot undo into an overfull party and
     queue.invite('person-2')
     queue.flush()
     assert(#members == 8 and #spawned == 9)
-    assert(queue.list()[9].state == 'failed' and queue.message():find('eight copies', 1, true))
+    assert(queue.list()[9].state == 'failed' and queue.message():find('no room', 1, true))
     queue.flush(); assert(#spawned == 9, 'failed request must not retry every frame')
     api.dismiss = oldDismiss
     queue.bind(nil); assert(#queue.list() == 8, 'loading a save cancels pending work')
@@ -526,7 +526,8 @@ test('manager home owns the four destinations and every inner page has one paren
       end
       assert(count == 1 and loaded.categories[1].settings[1].id == back, 'parent Back must be first')
       if expected == 'party' then
-        assert(category('party-status') and row('party-count'))
+        assert(category('party-status') and not row('party-count') and not row('feedback'),
+          'Current party shows the companion limit or the last action')
       else
         assert(not category('party-status') and not row('party-count') and not row('feedback'),
           'party status leaked outside Current party')
@@ -555,15 +556,11 @@ test('manager home owns the four destinations and every inner page has one paren
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
     inner('characters', 'characters:back')
     assert(invoke('characters:back').ok and invoke('tab:party').ok)
-    assert(row('party-count').value == '1 / 8' and row('feedback'))
-    assert(invoke('assign:queued:1').ok)
-    inner('assignment', 'assignment:back')
-    local profile = mcm.party().list()[1].profileKey
-    assert(invoke('assignment:back').ok)
     inner('party', 'party:back')
-    assert(mcm.party().list()[1].profileKey == profile and #spawned == 0,
-      'Back from profile selection changed the invitation')
-    assert(not invoke('assign-profile:person-1').ok, 'an abandoned assignment action remained callable')
+    assert(not row('assign:queued:1') and not invoke('assign:queued:1').ok,
+      'a per-copy conversation action remained on Current party')
+    assert(not invoke('assignment:back').ok and not invoke('assign-profile:person-1').ok,
+      'the removed conversation page remained callable')
   `);
 });
 
@@ -1079,7 +1076,7 @@ test('leaving the manager replays only the current unresolved stage and keeps ph
   `);
 });
 
-test('manager popup identities distinguish duplicate copies and profile revisions then expire on world reset', () => {
+test('manager popup identities distinguish duplicate copies then expire on world reset', () => {
   run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
     developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
@@ -1088,12 +1085,8 @@ test('manager popup identities distinguish duplicate copies and profile revision
     assert(party.dismiss('queued:2')); popupTick(false)
     readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
     assert(#popups == 2, 'removing the latest copy revived an older progress popup')
-    assert(invoke('characters:back').ok and invoke('tab:party').ok and invoke('assign:queued:1').ok)
-    nativeCallback = true; assert(invoke('assign-profile:person-2').ok); nativeCallback = false
-    popupTick(false)
-    assert(#popups == 3 and popups[3] == 'Johnny Silverhand: preparing memory...', 'profile revision was not announced')
     mcm.resetSession(); popupTick(true)
-    assert(#popups == 3 and #spawned == 0, 'world reset retained a stale popup or invitation')
+    assert(#popups == 2 and #spawned == 0, 'world reset retained a stale popup or invitation')
   `);
 });
 
@@ -1167,11 +1160,11 @@ test('a preparation failure first seen in the paused menu posts exactly one game
     assert(#popups == 2 and popups[2] == 'Johnny Silverhand could not prepare: Bridge unavailable')
     for _ = 1, 4 do popupTick(true); popupTick(false) end
     assert(#popups == 2 and #spawned == 0, 'the failed attempt notified again or was retried')
-    -- An explicit retry that fails again is a new attempt with its own notice.
-    assert(invoke('characters:back').ok and invoke('tab:party').ok and invoke('assign:queued:1').ok)
-    assert(invoke('assign-profile:person-2').ok); popupTick(false)
+    -- Cancelling and inviting again is a new attempt with its own notice.
+    assert(invoke('characters:back').ok and invoke('tab:party').ok and invoke('dismiss:queued:1').ok)
+    assert(invoke('party:back').ok and invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
     assert(#popups == 3 and popups[3] == 'Johnny Silverhand: preparing memory...')
-    readiness.receipts['queued:1'] = {state = 'error', error = 'Still unavailable'}
+    readiness.receipts['queued:2'] = {state = 'error', error = 'Still unavailable'}
     popupTick(false); assert(#popups == 3)
     popupTick(true)
     assert(#popups == 4 and popups[4] == 'Johnny Silverhand could not prepare: Still unavailable')
@@ -1690,7 +1683,8 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(#spawned == 0 and #mcm.inspect().party == 1)
     assert(invoke('characters:back').ok and invoke('tab:party').ok)
     assert(row('dismiss:queued:1').value == 'Cancel invitation')
-    assert(invoke('assign:queued:1').ok and invoke('assign-profile:person-1').ok)
+    assert(not row('assign:queued:1'), 'a per-copy conversation entry remained on Current party')
+    assert(mcm.party().assign('queued:1', 'person-1', 'Person 01'))
     assert(invoke('party:back').ok and invoke('tab:settings').ok)
     assert(row('voice').type == 'bool' and row('omniSteps') == nil)
     assert(row('subtitles').type == 'bool' and row('subtitles').value == true)
@@ -1830,40 +1824,133 @@ test('native MCM shows invitation preparation and keeps reserved copies editable
     assert(rendered:lower():find('prepar', 1, true) and not rendered:find('Completed:', 1, true))
     assert(not rendered:find('joined your group', 1, true))
     assert(invoke('characters:back').ok and invoke('tab:party').ok)
-    assert(row('party-count').value == '1 / 8')
-    assert(row('state:' .. id).value == 'Preparing memory')
-    assert(row('dismiss:' .. id).value == 'Cancel invitation' and not row('assign:' .. id).disabled)
+    -- One row per copy: no status text, count, conversation entry or last action.
+    assert(not row('party-count') and not row('feedback') and not row('state:' .. id) and not row('assign:' .. id))
+    assert(row('dismiss:' .. id).value == 'Cancel invitation' and row('dismiss:' .. id).type == 'action')
     readiness.receipts[id] = {state = 'connecting'}
     readiness.update(); mcm.update(player, false)
     loaded = registered.loadMod('manager')
-    assert(row('state:' .. id).value == 'Connecting' and #spawned == 0)
+    assert(row('dismiss:' .. id) and not row('state:' .. id) and #spawned == 0)
     local revision = readiness.jobs[id].revision
-    assert(invoke('assign:' .. id).ok and invoke('assign-profile:person-1').ok)
+    assert(party.assign(id, 'person-1', 'Person 01'))
     assert(readiness.prepareCalls == 2 and readiness.jobs[id].profileKey == 'person-1')
-    assert(readiness.jobs[id].revision ~= revision and row('state:' .. id).value == 'Preparing memory')
+    assert(readiness.jobs[id].revision ~= revision)
     readiness.receipts[id] = {state = 'error', error = 'Preparation service unavailable'}
     loaded = registered.loadMod('manager')
-    assert(row('state:' .. id).value == 'Unavailable')
-    assert(row('state:' .. id).description:find('Preparation service unavailable', 1, true))
-    assert(not row('assign:' .. id).disabled and row('dismiss:' .. id).value == 'Cancel invitation')
+    assert(row('dismiss:' .. id).description:find('Preparation service unavailable', 1, true))
+    assert(row('error:' .. id).label:find('Preparation service unavailable', 1, true))
+    assert(row('dismiss:' .. id).value == 'Cancel invitation')
     assert(invoke('dismiss:' .. id).ok and readiness.cancellations[id])
-    assert(party.count() == 0 and row('party-count').value == '0 / 8' and #spawned == 0)
+    assert(party.count() == 0 and not row('dismiss:' .. id) and not row('error:' .. id) and row('empty-party') and #spawned == 0)
 
     -- Phone and native actions receive the same queue and reserved capacity.
     assert(party.invite('johnny-silverhand'))
     id = party.list()[1].id
     readiness.receipts[id] = {state = 'ready'}
     loaded = registered.loadMod('manager')
-    assert(row('state:' .. id).value == 'Ready to join' and row('party-count').value == '1 / 8')
+    assert(row('dismiss:' .. id).value == 'Cancel invitation' and not row('state:' .. id) and not row('party-count'))
     mcm.update(player, false)
     assert(#spawned == 0, 'readiness created an actor while gameplay was paused')
     mcm.update(player, true)
     loaded = registered.loadMod('manager')
-    assert(#spawned == 1 and row('state:live:1').value == 'Joining')
+    assert(#spawned == 1 and row('dismiss:live:1').value == 'Dismiss' and not row('state:live:1'))
     assert(not party.message():find('joined your group', 1, true), 'accepted spawn was reported as joined')
     members[1].state = 'ready'; mcm.update(player, true)
     loaded = registered.loadMod('manager')
-    assert(row('state:live:1').value == 'Following' and party.message():find('joined your group', 1, true))
+    assert(not row('state:live:1') and not row('feedback') and party.message():find('joined your group', 1, true))
+    assert(row('dismiss:live:1').label == 'Johnny Silverhand #1', 'a copy row is its name and number')
+  `);
+});
+
+test('Current party rows are a name, its number and Dismiss, in the same native row type as Back', () => {
+  run(`${mcmFixture}
+    api.spawn('johnny-silverhand'); api.spawn('johnny-silverhand'); api.spawn('person-1')
+    for index, member in ipairs(members) do
+      member.state = 'ready'; member.baseName = member.name
+      if index < 3 then member.name = member.name .. ' #' .. index end
+    end
+    assert(invoke('tab:party').ok)
+    local back = row('party:back')
+    local names = {'Johnny Silverhand #1', 'Johnny Silverhand #2', 'Person 01 #3'}
+    for index, id in ipairs({'dismiss:live:1', 'dismiss:live:2', 'dismiss:live:3'}) do
+      local item = row(id)
+      -- The same native action row as Back: one font role, one size, value on the right.
+      assert(item.type == back.type and item.type == 'action' and item.value == 'Dismiss' and not item.disabled)
+      assert(item.label == names[index], 'a row is the base name and its number: ' .. tostring(item.label))
+    end
+    local total = 0
+    for _, section in ipairs(loaded.categories) do
+      for _, item in ipairs(section.settings) do
+        total = total + 1
+        assert(not item.id:find('^state:') and not item.id:find('^assign') and item.id ~= 'feedback'
+          and item.id ~= 'party-count', 'extra party row ' .. item.id)
+        assert(not item.label:find('Following') and not item.value:find('Following') and not item.value:find('/ 8'))
+      end
+    end
+    assert(total == 4, 'Back and one row per copy only: ' .. total)
+    -- Joining and leaving never put a last-action line on the page.
+    mcm.update(player, true); assert(not row('feedback'))
+  `);
+});
+
+test('dismissing removes the row at once while paused, defers the despawn, and restores the row with the reason on failure', () => {
+  run(`${mcmFixture}
+    api.spawn('johnny-silverhand'); api.spawn('person-1')
+    for _, member in ipairs(members) do member.state = 'ready'; member.baseName = member.name end
+    assert(invoke('tab:party').ok)
+    assert(row('dismiss:live:1') and row('dismiss:live:2'))
+    -- Paused: the row is gone immediately, the copy is still in the world.
+    mcm.update(player, false)
+    assert(invoke('dismiss:live:1').ok)
+    assert(not row('dismiss:live:1') and row('dismiss:live:2') and #members == 2, 'the row stayed or the copy left while paused')
+    assert(mcm.party().count() == 1)
+    mcm.update(player, false); assert(#members == 2 and not row('dismiss:live:1'))
+    -- Gameplay resumes: the queued despawn runs once and the row stays gone.
+    mcm.update(player, true)
+    assert(#members == 1 and members[1].serial == 2)
+    loaded = registered.loadMod('manager')
+    assert(not row('dismiss:live:1') and row('dismiss:live:2') and not row('error:live:1'))
+    -- The game refuses the next dismissal: the copy returns with the reason.
+    local original = api.dismiss
+    api.dismiss = function() return false, 'World unavailable' end
+    assert(invoke('dismiss:live:2').ok and not row('dismiss:live:2') and row('empty-party'))
+    mcm.update(player, true)
+    loaded = registered.loadMod('manager')
+    assert(#members == 1 and row('dismiss:live:2') and not row('empty-party'), 'a refused dismissal did not restore the row')
+    assert(row('error:live:2').label:find('World unavailable', 1, true))
+    assert(row('dismiss:live:2').description:find('World unavailable', 1, true))
+    assert(mcm.inspect().party[1].dismissError == 'World unavailable')
+    -- A later dismissal that succeeds clears the old reason.
+    api.dismiss = original
+    assert(invoke('dismiss:live:2').ok); mcm.update(player, true)
+    loaded = registered.loadMod('manager')
+    assert(#members == 0 and not row('dismiss:live:2') and not row('error:live:2') and row('empty-party'))
+  `);
+});
+
+test('a phone dismissal and a menu dismissal share one optimistic path and one companion limit that is never displayed', () => {
+  run(`${mcmFixture}
+    for _ = 1, 8 do api.spawn('johnny-silverhand') end
+    for _, member in ipairs(members) do member.state = 'ready' end
+    assert(invoke('tab:characters').ok)
+    -- A full party never shows a limit; the invitation is refused with a message.
+    local invite = row('invite:johnny-silverhand')
+    assert(not invite.disabled and invite.type == 'action')
+    local refused = registered.invokeAction('manager', 'invite:johnny-silverhand', {})
+    assert(refused.ok == false and not refused.error:find('8', 1, true) and not refused.error:lower():find('eight', 1, true), refused.error)
+    assert(not (loaded.categories[1].description or ''):lower():find('eight', 1, true))
+    for _, section in ipairs(loaded.categories) do
+      assert(not (section.description or ''):lower():find('eight', 1, true) and not (section.description or ''):find('8', 1, true))
+    end
+    assert(invoke('characters:back').ok and invoke('tab:party').ok)
+    assert(row('dismiss:live:8'))
+    local accepted, message, dismissedId = mcm.party().dismissCharacter('johnny-silverhand')
+    assert(accepted == true and dismissedId == 'live:8' and #members == 8)
+    loaded = registered.loadMod('manager')
+    assert(not row('dismiss:live:8') and row('dismiss:live:7'), 'a phone dismissal left its row on the page')
+    mcm.update(player, true); assert(#members == 7)
+    -- The freed place is usable at once.
+    assert(invoke('party:back').ok and invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
   `);
 });
 
@@ -1969,15 +2056,15 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(actual.getValue(key .. ':party-count') == nil)
       assert(actual.invokeAction(key .. ':characters:back'))
       assert(actual.invokeAction(key .. ':tab:party'))
-      assert(actual.getValue(key .. ':party-count') == '1 / 8')
-      assert(actual.getValue(key .. ':state:queued:1') == 'Preparing memory')
+      assert(actual.getValue(key .. ':party-count') == nil and actual.getValue(key .. ':state:queued:1') == nil)
+      assert(actual.getValue(key .. ':dismiss:queued:1') == 'Cancel invitation')
+      assert(actual.getValue(key .. ':assign:queued:1') == nil)
       readiness.receipts['queued:1'] = {state = 'connecting'}
-      assert(actual.reloadMod(key) and actual.getValue(key .. ':state:queued:1') == 'Connecting')
-      assert(actual.invokeAction(key .. ':assign:queued:1'))
-      assert(actual.invokeAction(key .. ':assign-profile:person-1'))
+      assert(actual.reloadMod(key) and actual.getValue(key .. ':dismiss:queued:1') == 'Cancel invitation')
+      assert(mcm.party().assign('queued:1', 'person-1', 'Person 01'))
       assert(readiness.prepareCalls == 2 and readiness.jobs['queued:1'].profileKey == 'person-1')
       readiness.receipts['queued:1'] = {state = 'ready'}
-      assert(actual.reloadMod(key) and actual.getValue(key .. ':state:queued:1') == 'Ready to join')
+      assert(actual.reloadMod(key) and actual.getValue(key .. ':dismiss:queued:1') == 'Cancel invitation')
       mcm.update(player, false); assert(#spawned == 0)
       assert(actual.invokeAction(key .. ':party:back'))
       assert(actual.invokeAction(key .. ':tab:settings'))
@@ -2196,13 +2283,13 @@ test('OmniVoice 16 steps is the default while saved choices migrate to the neare
   `);
 });
 
-test('party uses actual copy serials, assigns and clears profiles, reports asynchronous failures, and enforces eight copies', () => {
+test('party uses actual copy serials, assigns and clears profiles, reports asynchronous failures, and enforces the party limit', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
     for _ = 1, 8 do request('spawn:person-1') end
     assert(#members == 8 and #spawned == 8)
     request('spawn:person-1')
-    assert(#members == 8 and #spawned == 8 and player.feedback:find('eight copies', 1, true))
+    assert(#members == 8 and #spawned == 8 and player.feedback:find('no room', 1, true))
     request('tab:party')
     assert(#player.rows == 8 and player.detail[3] == 'dismiss:1')
     request('assign:1'); request('search:Johnny')

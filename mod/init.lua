@@ -414,20 +414,19 @@ do
         return {requestId = face.requestId, knownEnd = offset + (face.timeline.duration or 0),
             at = offset + (face.position or 0), family = slot and slot.family, scale = slot and slot.scale}
     end
-    local loaded, controller = pcall(function()
-        return dofile('companion-gestures.lua').new({
-            enabled = function() return manager.bodyGestures() end,
-            speech = speechFor,
-            listening = function() return convaiFacialPlayback and convaiFacialPlayback.listeningEntity end,
-            thinking = function() return convaiFacialPlayback and convaiFacialPlayback.thinkingEntity end,
-            log = function(kind, fields)
-                if manager.developerMode() then
-                    local ok, text = pcall(json.encode, fields)
-                    log('Gestures ' .. kind .. ' ' .. (ok and text or ''))
-                end
-            end,
-        })
-    end)
+    local options = {
+        enabled = function() return manager.bodyGestures() end,
+        speech = speechFor,
+        listening = function() return convaiFacialPlayback and convaiFacialPlayback.listeningEntity end,
+        thinking = function() return convaiFacialPlayback and convaiFacialPlayback.thinkingEntity end,
+        log = function(kind, fields)
+            if manager.developerMode() then
+                local ok, text = pcall(json.encode, fields)
+                log('Gestures ' .. kind .. ' ' .. (ok and text or ''))
+            end
+        end,
+    }
+    local loaded, controller = pcall(function() return dofile('companion-gestures.lua').new(options) end)
     if not loaded then log('Gesture controller failed to load: ' .. tostring(controller)); controller = nil end
     convaiGestures = controller
     local probe
@@ -438,20 +437,35 @@ do
         if probeLoaded and type(value) == 'table' then probe = value
         else log('Gesture probe failed to load: ' .. tostring(value)) end
     end
-    if probe and controller then
-        companions.bodyAnimation = {
-            tick = function(player, step, rows)
-                pcall(controller.tick, player, step, rows)
-                return probe.tick(player, step, rows)
-            end,
-            observe = function(entry, context, step)
-                if probe.observe(entry, context, step) then return true end
-                return controller.observe(entry, context, step)
-            end,
-            release = function(entry, reason) pcall(probe.release, entry, reason); return controller.release(entry, reason) end,
-            abandon = function(reason) pcall(probe.abandon, reason); return controller.abandon(reason) end,
-        }
-    else companions.bodyAnimation = probe or controller end
+    -- Dispatch through the globals at call time, so the probe's reload and
+    -- reload-controller commands can swap either without a CET reload (which
+    -- despawns companions).
+    local function current() return convaiGestures end
+    local function currentProbe() return convaiGestureProbe or probe end
+    companions.bodyAnimation = {
+        tick = function(player, step, rows)
+            local c, p = current(), currentProbe()
+            if c then pcall(c.tick, player, step, rows) end
+            if p then return p.tick(player, step, rows) end
+        end,
+        observe = function(entry, context, step)
+            local c, p = current(), currentProbe()
+            if p and p.observe(entry, context, step) then return true end
+            if c then return c.observe(entry, context, step) end
+            return false
+        end,
+        release = function(entry, reason)
+            local c, p = current(), currentProbe()
+            if p then pcall(p.release, entry, reason) end
+            if c then return c.release(entry, reason) end
+        end,
+        abandon = function(reason)
+            local c, p = current(), currentProbe()
+            if p then pcall(p.abandon, reason) end
+            if c then return c.abandon(reason) end
+        end,
+    }
+    convaiGestureOptions = options
 end
 
 local function targetAtCrosshair()
@@ -1467,7 +1481,7 @@ tacticEnv.feedback = function(message)
 end
 tacticEnv.log = function(line) log(line) end
 
--- MCM Current party reassigns a copy's conversation profile (companions.setProfile).
+-- A copy's conversation profile can be reassigned (companions.setProfile).
 companions.onProfileChanged = function(entity) retirePrivateReply(entity, 'profile-reassigned') end
 
 registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', function() beginText(false) end)

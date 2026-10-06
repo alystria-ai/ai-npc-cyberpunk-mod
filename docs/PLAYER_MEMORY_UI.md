@@ -60,15 +60,13 @@ messages setting has been removed.
 
 Inviting a character reserves one of the eight party places and starts preparation
 while the menu is open. The companion count includes those reservations.
-**Current party** shows **Preparing memory**, **Connecting**, then **Ready to
-join**. A legacy invitation shows **Waiting to join**. Pending copies can be
-canceled or assigned a different conversation profile; reassignment prepares the
-new profile before it can join. A failed preparation shows **Unavailable** and
-its error, with the same profile and cancellation actions available.
+The manager banner shows **preparing memory**, **connecting**, then **ready to
+join**. **Current party** lists each pending copy as a single row with **Cancel
+invitation**; it shows no per-copy status text. A failed preparation puts its
+error in that row's description and a line beneath it.
 
 **Ready to join** means preparation is complete. The copy enters the world after
-gameplay resumes and shows **Joining** while it attaches. It shows **Following**
-and reports that it joined only after the actor is usable. Accepting an invitation
+gameplay resumes and reports that it joined only after the actor is usable. Accepting an invitation
 does not count as a conversation or create natural memories about the player.
 
 MCM receives the optional readiness object as the fifth argument to

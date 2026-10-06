@@ -15,7 +15,7 @@ const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const translations = {
   'Load a save before inviting a companion.': 'Chargez une sauvegarde avant une invitation.',
   'That character model is unavailable.': 'Ce modèle est indisponible.',
-  'Your party has eight copies. Dismiss one first.': 'Huit copies présentes. Renvoyez-en une.',
+  'There is no room for another companion. Dismiss one first.': 'Plus de place pour un compagnon. Renvoyez-en un.',
   'That copy is no longer in your party.': 'Cette copie a quitté le groupe.',
   'That dismissal is no longer pending.': 'Ce renvoi n’est plus en attente.',
   'Cancel an invitation first; the party is full.': 'Annulez une invitation ; le groupe est complet.',
@@ -274,7 +274,7 @@ test('French local validation errors remain separate from opaque provider errors
   assert(not ok and message == 'Choisissez une copie active ou invitée.')
   for i = 1, 8 do assert(q.invite('known')) end
   ok, message = q.invite('known')
-  assert(not ok and message == 'Huit copies présentes. Renvoyez-en une.')
+  assert(not ok and message == 'Plus de place pour un compagnon. Renvoyez-en un.')
   env.members[1] = {serial = 99, name = actorName, state = 'ready'}
   assert(q.dismiss('live:99')); ok, message = q.undoDismiss('live:99')
   assert(not ok and message == 'Annulez une invitation ; le groupe est complet.')

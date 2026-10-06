@@ -5,7 +5,7 @@ local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 local PROVIDER, MOD, LABEL = 'cyberpunk-convai', 'manager', 'Companion Manager'
 local MOD_KEY, MODEL_PAGE_SIZE = PROVIDER .. ':' .. MOD, 18
 local manager, queue, entry, api, provider
-local view, modelQuery, modelPage, assigning = 'home', '', 1, nil
+local view, modelQuery, modelPage = 'home', '', 1
 local actions, hooksInstalled, refreshQueued = {}, false, false
 local owner, lastSignature, pollAt, searchFrames, snapshotAt = nil, '', 0, 0, 0
 local lastError = ''
@@ -172,7 +172,6 @@ end
 
 local function readonly(id, label, value, description, raw)
     raw = raw or {}
-    if id:match('^state:') then raw.label = true end
     return {id = id, label = raw.label and label or ui.t(label), value = raw.value and value or ui.t(value or ''),
         description = raw.description and description or ui.t(description or ''), type = 'string',
         capabilities = {read = true, write = false, draft = false, reset = false}}
@@ -191,9 +190,8 @@ end
 local function action(id, label, value, description, callback, enabled, raw)
     actions[id] = callback
     raw = raw or {}
-    if id:match('^invite:') or id:match('^dismiss:') or id:match('^assign%-profile:') or id:match('^memory:select:') then raw.label = true end
-    if (id:match('^assign:') and id ~= 'assign:none' and value ~= 'Choose a profile')
-        or (id == 'memory:choose' and value ~= 'Choose a character') then raw.value = true end
+    if id:match('^invite:') or id:match('^dismiss:') or id:match('^memory:select:') then raw.label = true end
+    if id == 'memory:choose' and value ~= 'Choose a character' then raw.value = true end
     if id == 'models:previous' or id == 'models:next' or id == 'memory:previous' or id == 'memory:next' then raw.description = true end
     local descriptionText = raw.description and description or ui.t(description)
     if (id:match(':back$') or id == 'memory:settings') and modelQuery ~= '' then
@@ -218,7 +216,7 @@ local function clearSearch(context)
 end
 
 local function navigate(nextView, context)
-    view, assigning = nextView, nil
+    view = nextView
     clearSearch(context)
     return true
 end
@@ -410,7 +408,9 @@ local function schema()
     actions = {}
     local categories = {}
     local rows = {}
-    local canInvite = owner ~= nil and queue.count() < 8
+    -- The party has a fixed number of formation places. It is not shown: a full
+    -- party answers an invitation with a message from the queue.
+    local canInvite = owner ~= nil
     if view == 'home' then
         for _, tab in ipairs({{'characters', 'Characters'}, {'party', 'Current party'},
             {'models', 'Model browser'}, {'settings', 'Settings'}}) do
@@ -429,13 +429,10 @@ local function schema()
                 profileDescription(profile, snapshot), function() return queue.invite(key) end, canInvite and available)
         end
         categories[#categories + 1] = category('characters', 'Characters', rows,
-            'Search a character by name. Each invitation reserves a place and starts preparation immediately. Your party can have up to eight copies, including pending invitations.')
+            'Search a character by name. Each invitation reserves a place and starts preparation immediately.')
     elseif view == 'party' then
-        local message = queue.message()
         local trip = queue.chauffeur()
-        local status = {readonly('party-count', 'Companions', queue.count() .. ' / 8',
-            'Includes reserved invitations and current companions. Invited characters prepare while the menu is open, then join when ready after you return to gameplay. Dismissals take effect in gameplay.')}
-        if message ~= '' then status[#status + 1] = readonly('feedback', message, '', message) end
+        local status = {}
         if trip.active then
             local tripStates = {releasing = 'Preparing to drive', ['boarding-driver'] = 'Driver boarding',
                 ['waiting-for-player'] = 'Waiting for you to board', ['waiting-for-party'] = 'Waiting for party to board',
@@ -450,61 +447,30 @@ local function schema()
                 function() return queue.stopTrip() end, not trip.stopPending)
         end
         categories[#categories + 1] = category('party-status', 'Your group', status)
-        if #party == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
-        local states = {ready = 'Following', spawning = 'Joining', queued = 'Waiting to join',
-            ['preparing-memory'] = 'Preparing memory', connecting = 'Connecting', ['ready-to-join'] = 'Ready to join',
-            leaving = 'Leaving', failed = 'Unavailable', missing = 'Missing'}
-        local descriptions = {
-            ['preparing-memory'] = 'Preparing this character with your player identity and current world context. This copy has a reserved place. You can change its conversation profile or cancel the invitation.',
-            connecting = 'Connecting this character for conversation. This copy has a reserved place. You can change its conversation profile or cancel the invitation.',
-            ['ready-to-join'] = 'Preparation is complete. This copy will join when you return to gameplay. You can still change its conversation profile or cancel the invitation.',
-            queued = 'This invitation has a reserved place and will join when you return to gameplay. You can change its conversation profile or cancel it.',
-            spawning = 'Joining your party. The character is still being attached to the world.',
-            failed = 'This copy could not become ready. Review the error, choose another conversation profile or cancel the invitation.',
-        }
+        -- One row per copy: its name and number, with Dismiss on the right. A copy
+        -- dismissed while the world is paused is dropped from the list at once;
+        -- the queue deletes it after gameplay resumes and lists it again with the
+        -- reason if the game refuses.
+        local shown = 0
         for _, member in ipairs(party) do
-            local id, display = member.id, member.serial and (member.name .. ' · #' .. member.serial)
-                or ui.t('{name} · invited copy',{name=member.name})
-            rows[#rows + 1] = readonly('state:' .. id, display, states[member.state] or member.state,
-                ui.t(descriptions[member.state] or 'This is a separate, mod-owned companion.')
-                    .. (member.error and ('\n' .. ui.t(member.error)) or ''))
-            rows[#rows + 1] = action('assign:' .. id, 'Conversation', member.profileName or 'Choose a profile',
-                ui.t('Choose the personality for {name}. The character model stays the same.',{name=display}),
-                function(context) assigning, view = id, 'assignment'; clearSearch(context); return true end,
-                member.state ~= 'leaving' and member.state ~= 'missing')
-            local leaving = member.state == 'leaving'
-            rows[#rows + 1] = action('dismiss:' .. id, display,
-                leaving and 'Keep in party' or (member.serial and 'Dismiss' or 'Cancel invitation'),
-                leaving and 'Undo this pending dismissal.' or 'Remove only this copy from your group.',
-                function()
-                    if leaving then return queue.undoDismiss(id) end
-                    return queue.dismiss(id)
-                end)
+            if member.state ~= 'leaving' then
+                shown = shown + 1
+                local id = member.id
+                local display = member.serial and ((member.baseName or member.name) .. ' #' .. member.serial)
+                    or ui.t('{name} · invited copy', {name = member.name})
+                local problem = member.dismissError or (member.state == 'failed' and member.error) or nil
+                rows[#rows + 1] = action('dismiss:' .. id, display,
+                    member.serial and 'Dismiss' or 'Cancel invitation',
+                    ui.t('Remove only this copy from your group.') .. (problem and ('\n' .. ui.t(problem)) or ''),
+                    function() return queue.dismiss(id) end, nil, {description = true})
+                if problem then
+                    local text = (member.baseName or member.name) .. ': ' .. ui.t(problem)
+                    rows[#rows + 1] = readonly('error:' .. id, text, '', text, {label = true, description = true})
+                end
+            end
         end
+        if shown == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
         categories[#categories + 1] = category('party', 'Current party', rows)
-    elseif view == 'assignment' then
-        local target
-        for _, member in ipairs(party) do if member.id == assigning then target = member end end
-        if not target then view, assigning = 'party', nil; return schema() end
-        rows[#rows + 1] = action('assignment:back', 'Back to party', 'Back',
-            'Return to your current party.', function(context) return navigate('party', context) end)
-        rows[#rows + 1] = action('assign:none', 'No conversation profile', 'Choose',
-            ui.t('Keep {name} as a follower without AI conversations.',{name=target.name}),
-            function(context)
-                local ok, err = queue.assign(assigning, nil)
-                if ok then navigate('party', context) end
-                return ok, err
-            end)
-        for _, profile in ipairs(snapshot.profiles) do
-            local key, name = profile.key, profile.name
-            rows[#rows + 1] = action('assign-profile:' .. key, name, 'Choose', profileDescription(profile, snapshot),
-                function(context)
-                    local ok, err = queue.assign(assigning, key, name)
-                    if ok then navigate('party', context) end
-                    return ok, err
-                end)
-        end
-        categories[#categories + 1] = category('assignment', ui.t('Conversation for {name}',{name=target.name}), rows)
     elseif view == 'models' then
         local matches = {}
         local query = modelQuery:lower()
@@ -517,7 +483,7 @@ local function schema()
         rows[#rows + 1] = readonly('model-status', scan.finished and ui.t('{count} matching models',{count=#matches}) or 'Reading installed models…',
             ui.t('Page {page} / {pages}',{page=modelPage,pages=pages}),
             ui.t('Search by character name or model record using Search settings. {query}',{query=modelQuery})
-                .. '\n' .. (ui.t(scan.error) or ui.t('Models without a conversation identity can be assigned one in Current party.')))
+                .. '\n' .. (ui.t(scan.error) or ''))
         if modelPage > 1 then
             rows[#rows + 1] = action('models:previous', 'Previous models', 'Previous', modelQuery,
                 function() modelPage = math.max(1, modelPage - 1); return true end)
@@ -532,7 +498,7 @@ local function schema()
             local modelName = model.unnamedIndex and ui.t('Unnamed model {index}',{index=model.unnamedIndex}) or model.name
             rows[#rows + 1] = action('invite:' .. key, modelName, 'Invite',
                 model.record .. '\n\n' .. (model.profileName and ui.t('Conversation: {state}',{state=model.profileName})
-                    or ui.t('No conversation profile. Assign a profile in Current party after inviting this model.'))
+                    or ui.t('No conversation profile. This model joins as a follower without AI conversations.'))
                     .. '\n' .. ui.t('Some game models have special rigs or roles and may not behave as ordinary companions.'),
                 function() return queue.invite(key) end, canInvite)
         end
@@ -755,19 +721,14 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
         end,
         invokeAction = function(id, actionId, context)
             if id ~= MOD or not actions[actionId] then return {ok = false, error = ui.t('Reopen the manager; that action is no longer available.')} end
-            local assignmentTarget = assigning
             local ok, reason, invitationId = actions[actionId](context)
             actionFeedback = ok == true and ui.t(reason) or nil
             preparationActionFeedback = false
-            local pendingAssignment = assignmentTarget and not assignmentTarget:match('^live:')
-                and (actionId:match('^assign%-profile:') or actionId == 'assign:none')
             if actionId:match('^invite:') and type(invitationId) == 'string' then
                 preparationPopup = {id = invitationId, nextAt = 0}
-            elseif ok == true and pendingAssignment then
-                preparationPopup = {id = assignmentTarget, nextAt = 0}
             end
-            if ok == true and (actionId:match('^invite:') or pendingAssignment) then
-                preparationTarget = actionId:match('^invite:') and true or assignmentTarget
+            if ok == true and actionId:match('^invite:') then
+                preparationTarget = true
                 preparationStatus, preparationAt, preparationActionFeedback = nil, 0, true
             elseif ok ~= true or reason ~= nil then
                 -- Navigation has no result message and leaves progress visible.
@@ -1024,7 +985,7 @@ function M.update(currentPlayer, worldReady)
             memory.command and memory.command.id or '', memory.command and memory.command.scope or '',
             memory.command and memory.command.profileKey or '', memory.command and memory.command.state or ''}, '|')
         for _, member in ipairs(queue.list()) do
-            signature[#signature + 1] = table.concat({member.id, member.state or '', member.profileKey or '', member.error or ''}, '|')
+            signature[#signature + 1] = table.concat({member.id, member.state or '', member.profileKey or '', member.error or '', member.dismissError or ''}, '|')
         end
         if support and view == 'help' then
             -- Refresh the Help page when the report state or service state changes.

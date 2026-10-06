@@ -70,7 +70,7 @@ local companions = {
 function companions.spawn(key, job)
     local status = readiness.status(job)
     assert(status.state == 'ready' or status.state == 'model-only', 'CreateEntity crossed preparation gate')
-    if #members >= 8 then return nil, 'Your party has eight copies. Dismiss one first.' end
+    if #members >= 8 then return nil, 'There is no room for another companion. Dismiss one first.' end
     nextSerial = nextSerial + 1
     spawned[#spawned + 1] = copy(job)
     members[#members + 1] = {serial = nextSerial, key = key, name = definitions[key].name,
