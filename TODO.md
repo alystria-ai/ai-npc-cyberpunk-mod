@@ -64,6 +64,10 @@ After the agents above finish:
 - Lip sync, expressions, quest knowledge, duplicates, comments, group chat speed.
 - Help page (Settings → Help → Help and support): open it with the service running and then with it stopped, press Generate report, and check the path in the banner and page, the popup after Esc, Copy report path and that the zip holds no key or chat text. Install `support-report.lua` and the updated `mcm.lua`/locales (CET reload); the bridge restart adds the report service and `runtime/support-paths.json`.
 
+### Found during the 2026-10-07 test session
+- Invite notifications need merging: summoning Judy and Johnny together showed only Johnny's notice (each stays on screen too long while characters load fast). Merge concurrent invites into one compact notice (for example "Preparing Judy, Johnny…" then "Judy and Johnny joined"); no flood of fast notices, and no giant notice when many are summoned (summarise as "5 companions joined" past a few names).
+- Fight/Distract targets (agent working): use the game's native scanner tags (closest tagged), else the enemy V is looking at within about 30 m, else the closest; valid = any combat-capable NPC (gangs, NCPD, corpo security), not only currently hostile ones.
+
 ### Not yet tested in game
 - Cars: fast-travel recovery, the "drive for me" chauffeur after today's changes, alternate owned cars, the boarding pause when V doesn't get in, overhead captions while boarding.
 - Movement: the spawn-pocket placement fix (exit sweep) hasn't come up in play.
