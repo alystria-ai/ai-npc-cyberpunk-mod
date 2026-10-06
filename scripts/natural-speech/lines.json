@@ -1,0 +1,187 @@
+{
+  "note": "Original in-character lines written for this test (not game dialogue). v5 uses an engine-native tag for OmniVoice and a spelled-out fallback for Pocket, which has no tag support.",
+  "engines": {
+    "pocket": {
+      "label": "Pocket",
+      "tags": false
+    },
+    "omni16": {
+      "label": "Omni 16",
+      "steps": 16
+    },
+    "omni32": {
+      "label": "Omni 32",
+      "steps": 32
+    }
+  },
+  "variants": [
+    {
+      "id": "v1",
+      "label": "Plain, as an LLM writes it"
+    },
+    {
+      "id": "v2",
+      "label": "Punctuation pauses (commas, em dashes, ...)"
+    },
+    {
+      "id": "v3",
+      "label": "Light fillers (hm, mm, a self-correction)"
+    },
+    {
+      "id": "v4",
+      "label": "Heavy fillers (ceiling)"
+    },
+    {
+      "id": "v5",
+      "label": "Laugh or breath token (Omni tag; Pocket spelled fallback)"
+    }
+  ],
+  "characters": {
+    "judy-alvarez": {
+      "name": "Judy",
+      "lines": {
+        "1": {
+          "context": "V asks if the braindance edit is done.",
+          "v": {
+            "v1": "I haven't finished the edit yet. The audio keeps desyncing, and I think it's the cable. Give me a minute and I'll check.",
+            "v2": "I haven't finished the edit yet... The audio keeps desyncing, and I think it's the cable \u2014 give me a minute, and I'll check.",
+            "v3": "Hm, I haven't finished the edit yet. The audio keeps desyncing, and I think it's the cable. I mean \u2014 probably the cable. Give me a minute and I'll check.",
+            "v4": "Hm... okay, so, uh, I haven't finished the edit yet. The audio keeps, mm, desyncing, and I think it's the \u2014 I mean, it's probably the cable. Hm. Well... give me a minute, uh, and I'll check.",
+            "v5": "[laughter] I haven't finished the edit yet. The audio keeps desyncing, and I think it's the cable. Give me a minute and I'll check.",
+            "v5_pocket": "Heh. I haven't finished the edit yet. The audio keeps desyncing, and I think it's the cable. Give me a minute and I'll check."
+          }
+        },
+        "2": {
+          "context": "V asks about someone who left.",
+          "v": {
+            "v1": "Honestly, I don't know if I can trust her again. She left, and I'm still angry about it, but I miss her too.",
+            "v2": "Honestly... I don't know if I can trust her again. She left, and I'm still angry about it \u2014 but I miss her too.",
+            "v3": "Mm, honestly, I don't know if I can trust her again. She left, and I'm still angry about it. But I \u2014 I mean, I miss her too.",
+            "v4": "Mm... honestly, I, uh, I don't know if I can trust her again. She left, and I'm still \u2014 hm \u2014 angry about it. But I... I mean, well, I miss her too.",
+            "v5": "[sigh] Honestly, I don't know if I can trust her again. She left, and I'm still angry about it, but I miss her too.",
+            "v5_pocket": "Haah. Honestly, I don't know if I can trust her again. She left, and I'm still angry about it, but I miss her too."
+          }
+        }
+      }
+    },
+    "johnny-silverhand": {
+      "name": "Johnny",
+      "lines": {
+        "1": {
+          "context": "V asks what Johnny thinks of a plan.",
+          "v": {
+            "v1": "You want my honest opinion? It's a bad plan. We walk in loud, we get shot, and the corps send a nice press release.",
+            "v2": "You want my honest opinion? It's a bad plan. We walk in loud, we get shot \u2014 and the corps send a nice press release...",
+            "v3": "Hm. You want my honest opinion? It's a bad plan. We walk in loud, we get shot, and the corps send \u2014 I mean, they send \u2014 a nice press release.",
+            "v4": "Hm... uh, you want my honest opinion? Well, it's a, uh, bad plan. We walk in loud, we get shot, and the corps send a \u2014 I mean, they send a... mm... nice press release.",
+            "v5": "[laughter] You want my honest opinion? It's a bad plan. We walk in loud, we get shot, and the corps send a nice press release.",
+            "v5_pocket": "Heh. You want my honest opinion? It's a bad plan. We walk in loud, we get shot, and the corps send a nice press release."
+          }
+        },
+        "2": {
+          "context": "V brings up an old night.",
+          "v": {
+            "v1": "Yeah, I remember that night. I wasn't proud of it. I should have stayed, but I didn't.",
+            "v2": "Yeah... I remember that night. I wasn't proud of it. I should have stayed \u2014 but I didn't.",
+            "v3": "Yeah, I remember that night. I wasn't proud of it. Hm. I should have stayed, but I \u2014 I mean, I didn't.",
+            "v4": "Yeah... uh, I remember that night. I wasn't, mm, I wasn't proud of it. Hm. I should have stayed, but I... I mean, well, I didn't.",
+            "v5": "[sigh] Yeah, I remember that night. I wasn't proud of it. I should have stayed, but I didn't.",
+            "v5_pocket": "Haah. Yeah, I remember that night. I wasn't proud of it. I should have stayed, but I didn't."
+          }
+        }
+      }
+    },
+    "panam-palmer": {
+      "name": "Panam",
+      "lines": {
+        "1": {
+          "context": "V asks which way to drive.",
+          "v": {
+            "v1": "Let me think about the route first. If we cut through the badlands we save an hour, but I don't trust the road after dark.",
+            "v2": "Let me think about the route first... If we cut through the badlands, we save an hour \u2014 but I don't trust the road after dark.",
+            "v3": "Hm, let me think about the route first. If we cut through the badlands we save an hour, but I don't \u2014 I mean, I don't trust the road after dark.",
+            "v4": "Hm... okay, so, let me think about the route first. If we cut through the, uh, badlands we save an hour, but I don't \u2014 I mean, mm, I don't trust the road after dark.",
+            "v5": "[sigh] Let me think about the route first. If we cut through the badlands we save an hour, but I don't trust the road after dark.",
+            "v5_pocket": "Haah. Let me think about the route first. If we cut through the badlands we save an hour, but I don't trust the road after dark."
+          }
+        },
+        "2": {
+          "context": "V tells her about a risky climb.",
+          "v": {
+            "v1": "You actually climbed up there? That was a terrible idea. I can't believe it worked.",
+            "v2": "You actually climbed up there? That was a terrible idea... I can't believe it worked.",
+            "v3": "You actually climbed up there? Hm. That was a terrible idea. I can't \u2014 I mean, I can't believe it worked.",
+            "v4": "You actually, uh, climbed up there? Hm... that was a terrible idea. I can't \u2014 I mean, well, mm, I can't believe it worked.",
+            "v5": "[laughter] You actually climbed up there? That was a terrible idea. I can't believe it worked.",
+            "v5_pocket": "Heh. You actually climbed up there? That was a terrible idea. I can't believe it worked."
+          }
+        }
+      }
+    },
+    "takemura": {
+      "name": "Takemura",
+      "lines": {
+        "1": {
+          "context": "V asks if the hideout is safe.",
+          "v": {
+            "v1": "I do not think this place is secure. There are two exits, and one of them is blocked. We should fix that first.",
+            "v2": "I do not think this place is secure... There are two exits \u2014 and one of them is blocked. We should fix that first.",
+            "v3": "Hm. I do not think this place is secure. There are two exits, and one of them is \u2014 I mean, it is blocked. We should fix that first.",
+            "v4": "Hm... I do not think, uh, this place is secure. There are two exits, and one of them is \u2014 mm \u2014 I mean, it is blocked. Well... we should fix that first.",
+            "v5": "[sigh] I do not think this place is secure. There are two exits, and one of them is blocked. We should fix that first.",
+            "v5_pocket": "Haah. I do not think this place is secure. There are two exits, and one of them is blocked. We should fix that first."
+          }
+        },
+        "2": {
+          "context": "V asks what he was thinking about.",
+          "v": {
+            "v1": "I was thinking of home. Chiba was never an easy place, but my grandmother cooked good rice there.",
+            "v2": "I was thinking of home... Chiba was never an easy place, but my grandmother cooked good rice there.",
+            "v3": "Mm, I was thinking of home. Chiba was never an easy place, but my grandmother cooked good \u2014 I mean, excellent \u2014 rice there.",
+            "v4": "Mm... I was, uh, thinking of home. Chiba was never an easy place, but my grandmother cooked good \u2014 hm \u2014 I mean, excellent... rice there.",
+            "v5": "[laughter] I was thinking of home. Chiba was never an easy place, but my grandmother cooked good rice there.",
+            "v5_pocket": "Heh. I was thinking of home. Chiba was never an easy place, but my grandmother cooked good rice there."
+          }
+        }
+      }
+    }
+  },
+  "tag_probe": {
+    "carrier": "Yeah, I get it. {tag} Let's go.",
+    "tags": [
+      "[laughter]",
+      "[sigh]",
+      "[confirmation-en]",
+      "[question-en]",
+      "[surprise-oh]",
+      "[surprise-ah]",
+      "[dissatisfaction-hnn]"
+    ],
+    "characters": [
+      "judy-alvarez",
+      "johnny-silverhand"
+    ]
+  },
+  "filler_probe": {
+    "note": "Isolated fillers, to hear and measure how each engine renders them alone. Controls (ham, home, hum) are real words for comparison.",
+    "texts": {
+      "hm": "Hm.",
+      "hmm": "Hmm...",
+      "mm": "Mm.",
+      "mmhm": "Mm-hm.",
+      "uh": "Uh,",
+      "um": "Um,",
+      "well": "Well,",
+      "ha": "Ha.",
+      "heh": "Heh.",
+      "haah": "Haah.",
+      "ctl-ham": "Ham.",
+      "ctl-home": "Home.",
+      "ctl-hum": "Hum."
+    },
+    "characters": [
+      "judy-alvarez",
+      "johnny-silverhand"
+    ]
+  }
+}

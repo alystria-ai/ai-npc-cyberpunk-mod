@@ -69,6 +69,9 @@ After the agents above finish:
 - Convai early audio-player open (latency item A): not done. The player fails with "admission expired" if no control arrives within 2 s of opening, so opening it at turn start would break slow Convai turns. Needs a different design (for example, open early with a longer or renewable admission window).
 - Movement design questions from the test triage: (1) a follow blocked beyond 6 m can still enter the "advance" detour mode (`block()` in `companion-actuator.lua`), but no current test reaches it. Decide whether to keep it for follow, and test it if so. (2) Initial follow admissions skip the 2-member planning turn, so each one costs one native navigation query (8 at once costs 8). The 192 physics-query cap still holds. Treated as intended.
 
+- **Natural speech setting** (groundwork, paused 2026-10-06 until the new reference clips exist; write-up `docs/NATURAL_SPEECH_TEST_2026-10-06.md`). Listening page at `E:\CyberpunkConvai-offload\work
+atural-speech\page\index.html` (and `/natural-speech/` on the picker after its next restart). Measured, not yet listened to: Omni fixes the line length from the text (same at 16 and 32 steps), "..." and "—" add only about 0.1 s, fillers are voiced and cost about 0.5 to 0.7 s each; Pocket's pauses are long and noisy, fillers cost about 1.1 to 1.5 s each and isolated "Hm." can render as silence; only OmniVoice has non-verbal tags. Draft per-character profiles and a prompt-layer design are in the write-up. Left: re-render with the new references, the user's listening verdicts, then decide on the setting. Not implemented.
+
 - Voice cloning setting (after the research runs finish): let the player choose how many reference clips (1, 2 or 10 s, 3 or 18 s), with a description of the measured trade-off (likeness vs time to first audio, per engine). User request, 2026-10-06.
 
 
@@ -81,6 +84,10 @@ After the agents above finish:
 - Mixed voice providers in one group (and their cancellation).
 
 ## Captain's log
+
+**2026-10-06 (natural speech test, paused)**
+- Rendered 4 characters x 2 lines x 5 variants on Pocket (student 5,000 + decoder A, CPU), Omni 16 and Omni 32 with the 18 s three-clip references, plus bridge-style phrase-chunked Omni, a tag probe, a filler probe and seed-noise reruns (all in `E:\CyberpunkConvai-offload\work
+atural-speech\`). Pause numbers from silence detection only (no Whisper). Scripts in `scripts/natural-speech/`; read-only picker route `scripts/reference-picker/natural-speech-page.mjs` (hook in `server.mjs` left uncommitted: that file has another agent's edits). Findings, profiles and the prompt-layer draft: `docs/NATURAL_SPEECH_TEST_2026-10-06.md`. Paused at the coordinator's request: references are changing and the GPU goes to the decoder retrain.
 
 **2026-10-06 (expressions): why local voices had no visible face, and the fix**
 - Root cause: the wiring was fine (rest pose written about 24,000 times; Omni timelines carry `jali-audio-v1` plus `modelExpressions`), but (1) the text cue needed two lexicon hits, so Judy's reply produced no receipt, (2) the resting smile was .025 and idle-only, and (3) the caps were calibrated against a misread game number. The game's lipsync holds a constant per-line mood offset (smile .10 + brows raise .10 in 39% of 6938 lines, frown .20 + brows lower .324 in 20%); our caps and scaling were at or below it.
