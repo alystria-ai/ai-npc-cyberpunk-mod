@@ -43,12 +43,12 @@ SEARCH_SEED = 1042
 FINAL_SEEDS = (1042, 7, 99)
 
 SIZES = {  # stage sizes; "pocket" is smaller because a CPU render costs ~3 s
-    "omni": dict(screen_top=22, screen_wild=6, shorts=8, keep=12, explore=4, short_pool=6,
+    "omni": dict(screen_top=22, screen_wild=6, shorts=8, keep=10, explore=4, short_pool=6,
                  pairs_top=30, pairs_explore=6, pairs_wild=4, pairs_keep=12, parents=6,
-                 triples_top=28, triples_wild=4, triples_keep=12, per_k=3),
-    "pocket": dict(screen_top=15, screen_wild=5, shorts=6, keep=8, explore=3, short_pool=5,
+                 triples_top=28, triples_wild=4, triples_keep=12, per_k=3, n_final=4),
+    "pocket": dict(screen_top=15, screen_wild=5, shorts=6, keep=7, explore=3, short_pool=5,
                    pairs_top=26, pairs_explore=6, pairs_wild=4, pairs_keep=10, parents=5,
-                   triples_top=26, triples_wild=4, triples_keep=10, per_k=3),
+                   triples_top=26, triples_wild=4, triples_keep=10, per_k=3, n_final=6),
 }
 
 
@@ -71,7 +71,7 @@ class Search:
         self.store_file = self.dir / "scores.json"
         self.store = json.loads(self.store_file.read_text(encoding="utf-8")) if self.store_file.is_file() else {}
         self.stats = {"renders": 0, "render_ms": 0, "cached": 0, "failed": 0, "stage": {}}
-        self.split = common.split_voice(self.pool)
+        self.split = common.split_voice(self.pool, n_final=sizes.get("n_final", 4))
         self.started = time.time()
 
     # ---- clips and references ----
@@ -236,7 +236,8 @@ class Search:
                 kept.append(c)
         rest = [c for c in order if c not in kept]
         median = statistics.median(s1.values())
-        explorers = self.explorers([c for c in rest if s1[c] >= median], kept, sizes["explore"])
+        floor = sorted(s1.values())[len(s1) // 4]            # decent: not in the bottom quarter
+        explorers = self.explorers([c for c in rest if s1[c] >= floor], kept, sizes["explore"])
         # pairs need short clips: add the best-scoring short ones from the first-round list (second line for them only)
         have_short = sum(1 for c in kept + explorers if self.clip(c)["d"] <= 5.0)
         short_add = [c for c in first if self.clip(c)["d"] <= 5.0 and c not in kept and c not in explorers][:max(0, sizes["short_pool"] - have_short)]

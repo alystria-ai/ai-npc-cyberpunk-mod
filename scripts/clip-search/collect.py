@@ -25,6 +25,53 @@ def trim(row):
     return {k: row[k] for k in KEEP if row and k in row} if row else None
 
 
+T_CRIT = {1: 12.71, 2: 4.30, 3: 3.18, 4: 2.78, 5: 2.57, 6: 2.45, 7: 2.36}   # two-sided 95%, by degrees of freedom
+
+
+def paired(a: list[float], b: list[float]):
+    """Paired difference over the fresh lines: (mean diff, t, degrees of freedom)."""
+    import statistics
+    diffs = [x - y for x, y in zip(a, b)]
+    if len(diffs) < 2:
+        return None
+    sd = statistics.stdev(diffs)
+    mean = sum(diffs) / len(diffs)
+    return mean, (mean / (sd / len(diffs) ** 0.5) if sd > 0 else float("inf")), len(diffs) - 1
+
+
+def significance(result: dict) -> dict:
+    """Is the chosen set really better than today's reference and than the best other searched set, or a tie?"""
+    finalists = result["finalists"]
+    best = result["picks"]["best"]
+    if not best:
+        return {}
+    mine = next(r for r in finalists if r["ids"] == best["ids"])
+    out = {}
+    today = next((r for r in finalists if r.get("baseline") == "today"), None)
+    others = [r for r in finalists if r["ids"] != best["ids"] and not r.get("baseline") and not r["ids"][0].startswith("live:")]
+    def verdict(stat):
+        if stat is None:
+            return "n/a"
+        mean, t, df = stat
+        crit = T_CRIT.get(df, 2.0)
+        return "clear" if mean > 0 and t > crit else "tie" if abs(t) <= crit else "behind"
+    if today:
+        stat = paired(mine["per_line"], today["per_line"])
+        out["vs_today"] = {"diff": round(stat[0], 4), "t": round(stat[1], 2), "df": stat[2], "verdict": verdict(stat)} if stat else None
+    if others:
+        # the strongest rival: the other searched set with the highest mean
+        rival = max(others, key=lambda r: r["ecapa"])
+        stat = paired(mine["per_line"], rival["per_line"])
+        out["vs_best_other"] = {"ids": rival["ids"], "diff": round(stat[0], 4), "t": round(stat[1], 2), "df": stat[2], "verdict": verdict(stat)} if stat else None
+        out["tied_sets"] = sum(1 for r in others if (lambda s: s is None or verdict(s) == "tie")(paired(mine["per_line"], r["per_line"])))
+    # one word for the table: a winner only if it is clearly ahead of today's reference and not tied with its closest rival
+    rival_v = (out.get("vs_best_other") or {}).get("verdict")
+    today_v = (out.get("vs_today") or {}).get("verdict")
+    out["call"] = ("clear winner" if rival_v in (None, "n/a", "clear") and today_v in (None, "clear") else
+                   "beats today, ties with other searched sets" if today_v == "clear" else "tie with today's reference or others")
+    return out
+
+
 def voice_entry(result: dict) -> dict:
     picks = result["picks"]
     entry = {name: trim(row) for name, row in picks.items()}
@@ -40,6 +87,7 @@ def voice_entry(result: dict) -> dict:
     entry["runnersUp"] = [trim(row) for k in (1, 2, 3) for row in sorted(k_best.get(k, []), key=lambda r: -r["ecapa"])[:3]
                           if tuple(row["ids"]) not in chosen]
     entry["byK"] = {str(k): trim(max(rows, key=lambda r: r["ecapa"])) for k, rows in k_best.items()}
+    entry["significance"] = significance(result)
     entry["noise"] = result.get("noise")
     entry["order_check"] = result.get("order_check")
     entry["budget"] = result.get("budget")
