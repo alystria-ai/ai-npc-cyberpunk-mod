@@ -69,7 +69,11 @@ function M.newBoard(options)
     -- ignored stage regression goes to the mod log when init.lua provides one.
     local function note(line)
         local sink = options.log
-        if type(sink) ~= 'function' then sink = rawget(_G, 'convaiNoticeLog') end
+        -- CET module environments may have no _G; read the global directly and never throw.
+        if type(sink) ~= 'function' then
+            local ok, global = pcall(function() return convaiNoticeLog end)
+            sink = ok and global or nil
+        end
         if type(sink) == 'function' then pcall(sink, line) end
     end
 
