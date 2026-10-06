@@ -60,7 +60,7 @@ local m=(function()${probe}end)()
 local entry={serial=1,name='Judy Alvarez',key='judy-alvarez',record='Character.Judy',npc=npc,speed=0,
   motor={kind='hold',stage='holding',feedback={state='Executing'}},person={phase='attend'}}
 local held=false
-local context={idle=true,combat=false,phase='attend',
+local context={idle=true,settled=true,combat=false,phase='attend',
   suspendHold=function() record('suspend');return true end,resumeHold=function() record('resume') end}
 local nonce=0
 local function send(command) nonce=nonce+1;files['runtime/gesture-probe-request.txt']='n'..nonce..'\\n'..command end
@@ -91,7 +91,7 @@ test('start spawns a tagged non-persistent device at the companion and plays in 
   local play=calls[count('create')+1]
   for _,c in ipairs(calls) do if c.name=='PlayInDevice' then play=c end end
   assert(play.args[4].value=='convai_gestures','gesture component')
-  assert(play.args[8]=='WorkspotSlidingBehaviour.DontPlayAtResourcePosition','must play where the companion stands')
+  assert(play.args[8]=='gameWorkspotSlidingBehaviour.DontPlayAtResourcePosition' and play.args[7]==0,'must play where the companion stands, no slide')
   assert(held==true)
 `));
 
@@ -106,7 +106,9 @@ test('a gesture returns to the idle loop after its duration', () => run(`
 
 test('movement asks for a fast exit, escalates if stuck, then releases the body', () => run(`
   start()
-  context.idle=false;step(.1)
+  context.idle=false;step(.3)
+  assert(count('fastExit')==0,'own speed (entry slide) is not movement')
+  context.settled=false;step(.1)
   assert(count('fastExit')==1 and held,'fast exit first; movement still waits')
   step(.7)
   assert(count('stopNpc')==1,'escalate to StopNpcInWorkspot after .6 s')

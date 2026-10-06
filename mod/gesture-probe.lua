@@ -161,24 +161,39 @@ local function attempt(label, calls)
     log('native-failed', {call = label, errors = errors})
     return false, nil, nil, errors
 end
+-- Native signatures (sigs, 2.31): PlayInDevice(device, actor, workspotStateFlavourName,
+-- actorDataCompName, deviceDataCompName, syncSlotName, slideTime, slideBehaviour
+-- gameWorkspotSlidingBehaviour, callbackEventRecipient); PlayInDeviceSimple(device, actor,
+-- allowCameraMov, actorDataCompName, deviceDataCompName, syncSlotName, slideTime,
+-- slideBehaviour, callback); PlayNpcInWorkspot(npc, master, referenceEntity,
+-- actorDataCompName, syncSlotName, slideTime, syncOffsetSourceCompName).
+local function slideEnum(token)
+    local number = tonumber(token)
+    local name = ({dont = 'DontPlayAtResourcePosition', resource = 'PlayAtResourcePosition'})[token] or token
+    for _, typeName in ipairs({'gameWorkspotSlidingBehaviour', 'WorkspotSlidingBehaviour'}) do
+        local ok, value = pcall(function() return Enum.new(typeName, number or name) end)
+        if ok and value ~= nil then return value end
+    end
+    return number or 1
+end
 local function play(s, npc)
-    local ws, device, component = workspots(), s.device, CName.new(s.component)
-    local sliding = Enum.new('WorkspotSlidingBehaviour', 'DontPlayAtResourcePosition')
+    local ws, device, component, none = workspots(), s.device, CName.new(s.component), CName.new('None')
+    local sliding, slideTime = slideEnum(s.slide or 'dont'), tonumber(s.slideTime) or 0
     local api = s.api
     local calls = {}
     if api == 'device' or api == 'auto' then
-        calls[#calls + 1] = function() return ws:PlayInDevice(device, npc, CName.new('None'), component, CName.new('None'), CName.new('None'), 0.3, sliding) end
-        calls[#calls + 1] = function() return ws:PlayInDevice(device, npc, CName.new('None'), component) end
-    end
-    if api == 'npc' or api == 'auto' then
-        calls[#calls + 1] = function() return ws:PlayNpcInWorkspot(npc, Game.GetPlayer(), device, component, CName.new('None'), 0.3) end
+        calls[#calls + 1] = function() return ws:PlayInDevice(device, npc, none, component, none, none, slideTime, sliding, nil) end
+        calls[#calls + 1] = function() return ws:PlayInDevice(device, npc, none, component, none, none, slideTime, sliding) end
     end
     if api == 'simple' or api == 'auto' then
-        calls[#calls + 1] = function() return ws:PlayInDeviceSimple(device, npc, false, component, nil, nil, 0, 1, nil) end
-        calls[#calls + 1] = function() return ws:PlayInDeviceSimple(device, npc, false, component) end
+        calls[#calls + 1] = function() return ws:PlayInDeviceSimple(device, npc, false, component, none, none, slideTime, sliding, nil) end
+    end
+    if api == 'npc' or api == 'auto' then
+        calls[#calls + 1] = function() return ws:PlayNpcInWorkspot(npc, Game.GetPlayer(), device, component, none, slideTime, none) end
     end
     local ok, result, index, errors = attempt('play-' .. api, calls)
-    log('play', {serial = s.serial, api = api, ok = ok, variant = index, result = tostring(result), errors = errors, component = s.component})
+    log('play', {serial = s.serial, api = api, ok = ok, variant = index, result = tostring(result), errors = errors,
+        component = s.component, slide = tostring(sliding), slideTime = slideTime, position = position(npc)})
     return ok
 end
 local function jump(s, npc, item, instant)
@@ -186,8 +201,7 @@ local function jump(s, npc, item, instant)
     local ok, result, index, errors
     if item.byId then
         ok, result, index, errors = attempt('jump-id', {function()
-            local entry = NewObject('workWorkEntryId'); entry.id = item.clip.clipId
-            return ws:SendJumpCommandEnt(npc, entry, instant == true)
+            return ws:SendJumpCommandEnt(npc, item.clip.clipId, instant == true)
         end})
     else
         ok, result, index, errors = attempt('jump', {function() return ws:SendJumpToAnimEnt(npc, CName.new(item.clip.name), instant == true) end})
@@ -198,16 +212,22 @@ local function jump(s, npc, item, instant)
 end
 local function exitWorkspot(s, npc, mode)
     local ws = workspots()
-    local calls = mode == 'slow' and {function() return ws:SendSlowExitSignal(npc) end}
-        or {function() return ws:SendFastExitSignal(npc) end}
+    -- SendFastExitSignal(actor, dirLS, stayInWorkspotIfFailed, playSlowExitIfFailed, instant, tryBlendToWalk)
+    local calls = mode == 'slow' and {function() return ws:SendSlowExitSignal(npc, CName.new('None'), true) end,
+            function() return ws:SendSlowExitSignal(npc) end}
+        or {function() return ws:SendFastExitSignal(npc, Vector3.new(0, 0, 0), false, false, false, true) end,
+            function() return ws:SendFastExitSignal(npc) end}
     local ok, result, _, errors = attempt('exit-' .. mode, calls)
     log('exit', {serial = s.serial, mode = mode, ok = ok, result = tostring(result), errors = errors})
     return ok
 end
 local function stopWorkspot(s, npc, mode)
     local ws = workspots()
-    local calls = mode == 'device' and {function() return ws:StopInDevice(npc) end}
-        or {function() return ws:StopNpcInWorkspot(npc) end, function() return ws:StopInDevice(npc) end}
+    local function inDevice()
+        return ws:StopInDevice(npc, Vector4.new(0, 0, 0, 0), Quaternion.new(0, 0, 0, 1))
+    end
+    local calls = mode == 'device' and {inDevice, function() return ws:StopInDevice(npc) end}
+        or {function() return ws:StopNpcInWorkspot(npc) end, inDevice}
     local ok, result, index, errors = attempt('stop-' .. mode, calls)
     log('stop', {serial = s.serial, mode = mode, ok = ok, variant = index, result = tostring(result), errors = errors})
     return ok
@@ -251,6 +271,7 @@ local function begin(s, words)
     s.variant = option(words, 'variant', 'keep')
     s.api = option(words, 'api', 'auto')
     s.autoReturn = option(words, 'return', 'on') ~= 'off'
+    s.slide, s.slideTime = option(words, 'slide', 'dont'), option(words, 'slidetime', '0')
     s.phase, s.startedAt, s.startPosition = s.variant == 'suspend' and 'suspending' or 'spawning', now(), position(entry.npc)
     s.beganTick, s.escalated1, s.escalated2 = M.tickCount, nil, nil
     s.exitReason, s.exitRequestedAt, s.failure, s.queue, s.clip = nil, nil, nil, nil, nil
@@ -457,7 +478,7 @@ local function advance(s, context)
     end
     if s.phase == 'starting' then
         local value = inWorkspot(npc)
-        if value == true then s.phase = 'active'; log('active', {serial = s.serial, after = now() - s.playAt})
+        if value == true then s.phase, s.activeAt = 'active', now(); log('active', {serial = s.serial, after = now() - s.playAt, position = position(npc)})
         elseif now() - s.playAt > 3 then finish(s, 'never entered workspot (inWorkspot=' .. tostring(value) .. ')') end
         if s.phase ~= 'active' then return end
     end
@@ -475,7 +496,11 @@ local function advance(s, context)
     if s.phase ~= 'active' then return end
     if inWorkspot(npc) ~= true then finish(s, 'left workspot on its own'); return end
     if M.guard and context.combat then requestExit(s, 'combat', true); return end
-    if M.guard and not context.idle then requestExit(s, 'movement', false); return end
+    -- Movement means V moving or a non-hold decision, never the copy's own
+    -- speed: the workspot entry slide/settle would otherwise end it at once.
+    local settled = context.settled
+    if settled == nil then settled = context.idle or now() - (s.activeAt or now()) < 1.5 end
+    if M.guard and not settled then requestExit(s, 'movement', false); return end
     if s.clip and now() >= s.clip.endsAt - 0.2 then
         local clip = s.clip
         s.clip = nil

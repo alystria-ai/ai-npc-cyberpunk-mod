@@ -1305,6 +1305,11 @@ function M.update(player,delta,focusEntity)
             if body then
                 local observed,holds=pcall(body.observe,entry,{idle=idle and not equipment.holdsMovement(entry.equipment),
                     phase=decision.phase,combat=context.combat,selected=context.selected,
+                    -- Settled without the copy's own speed: a workspot entry
+                    -- slide is not a decision to walk.
+                    settled=not groupFrame.moving and (groupFrame.rawSpeed or 0)<0.28
+                        and decision.operation~=nil and decision.operation.kind=='hold'
+                        and not equipment.holdsMovement(entry.equipment),
                     suspendHold=function() return actuator.suspendHold(entry.motor) end,
                     resumeHold=function() actuator.resumeHold(entry.motor) end},step)
                 bodyHolds=observed and holds==true
