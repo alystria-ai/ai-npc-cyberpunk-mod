@@ -57,7 +57,7 @@ RECIPES = {
                 "min_steps": 500, "patience": 3, "min_delta": 0.005, "z_drop": 0.02, "micro_batch": 2,
                 "eval_guidance": [1.5, 3.0], "sweep": [[2.0, 2.0], [1.5, 2.5], [1.5, 3.0], [2.0, 3.0]]},
     "student": {"max_steps": 3000, "horizon": 3000, "lr": 5e-5, "warmup": 200, "ema_decay": 0.999, "eval_every": 500,
-                "min_steps": 1000, "patience": 2, "min_delta": 0.005, "z_drop": 0.03, "micro_batch": 4,
+                "min_steps": 1000, "patience": 2, "min_delta": 0.005, "z_drop": 0.05, "micro_batch": 4,
                 "eval_guidance": [1.0, 1.0], "sweep": []},
 }
 
@@ -136,7 +136,10 @@ try:
            "models": {"base24": str(v2 / "base24.safetensors"), "base6": str(v2 / "base6.safetensors"),
                       "student5000": str(v2 / "student5000.safetensors")},
            "work_dir": str(work), "cache_dir": str(temp / "cache"), "ckpt_dir": str(temp / "ckpt")}
-    if CONFIG["role"] == "student":
+    if CONFIG["role"] == "student" and CONFIG.get("teacher_from_base"):
+        cfg["teacher_weights"] = cfg["models"]["base24"]
+        say("teacher: released 24-layer base (teacher_from_base)")
+    elif CONFIG["role"] == "student":
         from huggingface_hub import HfApi
         dest = temp / "teacher" / "teacher-ema.safetensors"; dest.parent.mkdir(parents=True, exist_ok=True)
         HfApi().download_bucket_files(BUCKET, files=[(f"runs/{CONFIG['teacher_run']}/selected/teacher-ema.safetensors", str(dest))],
@@ -256,7 +259,8 @@ def data_dataset(api) -> dict:
             "version": response["currentVersionNumber"]}
 
 
-def prepare(role: str, run_id: str | None, teacher_run: str | None, smoke: bool, hours: float, cache_run: str | None = None) -> dict:
+def prepare(role: str, run_id: str | None, teacher_run: str | None, smoke: bool, hours: float, cache_run: str | None = None,
+            teacher_from_base: bool = False) -> dict:
     api, token = auth()
     try:
         data = data_dataset(api)
@@ -288,6 +292,7 @@ def prepare(role: str, run_id: str | None, teacher_run: str | None, smoke: bool,
         if not final.is_file():
             raise ValueError("Download the teacher logs first (logs --run-id); its selected guidance is required")
         config["guidance"] = json.loads(final.read_text())["selected_guidance"]
+        config["teacher_from_base"] = bool(teacher_from_base)
     code = {n: (ROOT / "scripts/pocket_training" / n).read_text(encoding="utf-8") for n in CODE}
     for n, text in code.items():
         compile(text, n, "exec")
@@ -360,6 +365,7 @@ if __name__ == "__main__":
     parser.add_argument("--run-id")
     parser.add_argument("--teacher-run")
     parser.add_argument("--cache-run", help="reuse the latent cache of this earlier run")
+    parser.add_argument("--teacher-from-base", action="store_true", help="student distils from the released 24-layer base")
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--hours", type=float, default=6.0)
     args = parser.parse_args()
@@ -367,7 +373,7 @@ if __name__ == "__main__":
         if args.action == "upload-data":
             result = upload_data()
         elif args.action == "prepare":
-            result = prepare(args.role, args.run_id, args.teacher_run, args.smoke, args.hours, args.cache_run)
+            result = prepare(args.role, args.run_id, args.teacher_run, args.smoke, args.hours, args.cache_run, args.teacher_from_base)
         elif args.action == "logs":
             result = logs(args.run_id)
         else:
