@@ -120,6 +120,69 @@ class OmniRenderer:
             pass
 
 
+class OmniDirectRenderer(OmniRenderer):
+    """The same OmniVoice call without the VoiceStudio backend (for a portable package, e.g. a Kaggle GPU notebook):
+    omnivoice.models.omnivoice.OmniVoice loaded as the backend loads it (FP16 on CUDA, no ASR), the reference prepared with
+    create_voice_clone_prompt(preprocess_prompt=True) and speech from generate(language English, guidance 2.0, speed 1,
+    denoise off, no post-processing).  Needs the `omnivoice` package on sys.path (vendor/reference-voicestudio) and the model
+    snapshot in CLIP_SEARCH_OMNI_MODEL (default: the one named in runtime/local-voices.json)."""
+
+    def __init__(self, steps: int = 16, batch: int = 8):
+        self.steps, self.batch = steps, batch
+        model_dir = os.environ.get("CLIP_SEARCH_OMNI_MODEL")
+        if not model_dir:
+            config = json.loads((ROOT / "runtime/local-voices.json").read_text(encoding="utf-8-sig"))
+            model_dir = str(ROOT / config["model"])
+        os.environ.update({"HF_HUB_OFFLINE": "1", "TORCH_COMPILE_DISABLE": "1", "PYTHONUTF8": "1"})
+        for name in ("HF_TOKEN", "HUGGING_FACE_HUB_TOKEN", "KAGGLE_API_TOKEN"):
+            os.environ.pop(name, None)
+        omni_root = ROOT / "vendor/reference-voicestudio"
+        if omni_root.is_dir():
+            sys.path.insert(0, str(omni_root))
+        import torch
+        from omnivoice.models.omnivoice import OmniVoice
+        if not torch.cuda.is_available():
+            raise RuntimeError("OmniVoice needs CUDA")
+        self.torch = torch
+        self.model = OmniVoice.from_pretrained(model_dir, device_map="cuda", dtype=torch.float16, load_asr=False)
+        self.model.eval()
+        self.sample_rate = getattr(self.model, "sampling_rate", 24000)
+        self.revision = Path(model_dir).name
+        self.tag = f"omni{steps}"
+        self._prompts: dict = {}
+
+    @property
+    def backend(self):                                  # _write() reads backend.sample_rate
+        return self
+
+    def _prompt(self, ref, transcript):
+        key = (ref, transcript)
+        if key not in self._prompts:
+            if len(self._prompts) >= 16:
+                self._prompts.pop(next(iter(self._prompts)))
+            self._prompts[key] = self.model.create_voice_clone_prompt(ref, transcript, preprocess_prompt=True)
+        return self._prompts[key]
+
+    def _generate(self, jobs: list[dict]):
+        import numpy as np
+        torch = self.torch
+        torch.manual_seed(int(jobs[0]["seed"]))
+        prompts = [self._prompt(job["ref"], job["transcript"]) for job in jobs]
+        with torch.inference_mode():
+            wavs = self.model.generate(text=[job["text"] for job in jobs], language="English", voice_clone_prompt=prompts,
+                                       num_step=self.steps, guidance_scale=2.0, speed=1, denoise=False,
+                                       postprocess_output=False, preprocess_prompt=True)
+        torch.cuda.synchronize()
+        return [np.asarray(w.detach().float().cpu() if hasattr(w, "detach") else w).reshape(-1) for w in wavs]
+
+    def close(self):
+        try:
+            del self.model
+            self.torch.cuda.empty_cache()
+        except Exception:
+            pass
+
+
 class PocketWorker:
     def __init__(self, export: Path, threads: int, weights: Path | None = None):
         extra = ["--weights", str(weights)] if weights else []

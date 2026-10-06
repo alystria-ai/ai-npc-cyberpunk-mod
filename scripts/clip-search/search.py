@@ -31,8 +31,10 @@ import argparse
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import random
+import shutil
 import statistics
 import subprocess
 import sys
@@ -270,7 +272,10 @@ class Search:
         return keep
 
     # ---- the search ----
-    def run(self, prune_from: Path | None = None) -> dict:
+    def run(self, prune_from: Path | None = None, rechoose: bool = False) -> dict:
+        """rechoose: recompute the picks from the cached scores only (no renders; PLS is carried over from the old result when
+        the picked set is unchanged)."""
+        self.rechoose = rechoose
         if not self.split["ok"]:
             return {"voice": self.voice, "engine": self.engine, "skipped": self.split["reason"]}
         sizes, dev, final = self.sizes, self.split["dev"], self.split["final"]
@@ -404,7 +409,8 @@ class Search:
             today = (f"live:{engine_key}",)
         finalists = list(dict.fromkeys(finalists))
         everything = finalists + ([today] if today else [])
-        self.evaluate(everything, final, seeds, keep=True, stage="4 final")
+        keep_wavs = not getattr(self, "rechoose", False)
+        self.evaluate(everything, final, seeds, keep=keep_wavs, stage="4 final")
 
         def allowed(cap):
             return [s for s in finalists if self.seconds(s) <= cap + 1e-6]
@@ -425,11 +431,14 @@ class Search:
                 variants.append(tuple(shuffled))
                 extra += [v for v in variants if v != s][:sizes["orders"]]
         extra = [s for s in dict.fromkeys(extra) if s not in finalists]
-        self.evaluate(extra, final, seeds, keep=True, stage="4 final")
+        self.evaluate(extra, final, seeds, keep=keep_wavs, stage="4 final")
         candidates = finalists + extra
 
         def choose(cap):
+            # A reference has at least two whole clips (user rule), except for a voice with no feasible multi-clip set.
             pool = [s for s in candidates if self.seconds(s) <= cap + 1e-6]
+            multi = [s for s in pool if len(s) >= 2]
+            pool = multi or pool
             if not pool:
                 return None
             top = max(pool, key=lambda s: self.value(s, final, seeds))
@@ -474,7 +483,13 @@ class Search:
         row = {"ids": list(ids), "seconds": self.seconds(ids), "ecapa": round(mean(per_line), 4),
                "ecapa_se": round(statistics.stdev(per_line) / math.sqrt(len(per_line)), 4) if len(per_line) > 1 else None,
                "ecapa_tgt": round(self.value(ids, final, seeds, "et"), 4), "per_line": [round(v, 4) for v in per_line]}
-        if with_pls:
+        if with_pls and getattr(self, "rechoose", False):
+            old = getattr(self, "old_result", None) or {}
+            for earlier in list((old.get("picks") or {}).values()) + [old.get("today")] + list(old.get("candidates", [])):
+                if earlier and earlier.get("ids") == list(ids) and "pls" in earlier:
+                    row.update({k: earlier[k] for k in ("pls", "pls_parts") if k in earlier})
+                    break
+        elif with_pls:
             self._pls = getattr(self, "_pls", {})
             if ids not in self._pls:
                 self._pls[ids] = self.pls_for(ids, final, seeds)
@@ -500,7 +515,7 @@ class Search:
         return {"pls": round(pls_from_components(components), 2), "pls_parts": {k: (round(v, 3) if isinstance(v, float) else v) for k, v in components.items()}}
 
 
-def make_plans(index, voices, scorer, out_dir: Path):
+def make_plans(index, voices, scorer, out_dir: Path, engine: str = "pocket"):
     """Write <out_dir>/<voice>.json = {split, screened, split_key, files}: the held-out split and prescreen of a voice, so another
     machine (a Kaggle notebook) can run the same search on a trimmed copy of the pool without the full pool."""
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -509,7 +524,7 @@ def make_plans(index, voices, scorer, out_dir: Path):
         tag = "plan"
 
     for voice in voices:
-        search = Search("pocket", _Tag, scorer, voice, index, common.WORK / "plans-work", SIZES["pocket"])
+        search = Search(engine, _Tag, scorer, voice, index, common.WORK / "plans-work", SIZES[engine])
         if not search.split["ok"]:
             print(f"{voice}: no split ({search.split['reason']})")
             continue
@@ -579,6 +594,8 @@ def main(argv=None) -> int:
     parser.add_argument("--verify-from", help="tag of a 16-step run whose winners are re-scored by this (32-step) renderer")
     parser.add_argument("--plan-dir", type=Path, help="use precomputed <voice>.json plans (split + prescreen) from this folder")
     parser.add_argument("--make-plans", type=Path, help="write the plans for --voices into this folder and exit")
+    parser.add_argument("--rechoose", action="store_true", help="recompute the picks of finished voices from the cached scores (no renders)")
+    parser.add_argument("--omni-direct", action="store_true", help="call the omnivoice package directly (portable GPU runs) instead of the VoiceStudio backend")
     parser.add_argument("--wait-gpu", action="store_true")
     parser.add_argument("--scorer-device", default="cuda")
     args = parser.parse_args(argv)
@@ -590,15 +607,16 @@ def main(argv=None) -> int:
     if args.engine == "omni":
         if args.wait_gpu:
             wait_for_gpu()
-        from render import OmniRenderer
-        renderer = OmniRenderer(args.steps)
+        from render import OmniDirectRenderer, OmniRenderer
+        direct = args.omni_direct or os.environ.get("CLIP_SEARCH_OMNI") == "direct" or not (ROOT / "vendor/reference-voicestudio/backend").is_dir()
+        renderer = (OmniDirectRenderer if direct else OmniRenderer)(args.steps)
     else:
         from render import PocketRenderer
         renderer = PocketRenderer(args.export, args.workers, args.threads, tag=args.tag)
     scorer = Scorer(args.scorer_device)
     out_root = args.out
     if args.make_plans:
-        make_plans(index, voices, scorer, args.make_plans)
+        make_plans(index, voices, scorer, args.make_plans, args.engine)
         return 0
     started = time.time()
     try:
@@ -610,8 +628,11 @@ def main(argv=None) -> int:
             if voice not in index["voices"]:
                 print(f"{voice}: not in the pool index")
                 continue
-            if (out_root / renderer.tag / voice / "result.json").is_file():
+            result_file = out_root / renderer.tag / voice / "result.json"
+            if result_file.is_file() and not args.rechoose:
                 print(f"{voice}: already done")
+                continue
+            if args.rechoose and not result_file.is_file():
                 continue
             if prune is not None:
                 waited = 0
@@ -623,7 +644,12 @@ def main(argv=None) -> int:
                 plan = json.loads((args.plan_dir / f"{voice}.json").read_text(encoding="utf-8"))
             search = Search(args.engine, renderer, scorer, voice, index, out_root, SIZES[args.engine], plan=plan)
             try:
-                result = search.run(prune)
+                if args.rechoose:
+                    search.old_result = json.loads(result_file.read_text(encoding="utf-8"))
+                    backup = result_file.with_name("result.before-rechoose.json")
+                    if not backup.is_file():
+                        shutil.copy2(result_file, backup)
+                result = search.run(prune, rechoose=args.rechoose)
             except Exception as error:                 # a night's run must survive one voice's failure
                 import traceback
                 traceback.print_exc()

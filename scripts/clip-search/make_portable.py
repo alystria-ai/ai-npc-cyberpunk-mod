@@ -12,6 +12,8 @@ voices need:
                          vendor/pocket-tts-training/source (pocket_tts), runtime/voice-references/portable/<voice>/<engine>.wav
   assets/ecapa-src       the ECAPA model of the likeness study; assets/pls-tool.json the PLS anchors
   assets/pocket-export   the Pocket student export (model.safetensors, inference.yaml, tokenizer.json)
+  (--omni) repo/vendor/reference-voicestudio/omnivoice and assets/omni-model (the OmniVoice snapshot); run with
+  CLIP_SEARCH_OMNI_MODEL=<pkg>/assets/omni-model, `search.py --engine omni --omni-direct` on a GPU (--workers/--export not used).
 Run remotely (all paths in the package, CPU only):
   CLIP_SEARCH_ROOT=<pkg>/repo CLIP_SEARCH_WORK=<scratch>/work CLIP_SEARCH_INDEX=<pkg>/data/pool-index.json
   CLIP_SEARCH_DATA_ROOT=<pkg>/data/audio CLIP_SEARCH_ECAPA_DIR=<pkg>/assets/ecapa-src CLIP_SEARCH_PLS_ANCHORS=<pkg>/assets/pls-tool.json
@@ -46,6 +48,7 @@ def main(argv=None) -> int:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--export", type=Path, default=EXPORT)
     parser.add_argument("--no-export", action="store_true", help="skip copying the 418 MB student export")
+    parser.add_argument("--omni", action="store_true", help="OmniVoice package: add the omnivoice code and the model snapshot (assets/omni-model, 3.1 GB)")
     args = parser.parse_args(argv)
     voices = args.voices.split(",")
     index = common.load_index()
@@ -119,6 +122,14 @@ def main(argv=None) -> int:
         for name in ("model.safetensors", "inference.yaml", "tokenizer.json"):
             if not (target / name).is_file():
                 shutil.copy2(args.export / name, target / name)
+    if args.omni:
+        omni_code = repo / "vendor/reference-voicestudio/omnivoice"
+        if not omni_code.exists():
+            shutil.copytree(ROOT / "vendor/reference-voicestudio/omnivoice", omni_code, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        config = json.loads((ROOT / "runtime/local-voices.json").read_text(encoding="utf-8-sig"))
+        if not (assets / "omni-model").exists():
+            shutil.copytree(ROOT / config["model"], assets / "omni-model")
+        (assets / "omni-model.revision").write_text(str(config.get("revision")), encoding="utf-8")
     total = sum(f.stat().st_size for f in out.rglob("*") if f.is_file())
     print(f"package {out}: {total / 1e6:.0f} MB")
     return 0
