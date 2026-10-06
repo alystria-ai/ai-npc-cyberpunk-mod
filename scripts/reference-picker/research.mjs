@@ -5,7 +5,7 @@
 //   out/summary-table.md   PLS / ECAPA guard / WER per condition (the numbers shown under each column header)
 //   out/gen/<cond>/<voice>__<line>.wav and page/audio/<cond>/<voice>.wav   the audio itself (line 0 on the page)
 //   out/panel.json         the two held-out game lines per voice (text)
-//   out/scores_per_speaker.json   per-voice ECAPA where it was measured
+//   out/scores_per_speaker.json   per-voice ECAPA where it was measured (np_per_speaker.json adds the phone-free renders)
 // Columns are discovered on every scan, so new conditions (for example phone-free renders) show up as soon as their
 // files land. Only conditions on the allowlist below are columns at all; every other render directory (research
 // leftovers, LoRA, loudness-matched, codec round trips, ...) is ignored: it gets no column and no placeholder.
@@ -119,7 +119,8 @@ export class Research {
     const scoresShown = shownSummary.size > 0, summary = scoresShown ? shownSummary : fullSummary;
     const page = parsePage(read(join(root, 'page', 'index.html'), ''));
     const panel = (() => { try { return readJsonLoose(join(root, 'out', 'panel.json')); } catch { return {}; } })();
-    const perSpeaker = (() => { try { return readJsonLoose(join(root, 'out', 'scores_per_speaker.json')); } catch { return {}; } })();
+    const readOptional = name => { try { return readJsonLoose(join(root, 'out', name)); } catch { return {}; } };
+    const perSpeaker = {...readOptional('scores_per_speaker.json'), ...readOptional('np_per_speaker.json')};   // np_: phone-free renders
 
     // audio index: cond -> Set("voice|line")
     const audio = new Map();
