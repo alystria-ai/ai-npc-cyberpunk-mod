@@ -65,6 +65,8 @@ After the agents above finish:
 
 - Voice cloning setting (after the research runs finish): let the player choose how many reference clips (1, 2 or 10 s, 3 or 18 s), with a description of the measured trade-off (likeness vs time to first audio, per engine). User request, 2026-10-06.
 
+- Body animation while speaking (user idea, 2026-10-07): companions should use the game's existing body and gesture animations (the main characters have many) while talking to the player and when idle, perhaps with a system that picks the type (calm, emphatic, upset…) from the reply's emotion or content. Research what native talk and idle animation sets exist per character, and how vanilla dialogue drives them (workspots, animation features, reaction presets).
+
 ### Later
 - Packaging a player release: ship the prebuilt voice client; use the auto-start supervisor instead of `packaging/runtime-bootstrap.mjs`; allow `red4ext/` paths in `release-plan.json`; first-run key setup; no keys, player data, audio or training data in the package.
 
