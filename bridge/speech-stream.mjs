@@ -2,6 +2,7 @@ import {randomUUID} from 'node:crypto';
 import {storeSpeech, SLOT_COUNT} from './speech-audio.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
 import {cancelled, throwIfCancelled} from './transport-pool.mjs';
+import {planRange} from './emotion-analysis.mjs';
 
 export function splitSpeechText(text) {
   if (typeof text !== 'string' || !text.trim() || text.length > 12000) throw Error('Invalid speech text');
@@ -67,8 +68,9 @@ export class SpeechSlots {
 
 export class SpeechStream {
   constructor({input, phrases, steps, slots, readState, writeManifest, synthesize, current,
-    signal, lookahead, now = Date.now, wait = ms => new Promise(done => setTimeout(done, ms))}) {
-    Object.assign(this, {input, phrases, steps, slots, readState, writeManifest, synthesize, current, signal, now, wait});
+    signal, lookahead, expressionPlan, spans, now = Date.now, wait = ms => new Promise(done => setTimeout(done, ms))}) {
+    Object.assign(this, {input, phrases, steps, slots, readState, writeManifest, synthesize, current, signal, now, wait,
+      expressionPlan, spans});
     this.manifest = {version: 1, streamId: randomUUID(), requestId: input.requestId,
       generation: input.generation, entity: input.entity, total: phrases.length, complete: false, chunks: []};
     this.started = now(); this.totalDuration = 0; this.accepted = false;
@@ -110,7 +112,11 @@ export class SpeechStream {
     this.totalDuration += audio.duration;
     if (this.totalDuration > 120) throw Error('Speech exceeded two minutes');
     let face;
-    try { face = buildFacialTimeline(result, this.input); } catch { /* Voice can continue without face data. */ }
+    // The reply's emotion plan, restricted to this phrase: each phrase's expression
+    // is aligned to its own audio, so changes land when the phrase is heard.
+    const span = this.spans?.[index - 1];
+    const forPhrase = this.expressionPlan && span ? {...result, expressionPlan: planRange(this.expressionPlan, span[0], span[1])} : result;
+    try { face = buildFacialTimeline(forPhrase, this.input); } catch { /* Voice can continue without face data. */ }
     const chunk = {index, text: this.phrases[index - 1], audio, face, timing: result.timing, readyAt: this.now()};
     this.manifest.chunks.push(chunk);
     this.manifest.complete = index === this.phrases.length;

@@ -9,6 +9,7 @@ import {SpeechStream,splitSpeechText} from './speech-stream.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {BufferedPcm, waitUntil} from './group-lookahead.mjs';
 import {textExpressionSignal} from './text-emotion.mjs';
+import {analyseReply, planSignal, createPlanner, phraseOffsets, baselineFromSignal} from './emotion-analysis.mjs';
 
 // Execute the production routing/publication functions. These checks catch a
 // future shared batching path accidentally processing remote Convai speech.
@@ -26,7 +27,7 @@ function fixture({local = false, available = true, audioFailure = false, continu
   const sandbox = {remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json',
     localVoice: selectedVoice,
     ownedPocketFace:()=>{},lipsync:{analyse:async()=>{calls.push('rhubarb');return{mouthCues:[],mouthCuesFormat:'rhubarb-phonetic-v1'};}},
-    jaliFace,textExpressionSignal,
+    jaliFace,textExpressionSignal,analyseReply,planSignal,createPlanner,phraseOffsets,baselineFromSignal,
     splitSpeechText,streaming:0,writeStreamManifest:async value=>calls.push(['omni-manifest',value]),
     deliverPocketSpeech: async ({result,profile,speech}) => {
       calls.push(['pocket-stream',profile.key,result.text]);
@@ -425,8 +426,12 @@ test('local voices always get a text cue (feeling, tone or character warmth); Co
   assert.deepEqual((await plain.api.respond(plain.input,plain.profile,{current:async()=>true})).expressionSignal,
     {version:1,correlated:true,sequence:0,emotion:'Trust',scale:2,basis:'default'});
   const receipt=plain.publications.find(([path])=>path.endsWith('expression-receipt.json'));
-  assert.deepEqual({...receipt[1],updated:undefined},{version:1,updated:undefined,requestId:'r1',profile:'judy-alvarez',provider:'omni',
+  const {plan,...rest}=receipt[1];
+  assert.deepEqual({...rest,updated:undefined},{version:2,updated:undefined,requestId:'r1',profile:'judy-alvarez',provider:'omni',
     emotion:'Trust',scale:2,basis:'default',delivered:true});
+  // The receipt also lists the per-segment plan (offsets and weights, never dialogue text).
+  assert.equal(plan.trait,'warm');assert.equal(plan.segments.length,1);assert.deepEqual(plan.segments[0].weights,{trust:.67});
+  assert.equal(JSON.stringify(receipt[1]).includes('Afterlife'),false);
   const cold=fixture({voiceSelection:voice,continuous:true});cold.remote.text='Meet me at the Afterlife at nine.';
   cold.input.profileKey='adam-smasher';
   assert.equal((await cold.api.respond(cold.input,cold.profile,{current:async()=>true})).expressionSignal.emotion,'Interest');

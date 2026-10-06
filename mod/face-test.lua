@@ -25,7 +25,7 @@ local M = convaiFaceTest or {}
 local REQUEST, RESPONSE, LOG = 'runtime/face-test-request.txt', 'runtime/face-test-response.txt', 'runtime/face-test.log'
 local EXPRESSION = {'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','lips_r_corner_dn',
     'eye_l_brows_raise_in','eye_r_brows_raise_in','eye_l_brows_raise_out','eye_r_brows_raise_out',
-    'eye_l_brows_lower','eye_r_brows_lower'}
+    'eye_l_brows_lower','eye_r_brows_lower','eye_l_oculi_squint_outer_lower','eye_r_oculi_squint_outer_lower'}
 local policyFamily = {smile='Joy', frown='Sadness', browsup='Surprise', browsdown='Anger', all='Joy'}
 
 M.clock, M.pollAt, M.lastNonce = M.clock or 0, M.pollAt or 0, M.lastNonce
@@ -65,6 +65,9 @@ local base = {
     browsup = function(v) return merge(brows('raise_in', v), brows('raise_out', v)) end,
     browsdown = function(v) return brows('lower', v) end,
     jaw = function(v) return {jaw_mid_open = v * .5} end,
+    -- Eye squint alone, and a Duchenne smile (corners + squint) to compare with plain smile.
+    squint = function(v) return {eye_l_oculi_squint_outer_lower = v, eye_r_oculi_squint_outer_lower = v} end,
+    duchenne = function(v) return merge(pair('corner_up', v * .45), {eye_l_oculi_squint_outer_lower = v * .3, eye_r_oculi_squint_outer_lower = v * .3}) end,
 }
 local function steps(pose, seconds)
     local out = {}
@@ -156,12 +159,23 @@ local function active(entity, mode)
 end
 
 -- Before the writer composes expression: policy mode injects a scale-3 feeling.
+M.policyTouched = M.policyTouched or {}
 function M.pre(entity, slot, clock)
     local run = active(entity, 'policy')
-    if not run then return end
+    if not run then
+        -- A policy run that ended (off, finished, replaced) must leave no injected
+        -- feeling behind: clear it so the writer returns to its real resting state.
+        if M.policyTouched[entity] then
+            slot.emotion, slot.family, slot.scale, slot.expiry, slot.holdMix, slot.browExpiry = nil, nil, nil, nil, nil, nil
+            slot.flick = {}
+            M.policyTouched[entity] = nil
+        end
+        return
+    end
+    M.policyTouched[entity] = true
     local label = policyFamily[step(run).label:match('^[^@]+')] or ({['ramp-smile']='Joy',['ramp-frown']='Sadness',['ramp-brows']='Surprise'})[run.pose]
     if label then
-        slot.emotion, slot.scale, slot.expiry, slot.active = label, 3, (clock or 0) + .5, slot.active
+        slot.emotion, slot.scale, slot.expiry = label, 3, nil
         slot.family = label:lower() == 'joy' and 'joy' or label:lower() == 'sadness' and 'sadness'
             or label:lower() == 'surprise' and 'surprise' or 'anger'
     end

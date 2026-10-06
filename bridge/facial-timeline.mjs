@@ -2,6 +2,7 @@ import {readPcmWav} from './speech-audio.mjs';
 import {PHONETIC_TRACKS, PHONETIC_ARTICULATION, phoneticPose} from './phonetic-poses.mjs';
 import {validateMouthCues} from './phonetic-lipsync.mjs';
 import {PROVIDER_EXPRESSION_INDICES, ownedExpressionReceipt} from './companion-expressions.mjs';
+import {attachExpressionTrack} from './expression-timeline.mjs';
 import {FaceModelFrames} from './jali-face-model.mjs';
 import {JALI_TIMELINE_TRACKS, JALI_SOURCE, JALI_ARTICULATION, JALI_LEAD_SECONDS, jaliPose, jaliUpperRow} from './jali-face.mjs';
 
@@ -246,17 +247,20 @@ export function buildFacialTimeline(result, owner) {
   const segment = speechSegment(result.speechSegment, wav.duration);
   const first = segment ? segment.first : true, last = segment ? segment.last : true;
   const model = result.jaliFrames;
+  // Per-phrase expression track aligned to this phrase's own audio (the plan is
+  // already restricted to the phrase); the reply's last phrase decays to baseline.
+  const withTrack = timeline => attachExpressionTrack(timeline, result.expressionPlan, {complete: true, decay: last});
   if (model instanceof FaceModelFrames && model.finished && Math.abs(model.duration - wav.duration) < .002 && !result.faces?.length)
-    return renderJaliTimeline({owner, duration: wav.duration, frames: model, segment, first, last,
-      expressionSignal: result.expressionSignal});
+    return withTrack(renderJaliTimeline({owner, duration: wav.duration, frames: model, segment, first, last,
+      expressionSignal: result.expressionSignal}));
   const source = validFaces(result, wav.duration);
   let cues;
   if (!source && result.mouthCuesFormat === 'rhubarb-phonetic-v1') {
     try { cues = validateMouthCues({metadata: {duration: wav.duration}, mouthCues: result.mouthCues}, wav.duration); }
     catch { /* A damaged analyser result cannot take voice playback down. */ }
   }
-  return renderTimeline({owner, duration: wav.duration, sampleRate: wav.sampleRate, segment, source, cues,
-    first, last, envelope: source ? [] : amplitude(wav, segment), expressionSignal: result.expressionSignal});
+  return withTrack(renderTimeline({owner, duration: wav.duration, sampleRate: wav.sampleRate, segment, source, cues,
+    first, last, envelope: source ? [] : amplitude(wav, segment), expressionSignal: result.expressionSignal}));
 }
 
 // Continuous PCM playback owns one global audio clock. Build only its received

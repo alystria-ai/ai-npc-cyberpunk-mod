@@ -209,13 +209,13 @@ test('October 6: speech without any intent still smiles, and a text cue shows at
   end
   -- No receipt: the resting smile now carries into speech (was zero).
   local none=speak(${literal(line)},'none')
-  assert(none.lips_l_corner_up>=.07 and none.lips_l_corner_up<=.10,none.lips_l_corner_up)
+  assert(none.lips_l_corner_up>=.10 and none.lips_l_corner_up<=.15,none.lips_l_corner_up)
   -- A Trust scale-2 cue (the default for warm characters): ~2x the resting smile.
   local trust=speak(${literal(warm)},'trust')
   assert(trust.lips_l_corner_up>=.12 and trust.lips_l_corner_up<=.17,'trust '..trust.lips_l_corner_up)
-  -- Interest lifts the brows, not the mouth.
+  -- Interest lifts the brows and keeps the resting warmth (a light smile, not brows only).
   local interest=speak(${literal(curious)},'interest')
-  assert(interest.eye_l_brows_raise_out>=.15 and interest.lips_l_corner_up<.02,'interest '..interest.eye_l_brows_raise_out..' '..interest.lips_l_corner_up)
+  assert(interest.eye_l_brows_raise_out>=.05 and interest.eye_l_brows_raise_out<=.11 and interest.lips_l_corner_up>.05 and interest.lips_l_corner_up<.16,'interest '..interest.eye_l_brows_raise_out..' '..interest.lips_l_corner_up)
   `);
 });
 
@@ -325,7 +325,7 @@ test('face-test probe: writer mode pushes an extreme smile through the single wr
  assert(frame.lips_l_corner_up==1 and frame.lips_r_corner_up==1 and frame.lips_l_corner_dn==0 and frame.eye_l_brows_raise_in==0)
  assert(last(b).lips_l_corner_up<.1,'only the requested companion is driven')
  assert(files['runtime/face-test.log']:find('frame',1,true),'logs what was written')
- for _=1,25 do tick(.1) end;tick(.1);assert(last(a).lips_l_corner_up<.1,'probe ends and the real policy resumes')
+ for _=1,25 do tick(.1) end;tick(.1);assert(last(a).lips_l_corner_up<.25,'probe ends and the real policy resumes (warmth floor)')
 `));
 
 test('face-test probe: direct mode bypasses the writer with its own feature and logs the apply result', () => runProbe(`
@@ -342,7 +342,7 @@ test('face-test probe: policy mode shows a real scale-3 smile WHILE speaking, yi
  request('n3\\nface-test judy smile 8 policy');tick(.3)
  assert(face.start(context,${literal(timeline)},a,1),face.error)
  for i=1,14 do face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.2+i*.01,context.requestId) end
- local open=copy(last(a));assert(open.lips_l_corner_up>.3 and open.lips_l_corner_up<=.5,open.lips_l_corner_up)
+ local open=copy(last(a));assert(open.lips_l_corner_up>.3 and open.lips_l_corner_up<=.65,open.lips_l_corner_up)
  face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.7,context.requestId)
  assert(last(a).lips_together_up==.85 and last(a).lips_l_corner_up==0,'closure wins over the smile')
  face.stop(a,'cancelled')
@@ -362,3 +362,43 @@ test('face-test probe: ending or replacing a run clears the jaw and every other 
  assert((last(a).jaw_mid_open or 0)==0,'off clears the jaw: '..tostring(last(a).jaw_mid_open))
  tick(.1);assert((last(a).jaw_mid_open or 0)==0)
 `));
+
+// Per-character warmth and gain come from the actor rows' profile keys (Lua only).
+test('Judy rests at about .15 with the corner gain, a cold character stays flat, Interest keeps the smile, and a squint follows', () => run(`
+ rows[1].profileKey='judy-alvarez';rows[2].profileKey='adam-smasher'
+ for _=1,40 do tick(.1) end
+ local judy,cold=last(a),last(b)
+ assert(math.abs(judy.lips_l_corner_up-.224)<.005,'judy rests at .224: '..judy.lips_l_corner_up)
+ assert(cold.lips_l_corner_up==0 and cold.eye_l_oculi_squint_outer_lower==0,'a cold face stays flat')
+ assert(math.abs(judy.eye_l_oculi_squint_outer_lower-.134)<.005,'the squint follows the smile: '..judy.eye_l_oculi_squint_outer_lower)
+ -- Joy at scale 3 on Judy: corners x1.5 capped at .65, squint capped at .30, brows ungained.
+ face.beginExpression(context,${literal(receipt('Joy',3,0))});for _=1,40 do tick(.1) end
+ assert(math.abs(last(a).lips_l_corner_up-.65)<.01,'judy joy: '..last(a).lips_l_corner_up)
+ assert(math.abs(last(a).eye_l_oculi_squint_outer_lower-.35)<.01)
+ assert(math.abs(last(a).eye_l_brows_raise_out-.20)<.01)
+ face.endExpression(context,false)
+`));
+
+test('speaking with Interest or no emotion keeps the resting warmth for warm characters and drops it for cold ones', () => {
+  const lineFor = (emotion, id) => {
+    const line = buildFacialTimeline({audio: wav(), mouthCuesFormat: 'rhubarb-phonetic-v1',
+      mouthCues: [{start: 0, end: .5, value: 'C'}, {start: .5, end: 1, value: 'C'}],
+      ...(emotion ? {expressionSignal: signal(emotion, 2)} : {})}, {...owner, requestId: id});
+    delete line.motion; return line;
+  };
+  const interest = lineFor('Interest', 'warm-interest'), none = lineFor(null, 'warm-none');
+  run(`tick(.1);speech.target=a
+  rows[1].profileKey='judy-alvarez';rows[2].profileKey='adam-smasher'
+  local function speak(timeline,target,actor)
+   local ctx={requestId=timeline.requestId,entity=actor.id,generation=4}
+   speech.target=actor
+   assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=1},face=timeline}))
+   for i=1,14 do cursor=.2+.03*i;tick(.1) end
+   local frame=copy(last(actor));speech.stop('cancelled');for _=1,6 do tick(.1) end;return frame
+  end
+  local warm=speak(${literal(interest)},'x',a)
+  assert(warm.lips_l_corner_up>.10 and warm.eye_l_brows_raise_out>.03,'warm Interest = smile + brows '..warm.lips_l_corner_up)
+  local plain=speak(${literal(none)},'x',a)
+  assert(plain.lips_l_corner_up>.10,'no emotion still smiles '..plain.lips_l_corner_up)
+  `);
+});

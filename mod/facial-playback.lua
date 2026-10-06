@@ -34,7 +34,9 @@ end
 -- retain primitives and feature values only, never actors or world components.
 local expressionTracks = {'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','lips_r_corner_dn',
     'eye_l_brows_raise_in','eye_r_brows_raise_in','eye_l_brows_raise_out','eye_r_brows_raise_out',
-    'eye_l_brows_lower','eye_r_brows_lower'}
+    'eye_l_brows_lower','eye_r_brows_lower',
+    -- Duchenne smile: the outer-eye / lower-lid squint that makes a smile read as genuine.
+    'eye_l_oculi_squint_outer_lower','eye_r_oculi_squint_outer_lower'}
 local negative = {anger=true,sadness=true,fear=true,disgust=true}
 local families = {
     joy='joy',happy='joy',happiness='joy',ecstasy='joy',serenity='joy',
@@ -56,11 +58,24 @@ local function clamp(value,maximum) return math.max(0,math.min(maximum or 1,valu
 -- The caps follow those authored offsets with headroom for the strongest
 -- (scale 3) feelings. Mirrors EXPRESSION_POLICY in companion-expressions.mjs.
 local function expressionLimit(track)
+    if track:find('squint',1,true) then return .35 end
     if track:find('corner_',1,true) then return .50 end
     return .55
 end
 local scaleStrength={.4,.67,1}
-local restSmile=.10
+local restSmile=.15
+-- Per-character resting warmth (the smile floor under every non-negative intent,
+-- idle and speaking; 0 keeps a cold face flat) and corner gain (full lips read
+-- weakly on Judy's rig; the face-test probe showed .35-.5 needed). The gain
+-- scales the corner caps by at most 1.3. Keys are profile keys from the actor rows.
+local traitTable={default={warmth=restSmile,gain=1}}
+for _,key in ipairs({'panam-palmer','jackie-welles','kerry-eurodyne','misty-olszewski','mama-welles','river-ward',
+    'claire-russell','dexter-deshawn','padre-ibarra','viktor-vektor'}) do traitTable[key]={warmth=.22,gain=1} end
+traitTable['judy-alvarez']={warmth=.14,gain=1.6}  -- about .22 resting once the corner gain applies
+for _,key in ipairs({'johnny-silverhand','rogue-amendiares','takemura','saul-bright','meredith-stout','solomon-reed',
+    'spider-murphy','r3n0','regina-jones'}) do traitTable[key]={warmth=.07,gain=1} end
+for _,key in ipairs({'adam-smasher','yorinobu-arasaka','hanako-arasaka','alan-noel','mr-hands'}) do traitTable[key]={warmth=0,gain=1} end
+local function traitFor(profile) return traitTable[profile] or traitTable.default end
 local speechMouthFactor=.85
 M.expressions, M.expressionClock, M.expressionFrame = {}, 0, 0
 -- Development-only visibility probe (mod/face-test.lua). It is absent from a
@@ -90,6 +105,7 @@ function M.beginExpression(context,receipt)
     if not sameExpressionOwner(slot,context) or not slot.active then
         slot.requestId,slot.generation,slot.active=context.requestId,context.generation,true
         slot.emotion,slot.family,slot.sequence,slot.expiry=nil,nil,-1,nil
+        slot.holdMix=nil;slot.browExpiry=nil;slot.flick={}
     end
     M.acceptExpression(context,receipt)
 end
@@ -115,8 +131,9 @@ function M.endExpression(context,finished)
     local slot=type(context)=='table' and M.expressions[context.entity]
     if not slot or not sameExpressionOwner(slot,context) then return end
     slot.active=false
-    if finished and slot.emotion then slot.expiry=M.expressionClock+(negative[slot.family] and 8 or 4)
-    else slot.emotion,slot.family,slot.expiry=nil,nil,nil;slot.pose=zeroExpression() end
+    if finished and (slot.emotion or slot.holdMix) then slot.expiry=M.expressionClock+(negative[slot.family] and 8 or 4)
+        slot.browExpiry=M.expressionClock+1.5
+    else slot.emotion,slot.family,slot.expiry=nil,nil,nil;slot.holdMix=nil;slot.pose=zeroExpression() end
 end
 function M.clearExpression(entity)
     M.expressions[entity]=nil
@@ -138,10 +155,14 @@ function M.beginExpressionFrame(delta,context)
             ((entity==thinking and (thinking~=M.thinkingEntity or thinkingRequest~=M.expressionThinkingRequest))
                 or (entity==listening and listening~=M.listeningEntity)) then
             local slot=M.expressions[entity]
-            if slot then slot.emotion,slot.family,slot.expiry,slot.active=nil,nil,nil,false;slot.pose=zeroExpression() end
+            if slot then slot.emotion,slot.family,slot.expiry,slot.active=nil,nil,nil,false;slot.holdMix=nil;slot.pose=zeroExpression() end
         end
     end
     M.thinkingEntity,M.listeningEntity,M.expressionThinkingRequest=thinking,listening,thinkingRequest
+    for _,row in ipairs(type(context)=='table' and type(context.actors)=='table' and context.actors or {}) do
+        local known=type(row)=='table' and M.expressions[row.entity]
+        if known then known.profile=row.profileKey end
+    end
     if not M.expressionPaused and finite(delta) then M.expressionClock=M.expressionClock+math.max(0,delta) end
 end
 local function safeExpressionActor(actor)
@@ -166,21 +187,114 @@ local function mouthBudget(feature,phase)
         +math.max(read('lips_l_purse'),read('lips_r_purse'))/.28)
     return (phase=='speaking' and speechMouthFactor or 1)*(1-closure)*(1-rounding)
 end
-local function expressionPose(slot,phase,feature,provider,blocked,upper)
+-- Blended emotion path (bridge/expression-timeline.mjs tracks). Mirrors
+-- mixTarget() in bridge/companion-expressions.mjs: unit poses per family,
+-- combined with a soft sum so mixed feelings (bittersweet: a slight smile with
+-- sad brows) stay inside the caps; mouth priority is applied by the caller.
+local mixFamilies={'joy','trust','sadness','anger','fear','disgust','surprise','anticipation'}
+local familyPoses={joy={up=.45,out=.20},trust={up=.25},sadness={dn=.40,['in']=.45},anger={dn=.25,low=.45},
+    fear={dn=.15,['in']=.45,out=.30},disgust={dn=.30,low=.35},surprise={['in']=.35,out=.50},anticipation={out=.15}}
+local function mixChannel(weights,key)
+    local max,sum=0,0
+    for index,family in ipairs(mixFamilies) do
+        local unit=familyPoses[family][key]
+        if unit then
+            local value=unit*clamp(weights[index] or 0)
+            if value>max then max=value end
+            sum=sum+value
+        end
+    end
+    return max+.4*(sum-max)
+end
+local function mixTargets(weights,target,phase,warmth)
+    local up,dn=mixChannel(weights,'up'),mixChannel(weights,'dn')
+    local rin,rout,low=mixChannel(weights,'in'),mixChannel(weights,'out'),mixChannel(weights,'low')
+    if up>dn then up=up-.5*dn;dn=0 else dn=dn-.5*up;up=0 end
+    local clash=math.min(math.max(rin,rout),low)
+    rin=math.max(0,rin-.5*clash);rout=math.max(0,rout-.5*clash);low=math.max(0,low-.5*clash)
+    if (phase=='idle' or phase=='speaking') and dn==0 then up=math.max(up,warmth) end
+    target=target or {}
+    target.lips_l_corner_up,target.lips_r_corner_up=up,up
+    target.lips_l_corner_dn,target.lips_r_corner_dn=dn,dn
+    target.eye_l_brows_raise_in,target.eye_r_brows_raise_in=rin,rin
+    target.eye_l_brows_raise_out,target.eye_r_brows_raise_out=rout,rout
+    target.eye_l_brows_lower,target.eye_r_brows_lower=low,low
+end
+-- Track validation and sampling (mirrors sampleTrack() in expression-timeline.mjs).
+local function expressionTrack(timeline)
+    local value=timeline.expressionTrack
+    if type(value)~='table' or value.version~=1 or value.format~='emotion-mix-v1'
+        or type(value.families)~='table' or #value.families~=#mixFamilies
+        or type(value.keys)~='table' or #value.keys<1 or #value.keys>160 then return nil end
+    for index,family in ipairs(mixFamilies) do if value.families[index]~=family then return nil end end
+    local previous=-1
+    for _,key in ipairs(value.keys) do
+        if type(key)~='table' or #key~=#mixFamilies+1 or not finite(key[1]) or key[1]<0 or key[1]>1000 or key[1]<=previous then return nil end
+        previous=key[1]
+        for at=2,#key do if not finite(key[at]) or key[at]<0 or key[at]>1 then return nil end end
+    end
+    return value.keys
+end
+local function sampleTrack(keys,t)
+    local first,last=keys[1],keys[#keys]
+    local out={}
+    if t<=first[1] then for i=1,#mixFamilies do out[i]=first[i+1] end return out end
+    if t>=last[1] then for i=1,#mixFamilies do out[i]=last[i+1] end return out end
+    local at=1
+    while at+1<#keys and keys[at+1][1]<=t do at=at+1 end
+    local a,b=keys[at],keys[at+1]
+    local f=math.max(0,math.min(1,(t-a[1])/(b[1]-a[1])));f=f*f*(3-2*f)
+    for i=1,#mixFamilies do out[i]=a[i+1]+(b[i+1]-a[i+1])*f end
+    return out
+end
+local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     local target=zeroExpression()
-    if slot.expiry and M.expressionClock>=slot.expiry then slot.emotion,slot.family,slot.expiry=nil,nil,nil end
+    if slot.expiry and M.expressionClock>=slot.expiry then slot.emotion,slot.family,slot.expiry=nil,nil,nil;slot.holdMix=nil end
+    -- A turn with an expression track holds its last sampled mix between phrases
+    -- and after speech (until the usual expiry), so gaps never jump to another pose.
+    if mix then slot.holdMix=mix end
+    local weights=mix or slot.holdMix
     local family,strength=slot.family,scaleStrength[slot.scale or 1]
+    -- Surprise and Interest are momentary: a brow flick at the start of the feeling
+    -- (full for 1 s, gone by 2 s), never a sustained raise. Other feelings hold
+    -- through their phrase and release after speech (see browExpiry).
+    slot.flick=slot.flick or {}
+    local function flick(name,weight)
+        local age=slot.flick[name] or 0
+        if weight>.1 then age=age+(M.expressionDelta or 0) else age=0 end
+        slot.flick[name]=age
+        return math.max(0,math.min(1,1-(age-1.0)/1.0))
+    end
+    local surpriseFlick,interestFlick
+    if weights then
+        weights={table.unpack(weights)}
+        surpriseFlick,interestFlick=flick('surprise',weights[7] or 0),flick('anticipation',weights[8] or 0)
+        weights[7]=(weights[7] or 0)*surpriseFlick;weights[8]=(weights[8] or 0)*interestFlick
+    else
+        surpriseFlick=flick('surprise',family=='surprise' and strength or 0)
+        interestFlick=flick('anticipation',family=='anticipation' and strength or 0)
+        if family=='surprise' then strength=strength*surpriseFlick elseif family=='anticipation' then strength=strength*interestFlick end
+    end
+    local trait=traitFor(slot.profile)
+    local warmth,gain=trait.warmth,trait.gain
+    local capScale=math.min(math.max(gain,1),1.3)
+    local function limitFor(track)
+        local limit=expressionLimit(track)
+        if track:find('corner_',1,true) then limit=limit*capScale end
+        return limit
+    end
     local function pair(stem,value) target['lips_l_'..stem]=value;target['lips_r_'..stem]=value end
     local function brows(stem,value) target['eye_l_brows_'..stem]=value;target['eye_r_brows_'..stem]=value end
-    if family=='joy' then pair('corner_up',.45*strength);brows('raise_out',.20*strength)
+    if weights then mixTargets(weights,target,phase,warmth)
+    elseif family=='joy' then pair('corner_up',.45*strength);brows('raise_out',.20*strength)
     elseif family=='trust' then pair('corner_up',.25*strength)
     elseif family=='sadness' then pair('corner_dn',.40*strength);brows('raise_in',.45*strength)
     elseif family=='anger' then pair('corner_dn',.25*strength);brows('lower',.45*strength)
     elseif family=='fear' then pair('corner_dn',.15*strength);brows('raise_in',.45*strength);brows('raise_out',.30*strength)
     elseif family=='disgust' then pair('corner_dn',.30*strength);brows('lower',.35*strength)
     elseif family=='surprise' then brows('raise_in',.35*strength);brows('raise_out',.50*strength)
-    elseif family=='anticipation' then brows('raise_out',.30*strength)
-    elseif family~='unknown' and (phase=='idle' or phase=='speaking') then pair('corner_up',restSmile) end
+    elseif family=='anticipation' then brows('raise_out',.15*strength) end
+    local frowning=false
     if provider then
         local source={eye_l_brows_lower=.55*provider[5],eye_r_brows_lower=.55*provider[6],
             eye_l_brows_raise_in=.45*provider[7],eye_r_brows_raise_in=.45*provider[7],
@@ -189,29 +303,54 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper)
         else source.lips_l_corner_dn=.30*provider[3];source.lips_r_corner_dn=.30*provider[4] end
         for track,value in pairs(source) do target[track]=math.max(target[track],value) end
         if (source.lips_l_corner_dn or 0)>.005 or (source.lips_r_corner_dn or 0)>.005
-            or source.eye_l_brows_lower>.01 or source.eye_r_brows_lower>.01 then pair('corner_up',0) end
+            or source.eye_l_brows_lower>.01 or source.eye_r_brows_lower>.01 then pair('corner_up',0);frowning=true end
     end
-    local suppress=negative[family] or family=='unknown'
+    -- After speech the emotion's brows release within about 1.5 s (corners keep
+    -- the longer expiry); they are never held for seconds after the voice stops.
+    if slot.browExpiry and M.expressionClock>=slot.browExpiry then
+        for _,name in ipairs({'raise_in','raise_out','lower'}) do brows(name,0) end
+    end
+    local suppress=not weights and (negative[family] or family=='unknown')
     if suppress then pair('corner_up',0) end
-    if family=='joy' or family=='trust' then pair('corner_dn',0);brows('lower',0) end
+    if not weights and (family=='joy' or family=='trust') then pair('corner_dn',0);brows('lower',0) end
+    -- Resting warmth: a floor under every non-negative intent (Interest, surprise,
+    -- neutral tone), idle and speaking. The emotion's own smile wins by max.
+    if not weights and (phase=='idle' or phase=='speaking') and not negative[family] and family~='unknown'
+        and not frowning and target.lips_l_corner_dn==0 then pair('corner_up',math.max(target.lips_l_corner_up,warmth)) end
+    for _,track in ipairs({'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','lips_r_corner_dn'}) do target[track]=target[track]*gain end
+    local squint=math.min(.35,.6*target.lips_l_corner_up)
+    target.eye_l_oculi_squint_outer_lower,target.eye_r_oculi_squint_outer_lower=squint,squint
     local budget=mouthBudget(feature,phase)
     for _,track in ipairs(expressionTracks) do
-        local goal=clamp(target[track],expressionLimit(track))
-        if track:sub(1,5)=='lips_' then goal=goal*budget end
-        local prior=slot.pose[track]
-        local seconds=goal>prior and .18 or .55
-        slot.pose[track]=blocked and 0 or (prior+(goal-prior)*(1-math.exp(-(M.expressionDelta or 0)/seconds)))
+        if not (weights and track:find('corner_',1,true)) then
+            local goal=clamp(target[track],limitFor(track))
+            if track:sub(1,5)=='lips_' then goal=goal*budget end
+            local prior=slot.pose[track]
+            local seconds=goal>prior and .18 or .55
+            slot.pose[track]=blocked and 0 or (prior+(goal-prior)*(1-math.exp(-(M.expressionDelta or 0)/seconds)))
+        end
     end
-    if suppress or target.lips_l_corner_dn>0 or target.lips_r_corner_dn>0 then
-        slot.pose.lips_l_corner_up,slot.pose.lips_r_corner_up=0,0
-    end
-    if target.lips_l_corner_up>0 or target.lips_r_corner_up>0 then
-        slot.pose.lips_l_corner_dn,slot.pose.lips_r_corner_dn=0,0
-        slot.pose.eye_l_brows_lower,slot.pose.eye_r_brows_lower=0,0
+    if weights then
+        -- Corners cross-fade on one signed axis (up positive, down negative), so
+        -- a smile turning into a frown passes through neutral instead of snapping.
+        local goalNet=(clamp(target.lips_l_corner_up,.5*capScale)-clamp(target.lips_l_corner_dn,.5*capScale))*budget
+        local priorNet=slot.pose.lips_l_corner_up-slot.pose.lips_l_corner_dn
+        local seconds=math.abs(goalNet)>=math.abs(priorNet) and .18 or .55
+        local net=blocked and 0 or (priorNet+(goalNet-priorNet)*(1-math.exp(-(M.expressionDelta or 0)/seconds)))
+        slot.pose.lips_l_corner_up,slot.pose.lips_r_corner_up=math.max(0,net),math.max(0,net)
+        slot.pose.lips_l_corner_dn,slot.pose.lips_r_corner_dn=math.max(0,-net),math.max(0,-net)
+    else
+        if suppress or target.lips_l_corner_dn>0 or target.lips_r_corner_dn>0 then
+            slot.pose.lips_l_corner_up,slot.pose.lips_r_corner_up=0,0
+        end
+        if target.lips_l_corner_up>0 or target.lips_r_corner_up>0 then
+            slot.pose.lips_l_corner_dn,slot.pose.lips_r_corner_dn=0,0
+            slot.pose.eye_l_brows_lower,slot.pose.eye_r_brows_lower=0,0
+        end
     end
     for _,track in ipairs(expressionTracks) do
         -- Hard closure/rounding suppression happens after smoothing, too.
-        feature[track]=math.min(slot.pose[track],expressionLimit(track)*(track:sub(1,5)=='lips_' and budget or 1))
+        feature[track]=math.min(slot.pose[track],limitFor(track)*(track:sub(1,5)=='lips_' and budget or 1))
     end
     -- Voice-synchronous brows from the game-trained model (emphasis flashes,
     -- focused frowns). Already smooth and on the audio clock: combined by max
@@ -223,7 +362,18 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper)
         -- used (neutral when unsure). The model output is already a regressed
         -- (shrunk) estimate, so the old extra 35 % gain halved it twice and the
         -- raises (speech mean .10) never showed; .8 keeps emphasis flashes visible.
-        local raise=.8*upper.raise*((family=='anger' or family=='disgust') and .4 or 1)
+        -- Voice-synced brows are RARE emphasis: only a strong stress counts (a dead
+        -- zone removes the model's constant low-level lift), the peak is small
+        -- (.15), and after one emphasis the next is held off for 3 s, so a brow
+        -- never bobs alone on an otherwise static face. Emotion brows come from
+        -- the expression timeline, together with the mouth and eyes.
+        local raise=math.min(.15,.5*math.max(0,upper.raise-.25))*((family=='anger' or family=='disgust') and .4 or 1)
+        if raise>.02 then
+            if not slot.voiceBrowOn then
+                if slot.voiceBrowReady and M.expressionClock<slot.voiceBrowReady then raise=0
+                else slot.voiceBrowOn=true;slot.voiceBrowReady=M.expressionClock+3 end
+            end
+        else slot.voiceBrowOn=false end
         local lower=0*upper.lower
         for _,side in ipairs({'l','r'}) do
             for _,stem in ipairs({'raise_in','raise_out'}) do
@@ -235,12 +385,12 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper)
         end
     end
 end
-local function applyFeature(actor,feature,entity,phase,provider,upper)
+local function applyFeature(actor,feature,entity,phase,provider,upper,mix)
     local slot=expressionSlot(entity)
     local blocked=M.expressionBlocked or M.expressionPaused or not safeExpressionActor(actor)
-    if blocked then slot.emotion,slot.family,slot.expiry=nil,nil,nil end
+    if blocked then slot.emotion,slot.family,slot.expiry=nil,nil,nil;slot.holdMix=nil end
     if faceTest then pcall(faceTest.pre,entity,slot,M.expressionClock) end
-    expressionPose(slot,phase,feature,provider,blocked,upper)
+    expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     if faceTest then
         local ok,skip=pcall(faceTest.post,entity,feature,phase,blocked)
         if ok and skip then return end
@@ -259,6 +409,13 @@ local function applyFeature(actor,feature,entity,phase,provider,upper)
         end
         turn.emotion,turn.family,turn.scale,turn.blocked=slot.emotion,slot.family,slot.scale,blocked
         turn.frames=turn.frames+1
+        if mix then
+            turn.mix,turn.mixPeak=turn.mix or {},turn.mixPeak or {}
+            for index,family in ipairs(mixFamilies) do
+                turn.mix[family]=math.floor(mix[index]*1000)/1000
+                if mix[index]>(turn.mixPeak[family] or 0) then turn.mixPeak[family]=math.floor(mix[index]*1000)/1000 end
+            end
+        end
         for _,track in ipairs(expressionTracks) do
             if feature[track]>turn.peak[track] then turn.peak[track]=feature[track] end
         end
@@ -284,6 +441,7 @@ function M.updateExpressions(context)
             local ok,err=pcall(function()
                 if not owns(actor,entity) then M.expressions[entity]=nil;return end
                 local slot=expressionSlot(entity)
+                slot.profile=row.profileKey
                 if slot.written==M.expressionFrame or (M.active and M.entity==entity) then return end
                 slot.feature=slot.feature or NewObject('ConvaiFaceFeature')
                 assert(slot.feature,'Native facial feature is unavailable')
@@ -340,6 +498,7 @@ local function clear()
     M.localMotion, M.localPose, M.localPosePosition = nil, nil, nil
     M.providerExpressions=nil
     M.modelExpressions=nil
+    M.expressionTrackKeys=nil
 end
 
 function M.abandon(reason)
@@ -419,6 +578,7 @@ function M.start(context, timeline, actor, duration, expectedSegment)
     M.localPose, M.localPosePosition = retainedPose, retainedPosition
     M.providerExpressions=providerExpressions(timeline)
     M.modelExpressions=modelExpressions(timeline)
+    M.expressionTrackKeys=expressionTrack(timeline)
     M.beginExpression(context,timeline.expression)
     return true
 end
@@ -502,6 +662,7 @@ function M.updateContinuous(context, timeline, actor, duration)
     M.timeline, M.source, M.articulation = timeline, timeline.source, timeline.articulation
     M.providerExpressions=providerExpressions(timeline)
     M.modelExpressions=modelExpressions(timeline)
+    M.expressionTrackKeys=expressionTrack(timeline)
     M.beginExpression(context,timeline.expression)
     M.error, M.timelineChanged = nil, true
     -- A live tail can be re-interpolated or compacted. Keep the playback index
@@ -582,7 +743,9 @@ function M.sync(actor, position, requestId)
             local a,b=M.modelExpressions[M.index],M.modelExpressions[M.index+1]
             upper={raise=a[2]+(b[2]-a[2])*alpha,lower=a[3]+(b[3]-a[3])*alpha}
         end
-        applyFeature(actor,M.feature,M.entity,'speaking',provider,upper)
+        local mix
+        if M.expressionTrackKeys then mix=sampleTrack(M.expressionTrackKeys,position) end
+        applyFeature(actor,M.feature,M.entity,'speaking',provider,upper,mix)
         M.position, M.lastPosition = M.continuous and heardPosition or position, M.continuous and heardPosition or position
         M.timelineChanged = nil
         M.state = position >= M.timeline.duration and 'holding-boundary' or 'playing'

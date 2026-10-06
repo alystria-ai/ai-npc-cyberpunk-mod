@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {SPEECH_TRACKS} from './facial-timeline.mjs';
 import {EXPRESSION_TRACKS, EXPRESSION_POLICY, normalizeConvaiEmotion,
   sameExpressionOwner, OwnedExpressionSignal, expressionTarget,
-  emotionSuppressesSmile, ExpressionSmoother, composeExpressionPose} from './companion-expressions.mjs';
+  emotionSuppressesSmile, ExpressionSmoother, composeExpressionPose, mixTarget} from './companion-expressions.mjs';
 
 const owner = {entity: 'copy-a', requestId: 'reply-a', generation: 1};
 const corners = pose => [pose.lips_l_corner_up, pose.lips_r_corner_up];
@@ -16,7 +16,9 @@ test('expression ownership is disjoint from accepted speech and native blink/gaz
   for (const track of EXPRESSION_TRACKS) {
     assert.ok(schema.tracks.includes(track), `${track} must exist in the current native graph`);
     assert.ok(!SPEECH_TRACKS.includes(track), `${track} must not replace accepted articulation`);
-    assert.doesNotMatch(track, /blink|widen|squint|tongue|jaw|look|rotate|yaw|pitch|roll/iu);
+    // The outer-eye squint (Duchenne smile) is expression; blink, widen and gaze stay native.
+    assert.doesNotMatch(track, /blink|widen|tongue|jaw|look|rotate|yaw|pitch|roll/iu);
+    if (/squint/.test(track)) assert.match(track, /^eye_[lr]_oculi_squint_outer_lower$/);
   }
 });
 
@@ -42,7 +44,7 @@ test('calm idle and speech with no intent keep a visible resting smile; processi
   const idle = expressionTarget();
   // Live face-test on Judy: .35-.5 reads clearly, so the resting smile is a
   // soft .10 (quiet on its own, and the Trust cue lifts warm characters to .15+).
-  assert.ok(idle.lips_l_corner_up >= .08 && idle.lips_l_corner_up <= .12);
+  assert.ok(idle.lips_l_corner_up >= .10 && idle.lips_l_corner_up <= .16);
   assert.equal(idle.lips_l_corner_up, idle.lips_r_corner_up);
   // Speaking without any emotion used to drop the smile entirely (dead face).
   const speaking = expressionTarget({phase: 'speaking'});
@@ -76,7 +78,7 @@ test('emotions are visible: peaks follow the live face-test (smile reads at .35-
   near(peak('Sadness', 3).lips_l_corner_dn, .40); near(peak('Sadness', 3).eye_l_brows_raise_in, .45);
   near(peak('Anger', 3).eye_l_brows_lower, .45); near(peak('Anger', 3).lips_l_corner_dn, .25);
   near(peak('Surprise', 3).eye_l_brows_raise_out, .50);
-  assert.ok(peak('Interest', 2).eye_l_brows_raise_out >= .18, 'a curious brow lift shows');
+  assert.ok(peak('Interest', 2).eye_l_brows_raise_out >= .09 && peak('Interest', 2).eye_l_brows_raise_out <= .11, 'Interest is a brief flick, not a raise');
   // Caps: corners .5, brows .55; nothing exceeds them, and no pose is a grin (1.0).
   for (const name of ['Joy', 'Trust', 'Sadness', 'Anger', 'Fear', 'Disgust', 'Surprise', 'Interest'])
     for (const [track, value] of Object.entries(peak(name, 3)))
@@ -206,4 +208,46 @@ test('negative post-speech intent remains briefly but cannot leak after expiry/r
   assert.equal(signal.read(4999).family, 'joy'); assert.equal(signal.read(5000), null);
   signal.begin(owner); signal.accept({emotion: 'Joy', scale: 3}, owner, 0); signal.end(owner, 1000);
   assert.equal(signal.read(999), null, 'A backwards/reloaded clock cannot revive a previous expression');
+});
+
+test('resting warmth is a floor under every non-negative intent, with a per-character gain and a Duchenne squint', () => {
+  const R = EXPRESSION_POLICY;
+  const interest = expressionTarget({emotion: {emotion: 'Interest', scale: 2}, phase: 'speaking'});
+  assert.ok(Math.abs(interest.lips_l_corner_up - R.restSmile * R.speechMouthFactor) < 1e-9, 'Interest = brows + the resting smile');
+  assert.ok(interest.eye_l_brows_raise_out > .08 && interest.eye_l_brows_raise_out < .12);
+  for (const label of ['Surprise', 'Neutral', 'Interest', 'Trust'])
+    assert.ok(expressionTarget({emotion: {emotion: label, scale: 1}, phase: 'speaking'}).lips_l_corner_up >= R.restSmile * R.speechMouthFactor - 1e-9, label);
+  // Negative or unknown intent removes the floor; a stronger smile wins by max, never by sum.
+  for (const label of ['Sadness', 'Anger', 'Fear', 'Disgust', 'Weird new label'])
+    assert.equal(expressionTarget({emotion: {emotion: label, scale: 1}, phase: 'speaking'}).lips_l_corner_up, 0, label);
+  const joy = expressionTarget({emotion: {emotion: 'Joy', scale: 3}, phase: 'idle'});
+  assert.equal(joy.lips_l_corner_up, .45);
+  // Warm characters rest higher, cold ones flat.
+  assert.equal(expressionTarget({warmth: .15}).lips_l_corner_up, .15);
+  assert.equal(expressionTarget({warmth: 0}).lips_l_corner_up, 0);
+  // Gain (full lips): corners x1.5, caps x1.3 at most; brows are untouched.
+  const gained = expressionTarget({emotion: {emotion: 'Joy', scale: 3}, gain: 1.5});
+  assert.equal(gained.lips_l_corner_up, .5 * R.gainCapMax);
+  assert.equal(expressionTarget({emotion: {emotion: 'Joy', scale: 2}, gain: 1.5}).lips_l_corner_up,
+    .45 * R.scaleStrength[1] * 1.5);
+  assert.equal(gained.eye_l_brows_raise_out, expressionTarget({emotion: {emotion: 'Joy', scale: 3}}).eye_l_brows_raise_out);
+  // The squint follows the smile (before mouth priority), capped, and exists only with a smile.
+  const smile = expressionTarget({emotion: {emotion: 'Joy', scale: 3}});
+  assert.equal(smile.eye_l_oculi_squint_outer_lower, R.squintPerSmile * .45);
+  assert.equal(smile.eye_r_oculi_squint_outer_lower, R.squintPerSmile * .45);
+  assert.equal(gained.eye_l_oculi_squint_outer_lower, R.squintMax, 'the squint is capped');
+  assert.equal(expressionTarget({emotion: {emotion: 'Anger', scale: 3}}).eye_l_oculi_squint_outer_lower, 0);
+  // Mouth priority: closed lips remove the mouth corners, never the jaw/closure data.
+  const closed = expressionTarget({emotion: {emotion: 'Joy', scale: 3}, phase: 'speaking', speechPose: {lips_together_up: .85, lips_together_dn: .85}});
+  assert.equal(closed.lips_l_corner_up < .02, true);
+});
+
+test('blended mixes honour warmth, gain and the same mouth priority', () => {
+  const bittersweet = mixTarget({weights: {joy: .5, sadness: .5}});
+  assert.ok(bittersweet.lips_l_corner_up > .1 && bittersweet.eye_l_brows_raise_in > .2, 'a slight smile with sad brows');
+  assert.equal(mixTarget({weights: {anticipation: .7}, phase: 'speaking'}).lips_l_corner_up > .05, true);
+  assert.equal(mixTarget({weights: {sadness: .8}, phase: 'speaking'}).lips_l_corner_up, 0);
+  assert.equal(mixTarget({weights: {}, phase: 'speaking', warmth: 0}).lips_l_corner_up, 0);
+  const closed = mixTarget({weights: {joy: 1}, phase: 'speaking', gain: 1.5, speechPose: {lips_l_funnel: .32, lips_r_funnel: .32, lips_l_purse: .28, lips_r_purse: .28}});
+  assert.equal(closed.lips_l_corner_up, 0);
 });

@@ -8,6 +8,7 @@ import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
 import {PhoneticLipsync} from './phonetic-lipsync.mjs';
 import {JaliFace} from './jali-face.mjs';
 import {textExpressionSignal} from './text-emotion.mjs';
+import {analyseReply, planSignal, createPlanner, phraseOffsets, baselineFromSignal} from './emotion-analysis.mjs';
 import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
 import {deliverPocketSpeech} from './pocket-speech.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
@@ -456,15 +457,34 @@ async function synthesizeReply(input, result, signal, current, profile = profile
   // this reply's own text (lexicon, then tone, then the character's resting
   // warmth), so a local voice always has a face. The receipt below records
   // what was derived for this turn, with no dialogue text.
+  // Omni renders one audio file per phrase: its phrase edges are forced segment
+  // boundaries, so every phrase gets its own expression aligned to its own audio.
+  // Pocket and Convai streams segment by sentence and are aligned to the audio
+  // by pauses/duration (bridge/expression-timeline.mjs).
+  let plan, spans;
+  try {
+    if (localVoice.provider === 'omni') {
+      const phrases = splitSpeechText(result.text);
+      spans = phraseOffsets(result.text, phrases);
+      plan = analyseReply(result.text, {profile: input.profileKey, baseline: baselineFromSignal(result.expressionSignal),
+        breaks: spans.slice(1).map(span => span[0])});
+    } else plan = analyseReply(result.text, {profile: input.profileKey, baseline: baselineFromSignal(result.expressionSignal)});
+  } catch { plan = undefined; }
   if (result.expressionSignal === undefined) {
-    const cue = textExpressionSignal(result.text, {profile: input.profileKey});
+    const cue = plan ? planSignal(plan) : textExpressionSignal(result.text, {profile: input.profileKey});
     if (cue) result = {...result, expressionSignal: cue};
   }
+  if (plan) result = {...result, expressionPlan: plan};
   const expression = result.expressionSignal;
-  atomic(resolve(runtime, 'expression-receipt.json'), JSON.stringify({version: 1, updated: Date.now(),
+  // Receipt for the next in-game reply: reply-level cue plus the per-segment plan
+  // (character offsets, top families and tags; no dialogue text).
+  atomic(resolve(runtime, 'expression-receipt.json'), JSON.stringify({version: 2, updated: Date.now(),
     requestId: input.requestId, profile: input.profileKey, provider: localVoice.provider,
     emotion: expression?.emotion ?? null, scale: expression?.scale ?? null, basis: expression?.basis ?? null,
-    delivered: expression !== undefined})).catch(() => {});
+    delivered: expression !== undefined,
+    plan: plan ? {trait: plan.trait, baseline: plan.baseline, segments: plan.segments.map(segment => ({
+      from: segment.start, to: segment.end, seconds: Math.round(segment.seconds * 100) / 100, weights: segment.weights,
+      dominant: segment.dominant, mixed: segment.mixed, tags: segment.tags})), phrases: spans} : null})).catch(() => {});
   const ahead = current?.ahead;
   if(localVoice.provider==='omni'){
     // The one GPU worker is FIFO. A look-ahead phrase queued while the speaker
@@ -482,7 +502,8 @@ async function synthesizeReply(input, result, signal, current, profile = profile
       if(phrases.length>1){second=synthesizeOmniPhrase(input.profileKey,phrases[1],{signal:lookahead.signal,steps});second.catch(()=>{});}
       const generated=await first;
       return {...result,...generated,text:result.text,timing:{...result.timing,...generated.timing},
-        streamPlan:phrases.length>1?{phrases,steps,lookahead:{promise:second,cancel:cancelLookahead}}:undefined};
+        streamPlan:phrases.length>1?{phrases,steps,lookahead:{promise:second,cancel:cancelLookahead},
+          expressionPlan:result.expressionPlan,spans}:undefined};
     }catch(error){
       cancelLookahead();
       throwIfCancelled(signal);console.error('[CyberpunkConvai] Omni speech:',error.message);
@@ -537,6 +558,7 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
   const options = {signal, isCurrent: current, isCurrentSync: current.sync};
   const ahead = current.ahead;
   const speech = new ConvaiContinuousSpeech({input, profile, current, signal,
+    planExpression: createPlanner({profile: input.profileKey}),
     ...(local ? {faceBuilder: ownedPocketFace} : {jaliFace}),
     // A look-ahead turn buffers silently until the game submits it. Once its
     // complete text is known (and it is no longer held), the next group speaker

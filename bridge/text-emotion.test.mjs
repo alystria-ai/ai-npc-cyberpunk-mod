@@ -39,7 +39,10 @@ test('every non-empty reply gets a cue: tone, then the character\'s resting warm
   // Cold characters stay alert but flat, without a smile.
   const cold = textExpression(plain, {profile: 'adam-smasher'});
   assert.deepEqual(cold, {emotion: 'Interest', scale: 1, basis: 'default'});
-  assert.equal(expressionTarget({emotion: cold, phase: 'speaking'}).lips_l_corner_up, 0);
+  assert.equal(expressionTarget({emotion: cold, phase: 'speaking', warmth: 0}).lips_l_corner_up, 0);
+  // ...while every other character's Interest keeps its resting warmth under the brows.
+  const curious = expressionTarget({emotion: {emotion: 'Interest', scale: 2}, phase: 'speaking'});
+  assert.ok(curious.lips_l_corner_up > .05 && curious.eye_l_brows_raise_out > .08);
   // A question lifts the brows; an exclamation smiles; a refused positive stays flat.
   assert.equal(textExpression('What do you want to do next?').emotion, 'Interest');
   assert.equal(textExpression('Move it, we are leaving!').emotion, 'Joy');

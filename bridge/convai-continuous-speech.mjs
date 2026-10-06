@@ -2,6 +2,7 @@
 // enters this adapter. The game admits the exact actor before any sound starts.
 import {randomUUID} from 'node:crypto';
 import {buildProviderFacialTimeline} from './facial-timeline.mjs';
+import {attachExpressionTrack} from './expression-timeline.mjs';
 import {ownedExpressionReceipt} from './companion-expressions.mjs';
 import {decodeAnalysisPcm} from './analysis-pcm.mjs';
 import {JALI_LEAD_SECONDS} from './jali-face.mjs';
@@ -17,7 +18,8 @@ export class ConvaiContinuousSpeech {
     // hold(): true while this turn is a look-ahead that must keep buffering and
     // publish nothing. onText(text, userText): the complete reply text is known.
     hold = () => false, onHeld = () => {}, onText = () => {},
-    now = Date.now, token = randomUUID(), faceBuilder, jaliFace}) {
+    now = Date.now, token = randomUUID(), faceBuilder, jaliFace, planExpression}) {
+    this.planExpression = planExpression;
     this.input = input; this.profile = profile; this.current = current; this.signal = signal;
     this.readControl = readControl; this.writeState = writeState; this.writeReply = writeReply;
     this.onPublished = onPublished; this.onStarted = onStarted; this.onGenerated = onGenerated;
@@ -158,10 +160,20 @@ export class ConvaiContinuousSpeech {
     this.feedModel(snapshot);
     const jali = this.jaliState(duration);
     const faceKey = `${snapshot.faces?.length || 0}:${snapshot.receivedFrames}:${snapshot.sourceComplete}:${snapshot.face?.revision || 0}`
-      + (jali ? `:${this.modelRevision || 0}:${jali.start}:${jali.position >= jali.start && jali.position < jali.covered}` : '');
+      + (jali ? `:${this.modelRevision || 0}:${jali.start}:${jali.position >= jali.start && jali.position < jali.covered}` : '')
+      + (this.planExpression ? `:x${snapshot.text.length}:${snapshot.textComplete}:${snapshot.expressionSignal?.emotion ?? ''}` : '');
     if (faceKey !== this.faceKey) {
       const {pcm: _pcm, ...view} = snapshot;
       this.face = this.faceBuilder({...view, duration, complete: snapshot.sourceComplete}, this.input, jali);
+      // Expression track from the reply text, aligned to the audio received so
+      // far (pauses in the mouth timeline, else a duration estimate). Optional:
+      // a failure leaves the reply-level cue and the mouth exactly as they were.
+      if (this.planExpression && this.face) {
+        let plan;
+        try { plan = this.planExpression(snapshot.text, snapshot.expressionSignal); } catch { /* optional */ }
+        if (plan) this.face = attachExpressionTrack(this.face, plan,
+          {complete: snapshot.sourceComplete, decay: snapshot.sourceComplete && snapshot.textComplete});
+      }
       this.faceKey = faceKey;
     }
     const document = {version: 1, id: this.token, requestId: this.input.requestId,
