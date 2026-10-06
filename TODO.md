@@ -87,6 +87,8 @@ atural-speech\page\index.html` (and `/natural-speech/` on the picker after its n
 - Drop the idea of an in-game clip-count setting (there is none today); the clips are chosen per character by listening and search.
 - Run the clip-set search for all remaining voices (only the user's 29 are done), with a minimum of 2 clips.
 - Switch the runtime Pocket voice to the new student + decoder v2, and apply the chosen or Auto-best reference sets (min 2 clips) for both engines.
+- Pocket first-reply latency: prepare each companion's voice state while it joins (during "preparing memory…"), and/or cache prepared voice states on disk per voice and reference set (deterministic from the reference audio), so even the first reply starts in about 0.15 s. The user prefers a slightly longer connect over a slow first reply.
+- 1-clip sets: allowed only where they're a real winner (the user's rule: "at least 2" except genuine exceptions). In the search, 1 clip won for Omni on Adam Smasher and Takemura (both statistical ties, so prefer 2) and for Pocket on Evelyn, Lina Malina and Rogue.
 - Latency reference: Omni 16 first audio 1.17 s (1 clip), about 1.26 s (2 clips, 10 s), 1.62 s (3 clips, 18 s); Omni 32 1.83 / about 1.97 / 2.86 s. Pocket about 0.15 s regardless of clip count; only the one-time voice prep grows (0.5→1.4 s).
 
 ### Later
