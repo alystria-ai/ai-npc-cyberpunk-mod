@@ -10,6 +10,7 @@ import {GpuMonitor} from './gpu.mjs';
 import {Research, resolveShown} from './research.mjs';
 import {engineSet, ENGINES, PickStore, SETS} from './picks.mjs';
 import {isNaturalSpeechPath, serveNaturalSpeech} from './natural-speech-page.mjs';
+import {isPocketV2Path, servePocketV2} from './pocket-v2-page.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const TYPES = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -381,6 +382,7 @@ export class Picker {
       // Audio routes take the raw pathname: clip ids contain '/', so segments must be decoded after splitting.
       if (request.method === 'GET' && path.startsWith('/audio/')) return await this.audio(request, response, url.pathname);
       if ((request.method === 'GET' || request.method === 'HEAD') && isNaturalSpeechPath(path)) return serveNaturalSpeech(request, response, path);       // read-only listening page
+      if ((request.method === 'GET' || request.method === 'HEAD') && isPocketV2Path(path)) return servePocketV2(request, response, path);       // read-only Pocket v2 listening page
       if (path.startsWith('/api/')) return await this.api(request, response, path, url);
       if (request.method === 'GET' && /^\/voice\/[a-z0-9-]+\/?$/.test(path)) return await this.staticFile(response, '/voice.html');       // the character page (reference clips)
       if (request.method === 'GET') return await this.staticFile(response, path);
