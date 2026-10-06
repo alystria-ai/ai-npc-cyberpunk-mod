@@ -5,6 +5,8 @@ The user's per-character verdicts from the report page (http://127.0.0.1:8765/),
 ## Page issues
 - Reference page: current clips wouldn't play. Fixed in `db3ea53`: the audio route split the already-decoded path, so clip ids containing `/` never matched.
 
+- Phone audio: the user checked, and phone-flagged clips sound like normal ones. The phone-free columns and the phone handling come out of the report; phone clips are treated like any other.
+
 ## Characters
 
 ### Adam Smasher
