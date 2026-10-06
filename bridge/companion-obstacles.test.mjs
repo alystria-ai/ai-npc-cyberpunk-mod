@@ -599,3 +599,46 @@ test('a projected side stance occupied by V uses the same refreshable player geo
   for i=1,15 do update(.1) if last(npc,'AIMoveToCommand') then break end end
   assert(last(npc,'AIMoveToCommand') and state.ticket==ticket and not state.blockedReason)
 `));
+
+const stayNear = `
+  local helper=dofile('companion-clearance.lua')
+  local function drive(frames)
+    local moved,seen=false,{}
+    for frame=1,frames do
+      motor.useSpatialBudget(helper.newBudget())
+      update(0.1)
+      for _,event in ipairs(state.events) do seen[event.event]=true end
+      if last(npc,'AIMoveToCommand') then moved=true end
+    end
+    return moved,seen
+  end
+`;
+
+test('a rejected cosmetic attention step is held in place and never plans a detour', () => run(walking + solids + stayNear + `
+  player.pos=Vector4.new(0,-1.6); context.frame.position=player.pos; context.playerGap=1.6
+  solid('Static',0,.1,.9,.1)
+  decision.operation={ticket='attend',kind='move',goal=Vector4.new(0,.16),gait='Walk',finish=true,face=true}
+  local moved,seen=drive(80)
+  assert(state.failed and seen['route-rejected'],'the blocked attention step was not rejected')
+  assert(not state.detourSearch and not state.execution and not seen['detour-ready'],'a cosmetic step planned a detour')
+  assert(not moved and npc.pos.x==0 and npc.pos.y==0,'a rejected attention step moved the companion')
+`));
+
+test('a stay-near detour that would walk away from V is refused and the companion holds', () => run(walking + solids + stayNear + `
+  player.pos=Vector4.new(0,-1.6); context.frame.position=player.pos; context.playerGap=1.6
+  decision.operation={ticket='alongside',kind='move',goal=Vector4.new(0,2.8),gait='Walk',finish=false,face=false}
+  solid('Static',0,1.4,.9,.1)
+  local moved,seen=drive(200)
+  assert(seen['route-rejected'] and seen['detour-refused'] and seen['detours-exhausted'],
+    'the long detour was not refused')
+  assert(not seen['detour-ready'] and not moved,'a detour walked away from the stopped player')
+  assert(npc.pos.x==0 and npc.pos.y==0 and active(npc)[1].kind=='AIHoldPositionCommand')
+`));
+
+test('the same obstruction still gets its detour when V is far away (cap applies to staying near only)', () => run(walking + solids + stayNear + `
+  player.pos=Vector4.new(0,-7); context.frame.position=player.pos; context.playerGap=7
+  decision.operation={ticket='alongside',kind='move',goal=Vector4.new(0,2.8),gait='Walk',finish=false,face=false}
+  solid('Static',0,1.4,.9,.1)
+  local moved,seen=drive(200)
+  assert(seen['detour-ready'] and not seen['detour-refused'],'a far companion lost its legitimate detour')
+`));

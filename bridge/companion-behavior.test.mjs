@@ -355,3 +355,30 @@ test('a blocked route gets one quiet native recovery interval rather than a comm
   tick(3)
   assert(last(npc,'AIFollowTargetCommand')==follow and #npc.ai.commands==count)
 `));
+
+test('a rejected attention footstep is skipped: the companion stays settled and never plans a detour', () => run(`${fixture}
+  local behavior=dofile('companion-behavior.lua')
+  local s=behavior.new(1)
+  local here={x=0,y=-1.8,z=0}
+  local context={frame={epoch=1,speed=0,rawSpeed=0,stillFor=1,position={x=0,y=0,z=0},stop=1,moving=false},
+    position=here,speed=0,selected=true,playerGap=1.8,targetGap=0,facingError=40,comfortable=true,
+    nearGroup=true,motion={},restTarget=here,travelTarget=here}
+  local step
+  for i=1,60 do
+    local row=behavior.decide(s,context,0.1)
+    if row.phase=='attend_step' then step=row; break end
+  end
+  assert(step and step.operation.kind=='move' and step.operation.face,'the settled companion never took an attention step')
+  -- The actuator rejects the route and starts holding for a detour search.
+  context.motion={ticket=step.operation.ticket,blocked=true,waiting=true,route={kind='detour-search'},
+    rejection={stage='path'}}
+  local row=behavior.decide(s,context,0.1)
+  assert(row.phase=='attend_settle' and row.operation.kind=='hold',
+    'a rejected attention step was kept as '..tostring(row.phase)..'/'..tostring(row.operation and row.operation.kind))
+  context.motion={ticket=row.operation.ticket}
+  for i=1,60 do
+    row=behavior.decide(s,context,0.1)
+    assert(row.phase~='obstructed' and row.phase~='attend_step','the skipped step came back as '..row.phase)
+    assert(not (row.operation and row.operation.kind=='move'),'a skipped attention step was replaced by a move')
+  end
+`));

@@ -91,6 +91,14 @@ function M.decide(s,c,dt)
         and (motion.failed or motion.stalled))
     local retaining=s.phase=='obstructed' and ours and (motion.waiting
         or motion.route and motion.route.kind=='waypoints' and not done)
+    if obstructed and s.phase=='attend_step' then
+        -- The attention footstep is cosmetic. A rejected route is simply
+        -- skipped: hold the settled stance, never wait for or plan a detour.
+        enter(s,'attend_settle','Skip the rejected attention step and stay settled')
+        operation(s,'hold')
+        s.stillFor=0
+        return emit(s,'full')
+    end
     if (obstructed or retaining) and not s.operation.face then
         -- A lane goal beyond V is obsolete once we are already safely nearby.
         -- Do not preserve that rejected crossing ahead of the ordinary stop

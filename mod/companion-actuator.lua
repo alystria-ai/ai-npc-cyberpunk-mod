@@ -4,7 +4,8 @@ local space=dofile('companion-space.lua')
 local clearance=dofile('companion-clearance.lua')
 local M={}
 local recoveryPolicy={nearObstacle=6,travelHorizon=6,headingChange=45,
-    planSpan=1.8,planRise=.2,escapeCommandSpan=2.2,travelCommandSpan=4,rollingGap=.35}
+    planSpan=1.8,planRise=.2,escapeCommandSpan=2.2,travelCommandSpan=4,rollingGap=.35,
+    stayNear=4.5,detourGapSlack=1.5,detourExtraLength=6}
 function M.useSpatialBudget(value) clearance.useBudget(value) end
 local function vector(p) return Vector4.new(p.x,p.y,p.z or 0,p.w or 1) end
 local function position(p)
@@ -821,6 +822,26 @@ local function curved(route)
     return false
 end
 
+-- A companion already near V whose goal is also near V is staying put, not
+-- travelling. Its detour may not take any point farther from V than it started.
+-- V is measured where it stood when the obstruction was found.
+local function staysNear(search,v)
+    return space.ground(search.origin,v)<=recoveryPolicy.stayNear
+        and space.ground(search.target,v)<=recoveryPolicy.stayNear
+end
+local function leavesV(search,v,points)
+    local limit=space.ground(search.origin,v)+recoveryPolicy.detourGapSlack
+    for _,point in ipairs(points) do
+        if space.ground(point,v)>limit then return true end
+    end
+    return false
+end
+
+local function refuse(s,search)
+    -- One receipt per search; sixteen candidates must not evict older events.
+    if not search.refused then search.refused=true; record(s,'detour-refused') end
+end
+
 local function blockedRoute(s,intent,c,canPlan)
     keepBlocked(s)
     if not canPlan or s.cancellation then return false end
@@ -947,6 +968,11 @@ local function blockedRoute(s,intent,c,canPlan)
             end
         end
     end
+    local stopped=held.playerPosition or c.frame.position
+    if staysNear(search,stopped) and leavesV(search,stopped,search.mapped) then
+        -- Walking away from a stopped V is never a safe way to stay beside V.
+        refuse(s,search); nextCandidate(); return true
+    end
     local anchor=search.leg==1 and search.origin or search.mapped[search.leg-1]
     local context={position=anchor,frame=c.frame,playerGap=c.playerGap,others=c.others,id=c.id}
     local clear,reason,deferred,route=routeClear(s,context,search.mapped[search.leg],true,{stablePlayer=true,resolved=true})
@@ -962,6 +988,9 @@ local function blockedRoute(s,intent,c,canPlan)
     end
     if boxes>64 or length>space.distance(search.origin,search.target)+16 then
         nextCandidate(); return true
+    end
+    if staysNear(search,stopped) and length>space.distance(search.origin,search.target)+recoveryPolicy.detourExtraLength then
+        refuse(s,search); nextCandidate(); return true
     end
     local plan=execution({legs=search.legs},search.origin,search.target,search.following,search.mode)
     if not plan then nextCandidate(); return true end

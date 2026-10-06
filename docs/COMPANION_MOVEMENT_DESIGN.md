@@ -399,6 +399,36 @@ semantics are unchanged. Projected destinations and spawn positions retain the
 full standing-body check. No speed, follow distance or global collision margin
 was changed. The temporary native probe helper was restored byte-for-byte.
 
+### October 6: a small step became a 7 m detour
+
+Live report: after spawning and moving a little, Judy walked off kind of far.
+`runtime/movement-trace.ndjson` (serial 1) showed her settled at 1.8 m, taking an
+`attend_step`, then V shuffling half a metre. The next brain operation was an
+ordinary `alongside` move whose lane goal sat beyond a Static ledge. The path was
+rejected, the actuator planned an `escape` detour (candidate side offsets reach
+radius + 5.6 m), and the walking leg took her from 1.7 m to 7.1 m from V while V
+stood still. The catch-up that followed was then blocked too. The attention step
+itself completed normally in this trace.
+
+Changes:
+
+- `companion-behavior.lua`: a rejected or blocked `attend_step` is cosmetic. The
+  phase becomes `attend_settle` with a `hold` operation instead of `obstructed`,
+  so the companion stays settled and waits for nothing. The actuator already
+  never plans a detour for a facing (`face`) move; a test now pins that.
+- `companion-actuator.lua`: a detour for a companion that starts within 4.5 m of
+  V with a goal also within 4.5 m of V is refused when any planned point is more
+  than 1.5 m farther from V than the start, or when its length exceeds the
+  straight line to the goal by more than 6 m. V is measured where it stood when
+  the obstruction was found. The actuator records one `detour-refused` event per
+  search; exhausting the candidates keeps the held stance. A companion that is
+  already far from V keeps the existing detour limits.
+
+Tests: `companion-behavior.test.mjs` (rejected attention step is skipped) and
+`companion-obstacles.test.mjs` (cosmetic step never detours, stay-near detour
+refused, far companion still detours). Lua only; a CET reload installs it. Live
+confirmation by the user is still outstanding.
+
 ### Developer movement trace
 
 When Developer mode is enabled, the integration calls `movement-log.update` with
