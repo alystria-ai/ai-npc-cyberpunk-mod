@@ -74,7 +74,7 @@ After the agents above finish:
 
 - Expressions (live 2026-10-07): the face-test probe showed the write path works (full smile, frown, brows and jaw visible); strengths were far too low (≤0.2, resting 0.06; a smile reads at about 0.35–0.5). Retune in progress (joy about 0.45, resting about 0.15, sadness and anger brows about 0.45). Next round (user approved): a per-phrase multi-emotion timeline with a much richer local text analysis (lexicon, intensifiers, negation, contrast, sarcasm cues, mixed states), Convai's own label as the baseline when present. The user prefers this over a single model-tagged mood.
 
-- Settings Apply (user, 2026-10-07): the whole Companion Manager settings page gets a global staged Apply like the game's own settings (Apply / Reset / Defaults, a changed-value marker), replacing the voice-only Apply; nothing takes effect before Apply. Agent working. The user's MCM has `autoApply: true`; don't change their global MCM config.
+- Settings Apply (user, 2026-10-07): the whole Companion Manager settings page gets a global staged Apply like the game's own settings (Apply / Reset / Defaults, a changed-value marker), replacing the voice-only Apply; nothing takes effect before Apply. Installed d0891f8 (CET reload). In-game 2026-10-07: the voice waited for Apply (pending line shown) PASS; merged join notices (Judy + Johnny) PASS; Esc with an unapplied change left Settings with NO popup FAIL, so the UI agent is fixing the leave prompt. The user's MCM has `autoApply: true`; don't change their global MCM config.
 
 ### Not yet tested in game
 - Cars: fast-travel recovery, the "drive for me" chauffeur after today's changes, alternate owned cars, the boarding pause when V doesn't get in, overhead captions while boarding.
@@ -117,6 +117,10 @@ atural-speech\page\index.html` (and `/natural-speech/` on the picker after its n
 - Mixed voice providers in one group (and their cancellation).
 
 ## Captain's log
+
+**2026-10-07: install and test round**
+- Installed a655725 + d0891f8 (CET reload, bridge restart). The user confirmed one merged notice and Apply staging; the Esc leave prompt didn't appear (UI agent on it).
+- Gestures 857a2a2/7437d8a: all 23 spawnable tier-1 characters gesture from their own vanilla idle (only Judy idles arms-folded); demonstrate/stretch/exercise clips and reach >90 cm excluded; the finger-shape scan can't detect hand shapes (glTF lacks finger data), so exclusions use names, the reach cap and captures. Lua installed + `reload-controller` live; archive 64F305B2…2230 waits for the next game restart, then capture checks on a woman (Panam/Misty), a man (Johnny/Viktor) and Jackie/River with V about 4 m back.
 
 **2026-10-07: merged invite notices and Auto-connect nearby characters**
 - `M.newBoard` in `mod/manager-party.lua` (queue.board()) replaces the per-invitation popups of `mod/mcm.lua` (`samplePreparationPopup`, removed) and `mod/init.lua` (`updatePhoneInvitationFeedback`, `lastPhoneInvitation`, removed). The queue's outcome notices carry `info` (joined or failed) so the board can merge them. Tests: `bridge/invitation-notices.test.mjs`, the two new popup tests in `bridge/manager.test.mjs`, the two-phone-invite test in `bridge/world-lifecycle.test.mjs`. One existing test changed on purpose: cancelling the newest of two copies no longer silences the older copy's next stage.
