@@ -205,3 +205,31 @@ test('a saved legacy hybrid choice matches its effective Omni quality without pr
     assert(committed.voiceProvider == 'hybrid' and committed.omniSteps == 16)
   `);
 });
+
+test('a staged choice prepares nothing until it has stayed unchanged, and rapid cycling publishes no lease', () => {
+  run(`
+    preview.reset(); preview = nil
+    local settled = (function() ${source} end)().new({settleMs = 2000, now = function() return clock end,
+      encode = function(value) encoded[#encoded + 1] = value; return tostring(#encoded) end,
+      write = function(path, raw) files[path] = encoded[tonumber(raw)]; publications[#publications + 1] = files[path]; return true end})
+    settled.bind(api)
+    local function step(provider) changed(provider, true); settled.update(true, 'native-menu-1', function() return committed end) end
+    -- Cycle through every choice, one per second: none stays long enough.
+    for _, provider in ipairs({3, 1, 2, 3, 1}) do step(provider); clock = clock + 1000 end
+    assert(#publications == 0, 'a choice that kept changing prepared a model')
+    assert(settled.staged() == 'omni:16')
+    -- The last choice stays: after two unchanged seconds it is published once.
+    step(1); assert(#publications == 0, 'published before the settle time')
+    clock = clock + 1000; step(1)
+    assert(#publications == 1 and current().active and current().provider == 'omni' and current().omniSteps == 16)
+    -- Moving on keeps the earlier lease alive instead of dropping the worker, then replaces it.
+    clock = clock + 1000; step(3)
+    assert(#publications == 2 and current().provider == 'omni', 'cycling dropped the prepared choice')
+    clock = clock + 2000; step(3)
+    assert(current().provider == 'pocket')
+    -- Back on the saved choice: staging is cancelled.
+    committed.voiceProvider = 'omni'; committed.omniSteps = 16
+    clock = clock + 1000; step(1)
+    assert(not current().active and settled.staged() == nil)
+  `);
+});

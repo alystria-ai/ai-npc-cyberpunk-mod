@@ -85,7 +85,7 @@ const jaliFace = await JaliFace.load(resolve(stateDirectory, 'lipsync-model')).c
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
-  omniConfig:omniVoiceConfig,omniConfigPath:omniVoiceConfigPath,
+  omniConfig:omniVoiceConfig,omniConfigPath:omniVoiceConfigPath,previewSettleMs:1500,
   profileKeys:roster.map(profile=>profile.key),
   onState: state => {
     voiceMetricsWriting = voiceMetricsWriting.catch(() => {}).then(() => atomic(resolve(runtime, 'local-voice-state.json'), JSON.stringify(state)));

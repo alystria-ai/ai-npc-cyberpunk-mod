@@ -68,7 +68,7 @@ After the agents above finish:
 - Invite notifications need merging: summoning Judy and Johnny together showed only Johnny's notice (each stays on screen too long while characters load fast). Merge concurrent invites into one compact notice (for example "Preparing Judy, Johnny…" then "Judy and Johnny joined"); no flood of fast notices, and no giant notice when many are summoned (summarise as "5 companions joined" past a few names).
 - Fight/Distract targets (agent working): use the game's native scanner tags (closest tagged), else the enemy V is looking at within about 30 m, else the closest; valid = any combat-capable NPC (gangs, NCPD, corpo security), not only currently hostile ones.
 
-- Current party UI (agent): rows become "Name #id" with Dismiss on the right; remove the per-row conversation entry, the "following" text, the last-action line, and the companion-limit display and setting; match the name font to "Back to companion manager"; dismissing removes the row immediately.
+- Current party UI and Help/voice follow-ups: committed locally, waiting to be installed (CET reload for the Lua and locales; a bridge restart for the voice settle delay and the clipboard route). Rows are "Name #n" + Dismiss, no limit/status/last-action lines, a dismissed row disappears at once. Voice choice is staged (pending text, MCM Apply/Revert) and only prepares a model after it stays unchanged; Copy report path is a real button (service clipboard + ImGui), the report popup is Developer-mode only and paths are shortened. In-game checks: dismiss while paused, row name font = Back, cycle voices quickly then Apply, Copy report path then paste.
 - Gesture round 2 (agent, needs a game restart): start only within 4 m and settled; end if the gap exceeds 4.5 m; fix `waitingWithGroup` in `companion-behavior.lua` (it held Johnny "settled" at 26 m beside Judy's group); more and bigger gestures, Judy's own, smoother enter and exit blends; controller hot-reload.
 - Tactics native targets: committed in `0df3948`, waiting to be installed with the next restart (`companion-marking.lua`, `companion-tactics.lua`, `init.lua`, locales; a bridge restart for the prompt text).
 
@@ -115,6 +115,8 @@ atural-speech\page\index.html` (and `/natural-speech/` on the picker after its n
 - Mixed voice providers in one group (and their cancellation).
 
 ## Captain's log
+
+- 2026-10-07 (Current party / Help / voice): Current party is one row per copy (name + number, Dismiss right), optimistic dismissal with the row restored plus reason on failure, companion limit hidden (the 8 formation places stay internal; a full party answers with a message), per-copy conversation page removed. Voice drafts no longer reach the worker until stable (Lua 2 s, bridge 1.5 s); the earlier failure left no direct log evidence (supervisor shows 0 restarts), the logs show repeated model loads from per-step previews. Help: Copy report path asks the service to use clip.exe, popup Developer-only, paths shortened.
 
 **2026-10-06 (expressions v2): live face-test retune**
 - Live sweep on Judy: write path fine, strengths too low (smile reads at .35-.5). Policy v2: joy .45 (scale 2 .30), trust .25, sadness corners .40 + brows .45, anger lower .45, surprise brows .50, caps .50/.55, rest smile .10, model brow gain .8. Probe jaw-sticking bug fixed. Install: `mod/facial-playback.lua`, `mod/face-test.lua`; no bridge restart needed (cue logic unchanged since the earlier restart). Judge naturalness in game; only numbers change.

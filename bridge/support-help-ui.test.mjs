@@ -242,7 +242,11 @@ test('Settings offers Help, and the Help page has one parent Back, guidance, the
   assert(row('help-log-redscript').description:find('E:\\\\Game\\\\r6\\\\logs\\\\redscript_rCURRENT.log', 1, true))
   assert(row('help-log-red4ext').description:find('E:\\\\Game\\\\red4ext\\\\logs', 1, true))
   assert(row('help-log-reports').description:find(MOD .. '\\\\runtime\\\\reports', 1, true))
-  assert(row('help-last').value == 'None yet' and row('help:copy').disabled == true)
+  assert(row('help-last').value == 'None yet')
+  -- Copy is a real button even before a report exists; it then says what to do.
+  assert(row('help:copy').type == 'action' and not row('help:copy').disabled and row('help:copy').value == 'Copy')
+  local early = invoke('help:copy')
+  assert(not early.ok and early.error == 'Create a report first.' and not files['runtime/clipboard-request.json'])
   assert(row('help:generate').value == 'Create' and not row('help:generate').disabled)
   assert(invoke('help:back').ok and mcm.inspect().view == 'settings' and row('help'))
   assert(not invoke('help:generate').ok, 'a stale Help action stayed callable after leaving the page')
@@ -268,20 +272,34 @@ test('with the conversation service running the page asks it for a report, shows
   pump(false)
   assert(#popups == 0, 'a paused menu cannot show the popup, so it waits for gameplay')
   assert(row('help-last').value == 'convai-report-20261005-120000.zip', row('help-last').value)
-  assert(row('help-last').description:find(path, 1, true), 'the full path is shown on the page')
+  -- The page shows a short path with a soft break, never the long unbroken one.
+  local short = '…\\\\runtime\\\\reports\\\\\\n' .. 'convai-report-20261005-120000.zip'
+  assert(row('help-last').description:find(short, 1, true) and not row('help-last').description:find(MOD, 1, true),
+    row('help-last').description)
   assert(not row('help:generate').disabled)
-  pump(true, 1)
-  assert(#popups == 1 and popups[1]:find(path, 1, true), 'one popup carries the full path')
+  pump(true, 4)
+  assert(#popups == 0, 'the saved-report popup is for Developer mode only')
+  -- Developer mode shows it once, with the short path.
+  assert(registered.applyBatch('manager', {{id = 'developerMode', value = true}}).ok)
+  assert(invoke('help:generate').ok)
+  request = jsonFixtures[files['runtime/report-request.json']]
+  jsonFile('runtime/report-result.json', {version = 1, id = request.id, state = 'ready', mode = 'bridge', path = path,
+    fileName = 'convai-report-20261005-120000.zip'})
+  pump(true, 3)
+  assert(#popups == 1 and popups[1]:find(short, 1, true) and not popups[1]:find(MOD, 1, true), popups[1])
   pump(true, 3)
   assert(#popups == 1, 'the popup is shown once')
-  -- Copy path: only offered when the game exposes the clipboard.
-  assert(row('help:copy').disabled == true)
+  -- Copy path is a button that asks the service to copy the full path, and also
+  -- tries the game clipboard from the next top-level update.
   local copied
   ImGui = {SetClipboardText = function(text) copied = text end}
-  assert(invoke('help:back').ok and invoke('help').ok)
-  assert(not row('help:copy').disabled)
   local copy = invoke('help:copy')
-  assert(copy.ok and copied == path)
+  assert(copy.ok and copied == nil, 'the game clipboard must not run inside the menu callback')
+  local requested = jsonFixtures[files['runtime/clipboard-request.json']]
+  assert(requested.version == 1 and requested.text == path and type(requested.id) == 'string')
+  pump(false, 1)
+  assert(copied == path, 'the game clipboard runs from the top-level update')
+  ImGui = nil
 `));
 
 test('with the conversation service stopped the page writes a short report itself and says so', () => run(`${helpFixture()}
@@ -298,7 +316,7 @@ test('with the conversation service stopped the page writes a short report itsel
   assert(report.value:find('the conversation service was not running', 1, true))
   local last = row('help-last')
   assert(last.value:match('^convai%-report%-.*%-lua%.txt$') and last.description:find('short report', 1, true))
-  assert(last.description:find(MOD .. '\\\\runtime\\\\reports\\\\', 1, true))
+  assert(last.description:find('…\\\\runtime\\\\reports\\\\\\n', 1, true) and not last.description:find(MOD, 1, true), last.description)
 `));
 
 test('without the support module the manager is unchanged and shows no Help entry', () => run(`${helpFixture(false)}

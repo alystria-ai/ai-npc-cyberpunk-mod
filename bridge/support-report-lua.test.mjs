@@ -188,7 +188,9 @@ test('the Lua redactor removes the same planted patterns as the service and keep
 
 test('service reachable: the request goes to the service, the result completes it, and a notice follows once in gameplay', () => run(`
   put('runtime/knowledge-status.json', {version = 1, updated = ms()})
-  local s = newSupport({party = function() return {{key = 'bob-sagan', profileKey = 'bob-sagan', name = 'Bob', state = 'following', error = 'api-key=zzzSecret99'}} end})
+  local developer = false
+  local s = newSupport({developerMode = function() return developer end,
+    party = function() return {{key = 'bob-sagan', profileKey = 'bob-sagan', name = 'Bob', state = 'following', error = 'api-key=zzzSecret99'}} end})
   assert(s.serviceState() == 'running')
   local ok, message = s.request()
   assert(ok and message == 'Creating the report…' and s.status().phase == 'working')
@@ -205,9 +207,20 @@ test('service reachable: the request goes to the service, the result completes i
   assert(s.update(false) == nil, 'a paused menu hides popups, so the notice waits')
   local status = s.status()
   assert(status.phase == 'ready' and status.mode == 'bridge' and status.fileName == 'convai-report-20261005-120000.zip')
-  assert(s.banner() == 'Report saved: ' .. status.path)
-  local notice = s.update(true)
-  assert(notice == 'Support report saved: ' .. status.path, notice)
+  local short = '…' .. string.char(92) .. 'runtime' .. string.char(92) .. 'reports' .. string.char(92) .. string.char(10)
+    .. 'convai-report-20261005-120000.zip'
+  assert(s.displayPath() == short and not short:find('Game', 1, true))
+  assert(s.banner() == 'Report saved: ' .. short, s.banner())
+  assert(s.update(true) == nil, 'the saved-report popup is for Developer mode only')
+  assert(s.update(true) == nil)
+  -- With Developer mode on, a report announces itself once, with the short path.
+  developer = true
+  advance(1); local ok2 = s.request(); assert(ok2)
+  local second = json.decode(files['runtime/report-request.json'])
+  advance(1); put('runtime/report-result.json', {version = 1, id = second.id, state = 'ready', mode = 'bridge',
+    path = status.path, fileName = 'convai-report-20261005-120000.zip'})
+  assert(s.update(false) == nil)
+  assert(s.update(true) == 'Support report saved: ' .. short)
   assert(s.update(true) == nil, 'announced once')
 `));
 
@@ -352,23 +365,30 @@ test('log locations: exact paths from the service, derived paths from the launch
   assert(exact.reports == 'E:\\\\G\\\\mod\\\\runtime\\\\reports')
 `));
 
-test('Copy path needs a report and the game clipboard, and never raises', () => run(`
+test('Copy path needs a report, asks the service and tries the game clipboard from the update, and never raises', () => run(`
   put('runtime/bridge-service.json', {state = 'stopped', updated = ms(), since = ms(-5)})
   local s = newSupport()
   local ok, message = s.copyPath()
-  assert(not ok and message == 'Create a report first.')
+  assert(not ok and message == 'Create a report first.' and not files['runtime/clipboard-request.json'])
   assert(s.request())
-  assert(not s.canCopy())
-  ok, message = s.copyPath()
-  assert(not ok and message:find('clipboard is not available', 1, true))
-  local copied
-  ImGui = {SetClipboardText = function(text) copied = text end}
   assert(s.canCopy())
   ok, message = s.copyPath()
-  assert(ok and copied == s.status().path and message == 'Report path copied to the clipboard.')
+  assert(ok and message == 'Report path copied to the clipboard.')
+  local requested = json.decode(files['runtime/clipboard-request.json'])
+  assert(requested.version == 1 and requested.text == s.status().path and requested.issuedAt == clock * 1000)
+  local copied
+  ImGui = {SetClipboardText = function(text) copied = text end}
+  ok = s.copyPath(); assert(ok and copied == nil, 'no ImGui call inside the menu callback')
+  s.update(true)
+  assert(copied == s.status().path)
+  copied = nil; s.update(true); assert(copied == nil, 'copied once')
   ImGui = {SetClipboardText = function() error('no ImGui context') end}
+  ok = s.copyPath(); assert(ok); s.update(true)
+  -- Neither route: the request file cannot be written and the game has no clipboard.
+  ImGui = nil
+  local realOpen = io.open
+  io.open = function(path, mode) if path == 'runtime/clipboard-request.json' then return nil end return realOpen(path, mode) end
   ok, message = s.copyPath()
   assert(not ok and message:find('clipboard is not available', 1, true))
-  ImGui = {}
-  assert(not s.canCopy())
+  io.open = realOpen
 `));

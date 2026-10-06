@@ -24,6 +24,11 @@ export class VoiceSelection {
     this.registries={pocket:pocketRegistry,omni:omniRegistry,convai:empty};
     this.configs={pocket:snapshot(validated,pocketRegistry),omni:snapshot(omniInput,omniRegistry)};
     this.options = options;
+    // A draft must stay unchanged this long before it may prepare a model, so
+    // cycling quickly through the choices never starts or retires a worker.
+    // Zero keeps the preview immediate for callers that do not debounce.
+    this.previewSettleMs = Number.isFinite(options.previewSettleMs) ? Math.max(0, options.previewSettleMs) : 0;
+    this.clock = options.clock || Date.now; this.previewSince = 0;
     this.phoneAnalysis=options.phoneAnalysis;
     this.factory = options.factory || ((settings, hooks) => new PocketVoice(settings, hooks));
     this.omniFactory=options.omniFactory||((settings,hooks)=>new ResidentVoice(settings,hooks));
@@ -127,17 +132,19 @@ export class VoiceSelection {
     // An unloadable settings draft must not retire a usable committed worker.
     // Apply still changes routing normally and lets unsupported profiles use
     // Convai; a configured draft retains its existing warm-up/retirement path.
-    const candidates=[this.preview&&this.resolve(this.preview.provider),this.resolvedProvider,this.provider];
+    const candidates=[this.previewSettled&&this.preview&&this.resolve(this.preview.provider),this.resolvedProvider,this.provider];
     return candidates.find(candidate=>local(candidate)&&this.configuredByBackend[candidate]
       &&this.availabilities[candidate].size>0&&!this.failedBackends.has(candidate))||null;
   }
-  get warmSteps(){return this.preview?.provider==='omni'?this.preview.omniSteps:this.requestedOmniSteps;}
+  get previewSettled(){return !!this.preview&&this.clock()-this.previewSince>=this.previewSettleMs;}
+  get warmSteps(){return this.previewSettled&&this.preview.provider==='omni'?this.preview.omniSteps:this.requestedOmniSteps;}
   setPreview(preview) {
     const chosen=canonicalVoiceProvider(preview?.provider),quality=preview?.omniSteps??preview?.steps??16;
     const next=preview&&['pocket','omni','convai'].includes(chosen)&&(!['omni'].includes(chosen)||[16,32].includes(quality))
       ?{provider:chosen,...(chosen==='omni'?{omniSteps:quality}:{})}:null;
     const changed=this.preview?.provider!==next?.provider||this.preview?.omniSteps!==next?.omniSteps;
     this.preview = next;
+    if (changed) this.previewSince = this.clock();
     return changed;
   }
   prepare(preview) {

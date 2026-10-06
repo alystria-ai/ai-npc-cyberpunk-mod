@@ -4,7 +4,7 @@ import {readFile, readdir, writeFile, stat, mkdir} from 'node:fs/promises';
 import {join} from 'node:path';
 import {createZip, readZip, crc32} from './zip-writer.mjs';
 import {createRedactor, tailFile, pruneReports, buildReport, collectReport, credentialSecrets,
-  SupportReportControl, parseReportRequest, publishSupportPaths, locateLogs, shortHash,
+  SupportReportControl, parseReportRequest, parseClipboardRequest, publishSupportPaths, locateLogs, shortHash,
   REPORT_KEEP, LOG_MAX_LINES, LOG_MAX_BYTES} from './support-report.mjs';
 import {PLANTED, VECTORS, fakeInstall, plantedInstall} from './support-report-fixture.mjs';
 
@@ -292,4 +292,34 @@ test('the bridge starts the report service and installs it in the package plan',
   assert(/clearInterval\(supportTimer\); supportReport\.close\(\)/.test(source));
   const {BRIDGE_MODULES} = await import('../packaging/runtime-layout.mjs');
   for (const module of ['bridge/support-report.mjs', 'bridge/zip-writer.mjs']) assert(BRIDGE_MODULES.includes(module), module);
+});
+
+test('Copy report path asks the service to copy only a report file path, once per request, and never raises', async () => {
+  const f = await fakeInstall();
+  try {
+    const clipboardPath = join(f.runtime, 'clipboard-request.json');
+    const copies = [];
+    let failNext = false;
+    const control = await SupportReportControl.open({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      copy: async text => { if (failNext) { failNext = false; throw Error('no clip.exe'); } copies.push(text); }});
+    const reportPath = join(f.runtime, 'reports', 'convai-report-20261007-015117.zip');
+    const request = (id, text, issuedAt = Date.now()) => JSON.stringify({version: 1, id, issuedAt, text});
+    await writeFile(clipboardPath, request('c1', reportPath));
+    await control.poll(); await control.poll();
+    assert.deepEqual(copies, [reportPath], 'one copy per request id');
+    failNext = true;
+    await writeFile(clipboardPath, request('c2', reportPath));
+    await control.poll();
+    assert.equal(copies.length, 1, 'a failed copy is swallowed');
+    const now = Date.now();
+    for (const raw of [request('c3', join(f.runtime, 'settings.json')), request('c4', 'x'.repeat(2000)),
+      request('c5', reportPath, now - 60000), request('c6', reportPath + String.fromCharCode(10) + 'x'),
+      JSON.stringify({version: 2, id: 'c7', issuedAt: now, text: reportPath}), '{', '']) {
+      assert.equal(parseClipboardRequest(raw, now), null, raw.slice(0, 60));
+    }
+    assert.deepEqual(parseClipboardRequest(request('c8', reportPath, now), now), {id: 'c8', text: reportPath});
+    await writeFile(clipboardPath, request('c9', join(f.runtime, 'settings.json')));
+    await control.poll();
+    assert.equal(copies.length, 1, 'only a convai-report file path is copied');
+  } finally { await f.cleanup(); }
 });

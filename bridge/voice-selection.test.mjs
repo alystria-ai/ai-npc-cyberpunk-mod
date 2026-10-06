@@ -49,13 +49,13 @@ test('optional analyser unavailability preserves voice readiness while Invite ca
   const invited=next.voice.prepareProfile('judy-alvarez',{signal:controller.signal});await tick();await tick();
   controller.abort();await assert.rejects(invited,{name:'AbortError'});waiting.resolve({ready:true});await next.voice.close();
 });
-function fixture({holdWarm = false, holdClose = false, extraProfiles = {}, unavailableProfiles = [], omniConfig = {}, phoneAnalysis} = {}) {
+function fixture({holdWarm = false, holdClose = false, extraProfiles = {}, unavailableProfiles = [], omniConfig = {}, phoneAnalysis, voiceOptions = {}} = {}) {
   const workers = [], states = []; let live = 0, peak = 0;
   const voices = Object.fromEntries(LOCAL_VOICE_KEYS.map(key => [key, {
     reference: `runtime/voice-references/${key}.wav`, sha256: 'a'.repeat(64), transcript: 'Ready when you are, V.',
   }]));
   Object.assign(voices, extraProfiles);
-  const voice = new VoiceSelection(pocketSettings(voices), {omniConfig, phoneAnalysis, onState: value => states.push(value),
+  const voice = new VoiceSelection(pocketSettings(voices), {omniConfig, phoneAnalysis, ...voiceOptions, onState: value => states.push(value),
     factory: (config, {onState}) => {
       const warm = defer(), released = defer(); let loaded = false, owned = false;
       const worker = {warm, released, starts: 0, closes: 0, calls: [],
@@ -536,5 +536,24 @@ test('a saved Convai choice never reports a fallback, and a missing Omni setup s
   const h=fixture();
   assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.provider,'pocket');
   assert.deepEqual(h.voice.fallback,{from:'omni',to:'pocket'});
+  await h.voice.close();
+});
+
+test('a draft that keeps changing never starts or retires a worker until it has settled',async()=>{
+  let now=1000;const h=fixture({voiceOptions:{previewSettleMs:1500,clock:()=>now}});
+  h.voice.update({voiceProvider:'convai'},null,false);
+  // Cycle quickly through the choices: each one is new, none has settled.
+  for(const provider of ['pocket','convai','pocket','convai','pocket']){
+    h.voice.update({voiceProvider:'convai'},{provider},false);now+=300;await tick();
+  }
+  assert.equal(h.workers.length,0,'rapid draft changes reached the worker');
+  assert.equal(h.voice.targetBackend,null);
+  // The last choice stays for the settle time, then prepares exactly one worker.
+  now+=1500;h.voice.update({voiceProvider:'convai'},{provider:'pocket'},false);await tick();await h.voice.start();
+  assert.equal(h.workers.length,1);assert.equal(h.workers[0].starts,1);assert.equal(h.workers[0].closes,0);
+  assert.equal(h.voice.provider,'convai','a staged draft changed the committed route');
+  // Moving on again waits for the new choice to settle before the worker is retired.
+  h.voice.update({voiceProvider:'convai'},null,false);await tick();
+  assert.equal(h.workers[0].closes,1);
   await h.voice.close();
 });

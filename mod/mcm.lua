@@ -16,7 +16,9 @@ local preparationPopup
 local presentation = {active = false, rows = {}}
 local voiceSelectors = {}
 local localeRevision = -1
-local voicePreview = dofile('voice-preview.lua').new()
+-- A voice choice only stages a draft. Its model is prepared once the choice has
+-- stayed the same for this long, so cycling through the list starts nothing.
+local voicePreview = dofile('voice-preview.lua').new({settleMs = 2000})
 -- Help page: log locations and the shareable support report. Optional: the
 -- manager works without it, and a load failure only hides the Help entry.
 local support, supportSignature
@@ -276,9 +278,22 @@ local function voiceServiceLabel(state)
     return ui.t(labels[state.state] or 'Waiting for voice service')
 end
 
+-- The status line, plus the staged choice that Apply has not committed yet.
+local function voiceStatusText(snapshot)
+    local text = voiceServiceLabel(snapshot.localVoice)
+    local staged = presentation.active and view == 'settings' and voicePreview.staged()
+    local provider, steps = nil, nil
+    if staged then provider, steps = staged:match('^(%a+):(%d*)$') end
+    if provider then
+        text = ui.t('{status} · Pending: {voice}. Apply to use it.',
+            {status = text, voice = manager.voiceLabel(provider, tonumber(steps))})
+    end
+    return text
+end
+
 local function updateVoiceStatus(snapshot)
     if view ~= 'settings' or not presentation.active or not presentation.voiceStatus then return end
-    local text = voiceServiceLabel(snapshot.localVoice)
+    local text = voiceStatusText(snapshot)
     if text ~= presentation.voiceStatusText then
         -- Updating this read-only value preserves MCM's draft selectors. As
         -- with styling, ink access stays in top-level update, never its hooks.
@@ -578,10 +593,10 @@ local function schema()
         local copyDescription = report.path
             and ui.t('Copy the report path to the clipboard so you can paste it into a message.')
             or ui.t('Create a report first, then copy its path.')
-        local lastValue, lastDescription = ui.t('None yet'), ui.t('Choose Generate report. The file path appears here, in the banner above and in a notification.')
+        local lastValue, lastDescription = ui.t('None yet'), ui.t('Choose Generate report. The file name and its folder appear here and in the banner above.')
         if report.path then
             lastValue = report.fileName
-            lastDescription = ui.t('Saved at {path}', {path = report.path})
+            lastDescription = ui.t('Saved at {path}', {path = support.displayPath(report.path)})
             if report.mode == 'lua' then
                 lastDescription = lastDescription .. '\n' .. ui.t('This is a short report: the conversation service was not available to build the full one.')
             end
@@ -600,7 +615,7 @@ local function schema()
             readonly('help-last', 'Last report', lastValue, lastDescription, {value = report.path ~= nil, description = true}),
             action('help:copy', 'Copy report path', 'Copy',
                 copyDescription,
-                function() return support.copyPath() end, report.path ~= nil and support.canCopy()),
+                function() return support.copyPath() end),
         }, 'One file with versions, settings and the latest log lines. It never contains your API key, tokens, voice recordings or conversation text.')
         categories[#categories + 1] = category('help-logs', 'Where the logs are', {
             readonly('help-log-mod', 'Mod logs', files.mod,
@@ -654,7 +669,7 @@ local function schema()
             setting('bodyGestures', 'Body gestures', 'bool', snapshot.settings.bodyGestures, false,
                 'Companions gesture with their body while they speak longer replies and nod while you talk to them, using the game’s own animations in their usual stance. They stop at once when anyone moves or a fight starts.'),
         })
-        local voiceStatus = voiceServiceLabel(snapshot.localVoice)
+        local voiceStatus = voiceStatusText(snapshot)
         -- The list, best first: OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS, Convai cloud voice.
         local voiceIndex = snapshot.settings.voiceProvider == 'convai' and 4
             or (snapshot.settings.voiceProvider == 'pocket' and 3
@@ -662,10 +677,10 @@ local function schema()
         categories[#categories + 1] = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
             setting('voiceProvider', 'Companion voices', 'select', voiceIndex, 1,
-                'OmniVoice uses the GPU and sounds closest to the characters. 16 steps sounds the same in tests as 32 steps at half the GPU time, so it is the default. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. Selecting a local voice starts preparing its model immediately. Saving the settings keeps your choice; discarding changes cancels the preview.',
+                'OmniVoice uses the GPU and sounds closest to the characters. 16 steps sounds the same in tests as 32 steps at half the GPU time, so it is the default. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. Choosing a voice only stages it: nothing changes until you choose Apply, and Revert discards it. A staged local voice is prepared once you stop changing the choice for a couple of seconds.',
                 {'OmniVoice 16 steps', 'OmniVoice 32 steps', 'Pocket TTS', 'Convai cloud voice'}),
             readonly('voice-status', 'Voice service', voiceStatus,
-                'The selected local model starts preparing as soon as you select it here and stays warm once your choice is saved. Discarding changes or leaving without saving cancels the preview; no game restart is needed.'),
+                'A staged local voice is prepared once the choice stops changing, and stays warm after you apply it. Revert, or leaving without applying, discards it and releases the model; no game restart is needed.'),
         }, 'Save changed settings to keep your choices, or discard changes to restore the saved settings.')
         categories[#categories + 1] = category('subtitles', 'Subtitles', {
             setting('subtitles', 'Subtitles', 'bool', snapshot.settings.subtitles, true, 'Show companion replies using the selected subtitle display.'),

@@ -35,6 +35,13 @@ no longer open it.
   names the voice in use (for example "Ready · Using Pocket TTS, OmniVoice 16
   steps unavailable") and one gameplay notice says so once.
   MCM owns setting drafts, saving, discarding, defaults and draft guards.
+  **Voice choice is staged, not live.** Choosing a voice only stages an MCM draft; the
+  voice status row adds "Pending: <voice>. Apply to use it." while the staged choice
+  differs from the saved one, and MCM's Apply commits it while Revert discards it. A staged
+  local voice prepares its model only after the choice has stayed unchanged for about two
+  seconds (`mod/voice-preview.lua`, `settleMs`), and the service (`bridge/voice-selection.mjs`,
+  `previewSettleMs`) waits 1.5 s more before starting or retiring a worker, so cycling quickly
+  through the list never loads or unloads a model per step.
 
 Every inner page starts with one **Back** action. Characters, Current party,
 Model browser and Settings return to the manager home; Relationships, Memory
@@ -61,9 +68,13 @@ returns to Settings, like Relationships and Memory. The page has three groups:
 - **If something goes wrong**: what to do, and whether the conversation service is Running,
   Starting, Not running or Unknown.
 - **Report for the developer**: **Generate report**, the **Last report** row (file name as the
-  value, full path in the description, the same path in the banner) and **Copy report path**
-  (enabled only when the game exposes `ImGui.SetClipboardText`; it fails quietly otherwise).
-  A native popup with the path appears once, when gameplay resumes (a paused menu hides it).
+  value; the description and the banner show a shortened path, `…untimeeports\` then the
+  file name on its own line, so a long path never overflows) and **Copy report path**, a
+  button that is always offered. It writes `runtime/clipboard-request.json`; the conversation
+  service puts the full path on the Windows clipboard with `clip.exe` (only the path of a
+  `convai-report-*` file is accepted). The game's own `ImGui.SetClipboardText` is tried too,
+  from the next top-level update rather than inside the menu callback. The "Support report
+  saved" popup appears only in Developer mode (once, when gameplay resumes).
 - **Where the logs are**: absolute paths for the mod's `runtime\` logs (`probe.log`, `mcm.log`),
   the conversation service logs (`bridge.stderr.log`, `bridge.stdout.log`, `bridge-service.log`),
   `launcher.log` (`red4ext\plugins\CyberpunkConvaiLauncher`), the CET logs (`cyber_engine_tweaks.log`,

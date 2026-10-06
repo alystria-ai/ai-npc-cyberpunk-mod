@@ -3,6 +3,9 @@
 local M = {}
 local MOD_KEY = 'cyberpunk-convai:manager'
 local INTERVAL = 1000
+-- A staged choice only prepares a model once it has stayed unchanged this long,
+-- so cycling through the voices never loads or unloads a worker per step.
+local DEFAULT_SETTLE = 0
 
 local function writeFile(path, raw)
     local temporary = path .. '.tmp'
@@ -31,6 +34,8 @@ function M.new(options)
     local api, subscription, scope, leaseOwner
     local dirty, sequence, publicationSequence, nextPoll, nextAttempt = true, 0, 0, 0, 0
     local current, attempted, failure = nil, nil, nil
+    local settleMs = tonumber(options.settleMs) or DEFAULT_SETTLE
+    local staged, stagedSince = nil, 0
     local now = options.now or function() return os.time() * 1000.0 end
     local write = options.write or writeFile
     local encode = options.encode or function(value) return json.encode(value) end
@@ -85,7 +90,7 @@ function M.new(options)
         local stamp = now()
         if not visible or not controllerKey or not api or not subscription then
             cancel(stamp)
-            scope, leaseOwner, dirty, nextPoll = nil, nil, true, 0
+            scope, leaseOwner, dirty, nextPoll, staged = nil, nil, true, 0, nil
             return
         end
         if scope ~= controllerKey then
@@ -96,13 +101,14 @@ function M.new(options)
         if not dirty and stamp < nextPoll then return end
         dirty, nextPoll = false, stamp + INTERVAL
         local pendingOk, pending = pcall(api.hasDrafts, MOD_KEY)
-        if not pendingOk or not pending then cancel(stamp); return end
+        if not pendingOk or not pending then staged = nil; cancel(stamp); return end
         local providerOk, provider, providerError = pcall(api.getValue, MOD_KEY .. ':voiceProvider')
         local savedOk, saved = pcall(readCommitted)
         if not providerOk or providerError or (provider ~= 1 and provider ~= 2 and provider ~= 3 and provider ~= 4)
             or not savedOk or type(saved) ~= 'table'
             or (saved.voiceProvider ~= 'pocket' and saved.voiceProvider ~= 'omni'
                 and saved.voiceProvider ~= 'hybrid' and saved.voiceProvider ~= 'convai') then
+            staged = nil
             cancel(stamp)
             return
         end
@@ -111,16 +117,32 @@ function M.new(options)
         provider = provider == 3 and 'pocket' or (provider == 4 and 'convai' or 'omni')
         local savedProvider = saved.voiceProvider == 'hybrid' and 'omni' or saved.voiceProvider
         local savedSteps = saved.omniSteps == 32 and 32 or 16
-        if provider == savedProvider and (provider ~= 'omni' or omniSteps == savedSteps) then cancel(stamp); return end
+        if provider == savedProvider and (provider ~= 'omni' or omniSteps == savedSteps) then
+            staged = nil
+            cancel(stamp); return
+        end
+        local choice = provider .. ':' .. tostring(omniSteps or '')
+        if staged ~= choice then staged, stagedSince = choice, stamp end
+        if stamp - stagedSince < settleMs then
+            -- Still being changed. Keep an earlier lease alive and start none; the next
+            -- poll notices the choice once it has settled.
+            if current and current.active then
+                publish({owner = leaseOwner, active = true, provider = current.provider, omniSteps = current.omniSteps}, stamp)
+            end
+            return
+        end
         publish({owner = leaseOwner, active = true, provider = provider, omniSteps = omniSteps}, stamp)
     end
 
     function P.reset()
         cancel(now())
-        scope, leaseOwner, dirty, nextPoll = nil, nil, true, 0
+        scope, leaseOwner, dirty, nextPoll, staged = nil, nil, true, 0, nil
     end
 
     function P.shutdown() P.bind(nil) end
+
+    -- The staged choice that differs from the saved one, or nil. Lua data only.
+    function P.staged() return staged end
 
     function P.inspect()
         return {available = subscription ~= nil, active = current and current.active or false,

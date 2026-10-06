@@ -226,6 +226,21 @@ end
 local function baseName(path) return tostring(path):match('([^\\/]*)$') end
 local function dirName(path) return tostring(path):match('^(.*)[\\/][^\\/]*$') end
 
+-- A long path with no spaces overflows banners, popups and description panels.
+-- Show its last two folders and break before the file name, so each line is
+-- short: "…\runtime\reports\" then "convai-report-<time>.zip".
+function M.displayPath(path)
+    local text = tostring(path or '')
+    local file, folder = baseName(text), dirName(text)
+    if file == '' or not folder then return text end
+    local parts = {}
+    for part in folder:gmatch('[^\\/]+') do parts[#parts + 1] = part end
+    local kept = {}
+    for index = math.max(1, #parts - 1), #parts do kept[#kept + 1] = parts[index] end
+    if #kept == 0 then return file end
+    return '…\\' .. table.concat(kept, '\\') .. '\\\n' .. file
+end
+
 ------------------------------------------------------------------ instance
 
 function M.new(options)
@@ -234,7 +249,8 @@ function M.new(options)
     local self = {}
     local state = {phase = 'idle'} -- idle | working | ready | failed
     local counter, lastPoll = 0, -1
-    local notice
+    local notice, pendingCopy
+    local function hasGameClipboard() return type(ImGui) == 'table' and type(ImGui.SetClipboardText) == 'function' end
 
     local function now() return os.time() end
 
@@ -307,9 +323,12 @@ function M.new(options)
         return table.concat({state.phase, state.mode or '', state.fileName or '', state.reason or '', state.failure or ''}, '|')
     end
 
-    function self.canCopy()
-        return state.path ~= nil and type(ImGui) == 'table' and type(ImGui.SetClipboardText) == 'function'
-    end
+    -- The path as shown in the menu and in popups: short, with a soft break.
+    function self.displayPath(path) return M.displayPath(path or state.path) end
+
+    -- Copying is always offered once a report exists. The service copies the
+    -- path (see copyPath), so the game's own clipboard is only a second route.
+    function self.canCopy() return state.path ~= nil end
 
     -- The line shown in the action banner for the current state.
     function self.banner()
@@ -319,22 +338,25 @@ function M.new(options)
         end
         if state.phase == 'ready' then
             if state.mode == 'lua' and state.reason == 'no-response' then
-                return ui.t('Short report saved because the conversation service did not answer: {path}', {path = state.path})
+                return ui.t('Short report saved because the conversation service did not answer: {path}', {path = M.displayPath(state.path)})
             end
             if state.mode == 'lua' and state.reason == 'failed' then
-                return ui.t('Short report saved because the conversation service could not build the full report: {path}', {path = state.path})
+                return ui.t('Short report saved because the conversation service could not build the full report: {path}', {path = M.displayPath(state.path)})
             end
             if state.mode == 'lua' then
-                return ui.t('Short report saved because the conversation service is not running: {path}', {path = state.path})
+                return ui.t('Short report saved because the conversation service is not running: {path}', {path = M.displayPath(state.path)})
             end
-            return ui.t('Report saved: {path}', {path = state.path})
+            return ui.t('Report saved: {path}', {path = M.displayPath(state.path)})
         end
         return nil
     end
 
+    -- The popup naming the saved file is for Developer mode only. The report
+    -- is always announced in the menu banner and on the Last report row.
     function self.takeNotice(worldReady)
         if not notice or not worldReady then return nil end
         local text = notice; notice = nil
+        if not (options.developerMode and options.developerMode() == true) then return nil end
         return text
     end
 
@@ -342,7 +364,7 @@ function M.new(options)
     local function finish(result)
         state = result
         if result.phase == 'ready' then
-            notice = ui.t('Support report saved: {path}', {path = result.path})
+            notice = ui.t('Support report saved: {path}', {path = M.displayPath(result.path)})
         end
     end
 
@@ -501,6 +523,10 @@ function M.new(options)
     -- Call from the top-level update. Returns a notification for gameplay when
     -- a new report is ready (once), else nil.
     function self.update(worldReady)
+        if pendingCopy then
+            local text = pendingCopy; pendingCopy = nil
+            if hasGameClipboard() then pcall(ImGui.SetClipboardText, text) end
+        end
         if state.phase == 'working' then
             local clock = os.clock()
             if clock - lastPoll >= 0.3 or clock < lastPoll then
@@ -520,15 +546,30 @@ function M.new(options)
         return self.takeNotice(worldReady)
     end
 
+    -- Copy Report path. Route one is a small request file: the conversation
+    -- service puts the path on the Windows clipboard. Route two is the game's own
+    -- clipboard, tried from the next top-level update because an ImGui call is not
+    -- safe inside a native menu callback. Either one is enough.
+    local CLIPBOARD = 'runtime/clipboard-request.json'
     function self.copyPath()
         if not state.path then return false, ui.t('Create a report first.') end
-        if not self.canCopy() then return false, ui.t('The clipboard is not available here. Read the path from the Last report row.') end
-        local ok = pcall(ImGui.SetClipboardText, state.path)
-        if not ok then return false, ui.t('The clipboard is not available here. Read the path from the Last report row.') end
+        counter = counter + 1
+        local requested = pcall(function()
+            local file = io.open(CLIPBOARD, 'wb')
+            if not file then error('no file') end
+            local wrote = file:write(json.encode({version = 1, id = 'c' .. now() .. '-' .. counter,
+                issuedAt = now() * 1000, text = state.path}))
+            file:close()
+            if not wrote then error('write failed') end
+        end)
+        if not requested and not hasGameClipboard() then
+            return false, ui.t('The clipboard is not available here. Read the path from the Last report row.')
+        end
+        pendingCopy = state.path
         return true, ui.t('Report path copied to the clipboard.')
     end
 
-    function self.reset() state, notice = {phase = 'idle'}, nil end
+    function self.reset() state, notice, pendingCopy = {phase = 'idle'}, nil, nil end
 
     return self
 end

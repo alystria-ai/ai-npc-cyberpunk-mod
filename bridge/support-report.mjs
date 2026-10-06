@@ -2,6 +2,8 @@ import {createHash} from 'node:crypto';
 import {open, readFile, readdir, rm, stat, mkdir} from 'node:fs/promises';
 import {resolve, join} from 'node:path';
 import os from 'node:os';
+import {spawn} from 'node:child_process';
+import {basename} from 'node:path';
 import {createZip} from './zip-writer.mjs';
 import {atomicFile} from './guarded-file.mjs';
 
@@ -446,6 +448,31 @@ export function parseReportRequest(raw, now = Date.now()) {
   return {id: value.id, issuedAt: value.issuedAt, lua: value.lua && typeof value.lua === 'object' ? value.lua : {}};
 }
 
+// Copy Report path: the game side cannot always reach the Windows clipboard, so
+// it asks the service. Only the path of a report file is ever copied.
+export const CLIPBOARD_REQUEST_MAX_AGE_MS = 15_000;
+export function parseClipboardRequest(raw, now = Date.now()) {
+  let value;
+  if (typeof raw !== 'string' || Buffer.byteLength(raw, 'utf8') > 4096) return null;
+  try { value = JSON.parse(raw); } catch { return null; }
+  if (value?.version !== 1 || typeof value.id !== 'string' || !/^[A-Za-z0-9_.:-]{1,96}$/.test(value.id)) return null;
+  if (!Number.isFinite(value.issuedAt) || Math.abs(now - value.issuedAt) > CLIPBOARD_REQUEST_MAX_AGE_MS) return null;
+  if (typeof value.text !== 'string' || value.text.length > 1024 || /[\u0000-\u001f]/.test(value.text)) return null;
+  if (!REPORT_NAME.test(basename(value.text.replaceAll('\\', '/')))) return null;
+  return {id: value.id, text: value.text};
+}
+// clip.exe reads UTF-16 text that starts with a byte-order mark, so a Windows
+// account name with accents survives. Resolves when the process has exited.
+export function copyToClipboard(text) {
+  return new Promise((done, fail) => {
+    const child = spawn('clip.exe', [], {windowsHide: true, stdio: ['pipe', 'ignore', 'ignore']});
+    child.once('error', fail);
+    child.once('close', code => code === 0 ? done() : fail(Error(`clip.exe exited with ${code}`)));
+    child.stdin.on('error', fail);
+    child.stdin.end(Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, 'utf16le')]));
+  });
+}
+
 /** File IPC for the Help page. Only a request that appears after the bridge
  * started, is well formed and is recent produces a report; an old request left
  * by an earlier session is never replayed. */
@@ -457,8 +484,10 @@ export class SupportReportControl {
     return control;
   }
   constructor({game, runtime, stateDirectory, project, requestPath, resultPath, secrets, knownIds, bridge,
-    now = Date.now, build = buildReport}) {
-    Object.assign(this, {game, runtime, stateDirectory, project, secrets, knownIds, bridge, now, build});
+    now = Date.now, build = buildReport, clipboardPath, copy = copyToClipboard}) {
+    Object.assign(this, {game, runtime, stateDirectory, project, secrets, knownIds, bridge, now, build, copy});
+    this.clipboardPath = clipboardPath ?? join(runtime, 'clipboard-request.json');
+    this.clipboardObserved = ''; this.copied = new Set();
     this.requestPath = requestPath ?? join(runtime, 'report-request.json');
     this.resultPath = resultPath ?? join(runtime, 'report-result.json');
     this.observed = ''; this.polling = false; this.closed = false; this.handled = new Set();
@@ -469,10 +498,20 @@ export class SupportReportControl {
   publish(value) {
     return atomicFile(this.resultPath, JSON.stringify({version: 1, updated: this.now(), ...value})).catch(() => false);
   }
+  async pollClipboard() {
+    const raw = await readFile(this.clipboardPath, 'utf8').catch(() => '');
+    if (raw === this.clipboardObserved) return;
+    this.clipboardObserved = raw;
+    const request = parseClipboardRequest(raw, this.now());
+    if (!request || this.copied.has(request.id)) return;
+    this.copied.add(request.id);
+    try { await this.copy(request.text); } catch { /* The game still shows the path on the Last report row. */ }
+  }
   async poll() {
     if (this.polling || this.closed) return;
     this.polling = true;
     try {
+      await this.pollClipboard();
       const raw = await readFile(this.requestPath, 'utf8').catch(() => '');
       if (raw === this.observed) return;
       this.observed = raw;
