@@ -7,9 +7,8 @@ local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 -- one entry, and the board turns all of them into ONE compact notice that
 -- replaces the previous one: "Preparing Judy and Johnny...", then "Judy and
 -- Johnny joined your group.". A lone invitation keeps its original wording.
--- While several invitations are in flight, a change waits until WINDOW_MS after
--- the last notice, so near-simultaneous stages merge into one update instead of
--- a stream. Visibility rules: preparing, connecting, ready and joined show, the
+-- A change waits until MIN_SHOW_MS after the last notice, so near-simultaneous
+-- stages merge into one update instead of a stream. Visibility rules: preparing, connecting, ready and joined show, the
 -- routine "joining" step is Developer-mode only, and every failure shows,
 -- together with the successes.
 -- "Preparing" and "Connecting" (the memory check, voice conditioning and
@@ -18,7 +17,12 @@ local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 -- straight to "joined" with no flicker of progress. The delay is per
 -- invitation: a merged notice names only the ones already shown. Failures and
 -- the "ready" lines, which ask the player to act, are never delayed.
-local WINDOW_MS = 400
+-- A posted notice replaces the previous one in place, so it always stays up for
+-- at least MIN_SHOW_MS: a change arriving sooner is held, and whatever is true
+-- when the time is up is posted instead (intermediate texts are skipped, and a
+-- text that reverted meanwhile is never shown). Near-simultaneous stages of
+-- several invitations merge the same way. Only a new failure is exempt.
+local MIN_SHOW_MS = 1500
 local SHOW_DELAY_MS = 1000
 local MAX_LISTED = 3
 local RANKS = {memory = 1, connecting = 2, ready = 3, joining = 4}
@@ -61,6 +65,13 @@ function M.newBoard(options)
     local now = options.now or newClock()
     local entries, burst = {}, {joined = {}, failures = {}, fresh = false}
     local shownCore, shownGameplayCore, lastAt, lastWorld
+    -- Developer diagnosis: every posted notice (with each invitation's stage) and every
+    -- ignored stage regression goes to the mod log when init.lua provides one.
+    local function note(line)
+        local sink = options.log
+        if type(sink) ~= 'function' then sink = rawget(_G, 'convaiNoticeLog') end
+        if type(sink) == 'function' then pcall(sink, line) end
+    end
 
     local function developerMode()
         if type(options.developerMode) ~= 'function' then return false end
@@ -109,7 +120,21 @@ function M.newBoard(options)
                 if stage == 'model-only' then stage = 'ready' end
                 -- In gameplay a ready invitation is already being created.
                 if worldReady and stage == 'ready' then stage = 'joining' end
-                entry.stage = RANKS[stage] and stage or 'memory'
+                stage = RANKS[stage] and stage or 'memory'
+                -- Preparation only moves forward within one attempt. A stale or
+                -- missing receipt reads as "memory" or "connecting" again for a
+                -- moment; that must not flash an earlier stage. (The paused
+                -- ready/joining pair legitimately swaps, so only these two count.)
+                if entry.stage and entry.sameRevision == entry.revision and (stage == 'memory' or stage == 'connecting')
+                    and RANKS[stage] < RANKS[entry.stage] then
+                    if entry.ignored ~= stage then
+                        entry.ignored = stage
+                        note('Invitation ' .. tostring(entry.name) .. ' reported ' .. stage .. ' after ' .. entry.stage .. '; kept ' .. entry.stage)
+                    end
+                else
+                    entry.stage, entry.ignored = stage, nil
+                end
+                entry.sameRevision = entry.revision
             end
         end
         for _, entry in ipairs(entries) do if not entry.failed then inflight[#inflight + 1] = entry end end
@@ -203,11 +228,19 @@ function M.newBoard(options)
             if #active == 0 then burst = {joined = {}, failures = {}, fresh = false} end
             return nil
         end
-        -- Several outcomes in flight: let near-simultaneous changes merge.
-        local contested = #active + #burst.joined + #burst.failures >= 2
-        if contested and lastAt and lastWorld == worldReady and at - lastAt < WINDOW_MS then return nil end
+        -- The previous notice has not been up long enough: hold this change (a
+        -- new failure excepted). A notice hidden by the menu is not "up", so a
+        -- change of world state never waits.
+        local urgent = false
+        for _, failure in ipairs(burst.failures) do if not failure.announced then urgent = true end end
+        if not urgent and lastAt and lastWorld == worldReady and at - lastAt < MIN_SHOW_MS then return nil end
         return {message = text, commit = function()
+            local stages = {}
+            for _, entry in ipairs(active) do stages[#stages + 1] = tostring(entry.name) .. '=' .. entry.stage end
+            note('Notice posted (' .. (worldReady and 'gameplay' or 'menu') .. ', ' .. (lastAt and (math.floor(at - lastAt) .. ' ms after the previous') or 'first')
+                .. '): ' .. text:gsub('\n', ' / ') .. (#stages > 0 and (' [' .. table.concat(stages, ', ') .. ']') or ''))
             shownCore, lastAt, lastWorld = core, at, worldReady
+            for _, failure in ipairs(burst.failures) do failure.announced = true end
             if worldReady then shownGameplayCore = core end
             for _, entry in ipairs(inflight) do entry.announced = entry.revision end
             burst.fresh = false

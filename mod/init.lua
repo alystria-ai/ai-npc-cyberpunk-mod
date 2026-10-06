@@ -309,6 +309,12 @@ companions.canSpawn = function(key, job)
     if state.state == 'ready' or state.state == 'model-only' then return true end
     return false, 'Memory and connection preparation must finish before this character can join.'
 end
+-- Every posted invitation notice (and each stage regression the board ignored)
+-- is logged to runtime/mcm.log, so a notice that flashed by can be read back.
+convaiNoticeLog = function(message)
+    local file = io.open('runtime/mcm.log', 'a')
+    if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', tostring(message), '\n'); file:close() end
+end
 mcm.configure(manager, companions, dofile('manager-party.lua'), dofile('mcm-entry.lua'), invitations)
 convaiManager = mcm
 local catalog = characterCatalog.build(profiles)

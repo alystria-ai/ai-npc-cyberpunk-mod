@@ -39,6 +39,8 @@ const fixture = `
   end
   -- Routine progress (preparing, connecting) shows once an invitation is a second old.
   local function settle() clock = clock + 1000 end
+  -- A posted notice stays up at least 1.5 s; a change arriving sooner is held.
+  local function dwell() clock = clock + 1500 end
   local function failed(name, reason)
     board.event({message = name .. ' could not join: ' .. reason, failed = true, info = {kind = 'failed', name = name}})
   end
@@ -52,14 +54,17 @@ test('a lone invitation keeps its original wording, shows progress after the del
     assert(post() == 'Preparing Judy…')
     assert(post() == nil, 'an unchanged stage repeated')
     set('a', 'Judy', 'connecting')
-    assert(post() == 'Connecting Judy…', 'a lone stage change waited for the coalescing window')
-    set('a', 'Judy', 'ready')
+    assert(post() == nil, 'a notice was replaced before it had been up for 1.5 s')
+    dwell()
+    assert(post() == 'Connecting Judy…', 'the held change was lost')
+    set('a', 'Judy', 'ready'); dwell()
     assert(post() == 'Judy is ready to join when you return to the game.')
     -- Gameplay: ready becomes the routine joining step, which is Developer-only.
+    dwell()
     assert(post(true) == nil)
     developer = true
     assert(post(true) == 'Judy is joining your party.')
-    states.a = nil; joined('Judy')
+    states.a = nil; joined('Judy'); dwell()
     assert(post(true) == 'Judy joined your group.')
     assert(post(true) == nil and #board.inspect().entries == 0 and board.inspect().joined == 0)
   `);
@@ -100,10 +105,10 @@ test('near-simultaneous changes merge inside the coalescing window and nothing i
     assert(post() == 'Preparing Judy and Johnny…')
     clock = clock + 100
     set('a', 'Judy', 'connecting'); set('b', 'Johnny', 'connecting')
-    assert(post() == nil, 'a change inside the window was posted at once')
+    assert(post() == nil, 'a change inside the minimum show time was posted at once')
     clock = clock + 100
     assert(post() == nil)
-    clock = clock + 300
+    clock = clock + 1300
     assert(post() == 'Connecting Judy and Johnny…', 'the deferred change was lost')
     -- Two outcomes 50 ms apart arrive as one notice.
     clock = clock + 5000
@@ -113,7 +118,7 @@ test('near-simultaneous changes merge inside the coalescing window and nothing i
     states.a = nil; joined('Judy'); assert(post(true) == 'Judy joined your group.')
     clock = clock + 50
     states.b = nil; joined('Johnny'); assert(post(true) == nil)
-    clock = clock + 400
+    clock = clock + 1500
     assert(post(true) == 'Judy and Johnny joined your group.', 'the burst summary must name every companion')
   `);
 });
@@ -188,6 +193,7 @@ test('a notice that could not be posted is retried, and a new copy is always ann
     assert(post() == nil)
     -- A new revision (the profile was chosen again) is announced again.
     set('a', 'Judy', 'memory', 2)
+    dwell()
     assert(post() == 'Preparing Judy…')
   `);
 });
@@ -262,6 +268,8 @@ test('one quick and one slow invitation made together: the slow one alone is nam
     states.a = nil; joined('Judy')
     assert(post(true) == 'Judy joined your group.', 'the quick one did not announce itself, or named the hidden one')
     clock = clock + 700
+    assert(post(true) == nil, 'the first notice was replaced before it had been up for 1.5 s')
+    clock = clock + 800
     local line = post(true)
     assert(line == 'Judy joined your group.\\nPreparing Johnny…', line)
     assert(not line:find('Judy and Johnny', 1, true), 'the progress named the quick invitation')
@@ -285,7 +293,7 @@ test('two quick invitations announce one merged joined notice and no progress', 
     clock = clock + 100
     states.b = nil; joined('Johnny')
     assert(post(true) == nil, 'a second outcome inside the window was not merged')
-    clock = clock + 400
+    clock = clock + 1400
     assert(post(true) == 'Judy and Johnny joined your group.')
     assert(post(true) == nil)
   `);
@@ -308,6 +316,68 @@ test('a failure is never delayed, even while other invitations are still hidden'
     assert(post(true) == 'Johnny could not join: No route', 'a failure waited for the progress delay')
     -- The remaining invitation is named once its own delay passes.
     clock = clock + 900
+    assert(post(true) == nil, 'the failure notice was replaced before it had been up for 1.5 s')
+    clock = clock + 600
     assert(post(true) == 'Johnny could not join: No route\\nPreparing Panam…')
+  `);
+});
+
+test('a notice is never replaced inside 1.5 s: a blink is skipped, a stage regression is ignored, a failure still shows at once', () => {
+  run(`${fixture}
+    -- Judy was invited a moment before Johnny; the one-name text is not left up for a blink.
+    set('a', 'Judy', 'memory'); board.track('a', 'manager')
+    clock = clock + 700
+    set('b', 'Johnny', 'memory'); board.track('b', 'manager')
+    clock = clock + 300
+    assert(post() == 'Preparing Judy…')
+    clock = clock + 800
+    assert(post() == nil, 'Johnny joined the notice 0.8 s after it appeared')
+    clock = clock + 700
+    assert(post() == 'Preparing Judy and Johnny…')
+    -- A stale receipt reads "memory" again for a moment: nothing flashes.
+    clock = clock + 5000
+    set('a', 'Judy', 'connecting'); set('b', 'Johnny', 'connecting')
+    assert(post() == 'Connecting Judy and Johnny…')
+    clock = clock + 1600
+    set('a', 'Judy', 'memory'); set('b', 'Johnny', 'memory')
+    assert(post() == nil, 'a regression to an earlier stage was shown')
+    set('a', 'Judy', 'connecting'); set('b', 'Johnny', 'connecting')
+    clock = clock + 3000
+    assert(post() == nil, 'the same text was posted again')
+    -- The next outcome is held until the notice has been up long enough.
+    set('a', 'Judy', 'ready'); set('b', 'Johnny', 'ready')
+    assert(post() == 'Judy and Johnny are ready to join when you return to the game.')
+    clock = clock + 400
+    states.a, states.b = nil, nil
+    joined('Judy'); joined('Johnny')
+    assert(post() == nil, 'the joined notice replaced the ready line after 0.4 s')
+    clock = clock + 1100
+    assert(post() == 'Judy and Johnny joined your group.')
+    -- A new failure is exempt.
+    clock = clock + 5000
+    set('c', 'Panam', 'memory'); board.track('c', 'manager'); settle()
+    assert(post() == 'Preparing Panam…')
+    clock = clock + 100
+    set('c', 'Panam', 'error'); failed('Panam', 'No route')
+    assert(post(true) == 'Panam could not join: No route')
+  `);
+});
+
+test('the board logs each posted notice with the stage of every invitation, and each ignored regression', () => {
+  run(`${fixture}
+    local lines = {}
+    board = module.newBoard({now = function() return clock end, developerMode = function() return developer end,
+      feedback = function(id) return states[id] end, log = function(line) lines[#lines + 1] = line end})
+    set('a', 'Judy', 'memory'); set('b', 'Johnny', 'memory'); board.track('a'); board.track('b'); settle()
+    assert(post() == 'Preparing Judy and Johnny…')
+    assert(#lines == 1 and lines[1]:find('Preparing Judy and Johnny…', 1, true) and lines[1]:find('Judy=memory', 1, true)
+      and lines[1]:find('first', 1, true), lines[1])
+    dwell()
+    set('a', 'Judy', 'connecting'); set('b', 'Johnny', 'connecting')
+    post()
+    assert(#lines == 2 and lines[2]:find('1500 ms after the previous', 1, true), lines[2])
+    set('a', 'Judy', 'memory'); post()
+    assert(#lines == 3 and lines[3]:find('Judy reported memory after connecting', 1, true), lines[3])
+    post(); assert(#lines == 3, 'the same regression was logged twice')
   `);
 });

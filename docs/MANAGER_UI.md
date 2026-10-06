@@ -253,9 +253,14 @@ a stream of per-character popups:
   joined your group.`). Phone-only batches say `Close the phone to join.` instead.
 - A failure is mentioned beside the successes in the same notice (`Johnny joined your group.` /
   `Judy could not join: ...`); more than two failures end with `N more companions also failed.`
-- While more than one outcome is in flight, a change waits until 400 ms after the last notice
-  (`WINDOW_MS`), so near-simultaneous stages merge into one update. The paused-menu rules below still apply: a stage hidden by the menu is shown once more in
-  gameplay, and nothing is replayed after cancellation or a world change (`queue.bind` resets the board).
+- A posted notice stays up for at least 1.5 s (`MIN_SHOW_MS`): a change arriving sooner is held, and
+  whatever is true when the time is up is posted instead, so intermediate texts are skipped and a
+  text that reverted meanwhile is never shown. Near-simultaneous stages merge the same way. Only a
+  new failure is exempt. A stage never moves backwards within one attempt (a stale or missing
+  receipt reads as `memory` for a moment; the board ignores it and logs it). Every posted notice
+  is logged to `runtime/mcm.log` with each invitation's stage. The paused-menu rules below still
+  apply: a stage hidden by the menu is shown once more in gameplay, and nothing is replayed after
+  cancellation or a world change (`queue.bind` resets the board).
 - The visibility rules are unchanged: preparing, connecting, ready and joined always show; the
   joining step and the phone acknowledgement stay Developer-only; every failure always shows.
 - `mod/mcm.lua` posts the board's note from its top-level update (and commits it only after the
