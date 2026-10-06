@@ -35,6 +35,7 @@ CODE = ["__init__.py", "likeness.py", "v2_data.py", "v2_eval.py", "v2_train.py"]
 PAYLOAD = Path("E:/CyberpunkConvai-offload/work/pocket-v2/payload")
 STAGE = Path("E:/CyberpunkConvai-offload/work/pocket-v2/dataset")
 OWNER = "akshit40392"
+DATA_PREFIX = "data/pocket-v2-e416611a"  # bucket copy of the v2 payload (same files as the dataset staging folder)
 FIXED = [
     {"role": "common", "slug": "akshit40392/cp2077-pocket-common-5d580bb5-f7d5fe66", "dataset_id": 12346972, "version": 1},
     {"role": "full-a-input", "slug": "akshit40392/cp2077-pocket-full-a-input-a9b7a3a4-623fb987", "dataset_id": 12357047, "version": 1},
@@ -100,15 +101,35 @@ try:
     tokenizer = find("models/tokenizer.json")
     alignment = find("models/alignment/config.json").parent
     fa_root = find("data/train.jsonl").parents[1]
-    v2 = find("corpus.json").parent
     temp = Path("/kaggle/temp") if Path("/kaggle/temp").is_dir() else Path("/tmp/v2")
     temp.mkdir(parents=True, exist_ok=True)
-    pool = temp / "pool"
-    if not (pool / "pool").is_dir():
-        with tarfile.open(v2 / "pool-audio.tar") as tar: tar.extractall(pool)
-    ecapa = temp / "ecapa"
-    if not (ecapa / "hyperparams.yaml").is_file():
-        with tarfile.open(v2 / "ecapa.tar") as tar: tar.extractall(ecapa)
+    mounted = [p.parent for p in inp.rglob("corpus.json")]
+    if mounted:
+        v2 = mounted[0]
+    else:  # payload kept in the private bucket (DATA_PREFIX) instead of a Kaggle dataset
+        from huggingface_hub import HfApi
+        v2 = temp / "v2data"; v2.mkdir(parents=True, exist_ok=True)
+        api = HfApi()
+        names = [e.path for e in api.list_bucket_tree(BUCKET, prefix=CONFIG["data_prefix"] + "/", recursive=True,
+                                                      token=os.environ["HF_TOKEN"]) if getattr(e, "type", None) == "file"]
+        api.download_bucket_files(BUCKET, files=[(n, str(v2 / n.rsplit("/", 1)[1])) for n in names],
+                                  raise_on_missing_files=True, token=os.environ["HF_TOKEN"])
+        say("payload downloaded from bucket", len(names), "files")
+    # Kaggle may have unpacked the archives on ingestion; accept either form.
+    unpacked = [p for p in v2.rglob("pool") if p.is_dir() and any(p.rglob("*.flac"))]
+    if unpacked:
+        pool = unpacked[0].parent
+    else:
+        pool = temp / "pool"
+        if not (pool / "pool").is_dir():
+            with tarfile.open(next(v2.rglob("pool-audio.tar"))) as tar: tar.extractall(pool)
+    hp = [p.parent for p in v2.rglob("hyperparams.yaml")]
+    if hp:
+        ecapa = hp[0]
+    else:
+        ecapa = temp / "ecapa"
+        if not (ecapa / "hyperparams.yaml").is_file():
+            with tarfile.open(next(v2.rglob("ecapa.tar"))) as tar: tar.extractall(ecapa)
     say("inputs ready", "pool files", sum(1 for _ in pool.rglob("*.flac")))
     cfg = {**CONFIG, "source_dir": str(source), "corpus": str(v2 / "corpus.json"), "pool_root": str(pool),
            "fa_root": str(fa_root), "tokenizer": str(tokenizer), "alignment_dir": str(alignment), "ecapa_dir": str(ecapa),
@@ -237,7 +258,10 @@ def data_dataset(api) -> dict:
 
 def prepare(role: str, run_id: str | None, teacher_run: str | None, smoke: bool, hours: float, cache_run: str | None = None) -> dict:
     api, token = auth()
-    data = data_dataset(api)
+    try:
+        data = data_dataset(api)
+    except Exception:
+        data = None  # dataset not available: the notebook downloads the payload from the bucket
     nonce = uuid.uuid4().hex[:12]
     name = PREFIX + role + "-" + nonce
     folder = DEST / name
@@ -252,7 +276,7 @@ def prepare(role: str, run_id: str | None, teacher_run: str | None, smoke: bool,
     budget = int(hours * 3600)
     config = {"role": role, "run_id": run_id, "seed": 20261006, "bucket": True, "resume": resume,
               "time_budget_seconds": budget - 1500, "eval_reserve_seconds": 1500 if role == "teacher" else 900,
-              "guidance": [1.5, 3.0], "precision": "fp16", "qc_max_cer": 0.6, **recipe}
+              "guidance": [1.5, 3.0], "precision": "fp16", "qc_max_cer": 0.6, "data_prefix": DATA_PREFIX, **recipe}
     if cache_run:
         config["cache_run_id"] = cache_run
     if role == "student":
@@ -280,7 +304,7 @@ def prepare(role: str, run_id: str | None, teacher_run: str | None, smoke: bool,
     notebook = {"nbformat": 4, "nbformat_minor": 5, "metadata": {"kernelspec": {
         "display_name": "Python 3", "language": "python", "name": "python3"}}, "cells": [cell(source)]}
     core.atomic(folder / "kernel.ipynb", notebook)
-    datasets = FIXED + [data]
+    datasets = FIXED + ([data] if data else [])
     meta = {"id": f"{OWNER}/{name}", "title": name.replace("-", " "), "code_file": "kernel.ipynb", "language": "python",
             "kernel_type": "notebook", "is_private": True, "dataset_sources": [d["slug"] for d in datasets], "kernel_sources": []}
     core.atomic(folder / "kernel-metadata.json", meta)
