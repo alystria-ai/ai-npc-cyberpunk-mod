@@ -9,13 +9,18 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import re
 
-ROOT = Path(__file__).resolve().parents[2]
-WORK = Path(r"E:\CyberpunkConvai-offload\work\clip-search")
-POOL_INDEX = Path(r"E:\CyberpunkConvai-offload\work\reference-picker\pool-index.json")
-LIKENESS = Path(r"E:\CyberpunkConvai-offload\work\likeness-phase1")
+# Every location can be redirected with an environment variable so the same code runs in a portable package (Kaggle notebooks).
+ROOT = Path(os.environ.get("CLIP_SEARCH_ROOT") or Path(__file__).resolve().parents[2])
+WORK = Path(os.environ.get("CLIP_SEARCH_WORK", r"E:\CyberpunkConvai-offload\work\clip-search"))
+POOL_INDEX = Path(os.environ.get("CLIP_SEARCH_INDEX", "E:/CyberpunkConvai-offload/work/reference-picker/pool-index.json"))
+LIKENESS = Path(os.environ.get("CLIP_SEARCH_LIKENESS", r"E:\CyberpunkConvai-offload\work\likeness-phase1"))
+ECAPA_DIR = Path(os.environ.get("CLIP_SEARCH_ECAPA_DIR") or LIKENESS / "ecapa-src")
+PLS_ANCHORS_FILE = Path(os.environ.get("CLIP_SEARCH_PLS_ANCHORS") or LIKENESS / "out/pls-tool.json")
+DATA_ROOT_OVERRIDE = os.environ.get("CLIP_SEARCH_DATA_ROOT")      # portable packages: where the trimmed index's relative paths live
 REFERENCE_RATE = 24000
 GAP_SECONDS = 0.4
 OLD_POCKET_EXPORT = ROOT / "runtime/pocket-student-full-a-s5000-raw"
@@ -53,7 +58,7 @@ class VoicePool:
     def __init__(self, index: dict, key: str):
         self.key = key
         voice = index["voices"][key]
-        root = Path(index["dataRoot"])
+        root = Path(DATA_ROOT_OVERRIDE or index["dataRoot"])
         self.live = voice.get("live", {})
         self.proposed = voice.get("proposed", {})
         self.loud_median = voice.get("loudMedian")
@@ -68,6 +73,11 @@ class VoicePool:
 
     def clip(self, clip_id: str) -> Clip:
         return self.by_id[clip_id]
+
+
+def data_path(path) -> str:
+    """An absolute path stays; a relative one (portable package) is resolved against the data root."""
+    return str(path) if Path(path).is_absolute() or not DATA_ROOT_OVERRIDE else str(Path(DATA_ROOT_OVERRIDE) / path)
 
 
 def load_index(path: Path = POOL_INDEX) -> dict:

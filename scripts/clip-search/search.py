@@ -57,8 +57,12 @@ SIZES = {
     "omni": dict(screen_top=22, screen_wild=6, keep=12, explore=4, beam=2, beam_full_steps=99, cand=12, second=4,
                  caps=(10.0, 18.0), final_lines=4, final_seeds=(1042, 7), orders=3),
     "pocket": dict(screen_top=26, screen_wild=4, keep=14, explore=3, beam=2, beam_full_steps=4, cand=10, second=3,
-                   caps=(40.0,), final_lines=6, final_seeds=(1042, 7), orders=2),
+                   caps=(27.0,), final_lines=6, final_seeds=(1042, 7), orders=2, stop_after_fall=2),
 }
+# Probe voices keep growing to 40 s (no early stop) so the aggregate curve shows what happens far beyond the 18 s the student was
+# trained on; every other Pocket voice stops at 27 s, or earlier once its score has fallen two steps past its best.
+PROBES = {"johnny-silverhand", "songbird", "judy-alvarez", "carol-emeka", "alex", "claire-russell", "adam-smasher", "dexter-deshawn"}
+PROBE_CAP = 40.0
 
 
 def split_for(index, voice):
@@ -93,26 +97,32 @@ def residual_sd(matrix) -> float:
 
 
 class Search:
-    def __init__(self, engine, renderer, scorer, voice, index, out_root: Path, sizes: dict, log=print):
+    def __init__(self, engine, renderer, scorer, voice, index, out_root: Path, sizes: dict, log=print, plan=None):
         self.engine, self.renderer, self.scorer, self.voice, self.sizes, self.log = engine, renderer, scorer, voice, sizes, log
+        self.plan = plan                  # {"split", "screened"}: a precomputed split and prescreen (portable runs)
         self.pool = common.VoicePool(index, voice)
         self.index_voice = index["voices"][voice]
         self.dir = out_root / renderer.tag / voice
         self.dir.mkdir(parents=True, exist_ok=True)
         self.rng = random.Random(common.stable(voice, "clip-search"))
-        self.store_file = self.dir / "scores.json"
-        self.store = json.loads(self.store_file.read_text(encoding="utf-8")) if self.store_file.is_file() else {}
+        self.store_file = None            # set once the split (and so the ECAPA targets) is known: scores are keyed by it
+        self.store = {}
         self.stats = {"renders": 0, "render_ms": 0, "failed": 0, "stage": {}}
         self.final_seeds = tuple(sizes["final_seeds"])
         self.restrict = [f"{voice}/{i}" for i in RESTRICT.get(voice, [])]
-        self.page_lines = [l for l in self.index_voice["lines"] if l.get("exists")]
-        self.split = split_for(index, voice)
+        self.page_lines = [{**l, "path": common.data_path(l["path"])} for l in self.index_voice["lines"] if l.get("exists")]
+        self.split = plan["split"] if plan else split_for(index, voice)
         if self.split["ok"] and not self.restrict:
             self.split["final"] = self.split["final"][:sizes["final_lines"]]      # same holdout for every engine; Omni uses 4 fresh lines
         if self.split["ok"] and self.restrict:
             self.split["candidates"] = list(self.restrict)
             self.split["dev"] = self.split["final"] = [f"line:{i}" for i in range(len(self.page_lines))]
         self.started = time.time()
+        # A cached score is only valid for the targets it was measured against: the key covers the holdout, dev and final clips
+        # (the targets are built from them), so a changed split (e.g. a new exclusion flag) never reuses old scores.
+        self.split_key = sha1(json.dumps([self.split.get("holdout"), self.split.get("dev"), self.split.get("final")], sort_keys=True))[:10] if self.split["ok"] else "none"
+        self.store_file = self.dir / f"scores-{self.split_key}.json"
+        self.store = json.loads(self.store_file.read_text(encoding="utf-8")) if self.store_file.is_file() else {}
 
     # ---- clips and references ----
     def clip(self, clip_id: str) -> dict:
@@ -209,6 +219,13 @@ class Search:
         emb_file = common.WORK / "emb" / f"{self.voice}.json"
         self.scorer.load_embeddings(emb_file)
         self.targets = self.scorer.targets(pool, split)
+        if self.plan:
+            self.screened = list(self.plan["screened"])
+            for i, line in enumerate(self.page_lines):
+                if self.restrict:
+                    emb = self.scorer.embed_cached(line["path"])
+                    self.targets["lines"][f"line:{i}"] = {"own": emb, "centroid": emb}
+            return {"plan": True, "screened": len(self.screened)}
         if self.restrict:                              # the target of a page line is the original recording itself
             for i, line in enumerate(self.page_lines):
                 emb = self.scorer.embed_cached(line["path"])
@@ -291,9 +308,11 @@ class Search:
         self.log(f"  [{self.voice}] singles: best {best1:.3f} median {statistics.median(s1.values()):.3f} noise sd {noise:.3f}; "
                  f"pool for growth {len(pool_q)} of {len(self.screened)}")
         # ---- greedy forward selection under each duration cap
-        histories = {cap: self.grow(cap, s1, pool_q, dev) for cap in sizes["caps"]}
+        caps = (PROBE_CAP,) if (self.engine == "pocket" and self.voice in PROBES) else sizes["caps"]
+        self.stop_after_fall = None if self.voice in PROBES else sizes.get("stop_after_fall")
+        histories = {cap: self.grow(cap, s1, pool_q, dev) for cap in caps}
         result = self.finalize(histories, final, s1)
-        result.update({"voice": self.voice, "engine": self.engine, "tag": self.renderer.tag, "split": self.split, "screen": screen_info,
+        result.update({"voice": self.voice, "engine": self.engine, "tag": self.renderer.tag, "split": self.split, "split_key": self.split_key, "screen": screen_info,
                        "noise": {"single_sd": round(noise, 4), "se_diff_two_lines": round(se_diff, 4)},
                        "pool_for_growth": pool_q,
                        "singles": [{"id": c, "ec": round(s1[c], 4), "seconds": self.dur(c)} for c in order],
@@ -358,6 +377,12 @@ class Search:
             width = sizes["beam"] if step <= sizes["beam_full_steps"] else 1
             states = sorted(children, key=lambda t: -children[t])[:width]
             history.append([(s, children[s]) for s in states])
+            if self.stop_after_fall:                       # stop once the best score has fallen N steps past its best
+                tops = [max(v for _, v in level) for level in history]
+                peak = max(range(len(tops)), key=lambda i: tops[i])
+                if len(tops) - 1 - peak >= self.stop_after_fall:
+                    self.log(f"  [{self.voice}] stopping growth at {self.seconds(history[-1][0][0])} s: {len(tops) - 1 - peak} steps past the best")
+                    break
         return history
 
     # ---- stage 4: fresh lines ----
@@ -475,6 +500,29 @@ class Search:
         return {"pls": round(pls_from_components(components), 2), "pls_parts": {k: (round(v, 3) if isinstance(v, float) else v) for k, v in components.items()}}
 
 
+def make_plans(index, voices, scorer, out_dir: Path):
+    """Write <out_dir>/<voice>.json = {split, screened, split_key, files}: the held-out split and prescreen of a voice, so another
+    machine (a Kaggle notebook) can run the same search on a trimmed copy of the pool without the full pool."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    class _Tag:
+        tag = "plan"
+
+    for voice in voices:
+        search = Search("pocket", _Tag, scorer, voice, index, common.WORK / "plans-work", SIZES["pocket"])
+        if not search.split["ok"]:
+            print(f"{voice}: no split ({search.split['reason']})")
+            continue
+        info = search.screen()
+        ids = list(dict.fromkeys(search.screened + search.split["holdout"] + (search.restrict or [])))
+        files = {i: search.pool.clip(i)["path"] for i in ids if not i.startswith("line:")}
+        plan = {"voice": voice, "split": search.split, "screened": search.screened, "split_key": search.split_key, "screen": info,
+                "files": files, "lines": [l["path"] for l in search.page_lines],
+                "live": {k: v["reference"] for k, v in search.pool.live.items() if v.get("exists")}}
+        (out_dir / f"{voice}.json").write_text(json.dumps(plan, indent=1), encoding="utf-8")
+        print(f"{voice}: plan with {len(files)} clips, split {search.split_key}", flush=True)
+
+
 def verify(engine_tag_from: Path, renderer, scorer, index, out_root, voices, sizes):
     """Re-score another run's winners with this renderer (OmniVoice 32 steps) on the same fresh lines."""
     for voice in voices:
@@ -521,13 +569,16 @@ def main(argv=None) -> int:
     parser.add_argument("--voices", help="comma list; default: the 29 shown voices")
     parser.add_argument("--steps", type=int, default=16)
     parser.add_argument("--export", type=Path, default=Path(r"E:\CyberpunkConvai-offload\work\pocket-v2\exports\student-v2-s2000-ema-decv2"))
+    parser.add_argument("--tag", help="result folder name for Pocket (default pocket-<export folder name>); remote runs pass the local tag")
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--threads", type=int, default=4)
     parser.add_argument("--index", type=Path, default=common.POOL_INDEX)
-    parser.add_argument("--out", type=Path, default=common.WORK / "runs2")
+    parser.add_argument("--out", type=Path, default=common.WORK / "runs3")
     parser.add_argument("--prune-from", help="tag of another engine's run (e.g. omni16) whose singles ranking prunes this one")
     parser.add_argument("--prune-wait-min", type=int, default=90)
     parser.add_argument("--verify-from", help="tag of a 16-step run whose winners are re-scored by this (32-step) renderer")
+    parser.add_argument("--plan-dir", type=Path, help="use precomputed <voice>.json plans (split + prescreen) from this folder")
+    parser.add_argument("--make-plans", type=Path, help="write the plans for --voices into this folder and exit")
     parser.add_argument("--wait-gpu", action="store_true")
     parser.add_argument("--scorer-device", default="cuda")
     args = parser.parse_args(argv)
@@ -543,9 +594,12 @@ def main(argv=None) -> int:
         renderer = OmniRenderer(args.steps)
     else:
         from render import PocketRenderer
-        renderer = PocketRenderer(args.export, args.workers, args.threads)
+        renderer = PocketRenderer(args.export, args.workers, args.threads, tag=args.tag)
     scorer = Scorer(args.scorer_device)
     out_root = args.out
+    if args.make_plans:
+        make_plans(index, voices, scorer, args.make_plans)
+        return 0
     started = time.time()
     try:
         if args.verify_from:
@@ -564,7 +618,10 @@ def main(argv=None) -> int:
                 while not (prune / voice / "result.json").is_file() and waited < args.prune_wait_min * 60:
                     time.sleep(20)
                     waited += 20
-            search = Search(args.engine, renderer, scorer, voice, index, out_root, SIZES[args.engine])
+            plan = None
+            if args.plan_dir and (args.plan_dir / f"{voice}.json").is_file():
+                plan = json.loads((args.plan_dir / f"{voice}.json").read_text(encoding="utf-8"))
+            search = Search(args.engine, renderer, scorer, voice, index, out_root, SIZES[args.engine], plan=plan)
             try:
                 result = search.run(prune)
             except Exception as error:                 # a night's run must survive one voice's failure

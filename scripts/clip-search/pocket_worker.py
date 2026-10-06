@@ -22,7 +22,7 @@ import sys
 import tempfile
 import time
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(os.environ.get("CLIP_SEARCH_ROOT") or Path(__file__).resolve().parents[2])
 PROTOCOL = sys.stdout
 sys.stdout = sys.stderr
 
@@ -56,8 +56,8 @@ def main() -> int:
     torch.set_num_threads(args.threads)
     torch.set_num_interop_threads(1)
 
-    live = json.loads((ROOT / "runtime/pocket-voices.json").read_text(encoding="utf-8-sig"))
-    temperature = live["sampling"]["temperature"]
+    config_file = ROOT / "runtime/pocket-voices.json"        # the bridge's sampling temperature; 0.3 in a portable package
+    temperature = json.loads(config_file.read_text(encoding="utf-8-sig"))["sampling"]["temperature"] if config_file.is_file() else 0.3
     export = args.export
     inference = yaml.safe_load((export / "inference.yaml").read_text(encoding="utf-8-sig"))
     inference["weights_path"] = str(args.weights or export / "model.safetensors")

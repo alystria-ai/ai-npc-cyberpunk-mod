@@ -15,11 +15,12 @@ import sys
 import threading
 import time
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(os.environ.get("CLIP_SEARCH_ROOT") or Path(__file__).resolve().parents[2])
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import common  # noqa: E402
 
-POCKET_PYTHON = ROOT / "vendor/pocket-tts-env/Scripts/python.exe"
+_VENDOR_PYTHON = ROOT / "vendor/pocket-tts-env/Scripts/python.exe"
+POCKET_PYTHON = Path(os.environ.get("CLIP_SEARCH_POCKET_PYTHON") or (_VENDOR_PYTHON if _VENDOR_PYTHON.is_file() else sys.executable))
 BELOW_NORMAL_PRIORITY = 0x00004000
 
 

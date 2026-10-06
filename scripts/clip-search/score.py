@@ -22,8 +22,8 @@ sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import common  # noqa: E402
 
-ECAPA_DIR = common.LIKENESS / "ecapa-src"
-PLS_ANCHORS_FILE = common.LIKENESS / "out/pls-tool.json"
+ECAPA_DIR = common.ECAPA_DIR
+PLS_ANCHORS_FILE = common.PLS_ANCHORS_FILE
 
 
 class Scorer:

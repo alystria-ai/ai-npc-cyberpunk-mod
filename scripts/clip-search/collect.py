@@ -65,7 +65,7 @@ def aggregate(curves, grid, reference=18):
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--runs", type=Path, default=common.WORK / "runs2")
+    parser.add_argument("--runs", type=Path, default=common.WORK / "runs3")
     parser.add_argument("--omni", default="omni16")
     parser.add_argument("--omni32", default="omni32")
     parser.add_argument("--pocket", default="pocket-student-v2-s2000-ema-decv2")
