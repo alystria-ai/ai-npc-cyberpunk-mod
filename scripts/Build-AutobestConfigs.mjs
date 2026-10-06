@@ -2,14 +2,16 @@
 //
 //   node scripts/Build-AutobestConfigs.mjs [--dry-run] [--no-validate] [--only voice,voice] [--sets <autobest-sets.json>] [--index <pool-index.json>]
 //
-// Reads runtime/autobest-sets.json (written by scripts/clip-search/collect.py from the per-voice search results) and builds,
-// exactly like scripts/Apply-ReferencePicks.mjs builds picked configs (whole clips, 0.4 s gaps, no processing; the live
-// config copied with only the searched voices replaced; every output dry-run through the bridge's own loaders):
-//   Pocket   best (1-3 clips, <= 18 s)   -> runtime/pocket-voices.autobest.json
-//   Pocket   short (1-2 clips, <= 10 s)  -> runtime/pocket-voices.autobest-short.json
-//   Pocket   single clip                 -> runtime/pocket-voices.autobest-single.json
-//   OmniVoice best / short / single      -> runtime/local-voices.autobest.json / .autobest-short.json / .autobest-single.json
-// References go to runtime/voice-references/picked/autobest/<variant>/<voice>.wav.  Live configs are never written.
+// Reads runtime/autobest-sets.json (schema version 2, written by scripts/clip-search/collect.py from the per-voice search results)
+// and builds, exactly like scripts/Apply-ReferencePicks.mjs builds picked configs (whole clips, 0.4 s gaps, no processing; the live
+// config copied with only the searched voices replaced; every output dry-run through the bridge's own loaders). A reference is
+// measured by its total duration (any number of whole clips within the limit):
+//   Pocket best      (pocket.best, <= 30 s) -> runtime/pocket-voices.autobest.json
+//   OmniVoice best   (omni.best,   <= 18 s) -> runtime/local-voices.autobest.json
+//   OmniVoice short  (omni.short,  <= 10 s) -> runtime/local-voices.autobest-short.json
+//   OmniVoice long   (omni.long,   <= 18 s) -> runtime/local-voices.autobest-long.json
+// (the bridge's own OmniVoice reference limit is 20 s).
+// References go to runtime/voice-references/picked/autobest/<folder>/<voice>.wav.  Live configs are never written.
 import {existsSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
@@ -18,15 +20,13 @@ import {applyPicks} from './Apply-ReferencePicks.mjs';
 import {ensureIndex, loadIndex, Pool} from './reference-picker/pool.mjs';
 
 export const AUTOBEST_OUTPUTS = Object.freeze({
-  pocket: {live: 'runtime/pocket-voices.json', out: 'runtime/pocket-voices.autobest.json', folder: 'autobest/pocket', maxSeconds: 18, label: 'Pocket auto-best'},
-  'pocket-short': {live: 'runtime/pocket-voices.json', out: 'runtime/pocket-voices.autobest-short.json', folder: 'autobest/pocket-short', maxSeconds: 10, label: 'Pocket auto-best 10 s'},
-  'pocket-single': {live: 'runtime/pocket-voices.json', out: 'runtime/pocket-voices.autobest-single.json', folder: 'autobest/pocket-single', maxSeconds: 9, label: 'Pocket auto-best single clip'},
+  pocket: {live: 'runtime/pocket-voices.json', out: 'runtime/pocket-voices.autobest.json', folder: 'autobest/pocket', maxSeconds: 30, label: 'Pocket auto-best'},
   omni: {live: 'runtime/local-voices.json', out: 'runtime/local-voices.autobest.json', folder: 'autobest/omni', maxSeconds: 18, label: 'OmniVoice auto-best'},
-  'omni-short': {live: 'runtime/local-voices.json', out: 'runtime/local-voices.autobest-short.json', folder: 'autobest/omni-short', maxSeconds: 10, label: 'OmniVoice auto-best 10 s'},
-  'omni-single': {live: 'runtime/local-voices.json', out: 'runtime/local-voices.autobest-single.json', folder: 'autobest/omni-single', maxSeconds: 9, label: 'OmniVoice auto-best single clip'},
+  'omni-short': {live: 'runtime/local-voices.json', out: 'runtime/local-voices.autobest-short.json', folder: 'autobest/omni-short', maxSeconds: 10, label: 'OmniVoice auto-best short (10 s)'},
+  'omni-long': {live: 'runtime/local-voices.json', out: 'runtime/local-voices.autobest-long.json', folder: 'autobest/omni-long', maxSeconds: 18, label: 'OmniVoice auto-best long (18 s)'},
 });
-// search variant (best / short / single) -> picker set name, per engine
-const VARIANTS = {best: '', short: '-short', single: '-single'};
+// where each searched winner goes: [engine, key in the data file's engine block, output key above]
+const SOURCES = [['pocket', 'best', 'pocket'], ['omni', 'best', 'omni'], ['omni', 'short', 'omni-short'], ['omni', 'long', 'omni-long']];
 
 // The synthetic "picks" state Apply-ReferencePicks expects: {voices: {voice: {kept: {set: {clips, ts, note}}}}, entries}.
 export function picksFromAutobest(data, {only = null} = {}) {
@@ -34,14 +34,12 @@ export function picksFromAutobest(data, {only = null} = {}) {
   let entries = 0;
   for (const [voice, row] of Object.entries(data.voices ?? {})) {
     if (only && !only.includes(voice)) continue;
-    for (const engine of ['pocket', 'omni']) {
-      for (const [variant, suffix] of Object.entries(VARIANTS)) {
-        const set = row[engine]?.[variant];
-        if (!set?.ids?.length || set.ids.some(id => id.startsWith('live:'))) continue;   // today's reference won: nothing to propose
-        const note = `auto-best ${engine} ${variant}: ECAPA ${set.ecapa}${set.ecapa_se != null ? ` +-${set.ecapa_se}` : ''}${set.pls != null ? `, PLS ${set.pls}` : ''}`;
-        (voices[voice] ??= {kept: {}}).kept[engine + suffix] = {clips: set.ids, seconds: set.seconds ?? null, ts: data.generated ?? null, note};
-        entries++;
-      }
+    for (const [engine, variant, output] of SOURCES) {
+      const set = row[engine]?.[variant];
+      if (!set?.ids?.length || set.ids.some(id => id.startsWith('live:'))) continue;   // today's reference won: nothing to propose
+      const note = `auto-best ${engine} ${variant}: ${set.seconds ?? '?'} s, ECAPA ${set.ecapa}${set.ecapa_se != null ? ` +-${set.ecapa_se}` : ''}${set.pls != null ? `, PLS ${set.pls}` : ''}`;
+      (voices[voice] ??= {kept: {}}).kept[output] = {clips: set.ids, seconds: set.seconds ?? null, ts: data.generated ?? null, note};
+      entries++;
     }
   }
   return {voices, entries};
@@ -68,6 +66,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     dryRun: !!args['dry-run'], validate: !args['no-validate'], log: console.log});
   for (const skipped of report.skipped) console.log(`skipped ${skipped.voice} (${skipped.engine}): ${skipped.reason}`);
   console.log(JSON.stringify(Object.fromEntries(Object.entries(report.engines).map(([engine, entry]) => [engine,
-    {output: entry.output, voices: entry.changed.map(item => ({voice: item.voice, seconds: item.seconds, clips: item.clips.length}))}])), null, 2));
+    {output: entry.output, voices: entry.changed.map(item => ({voice: item.voice, seconds: item.seconds}))}])), null, 2));
   console.log('Live configs were not changed.');
 }

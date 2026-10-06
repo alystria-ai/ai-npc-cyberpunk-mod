@@ -1,5 +1,5 @@
 'use strict';
-// Helpers shared by the voice report (app.js) and the character page (voice.js).
+// Helpers for the character page (voice.js): DOM building, toasts, API calls and logged audio playback.
 
 const $ = selector => document.querySelector(selector);
 function h(tag, props = {}, ...children) {

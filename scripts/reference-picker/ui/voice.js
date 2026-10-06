@@ -1,29 +1,31 @@
 'use strict';
-// Character page: choose and compare the reference clips of one character, one simple flow per engine (Pocket, OmniVoice).
-// Served at /voice/<key>; the main report links here in a new tab. Helpers live in common.js. Behind the plain wording each
-// clip-count choice maps onto the picker's set ids (pocket / pocket-short / pocket-single, omni / omni-short / omni-single),
-// so the action log and Apply-ReferencePicks.mjs are unchanged.
+// Character page: choose and compare the reference of one character, one simple flow per engine (Pocket, OmniVoice).
+// Served at /voice/<key>; the Voice report (/) links here in a new tab. Helpers live in common.js. A reference is measured by its
+// total duration, not by a number of clips: any number of whole clips is fine while they fit the budget. Behind the plain wording each
+// duration option maps onto the picker's set ids (pocket, omni-short, omni), so the action log and Apply-ReferencePicks.mjs are unchanged.
 
 const key = decodeURIComponent(location.pathname.split('/').filter(Boolean)[1] ?? '');
 const ENGINES = [
-  {id: 'pocket', name: 'Pocket', about: 'Runs on the computer’s processor.', tradeoff: 'More clips cost nothing extra with Pocket.', sets: {1: 'pocket-single', 2: 'pocket-short', 3: 'pocket'}},
-  {id: 'omni', name: 'OmniVoice', about: 'Runs on the graphics card.', tradeoff: 'More clips can sound more like the character, but OmniVoice then starts speaking a little later.', sets: {1: 'omni-single', 2: 'omni-short', 3: 'omni'}},
-];
-const LENGTHS = [
-  {n: 1, label: '1 clip', detail: 'one line of up to about 9 s'},
-  {n: 2, label: '2 clips', detail: 'about 10 s'},
-  {n: 3, label: '3 clips', detail: 'about 18 s'},
+  {id: 'pocket', name: 'Pocket', about: 'Runs on the computer’s processor.', tradeoff: 'A longer reference costs Pocket nothing extra.',
+    options: [{set: 'pocket', label: 'Best length (up to 30 s)'}]},
+  {id: 'omni', name: 'OmniVoice', about: 'Runs on the graphics card.', tradeoff: 'A longer reference can sound more like the character, but OmniVoice then starts speaking later (shown under each reference).',
+    options: [{set: 'omni-short', label: 'Short, up to 10 s'}, {set: 'omni', label: 'Long, up to 18 s'}]},
 ];
 const SET_INFO = {
-  pocket: {n: 3, slots: ['pocket']}, 'pocket-short': {n: 2, slots: ['pockets']}, 'pocket-single': {n: 1, slots: ['pocket1']},
-  omni: {n: 3, slots: ['omni16', 'omni32']}, 'omni-short': {n: 2, slots: ['omni16s', 'omni32s']}, 'omni-single': {n: 1, slots: ['omni16one', 'omni32one']},
+  pocket: {budget: 30, slots: ['pocket']},
+  'omni-short': {budget: 10, slots: ['omni16s', 'omni32s']},
+  omni: {budget: 18, slots: ['omni16', 'omni32']},
 };
-const BUDGET = {1: 9, 2: 10, 3: 18};
 const slotLabel = slot => slot.startsWith('pocket') ? 'Pocket' : slot.startsWith('omni16') ? 'OmniVoice, 16 steps' : 'OmniVoice, 32 steps';
+// OmniVoice's first audio comes later by about this much per second of reference (measured).
+const LATENCY_PER_SECOND = {16: 0.042, 32: 0.095};
+const latencyText = total => `about +${(LATENCY_PER_SECOND[16] * total).toFixed(2)} s at 16 steps, +${(LATENCY_PER_SECOND[32] * total).toFixed(2)} s at 32 steps`;
+// "8.5 s" for Pocket; "8.5 s: about +0.36 s at 16 steps, +0.81 s at 32 steps" for OmniVoice.
+const lengthText = (engine, total) => engine.id === 'omni' ? `${seconds(total)}: ${latencyText(total)}` : seconds(total);
 
-const state = {card: null, line: 0, lengths: store.get('lengths', {}), autogen: store.get('autogen', true) !== false,
+const state = {card: null, line: 0, lengths: store.get('durations', {}), autogen: store.get('autogen', true) !== false,
   poolClips: null, poolOpen: {}, pool: {}, ticks: {}, pending: false};
-const lengthOf = engine => [1, 2, 3].includes(state.lengths[engine.id]) ? state.lengths[engine.id] : 3;
+const optionOf = engine => engine.options.find(option => option.set === state.lengths[engine.id]) ?? engine.options.at(-1);
 
 // ---- loading and rendering --------------------------------------------------------------------------------------------------
 async function loadCard() { setCard(await api(`/api/voice/${key}?line=${state.line}`)); }
@@ -46,12 +48,13 @@ async function act(action, body = {}, message, {undo = null} = {}) {
 }
 
 // ---- pieces -----------------------------------------------------------------------------------------------------------------
-function clipList(clips) {
+function clipList(clips, engine, total) {
   return h('div', {class: 'cliplist'}, clips.map((clip, at) => h('div', {class: 'clip'},
     clip.missing ? h('div', {class: 'muted'}, `${clip.id} (missing)`) : audioEl(clip.audio, {voice: key, what: 'clip', target: clip.id}),
     h('div', {}, h('div', {}, clip.transcript),
       h('div', {class: 'meta'}, `${at + 1}. ${clip.label ?? shortId(clip.id)} · ${seconds(clip.seconds)}`,
-        clip.loudness !== null && clip.loudness !== undefined && Math.abs(clip.loudness) > 3 ? h('span', {class: 'warn', title: 'Much louder or quieter than this character’s usual clips; that tends to make OmniVoice worse.'}, ` · loudness ${clip.loudness > 0 ? '+' : ''}${clip.loudness.toFixed(1)} dB`) : null)))));
+        clip.loudness !== null && clip.loudness !== undefined && Math.abs(clip.loudness) > 3 ? h('span', {class: 'warn', title: 'Much louder or quieter than this character’s usual clips; that tends to make OmniVoice worse.'}, ` · loudness ${clip.loudness > 0 ? '+' : ''}${clip.loudness.toFixed(1)} dB`) : null)))),
+    total != null ? h('div', {class: 'total'}, `Total reference: ${lengthText(engine, total)}`) : null);
 }
 function autogenToggle() {
   const box = h('input', {type: 'checkbox', class: 'autogen', checked: state.autogen, onchange: event => {
@@ -63,7 +66,7 @@ function autogenToggle() {
 
 // What is going on for this engine, in plain words, from the render jobs of this character.
 function statusText(engine) {
-  const card = state.card, mine = new Set(Object.values(engine.sets).flatMap(set => SET_INFO[set].slots));
+  const card = state.card, mine = new Set(engine.options.flatMap(option => SET_INFO[option.set].slots));
   const jobs = [card.jobs?.candidate, card.jobs?.current].filter(Boolean);
   for (const job of jobs) {
     if (job.requested && !job.requested.some(slot => mine.has(slot))) continue;
@@ -84,11 +87,7 @@ function statusText(engine) {
 }
 
 function sampleCell(sample, slot, isCurrent, engine) {
-  if (sample?.exists) {
-    const research = sample.from === 'research';
-    return [audioEl(sample.url, {voice: key, what: research ? 'research' : 'sample', target: research ? sample.cond : slot, ...(isCurrent && !research ? {current: '1'} : {})}),
-      research ? h('div', {class: 'meta'}, 'from the research report') : null];
-  }
+  if (sample?.exists) return audioEl(sample.url, {voice: key, what: 'sample', target: slot, ...(isCurrent ? {current: '1'} : {})});
   const text = {queued: 'Queued', running: 'Generating…', 'gpu-busy': 'GPU busy, waiting', error: `Failed: ${sample?.error ?? 'unknown error'}`}[sample?.state]
     ?? (isCurrent ? 'No current sample' : 'Not generated yet');
   const working = ['queued', 'running', 'gpu-busy'].includes(sample?.state);
@@ -98,13 +97,13 @@ function sampleCell(sample, slot, isCurrent, engine) {
 
 // ---- actions ----------------------------------------------------------------------------------------------------------------
 function view(engine) {
-  const card = state.card, n = lengthOf(engine), set = engine.sets[n];
+  const card = state.card, option = optionOf(engine), set = option.set;
   const current = card.current?.[set] ?? null, candidate = card.sets[set], kept = card.kept[set];
-  return {n, set, slots: SET_INFO[set].slots, current, candidate, kept, hasNew: !!candidate && (!current || current.hasNew)};
+  return {option, set, budget: SET_INFO[set].budget, slots: SET_INFO[set].slots, current, candidate, kept, hasNew: !!candidate && (!current || current.hasNew)};
 }
 async function generate(engine, target) {
   const v = view(engine), samples = target === 'current' ? v.current?.samples : state.card.samples;
-  const every = v.slots.every(slot => samples?.[slot]?.exists && samples[slot].from !== 'research');
+  const every = v.slots.every(slot => samples?.[slot]?.exists);
   await act('regenerate', {slots: v.slots, target, force: every}, 'Generating samples');
 }
 async function tryDifferent(engine) {
@@ -115,7 +114,7 @@ async function tryDifferent(engine) {
   if (state.autogen) await act('regenerate', {slots: v.slots, target: 'candidate', force: false}, null);
 }
 function useThese(engine) {
-  const v = view(engine), label = `${engine.name}, ${LENGTHS.find(item => item.n === v.n).label.toLowerCase()}`;
+  const v = view(engine), label = `${engine.name}, ${v.option.label.toLowerCase()}`;
   const previous = v.current?.source === 'kept' ? v.current.ids : null;
   return act('keep', {engine: v.set, note: noteBox?.value}, `Using the new clips for ${label}`,
     {undo: () => previous ? act('keep', {engine: v.set, clips: previous}, 'Back to the earlier clips') : act('unkeep', {engine: v.set}, 'Back to the clips from before')});
@@ -124,7 +123,7 @@ const keepCurrent = engine => act('dismiss', {set: view(engine).set}, 'Keeping t
 
 // ---- hand-picking -----------------------------------------------------------------------------------------------------------
 function poolTable(engine, v, clips) {
-  const set = v.set, count = SET_INFO[set].n, budget = BUDGET[count];
+  const set = v.set, budget = v.budget;
   const ps = state.pool[set] ??= {sort: 'typical', filter: '', source: 'all', limit: 150};
   const candidateKey = (v.candidate?.ids ?? []).join('|');
   if (state.ticks[set]?.from !== candidateKey) state.ticks[set] = {from: candidateKey, ids: new Set(v.candidate?.ids ?? [])};
@@ -135,11 +134,10 @@ function poolTable(engine, v, clips) {
   const total = () => [...selected].reduce((sum, id) => sum + (clips.find(clip => clip.id === id)?.d ?? 0), 0) + Math.max(0, selected.size - 1) * 0.4;
   function update() {
     const used = total(), over = used > budget + 1e-6;
-    status.textContent = selected.size ? `${selected.size} clip${selected.size === 1 ? '' : 's'} ticked, ${seconds(used)} of ${budget} s${over ? ' (too long)' : ''}`
-      : count === 1 ? 'Tick one clip.' : `Tick up to ${count} clips.`;
+    status.textContent = selected.size ? `Ticked: ${seconds(used)} of ${budget} s${over ? ' (too long)' : ''}${engine.id === 'omni' ? `; ${latencyText(used)}` : ''}`
+      : `Tick whole clips; together they can be up to ${budget} s.`;
     useButton.disabled = !selected.size || over;
     useButton.textContent = 'Try the ticked clips';
-    for (const box of body.querySelectorAll('input[type=checkbox]')) box.disabled = count > 1 && !box.checked && selected.size >= count;
   }
   function rows() {
     const needle = ps.filter.toLowerCase();
@@ -147,8 +145,8 @@ function poolTable(engine, v, clips) {
     const list = clips.filter(clip => fromSource(clip) && (!needle || clip.t.toLowerCase().includes(needle) || clip.id.includes(needle))).sort(sorter[ps.sort]);
     body.replaceChildren(...list.slice(0, ps.limit).map(clip => h('tr', {},
       h('td', {}, h('input', {type: 'checkbox', checked: selected.has(clip.id), 'aria-label': `Tick ${shortId(clip.id)}`, onchange: event => {
-        if (event.target.checked) { if (count === 1) selected.clear(); selected.add(clip.id); } else selected.delete(clip.id);
-        if (count === 1) rows(); else update();
+        if (event.target.checked) selected.add(clip.id); else selected.delete(clip.id);
+        update();
       }})),
       h('td', {}, audioEl(clip.audio, {voice: key, what: 'clip', target: clip.id})),
       h('td', {}, seconds(clip.d)),
@@ -192,28 +190,28 @@ function handPick(engine, v) {
   return details;
 }
 
-// The clip search's winner for this engine and clip count (card.autobest, from runtime/autobest-sets.json), loaded with the
+// The clip search's winner for this engine and reference length (card.autobest, from runtime/autobest-sets.json), loaded with the
 // ordinary "set" action so it can be auditioned against the current clips like any hand-picked set.
 function autoBest(engine, v) {
   const found = state.card.autobest?.[v.set];
   if (!found) return null;
   const same = v.candidate?.ids.join('|') === found.ids.join('|'), inUse = v.current?.ids.join('|') === found.ids.join('|');
-  const score = `speaker similarity ${found.ecapa.toFixed(3)}${found.ecapaSe != null ? ` ±${found.ecapaSe.toFixed(3)}` : ''}${found.today != null ? `, today's single clip ${found.today.toFixed(3)}` : ''}${found.pls != null ? `, PLS ${found.pls}` : ''}`;
+  const score = `speaker similarity (ECAPA) ${found.ecapa.toFixed(3)}${found.ecapaSe != null ? ` ±${found.ecapaSe.toFixed(3)}` : ''}${found.today != null ? `, today's reference ${found.today.toFixed(3)}` : ''}${found.pls != null ? `, PLS ${found.pls}` : ''}`;
+  const measured = engine.id === 'omni' && found.latencyMs ? `; measured first-audio delay ${Object.entries(found.latencyMs).map(([steps, ms]) => `${(ms / 1000).toFixed(2)} s at ${steps} steps`).join(', ')}` : '';
   return h('div', {class: 'row', style: 'margin-top:8px'},
     h('button', {disabled: same || inUse, onclick: async () => {
       const ok = await act('set', {set: v.set, clips: found.ids}, 'Auto-best clips loaded');
       if (ok && state.autogen) await act('regenerate', {slots: v.slots, target: 'candidate', force: false}, null);
     }, title: 'Load the clips the automatic search found best for this choice; use the buttons below to compare them with the current clips'},
     inUse ? 'Auto-best is in use' : same ? 'Auto-best loaded' : 'Load Auto-best'),
-    h('span', {class: 'muted'}, `${found.ids.length} clip${found.ids.length === 1 ? '' : 's'}, ${seconds(found.seconds)}; ${score}`));
+    h('span', {class: 'muted'}, `${lengthText(engine, found.seconds)}; ${score}${measured}`));
 }
 
 // ---- one engine -------------------------------------------------------------------------------------------------------------
 function engineSection(engine) {
   const card = state.card, v = view(engine), status = statusText(engine), working = !!status?.working;
-  const length = LENGTHS.find(item => item.n === v.n);
-  const sourceText = !v.current ? 'There are no clips for this choice yet. Use “Try different clips” or “Choose clips myself” to get some.'
-    : v.current.source === 'kept' ? `Clips you kept${v.kept?.ts ? ` on ${timeOf(v.kept.ts)}` : ''}` : v.current.source === 'proposed' ? 'Clips proposed by the research agent' : 'Today’s single reference clip';
+  const sourceText = !v.current ? 'There is no reference for this choice yet. Use “Try different clips” or “Choose clips myself” to get one.'
+    : v.current.source === 'kept' ? `Clips you kept${v.kept?.ts ? ` on ${timeOf(v.kept.ts)}` : ''}` : v.current.source === 'proposed' ? 'Clips proposed by the research agent' : 'Today’s reference';
   const candidateSlots = card.samples;
   const compareRows = v.slots.map(slot => h('tr', {}, h('th', {scope: 'row'}, slotLabel(slot)), h('td', {}, sampleCell(v.current?.samples?.[slot], slot, true, engine)),
     v.hasNew ? h('td', {}, sampleCell(candidateSlots[slot], slot, false, engine)) : null));
@@ -221,32 +219,32 @@ function engineSection(engine) {
   const noClips = !v.current && !v.candidate;
   return h('section', {class: 'engine', 'aria-labelledby': `h-${engine.id}`},
     h('h2', {id: `h-${engine.id}`}, engine.name, ' ', h('span', {class: 'muted'}, engine.about)),
-    h('fieldset', {class: 'lengths'}, h('legend', {}, 'How many clips?'),
-      LENGTHS.map(item => h('label', {class: 'radio'}, h('input', {type: 'radio', name: `len-${engine.id}`, checked: item.n === v.n,
-        onchange: () => { state.lengths[engine.id] = item.n; store.set('lengths', state.lengths); render(true); }}), ` ${item.label}, ${item.detail}`)),
+    h('fieldset', {class: 'lengths'}, h('legend', {}, 'How long should the reference be?'),
+      engine.options.map(option => h('label', {class: 'radio'}, h('input', {type: 'radio', name: `len-${engine.id}`, checked: option.set === v.set,
+        onchange: () => { state.lengths[engine.id] = option.set; store.set('durations', state.lengths); render(true); }}), ` ${option.label}`)),
       h('div', {class: 'meta'}, engine.tradeoff)),
-    h('div', {class: 'step'}, h('h3', {}, '1. Current clips'), h('div', {class: 'meta'}, sourceText), v.current ? clipList(v.current.clips) : null),
-    h('div', {class: 'step'}, h('h3', {}, '2. Try different clips'),
+    h('div', {class: 'step'}, h('h3', {}, '1. Current reference'), h('div', {class: 'meta'}, sourceText), v.current ? clipList(v.current.clips, engine, v.current.seconds) : null),
+    h('div', {class: 'step'}, h('h3', {}, '2. Try a different reference'),
       h('div', {class: 'row'}, h('button', {disabled: !card.poolSize || working, onclick: () => tryDifferent(engine),
-        title: card.poolSize ? 'Draw a different set of whole clips from this character’s clips' : 'This character has no spare clips'}, 'Try different clips'),
+        title: card.poolSize ? 'Draw different whole clips from this character’s clips, enough to fill the length' : 'This character has no spare clips'}, 'Try different clips'),
         autogenToggle()),
       autoBest(engine, v),
-      v.hasNew ? [h('div', {class: 'meta', style: 'margin-top:8px'}, 'New clips (not kept yet)'), clipList(v.candidate.clips)]
-        : !noClips ? h('div', {class: 'meta', style: 'margin-top:6px'}, 'No new clips yet.') : null,
+      v.hasNew ? [h('div', {class: 'meta', style: 'margin-top:8px'}, 'New reference (not kept yet)'), clipList(v.candidate.clips, engine, v.candidate.seconds)]
+        : !noClips ? h('div', {class: 'meta', style: 'margin-top:6px'}, 'No new reference yet.') : null,
       h('div', {style: 'margin-top:8px'}, handPick(engine, v))),
     h('div', {class: 'step'}, h('h3', {}, '3. Generate samples'),
       h('div', {class: 'row'},
         h('button', {class: 'primary', disabled: working || (!v.candidate && !v.current), onclick: () => generate(engine, v.candidate ? 'candidate' : 'current'),
-          title: `Make samples of the ${v.hasNew ? 'new' : 'current'} clips with ${engine.name}`}, v.hasNew ? 'Generate samples of the new clips' : 'Generate samples of the current clips'),
-        status ? h('span', {class: status.bad ? 'warn' : 'muted'}, status.text) : h('span', {class: 'muted'}, newMissing ? 'The new clips have no samples yet.' : '')),
+          title: `Make samples of the ${v.hasNew ? 'new' : 'current'} reference with ${engine.name}`}, v.hasNew ? 'Generate samples of the new reference' : 'Generate samples of the current reference'),
+        status ? h('span', {class: status.bad ? 'warn' : 'muted'}, status.text) : h('span', {class: 'muted'}, newMissing ? 'The new reference has no samples yet.' : '')),
       h('div', {class: 'meta', style: 'margin-top:4px'}, 'Every sample says the same line; switch lines with the buttons at the top.')),
     h('div', {class: 'step'}, h('h3', {}, '4. Compare'),
-      h('table', {class: 'compare'}, h('thead', {}, h('tr', {}, h('th'), h('th', {}, 'Current clips'), v.hasNew ? h('th', {}, 'New clips') : null)), h('tbody', {}, compareRows))),
+      h('table', {class: 'compare'}, h('thead', {}, h('tr', {}, h('th'), h('th', {}, `Current reference (${seconds(v.current?.seconds ?? 0)})`), v.hasNew ? h('th', {}, `New reference (${seconds(v.candidate.seconds)})`) : null)), h('tbody', {}, compareRows))),
     h('div', {class: 'step'}, h('h3', {}, '5. Decide'),
       v.hasNew ? h('div', {class: 'row'},
-        h('button', {class: 'primary', disabled: working, onclick: () => useThese(engine), title: 'Keep the new clips for this choice; this is logged and used when the picks are applied'}, 'Use these clips'),
-        h('button', {onclick: () => keepCurrent(engine), title: 'Turn the new clips down and go back to the current ones'}, 'Keep current'))
-        : h('div', {class: 'row'}, h('span', {class: 'muted'}, 'These are the clips in use for this choice. Try different clips to compare.'),
+        h('button', {class: 'primary', disabled: working, onclick: () => useThese(engine), title: 'Keep the new reference for this choice; this is logged and used when the picks are applied'}, 'Use these clips'),
+        h('button', {onclick: () => keepCurrent(engine), title: 'Turn the new reference down and go back to the current one'}, 'Keep current'))
+        : h('div', {class: 'row'}, h('span', {class: 'muted'}, 'This is the reference in use for this choice. Try different clips to compare.'),
           v.kept ? h('button', {class: 'small', onclick: () => act('unkeep', {engine: v.set}, 'Your kept clips were undone', {undo: () => act('keep', {engine: v.set, clips: v.kept.clips.map(clip => clip.id)}, 'Kept again')}),
             title: 'Undo the clips you kept for this choice'}, 'Undo my kept clips') : null)));
 }
@@ -255,7 +253,7 @@ function engineSection(engine) {
 let noteBox = null;
 function build() {
   const card = state.card;
-  document.title = `${card.name} · reference clips`;
+  document.title = `${card.name} · reference`;
   const lines = card.lines;
   noteBox = h('textarea', {placeholder: 'Optional note about this character (saved with “Use these clips”)', value: card.note ?? ''});
   fill($('#head'),
@@ -268,7 +266,7 @@ function build() {
 }
 
 (async () => {
-  if (!key) { fill($('#page'), h('p', {}, 'Open a character from the voice report.')); return; }
+  if (!key) { fill($('#page'), h('p', {}, 'Open a character from the Voice report.')); return; }
   try { await loadCard(); } catch (error) { fill($('#page'), h('p', {class: 'warn'}, error.message), h('p', {}, h('a', {href: '/'}, '← Voice report'))); return; }
   setInterval(() => {
     const card = state.card;

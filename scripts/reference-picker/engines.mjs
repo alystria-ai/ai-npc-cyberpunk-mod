@@ -9,18 +9,14 @@ import {basename, dirname, resolve} from 'node:path';
 import {PocketVoice} from '../../bridge/pocket-voice.mjs';
 import {concatClips, encodeWav, readWav, REFERENCE_RATE} from './audio.mjs';
 
-// The renders the picker makes for a voice. Today's single-reference versions are not rendered here: the research
-// report already has them (Pocket student FT, OmniVoice 16 / 32), made with the same settings.
+// The renders the picker makes for a voice, per reference set (see SETS in picks.mjs): Pocket's one reference (up to 30 s),
+// OmniVoice's long reference (up to 18 s) and its short reference (up to 10 s), the Omni ones at 16 and at 32 steps.
 export const SLOTS = Object.freeze([
   {slot: 'pocket', engine: 'pocket', set: 'pocket', label: 'Pocket'},
-  {slot: 'pockets', engine: 'pocket', set: 'pocket-short', label: 'Pocket, 10 s set'},
   {slot: 'omni16', engine: 'omni', steps: 16, set: 'omni', label: 'OmniVoice 16 steps'},
   {slot: 'omni32', engine: 'omni', steps: 32, set: 'omni', label: 'OmniVoice 32 steps'},
-  {slot: 'omni16s', engine: 'omni', steps: 16, set: 'omni-short', label: 'OmniVoice 16 steps, 10 s set'},
-  {slot: 'omni32s', engine: 'omni', steps: 32, set: 'omni-short', label: 'OmniVoice 32 steps, 10 s set'},
-  {slot: 'pocket1', engine: 'pocket', set: 'pocket-single', label: 'Pocket, single clip'},
-  {slot: 'omni16one', engine: 'omni', steps: 16, set: 'omni-single', label: 'OmniVoice 16 steps, single clip'},
-  {slot: 'omni32one', engine: 'omni', steps: 32, set: 'omni-single', label: 'OmniVoice 32 steps, single clip'},
+  {slot: 'omni16s', engine: 'omni', steps: 16, set: 'omni-short', label: 'OmniVoice 16 steps, short reference'},
+  {slot: 'omni32s', engine: 'omni', steps: 32, set: 'omni-short', label: 'OmniVoice 32 steps, short reference'},
 ]);
 
 const sha256Of = bytes => createHash('sha256').update(bytes).digest('hex');

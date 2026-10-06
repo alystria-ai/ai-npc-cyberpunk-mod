@@ -8,25 +8,27 @@
 // One log line:
 //   {"seq":12,"ts":"2026-10-06T01:02:03.456Z","voice":"judy-alvarez","engine":"pocket","set":"pocket",
 //    "action":"reroll","clips":["judy-alvarez/..","judy-alvarez/.."],"seconds":17.4,"line":0,"note":"",...}
-// engine and set are "pocket", "pocket-short", "pocket-single", "omni", "omni-short" or "omni-single" (each has its own clip set), or engine "all".
+// engine and set are "pocket", "omni-short" or "omni" (each has its own clip set; see SETS), or engine "all". Older lines that name
+// removed sets (pocket-short, pocket-single, omni-single) or the old shared ids "full" / "short" replay without error: what no longer exists is ignored.
 // actions: reroll | manual-set | restore | keep | unkeep | reject | unreject | note | verdict | regenerate | regenerate-done |
 //          regenerate-failed | play
 // verdict: "fine" (the generated audio sounds fine) | "bad" (bad, fix the references) | "" (cleared).
-// play: what is "research" (a column of the research listening report; target = its condition id), "sample" (one of
-//       the user's own renders; target = its slot) or "clip" (a reference clip; target = its id).
+// play: what is "sample" (one of the user's own renders; target = its slot) or "clip" (a reference clip; target = its id).
+//       (Old lines with what "research" replay as plain play counts.)
 import {appendFile, mkdir, readFile, rename, writeFile} from 'node:fs/promises';
 import {dirname} from 'node:path';
 
-export const ENGINES = Object.freeze(['pocket', 'pocket-short', 'pocket-single', 'omni', 'omni-short', 'omni-single']);
-// Each engine variant has its own candidate clip set: Pocket and OmniVoice, each with an 18 s (three clips), a 10 s (two clips)
-// and a single-clip (one clip of at most 9 s) set. The set id is the engine id. (Older log lines used set "full" for one shared Pocket+Omni set; replay applies those to both.)
+export const ENGINES = Object.freeze(['pocket', 'omni-short', 'omni']);
+// The measure of a reference is its total DURATION, not the number of clips: any number of whole clips is fine as long as they
+// join (with 0.4 s gaps) within the budget. Three sets, each with its own candidate clips; the set id is the engine id:
+//   pocket      one Pocket reference, up to 30 s (the bridge's own Pocket reference limit)
+//   omni-short  OmniVoice short reference, up to 10 s
+//   omni        OmniVoice long reference, up to 18 s
+// (Older log lines used set "full" for one shared Pocket+Omni set and "short" for the short Omni set; replay maps those.)
 export const SETS = Object.freeze({
-  pocket: {budget: 18, count: 3, label: 'Pocket 18 s set'},
-  'pocket-short': {budget: 10, count: 2, label: 'Pocket 10 s set'},
-  'pocket-single': {budget: 9, count: 1, label: 'Pocket single-clip set'},
-  omni: {budget: 18, count: 3, label: 'OmniVoice 18 s set'},
-  'omni-short': {budget: 10, count: 2, label: 'OmniVoice 10 s set'},
-  'omni-single': {budget: 9, count: 1, label: 'OmniVoice single-clip set'},
+  pocket: {budget: 30, label: 'Pocket reference'},
+  'omni-short': {budget: 10, label: 'OmniVoice short reference'},
+  omni: {budget: 18, label: 'OmniVoice long reference'},
 });
 export const engineSet = engine => engine;
 
@@ -51,7 +53,7 @@ export function applyEntry(state, entry) {
   if (typeof voice !== 'string' || !voice) return state;
   const row = state.voices[voice] ??= emptyVoice();
   row.updated = entry.ts ?? row.updated;
-  if (SET_ACTIONS.has(entry.action) && Array.isArray(entry.clips) && (SETS[entry.set] || entry.set === 'full' || entry.set === 'short')) {
+  if (SET_ACTIONS.has(entry.action) && Array.isArray(entry.clips) && (Object.hasOwn(SETS, entry.set) || entry.set === 'full' || entry.set === 'short')) {
     const targets = entry.set === 'full' ? ['pocket', 'omni'] : entry.set === 'short' ? ['omni-short'] : [entry.set];
     for (const target of targets) {
       row.candidate[target] = [...entry.clips];
@@ -65,7 +67,8 @@ export function applyEntry(state, entry) {
     delete row.kept[entry.engine];
   } else if (entry.action === 'reject' && Array.isArray(entry.clips)) {
     const legacy = {full: ['pocket', 'omni'], short: ['omni-short']}[entry.set];
-    for (const set of legacy ?? [entry.set ?? null]) row.rejected.push({set, engine: entry.engine, clips: [...entry.clips], ts: entry.ts, note: entry.note ?? ''});
+    // A rejection of a removed set (pocket-short, ...) is dropped; one with no set stays (set null).
+    for (const set of legacy ?? [entry.set ?? null]) if (set === null || Object.hasOwn(SETS, set)) row.rejected.push({set, engine: entry.engine, clips: [...entry.clips], ts: entry.ts, note: entry.note ?? ''});
   } else if (entry.action === 'unreject' && Array.isArray(entry.clips)) {
     const key = entry.clips.join('|');
     const at = row.rejected.findLastIndex(item => item.set === (entry.set ?? null) && item.clips.join('|') === key);
@@ -103,10 +106,10 @@ export function derivedPicks(state, {source = 'runtime/reference-picks.jsonl', n
   for (const [key, row] of Object.entries(state.voices)) {
     const plays = Object.values(row.plays).reduce((a, b) => a + b, 0);
     if (!Object.keys(row.kept).length && !row.rejected.length && !row.note && !row.verdict && !Object.values(row.candidate).some(Boolean) && !plays) continue;
-    // Which research columns and own renders were played most for this voice (what:target -> count).
-    const topColumns = Object.entries(row.plays).filter(([name]) => name.startsWith('research:') || name.startsWith('sample:'))
+    // Which of the user's own renders were played most for this voice (what:target -> count).
+    const topColumns = Object.entries(row.plays).filter(([name]) => name.startsWith('sample:'))
       .sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, count]) => ({column: name, plays: count}));
-    for (const [name, count] of Object.entries(row.plays)) if (name.startsWith('research:') || name.startsWith('sample:')) columns[name] = (columns[name] ?? 0) + count;
+    for (const [name, count] of Object.entries(row.plays)) if (name.startsWith('sample:')) columns[name] = (columns[name] ?? 0) + count;
     voices[key] = {verdict: row.verdict, kept: row.kept, rejected: row.rejected, note: row.note,
       candidate: row.candidate, topColumns, plays: row.plays, updated: row.updated};
   }

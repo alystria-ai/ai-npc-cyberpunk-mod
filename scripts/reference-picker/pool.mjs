@@ -72,20 +72,16 @@ export class Pool {
   startingSet(key, set) {
     const voice = this.voice(key), proposed = voice.proposed;
     if (proposed[set]?.clips) return [...proposed[set].clips];
-    // The single-clip sets start from today's single reference of the engine.
-    if (set.endsWith('-single')) { const engine = set.replace('-single', ''); return voice.live[engine]?.exists ? [LIVE_PREFIX + engine] : null; }
-    // The research agent rendered Pocket's 10 s two-clip samples from the same 10 s sets as OmniVoice's.
-    if (set === 'pocket-short') return proposed['omni-short']?.clips ? [...proposed['omni-short'].clips] : null;
-    if (set === 'omni-short') return null;
+    if (set === 'omni-short') return null;                 // no short reference exists today
     const live = voice.live[set];
     return live?.exists ? [LIVE_PREFIX + set] : null;
   }
   validateSet(key, set, ids) {
-    const budget = SETS[set]?.budget;
+    const budget = Object.hasOwn(SETS, set) ? SETS[set].budget : 0;
     if (!budget) throw Object.assign(Error(`Unknown set ${set}`), {status: 400});
-    const most = SETS[set].count ?? 3;
-    if (!Array.isArray(ids) || ids.length < 1 || ids.length > most || new Set(ids).size !== ids.length) {
-      throw Object.assign(Error(most === 1 ? 'Choose one clip' : `Choose between one and ${most === 2 ? 'two' : 'three'} different clips`), {status: 400});
+    // Only the total duration matters: any number of different whole clips is fine while they fit the budget.
+    if (!Array.isArray(ids) || ids.length < 1 || new Set(ids).size !== ids.length) {
+      throw Object.assign(Error('Choose at least one clip, each only once'), {status: 400});
     }
     const clips = this.clips(key, ids), seconds = joinedSeconds(clips.map(clip => clip.d));
     if (seconds > budget + 1e-6) {
@@ -114,7 +110,8 @@ export class Pool {
 
 const words = text => text.trim().split(/\s+/).filter(Boolean).length;
 
-// Pick a different set of whole clips for a voice: at most three, joined length within the budget, not the current
+// Pick a different set of whole clips for a voice: as many as fill the budget (drawn until nothing more fits, at least 60% of
+// the budget when the pool allows), joined length within the budget, not the current
 // set and not a set the user already rejected, and (when the pool allows) sharing no clip with the current set.
 // Clips are drawn at random, favouring typical ones (the research agent's own criterion), from the clips the
 // agent considered (now 3-10 s) unless the voice has too few of those. Research finding: a reference whose loudness is
@@ -122,7 +119,7 @@ const words = text => text.trim().split(/\s+/).filter(Boolean).length;
 // clips within LOUDNESS_WINDOW_DB of the voice's median loudness are drawn when there are enough of them.
 // Phone-processed clips count like any other; media-processed clips (clip.k === 'media') are avoided unless the voice
 // has nothing else.
-export function rerollSet(clips, {budget, current = [], recent = [], rejected = [], rng = Math.random, count = 3} = {}) {
+export function rerollSet(clips, {budget, current = [], recent = [], rejected = [], rng = Math.random} = {}) {
   const lengthOk = clip => clip.d >= 3 && clip.d <= 10 && words(clip.t) >= MIN_WORDS;
   const loud = clip => clip.rel == null || Math.abs(clip.rel) <= LOUDNESS_WINDOW_DB;
   let pool = clips.filter(clip => lengthOk(clip) && clip.d <= budget && clip.k !== 'media' && loud(clip));
@@ -141,14 +138,14 @@ export function rerollSet(clips, {budget, current = [], recent = [], rejected = 
   const key = ids => [...ids].sort().join('|');
   const seen = new Set([...recent, ...rejected, current].filter(ids => ids?.length).map(key));
   const currentIds = new Set(current);
-  const minimum = count === 1 ? 0 : budget * 0.6;
+  const minimum = budget * 0.6;
   let best = null;
   for (let attempt = 0; attempt < 400; attempt++) {
     const strict = attempt < 250;                       // first insist on a set with no clip from the current one
     const available = strict ? pool.filter(clip => !currentIds.has(clip.id)) : pool;
     if (!available.length) continue;
     const chosen = [draw(available)];
-    while (chosen.length < count) {
+    for (;;) {
       const used = joinedSeconds(chosen.map(clip => clip.d)) + 0.4;
       const fits = available.filter(clip => !chosen.includes(clip) && used + clip.d <= budget);
       if (!fits.length) break;
@@ -157,7 +154,6 @@ export function rerollSet(clips, {budget, current = [], recent = [], rejected = 
     const seconds = joinedSeconds(chosen.map(clip => clip.d)), ids = chosen.map(clip => clip.id);
     if (seen.has(key(ids))) continue;
     if (seconds < minimum && attempt < 380) continue;
-    if (chosen.length < Math.min(count, 2) && attempt < 380) continue;
     best = {ids, seconds: Math.round(seconds * 100) / 100};
     break;
   }

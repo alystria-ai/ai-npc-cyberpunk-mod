@@ -1,19 +1,22 @@
-// The listening report and the reference picker on one page.
+// The Voice report and the reference picker on one page.
 //
 //   node scripts/Reference-Picker.mjs            (or: npm run reference-picker, or Reference-Picker.bat)
 //   then open http://127.0.0.1:8765/
 //
-// Options: --port 8765  --work <dir>  --research <dir|off>  --rebuild-index  --open  --gpu-busy-fraction 0.6
+// Options: --port 8765  --work <dir>  --rebuild-index  --open  --gpu-busy-fraction 0.6
 //          --runtime <dir> (log and status file location; default runtime/)
 //          --fake-render (UI trials: renders short tones instead of speech; no models, no GPU)
 //
-// Main view (/): the research agent's listening report (read only: E:/CyberpunkConvai-offload/work/likeness-phase1), one row
-// per shown voice (scripts/reference-picker/shown-voices.json) with the allowlisted model columns, scores under the headers,
-// quick filters (Recommended, Original) and column groups, a quick verdict per voice, and a "Change reference clips" button
-// that opens the character page (/voice/<key>) in a new tab. The character page has one flow per engine (Pocket, OmniVoice):
-// current clips, try different clips or choose by hand, generate samples, compare with the current sample, then "Use these clips"
-// (Keep) or "Keep current". Every action is appended to runtime/reference-picks.jsonl; runtime/reference-picks.json is the
-// derived current state. Apply-ReferencePicks.mjs turns kept sets into proposed configs. The live voice configs are only read.
+// Main view (/ and /v3/): the Voice report v3, a pre-built read-only page (scripts/clip-search/build_page.py writes it to
+// $V3_REPORT_ROOT, default E:/CyberpunkConvai-offload/work/voice-report-v3; the picker only serves index.html and its .wav files).
+// Each character's row links to the character page (/voice/<key>), opened in a new tab. A reference is measured by its total
+// DURATION, not by a number of clips: Pocket one reference up to 30 s, OmniVoice short up to 10 s or long up to 18 s (for
+// OmniVoice a longer reference also delays the first audio, about 42 ms per second at 16 steps and 95 ms per second at 32).
+// The character page has one flow per engine (Pocket, OmniVoice): current clips, the Auto-best from the clip search, try different
+// clips or choose by hand, generate samples, compare with the current sample, then "Use these clips" (Keep) or "Keep current".
+// Every action is appended to runtime/reference-picks.jsonl; runtime/reference-picks.json is the derived current state.
+// Apply-ReferencePicks.mjs turns kept sets into proposed configs, Build-AutobestConfigs.mjs the clip search's winners. The live
+// voice configs are only read.
 //
 // Runs headless as a long-lived process on 127.0.0.1 only: it never opens a browser unless --open is given, writes
 // runtime/reference-picker.json ({port, pid, started, url}), and if a picker is already running it prints that one's
@@ -28,7 +31,6 @@ import {FakeEngines} from './reference-picker/fake-engines.mjs';
 import {ensureIndex, loadIndex, Pool} from './reference-picker/pool.mjs';
 import {PickStore} from './reference-picker/picks.mjs';
 import {startPicker} from './reference-picker/server.mjs';
-import {Research} from './reference-picker/research.mjs';
 import {GpuMonitor} from './reference-picker/gpu.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -75,7 +77,6 @@ if (existing) {
   process.exit(0);
 }
 
-const research = new Research({root: args.research === 'off' ? null : resolve(typeof args.research === 'string' ? args.research : 'E:/CyberpunkConvai-offload/work/likeness-phase1')});
 const gpu = new GpuMonitor({busyFraction: Number(args['gpu-busy-fraction'] ?? 0.6)});
 const logError = (label, error) => {
   const text = `${new Date().toISOString()} ${label}: ${error?.stack ?? error}\n`;
@@ -87,7 +88,7 @@ process.on('uncaughtException', error => logError('uncaughtException', error));
 process.on('unhandledRejection', error => logError('unhandledRejection', error));
 
 let running;
-try { running = await startPicker({project, work, port, pool, store, engines, research, gpu}); }
+try { running = await startPicker({project, work, port, pool, store, engines, gpu}); }
 catch (error) {
   if (error.code === 'EADDRINUSE') {
     const other = await runningPicker();
@@ -104,7 +105,7 @@ const writeStatus = async () => {
 };
 await writeStatus();
 console.log(`Reference picker: ${url}`);
-console.log(`  ${pool.keys.length} voices with references, ${store.state.entries} logged actions, research report ${research.enabled ? 'found' : 'not found'}`);
+console.log(`  ${pool.keys.length} voices with references, ${store.state.entries} logged actions, Voice report v3 at /`);
 console.log(`  log      ${store.logPath}`);
 console.log(`  status   ${statusPath}`);
 console.log(`  samples  ${resolve(work, 'samples')}`);

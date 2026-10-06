@@ -9,19 +9,24 @@ import {joinedSeconds} from './audio.mjs';
 const clip = (n, d, extra = {}) => ({id: `v/${n}`, d, p: `audio/v/${n}.wav`, t: 'some words in this line', ty: 50, rel: 0, k: null, ...extra});
 const seeded = seed => () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
 
-test('reroll: whole clips, at most three, within budget, different from the current set', () => {
-  const clips = Array.from({length: 40}, (_, n) => clip(n, 2 + (n % 7)));
+test('reroll: whole clips, any number of them, filling the duration budget, different from the current set', () => {
+  const clips = Array.from({length: 60}, (_, n) => clip(n, 2 + (n % 7)));
   const current = ['v/0', 'v/1', 'v/2'];
-  for (const budget of [18, 10]) {
+  const counts = new Set();
+  for (const budget of [30, 18, 10]) {
     for (let run = 0; run < 50; run++) {
       const pick = rerollSet(clips, {budget, current, rng: seeded(run + 1)});
-      assert.ok(pick.ids.length >= 1 && pick.ids.length <= 3);
+      assert.ok(pick.ids.length >= 1);
+      counts.add(pick.ids.length);
       const used = pick.ids.map(id => clips.find(c => c.id === id).d);
       assert.ok(joinedSeconds(used) <= budget + 1e-9, `${joinedSeconds(used)} > ${budget}`);
+      assert.ok(joinedSeconds(used) >= budget * 0.6, `${joinedSeconds(used)} fills less than 60% of ${budget}`);
+      assert.equal(pick.seconds, Math.round(joinedSeconds(used) * 100) / 100);
       assert.ok(pick.ids.every(id => !current.includes(id)));
       assert.equal(new Set(pick.ids).size, pick.ids.length);
     }
   }
+  assert.ok(Math.max(...counts) > 3, 'a 30 s budget is filled with more than three clips');
 });
 
 test('reroll avoids rejected sets, loud outliers and processed clips', () => {
@@ -46,12 +51,20 @@ test('reroll treats phone-processed clips like any other and still avoids media-
   for (let run = 0; run < 40; run++) assert.ok(!rerollSet(mixed, {budget: 18, rng: seeded(run + 3)}).ids.includes('v/100'));
 });
 
-test('manual sets are validated against the budget', () => {
+test('manual sets are validated against the duration budget only, not a clip count', () => {
   const live = {omni: {exists: true, d: 5, transcript: 't', reference: 'r.wav', sha256: 'x'}};
   const pool = new Pool({dataRoot: '/data', voices: {v: {live, clips: [clip(0, 9), clip(1, 9), clip(2, 2)], proposed: {}, loudMedian: -20}}}, {project: '/p'});
   assert.throws(() => pool.validateSet('v', 'omni', ['v/0', 'v/1']), /18 s/);
   assert.equal(pool.validateSet('v', 'omni', ['v/0', 'v/2']).seconds, 11.4);
   assert.throws(() => pool.validateSet('v', 'omni-short', ['v/0', 'v/2']), /10 s/);
+  assert.throws(() => pool.validateSet('v', 'omni', []));
+  assert.throws(() => pool.validateSet('v', 'pocket-short', ['v/2']), /Unknown set/);        // removed sets
+  assert.throws(() => pool.validateSet('v', 'omni-single', ['v/2']), /Unknown set/);
+  assert.equal(pool.validateSet('v', 'pocket', ['v/0', 'v/1', 'v/2']).seconds, 20.8);          // Pocket allows 30 s
+  const many = Array.from({length: 7}, (_, n) => clip(10 + n, 2));
+  const crowded = new Pool({dataRoot: '/data', voices: {v: {live, clips: many, proposed: {}, loudMedian: -20}}}, {project: '/p'});
+  assert.equal(crowded.validateSet('v', 'omni', many.map(item => item.id)).seconds, 16.4);    // seven clips of 2 s: any number fits the budget
+  assert.throws(() => crowded.validateSet('v', 'omni-short', many.map(item => item.id)), /10 s/);
   assert.throws(() => pool.validateSet('v', 'omni', ['v/0', 'v/0']));
   assert.throws(() => pool.validateSet('v', 'omni', ['v/9']), /Unknown clip/);
 });

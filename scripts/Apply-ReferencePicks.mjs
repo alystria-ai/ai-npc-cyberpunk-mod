@@ -9,12 +9,10 @@
 //     no EQ, denoising, trimming or gain);
 //   * copies the live config and replaces only those voices' entries (reference, sha256, transcript = the clips'
 //     transcripts joined with spaces, plus a "pick" note of the clip ids):
-//       Pocket       kept "pocket"      -> runtime/pocket-voices.picked.json        (from runtime/pocket-voices.json)
-//       Pocket 10 s  kept "pocket-short"-> runtime/pocket-voices.picked-short.json  (from runtime/pocket-voices.json)
-//       OmniVoice    kept "omni"        -> runtime/local-voices.picked.json         (from runtime/local-voices.json)
-//       Omni, short  kept "omni-short"  -> runtime/local-voices.picked-short.json   (from runtime/local-voices.json)
-//       Pocket 1 clip kept "pocket-single" -> runtime/pocket-voices.picked-single.json (from runtime/pocket-voices.json)
-//       Omni 1 clip   kept "omni-single"   -> runtime/local-voices.picked-single.json  (from runtime/local-voices.json)
+//       Pocket (up to 30 s)          kept "pocket"     -> runtime/pocket-voices.picked.json        (from runtime/pocket-voices.json)
+//       OmniVoice long (up to 18 s)  kept "omni"       -> runtime/local-voices.picked.json         (from runtime/local-voices.json)
+//       OmniVoice short (up to 10 s) kept "omni-short" -> runtime/local-voices.picked-short.json   (from runtime/local-voices.json)
+// A reference is measured by its total duration, not by how many clips it joins.
 // then dry-runs every written config through the bridge's own loaders (createVoiceProfileRegistry /
 // validatePocketConfig in Node, validate_config of resident-voice-worker.py and pocket_voice_runtime.py in Python):
 // no model is loaded and no worker is started. The live configs (runtime/pocket-voices.json, runtime/local-voices.json)
@@ -34,11 +32,8 @@ import {validatePocketConfig} from '../bridge/pocket-voice.mjs';
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 export const OUTPUTS = Object.freeze({
   pocket: {live: 'runtime/pocket-voices.json', out: 'runtime/pocket-voices.picked.json', folder: 'pocket', maxSeconds: 30, label: 'Pocket'},
-  'pocket-short': {live: 'runtime/pocket-voices.json', out: 'runtime/pocket-voices.picked-short.json', folder: 'pocket-short', maxSeconds: 10, label: 'Pocket 10 s'},
-  'pocket-single': {live: 'runtime/pocket-voices.json', out: 'runtime/pocket-voices.picked-single.json', folder: 'pocket-single', maxSeconds: 10, label: 'Pocket single clip'},
-  omni: {live: 'runtime/local-voices.json', out: 'runtime/local-voices.picked.json', folder: 'omni', maxSeconds: 20, label: 'OmniVoice'},
+  omni: {live: 'runtime/local-voices.json', out: 'runtime/local-voices.picked.json', folder: 'omni', maxSeconds: 18, label: 'OmniVoice'},
   'omni-short': {live: 'runtime/local-voices.json', out: 'runtime/local-voices.picked-short.json', folder: 'omni-short', maxSeconds: 10, label: 'OmniVoice short'},
-  'omni-single': {live: 'runtime/local-voices.json', out: 'runtime/local-voices.picked-single.json', folder: 'omni-single', maxSeconds: 10, label: 'OmniVoice single clip'},
 });
 const LIVE_FILES = ['runtime/pocket-voices.json', 'runtime/local-voices.json'];
 
@@ -158,7 +153,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     dryRun: !!args['dry-run'], validate: !args['no-validate'], log: console.log});
   for (const skipped of report.skipped) console.log(`skipped ${skipped.voice} (${skipped.engine}): ${skipped.reason}`);
   const summary = {engines: Object.fromEntries(Object.entries(report.engines).map(([engine, entry]) => [engine, {output: entry.output,
-    voices: entry.changed.map(item => ({voice: item.voice, seconds: item.seconds, clips: item.clips.length, reference: item.reference}))}])), validation: report.validation};
+    voices: entry.changed.map(item => ({voice: item.voice, seconds: item.seconds, reference: item.reference}))}])), validation: report.validation};
   console.log(JSON.stringify(summary, null, 2));
   console.log('Live configs were not changed. To try a picked config, copy it over the live file in a separate, approved step.');
 }

@@ -17,7 +17,7 @@ test('starts headless, writes its status file and refuses to start twice', {skip
   const work = await mkdtemp(join(tmpdir(), 'launch-')), runtime = join(work, 'runtime'), port = await freePort();
   await mkdir(runtime, {recursive: true});
   await writeFile(join(work, 'pool-index.json'), JSON.stringify({dataRoot: work, voices: {}}));
-  const args = [script, '--port', String(port), '--work', work, '--runtime', runtime, '--research', 'off', '--fake-render'];
+  const args = [script, '--port', String(port), '--work', work, '--runtime', runtime, '--fake-render'];
   const child = spawn(process.execPath, args, {cwd: project, stdio: ['ignore', 'pipe', 'pipe']});
   let output = '';
   child.stdout.on('data', part => { output += part; }); child.stderr.on('data', part => { output += part; });

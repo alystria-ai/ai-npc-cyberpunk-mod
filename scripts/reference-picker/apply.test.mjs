@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {applyPicks} from '../Apply-ReferencePicks.mjs';
+import {applyPicks, OUTPUTS} from '../Apply-ReferencePicks.mjs';
 import {encodeWav, parseWav} from './audio.mjs';
 import {Pool} from './pool.mjs';
 import {replayPicks} from './picks.mjs';
@@ -15,7 +15,7 @@ async function project() {
   const root = await mkdtemp(join(tmpdir(), 'apply-'));
   await mkdir(join(root, 'data/audio/v'), {recursive: true}); await mkdir(join(root, 'runtime'), {recursive: true});
   const clips = [];
-  for (let n = 0; n < 4; n++) {
+  for (let n = 0; n < 8; n++) {
     await writeFile(join(root, `data/audio/v/c${n}.wav`), encodeWav(Float32Array.from({length: 48000 * 3}, (_, at) => Math.sin(at / (10 + n)) * 0.3), 48000));
     clips.push({id: `v/${n}`, d: 3, t: `Clip ${n}.`, ty: 50, g: null, k: null, s: 'train', p: `audio/v/c${n}.wav`, lv: -20});
   }
@@ -72,30 +72,43 @@ test('a kept set over the Omni limit is refused', async () => {
   await assert.rejects(applyPicks({project: root, pick, pool, validate: false}), /over its 10 s limit/);
 });
 
-test('Pocket 10 s and 18 s sets are separate outputs of the Pocket config', async () => {
-  const {root, pool} = await project();
-  const pick = replayPicks([
-    {seq: 1, ts: 't', voice: 'v', engine: 'pocket', action: 'keep', clips: ['v/0', 'v/1', 'v/2']},
-    {seq: 2, ts: 't', voice: 'v', engine: 'pocket-short', action: 'keep', clips: ['v/3', 'v/1']},
-  ]);
-  const report = await applyPicks({project: root, pool, pick, validate: false});
-  assert.equal(JSON.parse(await readFile(join(root, 'runtime/pocket-voices.picked.json'), 'utf8')).voices.v.pick.clips.length, 3);
-  const short = JSON.parse(await readFile(join(root, 'runtime/pocket-voices.picked-short.json'), 'utf8'));
-  assert.equal(short.voices.v.reference, 'runtime/voice-references/picked/pocket-short/v.wav');
-  assert.ok(report.engines['pocket-short'].changed[0].seconds <= 10);
+test('three outputs only: Pocket (30 s), OmniVoice long (18 s) and OmniVoice short (10 s)', () => {
+  assert.deepEqual(Object.keys(OUTPUTS), ['pocket', 'omni', 'omni-short']);
+  assert.deepEqual(Object.values(OUTPUTS).map(spec => spec.maxSeconds), [30, 18, 10]);
+  assert.deepEqual(Object.values(OUTPUTS).map(spec => spec.out.split('/').pop()), ['pocket-voices.picked.json', 'local-voices.picked.json', 'local-voices.picked-short.json']);
 });
 
-test('single-clip kept sets are their own outputs', async () => {
+test('any number of whole clips is accepted while the joined seconds fit: Pocket up to 30 s, Omni up to 18 s', async () => {
+  const {root, pool} = await project();
+  const ids = count => Array.from({length: count}, (_, n) => `v/${n}`);
+  const pick = replayPicks([
+    {seq: 1, ts: 't', voice: 'v', engine: 'pocket', action: 'keep', clips: ids(8)},                  // 8 x 3 s + 7 gaps = 26.8 s
+    {seq: 2, ts: 't', voice: 'v', engine: 'omni', action: 'keep', clips: ids(5)},                    // 5 x 3 s + 4 gaps = 16.6 s
+    {seq: 3, ts: 't', voice: 'v', engine: 'omni-short', action: 'keep', clips: ids(3)},              // 3 x 3 s + 2 gaps = 9.8 s
+  ]);
+  const report = await applyPicks({project: root, pool, pick, validate: false});
+  assert.equal(report.engines.pocket.changed[0].seconds, 26.8);
+  assert.equal(report.engines.omni.changed[0].seconds, 16.6);
+  assert.equal(report.engines['omni-short'].changed[0].seconds, 9.8);
+  const short = JSON.parse(await readFile(join(root, 'runtime/local-voices.picked-short.json'), 'utf8'));
+  assert.equal(short.voices.v.reference, 'runtime/voice-references/picked/omni-short/v.wav');
+  assert.equal(JSON.parse(await readFile(join(root, 'runtime/pocket-voices.picked.json'), 'utf8')).voices.v.pick.clips.length, 8);
+});
+
+test('a kept set over its duration limit is refused whatever the clip count', async () => {
+  const {root, pool} = await project();
+  const ids = Array.from({length: 6}, (_, n) => `v/${n}`);                                         // 6 x 3 s + 5 gaps = 20 s
+  await assert.rejects(applyPicks({project: root, pool, validate: false, pick: replayPicks([{seq: 1, ts: 't', voice: 'v', engine: 'omni', action: 'keep', clips: ids}])}), /over its 18 s limit/);
+});
+
+test('kept sets of removed engines in an old log are ignored', async () => {
   const {root, pool} = await project();
   const pick = replayPicks([
     {seq: 1, ts: 't', voice: 'v', engine: 'omni-single', action: 'keep', clips: ['v/2']},
     {seq: 2, ts: 't', voice: 'v', engine: 'pocket-single', action: 'keep', clips: ['v/1']},
+    {seq: 3, ts: 't', voice: 'v', engine: 'pocket-short', action: 'keep', clips: ['v/3', 'v/1']},
   ]);
   const report = await applyPicks({project: root, pool, pick, validate: false});
-  const omni = JSON.parse(await readFile(join(root, 'runtime/local-voices.picked-single.json'), 'utf8'));
-  assert.equal(omni.voices.v.reference, 'runtime/voice-references/picked/omni-single/v.wav');
-  assert.equal(omni.voices.v.transcript, 'Clip 2.');
-  const pocket = JSON.parse(await readFile(join(root, 'runtime/pocket-voices.picked-single.json'), 'utf8'));
-  assert.equal(pocket.voices.v.pick.clips.length, 1);
-  assert.equal(report.engines['omni-single'].changed[0].seconds, 3);
+  assert.deepEqual(Object.keys(report.engines), ['pocket', 'omni', 'omni-short']);
+  assert.ok(Object.values(report.engines).every(entry => entry.output === null));
 });

@@ -1,4 +1,7 @@
 // HTTP server and job queue behind scripts/Reference-Picker.mjs. Bound to 127.0.0.1 only.
+// Routes: "/" and "/v3/" the read-only Voice report v3 (voice-report-page.mjs); "/voice/<key>" the character page (ui/voice.*) with
+// /api/voice/<key>, /api/pool/<key>, /audio/clip, /audio/live, /audio/line and /audio/sample behind it; /natural-speech/ a read-only
+// listening page; /api/queue the render queue. A reference is measured by its total duration, not by a number of clips.
 import {createServer} from 'node:http';
 import {createReadStream, existsSync, statSync} from 'node:fs';
 import {readFile, mkdir, writeFile} from 'node:fs/promises';
@@ -8,10 +11,9 @@ import {Engines, SLOTS} from './engines.mjs';
 import {FALLBACK_TEXT, LIVE_PREFIX, Pool, rerollSet} from './pool.mjs';
 import {GpuMonitor} from './gpu.mjs';
 import {Autobest} from './autobest.mjs';
-import {Research, resolveShown} from './research.mjs';
 import {engineSet, ENGINES, PickStore, SETS} from './picks.mjs';
 import {isNaturalSpeechPath, serveNaturalSpeech} from './natural-speech-page.mjs';
-import {isPocketV2Path, servePocketV2} from './pocket-v2-page.mjs';
+import {isV3Path, serveV3, V3_REPORT_ROOT} from './voice-report-page.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const TYPES = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -20,18 +22,10 @@ const titleCase = key => key.split('-').map(part => part.charAt(0).toUpperCase()
 const fail = (status, message) => Object.assign(Error(message), {status});
 const ACTIVE = new Set(['queued', 'running', 'waiting-gpu']);
 const round = value => Math.round(value * 100) / 100;
-// The research report's render of the same kind of reference, per render slot: used as the current clips' sample when the
-// current clips are the research agent's own proposal (multi-clip) or today's single reference.
-const RESEARCH_SLOTS = {
-  multi: {pocket: 'ft6-s5000raw__multiB', pockets: 'ft6-s5000raw__multiC', omni16: 'omni__s16_g2_multiB', omni32: 'omni__s32_g2_multiB', omni16s: 'omni__s16_g2_multiC', omni32s: 'omni__s32_g2_multiC'},
-  single: {pocket: 'ft6-s5000raw__cfg1', pockets: 'ft6-s5000raw__cfg1', pocket1: 'ft6-s5000raw__cfg1', omni16: 'omni__s16_g2', omni32: 'omni__s32_g2', omni16s: 'omni__s16_g2', omni32s: 'omni__s32_g2',
-    omni16one: 'omni__s16_g2', omni32one: 'omni__s32_g2'},
-};
 
 export class Picker {
-  constructor({project, work, pool, store, engines, research = new Research({root: null}), gpu = new GpuMonitor(), uiDirectory = resolve(here, 'ui'), now = () => Date.now(), gpuRecheckMs = 5000, shownVoices}) {
-    Object.assign(this, {project, work, pool, store, engines, research, gpu, uiDirectory, now, gpuRecheckMs});
-    this.shown = shownVoices === undefined ? research.shown : resolveShown(shownVoices);       // voices that become rows (null: all)
+  constructor({project, work, pool, store, engines, gpu = new GpuMonitor(), uiDirectory = resolve(here, 'ui'), now = () => Date.now(), gpuRecheckMs = 5000, reportRoot = V3_REPORT_ROOT}) {
+    Object.assign(this, {project, work, pool, store, engines, gpu, uiDirectory, now, gpuRecheckMs, reportRoot});
     this.jobs = []; this.running = false; this.sequence = 0;
     this.references = new Map();
     this.autobest = new Autobest({project});      // the clip search's winners (runtime/autobest-sets.json), offered as "Auto-best"
@@ -115,28 +109,16 @@ export class Picker {
     const start = this.pool.startingSet(key, set);
     return start && !start[0]?.startsWith(LIVE_PREFIX) ? 'proposed' : 'today';
   }
-  // Research listening-report renders of the current clips, per slot, when the current clips are the research agent's own.
-  researchFor(key, set, ids, index) {
-    const start = this.pool.startingSet(key, set), out = {};
-    if (!start || start.join('|') !== ids.join('|')) return out;
-    const kind = ids.every(id => id.startsWith(LIVE_PREFIX)) ? 'single' : 'multi', audio = this.research.scan().audio;
-    for (const [slot, cond] of Object.entries(RESEARCH_SLOTS[kind])) {
-      if (SLOTS.find(item => item.slot === slot)?.set === set && audio.get(cond)?.has(`${key}|${index}`)) out[slot] = {cond, url: `/audio/research/${cond}/${key}/${index}`};
-    }
-    return out;
-  }
   async describeCurrent(key, set, index, candidateSlots) {
     const ids = this.currentIds(key, set);
     if (!ids) return null;
     const candidate = this.candidate(key, set)?.ids, hasNew = !!candidate && candidate.join('|') !== ids.join('|');
     const sameAsCandidate = !!candidate && !hasNew;
     const rendered = sameAsCandidate ? candidateSlots.filter(slot => slot.set === set) : await this.slotsFor(key, index, 'current', set);
-    const job = this.activeJob(key, sameAsCandidate ? 'candidate' : 'current'), research = this.researchFor(key, set, ids, index), samples = {};
+    const job = this.activeJob(key, sameAsCandidate ? 'candidate' : 'current'), samples = {};
     for (const slot of rendered) {
-      const found = research[slot.slot];
-      samples[slot.slot] = {label: slot.label, steps: slot.steps ?? null, ...(found ? {exists: true, url: found.url, state: 'ready', from: 'research', cond: found.cond}
-        : {exists: slot.exists, url: slot.exists ? slot.url : null, state: slot.exists ? 'ready' : this.slotState(job, slot), from: 'render',
-          error: job?.slots.find(item => item.slot === slot.slot)?.error ?? null})};
+      samples[slot.slot] = {label: slot.label, steps: slot.steps ?? null, exists: slot.exists, url: slot.exists ? slot.url : null,
+        state: slot.exists ? 'ready' : this.slotState(job, slot), error: job?.slots.find(item => item.slot === slot.slot)?.error ?? null};
     }
     return {ids, source: this.currentSource(key, set), clips: ids.map(id => this.describeClip(key, id)), seconds: this.pool.seconds(key, ids), hasNew, samples};
   }
@@ -165,7 +147,7 @@ export class Picker {
       sets, autobest: await this.autobest.forVoice(key, this.pool), current, history: Object.fromEntries(Object.keys(SETS).map(set => [set, this.historyOf(key, set, sets[set])])),
       kept, rejected: state.rejected, rejectedNow, note: state.note, verdict: state.verdict,
       samples: Object.fromEntries(slots.map(slot => [slot.slot, {label: slot.label, engine: slot.engine, steps: slot.steps, set: slot.set ?? null,
-        clips: slot.ids.length, exists: slot.exists, url: slot.exists ? slot.url : null,
+        seconds: this.pool.seconds(key, slot.ids), exists: slot.exists, url: slot.exists ? slot.url : null,
         state: slot.exists ? 'ready' : this.slotState(active, slot),
         error: active?.slots.find(item => item.slot === slot.slot)?.error ?? null}])),
       job: job ? this.publicJob(job) : null,
@@ -190,20 +172,6 @@ export class Picker {
       error: job.error, waitReason: job.waitReason ?? null, queuedAt: job.queuedAt, startedAt: job.startedAt, finishedAt: job.finishedAt,
       slots: job.slots.map(({slot, state, error, tookMs}) => ({slot, state, error, tookMs}))};
   }
-  summary() {
-    const research = this.research.scan();
-    const keys = [...new Set([...this.pool.keys, ...Object.keys(research.voices)])].filter(key => !this.shown || this.shown.has(key)).sort();
-    return {work: this.work, log: this.store.logPath, picks: this.store.jsonPath, engines: this.engines.state, research: research.enabled,
-      voices: keys.map(key => {
-        const state = this.store.voice(key), job = this.jobFor(key);
-        const inPool = this.pool.has(key), voice = inPool ? this.pool.voice(key) : null;
-        return {key, name: titleCase(key), picker: inPool, research: key in research.voices, poolSize: voice ? this.pool.usableCount(key) : 0,
-          hasLine: voice ? voice.lines.some(line => line.exists) : key in research.voices,
-          proposed: voice ? Object.keys(voice.proposed).length > 0 : false, kept: Object.keys(state.kept), rejected: state.rejected.length,
-          changed: Object.values(state.candidate).some(Boolean), note: !!state.note, verdict: state.verdict?.value ?? null,
-          job: job && ACTIVE.has(job.status) ? job.status : null};
-      })};
-  }
   async queue() {
     const gpu = await this.gpu.status({ownResident: this.engines.omniResident});
     return {running: this.running, engines: this.engines.state, gpu, jobs: this.jobs.slice(-40).map(job => this.publicJob(job)),
@@ -217,7 +185,7 @@ export class Picker {
     const current = this.candidate(key, set)?.ids ?? [];
     const clips = this.pool.rerollClips(key);
     const pick = rerollSet(clips, {budget: SETS[set].budget, current, recent: state.history[set].slice(0, 15).map(item => item.clips),
-      rejected: state.rejected.filter(item => item.set === set).map(item => item.clips), count: SETS[set].count ?? 3});
+      rejected: state.rejected.filter(item => item.set === set).map(item => item.clips)});
     if (!pick) {
       throw fail(409, `${titleCase(key)} has no other usable clips to draw from (${this.pool.usableCount(key)} in the pool)`);
     }
@@ -272,8 +240,8 @@ export class Picker {
     await this.store.append({voice: key, engine: 'all', action: 'verdict', verdict: value, line});
   }
   async play(key, body) {
-    const what = ['research', 'clip', 'sample'].includes(body.what) ? body.what : null;
-    if (!what || !(this.pool.has(key) || key in this.research.scan().voices)) throw fail(400, 'Unknown play target');
+    const what = ['clip', 'sample'].includes(body.what) ? body.what : null;
+    if (!what || !this.pool.has(key)) throw fail(400, 'Unknown play target');
     const entry = {voice: key, action: 'play', what, target: String(body.target ?? '').slice(0, 200)};
     if (what === 'sample') {
       const slot = SLOTS.find(item => item.slot === body.target);
@@ -377,14 +345,16 @@ export class Picker {
 
   // ---- HTTP ----
   async handle(request, response) {
-    const url = new URL(request.url, 'http://localhost');
-    const path = decodeURIComponent(url.pathname);
     try {
+      const url = new URL(request.url, 'http://localhost');
+      let path;
+      try { path = decodeURIComponent(url.pathname); } catch { throw fail(400, 'Bad path'); }
       this.guard(request);
+      // The Voice report v3 (read only) at "/", "/v3/" and its /audio/<column>/<file>.wav; the picker's own audio routes have more segments.
+      if ((request.method === 'GET' || request.method === 'HEAD') && isV3Path(path)) return serveV3(request, response, path, this.reportRoot);
       // Audio routes take the raw pathname: clip ids contain '/', so segments must be decoded after splitting.
       if (request.method === 'GET' && path.startsWith('/audio/')) return await this.audio(request, response, url.pathname);
       if ((request.method === 'GET' || request.method === 'HEAD') && isNaturalSpeechPath(path)) return serveNaturalSpeech(request, response, path);       // read-only listening page
-      if ((request.method === 'GET' || request.method === 'HEAD') && isPocketV2Path(path)) return servePocketV2(request, response, path);       // read-only Pocket v2 listening page
       if (path.startsWith('/api/')) return await this.api(request, response, path, url);
       if (request.method === 'GET' && /^\/voice\/[a-z0-9-]+\/?$/.test(path)) return await this.staticFile(response, '/voice.html');       // the character page (reference clips)
       if (request.method === 'GET') return await this.staticFile(response, path);
@@ -418,9 +388,7 @@ export class Picker {
   async api(request, response, path, url) {
     const parts = path.split('/').filter(Boolean).slice(1);
     if (request.method === 'GET') {
-      if (parts[0] === 'state') return this.json(response, this.summary());
       if (parts[0] === 'queue') return this.json(response, await this.queue());
-      if (parts[0] === 'research') return this.json(response, this.research.scan(url.searchParams.get('rescan') === '1') && this.research.describe());
       if (parts[0] === 'voice' && parts[1]) return this.json(response, await this.card(parts[1], Number(url.searchParams.get('line') ?? 0)));
       if (parts[0] === 'pool' && parts[1]) {
         const list = this.pool.browse(parts[1]);
@@ -432,19 +400,9 @@ export class Picker {
     if (request.method !== 'POST') throw fail(405, 'Method not allowed');
     const body = await this.body(request);
     if (parts[0] === 'play' && parts[1]) { await this.play(parts[1], body); return this.json(response, {ok: true}); }
-    if (parts[0] === 'generate-missing') {
-      const keys = Array.isArray(body.voices) ? body.voices.filter(key => this.pool.has(key)).slice(0, 200) : [];
-      for (const key of keys) this.enqueue(key, {line: 0});
-      return this.json(response, {queued: keys.length});
-    }
     if (parts[0] !== 'voice' || !parts[1] || !parts[2]) throw fail(404, 'Unknown request');
     const key = parts[1];
     const line = Number.isInteger(body.line) ? body.line : 0;
-    if (parts[2] === 'verdict') {            // also for voices that only have research audio
-      if (!this.pool.has(key) && !(key in this.research.scan().voices)) throw fail(404, `Unknown voice ${key}`);
-      await this.verdict(key, body.value ?? '', line);
-      return this.json(response, {ok: true, verdict: this.store.voice(key).verdict});
-    }
     this.pool.voice(key);
     switch (parts[2]) {
       case 'reroll': await this.reroll(key, body.set); break;
@@ -455,6 +413,7 @@ export class Picker {
       case 'unkeep': await this.unkeep(key, body.engine); break;
       case 'reject': await this.reject(key, body.set, typeof body.note === 'string' ? body.note : undefined); break;
       case 'note': await this.note(key, body.note); break;
+      case 'verdict': await this.verdict(key, body.value ?? '', line); break;
       case 'regenerate': this.enqueue(key, {line, force: body.force === true, slots: Array.isArray(body.slots) ? body.slots : undefined, target: body.target === 'current' ? 'current' : 'candidate'}); break;
       case 'dismiss': await this.dismiss(key, body.set); break;
       default: throw fail(404, 'Unknown request');
@@ -467,8 +426,7 @@ export class Picker {
       try { return decodeURIComponent(part); } catch { return part; }
     });
     let file;
-    if (parts[0] === 'research') file = this.research.file(parts[1], parts[2], Number(parts[3]));
-    else if (parts[0] === 'line' && this.pool.has(parts[1])) file = this.line(parts[1], Number(parts[2])).chosen?.path;
+    if (parts[0] === 'line' && this.pool.has(parts[1])) file = this.line(parts[1], Number(parts[2])).chosen?.path;
     else if (parts[0] === 'clip' && this.pool.has(parts[1])) file = this.pool.clip(parts[1], parts[2])?.path;
     else if (parts[0] === 'live' && this.pool.has(parts[2])) file = this.pool.clip(parts[2], 'live:' + parts[1])?.path;
     else if (parts[0] === 'sample' && this.pool.has(parts[1]) && /^[a-z0-9-]+-[0-9a-f]{10}\.wav$/.test(parts[3] ?? '') && /^\d+$/.test(parts[2] ?? '')) {
@@ -501,8 +459,8 @@ export class Picker {
   }
 }
 
-export async function startPicker({project, work, port = 8765, store, engines, pool, research, gpu, gpuRecheckMs, shownVoices}) {
-  const picker = new Picker({project, work, pool, store, engines, research, gpu, gpuRecheckMs, shownVoices});
+export async function startPicker({project, work, port = 8765, store, engines, pool, gpu, gpuRecheckMs, reportRoot}) {
+  const picker = new Picker({project, work, pool, store, engines, gpu, gpuRecheckMs, reportRoot});
   const server = createServer((request, response) => picker.handle(request, response));
   await new Promise((done, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', done); });
   return {picker, server, port: server.address().port, close: async () => { await new Promise(done => server.close(done)); server.closeAllConnections?.(); await engines.close(); await store.flush(); await store.writeDerived(); }};
