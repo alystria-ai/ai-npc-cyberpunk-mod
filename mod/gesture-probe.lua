@@ -274,6 +274,7 @@ local function begin(s, words)
     s.slide, s.slideTime = option(words, 'slide', 'dont'), option(words, 'slidetime', '0')
     s.phase, s.startedAt, s.startPosition = s.variant == 'suspend' and 'suspending' or 'spawning', now(), position(entry.npc)
     s.beganTick, s.escalated1, s.escalated2 = M.tickCount, nil, nil
+    s.playerAnchor, s.unsettledSince = nil, nil
     s.exitReason, s.exitRequestedAt, s.failure, s.queue, s.clip = nil, nil, nil, nil, nil
     log('begin', {serial = s.serial, name = s.name, rig = s.rig, component = s.component, variant = s.variant, api = s.api,
         inWorkspot = inWorkspot(entry.npc)})
@@ -496,11 +497,22 @@ local function advance(s, context)
     if s.phase ~= 'active' then return end
     if inWorkspot(npc) ~= true then finish(s, 'left workspot on its own'); return end
     if M.guard and context.combat then requestExit(s, 'combat', true); return end
-    -- Movement means V moving or a non-hold decision, never the copy's own
-    -- speed: the workspot entry slide/settle would otherwise end it at once.
+    -- Movement means real V translation (> .75 m from where V stood when the
+    -- stance began), V running, or a non-settled decision that persists for
+    -- .8 s. Single-tick flickers of the group frame (camera turns, opening the
+    -- chat/mic, small shifts) and the copy's own entry settle are ignored.
     local settled = context.settled
-    if settled == nil then settled = context.idle or now() - (s.activeAt or now()) < 1.5 end
-    if M.guard and not settled then requestExit(s, 'movement', false); return end
+    if settled == nil then settled = context.idle end
+    if settled then s.unsettledSince = nil else s.unsettledSince = s.unsettledSince or now() end
+    s.playerAnchor = s.playerAnchor or M.playerPosition
+    local moved = distance(s.playerAnchor, M.playerPosition) or 0
+    local reason = (moved > .75 and 'player-moved') or ((M.playerSpeed or 0) > 2.5 and 'player-running')
+        or (s.unsettledSince and now() - s.unsettledSince > .8 and 'unsettled') or nil
+    if M.guard and reason then
+        log('guard', {serial = s.serial, reason = reason, playerMoved = moved, playerSpeed = M.playerSpeed,
+            unsettledFor = s.unsettledSince and now() - s.unsettledSince or 0})
+        requestExit(s, 'movement:' .. reason, false); return
+    end
     if s.clip and now() >= s.clip.endsAt - 0.2 then
         local clip = s.clip
         s.clip = nil
@@ -532,6 +544,12 @@ function M.tick(player, step, rows)
     M.clock = M.clock + (tonumber(step) or 0)
     M.tickCount = M.tickCount + 1
     M.rows = rows
+    local at = player and position(player)
+    if at then
+        local dt = tonumber(step) or 0
+        M.playerSpeed = M.playerPosition and dt > 0 and (distance(M.playerPosition, at) or 0) / dt or 0
+        M.playerPosition = at
+    end
     if not M.swept then
         -- A CET reload can leave devices from a previous session in the world.
         M.swept = true

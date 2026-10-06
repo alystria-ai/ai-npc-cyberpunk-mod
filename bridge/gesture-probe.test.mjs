@@ -53,9 +53,11 @@ function system:IsTagged(id,tag) return tag.value=='CyberpunkConvaiGestureDevice
 function system:DeleteEntity(id) record('delete');self.managed[id.hash]=nil;return true end
 function system:GetTaggedIDs() return {} end
 local device={}
+player={pos={x=0,y=0,z=0}}
+function player:GetWorldPosition() return self.pos end
 function device:GetClassName() return {value='gameObject'} end
 Game={GetWorkspotSystem=function()return ws end,GetDynamicEntitySystem=function()return system end,
-  FindEntityByID=function()return device end,GetPlayer=function()return {} end}
+  FindEntityByID=function()return device end,GetPlayer=function()return player end}
 local m=(function()${probe}end)()
 local entry={serial=1,name='Judy Alvarez',key='judy-alvarez',record='Character.Judy',npc=npc,speed=0,
   motor={kind='hold',stage='holding',feedback={state='Executing'}},person={phase='attend'}}
@@ -66,7 +68,7 @@ local nonce=0
 local function send(command) nonce=nonce+1;files['runtime/gesture-probe-request.txt']='n'..nonce..'\\n'..command end
 local function step(seconds,observe)
   for i=1,math.max(1,math.floor(seconds/.1+.5)) do
-    m.tick({}, .1, {{entry=entry,transport=entry.transport==true}})
+    m.tick(player, .1, {{entry=entry,transport=entry.transport==true}})
     if npc.pendingEnter then npc.pendingEnter=nil;npc.inWorkspot=true end
     if observe~=false then held=m.observe(entry,context,.1) end
   end
@@ -108,13 +110,25 @@ test('movement asks for a fast exit, escalates if stuck, then releases the body'
   start()
   context.idle=false;step(.3)
   assert(count('fastExit')==0,'own speed (entry slide) is not movement')
-  context.settled=false;step(.1)
+  context.settled=false;step(.1);context.settled=true;step(.3)
+  assert(count('fastExit')==0,'a one-tick group-frame flicker is not movement')
+  context.settled=false;step(.5)
+  assert(count('fastExit')==0,'unsettled must persist .8 s')
+  step(.4)
   assert(count('fastExit')==1 and held,'fast exit first; movement still waits')
   step(.7)
   assert(count('stopNpc')==1,'escalate to StopNpcInWorkspot after .6 s')
   npc.inWorkspot=false;step(.1)
   assert(not held and m.states[1].phase=='off' and count('delete')==1,'released and device deleted')
-  assert(lastLog('finished').reason=='movement')
+  assert(lastLog('finished').reason=='movement:unsettled')
+`));
+
+test('V walking away more than .75 m ends the stance even if the frame looks settled', () => run(`
+  start()
+  for i=1,3 do player.pos={x=i*.15,y=0,z=0};step(.1) end
+  assert(count('fastExit')==0,'a walking step under .75 m is fine')
+  for i=4,6 do player.pos={x=i*.15,y=0,z=0};step(.1) end
+  assert(count('fastExit')==1 and lastLog('guard').reason=='player-moved')
 `));
 
 test('combat stops the workspot instantly', () => run(`
