@@ -19,3 +19,11 @@ The user's per-character verdicts from the report page (http://127.0.0.1:8765/),
 
 ## Ideas raised while listening
 - Human-like delivery setting: prompt characters (dynamic context) to speak more like people, with pauses, "hmm", "mm" and the like, which sound good with a high-quality voice like OmniVoice. Make it an in-game setting; when on, each character responds in their own human way based on a per-character analysis (tier 1 characters at least), from their personality and, cautiously, their dialogue.
+
+### Carol Emeka
+- New-decoder Pocket voices have a "holographic" sound effect (noticed on Carol). Likely the adversarial decoder learned hologram/holocall processing baked into some training clips. Pocket clip search uses the old decoder until this is fixed.
+- Sometimes 2 clips sound better than 3.
+
+## Decisions
+- Metric priority: ECAPA (speaker identity) is primary, PLS secondary, and WER is skipped (too slow).
+- Per-character automatic search for the best clip set (which clips, and 1/2/3), scored by ECAPA, with the results offered as "Auto-best" in the picker.
