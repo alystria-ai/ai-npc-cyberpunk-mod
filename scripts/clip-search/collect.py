@@ -88,6 +88,9 @@ def voice_entry(result: dict) -> dict:
                           if tuple(row["ids"]) not in chosen]
     entry["byK"] = {str(k): trim(max(rows, key=lambda r: r["ecapa"])) for k, rows in k_best.items()}
     entry["significance"] = significance(result)
+    # PLS is secondary, but a winner whose PLS is far below today's reference deserves a listen (per-voice PLS is noisy).
+    best, today = picks.get("best"), base.get("today")
+    entry["flags"] = [f"PLS {best['pls']} vs today's {today['pls']}: listen"] if best and today and "pls" in best and "pls" in today and best["pls"] < today["pls"] - 20 else []
     entry["noise"] = result.get("noise")
     entry["order_check"] = result.get("order_check")
     entry["budget"] = result.get("budget")
@@ -116,21 +119,21 @@ def main(argv=None) -> int:
                 continue
             data["voices"].setdefault(result["voice"], {})[engine] = voice_entry(result)
     out = [data]
-    rows = ["| Voice | Engine | Winner (clips, s) | ECAPA ±SE | PLS | Today ECAPA / PLS | Call | 1 clip ECAPA / PLS | 2 clips | 3 clips | 10 s set | Tied sets |",
-            "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    rows = ["| Voice | Engine | Winner (clips, s) | ECAPA ±SE | PLS | Today ECAPA / PLS | Call | 1 clip ECAPA / PLS | 2 clips | 3 clips | 10 s set | Tied sets | Flag |",
+            "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     def cell(row):
         return f"{row['ecapa']:.3f} / {row.get('pls', '')}" if row else ""
     for voice in shown:
         for engine in ("omni", "pocket"):
             entry = data["voices"].get(voice, {}).get(engine)
             if not entry or not entry.get("best"):
-                rows.append(f"| {voice} | {engine} | not searched | | | | | | | | | |")
+                rows.append(f"| {voice} | {engine} | not searched | | | | | | | | | | |")
                 continue
             best, today, by_k, sig = entry["best"], entry.get("today"), entry.get("byK", {}), entry.get("significance", {})
             short = entry.get("short")
             rows.append(f"| {voice} | {engine} | {best['k']} ({best['seconds']} s) | {best['ecapa']:.3f} ±{best['ecapa_se']:.3f} | {best.get('pls', '')} | "
                         f"{cell(today)} | {sig.get('call', '')} | {cell(by_k.get('1'))} | {cell(by_k.get('2'))} | {cell(by_k.get('3'))} | "
-                        f"{short['k']} clip(s) {short['ecapa']:.3f} | {sig.get('tied_sets', '')} |")
+                        f"{short['k']} clip(s) {short['ecapa']:.3f} | {sig.get('tied_sets', '')} | {'; '.join(entry.get('flags', []))} |")
     results_dir = common.WORK / "results"
     results_dir.mkdir(parents=True, exist_ok=True)
     text = json.dumps(data, indent=1)
