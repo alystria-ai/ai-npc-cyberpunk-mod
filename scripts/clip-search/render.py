@@ -120,9 +120,10 @@ class OmniRenderer:
 
 
 class PocketWorker:
-    def __init__(self, export: Path, threads: int):
+    def __init__(self, export: Path, threads: int, weights: Path | None = None):
+        extra = ["--weights", str(weights)] if weights else []
         self.child = subprocess.Popen(
-            [str(POCKET_PYTHON), "-B", str(Path(__file__).resolve().parent / "pocket_worker.py"), "--export", str(export), "--threads", str(threads)],
+            [str(POCKET_PYTHON), "-B", str(Path(__file__).resolve().parent / "pocket_worker.py"), "--export", str(export), "--threads", str(threads), *extra],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, encoding="utf-8", cwd=str(ROOT),
             creationflags=BELOW_NORMAL_PRIORITY if os.name == "nt" else 0)
         ready = json.loads(self.child.stdout.readline())
@@ -154,10 +155,10 @@ class PocketRenderer:
     """N Pocket workers; jobs that share a reference go to the same worker so its prepared prompt state is reused."""
     name = "pocket"
 
-    def __init__(self, export: Path = common.OLD_POCKET_EXPORT, workers: int = 3, threads: int = 4):
+    def __init__(self, export: Path = common.OLD_POCKET_EXPORT, workers: int = 3, threads: int = 4, weights: Path | None = None, tag: str | None = None):
         self.export = Path(export)
-        self.workers = [PocketWorker(self.export, threads) for _ in range(workers)]
-        self.tag = f"pocket-{self.export.name}"
+        self.workers = [PocketWorker(self.export, threads, weights) for _ in range(workers)]
+        self.tag = tag or f"pocket-{self.export.name}"
 
     def render(self, jobs: list[dict]) -> list[dict]:
         results: list = [None] * len(jobs)

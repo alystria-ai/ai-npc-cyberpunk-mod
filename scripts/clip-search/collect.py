@@ -1,146 +1,152 @@
-"""Gather the per-voice search results into the picker's data file and a results table.
+"""Gather the per-voice duration-search results into the picker's data file, the aggregate curves and the results table.
 
-  python scripts/clip-search/collect.py [--omni omni16] [--pocket pocket-<export>] [--runs <dir>]
+  python scripts/clip-search/collect.py [--runs <dir>] [--omni omni16] [--omni32 omni32] [--pocket pocket-<export>]
 
 Writes (never the live configs):
-  runtime/autobest-sets.json                      what scripts/Build-AutobestConfigs.mjs and the picker read
+  runtime/autobest-sets.json                      schema v2: what scripts/Build-AutobestConfigs.mjs and the picker read
   E:/.../clip-search/results/autobest-sets.json   the same file
-  E:/.../clip-search/results/results.md           the table
+  E:/.../clip-search/results/results.md           per-voice table, aggregate curves
+
+Schema v2 (no clip counts): voices[key].omni = {short, long, best, today, curve, verify32}, voices[key].pocket = {best, today,
+curve, unconstrained}; every set is {ids, seconds, ecapa, ecapa_se, ecapa_tgt, pls, latency_ms (Omni)}.
 """
 from __future__ import annotations
 
 import argparse
 import datetime
 import json
+import math
 from pathlib import Path
+import statistics
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import common  # noqa: E402
 
-KEEP = ("ids", "k", "seconds", "ecapa", "ecapa_se", "ecapa_tgt", "seed_sd", "pls", "pls_parts", "baseline")
+KEEP = ("ids", "seconds", "ecapa", "ecapa_se", "ecapa_tgt", "pls", "pls_parts", "latency_ms")
+GRID_OMNI = [2, 4, 6, 8, 10, 12, 14, 16, 18]
+GRID_POCKET = [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 35, 40]
 
 
 def trim(row):
-    return {k: row[k] for k in KEEP if row and k in row} if row else None
+    return {k: row[k] for k in KEEP if k in row} if row else None
 
 
-T_CRIT = {1: 12.71, 2: 4.30, 3: 3.18, 4: 2.78, 5: 2.57, 6: 2.45, 7: 2.36}   # two-sided 95%, by degrees of freedom
+def step_value(curve, seconds):
+    """ECAPA of the longest curve point not beyond `seconds` (None if the path does not start that low or stops earlier)."""
+    points = [p for p in curve if p["seconds"] <= seconds + 1e-9]
+    return points[-1]["ecapa"] if points else None
 
 
-def paired(a: list[float], b: list[float]):
-    """Paired difference over the fresh lines: (mean diff, t, degrees of freedom)."""
-    import statistics
-    diffs = [x - y for x, y in zip(a, b)]
-    if len(diffs) < 2:
-        return None
-    sd = statistics.stdev(diffs)
-    mean = sum(diffs) / len(diffs)
-    return mean, (mean / (sd / len(diffs) ** 0.5) if sd > 0 else float("inf")), len(diffs) - 1
+def reaches(curve, seconds):
+    return bool(curve) and curve[-1]["seconds"] >= seconds - 1e-9
 
 
-def significance(result: dict) -> dict:
-    """Is the chosen set really better than today's reference and than the best other searched set, or a tie?"""
-    finalists = result["finalists"]
-    best = result["picks"]["best"]
-    if not best:
-        return {}
-    mine = next(r for r in finalists if r["ids"] == best["ids"])
-    out = {}
-    today = next((r for r in finalists if r.get("baseline") == "today"), None)
-    others = [r for r in finalists if r["ids"] != best["ids"] and not r.get("baseline") and not r["ids"][0].startswith("live:")]
-    def verdict(stat):
-        if stat is None:
-            return "n/a"
-        mean, t, df = stat
-        crit = T_CRIT.get(df, 2.0)
-        return "clear" if mean > 0 and t > crit else "tie" if abs(t) <= crit else "behind"
-    if today:
-        stat = paired(mine["per_line"], today["per_line"])
-        out["vs_today"] = {"diff": round(stat[0], 4), "t": round(stat[1], 2), "df": stat[2], "verdict": verdict(stat)} if stat else None
-    if others:
-        # the strongest rival: the other searched set with the highest mean
-        rival = max(others, key=lambda r: r["ecapa"])
-        stat = paired(mine["per_line"], rival["per_line"])
-        out["vs_best_other"] = {"ids": rival["ids"], "diff": round(stat[0], 4), "t": round(stat[1], 2), "df": stat[2], "verdict": verdict(stat)} if stat else None
-        out["tied_sets"] = sum(1 for r in others if (lambda s: s is None or verdict(s) == "tie")(paired(mine["per_line"], r["per_line"])))
-    # one word for the table: a winner only if it is clearly ahead of today's reference and not tied with its closest rival
-    rival_v = (out.get("vs_best_other") or {}).get("verdict")
-    today_v = (out.get("vs_today") or {}).get("verdict")
-    out["call"] = ("clear winner" if rival_v in (None, "n/a", "clear") and today_v in (None, "clear") else
-                   "beats today, ties with other searched sets" if today_v == "clear" else "tie with today's reference or others")
-    return out
-
-
-def voice_entry(result: dict) -> dict:
-    picks = result["picks"]
-    entry = {name: trim(row) for name, row in picks.items()}
-    base = result.get("baselines", {})
-    entry["today"] = trim(base.get("today"))
-    entry["proposed"] = {name: trim(row) for name, row in base.items() if name.startswith("proposed")}
-    chosen = {tuple(row["ids"]) for row in picks.values() if row}
-    k_best = {}
-    for row in result["finalists"]:
-        if row.get("baseline") or row["ids"][0].startswith("live:"):
-            continue
-        k_best.setdefault(row["k"], []).append(row)
-    entry["runnersUp"] = [trim(row) for k in (1, 2, 3) for row in sorted(k_best.get(k, []), key=lambda r: -r["ecapa"])[:3]
-                          if tuple(row["ids"]) not in chosen]
-    entry["byK"] = {str(k): trim(max(rows, key=lambda r: r["ecapa"])) for k, rows in k_best.items()}
-    entry["significance"] = significance(result)
-    # PLS is secondary, but a winner whose PLS is far below today's reference deserves a listen (per-voice PLS is noisy).
-    best, today = picks.get("best"), base.get("today")
-    entry["flags"] = [f"PLS {best['pls']} vs today's {today['pls']}: listen"] if best and today and "pls" in best and "pls" in today and best["pls"] < today["pls"] - 20 else []
-    entry["noise"] = result.get("noise")
-    entry["order_check"] = result.get("order_check")
-    entry["budget"] = result.get("budget")
-    entry["screen"] = result.get("screen")
-    entry["holdout"] = {"lines_dev": result["split"]["dev"], "lines_final": result["split"]["final"], "n": len(result["split"]["holdout"])}
-    return entry
+def aggregate(curves, grid, reference=18):
+    """Per grid duration: voices that reach it, mean ECAPA, and the mean paired change vs the same voice at `reference` s."""
+    rows = []
+    for g in grid:
+        values, deltas = [], []
+        for curve in curves:
+            if not curve or not reaches(curve, g):
+                continue
+            v = step_value(curve, g)
+            if v is None:
+                continue
+            values.append(v)
+            base = step_value(curve, reference) if reaches(curve, reference) else None
+            if base is not None:
+                deltas.append(v - base)
+        se = (statistics.stdev(deltas) / math.sqrt(len(deltas))) if len(deltas) > 1 else None
+        rows.append({"seconds": g, "voices": len(values), "ecapa": round(statistics.mean(values), 4) if values else None,
+                     "delta_vs_18": round(statistics.mean(deltas), 4) if deltas else None, "delta_se": round(se, 4) if se is not None else None})
+    return rows
 
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--runs", type=Path, default=common.WORK / "runs2")
     parser.add_argument("--omni", default="omni16")
-    parser.add_argument("--pocket")
-    parser.add_argument("--runs", type=Path, default=common.WORK / "runs")
+    parser.add_argument("--omni32", default="omni32")
+    parser.add_argument("--pocket", default="pocket-student-v2-s2000-ema-decv2")
     args = parser.parse_args(argv)
     shown = json.loads((common.ROOT / "scripts/reference-picker/shown-voices.json").read_text(encoding="utf-8"))
-    data = {"version": 1, "generated": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
-            "engines": {}, "voices": {}}
-    for engine, tag in (("omni", args.omni), ("pocket", args.pocket)):
-        if not tag:
-            continue
-        folder = args.runs / tag
-        data["engines"][engine] = {"tag": tag, "runs": str(folder)}
-        for result_file in sorted(folder.glob("*/result.json")):
-            result = json.loads(result_file.read_text(encoding="utf-8"))
-            if "picks" not in result:
-                continue
-            data["voices"].setdefault(result["voice"], {})[engine] = voice_entry(result)
-    out = [data]
-    rows = ["| Voice | Engine | Winner (clips, s) | ECAPA ±SE | PLS | Today ECAPA / PLS | Call | 1 clip ECAPA / PLS | 2 clips | 3 clips | 10 s set | Tied sets | Flag |",
-            "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
-    def cell(row):
-        return f"{row['ecapa']:.3f} / {row.get('pls', '')}" if row else ""
+    data = {"version": 2, "generated": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+            "engines": {"omni": {"tag": args.omni}, "pocket": {"tag": args.pocket}}, "voices": {}}
     for voice in shown:
-        for engine in ("omni", "pocket"):
-            entry = data["voices"].get(voice, {}).get(engine)
-            if not entry or not entry.get("best"):
-                rows.append(f"| {voice} | {engine} | not searched | | | | | | | | | | |")
-                continue
-            best, today, by_k, sig = entry["best"], entry.get("today"), entry.get("byK", {}), entry.get("significance", {})
-            short = entry.get("short")
-            rows.append(f"| {voice} | {engine} | {best['k']} ({best['seconds']} s) | {best['ecapa']:.3f} ±{best['ecapa_se']:.3f} | {best.get('pls', '')} | "
-                        f"{cell(today)} | {sig.get('call', '')} | {cell(by_k.get('1'))} | {cell(by_k.get('2'))} | {cell(by_k.get('3'))} | "
-                        f"{short['k']} clip(s) {short['ecapa']:.3f} | {sig.get('tied_sets', '')} | {'; '.join(entry.get('flags', []))} |")
+        row = {}
+        omni_file = args.runs / args.omni / voice / "result.json"
+        if omni_file.is_file():
+            r = json.loads(omni_file.read_text(encoding="utf-8"))
+            if "picks" in r:
+                entry = {name: trim(p) for name, p in r["picks"].items()}
+                entry["today"] = trim(r.get("today"))
+                entry["curve"] = [trim(p) for p in r["curve"]]
+                entry["noise"], entry["budget"] = r.get("noise"), r.get("budget")
+                v32 = args.runs / args.omni32 / voice / "verify.json"
+                if v32.is_file():
+                    v = json.loads(v32.read_text(encoding="utf-8"))
+                    entry["verify32"] = {k: trim(x) for k, x in v.items() if x}
+                row["omni"] = entry
+        pocket_file = args.runs / args.pocket / voice / "result.json"
+        if pocket_file.is_file():
+            r = json.loads(pocket_file.read_text(encoding="utf-8"))
+            if "picks" in r:
+                entry = {name: trim(p) for name, p in r["picks"].items()}
+                entry["today"] = trim(r.get("today"))
+                entry["curve"] = [trim(p) for p in r["curve"]]
+                entry["noise"], entry["budget"] = r.get("noise"), r.get("budget")
+                row["pocket"] = entry
+        if row:
+            data["voices"][voice] = row
+    omni_curves = [v["omni"]["curve"] for v in data["voices"].values() if "omni" in v]
+    pocket_curves = [v["pocket"]["curve"] for v in data["voices"].values() if "pocket" in v]
+    data["curves"] = {"omni": aggregate(omni_curves, GRID_OMNI), "pocket": aggregate(pocket_curves, GRID_POCKET)}
+
+    def fmt(p, key="ecapa"):
+        return f"{p[key]:.3f}" if p else ""
+
+    lines = ["## OmniVoice 16 steps (32-step check in brackets)", "",
+             "| Voice | Short s | ECAPA | +latency 16/32 | Long s | ECAPA | +latency 16/32 | Best | Today s / ECAPA |", "|---|---|---|---|---|---|---|---|---|"]
+    for voice in shown:
+        o = data["voices"].get(voice, {}).get("omni")
+        if not o:
+            lines.append(f"| {voice} | not searched | | | | | | | |")
+            continue
+        v32 = o.get("verify32", {})
+
+        def cell(name):
+            p = o[name]
+            lat = p.get("latency_ms", {})
+            c32 = f" ({v32[name]['ecapa']:.3f})" if name in v32 else ""
+            return f"{p['seconds']:.1f} | {p['ecapa']:.3f}{c32} | +{lat.get('16', 0) / 1000:.2f}/+{lat.get('32', 0) / 1000:.2f} s"
+        today = o.get("today")
+        best_name = "long" if o["best"]["ids"] == o["long"]["ids"] and o["best"]["ids"] != o["short"]["ids"] else "short"
+        lines.append(f"| {voice} | {cell('short')} | {cell('long')} | {best_name} | {today['seconds']:.1f} / {today['ecapa']:.3f} |" if today else
+                     f"| {voice} | {cell('short')} | {cell('long')} | {best_name} | |")
+    lines += ["", "## Pocket (new student + decoder v2)", "",
+              "| Voice | Best s | ECAPA ±SE | Today s / ECAPA | Beyond 30 s (research) |", "|---|---|---|---|---|"]
+    for voice in shown:
+        p = data["voices"].get(voice, {}).get("pocket")
+        if not p:
+            lines.append(f"| {voice} | not searched | | | |")
+            continue
+        today, best, beyond = p.get("today"), p["best"], p.get("unconstrained")
+        lines.append(f"| {voice} | {best['seconds']:.1f} | {best['ecapa']:.3f} ±{best['ecapa_se']:.3f} | "
+                     f"{(str(round(today['seconds'], 1)) + ' / ' + format(today['ecapa'], '.3f')) if today else ''} | "
+                     f"{(str(round(beyond['seconds'], 1)) + ' s ' + format(beyond['ecapa'], '.3f')) if beyond else ''} |")
+    for engine, grid_rows in data["curves"].items():
+        lines += ["", f"## Aggregate ECAPA vs reference duration: {engine}", "", "| Seconds | Voices reaching it | Mean ECAPA | Change vs 18 s (±SE) |", "|---|---|---|---|"]
+        for g in grid_rows:
+            lines.append(f"| {g['seconds']} | {g['voices']} | {g['ecapa'] if g['ecapa'] is not None else ''} | "
+                         f"{('%+.4f' % g['delta_vs_18']) + (' ±%.4f' % g['delta_se'] if g['delta_se'] is not None else '') if g['delta_vs_18'] is not None else ''} |")
     results_dir = common.WORK / "results"
     results_dir.mkdir(parents=True, exist_ok=True)
     text = json.dumps(data, indent=1)
     (results_dir / "autobest-sets.json").write_text(text, encoding="utf-8")
     (common.ROOT / "runtime" / "autobest-sets.json").write_text(text, encoding="utf-8")
-    (results_dir / "results.md").write_text("\n".join(rows) + "\n", encoding="utf-8")
-    print("\n".join(rows))
+    (results_dir / "results.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print("\n".join(lines))
     print(f"{len(data['voices'])} voices -> runtime/autobest-sets.json")
     return 0
 

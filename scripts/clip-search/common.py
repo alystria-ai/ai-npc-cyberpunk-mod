@@ -20,10 +20,12 @@ REFERENCE_RATE = 24000
 GAP_SECONDS = 0.4
 OLD_POCKET_EXPORT = ROOT / "runtime/pocket-student-full-a-s5000-raw"
 
-# Total-length caps (clips plus the 0.4 s gaps). The picker allows 9 s for one clip, 10 s for the two-clip "short"
-# set and 18 s for three clips; the bridge's own Omni limit is 20 s (scripts/reference-picker/validate-config.py).
-CAPS = {1: 9.0, 2: 10.0, 3: 18.0}
-OMNI_LIMIT_SECONDS = 20.0
+# Reference budgets are TOTAL SECONDS (clips plus the 0.4 s gaps); there is no clip count.  OmniVoice: short <= 10 s, long <= 18 s
+# (the bridge's own Omni limit is 20 s, scripts/reference-picker/validate-config.py); Pocket: the bridge refuses references over 30 s
+# (bridge/pocket_voice_runtime.py) and its student was trained on references up to 18 s.  A single clip is at most 9 s.
+MAX_CLIP_SECONDS = 9.0
+OMNI_SHORT_SECONDS, OMNI_LONG_SECONDS, OMNI_LIMIT_SECONDS = 10.0, 18.0, 20.0
+POCKET_LIMIT_SECONDS = 30.0
 
 
 def joined_seconds(durations) -> float:
@@ -107,7 +109,7 @@ LINE_MIN_SECONDS, LINE_MAX_SECONDS, LINE_MIN_WORDS = 2.5, 6.5, 5
 def usable(clip: Clip) -> bool:
     """A reference candidate: 1.5-9 s, at least three words, not media-processed, not effect-flagged (fx: band-limited,
     comb, tone or reverb, from scripts/phone_detect/effect-exclusions.json). Phone/holocall clips are allowed."""
-    return 1.5 <= clip.d <= CAPS[1] and words(clip["t"]) >= 3 and clip.get("k") != "media" and not clip.get("fx")
+    return 1.5 <= clip.d <= MAX_CLIP_SECONDS and words(clip["t"]) >= 3 and clip.get("k") != "media" and not clip.get("fx")
 
 
 def split_voice(pool: VoicePool, salt: str = "clip-search-v1", n_dev: int = 2, n_final: int = 4) -> dict:

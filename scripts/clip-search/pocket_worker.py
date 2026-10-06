@@ -35,6 +35,7 @@ def say(value: dict) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--export", type=Path, default=ROOT / "runtime/pocket-student-full-a-s5000-raw")
+    parser.add_argument("--weights", type=Path, help="model weights to use instead of <export>/model.safetensors (e.g. the stock base)")
     parser.add_argument("--threads", type=int, default=3)
     parser.add_argument("--cache", type=int, default=6, help="prepared reference states kept in memory")
     args = parser.parse_args()
@@ -59,7 +60,7 @@ def main() -> int:
     temperature = live["sampling"]["temperature"]
     export = args.export
     inference = yaml.safe_load((export / "inference.yaml").read_text(encoding="utf-8-sig"))
-    inference["weights_path"] = str(export / "model.safetensors")
+    inference["weights_path"] = str(args.weights or export / "model.safetensors")
     inference["weights_path_without_voice_cloning"] = None
     inference["flow_lm"]["weights_path"] = None
     inference["mimi"]["weights_path"] = None
