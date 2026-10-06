@@ -43,9 +43,9 @@ SEARCH_SEED = 1042
 FINAL_SEEDS = (1042, 7, 99)
 
 SIZES = {  # stage sizes; "pocket" is smaller because a CPU render costs ~3 s
-    "omni": dict(screen_top=36, screen_wild=12, shorts=10, keep=12, explore=4, short_pool=6,
-                 pairs_top=40, pairs_explore=8, pairs_wild=6, pairs_keep=14, parents=6,
-                 triples_top=40, triples_wild=6, triples_keep=14, per_k=3),
+    "omni": dict(screen_top=22, screen_wild=6, shorts=8, keep=12, explore=4, short_pool=6,
+                 pairs_top=30, pairs_explore=6, pairs_wild=4, pairs_keep=12, parents=6,
+                 triples_top=28, triples_wild=4, triples_keep=12, per_k=3),
     "pocket": dict(screen_top=15, screen_wild=5, shorts=6, keep=8, explore=3, short_pool=5,
                    pairs_top=26, pairs_explore=6, pairs_wild=4, pairs_keep=10, parents=5,
                    triples_top=26, triples_wild=4, triples_keep=10, per_k=3),
@@ -216,14 +216,16 @@ class Search:
             screen_info["pruned_from"] = str(prune_from)
             screen_info["screened"] = len(self.screened)
         self.log(f"[{self.voice}] {screen_info}")
-        # ---- stage 1: singles
-        singles = [(c,) for c in self.screened]
-        self.evaluate(singles, dev, stage="1 singles")
-        s1 = {c: self.value((c,), dev) for c in self.screened}
-        matrix = [self.per_line((c,), dev) for c in self.screened]
+        # ---- stage 1: singles, raced: everything on dev line 1, the better ~55% (at least 12) on dev line 2
+        self.evaluate([(c,) for c in self.screened], dev[:1], stage="1 singles")
+        first = sorted(self.screened, key=lambda c: -self.value((c,), dev[:1]))
+        racers = first[:max(min(len(first), 12), math.ceil(len(first) * 0.55))]
+        self.evaluate([(c,) for c in racers], dev[1:], stage="1 singles")
+        s1 = {c: self.value((c,), dev) for c in racers}
+        matrix = [self.per_line((c,), dev) for c in racers]
         noise = residual_sd(matrix)
         se_diff = noise * math.sqrt(2 / len(dev))
-        order = sorted(self.screened, key=lambda c: -s1[c])
+        order = sorted(racers, key=lambda c: -s1[c])
         best1 = s1[order[0]]
         margin = max(2 * se_diff, 0.02)
         kept = [c for c in order if best1 - s1[c] <= margin][:sizes["keep"]]
@@ -235,12 +237,18 @@ class Search:
         rest = [c for c in order if c not in kept]
         median = statistics.median(s1.values())
         explorers = self.explorers([c for c in rest if s1[c] >= median], kept, sizes["explore"])
-        shorts = [c for c in order if self.clip(c)["d"] <= 5.0 and c not in kept and c not in explorers]
+        # pairs need short clips: add the best-scoring short ones from the first-round list (second line for them only)
         have_short = sum(1 for c in kept + explorers if self.clip(c)["d"] <= 5.0)
-        short_add = shorts[:max(0, sizes["short_pool"] - have_short)]
+        short_add = [c for c in first if self.clip(c)["d"] <= 5.0 and c not in kept and c not in explorers][:max(0, sizes["short_pool"] - have_short)]
+        extra = [c for c in short_add if c not in s1]
+        self.evaluate([(c,) for c in extra], dev[1:], stage="1 singles")
+        for c in short_add:
+            s1[c] = self.value((c,), dev)
+        for c in first:                                      # first-round-only clips keep their one-line score for the record
+            s1.setdefault(c, self.value((c,), dev[:1]))
         pool_q = kept + explorers + short_add
         self.log(f"  [{self.voice}] singles: best {best1:.3f} median {median:.3f} noise sd {noise:.3f} (se of a difference {se_diff:.3f}); "
-                 f"kept {len(kept)}, explorers {len(explorers)}, short extras {len(short_add)} of {len(order)}")
+                 f"{len(first)} on one line, {len(racers)} on two; kept {len(kept)}, explorers {len(explorers)}, short extras {len(short_add)}")
         # ---- stage 2: pairs
         explorer_set = set(explorers)
         feasible = [(a, b) for i, a in enumerate(pool_q) for b in pool_q[i + 1:] if common.joined_seconds([self.clip(a)["d"], self.clip(b)["d"]]) <= common.CAPS[2]]
@@ -272,12 +280,13 @@ class Search:
         result.update({"voice": self.voice, "engine": self.engine, "tag": self.renderer.tag, "split": self.split, "screen": screen_info,
                        "noise": {"single_sd": round(noise, 4), "se_diff_two_lines": round(se_diff, 4)},
                        "pool_after_pruning": {"kept": kept, "explorers": explorers, "short_extras": short_add,
-                                              "dropped": len(order) - len(pool_q), "screened": len(order)},
-                       "singles": [{"id": c, "ec": round(s1[c], 4), "seconds": self.clip(c)["d"]} for c in order],
+                                              "dropped": len(self.screened) - len(pool_q), "screened": len(self.screened)},
+                       "singles": [{"id": c, "ec": round(s1[c], 4), "seconds": self.clip(c)["d"], "lines": 2 if c in racers or c in short_add else 1}
+                                   for c in sorted(s1, key=lambda c: -s1[c])],
                        "pairs": [{"ids": list(p), "ec": round(v, 4)} for p, v in ranked2],
                        "triples": [{"ids": list(t), "ec": round(v, 4)} for t, v in ranked3]})
         result["budget"] = {"renders": self.stats["renders"], "cached_hits": self.stats["cached"], "failed": self.stats["failed"],
-                            "render_seconds": round(self.stats["render_ms"] / 1000, 1), "wall_seconds": round(time.time() - self.started, 1),
+                            "early_dropped_finalists": self.stats.get("early_dropped_finalists", 0), "render_seconds": round(self.stats["render_ms"] / 1000, 1), "wall_seconds": round(time.time() - self.started, 1),
                             "stages": self.stats["stage"]}
         (self.dir / "result.json").write_text(json.dumps(result, indent=1), encoding="utf-8")
         return result
@@ -329,6 +338,21 @@ class Search:
             if clips and all(c in self.pool.by_id for c in clips):
                 baselines[f"proposed-{name}"] = tuple(clips)
         every = list(dict.fromkeys(sets + list(baselines.values())))
+        # early stop: everything on the first two fresh lines with one seed; a searched set more than 2 pooled standard errors
+        # behind the best (and not the best of its size) is dropped before the expensive full comparison
+        self.evaluate(every, final[:2], FINAL_SEEDS[:1], keep=True, stage="4a final screen")
+        screen = {s: self.value(s, final[:2], FINAL_SEEDS[:1]) for s in every}
+        sigma = residual_sd([self.per_line(s, final[:2], FINAL_SEEDS[:1]) for s in every]) * math.sqrt(2 / 2)
+        top_all = max(screen.values())
+        keep_sets = set(baselines.values())
+        for k in (1, 2, 3):
+            members = [s for s in every if len(s) == k and s not in keep_sets]
+            if members:
+                keep_sets.add(max(members, key=lambda s: screen[s]))
+        survivors = [s for s in every if s in keep_sets or screen[s] >= top_all - 2 * sigma]
+        self.stats["early_dropped_finalists"] = len(every) - len(survivors)
+        every = survivors
+        sets = [s for s in sets if s in survivors]
         self.evaluate(every, final, FINAL_SEEDS, keep=True, stage="4 final")
         summary = {s: self.summarize(s, final) for s in every}
         pairs = self.compare(summary, final)
@@ -461,6 +485,7 @@ def main(argv=None) -> int:
     parser.add_argument("--index", type=Path, default=common.POOL_INDEX)
     parser.add_argument("--out", type=Path, default=common.WORK / "runs")
     parser.add_argument("--prune-from", help="tag of another engine's run (e.g. omni16) whose singles ranking prunes this one")
+    parser.add_argument("--prune-wait-min", type=int, default=60, help="how long to wait for the other engine's result of a voice")
     parser.add_argument("--wait-gpu", action="store_true")
     parser.add_argument("--scorer-device", default="cuda")
     args = parser.parse_args(argv)
@@ -490,6 +515,10 @@ def main(argv=None) -> int:
             if done.is_file():
                 print(f"{voice}: already done")
                 continue
+            if prune is not None:                 # run alongside the other engine: wait for its singles for this voice
+                waited = 0
+                while not (prune / voice / "result.json").is_file() and waited < args.prune_wait_min * 60:
+                    time.sleep(20); waited += 20
             search = Search(args.engine, renderer, scorer, voice, index, out_root, SIZES[args.engine])
             result = search.run(prune)
             if "skipped" in result:

@@ -79,10 +79,11 @@ def main(argv=None) -> int:
             best, today = entry["best"], entry.get("today")
             gain = f"{best['ecapa'] - today['ecapa']:+.3f}" if today else ""
             short, single = entry.get("short"), entry.get("single")
-            rows.append(f"| {voice} | {engine} | {', '.join(i.split('/')[-1][:10] for i in best['ids'])} | {best['k']} | {best['seconds']} | "
-                        f"{best['ecapa']:.3f} (±{best['ecapa_se']:.3f}) | {best.get('pls', '')} | {today['ecapa'] if today else ''} | {gain} | "
-                        f"{short['k']} clip(s) {short['ecapa']:.3f}" + (" | " if True else "") +
-                        f"{single['ecapa']:.3f} |" if short and single else " | | |")
+            short_text = f"{short['k']} clip(s) {short['seconds']} s, {short['ecapa']:.3f}" if short else ""
+            single_text = f"{single['ecapa']:.3f}" if single else ""
+            today_text = f"{today['ecapa']:.3f}" if today else ""
+            rows.append(f"| {voice} | {engine} | {', '.join(i.split('/')[-1][-8:] for i in best['ids'])} | {best['k']} | {best['seconds']} | "
+                        f"{best['ecapa']:.3f} (±{best['ecapa_se']:.3f}) | {best.get('pls', '')} | {today_text} | {gain} | {short_text} | {single_text} |")
     results_dir = common.WORK / "results"
     results_dir.mkdir(parents=True, exist_ok=True)
     text = json.dumps(data, indent=1)

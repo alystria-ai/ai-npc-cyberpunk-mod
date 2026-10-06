@@ -27,8 +27,8 @@ class OmniRenderer:
     """OmniVoice FP16 on CUDA, English, guidance 2.0, speed 1, denoise off, no post-processing; steps 16 or 32."""
     name = "omni"
 
-    def __init__(self, steps: int = 16):
-        self.steps = steps
+    def __init__(self, steps: int = 16, batch: int = 8):
+        self.steps, self.batch = steps, batch
         config = json.loads((ROOT / "runtime/local-voices.json").read_text(encoding="utf-8-sig"))
         model_dir = ROOT / config["model"]
         if not (model_dir / "model.safetensors").is_file() or config.get("engine") != "omnivoice":
@@ -54,32 +54,63 @@ class OmniRenderer:
         self.tag = f"omni{steps}"
 
     def render(self, jobs: list[dict]) -> list[dict]:
-        import numpy as np
-        import soundfile as sf
-        torch, results = self.torch, []
-        for job in jobs:
+        """Jobs are grouped by seed and reference and sent through OmniVoice's native variable-length batch generation
+        (`batch` items at a time, one seed per batch); a failed batch falls back to one render at a time."""
+        results: list = [None] * len(jobs)
+        order = sorted(range(len(jobs)), key=lambda at: (jobs[at]["seed"], jobs[at]["ref"]))
+        batches, current = [], []
+        for at in order:
+            if current and (len(current) >= self.batch or jobs[current[0]]["seed"] != jobs[at]["seed"]):
+                batches.append(current); current = []
+            current.append(at)
+        if current:
+            batches.append(current)
+        for indices in batches:
             began = time.perf_counter()
             try:
-                torch.manual_seed(int(job["seed"]))
-                with torch.inference_mode():
-                    wav = self.backend.generate(job["text"], ref_audio=job["ref"], ref_text=job["transcript"], language="English",
-                                                num_step=self.steps, guidance_scale=2.0, speed=1, denoise=False,
-                                                postprocess_output=False)
-                torch.cuda.synchronize()
-                values = np.asarray(wav.detach().float().cpu() if hasattr(wav, "detach") else wav).reshape(-1)
-                if not values.size or not np.isfinite(values).all():
-                    raise ValueError("OmniVoice produced empty or non-finite audio")
-                out = Path(job["out"])
-                out.parent.mkdir(parents=True, exist_ok=True)
-                temporary = out.with_name(out.name + ".part")
-                sf.write(str(temporary), values, self.backend.sample_rate, format="WAV", subtype="PCM_16")
-                os.replace(temporary, out)
-                results.append({"ok": True, "seconds": values.size / self.backend.sample_rate,
-                                "tookMs": round((time.perf_counter() - began) * 1000), "error": None})
-            except Exception as error:  # one bad render must not end a night's run
-                results.append({"ok": False, "seconds": 0.0, "tookMs": round((time.perf_counter() - began) * 1000),
-                                "error": f"{type(error).__name__}: {error}"[:300]})
+                outputs = self._generate([jobs[at] for at in indices])
+                per_job_ms = round((time.perf_counter() - began) * 1000 / len(indices))
+                for at, values in zip(indices, outputs):
+                    results[at] = self._write(jobs[at], values, per_job_ms)
+            except Exception as error:
+                if len(indices) == 1:
+                    results[indices[0]] = {"ok": False, "seconds": 0.0, "tookMs": 0, "error": f"{type(error).__name__}: {error}"[:300]}
+                    continue
+                for at in indices:                     # fall back to single renders for this batch
+                    began = time.perf_counter()
+                    try:
+                        values = self._generate([jobs[at]])[0]
+                        results[at] = self._write(jobs[at], values, round((time.perf_counter() - began) * 1000))
+                    except Exception as single:
+                        results[at] = {"ok": False, "seconds": 0.0, "tookMs": 0, "error": f"{type(single).__name__}: {single}"[:300]}
         return results
+
+    def _generate(self, jobs: list[dict]):
+        import numpy as np
+        torch = self.torch
+        torch.manual_seed(int(jobs[0]["seed"]))
+        with torch.inference_mode():
+            if len(jobs) == 1:
+                wavs = [self.backend.generate(jobs[0]["text"], ref_audio=jobs[0]["ref"], ref_text=jobs[0]["transcript"], language="English",
+                                              num_step=self.steps, guidance_scale=2.0, speed=1, denoise=False, postprocess_output=False)]
+            else:
+                wavs = self.backend.generate_batch([job["text"] for job in jobs], ref_audio=[job["ref"] for job in jobs],
+                                                   ref_text=[job["transcript"] for job in jobs], language="English",
+                                                   num_step=self.steps, guidance_scale=2.0, speed=1, denoise=False, postprocess_output=False)
+        torch.cuda.synchronize()
+        return [np.asarray(w.detach().float().cpu() if hasattr(w, "detach") else w).reshape(-1) for w in wavs]
+
+    def _write(self, job, values, took_ms) -> dict:
+        import numpy as np
+        import soundfile as sf
+        if not values.size or not np.isfinite(values).all():
+            return {"ok": False, "seconds": 0.0, "tookMs": took_ms, "error": "OmniVoice produced empty or non-finite audio"}
+        out = Path(job["out"])
+        out.parent.mkdir(parents=True, exist_ok=True)
+        temporary = out.with_name(out.name + ".part")
+        sf.write(str(temporary), values, self.backend.sample_rate, format="WAV", subtype="PCM_16")
+        os.replace(temporary, out)
+        return {"ok": True, "seconds": values.size / self.backend.sample_rate, "tookMs": took_ms, "error": None}
 
     def close(self):
         try:
