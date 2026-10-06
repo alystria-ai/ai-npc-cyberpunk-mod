@@ -107,7 +107,7 @@ test('a gesture returns to the idle loop after its duration', () => run(`
 `));
 
 test('movement asks for a fast exit, escalates if stuck, then releases the body', () => run(`
-  start()
+  start(' exit=fast')
   context.idle=false;step(.3)
   assert(count('fastExit')==0,'own speed (entry slide) is not movement')
   context.settled=false;step(.1);context.settled=true;step(.3)
@@ -128,7 +128,24 @@ test('V walking away more than .75 m ends the stance even if the frame looks set
   for i=1,3 do player.pos={x=i*.15,y=0,z=0};step(.1) end
   assert(count('fastExit')==0,'a walking step under .75 m is fine')
   for i=4,6 do player.pos={x=i*.15,y=0,z=0};step(.1) end
-  assert(count('fastExit')==1 and lastLog('guard').reason=='player-moved')
+  assert(count('stopDevice')==1 and count('fastExit')==0,'default exit is StopInDevice')
+  assert(lastLog('guard').reason=='player-moved')
+`));
+
+test('a queued command that never starts after the exit is recovered once', () => run(`
+  start()
+  context.settled=false;step(1.0)
+  npc.inWorkspot=false;step(.1)
+  assert(m.states[1].phase=='off')
+  entry.motor.feedback.state='AICommandState : Enqueued (1)'
+  local released=false
+  package.loaded=package.loaded or {}
+  local realDofile=dofile
+  dofile=function(path) if path=='companion-actuator.lua' then return {release=function(motor) released=true end} end;return realDofile(path) end
+  step(1.2)
+  assert(lastLog('ai-wedged') and released and lastLog('unstick'),'auto recovery')
+  local unsticks=0;for _,l in ipairs(logs) do if l.kind=='unstick' then unsticks=unsticks+1 end end
+  step(2);assert(unsticks==1,'only once')
 `));
 
 test('combat stops the workspot instantly', () => run(`

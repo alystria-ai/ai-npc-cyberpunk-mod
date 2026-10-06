@@ -233,6 +233,53 @@ local function stopWorkspot(s, npc, mode)
     return ok
 end
 
+-- AI recovery ----------------------------------------------------------------
+-- The puppet-state flags native AI checks before running commands
+-- (aiAutonomousConditions.script:90, NPCPuppet.script:4103).
+local function aiFlags(npc)
+    local flags = {}
+    pcall(function()
+        local defs, board = Game.GetAllBlackboardDefs().PuppetState, npc:GetPuppetStateBlackboard()
+        for _, name in ipairs({'WorkspotAnimationInProgress', 'InPendingBehavior', 'SlotAnimationInProgress'}) do
+            local ok, value = pcall(function() return board:GetBool(defs[name]) end)
+            flags[name] = ok and value or ('error:' .. tostring(value))
+        end
+    end)
+    return flags
+end
+local actuator
+local function unstick(s, level)
+    local entry, npc = s.entry, s.entry.npc
+    local before = {flags = aiFlags(npc), inWorkspot = inWorkspot(npc),
+        command = entry.motor and entry.motor.feedback and entry.motor.feedback.state}
+    local steps = {}
+    local function step(name, fn) local ok, err = pcall(fn); steps[#steps + 1] = {step = name, ok = ok, error = not ok and tostring(err) or nil} end
+    step('StopInDevice', function()
+        workspots():StopInDevice(npc, Vector4.new(0, 0, 0, 0), Quaternion.new(0, 0, 0, 1))
+    end)
+    step('clear-flags', function()
+        local defs, board = Game.GetAllBlackboardDefs().PuppetState, npc:GetPuppetStateBlackboard()
+        if board:GetBool(defs.WorkspotAnimationInProgress) then board:SetBool(defs.WorkspotAnimationInProgress, false) end
+        if board:GetBool(defs.InPendingBehavior) then board:SetBool(defs.InPendingBehavior, false) end
+    end)
+    step('release-command', function()
+        actuator = actuator or dofile('companion-actuator.lua')
+        -- Cancels the owned (queued) command; the next decision issues a fresh one.
+        actuator.release(entry.motor)
+    end)
+    if (tonumber(level) or 1) >= 2 then
+        step('reattach-role', function()
+            local ai = npc:GetAIControllerComponent()
+            ai:SetAIRole(entry.role or ai:GetAIRole())
+            ai:OnAttach()
+        end)
+    end
+    local after = {flags = aiFlags(npc), inWorkspot = inWorkspot(npc)}
+    log('unstick', {serial = s.serial, level = tonumber(level) or 1, before = before, steps = steps, after = after})
+    s.unstickAt = now()
+    return true, {before = before, steps = steps, after = after}
+end
+
 -- Lifecycle ----------------------------------------------------------------
 local function finish(s, reason)
     if s.suspended and s.resumeHold then pcall(s.resumeHold) end
@@ -243,6 +290,7 @@ local function finish(s, reason)
         moved = distance(s.startPosition, s.entry and s.entry.npc and position(s.entry.npc))})
     s.phase, s.queue, s.clip, s.exitRequestedAt, s.exitMode = 'off', nil, nil, nil, nil
     s.traceUntil = now() + 3
+    s.healthFrom, s.autoUnstuck = now(), nil
 end
 local function requestExit(s, reason, instant)
     if s.phase == 'off' or s.phase == 'failed' then return end
@@ -255,7 +303,10 @@ local function requestExit(s, reason, instant)
         if npc then stopWorkspot(s, npc, 'npc') end
     elseif s.phase == 'active' then
         s.phase = 'exiting'
-        if npc then exitWorkspot(s, npc, 'fast') end
+        if npc then
+            if s.exitStyle == 'fast' then exitWorkspot(s, npc, 'fast')
+            else stopWorkspot(s, npc, s.exitStyle == 'npc' and 'npc' or 'device') end
+        end
     end
     log('exit-requested', {serial = s.serial, reason = reason, instant = instant == true})
 end
@@ -272,6 +323,7 @@ local function begin(s, words)
     s.api = option(words, 'api', 'auto')
     s.autoReturn = option(words, 'return', 'on') ~= 'off'
     s.slide, s.slideTime = option(words, 'slide', 'dont'), option(words, 'slidetime', '0')
+    s.exitStyle = option(words, 'exit', 'device') -- device (StopInDevice, as AMM) | npc | fast
     s.phase, s.startedAt, s.startPosition = s.variant == 'suspend' and 'suspending' or 'spawning', now(), position(entry.npc)
     s.beganTick, s.escalated1, s.escalated2 = M.tickCount, nil, nil
     s.playerAnchor, s.unsettledSince = nil, nil
@@ -370,6 +422,8 @@ COMMANDS.status = function(words)
                 suspended = motor.suspendedHold ~= nil}, position = position(npc)}
     end)
 end
+COMMANDS.unstick = function(words) return each(words, function(s) return unstick(s, words[3]) end) end
+COMMANDS.autounstick = function(words) M.autoUnstick = words[2] ~= 'off'; return true, {autoUnstick = M.autoUnstick} end
 COMMANDS.guard = function(words)
     M.guard = words[2] ~= 'off'
     return true, {guard = M.guard}
@@ -438,13 +492,14 @@ end
 
 -- Per-copy update from the companions loop ----------------------------------
 local function trace(s, context)
-    if s.phase == 'off' and now() > (s.traceUntil or 0) then return end
+    if s.phase == 'off' and now() > (s.traceUntil or 0) + 7 then return end
     if now() < (s.traceAt or 0) then return end
     s.traceAt = now() + 0.25
     local entry, motor = s.entry, s.entry.motor or {}
     log('trace', {serial = s.serial, phase = s.phase, clip = s.clip and s.clip.name, inWorkspot = inWorkspot(entry.npc),
         idle = context and context.idle, combat = context and context.combat, behaviour = context and context.phase,
-        speed = entry.speed and math.floor(entry.speed * 100) / 100, position = position(entry.npc),
+        speed = entry.speed and math.floor(entry.speed * 100) / 100, position = position(entry.npc), flags = aiFlags(entry.npc),
+        settled = context and context.settled,
         hold = {kind = motor.kind, stage = motor.stage, state = motor.feedback and motor.feedback.state, suspended = motor.suspendedHold ~= nil}})
 end
 
@@ -535,6 +590,16 @@ function M.observe(entry, context, step)
     if not ok then
         log('advance-error', {serial = s.serial, error = tostring(err)})
         pcall(requestExit, s, 'error', true)
+    end
+    -- After a workspot ends, the AI must start the next command. If a move is
+    -- wanted but the owned command is still only queued after 1 s, recover.
+    if s.phase == 'off' and s.healthFrom and now() - s.healthFrom < 10 then
+        local state = s.entry.motor and s.entry.motor.feedback and tostring(s.entry.motor.feedback.state or '')
+        if state and state:find('Enqueued', 1, true) and context.settled == false and now() - s.healthFrom > 1 and not s.autoUnstuck then
+            s.autoUnstuck = true
+            log('ai-wedged', {serial = s.serial, state = state, flags = aiFlags(s.entry.npc), sinceExit = now() - s.healthFrom})
+            if M.autoUnstick ~= false then pcall(unstick, s, 1) end
+        end
     end
     trace(s, context)
     return HOLDING[s.phase] == true
