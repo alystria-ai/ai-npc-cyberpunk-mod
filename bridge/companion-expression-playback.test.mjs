@@ -235,3 +235,116 @@ test('the per-turn expression receipt publishes emotion, scale and the peak pose
   assert(face.status().expressions.lastSpeech==turn,'the receipt stays readable after speech')
   `);
 });
+
+// Mouth articulation outranks every expression: jaw, closures and rounding are
+// written exactly as without an emotion, and expression mouth corners yield to
+// closure and rounding after smoothing, at any feeling and strength.
+test('lip closure, rounding and jaw frames are identical with or without an active expression', () => {
+  const emotions = [['Joy', 3], ['Trust', 3], ['Sadness', 3], ['Anger', 3], ['Fear', 3], ['Disgust', 3], ['Surprise', 3]];
+  const speechTracks = ['jaw_mid_open', 'lips_together_up', 'lips_together_dn', 'lips_l_funnel', 'lips_r_funnel',
+    'lips_l_purse', 'lips_r_purse', 'lips_suck_up'];
+  const timelineFor = id => ({version: 1, requestId: id, entity: 'copy-a', duration: 1, source: 'audio-envelope',
+    tracks: speechTracks, frames: [
+      [0, .30, 0, 0, 0, 0, 0, 0, 0], [.5, .30, 0, 0, 0, 0, 0, 0, 0],
+      [.55, .10, .85, .85, 0, 0, 0, 0, 0], [.8, .10, .85, .85, 0, 0, 0, 0, 0],
+      [.85, .20, 0, 0, .32, .32, .28, .28, .05], [1, .20, 0, 0, .32, .32, .28, .28, .05]]});
+  const scenarios = [[null, 0], ...emotions].map(([label, scale], index) => ({id: `mouth-${index}`, label: label ?? 'none',
+    receipt: label ? ownedExpressionReceipt(signal(label, scale, 0), {...owner, requestId: `mouth-${index}`}) : undefined}));
+  run(`
+   local function play(id,receipt,timeline)
+    local ctx={requestId=id,entity=a.id,generation=4}
+    if receipt then face.beginExpression(ctx,receipt) end
+    assert(face.start(ctx,timeline,a,1),face.error)
+    local out={}
+    -- Saturate the smoothed expression on open-mouth speech, then hit the
+    -- contact and rounding frames with it fully present.
+    for i=1,14 do face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.2+i*.01,id) end
+    out.open=copy(last(a))
+    face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.65,id);out.closure=copy(last(a))
+    face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.95,id);out.round=copy(last(a))
+    face.stop(a,'cancelled');if receipt then face.endExpression(ctx,false) end
+    return out
+   end
+   local baseline
+   local scenarios=${literal(scenarios)}
+   local timelines=${literal(Object.fromEntries(scenarios.map(s => [s.id, timelineFor(s.id)])))}
+   local speech=${literal(speechTracks)}
+   local sawCornerOpen=false
+   for _,s in ipairs(scenarios) do
+    local out=play(s.id,s.receipt,timelines[s.id])
+    if s.label=='none' then baseline=out
+    else
+     for _,phase in ipairs({'open','closure','round'}) do
+      for _,track in ipairs(speech) do
+       assert(out[phase][track]==baseline[phase][track],s.label..' changed '..track..' at '..phase)
+      end
+     end
+     -- Pressed lips and full rounding remove mouth emotion entirely.
+     for _,phase in ipairs({'closure','round'}) do
+      for _,track in ipairs({'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','lips_r_corner_dn'}) do
+       assert(out[phase][track]==0,s.label..' leaked '..track..' at '..phase..' '..tostring(out[phase][track]))
+      end
+     end
+     if (out.open.lips_l_corner_up or 0)>.05 or (out.open.lips_l_corner_dn or 0)>.05 then sawCornerOpen=true end
+    end
+   end
+   assert(baseline,'baseline ran');assert(sawCornerOpen,'the expression was actually active on open-mouth frames')
+  `);
+});
+
+// The visibility probe (mod/face-test.lua) runs through the same writer.
+const probeSource = readFileSync(new URL('../mod/face-test.lua', import.meta.url), 'utf8');
+function runProbe(body) {
+  const fakeIo = `local files={}
+   io.open=function(path,mode)
+    if mode=='rb' and path=='face-test.lua' then return {close=function() end} end
+    if mode=='rb' then local text=files[path];if not text then return nil end
+     return {read=function() return text end,close=function() end} end
+    local parts={};return {write=function(self,...) for _,v in ipairs({...}) do parts[#parts+1]=v end end,
+     close=function() files[path]=(mode=='ab' and (files[path] or '') or '')..table.concat(parts) end}
+   end
+   json={encode=function(v) local function enc(x) if type(x)=='table' then local o={};for k,y in pairs(x) do o[#o+1]=tostring(k)..'='..enc(y) end;table.sort(o);return '{'..table.concat(o,',')..'}' end;return tostring(x) end;return enc(v) end}
+   dofile=function(path) if path=='face-test.lua' then return (function() ${probeSource} end)() end;return nil end
+  `;
+  const patched = setup.replace('io.open=function() return nil end', () => fakeIo);
+  const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
+  try {
+    const status = lauxlib.luaL_dostring(vm, to_luastring(patched + `
+ rows={{entity=a.id,npc=a,profileKey='judy-alvarez',name='Judy'},{entity=b.id,npc=b,profileKey='johnny-silverhand',name='Johnny'}}
+ local function request(text) files['runtime/face-test-request.txt']=text end
+ ` + body));
+    assert.equal(status, lua.LUA_OK, status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1)));
+  } finally { lua.lua_close(vm); }
+}
+
+test('face-test probe: writer mode pushes an extreme smile through the single writer and never touches the mouth', () => runProbe(`
+ assert(face.faceTest,'probe is loaded when face-test.lua exists')
+ request('n1\\nface-test judy smile 2 writer');tick(.3)
+ assert(files['runtime/face-test-response.txt']:find('n1',1,true) and files['runtime/face-test-response.txt']:find('ok=true',1,true),files['runtime/face-test-response.txt'])
+ tick(.1);local frame=last(a)
+ assert(frame.lips_l_corner_up==1 and frame.lips_r_corner_up==1 and frame.lips_l_corner_dn==0 and frame.eye_l_brows_raise_in==0)
+ assert(last(b).lips_l_corner_up<.1,'only the requested companion is driven')
+ assert(files['runtime/face-test.log']:find('frame',1,true),'logs what was written')
+ for _=1,25 do tick(.1) end;tick(.1);assert(last(a).lips_l_corner_up<.1,'probe ends and the real policy resumes')
+`));
+
+test('face-test probe: direct mode bypasses the writer with its own feature and logs the apply result', () => runProbe(`
+ request('n2\\nface-test judy frown 2 direct');tick(.3)
+ local count=#a.frames;tick(.1);assert(#a.frames==count+1,'one direct write per frame, writer skipped')
+ assert(last(a).lips_l_corner_dn==1 and last(a).lips_l_corner_up==nil)
+ assert(files['runtime/face-test.log']:find('applied=true',1,true),files['runtime/face-test.log'])
+`));
+
+test('face-test probe: policy mode shows a real scale-3 smile WHILE speaking, yielding to lip closure', () => {
+  const timeline = {version: 1, requestId: 'expression-turn', entity: 'copy-a', duration: 1, source: 'audio-envelope',
+    tracks: ['jaw_mid_open', 'lips_together_up', 'lips_together_dn'], frames: [[0, .3, 0, 0], [.5, .3, 0, 0], [.55, .1, .85, .85], [1, .1, .85, .85]]};
+  runProbe(`
+ request('n3\\nface-test judy smile 8 policy');tick(.3)
+ assert(face.start(context,${literal(timeline)},a,1),face.error)
+ for i=1,14 do face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.2+i*.01,context.requestId) end
+ local open=copy(last(a));assert(open.lips_l_corner_up>.1 and open.lips_l_corner_up<=.2,open.lips_l_corner_up)
+ face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.7,context.requestId)
+ assert(last(a).lips_together_up==.85 and last(a).lips_l_corner_up==0,'closure wins over the smile')
+ face.stop(a,'cancelled')
+`);
+});

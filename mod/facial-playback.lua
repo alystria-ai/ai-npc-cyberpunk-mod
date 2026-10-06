@@ -64,6 +64,20 @@ local scaleStrength={.5,.8,1}
 local restSmile=.06
 local speechMouthFactor=.85
 M.expressions, M.expressionClock, M.expressionFrame = {}, 0, 0
+-- Development-only visibility probe (mod/face-test.lua). It is absent from a
+-- normal install, inert until a runtime request file appears, and errors in it
+-- can never reach speech or the writer (every call below is pcall-wrapped).
+local faceTest
+do
+    local opener=io and io.open
+    local file=opener and opener('face-test.lua','rb')
+    if file then
+        file:close()
+        local ok,module=pcall(dofile,'face-test.lua')
+        if ok and type(module)=='table' then faceTest=module end
+    end
+end
+M.faceTest=faceTest
 local function expressionSlot(entity)
     if not M.expressions[entity] then M.expressions[entity]={pose=zeroExpression(),sequence=-1} end
     return M.expressions[entity]
@@ -109,6 +123,7 @@ function M.clearExpression(entity)
     M.expressions[entity]=nil
 end
 function M.beginExpressionFrame(delta,context)
+    if faceTest then pcall(faceTest.poll,delta,context) end
     M.expressionFrame=M.expressionFrame+1
     M.expressionDelta=finite(delta) and clamp(delta,.1) or 0
     M.expressionPaused=type(context)=='table' and context.paused==true
@@ -225,7 +240,12 @@ local function applyFeature(actor,feature,entity,phase,provider,upper)
     local slot=expressionSlot(entity)
     local blocked=M.expressionBlocked or M.expressionPaused or not safeExpressionActor(actor)
     if blocked then slot.emotion,slot.family,slot.expiry=nil,nil,nil end
+    if faceTest then pcall(faceTest.pre,entity,slot,M.expressionClock) end
     expressionPose(slot,phase,feature,provider,blocked,upper)
+    if faceTest then
+        local ok,skip=pcall(faceTest.post,entity,feature,phase,blocked)
+        if ok and skip then return end
+    end
     assert(actor:ConvaiFaceApply(feature),'Native facial layer rejected the frame')
     slot.written=M.expressionFrame
     slot.phase,slot.blocked,slot.applied=phase,blocked,(slot.applied or 0)+1
@@ -256,6 +276,7 @@ function M.expressionStatus(entity)
 end
 function M.updateExpressions(context)
     if type(context)~='table' or M.expressionPaused then return end
+    if faceTest then pcall(faceTest.direct,context.actors,function() return NewObject('ConvaiFaceFeature') end) end
     local seen={}
     for _,row in ipairs(context.actors or {}) do
         local entity,actor=row.entity,row.npc

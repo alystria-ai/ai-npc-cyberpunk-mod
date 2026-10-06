@@ -162,6 +162,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/face-probe.lua"
     },
     {
+      "source": "mod/face-test.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/face-test.lua"
+    },
+    {
       "source": "mod/companion-gestures.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-gestures.lua"
     },
