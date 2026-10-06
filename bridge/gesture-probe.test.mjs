@@ -7,7 +7,7 @@ import fengari from 'fengari';
 // pair, a fake workspot system and DynamicEntitySystem, and the generated
 // catalog. Exercises the request flow, guards, watchdog and ownership.
 const probe = readFileSync(new URL('../mod/gesture-probe.lua', import.meta.url), 'utf8');
-const catalog = readFileSync(new URL('../mod/gesture-catalog.lua', import.meta.url), 'utf8');
+const catalog = readFileSync(process.env.GESTURE_CATALOG || new URL('../mod/gesture-catalog.lua', import.meta.url), 'utf8');
 function run(code) {
   const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
   const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
@@ -59,6 +59,12 @@ function device:GetClassName() return {value='gameObject'} end
 Game={GetWorkspotSystem=function()return ws end,GetDynamicEntitySystem=function()return system end,
   FindEntityByID=function()return device end,GetPlayer=function()return player end}
 local m=(function()${probe}end)()
+local cat=load(catalogSource)()
+local fam=cat.families and cat.families[(cat.characters['Character.Judy'] or {}).talk or 'on_sides']
+  or {component=cat.component,idle=cat.idle,clips=cat.clips}
+local function firstClip(category)
+  for _,c in ipairs(fam.clips) do if c.category==category and c.perRig.woman_base and (c.character==nil or c.character=='judy') then return c end end
+end
 local entry={serial=1,name='Judy Alvarez',key='judy-alvarez',record='Character.Judy',npc=npc,speed=0,
   motor={kind='hold',stage='holding',feedback={state='Executing'}},person={phase='attend'}}
 local held=false
@@ -92,18 +98,19 @@ test('start spawns a tagged non-persistent device at the companion and plays in 
   assert(spec.persistState==false and spec.persistSpawn==false and spec.tags[1].value=='CyberpunkConvaiGestureDevice')
   local play=calls[count('create')+1]
   for _,c in ipairs(calls) do if c.name=='PlayInDevice' then play=c end end
-  assert(play.args[4].value=='convai_gestures','gesture component')
+  assert(play.args[4].value==fam.component,'talk family component '..tostring(play.args[4].value))
   assert(play.args[8]=='gameWorkspotSlidingBehaviour.DontPlayAtResourcePosition' and play.args[7]==0,'must play where the companion stands, no slide')
   assert(held==true)
 `));
 
 test('a gesture returns to the idle loop after its duration', () => run(`
   start()
-  send('jump judy talk__neutral__01');step(.3)
-  assert(calls[#calls].name=='jump' and calls[#calls].args[1]=='stand__2h_on_sides__01__talk__neutral__01')
-  step(3.8)
+  local clip=firstClip('neutral')
+  send('jump judy '..clip.name);step(.3)
+  assert(calls[#calls].name=='jump' and calls[#calls].args[1]==clip.name)
+  step(clip.perRig.woman_base.duration)
   local last=calls[#calls]
-  assert(last.name=='jump' and last.args[1]=='stand__2h_on_sides__01','auto return to idle')
+  assert(last.name=='jump' and last.args[1]==fam.idle.name,'auto return to idle')
 `));
 
 test('movement asks for a fast exit, escalates if stuck, then releases the body', () => run(`

@@ -8,6 +8,11 @@
 -- handoff. Leaving the settled stance or combat ends the workspot (guard).
 local M = convaiGestureProbe or {}
 local catalog = dofile('gesture-catalog.lua')
+-- Catalog v1 (one hands-at-sides family) or v2 (stance families + characters).
+if not catalog.families then
+    catalog = {version = 1, device = catalog.device, idleComponents = catalog.idleComponents, characters = {},
+        families = {on_sides = {component = catalog.component, idle = catalog.idle, clips = catalog.clips, rigs = catalog.rigs}}}
+end
 local TAG = 'CyberpunkConvaiGestureDevice'
 local REQUEST, RESPONSE, LOG = 'runtime/gesture-probe-request.txt', 'runtime/gesture-probe-response.txt', 'runtime/gesture-probe.log'
 local HOLDING = {suspending=true, spawning=true, starting=true, active=true, exiting=true, stopping=true}
@@ -58,26 +63,37 @@ local function inWorkspot(npc)
     if not ok then return 'error:' .. tostring(value) end
     return value
 end
-local function rigOf(entry) return rigByRecord[entry.record] or 'unknown' end
-local function clipsFor(rig)
-    local list = {}
-    for index, clip in ipairs(catalog.clips) do
-        if clip.perRig[rig] then list[#list + 1] = {index = index, clip = clip, duration = clip.perRig[rig].duration} end
+local function character(entry)
+    local known = catalog.characters[entry.record]
+    if known then return known end
+    return {rig = rigByRecord[entry.record] or 'unknown', idle = idleByRecord[entry.record], key = idleByRecord[entry.record], talk = 'on_sides'}
+end
+local function rigOf(entry) return character(entry).rig end
+local function familyOf(s) return catalog.families[s.familyKey or 'on_sides'] or catalog.families.on_sides end
+local function clipsFor(s)
+    local list, family, key = {}, familyOf(s), s.characterKey
+    for index, clip in ipairs(family.clips) do
+        if clip.perRig[s.rig] and (clip.character == nil or clip.character == key) then
+            list[#list + 1] = {index = index, clip = clip, duration = clip.perRig[s.rig].duration}
+        end
     end
     return list
 end
-local function findClip(rig, token)
+local function findClip(s, token)
     local number = tonumber(token)
-    for _, item in ipairs(clipsFor(rig)) do
+    local family = familyOf(s)
+    if token == 'idle' then return {idle = true, clip = {name = family.idle.name}, duration = 0} end
+    for _, item in ipairs(clipsFor(s)) do
         if item.index == number or item.clip.name == token or item.clip.name:find(token, 1, true) then return item end
     end
-    -- Explicit request for a clip this rig lacks (T-pose/skip test).
-    for index, clip in ipairs(catalog.clips) do
-        if clip.name == token or clip.name:find(token, 1, true) or index == number then
-            return {index = index, clip = clip, duration = 3, missing = true}
+    -- Explicit request for a clip this rig lacks (T-pose/skip test), any family.
+    for _, other in pairs(catalog.families) do
+        for index, clip in ipairs(other.clips) do
+            if clip.name == token or clip.name:find(token, 1, true) then
+                return {index = index, clip = clip, duration = 3, missing = true}
+            end
         end
     end
-    if token == 'idle' then return {idle = true, clip = {name = catalog.idle.name}, duration = 0} end
     return nil
 end
 
@@ -119,6 +135,7 @@ local function stateFor(entry)
         M.states[entry.serial] = s
     end
     s.entry, s.name, s.record, s.rig = entry, entry.name, entry.record, rigOf(entry)
+    s.characterKey = character(entry).key
     return s
 end
 
@@ -353,9 +370,11 @@ local function begin(s, words)
     local entry = s.entry
     if HOLDING[s.phase] then return false, 'already ' .. s.phase end
     local which = option(words, 'component', 'gestures')
-    if which == 'gestures' then s.component = catalog.component
-    elseif which == 'idle' then s.component = catalog.idleComponents[idleByRecord[entry.record] or 'generic']
-    else s.component = catalog.idleComponents[which:gsub('^idle%-', '')] end
+    s.familyKey = option(words, 'family', character(entry).talk or 'on_sides')
+    if not catalog.families[s.familyKey] then return false, 'unknown family ' .. s.familyKey end
+    if which == 'gestures' or which == 'talk' then s.component = familyOf(s).component
+    elseif which == 'idle' then s.component = catalog.idleComponents[character(entry).idle or 'generic']
+    else s.component = catalog.idleComponents[(which:gsub('^idle%-', ''))] end
     if not s.component then return false, 'unknown component ' .. which end
     s.variant = option(words, 'variant', 'keep')
     s.api = option(words, 'api', 'auto')
@@ -397,22 +416,25 @@ COMMANDS.list = function()
         local entry = row.entry
         local s = M.states[entry.serial]
         rows[#rows + 1] = {serial = entry.serial, name = entry.name, record = entry.record, rig = rigOf(entry),
-            idleComponent = catalog.idleComponents[idleByRecord[entry.record] or 'generic'], phase = s and s.phase or 'off',
+            talk = character(entry).talk, idleComponent = catalog.idleComponents[character(entry).idle or 'generic'], phase = s and s.phase or 'off',
             behaviour = entry.person and entry.person.phase, transport = row.transport, inWorkspot = inWorkspot(entry.npc)}
     end
-    return true, {companions = rows, guard = M.guard, clips = #catalog.clips}
+    local families = {}
+    for key, family in pairs(catalog.families) do families[key] = #family.clips end
+    return true, {companions = rows, guard = M.guard, families = families, catalog = catalog.version}
 end
 COMMANDS.clips = function(words)
     local rig = words[2] or 'woman_base'
     local rows = {}
-    for _, item in ipairs(clipsFor(rig)) do rows[#rows + 1] = {index = item.index, name = item.clip.name, category = item.clip.category, duration = item.duration} end
+    local probe = {rig = rig, familyKey = words[3] or 'on_sides', characterKey = words[4]}
+    for _, item in ipairs(clipsFor(probe)) do rows[#rows + 1] = {index = item.index, name = item.clip.name, category = item.clip.category, duration = item.duration} end
     return true, rows
 end
 COMMANDS.start = function(words) return each(words, function(s) return begin(s, words) end) end
 COMMANDS.jump = function(words)
     return each(words, function(s)
         if s.phase ~= 'active' then return false, 'not active (' .. s.phase .. ')' end
-        local item = findClip(s.rig, words[3] or '1')
+        local item = findClip(s, words[3] or '1')
         if not item then return false, 'unknown clip' end
         item.byId = option(words, 'by', 'name') == 'id'
         s.queue = nil
@@ -426,8 +448,9 @@ COMMANDS.demo = function(words)
     return each(words, function(s)
         if s.phase ~= 'active' then return false, 'not active (' .. s.phase .. ')' end
         s.queue = {}
-        for _, item in ipairs(clipsFor(s.rig)) do
-            if not item.clip.character or item.clip.character == idleByRecord[s.record] then s.queue[#s.queue + 1] = item end
+        local only = option(words, 'category', nil)
+        for _, item in ipairs(clipsFor(s)) do
+            if (not only or item.clip.category == only) and item.clip.category ~= 'idlebreak' then s.queue[#s.queue + 1] = item end
         end
         s.nextAt = now() + 0.5
         return true, #s.queue .. ' clips queued'
@@ -670,7 +693,7 @@ local function advance(s, context)
     if s.clip and now() >= s.clip.endsAt - 0.2 then
         local clip = s.clip
         s.clip = nil
-        if s.autoReturn then jump(s, npc, {idle = true, clip = {name = catalog.idle.name}}, false) end
+        if s.autoReturn then jump(s, npc, {idle = true, clip = {name = familyOf(s).idle.name}}, false) end
         log('clip-ended', {serial = s.serial, clip = clip.name, autoReturn = s.autoReturn})
         s.nextAt = now() + 1.0
     end
