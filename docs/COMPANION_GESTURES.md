@@ -189,6 +189,43 @@ lines: requests, native call results, 4 Hz traces while active).
   looked bland. Talk now uses the stance family matching each character's own
   idle (v2 catalog), and nothing replaces the vanilla idle when not talking.
 
+
+## Round 3 (October 7): visible gestures, own idles, all tier-1
+
+- **Queued jumps were the "no gestures" cause.** `SendJumpToAnimEnt` with
+  instant=false waits for the current clip; with a 22–25 s loop most requests
+  never played. Gesture jumps are instant (the workspot still blends them);
+  the return to the idle loop stays queued. Verified by capture.
+- **Reply length** comes from the reply text (2.6 words/s), not the current
+  phrase timeline (local voices stream phrase by phrase).
+- **Measured motion.** `scripts/Measure-GestureMotion.py` runs forward
+  kinematics on WolvenKit glTF exports and stores each clip's hand reach in
+  `assets/gestures/clip-motion.json`. Talk uses 15–90 cm clips weighted by
+  reach; overhead sweeps (demonstrate, stretch, exercise) and symbolic shapes
+  are excluded. The man_big hands-at-sides set does not export, so its clips
+  borrow the reach of the same names on the other rigs.
+- **Own idle as the loop.** Every tier-1 companion (23 spawnable records)
+  maps to a family whose loop is its vanilla relaxed `idle_stand`, so entering
+  and leaving show no pose change. FK hand poses: only Judy idles with folded
+  arms; all others idle with hands at sides and gesture from those clips.
+
+| Characters | Rig | Loop |
+|---|---|---|
+| Judy | woman | wa_judy (own) + arms-crossed clips |
+| Panam, Rogue | woman | own relaxed idle |
+| Misty, Alex, Claire, Evelyn, Lizzy, Mama Welles, Meredith, Regina, Songbird, Wakako | woman | wa_gang relaxed idle |
+| Johnny, Kerry, Viktor, Mr. Hands, Padre | man | ma_gang relaxed idle |
+| Takemura | man | own relaxed idle (+ his talk clips) |
+| Jackie, River, Reed | big | own relaxed idle |
+| Pepe | big | mb_gang relaxed idle |
+
+- **Exclusions:** threaten, middle finger, clap, thumbs-up, cheer, dance,
+  steps/turns, go away/come closer, salute, fist, draw gun/aim, be quiet,
+  cracking knuckles, angry stop/me, talk to the hand, demonstrate, stretch,
+  exercise, and Judy's `gesture__02` (a raised thumb, seen in capture).
+- **Hot reload:** probe `reload-controller` swaps the controller files;
+  `reload` swaps the probe. Archive changes need a game restart.
+
 ## Stages
 
 0. Probe — done for start, slide, clips, face/gaze, guard, wedge/recovery;
