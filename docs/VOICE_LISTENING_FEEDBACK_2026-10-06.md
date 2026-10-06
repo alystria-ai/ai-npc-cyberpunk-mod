@@ -25,5 +25,7 @@ The user's per-character verdicts from the report page (http://127.0.0.1:8765/),
 - Sometimes 2 clips sound better than 3.
 
 ## Decisions
+- Effect-heavy clips (strongly band-limited holocall, phone and answering-machine processing, like the three examples the user heard) must be removed from training data. Acoustically clean holocall-tagged clips stay.
+- The clip-set search is paused until the retrained decoder exists.
 - Metric priority: ECAPA (speaker identity) is primary, PLS secondary, and WER is skipped (too slow).
 - Per-character automatic search for the best clip set (which clips, and 1/2/3), scored by ECAPA, with the results offered as "Auto-best" in the picker.
