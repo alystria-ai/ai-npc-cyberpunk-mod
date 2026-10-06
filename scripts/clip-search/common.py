@@ -101,7 +101,9 @@ LINE_MIN_SECONDS, LINE_MAX_SECONDS, LINE_MIN_WORDS = 2.5, 6.5, 5
 
 
 def usable(clip: Clip) -> bool:
-    return 1.5 <= clip.d <= CAPS[1] and words(clip["t"]) >= 3 and clip.get("k") != "media"
+    """A reference candidate: 1.5-9 s, at least three words, not media-processed, not effect-flagged (fx: band-limited,
+    comb, tone or reverb, from scripts/phone_detect/effect-exclusions.json). Phone/holocall clips are allowed."""
+    return 1.5 <= clip.d <= CAPS[1] and words(clip["t"]) >= 3 and clip.get("k") != "media" and not clip.get("fx")
 
 
 def split_voice(pool: VoicePool, salt: str = "clip-search-v1", n_dev: int = 2, n_final: int = 4) -> dict:
@@ -117,7 +119,7 @@ def split_voice(pool: VoicePool, salt: str = "clip-search-v1", n_dev: int = 2, n
     """
     live_shas = {entry.get("sha256") for entry in pool.live.values() if entry}
     proposed = {c for entry in pool.proposed.values() for c in entry.get("clips", [])}
-    valid = [clip for clip in pool.clips if usable(clip) or (clip.get("k") != "media" and clip.d >= 1.0 and words(clip["t"]) >= 2)]
+    valid = [clip for clip in pool.clips if usable(clip) or (clip.get("k") != "media" and not clip.get("fx") and clip.d >= 1.0 and words(clip["t"]) >= 2)]
     eligible = [clip for clip in valid if Path(clip["path"]).stem not in live_shas and clip.id not in proposed]
     eligible.sort(key=lambda clip: stable(clip.id, salt))
     n_valid = len(valid)

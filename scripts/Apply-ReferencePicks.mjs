@@ -50,19 +50,21 @@ async function writeAtomic(path, bytes) {
 }
 
 // Build the plan and (unless dryRun) the files. Returns a report object; throws on anything invalid.
-export async function applyPicks({project, pick, pool, only = null, dryRun = false, validate = true, log = () => {}, now = new Date()}) {
+// outputs / source / picksLog let another builder (scripts/Build-AutobestConfigs.mjs) reuse this with its own output names.
+export async function applyPicks({project, pick, pool, only = null, dryRun = false, validate = true, log = () => {}, now = new Date(), outputs = OUTPUTS,
+  source = 'reference-picker (Apply-ReferencePicks.mjs)', picksLog = 'runtime/reference-picks.jsonl'}) {
   const live = {};
-  for (const engine of Object.keys(OUTPUTS)) {
-    const file = OUTPUTS[engine].live;
+  for (const engine of Object.keys(outputs)) {
+    const file = outputs[engine].live;
     live[file] ??= {text: await readFile(resolve(project, file), 'utf8')};
     live[file].json ??= JSON.parse(live[file].text.replace(/^\uFEFF/, ''));
     live[file].sha256 ??= sha256(live[file].text);
   }
-  for (const {out} of Object.values(OUTPUTS)) {
+  for (const {out} of Object.values(outputs)) {
     if (LIVE_FILES.some(file => resolve(project, file) === resolve(project, out))) throw Error('Refusing to write over a live config');
   }
   const report = {engines: {}, skipped: [], warnings: []};
-  for (const [engine, spec] of Object.entries(OUTPUTS)) {
+  for (const [engine, spec] of Object.entries(outputs)) {
     const changed = [], entries = {};
     for (const [voice, row] of Object.entries(pick.voices)) {
       const kept = row.kept[engine];
@@ -89,9 +91,9 @@ export async function applyPicks({project, pick, pool, only = null, dryRun = fal
       if (!Object.hasOwn(voices, voice)) throw Error(`${voice} is not in ${spec.live}`);
       voices[voice] = entry;
     }
-    const config = {...base, voices, proposal: {status: 'PROPOSED - not active', source: 'reference-picker (Apply-ReferencePicks.mjs)',
+    const config = {...base, voices, proposal: {status: 'PROPOSED - not active', source,
       based_on: spec.live.split('/').pop(), based_on_sha256: live[spec.live].sha256, engine: spec.label,
-      picks_log: 'runtime/reference-picks.jsonl', picks_entries: pick.entries, voices_changed: changed.map(item => item.voice), generated: now.toISOString()}};
+      picks_log: picksLog, picks_entries: pick.entries, voices_changed: changed.map(item => item.voice), generated: now.toISOString()}};
     if (!dryRun) {
       for (const item of changed) await writeAtomic(resolve(project, item.reference), item.bytes);
       await writeAtomic(resolve(project, spec.out), JSON.stringify(config, null, 2) + '\n');
@@ -99,14 +101,14 @@ export async function applyPicks({project, pick, pool, only = null, dryRun = fal
     report.engines[engine] = {output: spec.out, changed: changed.map(({bytes, ...rest}) => rest), config};
     log(`${spec.label}: ${changed.length} voice${changed.length === 1 ? '' : 's'} -> ${spec.out}${dryRun ? ' (dry run, nothing written)' : ''}`);
   }
-  if (validate && !dryRun) report.validation = await validateOutputs({project, report, only, log});
+  if (validate && !dryRun) report.validation = await validateOutputs({project, report, only, log, outputs});
   return report;
 }
 
 // The bridge's own loaders, both implementations, on the files just written. Picked voices must be available.
-export async function validateOutputs({project, report, log = () => {}}) {
+export async function validateOutputs({project, report, log = () => {}, outputs = OUTPUTS}) {
   const results = [];
-  for (const [engine, spec] of Object.entries(OUTPUTS)) {
+  for (const [engine, spec] of Object.entries(outputs)) {
     const entry = report.engines[engine];
     if (!entry?.output) continue;
     const path = resolve(project, spec.out), config = JSON.parse(await readFile(path, 'utf8'));

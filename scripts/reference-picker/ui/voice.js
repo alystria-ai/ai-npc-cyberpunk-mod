@@ -192,6 +192,22 @@ function handPick(engine, v) {
   return details;
 }
 
+// The clip search's winner for this engine and clip count (card.autobest, from runtime/autobest-sets.json), loaded with the
+// ordinary "set" action so it can be auditioned against the current clips like any hand-picked set.
+function autoBest(engine, v) {
+  const found = state.card.autobest?.[v.set];
+  if (!found) return null;
+  const same = v.candidate?.ids.join('|') === found.ids.join('|'), inUse = v.current?.ids.join('|') === found.ids.join('|');
+  const score = `speaker similarity ${found.ecapa.toFixed(3)}${found.ecapaSe != null ? ` ±${found.ecapaSe.toFixed(3)}` : ''}${found.today != null ? `, today's single clip ${found.today.toFixed(3)}` : ''}${found.pls != null ? `, PLS ${found.pls}` : ''}`;
+  return h('div', {class: 'row', style: 'margin-top:8px'},
+    h('button', {disabled: same || inUse, onclick: async () => {
+      const ok = await act('set', {set: v.set, clips: found.ids}, 'Auto-best clips loaded');
+      if (ok && state.autogen) await act('regenerate', {slots: v.slots, target: 'candidate', force: false}, null);
+    }, title: 'Load the clips the automatic search found best for this choice; use the buttons below to compare them with the current clips'},
+    inUse ? 'Auto-best is in use' : same ? 'Auto-best loaded' : 'Load Auto-best'),
+    h('span', {class: 'muted'}, `${found.ids.length} clip${found.ids.length === 1 ? '' : 's'}, ${seconds(found.seconds)}; ${score}`));
+}
+
 // ---- one engine -------------------------------------------------------------------------------------------------------------
 function engineSection(engine) {
   const card = state.card, v = view(engine), status = statusText(engine), working = !!status?.working;
@@ -214,6 +230,7 @@ function engineSection(engine) {
       h('div', {class: 'row'}, h('button', {disabled: !card.poolSize || working, onclick: () => tryDifferent(engine),
         title: card.poolSize ? 'Draw a different set of whole clips from this character’s clips' : 'This character has no spare clips'}, 'Try different clips'),
         autogenToggle()),
+      autoBest(engine, v),
       v.hasNew ? [h('div', {class: 'meta', style: 'margin-top:8px'}, 'New clips (not kept yet)'), clipList(v.candidate.clips)]
         : !noClips ? h('div', {class: 'meta', style: 'margin-top:6px'}, 'No new clips yet.') : null,
       h('div', {style: 'margin-top:8px'}, handPick(engine, v))),

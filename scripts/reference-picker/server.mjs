@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {Engines, SLOTS} from './engines.mjs';
 import {FALLBACK_TEXT, LIVE_PREFIX, Pool, rerollSet} from './pool.mjs';
 import {GpuMonitor} from './gpu.mjs';
+import {Autobest} from './autobest.mjs';
 import {Research, resolveShown} from './research.mjs';
 import {engineSet, ENGINES, PickStore, SETS} from './picks.mjs';
 import {isNaturalSpeechPath, serveNaturalSpeech} from './natural-speech-page.mjs';
@@ -33,6 +34,7 @@ export class Picker {
     this.shown = shownVoices === undefined ? research.shown : resolveShown(shownVoices);       // voices that become rows (null: all)
     this.jobs = []; this.running = false; this.sequence = 0;
     this.references = new Map();
+    this.autobest = new Autobest({project});      // the clip search's winners (runtime/autobest-sets.json), offered as "Auto-best"
   }
 
   // ---- sets ----
@@ -160,7 +162,7 @@ export class Picker {
     const active = this.activeJob(key, 'candidate'), activeCurrent = this.activeJob(key, 'current');
     return {key, name: titleCase(key), poolSize: this.pool.usableCount(key), lines: lines.map((line, at) => ({index: at, text: line.t, seconds: round(line.d), split: line.split,
         audio: `/audio/line/${key}/${at}`})), line: index, text, hasLine: lines.length > 0,
-      sets, current, history: Object.fromEntries(Object.keys(SETS).map(set => [set, this.historyOf(key, set, sets[set])])),
+      sets, autobest: await this.autobest.forVoice(key, this.pool), current, history: Object.fromEntries(Object.keys(SETS).map(set => [set, this.historyOf(key, set, sets[set])])),
       kept, rejected: state.rejected, rejectedNow, note: state.note, verdict: state.verdict,
       samples: Object.fromEntries(slots.map(slot => [slot.slot, {label: slot.label, engine: slot.engine, steps: slot.steps, set: slot.set ?? null,
         clips: slot.ids.length, exists: slot.exists, url: slot.exists ? slot.url : null,
