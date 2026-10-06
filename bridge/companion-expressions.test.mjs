@@ -40,9 +40,9 @@ test('unknown provider labels preserve data distinction and never imply joy', ()
 
 test('calm idle and speech with no intent keep a visible resting smile; processing has none', () => {
   const idle = expressionTarget();
-  // Not a barely-there .025: a relaxed smile at about 60 % of the game's own
-  // authored smile offset (.10), so it can actually be seen on a face.
-  assert.ok(idle.lips_l_corner_up >= .05 && idle.lips_l_corner_up <= .08);
+  // Live face-test on Judy: .35-.5 reads clearly, so the resting smile is a
+  // soft .10 (quiet on its own, and the Trust cue lifts warm characters to .15+).
+  assert.ok(idle.lips_l_corner_up >= .08 && idle.lips_l_corner_up <= .12);
   assert.equal(idle.lips_l_corner_up, idle.lips_r_corner_up);
   // Speaking without any emotion used to drop the smile entirely (dead face).
   const speaking = expressionTarget({phase: 'speaking'});
@@ -59,7 +59,7 @@ for (const label of ['Anger', 'Rage', 'Grief', 'Sadness', 'Fear', 'Disgust']) {
     assert.deepEqual(corners(target), [0, 0]);
     assert.ok(emotionSuppressesSmile(emotion));
     assert.ok(Object.values(target).some(value => value > 0));
-    assert.ok(Object.values(target).every(value => value >= 0 && value <= .32), 'within the authored frown/brow range');
+    assert.ok(Object.values(target).every(value => value >= 0 && value <= .55), 'within the caps');
     const smoother = new ExpressionSmoother();
     smoother.update(expressionTarget({emotion: {emotion: 'Joy', scale: 3}}), .1);
     const result = smoother.update(target, 1 / 60, {suppressSmile: emotionSuppressesSmile(emotion)});
@@ -67,18 +67,24 @@ for (const label of ['Anger', 'Rage', 'Grief', 'Sadness', 'Fear', 'Disgust']) {
   });
 }
 
-test('emotions are visible: strengths reach the games authored mood offsets, scale 3 does not exceed their caps', () => {
+test('emotions are visible: peaks follow the live face-test (smile reads at .35-.5, 1.0 is a grin)', () => {
   const peak = (emotion, scale) => expressionTarget({emotion: {emotion, scale}});
-  // Game lipsync authors a held smile of .10 (corners) and a frown of .20 (corners) / .324 (brow lower).
-  assert.ok(peak('Joy', 2).lips_l_corner_up >= .10, 'a medium smile matches the games authored smile');
-  assert.ok(peak('Joy', 3).lips_l_corner_up <= EXPRESSION_POLICY.cornerUpMax);
-  assert.ok(peak('Trust', 2).lips_l_corner_up >= .08, 'the default warmth cue shows');
-  assert.ok(peak('Sadness', 3).lips_l_corner_dn >= .10 && peak('Sadness', 3).eye_l_brows_raise_in >= .12);
-  assert.ok(peak('Anger', 3).eye_l_brows_lower >= .15 && peak('Anger', 3).eye_l_brows_lower <= EXPRESSION_POLICY.browLowerMax);
-  assert.ok(peak('Surprise', 3).eye_l_brows_raise_out >= .12);
-  assert.ok(peak('Interest', 2).eye_l_brows_raise_out >= .05, 'a curious brow lift shows');
+  const near = (value, wanted) => assert.ok(Math.abs(value - wanted) < .01, value + ' vs ' + wanted);
+  near(peak('Joy', 3).lips_l_corner_up, .45); near(peak('Joy', 2).lips_l_corner_up, .30);
+  assert.ok(peak('Joy', 1).lips_l_corner_up < peak('Joy', 2).lips_l_corner_up);
+  near(peak('Trust', 3).lips_l_corner_up, .25);
+  near(peak('Sadness', 3).lips_l_corner_dn, .40); near(peak('Sadness', 3).eye_l_brows_raise_in, .45);
+  near(peak('Anger', 3).eye_l_brows_lower, .45); near(peak('Anger', 3).lips_l_corner_dn, .25);
+  near(peak('Surprise', 3).eye_l_brows_raise_out, .50);
+  assert.ok(peak('Interest', 2).eye_l_brows_raise_out >= .18, 'a curious brow lift shows');
+  // Caps: corners .5, brows .55; nothing exceeds them, and no pose is a grin (1.0).
   for (const name of ['Joy', 'Trust', 'Sadness', 'Anger', 'Fear', 'Disgust', 'Surprise', 'Interest'])
-    for (const value of Object.values(peak(name, 3))) assert.ok(value <= EXPRESSION_POLICY.browLowerMax);
+    for (const [track, value] of Object.entries(peak(name, 3)))
+      assert.ok(value <= (track.startsWith('lips_') ? .50 : .55), name + ' ' + track);
+  assert.equal(EXPRESSION_POLICY.cornerUpMax, .5); assert.equal(EXPRESSION_POLICY.browRaiseMax, .55);
+  // Warm default (Trust scale 2) is about .15-.17 and survives speech at 85 %.
+  const warm = expressionTarget({emotion: {emotion: 'Trust', scale: 2}, phase: 'speaking'}).lips_l_corner_up;
+  assert.ok(warm >= .13 && warm <= .17, String(warm));
 });
 
 test('positive intensity progresses gently without opening the jaw', () => {

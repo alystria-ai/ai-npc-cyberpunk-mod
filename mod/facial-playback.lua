@@ -56,12 +56,11 @@ local function clamp(value,maximum) return math.max(0,math.min(maximum or 1,valu
 -- The caps follow those authored offsets with headroom for the strongest
 -- (scale 3) feelings. Mirrors EXPRESSION_POLICY in companion-expressions.mjs.
 local function expressionLimit(track)
-    if track:find('corner_up',1,true) then return .20 end
-    if track:find('corner_dn',1,true) then return .20 end
-    return track:find('lower',1,true) and .32 or .25
+    if track:find('corner_',1,true) then return .50 end
+    return .55
 end
-local scaleStrength={.5,.8,1}
-local restSmile=.06
+local scaleStrength={.4,.67,1}
+local restSmile=.10
 local speechMouthFactor=.85
 M.expressions, M.expressionClock, M.expressionFrame = {}, 0, 0
 -- Development-only visibility probe (mod/face-test.lua). It is absent from a
@@ -173,21 +172,21 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper)
     local family,strength=slot.family,scaleStrength[slot.scale or 1]
     local function pair(stem,value) target['lips_l_'..stem]=value;target['lips_r_'..stem]=value end
     local function brows(stem,value) target['eye_l_brows_'..stem]=value;target['eye_r_brows_'..stem]=value end
-    if family=='joy' then pair('corner_up',.20*strength);brows('raise_out',.08*strength)
-    elseif family=='trust' then pair('corner_up',.12*strength)
-    elseif family=='sadness' then pair('corner_dn',.12*strength);brows('raise_in',.16*strength)
-    elseif family=='anger' then pair('corner_dn',.08*strength);brows('lower',.20*strength)
-    elseif family=='fear' then pair('corner_dn',.05*strength);brows('raise_in',.15*strength);brows('raise_out',.10*strength)
-    elseif family=='disgust' then pair('corner_dn',.10*strength);brows('lower',.14*strength)
-    elseif family=='surprise' then brows('raise_in',.08*strength);brows('raise_out',.16*strength)
-    elseif family=='anticipation' then brows('raise_out',.08*strength)
+    if family=='joy' then pair('corner_up',.45*strength);brows('raise_out',.20*strength)
+    elseif family=='trust' then pair('corner_up',.25*strength)
+    elseif family=='sadness' then pair('corner_dn',.40*strength);brows('raise_in',.45*strength)
+    elseif family=='anger' then pair('corner_dn',.25*strength);brows('lower',.45*strength)
+    elseif family=='fear' then pair('corner_dn',.15*strength);brows('raise_in',.45*strength);brows('raise_out',.30*strength)
+    elseif family=='disgust' then pair('corner_dn',.30*strength);brows('lower',.35*strength)
+    elseif family=='surprise' then brows('raise_in',.35*strength);brows('raise_out',.50*strength)
+    elseif family=='anticipation' then brows('raise_out',.30*strength)
     elseif family~='unknown' and (phase=='idle' or phase=='speaking') then pair('corner_up',restSmile) end
     if provider then
-        local source={eye_l_brows_lower=.25*provider[5],eye_r_brows_lower=.25*provider[6],
-            eye_l_brows_raise_in=.20*provider[7],eye_r_brows_raise_in=.20*provider[7],
-            eye_l_brows_raise_out=.18*provider[8],eye_r_brows_raise_out=.18*provider[9]}
-        if family=='joy' or family=='trust' then source.lips_l_corner_up=.14*provider[1];source.lips_r_corner_up=.14*provider[2]
-        else source.lips_l_corner_dn=.14*provider[3];source.lips_r_corner_dn=.14*provider[4] end
+        local source={eye_l_brows_lower=.55*provider[5],eye_r_brows_lower=.55*provider[6],
+            eye_l_brows_raise_in=.45*provider[7],eye_r_brows_raise_in=.45*provider[7],
+            eye_l_brows_raise_out=.40*provider[8],eye_r_brows_raise_out=.40*provider[9]}
+        if family=='joy' or family=='trust' then source.lips_l_corner_up=.30*provider[1];source.lips_r_corner_up=.30*provider[2]
+        else source.lips_l_corner_dn=.30*provider[3];source.lips_r_corner_dn=.30*provider[4] end
         for track,value in pairs(source) do target[track]=math.max(target[track],value) end
         if (source.lips_l_corner_dn or 0)>.005 or (source.lips_r_corner_dn or 0)>.005
             or source.eye_l_brows_lower>.01 or source.eye_r_brows_lower>.01 then pair('corner_up',0) end
@@ -223,8 +222,8 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper)
         -- and lowering hardly at all (r .13), so the predicted lowering is not
         -- used (neutral when unsure). The model output is already a regressed
         -- (shrunk) estimate, so the old extra 35 % gain halved it twice and the
-        -- raises (speech mean .10) never showed; .65 keeps flashes visible.
-        local raise=.65*upper.raise*((family=='anger' or family=='disgust') and .4 or 1)
+        -- raises (speech mean .10) never showed; .8 keeps emphasis flashes visible.
+        local raise=.8*upper.raise*((family=='anger' or family=='disgust') and .4 or 1)
         local lower=0*upper.lower
         for _,side in ipairs({'l','r'}) do
             for _,stem in ipairs({'raise_in','raise_out'}) do

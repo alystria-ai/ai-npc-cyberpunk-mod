@@ -76,7 +76,7 @@ function wav(duration = 1) {
 test('managed idle copies receive one subtle native expression each and retain no actor handles',()=>run(`
  tick(.1);assert(#a.frames==1 and #b.frames==1)
  -- Visible, not the former invisible .025: the game's own authored smile is .10.
- assert(last(a).lips_l_corner_up>=.02 and last(a).lips_l_corner_up<=.06,last(a).lips_l_corner_up)
+ assert(last(a).lips_l_corner_up>=.03 and last(a).lips_l_corner_up<=.10,last(a).lips_l_corner_up)
  assert(last(a).jaw_mid_open==nil and last(a).eye_l_blink==nil and last(a).HeadYaw==nil)
  for _,slot in pairs(face.expressions) do for _,value in pairs(slot) do assert(value~=a and value~=b and value~=player) end end
  tick(.1);assert(#a.frames==2 and #b.frames==2)
@@ -190,7 +190,7 @@ test('an Omni/envelope timeline cannot claim provider expression authority by ad
   assert(face.active and last(a).eye_l_brows_lower==0 and last(a).eye_l_brows_raise_out==0)`);
 });
 
-test('October 6: speech without any intent still smiles, and a text cue shows at the games authored strength', ()=>{
+test('October 6: speech without any intent still smiles, and a text cue shows at the live-tested strength', ()=>{
   const line=buildFacialTimeline({audio:wav(),mouthCuesFormat:'rhubarb-phonetic-v1',
     mouthCues:[{start:0,end:.5,value:'C'},{start:.5,end:1,value:'C'}]},owner);
   delete line.motion;
@@ -209,13 +209,13 @@ test('October 6: speech without any intent still smiles, and a text cue shows at
   end
   -- No receipt: the resting smile now carries into speech (was zero).
   local none=speak(${literal(line)},'none')
-  assert(none.lips_l_corner_up>=.04 and none.lips_l_corner_up<=.06,none.lips_l_corner_up)
+  assert(none.lips_l_corner_up>=.07 and none.lips_l_corner_up<=.10,none.lips_l_corner_up)
   -- A Trust scale-2 cue (the default for warm characters): ~2x the resting smile.
   local trust=speak(${literal(warm)},'trust')
-  assert(trust.lips_l_corner_up>=.07 and trust.lips_l_corner_up<=.12,'trust '..trust.lips_l_corner_up)
+  assert(trust.lips_l_corner_up>=.12 and trust.lips_l_corner_up<=.17,'trust '..trust.lips_l_corner_up)
   -- Interest lifts the brows, not the mouth.
   local interest=speak(${literal(curious)},'interest')
-  assert(interest.eye_l_brows_raise_out>=.05 and interest.lips_l_corner_up<.01,'interest '..interest.eye_l_brows_raise_out..' '..interest.lips_l_corner_up)
+  assert(interest.eye_l_brows_raise_out>=.15 and interest.lips_l_corner_up<.02,'interest '..interest.eye_l_brows_raise_out..' '..interest.lips_l_corner_up)
   `);
 });
 
@@ -230,7 +230,7 @@ test('the per-turn expression receipt publishes emotion, scale and the peak pose
   local turn=face.status().expressions.lastSpeech
   assert(turn,'no receipt');assert(turn.entity==a.id,'entity');assert(turn.requestId==context.requestId,'request');assert(turn.frames>5,'frames '..turn.frames)
   assert(turn.emotion=='Sadness' and turn.family=='sadness' and turn.scale==3,tostring(turn.emotion))
-  assert(turn.peak.lips_l_corner_dn>=.08 and turn.peak.eye_l_brows_raise_in>=.12 and turn.peak.lips_l_corner_up==0)
+  assert(turn.peak.lips_l_corner_dn>=.30 and turn.peak.eye_l_brows_raise_in>=.40 and turn.peak.lips_l_corner_up==0)
   speech.stop('cancelled');tick(.1)
   assert(face.status().expressions.lastSpeech==turn,'the receipt stays readable after speech')
   `);
@@ -342,9 +342,23 @@ test('face-test probe: policy mode shows a real scale-3 smile WHILE speaking, yi
  request('n3\\nface-test judy smile 8 policy');tick(.3)
  assert(face.start(context,${literal(timeline)},a,1),face.error)
  for i=1,14 do face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.2+i*.01,context.requestId) end
- local open=copy(last(a));assert(open.lips_l_corner_up>.1 and open.lips_l_corner_up<=.2,open.lips_l_corner_up)
+ local open=copy(last(a));assert(open.lips_l_corner_up>.3 and open.lips_l_corner_up<=.5,open.lips_l_corner_up)
  face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.7,context.requestId)
  assert(last(a).lips_together_up==.85 and last(a).lips_l_corner_up==0,'closure wins over the smile')
  face.stop(a,'cancelled')
 `);
 });
+
+test('face-test probe: ending or replacing a run clears the jaw and every other probe field', () => runProbe(`
+ request('n4\\nface-test judy sweep 10 writer');tick(.3)
+ -- Sweep steps: smile, frown, browsup, browsdown, jaw (2 s each).
+ for _=1,85 do tick(.1) end
+ assert(last(a).jaw_mid_open==.5,'jaw step is active: '..tostring(last(a).jaw_mid_open))
+ request('n5\\nface-test judy ramp-smile 6 writer');tick(.3);tick(.1)
+ assert((last(a).jaw_mid_open or 0)==0,'a new run clears the jaw: '..tostring(last(a).jaw_mid_open))
+ request('n6\\nface-test judy custom:jaw_mid_open=.5 6 writer');tick(.3);tick(.1)
+ assert(last(a).jaw_mid_open==.5)
+ request('n7\\nface-test judy off');tick(.3);tick(.1)
+ assert((last(a).jaw_mid_open or 0)==0,'off clears the jaw: '..tostring(last(a).jaw_mid_open))
+ tick(.1);assert((last(a).jaw_mid_open or 0)==0)
+`));

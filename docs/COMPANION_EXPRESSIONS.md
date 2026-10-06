@@ -1,5 +1,32 @@
 # Companion expressions
 
+## October 6 (later): live face-test, second recalibration
+
+`mod/face-test.lua` (driven by the facial writer; `scripts/Send-FaceTest.ps1`) pushed
+extreme poses on Judy while the user watched. Writer mode showed the full smile,
+frown, brows and jaw clearly, so the write path works; the strengths were the
+problem. Ramp-smile: a smile reads clearly at about .35-.5 on Judy and 1.0 is an
+exaggerated grin. The first recalibration (peaks <= .20, rest .06) was therefore
+still invisible, because the game's authored .10/.20 offsets are not what reads
+on this rig. The probe also left `jaw_mid_open` .5 after the sweep (the writer
+keeps its idle feature between frames); it now zeroes probe-written fields when a
+step, run or "off" ends.
+
+Policy v2 (Lua and `companion-expressions.mjs` identical): scale strength .4 / .67 / 1;
+joy corners .45 (.30 at scale 2) with brow raise-out .20; trust .25; sadness corners
+down .40 with raise-in .45; anger lower .45 with corners down .25; fear down .15,
+raise-in .45, raise-out .30; disgust down .30, lower .35; surprise raise-in .35 and
+raise-out .50; interest .30. Caps: corners .50, brows .55. Resting smile .10 (idle
+and speech). The warm default cue (Trust scale 2) is .167, about .14 while speaking;
+other characters get scale 1 (.10); cold characters get a flat Interest cue while
+speaking. Provider (Convai) multipliers: corners .30, brows .55/.45/.40. Model brow
+gain .8. Unchanged: 85 % of mouth emotion kept while speaking, smoothing (.18 s
+attack, .55 s release), and mouth priority. Closures (P/B/M) and rounding (O/U) still
+remove corner emotion after smoothing, tested for seven emotions at scale 3, and
+jaw/closure/rounding fields are bit-identical with or without an expression.
+Known limit: the idle resting smile is one value for every character; "cold" is
+expressed through the cue while they speak, not in the idle pose.
+
 ## October 6: why the face looked blank on local voices, and the recalibration
 
 User report (Omni 32, Judy): lip sync good, "I don't see any expression ever".

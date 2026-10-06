@@ -18,10 +18,14 @@ export const EXPRESSION_POLICY = Object.freeze({
   // lines); frown = corner down .20 with brows lower .324 (20 %). The earlier
   // caps (.12/.10/.20, speech 60 %, rest .025) were below those authored
   // offsets (frowns at half strength), so every expression was invisible.
-  version: 1, restSmile: .06, cornerUpMax: .20, cornerDownMax: .20, browRaiseMax: .25, browLowerMax: .32,
+  // October 6 live face-test on Judy (writer mode, screenshots): a smile reads
+  // clearly at .35-.5 and 1.0 is an exaggerated grin; the first recalibration
+  // (peaks <= .20, rest .06) was still invisible. Peaks below are the visible,
+  // natural range: smile .45, frown .40, brows ~.45-.5.
+  version: 2, restSmile: .10, cornerUpMax: .50, cornerDownMax: .50, browRaiseMax: .55, browLowerMax: .55,
   speechMouthFactor: .85, attackSeconds: .18, releaseSeconds: .55,
   // Categorical scale 1..3 (Convai) -> fraction of the family's full pose.
-  scaleStrength: Object.freeze([.5, .8, 1]),
+  scaleStrength: Object.freeze([.4, .67, 1]),
   positiveAfterSpeechMs: 4000, negativeAfterSpeechMs: 8000,
 });
 // The only provider channels admitted by the native expression adapter. Their
@@ -131,15 +135,15 @@ function providerPose(frame, family) {
   if (!plain(frame) || frame.format !== 'arkit61' || !Array.isArray(frame.values)
     || frame.values.length !== 61 || !frame.values.every(finite)) return null;
   const out = zero(), v = index => clamp(frame.values[index]);
-  out.eye_l_brows_lower = .25 * v(41); out.eye_r_brows_lower = .25 * v(42);
-  brows(out, 'raise_in', .20 * v(43));
-  out.eye_l_brows_raise_out = .18 * v(44); out.eye_r_brows_raise_out = .18 * v(45);
+  out.eye_l_brows_lower = .55 * v(41); out.eye_r_brows_lower = .55 * v(42);
+  brows(out, 'raise_in', .45 * v(43));
+  out.eye_l_brows_raise_out = .40 * v(44); out.eye_r_brows_raise_out = .40 * v(45);
   // Smile is also an "ee" speech shape. Only explicit positive metadata grants
   // additional smile intent; source smile values never classify the dialogue.
   if (family === 'joy' || family === 'trust') {
-    out.lips_l_corner_up = .14 * v(23); out.lips_r_corner_up = .14 * v(24);
+    out.lips_l_corner_up = .30 * v(23); out.lips_r_corner_up = .30 * v(24);
   } else {
-    out.lips_l_corner_dn = .14 * v(25); out.lips_r_corner_dn = .14 * v(26);
+    out.lips_l_corner_dn = .30 * v(25); out.lips_r_corner_dn = .30 * v(26);
   }
   return out;
 }
@@ -163,14 +167,14 @@ export function expressionTarget({emotion = null, phase = 'idle', speechPose = {
   const parsed = normalizeConvaiEmotion(emotion), family = parsed?.family;
   const strength = parsed ? EXPRESSION_POLICY.scaleStrength[parsed.scale - 1] : 0;
   switch (family) {
-    case 'joy': pair(out, 'corner_up', .20 * strength); brows(out, 'raise_out', .08 * strength); break;
-    case 'trust': pair(out, 'corner_up', .12 * strength); break;
-    case 'sadness': pair(out, 'corner_dn', .12 * strength); brows(out, 'raise_in', .16 * strength); break;
-    case 'anger': pair(out, 'corner_dn', .08 * strength); brows(out, 'lower', .20 * strength); break;
-    case 'fear': pair(out, 'corner_dn', .05 * strength); brows(out, 'raise_in', .15 * strength); brows(out, 'raise_out', .10 * strength); break;
-    case 'disgust': pair(out, 'corner_dn', .10 * strength); brows(out, 'lower', .14 * strength); break;
-    case 'surprise': brows(out, 'raise_in', .08 * strength); brows(out, 'raise_out', .16 * strength); break;
-    case 'anticipation': brows(out, 'raise_out', .08 * strength); break;
+    case 'joy': pair(out, 'corner_up', .45 * strength); brows(out, 'raise_out', .20 * strength); break;
+    case 'trust': pair(out, 'corner_up', .25 * strength); break;
+    case 'sadness': pair(out, 'corner_dn', .40 * strength); brows(out, 'raise_in', .45 * strength); break;
+    case 'anger': pair(out, 'corner_dn', .25 * strength); brows(out, 'lower', .45 * strength); break;
+    case 'fear': pair(out, 'corner_dn', .15 * strength); brows(out, 'raise_in', .45 * strength); brows(out, 'raise_out', .30 * strength); break;
+    case 'disgust': pair(out, 'corner_dn', .30 * strength); brows(out, 'lower', .35 * strength); break;
+    case 'surprise': brows(out, 'raise_in', .35 * strength); brows(out, 'raise_out', .50 * strength); break;
+    case 'anticipation': brows(out, 'raise_out', .30 * strength); break;
     case 'unknown': break; // A new provider label must not become a happy face.
     // No intent: the resting smile shows while idle and while talking.
     default: if (phase === 'idle' || phase === 'speaking') pair(out, 'corner_up', EXPRESSION_POLICY.restSmile);

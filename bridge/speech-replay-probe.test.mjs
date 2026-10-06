@@ -62,7 +62,8 @@ function run(body) {
     json={decode=function(raw) return clone(assert(documents[raw],'invalid JSON')) end,
       encode=function(value) encodedSequence=encodedSequence+1; local key='encoded-'..encodedSequence; encoded[key]=clone(value); return key end}
     local allowedRead={['runtime/speech-fixture.json']=true,['runtime/last-input.json']=true,
-      ['runtime/reply.json']=true,['runtime/microphone-command.json']=true,['runtime/microphone-state.json']=true}
+      ['runtime/reply.json']=true,['runtime/microphone-command.json']=true,['runtime/microphone-state.json']=true,
+      ['face-test.lua']=true}
     local allowedWrite={['runtime/speech-fixture-result.json']=true,['runtime/speech-state.json']=true}
     io.open=function(path,mode)
       access[#access+1]={path=path,mode=mode}

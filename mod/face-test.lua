@@ -29,6 +29,12 @@ local EXPRESSION = {'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','li
 local policyFamily = {smile='Joy', frown='Sadness', browsup='Surprise', browsdown='Anger', all='Joy'}
 
 M.clock, M.pollAt, M.lastNonce = M.clock or 0, M.pollAt or 0, M.lastNonce
+-- Non-expression fields (jaw, ...) ever written into a writer feature, per
+-- entity. The writer keeps its idle feature between frames, so these must be
+-- zeroed when a step or run ends or they stay on the face (the jaw .5 bug).
+M.touched = M.touched or {}
+local EXPRESSION_SET = {}
+for _, name in ipairs(EXPRESSION) do EXPRESSION_SET[name] = true end
 
 local function encode(value)
     local ok, text = pcall(json.encode, value)
@@ -94,7 +100,7 @@ commands['face-test'] = function(rest, context)
     if not who then return false, 'usage: face-test <who> <pose> [seconds] [writer|policy|direct]' end
     seconds, mode = tonumber(seconds) or 6, (mode ~= '' and mode) or 'writer'
     if mode ~= 'writer' and mode ~= 'policy' and mode ~= 'direct' then return false, 'mode must be writer, policy or direct' end
-    if pose == 'off' then M.run = nil; return true, 'stopped' end
+    if pose == 'off' then M.run = nil; return true, 'stopped (probe fields cleared)' end
     local list, problem = steps(pose, seconds)
     if not list then return false, problem end
     local row = rowFor(context, who)
@@ -193,14 +199,31 @@ end
 -- Returns true when the write must be skipped (direct mode owns the actor).
 function M.post(entity, feature, phase, blocked)
     local run = active(entity)
-    if not run then return false end
+    if not run then
+        -- Probe ended (off, finished, replaced): clear every leftover probe field
+        -- from this idle feature. A speaking feature is rewritten by speech itself.
+        local touched = M.touched[entity]
+        if touched and phase ~= 'speaking' then
+            for name in pairs(touched) do pcall(function() feature[name] = 0 end) end
+            M.touched[entity] = nil
+        end
+        return false
+    end
     if run.mode == 'direct' then return true end
     local current = step(run)
     run.frames = run.frames + 1
     if run.mode == 'writer' then
         for _, name in ipairs(EXPRESSION) do feature[name] = current.tracks[name] or 0 end
         -- Extra tracks of a custom pose (for example jaw_mid_open as a control).
-        for name, value in pairs(current.tracks) do pcall(function() feature[name] = value end) end
+        local touched = M.touched[entity] or {}
+        M.touched[entity] = touched
+        for name in pairs(touched) do
+            if current.tracks[name] == nil then pcall(function() feature[name] = 0 end); touched[name] = nil end
+        end
+        for name, value in pairs(current.tracks) do
+            if not EXPRESSION_SET[name] then touched[name] = true end
+            pcall(function() feature[name] = value end)
+        end
     end
     trace(run, current.label, feature, current.tracks, {phase = phase, blocked = blocked == true})
     return false
