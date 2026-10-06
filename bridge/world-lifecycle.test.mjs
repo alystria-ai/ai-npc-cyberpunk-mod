@@ -453,7 +453,7 @@ player.phoneOpen, player.phoneRequest = true, '+judy'
 events.onUpdate(0)
 -- Routine progress waits one second (a quick summon shows none), so let it pass.
 local early = #feedback()
-clock = clock + 2; events.onUpdate(0)
+clock = clock + 4; events.onUpdate(0)
 local request = json.decode(assert(files['runtime/companion-invitations.json']))
 local job = request.invitations[1]
 local function receipt(state)
@@ -471,9 +471,9 @@ assert(#feedback() == 1 and has('Preparing Judy…') and not has('memory'))
 receipt('memory'); events.onUpdate(0)
 assert(#feedback() == 1)
 events.onUpdate(0); assert(#feedback() == 1)
-clock = clock + 2; receipt('connecting'); events.onUpdate(0)
+clock = clock + 4; receipt('connecting'); events.onUpdate(0)
 assert(#feedback() == 2 and has('Connecting Judy…'))
-clock = clock + 2; receipt('ready'); events.onUpdate(0)
+clock = clock + 4; receipt('ready'); events.onUpdate(0)
 assert(#feedback() == 3 and has('Close the phone to join'), 'the instruction to close the phone must be shown')
 assert(partyQueue.list()[1].state == 'ready-to-join')
 -- Failure first seen while the phone is open: no popup, no consumed claim.
@@ -495,12 +495,12 @@ local function feedback()
 end
 player.phoneOpen, player.phoneRequest = true, '+judy'
 events.onUpdate(0)
-clock = clock + 2; events.onUpdate(0)
+clock = clock + 4; events.onUpdate(0)
 assert(#feedback() == 1 and feedback()[1] == 'Preparing Judy…')
-clock = clock + 2
+clock = clock + 4
 player.phoneRequest = '+johnny'; events.onUpdate(0)
 assert(#feedback() == 1, 'the second invitation showed progress inside the notice delay')
-clock = clock + 2; events.onUpdate(0)
+clock = clock + 4; events.onUpdate(0)
 assert(#feedback() == 2 and feedback()[2] == 'Preparing Judy and Johnny…', feedback()[#feedback()])
 local request = json.decode(assert(files['runtime/companion-invitations.json']))
 assert(#request.invitations == 2)
@@ -512,9 +512,9 @@ local function receipt(state)
     files['runtime/companion-invitations-state.json'] = json.encode({version = 1,
         worldToken = request.worldToken, generation = request.generation, updated = clock * 1000, bridgePid = 99, invitations = rows})
 end
-clock = clock + 2; receipt('connecting'); events.onUpdate(0)
+clock = clock + 4; receipt('connecting'); events.onUpdate(0)
 assert(#feedback() == 3 and feedback()[3] == 'Connecting Judy and Johnny…')
-clock = clock + 2; receipt('ready'); events.onUpdate(0)
+clock = clock + 4; receipt('ready'); events.onUpdate(0)
 assert(#feedback() == 4 and feedback()[4] == 'Judy and Johnny are ready. Close the phone to join.')
 events.onUpdate(0); assert(#feedback() == 4)
 `));
@@ -588,9 +588,9 @@ test('phone invitation acknowledgement also posts with Developer mode on', () =>
 local before = #feedback()
 assert(early == 1 and before == 2, 'the acknowledgement posts at once and the first progress line after the delay')
 assert(feedback()[1] == 'Preparing Judy…' and feedback()[2] == 'Preparing Judy…')
-clock = clock + 2; receipt('connecting'); events.onUpdate(0)
+clock = clock + 4; receipt('connecting'); events.onUpdate(0)
 assert(#feedback() == before + 1 and feedback()[before + 1]:find('Connecting', 1, true))
-clock = clock + 2; receipt('ready'); events.onUpdate(0); events.onUpdate(0)
+clock = clock + 4; receipt('ready'); events.onUpdate(0); events.onUpdate(0)
 assert(#feedback() == before + 2 and feedback()[before + 2]:find('Close the phone', 1, true))
 `));
 

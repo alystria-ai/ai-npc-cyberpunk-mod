@@ -59,6 +59,7 @@ function run(body, language = 'en') {
 }
 
 const fixture = `
+_G = nil -- CET module environments have no _G
 local nativeLocaleReads, catalogReads, now = 0, 0, 100
 IsBound=function(id)return id=='cyberpunk_convai_group_voice' or id=='cyberpunk_convai_voice'end
 GetBind=function(id)return id=='cyberpunk_convai_group_voice' and 'Ctrl + H' or 'Alt + J'end

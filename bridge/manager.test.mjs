@@ -1198,14 +1198,14 @@ const managerBannerFixture = `
 `;
 
 const managerPopupFixture = `
-  local popupClock, nativeCallback, popups, popupStep = 1000, false, {}, 2
+  local popupClock, nativeCallback, popups, popupStep = 1000, false, {}, 4
   os.time = function() return popupClock end
   function player:ConvaiPhoneFeedback(message)
     assert(not nativeCallback, 'manager action callback posted a native popup')
     popups[#popups + 1] = message
   end
-  -- One tick is two seconds: longer than the notice board's one-second delay
-  -- before routine progress shows, so existing flows still see each stage.
+  -- One tick is four seconds: longer than the notice board's minimum show time (3 s)
+  -- before routine progress and the next stage show, so existing flows still see each stage.
   local function popupTick(worldReady)
     popupClock = popupClock + popupStep
     mcm.update(player, worldReady == true)
@@ -1379,7 +1379,7 @@ test('a quick manager invitation shows no preparing or connecting popup, but the
     -- A slower invitation does show its progress after the delay.
     assert(invoke('invite:person-1').ok)
     popupTick(false); popupTick(false); assert(#popups == 2, 'progress showed inside the delay')
-    popupStep = 2; popupTick(false)
+    popupStep = 4; popupTick(false)
     assert(#popups == 3 and popups[3] == 'Preparing Person 01…', popups[#popups])
   `);
 });

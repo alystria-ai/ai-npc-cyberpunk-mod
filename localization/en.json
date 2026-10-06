@@ -1658,7 +1658,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:546"
+        "mod/manager-party.lua:589"
       ]
     },
     "Cancel invitation": {
@@ -1946,7 +1946,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:554"
+        "mod/manager-party.lua:597"
       ]
     },
     "Choose an eye contact option.": {
@@ -2129,7 +2129,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:340"
+        "mod/manager-party.lua:383"
       ]
     },
     "Companion preparation is unavailable.": {
@@ -2139,7 +2139,7 @@
       ],
       "references": [
         "mod/companions.lua:261",
-        "mod/manager-party.lua:334"
+        "mod/manager-party.lua:377"
       ]
     },
     "Companion preparation returned an invalid state.": {
@@ -2148,7 +2148,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:338"
+        "mod/manager-party.lua:381"
       ]
     },
     "Companion voices": {
@@ -2204,7 +2204,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:180"
+        "mod/manager-party.lua:198"
       ]
     },
     "Connecting {name}…": {
@@ -2213,8 +2213,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:171",
-        "mod/manager-party.lua:352"
+        "mod/manager-party.lua:189",
+        "mod/manager-party.lua:395"
       ]
     },
     "Convai cloud voice": {
@@ -2986,7 +2986,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:460"
+        "mod/manager-party.lua:503"
       ]
     },
     "Loading": {
@@ -3544,7 +3544,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:179"
+        "mod/manager-party.lua:197"
       ]
     },
     "Preparing {name}…": {
@@ -3553,9 +3553,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:170",
-        "mod/manager-party.lua:351",
-        "mod/manager-party.lua:483"
+        "mod/manager-party.lua:188",
+        "mod/manager-party.lua:394",
+        "mod/manager-party.lua:526"
       ]
     },
     "Press Enter to write  /  Esc to stop typing": {
@@ -4148,7 +4148,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:495"
+        "mod/manager-party.lua:538"
       ]
     },
     "Stop trip": {
@@ -4182,7 +4182,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:593"
+        "mod/manager-party.lua:636"
       ]
     },
     "Subtitle display": {
@@ -4234,7 +4234,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:462"
+        "mod/manager-party.lua:505"
       ]
     },
     "That companion is no longer ready to drive.": {
@@ -4270,7 +4270,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:491",
+        "mod/manager-party.lua:534",
         "mod/manager.lua:847",
         "mod/manager.lua:869"
       ]
@@ -4280,7 +4280,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:544"
+        "mod/manager-party.lua:587"
       ]
     },
     "That model is no longer available.": {
@@ -4330,7 +4330,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:614"
+        "mod/manager-party.lua:657"
       ]
     },
     "The car is now in use. The companion trip was cancelled.": {
@@ -4354,7 +4354,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:647"
+        "mod/manager-party.lua:690"
       ]
     },
     "The character was removed before joining.": {
@@ -4362,7 +4362,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:647"
+        "mod/manager-party.lua:690"
       ]
     },
     "The clipboard is not available here. Read the path from the Last report row.": {
@@ -4468,7 +4468,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:660",
+        "mod/manager-party.lua:703",
         "mod/manager.lua:849"
       ]
     },
@@ -4493,7 +4493,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:594"
+        "mod/manager-party.lua:637"
       ]
     },
     "The driving request could not be queued.": {
@@ -4709,7 +4709,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:444"
+        "mod/manager-party.lua:487"
       ]
     },
     "There is no companion trip to cancel.": {
@@ -4717,7 +4717,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:442"
+        "mod/manager-party.lua:485"
       ]
     },
     "There is no room for another companion. Dismiss one first.": {
@@ -4725,7 +4725,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:463"
+        "mod/manager-party.lua:506"
       ]
     },
     "This contact has no companion mapping yet.": {
@@ -4797,7 +4797,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:592"
+        "mod/manager-party.lua:635"
       ]
     },
     "Trip cancelled.": {
@@ -5327,7 +5327,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:610"
+        "mod/manager-party.lua:653"
       ]
     },
     "Your companion is preparing to drive.": {
@@ -5344,7 +5344,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:612"
+        "mod/manager-party.lua:655"
       ]
     },
     "Your companion must step out before taking the driver seat.": {
@@ -5453,7 +5453,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:203"
+        "mod/manager-party.lua:243"
       ]
     },
     "{count} · Last reported": {
@@ -5470,7 +5470,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:55"
+        "mod/manager-party.lua:61"
       ]
     },
     "{first}, {second} and {count} others": {
@@ -5478,7 +5478,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:59"
+        "mod/manager-party.lua:65"
       ]
     },
     "{first}, {second} and {third}": {
@@ -5486,7 +5486,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:57"
+        "mod/manager-party.lua:63"
       ]
     },
     "{message} The change is active, but could not be saved for next time.": {
@@ -5502,7 +5502,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:185"
+        "mod/manager-party.lua:203"
       ]
     },
     "{names} are ready to join when you return to the game.": {
@@ -5510,7 +5510,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:183"
+        "mod/manager-party.lua:201"
       ]
     },
     "{names} are ready. Close the phone to join.": {
@@ -5518,7 +5518,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:182"
+        "mod/manager-party.lua:200"
       ]
     },
     "{names} joined your group.": {
@@ -5526,7 +5526,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:193"
+        "mod/manager-party.lua:233"
       ]
     },
     "{name} could not join: {reason}": {
@@ -5535,8 +5535,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:645",
-        "mod/manager-party.lua:684"
+        "mod/manager-party.lua:688",
+        "mod/manager-party.lua:727"
       ]
     },
     "{name} could not prepare: {reason}": {
@@ -5545,9 +5545,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:479",
-        "mod/manager-party.lua:575",
-        "mod/manager-party.lua:691"
+        "mod/manager-party.lua:522",
+        "mod/manager-party.lua:618",
+        "mod/manager-party.lua:734"
       ]
     },
     "{name} dismissed.": {
@@ -5556,7 +5556,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:661"
+        "mod/manager-party.lua:704"
       ]
     },
     "{name} does not have a conversation profile configured yet.": {
@@ -5574,9 +5574,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:176",
-        "mod/manager-party.lua:378",
-        "mod/manager-party.lua:679"
+        "mod/manager-party.lua:194",
+        "mod/manager-party.lua:421",
+        "mod/manager-party.lua:722"
       ]
     },
     "{name} is no longer attached to the world. Dismiss this copy to free its place.": {
@@ -5603,9 +5603,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:174",
-        "mod/manager-party.lua:354",
-        "mod/manager-party.lua:484"
+        "mod/manager-party.lua:192",
+        "mod/manager-party.lua:397",
+        "mod/manager-party.lua:527"
       ]
     },
     "{name} is ready. Close the phone to join.": {
@@ -5614,7 +5614,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:173"
+        "mod/manager-party.lua:191"
       ]
     },
     "{name} joined your group.": {
@@ -5623,7 +5623,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:640"
+        "mod/manager-party.lua:683"
       ]
     },
     "{name} joined your party.": {
@@ -5649,7 +5649,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:485"
+        "mod/manager-party.lua:528"
       ]
     },
     "{name} will leave when you return to the game.": {
@@ -5658,7 +5658,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:499"
+        "mod/manager-party.lua:542"
       ]
     },
     "{name} will stay in the party.": {
@@ -5667,7 +5667,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:548"
+        "mod/manager-party.lua:591"
       ]
     },
     "{name} · invited copy": {
@@ -5693,7 +5693,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:583"
+        "mod/manager-party.lua:626"
       ]
     },
     "{name}: conversation set to {profile}.": {
@@ -5702,7 +5702,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:582"
+        "mod/manager-party.lua:625"
       ]
     },
     "{name}: dismiss queued.": {
@@ -5719,7 +5719,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:508"
+        "mod/manager-party.lua:551"
       ]
     },
     "{name}: invite queued.": {
@@ -5735,7 +5735,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:356"
+        "mod/manager-party.lua:399"
       ]
     },
     "{requested} is unavailable. Companions are using {voice} instead.": {
@@ -5858,8 +5858,8 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:171",
-        "mod/manager-party.lua:352"
+        "mod/manager-party.lua:189",
+        "mod/manager-party.lua:395"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6033,9 +6033,9 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:170",
-        "mod/manager-party.lua:351",
-        "mod/manager-party.lua:483"
+        "mod/manager-party.lua:188",
+        "mod/manager-party.lua:394",
+        "mod/manager-party.lua:526"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6265,8 +6265,8 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:645",
-        "mod/manager-party.lua:684"
+        "mod/manager-party.lua:688",
+        "mod/manager-party.lua:727"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6279,9 +6279,9 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:479",
-        "mod/manager-party.lua:575",
-        "mod/manager-party.lua:691"
+        "mod/manager-party.lua:522",
+        "mod/manager-party.lua:618",
+        "mod/manager-party.lua:734"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6293,7 +6293,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:661"
+        "mod/manager-party.lua:704"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6317,9 +6317,9 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:176",
-        "mod/manager-party.lua:378",
-        "mod/manager-party.lua:679"
+        "mod/manager-party.lua:194",
+        "mod/manager-party.lua:421",
+        "mod/manager-party.lua:722"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6355,9 +6355,9 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:174",
-        "mod/manager-party.lua:354",
-        "mod/manager-party.lua:484"
+        "mod/manager-party.lua:192",
+        "mod/manager-party.lua:397",
+        "mod/manager-party.lua:527"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6369,7 +6369,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:173"
+        "mod/manager-party.lua:191"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6381,7 +6381,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:640"
+        "mod/manager-party.lua:683"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6417,7 +6417,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:485"
+        "mod/manager-party.lua:528"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6429,7 +6429,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:499"
+        "mod/manager-party.lua:542"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6441,7 +6441,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:548"
+        "mod/manager-party.lua:591"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6478,7 +6478,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:583"
+        "mod/manager-party.lua:626"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6491,7 +6491,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:582"
+        "mod/manager-party.lua:625"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6515,7 +6515,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:508"
+        "mod/manager-party.lua:551"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6539,7 +6539,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:356"
+        "mod/manager-party.lua:399"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

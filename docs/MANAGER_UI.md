@@ -267,10 +267,18 @@ a stream of per-character popups:
   joined your group.`). Phone-only batches say `Close the phone to join.` instead.
 - A failure is mentioned beside the successes in the same notice (`Johnny joined your group.` /
   `Judy could not join: ...`); more than two failures end with `N more companions also failed.`
-- A posted notice stays up for at least 1.5 s (`MIN_SHOW_MS`): a change arriving sooner is held, and
+- A posted notice stays up for at least 3 s (`MIN_SHOW_MS`), and 5 s after a final outcome
+  (`FINAL_SHOW_MS`, so a joined notice is never cut short): a change arriving sooner is held, and
   whatever is true when the time is up is posted instead, so intermediate texts are skipped and a
   text that reverted meanwhile is never shown. Near-simultaneous stages merge the same way. Only a
-  new failure is exempt. A stage never moves backwards within one attempt (a stale or missing
+  new failure is exempt.
+- When one companion has joined and the others of the same burst are still going, the joined line
+  waits up to 4 s (`JOIN_HOLD_MS`) for them, and the progress notice on screen keeps naming
+  everyone it already named, so the usual result is one merged `Judy and Johnny joined your
+  group.`; only if the others are still going after that does the partial `Judy joined your
+  group.` / `Connecting Johnny…` show. The game's own notice length (`SetWarningMessage`) could
+  not be read from the installed files, so the 3 s and 5 s are estimates of how long the default
+  notice stays up (unverified). A stage never moves backwards within one attempt (a stale or missing
   receipt reads as `memory` for a moment; the board ignores it and logs it). Every posted notice
   is logged to `runtime/mcm.log` with each invitation's stage. The paused-menu rules below still
   apply: a stage hidden by the menu is shown once more in gameplay, and nothing is replayed after

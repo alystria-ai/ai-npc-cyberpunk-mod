@@ -7,22 +7,28 @@ local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 -- one entry, and the board turns all of them into ONE compact notice that
 -- replaces the previous one: "Preparing Judy and Johnny...", then "Judy and
 -- Johnny joined your group.". A lone invitation keeps its original wording.
--- A change waits until MIN_SHOW_MS after the last notice, so near-simultaneous
--- stages merge into one update instead of a stream. Visibility rules: preparing, connecting, ready and joined show, the
--- routine "joining" step is Developer-mode only, and every failure shows,
--- together with the successes.
--- "Preparing" and "Connecting" (the memory check, voice conditioning and
--- connection start) are shown only once an invitation has been in flight for
--- SHOW_DELAY_MS, so a quick summon (a warm character, a cached voice) goes
--- straight to "joined" with no flicker of progress. The delay is per
--- invitation: a merged notice names only the ones already shown. Failures and
--- the "ready" lines, which ask the player to act, are never delayed.
--- A posted notice replaces the previous one in place, so it always stays up for
--- at least MIN_SHOW_MS: a change arriving sooner is held, and whatever is true
--- when the time is up is posted instead (intermediate texts are skipped, and a
--- text that reverted meanwhile is never shown). Near-simultaneous stages of
--- several invitations merge the same way. Only a new failure is exempt.
-local MIN_SHOW_MS = 1500
+-- Visibility rules: preparing, connecting, ready and joined show, the routine
+-- "joining" step is Developer-mode only, and every failure shows, together
+-- with the successes.
+-- Calm rules, because each notice replaces the last one on screen:
+-- * "Preparing" and "Connecting" (the memory check, voice conditioning and
+--   connection start) show only once an invitation has been in flight for
+--   SHOW_DELAY_MS, so a quick summon goes straight to "joined". The delay is
+--   per invitation: a merged notice names only the ones already shown.
+-- * A posted notice stays up for at least MIN_SHOW_MS (FINAL_SHOW_MS after a
+--   final outcome, so a "joined" is never cut short): a change arriving sooner
+--   is held, and whatever is true when the time is up is posted instead
+--   (intermediate texts are skipped, a text that reverted meanwhile is never
+--   shown). Near-simultaneous stages of several invitations merge the same way.
+-- * When one companion has joined and the others of the same burst are still
+--   going, the "joined" line waits up to JOIN_HOLD_MS for them, so the usual
+--   result is one merged "joined" instead of a partial notice. Meanwhile the
+--   progress notice keeps naming everyone it already named.
+-- * A new failure and the "ready" lines, which ask the player to act, are never
+--   delayed by the show delay; only a new failure also skips the minimum time.
+local MIN_SHOW_MS = 3000
+local FINAL_SHOW_MS = 5000
+local JOIN_HOLD_MS = 4000
 local SHOW_DELAY_MS = 1000
 local MAX_LISTED = 3
 local RANKS = {memory = 1, connecting = 2, ready = 3, joining = 4}
@@ -59,12 +65,17 @@ local function listNames(names)
     return ui.t('{first}, {second} and {count} others', {first = names[1], second = names[2], count = count - 2})
 end
 
+local function newBurst()
+    -- gone: invitations that finished, by name, so a held "joined" can still be named in the progress line.
+    return {joined = {}, failures = {}, fresh = false, gone = {}}
+end
+
 function M.newBoard(options)
     options = options or {}
     local B = {}
     local now = options.now or newClock()
-    local entries, burst = {}, {joined = {}, failures = {}, fresh = false}
-    local shownCore, shownGameplayCore, lastAt, lastWorld
+    local entries, burst, sequence = {}, newBurst(), 0
+    local shownCore, shownGameplayCore, lastAt, lastWorld, lastHold
     -- Developer diagnosis: every posted notice (with each invitation's stage) and every
     -- ignored stage regression goes to the mod log when init.lua provides one.
     local function note(line)
@@ -84,8 +95,8 @@ function M.newBoard(options)
     end
 
     function B.reset()
-        entries, burst = {}, {joined = {}, failures = {}, fresh = false}
-        shownCore, shownGameplayCore, lastAt, lastWorld = nil, nil, nil, nil
+        entries, burst = {}, newBurst()
+        shownCore, shownGameplayCore, lastAt, lastWorld, lastHold = nil, nil, nil, nil, nil
     end
 
     -- Start following an invitation. A new one is always announced, even when
@@ -93,7 +104,8 @@ function M.newBoard(options)
     function B.track(id, source)
         if type(id) ~= 'string' then return end
         for _, entry in ipairs(entries) do if entry.id == id then return end end
-        entries[#entries + 1] = {id = id, source = source or 'manager', startedAt = now()}
+        sequence = sequence + 1
+        entries[#entries + 1] = {id = id, source = source or 'manager', startedAt = now(), seq = sequence}
     end
 
     -- Completed outcomes handed over by the party queue (joined or failed).
@@ -102,6 +114,7 @@ function M.newBoard(options)
         if type(info) ~= 'table' then return end
         if info.kind == 'joined' then
             burst.joined[#burst.joined + 1] = {name = info.name, message = notice.message, warning = info.warning}
+            burst.joinedAt = burst.joinedAt or now()
         elseif info.kind == 'failed' then
             burst.failures[#burst.failures + 1] = {name = info.name, message = notice.message}
         else return end
@@ -116,7 +129,12 @@ function M.newBoard(options)
         for index = #entries, 1, -1 do
             local entry = entries[index]
             local ok, current = pcall(options.feedback, entry.id)
-            if not ok or type(current) ~= 'table' then table.remove(entries, index)
+            if not ok or type(current) ~= 'table' then
+                table.remove(entries, index)
+                if entry.name then
+                    burst.gone[entry.name] = {seq = entry.seq, source = entry.source, name = entry.name,
+                        shown = entry.announced ~= nil and entry.announced == entry.revision}
+                end
             else
                 entry.name, entry.revision = current.name, current.revision
                 entry.failed = current.failed == true or current.state == 'error'
@@ -185,9 +203,31 @@ function M.newBoard(options)
         return ui.t('{names} are joining your party.', {names = list})
     end
 
-    local function compose(inflight, developer)
+    -- True while a companion that joined waits for the others of its burst.
+    local function holdingJoined(active, at)
+        return #burst.joined > 0 and #active > 0 and burst.joinedAt ~= nil and at - burst.joinedAt < JOIN_HOLD_MS
+    end
+
+    -- The progress line keeps naming a held companion that the previous notice
+    -- already named, in invitation order, so the text does not change.
+    local function withHeld(inflight)
+        if #inflight == 0 then return inflight end
+        local listed, seen = {}, {}
+        for _, entry in ipairs(inflight) do listed[#listed + 1] = entry; seen[entry.name] = true end
+        for _, item in ipairs(burst.joined) do
+            local gone = burst.gone[item.name]
+            if gone and gone.shown and not seen[item.name] then
+                seen[item.name] = true
+                listed[#listed + 1] = {name = item.name, stage = 'joining', source = gone.source, seq = gone.seq}
+            end
+        end
+        table.sort(listed, function(a, b) return (a.seq or 0) < (b.seq or 0) end)
+        return listed
+    end
+
+    local function compose(inflight, developer, holding)
         local lines = {}
-        if #burst.joined > 0 then
+        if #burst.joined > 0 and not holding then
             local names = uniqueNames(burst.joined)
             local line = #names <= 1 and burst.joined[1].message
                 or ui.t('{names} joined your group.', {names = listNames(names)})
@@ -205,7 +245,7 @@ function M.newBoard(options)
             end
             lines[#lines + 1] = failure.message
         end
-        local line = progress(inflight, developer)
+        local line = progress(holding and withHeld(inflight) or inflight, developer)
         if line then lines[#lines + 1] = line end
         return table.concat(lines, '\n')
     end
@@ -218,18 +258,19 @@ function M.newBoard(options)
         local at = now()
         local active = sample(worldReady)
         local inflight = visible(active, at)
-        local text = compose(inflight, developer)
+        local holding = holdingJoined(active, at)
+        local text = compose(inflight, developer, holding)
         if text == '' then
-            if #active == 0 then burst = {joined = {}, failures = {}, fresh = false} end
+            if #active == 0 then burst = newBurst() end
             return nil
         end
         local core = table.concat({text, tostring(ui.revision()), developer and 'developer' or 'normal'}, '|')
         -- A copy not announced yet, or one whose profile was chosen again (a new
         -- revision), is announced even when its text equals the previous notice.
-        local fresh = burst.fresh
+        local fresh = burst.fresh and not (holding and #burst.failures == 0)
         for _, entry in ipairs(inflight) do if entry.announced ~= entry.revision then fresh = true end end
         if not fresh and core == shownCore and (not worldReady or core == shownGameplayCore) then
-            if #active == 0 then burst = {joined = {}, failures = {}, fresh = false} end
+            if #active == 0 then burst = newBurst() end
             return nil
         end
         -- The previous notice has not been up long enough: hold this change (a
@@ -237,18 +278,20 @@ function M.newBoard(options)
         -- change of world state never waits.
         local urgent = false
         for _, failure in ipairs(burst.failures) do if not failure.announced then urgent = true end end
-        if not urgent and lastAt and lastWorld == worldReady and at - lastAt < MIN_SHOW_MS then return nil end
+        if not urgent and lastAt and lastWorld == worldReady and at - lastAt < (lastHold or MIN_SHOW_MS) then return nil end
         return {message = text, commit = function()
             local stages = {}
             for _, entry in ipairs(active) do stages[#stages + 1] = tostring(entry.name) .. '=' .. entry.stage end
             note('Notice posted (' .. (worldReady and 'gameplay' or 'menu') .. ', ' .. (lastAt and (math.floor(at - lastAt) .. ' ms after the previous') or 'first')
                 .. '): ' .. text:gsub('\n', ' / ') .. (#stages > 0 and (' [' .. table.concat(stages, ', ') .. ']') or ''))
             shownCore, lastAt, lastWorld = core, at, worldReady
+            -- A final outcome (joined or failed, nothing else going) stays up longer.
+            lastHold = (#active == 0 and (#burst.joined > 0 or #burst.failures > 0)) and FINAL_SHOW_MS or MIN_SHOW_MS
             for _, failure in ipairs(burst.failures) do failure.announced = true end
             if worldReady then shownGameplayCore = core end
             for _, entry in ipairs(inflight) do entry.announced = entry.revision end
             burst.fresh = false
-            if #active == 0 then burst = {joined = {}, failures = {}, fresh = false} end
+            if #active == 0 then burst = newBurst() end
         end}
     end
 
