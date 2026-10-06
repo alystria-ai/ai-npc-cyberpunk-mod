@@ -908,6 +908,31 @@ function M.install()
             modelQuery, modelPage, searchFrames = tostring(value or ''):sub(1, 100), 1, 6
         end
     end)
+    -- Leaving Settings with unapplied changes must ask first. MCM asks only when its
+    -- own "cancel" key handler runs; Esc, the pause menu's back, and F4 close the
+    -- screen through RequestClose without necessarily passing there (the live test
+    -- left without a prompt). Every one of those ends in RequestClose, so guard
+    -- that: with drafts pending, hand the request to MCM's own closing handler
+    -- (McmUiEmitClosing), which shows its "Unsaved changes" dialog and resumes the
+    -- close itself after Apply or Discard. With nothing pending it passes through.
+    local closeAsk = {count = 0, since = -1000}
+    Override('SettingsMainGameController', 'RequestClose', function(controller, wrapped)
+        local pending = false
+        if api and active() then
+            local ok, value = pcall(api.hasDrafts, MOD_KEY)
+            pending = ok and value == true
+        end
+        if not pending then closeAsk.count = 0; return wrapped() end
+        local now = os.clock()
+        if now - closeAsk.since > 10 then closeAsk.count = 0 end
+        closeAsk.since, closeAsk.count = now, closeAsk.count + 1
+        log('Close requested with unapplied changes; asking (' .. closeAsk.count .. ')')
+        -- Never trap the player: if MCM cannot show its dialog, or the request is
+        -- repeated many times, let the close through.
+        if closeAsk.count > 4 then log('Close allowed after repeated requests'); return wrapped() end
+        local asked, err = pcall(function() controller:McmUiEmitClosing() end)
+        if not asked then log('Could not ask before closing: ' .. tostring(err)); return wrapped() end
+    end)
 end
 
 function M.open()

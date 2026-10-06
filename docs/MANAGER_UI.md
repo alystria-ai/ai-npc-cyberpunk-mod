@@ -51,6 +51,14 @@ no longer open it.
   arrives later and commits everything in one atomic `applyBatch`. Nothing is saved, written
   for the service, or prepared before that: no `settings.json` write and no voice-preview
   lease. While a different voice is pending, the voice status row reads "Pending: <voice>".
+  **Leaving with pending changes.** MCM's own dialog is tied to its `cancel` key handler, which
+  the live Esc did not reach (the page closed without asking). The provider therefore overrides
+  `SettingsMainGameController.RequestClose`, the one call that Esc, the pause menu's back and F4
+  all end in: with drafts pending it calls MCM's `McmUiEmitClosing`, so MCM shows its "Unsaved
+  changes" dialog and resumes the close itself after Apply or Discard (Cancel stays). With
+  nothing pending the close passes through untouched, other mods' pages are never held, and
+  the guard lets a close through after repeated requests or if the dialog cannot open, so the
+  player is never trapped. Each held close is logged in `runtime/mcm.log`.
   Limits: MCM's status line shows our refusal text for each change, and the confirmation
   popup wording and layout are MCM's own (not the game's "Settings" popup).
   (`bridge/voice-preview.mjs`, `mod/voice-preview.lua` and `previewSettleMs` remain but are

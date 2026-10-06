@@ -663,6 +663,34 @@ test('local voice previews carry the effective four-choice draft and cancel on R
   `);
 });
 
+test('leaving Settings through RequestClose with unapplied changes asks via MCM first, and only then', () => {
+  run(`${mcmFixture}
+    local emitted, wrappedCalls, clock = 0, 0, 100
+    os.clock = function() return clock end
+    controller.McmUiEmitClosing = function() emitted = emitted + 1 end
+    local function wrapped() wrappedCalls = wrappedCalls + 1 end
+    local function requestClose() return handlers.RequestClose(controller, wrapped) end
+    -- Nothing pending: the close goes straight through and no question is asked.
+    drafts = false
+    requestClose(); assert(wrappedCalls == 1 and emitted == 0, 'a clean page asked or blocked')
+    -- Unapplied changes: the close is held and MCM's own closing handler (its dialog) runs.
+    drafts = true
+    requestClose(); assert(wrappedCalls == 1 and emitted == 1, 'a pending change was lost without asking')
+    -- MCM resumes the close after Apply or Discard; the drafts are gone, so it passes.
+    drafts = false; requestClose(); assert(wrappedCalls == 2 and emitted == 1)
+    -- Another mod's page is never held.
+    drafts = true; activeMod = 'other:mod'
+    requestClose(); assert(wrappedCalls == 3 and emitted == 1, 'another mod page was blocked')
+    activeMod = 'cyberpunk-convai:manager'
+    -- Never trapped: repeated requests, or a dialog that cannot be shown, let the close through.
+    for _ = 1, 5 do clock = clock + 1; requestClose() end
+    assert(wrappedCalls >= 4, 'repeated requests trapped the player')
+    clock = clock + 60; controller.McmUiEmitClosing = function() error('no dialog') end
+    local before = wrappedCalls
+    requestClose(); assert(wrappedCalls == before + 1, 'a dialog that could not open trapped the player')
+  `);
+});
+
 test('with Auto Apply every setting waits for an explicit Apply: the automatic apply is refused, nothing is saved or sent, and a later Apply commits', () => {
   run(`${mcmFixture}
     assert(invoke('tab:settings').ok)
