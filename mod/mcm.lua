@@ -28,8 +28,14 @@ local VOICE_CHOICES = {{'omni', 16}, {'omni', 32}, {'pocket'}, {'convai'}}
 -- No voice model is prepared from a draft: nothing reaches the conversation
 -- service until Apply.
 local voicePreview = dofile('voice-preview.lua').new()
--- Every non-root page ends with a Back row, directly below its last option.
-local currentBack
+-- Back is a native button in MCM's bottom action row, laid out with Revert, Apply,
+-- Defaults and Modified. MCM has no provider API for that row, so after each render
+-- the button is added and the others are shifted to make room. If it cannot be
+-- added, Back becomes the last row of the page instead.
+local BACK_ID = 'convai-bottom-back'
+local BAR_GAP = 20
+local backMode, currentBack = 'bottom', nil
+local statusOriginal
 -- Our own status line: the first row of a settings page. It names the state of
 -- unapplied changes. MCM's bottom status line carries the same text from its own
 -- refusal message; once the top line can be updated in place, that is blanked.
@@ -100,7 +106,7 @@ local function contentWidgets(controller)
     -- The content canvas and row names are emitted by MCM's native renderer.
     local root = controller:GetRootWidget()
     local render = findWidget(root, 'MCMRenderRoot', 18)
-    return findWidget(root, 'mcm_content_scroll_content', 18), render and findWidget(render, 'status', 18)
+    return findWidget(root, 'mcm_content_scroll_content', 18), render and findWidget(render, 'status', 18), render
 end
 
 local function alignLabel(widget, left)
@@ -150,8 +156,8 @@ local function styleCompletedPage()
     -- Called only by top-level onUpdate, never inside an observed native call.
     -- CET shares a finite scratch arena across nested reflected calls. Walking
     -- the UI from a native hook can exhaust it even if every getter is valid.
-    local content, status = contentWidgets(presentation.controller)
-    presentation.statusWidget = status
+    local content, status, render = contentWidgets(presentation.controller)
+    presentation.statusWidget, presentation.renderRoot = status, render
     if not content then return end
     local rows, widgets = {}, {}
     for index = 0, math.min(content:GetNumChildren(), 1200) - 1 do
@@ -373,6 +379,85 @@ local function updateApplyHint()
         presentation.hintShown = text
     end
     hintLive = true
+end
+
+-- Add Back to the bottom action row from top-level update, after a render (a
+-- new render clears the bar). The other buttons are found by their geometry (the
+-- bar's 46-unit-high actions on the bottom line) and shifted left, so Back takes
+-- the rightmost place and the row stays together. Every native call is guarded:
+-- if Back cannot be added, the page gets a Back row instead.
+local function placeBackButton()
+    if backMode ~= 'bottom' or not currentBack or not presentation.active
+        or presentation.backPlaced or not presentation.controller or presentation.pending then return end
+    presentation.backPlaced = true
+    local controller = presentation.controller
+    local ok, err = pcall(function()
+        local y, rightX = controller:McmUiGetLayoutMetric(27), controller:McmUiGetLayoutMetric(28)
+        local contentX, contentInner = controller:McmUiGetLayoutMetric(20), controller:McmUiGetLayoutMetric(23)
+        if type(y) ~= 'number' or y < 0 then error('layout metrics are unavailable') end
+        if type(rightX) ~= 'number' or rightX <= 0 then rightX = (contentX or 0) + (contentInner or 0) end
+        local render = presentation.renderRoot
+        if not render then error('the render root is unavailable') end
+        local bar, widest = {}, 0
+        for index = 0, math.min(render:GetNumChildren(), 600) - 1 do
+            local widget = render:GetWidgetByIndex(index)
+            local margin = widget:GetMargin()
+            if math.abs(margin.top - y) <= 2 and math.abs(widget:GetHeight() - 46) <= 2 then
+                bar[#bar + 1] = widget
+                widest = math.max(widest, widget:GetWidth())
+            end
+        end
+        local width = widest > 0 and widest or math.max(120, (contentInner or 600) * 0.2)
+        local shift = #bar > 0 and (width + BAR_GAP) or 0
+        for _, widget in ipairs(bar) do
+            local margin = widget:GetMargin()
+            margin.left = margin.left - shift
+            widget:SetMargin(margin)
+        end
+        controller:McmUiAddBottomActionAt(BACK_ID, ui.t('Back'), rightX - width, y, width, false)
+        if not findWidget(render, 'mcm_action_' .. BACK_ID, 2) then error('the button was not created') end
+        presentation.backBar = #bar
+        log('Probe: Back placed x=' .. tostring(rightX - width) .. ' y=' .. tostring(y) .. ' width=' .. tostring(width)
+            .. ' beside ' .. #bar .. ' button(s)')
+    end)
+    if not ok then
+        backMode, refreshQueued = 'list', true
+        log('Back could not be placed in the action row; using a row instead: ' .. tostring(err))
+    end
+end
+
+-- Move MCM's status line from the bottom left to the top left, under the header
+-- subtitle, while this page is open. A new render recreates the widget, so only a
+-- widget that survives (a switch to another mod page) needs its place restored.
+local function restoreStatusLine()
+    if statusOriginal and not presentation.active then
+        local original = statusOriginal
+        statusOriginal = nil
+        pcall(function()
+            local margin = original.widget:GetMargin()
+            margin.left, margin.top = original.left, original.top
+            original.widget:SetMargin(margin)
+        end)
+    end
+end
+
+local function placeStatusLine()
+    if not presentation.active or not presentation.statusWidget or presentation.statusMoved
+        or not presentation.controller or presentation.pending then return end
+    presentation.statusMoved = true
+    local ok, err = pcall(function()
+        local render = presentation.renderRoot
+        local subtitle = render and findWidget(render, 'subtitle', 3)
+        if not subtitle then error('the header subtitle is unavailable') end
+        local status = presentation.statusWidget
+        local margin, anchor = status:GetMargin(), subtitle:GetMargin()
+        -- Keep the first recorded place: a widget that survives a render is already moved.
+        statusOriginal = statusOriginal or {widget = status, left = margin.left, top = margin.top}
+        margin.left, margin.top = anchor.left, anchor.top + subtitle:GetHeight() + 4
+        status:SetMargin(margin)
+        log('Probe: status line moved to x=' .. tostring(margin.left) .. ' y=' .. tostring(margin.top))
+    end)
+    if not ok then log('Status line could not be moved: ' .. tostring(err)) end
 end
 
 local function developerMode()
@@ -728,7 +813,8 @@ local function schema()
         table.insert(categories[1].settings, 1, action(view .. ':back', 'Back to Companion Manager', 'Back',
             'Return to Companion Manager.', function(context) return navigate('home', context) end))
     end
-    -- Back goes last: below the last option of the page, never at the top.
+    -- Back leaves the list: it is the bottom-bar button (its callback stays
+    -- registered). In row mode it is the last row of the page, never the first.
     if currentBack then
         local moved
         for index = #categories, 1, -1 do
@@ -740,7 +826,7 @@ local function schema()
         for index = #categories, 1, -1 do
             if #categories[index].settings == 0 then table.remove(categories, index) end
         end
-        if moved then
+        if moved and backMode ~= 'bottom' then
             if #categories == 0 then categories[1] = category('navigation-back', 'Companion Manager', {}) end
             table.insert(categories[#categories].settings, moved)
         end
@@ -908,6 +994,11 @@ function M.install()
             status, statusKind = actionFeedback, 0
             presentation.preparationApplied = preparationActionFeedback == true
         end
+        if own and completed and not actionFeedback and not preparationStatus then
+            -- "Completed: <page>" after a navigation is noise. Real results (an
+            -- action's own message, errors) still show.
+            status, statusKind = '', 0
+        end
         if allowed and preparationStatus then
             status, statusKind = preparationStatus.message, preparationStatus.failed and 2 or 0
             presentation.preparationApplied = true
@@ -973,6 +1064,17 @@ function M.install()
             presentation.hovered[id] = hovered == true
             if not hovered then presentation.pending = true end
         end
+    end)
+    Observe('SettingsMainGameController', 'McmUiEmitAction', function(controller, id)
+        if id ~= BACK_ID or not currentBack or not api or not active() then return end
+        local ok, pending = pcall(api.hasDrafts, MOD_KEY)
+        if ok and pending == true then
+            -- MCM refuses navigation while changes are pending, and so does this.
+            log('Back ignored: apply or revert the pending changes first')
+            return
+        end
+        currentBack.callback({interaction = {controller = controller}})
+        refreshQueued = true
     end)
     Observe('SettingsMainGameController', 'McmUiEmitSearch', function(_, context, value)
         if context == 'content' and active() then
@@ -1055,6 +1157,21 @@ function M.install()
         end)
         if not ok then probeBudget = probeBudget end
     end
+    -- The same key also runs the game's own OnBack on this controller, which ends in
+    -- closeMod (MCM discards the drafts). Hold it while changes are pending or the
+    -- question is on screen; the dialog's Apply or Discard resumes the close.
+    local backHooked, backHookError = pcall(Override, 'SettingsMainGameController', 'OnBack', function(controller, ...)
+        local args = table.pack(...)
+        local original = args[args.n]
+        if presentation.active and ownsPresentation(controller) and pendingDrafts() and ask.count < 5 then
+            local now = os.clock()
+            probe('OnBack held (drafts pending)')
+            if now - ask.at > 2 and not modalOpen(controller) then askBeforeLeaving(controller, 'OnBack') end
+            return true
+        end
+        return original(table.unpack(args, 1, args.n - 1))
+    end)
+    if not backHooked then probe('could not hook OnBack: ' .. tostring(backHookError)) end
     Override('SettingsMainGameController', 'RequestClose', function(controller, wrapped)
         local pending = (presentation.active or active()) and pendingDrafts()
         probe('RequestClose drafts=' .. tostring(pending))
@@ -1125,9 +1242,14 @@ function M.update(currentPlayer, worldReady)
     -- This also restores a shared description on foreign hover and keeps only
     -- our translated sidebar item readable when another mod is selected.
     fontPresentation.update()
+    pcall(restoreStatusLine)
     if not active() then return end
     local styleOk, styleError = pcall(styleCompletedPage)
     if not styleOk then lastError = 'Settings presentation: ' .. tostring(styleError) end
+    local placed, placeError = pcall(placeBackButton)
+    if not placed then lastError = 'Back button: ' .. tostring(placeError) end
+    local movedOk, movedError = pcall(placeStatusLine)
+    if not movedOk then lastError = 'Status line: ' .. tostring(movedError) end
     local hintOk, hintError = pcall(updateApplyHint)
     if not hintOk then lastError = 'Status line: ' .. tostring(hintError) end
     local bannerOk, bannerError = pcall(updatePreparationBanner)
@@ -1187,7 +1309,7 @@ function M.inspect()
     return {available = api ~= nil, active = active(), view = view, entry = entry.state(),
         presentation = {active = presentation.active, pending = presentation.pending, title = presentation.title, rows = rowCount},
         entryDetails = entry.inspect and entry.inspect() or nil,
-        back = currentBack and {id = currentBack.id, label = currentBack.label} or nil, hintLive = hintLive,
+        back = currentBack and {id = currentBack.id, label = currentBack.label} or nil, hintLive = hintLive, backMode = backMode,
         party = queue.list(), feedback = queue.message(), error = lastError,
         voicePreview = voicePreview.inspect(),
         fonts = fontPresentation.inspect(),

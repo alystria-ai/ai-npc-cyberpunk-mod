@@ -64,14 +64,25 @@ no longer open it.
   (`bridge/voice-preview.mjs`, `mod/voice-preview.lua` and `previewSettleMs` remain but are
   unused by this page.)
 
-**Back** is a row at the very end of every non-root page, directly below its last option (MCM
-has no provider API for its bottom Revert / Apply / Defaults bar, and a button placed there
-was rejected by the player). It is present on whatever page MCM restores on reopen. Settings,
-Relationships and Character conversations start with a status line, the row
-"Changes wait until you choose Apply." It changes in place to "Change pending. Choose Apply to
-use it, or Revert to discard it." while changes are pending, and then MCM's own bottom status
-line is kept free of the refusal text. MCM cannot move that bottom line, so if the top line
-cannot be updated the bottom text stays.
+**Back** is an MCM-styled button in the bottom action row, with Revert, Apply, Defaults and
+Modified. MCM has no provider API for that row, so after each render (top-level update, from the
+widgets the styling pass already found) the provider adds one native bottom action with
+`McmUiAddBottomActionAt` at the rightmost place (`actionRightX`, the bar line `bottomActionY`)
+and shifts the other 46-unit-high buttons left by its width plus the 20-unit gap. With no other
+buttons, Back takes the place where the last button would be. It is added again after every
+render, so it follows drafts appearing or clearing and page changes, and it exists on every
+non-root page, including the one MCM restores on reopen. Its click arrives through
+`McmUiEmitAction`; it returns to the parent page and is ignored while changes are pending. If the
+button cannot be added, Back is the last row of the page (`inspect().backMode == 'list'`).
+Settings, Relationships and Character conversations start with a status line, the row
+"Changes wait until you choose Apply.", which changes in place to "Change pending. Choose Apply to
+use it, or Revert to discard it." while changes are pending.
+
+**MCM's status line** (the green or red text at the bottom left) is moved to the top left, under
+the header subtitle, while the page is open (its margin is changed, and restored when another
+page is shown). Routine "Completed: <page>" navigation messages are dropped; an action's own
+result, preparation progress and errors still show. If the top line can be updated in place, the
+refusal text is also kept out of that line.
 
 Esc probes: `runtime/mcm.log` records "Probe:" lines for the close key events and candidate close
 handlers while the page is open (at most 60 per session), and for a close with unapplied changes.

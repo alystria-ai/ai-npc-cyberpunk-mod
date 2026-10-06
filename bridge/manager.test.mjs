@@ -531,10 +531,9 @@ test('manager home owns the four destinations and every inner page has one paren
           assert(item.label:sub(1, 1) ~= ' ' and item.indent == nil, 'label has artificial indentation')
         end
       end
-      -- One Back, as the very last row: directly below the page last option.
-      local last = loaded.categories[#loaded.categories].settings
-      assert(count == 1 and last[#last].id == back, 'parent Back must be the last row')
-      assert(mcm.inspect().back.id == back)
+      -- Back is the bottom-bar button, not a row; its callback belongs to this page.
+      assert(count == 0, 'Back is still a row of the list')
+      assert(mcm.inspect().back.id == back and mcm.inspect().backMode == 'bottom')
       local first = loaded.categories[1].settings[1]
       if expected == 'settings' or expected == 'relationships' or expected == 'permissions' then
         assert(first.id == 'apply-hint', 'the status line must come first on a settings page')
@@ -674,23 +673,106 @@ test('local voice previews carry the effective four-choice draft and cancel on R
   `);
 });
 
-test('Back is the last row of every non-root page, including the page MCM restores on reopen', () => {
+test('Back joins the bottom button row, the status line moves to the top left, and rows return if the bar rejects Back', () => {
   run(`${mcmFixture}
-    for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do
-      -- Reopening the menu shows whatever page was open: simulate it by a fresh schema load.
-      assert(invoke('tab:' .. name).ok)
-      loaded = registered.loadMod('manager')
-      local last = loaded.categories[#loaded.categories].settings
-      assert(last[#last].id == name .. ':back' and last[#last].value == 'Back', name .. ' has no Back at its end')
-      assert(invoke(name .. ':back').ok)
-      loaded = registered.loadMod('manager')
+    CName = {new = function(value) return value end}
+    NameToString = function(value) return value end
+    IsDefined = function(value) return value ~= nil end
+    local function widget(name, left, top, width, height, children)
+      local w = {name = name, margin = {left = left, top = top, right = 0, bottom = 0}, width = width, height = height,
+        children = children or {}}
+      function w:GetName() return self.name end
+      function w:GetMargin() return {left = self.margin.left, top = self.margin.top, right = 0, bottom = 0} end
+      function w:SetMargin(value) self.margin = {left = value.left, top = value.top, right = 0, bottom = 0} end
+      function w:GetWidth() return self.width end
+      function w:GetHeight() return self.height end
+      function w:GetNumChildren() return #self.children end
+      function w:GetWidgetByIndex(index) return self.children[index + 1] end
+      function w:SetText(value) self.text = value end
+      return w
     end
-    -- A page with a search that matches nothing still ends with Back.
-    assert(invoke('tab:characters').ok)
-    handlers.McmUiEmitSearch(nil, 'content', 'no such character')
+    local subtitle = widget('subtitle', 60, 40, 600, 24)
+    local status = widget('status', 60, 1040, 900, 30)
+    local revert, apply = widget('mcm_action_revert', 300, 1000, 140, 46), widget('mcm_action_apply', 460, 1000, 140, 46)
+    local render = widget('MCMRenderRoot', 0, 0, 1920, 1080, {subtitle, status,
+      widget('mcm_content_scroll_content', 100, 200, 800, 700), revert, apply})
+    local root = widget('root', 0, 0, 1920, 1080, {render})
+    function controller:GetRootWidget() return root end
+    controller.McmUiGetLayoutMetric = function(_, metric) return ({[20] = 100, [23] = 800, [27] = 1000, [28] = 900})[metric] or -1 end
+    controller.McmUiAddBottomActionAt = function(_, id, label, x, y, width, active)
+      bottomActions[#bottomActions + 1] = {id = id, label = label, x = x, y = y, width = width, active = active}
+      render.children[#render.children + 1] = widget('mcm_action_' .. id, x, y, width, 46)
+    end
+    assert(invoke('tab:settings').ok)
+    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+    mcm.update(player, false)
+    -- Back takes the rightmost place; Revert and Apply flow to its left.
+    assert(#bottomActions == 1, 'Back was not added to the bottom row')
+    local back = bottomActions[1]
+    assert(back.id == 'convai-bottom-back' and back.label == 'Back' and back.y == 1000 and back.width == 140 and back.x == 760 and not back.active)
+    assert(revert.margin.left == 300 - 160 and apply.margin.left == 460 - 160 and apply.margin.top == 1000,
+      'the other buttons were not made room for')
+    -- The status line sits under the header subtitle.
+    assert(status.margin.left == 60 and status.margin.top == 40 + 24 + 4, 'status line not moved: ' .. status.margin.top)
+    mcm.update(player, false); mcm.update(player, false)
+    assert(#bottomActions == 1, 'Back was added again within one render')
+    -- With no other buttons, Back takes the place where the last button would be.
+    revert.margin.top, apply.margin.top = 0, 0
+    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+    mcm.update(player, false)
+    assert(#bottomActions == 2 and bottomActions[2].x == 760)
+    -- The click returns to the parent page; pending changes block it like every MCM action.
+    drafts = true; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
+    assert(mcm.inspect().view == 'settings', 'Back ignored pending changes')
+    drafts = false; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
+    assert(mcm.inspect().view == 'home')
+    loaded = registered.loadMod('manager')
+    handlers.McmUiEmitAction(controller, 'something-else'); assert(mcm.inspect().view == 'home')
+    -- Leaving our page restores a status widget that survives.
+    status.margin.left, status.margin.top = 60, 68
+    handlers.McmUiSetContentTitle(controller, 'Other Mod'); mcm.update(player, false)
+    assert(status.margin.top == 1040, 'the status line was left at the top')
+    -- If the row cannot take the button, Back is the last row of the page instead.
+    assert(invoke('tab:party').ok)
+    controller.McmUiAddBottomActionAt = function() error('no bottom row') end
+    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+    mcm.update(player, false)
+    assert(mcm.inspect().backMode == 'list')
     loaded = registered.loadMod('manager')
     local last = loaded.categories[#loaded.categories].settings
-    assert(last[#last].id == 'characters:back')
+    assert(last[#last].id == 'party:back' and last[#last].value == 'Back', 'no Back row at the end of the page')
+  `);
+});
+
+test('the game OnBack is held while changes are pending, so the dialog is not closed with the page', () => {
+  run(`${mcmFixture}
+    CName = {new = function(value) return value end}
+    IsDefined = function(value) return value ~= nil end
+    local clock, asked, original = 800, 0, 0
+    os.clock = function() return clock end
+    controller.McmUiEmitClosing = function() asked = asked + 1 end
+    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+    local function onBack() return handlers.OnBack(controller, function() original = original + 1; return false end) end
+    drafts = false
+    assert(onBack() == false and original == 1 and asked == 0, 'a clean page was held')
+    drafts = true
+    assert(onBack() == true and original == 1 and asked == 1, 'OnBack closed the page with pending changes')
+    -- While the question is in flight it is held without asking again.
+    clock = clock + 0.5
+    assert(onBack() == true and original == 1 and asked == 1)
+    -- Cancel keeps the changes: still held, and asked again after the window.
+    clock = clock + 5
+    assert(onBack() == true and original == 1 and asked == 2)
+    -- Apply or Discard clears the changes: the close goes ahead.
+    drafts = false
+    assert(onBack() == false and original == 2)
+    -- Never trapped: repeated holds let the close through.
+    drafts = true
+    for _ = 1, 8 do clock = clock + 5; onBack() end
+    assert(original >= 3, 'repeated OnBack calls trapped the player')
+    -- Another mod page is never held.
+    handlers.McmUiSetContentTitle(controller, 'Other Mod'); drafts = true; clock = clock + 60
+    local before = original; onBack(); assert(original == before + 1)
   `);
 });
 
@@ -2080,7 +2162,7 @@ test('native MCM action banner describes the queued invitation and leaves other 
     assert(paint('Other Mod', 'Completed: Johnny Silverhand') == 'Completed: Johnny Silverhand')
     assert(paint('Companion Manager', 'Action failed') == 'Action failed')
     assert(invoke('characters:back').ok and invoke('tab:settings').ok)
-    assert(paint('Companion Manager', 'Completed: Settings') == 'Completed: Settings')
+    assert(paint('Companion Manager', 'Completed: Settings') == '', 'a routine navigation message was shown')
   `);
 });
 
@@ -2143,7 +2225,8 @@ test('Current party rows are a name, its number and Dismiss, in the same native 
       if index < 3 then member.name = member.name .. ' #' .. index end
     end
     assert(invoke('tab:party').ok)
-    local back = row('party:back')
+    local back = {type = 'action'}
+    assert(mcm.inspect().back.id == 'party:back')
     local names = {'Johnny Silverhand #1', 'Johnny Silverhand #2', 'Person 01 #3'}
     for index, id in ipairs({'dismiss:live:1', 'dismiss:live:2', 'dismiss:live:3'}) do
       local item = row(id)
@@ -2160,7 +2243,7 @@ test('Current party rows are a name, its number and Dismiss, in the same native 
         assert(not item.label:find('Following') and not item.value:find('Following') and not item.value:find('/ 8'))
       end
     end
-    assert(total == 4, 'Back and one row per copy only: ' .. total)
+    assert(total == 3, 'one row per copy only: ' .. total)
     -- Joining and leaving never put a last-action line on the page.
     mcm.update(player, true); assert(not row('feedback'))
   `);
@@ -2313,16 +2396,24 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       mcm.install()
       assert(actual.refreshIndex())
       local key = 'cyberpunk-convai:manager'
-      local function goBack(id) return actual.invokeAction(key .. ':' .. id) end
+      -- Back is a button in the bottom row: its click reaches the provider through the key MCM
+      -- emits for it, and (like every MCM action) it is ignored while changes are pending.
+      local function goBack(id)
+        local current = mcm.inspect().back
+        if not current or current.id ~= id or actual.hasDrafts(key) then return false end
+        handlers.McmUiEmitAction(controller, 'convai-bottom-back')
+        return actual.reloadMod(key) ~= nil
+      end
       local function backSurvivesSearch(back, query)
+        -- A search cannot hide the page Back: it is not a row that MCM filters.
         handlers.McmUiEmitSearch(nil, 'content', query)
         for _ = 1, 6 do mcm.update(player, false) end
+        assert(mcm.inspect().back and mcm.inspect().back.id == back, 'Back is missing during a search: ' .. back)
         local renderer = {runtime = {state = {api = actual, settingsSortMode = 'file',
           searchQueries = {content = query}}, safe = function(_, value) return tostring(value or '') end}}
         for _, value in ipairs(Model.flattenSettings(renderer, {key = key})) do
-          if value.kind == 'setting' and value.setting.id == key .. ':' .. back then return end
+          assert(not (value.kind == 'setting' and value.setting.id == key .. ':' .. back), 'Back is a filtered row')
         end
-        error('MCM filtered the only parent Back action: ' .. back)
       end
       assert(actual.openMod(key))
       assert(actual.invokeAction(key .. ':tab:characters'))
@@ -2386,7 +2477,24 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(actual.getValue(key .. ':eyeContactHeight') == 5 and actual.getValue(key .. ':headFollowStrength') == 4)
       assert(manager.gazeSettings().eyeContactHeight == 0.10 and manager.gazeSettings().headFollowStrength == 1.5)
       -- A pending voice never prepares a model; Revert discards it and Apply commits it.
-      function controller:GetRootWidget() return nil end
+      CName = {new = function(value) return value end}
+      NameToString = function(value) return value end
+      local function node(name, children)
+        local w = {name = name, children = children or {}}
+        function w:GetName() return self.name end
+        function w:GetNumChildren() return #self.children end
+        function w:GetWidgetByIndex(index) return self.children[index + 1] end
+        function w:GetMargin() return {left = 0, top = 0, right = 0, bottom = 0} end
+        function w:SetMargin() end
+        function w:GetWidth() return 100 end
+        function w:GetHeight() return 24 end
+        return w
+      end
+      local barRender = node('MCMRenderRoot', {node('subtitle'), node('status'), node('mcm_content_scroll_content')})
+      function controller:GetRootWidget() return node('root', {barRender}) end
+      controller.McmUiAddBottomActionAt = function(_, id)
+        barRender.children[#barRender.children + 1] = node('mcm_action_' .. id)
+      end
       handlers.McmUiSetContentTitle(controller, 'Companion Manager')
       assert(actual.setDraft(key .. ':voiceProvider', 3))
       for _ = 1, 3 do mcm.update(player, false) end
