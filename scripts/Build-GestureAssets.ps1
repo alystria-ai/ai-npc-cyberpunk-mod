@@ -43,6 +43,7 @@ try {
         (Join-Path $content 'basegame_1_engine.archive'), (Join-Path $content 'basegame_4_appearance.archive'),
         (Join-Path $content 'basegame_4_gamedata.archive'), (Join-Path $content 'basegame_3_nightcity.archive'))
     if (Test-Path -LiteralPath (Join-Path $ep1 'ep1_1_nightcity.archive')) { $archives += Join-Path $ep1 'ep1_1_nightcity.archive' }
+    if (Test-Path -LiteralPath (Join-Path $ep1 'ep1_2_gamedata.archive')) { $archives += Join-Path $ep1 'ep1_2_gamedata.archive' }
     $paths = foreach ($archive in $archives) { & $WolvenKitPath archive $archive --list -v Quiet 2>$null }
     $paths | Set-Content -LiteralPath $listing -Encoding utf8
     # Gesture animsets (clip sources), the template workspot and entity shapes.
@@ -50,6 +51,9 @@ try {
         Where-Object { $_ -notmatch '_transitions\.anims$' } | Sort-Object -Unique)
     $animRegex = '^(' + (($animsets | ForEach-Object { Escape $_ }) -join '|') + ')$'
     Invoke-GestureTool 'extract-animsets.log' @('unbundle', (Join-Path $content 'basegame_4_animation.archive'), '--outpath', (Join-Path $work 'original'), '--regex', $animRegex)
+    if (Test-Path -LiteralPath (Join-Path $ep1 'ep1_2_gamedata.archive')) {
+        Invoke-GestureTool 'extract-animsets-ep1.log' @('unbundle', (Join-Path $ep1 'ep1_2_gamedata.archive'), '--outpath', (Join-Path $work 'original'), '--regex', $animRegex)
+    }
     # The EP1 copy of a workspot overrides the base one when Phantom Liberty is installed.
     $templateArchive = if (Test-Path -LiteralPath (Join-Path $ep1 'ep1_1_nightcity.archive')) { Join-Path $ep1 'ep1_1_nightcity.archive' } else { Join-Path $content 'memoryresident_1_general.archive' }
     Invoke-GestureTool 'extract-template.log' @('unbundle', $templateArchive, '--outpath', (Join-Path $work 'original'), '--regex', ('^' + (Escape $source.template) + '$'))

@@ -50,9 +50,22 @@ const transition = (depot) => /_transitions(__ow)?\.anims$/.test(depot);
 // Measured hand motion per clip (scripts/Measure-GestureMotion.py), optional.
 const motionFile = path.join(project, 'assets', 'gestures', 'clip-motion.json');
 const motion = fs.existsSync(motionFile) ? readJson(motionFile).animsets : {};
+// Same-named clips share choreography across rigs; an animset WolvenKit could
+// not export (man_big hands at sides) borrows the median reach of its name.
+const reachByName = new Map();
+for (const clips of Object.values(motion)) {
+    for (const [name, row] of Object.entries(clips)) {
+        if (!reachByName.has(name)) reachByName.set(name, []);
+        reachByName.get(name).push(row[0]);
+    }
+}
 const reachOf = (animset, name) => {
     const row = motion[base(animset).replace(/\.anims$/, '')]?.[name];
-    return row ? row[0] : undefined;
+    if (row) return row[0];
+    const others = reachByName.get(name);
+    if (!others) return undefined;
+    const sorted = [...others].sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
 };
 
 // Clips of an animset list for one rig (first animset wins on duplicate names).

@@ -550,6 +550,25 @@ COMMANDS['reload-controller'] = function()
         return list
     end)()}
 end
+-- flats <record>...: entity template of character records (hash and text), to
+-- find each character's relaxed locomotion idle offline.
+COMMANDS.flats = function(words)
+    local out = {}
+    for index = 2, #words do
+        local record = words[index]
+        local row = {}
+        local ok, value = pcall(function() return TweakDB:GetFlat(record .. '.entityTemplatePath') end)
+        row.ok, row.text = ok, tostring(value)
+        if ok and value ~= nil then
+            pcall(function() row.hash = tostring(value.hash) end)
+            pcall(function() row.value = tostring(value.value) end)
+        end
+        pcall(function() row.appearance = tostring(TweakDB:GetFlat(record .. '.appearanceName')) end)
+        out[record] = row
+    end
+    log('flats', {flats = out})
+    return true, out
+end
 COMMANDS.autounstick = function(words) M.autoUnstick = words[2] ~= 'off'; return true, {autoUnstick = M.autoUnstick} end
 COMMANDS.guard = function(words)
     M.guard = words[2] ~= 'off'

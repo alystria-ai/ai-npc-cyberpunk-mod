@@ -183,7 +183,7 @@ test('Johnny takes his signature idle now and then when settled, never Judy, and
   speaking={knownEnd=20,at=0};step(.3)
   if lastLog('flavour-begin') and not lastLog('exit') then end
   step(1.5)
-  assert(last('play').component=='convai_talk_on_sides','Johnny talks from hands at sides like his idle: '..tostring(last('play').component))
+  assert(last('play').component=='convai_talk_man_sides','Johnny talks from hands at sides like his idle: '..tostring(last('play').component))
 `));
 
 test('never starts for a copy left behind or not in a social stance; leaves when V gets far', () => run(`
@@ -261,4 +261,30 @@ test('a one-tick V speed spike (collision nudge) does not end the stance', () =>
   player.pos={x=.4,y=0,z=0};step(.1)
   player.pos={x=.42,y=0,z=0};step(.3)
   assert(count('exit')==0,'a nudge is not running')
+`));
+
+test('every tier-1 companion maps to a family on its own rig, looping a short vanilla idle, with plenty of visible clips', () => run(`
+  local cat=load(catalogSource)()
+  local tier1={'Character.Judy','Character.Panam','Character.Rogue','Character.Misty','Character.alex','Character.Claire',
+    'Character.Evelyn','Character.Lizzy_Wizzy','Character.Mama_Welles','Character.Stout','Character.reggie','Character.songbird',
+    'Character.wakako_okada','Character.Silverhand','Character.Kerry','Character.Victor_Vector','Character.Takemura',
+    'Character.mr_hands','Character.Padre','Character.Jackie','Character.Sobchak','Character.reed','Character.Elcoyote_Barman'}
+  for _,record in ipairs(tier1) do
+    local known=cat.characters[record]
+    assert(known,'unmapped '..record)
+    local fam=cat.families[known.talk]
+    assert(fam,'missing family '..tostring(known.talk)..' for '..record)
+    local onRig=false
+    for _,rig in ipairs(fam.rigs) do if rig==known.rig then onRig=true end end
+    assert(onRig,record..' family not on its rig')
+    assert(fam.idle.name=='idle_stand' and fam.idle.perRig[known.rig].duration<=15,record..' does not loop a short vanilla idle')
+    local visible=0
+    for _,clip in ipairs(fam.clips) do
+      local row=clip.perRig[known.rig]
+      if row and clip.category~='idlebreak' and (row.reach or 0)>=25 then visible=visible+1 end
+    end
+    assert(visible>=40,record..' has only '..visible..' clips with 25 cm+ reach')
+    local fallback=cat.families[known.fallback]
+    assert(fallback,'missing fallback for '..record)
+  end
 `));

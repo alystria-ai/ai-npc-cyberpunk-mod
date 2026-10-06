@@ -233,12 +233,13 @@
       "workspot": "cyberpunk_convai\\gestures\\convai_talk_panam.workspot",
       "idle": "idle_stand",
       "prefixes": [
-        "stand__2h_on_hip__01__"
+        "stand__2h_on_sides__01__"
       ],
       "animsets": {
         "woman_base": [
           "base\\animations\\npc\\main_characters\\panam\\locomotion\\wa_panam_unarmed_locomotion_relaxed.anims",
-          "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_female_average__stand__2h_on_hip__01.anims"
+          "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_average_female_stand_2h_on_sides.anims",
+          "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_average_female_stand__2h_on_sides.anims"
         ]
       }
     },
@@ -247,12 +248,14 @@
       "workspot": "cyberpunk_convai\\gestures\\convai_talk_takemura_own.workspot",
       "idle": "idle_stand",
       "prefixes": [
-        "takemura__stand__2h_on_sides__01__"
+        "takemura__stand__2h_on_sides__01__",
+        "stand__2h_on_sides__01__"
       ],
       "animsets": {
         "man_base": [
           "base\\animations\\npc\\main_characters\\takemura\\locomotion\\ma_takemura_unarmed_locomotion_relaxed.anims",
-          "base\\animations\\npc\\main_characters\\takemura\\interactive_scene\\takemura__stand__2h_on_sides__01.anims"
+          "base\\animations\\npc\\main_characters\\takemura\\interactive_scene\\takemura__stand__2h_on_sides__01.anims",
+          "base\\animations\\npc\\generic_characters\\male_average\\interactive_scene\\generic_male_average__stand__2h_on_sides__01.anims"
         ]
       }
     },
@@ -266,6 +269,95 @@
       "animsets": {
         "man_big": [
           "base\\animations\\npc\\main_characters\\jackie\\locomotion\\jackie_dialogue_relaxed_locomotion.anims",
+          "base\\animations\\npc\\main_characters\\jackie\\interactive_scene\\jackie__stand__2h_on_sides.anims",
+          "base\\animations\\npc\\generic_characters\\male_big\\interactive_scene\\generic_big_male_stand_2h_on_sides.anims"
+        ]
+      }
+    },
+    "rogue_own": {
+      "component": "convai_talk_rogue",
+      "workspot": "cyberpunk_convai\\gestures\\convai_talk_rogue.workspot",
+      "idle": "idle_stand",
+      "prefixes": [
+        "stand__2h_on_sides__01__"
+      ],
+      "animsets": {
+        "woman_base": [
+          "base\\animations\\npc\\main_characters\\rogue\\locomotion\\wa_rogue_unarmed_locomotion_relaxed.anims",
+          "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_average_female_stand_2h_on_sides.anims",
+          "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_average_female_stand__2h_on_sides.anims"
+        ]
+      }
+    },
+    "river_own": {
+      "component": "convai_talk_river",
+      "workspot": "cyberpunk_convai\\gestures\\convai_talk_river.workspot",
+      "idle": "idle_stand",
+      "prefixes": [
+        "stand__2h_on_sides__01__"
+      ],
+      "animsets": {
+        "man_big": [
+          "base\\animations\\npc\\main_characters\\river\\locomotion\\mb_river_unarmed_locomotion_relaxed.anims",
+          "base\\animations\\npc\\main_characters\\jackie\\interactive_scene\\jackie__stand__2h_on_sides.anims",
+          "base\\animations\\npc\\generic_characters\\male_big\\interactive_scene\\generic_big_male_stand_2h_on_sides.anims"
+        ]
+      }
+    },
+    "reed_own": {
+      "component": "convai_talk_reed",
+      "workspot": "cyberpunk_convai\\gestures\\convai_talk_reed.workspot",
+      "idle": "idle_stand",
+      "prefixes": [
+        "stand__2h_on_sides__01__"
+      ],
+      "animsets": {
+        "man_big": [
+          "ep1\\animations\\npc\\main_characters\\reed\\locomotion\\mb_reed_unarmed_locomotion_relaxed.anims",
+          "base\\animations\\npc\\main_characters\\jackie\\interactive_scene\\jackie__stand__2h_on_sides.anims",
+          "base\\animations\\npc\\generic_characters\\male_big\\interactive_scene\\generic_big_male_stand_2h_on_sides.anims"
+        ]
+      }
+    },
+    "woman_sides": {
+      "component": "convai_talk_woman_sides",
+      "workspot": "cyberpunk_convai\\gestures\\convai_talk_woman_sides.workspot",
+      "idle": "idle_stand",
+      "prefixes": [
+        "stand__2h_on_sides__01__"
+      ],
+      "animsets": {
+        "woman_base": [
+          "base\\animations\\npc\\gameplay\\woman_average\\gang\\unarmed\\wa_gang_unarmed_locomotion_relaxed.anims",
+          "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_average_female_stand_2h_on_sides.anims",
+          "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_average_female_stand__2h_on_sides.anims"
+        ]
+      }
+    },
+    "man_sides": {
+      "component": "convai_talk_man_sides",
+      "workspot": "cyberpunk_convai\\gestures\\convai_talk_man_sides.workspot",
+      "idle": "idle_stand",
+      "prefixes": [
+        "stand__2h_on_sides__01__"
+      ],
+      "animsets": {
+        "man_base": [
+          "base\\animations\\npc\\gameplay\\man_average\\gang\\unarmed\\ma_gang_unarmed_locomotion_relaxed.anims",
+          "base\\animations\\npc\\generic_characters\\male_average\\interactive_scene\\generic_male_average__stand__2h_on_sides__01.anims"
+        ]
+      }
+    },
+    "big_sides": {
+      "component": "convai_talk_big_sides",
+      "workspot": "cyberpunk_convai\\gestures\\convai_talk_big_sides.workspot",
+      "idle": "idle_stand",
+      "prefixes": [
+        "stand__2h_on_sides__01__"
+      ],
+      "animsets": {
+        "man_big": [
+          "base\\animations\\npc\\gameplay\\man_big\\gang\\unarmed\\mb_gang_unarmed_locomotion_relaxed.anims",
           "base\\animations\\npc\\main_characters\\jackie\\interactive_scene\\jackie__stand__2h_on_sides.anims",
           "base\\animations\\npc\\generic_characters\\male_big\\interactive_scene\\generic_big_male_stand_2h_on_sides.anims"
         ]
@@ -286,44 +378,104 @@
       "talk": "panam_own",
       "idle": "panam",
       "flavour": true,
-      "fallback": "on_hips"
+      "fallback": "on_sides"
     },
     "Character.Rogue": {
       "key": "rogue",
       "rig": "woman_base",
-      "talk": "arms_crossed"
+      "talk": "rogue_own",
+      "fallback": "on_sides"
     },
     "Character.Misty": {
       "key": "misty",
       "rig": "woman_base",
-      "talk": "on_sides",
-      "idle": "misty"
+      "talk": "woman_sides",
+      "idle": "misty",
+      "fallback": "on_sides"
+    },
+    "Character.alex": {
+      "key": "alex",
+      "rig": "woman_base",
+      "talk": "woman_sides",
+      "fallback": "on_sides"
+    },
+    "Character.Claire": {
+      "key": "claire",
+      "rig": "woman_base",
+      "talk": "woman_sides",
+      "fallback": "on_sides"
+    },
+    "Character.Evelyn": {
+      "key": "evelyn",
+      "rig": "woman_base",
+      "talk": "woman_sides",
+      "fallback": "on_sides"
+    },
+    "Character.Lizzy_Wizzy": {
+      "key": "lizzy",
+      "rig": "woman_base",
+      "talk": "woman_sides",
+      "fallback": "on_sides"
+    },
+    "Character.Mama_Welles": {
+      "key": "mama-welles",
+      "rig": "woman_base",
+      "talk": "woman_sides",
+      "fallback": "on_sides"
+    },
+    "Character.Stout": {
+      "key": "meredith",
+      "rig": "woman_base",
+      "talk": "woman_sides",
+      "fallback": "on_sides"
+    },
+    "Character.reggie": {
+      "key": "regina",
+      "rig": "woman_base",
+      "talk": "woman_sides",
+      "fallback": "on_sides"
+    },
+    "Character.songbird": {
+      "key": "songbird",
+      "rig": "woman_base",
+      "talk": "woman_sides",
+      "fallback": "on_sides"
+    },
+    "Character.wakako_okada": {
+      "key": "wakako",
+      "rig": "woman_base",
+      "talk": "woman_sides",
+      "fallback": "on_sides"
     },
     "Character.Silverhand": {
       "key": "johnny",
       "rig": "man_base",
-      "talk": "on_sides",
+      "talk": "man_sides",
       "idle": "johnny",
-      "flavour": true
+      "flavour": true,
+      "fallback": "on_sides"
     },
     "CyberpunkConvai.JohnnyCompanion": {
       "key": "johnny",
       "rig": "man_base",
-      "talk": "on_sides",
+      "talk": "man_sides",
       "idle": "johnny",
-      "flavour": true
+      "flavour": true,
+      "fallback": "on_sides"
     },
     "Character.Kerry": {
       "key": "kerry",
       "rig": "man_base",
-      "talk": "kerry",
+      "talk": "man_sides",
       "idle": "kerry",
-      "flavour": true
+      "flavour": true,
+      "fallback": "on_sides"
     },
     "Character.Victor_Vector": {
       "key": "viktor",
       "rig": "man_base",
-      "talk": "on_sides"
+      "talk": "man_sides",
+      "fallback": "on_sides"
     },
     "Character.Takemura": {
       "key": "takemura",
@@ -332,6 +484,18 @@
       "idle": "takemura",
       "flavour": true,
       "fallback": "takemura"
+    },
+    "Character.mr_hands": {
+      "key": "mr-hands",
+      "rig": "man_base",
+      "talk": "man_sides",
+      "fallback": "on_sides"
+    },
+    "Character.Padre": {
+      "key": "padre",
+      "rig": "man_base",
+      "talk": "man_sides",
+      "fallback": "on_sides"
     },
     "Character.Jackie": {
       "key": "jackie",
@@ -344,7 +508,20 @@
     "Character.Sobchak": {
       "key": "river",
       "rig": "man_big",
-      "talk": "on_sides"
+      "talk": "river_own",
+      "fallback": "on_sides"
+    },
+    "Character.reed": {
+      "key": "reed",
+      "rig": "man_big",
+      "talk": "reed_own",
+      "fallback": "on_sides"
+    },
+    "Character.Elcoyote_Barman": {
+      "key": "pepe",
+      "rig": "man_big",
+      "talk": "big_sides",
+      "fallback": "on_sides"
     }
   },
   "idleWorkspots": {

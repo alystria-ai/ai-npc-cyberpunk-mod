@@ -219,3 +219,19 @@ test('symbolic gestures are never chosen: Judy gesture 02 (thumbs-up), measured 
     if item then assert(item.clip.name~='d__describe__01','measured symbolic clip chosen') end
   end
 `));
+
+test('arm-overhead sweeps (demonstrate, 100 cm+) never play as talk', () => run(`
+  assert(not m.allowed('stand__2h_on_sides__01__demonstrate_positive__08'))
+  local function reachClip(name,reach) local c=clip(name,'neutral',all);c.perRig.woman_base.reach=reach;return c end
+  local pool={reachClip('e__wave__01',105),reachClip('e__talk__neutral__07',45),reachClip('e__what__neutral__02',55),
+    reachClip('e__describe__01',60),reachClip('e__talk__neutral__08',40),reachClip('e__describe__02',50)}
+  local overhead=0
+  for i=1,10 do
+    local s=m.new(lcg)
+    for t=0,30,.1 do
+      local item=m.next(s,{now=t,mode='speaking',rig='woman_base',character='judy',family='neutral',scale=2,remaining=30,total=30,clips=pool})
+      if item and item.clip.name=='e__wave__01' then overhead=overhead+1 end
+    end
+  end
+  assert(overhead<=2,'overhead clip chosen '..overhead..' times')
+`));
