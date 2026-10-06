@@ -64,19 +64,21 @@ no longer open it.
   (`bridge/voice-preview.mjs`, `mod/voice-preview.lua` and `previewSettleMs` remain but are
   unused by this page.)
 
-**Back is a native bottom-bar action.** MCM has no provider API for its Revert / Apply / Defaults
-bar, so after each render the provider adds one native bottom action there with
-`McmUiAddBottomActionAt` (the sidebar's left edge, `bottomActionY`, labelled **Back**). Its click
-arrives through `McmUiEmitAction`; it navigates to the page's parent and is ignored while changes
-are pending, like every MCM action. A search cannot hide it. If the bar rejects the button, Back
-returns to the first row of the page (`inspect().backMode == 'list'`). The bar label is the short
-**Back**; the parent's name is in `inspect().back.label`. In a language MCM itself does not have
-fonts for, the label may use MCM's font.
+**Back** is a row at the very end of every non-root page, directly below its last option (MCM
+has no provider API for its bottom Revert / Apply / Defaults bar, and a button placed there
+was rejected by the player). It is present on whatever page MCM restores on reopen. Settings,
+Relationships and Character conversations start with a status line, the row
+"Changes wait until you choose Apply." It changes in place to "Change pending. Choose Apply to
+use it, or Revert to discard it." while changes are pending, and then MCM's own bottom status
+line is kept free of the refusal text. MCM cannot move that bottom line, so if the top line
+cannot be updated the bottom text stays.
 
 Esc probes: `runtime/mcm.log` records "Probe:" lines for the close key events and candidate close
 handlers while the page is open (at most 60 per session), and for a close with unapplied changes.
+Live result: with no changes Esc fires `OnButtonRelease` (`UI_Cancel`, `cancel`, `back`), then
+`SettingsMainGameController.OnBack`, then `RequestClose`; the key guard asks before that.
 
-Every inner page starts with one **Back** action. Characters, Current party,
+Every inner page ends with one **Back** action. Characters, Current party,
 Model browser and Settings return to the manager home; Relationships, Memory
 and Character conversations return to Settings. The memory character picker
 returns to Memory, and the removed per-copy conversation page no longer exists. Navigation clears the previous page's search.

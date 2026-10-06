@@ -28,12 +28,15 @@ local VOICE_CHOICES = {{'omni', 16}, {'omni', 32}, {'pocket'}, {'convai'}}
 -- No voice model is prepared from a draft: nothing reaches the conversation
 -- service until Apply.
 local voicePreview = dofile('voice-preview.lua').new()
--- The page's Back link sits in MCM's bottom action bar, with Revert, Apply and
--- Defaults, as a native bottom action (MCM has no provider API for that bar, so
--- the button is added after each render). If it cannot be added, Back returns to
--- the first row of the page.
-local BACK_ID = 'convai-bottom-back'
-local backMode, currentBack = 'bottom', nil
+-- Every non-root page ends with a Back row, directly below its last option.
+local currentBack
+-- Our own status line: the first row of a settings page. It names the state of
+-- unapplied changes. MCM's bottom status line carries the same text from its own
+-- refusal message; once the top line can be updated in place, that is blanked.
+local HINT_ID = 'apply-hint'
+local function hintDefault() return ui.t('Changes wait until you choose Apply.') end
+local function hintPending() return ui.t('Change pending. Choose Apply to use it, or Revert to discard it.') end
+local hintText, hintLive = nil, false
 -- Help page: log locations and the shareable support report. Optional: the
 -- manager works without it, and a load failure only hides the Help entry.
 local support, supportSignature
@@ -158,6 +161,9 @@ local function styleCompletedPage()
         widgets[name] = widget
     end
     presentation.voiceStatus = widgets[MOD_KEY .. ':voice-status_value']
+    local hintSurface = widgets['mcm_action_' .. MOD_KEY .. ':' .. HINT_ID]
+    presentation.hintLabel = hintSurface and findWidget(hintSurface, 'label', 2, {left = 30}) or nil
+    presentation.hintShown = hintText
     for _, row in ipairs(rows) do
         local widget, name = row.widget, row.name
         local managed = name:match('^(.*)_managed_label$')
@@ -355,6 +361,20 @@ local function updatePreparationBanner()
     presentation.preparationApplied = current ~= nil
 end
 
+-- Keep the top status line in step with MCM's pending drafts, in place (a schema
+-- reload is not possible while drafts are pending). Top-level update only.
+local function updateApplyHint()
+    if not presentation.active or not presentation.hintLabel or not api then return end
+    local ok, pending = pcall(api.hasDrafts, MOD_KEY)
+    if not ok then return end
+    local text = (pending == true and hintPending() or hintDefault())
+    if text ~= presentation.hintShown then
+        presentation.hintLabel:SetText(text)
+        presentation.hintShown = text
+    end
+    hintLive = true
+end
+
 local function developerMode()
     if not manager or type(manager.developerMode) ~= 'function' then return false end
     local ok, enabled = pcall(manager.developerMode)
@@ -459,7 +479,7 @@ local function schema()
                 'Stop the trip after returning to gameplay. Wait for the car to stop, then step out before dismissing the driver.',
                 function() return queue.stopTrip() end, not trip.stopPending)
         end
-        categories[#categories + 1] = category('party-status', 'Your group', status)
+        if #status > 0 then categories[#categories + 1] = category('party-status', 'Your group', status) end
         -- One row per copy: its name and number, with Dismiss on the right. A copy
         -- dismissed while the world is paused is dropped from the list at once;
         -- the queue deletes it after gameplay resumes and lists it again with the
@@ -708,15 +728,34 @@ local function schema()
         table.insert(categories[1].settings, 1, action(view .. ':back', 'Back to Companion Manager', 'Back',
             'Return to Companion Manager.', function(context) return navigate('home', context) end))
     end
-    if currentBack and backMode == 'bottom' then
-        -- Back lives in the bottom action bar. Its callback stays registered.
+    -- Back goes last: below the last option of the page, never at the top.
+    if currentBack then
+        local moved
         for index = #categories, 1, -1 do
             local list = categories[index].settings
             for position = #list, 1, -1 do
-                if list[position].id == currentBack.id then table.remove(list, position) end
+                if list[position].id == currentBack.id then moved = table.remove(list, position) end
             end
-            if #list == 0 then table.remove(categories, index) end
         end
+        for index = #categories, 1, -1 do
+            if #categories[index].settings == 0 then table.remove(categories, index) end
+        end
+        if moved then
+            if #categories == 0 then categories[1] = category('navigation-back', 'Companion Manager', {}) end
+            table.insert(categories[#categories].settings, moved)
+        end
+    end
+    -- The status line comes first on the pages that hold settings.
+    if (view == 'settings' or view == 'relationships' or view == 'permissions') and categories[1] then
+        local pending = false
+        if api and type(api.hasDrafts) == 'function' then
+            local ok, value = pcall(api.hasDrafts, MOD_KEY)
+            pending = ok and value == true
+        end
+        hintText = (pending and hintPending() or hintDefault())
+        table.insert(categories[1].settings, 1, readonly(HINT_ID, hintText, '', hintText, {label = true, description = true}))
+    else
+        hintText = nil
     end
     return {name = ui.t(LABEL), description = ui.t('Your companions, character models and conversation settings.'), categories = categories}
 end
@@ -778,7 +817,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
             -- Auto Apply sets a draft and applies in the same instant. Refuse that
             -- call so the draft stays pending; nothing is saved or sent anywhere.
             if os.clock() - lastDraftEventAt < AUTO_APPLY_WINDOW then
-                return {ok = false, error = ui.t('Change pending. Choose Apply to use it, or Revert to discard it.')}
+                return {ok = false, error = hintPending()}
             end
             local values, applied = {enabledByKey = {}, relationshipModes = {}}, {}
             for _, change in ipairs(changes) do
@@ -846,28 +885,6 @@ local function connect()
     return true
 end
 
--- Place the Back link in the bottom action bar, from top-level update after a
--- render (a new render clears it). Every native call is guarded: on any failure
--- Back goes back to a row of the page.
-local function placeBackButton()
-    if backMode ~= 'bottom' or not currentBack or not presentation.active
-        or presentation.backPlaced or not presentation.controller then return end
-    presentation.backPlaced = true
-    local controller = presentation.controller
-    local ok, err = pcall(function()
-        local x, y = controller:McmUiGetLayoutMetric(10), controller:McmUiGetLayoutMetric(27)
-        local width = controller:McmUiGetLayoutMetric(11)
-        if type(x) ~= 'number' or type(y) ~= 'number' or type(width) ~= 'number' or x < 0 or y < 0 or width <= 0 then
-            error('layout metrics are unavailable')
-        end
-        controller:McmUiAddBottomActionAt(BACK_ID, ui.t('Back'), x, y, math.min(width, 280), false)
-    end)
-    if not ok then
-        backMode, refreshQueued = 'list', true
-        log('Back could not be placed in the action bar; using a row instead: ' .. tostring(err))
-    end
-end
-
 function M.install()
     if not connect() then return false end
     if hooksInstalled then return end
@@ -895,6 +912,11 @@ function M.install()
             status, statusKind = preparationStatus.message, preparationStatus.failed and 2 or 0
             presentation.preparationApplied = true
             presentation.preparationSignature = preparationStatus.signature
+        end
+        if own and hintLive and tostring(status):find(hintPending(), 1, true) then
+            -- The same message is on the page's top status line; keep MCM's
+            -- bottom line free of it.
+            status, statusKind = '', 0
         end
         presentation.statusText = status
         return wrapped(title, subtitle, sidebarTitle, contentTitle, status, statusKind,
@@ -951,17 +973,6 @@ function M.install()
             presentation.hovered[id] = hovered == true
             if not hovered then presentation.pending = true end
         end
-    end)
-    Observe('SettingsMainGameController', 'McmUiEmitAction', function(controller, id)
-        if id ~= BACK_ID or not currentBack or not api or not active() then return end
-        local ok, pending = pcall(api.hasDrafts, MOD_KEY)
-        if ok and pending == true then
-            -- MCM refuses navigation while changes are pending, and so does this.
-            log('Back ignored: apply or revert the pending changes first')
-            return
-        end
-        currentBack.callback({interaction = {controller = controller}})
-        refreshQueued = true
     end)
     Observe('SettingsMainGameController', 'McmUiEmitSearch', function(_, context, value)
         if context == 'content' and active() then
@@ -1115,10 +1126,10 @@ function M.update(currentPlayer, worldReady)
     -- our translated sidebar item readable when another mod is selected.
     fontPresentation.update()
     if not active() then return end
-    local placed, placeError = pcall(placeBackButton)
-    if not placed then lastError = 'Back button: ' .. tostring(placeError) end
     local styleOk, styleError = pcall(styleCompletedPage)
     if not styleOk then lastError = 'Settings presentation: ' .. tostring(styleError) end
+    local hintOk, hintError = pcall(updateApplyHint)
+    if not hintOk then lastError = 'Status line: ' .. tostring(hintError) end
     local bannerOk, bannerError = pcall(updatePreparationBanner)
     if not bannerOk then lastError = 'Preparation presentation: ' .. tostring(bannerError) end
     if searchFrames > 0 then
@@ -1176,7 +1187,7 @@ function M.inspect()
     return {available = api ~= nil, active = active(), view = view, entry = entry.state(),
         presentation = {active = presentation.active, pending = presentation.pending, title = presentation.title, rows = rowCount},
         entryDetails = entry.inspect and entry.inspect() or nil,
-        back = currentBack and {id = currentBack.id, label = currentBack.label} or nil, backMode = backMode,
+        back = currentBack and {id = currentBack.id, label = currentBack.label} or nil, hintLive = hintLive,
         party = queue.list(), feedback = queue.message(), error = lastError,
         voicePreview = voicePreview.inspect(),
         fonts = fontPresentation.inspect(),

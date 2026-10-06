@@ -20,7 +20,8 @@ const frenchUiSource = readFileSync(new URL('../mod/locales/fr.lua', import.meta
 function run(code) {
   const state = lauxlib.luaL_newstate();
   lualib.luaL_openlibs(state);
-  const status = lauxlib.luaL_dostring(state, to_luastring(uiLocaleBootstrap + code));
+  // The CET module environment has no _G: match it so that class of bug fails here.
+  const status = lauxlib.luaL_dostring(state, to_luastring('_G = nil; ' + uiLocaleBootstrap + code));
   const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
   lua.lua_close(state);
   assert.equal(status, lua.LUA_OK, error);
@@ -522,16 +523,24 @@ test('manager home owns the four destinations and every inner page has one paren
       for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do
         assert(not row('tab:' .. name), 'a root destination leaked onto an inner page')
       end
+      local count = 0
       for _, section in ipairs(loaded.categories) do
         assert(#section.settings > 0, 'an empty section is left on the page')
         for _, item in ipairs(section.settings) do
-          assert(item.value ~= 'Back' and not item.id:find(':back$'), 'Back is still a row of the list')
+          if item.value == 'Back' then count = count + 1; assert(item.id == back) end
           assert(item.label:sub(1, 1) ~= ' ' and item.indent == nil, 'label has artificial indentation')
         end
       end
-      -- Back is the one native bottom-bar action, with the page's own parent.
-      local current = mcm.inspect().back
-      assert(current and current.id == back and mcm.inspect().backMode == 'bottom', 'parent Back is missing')
+      -- One Back, as the very last row: directly below the page last option.
+      local last = loaded.categories[#loaded.categories].settings
+      assert(count == 1 and last[#last].id == back, 'parent Back must be the last row')
+      assert(mcm.inspect().back.id == back)
+      local first = loaded.categories[1].settings[1]
+      if expected == 'settings' or expected == 'relationships' or expected == 'permissions' then
+        assert(first.id == 'apply-hint', 'the status line must come first on a settings page')
+      else
+        assert(first.id ~= 'apply-hint')
+      end
       assert(not category('party-status') and not row('party-count') and not row('feedback'),
         'party status, the limit or the last action leaked onto the page')
     end
@@ -665,37 +674,58 @@ test('local voice previews carry the effective four-choice draft and cancel on R
   `);
 });
 
-test('Back is a native action in the bottom bar beside Apply, placed once per render, and falls back to a row if it cannot be placed', () => {
+test('Back is the last row of every non-root page, including the page MCM restores on reopen', () => {
   run(`${mcmFixture}
-    assert(invoke('tab:settings').ok and invoke('help') == nil or true)
-    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-    mcm.update(player, false)
-    assert(#bottomActions == 1, 'Back was not placed in the action bar')
-    local back = bottomActions[1]
-    assert(back.id == 'convai-bottom-back' and back.label == 'Back' and back.x == 40 and back.y == 1000 and back.width == 280)
-    mcm.update(player, false); mcm.update(player, false)
-    assert(#bottomActions == 1, 'Back was added again within one render')
-    -- A new render clears the bar, so it is added once more.
-    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-    mcm.update(player, false)
-    assert(#bottomActions == 2)
-    -- The click returns to the parent page; with pending changes it is ignored, like every MCM action.
-    assert(mcm.inspect().view == 'settings' and not row('settings:back'))
-    drafts = true; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
-    assert(mcm.inspect().view == 'settings', 'Back ignored pending changes')
-    drafts = false; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
-    assert(mcm.inspect().view == 'home')
+    for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do
+      -- Reopening the menu shows whatever page was open: simulate it by a fresh schema load.
+      assert(invoke('tab:' .. name).ok)
+      loaded = registered.loadMod('manager')
+      local last = loaded.categories[#loaded.categories].settings
+      assert(last[#last].id == name .. ':back' and last[#last].value == 'Back', name .. ' has no Back at its end')
+      assert(invoke(name .. ':back').ok)
+      loaded = registered.loadMod('manager')
+    end
+    -- A page with a search that matches nothing still ends with Back.
+    assert(invoke('tab:characters').ok)
+    handlers.McmUiEmitSearch(nil, 'content', 'no such character')
     loaded = registered.loadMod('manager')
-    -- Another button id never navigates.
-    assert(invoke('tab:party').ok)
-    handlers.McmUiEmitAction(controller, 'something-else'); assert(mcm.inspect().view == 'party')
-    -- If the bar cannot take the button, Back is the first row of the page instead.
-    controller.McmUiAddBottomActionAt = function() error('no bottom bar') end
+    local last = loaded.categories[#loaded.categories].settings
+    assert(last[#last].id == 'characters:back')
+  `);
+});
+
+test('the top status line follows pending changes in place and the bottom MCM line is kept free of our message', () => {
+  run(`${mcmFixture}
+    CName = {new = function(value) return value end}
+    NameToString = function(value) return value end
+    assert(invoke('tab:settings').ok)
+    loaded = registered.loadMod('manager')
+    local first = loaded.categories[1].settings[1]
+    assert(first.id == 'apply-hint' and first.label == 'Changes wait until you choose Apply.')
+    local pendingText = 'Change pending. Choose Apply to use it, or Revert to discard it.'
+    local label = {text = first.label}
+    function label:SetText(value) self.text = value end
+    function label:GetName() return 'label' end
+    local surface = {GetName = function() return 'mcm_action_cyberpunk-convai:manager:apply-hint' end,
+      GetNumChildren = function() return 1 end, GetWidgetByIndex = function() return label end}
+    local content = {GetName = function() return 'mcm_content_scroll_content' end,
+      GetNumChildren = function() return 1 end, GetWidgetByIndex = function() return surface end}
+    function controller:GetRootWidget() return content end
     handlers.McmUiSetContentTitle(controller, 'Companion Manager')
     mcm.update(player, false)
-    assert(mcm.inspect().backMode == 'list')
-    loaded = registered.loadMod('manager')
-    assert(row('party:back') and loaded.categories[1].settings[1].id == 'party:back' or row('party:back'))
+    assert(label.text == 'Changes wait until you choose Apply.' and mcm.inspect().hintLive)
+    drafts = true; mcm.update(player, false)
+    assert(label.text == pendingText, label.text)
+    drafts = false; mcm.update(player, false)
+    assert(label.text == 'Changes wait until you choose Apply.')
+    -- The refusal text no longer reaches the MCM bottom status once the top line is live.
+    local shown
+    handlers.McmUiBegin({}, 'MCM', '', 'Mods', 'Companion Manager', 'Failed to apply settings for Companion Manager: ' .. pendingText, 2, '', true, true, 0,
+      function(_, _, _, _, status, kind) shown = {status, kind} end)
+    assert(shown[1] == '' and shown[2] == 0, 'the refusal text still went to the bottom status line')
+    handlers.McmUiBegin({}, 'MCM', '', 'Mods', 'Other Mod', 'Failed to apply settings for Other: ' .. pendingText, 2, '', true, true, 0,
+      function(_, _, _, _, status) shown = {status} end)
+    assert(shown[1]:find('Other', 1, true), 'another mod status was blanked')
   `);
 });
 
@@ -2113,8 +2143,7 @@ test('Current party rows are a name, its number and Dismiss, in the same native 
       if index < 3 then member.name = member.name .. ' #' .. index end
     end
     assert(invoke('tab:party').ok)
-    local back = {type = 'action'}
-    assert(mcm.inspect().back.id == 'party:back')
+    local back = row('party:back')
     local names = {'Johnny Silverhand #1', 'Johnny Silverhand #2', 'Person 01 #3'}
     for index, id in ipairs({'dismiss:live:1', 'dismiss:live:2', 'dismiss:live:3'}) do
       local item = row(id)
@@ -2131,7 +2160,7 @@ test('Current party rows are a name, its number and Dismiss, in the same native 
         assert(not item.label:find('Following') and not item.value:find('Following') and not item.value:find('/ 8'))
       end
     end
-    assert(total == 3, 'one row per copy only: ' .. total)
+    assert(total == 4, 'Back and one row per copy only: ' .. total)
     -- Joining and leaving never put a last-action line on the page.
     mcm.update(player, true); assert(not row('feedback'))
   `);
@@ -2284,24 +2313,16 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       mcm.install()
       assert(actual.refreshIndex())
       local key = 'cyberpunk-convai:manager'
-      -- Back is the native bottom-bar action: a click reaches the provider through the key
-      -- MCM emits for it, and (like every MCM action) it is refused while changes are pending.
-      local function goBack(id)
-        local current = mcm.inspect().back
-        if not current or current.id ~= id or actual.hasDrafts(key) then return false end
-        handlers.McmUiEmitAction(controller, 'convai-bottom-back')
-        return actual.reloadMod(key) ~= nil
-      end
+      local function goBack(id) return actual.invokeAction(key .. ':' .. id) end
       local function backSurvivesSearch(back, query)
-        -- A search can no longer hide the page's Back: it is not a row that MCM filters.
         handlers.McmUiEmitSearch(nil, 'content', query)
         for _ = 1, 6 do mcm.update(player, false) end
-        assert(mcm.inspect().back and mcm.inspect().back.id == back, 'Back is missing during a search: ' .. back)
         local renderer = {runtime = {state = {api = actual, settingsSortMode = 'file',
           searchQueries = {content = query}}, safe = function(_, value) return tostring(value or '') end}}
         for _, value in ipairs(Model.flattenSettings(renderer, {key = key})) do
-          assert(not (value.kind == 'setting' and value.setting.id == key .. ':' .. back), 'Back is a filtered row')
+          if value.kind == 'setting' and value.setting.id == key .. ':' .. back then return end
         end
+        error('MCM filtered the only parent Back action: ' .. back)
       end
       assert(actual.openMod(key))
       assert(actual.invokeAction(key .. ':tab:characters'))
