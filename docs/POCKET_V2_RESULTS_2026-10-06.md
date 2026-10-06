@@ -63,8 +63,7 @@ Reading it:
 - **The gap to OmniVoice narrowed** from about 0.17 to about 0.10 ECAPA (3 clips, page voices: 0.590 vs 0.69).
 - **PLS with decoder v2 (110–112 at 2–3 clips) is above OmniVoice 16 (about 104)**, driven by timbre and delivery components. That is texture, not identity; the ear decides.
 - On the pretrained decoder, the new student's 3-clip PLS (82.4) is below student 5,000's (88.2). Student 5,000 trained on 55% of these lines, which flatters PLS's same-line delivery and timbre terms. On the clean D lines the new student's delivery MCD is better (384 vs 396). Its 1- and 2-clip PLS are higher than student 5,000's.
-- Scores: `E:\CyberpunkConvai-offload\work\likeness-phase1\out
-p_scores_v2.json` and `np_per_speaker_v2.json`. Renders: `out\gent6-v2__*` and `out\genase6-2609__multiC|multiB`. WER was not computed (user decision).
+- Scores: `E:\CyberpunkConvai-offload\work\likeness-phase1\out\np_scores_v2.json` and `np_per_speaker_v2.json`. Renders: `out\gen\ft6-v2__*` and `out\gen\base6-2609__multiC|multiB`. WER was not computed (user decision).
 
 ## Listening page
 
