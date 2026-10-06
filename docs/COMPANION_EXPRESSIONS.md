@@ -1,5 +1,70 @@
 # Companion expressions
 
+## October 7: resting warmth, calm brows, and a multi-emotion timeline
+
+**Live findings (screenshots of Judy via the face-test probe, installed `0d89060`).** Writer-mode
+poses are all visible, and `face-test off` returns her to the same neutral idle as before (no stuck jaw,
+brows or corners). Corners .45 read as a modest smile; adding the outer-eye squint (the closest control
+the feature exposes to a cheek raise; there is no cheek-raise or lid-tighten track, only cheek puff and
+suck) makes it read as warm; corners .65 + squint .35 is a clear friendly smile. Squint alone looks
+stern, so it is only ever driven by the smile.
+
+**Why the face looked flat/odd, from the code and the logs:** an Interest cue (a question tone) replaced the
+resting smile (no corners, brows only), so Judy had no smile while speaking; the voice-synced brows
+(model raise gain .65-.8, no dead zone) lifted the brows by roughly .1 almost constantly and
+bobbed them alone on a static face; and any emotion's brows were held 4 s (8 s if negative) after the
+voice stopped, which with a question cue on most replies reads as "brows always raised at idle". The current code
+reproduces none of these (idle brows are exactly 0 five seconds after a reply in the simulation below).
+Also fixed: a face-test `policy` run injected a feeling and marked the turn active, so it could leave the
+actor in "thinking" (no resting smile) after `off`.
+
+Changes (Lua `mod/facial-playback.lua`, mirrored in `bridge/companion-expressions.mjs`):
+
+- Resting warmth is a **floor** under every non-negative intent (Interest, surprise, neutral tone),
+  idle and speaking, combined by max with the emotion's own smile; sadness/anger/fear/disgust and unknown
+  labels remove it. Per character (actor-row profile keys, Lua only): warm .22, default .15, dry .07,
+  cold 0. Judy: warmth .14 with a corner gain of 1.6 (about .22 at rest), caps scaled by at most 1.3.
+- Duchenne squint on `eye_l/r_oculi_squint_outer_lower`: .6 of the smile, capped .35, smoothed, not
+  affected by mouth closure (eyes are not the mouth).
+- Interest: brows .15 (was .30) plus the warmth smile. Surprise and Interest brows are a **flick**
+  (full for 1 s, gone by 2 s). Other emotion brows hold through the phrase and **release within 1.5 s after
+  speech** (corners keep the 4/8 s expiry).
+- Voice-synced brows are rare emphasis: dead zone .25 on the model's raise, peak .15, and after one
+  emphasis the next is held off 3 s.
+- Brow/corner values over a 6 s reply plus 10 s (simulation through the real Lua writer, Judy, model raise
+  mean .1 with two stresses): Interest speech corners .19-.20, brows raise_out .09-.10 for the first
+  second then 0 by 4 s; idle after speech corners .224 (resting), brows 0.000. Sadness: raise_in .30 held
+  through the reply and 1.5 s after, .12 at +2 s, 0.001 at +5 s.
+
+### Multi-emotion timeline (local voices, and phrase variation on Convai)
+
+- `bridge/emotion-lexicon.mjs` and `bridge/emotion-analysis.mjs`: a few-millisecond, LLM-free analysis
+  splits the reply into segments (sentences, contrast clauses at "but/however...", long clauses, and forced
+  edges such as Omni phrase boundaries) and scores 8 families with intensities (about 640 words and phrases,
+  inflections, intensifiers and diminishers, negation within 3 words, contrast, questions, exclamations,
+  ellipsis hesitation, laughter, profanity as anger or emphasis, affectionate address, reliable sarcasm
+  patterns), then merges a per-character baseline and range (warm, neutral, dry, cold). A Convai
+  reply-level label (basis ordered/response-id, never our own cue) becomes the baseline at 60 %, and the
+  phrase analysis varies it. The reply-level receipt cue is derived from the plan.
+- `bridge/expression-timeline.mjs` aligns segments to REAL audio time: Omni phrases are their own audio
+  files (each phrase timeline starts at its own audio start); Pocket and Convai streams use pauses in the
+  mouth timeline (jaw/lip aperture of the game-trained model or the provider's poses) snapped to the text's
+  sentence boundaries, with a syllable/punctuation duration estimate rescaled to the audio received so
+  far; the estimate only fills boundaries not yet heard. No recognizer. Each change starts 200 ms before
+  the phrase's audio, blends over 300 ms, holds through the phrase, and the last phrase decays to
+  baseline.
+- Lua applies the track at the heard position (`expressionTrack`, format `emotion-mix-v1`, validated,
+  ignored if malformed), blending families with a soft sum inside the caps (bittersweet = a slight smile with
+  sad brows); corners cross-fade on one signed axis, so a smile turning into a frown passes through
+  neutral. Mouth priority is unchanged and tested: closures/rounding zero the corners and leave every speech
+  field identical. Between Omni phrases the last mix is held.
+- Diagnostics: `runtime/expression-receipt.json` (version 2) lists per-segment offsets, weights, tags
+  and phrase spans (no dialogue); each timeline's `expressionTrack.segments` (in `reply.json`,
+  `speech-stream.json`) carries the aligned audio times; `speech-state.json`
+  `face.expressions.lastSpeech` has `mix`/`mixPeak` per family and the peak pose.
+- Tuning is data: caps, strengths, warmth/gain table (Lua) and lexicon weights; `LEAD_SECONDS`,
+  `BLEND_SECONDS` in `expression-timeline.mjs`.
+
 ## October 6 (later): live face-test, second recalibration
 
 `mod/face-test.lua` (driven by the facial writer; `scripts/Send-FaceTest.ps1`) pushed

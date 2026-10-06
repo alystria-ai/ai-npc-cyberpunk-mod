@@ -19,7 +19,7 @@ import {FAMILIES} from './emotion-analysis.mjs';
 
 export const TRACK_FORMAT = 'emotion-mix-v1';
 export const LEAD_SECONDS = .2, BLEND_SECONDS = .3;
-const MIN_PAUSE = .16, ACTIVE = .035, MIN_SEGMENT = .22, MAX_KEYS = 160;
+const MIN_PAUSE = .16, SENTENCE_PAUSE = .3, ACTIVE = .035, MIN_SEGMENT = .22, MAX_KEYS = 160;
 const rounded = value => Math.round(value * 1000) / 1000;
 const vector = weights => FAMILIES.map(family => rounded(Math.max(0, Math.min(1, weights?.[family] || 0))));
 
@@ -77,13 +77,19 @@ export function alignSegments(segments, {duration, complete = true, activity, fo
       rate = Math.max(.6, Math.min(1.7, rate || 1));
     }
     const expected = baseTime + (cumulative[i] - cumulative[previous]) * rate;
-    const window = Math.max(.6, .3 * (expected - baseTime));
-    let best, bestScore = -Infinity;
+    // Before the audio is complete the rate is only a guess (real speech is often
+    // slower than the nominal rate), so the search window is wider.
+    const window = complete ? Math.max(.6, .3 * (expected - baseTime)) : Math.max(1.5, 1.0 * (expected - baseTime));
+    let best, bestScore = -Infinity, earliest;
     for (const pause of unused) {
       if (pause.end <= baseTime + MIN_SEGMENT || Math.abs(pause.middle - expected) > window) continue;
       const score = pause.length * 2 - Math.abs(pause.middle - expected) * 1.2;
       if (score > bestScore) { best = pause; bestScore = score; }
+      if (pause.length >= SENTENCE_PAUSE && (!earliest || pause.start < earliest.start)) earliest = pause;
     }
+    // Boundaries are ordered: when the speaker is slower than the nominal rate the
+    // next sentence-grade silence (not a later, better-scoring one) is this boundary.
+    if (!complete && earliest) best = earliest;
     if (best) { starts[i] = best.end; resolved[i] = true; unused.splice(unused.indexOf(best), 1); previous = i; }
     else starts[i] = expected;
     if (starts[i] < starts[i - 1] + MIN_SEGMENT) starts[i] = starts[i - 1] + MIN_SEGMENT;

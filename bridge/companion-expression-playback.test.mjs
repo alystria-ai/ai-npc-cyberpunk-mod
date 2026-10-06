@@ -402,3 +402,111 @@ test('speaking with Interest or no emotion keeps the resting warmth for warm cha
   assert(plain.lips_l_corner_up>.10,'no emotion still smiles '..plain.lips_l_corner_up)
   `);
 });
+
+// ---- Expression track (multi-emotion timeline) in the real Lua writer --------
+const trackKeys = [[0, 1, 0, 0, 0, 0, 0, 0, 0], [1.8, 1, 0, 0, 0, 0, 0, 0, 0], [2.1, 0, 0, 1, 0, 0, 0, 0, 0], [3.5, 0, 0, 1, 0, 0, 0, 0, 0]];
+const trackLine = (id, extra = {}) => ({version: 1, requestId: id, entity: 'copy-a', duration: 3.5, source: 'audio-envelope',
+  tracks: ['jaw_mid_open', 'lips_together_up', 'lips_together_dn', 'lips_l_funnel', 'lips_r_funnel', 'lips_l_purse', 'lips_r_purse'],
+  frames: [[0, .3, 0, 0, 0, 0, 0, 0], [3.5, .3, 0, 0, 0, 0, 0, 0]],
+  expressionTrack: {version: 1, format: 'emotion-mix-v1', families: ['joy', 'trust', 'sadness', 'anger', 'fear', 'disgust', 'surprise', 'anticipation'], keys: trackKeys},
+  ...extra});
+
+test('track playback: the expression follows the heard audio position, blends between phrases and never snaps', () => run(`
+ speech.target=a
+ local ctx={requestId='trk',entity=a.id,generation=4}
+ assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=3.5},face=${literal(trackLine('trk'))}}),face.error)
+ local function at(position) cursor=position;tick(.1);return copy(last(a)) end
+ local joy
+ for p=.1,1.7,.1 do joy=at(p) end
+ assert(joy.lips_l_corner_up>.3 and joy.lips_l_corner_dn==0 and joy.eye_l_brows_raise_in<.05,'phrase one is a smile: '..joy.lips_l_corner_up)
+ -- Phrase two (sadness) begins at 1.8-2.1 s of AUDIO time: before 1.8 s nothing has changed.
+ assert(joy.eye_l_brows_raise_in<.05)
+ local previous=joy.lips_l_corner_up-joy.lips_l_corner_dn
+ local mid
+ for p=1.8,2.6,.02 do
+  cursor=p;tick(.02);local frame=copy(last(a));local net=frame.lips_l_corner_up-frame.lips_l_corner_dn
+  -- continuous: a signed corner axis crossing zero, never a jump
+  assert(math.abs(net-previous)<.08,'corner step at '..p..': '..tostring(net-previous))
+  previous=net
+  if math.abs(p-2.0)<.011 then mid=frame end
+ end
+ for p=2.6,3.4,.1 do at(p) end
+ local sad=at(3.45)
+ assert(sad.lips_l_corner_dn>.15 and sad.lips_l_corner_up==0 and sad.eye_l_brows_raise_in>.2,'phrase two is sad: '..sad.lips_l_corner_dn..' '..sad.eye_l_brows_raise_in)
+ assert(sad.eye_l_oculi_squint_outer_lower<.02,'no squint without a smile')
+`));
+
+test('track playback: closure and rounding still zero the corners and leave every speech field identical to a no-track reply', () => {
+  const closing = id => ({version: 1, requestId: id, entity: 'copy-a', duration: 1, source: 'audio-envelope',
+    tracks: ['jaw_mid_open', 'lips_together_up', 'lips_together_dn', 'lips_l_funnel', 'lips_r_funnel', 'lips_l_purse', 'lips_r_purse', 'lips_suck_up'],
+    frames: [[0, .3, 0, 0, 0, 0, 0, 0, 0], [.5, .3, 0, 0, 0, 0, 0, 0, 0], [.55, .1, .85, .85, 0, 0, 0, 0, 0], [.8, .1, .85, .85, 0, 0, 0, 0, 0],
+      [.85, .2, 0, 0, .32, .32, .28, .28, .05], [1, .2, 0, 0, .32, .32, .28, .28, .05]]});
+  const withTrack = {...closing('trk-mouth'), expressionTrack: {version: 1, format: 'emotion-mix-v1',
+    families: ['joy', 'trust', 'sadness', 'anger', 'fear', 'disgust', 'surprise', 'anticipation'],
+    keys: [[0, .6, .4, .3, 0, 0, 0, 0, 0], [1, .6, .4, .3, 0, 0, 0, 0, 0]]}};
+  run(`
+   speech.target=a
+   local function play(timeline)
+    local ctx={requestId=timeline.requestId,entity=a.id,generation=4}
+    assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=1},face=timeline}),face.error)
+    local out={}
+    for i=1,14 do cursor=.2+i*.01;tick(.1) end
+    out.open=copy(last(a))
+    cursor=.65;tick(.1);out.closure=copy(last(a))
+    cursor=.95;tick(.1);out.round=copy(last(a))
+    speech.stop('cancelled');for _=1,10 do tick(.1) end
+    return out
+   end
+   local base=play(${literal(closing('trk-base'))})
+   local mixed=play(${literal(withTrack)})
+   local speechTracks={'jaw_mid_open','lips_together_up','lips_together_dn','lips_l_funnel','lips_r_funnel','lips_l_purse','lips_r_purse','lips_suck_up'}
+   for _,phase in ipairs({'open','closure','round'}) do
+    for _,track in ipairs(speechTracks) do assert(mixed[phase][track]==base[phase][track],track..' changed at '..phase) end
+   end
+   for _,phase in ipairs({'closure','round'}) do
+    for _,track in ipairs({'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','lips_r_corner_dn'}) do
+     assert(mixed[phase][track]==0,track..' leaked at '..phase..': '..mixed[phase][track])
+    end
+   end
+   assert(mixed.open.lips_l_corner_up>.1 or mixed.open.eye_l_brows_raise_in>.05,'the blended mix was active on open-mouth frames')
+  `);
+});
+
+test('track playback: an invalid or misaligned track is ignored and speech continues on the reply-level cue', () => {
+  const bad = trackLine('trk-bad', {expressionTrack: {version: 1, format: 'emotion-mix-v1', families: ['joy'], keys: [[0, 1]]}});
+  const unordered = trackLine('trk-order'); unordered.expressionTrack = {...unordered.expressionTrack, keys: [[1, ...Array(8).fill(0)], [0.5, ...Array(8).fill(0)]]};
+  run(`
+   speech.target=a
+   for _,timeline in ipairs({${literal(bad)},${literal(unordered)}}) do
+    local ctx={requestId=timeline.requestId,entity=a.id,generation=4}
+    assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=3.5},face=timeline}),face.error)
+    assert(face.expressionTrackKeys==nil,'invalid track rejected')
+    cursor=.5;tick(.1);assert(last(a).jaw_mid_open==.3,'speech still plays')
+    speech.stop('cancelled');for _=1,5 do tick(.1) end
+   end
+  `);
+});
+
+test('the post-speech hold: a held mix releases its brows within about 1.5 s while the corners keep the longer expiry', () => run(`
+ speech.target=a
+ rows[1].profileKey='some-fixer'
+ face.beginExpression(context,${literal(receipt('Sadness', 3, 0))})
+ face.expressions[a.id].holdMix={0,0,1,0,0,0,0,0}
+ face.endExpression(context,true)
+ for _=1,5 do tick(.1) end
+ assert(last(a).eye_l_brows_raise_in>.3,'still concerned right after speech: '..last(a).eye_l_brows_raise_in)
+ for _=1,25 do tick(.1) end   -- about 3 s after speech
+ assert(last(a).eye_l_brows_raise_in<.08,'brows released: '..last(a).eye_l_brows_raise_in)
+ for _=1,90 do tick(.1) end
+ assert(last(a).eye_l_brows_raise_in<.001 and last(a).lips_l_corner_dn<.01,'fully back at rest after the expiry: '..last(a).eye_l_brows_raise_in..' '..last(a).lips_l_corner_dn)
+`));
+
+test('face-test probe: policy mode leaves no injected feeling or active flag behind after off', () => runProbe(`
+ request('n9\\nface-test judy browsup 6 policy');tick(.3);for _=1,5 do tick(.1) end
+ local slot=face.expressions[a.id];assert(slot.emotion=='Surprise','the policy run injected a feeling')
+ assert(not slot.active,'the probe never marks the turn active')
+ request('n10\\nface-test judy off');tick(.3);tick(.1)
+ assert(slot.emotion==nil and slot.family==nil and slot.holdMix==nil,'off clears the injected feeling')
+ for _=1,60 do tick(.1) end
+ assert(last(a).eye_l_brows_raise_in<.001 and last(a).eye_l_brows_raise_out<.001,'brows are neutral at idle after the probe')
+`));
