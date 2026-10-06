@@ -157,7 +157,7 @@ export class Picker {
       rejectedNow[set] = !!ids && state.rejected.some(item => item.set === set && item.clips.join('|') === ids);
     }
     const active = this.activeJob(key, 'candidate'), activeCurrent = this.activeJob(key, 'current');
-    return {key, name: titleCase(key), poolSize: voice.clips.length, lines: lines.map((line, at) => ({index: at, text: line.t, seconds: round(line.d), split: line.split,
+    return {key, name: titleCase(key), poolSize: this.pool.usableCount(key), lines: lines.map((line, at) => ({index: at, text: line.t, seconds: round(line.d), split: line.split,
         audio: `/audio/line/${key}/${at}`})), line: index, text, hasLine: lines.length > 0,
       sets, current, history: Object.fromEntries(Object.keys(SETS).map(set => [set, this.historyOf(key, set, sets[set])])),
       kept, rejected: state.rejected, rejectedNow, note: state.note, verdict: state.verdict,
@@ -194,7 +194,7 @@ export class Picker {
       voices: keys.map(key => {
         const state = this.store.voice(key), job = this.jobFor(key);
         const inPool = this.pool.has(key), voice = inPool ? this.pool.voice(key) : null;
-        return {key, name: titleCase(key), picker: inPool, research: key in research.voices, poolSize: voice?.clips.length ?? 0,
+        return {key, name: titleCase(key), picker: inPool, research: key in research.voices, poolSize: voice ? this.pool.usableCount(key) : 0,
           hasLine: voice ? voice.lines.some(line => line.exists) : key in research.voices,
           proposed: voice ? Object.keys(voice.proposed).length > 0 : false, kept: Object.keys(state.kept), rejected: state.rejected.length,
           changed: Object.values(state.candidate).some(Boolean), note: !!state.note, verdict: state.verdict?.value ?? null,
@@ -216,7 +216,7 @@ export class Picker {
     const pick = rerollSet(clips, {budget: SETS[set].budget, current, recent: state.history[set].slice(0, 15).map(item => item.clips),
       rejected: state.rejected.filter(item => item.set === set).map(item => item.clips), count: SETS[set].count ?? 3});
     if (!pick) {
-      throw fail(409, `${titleCase(key)} has no other usable clips to draw from (${voice.clips.length} in the pool)`);
+      throw fail(409, `${titleCase(key)} has no other usable clips to draw from (${this.pool.usableCount(key)} in the pool)`);
     }
     await this.store.append({voice: key, engine: set, set, action: 'reroll', clips: pick.ids,
       seconds: pick.seconds, previous: current});

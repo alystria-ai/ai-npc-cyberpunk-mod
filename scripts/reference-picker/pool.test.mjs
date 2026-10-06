@@ -55,3 +55,22 @@ test('manual sets are validated against the budget', () => {
   assert.throws(() => pool.validateSet('v', 'omni', ['v/0', 'v/0']));
   assert.throws(() => pool.validateSet('v', 'omni', ['v/9']), /Unknown clip/);
 });
+
+test('expanded clips keep an absolute path (the game-archive pool lives outside the dataset root) and show up in browse with their source', () => {
+  const absolute = join(tmpdir(), 'expanded', 'v', '123.wav');
+  const pool = new Pool({dataRoot: '/data', voices: {v: {live: {omni: {exists: false}}, clips: [clip(0, 4), clip(1, 5, {id: 'v/123', p: absolute, s: 'expanded', src: 'game archive'})], proposed: {}, loudMedian: -20}}}, {project: '/p'});
+  assert.equal(pool.clip('v', 'v/123').path, absolute);
+  assert.ok(pool.clip('v', 'v/0').path.split('\\').join('/').endsWith('/data/audio/v/0.wav'));
+  const browse = pool.browse('v');
+  assert.deepEqual(browse.map(item => [item.id, item.s]), [['v/0', undefined], ['v/123', 'expanded']]);
+  assert.equal(pool.seconds('v', ['v/0', 'v/123']), 9.4);
+});
+
+test('clips flagged as effect-heavy (fx) stay resolvable but are left out of browse, reroll and the pool size', () => {
+  const clips = [...Array.from({length: 10}, (_, n) => clip(n, 4)), clip(50, 4, {fx: ['comb']}), clip(51, 4, {fx: ['band-limited']})];
+  const pool = new Pool({dataRoot: '/data', voices: {v: {live: {omni: {exists: false}}, clips, proposed: {}, loudMedian: -20}}}, {project: '/p'});
+  assert.ok(pool.clip('v', 'v/50'));                                             // an existing starting set can still use it
+  assert.ok(!pool.browse('v').some(item => item.id === 'v/50' || item.id === 'v/51'));
+  assert.equal(pool.usableCount('v'), 10);
+  for (let run = 0; run < 40; run++) assert.ok(rerollSet(pool.rerollClips('v'), {budget: 18, rng: seeded(run + 1)}).ids.every(id => id !== 'v/50' && id !== 'v/51'));
+});

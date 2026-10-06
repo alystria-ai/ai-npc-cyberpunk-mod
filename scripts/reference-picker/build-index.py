@@ -15,7 +15,10 @@ Inputs (never modified):
   * the agent's ECAPA embeddings (multiref_emb.pt) -> "typicality" = cosine to the voice's mean embedding,
     stored as a percentile within the voice (the agent's own "most typical clip" criterion);
   * runtime/pocket-voices.json and runtime/local-voices.json (today's single references) and the proposed
-    three-clip configs (*.multiref.json, *.multiref10.json) for each voice's starting sets.
+    three-clip configs (*.multiref.json, *.multiref10.json) for each voice's starting sets;
+  * the expanded pool (scripts/reference-pool/, E:/CyberpunkConvai-offload/work/reference-pool-expanded/<voice>/manifest.json):
+    extra lines extracted from the game's voice archives, appended to each voice's clips with an absolute "p", "s":
+    "expanded" and their own ECAPA embeddings (<expanded>/ecapa/<voice>.pt).
 """
 from __future__ import annotations
 
@@ -34,6 +37,8 @@ LIKENESS = Path("E:/CyberpunkConvai-offload/work/likeness-phase1/out")
 SPLITS = ("train", "dev", "test", "teacher_conditional", "teacher_regression")
 MAX_CLIP_SECONDS = 18.0
 MIN_CLIP_SECONDS = 0.8
+EXPANDED = Path("E:/CyberpunkConvai-offload/work/reference-pool-expanded")
+EFFECT_EXCLUSIONS = ROOT / "scripts/phone_detect/effect-exclusions.json"   # clip id -> {reasons: [band-limited, comb, tone, reverb]}
 
 
 def gated_rms_db(path: Path) -> float | None:
@@ -120,6 +125,19 @@ def main() -> int:
             embeddings[key] = vector / vector.norm().clamp_min(1e-9)
     except Exception as error:  # typicality is a sorting aid only
         print(f"warning: no embeddings ({error}); typicality will be empty", file=sys.stderr)
+    try:
+        import torch
+
+        for stored in sorted((EXPANDED / "ecapa").glob("*.pt")):
+            for key, value in torch.load(stored, map_location="cpu", weights_only=False).items():
+                vector = value.float()
+                embeddings.setdefault(key, vector / vector.norm().clamp_min(1e-9))
+    except Exception as error:
+        print(f"warning: expanded embeddings not read ({error})", file=sys.stderr)
+
+    # Effect-heavy clips (the decoder agent's detector over the training set and the expanded pool): kept in the index with
+    # "fx": [reasons] so starting sets still resolve, but the picker never draws or lists them.
+    effects = read_json(EFFECT_EXCLUSIONS)["clips"] if EFFECT_EXCLUSIONS.is_file() else {}
 
     live = {"pocket": read_json(ROOT / "runtime/pocket-voices.json")["voices"],
             "omni": read_json(ROOT / "runtime/local-voices.json")["voices"]}
@@ -148,8 +166,15 @@ def main() -> int:
             if not (DATA / clip_path(row)).is_file():
                 continue
             members.append(row)
-        # Typicality: cosine to the voice centroid over every embedded clip of the voice, as a percentile.
-        embedded = [clip_id for clip_id in embeddings if clip_id.split("/")[0] == key]
+        expanded = []
+        expanded_manifest = EXPANDED / key / "manifest.json"
+        if expanded_manifest.is_file():
+            expanded = [clip for clip in read_json(expanded_manifest)["clips"] if clip["id"] not in line_ids and Path(clip["path"]).is_file()]
+        # Typicality: cosine to the voice centroid over the voice's embedded pool clips, as a percentile.
+        member_ids = {row["id"] for row in members} | {clip["id"] for clip in expanded}
+        embedded = [clip_id for clip_id in embeddings if clip_id in member_ids]
+        if len(embedded) < 3:
+            embedded = [clip_id for clip_id in embeddings if clip_id.split("/")[0] == key]
         scores = {}
         if len(embedded) >= 3:
             stack = torch.stack([embeddings[clip_id] for clip_id in embedded])
@@ -165,6 +190,12 @@ def main() -> int:
             clips.append({"id": row["id"], "d": round(row["duration"], 3), "t": row.get("transcript") or row.get("native_text") or "",
                           "ty": scores.get(row["id"]), "g": row.get("gender_variant"), "k": delivery_kind(row),
                           "s": row["_split"], "p": clip_path(row), "lv": loudness(DATA / clip_path(row))})
+        for clip in expanded:
+            clips.append({"id": clip["id"], "d": clip["d"], "t": clip["t"], "ty": scores.get(clip["id"]), "g": None, "k": None, "s": "expanded", "p": clip["path"],
+                          "lv": clip["lv"], "src": "game archive", "ph": clip["phone"]})
+        for clip in clips:
+            if clip["id"] in effects:
+                clip["fx"] = effects[clip["id"]]["reasons"]
         levels = sorted(clip["lv"] for clip in clips if clip["lv"] is not None)
         median = levels[len(levels) // 2] if levels else None
         lines = []
@@ -192,7 +223,9 @@ def main() -> int:
     index = {"version": 1, "built": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "dataRoot": str(DATA),
              "lineIds": sorted(line_ids), "voices": voices,
              "sources": {"evaluationSets": str(LIKENESS / "evaluation-sets.json"), "panel": str(LIKENESS / evaluation["evaluation_lines"]["file"]), "embeddings": str(LIKENESS / "multiref_emb.pt"),
-                         "clipsTotal": sum(len(v["clips"]) for v in voices.values())}}
+                         "clipsTotal": sum(len(v["clips"]) for v in voices.values()),
+                         "clipsExpanded": sum(1 for v in voices.values() for c in v["clips"] if c.get("s") == "expanded"),
+                         "clipsEffectFlagged": sum(1 for v in voices.values() for c in v["clips"] if c.get("fx"))}}
     args.out.parent.mkdir(parents=True, exist_ok=True)
     cache_path.write_text(json.dumps(cache), encoding="utf-8")
     temporary = args.out.with_name(args.out.name + ".tmp")

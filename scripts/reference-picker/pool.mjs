@@ -28,6 +28,10 @@ ${built.stderr || built.stdout}`);
   return path;
 }
 
+// Clips the effect detector flagged (comb filter, tone, reverb, band limit; clip.fx lists the reasons) stay in the index, so a
+// starting set that already uses one still resolves, but they are never drawn or listed.
+const isUsable = clip => !clip.fx?.length;
+
 export class Pool {
   // index: pool-index.json; project: repository root (for the live references).
   constructor(index, {project}) {
@@ -98,11 +102,12 @@ export class Pool {
         list.push({id: live.id, d: live.d, t: live.t, ty: null, g: null, k: null, s: 'live', rel: live.rel, label: `Today's ${engine === 'omni' ? 'OmniVoice' : 'Pocket'} reference`, sha256: live.sha256});
       }
     }
-    for (const clip of voice.clips) list.push({id: clip.id, d: clip.d, t: clip.t, ty: clip.ty, g: clip.g, k: clip.k, s: clip.s, rel: clip.rel, src: clip.src});
+    for (const clip of voice.clips.filter(isUsable)) list.push({id: clip.id, d: clip.d, t: clip.t, ty: clip.ty, g: clip.g, k: clip.k, s: clip.s, rel: clip.rel, src: clip.src});
     return list;
   }
-  // The voice's clips (what reroll draws from).
-  rerollClips(key) { return this.voice(key).clips; }
+  // The voice's usable clips (what reroll draws from): everything except effect-heavy lines.
+  rerollClips(key) { return this.voice(key).clips.filter(isUsable); }
+  usableCount(key) { return this.rerollClips(key).length; }
 }
 
 // ---- reroll -------------------------------------------------------------------------------------------------------
@@ -112,13 +117,13 @@ const words = text => text.trim().split(/\s+/).filter(Boolean).length;
 // Pick a different set of whole clips for a voice: at most three, joined length within the budget, not the current
 // set and not a set the user already rejected, and (when the pool allows) sharing no clip with the current set.
 // Clips are drawn at random, favouring typical ones (the research agent's own criterion), from the clips the
-// agent considered (2-9 s) unless the voice has too few of those. Research finding: a reference whose loudness is
+// agent considered (now 3-10 s) unless the voice has too few of those. Research finding: a reference whose loudness is
 // far from the character's typical lines makes OmniVoice worse and typicality predicts speaker-ID gain, so only
 // clips within LOUDNESS_WINDOW_DB of the voice's median loudness are drawn when there are enough of them.
 // Phone-processed clips count like any other; media-processed clips (clip.k === 'media') are avoided unless the voice
 // has nothing else.
 export function rerollSet(clips, {budget, current = [], recent = [], rejected = [], rng = Math.random, count = 3} = {}) {
-  const lengthOk = clip => clip.d >= 2 && clip.d <= 9 && words(clip.t) >= MIN_WORDS;
+  const lengthOk = clip => clip.d >= 3 && clip.d <= 10 && words(clip.t) >= MIN_WORDS;
   const loud = clip => clip.rel == null || Math.abs(clip.rel) <= LOUDNESS_WINDOW_DB;
   let pool = clips.filter(clip => lengthOk(clip) && clip.d <= budget && clip.k !== 'media' && loud(clip));
   if (pool.length < 6) pool = clips.filter(clip => clip.d >= 1 && clip.d <= budget && words(clip.t) >= 2 && clip.k !== 'media' && loud(clip));
