@@ -45,7 +45,9 @@ const LETTER_VARIANT = {C: 'two', B: 'three'};
 // The allowlist: one pattern per family. Group 1 is the multi-clip letter (B = 18 s, C = 10 s).
 const FAMILIES = [
   {family: 'pocket', label: 'Pocket student, old decoder', rank: 3, pattern: /^ft6-s5000raw__(?:cfg1|multi([BC]))$/, group: 'standard'},
+  {family: 'pocket-v2', label: 'Pocket student v2 (new run)', rank: 3.5, pattern: /^ft6-v2__(?:cfg1|multi([BC]))$/, group: 'standard'},
   {family: 'pocket-dec', label: 'Pocket student, new decoder', rank: 4, pattern: /^ft6-s5000raw__decA(?:_multi([BC]))?$/, group: 'decoder'},
+  {family: 'pocket-v2-dec2', label: 'Pocket student v2, new decoder v2', rank: 4.6, pattern: /^ft6-v2__decv2(?:_multi([BC]))?$/, group: 'decoder'},
   {family: 'pocket-dec2', label: 'Pocket new decoder v2', rank: 4.5, pattern: /^ft6-s5000raw__decv2(?:_multi([BC]))?$/, group: 'decoder'},
   {family: 'omni16', label: 'OmniVoice 16 steps', rank: 5, pattern: /^omni__s16_g2(?:_multi([BC]))?$/, group: 'standard'},
   {family: 'omni32', label: 'OmniVoice 32 steps', rank: 6, pattern: /^omni__s32_g2(?:_multi([BC]))?$/, group: 'standard'},
@@ -153,7 +155,7 @@ export class Research {
         sort: [info.rank, VARIANT_ORDER.indexOf(info.variant)]};
     });
     // Keep the 1 | 2 | 3 blocks aligned: a variant that has not been rendered yet shows as an empty column.
-    for (const item of FAMILIES.filter(entry => !entry.family.startsWith('pocket-dec'))) {
+    for (const item of FAMILIES.filter(entry => !entry.family.startsWith('pocket-dec') && !entry.family.startsWith('pocket-v2'))) {   // optional families appear once rendered
       for (const variant of MATRIX_VARIANTS) {
         if (raw.some(column => column.family === item.family && column.variant === variant)) continue;
         raw.push({cond: null, placeholder: true, title: `${item.label}, ${VARIANT_LABELS[variant]}`, group: variant === 'single' ? item.group : 'clips', source: 'placeholder',

@@ -13,6 +13,8 @@ test('classify and groupOf: only allowlisted conditions are columns', () => {
     'ft6-s5000raw__cfg1': ['standard', 'single'], 'ft6-s5000raw__multiC': ['clips', 'two'], 'ft6-s5000raw__multiB': ['clips', 'three'],
     'ft6-s5000raw__decA': ['decoder', 'single'], 'ft6-s5000raw__decA_multiC': ['decoder', 'two'], 'ft6-s5000raw__decA_multiB': ['decoder', 'three'],
     'ft6-s5000raw__decv2': ['decoder', 'single'], 'ft6-s5000raw__decv2_multiC': ['decoder', 'two'], 'ft6-s5000raw__decv2_multiB': ['decoder', 'three'],
+    'ft6-v2__cfg1': ['standard', 'single'], 'ft6-v2__multiC': ['clips', 'two'], 'ft6-v2__multiB': ['clips', 'three'],
+    'ft6-v2__decv2': ['decoder', 'single'], 'ft6-v2__decv2_multiB': ['decoder', 'three'],
     'omni__s16_g2': ['standard', 'single'], 'omni__s16_g2_multiC': ['clips', 'two'], 'omni__s16_g2_multiB': ['clips', 'three'],
     'omni__s32_g2': ['standard', 'single'], 'omni__s32_g2_multiC': ['clips', 'two'], 'omni__s32_g2_multiB': ['clips', 'three'],
   };
