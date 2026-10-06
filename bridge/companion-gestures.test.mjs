@@ -198,3 +198,32 @@ test('never starts for a copy left behind or not in a social stance; leaves when
   entry.playerGap=5;step(.1)
   assert(count('exit')==1 and lastLog('exit').fields.reason=='too far')
 `));
+
+test('a long reply streamed phrase by phrase is judged by its text, and gestures keep coming', () => run(`
+  local words={}
+  for i=1,26 do words[#words+1]='word' end
+  c.replyText=function() return table.concat(words,' ') end
+  -- each phrase reports only its own 2.5 s; the text says about 10 s
+  speaking={knownEnd=2.5,at=0}
+  local n=0
+  for i=1,100 do
+    step(.1)
+    if speaking.at>=speaking.knownEnd and speaking.knownEnd<10 then speaking.knownEnd=speaking.knownEnd+2.5 end
+  end
+  local cat=load(catalogSource)()
+  local durations={}
+  for _,clip in ipairs(cat.families.arms_crossed.clips) do durations[clip.name]=clip.perRig.woman_base and clip.perRig.woman_base.duration end
+  local covered=0
+  for _,call in ipairs(calls) do
+    if call.name=='jump' and durations[call.clip] then n=n+1;covered=covered+durations[call.clip] end
+  end
+  assert(count('play')==1,'entered once')
+  assert(n>=2 and covered>=6,'gestures '..n..' covering '..covered..' s of a 10 s reply')
+  c.replyText=function() return 'short reply here' end
+`));
+
+test('a short reply split into phrases still does not gesture', () => run(`
+  c.replyText=function() return 'Yes, I can do that.' end
+  speaking={knownEnd=2.0,at=0};step(3)
+  assert(count('play')==0)
+`));

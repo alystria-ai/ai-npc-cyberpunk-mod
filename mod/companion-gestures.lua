@@ -81,7 +81,10 @@ function M.new(options)
         local entity = entityOf(s.entry)
         local speech = self.speech(entity)
         if speech then
-            local total = speech.knownEnd or 0
+            -- The face timeline only knows the current phrase (local voices
+            -- stream phrase by phrase), so a phrase end is not the reply end.
+            -- Estimate the whole reply from its text (about 2.6 words/s).
+            local total = math.max(speech.knownEnd or 0, self.replyEstimate(entity, speech.requestId) or 0)
             if total >= policy.minimumSpeech then
                 return 'speaking', {total = total, remaining = math.max(0, total - (speech.at or 0)),
                     family = speech.family, scale = speech.scale, requestId = speech.requestId}
@@ -91,6 +94,23 @@ function M.new(options)
         if self.listening() == entity then return 'listening', {} end
         if self.thinking() == entity then return 'thinking', nil end
         return nil
+    end
+
+    self.wordsPerSecond = 2.6
+    self.replyText = options.replyText or function(entity, requestId)
+        local speech = convaiSpeech
+        if type(speech) ~= 'table' or type(speech.text) ~= 'string' then return nil end
+        local context = speech.context
+        if context and context.entity ~= entity then return nil end
+        if requestId and speech.requestId and speech.requestId ~= requestId then return nil end
+        return speech.text
+    end
+    function self.replyEstimate(entity, requestId)
+        local ok, text = pcall(self.replyText, entity, requestId)
+        if not ok or type(text) ~= 'string' then return nil end
+        local words = 0
+        for _ in text:gmatch('%S+') do words = words + 1 end
+        return words / self.wordsPerSecond
     end
 
     local function deviceFor(s, npc)
