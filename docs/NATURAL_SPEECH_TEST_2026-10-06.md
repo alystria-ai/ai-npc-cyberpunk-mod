@@ -136,3 +136,14 @@ Source: the speaking-style fields in `characters/profile-text/<key>.txt`, which 
 - The user's listening verdicts: do the fillers sound like "hm" on Omni, is `[laughter]` a laugh, is the Pocket heavy variant too sluggish, which tags (confirmation, dissatisfaction, surprise) are usable.
 - If wanted: a seed-averaged measurement for Omni's pause placement (3 seeds were done only for v1 and v2), the silence-insertion experiment from design point 5, and the Convai text-only A/B from point 10.
 - Do not implement the setting until the listening verdicts are in.
+
+## User listening verdict (2026-10-06)
+- OmniVoice tags ([laughter], [sigh] and so on) sound nice. "Heh"-style text laughs and fillers on Pocket don't.
+- "uh", "um" and "I mean" suit someone like Judy, but sound bizarre on a natural, fluent speaker like Johnny.
+- Fixed patterns kill it: even for Judy, a permanent habit becomes predictable, just as starting every Johnny line with "hm" would be bad even if each line sounds fine alone.
+- Design implications:
+  - Devices are chosen per character; fluent speakers get almost none.
+  - Choice is randomised and context-driven, never at a fixed position (for example, the start of the line).
+  - A per-character history blocks reusing the same device or position within a window.
+  - Frequency is low and varied.
+  - Tags only on OmniVoice; nothing on Pocket beyond punctuation.
