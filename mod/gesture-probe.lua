@@ -310,10 +310,13 @@ local function unstick(s, level)
 end
 
 -- Lifecycle ----------------------------------------------------------------
-local function finish(s, reason)
+local function finish(s, reason, forceDelete)
     if s.suspended and s.resumeHold then pcall(s.resumeHold) end
     s.suspended = false
-    deleteDevice(s)
+    -- Hypothesis under test: deleting the device right after the exit may leave
+    -- the AI waiting on a workspot owner that no longer exists. keepdevice=on
+    -- (default) keeps it, like AMM, until clear/release/the next start.
+    if forceDelete or not s.keepDevice then deleteDevice(s) end
     log('finished', {serial = s.serial, reason = reason, phase = s.phase,
         exitLatency = s.exitRequestedAt and (now() - s.exitRequestedAt) or nil,
         moved = distance(s.startPosition, s.entry and s.entry.npc and position(s.entry.npc))})
@@ -353,8 +356,10 @@ local function begin(s, words)
     s.autoReturn = option(words, 'return', 'on') ~= 'off'
     s.slide, s.slideTime = option(words, 'slide', 'dont'), option(words, 'slidetime', '0')
     s.exitStyle = option(words, 'exit', 'device') -- device (StopInDevice, as AMM) | npc | fast
+    s.keepDevice = option(words, 'keepdevice', 'on') ~= 'off'
     s.phase, s.startedAt, s.startPosition = s.variant == 'suspend' and 'suspending' or 'spawning', now(), position(entry.npc)
     s.beganTick, s.escalated1, s.escalated2 = M.tickCount, nil, nil
+    s.deviceChecked = nil
     s.playerAnchor, s.unsettledSince = nil, nil
     s.exitReason, s.exitRequestedAt, s.failure, s.queue, s.clip = nil, nil, nil, nil, nil
     log('begin', {serial = s.serial, name = s.name, rig = s.rig, component = s.component, variant = s.variant, api = s.api,
@@ -500,7 +505,7 @@ end
 COMMANDS.clear = function()
     for _, s in pairs(M.states) do
         if s.phase ~= 'off' and s.entry and s.entry.npc then pcall(stopWorkspot, s, s.entry.npc, 'npc') end
-        finish(s, 'clear')
+        finish(s, 'clear', true)
     end
     return true, 'cleared'
 end
@@ -584,6 +589,16 @@ local function advance(s, context)
     end
     if s.phase == 'spawning' then
         if not context.idle then finish(s, 'not settled before start'); return end
+        if s.deviceID and not s.deviceChecked then
+            s.deviceChecked = true
+            local ok, managed = pcall(function() return Game.GetDynamicEntitySystem():IsManaged(s.deviceID) end)
+            if not ok or not managed then s.deviceID, s.device = nil, nil
+            else
+                -- Reused devices must sit at the actor's current transform.
+                pcall(function() Game.GetTeleportationFacility():Teleport(s.device or Game.FindEntityByID(s.deviceID), npc:GetWorldPosition(), npc:GetWorldOrientation():ToEulerAngles()) end)
+                s.deviceRequestedAt = now()
+            end
+        end
         if not s.deviceID then
             local ok, err = pcall(spawnDevice, s, npc)
             if not ok then s.failure = tostring(err); log('device-error', {serial = s.serial, error = s.failure}); finish(s, 'device spawn failed') end
@@ -720,7 +735,7 @@ function M.release(entry, reason)
     local s = M.states[entry.serial]
     if not s or s.phase == 'off' then return end
     if entry.npc and HOLDING[s.phase] then pcall(stopWorkspot, s, entry.npc, 'npc') end
-    finish(s, reason or 'released')
+    finish(s, reason or 'released', true)
 end
 
 function M.abandon(reason)

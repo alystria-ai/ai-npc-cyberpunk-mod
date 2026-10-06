@@ -107,7 +107,7 @@ test('a gesture returns to the idle loop after its duration', () => run(`
 `));
 
 test('movement asks for a fast exit, escalates if stuck, then releases the body', () => run(`
-  start(' exit=fast')
+  start(' exit=fast keepdevice=off')
   context.idle=false;step(.3)
   assert(count('fastExit')==0,'own speed (entry slide) is not movement')
   context.settled=false;step(.1);context.settled=true;step(.3)
