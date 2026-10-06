@@ -142,7 +142,11 @@ def load_rows() -> tuple[list[dict], dict]:
         text = clean_text(c.get("t", ""))
         if text is None:
             stats["pool_text"] += 1; continue
-        rows.append({"id": clip_id, "voice": voice, "src": "pool", "path": f"pool/{voice}/{c['sid']}.flac",
+        # One file per clip id: gender/holocall variants share a subtitle id (sid), so the sid alone collides.
+        # (Run pocket-v2-teacher-ea82928c used sid paths: 2,569 variant pairs shared one file, 127 of them with a
+        # one-word text difference; see docs/POCKET_NEXT_RUN_PLAN.md results.)
+        safe = re.sub(r"[^A-Za-z0-9._-]", "_", clip_id.split("/", 1)[1])
+        rows.append({"id": clip_id, "voice": voice, "src": "pool", "path": f"pool/{voice}/{safe}.flac",
                      "local": c["path"], "dur": round(float(c["d"]), 4), "text": text,
                      "scene": "pool:" + str(c.get("stem") or c["sid"]), "words": None})
     return rows, dict(stats)
@@ -265,6 +269,8 @@ def build(dry_run: bool, out: Path) -> dict:
     import soundfile as sf
     tar_path = out / "pool-audio.tar"
     temporary = tar_path.with_suffix(".tar.partial")
+    if len({r["path"] for r in pool_used}) != len(pool_used):
+        raise ValueError("pool audio paths collide")
     with tarfile.open(temporary, "w") as tar:
         for i, r in enumerate(pool_used):
             data, rate = sf.read(r["local"], dtype="float32", always_2d=True)
