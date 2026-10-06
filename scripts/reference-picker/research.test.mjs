@@ -12,6 +12,7 @@ test('classify and groupOf: only allowlisted conditions are columns', () => {
     'REAL-target-copy': ['standard', 'single'], 'base6-2609__cfg1': ['standard', 'single'],
     'ft6-s5000raw__cfg1': ['standard', 'single'], 'ft6-s5000raw__multiC': ['clips', 'two'], 'ft6-s5000raw__multiB': ['clips', 'three'],
     'ft6-s5000raw__decA': ['decoder', 'single'], 'ft6-s5000raw__decA_multiC': ['decoder', 'two'], 'ft6-s5000raw__decA_multiB': ['decoder', 'three'],
+    'ft6-s5000raw__decv2': ['decoder', 'single'], 'ft6-s5000raw__decv2_multiC': ['decoder', 'two'], 'ft6-s5000raw__decv2_multiB': ['decoder', 'three'],
     'omni__s16_g2': ['standard', 'single'], 'omni__s16_g2_multiC': ['clips', 'two'], 'omni__s16_g2_multiB': ['clips', 'three'],
     'omni__s32_g2': ['standard', 'single'], 'omni__s32_g2_multiC': ['clips', 'two'], 'omni__s32_g2_multiB': ['clips', 'three'],
   };
@@ -22,7 +23,7 @@ test('classify and groupOf: only allowlisted conditions are columns', () => {
   }
   for (const cond of ['ft24-u1000raw__cfg2', 'base24-2609__cfg2', 'omni-lora1000__s16', 'omni-lora3000__s32_multiB', 'omni__s16_g2_multiD', 'omni__s32_g2_multiE', 'omni__s16_g2_selected',
     'omni__s16_g1.5', 'omni__s32_g2_multiA', 'ft6-s5000raw__multiA', 'dev__s16_multiB', 'ft6-runtime__cfg1', 'ft24-u1000raw__ref-alt1', 'pocket-codec-roundtrip',
-    'pocket-codec-roundtrip-decA', 'omni-codec-roundtrip', 'omni__s16_g2_multiBnp2', 'omni__s32_g2_pocketref',
+    'pocket-codec-roundtrip-decA', 'pocket-codec-roundtrip-decv2', 'v2cmp-pre__multiB', 'v2cmp-decA__runtime', 'omni-codec-roundtrip', 'omni__s16_g2_multiBnp2', 'omni__s32_g2_pocketref',
     'ft6-s5000raw__multiBnp', 'ft6-s5000raw__decA_multiCnp', 'omni__s16_g2_multiBnp', 'omni__s32_g2_multiCnp']) {   // phone-free renders are no longer columns
     assert.equal(groupOf(cond), null, cond);
     assert.equal(classify(cond).allowed, false, cond);
