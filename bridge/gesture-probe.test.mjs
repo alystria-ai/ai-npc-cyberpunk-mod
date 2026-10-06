@@ -1,0 +1,155 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import fengari from 'fengari';
+
+// Fixture for the Stage 0 gesture probe: an in-memory request/response file
+// pair, a fake workspot system and DynamicEntitySystem, and the generated
+// catalog. Exercises the request flow, guards, watchdog and ownership.
+const probe = readFileSync(new URL('../mod/gesture-probe.lua', import.meta.url), 'utf8');
+const catalog = readFileSync(new URL('../mod/gesture-catalog.lua', import.meta.url), 'utf8');
+function run(code) {
+  const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
+  const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
+  const result = lauxlib.luaL_dostring(vm, to_luastring(fixture + code));
+  const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1));
+  lua.lua_close(vm); assert.equal(result, lua.LUA_OK, error);
+}
+const fixture = `
+local files,logs={}, {}
+io={open=function(path,mode)
+  if mode:sub(1,1)=='r' then
+    if not files[path] then return nil end
+    return {read=function()return files[path] end,close=function()end}
+  end
+  if mode:sub(1,1)=='w' then files[path]='' end
+  return {write=function(_, ...) for _,v in ipairs({...}) do files[path]=(files[path] or '')..v end end,close=function()end}
+end}
+json={encode=function(v) logs[#logs+1]=v;return '{}' end}
+local catalogSource=[==[${catalog}]==]
+dofile=function(path) assert(path=='gesture-catalog.lua');return load(catalogSource)() end
+CName={new=function(v)return {value=v} end}
+Enum={new=function(k,v)return k..'.'..v end}
+NewObject=function(kind) return {kind=kind} end
+local calls={}
+local function record(name,...) calls[#calls+1]={name=name,args={...}} end
+local function count(name) local n=0;for _,c in ipairs(calls) do if c.name==name then n=n+1 end end;return n end
+local function lastLog(kind) for i=#logs,1,-1 do if logs[i].kind==kind then return logs[i] end end end
+local npc={inWorkspot=false,pos={x=1,y=2,z=0}}
+function npc:GetWorldPosition() return self.pos end
+function npc:GetWorldOrientation() return {r=1} end
+local ws={}
+function ws:IsActorInWorkspot(a) return a.inWorkspot end
+function ws:PlayInDevice(device,actor,...) record('PlayInDevice',device,actor,...);actor.pendingEnter=true;return true end
+function ws:SendJumpToAnimEnt(actor,name,instant) record('jump',name.value,instant) end
+function ws:SendFastExitSignal(actor) record('fastExit') end
+function ws:StopNpcInWorkspot(actor) record('stopNpc') end
+function ws:StopInDevice(actor) record('stopDevice') end
+local system={spawned={},managed={},deleted={}}
+function system:CreateEntity(spec) record('create',spec);local id={hash=7};self.managed[7]=true;self.spec=spec;return id end
+function system:IsSpawned(id) return self.spawnReady==true end
+function system:IsManaged(id) return self.managed[id.hash]==true end
+function system:IsTagged(id,tag) return tag.value=='CyberpunkConvaiGestureDevice' end
+function system:DeleteEntity(id) record('delete');self.managed[id.hash]=nil;return true end
+function system:GetTaggedIDs() return {} end
+local device={}
+function device:GetClassName() return {value='gameObject'} end
+Game={GetWorkspotSystem=function()return ws end,GetDynamicEntitySystem=function()return system end,
+  FindEntityByID=function()return device end,GetPlayer=function()return {} end}
+local m=(function()${probe}end)()
+local entry={serial=1,name='Judy Alvarez',key='judy-alvarez',record='Character.Judy',npc=npc,speed=0,
+  motor={kind='hold',stage='holding',feedback={state='Executing'}},person={phase='attend'}}
+local held=false
+local context={idle=true,combat=false,phase='attend',
+  suspendHold=function() record('suspend');return true end,resumeHold=function() record('resume') end}
+local nonce=0
+local function send(command) nonce=nonce+1;files['runtime/gesture-probe-request.txt']='n'..nonce..'\\n'..command end
+local function step(seconds,observe)
+  for i=1,math.max(1,math.floor(seconds/.1+.5)) do
+    m.tick({}, .1, {{entry=entry,transport=entry.transport==true}})
+    if npc.pendingEnter then npc.pendingEnter=nil;npc.inWorkspot=true end
+    if observe~=false then held=m.observe(entry,context,.1) end
+  end
+end
+local function response() return files['runtime/gesture-probe-response.txt'] or '' end
+local function start(extra)
+  system.spawnReady=false
+  send('start judy'..(extra or ''));step(.3)
+  assert(held,'movement must wait while the device spawns')
+  system.spawnReady=true;step(.3)
+  assert(count('PlayInDevice')>=1,'workspot must start once the device exists')
+  step(.2)
+  assert(m.states[1].phase=='active','probe should be active: '..tostring(m.states[1].phase))
+end
+`;
+
+test('start spawns a tagged non-persistent device at the companion and plays in place', () => run(`
+  start()
+  local spec=system.spec
+  assert(spec.templatePath=='cyberpunk_convai\\\\gestures\\\\convai_gesture_device.ent')
+  assert(spec.persistState==false and spec.persistSpawn==false and spec.tags[1].value=='CyberpunkConvaiGestureDevice')
+  local play=calls[count('create')+1]
+  for _,c in ipairs(calls) do if c.name=='PlayInDevice' then play=c end end
+  assert(play.args[4].value=='convai_gestures','gesture component')
+  assert(play.args[8]=='WorkspotSlidingBehaviour.DontPlayAtResourcePosition','must play where the companion stands')
+  assert(held==true)
+`));
+
+test('a gesture returns to the idle loop after its duration', () => run(`
+  start()
+  send('jump judy talk__neutral__01');step(.3)
+  assert(calls[#calls].name=='jump' and calls[#calls].args[1]=='stand__2h_on_sides__01__talk__neutral__01')
+  step(3.8)
+  local last=calls[#calls]
+  assert(last.name=='jump' and last.args[1]=='stand__2h_on_sides__01','auto return to idle')
+`));
+
+test('movement asks for a fast exit, escalates if stuck, then releases the body', () => run(`
+  start()
+  context.idle=false;step(.1)
+  assert(count('fastExit')==1 and held,'fast exit first; movement still waits')
+  step(.7)
+  assert(count('stopNpc')==1,'escalate to StopNpcInWorkspot after .6 s')
+  npc.inWorkspot=false;step(.1)
+  assert(not held and m.states[1].phase=='off' and count('delete')==1,'released and device deleted')
+  assert(lastLog('finished').reason=='movement')
+`));
+
+test('combat stops the workspot instantly', () => run(`
+  start()
+  context.combat=true;step(.1)
+  assert(count('stopNpc')==1 and count('fastExit')==0)
+  npc.inWorkspot=false;step(.1)
+  assert(not held and lastLog('finished').reason=='combat')
+`));
+
+test('a copy taken by transport or not observed is stopped on the next tick', () => run(`
+  start()
+  step(.1,false);step(.1,false)
+  assert(count('stopNpc')==1,'unobserved copy must be stopped')
+  assert(lastLog('exit-requested').reason=='unobserved')
+`));
+
+test('suspend variant releases and restores the owned hold', () => run(`
+  start(' variant=suspend')
+  assert(count('suspend')>=1)
+  send('exit judy');step(.1);npc.inWorkspot=false;step(.1)
+  assert(count('resume')==1 and not held)
+`));
+
+test('dismissal stops and deletes the device; abandon makes no native calls', () => run(`
+  start()
+  m.release(entry,'dismissed')
+  assert(count('stopNpc')==1 and count('delete')==1 and m.states[1].phase=='off')
+  start()
+  local before=#calls
+  m.abandon('world')
+  assert(#calls==before and next(m.states)==nil)
+`));
+
+test('unknown commands and missing targets answer without side effects', () => run(`
+  send('bogus');step(.3)
+  assert(response():find('n1',1,true)==1)
+  send('start nobody');step(.3)
+  assert(count('create')==0)
+`));

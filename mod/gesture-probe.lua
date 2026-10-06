@@ -1,0 +1,557 @@
+-- Stage 0 development probe for companion body gestures (docs/COMPANION_GESTURES.md).
+-- Inert until a request arrives in runtime/gesture-probe-request.txt:
+--   line 1: a fresh nonce, line 2: a command (see COMMANDS below).
+-- Results go to runtime/gesture-probe-response.txt (nonce + JSON) and a JSON-lines
+-- trace in runtime/gesture-probe.log. The companions loop calls observe() for
+-- each settled copy and tick() once per update; while a copy is in a probe
+-- workspot, movement waits (observe returns true) exactly like the holster
+-- handoff. Leaving the settled stance or combat ends the workspot (guard).
+local M = convaiGestureProbe or {}
+local catalog = dofile('gesture-catalog.lua')
+local TAG = 'CyberpunkConvaiGestureDevice'
+local REQUEST, RESPONSE, LOG = 'runtime/gesture-probe-request.txt', 'runtime/gesture-probe-response.txt', 'runtime/gesture-probe.log'
+local HOLDING = {suspending=true, spawning=true, starting=true, active=true, exiting=true, stopping=true}
+
+M.states = M.states or {}
+M.clock, M.tickCount, M.pollAt = M.clock or 0, M.tickCount or 0, M.pollAt or 0
+M.guard = M.guard ~= false
+M.lastNonce = M.lastNonce
+
+-- Rig and signature idle per character record (body rigs verified in the
+-- extracted entities; docs/COMPANION_GESTURES.md).
+local rigByRecord = {
+    ['Character.Judy'] = 'woman_base', ['Character.Panam'] = 'woman_base',
+    ['Character.Rogue'] = 'woman_base', ['Character.Misty'] = 'woman_base',
+    ['Character.Silverhand'] = 'man_base', ['CyberpunkConvai.JohnnyCompanion'] = 'man_base',
+    ['Character.Kerry'] = 'man_base', ['Character.Victor_Vector'] = 'man_base', ['Character.Takemura'] = 'man_base',
+    ['Character.Jackie'] = 'man_big', ['Character.Sobchak'] = 'man_big',
+}
+local idleByRecord = {
+    ['Character.Judy'] = 'judy', ['Character.Panam'] = 'panam', ['Character.Silverhand'] = 'johnny',
+    ['CyberpunkConvai.JohnnyCompanion'] = 'johnny', ['Character.Kerry'] = 'kerry',
+    ['Character.Takemura'] = 'takemura', ['Character.Jackie'] = 'jackie',
+}
+
+local function now() return M.clock end
+local function encode(value)
+    local ok, text = pcall(json.encode, value)
+    return ok and text or ('{"encodeError":' .. string.format('%q', tostring(text)) .. '}')
+end
+local function log(kind, fields)
+    fields = fields or {}
+    fields.kind, fields.at, fields.wall = kind, math.floor(now() * 1000) / 1000, os.time()
+    local file = io.open(LOG, 'a')
+    if file then file:write(encode(fields), '\n'); file:close() end
+end
+local function position(npc)
+    local ok, p = pcall(function() return npc:GetWorldPosition() end)
+    if not ok or not p then return nil end
+    return {x = math.floor(p.x * 100) / 100, y = math.floor(p.y * 100) / 100, z = math.floor(p.z * 100) / 100}
+end
+local function distance(a, b)
+    if not a or not b then return nil end
+    return math.floor(math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2) * 100) / 100
+end
+local function workspots() return Game.GetWorkspotSystem() end
+local function inWorkspot(npc)
+    local ok, value = pcall(function() return workspots():IsActorInWorkspot(npc) end)
+    if not ok then return 'error:' .. tostring(value) end
+    return value
+end
+local function rigOf(entry) return rigByRecord[entry.record] or 'unknown' end
+local function clipsFor(rig)
+    local list = {}
+    for index, clip in ipairs(catalog.clips) do
+        if clip.perRig[rig] then list[#list + 1] = {index = index, clip = clip, duration = clip.perRig[rig].duration} end
+    end
+    return list
+end
+local function findClip(rig, token)
+    local number = tonumber(token)
+    for _, item in ipairs(clipsFor(rig)) do
+        if item.index == number or item.clip.name == token or item.clip.name:find(token, 1, true) then return item end
+    end
+    -- Explicit request for a clip this rig lacks (T-pose/skip test).
+    for index, clip in ipairs(catalog.clips) do
+        if clip.name == token or clip.name:find(token, 1, true) or index == number then
+            return {index = index, clip = clip, duration = 3, missing = true}
+        end
+    end
+    if token == 'idle' then return {idle = true, clip = {name = catalog.idle.name}, duration = 0} end
+    return nil
+end
+
+-- Request plumbing ---------------------------------------------------------
+local function respond(nonce, ok, result)
+    local file = io.open(RESPONSE, 'wb')
+    if file then file:write(nonce, '\n', encode({ok = ok, result = result})); file:close() end
+    log('response', {nonce = nonce, ok = ok, result = result})
+end
+local function split(text)
+    local words = {}
+    for word in tostring(text or ''):gmatch('%S+') do words[#words + 1] = word end
+    return words
+end
+local function option(words, key, fallback)
+    for _, word in ipairs(words) do
+        local value = word:match('^' .. key .. '=(.+)$')
+        if value then return value end
+    end
+    return fallback
+end
+
+-- Target resolution against the ready rows given to tick().
+local function targets(token)
+    local rows = {}
+    for _, row in ipairs(M.rows or {}) do
+        local entry = row.entry
+        local name = string.lower(tostring(entry.name or '') .. ' ' .. tostring(entry.key or '') .. ' ' .. tostring(entry.record or ''))
+        if token == 'all' or tostring(entry.serial) == token or name:find(string.lower(token or '?'), 1, true) then
+            rows[#rows + 1] = row
+        end
+    end
+    return rows
+end
+local function stateFor(entry)
+    local s = M.states[entry.serial]
+    if not s then
+        s = {serial = entry.serial, phase = 'off', events = 0}
+        M.states[entry.serial] = s
+    end
+    s.entry, s.name, s.record, s.rig = entry, entry.name, entry.record, rigOf(entry)
+    return s
+end
+
+-- Device entity ------------------------------------------------------------
+local function deleteDevice(s)
+    if not s.deviceID then return end
+    local ok, err = pcall(function()
+        local system = Game.GetDynamicEntitySystem()
+        if system:IsManaged(s.deviceID) and system:IsTagged(s.deviceID, CName.new(TAG)) then system:DeleteEntity(s.deviceID) end
+    end)
+    if not ok then log('device-delete-error', {serial = s.serial, error = tostring(err)}) end
+    s.deviceID, s.device = nil, nil
+end
+local function spawnDevice(s, npc)
+    local system = Game.GetDynamicEntitySystem()
+    local spec = NewObject('DynamicEntitySpec')
+    local assigned = pcall(function() spec.templatePath = catalog.device end)
+    if not assigned then
+        assigned = pcall(function() spec.templatePath = ResRef.FromString(catalog.device) end)
+    end
+    if not assigned then error('Could not assign the device template path') end
+    spec.position = npc:GetWorldPosition()
+    spec.orientation = npc:GetWorldOrientation()
+    spec.persistState, spec.persistSpawn = false, false
+    spec.alwaysSpawned, spec.spawnInView, spec.active = true, true, true
+    spec.tags = {CName.new(TAG)}
+    local id = system:CreateEntity(spec)
+    if not id or tostring(id.hash):match('^0+[uUlL]*$') then error('Device entity was not created') end
+    s.deviceID, s.deviceRequestedAt = id, now()
+end
+
+-- Native workspot calls ----------------------------------------------------
+local function attempt(label, calls)
+    local errors = {}
+    for index, call in ipairs(calls) do
+        local ok, result = pcall(call)
+        if ok then return true, result, index, errors end
+        errors[#errors + 1] = tostring(result)
+    end
+    log('native-failed', {call = label, errors = errors})
+    return false, nil, nil, errors
+end
+local function play(s, npc)
+    local ws, device, component = workspots(), s.device, CName.new(s.component)
+    local sliding = Enum.new('WorkspotSlidingBehaviour', 'DontPlayAtResourcePosition')
+    local api = s.api
+    local calls = {}
+    if api == 'device' or api == 'auto' then
+        calls[#calls + 1] = function() return ws:PlayInDevice(device, npc, CName.new('None'), component, CName.new('None'), CName.new('None'), 0.3, sliding) end
+        calls[#calls + 1] = function() return ws:PlayInDevice(device, npc, CName.new('None'), component) end
+    end
+    if api == 'npc' or api == 'auto' then
+        calls[#calls + 1] = function() return ws:PlayNpcInWorkspot(npc, Game.GetPlayer(), device, component, CName.new('None'), 0.3) end
+    end
+    if api == 'simple' or api == 'auto' then
+        calls[#calls + 1] = function() return ws:PlayInDeviceSimple(device, npc, false, component, nil, nil, 0, 1, nil) end
+        calls[#calls + 1] = function() return ws:PlayInDeviceSimple(device, npc, false, component) end
+    end
+    local ok, result, index, errors = attempt('play-' .. api, calls)
+    log('play', {serial = s.serial, api = api, ok = ok, variant = index, result = tostring(result), errors = errors, component = s.component})
+    return ok
+end
+local function jump(s, npc, item, instant)
+    local ws = workspots()
+    local ok, result, index, errors
+    if item.byId then
+        ok, result, index, errors = attempt('jump-id', {function()
+            local entry = NewObject('workWorkEntryId'); entry.id = item.clip.clipId
+            return ws:SendJumpCommandEnt(npc, entry, instant == true)
+        end})
+    else
+        ok, result, index, errors = attempt('jump', {function() return ws:SendJumpToAnimEnt(npc, CName.new(item.clip.name), instant == true) end})
+    end
+    log('jump', {serial = s.serial, clip = item.clip.name, byId = item.byId == true, missingOnRig = item.missing == true,
+        instant = instant == true, ok = ok, result = tostring(result), errors = errors})
+    return ok
+end
+local function exitWorkspot(s, npc, mode)
+    local ws = workspots()
+    local calls = mode == 'slow' and {function() return ws:SendSlowExitSignal(npc) end}
+        or {function() return ws:SendFastExitSignal(npc) end}
+    local ok, result, _, errors = attempt('exit-' .. mode, calls)
+    log('exit', {serial = s.serial, mode = mode, ok = ok, result = tostring(result), errors = errors})
+    return ok
+end
+local function stopWorkspot(s, npc, mode)
+    local ws = workspots()
+    local calls = mode == 'device' and {function() return ws:StopInDevice(npc) end}
+        or {function() return ws:StopNpcInWorkspot(npc) end, function() return ws:StopInDevice(npc) end}
+    local ok, result, index, errors = attempt('stop-' .. mode, calls)
+    log('stop', {serial = s.serial, mode = mode, ok = ok, variant = index, result = tostring(result), errors = errors})
+    return ok
+end
+
+-- Lifecycle ----------------------------------------------------------------
+local function finish(s, reason)
+    if s.suspended and s.resumeHold then pcall(s.resumeHold) end
+    s.suspended = false
+    deleteDevice(s)
+    log('finished', {serial = s.serial, reason = reason, phase = s.phase,
+        exitLatency = s.exitRequestedAt and (now() - s.exitRequestedAt) or nil,
+        moved = distance(s.startPosition, s.entry and s.entry.npc and position(s.entry.npc))})
+    s.phase, s.queue, s.clip, s.exitRequestedAt, s.exitMode = 'off', nil, nil, nil, nil
+    s.traceUntil = now() + 3
+end
+local function requestExit(s, reason, instant)
+    if s.phase == 'off' or s.phase == 'failed' then return end
+    local npc = s.entry and s.entry.npc
+    s.queue, s.clip = nil, nil
+    if s.phase ~= 'active' and s.phase ~= 'exiting' and s.phase ~= 'stopping' then finish(s, reason); return end
+    s.exitReason, s.exitRequestedAt = s.exitReason or reason, s.exitRequestedAt or now()
+    if instant then
+        s.phase = 'stopping'
+        if npc then stopWorkspot(s, npc, 'npc') end
+    elseif s.phase == 'active' then
+        s.phase = 'exiting'
+        if npc then exitWorkspot(s, npc, 'fast') end
+    end
+    log('exit-requested', {serial = s.serial, reason = reason, instant = instant == true})
+end
+
+local function begin(s, words)
+    local entry = s.entry
+    if HOLDING[s.phase] then return false, 'already ' .. s.phase end
+    local which = option(words, 'component', 'gestures')
+    if which == 'gestures' then s.component = catalog.component
+    elseif which == 'idle' then s.component = catalog.idleComponents[idleByRecord[entry.record] or 'generic']
+    else s.component = catalog.idleComponents[which:gsub('^idle%-', '')] end
+    if not s.component then return false, 'unknown component ' .. which end
+    s.variant = option(words, 'variant', 'keep')
+    s.api = option(words, 'api', 'auto')
+    s.autoReturn = option(words, 'return', 'on') ~= 'off'
+    s.phase, s.startedAt, s.startPosition = s.variant == 'suspend' and 'suspending' or 'spawning', now(), position(entry.npc)
+    s.beganTick, s.escalated1, s.escalated2 = M.tickCount, nil, nil
+    s.exitReason, s.exitRequestedAt, s.failure, s.queue, s.clip = nil, nil, nil, nil, nil
+    log('begin', {serial = s.serial, name = s.name, rig = s.rig, component = s.component, variant = s.variant, api = s.api,
+        inWorkspot = inWorkspot(entry.npc)})
+    return true, {serial = s.serial, component = s.component, variant = s.variant, api = s.api, rig = s.rig}
+end
+
+-- Commands -----------------------------------------------------------------
+local COMMANDS = {}
+local function each(words, apply)
+    local rows = targets(words[2] or 'all')
+    if #rows == 0 then return false, 'no matching ready companion' end
+    local results = {}
+    for _, row in ipairs(rows) do
+        local s = stateFor(row.entry)
+        local ok, result = apply(s, row)
+        results[#results + 1] = {serial = s.serial, name = s.name, ok = ok, result = result}
+    end
+    return true, results
+end
+COMMANDS.list = function()
+    local rows = {}
+    for _, row in ipairs(M.rows or {}) do
+        local entry = row.entry
+        local s = M.states[entry.serial]
+        rows[#rows + 1] = {serial = entry.serial, name = entry.name, record = entry.record, rig = rigOf(entry),
+            idleComponent = catalog.idleComponents[idleByRecord[entry.record] or 'generic'], phase = s and s.phase or 'off',
+            behaviour = entry.person and entry.person.phase, transport = row.transport, inWorkspot = inWorkspot(entry.npc)}
+    end
+    return true, {companions = rows, guard = M.guard, clips = #catalog.clips}
+end
+COMMANDS.clips = function(words)
+    local rig = words[2] or 'woman_base'
+    local rows = {}
+    for _, item in ipairs(clipsFor(rig)) do rows[#rows + 1] = {index = item.index, name = item.clip.name, category = item.clip.category, duration = item.duration} end
+    return true, rows
+end
+COMMANDS.start = function(words) return each(words, function(s) return begin(s, words) end) end
+COMMANDS.jump = function(words)
+    return each(words, function(s)
+        if s.phase ~= 'active' then return false, 'not active (' .. s.phase .. ')' end
+        local item = findClip(s.rig, words[3] or '1')
+        if not item then return false, 'unknown clip' end
+        item.byId = option(words, 'by', 'name') == 'id'
+        s.queue = nil
+        local ok = jump(s, s.entry.npc, item, option(words, 'instant', 'off') == 'on')
+        if ok and not item.idle then s.clip = {name = item.clip.name, endsAt = now() + item.duration, startedAt = now()} end
+        return ok, item.clip.name
+    end)
+end
+COMMANDS.demo = function(words)
+    -- Plays every clip this rig has, in catalog order, returning to idle between.
+    return each(words, function(s)
+        if s.phase ~= 'active' then return false, 'not active (' .. s.phase .. ')' end
+        s.queue = {}
+        for _, item in ipairs(clipsFor(s.rig)) do
+            if not item.clip.character or item.clip.character == idleByRecord[s.record] then s.queue[#s.queue + 1] = item end
+        end
+        s.nextAt = now() + 0.5
+        return true, #s.queue .. ' clips queued'
+    end)
+end
+COMMANDS.exit = function(words)
+    return each(words, function(s)
+        local npc = s.entry.npc
+        if s.phase ~= 'active' then return false, 'not active (' .. s.phase .. ')' end
+        s.queue, s.clip, s.exitReason, s.exitRequestedAt, s.phase = nil, nil, 'command', now(), 'exiting'
+        return exitWorkspot(s, npc, words[3] == 'slow' and 'slow' or 'fast')
+    end)
+end
+COMMANDS.stop = function(words)
+    return each(words, function(s)
+        if s.phase == 'off' then return false, 'not running' end
+        s.queue, s.clip, s.exitReason, s.exitRequestedAt, s.phase = nil, nil, 'command', now(), 'stopping'
+        return stopWorkspot(s, s.entry.npc, words[3] == 'device' and 'device' or 'npc')
+    end)
+end
+COMMANDS.status = function(words)
+    return each(words, function(s)
+        local npc = s.entry.npc
+        local info = {}
+        local ok, extended = pcall(function() return workspots():GetExtendedInfo(npc) end)
+        if ok and extended then
+            for _, field in ipairs({'isActive', 'entering', 'exiting', 'isInIdle', 'isInSequence', 'sequenceId', 'idleName'}) do
+                local read, value = pcall(function() return extended[field] end)
+                if read and value ~= nil then info[field] = tostring(value) end
+            end
+            info.text = tostring(extended)
+        else info.error = tostring(extended) end
+        local motor = s.entry.motor or {}
+        return true, {phase = s.phase, component = s.component, variant = s.variant, clip = s.clip and s.clip.name,
+            inWorkspot = inWorkspot(npc), extended = info, behaviour = s.entry.person and s.entry.person.phase,
+            hold = {kind = motor.kind, stage = motor.stage, state = motor.feedback and motor.feedback.state,
+                suspended = motor.suspendedHold ~= nil}, position = position(npc)}
+    end)
+end
+COMMANDS.guard = function(words)
+    M.guard = words[2] ~= 'off'
+    return true, {guard = M.guard}
+end
+COMMANDS.clear = function()
+    for _, s in pairs(M.states) do
+        if s.phase ~= 'off' and s.entry and s.entry.npc then pcall(stopWorkspot, s, s.entry.npc, 'npc') end
+        finish(s, 'clear')
+    end
+    return true, 'cleared'
+end
+COMMANDS.sigs = function()
+    -- Codeware reflection: exact native signatures for the calls above.
+    local report = {}
+    local function describe(className)
+        local ok, result = pcall(function()
+            local class = Reflection.GetClass(CName.new(className))
+            if not class then return 'class not found' end
+            local functions = {}
+            for _, fn in ipairs(class:GetFunctions()) do
+                local name = tostring(fn:GetName().value or fn:GetName())
+                local params = {}
+                local pok = pcall(function()
+                    for _, param in ipairs(fn:GetParameters()) do
+                        local optional = ''
+                        pcall(function() if param:IsOptional() then optional = '?' end end)
+                        params[#params + 1] = tostring(param:GetName().value) .. optional .. ':' .. tostring(param:GetType():GetName().value)
+                    end
+                end)
+                local returns = ''
+                pcall(function() returns = tostring(fn:GetReturnType():GetName().value) end)
+                functions[#functions + 1] = name .. '(' .. (pok and table.concat(params, ', ') or '?') .. ')' .. (returns ~= '' and (' -> ' .. returns) or '')
+            end
+            local properties = {}
+            pcall(function()
+                for _, prop in ipairs(class:GetProperties()) do
+                    properties[#properties + 1] = tostring(prop:GetName().value) .. ':' .. tostring(prop:GetType():GetName().value)
+                end
+            end)
+            return {functions = functions, properties = properties}
+        end)
+        report[className] = ok and result or ('error: ' .. tostring(result))
+    end
+    for _, className in ipairs({'gameWorkspotGameSystem', 'workWorkspotResourceComponent', 'DynamicEntitySpec',
+        'gameExtendedWorkspotInfo', 'ExtendedWorkspotInfo', 'workWorkEntryId', 'WorkspotSlidingBehaviour'}) do
+        describe(className)
+    end
+    log('signatures', {report = report})
+    return true, 'written to gesture-probe.log'
+end
+
+local function poll()
+    local file = io.open(REQUEST, 'rb')
+    if not file then return end
+    local raw = file:read('*a'); file:close()
+    local nonce, command = tostring(raw):match('^([^\r\n]+)\r?\n(.*)$')
+    if not nonce or nonce == M.lastNonce then return end
+    M.lastNonce = nonce
+    local words = split(command)
+    local handler = COMMANDS[words[1] or '']
+    log('request', {nonce = nonce, command = command})
+    if not handler then respond(nonce, false, 'unknown command'); return end
+    local ok, success, result = pcall(handler, words)
+    if not ok then respond(nonce, false, tostring(success)) else respond(nonce, success, result) end
+end
+
+-- Per-copy update from the companions loop ----------------------------------
+local function trace(s, context)
+    if s.phase == 'off' and now() > (s.traceUntil or 0) then return end
+    if now() < (s.traceAt or 0) then return end
+    s.traceAt = now() + 0.25
+    local entry, motor = s.entry, s.entry.motor or {}
+    log('trace', {serial = s.serial, phase = s.phase, clip = s.clip and s.clip.name, inWorkspot = inWorkspot(entry.npc),
+        idle = context and context.idle, combat = context and context.combat, behaviour = context and context.phase,
+        speed = entry.speed and math.floor(entry.speed * 100) / 100, position = position(entry.npc),
+        hold = {kind = motor.kind, stage = motor.stage, state = motor.feedback and motor.feedback.state, suspended = motor.suspendedHold ~= nil}})
+end
+
+local function advance(s, context)
+    local npc = s.entry.npc
+    if s.phase == 'suspending' then
+        if not context.idle then finish(s, 'not settled before start'); return end
+        s.resumeHold = context.resumeHold
+        local ok, ready, reason = pcall(context.suspendHold)
+        if ok and ready == true then s.suspended = true; s.phase = 'spawning'; log('hold-suspended', {serial = s.serial})
+        elseif not ok or now() - s.startedAt > 2 then s.failure = ok and tostring(reason) or tostring(ready); finish(s, 'hold suspension failed') end
+        return
+    end
+    if s.phase == 'spawning' then
+        if not context.idle then finish(s, 'not settled before start'); return end
+        if not s.deviceID then
+            local ok, err = pcall(spawnDevice, s, npc)
+            if not ok then s.failure = tostring(err); log('device-error', {serial = s.serial, error = s.failure}); finish(s, 'device spawn failed') end
+            return
+        end
+        local system = Game.GetDynamicEntitySystem()
+        if system:IsSpawned(s.deviceID) then
+            s.device = Game.FindEntityByID(s.deviceID)
+            if s.device then
+                local typed, className = pcall(function() return s.device:GetClassName().value end)
+                log('device-ready', {serial = s.serial, after = now() - s.deviceRequestedAt, type = typed and tostring(className) or 'unknown'})
+                s.phase = 'starting'
+                if play(s, npc) then s.playAt = now() else finish(s, 'play failed') end
+            end
+        elseif now() - s.deviceRequestedAt > 5 then finish(s, 'device spawn timed out') end
+        return
+    end
+    if s.phase == 'starting' then
+        local value = inWorkspot(npc)
+        if value == true then s.phase = 'active'; log('active', {serial = s.serial, after = now() - s.playAt})
+        elseif now() - s.playAt > 3 then finish(s, 'never entered workspot (inWorkspot=' .. tostring(value) .. ')') end
+        if s.phase ~= 'active' then return end
+    end
+    if s.phase == 'exiting' or s.phase == 'stopping' then
+        local value = inWorkspot(npc)
+        if value ~= true then finish(s, s.exitReason or 'exited'); return end
+        local waited = now() - (s.exitRequestedAt or now())
+        -- Watchdog: fast exit -> StopNpcInWorkspot -> StopInDevice -> give up.
+        if waited > 0.6 and not s.escalated1 then s.escalated1 = true; stopWorkspot(s, npc, 'npc') end
+        if waited > 1.2 and not s.escalated2 then s.escalated2 = true; stopWorkspot(s, npc, 'device') end
+        if waited > 2.5 then s.failure = 'still in workspot after escalation'; finish(s, 'stuck'); s.phase = 'failed' end
+        return
+    end
+    s.escalated1, s.escalated2 = nil, nil
+    if s.phase ~= 'active' then return end
+    if inWorkspot(npc) ~= true then finish(s, 'left workspot on its own'); return end
+    if M.guard and context.combat then requestExit(s, 'combat', true); return end
+    if M.guard and not context.idle then requestExit(s, 'movement', false); return end
+    if s.clip and now() >= s.clip.endsAt - 0.2 then
+        local clip = s.clip
+        s.clip = nil
+        if s.autoReturn then jump(s, npc, {idle = true, clip = {name = catalog.idle.name}}, false) end
+        log('clip-ended', {serial = s.serial, clip = clip.name, autoReturn = s.autoReturn})
+        s.nextAt = now() + 1.0
+    end
+    if s.queue and not s.clip and now() >= (s.nextAt or 0) then
+        local item = table.remove(s.queue, 1)
+        if not item then s.queue = nil; log('demo-finished', {serial = s.serial}); return end
+        if jump(s, npc, item, false) then s.clip = {name = item.clip.name, endsAt = now() + item.duration, startedAt = now()} end
+    end
+end
+
+function M.observe(entry, context, step)
+    local s = M.states[entry.serial]
+    if not s then return false end
+    s.entry, s.observedTick = entry, M.tickCount
+    local ok, err = pcall(advance, s, context or {})
+    if not ok then
+        log('advance-error', {serial = s.serial, error = tostring(err)})
+        pcall(requestExit, s, 'error', true)
+    end
+    trace(s, context)
+    return HOLDING[s.phase] == true
+end
+
+function M.tick(player, step, rows)
+    M.clock = M.clock + (tonumber(step) or 0)
+    M.tickCount = M.tickCount + 1
+    M.rows = rows
+    if not M.swept then
+        -- A CET reload can leave devices from a previous session in the world.
+        M.swept = true
+        pcall(function()
+            local system = Game.GetDynamicEntitySystem()
+            for _, id in ipairs(system:GetTaggedIDs(CName.new(TAG)) or {}) do system:DeleteEntity(id) end
+        end)
+    end
+    local present = {}
+    for _, row in ipairs(rows or {}) do
+        present[row.entry.serial] = row
+        local s = M.states[row.entry.serial]
+        if s then s.entry = row.entry end
+    end
+    for serial, s in pairs(M.states) do
+        local row = present[serial]
+        if not row then
+            -- Detached/dead/dismissed: no native calls on a vanishing actor.
+            if s.phase ~= 'off' then deleteDevice(s); log('abandoned', {serial = serial, phase = s.phase}) end
+            M.states[serial] = nil
+        elseif HOLDING[s.phase] and (row.transport or (s.observedTick or 0) < M.tickCount - 1) and M.tickCount > (s.beganTick or 0) + 1 then
+            -- Transport, recovery, tactics or any other owner took the copy.
+            requestExit(s, row.transport and 'transport' or 'unobserved', true)
+        end
+    end
+    if M.clock >= M.pollAt then
+        M.pollAt = M.clock + 0.25
+        local ok, err = pcall(poll)
+        if not ok then log('poll-error', {error = tostring(err)}) end
+    end
+end
+
+function M.release(entry, reason)
+    local s = M.states[entry.serial]
+    if not s or s.phase == 'off' then return end
+    if entry.npc and HOLDING[s.phase] then pcall(stopWorkspot, s, entry.npc, 'npc') end
+    finish(s, reason or 'released')
+end
+
+function M.abandon(reason)
+    for serial, s in pairs(M.states) do
+        if s.phase ~= 'off' then log('abandoned', {serial = serial, reason = reason}) end
+    end
+    M.states, M.rows = {}, nil
+end
+
+convaiGestureProbe = M
+return M

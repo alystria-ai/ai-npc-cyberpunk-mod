@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "note": "Source for scripts/Build-GestureAssets.mjs. Clip names come from the game's interactive_scene animsets (docs/COMPANION_GESTURES.md). Every clip is verified per rig against the extracted animsets at build time.",
+  "device": "cyberpunk_convai\\gestures\\convai_gesture_device.ent",
+  "workspot": "cyberpunk_convai\\gestures\\convai_gestures.workspot",
+  "template": "base\\workspots\\common\\ground\\big__stand_ground__stand_around__01.workspot",
+  "gestureComponent": "convai_gestures",
+  "idle": "stand__2h_on_sides__01",
+  "rigs": {
+    "woman_base": {
+      "rig": "base\\characters\\base_entities\\woman_base\\woman_base.rig",
+      "bumps": "base\\animations\\npc\\generic_characters\\female_average\\crowd_reactions\\wa_ws_bumps.anims",
+      "animsets": [
+        "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_average_female_stand_2h_on_sides.anims",
+        "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_average_female_stand__2h_on_sides.anims",
+        "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_average_female_transitions.anims"
+      ]
+    },
+    "man_base": {
+      "rig": "base\\characters\\base_entities\\man_base\\man_base.rig",
+      "bumps": "base\\animations\\npc\\generic_characters\\male_average\\crowd_reactions\\ma_ws_bumps.anims",
+      "animsets": [
+        "base\\animations\\npc\\generic_characters\\male_average\\interactive_scene\\generic_male_average__stand__2h_on_sides__01.anims",
+        "base\\animations\\npc\\main_characters\\takemura\\interactive_scene\\takemura__stand__2h_on_sides__01.anims",
+        "base\\animations\\npc\\generic_characters\\male_average\\interactive_scene\\generic_average_male_transitions.anims"
+      ]
+    },
+    "man_big": {
+      "rig": "base\\characters\\base_entities\\man_big\\man_big.rig",
+      "bumps": "base\\animations\\npc\\generic_characters\\male_big\\crowd_reactions\\mb_ws_bumps.anims",
+      "animsets": [
+        "base\\animations\\npc\\generic_characters\\male_big\\interactive_scene\\generic_big_male_stand_2h_on_sides.anims",
+        "base\\animations\\npc\\generic_characters\\male_big\\interactive_scene\\generic_big_male_transitions.anims",
+        "base\\animations\\npc\\generic_characters\\male_big\\interactive_scene\\generic_male_big_transitions.anims"
+      ]
+    }
+  },
+  "clips": [
+    {"name": "stand__2h_on_sides__01__talk__neutral__01", "category": "neutral"},
+    {"name": "stand__2h_on_sides__01__talk__neutral__02", "category": "neutral"},
+    {"name": "stand__2h_on_sides__01__talk__neutral__03", "category": "neutral"},
+    {"name": "stand__2h_on_sides__01__gesture_hold__01__flick__01", "category": "neutral"},
+    {"name": "stand__2h_on_sides__01__what__neutral__02", "category": "question"},
+    {"name": "stand__2h_on_sides__01__shrug__01", "category": "shrug"},
+    {"name": "stand__2h_on_sides__01__yes__head__01", "category": "nod"},
+    {"name": "stand__2h_on_sides__01__what__happy__01", "category": "happy"},
+    {"name": "stand__2h_on_sides__01__calm_down__happy__01", "category": "happy"},
+    {"name": "stand__2h_on_sides__01__whatever__sad__02", "category": "sad"},
+    {"name": "stand__2h_on_sides__01__sigh__01", "category": "sad"},
+    {"name": "stand__2h_on_sides__01__no__angry__01", "category": "angry"},
+    {"name": "stand__2h_on_sides__01__what__surprised__01", "category": "surprise"},
+    {"name": "takemura__stand__2h_on_sides__01__talk__01", "category": "neutral", "rigs": ["man_base"], "character": "takemura"}
+  ],
+  "idleWorkspots": {
+    "judy": "base\\workspots\\main_characters\\judy\\judy__stand_ground__stand_around__02.workspot",
+    "johnny": "base\\workspots\\main_characters\\johnny\\johnny__stand_ground__stand_around__01.workspot",
+    "panam": "base\\workspots\\main_characters\\panam\\panam__stand__stand_around__01.workspot",
+    "kerry": "base\\workspots\\main_characters\\kerry\\ground\\kerry__stand_ground_stand_around_01.workspot",
+    "takemura": "base\\workspots\\main_characters\\takemura\\takemura__stand_ground__stand_around__01.workspot",
+    "jackie": "base\\workspots\\main_characters\\jackie\\jackie__stand_ground__stand_around__01.workspot",
+    "generic": "base\\workspots\\common\\ground\\generic__stand_ground__stand_around__01.workspot"
+  }
+}

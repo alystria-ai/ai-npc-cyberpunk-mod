@@ -400,6 +400,7 @@ function M.dismiss(serialToDismiss)
                 return false,entry.error
             end
             if managed then
+                if M.bodyAnimation and M.bodyAnimation.release then pcall(M.bodyAnimation.release,entry,'dismissed') end
                 if entry.equipment then equipment.release(entry.equipment) end
                 if entry.pace and entry.npc and entry.npc:IsAttached() then
                     -- Catch-up pace (see paceFollower) must not outlive the follower.
@@ -733,6 +734,7 @@ end
 function M.abandon(preserveTransit)
     -- Native components may already be torn down. Dropping references is enough:
     -- these DynamicEntitySystem copies are explicitly nonpersistent.
+    if M.bodyAnimation and M.bodyAnimation.abandon then pcall(M.bodyAnimation.abandon,'companions-abandoned') end
     for _,entry in ipairs(entries) do
         if entry.motor then actuator.abandon(entry.motor) end
         if entry.equipment then equipment.abandon(entry.equipment) end
@@ -824,6 +826,7 @@ function M.beginFastTravel()
         if eligible then
             -- This runs before TeleportToNode. Cancellation is allowed here;
             -- OnDetach itself only discards references.
+            if M.bodyAnimation and M.bodyAnimation.release then pcall(M.bodyAnimation.release,entry,'fast-travel') end
             if entry.equipment then pcall(equipment.release,entry.equipment) end
             if entry.motor then pcall(actuator.release,entry.motor) end
             local commands={}
@@ -1187,6 +1190,14 @@ function M.update(player,delta,focusEntity)
     -- Service empty fleets too: the last dismissal can leave a car waiting for
     -- native cancellation/empty-seat confirmation after walking has no frame.
     vehicles.update(fleet,player,ready,step,vehicleHooks)
+    if M.bodyAnimation and M.bodyAnimation.tick then
+        -- Ready copies plus whether transport owns each one; the body owner
+        -- releases any copy it did not observe in a settled stance last tick.
+        local rows={}
+        for _,entry in ipairs(ready) do rows[#rows+1]={entry=entry,transport=vehicles.owns(fleet,entry.serial)} end
+        local ticked,tickError=pcall(M.bodyAnimation.tick,player,step,rows)
+        if not ticked then M.bodyAnimationError=tostring(tickError) end
+    end
     for _,entry in ipairs(ready) do
         if vehicles.owns(fleet,entry.serial) then stopPace(entry) end
         if vehicles.allowsSeatedAttention(fleet,entry.serial) then
@@ -1287,8 +1298,20 @@ function M.update(player,delta,focusEntity)
             local idle=(entry.speed<0.18 or equipment.holdsMovement(entry.equipment))
                 and not groupFrame.moving and (groupFrame.rawSpeed or 0)<0.28
                 and decision.operation and decision.operation.kind=='hold' and entry.motor.kind=='hold'
-            equipment.update(entry.equipment,player,step,idle,function() return actuator.suspendHold(entry.motor) end)
-            if not equipment.holdsMovement(entry.equipment) then
+            -- Optional body-animation owner (docs/COMPANION_GESTURES.md). It sees
+            -- the same settled-stance predicate and, while it holds the body,
+            -- movement waits exactly as it does for the native holster handoff.
+            local body,bodyHolds=M.bodyAnimation,false
+            if body then
+                local observed,holds=pcall(body.observe,entry,{idle=idle and not equipment.holdsMovement(entry.equipment),
+                    phase=decision.phase,combat=context.combat,selected=context.selected,
+                    suspendHold=function() return actuator.suspendHold(entry.motor) end,
+                    resumeHold=function() actuator.resumeHold(entry.motor) end},step)
+                bodyHolds=observed and holds==true
+                if not observed then entry.bodyError=tostring(holds) end
+            end
+            equipment.update(entry.equipment,player,step,idle and not bodyHolds,function() return actuator.suspendHold(entry.motor) end)
+            if not equipment.holdsMovement(entry.equipment) and not bodyHolds then
                 actuator.resumeHold(entry.motor)
                 if actuator.apply(entry.motor,decision,context,budget>0) then budget=budget-1 end
                 local paced,paceError=pcall(paceFollower,entry,groupFrame,step)

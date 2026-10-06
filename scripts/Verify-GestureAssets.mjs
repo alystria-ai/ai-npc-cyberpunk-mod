@@ -1,0 +1,51 @@
+#!/usr/bin/env node
+// Round-trip check: the binary resources WolvenKit wrote must still contain
+// what the generator asked for (clip names, rig animsets, entity components).
+import fs from 'node:fs';
+import path from 'node:path';
+
+function arg(name) { const index = process.argv.indexOf(`--${name}`); return index >= 0 ? process.argv[index + 1] : null; }
+const roundtrip = arg('roundtrip');
+const generated = arg('generated');
+if (!roundtrip || !generated) { console.error('usage: Verify-GestureAssets.mjs --roundtrip <dir> --generated <dir>'); process.exit(2); }
+const read = (dir, name) => JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8').replace(/^﻿/, ''));
+const failures = [];
+const check = (condition, message) => { if (!condition) failures.push(message); };
+
+function walk(node, visit) {
+    if (Array.isArray(node)) { node.forEach((item) => walk(item, visit)); return; }
+    if (!node || typeof node !== 'object') return;
+    visit(node);
+    Object.values(node).forEach((value) => walk(value, visit));
+}
+function summarizeWorkspot(json) {
+    const tree = json.Data.RootChunk.workspotTree.Data;
+    const clips = [];
+    walk(tree.rootEntry, (node) => { if (node.$type === 'workAnimClip') clips.push(`${node.id.id}:${node.animName.$value}`); });
+    const sets = tree.finalAnimsets.map((set) => [set.rig.DepotPath.$value,
+        set.animations.cinematics.map((entry) => entry.animSet.DepotPath.$value).join('|'),
+        set.loadingHandles.map((entry) => entry.DepotPath.$value).join('|')].join('>'));
+    return { clips: clips.sort(), sets, slot: tree.animGraphSlotName.$value, idCounter: tree.idCounter };
+}
+function summarizeEntity(json) {
+    const root = json.Data.RootChunk;
+    return {
+        type: root.entity.Data.$type,
+        components: root.components.map((c) => `${c.$type}:${c.name.$value}:${c.workspotResource.DepotPath.$value}:${c.id}`),
+        compiled: root.compiledData.Data.Chunks.map((c) => c.$type),
+    };
+}
+for (const [file, summarize] of [['convai_gestures.workspot.json', summarizeWorkspot], ['convai_gesture_device.ent.json', summarizeEntity]]) {
+    const before = summarize(read(generated, file));
+    const after = summarize(read(roundtrip, file));
+    check(JSON.stringify(before) === JSON.stringify(after), `${file} changed in round trip:\n  wanted ${JSON.stringify(before)}\n  got    ${JSON.stringify(after)}`);
+}
+const entity = summarizeEntity(read(roundtrip, 'convai_gesture_device.ent.json'));
+check(entity.type === 'gameObject', 'device root entity must be a gameObject');
+check(entity.components.every((c) => c.startsWith('workWorkspotResourceComponent:')), 'device must contain workspot components only');
+check(entity.compiled[0] === 'gameObject' && entity.compiled.length === entity.components.length + 1, 'compiled data does not match components');
+const workspot = summarizeWorkspot(read(roundtrip, 'convai_gestures.workspot.json'));
+check(workspot.slot === 'WORKSPOT', 'workspot must target the WORKSPOT graph slot');
+check(workspot.clips.length >= 2, 'workspot has no clips');
+if (failures.length) { console.error(failures.join('\n')); process.exit(1); }
+console.log(`gesture verify: ${workspot.clips.length} clips, ${entity.components.length} components`);

@@ -317,6 +317,17 @@ for record, profile in pairs(characterCatalog.build(profiles).records) do
     if ok then catalog.records[id] = profile end
 end
 convaiCompanions = companions
+-- Stage 0 body-gesture probe (docs/COMPANION_GESTURES.md): loaded only when the
+-- development file is installed, and inert until a probe request file arrives.
+do
+    local probeFile = io.open('gesture-probe.lua', 'rb')
+    if probeFile then
+        probeFile:close()
+        local loaded, probe = pcall(dofile, 'gesture-probe.lua')
+        if loaded and type(probe) == 'table' then companions.bodyAnimation = probe
+        else print('[CyberpunkConvai] Gesture probe failed to load: ' .. tostring(probe)) end
+    end
+end
 local generation = 0
 local active = nil
 local pending = nil
