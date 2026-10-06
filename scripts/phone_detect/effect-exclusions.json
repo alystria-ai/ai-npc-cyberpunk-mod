@@ -1,0 +1,2973 @@
+{
+"schema": "voice-data-effect-exclusions/v1",
+"rules": {
+"band-limited": "phone detector spectral flag",
+"comb": "comb_best >= 5.0, >= 2 s",
+"tone": "tone_db >= 15, >= 2 s",
+"reverb": "tail_ms >= 590, >= 2.5 s",
+"kept": "metadata-only phone/holocall clips"
+},
+"summary": {
+"clips_total": 8472,
+"excluded": 411,
+"by_reason": {
+"band-limited": 164,
+"comb": 221,
+"reverb": 32,
+"tone": 8
+},
+"by_split": {
+"train": 378,
+"dev": 12,
+"test": 8,
+"teacher_regression": 10,
+"teacher_conditional": 3
+},
+"top_speakers": [
+[
+"johnny-silverhand",
+161
+],
+[
+"songbird",
+44
+],
+[
+"solomon-reed",
+30
+],
+[
+"river-ward",
+23
+],
+[
+"jackie-welles",
+15
+],
+[
+"alex",
+14
+],
+[
+"lizzy-wizzy",
+14
+],
+[
+"judy-alvarez",
+13
+],
+[
+"panam-palmer",
+10
+],
+[
+"kerry-eurodyne",
+9
+],
+[
+"rosalind-myers",
+8
+],
+[
+"misty-olszewski",
+6
+]
+],
+"report_only": {
+"robotic": 9
+}
+},
+"clips": {
+"alex/2911509758731112448/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "alex",
+"split": "train"
+},
+"alex/2911510855172509704/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "alex",
+"split": "train"
+},
+"alex/2911540295898255360/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "alex",
+"split": "train"
+},
+"alex/2911543178995716108/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "alex",
+"split": "train"
+},
+"alex/3092647797315678208/female": {
+"reasons": [
+"comb"
+],
+"speaker": "alex",
+"split": "train"
+},
+"alex/3103224802183720960/female": {
+"reasons": [
+"comb"
+],
+"speaker": "alex",
+"split": "train"
+},
+"alex/3110115782366240768/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "alex",
+"split": "train"
+},
+"alex/3283756523620159488/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "alex",
+"split": "train"
+},
+"alex/3378291049264975872/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "alex",
+"split": "train"
+},
+"alex/3378294585717559296/female": {
+"reasons": [
+"comb"
+],
+"speaker": "alex",
+"split": "train"
+},
+"alex/3378306408286130176/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "alex",
+"split": "train"
+},
+"alex/3386804985769627648/female": {
+"reasons": [
+"comb"
+],
+"speaker": "alex",
+"split": "train"
+},
+"alex/3546624427608379392/female": {
+"reasons": [
+"comb"
+],
+"speaker": "alex",
+"split": "train"
+},
+"alex/3566635497290862592/female": {
+"reasons": [
+"comb"
+],
+"speaker": "alex",
+"split": "train"
+},
+"alt-cunningham/1628500059399458816": {
+"reasons": [
+"comb"
+],
+"speaker": "alt-cunningham",
+"split": "train"
+},
+"alt-cunningham/1811051739775553576/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "alt-cunningham",
+"split": "train"
+},
+"carol-emeka/1802515432347078660": {
+"reasons": [
+"reverb"
+],
+"speaker": "carol-emeka",
+"split": "train"
+},
+"claire-russell/1682413856102338560/female": {
+"reasons": [
+"comb"
+],
+"speaker": "claire-russell",
+"split": "train"
+},
+"claire-russell/1861992646639226880/female/d74f6ac17907d312": {
+"reasons": [
+"band-limited"
+],
+"speaker": "claire-russell",
+"split": "train"
+},
+"claire-russell/1928357575895359488/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "claire-russell",
+"split": "train"
+},
+"elizabeth-peralez/1751838794171158528": {
+"reasons": [
+"band-limited"
+],
+"speaker": "elizabeth-peralez",
+"split": "train"
+},
+"evelyn-parker/1603775375583342592": {
+"reasons": [
+"comb"
+],
+"speaker": "evelyn-parker",
+"split": "train"
+},
+"evelyn-parker/2511763491595694080/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "evelyn-parker",
+"split": "train"
+},
+"fingers/1872279185924358144": {
+"reasons": [
+"comb"
+],
+"speaker": "fingers",
+"split": "train"
+},
+"jackie-welles/1678035821641031680/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "jackie-welles",
+"split": "train"
+},
+"jackie-welles/1692595894738628608/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "jackie-welles",
+"split": "train"
+},
+"jackie-welles/1785258183320547328/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "jackie-welles",
+"split": "train"
+},
+"jackie-welles/1796586619561558020/female": {
+"reasons": [
+"tone"
+],
+"speaker": "jackie-welles",
+"split": "train"
+},
+"jackie-welles/1834417684413870080/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "jackie-welles",
+"split": "train"
+},
+"jackie-welles/1866274144415543296/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "jackie-welles",
+"split": "train"
+},
+"jackie-welles/1904096055532736512/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "jackie-welles",
+"split": "train"
+},
+"jackie-welles/1954795386774245380/female": {
+"reasons": [
+"comb"
+],
+"speaker": "jackie-welles",
+"split": "train"
+},
+"jackie-welles/2238075074216370184/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "jackie-welles",
+"split": "train"
+},
+"jackie-welles/2238682894867537928/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "jackie-welles",
+"split": "train"
+},
+"jackie-welles/2238689066500661256/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "jackie-welles",
+"split": "train"
+},
+"jackie-welles/2238728227643367432/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "jackie-welles",
+"split": "train"
+},
+"jackie-welles/2238728419306283016/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "jackie-welles",
+"split": "train"
+},
+"jackie-welles/2238750171302371336/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "jackie-welles",
+"split": "train"
+},
+"jackie-welles/2257914704825786376/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "jackie-welles",
+"split": "train"
+},
+"jefferson-peralez/1648575473112977424": {
+"reasons": [
+"comb"
+],
+"speaker": "jefferson-peralez",
+"split": "train"
+},
+"jim-jarry/1804125497491963904": {
+"reasons": [
+"band-limited",
+"comb"
+],
+"speaker": "jim-jarry",
+"split": "train"
+},
+"jim-jarry/1804125905245421568": {
+"reasons": [
+"band-limited",
+"comb"
+],
+"speaker": "jim-jarry",
+"split": "train"
+},
+"jim-jarry/1804126308586471424": {
+"reasons": [
+"band-limited",
+"comb"
+],
+"speaker": "jim-jarry",
+"split": "train"
+},
+"jim-jarry/1804127422828494848": {
+"reasons": [
+"band-limited",
+"comb"
+],
+"speaker": "jim-jarry",
+"split": "train"
+},
+"jim-jarry/1804129556923924480": {
+"reasons": [
+"band-limited",
+"comb"
+],
+"speaker": "jim-jarry",
+"split": "train"
+},
+"johnny-silverhand/1531775927802449920/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/1541698717484875776/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/1711322994283188224/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/1753341215103688704/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/1755975805704888320/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/1756066248757108736/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/1760593517682233344": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/1764730903868018688/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/1803851578066202624": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/1813923430308683776": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/1938999400511328256": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/1939018908286341120/male/b0a2613b3e04098c": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/1939033101106434048/male": {
+"reasons": [
+"band-limited"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/1939034865583017984/male": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/1955025193863499776": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/2463538192413134848/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/2936219249856438272/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/2957980222242807808": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/2962221447367057408/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3030430524800954368/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3030432633210466304/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3030433990235582464/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3033011104581509120": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3072491299737534464/female/ca62d4240aca0d35": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3073934250439323648": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3103178370751901696": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3103202455804424192/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3110027023897501700/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3111462150611574788/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3210178438531039232/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3210186980432461824/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3211218541583986688": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3211665348191907840": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3220308472562368512/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3220349691145404416": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3220351432687534080/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3220353810958565376": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3220354487969562624/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3220356121852297216": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3220649524860391424/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3224840415166697472": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3231559541159464960/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3233033070384091136/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3242265852410691584/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3242293444554956800": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3246749448731234304": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3256245439491645440": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3256245760540450816": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3263952807074598912/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3266530108033560576": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3267003310330454016/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3267999602904383488/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3268000380612231168/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3268163664011313152": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3268164464083189760/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3272212928895107072/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3272574547894452224": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3272909850439684096": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3274037689958776832/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3274040365253640192": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3276727628782026752/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3278202615459725312": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3278203846185959424/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3278204090898432000/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3278214369627586560/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3278215056570695680/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3278277547694886940/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3278277554036674572/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3278277556217712652/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3278277560881778708/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3278277566552477720/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3278277570964885528": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3278359609432850432/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3285516990098542592/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3291184892578283520/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3291190015316639744/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3291191009836449792/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3295705234324951040": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3296849372406718464": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3297033704972824584/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3297033705358700552/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3297033705711022088/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3298303688128700416": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3302947389156192256": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3314452768534925312": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3334808031693881344/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3334822578278350848": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3336009982217535488/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3336011088087728128": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3336222109885718556/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3340993456935178240": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3351722898594394112/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3353381573977198592/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3353382482597662720/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3360395101187796992/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3360452540302028800/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3360452639153385472/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3362246185569329152": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3362258461995147264": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3362258747996348416": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3363426635926605824/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3366484932632616960": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3366487875104645120": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3378462010018992128/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3459335029482758144": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3475205883850760196/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3475222038850150400/female/d1a8702add15773e": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3475272862506786816/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3488085718651002880/female/4cf4a121c704b63f": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3488375794785689600": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3488390733001285632/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3488409211175329792/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3488410265522118656": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3489657222270443520/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3489696348365545472/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3489749513600868352": {
+"reasons": [
+"band-limited"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3491084514258952192": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3499909808512147456/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3501310289620934656": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3501441139675144192": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3506930890049953792/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3507030332434391040": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3510023475262038016": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3510025372966494208/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3515826561788256256/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3536106499879575552/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3537533618962735104/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3546247247153242112": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3550578739722829824/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3550581642399301632/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3550585801454370816/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3550589091583868928/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3550589872093511680/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3550590430791581696": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3562208227301367808": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3682753202379661328": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3823252696681754624/female": {
+"reasons": [
+"band-limited",
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3823261965372174336/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3823275858601521152/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"johnny-silverhand/3870798157272236032/female": {
+"reasons": [
+"band-limited",
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "train"
+},
+"judy-alvarez/1213716969789452288/female": {
+"reasons": [
+"comb"
+],
+"speaker": "judy-alvarez",
+"split": "train"
+},
+"judy-alvarez/1316863629788311552/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "judy-alvarez",
+"split": "train"
+},
+"judy-alvarez/1392412829519167504/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "judy-alvarez",
+"split": "train"
+},
+"judy-alvarez/1711292264731709440/female": {
+"reasons": [
+"comb"
+],
+"speaker": "judy-alvarez",
+"split": "train"
+},
+"judy-alvarez/1831664955350016000/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "judy-alvarez",
+"split": "train"
+},
+"judy-alvarez/1837521321398591488": {
+"reasons": [
+"reverb"
+],
+"speaker": "judy-alvarez",
+"split": "train"
+},
+"judy-alvarez/1843311386037018624": {
+"reasons": [
+"reverb"
+],
+"speaker": "judy-alvarez",
+"split": "train"
+},
+"judy-alvarez/2511759030030643204/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "judy-alvarez",
+"split": "train"
+},
+"judy-alvarez/2511759030399741952/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "judy-alvarez",
+"split": "train"
+},
+"judy-alvarez/2511761464857669632/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "judy-alvarez",
+"split": "train"
+},
+"kerry-eurodyne/1561030871233552384/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "kerry-eurodyne",
+"split": "train"
+},
+"kerry-eurodyne/1561032461545857024/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "kerry-eurodyne",
+"split": "train"
+},
+"kerry-eurodyne/1561045652027957248/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "kerry-eurodyne",
+"split": "train"
+},
+"kerry-eurodyne/1804307544916320256/female": {
+"reasons": [
+"comb"
+],
+"speaker": "kerry-eurodyne",
+"split": "train"
+},
+"kerry-eurodyne/1815418889670713344/female": {
+"reasons": [
+"tone"
+],
+"speaker": "kerry-eurodyne",
+"split": "train"
+},
+"kerry-eurodyne/1832776480957681664": {
+"reasons": [
+"comb"
+],
+"speaker": "kerry-eurodyne",
+"split": "train"
+},
+"kerry-eurodyne/1832932885933084672/female": {
+"reasons": [
+"comb"
+],
+"speaker": "kerry-eurodyne",
+"split": "train"
+},
+"kerry-eurodyne/1922744103836708864/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "kerry-eurodyne",
+"split": "train"
+},
+"kerry-eurodyne/2237193681243402240/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "kerry-eurodyne",
+"split": "train"
+},
+"kurt-hansen/3098742805468725248": {
+"reasons": [
+"reverb"
+],
+"speaker": "kurt-hansen",
+"split": "train"
+},
+"kurt-hansen/3100138705055301632": {
+"reasons": [
+"comb"
+],
+"speaker": "kurt-hansen",
+"split": "train"
+},
+"kurt-hansen/3539230547239055360": {
+"reasons": [
+"comb"
+],
+"speaker": "kurt-hansen",
+"split": "train"
+},
+"lizzy-wizzy/1792531866852433920": {
+"reasons": [
+"comb"
+],
+"speaker": "lizzy-wizzy",
+"split": "train"
+},
+"lizzy-wizzy/1792554907976245248": {
+"reasons": [
+"comb"
+],
+"speaker": "lizzy-wizzy",
+"split": "train"
+},
+"lizzy-wizzy/1795458996903854080/female": {
+"reasons": [
+"comb"
+],
+"speaker": "lizzy-wizzy",
+"split": "train"
+},
+"lizzy-wizzy/1795460530492391424/female": {
+"reasons": [
+"comb"
+],
+"speaker": "lizzy-wizzy",
+"split": "train"
+},
+"lizzy-wizzy/1795460938900160512/female": {
+"reasons": [
+"comb"
+],
+"speaker": "lizzy-wizzy",
+"split": "train"
+},
+"lizzy-wizzy/1795461140780400640/female": {
+"reasons": [
+"comb"
+],
+"speaker": "lizzy-wizzy",
+"split": "train"
+},
+"lizzy-wizzy/1795462003380961280/female": {
+"reasons": [
+"comb"
+],
+"speaker": "lizzy-wizzy",
+"split": "train"
+},
+"lizzy-wizzy/1795463664862216192/female": {
+"reasons": [
+"band-limited",
+"comb"
+],
+"speaker": "lizzy-wizzy",
+"split": "train"
+},
+"lizzy-wizzy/1795465068376997888/female": {
+"reasons": [
+"band-limited",
+"comb"
+],
+"speaker": "lizzy-wizzy",
+"split": "train"
+},
+"lizzy-wizzy/1803970679038451712": {
+"reasons": [
+"comb"
+],
+"speaker": "lizzy-wizzy",
+"split": "train"
+},
+"lizzy-wizzy/1945786467284733952": {
+"reasons": [
+"comb"
+],
+"speaker": "lizzy-wizzy",
+"split": "train"
+},
+"lizzy-wizzy/1945797729561399296": {
+"reasons": [
+"comb"
+],
+"speaker": "lizzy-wizzy",
+"split": "train"
+},
+"lizzy-wizzy/1963309036221026304": {
+"reasons": [
+"comb"
+],
+"speaker": "lizzy-wizzy",
+"split": "train"
+},
+"mama-welles/1725638389305090048": {
+"reasons": [
+"reverb"
+],
+"speaker": "mama-welles",
+"split": "train"
+},
+"mama-welles/1801195624465154048/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "mama-welles",
+"split": "train"
+},
+"mama-welles/1801198188812288000/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "mama-welles",
+"split": "train"
+},
+"meredith-stout/1105151360793960448/female/ef2f3d4555a16cb2": {
+"reasons": [
+"band-limited"
+],
+"speaker": "meredith-stout",
+"split": "train"
+},
+"meredith-stout/1745876670409662464/female": {
+"reasons": [
+"band-limited",
+"comb"
+],
+"speaker": "meredith-stout",
+"split": "train"
+},
+"meredith-stout/1745876848130711552/female": {
+"reasons": [
+"comb"
+],
+"speaker": "meredith-stout",
+"split": "train"
+},
+"misty-olszewski/2262167170450636808/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "misty-olszewski",
+"split": "train"
+},
+"misty-olszewski/3302650918582599680/female": {
+"reasons": [
+"comb"
+],
+"speaker": "misty-olszewski",
+"split": "train"
+},
+"misty-olszewski/3304137248588152832/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "misty-olszewski",
+"split": "train"
+},
+"misty-olszewski/3307066326727245824/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "misty-olszewski",
+"split": "train"
+},
+"misty-olszewski/3456443374602534912/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "misty-olszewski",
+"split": "train"
+},
+"mitch-anderson/1815347011578023936/female/ab9f950ac75b2a08": {
+"reasons": [
+"band-limited"
+],
+"speaker": "mitch-anderson",
+"split": "train"
+},
+"mr-hands/3021532826327490560": {
+"reasons": [
+"band-limited"
+],
+"speaker": "mr-hands",
+"split": "train"
+},
+"mr-hands/3080970752905842688": {
+"reasons": [
+"band-limited"
+],
+"speaker": "mr-hands",
+"split": "train"
+},
+"mr-hands/3300311214480035840/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "mr-hands",
+"split": "train"
+},
+"mr-hands/3359386788460367872/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "mr-hands",
+"split": "train"
+},
+"mr-hands/3437888516214067200/female": {
+"reasons": [
+"comb"
+],
+"speaker": "mr-hands",
+"split": "train"
+},
+"mr-hands/3438134238708600832/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "mr-hands",
+"split": "train"
+},
+"nancy-hartley/1801698978946572292/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "nancy-hartley",
+"split": "train"
+},
+"nancy-hartley/1834450169331732480/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "nancy-hartley",
+"split": "train"
+},
+"nancy-hartley/1845874729054654464/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "nancy-hartley",
+"split": "train"
+},
+"nele-springer/3246317537474289664": {
+"reasons": [
+"comb"
+],
+"speaker": "nele-springer",
+"split": "train"
+},
+"paco-torres/3357294654294233096/female": {
+"reasons": [
+"tone"
+],
+"speaker": "paco-torres",
+"split": "train"
+},
+"panam-palmer/1527289488684879872": {
+"reasons": [
+"reverb"
+],
+"speaker": "panam-palmer",
+"split": "train"
+},
+"panam-palmer/1643080052188663808": {
+"reasons": [
+"band-limited",
+"comb"
+],
+"speaker": "panam-palmer",
+"split": "train"
+},
+"panam-palmer/1672374186035245056": {
+"reasons": [
+"reverb"
+],
+"speaker": "panam-palmer",
+"split": "train"
+},
+"panam-palmer/1790825272619356160": {
+"reasons": [
+"band-limited"
+],
+"speaker": "panam-palmer",
+"split": "train"
+},
+"panam-palmer/1790838277746774016": {
+"reasons": [
+"band-limited"
+],
+"speaker": "panam-palmer",
+"split": "train"
+},
+"panam-palmer/1817173256301236224": {
+"reasons": [
+"band-limited"
+],
+"speaker": "panam-palmer",
+"split": "train"
+},
+"panam-palmer/1823976411517022208": {
+"reasons": [
+"band-limited"
+],
+"speaker": "panam-palmer",
+"split": "train"
+},
+"panam-palmer/2024164160675901440": {
+"reasons": [
+"band-limited"
+],
+"speaker": "panam-palmer",
+"split": "train"
+},
+"panam-palmer/2230121768163667968": {
+"reasons": [
+"comb"
+],
+"speaker": "panam-palmer",
+"split": "train"
+},
+"regina-jones/1995383525688578048/female": {
+"reasons": [
+"tone"
+],
+"speaker": "regina-jones",
+"split": "train"
+},
+"regina-jones/2328676396803006464/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "regina-jones",
+"split": "train"
+},
+"regina-jones/2339463960565485568/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "regina-jones",
+"split": "train"
+},
+"river-ward/1776547502302924800/female": {
+"reasons": [
+"comb"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/1786619068959805440/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/1796543551542116356/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/1796543551592448004/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/1796543551642779652/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/1796543551676334084/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/1796543551776997380/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/1796543551827329024/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/1796543551894437892/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/1841412577575440384/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/1918469973729054720/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/1957808864025874432/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/2005502319421165568/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/2172353404760723456/female": {
+"reasons": [
+"comb"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/2248168492393209864/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/2248168492527427584/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/2248168492628090888/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/2248168492963635208/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/2248168493232070664/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/2248168493383065608/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/2248168494305812488/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"river-ward/2248319432542822408/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "river-ward",
+"split": "train"
+},
+"rogue-amendiares/1670504335165755392/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "rogue-amendiares",
+"split": "train"
+},
+"rogue-amendiares/1701075396579954688/female": {
+"reasons": [
+"tone"
+],
+"speaker": "rogue-amendiares",
+"split": "train"
+},
+"rogue-amendiares/1803923618175782912/female": {
+"reasons": [
+"comb"
+],
+"speaker": "rogue-amendiares",
+"split": "train"
+},
+"rogue-amendiares/1885344966399500288/female": {
+"reasons": [
+"band-limited",
+"comb"
+],
+"speaker": "rogue-amendiares",
+"split": "train"
+},
+"rogue-amendiares/1902446656690606080": {
+"reasons": [
+"comb"
+],
+"speaker": "rogue-amendiares",
+"split": "train"
+},
+"rogue-amendiares/2095479226440900608/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "rogue-amendiares",
+"split": "train"
+},
+"rosalind-myers/3049330335885402112": {
+"reasons": [
+"band-limited"
+],
+"speaker": "rosalind-myers",
+"split": "train"
+},
+"rosalind-myers/3050446871253590016": {
+"reasons": [
+"band-limited"
+],
+"speaker": "rosalind-myers",
+"split": "train"
+},
+"rosalind-myers/3051405320842022912": {
+"reasons": [
+"band-limited"
+],
+"speaker": "rosalind-myers",
+"split": "train"
+},
+"rosalind-myers/3051919296403185664": {
+"reasons": [
+"reverb"
+],
+"speaker": "rosalind-myers",
+"split": "train"
+},
+"rosalind-myers/3093221355099238400": {
+"reasons": [
+"band-limited"
+],
+"speaker": "rosalind-myers",
+"split": "train"
+},
+"rosalind-myers/3093225212499963904": {
+"reasons": [
+"band-limited"
+],
+"speaker": "rosalind-myers",
+"split": "train"
+},
+"rosalind-myers/3337747207152820224": {
+"reasons": [
+"band-limited"
+],
+"speaker": "rosalind-myers",
+"split": "train"
+},
+"rosalind-myers/3470902953903497216": {
+"reasons": [
+"reverb"
+],
+"speaker": "rosalind-myers",
+"split": "train"
+},
+"sandra-dorsett/1803780071243280384": {
+"reasons": [
+"band-limited"
+],
+"speaker": "sandra-dorsett",
+"split": "train"
+},
+"saul-bright/1807122718222782464": {
+"reasons": [
+"band-limited"
+],
+"speaker": "saul-bright",
+"split": "train"
+},
+"solomon-reed/3032540176703721472/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3035624609463832596/female": {
+"reasons": [
+"comb"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3059353433955213312/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3091180147885600776/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3093204697219575808/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3114516640269492232/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3123508312412393472/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3152601017128149000/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3222899785044348928/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3232225261696409600/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3237603700628606976/female": {
+"reasons": [
+"comb"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3240550573401096192/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3242166377061371904/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3280246034872492032/female": {
+"reasons": [
+"comb"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3296879275931791360/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3297004544880627720/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3297005096411701248/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3327497069425049600/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3343415857258012672/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3343420902586867712/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3343421013501042688/female": {
+"reasons": [
+"band-limited",
+"tone"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3353663271372935168/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3375875947446276096/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3476560986163101696/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3487054149546516480/female": {
+"reasons": [
+"comb"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3488059920291483648/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3545094992153415680/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3556454590481518592/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3701627712465903616/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"solomon-reed/3732131098097197056/female": {
+"reasons": [
+"comb"
+],
+"speaker": "solomon-reed",
+"split": "train"
+},
+"songbird/2859037941852758016/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/2859192922492854272/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/2892531733876461568/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/2911536267822911500/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/2984024981032603648/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3023068470844002304/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3040216428809424896/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3044448659883356160/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3072130893310500864/female": {
+"reasons": [
+"comb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3083994388427051008/female": {
+"reasons": [
+"comb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3124834690503196672/female": {
+"reasons": [
+"comb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3133168423807180800/female": {
+"reasons": [
+"comb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3153382957062774784/female": {
+"reasons": [
+"comb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3202556313347473408/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3202827646346371072/female": {
+"reasons": [
+"comb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3206992084032573440/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3207005204671123464/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3214329531402199040/female": {
+"reasons": [
+"comb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3214420581672198144/female": {
+"reasons": [
+"band-limited",
+"comb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3214538033610559488/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3224475555933011984/female": {
+"reasons": [
+"comb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3224738513094053896/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3224738594882981896/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3231661293683040300/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3241930436687097856/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3243741648424103936/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3244803577307664384/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3245386280721285140/female": {
+"reasons": [
+"comb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3269557502500585472/female": {
+"reasons": [
+"tone"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3273911642466832396/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3278276440079863852/female": {
+"reasons": [
+"comb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3285718231898591232/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3302661001792454656/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3304078373247340544/female": {
+"reasons": [
+"comb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3347711568174342144/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3495530134461849600/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3496994336426860544/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3507432972163878912/female": {
+"reasons": [
+"comb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3591329330237972480/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3607218222077767680/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3732136391711469568/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3791510263539044352/female": {
+"reasons": [
+"comb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3791521043252645888/female": {
+"reasons": [
+"comb"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"songbird/3956373292181348352/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "songbird",
+"split": "train"
+},
+"t-bug/2207080084026707968/female": {
+"reasons": [
+"tone"
+],
+"speaker": "t-bug",
+"split": "train"
+},
+"takemura/1770932128393486336/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "takemura",
+"split": "train"
+},
+"takemura/2038902374692052992/female": {
+"reasons": [
+"reverb"
+],
+"speaker": "takemura",
+"split": "train"
+},
+"takemura/2039207538024013824/female/f3a8c79bfe043118": {
+"reasons": [
+"reverb"
+],
+"speaker": "takemura",
+"split": "train"
+},
+"viktor-vektor/1631314805122854912": {
+"reasons": [
+"band-limited"
+],
+"speaker": "viktor-vektor",
+"split": "train"
+},
+"viktor-vektor/3297247008346849280/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "viktor-vektor",
+"split": "train"
+},
+"viktor-vektor/3383955598230667264/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "viktor-vektor",
+"split": "train"
+},
+"viktor-vektor/3388353977366855680/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "viktor-vektor",
+"split": "train"
+},
+"viktor-vektor/3437476494513520664/female": {
+"reasons": [
+"comb"
+],
+"speaker": "viktor-vektor",
+"split": "train"
+},
+"wakako-okada/1903995731304267776/female": {
+"reasons": [
+"comb"
+],
+"speaker": "wakako-okada",
+"split": "train"
+},
+"yorinobu-arasaka/1764798658403909632": {
+"reasons": [
+"reverb"
+],
+"speaker": "yorinobu-arasaka",
+"split": "train"
+},
+"johnny-silverhand/3823296853458628608": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "dev"
+},
+"river-ward/1848844563667619840": {
+"reasons": [
+"reverb"
+],
+"speaker": "river-ward",
+"split": "dev"
+},
+"johnny-silverhand/3823290172200792064": {
+"reasons": [
+"band-limited"
+],
+"speaker": "johnny-silverhand",
+"split": "dev"
+},
+"johnny-silverhand/4550887776286830592": {
+"reasons": [
+"band-limited"
+],
+"speaker": "johnny-silverhand",
+"split": "dev"
+},
+"johnny-silverhand/4550933906131415040": {
+"reasons": [
+"band-limited"
+],
+"speaker": "johnny-silverhand",
+"split": "dev"
+},
+"alt-cunningham/2005702096534921216/female": {
+"reasons": [
+"comb"
+],
+"speaker": "alt-cunningham",
+"split": "dev"
+},
+"alt-cunningham/2005706785548689408/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "alt-cunningham",
+"split": "dev"
+},
+"johnny-silverhand/1906937283303456768/female": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "dev"
+},
+"judy-alvarez/1903926490491240448/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "judy-alvarez",
+"split": "dev"
+},
+"judy-alvarez/1905494038210633728/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "judy-alvarez",
+"split": "dev"
+},
+"judy-alvarez/1906726229313806336/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "judy-alvarez",
+"split": "dev"
+},
+"misty-olszewski/3358039131756937216/female": {
+"reasons": [
+"band-limited"
+],
+"speaker": "misty-olszewski",
+"split": "dev"
+},
+"johnny-silverhand/3338778981607841792": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "test"
+},
+"johnny-silverhand/3369578498774900804": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "test"
+},
+"johnny-silverhand/3384051328170237976": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "test"
+},
+"johnny-silverhand/3416322153980989456": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "test"
+},
+"johnny-silverhand/3416322357555728392": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "test"
+},
+"johnny-silverhand/3571199003088752640": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "test"
+},
+"johnny-silverhand/3571214643497373696": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "test"
+},
+"johnny-silverhand/3571217896045907968": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "test"
+},
+"johnny-silverhand/3275328297180614656": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "teacher_regression"
+},
+"johnny-silverhand/3275338948632399872": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "teacher_regression"
+},
+"johnny-silverhand/3300061632420515840": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "teacher_regression"
+},
+"johnny-silverhand/3300068101295575040": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "teacher_regression"
+},
+"johnny-silverhand/3300069034779873280": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "teacher_regression"
+},
+"johnny-silverhand/3300143828414107648": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "teacher_regression"
+},
+"johnny-silverhand/3302880643399159808": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "teacher_regression"
+},
+"johnny-silverhand/3302890557475524632": {
+"reasons": [
+"comb"
+],
+"speaker": "johnny-silverhand",
+"split": "teacher_regression"
+},
+"panam-palmer/1754523900535353344": {
+"reasons": [
+"comb"
+],
+"speaker": "panam-palmer",
+"split": "teacher_regression"
+},
+"shank/3236009073491021824": {
+"reasons": [
+"band-limited"
+],
+"speaker": "shank",
+"split": "teacher_regression"
+},
+"lizzy-wizzy/1945826667088105472": {
+"reasons": [
+"comb"
+],
+"speaker": "lizzy-wizzy",
+"split": "teacher_conditional"
+},
+"nele-springer/3233134794586365952": {
+"reasons": [
+"band-limited"
+],
+"speaker": "nele-springer",
+"split": "teacher_conditional"
+},
+"ozob-bozo/1854553220084232204": {
+"reasons": [
+"band-limited"
+],
+"speaker": "ozob-bozo",
+"split": "teacher_conditional"
+}
+}
+}
