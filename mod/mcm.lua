@@ -15,12 +15,18 @@ local preparationAt = 0
 local presentation = {active = false, rows = {}}
 local voiceSelectors = {}
 local localeRevision = -1
--- The voice choice is staged here, in Lua, and committed only by this page's own
--- "Apply voice change" row. It cannot rely on MCM's Apply bar: the player's MCM
--- may be set to Auto Apply, which commits every edit at once. Nothing reaches the
--- conversation service (no model is prepared) until that row is chosen.
-local stagedVoice
+-- Every setting on this provider waits for an explicit Apply, like the game's own
+-- Settings pages. MCM's Auto Apply preference (a global player choice we must not
+-- change) would commit each edit at once: it sets the draft and calls apply in the
+-- same call. That call is recognised by the draft event that precedes it by a few
+-- microseconds, and refused, so MCM keeps its own pending drafts: the native
+-- changed-row markers, the Revert and Apply buttons, Defaults, the unsaved-changes
+-- prompt when leaving, and the close guard. A person's Apply comes much later.
+local AUTO_APPLY_WINDOW = 0.25
+local lastDraftEventAt = -1000
 local VOICE_CHOICES = {{'omni', 16}, {'omni', 32}, {'pocket'}, {'convai'}}
+-- No voice model is prepared from a draft: nothing reaches the conversation
+-- service until Apply.
 local voicePreview = dofile('voice-preview.lua').new()
 -- Help page: log locations and the shareable support report. Optional: the
 -- manager works without it, and a load failure only hides the Help entry.
@@ -222,7 +228,6 @@ end
 
 local function navigate(nextView, context)
     view = nextView
-    if nextView == 'home' then stagedVoice = nil end
     clearSearch(context)
     return true
 end
@@ -282,20 +287,28 @@ local function voiceServiceLabel(state)
     return ui.t(labels[state.state] or 'Waiting for voice service')
 end
 
--- The status line, plus the staged choice that Apply has not committed yet.
-local function voiceStatusText(snapshot)
-    local text = voiceServiceLabel(snapshot.localVoice)
-    local choice = stagedVoice and VOICE_CHOICES[stagedVoice]
-    if choice then
-        text = ui.t('{status} · Pending: {voice}. Apply to use it.',
-            {status = text, voice = manager.voiceLabel(choice[1], choice[2])})
+-- The status line. While a different voice is pending in MCM's drafts it names
+-- that voice instead (short, so the row is not truncated).
+local function savedVoiceIndex(settings)
+    return settings.voiceProvider == 'convai' and 4
+        or (settings.voiceProvider == 'pocket' and 3 or (settings.omniSteps == 32 and 2 or 1))
+end
+
+local function voiceStatusText(snapshot, allowPending)
+    if allowPending and api and type(api.getValue) == 'function' then
+        -- Read from top-level update only, never while MCM is building a schema.
+        local ok, value, err = pcall(api.getValue, MOD_KEY .. ':voiceProvider')
+        local choice = ok and not err and VOICE_CHOICES[value]
+        if choice and value ~= savedVoiceIndex(snapshot.settings) then
+            return ui.t('Pending: {voice}', {voice = manager.voiceLabel(choice[1], choice[2])})
+        end
     end
-    return text
+    return voiceServiceLabel(snapshot.localVoice)
 end
 
 local function updateVoiceStatus(snapshot)
     if view ~= 'settings' or not presentation.active or not presentation.voiceStatus then return end
-    local text = voiceStatusText(snapshot)
+    local text = voiceStatusText(snapshot, true)
     if text ~= presentation.voiceStatusText then
         -- Updating this read-only value preserves MCM's draft selectors. As
         -- with styling, ink access stays in top-level update, never its hooks.
@@ -648,39 +661,15 @@ local function schema()
         })
         local voiceStatus = voiceStatusText(snapshot)
         -- The list, best first: OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS, Convai cloud voice.
-        local savedVoice = snapshot.settings.voiceProvider == 'convai' and 4
-            or (snapshot.settings.voiceProvider == 'pocket' and 3
-                or (snapshot.settings.omniSteps == 32 and 2 or 1))
-        if stagedVoice == savedVoice then stagedVoice = nil end
-        local voiceIndex = stagedVoice or savedVoice
-        local voiceRows = {
+        local voiceIndex = savedVoiceIndex(snapshot.settings)
+        categories[#categories + 1] = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
             setting('voiceProvider', 'Companion voices', 'select', voiceIndex, 1,
-                'OmniVoice uses the GPU and sounds closest to the characters. 16 steps sounds the same in tests as 32 steps at half the GPU time, so it is the default. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. Choosing a voice only stages it: nothing changes, and no model is prepared, until you choose Apply voice change; Revert voice change discards it.',
+                'OmniVoice uses the GPU and sounds closest to the characters. 16 steps sounds the same in tests as 32 steps at half the GPU time, so it is the default. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. A change waits until you choose Apply, and no voice model is prepared before then.',
                 {'OmniVoice 16 steps', 'OmniVoice 32 steps', 'Pocket TTS', 'Convai cloud voice'}),
             readonly('voice-status', 'Voice service', voiceStatus,
-                'Nothing is prepared or changed until you choose Apply voice change. Revert voice change discards the choice; no game restart is needed.'),
-        }
-        if stagedVoice then
-            local choice = VOICE_CHOICES[stagedVoice]
-            local label = manager.voiceLabel(choice[1], choice[2])
-            voiceRows[#voiceRows + 1] = action('voice:apply', 'Apply voice change', 'Apply',
-                ui.t('Switch companions to {voice}. It takes effect when no reply is being spoken.', {voice = label}),
-                function()
-                    local target = stagedVoice
-                    if not target then return false, ui.t('There is no voice change to apply.') end
-                    local pick = VOICE_CHOICES[target]
-                    local ok, err = manager.applySettings(player(), {voiceProvider = pick[1], omniSteps = pick[2]})
-                    if not ok then return false, ui.t(err) end
-                    stagedVoice = nil
-                    return true, ui.t('Voice set to {voice}.', {voice = label})
-                end)
-            voiceRows[#voiceRows + 1] = action('voice:revert', 'Revert voice change', 'Revert',
-                'Keep the current voice and discard the staged choice.',
-                function() stagedVoice = nil; return true, ui.t('Voice change discarded.') end)
-        end
-        categories[#categories + 1] = category('voices', 'Voices', voiceRows,
-            'Choosing a voice stages it. Choose Apply voice change to use it.')
+                'Changes wait until you choose Apply; Revert discards them. No game restart is needed.'),
+        }, 'Changes wait until you choose Apply.')
         categories[#categories + 1] = category('subtitles', 'Subtitles', {
             setting('subtitles', 'Subtitles', 'bool', snapshot.settings.subtitles, true, 'Show companion replies using the selected subtitle display.'),
             setting('subtitleStyle', 'Subtitle display', 'select', snapshot.settings.subtitleStyle == 'overhead' and 1 or 2, 2,
@@ -759,6 +748,11 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
         end,
         applyBatch = function(id, changes)
             if id ~= MOD then return {ok = false, error = ui.t('Unknown mod.')} end
+            -- Auto Apply sets a draft and applies in the same instant. Refuse that
+            -- call so the draft stays pending; nothing is saved or sent anywhere.
+            if os.clock() - lastDraftEventAt < AUTO_APPLY_WINDOW then
+                return {ok = false, error = ui.t('Change pending. Choose Apply to use it, or Revert to discard it.')}
+            end
             local values, applied = {enabledByKey = {}, relationshipModes = {}}, {}
             for _, change in ipairs(changes) do
                 local key = change.id
@@ -778,9 +772,8 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 and change.value ~= 4 then
                         return {ok = false, error = ui.t('Choose OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS or Convai cloud voice.')}
                     end
-                    -- Staged, never committed here: MCM may be applying every edit
-                    -- as it is made. The Apply voice change row commits it.
-                    stagedVoice = change.value
+                    values.voiceProvider = change.value == 3 and 'pocket' or (change.value == 4 and 'convai' or 'omni')
+                    if change.value == 1 or change.value == 2 then values.omniSteps = change.value == 2 and 32 or 16 end
                 elseif key == 'eyeContactHeight' or key == 'headFollowStrength' then
                     local heights,strengths=manager.gazeChoices()
                     local choices=key=='eyeContactHeight' and heights or strengths
@@ -812,6 +805,15 @@ local function connect()
     if not registered then lastError = tostring(err); return false end
     api = found
     voicePreview.bind(api)
+    if type(api.subscribe) == 'function' then
+        -- Record the moment of a draft change. This callback can run inside a
+        -- native UI action, so it only stores a number.
+        pcall(api.subscribe, 'drafts.changed', function(event)
+            if type(event) == 'table' and event.modKey == MOD_KEY and (tonumber(event.count) or 0) > 0 then
+                lastDraftEventAt = os.clock()
+            end
+        end)
+    end
     api.refreshProvider(PROVIDER)
     log('Companion Manager registered with MCM API v2')
     return true
@@ -987,7 +989,7 @@ function M.update(currentPlayer, worldReady)
         local snapshot = manager.snapshot(currentPlayer)
         local statusOk, statusError = pcall(updateVoiceStatus, snapshot)
         if not statusOk then lastError = 'Voice service presentation: ' .. tostring(statusError) end
-        local signature = {queue.message(), tostring(queue.count()), tostring(stagedVoice), snapshot.localVoice.state or '',
+        local signature = {queue.message(), tostring(queue.count()), snapshot.localVoice.state or '',
             snapshot.localVoice.provider or '', tostring(snapshot.localVoice.pending),
             tostring(snapshot.localVoice.previewActive), tostring(snapshot.localVoice.preparationOnly)}
         local trip = queue.chauffeur()
@@ -1046,7 +1048,6 @@ function M.resetSession()
     memoryActionCommand = nil
     preparationTarget, preparationStatus, preparationActionFeedback, preparationAt = nil, nil, false, 0
     owner, lastSignature, refreshQueued = nil, '', true
-    stagedVoice = nil
     presentation = {active = false, rows = {}}
     fontPresentation.reset()
     voicePreview.reset()
@@ -1060,7 +1061,6 @@ function M.shutdown(worldReady)
     if preparationActionFeedback then actionFeedback = nil end
     preparationTarget, preparationStatus, preparationActionFeedback, preparationAt = nil, nil, false, 0
     entry.reset()
-    stagedVoice = nil
     voicePreview.shutdown()
     if api then pcall(api.providers.unregisterProvider, PROVIDER, provider.registrationKey) end
     api = nil

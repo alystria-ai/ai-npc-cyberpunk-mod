@@ -35,17 +35,26 @@ no longer open it.
   names the voice in use (for example "Ready · Using Pocket TTS, OmniVoice 16
   steps unavailable") and one gameplay notice says so once.
   MCM owns setting drafts, saving, discarding, defaults and draft guards.
-  **Voice choice is staged by this page, not by MCM.** The player's MCM can be set to Auto
-  Apply (the live install was: the banner read "Applied 1 change(s)" and there was no Apply
-  bar), which commits every edit at once, so MCM drafts cannot hold a voice change back.
-  `applyBatch` therefore only records the selector value in Lua (`stagedVoice`); it never
-  saves it. While the staged choice differs from the saved one, the Voices section shows
-  **Apply voice change** and **Revert voice change** rows and the voice status adds
-  "Pending: <voice>. Apply to use it." Apply saves the choice through `manager.applySettings`;
-  Revert, going back to the manager home, or a session reset discards it. No preview lease is
-  written, so nothing reaches the conversation service and no worker starts or retires
-  until Apply. (`bridge/voice-preview.mjs`, `mod/voice-preview.lua` and the bridge's
-  `previewSettleMs` remain but are unused by this page.)
+  **Every setting waits for Apply, even under MCM's Auto Apply.** The installed MCM had
+  `"autoApply": true` in its own `config.json` (a global player preference we never change):
+  the banner read "Applied 1 change(s)" and there was no Apply bar. MCM's Auto Apply is
+  only the UI calling `api.setDraft` and then `api.apply` back to back. The provider
+  subscribes to `drafts.changed` and records the time; an `applyBatch` that arrives within
+  0.25 s of a draft change is the automatic apply and is refused ("Change pending. Choose
+  Apply to use it, or Revert to discard it."), so MCM keeps its own pending drafts. That
+  gives, natively and for every setting type: the changed-row marker, **Revert** and **Apply**
+  buttons, **Defaults** (staged, then Apply), a confirmation modal when leaving the mod or
+  closing Settings with pending drafts ("Unsaved changes ... has unapplied changes. Apply
+  them before leaving?" with Apply, Discard and Cancel; Cancel stays on the page), and a
+  close guard on Esc. Our own action rows (the Back rows) are refused while drafts are
+  pending ("Apply or revert pending changes before running this action"). A person's Apply
+  arrives later and commits everything in one atomic `applyBatch`. Nothing is saved, written
+  for the service, or prepared before that: no `settings.json` write and no voice-preview
+  lease. While a different voice is pending, the voice status row reads "Pending: <voice>".
+  Limits: MCM's status line shows our refusal text for each change, and the confirmation
+  popup wording and layout are MCM's own (not the game's "Settings" popup).
+  (`bridge/voice-preview.mjs`, `mod/voice-preview.lua` and `previewSettleMs` remain but are
+  unused by this page.)
 
 Every inner page starts with one **Back** action. Characters, Current party,
 Model browser and Settings return to the manager home; Relationships, Memory

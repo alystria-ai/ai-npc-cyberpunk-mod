@@ -663,50 +663,88 @@ test('local voice previews carry the effective four-choice draft and cancel on R
   `);
 });
 
-test('the voice selector only stages a choice; Apply voice change commits it and Revert discards it', () => {
+test('with Auto Apply every setting waits for an explicit Apply: the automatic apply is refused, nothing is saved or sent, and a later Apply commits', () => {
   run(`${mcmFixture}
     assert(invoke('tab:settings').ok)
-    assert(not row('voice:apply') and not row('voice:revert'), 'Apply is offered with nothing staged')
-    -- MCM may be applying every edit at once, so the batch must never commit a voice.
-    for _, choice in ipairs({{2, 'omni', 32}, {3, 'pocket', 32}, {4, 'convai', 32}, {4, 'convai', 32}}) do
-      local startingProvider = manager.snapshot(player).settings.voiceProvider
-      local startingSteps = manager.snapshot(player).settings.omniSteps
-      assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = choice[1]}}).ok)
-      loaded = registered.loadMod('manager')
-      local current = manager.snapshot(player).settings
-      assert(row('omniSteps') == nil and row('voiceProvider').defaultValue == 1)
-      assert(current.voiceProvider == startingProvider and current.omniSteps == startingSteps and saved.voiceProvider == startingProvider,
-        'staging changed the committed voice')
-      if choice[2] == startingProvider and choice[3] == startingSteps then
-        -- Back on the committed choice: nothing is pending any more.
-        assert(not row('voice:apply') and not row('voice:revert') and row('voiceProvider').value == choice[1])
-        break
-      end
-      assert(row('voiceProvider').value == choice[1] and row('voice:apply').type == 'action' and row('voice:revert').type == 'action')
-      assert(row('voice-status').value:find('Pending', 1, true) and row('voice-status').value:find('Apply to use it', 1, true))
-      assert(invoke('voice:apply').ok)
-      local selected = manager.snapshot(player).settings
-      assert(selected.voiceProvider == choice[2] and selected.omniSteps == choice[3] and saved.voiceProvider == choice[2])
-      assert(not row('voice:apply') and not row('voice-status').value:find('Pending', 1, true) and row('voiceProvider').value == choice[1])
-      manager.reset()
-      assert(manager.snapshot(player).settings.voiceProvider == choice[2])
+    local clock = 5000
+    os.clock = function() return clock end
+    -- A fake MCM: a draft change emits 'drafts.changed' and Auto Apply applies in the same instant.
+    local listeners = {}
+    nativeApi.subscribe = function(name, callback) listeners[#listeners + 1] = callback; return #listeners end
+    nativeApi.unsubscribe = function() return true end
+    mcm.shutdown(); mcm.install()
+    local function setDraft(id, value, count)
+      for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = count or 1}) end
+      return {id = id, value = value}
     end
-    -- Revert keeps the committed voice and removes both rows.
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok)
-    loaded = registered.loadMod('manager')
-    local before = manager.snapshot(player).settings.voiceProvider
-    assert(invoke('voice:revert').ok)
-    assert(not row('voice:apply') and manager.snapshot(player).settings.voiceProvider == before and row('voiceProvider').value ~= 3
-      or before == 'pocket')
-    -- Staging is cleared by leaving the manager, and never publishes a preview.
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 4}}).ok)
+    local function autoApply(...)
+      local changes = {}
+      for _, change in ipairs({...}) do changes[#changes + 1] = setDraft(change[1], change[2]) end
+      return registered.applyBatch('manager', changes)
+    end
+    local function snapshotOf()
+      local s = manager.snapshot(player).settings
+      return table.concat({tostring(s.voiceProvider), tostring(s.omniSteps), tostring(s.voice), tostring(s.subtitles),
+        tostring(s.subtitleStyle), tostring(s.battleReactions), tostring(s.lootReactions), tostring(s.bodyGestures),
+        tostring(s.developerMode), tostring(s.eyeContactHeight), tostring(s.headFollowStrength), tostring(s.uiLanguage),
+        tostring(s.relationshipModes['judy-alvarez']), tostring(s.enabledByKey['person-1']), tostring(s.autoConnectNearby)}, '|')
+    end
+    local before, writes = snapshotOf(), #fileWrites
+    -- One setting of every kind: bool, select, voice, gaze, language, relationship, conversation.
+    for _, change in ipairs({{'voiceProvider', 3}, {'voiceProvider', 2}, {'voiceProvider', 4}, {'voice', false}, {'subtitles', false},
+        {'subtitleStyle', 1}, {'battleReactions', false}, {'lootReactions', false}, {'bodyGestures', true},
+        {'developerMode', true}, {'eyeContactHeight', 5}, {'headFollowStrength', 4}, {'uiLanguage', 2},
+        {'relationship:judy-alvarez', 2}, {'enabled:person-1', false}, {'autoConnectNearby', true}}) do
+      local result = autoApply(change)
+      assert(result.ok == false and result.error:find('Change pending', 1, true), change[1] .. ' was applied automatically')
+      assert(snapshotOf() == before, change[1] .. ' reached the settings')
+      assert(#fileWrites == writes, change[1] .. ' wrote a file')
+      assert(files['runtime/voice-preview.json'] == nil, change[1] .. ' offered a worker preview')
+      clock = clock + 0.001
+    end
     mcm.update(player, false); mcm.update(player, true)
-    assert(files['runtime/voice-preview.json'] == nil, 'a staged voice offered a worker preview')
-    assert(invoke('settings:back').ok and invoke('tab:settings').ok and not row('voice:apply'))
-    for _, invalid in ipairs({0, 5, 2.5, '2', false, math.huge, 0/0}) do
-      assert(not registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = invalid}}).ok)
-      assert(manager.snapshot(player).settings.voice)
-    end
+    assert(snapshotOf() == before and #fileWrites == writes and files['runtime/voice-preview.json'] == nil)
+    -- The person presses Apply later: all of it commits at once.
+    clock = clock + 2
+    local applied = registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}, {id = 'subtitles', value = false},
+      {id = 'developerMode', value = true}, {id = 'eyeContactHeight', value = 5}, {id = 'enabled:person-1', value = false}})
+    assert(applied.ok and applied.atomic)
+    local after = manager.snapshot(player).settings
+    assert(after.voiceProvider == 'pocket' and not after.subtitles and after.developerMode and not after.enabledByKey['person-1'])
+    assert(#fileWrites > writes)
+    -- The refusal window is short: a later change followed at once by apply is refused again.
+    local second = autoApply({'voice', false})
+    assert(second.ok == false)
+    clock = clock + 2
+    assert(registered.applyBatch('manager', {{id = 'voice', value = false}}).ok and not manager.snapshot(player).settings.voice)
+  `);
+});
+
+test('the voice status names a pending voice in a short line and nothing prepares a model before Apply', () => {
+  run(`${mcmFixture}
+    assert(invoke('tab:settings').ok)
+    local pending = 3
+    nativeApi.getValue = function(key) assert(key == 'cyberpunk-convai:manager:voiceProvider'); return pending end
+    nativeApi.hasDrafts = function() return false end
+    CName = {new = function(value) return value end}
+    NameToString = function(value) return value end
+    local text
+    local value = {GetName = function() return 'cyberpunk-convai:manager:voice-status_value' end,
+      GetController = function() return nil end, SetText = function(_, next) text = next end}
+    local content = {GetName = function() return 'mcm_content_scroll_content' end,
+      GetNumChildren = function() return 1 end, GetWidgetByIndex = function() return value end}
+    function controller:GetRootWidget() return content end
+    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+    mcm.update(player, false)
+    assert(text == 'Pending: Pocket TTS', text)
+    assert(#text < 24, 'the pending line must stay short')
+    pending = 1
+    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+    local later = os.time() + 10
+    os.time = function() return later end
+    mcm.update(player, false); mcm.update(player, false)
+    assert(text ~= nil and not text:find('Pending', 1, true))
+    assert(files['runtime/voice-preview.json'] == nil, 'a pending voice prepared a model')
   `);
 });
 
@@ -1784,10 +1822,8 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(not manager.battleReactions())
     local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = 4}, {id = 'subtitleStyle', value = 1}})
     assert(applied.ok and applied.atomic and #applied.appliedIds == 3 and saved.omniSteps == 16)
-    assert(saved.voiceProvider == 'omni', 'a staged voice was committed by the batch')
+    assert(saved.voiceProvider == 'convai')
     loaded = registered.loadMod('manager')
-    assert(row('voiceProvider').value == 4 and row('voice:apply') and row('voice:revert'))
-    assert(invoke('voice:apply').ok and saved.voiceProvider == 'convai' and not row('voice:apply'))
     assert(manager.subtitleStyle() == 'overhead' and row('subtitleStyle').value == 1)
     for _, invalid in ipairs({0, 3, '1', 'overhead', false}) do
       assert(not registered.applyBatch('manager', {{id = 'subtitles', value = false}, {id = 'subtitleStyle', value = invalid}}).ok)
@@ -2106,6 +2142,10 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       }).join('\n');
     run(`${mcmFixture}${invitationFixture}${memoryFixture}
       mcm.shutdown()
+      -- Auto Apply sets a draft and applies in the same instant; a person's Apply comes later.
+      local autoClock = 7000
+      os.clock = function() return autoClock end
+      local function later() autoClock = autoClock + 1 end
       local encoded, jsonSequence = {}, 0
       json = {encode = function(value) jsonSequence = jsonSequence + 1; local id = 'json-' .. jsonSequence; encoded[id] = value; return id end,
         decode = function(value) return encoded[value] or jsonFixtures[value] or saved or {} end}
@@ -2169,38 +2209,37 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(actual.invokeAction(key .. ':settings:back') == false)
       assert(actual.invokeAction(key .. ':memory') == false and memoryWrites() == 0)
       assert(mcm.inspect().view == 'settings', 'a pending draft allowed submenu navigation')
+      -- Auto Apply: the immediate apply after a draft is refused and every draft stays pending.
+      local autoOk, autoErr = actual.apply(key)
+      assert(autoOk == false and tostring(autoErr):find('Change pending', 1, true), tostring(autoErr))
+      assert(actual.hasDrafts(key), 'the refused automatic apply discarded the drafts')
+      assert(manager.snapshot(player).settings.voiceProvider == 'omni' and manager.snapshot(player).settings.voice == true
+        and manager.snapshot(player).settings.developerMode == false and manager.snapshot(player).settings.omniSteps == 16)
+      assert(files['runtime/voice-preview.json'] == nil, 'a pending voice offered a worker preview')
+      -- MCM's own leave prompt and close guard key off this: drafts are pending.
+      assert(actual.invokeAction(key .. ':settings:back') == false)
+      later()
       local ok, err = actual.apply(key)
       assert(ok, err)
       assert(actual.getValue(key .. ':voice') == false and actual.getValue(key .. ':omniSteps') == nil)
       assert(manager.snapshot(player).settings.omniSteps == 16 and not actual.hasDrafts(key))
-      -- The voice is staged by Apply (or Auto Apply) and committed only by our own row.
       assert(actual.getValue(key .. ':voiceProvider') == 4)
-      assert(manager.snapshot(player).settings.voiceProvider == 'omni', 'the settings Apply committed a staged voice')
-      assert(actual.getValue(key .. ':voice:apply') == 'Apply' and actual.getValue(key .. ':voice:revert') == 'Revert')
+      assert(manager.snapshot(player).settings.voiceProvider == 'convai')
       assert(actual.getValue(key .. ':subtitleStyle') == 1 and manager.subtitleStyle() == 'overhead')
       assert(not manager.battleReactions() and actual.getValue(key .. ':battleReactions') == false)
       assert(manager.developerMode() and actual.getValue(key .. ':developerMode') == true)
       assert(actual.getValue(key .. ':eyeContactHeight') == 5 and actual.getValue(key .. ':headFollowStrength') == 4)
       assert(manager.gazeSettings().eyeContactHeight == 0.10 and manager.gazeSettings().headFollowStrength == 1.5)
-      -- A staged voice never prepares a model and never offers a worker preview.
+      -- A pending voice never prepares a model; Revert discards it and Apply commits it.
       function controller:GetRootWidget() return nil end
       handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-      for _ = 1, 3 do mcm.update(player, false) end
-      assert(files['runtime/voice-preview.json'] == nil, 'a staged voice offered a worker preview')
       assert(actual.setDraft(key .. ':voiceProvider', 3))
-      assert(actual.apply(key))
-      assert(actual.getValue(key .. ':voiceProvider') == 3 and manager.snapshot(player).settings.voiceProvider == 'omni')
       for _ = 1, 3 do mcm.update(player, false) end
-      assert(files['runtime/voice-preview.json'] == nil, 'a changed staged voice offered a worker preview')
-      assert(actual.invokeAction(key .. ':voice:revert') and actual.getValue(key .. ':voice:apply') == nil)
-      assert(actual.getValue(key .. ':voiceProvider') == 1 and manager.snapshot(player).settings.voiceProvider == 'omni')
-      assert(actual.setDraft(key .. ':voiceProvider', 2)); assert(actual.apply(key))
-      assert(actual.invokeAction(key .. ':voice:apply'))
-      assert(manager.snapshot(player).settings.voiceProvider == 'omni' and manager.snapshot(player).settings.omniSteps == 32)
-      assert(actual.setDraft(key .. ':voiceProvider', 4)); assert(actual.apply(key))
-      assert(manager.snapshot(player).settings.voiceProvider == 'omni')
-      assert(actual.invokeAction(key .. ':voice:apply'))
+      assert(files['runtime/voice-preview.json'] == nil, 'a pending voice offered a worker preview')
       assert(manager.snapshot(player).settings.voiceProvider == 'convai')
+      assert(actual.revert(key) and actual.getValue(key .. ':voiceProvider') == 4)
+      assert(actual.setDraft(key .. ':voiceProvider', 2)); later(); assert(actual.apply(key))
+      assert(manager.snapshot(player).settings.voiceProvider == 'omni' and manager.snapshot(player).settings.omniSteps == 32)
       assert(actual.setDraft(key .. ':subtitles', false))
       assert(actual.setDraft(key .. ':developerMode', false))
       assert(actual.invokeAction(key .. ':permissions') == false)
@@ -2208,7 +2247,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(manager.developerMode() and actual.getValue(key .. ':developerMode') == true)
       assert(actual.resetDraft(key .. ':eyeContactHeight') and actual.resetDraft(key .. ':headFollowStrength'))
       assert(manager.gazeSettings().eyeContactHeight == 0.10 and manager.gazeSettings().headFollowStrength == 1.5)
-      assert(actual.apply(key))
+      later(); assert(actual.apply(key))
       assert(actual.getValue(key .. ':eyeContactHeight') == 3 and actual.getValue(key .. ':headFollowStrength') == 3)
       assert(manager.gazeSettings().eyeContactHeight == 0 and manager.gazeSettings().headFollowStrength == 1)
       assert(actual.invokeAction(key .. ':permissions') and mcm.inspect().view == 'permissions')

@@ -52,8 +52,8 @@ place the complete MCM ZIP in Runtime or copy a player's MCM state or CET bindin
   prepared lazily, with at most eight conditioning profiles cached. Selecting
   **Convai** unloads the model through the existing owned-worker lifecycle.
   Packaging must not start an extra model worker or VoiceStudio UI.
-- The manager stages a voice choice in Lua and prepares nothing until the
-  player chooses Apply voice change; Revert voice change discards it.
+- Settings stay as pending MCM drafts until the player chooses Apply (Auto Apply
+  is refused for this provider); no voice model is prepared before then.
 - Convai delivers continuous original PCM. OmniVoice plays completed phrases
   while later phrases generate. Preserve these distinct producer paths.
 - Do not include benchmark recordings, generated listening samples, training
