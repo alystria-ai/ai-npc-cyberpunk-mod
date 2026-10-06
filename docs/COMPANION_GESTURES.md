@@ -102,6 +102,24 @@ the generated catalog; it returns a clip to start now or nil.
 - **Never played:** threaten, middle finger, clap, thumbs-up, cheer, dance,
   and anything with steps or turns.
 
+## Stance families (catalog v2)
+
+`assets/gestures/gestures.json` v2 defines talk families; each becomes one
+workspot and one device component. Clips are discovered by prefix, kept only
+when in place (no motion extraction) and not banned, and categorised by name.
+
+| Family | Rigs | Clips (Oct 6 build) | Used by |
+|---|---|---|---|
+| `arms_crossed` (`stand__arms_crossed_front__01`, + Judy's 3 and Johnny's own) | all | 144 | Judy, Johnny, Rogue |
+| `on_sides` (`stand__2h_on_sides__01`, + Jackie's own) | all | 177 | Jackie, River, Viktor, Misty |
+| `on_hips` (`stand__2h_on_hip__01`) | woman, big | 45 | Panam |
+| `kerry` (`kerry__stand__2h_on_hip__01`) | man_base | 17 | Kerry |
+| `takemura` (`takemura__stand__2h_on_sides__01`) | man_base | 7 | Takemura |
+
+Vanilla idles reported by the user: Judy arms folded; Johnny and Jackie hands
+at sides. Johnny's family is still provisional (arms crossed vs on sides plus a
+signature layer).
+
 ## Building
 
 ```powershell
@@ -139,6 +157,31 @@ lines: requests, native call results, 4 Hz traces while active).
 | `clear` | Stop everything, delete devices |
 
 `<who>` is a serial, part of a name/record (`judy`, `johnny`), or `all`.
+
+## Stage 0 findings (October 6, live)
+
+- Natives (Codeware reflection): `PlayInDevice(device, actor, workspotStateFlavourName,
+  actorDataCompName, deviceDataCompName, syncSlotName, slideTime, slideBehaviour:
+  gameWorkspotSlidingBehaviour, callback)`; `SendFastExitSignal(actor, dirLS,
+  stayInWorkspotIfFailed, playSlowExitIfFailed, instant, tryBlendToWalk)`;
+  `StopInDevice(actor, posDelta, orientDelta)`; `SendJumpCommandEnt(actor, entryId:
+  Int32, instant)`; `PlayNpcInWorkspot(npc, master, referenceEntity, ...)`.
+- With `DontPlayAtResourcePosition` (the `gameWorkspotSlidingBehaviour` enum) and
+  slide time 0 the companion enters in place, no slide. Clips jump and return
+  to the idle loop correctly; lip sync and eye contact keep working.
+- The settled check must ignore single-tick group-frame flickers (camera turn,
+  opening chat/mic): movement = V > .75 m away from the start, V running, or a
+  non-hold decision for .8 s.
+- **AI wedge:** after an exit escalated to `StopNpcInWorkspot` (and once
+  `StopInDevice` that had not finished), the AI never ran another command:
+  the follow stays `Enqueued` indefinitely although flags, role, status
+  effects and workspot state are normal; role cycling and in-place teleport do
+  not help. The only clean exit observed was `SendFastExitSignal` with native
+  defaults finishing on its own (0.1 s). The probe now never uses
+  `StopNpcInWorkspot` unless asked and waits 3 s before `StopInDevice`.
+- Look: the generic hands-at-sides stance replaced Judy's folded-arms idle and
+  looked bland. Talk now uses the stance family matching each character's own
+  idle (v2 catalog), and nothing replaces the vanilla idle when not talking.
 
 ## Stages
 
