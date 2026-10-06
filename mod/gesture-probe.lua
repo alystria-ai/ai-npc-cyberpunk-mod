@@ -242,7 +242,7 @@ local function aiFlags(npc)
         local defs, board = Game.GetAllBlackboardDefs().PuppetState, npc:GetPuppetStateBlackboard()
         for _, name in ipairs({'WorkspotAnimationInProgress', 'InPendingBehavior', 'SlotAnimationInProgress'}) do
             local ok, value = pcall(function() return board:GetBool(defs[name]) end)
-            flags[name] = ok and value or ('error:' .. tostring(value))
+            if ok then flags[name] = value else flags[name] = 'error:' .. tostring(value) end
         end
     end)
     return flags
@@ -267,11 +267,40 @@ local function unstick(s, level)
         -- Cancels the owned (queued) command; the next decision issues a fresh one.
         actuator.release(entry.motor)
     end)
-    if (tonumber(level) or 1) >= 2 then
+    if (tonumber(level) or 1) == 2 then
         step('reattach-role', function()
             local ai = npc:GetAIControllerComponent()
             ai:SetAIRole(entry.role or ai:GetAIRole())
             ai:OnAttach()
+        end)
+    end
+    if (tonumber(level) or 1) >= 3 then
+        -- Workspot-related status effects can hold the behaviour tree in a
+        -- status-effect branch (aiStatusEffectTask sets InPendingBehavior).
+        step('remove-workspot-effects', function()
+            local removed = {}
+            for _, effect in ipairs(Game.GetStatusEffectSystem():GetAppliedEffects(npc:GetEntityID()) or {}) do
+                local id = effect:GetRecord():GetID()
+                local name = TDBID.ToStringDEBUG(id)
+                if name:find('Workspot', 1, true) then
+                    StatusEffectHelper.RemoveStatusEffect(npc, id); removed[#removed + 1] = name
+                end
+            end
+            steps[#steps + 1] = {step = 'removed-effects', list = removed}
+        end)
+        -- Immediate in-place teleport resets locomotion/animation ownership.
+        step('teleport-in-place', function()
+            Game.GetTeleportationFacility():Teleport(npc, npc:GetWorldPosition(), npc:GetWorldOrientation():ToEulerAngles())
+        end)
+        -- Full role cycle, as dismissal then spawn attach do.
+        step('role-cycle', function()
+            local ai = npc:GetAIControllerComponent()
+            if entry.role then pcall(function() entry.role:OnRoleCleared(npc) end) end
+            ai:SetAIRole(NewObject('AINoRole')); ai:OnAttach()
+            local role = NewObject('AIFollowerRole')
+            role.followerRef = Game.CreateEntityReference('#player', {})
+            ai:SetAIRole(role); ai:OnAttach()
+            entry.role = role
         end)
     end
     local after = {flags = aiFlags(npc), inWorkspot = inWorkspot(npc)}
@@ -423,6 +452,38 @@ COMMANDS.status = function(words)
     end)
 end
 COMMANDS.unstick = function(words) return each(words, function(s) return unstick(s, words[3]) end) end
+COMMANDS.diag = function(words)
+    return each(words, function(s)
+        local npc, out = s.entry.npc, {}
+        out.flags, out.inWorkspot = aiFlags(npc), inWorkspot(npc)
+        pcall(function()
+            local info = workspots():GetExtendedInfo(npc)
+            out.extended = {}
+            for _, field in ipairs({'isActive', 'entering', 'exiting', 'playingSyncAnim', 'inReaction', 'inMotion'}) do
+                out.extended[field] = info[field]
+            end
+        end)
+        pcall(function()
+            out.effects = {}
+            for _, effect in ipairs(Game.GetStatusEffectSystem():GetAppliedEffects(npc:GetEntityID()) or {}) do
+                out.effects[#out.effects + 1] = TDBID.ToStringDEBUG(effect:GetRecord():GetID())
+            end
+        end)
+        pcall(function() out.highLevel = tostring(npc:GetHighLevelStateFromBlackboard()) end)
+        pcall(function() out.autonomous = npc:IsOnAutonomousAI() end)
+        pcall(function() out.role = npc:GetAIControllerComponent():GetAIRole():GetClassName().value end)
+        pcall(function()
+            local board, defs = npc:GetPuppetStateBlackboard(), Game.GetAllBlackboardDefs().PuppetState
+            out.upperBody, out.stance = board:GetInt(defs.UpperBody), board:GetInt(defs.Stance)
+        end)
+        local motor = s.entry.motor or {}
+        out.command = {kind = motor.kind, stage = motor.stage, state = motor.feedback and motor.feedback.state,
+            id = motor.command and tonumber(motor.command.id), cancelling = motor.cancellation ~= nil}
+        out.behaviour = s.entry.person and s.entry.person.phase
+        log('diag', {serial = s.serial, diag = out})
+        return true, out
+    end)
+end
 COMMANDS.autounstick = function(words) M.autoUnstick = words[2] ~= 'off'; return true, {autoUnstick = M.autoUnstick} end
 COMMANDS.guard = function(words)
     M.guard = words[2] ~= 'off'
