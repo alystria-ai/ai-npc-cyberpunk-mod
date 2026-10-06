@@ -317,17 +317,6 @@ for record, profile in pairs(characterCatalog.build(profiles).records) do
     if ok then catalog.records[id] = profile end
 end
 convaiCompanions = companions
--- Stage 0 body-gesture probe (docs/COMPANION_GESTURES.md): loaded only when the
--- development file is installed, and inert until a probe request file arrives.
-do
-    local probeFile = io.open('gesture-probe.lua', 'rb')
-    if probeFile then
-        probeFile:close()
-        local loaded, probe = pcall(dofile, 'gesture-probe.lua')
-        if loaded and type(probe) == 'table' then companions.bodyAnimation = probe
-        else print('[CyberpunkConvai] Gesture probe failed to load: ' .. tostring(probe)) end
-    end
-end
 local generation = 0
 local active = nil
 local pending = nil
@@ -411,6 +400,57 @@ local function log(line)
         file:close()
     end
     print('[CyberpunkConvai] ' .. line)
+end
+
+-- Body gestures (docs/COMPANION_GESTURES.md): the controller is always loaded
+-- and does nothing while the setting is Off (the default). The development
+-- probe, when installed, takes precedence for copies it is driving.
+do
+    local function speechFor(entity)
+        local face = convaiFacialPlayback
+        if not face or not face.active or face.entity ~= entity or not face.timeline then return nil end
+        local offset = face.segment and face.segment.startSeconds or 0
+        local slot = face.expressions and face.expressions[entity]
+        return {requestId = face.requestId, knownEnd = offset + (face.timeline.duration or 0),
+            at = offset + (face.position or 0), family = slot and slot.family, scale = slot and slot.scale}
+    end
+    local loaded, controller = pcall(function()
+        return dofile('companion-gestures.lua').new({
+            enabled = function() return manager.bodyGestures() end,
+            speech = speechFor,
+            listening = function() return convaiFacialPlayback and convaiFacialPlayback.listeningEntity end,
+            log = function(kind, fields)
+                if manager.developerMode() then
+                    local ok, text = pcall(json.encode, fields)
+                    log('Gestures ' .. kind .. ' ' .. (ok and text or ''))
+                end
+            end,
+        })
+    end)
+    if not loaded then log('Gesture controller failed to load: ' .. tostring(controller)); controller = nil end
+    convaiGestures = controller
+    local probe
+    local probeFile = io.open('gesture-probe.lua', 'rb')
+    if probeFile then
+        probeFile:close()
+        local probeLoaded, value = pcall(dofile, 'gesture-probe.lua')
+        if probeLoaded and type(value) == 'table' then probe = value
+        else log('Gesture probe failed to load: ' .. tostring(value)) end
+    end
+    if probe and controller then
+        companions.bodyAnimation = {
+            tick = function(player, step, rows)
+                pcall(controller.tick, player, step, rows)
+                return probe.tick(player, step, rows)
+            end,
+            observe = function(entry, context, step)
+                if probe.observe(entry, context, step) then return true end
+                return controller.observe(entry, context, step)
+            end,
+            release = function(entry, reason) pcall(probe.release, entry, reason); return controller.release(entry, reason) end,
+            abandon = function(reason) pcall(probe.abandon, reason); return controller.abandon(reason) end,
+        }
+    else companions.bodyAnimation = probe or controller end
 end
 
 local function targetAtCrosshair()

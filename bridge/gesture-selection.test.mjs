@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
 
 const selection = readFileSync(new URL('../mod/gesture-selection.lua', import.meta.url), 'utf8');
-const catalog = readFileSync(new URL('../mod/gesture-catalog.lua', import.meta.url), 'utf8');
+const catalog = readFileSync(process.env.GESTURE_CATALOG || new URL('../mod/gesture-catalog.lua', import.meta.url), 'utf8');
 function run(code) {
   const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
   const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
@@ -141,14 +141,18 @@ test('listening only nods, sparsely; thinking and idle never gesture', () => run
 `));
 
 test('the generated catalog works with the policy for every rig and maps signature idles', () => run(`
-  for _,rig in ipairs(catalog.rigs) do
-    local s=m.new(lcg)
-    local n=0
-    for t=0,60,.1 do
-      local item=m.next(s,{now=t,mode='speaking',rig=rig,character='judy',family='sadness',scale=2,remaining=30,clips=catalog.clips})
-      if item then n=n+1;assert(item.clip.perRig[rig],'clip not on rig') end
+  local families=catalog.families or {on_sides={rigs=catalog.rigs,clips=catalog.clips}}
+  for name,family in pairs(families) do
+    for _,rig in ipairs(family.rigs) do
+      local s=m.new(lcg)
+      local n=0
+      local who=(name=='kerry' or name=='takemura') and name or 'judy'
+      for t=0,60,.1 do
+        local item=m.next(s,{now=t,mode='speaking',rig=rig,character=who,family='sadness',scale=2,remaining=30,clips=family.clips})
+        if item then n=n+1;assert(item.clip.perRig[rig],'clip not on rig');assert(item.clip.category~='idlebreak') end
+      end
+      assert(n>3,name..'/'..rig..' played '..n)
     end
-    assert(n>3,rig..' played '..n)
   end
   assert(m.idleComponent(catalog,'johnny')=='convai_idle_johnny')
   assert(m.idleComponent(catalog,'river')=='convai_idle_generic')

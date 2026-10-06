@@ -685,6 +685,8 @@ local function schema()
             setting('headFollowStrength', 'Head tracking strength', 'select', strengthIndex, 3,
                 'Choose how much companions turn their heads during eye contact. Eyes only relies on eye movement.',
                 {'Eyes only', 'Less', 'Gentle (default)', 'More'}),
+            setting('bodyGestures', 'Body gestures', 'bool', snapshot.settings.bodyGestures, false,
+                'Companions gesture with their body while they speak longer replies and nod while you talk to them, using the game’s own animations in their usual stance. They stop at once when anyone moves or a fight starts.'),
         })
         local voiceStatus = voiceServiceLabel(snapshot.localVoice)
         -- The list, best first: OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS, Convai cloud voice.
@@ -785,7 +787,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
             for _, change in ipairs(changes) do
                 local key = change.id
                 if key == 'voice' or key == 'subtitles' or key == 'followUpQuestions' or key == 'developerMode'
-                    or key == 'battleReactions' or key == 'lootReactions' then values[key] = change.value
+                    or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' then values[key] = change.value
                 elseif key == 'subtitleStyle' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose Above speaker or Dialogue HUD.')} end
                     values.subtitleStyle = change.value == 1 and 'overhead' or 'dialogue'

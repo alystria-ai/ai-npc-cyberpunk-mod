@@ -146,6 +146,8 @@ return {
     ["GAME MODELS"] = "ИГРОВЫЕ МОДЕЛИ",
     ["Gentle (default)"] = "Мягко (по умолчанию)",
     ["Head tracking strength"] = "Степень поворота головы",
+    ["Body gestures"] = "Жесты",
+    ["Companions gesture with their body while they speak longer replies and nod while you talk to them, using the game’s own animations in their usual stance. They stop at once when anyone moves or a fight starts."] = "Спутники жестикулируют во время длинных ответов и кивают, пока вы с ними говорите, используя собственные анимации игры в привычной позе. Они сразу останавливаются, если кто-то двигается или начинается бой.",
     ["INVITE QUEUED - CLOSE PHONE"] = "ПРИГЛАШЕНИЕ ОЖИДАЕТ — ЗАКРОЙТЕ ТЕЛЕФОН",
     ["Includes reserved invitations and current companions. Invited characters prepare while the menu is open, then join when ready after you return to gameplay. Dismissals take effect in gameplay."] = "Учитываются текущие напарники и места, занятые приглашениями. Приглашённые персонажи готовятся, пока меню открыто, и присоединяются после возвращения в игру, когда подготовка завершена. Уход из группы также происходит во время игры.",
     ["Installed character models"] = "Установленные модели персонажей",

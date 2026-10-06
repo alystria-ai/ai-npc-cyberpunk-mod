@@ -146,6 +146,8 @@ return {
   ["GAME MODELS"] = "ゲーム内モデル",
   ["Gentle (default)"] = "穏やか（初期設定）",
   ["Head tracking strength"] = "頭の追従の強さ",
+  ["Body gestures"] = "身振り",
+  ["Companions gesture with their body while they speak longer replies and nod while you talk to them, using the game’s own animations in their usual stance. They stop at once when anyone moves or a fight starts."] = "長めの返答をするとき、仲間はゲーム本来のアニメーションでいつもの姿勢のまま身振りを交え、あなたが話しかけている間はうなずきます。誰かが動いたり戦闘が始まったりすると、すぐにやめます。",
   ["INVITE QUEUED - CLOSE PHONE"] = "招待待ち - 電話を閉じてください",
   ["Includes reserved invitations and current companions. Invited characters prepare while the menu is open, then join when ready after you return to gameplay. Dismissals take effect in gameplay."] = "現在のコンパニオンと招待で確保した枠を含みます。招待したキャラクターはメニューを開いている間に準備し、ゲームに戻った後、準備が整い次第合流します。離脱もゲームに戻ると実行されます。",
   ["Installed character models"] = "インストール済みキャラクターモデル",

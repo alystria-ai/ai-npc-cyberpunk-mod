@@ -147,6 +147,8 @@ return {
     ["GAME MODELS"] = "MODELOS DEL JUEGO",
     ["Gentle (default)"] = "Suave (predeterminado)",
     ["Head tracking strength"] = "Intensidad del movimiento de cabeza",
+    ["Body gestures"] = "Gestos corporales",
+    ["Companions gesture with their body while they speak longer replies and nod while you talk to them, using the game’s own animations in their usual stance. They stop at once when anyone moves or a fight starts."] = "Los compañeros gesticulan con el cuerpo mientras dan respuestas largas y asienten mientras les hablas, con las animaciones del propio juego en su postura habitual. Se detienen al instante cuando alguien se mueve o empieza un combate.",
     ["INVITE QUEUED - CLOSE PHONE"] = "INVITACIÓN EN COLA - CIERRA EL TELÉFONO",
     ["Includes reserved invitations and current companions. Invited characters prepare while the menu is open, then join when ready after you return to gameplay. Dismissals take effect in gameplay."] = "Incluye las invitaciones reservadas y los compañeros actuales. Los personajes invitados se preparan con el menú abierto y se unen cuando están listos, después de volver al juego. Las despedidas se ejecutan durante el juego.",
     ["Installed character models"] = "Modelos de personajes instalados",

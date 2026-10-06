@@ -162,6 +162,26 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/face-probe.lua"
     },
     {
+      "source": "mod/companion-gestures.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-gestures.lua"
+    },
+    {
+      "source": "mod/gesture-workspot.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/gesture-workspot.lua"
+    },
+    {
+      "source": "mod/gesture-selection.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/gesture-selection.lua"
+    },
+    {
+      "source": "mod/gesture-catalog.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/gesture-catalog.lua"
+    },
+    {
+      "source": "mod/gesture-probe.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/gesture-probe.lua"
+    },
+    {
       "source": "r6/scripts/CyberpunkConvai/Face.reds",
       "target": "r6/scripts/CyberpunkConvai/Face.reds"
     },
@@ -172,6 +192,10 @@
     {
       "source": "runtime/facial-rig/package/convai_facial.archive",
       "target": "archive/pc/mod/convai_facial.archive"
+    },
+    {
+      "source": "runtime/gestures/package/convai_gestures.archive",
+      "target": "archive/pc/mod/convai_gestures.archive"
     },
     {
       "source": "runtime/ambient-driver-guard/package/cyberpunk_convai_ambient_driver_guard.archive",

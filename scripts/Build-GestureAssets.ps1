@@ -73,6 +73,10 @@ try {
     $output = Join-Path $WorkRoot 'package'
     [IO.Directory]::CreateDirectory($output) | Out-Null
     Copy-Item -LiteralPath $archive -Destination (Join-Path $output 'convai_gestures.archive') -Force
+    # The development and release manifests install it from the project runtime folder.
+    $installed = Join-Path $project 'runtime\gestures\package'
+    [IO.Directory]::CreateDirectory($installed) | Out-Null
+    Copy-Item -LiteralPath $archive -Destination (Join-Path $installed 'convai_gestures.archive') -Force
     Get-FileHash -LiteralPath (Join-Path $output 'convai_gestures.archive') -Algorithm SHA256
     Write-Output "Build folder: $work"
 } finally {

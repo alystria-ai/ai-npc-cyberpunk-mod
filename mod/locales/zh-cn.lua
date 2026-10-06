@@ -146,6 +146,8 @@ return {
     ["GAME MODELS"] = "游戏模型",
     ["Gentle (default)"] = "轻柔（默认）",
     ["Head tracking strength"] = "头部跟随幅度",
+    ["Body gestures"] = "肢体动作",
+    ["Companions gesture with their body while they speak longer replies and nod while you talk to them, using the game’s own animations in their usual stance. They stop at once when anyone moves or a fight starts."] = "伙伴在较长的回答中会以平常的站姿使用游戏自带的动画做手势，你说话时会点头。只要有人移动或开始战斗，就会立刻停止。",
     ["INVITE QUEUED - CLOSE PHONE"] = "邀请已排队，请关闭手机",
     ["Includes reserved invitations and current companions. Invited characters prepare while the menu is open, then join when ready after you return to gameplay. Dismissals take effect in gameplay."] = "包括已预留名额的邀请和当前伙伴。菜单打开时会为受邀角色进行准备；返回游戏后，准备就绪的角色才会加入。遣散也在游戏中生效。",
     ["Installed character models"] = "已安装的角色模型",

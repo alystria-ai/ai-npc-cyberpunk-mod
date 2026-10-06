@@ -146,6 +146,8 @@ return {
   ["GAME MODELS"] = "게임 모델",
   ["Gentle (default)"] = "부드럽게(기본값)",
   ["Head tracking strength"] = "머리 추적 강도",
+  ["Body gestures"] = "몸짓",
+  ["Companions gesture with their body while they speak longer replies and nod while you talk to them, using the game’s own animations in their usual stance. They stop at once when anyone moves or a fight starts."] = "동료가 긴 대답을 할 때 평소 자세 그대로 게임 고유의 애니메이션으로 몸짓을 하고, 당신이 말하는 동안에는 고개를 끄덕입니다. 누군가 움직이거나 전투가 시작되면 즉시 멈춥니다.",
   ["INVITE QUEUED - CLOSE PHONE"] = "초대 대기 - 전화 닫기",
   ["Includes reserved invitations and current companions. Invited characters prepare while the menu is open, then join when ready after you return to gameplay. Dismissals take effect in gameplay."] = "현재 동료와 초대로 확보한 자리를 포함합니다. 초대한 캐릭터는 메뉴가 열린 동안 준비하며, 게임으로 돌아간 뒤 준비가 끝나면 합류합니다. 해산도 게임으로 돌아가면 진행됩니다.",
   ["Installed character models"] = "설치된 캐릭터 모델",
