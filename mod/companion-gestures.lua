@@ -52,13 +52,22 @@ function M.new(options)
         random = options.random, log = options.log or function() end, errors = {}}
     local native, policy = self.native, M.policy
 
+    -- A family whose workspot is missing from the installed archive (older
+    -- archive) is skipped for its fallback after the first failed play.
+    self.missingFamilies = self.missingFamilies or {}
+    local function familyFor(known, key)
+        local family = key and not self.missingFamilies[key] and self.catalog.families and self.catalog.families[key]
+        if not family then return nil end
+        for _, rig in ipairs(family.rigs) do if rig == known.rig then return family, key end end
+        return nil
+    end
     local function characterOf(entry)
         local known = self.catalog.characters and self.catalog.characters[entry.record]
         if not known then return nil end
-        local family = self.catalog.families and self.catalog.families[known.talk]
+        local family, key = familyFor(known, known.talk)
+        if not family then family, key = familyFor(known, known.fallback) end
         if not family then return nil end
-        for _, rig in ipairs(family.rigs) do if rig == known.rig then return known, family end end
-        return nil
+        return known, family, key
     end
     local function stateFor(entry)
         local s = self.states[entry.serial]
@@ -131,12 +140,12 @@ function M.new(options)
     end
 
     local function between(range) return range[1] + (range[2] - range[1]) * ((self.random or math.random)()) end
-    local function begin(s, known, family, recovery, flavour)
+    local function begin(s, known, family, recovery, flavour, familyKey)
         s.phase, s.since = recovery and 'recovering' or 'spawning', self.clock
         s.flavour = flavour == true
         s.component = flavour and self.catalog.idleComponents[known.idle] or family.component
         s.flavourUntil = flavour and self.clock + between(policy.flavourLength) or nil
-        s.known, s.family, s.rig, s.character = known, family, known.rig, known.key
+        s.known, s.family, s.rig, s.character, s.familyKey = known, family, known.rig, known.key, familyKey
         s.deviceMoved, s.clip, s.exitAt, s.playerAnchor, s.unsettledSince = false, nil, nil, copy(self.playerPosition), nil
         s.recovery, s.playAt = recovery == true, nil
         note(s, recovery and 'recovery-begin' or (flavour and 'flavour-begin') or 'begin', {family = known.talk, component = s.component})
@@ -179,7 +188,13 @@ function M.new(options)
             end
             s.device = device
             local ok, result = native.play(device, npc, s.component or s.family.component)
-            if not ok then fail(s, 'play: ' .. tostring(result)); return end
+            if not ok then
+                if not s.flavour and s.familyKey and s.known.fallback and s.familyKey ~= s.known.fallback then
+                    self.missingFamilies[s.familyKey] = true
+                    note(s, 'family-missing', {family = s.familyKey, error = tostring(result)})
+                end
+                fail(s, 'play: ' .. tostring(result)); return
+            end
             s.playAt = self.clock
             if s.phase == 'spawning' then s.phase = 'starting' end
             note(s, 'play', {component = s.component})
@@ -198,7 +213,15 @@ function M.new(options)
                 end
                 s.phase, s.activeAt = 'active', self.clock
                 note(s, 'active', {})
-            elseif self.clock - s.playAt > 3 then fail(s, 'never entered the workspot')
+            elseif self.clock - s.playAt > 3 then
+                if not s.flavour and s.familyKey and s.known.fallback and s.familyKey ~= s.known.fallback then
+                    self.missingFamilies[s.familyKey] = true
+                    note(s, 'family-missing', {family = s.familyKey})
+                    s.cooldownUntil = nil
+                    s.phase, s.playAt = 'off', nil -- retry with the fallback family on the next settled tick
+                    return
+                end
+                fail(s, 'never entered the workspot')
             end
             if s.phase ~= 'active' then return end
         end
@@ -219,7 +242,9 @@ function M.new(options)
         if context.settled then s.unsettledSince = nil else s.unsettledSince = s.unsettledSince or self.clock end
         local moved = distance(s.playerAnchor, self.playerPosition)
         if (tonumber(s.entry.playerGap) or 0) > policy.nearKeep then requestExit(s, 'too far', false); return end
-        if moved > policy.playerMoved or (self.playerSpeed or 0) > policy.playerRunning
+        -- A single-tick speed spike (a collision nudge) is not running.
+        if (self.playerSpeed or 0) > policy.playerRunning then s.runningSince = s.runningSince or self.clock else s.runningSince = nil end
+        if moved > policy.playerMoved or (s.runningSince and self.clock - s.runningSince >= .3)
             or (s.unsettledSince and self.clock - s.unsettledSince > policy.unsettled) then
             requestExit(s, 'movement', false); return
         end
@@ -241,7 +266,9 @@ function M.new(options)
                 family = info and info.family, scale = info and info.scale, remaining = info and info.remaining,
                 total = info and info.total, clips = s.family.clips})
             if pick then
-                local ok = native.jump(npc, pick.clip.name, false)
+                -- Instant jump (still blended by the workspot's inertialization):
+                -- a queued jump waits for the 22-25 s idle loop to end (Oct 7 capture).
+                local ok = native.jump(npc, pick.clip.name, true)
                 if ok then
                     s.clip = {name = pick.clip.name, ends = self.clock + clipDuration(pick.clip, s.rig)}
                     note(s, 'gesture', {clip = pick.clip.name, category = pick.clip.category})
@@ -268,11 +295,11 @@ function M.new(options)
             if not s.recoveryExhausted then s.recoveryExhausted = true; note(s, 'recovery-exhausted', {}) end
             return
         end
-        local known, family = characterOf(s.entry)
+        local known, family, familyKey = characterOf(s.entry)
         if not known then return end
         s.recoveries[#s.recoveries + 1] = self.clock
         s.healthFrom = nil
-        begin(s, known, family, true)
+        begin(s, known, family, true, false, familyKey)
     end
 
     function self.observe(entry, context, step)
@@ -303,12 +330,12 @@ function M.new(options)
                 -- Only beside V, in a social stance: never for a copy left behind.
                 if (tonumber(entry.playerGap) or math.huge) > policy.nearStart then return end
                 if context.phase and not policy.socialPhases[context.phase] then return end
-                local known, family = characterOf(entry)
+                local known, family, familyKey = characterOf(entry)
                 if not known then return end
                 if native.inWorkspot(entry.npc) ~= false then return end -- seats and scenes own their workspots
                 local allowed = self.allowed(entry.npc, self.player)
                 if not allowed then return end
-                begin(s, known, family, false, flavour)
+                begin(s, known, family, false, flavour, familyKey)
                 if flavour then s.nextFlavourAt = self.clock + between(policy.flavourGap) end
             end
             if not self.enabled() and s.phase == 'active' then requestExit(s, 'disabled', false) end

@@ -29,6 +29,16 @@ local gaps = {{.6, 1.6}, {.4, 1.2}, {.3, .9}}
 local subtle = {'head_flick', 'nod', 'yes__head', 'no__head', 'look_', 'shuffle', 'scratch', 'weight_shift', 'breathe'}
 local expressive = {'explain', 'describe', 'demonstrate', 'gesture', 'point', 'shrug', 'calm_down', 'this_or_that',
     'confident', 'what', 'whatever', 'talk', '2h_', 'flick', 'rub_hands', 'me__'}
+-- Measured hand reach (cm, scripts/Measure-GestureMotion.py) when known:
+-- clips under 15 cm read as no gesture and are only used when nothing else
+-- fits; above that the weight grows with reach. Name heuristics otherwise.
+M.minimumReach = 15
+function M.motionWeight(item)
+    local reach = item.reach
+    if type(reach) ~= 'number' then return M.expressiveness(item.clip.name) end
+    if reach < M.minimumReach then return .05 end
+    return math.min(4, reach / 15)
+end
 function M.expressiveness(name)
     for _, word in ipairs(subtle) do if name:find(word, 1, true) then return .2 end end
     for _, word in ipairs(expressive) do if name:find(word, 1, true) then return 2.5 end end
@@ -58,7 +68,7 @@ local function candidates(clips, rig, character, category)
         local onRig = clip.perRig and clip.perRig[rig]
         if onRig and clip.category == category and M.allowed(clip.name)
             and (clip.character == nil or clip.character == character) then
-            list[#list + 1] = {clip = clip, duration = onRig.duration}
+            list[#list + 1] = {clip = clip, duration = onRig.duration, reach = onRig.reach}
         end
     end
     return list
@@ -83,7 +93,7 @@ local function pick(s, list, now, remaining, repeatable)
         local total, pool = 0, {}
         for _, item in ipairs(list) do
             if eligible(item, strict) then
-                local weight = (item.clip.character and 3 or 1) * (repeatable and 1 or M.expressiveness(item.clip.name))
+                local weight = (item.clip.character and 3 or 1) * (repeatable and 1 or M.motionWeight(item))
                 total = total + weight
                 pool[#pool + 1] = {item = item, weight = weight}
             end

@@ -37,7 +37,7 @@ function native.moveDevice() calls[#calls+1]={name='move'};return true end
 function native.deleteDevice() calls[#calls+1]={name='delete'};return true end
 function native.sweep() calls[#calls+1]={name='sweep'};return true end
 function native.play(d,n,component) calls[#calls+1]={name='play',component=component};n.entering=true;return true end
-function native.jump(n,clip) calls[#calls+1]={name='jump',clip=clip};return true end
+function native.jump(n,clip,instant) calls[#calls+1]={name='jump',clip=clip,instant=instant==true};return true end
 function native.exit(n,instant) calls[#calls+1]={name='exit',instant=instant==true};n.leaving=true;return true end
 function native.stopInDevice(n) calls[#calls+1]={name='stopInDevice'};return true end
 local m=(load([==[${controller}]==]))()
@@ -82,12 +82,12 @@ test('off by default setting, idle and short replies never enter a stance', () =
 test('a long reply enters the character stance family, gestures, and leaves after the reply', () => run(`
   speaking={knownEnd=14,at=0,family='joy',scale=2};step(.5)
   local play=last('play')
-  assert(play and play.component=='convai_talk_arms_crossed','Judy talks from arms crossed: '..tostring(play and play.component))
+  assert(play and play.component=='convai_talk_judy','Judy talks from her own idle: '..tostring(play and play.component))
   assert(held,'movement waits while in the stance')
   step(8)
   assert(count('jump')>=2,'gestures played: '..count('jump'))
   local cat=load(catalogSource)()
-  local fam=cat.families.arms_crossed
+  local fam=cat.families.judy_own
   for _,call in ipairs(calls) do
     if call.name=='jump' and call.clip~=fam.idle.name then
       local found
@@ -156,9 +156,9 @@ test('listening to V plays only nods from the stance family', () => run(`
   listening='77';step(12)
   local cat=load(catalogSource)()
   for _,call in ipairs(calls) do
-    if call.name=='jump' and call.clip~=cat.families.arms_crossed.idle.name then
+    if call.name=='jump' and call.clip~=cat.families.judy_own.idle.name then
       local category
-      for _,clip in ipairs(cat.families.arms_crossed.clips) do if clip.name==call.clip then category=clip.category end end
+      for _,clip in ipairs(cat.families.judy_own.clips) do if clip.name==call.clip then category=clip.category end end
       assert(category=='nod','listening clip '..call.clip..' is '..tostring(category))
     end
   end
@@ -169,7 +169,7 @@ test('unknown characters are left alone', () => run(`
   assert(count('play')==0)
 `));
 
-test('Johnny takes his signature idle now and then when settled, never Judy, and talks from his own set', () => run(`
+test('Johnny takes his signature idle now and then when settled, never Judy, and talks from hands at sides', () => run(`
   step(130)
   assert(count('play')==0,'Judy keeps her vanilla idle (no flavour)')
   entry.record='Character.Silverhand';entry.serial=2;calls={};logs={}
@@ -183,7 +183,7 @@ test('Johnny takes his signature idle now and then when settled, never Judy, and
   speaking={knownEnd=20,at=0};step(.3)
   if lastLog('flavour-begin') and not lastLog('exit') then end
   step(1.5)
-  assert(last('play').component=='convai_talk_johnny','Johnny talks from his hand-in-pocket set: '..tostring(last('play').component))
+  assert(last('play').component=='convai_talk_on_sides','Johnny talks from hands at sides like his idle: '..tostring(last('play').component))
 `));
 
 test('never starts for a copy left behind or not in a social stance; leaves when V gets far', () => run(`
@@ -212,7 +212,7 @@ test('a long reply streamed phrase by phrase is judged by its text, and gestures
   end
   local cat=load(catalogSource)()
   local durations={}
-  for _,clip in ipairs(cat.families.arms_crossed.clips) do durations[clip.name]=clip.perRig.woman_base and clip.perRig.woman_base.duration end
+  for _,clip in ipairs(cat.families.judy_own.clips) do durations[clip.name]=clip.perRig.woman_base and clip.perRig.woman_base.duration end
   local covered=0
   for _,call in ipairs(calls) do
     if call.name=='jump' and durations[call.clip] then n=n+1;covered=covered+durations[call.clip] end
@@ -226,4 +226,39 @@ test('a short reply split into phrases still does not gesture', () => run(`
   c.replyText=function() return 'Yes, I can do that.' end
   speaking={knownEnd=2.0,at=0};step(3)
   assert(count('play')==0)
+`));
+
+test('gesture jumps are instant; the return to the idle loop is queued at the clip end', () => run(`
+  speaking={knownEnd=14,at=0};step(6)
+  local cat=load(catalogSource)()
+  local idle=cat.families.judy_own.idle.name
+  local gestures,returns=0,0
+  for _,call in ipairs(calls) do
+    if call.name=='jump' then
+      if call.clip==idle then assert(not call.instant,'idle return waits for the clip');returns=returns+1
+      else assert(call.instant,'gesture jump is instant: '..call.clip);gestures=gestures+1 end
+    end
+  end
+  assert(gestures>=1 and returns>=1,'gestures '..gestures..' returns '..returns)
+`));
+
+test('an archive without the new family falls back to the previous family', () => run(`
+  local realPlay=native.play
+  native.play=function(d,n,component)
+    calls[#calls+1]={name='play',component=component}
+    if component~='convai_talk_judy' then n.entering=true end
+    return true
+  end
+  speaking={knownEnd=20,at=0};step(4)
+  assert(lastLog('family-missing') and lastLog('family-missing').fields.family=='judy_own')
+  step(1)
+  assert(last('play').component=='convai_talk_arms_crossed','fell back: '..tostring(last('play').component))
+  assert(held,'now in the fallback stance')
+`));
+
+test('a one-tick V speed spike (collision nudge) does not end the stance', () => run(`
+  speaking={knownEnd=20,at=0};step(.6)
+  player.pos={x=.4,y=0,z=0};step(.1)
+  player.pos={x=.42,y=0,z=0};step(.3)
+  assert(count('exit')==0,'a nudge is not running')
 `));

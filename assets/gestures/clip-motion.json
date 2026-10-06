@@ -1,0 +1,5602 @@
+{
+"animsets": {
+"generic_average_female_stand_2h_on_sides": {
+"add__stand__2h_on_sides__01__afraid": [
+19.6,
+7.2
+],
+"add__stand__2h_on_sides__01__dynamic": [
+4.4,
+4.3
+],
+"add__stand__2h_on_sides__01__nervous": [
+8.4,
+8.1
+],
+"stand__2h_on_sides__01": [
+1.5,
+0.0
+],
+"stand__2h_on_sides__01__1_step_back__turn0__01": [
+9.0,
+6.6
+],
+"stand__2h_on_sides__01__1_step_back__turn0__02": [
+15.0,
+13.2
+],
+"stand__2h_on_sides__01__1_step_back__turn0__03": [
+9.0,
+7.1
+],
+"stand__2h_on_sides__01__1_step_back__turn0__04": [
+9.3,
+8.1
+],
+"stand__2h_on_sides__01__1_step_back__turn0__05": [
+11.8,
+12.3
+],
+"stand__2h_on_sides__01__1_step_back__turn0__loop__01": [
+18.7,
+13.3
+],
+"stand__2h_on_sides__01__1_step_front__turn0__01": [
+8.9,
+7.7
+],
+"stand__2h_on_sides__01__1_step_left__turn0__01": [
+11.0,
+8.9
+],
+"stand__2h_on_sides__01__1_step_left__turn0__02": [
+11.4,
+8.4
+],
+"stand__2h_on_sides__01__1_step_left__turn0__03": [
+12.7,
+13.4
+],
+"stand__2h_on_sides__01__1_step_right__turn0__02": [
+9.1,
+6.4
+],
+"stand__2h_on_sides__01__1_step_right__turn0__loop__02": [
+16.2,
+14.6
+],
+"stand__2h_on_sides__01__2h_clap__broad__01": [
+63.6,
+5.6
+],
+"stand__2h_on_sides__01__2h_clap__happy__01": [
+44.3,
+18.8
+],
+"stand__2h_on_sides__01__2h_clap__narrow__01": [
+35.8,
+4.9
+],
+"stand__2h_on_sides__01__2h_flick__01": [
+34.2,
+6.1
+],
+"stand__2h_on_sides__01__2h_flick__02": [
+26.8,
+2.4
+],
+"stand__2h_on_sides__01__2h_flick__03": [
+31.4,
+5.7
+],
+"stand__2h_on_sides__01__2h_flick__04": [
+23.3,
+2.6
+],
+"stand__2h_on_sides__01__2h_flick__05": [
+29.9,
+5.2
+],
+"stand__2h_on_sides__01__av_reaction__01": [
+52.9,
+9.9
+],
+"stand__2h_on_sides__01__calm_down__afraid__01": [
+65.6,
+13.4
+],
+"stand__2h_on_sides__01__calm_down__afraid__step_back__02": [
+69.8,
+4.4
+],
+"stand__2h_on_sides__01__calm_down__angry__01": [
+56.2,
+8.1
+],
+"stand__2h_on_sides__01__calm_down__disgusted__01": [
+60.0,
+9.3
+],
+"stand__2h_on_sides__01__calm_down__happy__01": [
+36.3,
+8.1
+],
+"stand__2h_on_sides__01__cant_hear_you__angry__01": [
+12.8,
+4.4
+],
+"stand__2h_on_sides__01__cant_hear_you__angry__02": [
+16.4,
+4.0
+],
+"stand__2h_on_sides__01__cant_hear_you__neutral__01": [
+17.9,
+2.4
+],
+"stand__2h_on_sides__01__cant_hear_you__neutral__03": [
+10.2,
+2.1
+],
+"stand__2h_on_sides__01__cant_hear_you__neutral__04": [
+6.3,
+2.3
+],
+"stand__2h_on_sides__01__cant_hear_you__neutral__05": [
+1.3,
+0.0
+],
+"stand__2h_on_sides__01__check_reflection_mirror__01": [
+67.5,
+25.4
+],
+"stand__2h_on_sides__01__check_reflection_mirror__02": [
+64.5,
+24.2
+],
+"stand__2h_on_sides__01__check_reflection_mirror__03": [
+64.4,
+23.4
+],
+"stand__2h_on_sides__01__check_reflection_mirror__04": [
+27.1,
+24.7
+],
+"stand__2h_on_sides__01__cheer__05": [
+110.0,
+64.8
+],
+"stand__2h_on_sides__01__cheer__06": [
+80.5,
+30.8
+],
+"stand__2h_on_sides__01__cheer__07": [
+88.9,
+52.8
+],
+"stand__2h_on_sides__01__cracking_knuckles__01": [
+44.8,
+3.3
+],
+"stand__2h_on_sides__01__cracking_knuckles__angry__01": [
+43.7,
+11.5
+],
+"stand__2h_on_sides__01__deep_breath__01": [
+6.2,
+6.4
+],
+"stand__2h_on_sides__01__demonstrate_negative__02": [
+101.6,
+30.0
+],
+"stand__2h_on_sides__01__demonstrate_negative__03": [
+83.1,
+62.3
+],
+"stand__2h_on_sides__01__demonstrate_negative__05": [
+89.5,
+8.9
+],
+"stand__2h_on_sides__01__demonstrate_negative__06": [
+91.7,
+72.0
+],
+"stand__2h_on_sides__01__demonstrate_negative__07": [
+75.8,
+37.1
+],
+"stand__2h_on_sides__01__demonstrate_positive__01": [
+94.5,
+73.6
+],
+"stand__2h_on_sides__01__demonstrate_positive__02": [
+101.8,
+76.0
+],
+"stand__2h_on_sides__01__demonstrate_positive__03": [
+102.1,
+36.5
+],
+"stand__2h_on_sides__01__demonstrate_positive__04": [
+105.4,
+57.7
+],
+"stand__2h_on_sides__01__demonstrate_positive__05": [
+101.9,
+62.5
+],
+"stand__2h_on_sides__01__demonstrate_positive__06": [
+105.2,
+39.5
+],
+"stand__2h_on_sides__01__demonstrate_positive__07": [
+104.5,
+79.0
+],
+"stand__2h_on_sides__01__demonstrate_positive__08": [
+109.4,
+86.3
+],
+"stand__2h_on_sides__01__demonstrate_positive__09": [
+103.3,
+35.7
+],
+"stand__2h_on_sides__01__describe_back__01": [
+52.1,
+22.5
+],
+"stand__2h_on_sides__01__describe_back__broad__02": [
+60.0,
+43.6
+],
+"stand__2h_on_sides__01__describe_circle__01": [
+35.8,
+11.4
+],
+"stand__2h_on_sides__01__describe_circle__02": [
+31.8,
+6.8
+],
+"stand__2h_on_sides__01__describe_down__01": [
+39.5,
+5.3
+],
+"stand__2h_on_sides__01__describe_down__02": [
+33.5,
+2.6
+],
+"stand__2h_on_sides__01__describe_down__03": [
+46.2,
+12.1
+],
+"stand__2h_on_sides__01__describe_front__01": [
+62.7,
+27.9
+],
+"stand__2h_on_sides__01__describe_front__02": [
+60.3,
+31.4
+],
+"stand__2h_on_sides__01__describe_front__03": [
+69.3,
+37.4
+],
+"stand__2h_on_sides__01__describe_left__01": [
+30.0,
+25.1
+],
+"stand__2h_on_sides__01__describe_left__02": [
+43.6,
+0.6
+],
+"stand__2h_on_sides__01__describe_left__broad__01": [
+65.4,
+55.3
+],
+"stand__2h_on_sides__01__describe_left__broad__02": [
+71.0,
+9.4
+],
+"stand__2h_on_sides__01__describe_right__01": [
+36.0,
+9.7
+],
+"stand__2h_on_sides__01__describe_right__02": [
+47.1,
+1.4
+],
+"stand__2h_on_sides__01__describe_right__broad__01": [
+69.6,
+59.9
+],
+"stand__2h_on_sides__01__describe_right__broad__02": [
+67.8,
+10.8
+],
+"stand__2h_on_sides__01__describe_up__01": [
+54.2,
+21.0
+],
+"stand__2h_on_sides__01__describe_up__03": [
+75.9,
+46.6
+],
+"stand__2h_on_sides__01__facepalm__01": [
+57.8,
+13.9
+],
+"stand__2h_on_sides__01__facepalm__broad__01": [
+86.5,
+43.0
+],
+"stand__2h_on_sides__01__facepalm__disgusted__01": [
+60.7,
+17.4
+],
+"stand__2h_on_sides__01__facepalm__disgusted__02": [
+59.1,
+8.1
+],
+"stand__2h_on_sides__01__fuck_you__angry__01": [
+93.6,
+18.8
+],
+"stand__2h_on_sides__01__fuck_you__angry__02": [
+58.6,
+24.8
+],
+"stand__2h_on_sides__01__fuck_you__happy__step_back__01": [
+51.7,
+12.9
+],
+"stand__2h_on_sides__01__gesture_hold__01": [
+1.2,
+0.9
+],
+"stand__2h_on_sides__01__gesture_hold__01__flick__01": [
+6.3,
+3.7
+],
+"stand__2h_on_sides__01__gesture_hold__01__flick__02": [
+13.8,
+11.1
+],
+"stand__2h_on_sides__01__gesture_hold__01__flick__03": [
+23.8,
+19.7
+],
+"stand__2h_on_sides__01__gesture_hold__01__flick__04": [
+35.5,
+30.7
+],
+"stand__2h_on_sides__01__gesture_hold__01__lh_fingers__01": [
+1.3,
+0.9
+],
+"stand__2h_on_sides__01__gesture_hold__01__lh_fingers__02": [
+1.1,
+0.1
+],
+"stand__2h_on_sides__01__gesture_hold__01__rh_fingers__01": [
+1.1,
+0.2
+],
+"stand__2h_on_sides__01__gesture_hold__01__rh_fingers__02": [
+1.1,
+0.3
+],
+"stand__2h_on_sides__01__gesture_hold__01__shrug__01": [
+19.9,
+12.7
+],
+"stand__2h_on_sides__01__gesture_hold__01__shuffle__01": [
+4.5,
+2.4
+],
+"stand__2h_on_sides__01__head_flick_down__01": [
+4.2,
+4.5
+],
+"stand__2h_on_sides__01__head_flick_down__02": [
+1.3,
+0.3
+],
+"stand__2h_on_sides__01__head_flick_down__03": [
+3.9,
+4.4
+],
+"stand__2h_on_sides__01__head_flick_down__04": [
+0.9,
+0.3
+],
+"stand__2h_on_sides__01__head_flick_left__01": [
+11.9,
+4.1
+],
+"stand__2h_on_sides__01__head_flick_left__02": [
+2.4,
+0.2
+],
+"stand__2h_on_sides__01__head_flick_left__03": [
+1.0,
+0.3
+],
+"stand__2h_on_sides__01__head_flick_left__04": [
+1.4,
+0.0
+],
+"stand__2h_on_sides__01__head_flick_left__05": [
+7.7,
+8.3
+],
+"stand__2h_on_sides__01__head_flick_right__01": [
+3.0,
+1.9
+],
+"stand__2h_on_sides__01__head_flick_right__02": [
+3.9,
+7.2
+],
+"stand__2h_on_sides__01__head_flick_right__03": [
+5.5,
+7.0
+],
+"stand__2h_on_sides__01__head_flick_right__04": [
+3.7,
+4.0
+],
+"stand__2h_on_sides__01__head_flick_right__05": [
+2.6,
+0.9
+],
+"stand__2h_on_sides__01__head_flick_up__01": [
+7.2,
+9.6
+],
+"stand__2h_on_sides__01__head_flick_up__02": [
+0.9,
+0.8
+],
+"stand__2h_on_sides__01__head_flick_up__03": [
+2.8,
+0.7
+],
+"stand__2h_on_sides__01__head_flick_up__04": [
+5.6,
+5.5
+],
+"stand__2h_on_sides__01__impatient__01": [
+12.0,
+11.0
+],
+"stand__2h_on_sides__01__impatient__02": [
+17.4,
+8.4
+],
+"stand__2h_on_sides__01__impatient__03": [
+31.2,
+29.8
+],
+"stand__2h_on_sides__01__inspect__01": [
+32.3,
+10.1
+],
+"stand__2h_on_sides__01__inspect_ground__01": [
+23.7,
+15.9
+],
+"stand__2h_on_sides__01__listen_music__01": [
+20.9,
+10.7
+],
+"stand__2h_on_sides__01__listen_music__02": [
+66.1,
+28.7
+],
+"stand__2h_on_sides__01__listen_music__03": [
+70.2,
+13.4
+],
+"stand__2h_on_sides__01__listen_music__04": [
+51.8,
+44.7
+],
+"stand__2h_on_sides__01__listen_music__05": [
+61.1,
+24.5
+],
+"stand__2h_on_sides__01__listen_music__06": [
+79.5,
+65.1
+],
+"stand__2h_on_sides__01__look_around__01": [
+5.0,
+2.0
+],
+"stand__2h_on_sides__01__look_around__02": [
+12.6,
+7.5
+],
+"stand__2h_on_sides__01__me__01": [
+46.7,
+6.6
+],
+"stand__2h_on_sides__01__me__02": [
+29.0,
+3.0
+],
+"stand__2h_on_sides__01__me__03": [
+36.5,
+4.0
+],
+"stand__2h_on_sides__01__me__afraid__01": [
+35.9,
+4.3
+],
+"stand__2h_on_sides__01__me__afraid__02": [
+39.0,
+2.9
+],
+"stand__2h_on_sides__01__me__afraid__03": [
+41.8,
+3.7
+],
+"stand__2h_on_sides__01__me__angry__01": [
+42.7,
+4.4
+],
+"stand__2h_on_sides__01__me__angry__broad__01": [
+40.9,
+6.1
+],
+"stand__2h_on_sides__01__me__angry__step_fwd__01": [
+39.4,
+3.0
+],
+"stand__2h_on_sides__01__no__01": [
+30.0,
+12.9
+],
+"stand__2h_on_sides__01__no__02": [
+8.8,
+0.5
+],
+"stand__2h_on_sides__01__no__angry__01": [
+43.4,
+10.7
+],
+"stand__2h_on_sides__01__no__angry__02": [
+51.7,
+9.5
+],
+"stand__2h_on_sides__01__no__angry__broad__01": [
+47.1,
+18.2
+],
+"stand__2h_on_sides__01__no__head__01": [
+1.1,
+0.3
+],
+"stand__2h_on_sides__01__press_button_01": [
+47.6,
+7.9
+],
+"stand__2h_on_sides__01__press_elevator__01": [
+42.8,
+27.5
+],
+"stand__2h_on_sides__01__raise_hand__01": [
+52.0,
+18.7
+],
+"stand__2h_on_sides__01__raise_hand__02": [
+55.3,
+21.9
+],
+"stand__2h_on_sides__01__raise_hand__03": [
+45.9,
+0.5
+],
+"stand__2h_on_sides__01__rh_flick__01": [
+45.2,
+11.4
+],
+"stand__2h_on_sides__01__rh_flick__02": [
+32.3,
+5.9
+],
+"stand__2h_on_sides__01__rh_flick__03": [
+23.6,
+10.2
+],
+"stand__2h_on_sides__01__rh_flick__04": [
+52.0,
+23.2
+],
+"stand__2h_on_sides__01__rh_flick__05": [
+56.7,
+14.5
+],
+"stand__2h_on_sides__01__rh_give_item__01": [
+50.3,
+23.8
+],
+"stand__2h_on_sides__01__rh_pick_item__01": [
+52.0,
+21.3
+],
+"stand__2h_on_sides__01__rub_hands__01": [
+36.1,
+0.9
+],
+"stand__2h_on_sides__01__rub_hands__02": [
+31.7,
+5.8
+],
+"stand__2h_on_sides__01__rub_hands__03": [
+36.0,
+2.5
+],
+"stand__2h_on_sides__01__scratch_neck__01": [
+56.1,
+11.8
+],
+"stand__2h_on_sides__01__scratch_neck__02": [
+64.3,
+24.8
+],
+"stand__2h_on_sides__01__scratch_neck__03": [
+71.0,
+28.9
+],
+"stand__2h_on_sides__01__scratch_neck__04": [
+62.9,
+12.1
+],
+"stand__2h_on_sides__01__shift_gesture_hold_neutral__01": [
+39.6,
+3.8
+],
+"stand__2h_on_sides__01__shift_neutral_gesture_hold__01": [
+41.0,
+20.2
+],
+"stand__2h_on_sides__01__shrug__01": [
+16.7,
+22.4
+],
+"stand__2h_on_sides__01__shrug__02": [
+15.6,
+20.9
+],
+"stand__2h_on_sides__01__shrug__broad__01": [
+40.1,
+51.3
+],
+"stand__2h_on_sides__01__shrug__broad__02": [
+30.4,
+30.4
+],
+"stand__2h_on_sides__01__shrug__narrow__01": [
+5.5,
+7.4
+],
+"stand__2h_on_sides__01__shrug__narrow__02": [
+2.8,
+1.2
+],
+"stand__2h_on_sides__01__sigh__01": [
+6.1,
+4.3
+],
+"stand__2h_on_sides__01__sigh__02": [
+3.9,
+1.9
+],
+"stand__2h_on_sides__01__sigh__03": [
+11.3,
+10.3
+],
+"stand__2h_on_sides__01__step_fwd__01": [
+11.6,
+9.0
+],
+"stand__2h_on_sides__01__stop__afraid__step_back__01": [
+59.7,
+1.8
+],
+"stand__2h_on_sides__01__stop__angry__02": [
+68.8,
+45.3
+],
+"stand__2h_on_sides__01__stop__angry__step_back__01": [
+67.8,
+10.5
+],
+"stand__2h_on_sides__01__stop__surprised__01": [
+48.3,
+6.3
+],
+"stand__2h_on_sides__01__stop__surprised__02": [
+53.2,
+7.6
+],
+"stand__2h_on_sides__01__stop__surprised__03": [
+59.4,
+0.5
+],
+"stand__2h_on_sides__01__stretch_arms__01": [
+21.2,
+11.6
+],
+"stand__2h_on_sides__01__stretch_arms__02": [
+16.4,
+5.4
+],
+"stand__2h_on_sides__01__stretch_neck__01": [
+5.6,
+2.8
+],
+"stand__2h_on_sides__01__talk__neutral__01": [
+31.6,
+33.9
+],
+"stand__2h_on_sides__01__talk__neutral__02": [
+32.7,
+17.5
+],
+"stand__2h_on_sides__01__talk__neutral__03": [
+37.9,
+15.4
+],
+"stand__2h_on_sides__01__talk__neutral__04": [
+53.1,
+38.7
+],
+"stand__2h_on_sides__01__talk__neutral__05": [
+60.4,
+54.3
+],
+"stand__2h_on_sides__01__this_or_that__01": [
+39.9,
+18.4
+],
+"stand__2h_on_sides__01__this_or_that__angry__01": [
+51.3,
+23.2
+],
+"stand__2h_on_sides__01__this_or_that__angry__02": [
+20.1,
+15.1
+],
+"stand__2h_on_sides__01__this_or_that__broad__01": [
+34.5,
+24.5
+],
+"stand__2h_on_sides__01__threaten__angry__01": [
+18.2,
+21.2
+],
+"stand__2h_on_sides__01__threaten__angry__02": [
+19.7,
+26.4
+],
+"stand__2h_on_sides__01__threaten__angry__03": [
+50.7,
+29.9
+],
+"stand__2h_on_sides__01__threaten__angry__04": [
+12.6,
+11.8
+],
+"stand__2h_on_sides__01__threaten__angry__05": [
+39.3,
+2.4
+],
+"stand__2h_on_sides__01__thumb_up__happy__02": [
+47.3,
+6.0
+],
+"stand__2h_on_sides__01__thumb_up__neutral__01": [
+42.9,
+5.5
+],
+"stand__2h_on_sides__01__thumb_up__neutral__03": [
+48.3,
+5.5
+],
+"stand__2h_on_sides__01__what__afraid__01": [
+7.2,
+11.2
+],
+"stand__2h_on_sides__01__what__afraid__02": [
+4.6,
+2.1
+],
+"stand__2h_on_sides__01__what__afraid__03": [
+47.0,
+5.3
+],
+"stand__2h_on_sides__01__what__angry__01": [
+21.3,
+16.7
+],
+"stand__2h_on_sides__01__what__angry__02": [
+31.1,
+10.9
+],
+"stand__2h_on_sides__01__what__disgusted__01": [
+47.9,
+4.0
+],
+"stand__2h_on_sides__01__what__happy__01": [
+29.9,
+39.2
+],
+"stand__2h_on_sides__01__what__happy__02": [
+34.6,
+16.1
+],
+"stand__2h_on_sides__01__what__neutral__01": [
+24.4,
+19.8
+],
+"stand__2h_on_sides__01__what__neutral__02": [
+45.5,
+7.0
+],
+"stand__2h_on_sides__01__what__neutral__03": [
+49.6,
+7.1
+],
+"stand__2h_on_sides__01__what__neutral__04": [
+60.0,
+21.6
+],
+"stand__2h_on_sides__01__what__neutral__05": [
+26.5,
+23.1
+],
+"stand__2h_on_sides__01__what__neutral__06": [
+32.8,
+33.5
+],
+"stand__2h_on_sides__01__what__sad__01": [
+41.3,
+28.4
+],
+"stand__2h_on_sides__01__what__sad__02": [
+20.8,
+7.3
+],
+"stand__2h_on_sides__01__what__surprised__01": [
+44.9,
+21.4
+],
+"stand__2h_on_sides__01__what_is_this__01": [
+56.0,
+26.4
+],
+"stand__2h_on_sides__01__what_is_this__angry__01": [
+23.1,
+24.3
+],
+"stand__2h_on_sides__01__what_is_this__angry__02": [
+65.8,
+5.7
+],
+"stand__2h_on_sides__01__what_is_this__angry__step_fwd__01": [
+58.7,
+48.7
+],
+"stand__2h_on_sides__01__what_is_this__broad__01": [
+49.2,
+11.5
+],
+"stand__2h_on_sides__01__whatever__angry__01": [
+19.2,
+24.9
+],
+"stand__2h_on_sides__01__whatever__angry__02": [
+49.8,
+19.7
+],
+"stand__2h_on_sides__01__whatever__disgusted__01": [
+57.3,
+34.5
+],
+"stand__2h_on_sides__01__whatever__disgusted__02": [
+24.5,
+24.8
+],
+"stand__2h_on_sides__01__whatever__disgusted__03": [
+19.1,
+6.8
+],
+"stand__2h_on_sides__01__whatever__sad__01": [
+6.5,
+8.5
+],
+"stand__2h_on_sides__01__whatever__sad__02": [
+23.8,
+17.4
+],
+"stand__2h_on_sides__01__whatever__sad__03": [
+26.4,
+20.0
+],
+"stand__2h_on_sides__01__yes__01": [
+8.5,
+3.1
+],
+"stand__2h_on_sides__01__yes__afraid__03": [
+22.0,
+0.0
+],
+"stand__2h_on_sides__01__yes__angry__01": [
+18.1,
+22.8
+],
+"stand__2h_on_sides__01__yes__angry__02": [
+31.6,
+29.0
+],
+"stand__2h_on_sides__01__yes__angry__03": [
+24.0,
+14.9
+],
+"stand__2h_on_sides__01__yes__disgusted__01": [
+30.4,
+1.6
+],
+"stand__2h_on_sides__01__yes__head__01": [
+1.9,
+0.2
+],
+"stand__2h_on_sides__01__yes__sad__01": [
+2.4,
+0.0
+],
+"stand__2h_on_sides__01__yes__sad__02": [
+9.3,
+0.2
+],
+"stand__2h_on_sides__01__yes__sad__03": [
+22.0,
+4.1
+],
+"stand__2h_on_sides__01__yes__surprised__02": [
+35.4,
+25.0
+],
+"stand__2h_on_sides__01__yes__surprised__03": [
+38.2,
+35.5
+]
+},
+"generic_average_female_stand__2h_on_sides": {
+"stand__2h_on_sides__01": [
+1.2,
+1.1
+],
+"stand__2h_on_sides__01__3_step_back__turn180l__01": [
+8.9,
+8.1
+],
+"stand__2h_on_sides__01__3_step_left__turn0__01": [
+12.9,
+7.8
+],
+"stand__2h_on_sides__01__fuck_you__angry__01": [
+102.0,
+19.1
+],
+"stand__2h_on_sides__01__scratch_neck__03": [
+71.0,
+28.9
+],
+"stand__2h_on_sides__01__shuffle__01": [
+16.4,
+7.5
+],
+"stand__2h_on_sides__01__shuffle__02": [
+20.2,
+8.6
+],
+"stand__2h_on_sides__01__shuffle__03": [
+15.1,
+6.2
+],
+"stand__2h_on_sides__01__shuffle__04": [
+13.0,
+2.9
+],
+"stand__2h_on_sides__01__spit__01": [
+57.7,
+21.1
+],
+"stand__2h_on_sides__01__stop__angry__01": [
+78.8,
+16.3
+],
+"stand__2h_on_sides__01__talk__neutral__06": [
+47.7,
+33.6
+],
+"stand__2h_on_sides__01__talk__neutral__07": [
+51.2,
+30.2
+],
+"stand__2h_on_sides__01__talk__neutral__08": [
+56.4,
+5.2
+],
+"stand__2h_on_sides__01__to__step_back__01__turn0__01": [
+14.9,
+5.6
+],
+"stand__2h_on_sides__01__to__step_front__01__turn0__01": [
+11.3,
+5.3
+],
+"stand__2h_on_sides__01__what__afraid__01": [
+60.7,
+18.6
+],
+"stand__2h_on_sides__01__what__afraid__02": [
+59.5,
+17.1
+],
+"stand__2h_on_sides__01__what__angry__01": [
+31.4,
+39.3
+],
+"stand__2h_on_sides__01__what__neutral__01": [
+17.2,
+6.4
+],
+"stand__2h_on_sides__01__what__neutral__02": [
+30.4,
+36.4
+],
+"stand__2h_on_sides__01__what__neutral__03": [
+13.6,
+11.1
+],
+"stand__2h_on_sides__01__what__sad__01": [
+42.1,
+7.9
+],
+"stand__2h_on_sides__01__what_is_this__angry__01": [
+82.3,
+44.4
+],
+"stand__2h_on_sides__01__whatever__disgusted__01": [
+49.4,
+57.5
+],
+"stand__2h_on_sides__01__whatever__happy__01": [
+40.9,
+43.9
+],
+"stand__2h_on_sides__01__yes__03": [
+1.6,
+0.0
+],
+"stand__2h_on_sides__01__yes__happy__01": [
+50.3,
+39.7
+],
+"stand__2h_on_sides__01__yes__neutral__02": [
+47.5,
+20.6
+]
+},
+"generic_female_average__stand__2h_on_hip__01": {
+"stand__2h_on_hip__01": [
+0.6,
+0.1
+],
+"stand__2h_on_hip__01__2h_flick__01": [
+32.9,
+5.1
+],
+"stand__2h_on_hip__01__2h_flick__02": [
+24.4,
+20.4
+],
+"stand__2h_on_hip__01__2h_flick__03": [
+36.7,
+5.0
+],
+"stand__2h_on_hip__01__calm_down__happy__01": [
+49.6,
+6.2
+],
+"stand__2h_on_hip__01__conversation_step__01": [
+5.8,
+0.3
+],
+"stand__2h_on_hip__01__conversation_step__02": [
+33.0,
+30.5
+],
+"stand__2h_on_hip__01__describe_down__01": [
+42.1,
+23.5
+],
+"stand__2h_on_hip__01__describe_down__02": [
+27.9,
+1.0
+],
+"stand__2h_on_hip__01__describe_down__03": [
+45.0,
+17.5
+],
+"stand__2h_on_hip__01__describe_front__01": [
+78.1,
+34.1
+],
+"stand__2h_on_hip__01__describe_front__02": [
+73.1,
+30.6
+],
+"stand__2h_on_hip__01__describe_left__01": [
+67.9,
+17.7
+],
+"stand__2h_on_hip__01__describe_left__02": [
+53.7,
+40.7
+],
+"stand__2h_on_hip__01__describe_right__01": [
+52.6,
+42.2
+],
+"stand__2h_on_hip__01__describe_right__02": [
+56.1,
+42.3
+],
+"stand__2h_on_hip__01__describe_up__02": [
+56.2,
+18.0
+],
+"stand__2h_on_hip__01__go_away__angry__01": [
+76.3,
+55.8
+],
+"stand__2h_on_hip__01__go_away__happy__01": [
+71.3,
+47.0
+],
+"stand__2h_on_hip__01__go_away__happy__02": [
+75.0,
+40.2
+],
+"stand__2h_on_hip__01__head_flick_down__01": [
+0.4,
+0.0
+],
+"stand__2h_on_hip__01__head_flick_left__01": [
+0.4,
+0.0
+],
+"stand__2h_on_hip__01__head_flick_right__01": [
+0.4,
+0.1
+],
+"stand__2h_on_hip__01__head_flick_up__01": [
+0.8,
+0.1
+],
+"stand__2h_on_hip__01__head_flick_up__02": [
+0.4,
+0.1
+],
+"stand__2h_on_hip__01__look_around__01": [
+6.2,
+0.9
+],
+"stand__2h_on_hip__01__look_at_products__01": [
+5.9,
+0.2
+],
+"stand__2h_on_hip__01__look_at_products__02": [
+1.3,
+0.2
+],
+"stand__2h_on_hip__01__look_at_products__03": [
+5.4,
+0.2
+],
+"stand__2h_on_hip__01__look_at_products__04": [
+6.5,
+0.2
+],
+"stand__2h_on_hip__01__no__angry__01": [
+47.7,
+23.9
+],
+"stand__2h_on_hip__01__no__neutral__01": [
+38.8,
+6.3
+],
+"stand__2h_on_hip__01__no__neutral__02": [
+37.4,
+5.2
+],
+"stand__2h_on_hip__01__no__neutral__03": [
+0.7,
+0.2
+],
+"stand__2h_on_hip__01__rh_flick__01": [
+54.9,
+14.7
+],
+"stand__2h_on_hip__01__rh_flick__02": [
+39.6,
+5.2
+],
+"stand__2h_on_hip__01__rh_flick__03": [
+32.7,
+20.7
+],
+"stand__2h_on_hip__01__shift_right_center__01": [
+3.6,
+0.4
+],
+"stand__2h_on_hip__01__shrug__01": [
+3.1,
+1.5
+],
+"stand__2h_on_hip__01__shrug__02": [
+3.8,
+1.3
+],
+"stand__2h_on_hip__01__shuffle__01": [
+2.8,
+0.2
+],
+"stand__2h_on_hip__01__shuffle__03": [
+6.0,
+0.7
+],
+"stand__2h_on_hip__01__shuffle__04": [
+8.3,
+0.3
+],
+"stand__2h_on_hip__01__shuffle__06": [
+7.5,
+0.2
+],
+"stand__2h_on_hip__01__shuffle__07": [
+6.2,
+0.1
+],
+"stand__2h_on_hip__01__shuffle__08": [
+4.3,
+0.3
+],
+"stand__2h_on_hip__01__shuffle__09": [
+5.1,
+0.2
+],
+"stand__2h_on_hip__01__step_fwd__01": [
+2.5,
+0.3
+],
+"stand__2h_on_hip__01__talk__neutral__01": [
+36.3,
+29.5
+],
+"stand__2h_on_hip__01__talk__neutral__02": [
+33.0,
+27.0
+],
+"stand__2h_on_hip__01__talk__neutral__03": [
+6.6,
+0.8
+],
+"stand__2h_on_hip__01__talk__neutral__04": [
+42.8,
+18.7
+],
+"stand__2h_on_hip__01__talk__neutral__05": [
+5.8,
+0.9
+],
+"stand__2h_on_hip__01__talk__neutral__06": [
+26.5,
+19.6
+],
+"stand__2h_on_hip__01__talk__neutral__07": [
+39.6,
+29.7
+],
+"stand__2h_on_hip__01__wait_long__01": [
+46.3,
+21.3
+],
+"stand__2h_on_hip__01__what__surprised__01": [
+28.4,
+37.7
+],
+"stand__2h_on_hip__01__whatever__happy__01": [
+56.7,
+19.6
+],
+"stand__2h_on_hip__01__yes__angry__01": [
+41.7,
+39.4
+],
+"stand__2h_on_hip__01__yes__angry__02": [
+68.0,
+49.5
+],
+"stand__2h_on_hip__01__yes__neutral__01": [
+0.6,
+0.2
+],
+"stand__2h_on_hip__01__yes__neutral__02": [
+0.7,
+0.2
+],
+"stand__2h_on_hip__01__yes__neutral__03": [
+62.0,
+22.5
+]
+},
+"generic_female_average__stand__arms_crossed_front__01": {
+"add__stand__arms_crossed_front__01__dynamic": [
+7.5,
+5.8
+],
+"q305__stand__arms_crossed_front__01__put_shard__01": [
+57.4,
+66.1
+],
+"q305__stand__arms_crossed_front__01__to__stand_bar_lean0__2h_on_bar_wide__01__turn0__01": [
+57.8,
+51.4
+],
+"q305__synced__npc_takes_shard__01_female_average_npc": [
+64.0,
+36.1
+],
+"stand__arms_crossed_front__01": [
+0.5,
+0.2
+],
+"stand__arms_crossed_front__01__2h_clap__happy__01": [
+38.9,
+25.7
+],
+"stand__arms_crossed_front__01__2h_clap__happy__02": [
+40.5,
+27.3
+],
+"stand__arms_crossed_front__01__2h_clap__happy__03": [
+37.9,
+30.2
+],
+"stand__arms_crossed_front__01__av_reaction__01": [
+52.3,
+63.1
+],
+"stand__arms_crossed_front__01__av_reaction__02": [
+46.0,
+7.0
+],
+"stand__arms_crossed_front__01__be_quiet__angry__02": [
+27.2,
+5.0
+],
+"stand__arms_crossed_front__01__be_quiet__angry__03": [
+38.2,
+7.2
+],
+"stand__arms_crossed_front__01__breathe__01": [
+0.5,
+0.4
+],
+"stand__arms_crossed_front__01__calm_down__afraid__01": [
+23.7,
+0.0
+],
+"stand__arms_crossed_front__01__calm_down__afraid__02": [
+29.1,
+1.6
+],
+"stand__arms_crossed_front__01__calm_down__afraid__03": [
+41.2,
+9.1
+],
+"stand__arms_crossed_front__01__calm_down__angry__01": [
+38.1,
+4.3
+],
+"stand__arms_crossed_front__01__calm_down__disgusted__01": [
+48.0,
+19.5
+],
+"stand__arms_crossed_front__01__calm_down__happy__01": [
+25.9,
+1.9
+],
+"stand__arms_crossed_front__01__calm_down__happy__02": [
+20.8,
+2.8
+],
+"stand__arms_crossed_front__01__calm_down__happy__03": [
+38.9,
+3.1
+],
+"stand__arms_crossed_front__01__cant_hear_you__neutral__01": [
+26.5,
+0.4
+],
+"stand__arms_crossed_front__01__cant_hear_you__neutral__02": [
+1.0,
+0.1
+],
+"stand__arms_crossed_front__01__cheer__happy__01": [
+55.5,
+26.2
+],
+"stand__arms_crossed_front__01__come_closer__neutral__01": [
+51.7,
+10.2
+],
+"stand__arms_crossed_front__01__come_closer__neutral__02": [
+72.1,
+75.7
+],
+"stand__arms_crossed_front__01__conversation_step__01": [
+4.1,
+0.3
+],
+"stand__arms_crossed_front__01__conversation_step__01__loop__01": [
+1.6,
+0.1
+],
+"stand__arms_crossed_front__01__conversation_step__02": [
+10.8,
+7.2
+],
+"stand__arms_crossed_front__01__conversation_step__02__loop__01": [
+1.7,
+0.8
+],
+"stand__arms_crossed_front__01__conversation_step__03": [
+2.5,
+0.1
+],
+"stand__arms_crossed_front__01__conversation_step__03__loop__01": [
+2.0,
+0.2
+],
+"stand__arms_crossed_front__01__conversation_step__04": [
+12.7,
+0.2
+],
+"stand__arms_crossed_front__01__conversation_step__05": [
+6.5,
+1.8
+],
+"stand__arms_crossed_front__01__conversation_step__06": [
+4.4,
+0.1
+],
+"stand__arms_crossed_front__01__conversation_step__07": [
+0.5,
+0.1
+],
+"stand__arms_crossed_front__01__conversation_step__08": [
+7.3,
+0.2
+],
+"stand__arms_crossed_front__01__conversation_step__09": [
+3.0,
+0.8
+],
+"stand__arms_crossed_front__01__conversation_step__09__loop__01": [
+1.8,
+0.0
+],
+"stand__arms_crossed_front__01__conversation_step__10": [
+2.6,
+0.3
+],
+"stand__arms_crossed_front__01__conversation_step__11": [
+2.2,
+0.0
+],
+"stand__arms_crossed_front__01__conversation_step__12__loop__01": [
+1.1,
+0.0
+],
+"stand__arms_crossed_front__01__conversation_step__13": [
+2.0,
+0.2
+],
+"stand__arms_crossed_front__01__conversation_step__14": [
+3.0,
+0.1
+],
+"stand__arms_crossed_front__01__crack_knuckles__angry__01": [
+46.4,
+41.3
+],
+"stand__arms_crossed_front__01__describe_back__01": [
+29.1,
+0.5
+],
+"stand__arms_crossed_front__01__describe_back__02": [
+19.3,
+6.5
+],
+"stand__arms_crossed_front__01__describe_down__01": [
+40.0,
+5.1
+],
+"stand__arms_crossed_front__01__describe_down__02": [
+46.0,
+9.3
+],
+"stand__arms_crossed_front__01__describe_down__03": [
+44.9,
+11.8
+],
+"stand__arms_crossed_front__01__describe_down__04": [
+28.1,
+3.7
+],
+"stand__arms_crossed_front__01__describe_front__01": [
+32.8,
+7.1
+],
+"stand__arms_crossed_front__01__describe_front__02": [
+48.0,
+28.0
+],
+"stand__arms_crossed_front__01__describe_left__01": [
+26.5,
+12.3
+],
+"stand__arms_crossed_front__01__describe_left__02": [
+74.2,
+45.1
+],
+"stand__arms_crossed_front__01__describe_left__03": [
+32.2,
+7.1
+],
+"stand__arms_crossed_front__01__describe_right__01": [
+59.1,
+43.0
+],
+"stand__arms_crossed_front__01__describe_right__02": [
+21.3,
+6.5
+],
+"stand__arms_crossed_front__01__describe_right__03": [
+7.1,
+0.6
+],
+"stand__arms_crossed_front__01__describe_right__04": [
+17.0,
+4.2
+],
+"stand__arms_crossed_front__01__describe_up__01": [
+38.4,
+7.1
+],
+"stand__arms_crossed_front__01__describe_up__02": [
+35.0,
+5.2
+],
+"stand__arms_crossed_front__01__describe_up__03": [
+32.2,
+8.4
+],
+"stand__arms_crossed_front__01__describe_up__04": [
+23.5,
+3.5
+],
+"stand__arms_crossed_front__01__draw_gun__01": [
+56.9,
+59.2
+],
+"stand__arms_crossed_front__01__facepalm__disgusted__01": [
+31.1,
+11.3
+],
+"stand__arms_crossed_front__01__fuck_you__angry__01": [
+35.3,
+19.4
+],
+"stand__arms_crossed_front__01__fuck_you__happy__01": [
+27.9,
+2.6
+],
+"stand__arms_crossed_front__01__go_away__angry__01": [
+78.5,
+96.0
+],
+"stand__arms_crossed_front__01__go_away__angry__02": [
+83.7,
+98.6
+],
+"stand__arms_crossed_front__01__go_away__happy__01": [
+54.8,
+25.1
+],
+"stand__arms_crossed_front__01__head_flick_down__01": [
+0.2,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_down__02": [
+1.4,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_down__03": [
+1.2,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_down__04": [
+3.7,
+0.2
+],
+"stand__arms_crossed_front__01__head_flick_down__05": [
+2.1,
+0.5
+],
+"stand__arms_crossed_front__01__head_flick_down__06": [
+1.6,
+0.4
+],
+"stand__arms_crossed_front__01__head_flick_left__01": [
+1.2,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_left__02": [
+0.4,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_left__03": [
+0.5,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_left__04": [
+1.2,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_left__05": [
+0.3,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_right__01": [
+0.9,
+0.3
+],
+"stand__arms_crossed_front__01__head_flick_right__02": [
+0.8,
+0.3
+],
+"stand__arms_crossed_front__01__head_flick_right__03": [
+1.0,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_right__04": [
+1.1,
+0.2
+],
+"stand__arms_crossed_front__01__head_flick_right__05": [
+0.2,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_up__01": [
+0.5,
+0.2
+],
+"stand__arms_crossed_front__01__head_flick_up__02": [
+1.2,
+0.4
+],
+"stand__arms_crossed_front__01__head_flick_up__03": [
+0.9,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_up__04": [
+0.8,
+0.1
+],
+"stand__arms_crossed_front__01__impatient__01": [
+0.2,
+0.0
+],
+"stand__arms_crossed_front__01__impatient__02": [
+0.2,
+0.0
+],
+"stand__arms_crossed_front__01__impatient__03": [
+0.1,
+0.0
+],
+"stand__arms_crossed_front__01__impatient__04": [
+0.1,
+0.0
+],
+"stand__arms_crossed_front__01__inspect_table__talk__02": [
+3.2,
+0.2
+],
+"stand__arms_crossed_front__01__lh_flick__01": [
+27.2,
+0.0
+],
+"stand__arms_crossed_front__01__lh_flick__02": [
+42.6,
+10.0
+],
+"stand__arms_crossed_front__01__lh_flick__03": [
+32.6,
+0.1
+],
+"stand__arms_crossed_front__01__lh_flick__04": [
+25.7,
+2.2
+],
+"stand__arms_crossed_front__01__lh_flick__05": [
+42.5,
+8.6
+],
+"stand__arms_crossed_front__01__long__01": [
+68.4,
+81.4
+],
+"stand__arms_crossed_front__01__look_around__01": [
+0.7,
+0.1
+],
+"stand__arms_crossed_front__01__look_at_products__01": [
+2.6,
+0.8
+],
+"stand__arms_crossed_front__01__look_at_products__02": [
+1.0,
+0.3
+],
+"stand__arms_crossed_front__01__look_at_products__03": [
+2.4,
+0.2
+],
+"stand__arms_crossed_front__01__look_at_products__04": [
+3.7,
+0.1
+],
+"stand__arms_crossed_front__01__me__afraid__01": [
+13.6,
+2.8
+],
+"stand__arms_crossed_front__01__me__angry__01": [
+17.4,
+3.4
+],
+"stand__arms_crossed_front__01__me__happy__01": [
+17.2,
+0.5
+],
+"stand__arms_crossed_front__01__no__afraid__01": [
+3.5,
+0.2
+],
+"stand__arms_crossed_front__01__no__angry__01": [
+47.5,
+35.5
+],
+"stand__arms_crossed_front__01__no__neutral__01": [
+0.3,
+0.2
+],
+"stand__arms_crossed_front__01__no__neutral__02": [
+0.9,
+0.0
+],
+"stand__arms_crossed_front__01__no__neutral__03": [
+3.3,
+0.7
+],
+"stand__arms_crossed_front__01__no__neutral__04": [
+0.6,
+0.2
+],
+"stand__arms_crossed_front__01__no__neutral__05": [
+15.7,
+3.9
+],
+"stand__arms_crossed_front__01__no__neutral__06": [
+26.4,
+5.8
+],
+"stand__arms_crossed_front__01__no__neutral__07": [
+0.8,
+0.4
+],
+"stand__arms_crossed_front__01__no__neutral__08": [
+1.4,
+0.7
+],
+"stand__arms_crossed_front__01__no__sad__01": [
+0.9,
+0.3
+],
+"stand__arms_crossed_front__01__point_back__01": [
+28.5,
+3.6
+],
+"stand__arms_crossed_front__01__rh_flick__01": [
+30.2,
+0.1
+],
+"stand__arms_crossed_front__01__rh_flick__02": [
+12.5,
+1.0
+],
+"stand__arms_crossed_front__01__rub_eyes__01": [
+28.9,
+3.8
+],
+"stand__arms_crossed_front__01__rub_forehead__01": [
+33.8,
+6.1
+],
+"stand__arms_crossed_front__01__shift_center_front__01": [
+11.5,
+0.1
+],
+"stand__arms_crossed_front__01__shift_center_left__01": [
+3.9,
+0.5
+],
+"stand__arms_crossed_front__01__shift_front_center__02": [
+3.1,
+0.3
+],
+"stand__arms_crossed_front__01__shrug__01": [
+1.4,
+0.2
+],
+"stand__arms_crossed_front__01__shrug__02": [
+2.0,
+0.3
+],
+"stand__arms_crossed_front__01__shrug__03": [
+2.2,
+0.1
+],
+"stand__arms_crossed_front__01__shrug__04": [
+1.7,
+0.0
+],
+"stand__arms_crossed_front__01__shuffle__01": [
+1.0,
+0.1
+],
+"stand__arms_crossed_front__01__shuffle__02": [
+2.0,
+0.1
+],
+"stand__arms_crossed_front__01__shuffle__03": [
+2.7,
+0.5
+],
+"stand__arms_crossed_front__01__shuffle__04": [
+3.4,
+0.4
+],
+"stand__arms_crossed_front__01__shuffle__05": [
+0.6,
+0.4
+],
+"stand__arms_crossed_front__01__shuffle__06": [
+2.1,
+0.8
+],
+"stand__arms_crossed_front__01__shuffle__07": [
+0.6,
+0.1
+],
+"stand__arms_crossed_front__01__shuffle__08": [
+5.2,
+0.7
+],
+"stand__arms_crossed_front__01__shuffle__09": [
+4.2,
+1.5
+],
+"stand__arms_crossed_front__01__shuffle__10": [
+0.9,
+0.4
+],
+"stand__arms_crossed_front__01__step_back__01": [
+0.2,
+0.0
+],
+"stand__arms_crossed_front__01__step_back__02": [
+1.5,
+0.1
+],
+"stand__arms_crossed_front__01__step_fwd__01": [
+1.5,
+0.1
+],
+"stand__arms_crossed_front__01__stop__afraid__01": [
+45.2,
+13.2
+],
+"stand__arms_crossed_front__01__stop__angry__01": [
+55.3,
+58.8
+],
+"stand__arms_crossed_front__01__stop__surprised__01": [
+41.6,
+12.6
+],
+"stand__arms_crossed_front__01__talk__angry__05": [
+32.4,
+6.5
+],
+"stand__arms_crossed_front__01__talk__angry__06": [
+3.7,
+2.9
+],
+"stand__arms_crossed_front__01__talk__neutral__01": [
+3.5,
+0.5
+],
+"stand__arms_crossed_front__01__talk__neutral__02": [
+14.1,
+1.9
+],
+"stand__arms_crossed_front__01__talk__neutral__03": [
+13.8,
+0.1
+],
+"stand__arms_crossed_front__01__talk__neutral__04": [
+2.9,
+0.1
+],
+"stand__arms_crossed_front__01__talk__neutral__05": [
+27.3,
+4.1
+],
+"stand__arms_crossed_front__01__talk__neutral__06": [
+1.9,
+0.3
+],
+"stand__arms_crossed_front__01__talk__neutral__07": [
+25.5,
+0.4
+],
+"stand__arms_crossed_front__01__talk__neutral__08": [
+24.1,
+0.1
+],
+"stand__arms_crossed_front__01__talk__neutral__09": [
+38.9,
+7.1
+],
+"stand__arms_crossed_front__01__talk__neutral__10": [
+39.6,
+2.5
+],
+"stand__arms_crossed_front__01__tap__01": [
+2.9,
+0.1
+],
+"stand__arms_crossed_front__01__this_or_that__angry__01": [
+36.1,
+5.6
+],
+"stand__arms_crossed_front__01__this_or_that__angry__02": [
+3.6,
+0.7
+],
+"stand__arms_crossed_front__01__this_or_that__neutral__01": [
+1.9,
+0.1
+],
+"stand__arms_crossed_front__01__this_or_that__neutral__02": [
+31.7,
+4.5
+],
+"stand__arms_crossed_front__01__threaten__angry__01": [
+20.5,
+1.0
+],
+"stand__arms_crossed_front__01__three_steps_forward__01": [
+1.0,
+0.2
+],
+"stand__arms_crossed_front__01__thumb_up__happy__01": [
+34.0,
+3.3
+],
+"stand__arms_crossed_front__01__thumb_up__neutral__01": [
+10.0,
+0.2
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn135__01": [
+1.0,
+0.1
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn180l__01": [
+1.4,
+0.2
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn180r__01": [
+1.0,
+0.0
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn225__01": [
+1.0,
+0.1
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn270__01": [
+1.4,
+0.1
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn315__01": [
+7.4,
+0.3
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn45__01": [
+2.7,
+0.2
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn90__01": [
+1.7,
+0.3
+],
+"stand__arms_crossed_front__01__weight_left__01": [
+0.2,
+0.1
+],
+"stand__arms_crossed_front__01__what__afraid__01": [
+9.9,
+0.1
+],
+"stand__arms_crossed_front__01__what__angry__01": [
+26.0,
+1.1
+],
+"stand__arms_crossed_front__01__what__disgusted__01": [
+2.5,
+0.3
+],
+"stand__arms_crossed_front__01__what__disgusted__02": [
+26.0,
+0.2
+],
+"stand__arms_crossed_front__01__what__happy__01": [
+21.9,
+1.5
+],
+"stand__arms_crossed_front__01__what__neutral__01": [
+6.0,
+0.0
+],
+"stand__arms_crossed_front__01__what__neutral__02": [
+28.1,
+4.0
+],
+"stand__arms_crossed_front__01__what__neutral__03": [
+22.4,
+0.1
+],
+"stand__arms_crossed_front__01__what__sad__01": [
+2.4,
+0.6
+],
+"stand__arms_crossed_front__01__what__sad__02": [
+4.2,
+0.2
+],
+"stand__arms_crossed_front__01__what__surprised__01": [
+4.1,
+0.1
+],
+"stand__arms_crossed_front__01__what__surprised__02": [
+27.9,
+1.6
+],
+"stand__arms_crossed_front__01__what_is_this__angry__01": [
+54.3,
+69.7
+],
+"stand__arms_crossed_front__01__what_is_this__disgusted__01": [
+39.1,
+6.7
+],
+"stand__arms_crossed_front__01__what_is_this__neutral__01": [
+5.1,
+0.1
+],
+"stand__arms_crossed_front__01__what_is_this__neutral__02": [
+42.1,
+12.4
+],
+"stand__arms_crossed_front__01__what_is_this__neutral__03": [
+49.6,
+17.0
+],
+"stand__arms_crossed_front__01__what_is_this__surprised__01": [
+2.5,
+0.1
+],
+"stand__arms_crossed_front__01__what_is_this__surprised__02": [
+41.6,
+12.2
+],
+"stand__arms_crossed_front__01__whatever__angry__01": [
+6.9,
+0.2
+],
+"stand__arms_crossed_front__01__whatever__angry__02": [
+37.5,
+19.6
+],
+"stand__arms_crossed_front__01__whatever__disgusted__01": [
+29.7,
+4.5
+],
+"stand__arms_crossed_front__01__whatever__happy__01": [
+42.0,
+26.9
+],
+"stand__arms_crossed_front__01__whatever__sad__01": [
+1.8,
+0.2
+],
+"stand__arms_crossed_front__01__yes__afraid__01": [
+1.9,
+0.1
+],
+"stand__arms_crossed_front__01__yes__afraid__03": [
+17.1,
+0.5
+],
+"stand__arms_crossed_front__01__yes__angry__01": [
+5.2,
+0.6
+],
+"stand__arms_crossed_front__01__yes__angry__04": [
+40.6,
+13.3
+],
+"stand__arms_crossed_front__01__yes__disgusted__01": [
+3.2,
+2.0
+],
+"stand__arms_crossed_front__01__yes__happy__01": [
+3.5,
+0.1
+],
+"stand__arms_crossed_front__01__yes__happy__02": [
+3.0,
+0.8
+],
+"stand__arms_crossed_front__01__yes__happy__03": [
+10.3,
+0.9
+],
+"stand__arms_crossed_front__01__yes__neutral__01": [
+0.7,
+0.0
+],
+"stand__arms_crossed_front__01__yes__neutral__02": [
+2.9,
+0.0
+],
+"stand__arms_crossed_front__01__yes__neutral__03": [
+2.6,
+0.1
+],
+"stand__arms_crossed_front__01__yes__neutral__04": [
+3.0,
+0.2
+],
+"stand__arms_crossed_front__01__yes__neutral__05": [
+1.4,
+0.5
+],
+"stand__arms_crossed_front__01__yes__neutral__06": [
+0.8,
+0.1
+],
+"stand__arms_crossed_front__01__yes__neutral__07": [
+0.5,
+0.1
+],
+"stand__arms_crossed_front__01__yes__sad__01": [
+2.5,
+0.7
+],
+"stand__arms_crossed_front__tired_shuffle__01": [
+6.6,
+1.0
+],
+"stand__arms_crossed_front__tired_shuffle__02": [
+26.4,
+0.2
+]
+},
+"generic_male_average__stand__2h_on_sides__01": {
+"add__stand__2h_on_sides__01__afraid": [
+20.2,
+9.3
+],
+"add__stand__2h_on_sides__01__dynamic": [
+5.3,
+4.1
+],
+"add__stand__2h_on_sides__01__nervous": [
+8.5,
+8.0
+],
+"stand__2h_on_sides__01": [
+1.5,
+0.0
+],
+"stand__2h_on_sides__01__1_step_back__turn0__01": [
+9.8,
+2.7
+],
+"stand__2h_on_sides__01__1_step_back__turn0__02": [
+10.6,
+7.9
+],
+"stand__2h_on_sides__01__1_step_back__turn0__03": [
+9.1,
+3.3
+],
+"stand__2h_on_sides__01__1_step_back__turn0__04": [
+9.5,
+4.5
+],
+"stand__2h_on_sides__01__1_step_back__turn0__05": [
+9.9,
+3.5
+],
+"stand__2h_on_sides__01__1_step_back__turn0__loop__01": [
+18.6,
+4.9
+],
+"stand__2h_on_sides__01__1_step_front__turn0__01": [
+9.0,
+4.2
+],
+"stand__2h_on_sides__01__1_step_left__turn0__01": [
+11.0,
+6.2
+],
+"stand__2h_on_sides__01__1_step_left__turn0__02": [
+10.6,
+6.4
+],
+"stand__2h_on_sides__01__1_step_left__turn0__03": [
+11.5,
+4.7
+],
+"stand__2h_on_sides__01__1_step_right__turn0__02": [
+10.0,
+5.2
+],
+"stand__2h_on_sides__01__1_step_right__turn0__loop__02": [
+17.2,
+7.3
+],
+"stand__2h_on_sides__01__2h_clap__broad__01": [
+68.5,
+6.3
+],
+"stand__2h_on_sides__01__2h_clap__happy__01": [
+48.8,
+19.1
+],
+"stand__2h_on_sides__01__2h_clap__narrow__01": [
+38.7,
+5.7
+],
+"stand__2h_on_sides__01__2h_flick__01": [
+37.0,
+4.8
+],
+"stand__2h_on_sides__01__2h_flick__02": [
+27.9,
+1.2
+],
+"stand__2h_on_sides__01__2h_flick__03": [
+34.9,
+5.8
+],
+"stand__2h_on_sides__01__2h_flick__04": [
+25.1,
+3.9
+],
+"stand__2h_on_sides__01__2h_flick__05": [
+39.2,
+4.6
+],
+"stand__2h_on_sides__01__angry_long__01": [
+101.7,
+79.8
+],
+"stand__2h_on_sides__01__av_reaction__01": [
+58.4,
+11.2
+],
+"stand__2h_on_sides__01__calm_down__afraid__01": [
+70.4,
+14.8
+],
+"stand__2h_on_sides__01__calm_down__afraid__step_back__02": [
+73.0,
+4.3
+],
+"stand__2h_on_sides__01__calm_down__angry__01": [
+61.0,
+8.6
+],
+"stand__2h_on_sides__01__calm_down__disgusted__01": [
+63.7,
+7.0
+],
+"stand__2h_on_sides__01__calm_down__happy__01": [
+38.2,
+4.8
+],
+"stand__2h_on_sides__01__cant_hear_you__angry__01": [
+13.6,
+3.8
+],
+"stand__2h_on_sides__01__cant_hear_you__angry__02": [
+15.1,
+4.8
+],
+"stand__2h_on_sides__01__cant_hear_you__neutral__01": [
+19.6,
+2.3
+],
+"stand__2h_on_sides__01__cant_hear_you__neutral__03": [
+10.7,
+1.7
+],
+"stand__2h_on_sides__01__cant_hear_you__neutral__04": [
+6.5,
+1.6
+],
+"stand__2h_on_sides__01__cant_hear_you__neutral__05": [
+1.4,
+0.0
+],
+"stand__2h_on_sides__01__conversation_step__01": [
+21.5,
+12.0
+],
+"stand__2h_on_sides__01__cracking_knuckles__01": [
+50.0,
+7.2
+],
+"stand__2h_on_sides__01__cracking_knuckles__angry__01": [
+48.2,
+15.6
+],
+"stand__2h_on_sides__01__deep_breath__01": [
+6.4,
+5.7
+],
+"stand__2h_on_sides__01__demonstrate_negative__02": [
+112.9,
+28.7
+],
+"stand__2h_on_sides__01__demonstrate_negative__03": [
+97.1,
+60.6
+],
+"stand__2h_on_sides__01__demonstrate_negative__05": [
+98.2,
+11.4
+],
+"stand__2h_on_sides__01__demonstrate_negative__06": [
+102.3,
+77.5
+],
+"stand__2h_on_sides__01__demonstrate_negative__07": [
+75.5,
+32.7
+],
+"stand__2h_on_sides__01__demonstrate_positive__01": [
+104.8,
+80.0
+],
+"stand__2h_on_sides__01__demonstrate_positive__02": [
+111.3,
+82.5
+],
+"stand__2h_on_sides__01__demonstrate_positive__03": [
+110.9,
+36.9
+],
+"stand__2h_on_sides__01__demonstrate_positive__04": [
+115.2,
+58.5
+],
+"stand__2h_on_sides__01__demonstrate_positive__05": [
+112.9,
+65.5
+],
+"stand__2h_on_sides__01__demonstrate_positive__06": [
+116.4,
+36.6
+],
+"stand__2h_on_sides__01__demonstrate_positive__07": [
+113.6,
+84.4
+],
+"stand__2h_on_sides__01__demonstrate_positive__08": [
+118.9,
+93.4
+],
+"stand__2h_on_sides__01__demonstrate_positive__09": [
+113.3,
+39.2
+],
+"stand__2h_on_sides__01__describe_back__01": [
+56.5,
+25.5
+],
+"stand__2h_on_sides__01__describe_back__broad__02": [
+63.8,
+49.1
+],
+"stand__2h_on_sides__01__describe_circle__01": [
+38.8,
+14.3
+],
+"stand__2h_on_sides__01__describe_circle__02": [
+34.9,
+9.5
+],
+"stand__2h_on_sides__01__describe_down__01": [
+44.8,
+9.6
+],
+"stand__2h_on_sides__01__describe_down__02": [
+35.6,
+2.9
+],
+"stand__2h_on_sides__01__describe_down__03": [
+49.3,
+14.7
+],
+"stand__2h_on_sides__01__describe_front__01": [
+70.1,
+32.4
+],
+"stand__2h_on_sides__01__describe_front__02": [
+65.3,
+34.5
+],
+"stand__2h_on_sides__01__describe_front__03": [
+74.4,
+40.7
+],
+"stand__2h_on_sides__01__describe_left__01": [
+32.5,
+27.6
+],
+"stand__2h_on_sides__01__describe_left__02": [
+45.7,
+0.9
+],
+"stand__2h_on_sides__01__describe_left__broad__01": [
+70.4,
+60.4
+],
+"stand__2h_on_sides__01__describe_left__broad__02": [
+75.1,
+8.5
+],
+"stand__2h_on_sides__01__describe_right__01": [
+37.7,
+11.1
+],
+"stand__2h_on_sides__01__describe_right__02": [
+50.9,
+1.9
+],
+"stand__2h_on_sides__01__describe_right__broad__01": [
+76.6,
+65.5
+],
+"stand__2h_on_sides__01__describe_right__broad__02": [
+73.2,
+10.3
+],
+"stand__2h_on_sides__01__describe_up__01": [
+58.5,
+23.6
+],
+"stand__2h_on_sides__01__describe_up__03": [
+81.9,
+50.1
+],
+"stand__2h_on_sides__01__drop_shard__01": [
+80.0,
+45.2
+],
+"stand__2h_on_sides__01__excercise__01": [
+105.1,
+11.7
+],
+"stand__2h_on_sides__01__excercise__02": [
+113.0,
+11.7
+],
+"stand__2h_on_sides__01__excercise__03": [
+56.1,
+22.4
+],
+"stand__2h_on_sides__01__excercise__04": [
+114.3,
+19.7
+],
+"stand__2h_on_sides__01__excercise__05": [
+43.7,
+30.0
+],
+"stand__2h_on_sides__01__excercise__06": [
+66.0,
+15.5
+],
+"stand__2h_on_sides__01__excercise__07": [
+57.1,
+19.2
+],
+"stand__2h_on_sides__01__excercise__08": [
+69.1,
+30.5
+],
+"stand__2h_on_sides__01__excercise__09": [
+113.4,
+59.3
+],
+"stand__2h_on_sides__01__excercise__10": [
+47.0,
+24.6
+],
+"stand__2h_on_sides__01__excercise__11": [
+110.8,
+4.0
+],
+"stand__2h_on_sides__01__excercise__12": [
+114.5,
+3.8
+],
+"stand__2h_on_sides__01__facepalm__01": [
+62.3,
+15.3
+],
+"stand__2h_on_sides__01__facepalm__broad__01": [
+93.6,
+44.8
+],
+"stand__2h_on_sides__01__facepalm__disgusted__01": [
+65.6,
+19.7
+],
+"stand__2h_on_sides__01__facepalm__disgusted__02": [
+64.1,
+9.2
+],
+"stand__2h_on_sides__01__fuck_you__angry__01": [
+99.6,
+11.6
+],
+"stand__2h_on_sides__01__fuck_you__angry__02": [
+62.9,
+20.8
+],
+"stand__2h_on_sides__01__fuck_you__happy__step_back__01": [
+55.3,
+15.5
+],
+"stand__2h_on_sides__01__gesture_hold__01": [
+1.3,
+1.0
+],
+"stand__2h_on_sides__01__gesture_hold__01__flick__01": [
+6.8,
+3.8
+],
+"stand__2h_on_sides__01__gesture_hold__01__flick__02": [
+14.6,
+11.5
+],
+"stand__2h_on_sides__01__gesture_hold__01__flick__03": [
+25.4,
+20.8
+],
+"stand__2h_on_sides__01__gesture_hold__01__flick__04": [
+35.8,
+30.0
+],
+"stand__2h_on_sides__01__gesture_hold__01__lh_fingers__01": [
+1.3,
+1.0
+],
+"stand__2h_on_sides__01__gesture_hold__01__lh_fingers__02": [
+1.2,
+0.1
+],
+"stand__2h_on_sides__01__gesture_hold__01__rh_fingers__01": [
+1.1,
+0.2
+],
+"stand__2h_on_sides__01__gesture_hold__01__rh_fingers__02": [
+1.2,
+0.3
+],
+"stand__2h_on_sides__01__gesture_hold__01__shrug__01": [
+21.3,
+14.3
+],
+"stand__2h_on_sides__01__gesture_hold__01__shuffle__01": [
+4.9,
+2.7
+],
+"stand__2h_on_sides__01__gesture_hold__01__turn120__01": [
+11.2,
+6.2
+],
+"stand__2h_on_sides__01__gesture_hold__01__turn240__01": [
+8.3,
+4.2
+],
+"stand__2h_on_sides__01__head_flick_down__01": [
+4.4,
+5.0
+],
+"stand__2h_on_sides__01__head_flick_down__02": [
+1.4,
+0.3
+],
+"stand__2h_on_sides__01__head_flick_down__03": [
+4.3,
+3.6
+],
+"stand__2h_on_sides__01__head_flick_down__04": [
+1.0,
+0.4
+],
+"stand__2h_on_sides__01__head_flick_left__01": [
+12.4,
+4.8
+],
+"stand__2h_on_sides__01__head_flick_left__02": [
+2.5,
+0.2
+],
+"stand__2h_on_sides__01__head_flick_left__03": [
+1.1,
+0.4
+],
+"stand__2h_on_sides__01__head_flick_left__04": [
+1.5,
+0.0
+],
+"stand__2h_on_sides__01__head_flick_left__05": [
+7.8,
+9.2
+],
+"stand__2h_on_sides__01__head_flick_right__01": [
+3.0,
+2.0
+],
+"stand__2h_on_sides__01__head_flick_right__02": [
+4.2,
+6.9
+],
+"stand__2h_on_sides__01__head_flick_right__03": [
+5.2,
+6.2
+],
+"stand__2h_on_sides__01__head_flick_right__04": [
+4.0,
+4.5
+],
+"stand__2h_on_sides__01__head_flick_right__05": [
+2.9,
+1.1
+],
+"stand__2h_on_sides__01__head_flick_up__01": [
+8.5,
+10.3
+],
+"stand__2h_on_sides__01__head_flick_up__02": [
+1.0,
+0.9
+],
+"stand__2h_on_sides__01__head_flick_up__03": [
+3.0,
+0.7
+],
+"stand__2h_on_sides__01__head_flick_up__04": [
+5.9,
+5.8
+],
+"stand__2h_on_sides__01__impatient__01": [
+12.5,
+11.0
+],
+"stand__2h_on_sides__01__impatient__02": [
+19.4,
+8.2
+],
+"stand__2h_on_sides__01__impatient__03": [
+32.1,
+30.1
+],
+"stand__2h_on_sides__01__inspect__01": [
+36.7,
+10.0
+],
+"stand__2h_on_sides__01__inspect_ground__01": [
+26.5,
+17.2
+],
+"stand__2h_on_sides__01__listen_music__01": [
+21.9,
+9.9
+],
+"stand__2h_on_sides__01__listen_music__02": [
+71.5,
+30.2
+],
+"stand__2h_on_sides__01__listen_music__03": [
+76.5,
+13.4
+],
+"stand__2h_on_sides__01__listen_music__04": [
+58.2,
+46.4
+],
+"stand__2h_on_sides__01__listen_music__05": [
+67.8,
+25.4
+],
+"stand__2h_on_sides__01__listen_music__06": [
+86.3,
+70.2
+],
+"stand__2h_on_sides__01__look_around__01": [
+5.2,
+2.5
+],
+"stand__2h_on_sides__01__look_around__02": [
+13.4,
+6.9
+],
+"stand__2h_on_sides__01__me__01": [
+48.1,
+4.3
+],
+"stand__2h_on_sides__01__me__02": [
+31.5,
+3.5
+],
+"stand__2h_on_sides__01__me__03": [
+40.8,
+3.8
+],
+"stand__2h_on_sides__01__me__afraid__01": [
+38.5,
+4.7
+],
+"stand__2h_on_sides__01__me__afraid__02": [
+40.9,
+3.1
+],
+"stand__2h_on_sides__01__me__afraid__03": [
+43.6,
+3.7
+],
+"stand__2h_on_sides__01__me__angry__01": [
+45.9,
+6.2
+],
+"stand__2h_on_sides__01__me__angry__broad__01": [
+44.2,
+7.1
+],
+"stand__2h_on_sides__01__me__angry__step_fwd__01": [
+42.1,
+3.2
+],
+"stand__2h_on_sides__01__no__01": [
+30.5,
+17.3
+],
+"stand__2h_on_sides__01__no__02": [
+8.7,
+0.4
+],
+"stand__2h_on_sides__01__no__angry__01": [
+40.0,
+4.7
+],
+"stand__2h_on_sides__01__no__angry__02": [
+55.5,
+10.9
+],
+"stand__2h_on_sides__01__no__angry__broad__01": [
+51.0,
+22.8
+],
+"stand__2h_on_sides__01__no__head__01": [
+1.4,
+1.9
+],
+"stand__2h_on_sides__01__press_button_01": [
+50.1,
+8.0
+],
+"stand__2h_on_sides__01__press_elevator__01": [
+47.2,
+31.1
+],
+"stand__2h_on_sides__01__pull_up__01": [
+115.5,
+10.6
+],
+"stand__2h_on_sides__01__pull_up__02": [
+115.5,
+10.6
+],
+"stand__2h_on_sides__01__raise_hand__01": [
+57.2,
+21.5
+],
+"stand__2h_on_sides__01__raise_hand__02": [
+59.2,
+24.4
+],
+"stand__2h_on_sides__01__raise_hand__03": [
+50.2,
+0.5
+],
+"stand__2h_on_sides__01__rh_flick__01": [
+48.6,
+13.9
+],
+"stand__2h_on_sides__01__rh_flick__02": [
+35.8,
+13.6
+],
+"stand__2h_on_sides__01__rh_flick__03": [
+24.8,
+10.0
+],
+"stand__2h_on_sides__01__rh_flick__04": [
+56.5,
+26.4
+],
+"stand__2h_on_sides__01__rh_flick__05": [
+60.0,
+15.6
+],
+"stand__2h_on_sides__01__rh_flick__06": [
+29.9,
+22.1
+],
+"stand__2h_on_sides__01__rh_give_item__01": [
+54.5,
+27.9
+],
+"stand__2h_on_sides__01__rh_pick_item__01": [
+55.4,
+22.8
+],
+"stand__2h_on_sides__01__rub_hands__01": [
+36.6,
+0.7
+],
+"stand__2h_on_sides__01__rub_hands__02": [
+28.1,
+5.1
+],
+"stand__2h_on_sides__01__rub_hands__03": [
+48.1,
+1.3
+],
+"stand__2h_on_sides__01__scratch_neck__01": [
+62.3,
+14.3
+],
+"stand__2h_on_sides__01__scratch_neck__02": [
+69.6,
+23.9
+],
+"stand__2h_on_sides__01__scratch_neck__03": [
+76.3,
+27.8
+],
+"stand__2h_on_sides__01__scratch_neck__04": [
+70.5,
+13.4
+],
+"stand__2h_on_sides__01__shift_gesture_hold_neutral__01": [
+42.4,
+4.1
+],
+"stand__2h_on_sides__01__shift_neutral_gesture_hold__01": [
+44.0,
+20.8
+],
+"stand__2h_on_sides__01__shrug__01": [
+15.4,
+18.4
+],
+"stand__2h_on_sides__01__shrug__02": [
+12.7,
+19.5
+],
+"stand__2h_on_sides__01__shrug__broad__01": [
+42.2,
+58.4
+],
+"stand__2h_on_sides__01__shrug__broad__02": [
+34.9,
+34.3
+],
+"stand__2h_on_sides__01__shrug__narrow__01": [
+5.7,
+6.8
+],
+"stand__2h_on_sides__01__shrug__narrow__02": [
+3.4,
+1.4
+],
+"stand__2h_on_sides__01__shuffle__01": [
+6.7,
+5.5
+],
+"stand__2h_on_sides__01__shuffle__02": [
+36.8,
+15.3
+],
+"stand__2h_on_sides__01__shuffle__03": [
+12.1,
+5.0
+],
+"stand__2h_on_sides__01__shuffle__04": [
+22.8,
+7.4
+],
+"stand__2h_on_sides__01__shuffle__05": [
+17.4,
+7.7
+],
+"stand__2h_on_sides__01__shuffle__08": [
+8.1,
+4.3
+],
+"stand__2h_on_sides__01__sigh__01": [
+7.5,
+4.0
+],
+"stand__2h_on_sides__01__sigh__02": [
+4.5,
+1.7
+],
+"stand__2h_on_sides__01__sigh__03": [
+12.3,
+10.4
+],
+"stand__2h_on_sides__01__step_fwd__01": [
+13.1,
+9.2
+],
+"stand__2h_on_sides__01__stop__afraid__step_back__01": [
+65.4,
+2.0
+],
+"stand__2h_on_sides__01__stop__angry__02": [
+75.4,
+50.7
+],
+"stand__2h_on_sides__01__stop__angry__step_back__01": [
+73.5,
+10.5
+],
+"stand__2h_on_sides__01__stop__surprised__01": [
+52.9,
+6.6
+],
+"stand__2h_on_sides__01__stop__surprised__02": [
+57.4,
+10.0
+],
+"stand__2h_on_sides__01__stop__surprised__03": [
+63.7,
+0.4
+],
+"stand__2h_on_sides__01__stretch_arms__01": [
+23.4,
+9.4
+],
+"stand__2h_on_sides__01__stretch_arms__02": [
+18.2,
+6.1
+],
+"stand__2h_on_sides__01__stretch_arms__03": [
+119.8,
+5.2
+],
+"stand__2h_on_sides__01__stretch_arms__04": [
+85.8,
+9.8
+],
+"stand__2h_on_sides__01__stretch_neck__01": [
+6.4,
+2.1
+],
+"stand__2h_on_sides__01__talk__angry__01": [
+51.7,
+29.0
+],
+"stand__2h_on_sides__01__talk__confident__01": [
+44.9,
+63.7
+],
+"stand__2h_on_sides__01__talk__neutral__01": [
+33.5,
+37.7
+],
+"stand__2h_on_sides__01__talk__neutral__02": [
+34.5,
+18.2
+],
+"stand__2h_on_sides__01__talk__neutral__03": [
+40.7,
+15.7
+],
+"stand__2h_on_sides__01__talk__neutral__04": [
+56.3,
+41.7
+],
+"stand__2h_on_sides__01__talk__neutral__05": [
+64.3,
+61.0
+],
+"stand__2h_on_sides__01__talk__neutral__06": [
+38.9,
+20.2
+],
+"stand__2h_on_sides__01__talk__neutral__07": [
+53.6,
+27.9
+],
+"stand__2h_on_sides__01__talk__neutral__08": [
+52.5,
+21.2
+],
+"stand__2h_on_sides__01__talk__neutral__09": [
+56.8,
+18.8
+],
+"stand__2h_on_sides__01__this_or_that__01": [
+41.6,
+21.7
+],
+"stand__2h_on_sides__01__this_or_that__angry__01": [
+54.2,
+23.4
+],
+"stand__2h_on_sides__01__this_or_that__angry__02": [
+21.6,
+17.1
+],
+"stand__2h_on_sides__01__this_or_that__broad__01": [
+36.2,
+29.5
+],
+"stand__2h_on_sides__01__threaten__angry__01": [
+18.8,
+19.1
+],
+"stand__2h_on_sides__01__threaten__angry__02": [
+20.7,
+25.9
+],
+"stand__2h_on_sides__01__threaten__angry__03": [
+55.6,
+24.6
+],
+"stand__2h_on_sides__01__threaten__angry__04": [
+12.3,
+12.6
+],
+"stand__2h_on_sides__01__threaten__angry__05": [
+42.1,
+2.6
+],
+"stand__2h_on_sides__01__thumb_up__happy__02": [
+50.7,
+5.7
+],
+"stand__2h_on_sides__01__thumb_up__neutral__01": [
+45.7,
+6.4
+],
+"stand__2h_on_sides__01__thumb_up__neutral__03": [
+51.8,
+5.8
+],
+"stand__2h_on_sides__01__to__stand__2h_on_sides__01__turn135__01": [
+19.5,
+12.5
+],
+"stand__2h_on_sides__01__to__stand__2h_on_sides__01__turn180l__01": [
+22.7,
+19.7
+],
+"stand__2h_on_sides__01__to__stand__2h_on_sides__01__turn180r__01": [
+20.9,
+15.3
+],
+"stand__2h_on_sides__01__to__stand__2h_on_sides__01__turn225__01": [
+22.6,
+19.1
+],
+"stand__2h_on_sides__01__to__stand__2h_on_sides__01__turn270__01": [
+17.2,
+15.2
+],
+"stand__2h_on_sides__01__to__stand__2h_on_sides__01__turn315__01": [
+11.6,
+8.8
+],
+"stand__2h_on_sides__01__to__stand__2h_on_sides__01__turn45__01": [
+10.4,
+11.6
+],
+"stand__2h_on_sides__01__to__stand__2h_on_sides__01__turn90__01": [
+14.2,
+9.1
+],
+"stand__2h_on_sides__01__to__step_back__01__turn0__01": [
+13.0,
+5.2
+],
+"stand__2h_on_sides__01__to__step_front__01__turn0__01": [
+17.1,
+4.0
+],
+"stand__2h_on_sides__01__turn120__01": [
+10.9,
+9.7
+],
+"stand__2h_on_sides__01__turn240__01": [
+16.6,
+13.7
+],
+"stand__2h_on_sides__01__wait_long__01": [
+68.3,
+28.0
+],
+"stand__2h_on_sides__01__warm_up__01": [
+84.5,
+12.6
+],
+"stand__2h_on_sides__01__warm_up__02": [
+78.5,
+15.5
+],
+"stand__2h_on_sides__01__warm_up__03": [
+52.6,
+1.5
+],
+"stand__2h_on_sides__01__what__afraid__01": [
+7.2,
+11.6
+],
+"stand__2h_on_sides__01__what__afraid__02": [
+4.9,
+2.3
+],
+"stand__2h_on_sides__01__what__afraid__03": [
+50.9,
+5.3
+],
+"stand__2h_on_sides__01__what__angry__01": [
+24.0,
+20.1
+],
+"stand__2h_on_sides__01__what__angry__02": [
+34.8,
+13.9
+],
+"stand__2h_on_sides__01__what__disgusted__01": [
+51.5,
+4.3
+],
+"stand__2h_on_sides__01__what__happy__01": [
+31.8,
+42.7
+],
+"stand__2h_on_sides__01__what__happy__02": [
+36.8,
+17.6
+],
+"stand__2h_on_sides__01__what__neutral__01": [
+26.9,
+27.9
+],
+"stand__2h_on_sides__01__what__neutral__02": [
+49.1,
+8.6
+],
+"stand__2h_on_sides__01__what__neutral__03": [
+52.8,
+7.3
+],
+"stand__2h_on_sides__01__what__neutral__04": [
+64.7,
+24.4
+],
+"stand__2h_on_sides__01__what__neutral__05": [
+28.4,
+25.2
+],
+"stand__2h_on_sides__01__what__neutral__06": [
+33.7,
+39.2
+],
+"stand__2h_on_sides__01__what__sad__01": [
+42.7,
+42.6
+],
+"stand__2h_on_sides__01__what__sad__02": [
+22.6,
+13.2
+],
+"stand__2h_on_sides__01__what__surprised__01": [
+48.2,
+16.2
+],
+"stand__2h_on_sides__01__what_is_this__01": [
+61.9,
+28.0
+],
+"stand__2h_on_sides__01__what_is_this__angry__01": [
+24.0,
+27.2
+],
+"stand__2h_on_sides__01__what_is_this__angry__02": [
+69.5,
+3.4
+],
+"stand__2h_on_sides__01__what_is_this__angry__step_fwd__01": [
+65.5,
+53.2
+],
+"stand__2h_on_sides__01__what_is_this__broad__01": [
+53.3,
+13.7
+],
+"stand__2h_on_sides__01__whatever__angry__01": [
+24.1,
+29.9
+],
+"stand__2h_on_sides__01__whatever__angry__02": [
+53.9,
+22.4
+],
+"stand__2h_on_sides__01__whatever__disgusted__01": [
+62.8,
+38.5
+],
+"stand__2h_on_sides__01__whatever__disgusted__02": [
+26.4,
+27.2
+],
+"stand__2h_on_sides__01__whatever__disgusted__03": [
+20.6,
+7.5
+],
+"stand__2h_on_sides__01__whatever__sad__01": [
+6.4,
+10.3
+],
+"stand__2h_on_sides__01__whatever__sad__02": [
+24.8,
+18.3
+],
+"stand__2h_on_sides__01__whatever__sad__03": [
+29.3,
+23.2
+],
+"stand__2h_on_sides__01__yes__01": [
+8.8,
+3.5
+],
+"stand__2h_on_sides__01__yes__afraid__03": [
+23.5,
+0.0
+],
+"stand__2h_on_sides__01__yes__angry__01": [
+18.6,
+25.9
+],
+"stand__2h_on_sides__01__yes__angry__02": [
+33.6,
+30.9
+],
+"stand__2h_on_sides__01__yes__angry__03": [
+26.7,
+14.9
+],
+"stand__2h_on_sides__01__yes__disgusted__01": [
+33.2,
+2.8
+],
+"stand__2h_on_sides__01__yes__head__01": [
+2.2,
+0.2
+],
+"stand__2h_on_sides__01__yes__sad__01": [
+2.4,
+0.0
+],
+"stand__2h_on_sides__01__yes__sad__02": [
+10.1,
+0.4
+],
+"stand__2h_on_sides__01__yes__sad__03": [
+23.9,
+4.9
+],
+"stand__2h_on_sides__01__yes__surprised__02": [
+37.7,
+28.7
+],
+"stand__2h_on_sides__01__yes__surprised__03": [
+42.1,
+38.1
+],
+"stand__2h_on_sides__ow__01__listen_music__05": [
+67.8,
+25.4
+],
+"stand__2h_on_sides__ow__01__listen_music__06": [
+86.3,
+70.3
+]
+},
+"generic_male_average__stand__arms_crossed_front__01": {
+"add__stand__arms_crossed_front__01__dynamic": [
+9.0,
+5.5
+],
+"stand__2h_on_hip__01__describe_left__02": [
+60.8,
+48.9
+],
+"stand__2h_on_hip__01__shuffle__01": [
+4.0,
+0.0
+],
+"stand__arms_crossed_front__01": [
+0.4,
+0.0
+],
+"stand__arms_crossed_front__01__2h_clap__happy__01": [
+39.7,
+36.4
+],
+"stand__arms_crossed_front__01__2h_clap__happy__02": [
+41.2,
+37.3
+],
+"stand__arms_crossed_front__01__2h_clap__happy__03": [
+40.2,
+41.9
+],
+"stand__arms_crossed_front__01__av_reaction__01": [
+57.7,
+73.3
+],
+"stand__arms_crossed_front__01__av_reaction__02": [
+50.6,
+12.6
+],
+"stand__arms_crossed_front__01__be_quiet__angry__02": [
+24.9,
+9.1
+],
+"stand__arms_crossed_front__01__be_quiet__angry__03": [
+35.1,
+12.8
+],
+"stand__arms_crossed_front__01__calm_down__afraid__01": [
+24.5,
+4.8
+],
+"stand__arms_crossed_front__01__calm_down__afraid__02": [
+28.8,
+5.6
+],
+"stand__arms_crossed_front__01__calm_down__afraid__03": [
+37.9,
+14.4
+],
+"stand__arms_crossed_front__01__calm_down__angry__01": [
+38.5,
+12.1
+],
+"stand__arms_crossed_front__01__calm_down__disgusted__01": [
+50.4,
+27.5
+],
+"stand__arms_crossed_front__01__calm_down__happy__01": [
+25.1,
+6.3
+],
+"stand__arms_crossed_front__01__calm_down__happy__02": [
+20.2,
+2.1
+],
+"stand__arms_crossed_front__01__calm_down__happy__03": [
+39.4,
+10.1
+],
+"stand__arms_crossed_front__01__cant_hear_you__neutral__01": [
+26.5,
+4.2
+],
+"stand__arms_crossed_front__01__cant_hear_you__neutral__02": [
+1.0,
+0.2
+],
+"stand__arms_crossed_front__01__cheer__happy__01": [
+60.0,
+35.3
+],
+"stand__arms_crossed_front__01__come_closer__neutral__01": [
+53.3,
+14.5
+],
+"stand__arms_crossed_front__01__come_closer__neutral__02": [
+75.4,
+88.8
+],
+"stand__arms_crossed_front__01__conversation_step__01": [
+1.8,
+0.1
+],
+"stand__arms_crossed_front__01__conversation_step__02": [
+12.9,
+3.3
+],
+"stand__arms_crossed_front__01__conversation_step__03": [
+8.3,
+0.5
+],
+"stand__arms_crossed_front__01__conversation_step__04": [
+6.9,
+0.6
+],
+"stand__arms_crossed_front__01__conversation_step__05": [
+1.4,
+0.1
+],
+"stand__arms_crossed_front__01__conversation_step__06": [
+1.3,
+0.1
+],
+"stand__arms_crossed_front__01__conversation_step__07": [
+1.6,
+0.1
+],
+"stand__arms_crossed_front__01__conversation_step__08": [
+1.3,
+0.1
+],
+"stand__arms_crossed_front__01__conversation_step__09": [
+1.0,
+0.1
+],
+"stand__arms_crossed_front__01__conversation_step__10": [
+2.2,
+0.1
+],
+"stand__arms_crossed_front__01__conversation_step__11": [
+1.6,
+0.1
+],
+"stand__arms_crossed_front__01__conversation_step__12": [
+1.1,
+0.0
+],
+"stand__arms_crossed_front__01__conversation_step__13": [
+2.4,
+1.3
+],
+"stand__arms_crossed_front__01__conversation_step__14": [
+0.5,
+0.1
+],
+"stand__arms_crossed_front__01__conversation_step__15": [
+1.6,
+0.4
+],
+"stand__arms_crossed_front__01__conversation_step__16": [
+8.1,
+0.1
+],
+"stand__arms_crossed_front__01__conversation_step__17": [
+4.9,
+0.1
+],
+"stand__arms_crossed_front__01__crack_knuckles__angry__01": [
+48.8,
+50.2
+],
+"stand__arms_crossed_front__01__describe_back__01": [
+30.1,
+7.0
+],
+"stand__arms_crossed_front__01__describe_back__02": [
+19.8,
+9.6
+],
+"stand__arms_crossed_front__01__describe_down__01": [
+41.0,
+15.3
+],
+"stand__arms_crossed_front__01__describe_down__02": [
+48.4,
+14.7
+],
+"stand__arms_crossed_front__01__describe_down__03": [
+47.7,
+16.0
+],
+"stand__arms_crossed_front__01__describe_down__04": [
+27.6,
+9.1
+],
+"stand__arms_crossed_front__01__describe_front__01": [
+32.2,
+12.1
+],
+"stand__arms_crossed_front__01__describe_front__02": [
+48.0,
+35.4
+],
+"stand__arms_crossed_front__01__describe_left__01": [
+28.6,
+16.0
+],
+"stand__arms_crossed_front__01__describe_left__02": [
+78.5,
+54.2
+],
+"stand__arms_crossed_front__01__describe_left__03": [
+30.0,
+8.3
+],
+"stand__arms_crossed_front__01__describe_right__01": [
+65.3,
+53.7
+],
+"stand__arms_crossed_front__01__describe_right__02": [
+22.3,
+9.1
+],
+"stand__arms_crossed_front__01__describe_up__01": [
+39.2,
+12.4
+],
+"stand__arms_crossed_front__01__describe_up__02": [
+35.0,
+9.5
+],
+"stand__arms_crossed_front__01__describe_up__03": [
+33.3,
+14.1
+],
+"stand__arms_crossed_front__01__describe_up__04": [
+23.5,
+7.7
+],
+"stand__arms_crossed_front__01__facepalm__disgusted__01": [
+23.2,
+8.9
+],
+"stand__arms_crossed_front__01__fuck_you__angry__01": [
+38.1,
+27.9
+],
+"stand__arms_crossed_front__01__fuck_you__happy__01": [
+28.6,
+8.4
+],
+"stand__arms_crossed_front__01__go_away__angry__01": [
+85.9,
+108.7
+],
+"stand__arms_crossed_front__01__go_away__angry__02": [
+91.7,
+111.4
+],
+"stand__arms_crossed_front__01__go_away__happy__01": [
+59.4,
+28.0
+],
+"stand__arms_crossed_front__01__head_flick_down__01": [
+0.2,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_down__02": [
+1.6,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_down__03": [
+2.1,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_down__04": [
+3.5,
+0.3
+],
+"stand__arms_crossed_front__01__head_flick_down__05": [
+2.5,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_down__06": [
+1.2,
+0.3
+],
+"stand__arms_crossed_front__01__head_flick_left__01": [
+0.9,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_left__02": [
+0.5,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_left__03": [
+0.5,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_left__04": [
+1.1,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_left__05": [
+0.2,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_right__01": [
+0.8,
+0.2
+],
+"stand__arms_crossed_front__01__head_flick_right__02": [
+0.5,
+0.3
+],
+"stand__arms_crossed_front__01__head_flick_right__03": [
+0.9,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_right__04": [
+0.8,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_right__05": [
+0.4,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_up__01": [
+0.3,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_up__02": [
+0.6,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_up__03": [
+1.3,
+0.2
+],
+"stand__arms_crossed_front__01__head_flick_up__04": [
+0.6,
+0.1
+],
+"stand__arms_crossed_front__01__lh_flick__01": [
+27.6,
+7.9
+],
+"stand__arms_crossed_front__01__lh_flick__02": [
+44.1,
+21.4
+],
+"stand__arms_crossed_front__01__lh_flick__03": [
+31.2,
+2.6
+],
+"stand__arms_crossed_front__01__lh_flick__04": [
+25.5,
+0.3
+],
+"stand__arms_crossed_front__01__lh_flick__05": [
+42.8,
+13.8
+],
+"stand__arms_crossed_front__01__long__01": [
+73.0,
+93.2
+],
+"stand__arms_crossed_front__01__look_around__01": [
+3.7,
+0.6
+],
+"stand__arms_crossed_front__01__look_at_products__01": [
+4.2,
+0.6
+],
+"stand__arms_crossed_front__01__look_at_products__02": [
+1.6,
+0.6
+],
+"stand__arms_crossed_front__01__look_at_products__03": [
+2.7,
+0.4
+],
+"stand__arms_crossed_front__01__look_at_products__04": [
+3.8,
+0.7
+],
+"stand__arms_crossed_front__01__me__afraid__01": [
+14.0,
+4.9
+],
+"stand__arms_crossed_front__01__me__angry__01": [
+17.8,
+6.1
+],
+"stand__arms_crossed_front__01__me__happy__01": [
+17.3,
+1.9
+],
+"stand__arms_crossed_front__01__no__afraid__01": [
+3.8,
+0.1
+],
+"stand__arms_crossed_front__01__no__angry__01": [
+47.5,
+44.6
+],
+"stand__arms_crossed_front__01__no__neutral__01": [
+0.3,
+0.1
+],
+"stand__arms_crossed_front__01__no__neutral__02": [
+0.3,
+0.1
+],
+"stand__arms_crossed_front__01__no__neutral__03": [
+2.1,
+0.6
+],
+"stand__arms_crossed_front__01__no__neutral__04": [
+1.2,
+0.0
+],
+"stand__arms_crossed_front__01__no__neutral__05": [
+15.7,
+1.1
+],
+"stand__arms_crossed_front__01__no__neutral__06": [
+26.6,
+9.4
+],
+"stand__arms_crossed_front__01__no__neutral__07": [
+0.9,
+0.4
+],
+"stand__arms_crossed_front__01__no__neutral__08": [
+5.8,
+0.3
+],
+"stand__arms_crossed_front__01__no__sad__01": [
+1.0,
+0.2
+],
+"stand__arms_crossed_front__01__rh_flick__01": [
+30.7,
+3.1
+],
+"stand__arms_crossed_front__01__rh_flick__02": [
+10.7,
+0.0
+],
+"stand__arms_crossed_front__01__shift_center_front__01": [
+12.9,
+0.2
+],
+"stand__arms_crossed_front__01__shift_center_left__01": [
+4.0,
+0.6
+],
+"stand__arms_crossed_front__01__shift_front_center__02": [
+3.6,
+0.1
+],
+"stand__arms_crossed_front__01__shrug__01": [
+4.1,
+0.1
+],
+"stand__arms_crossed_front__01__shrug__02": [
+2.8,
+0.1
+],
+"stand__arms_crossed_front__01__shrug__03": [
+2.7,
+0.0
+],
+"stand__arms_crossed_front__01__shrug__04": [
+2.3,
+0.4
+],
+"stand__arms_crossed_front__01__shuffle__01": [
+1.7,
+0.1
+],
+"stand__arms_crossed_front__01__shuffle__02": [
+1.6,
+1.7
+],
+"stand__arms_crossed_front__01__shuffle__03": [
+3.9,
+0.9
+],
+"stand__arms_crossed_front__01__shuffle__04": [
+2.7,
+0.3
+],
+"stand__arms_crossed_front__01__shuffle__05": [
+2.2,
+0.1
+],
+"stand__arms_crossed_front__01__shuffle__06": [
+0.7,
+0.4
+],
+"stand__arms_crossed_front__01__shuffle__07": [
+1.2,
+0.2
+],
+"stand__arms_crossed_front__01__shuffle__08": [
+6.3,
+0.3
+],
+"stand__arms_crossed_front__01__shuffle__09": [
+7.3,
+2.4
+],
+"stand__arms_crossed_front__01__step_1_back_turn_left__01": [
+3.2,
+0.2
+],
+"stand__arms_crossed_front__01__step_1_back_turn_left__02": [
+2.0,
+0.1
+],
+"stand__arms_crossed_front__01__step_1_back_turn_left__03": [
+1.5,
+0.1
+],
+"stand__arms_crossed_front__01__step_1_back_turn_right__03": [
+1.6,
+0.1
+],
+"stand__arms_crossed_front__01__step_1_fwd_turn_right__01": [
+1.4,
+0.1
+],
+"stand__arms_crossed_front__01__step_1_fwd_turn_right__02": [
+2.7,
+0.2
+],
+"stand__arms_crossed_front__01__step_1_right_turn_right__01": [
+2.5,
+0.2
+],
+"stand__arms_crossed_front__01__step_2_left_turn_right__01": [
+2.2,
+0.2
+],
+"stand__arms_crossed_front__01__step_fwd__01": [
+1.7,
+0.4
+],
+"stand__arms_crossed_front__01__stop__afraid__01": [
+45.7,
+19.5
+],
+"stand__arms_crossed_front__01__stop__angry__01": [
+58.6,
+69.9
+],
+"stand__arms_crossed_front__01__stop__surprised__01": [
+42.0,
+18.6
+],
+"stand__arms_crossed_front__01__talk__neutral__01": [
+1.9,
+0.1
+],
+"stand__arms_crossed_front__01__talk__neutral__02": [
+14.3,
+3.9
+],
+"stand__arms_crossed_front__01__talk__neutral__03": [
+13.7,
+0.1
+],
+"stand__arms_crossed_front__01__talk__neutral__04": [
+4.5,
+0.2
+],
+"stand__arms_crossed_front__01__talk__neutral__05": [
+28.2,
+8.1
+],
+"stand__arms_crossed_front__01__talk__neutral__06": [
+2.0,
+0.2
+],
+"stand__arms_crossed_front__01__talk__neutral__07": [
+26.3,
+3.3
+],
+"stand__arms_crossed_front__01__talk__neutral__08": [
+25.0,
+0.4
+],
+"stand__arms_crossed_front__01__talk__neutral__09": [
+39.0,
+7.9
+],
+"stand__arms_crossed_front__01__talk__neutral__10": [
+35.9,
+5.6
+],
+"stand__arms_crossed_front__01__this_or_that__angry__01": [
+35.3,
+10.8
+],
+"stand__arms_crossed_front__01__this_or_that__angry__02": [
+3.7,
+0.7
+],
+"stand__arms_crossed_front__01__this_or_that__neutral__01": [
+2.9,
+0.4
+],
+"stand__arms_crossed_front__01__this_or_that__neutral__02": [
+32.0,
+8.8
+],
+"stand__arms_crossed_front__01__threaten__angry__01": [
+19.4,
+0.8
+],
+"stand__arms_crossed_front__01__thumb_up__happy__01": [
+33.5,
+9.3
+],
+"stand__arms_crossed_front__01__thumb_up__neutral__01": [
+10.4,
+1.3
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn135__01": [
+5.2,
+0.2
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn180l__01": [
+2.0,
+0.3
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn180r__01": [
+5.1,
+0.0
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn225__01": [
+1.9,
+0.4
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn270__01": [
+3.1,
+0.4
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn315__01": [
+3.5,
+0.1
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn45__01": [
+3.1,
+0.2
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn90__01": [
+4.5,
+0.3
+],
+"stand__arms_crossed_front__01__to__step_back__01__turn0__01": [
+1.2,
+0.1
+],
+"stand__arms_crossed_front__01__to__step_front__01__turn0__01": [
+1.0,
+0.1
+],
+"stand__arms_crossed_front__01__weight_left__01": [
+0.2,
+0.1
+],
+"stand__arms_crossed_front__01__what__afraid__01": [
+8.8,
+0.8
+],
+"stand__arms_crossed_front__01__what__angry__01": [
+25.8,
+4.2
+],
+"stand__arms_crossed_front__01__what__disgusted__01": [
+2.4,
+0.2
+],
+"stand__arms_crossed_front__01__what__disgusted__02": [
+25.5,
+5.2
+],
+"stand__arms_crossed_front__01__what__happy__01": [
+22.0,
+2.0
+],
+"stand__arms_crossed_front__01__what__neutral__01": [
+5.7,
+0.6
+],
+"stand__arms_crossed_front__01__what__neutral__02": [
+27.9,
+8.0
+],
+"stand__arms_crossed_front__01__what__neutral__03": [
+23.1,
+0.7
+],
+"stand__arms_crossed_front__01__what__sad__01": [
+1.3,
+0.2
+],
+"stand__arms_crossed_front__01__what__sad__02": [
+6.6,
+0.5
+],
+"stand__arms_crossed_front__01__what__surprised__01": [
+4.5,
+0.6
+],
+"stand__arms_crossed_front__01__what__surprised__02": [
+28.3,
+5.4
+],
+"stand__arms_crossed_front__01__what_is_this__angry__01": [
+56.4,
+80.9
+],
+"stand__arms_crossed_front__01__what_is_this__disgusted__01": [
+39.5,
+12.2
+],
+"stand__arms_crossed_front__01__what_is_this__neutral__01": [
+5.7,
+0.3
+],
+"stand__arms_crossed_front__01__what_is_this__neutral__02": [
+41.2,
+17.0
+],
+"stand__arms_crossed_front__01__what_is_this__neutral__03": [
+46.5,
+21.1
+],
+"stand__arms_crossed_front__01__what_is_this__surprised__01": [
+2.7,
+0.3
+],
+"stand__arms_crossed_front__01__what_is_this__surprised__02": [
+41.0,
+17.7
+],
+"stand__arms_crossed_front__01__whatever__angry__01": [
+7.6,
+1.0
+],
+"stand__arms_crossed_front__01__whatever__angry__02": [
+38.6,
+27.4
+],
+"stand__arms_crossed_front__01__whatever__disgusted__01": [
+29.4,
+9.8
+],
+"stand__arms_crossed_front__01__whatever__happy__01": [
+39.3,
+16.1
+],
+"stand__arms_crossed_front__01__whatever__sad__01": [
+3.9,
+0.1
+],
+"stand__arms_crossed_front__01__yes__afraid__01": [
+2.0,
+0.2
+],
+"stand__arms_crossed_front__01__yes__afraid__03": [
+17.2,
+3.2
+],
+"stand__arms_crossed_front__01__yes__angry__01": [
+5.3,
+0.3
+],
+"stand__arms_crossed_front__01__yes__angry__04": [
+39.9,
+15.4
+],
+"stand__arms_crossed_front__01__yes__disgusted__01": [
+2.5,
+1.2
+],
+"stand__arms_crossed_front__01__yes__happy__01": [
+3.1,
+0.4
+],
+"stand__arms_crossed_front__01__yes__happy__02": [
+2.4,
+0.3
+],
+"stand__arms_crossed_front__01__yes__happy__03": [
+10.6,
+0.4
+],
+"stand__arms_crossed_front__01__yes__neutral__01": [
+3.9,
+0.1
+],
+"stand__arms_crossed_front__01__yes__neutral__02": [
+1.4,
+0.4
+],
+"stand__arms_crossed_front__01__yes__neutral__03": [
+2.9,
+0.2
+],
+"stand__arms_crossed_front__01__yes__neutral__04": [
+2.7,
+0.4
+],
+"stand__arms_crossed_front__01__yes__neutral__05": [
+1.3,
+0.7
+],
+"stand__arms_crossed_front__01__yes__neutral__06": [
+0.6,
+0.0
+],
+"stand__arms_crossed_front__01__yes__neutral__07": [
+1.5,
+0.1
+],
+"stand__arms_crossed_front__01__yes__sad__01": [
+1.7,
+0.5
+],
+"stand__arms_crossed_front__02": [
+1.0,
+0.4
+]
+},
+"generic_male_big__stand__2h_on_hip__01": {
+"stand__2h_on_hip__01": [
+2.4,
+0.6
+],
+"stand__2h_on_hip__01__2h_flick__01": [
+38.4,
+7.3
+],
+"stand__2h_on_hip__01__2h_flick__02": [
+26.2,
+27.7
+],
+"stand__2h_on_hip__01__2h_flick__03": [
+40.4,
+6.2
+],
+"stand__2h_on_hip__01__calm_down__happy__01": [
+59.8,
+29.2
+],
+"stand__2h_on_hip__01__conversation_step__01": [
+9.1,
+0.3
+],
+"stand__2h_on_hip__01__conversation_step__02": [
+23.7,
+21.8
+],
+"stand__2h_on_hip__01__describe_down__01": [
+48.6,
+24.7
+],
+"stand__2h_on_hip__01__describe_down__02": [
+34.9,
+1.4
+],
+"stand__2h_on_hip__01__describe_down__03": [
+52.2,
+17.3
+],
+"stand__2h_on_hip__01__describe_front__01": [
+94.6,
+35.0
+],
+"stand__2h_on_hip__01__describe_front__02": [
+88.2,
+30.2
+],
+"stand__2h_on_hip__01__describe_left__01": [
+79.7,
+15.3
+],
+"stand__2h_on_hip__01__describe_left__02": [
+63.3,
+49.6
+],
+"stand__2h_on_hip__01__describe_right__01": [
+61.2,
+47.1
+],
+"stand__2h_on_hip__01__describe_right__02": [
+65.4,
+46.9
+],
+"stand__2h_on_hip__01__describe_up__02": [
+65.8,
+17.1
+],
+"stand__2h_on_hip__01__go_away__angry__01": [
+89.9,
+61.7
+],
+"stand__2h_on_hip__01__go_away__happy__01": [
+82.0,
+48.1
+],
+"stand__2h_on_hip__01__go_away__happy__02": [
+88.9,
+45.7
+],
+"stand__2h_on_hip__01__head_flick_down__01": [
+0.6,
+0.3
+],
+"stand__2h_on_hip__01__head_flick_left__01": [
+0.6,
+0.1
+],
+"stand__2h_on_hip__01__head_flick_right__01": [
+0.6,
+0.1
+],
+"stand__2h_on_hip__01__head_flick_up__01": [
+1.1,
+0.1
+],
+"stand__2h_on_hip__01__head_flick_up__02": [
+0.6,
+0.1
+],
+"stand__2h_on_hip__01__look_around__01": [
+7.4,
+0.2
+],
+"stand__2h_on_hip__01__no__angry__01": [
+55.8,
+24.9
+],
+"stand__2h_on_hip__01__no__neutral__01": [
+44.4,
+6.8
+],
+"stand__2h_on_hip__01__no__neutral__02": [
+42.6,
+4.1
+],
+"stand__2h_on_hip__01__no__neutral__03": [
+0.8,
+0.2
+],
+"stand__2h_on_hip__01__rh_flick__01": [
+65.0,
+11.0
+],
+"stand__2h_on_hip__01__rh_flick__02": [
+42.2,
+4.5
+],
+"stand__2h_on_hip__01__rh_flick__03": [
+37.0,
+21.0
+],
+"stand__2h_on_hip__01__shift_right_center__01": [
+4.0,
+0.6
+],
+"stand__2h_on_hip__01__shrug__01": [
+3.6,
+0.2
+],
+"stand__2h_on_hip__01__shrug__02": [
+4.3,
+0.6
+],
+"stand__2h_on_hip__01__shuffle__01": [
+5.3,
+0.0
+],
+"stand__2h_on_hip__01__shuffle__03": [
+5.6,
+0.2
+],
+"stand__2h_on_hip__01__shuffle__04": [
+11.5,
+0.6
+],
+"stand__2h_on_hip__01__shuffle__05": [
+7.0,
+0.4
+],
+"stand__2h_on_hip__01__shuffle__06": [
+10.2,
+0.0
+],
+"stand__2h_on_hip__01__shuffle__07": [
+9.5,
+4.4
+],
+"stand__2h_on_hip__01__shuffle__08": [
+6.8,
+0.1
+],
+"stand__2h_on_hip__01__shuffle__09": [
+7.4,
+0.0
+],
+"stand__2h_on_hip__01__talk__neutral__01": [
+41.6,
+37.9
+],
+"stand__2h_on_hip__01__talk__neutral__02": [
+38.5,
+35.5
+],
+"stand__2h_on_hip__01__talk__neutral__03": [
+6.2,
+0.0
+],
+"stand__2h_on_hip__01__talk__neutral__04": [
+51.6,
+24.1
+],
+"stand__2h_on_hip__01__talk__neutral__05": [
+6.8,
+0.5
+],
+"stand__2h_on_hip__01__talk__neutral__06": [
+29.4,
+21.5
+],
+"stand__2h_on_hip__01__talk__neutral__07": [
+46.9,
+37.8
+],
+"stand__2h_on_hip__01__what__surprised__01": [
+33.2,
+47.5
+],
+"stand__2h_on_hip__01__whatever__happy__01": [
+65.1,
+21.7
+],
+"stand__2h_on_hip__01__yes__angry__01": [
+50.7,
+51.1
+],
+"stand__2h_on_hip__01__yes__angry__02": [
+80.2,
+57.8
+],
+"stand__2h_on_hip__01__yes__neutral__01": [
+0.7,
+0.3
+],
+"stand__2h_on_hip__01__yes__neutral__02": [
+0.8,
+0.2
+],
+"stand__2h_on_hip__01__yes__neutral__03": [
+71.5,
+22.3
+]
+},
+"generic_male_big__stand__arms_crossed_front__01": {
+"add__stand__arms_crossed_front__01__dynamic": [
+9.5,
+5.8
+],
+"stand__arms_crossed_front__01": [
+0.5,
+0.1
+],
+"stand__arms_crossed_front__01__2h_clap__happy__01": [
+38.1,
+45.0
+],
+"stand__arms_crossed_front__01__2h_clap__happy__02": [
+43.8,
+49.0
+],
+"stand__arms_crossed_front__01__2h_clap__happy__03": [
+42.7,
+50.4
+],
+"stand__arms_crossed_front__01__av_reaction__01": [
+60.3,
+87.4
+],
+"stand__arms_crossed_front__01__av_reaction__02": [
+53.4,
+21.2
+],
+"stand__arms_crossed_front__01__be_quiet__angry__02": [
+21.8,
+11.2
+],
+"stand__arms_crossed_front__01__be_quiet__angry__03": [
+30.4,
+18.3
+],
+"stand__arms_crossed_front__01__calm_down__afraid__01": [
+30.8,
+12.0
+],
+"stand__arms_crossed_front__01__calm_down__afraid__02": [
+32.5,
+17.3
+],
+"stand__arms_crossed_front__01__calm_down__afraid__03": [
+40.1,
+33.0
+],
+"stand__arms_crossed_front__01__calm_down__angry__01": [
+35.1,
+19.0
+],
+"stand__arms_crossed_front__01__calm_down__disgusted__01": [
+45.4,
+34.7
+],
+"stand__arms_crossed_front__01__calm_down__happy__01": [
+28.9,
+12.5
+],
+"stand__arms_crossed_front__01__calm_down__happy__02": [
+21.9,
+4.6
+],
+"stand__arms_crossed_front__01__calm_down__happy__03": [
+36.2,
+16.5
+],
+"stand__arms_crossed_front__01__cant_hear_you__neutral__01": [
+23.6,
+4.3
+],
+"stand__arms_crossed_front__01__cant_hear_you__neutral__02": [
+1.1,
+0.2
+],
+"stand__arms_crossed_front__01__cheer__01": [
+87.8,
+100.8
+],
+"stand__arms_crossed_front__01__cheer__02": [
+69.7,
+95.9
+],
+"stand__arms_crossed_front__01__cheer__happy__01": [
+63.2,
+53.9
+],
+"stand__arms_crossed_front__01__come_closer__neutral__01": [
+53.4,
+24.4
+],
+"stand__arms_crossed_front__01__come_closer__neutral__02": [
+78.5,
+103.2
+],
+"stand__arms_crossed_front__01__conversation_step__01": [
+12.7,
+6.4
+],
+"stand__arms_crossed_front__01__conversation_step__02": [
+0.1,
+0.1
+],
+"stand__arms_crossed_front__01__conversation_step__03": [
+0.1,
+0.1
+],
+"stand__arms_crossed_front__01__conversation_step__04": [
+0.1,
+0.1
+],
+"stand__arms_crossed_front__01__crack_knuckles__angry__01": [
+56.3,
+60.7
+],
+"stand__arms_crossed_front__01__describe_back__01": [
+27.9,
+10.8
+],
+"stand__arms_crossed_front__01__describe_back__02": [
+20.7,
+11.1
+],
+"stand__arms_crossed_front__01__describe_down__01": [
+39.6,
+20.1
+],
+"stand__arms_crossed_front__01__describe_down__02": [
+50.2,
+23.3
+],
+"stand__arms_crossed_front__01__describe_down__03": [
+53.3,
+27.2
+],
+"stand__arms_crossed_front__01__describe_down__04": [
+26.3,
+13.4
+],
+"stand__arms_crossed_front__01__describe_front__01": [
+30.6,
+14.7
+],
+"stand__arms_crossed_front__01__describe_front__02": [
+45.2,
+43.4
+],
+"stand__arms_crossed_front__01__describe_left__01": [
+26.6,
+19.5
+],
+"stand__arms_crossed_front__01__describe_left__02": [
+84.2,
+69.0
+],
+"stand__arms_crossed_front__01__describe_right__01": [
+66.8,
+64.9
+],
+"stand__arms_crossed_front__01__describe_right__02": [
+26.3,
+13.8
+],
+"stand__arms_crossed_front__01__describe_right__03": [
+63.3,
+54.4
+],
+"stand__arms_crossed_front__01__describe_up__01": [
+35.0,
+14.3
+],
+"stand__arms_crossed_front__01__describe_up__02": [
+29.5,
+11.7
+],
+"stand__arms_crossed_front__01__describe_up__03": [
+29.2,
+16.5
+],
+"stand__arms_crossed_front__01__describe_up__04": [
+20.9,
+9.1
+],
+"stand__arms_crossed_front__01__facepalm__disgusted__01": [
+23.4,
+12.4
+],
+"stand__arms_crossed_front__01__fuck_you__angry__01": [
+41.8,
+48.8
+],
+"stand__arms_crossed_front__01__fuck_you__happy__01": [
+23.1,
+11.4
+],
+"stand__arms_crossed_front__01__go_away__angry__01": [
+91.6,
+124.2
+],
+"stand__arms_crossed_front__01__go_away__angry__02": [
+97.9,
+127.5
+],
+"stand__arms_crossed_front__01__go_away__happy__01": [
+61.6,
+36.7
+],
+"stand__arms_crossed_front__01__head_flick_down__01": [
+0.2,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_down__02": [
+2.2,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_down__03": [
+1.5,
+0.2
+],
+"stand__arms_crossed_front__01__head_flick_down__04": [
+4.4,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_down__05": [
+1.6,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_down__06": [
+1.4,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_left__01": [
+1.1,
+0.2
+],
+"stand__arms_crossed_front__01__head_flick_left__02": [
+0.6,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_left__03": [
+0.4,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_left__04": [
+0.8,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_left__05": [
+0.3,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_right__01": [
+0.8,
+0.4
+],
+"stand__arms_crossed_front__01__head_flick_right__02": [
+0.6,
+0.4
+],
+"stand__arms_crossed_front__01__head_flick_right__03": [
+0.8,
+0.3
+],
+"stand__arms_crossed_front__01__head_flick_right__04": [
+0.7,
+0.2
+],
+"stand__arms_crossed_front__01__head_flick_right__05": [
+0.4,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_up__01": [
+0.3,
+0.3
+],
+"stand__arms_crossed_front__01__head_flick_up__02": [
+0.7,
+0.1
+],
+"stand__arms_crossed_front__01__head_flick_up__03": [
+0.1,
+0.0
+],
+"stand__arms_crossed_front__01__head_flick_up__04": [
+0.5,
+0.2
+],
+"stand__arms_crossed_front__01__lh_flick__01": [
+21.4,
+8.6
+],
+"stand__arms_crossed_front__01__lh_flick__02": [
+40.7,
+25.4
+],
+"stand__arms_crossed_front__01__lh_flick__03": [
+25.1,
+5.9
+],
+"stand__arms_crossed_front__01__lh_flick__04": [
+21.9,
+4.6
+],
+"stand__arms_crossed_front__01__lh_flick__05": [
+38.2,
+16.4
+],
+"stand__arms_crossed_front__01__look_at_products__01": [
+3.2,
+0.2
+],
+"stand__arms_crossed_front__01__look_at_products__02": [
+1.3,
+0.5
+],
+"stand__arms_crossed_front__01__look_at_products__03": [
+3.0,
+0.3
+],
+"stand__arms_crossed_front__01__me__afraid__01": [
+15.3,
+1.6
+],
+"stand__arms_crossed_front__01__me__angry__01": [
+13.2,
+1.1
+],
+"stand__arms_crossed_front__01__me__happy__01": [
+18.4,
+4.4
+],
+"stand__arms_crossed_front__01__no__afraid__01": [
+5.2,
+0.3
+],
+"stand__arms_crossed_front__01__no__angry__01": [
+45.9,
+54.0
+],
+"stand__arms_crossed_front__01__no__neutral__01": [
+0.3,
+0.2
+],
+"stand__arms_crossed_front__01__no__neutral__02": [
+0.4,
+0.1
+],
+"stand__arms_crossed_front__01__no__neutral__03": [
+2.4,
+0.7
+],
+"stand__arms_crossed_front__01__no__neutral__04": [
+0.8,
+0.3
+],
+"stand__arms_crossed_front__01__no__neutral__05": [
+14.0,
+4.9
+],
+"stand__arms_crossed_front__01__no__neutral__06": [
+31.7,
+16.0
+],
+"stand__arms_crossed_front__01__no__neutral__07": [
+0.8,
+0.5
+],
+"stand__arms_crossed_front__01__no__neutral__08": [
+1.4,
+0.1
+],
+"stand__arms_crossed_front__01__no__sad__01": [
+1.1,
+0.2
+],
+"stand__arms_crossed_front__01__react__01": [
+68.4,
+71.1
+],
+"stand__arms_crossed_front__01__react__02": [
+69.6,
+78.2
+],
+"stand__arms_crossed_front__01__rh_flick__01": [
+30.2,
+9.0
+],
+"stand__arms_crossed_front__01__rh_flick__02": [
+15.3,
+0.4
+],
+"stand__arms_crossed_front__01__shift_center_front__01": [
+13.1,
+5.8
+],
+"stand__arms_crossed_front__01__shift_center_left__01": [
+3.3,
+2.9
+],
+"stand__arms_crossed_front__01__shift_front_center__02": [
+9.6,
+0.2
+],
+"stand__arms_crossed_front__01__shrug__01": [
+2.0,
+0.6
+],
+"stand__arms_crossed_front__01__shrug__02": [
+2.3,
+0.3
+],
+"stand__arms_crossed_front__01__shrug__03": [
+1.3,
+0.1
+],
+"stand__arms_crossed_front__01__shrug__04": [
+3.1,
+0.4
+],
+"stand__arms_crossed_front__01__shuffle__01": [
+2.8,
+0.2
+],
+"stand__arms_crossed_front__01__shuffle__02": [
+1.9,
+0.5
+],
+"stand__arms_crossed_front__01__shuffle__03": [
+6.8,
+0.4
+],
+"stand__arms_crossed_front__01__shuffle__04": [
+1.9,
+0.8
+],
+"stand__arms_crossed_front__01__shuffle__05": [
+1.9,
+0.4
+],
+"stand__arms_crossed_front__01__shuffle__06": [
+2.7,
+1.2
+],
+"stand__arms_crossed_front__01__shuffle__07": [
+6.1,
+1.3
+],
+"stand__arms_crossed_front__01__shuffle__08": [
+7.9,
+2.4
+],
+"stand__arms_crossed_front__01__shuffle__09": [
+10.3,
+0.5
+],
+"stand__arms_crossed_front__01__spit__01": [
+0.1,
+0.1
+],
+"stand__arms_crossed_front__01__step_forward__01": [
+2.7,
+0.6
+],
+"stand__arms_crossed_front__01__stop__afraid__01": [
+48.0,
+30.6
+],
+"stand__arms_crossed_front__01__stop__angry__01": [
+56.6,
+81.3
+],
+"stand__arms_crossed_front__01__stop__surprised__01": [
+45.3,
+31.5
+],
+"stand__arms_crossed_front__01__talk__neutral__01": [
+1.7,
+0.1
+],
+"stand__arms_crossed_front__01__talk__neutral__02": [
+10.5,
+0.7
+],
+"stand__arms_crossed_front__01__talk__neutral__03": [
+10.7,
+0.2
+],
+"stand__arms_crossed_front__01__talk__neutral__04": [
+5.6,
+0.3
+],
+"stand__arms_crossed_front__01__talk__neutral__05": [
+26.9,
+8.8
+],
+"stand__arms_crossed_front__01__talk__neutral__06": [
+1.8,
+0.2
+],
+"stand__arms_crossed_front__01__talk__neutral__07": [
+22.7,
+3.8
+],
+"stand__arms_crossed_front__01__talk__neutral__08": [
+26.7,
+6.3
+],
+"stand__arms_crossed_front__01__talk__neutral__09": [
+32.6,
+9.5
+],
+"stand__arms_crossed_front__01__talk__neutral__10": [
+35.6,
+12.1
+],
+"stand__arms_crossed_front__01__this_or_that__angry__01": [
+39.1,
+18.5
+],
+"stand__arms_crossed_front__01__this_or_that__angry__02": [
+4.0,
+0.2
+],
+"stand__arms_crossed_front__01__this_or_that__neutral__01": [
+2.9,
+0.1
+],
+"stand__arms_crossed_front__01__this_or_that__neutral__02": [
+29.6,
+9.8
+],
+"stand__arms_crossed_front__01__threaten__angry__01": [
+15.9,
+3.4
+],
+"stand__arms_crossed_front__01__thumb_up__happy__01": [
+29.7,
+10.3
+],
+"stand__arms_crossed_front__01__thumb_up__neutral__01": [
+12.4,
+3.0
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn270__01": [
+5.0,
+2.5
+],
+"stand__arms_crossed_front__01__to__stand__arms_crossed_front__01__turn90__01": [
+4.3,
+0.1
+],
+"stand__arms_crossed_front__01__turn120__01": [
+10.2,
+0.3
+],
+"stand__arms_crossed_front__01__turn240__01": [
+5.7,
+0.1
+],
+"stand__arms_crossed_front__01__weight_left__01": [
+0.2,
+0.1
+],
+"stand__arms_crossed_front__01__what__afraid__01": [
+9.8,
+3.0
+],
+"stand__arms_crossed_front__01__what__angry__01": [
+21.9,
+5.2
+],
+"stand__arms_crossed_front__01__what__disgusted__01": [
+2.6,
+0.6
+],
+"stand__arms_crossed_front__01__what__disgusted__02": [
+24.8,
+10.4
+],
+"stand__arms_crossed_front__01__what__happy__01": [
+20.5,
+2.9
+],
+"stand__arms_crossed_front__01__what__neutral__01": [
+6.9,
+0.7
+],
+"stand__arms_crossed_front__01__what__neutral__02": [
+23.2,
+7.0
+],
+"stand__arms_crossed_front__01__what__neutral__03": [
+18.1,
+3.1
+],
+"stand__arms_crossed_front__01__what__sad__01": [
+1.5,
+0.2
+],
+"stand__arms_crossed_front__01__what__sad__02": [
+11.3,
+5.5
+],
+"stand__arms_crossed_front__01__what__surprised__01": [
+5.1,
+0.1
+],
+"stand__arms_crossed_front__01__what__surprised__02": [
+24.9,
+12.1
+],
+"stand__arms_crossed_front__01__what_is_this__angry__01": [
+59.5,
+95.4
+],
+"stand__arms_crossed_front__01__what_is_this__disgusted__01": [
+43.5,
+24.4
+],
+"stand__arms_crossed_front__01__what_is_this__neutral__01": [
+6.9,
+0.1
+],
+"stand__arms_crossed_front__01__what_is_this__neutral__02": [
+40.1,
+22.6
+],
+"stand__arms_crossed_front__01__what_is_this__neutral__03": [
+45.9,
+27.8
+],
+"stand__arms_crossed_front__01__what_is_this__surprised__01": [
+2.5,
+0.1
+],
+"stand__arms_crossed_front__01__what_is_this__surprised__02": [
+43.7,
+27.1
+],
+"stand__arms_crossed_front__01__whatever__angry__01": [
+9.3,
+0.3
+],
+"stand__arms_crossed_front__01__whatever__angry__02": [
+39.3,
+38.5
+],
+"stand__arms_crossed_front__01__whatever__disgusted__01": [
+32.4,
+14.2
+],
+"stand__arms_crossed_front__01__whatever__happy__01": [
+36.9,
+26.3
+],
+"stand__arms_crossed_front__01__whatever__sad__01": [
+3.2,
+0.4
+],
+"stand__arms_crossed_front__01__yes__afraid__01": [
+2.3,
+0.1
+],
+"stand__arms_crossed_front__01__yes__afraid__03": [
+19.7,
+6.4
+],
+"stand__arms_crossed_front__01__yes__angry__01": [
+6.5,
+0.1
+],
+"stand__arms_crossed_front__01__yes__angry__04": [
+51.3,
+32.9
+],
+"stand__arms_crossed_front__01__yes__disgusted__01": [
+2.0,
+0.7
+],
+"stand__arms_crossed_front__01__yes__happy__01": [
+3.9,
+0.1
+],
+"stand__arms_crossed_front__01__yes__happy__02": [
+2.9,
+0.2
+],
+"stand__arms_crossed_front__01__yes__happy__03": [
+10.1,
+1.0
+],
+"stand__arms_crossed_front__01__yes__neutral__01": [
+0.8,
+0.1
+],
+"stand__arms_crossed_front__01__yes__neutral__02": [
+1.4,
+0.3
+],
+"stand__arms_crossed_front__01__yes__neutral__03": [
+2.1,
+0.4
+],
+"stand__arms_crossed_front__01__yes__neutral__04": [
+3.2,
+0.2
+],
+"stand__arms_crossed_front__01__yes__neutral__05": [
+1.4,
+0.1
+],
+"stand__arms_crossed_front__01__yes__neutral__06": [
+1.0,
+0.4
+],
+"stand__arms_crossed_front__01__yes__neutral__07": [
+0.7,
+0.1
+],
+"stand__arms_crossed_front__01__yes__sad__01": [
+1.7,
+0.9
+]
+},
+"jackie__stand__2h_on_sides": {
+"stand__2h_on_sides__01": [
+1.8,
+0.3
+],
+"stand__2h_on_sides__01__describe_left__01": [
+38.4,
+28.2
+],
+"stand__2h_on_sides__01__head_flick_down__01": [
+4.7,
+5.8
+],
+"stand__2h_on_sides__01__head_flick_down__04": [
+1.0,
+0.3
+],
+"stand__2h_on_sides__01__head_flick_left__02": [
+2.8,
+0.2
+],
+"stand__2h_on_sides__01__head_flick_right__03": [
+7.1,
+7.3
+],
+"stand__2h_on_sides__01__look_around__01": [
+5.1,
+2.2
+],
+"stand__2h_on_sides__01__no__02": [
+8.4,
+0.5
+],
+"stand__2h_on_sides__01__rh_flick__02": [
+37.0,
+7.2
+],
+"stand__2h_on_sides__01__rh_flick__03": [
+25.2,
+11.5
+],
+"stand__2h_on_sides__01__rub_hands__03": [
+48.7,
+1.3
+],
+"stand__2h_on_sides__01__shrug__01": [
+15.5,
+18.5
+],
+"stand__2h_on_sides__01__talk__neutral__01": [
+36.5,
+33.9
+]
+},
+"johnny__stand__arms_crossed_front__01": {
+"johnny__stand__arms_crossed_front__01": [
+0.1,
+0.0
+],
+"johnny__stand__arms_crossed_front__01__bow__02": [
+83.0,
+110.6
+],
+"johnny__stand__arms_crossed_front__01__conversation_step__01": [
+65.3,
+70.2
+],
+"johnny__stand__arms_crossed_front__01__conversation_step__02": [
+7.3,
+0.0
+],
+"johnny__stand__arms_crossed_front__01__flick__01": [
+45.4,
+14.2
+],
+"johnny__stand__arms_crossed_front__01__intuition__01": [
+36.0,
+12.2
+],
+"johnny__stand__arms_crossed_front__01__look_around__01": [
+1.2,
+0.6
+],
+"johnny__stand__arms_crossed_front__01__shift_center_front__01": [
+2.1,
+0.0
+],
+"johnny__stand__arms_crossed_front__01__shift_front_center__01": [
+2.2,
+0.3
+],
+"johnny__stand__arms_crossed_front__01__shift_right_center__01": [
+1.1,
+0.2
+],
+"johnny__stand__arms_crossed_front__01__shuffle__01": [
+1.6,
+0.4
+],
+"johnny__stand__arms_crossed_front__01__shuffle__02": [
+2.8,
+0.0
+],
+"johnny__stand__arms_crossed_front__01__talk__01": [
+54.3,
+66.6
+],
+"johnny__stand__arms_crossed_front__01__talk__02": [
+49.9,
+47.7
+],
+"johnny__stand__arms_crossed_front__01__talk_to_hand__01": [
+37.2,
+10.8
+],
+"johnny__stand__arms_crossed_front__01__tap__01": [
+1.0,
+0.4
+],
+"johnny__stand__arms_crossed_front__01__tap__02": [
+0.4,
+0.2
+],
+"johnny__stand__arms_crossed_front__01__wait__01": [
+1.8,
+0.0
+],
+"johnny__stand__arms_crossed_front__01__wait__02": [
+65.6,
+61.4
+],
+"ohnny__stand__arms_crossed_front__01__shrug__01": [
+3.5,
+0.2
+]
+},
+"johnny__stand__lh_pocket__01": {
+"johnny__stand__lh_pocket__01": [
+1.1,
+0.3
+],
+"johnny__stand__lh_pocket__01__2_step_right__turn0__01": [
+37.7,
+48.2
+],
+"johnny__stand__lh_pocket__01__3_step_back__turn45__01": [
+38.2,
+11.7
+],
+"johnny__stand__lh_pocket__01__3_step_front__turn180l__01": [
+18.8,
+11.1
+],
+"johnny__stand__lh_pocket__01__3_step_left_back__turn180l__01": [
+20.3,
+13.8
+],
+"johnny__stand__lh_pocket__01__4_step_front__turn315__01": [
+39.0,
+25.5
+],
+"johnny__stand__lh_pocket__01__check_belt__01": [
+29.7,
+10.8
+],
+"johnny__stand__lh_pocket__01__conversation_step_back__02": [
+77.9,
+94.6
+],
+"johnny__stand__lh_pocket__01__describe_front__01": [
+24.8,
+4.5
+],
+"johnny__stand__lh_pocket__01__facepalm__01": [
+66.4,
+10.5
+],
+"johnny__stand__lh_pocket__01__fuck_you_back__01": [
+77.2,
+37.3
+],
+"johnny__stand__lh_pocket__01__hurry_up__01": [
+53.4,
+33.1
+],
+"johnny__stand__lh_pocket__01__look_around__01": [
+9.7,
+1.6
+],
+"johnny__stand__lh_pocket__01__look_left__01": [
+8.4,
+1.5
+],
+"johnny__stand__lh_pocket__01__look_left__02": [
+10.5,
+0.4
+],
+"johnny__stand__lh_pocket__01__point__01": [
+28.2,
+6.5
+],
+"johnny__stand__lh_pocket__01__rub_face__01": [
+62.7,
+9.5
+],
+"johnny__stand__lh_pocket__01__scratch_head__01": [
+72.7,
+22.6
+],
+"johnny__stand__lh_pocket__01__shrug__01": [
+3.9,
+0.6
+],
+"johnny__stand__lh_pocket__01__shuffle__01": [
+7.5,
+4.3
+],
+"johnny__stand__lh_pocket__01__shuffle__02": [
+12.0,
+0.8
+],
+"johnny__stand__lh_pocket__01__shuffle__03": [
+13.1,
+1.4
+],
+"johnny__stand__lh_pocket__01__snapping_fingers__01": [
+16.0,
+1.2
+],
+"johnny__stand__lh_pocket__01__step_back__01": [
+62.6,
+14.9
+],
+"johnny__stand__lh_pocket__01__stretch_arms__01": [
+88.5,
+48.8
+],
+"johnny__stand__lh_pocket__01__talk__01": [
+41.8,
+27.2
+],
+"johnny__stand__lh_pocket__01__talk__02": [
+66.5,
+55.6
+],
+"johnny__stand__lh_pocket__01__talk__03": [
+31.8,
+17.4
+],
+"johnny__stand__lh_pocket__01__talk__04": [
+40.4,
+7.4
+],
+"johnny__stand__lh_pocket__01__turn225__01": [
+17.4,
+4.7
+],
+"johnny__stand__lh_pocket__01__turn270__01": [
+30.8,
+12.4
+],
+"johnny__stand__lh_pocket__01__what__01": [
+34.6,
+35.7
+]
+},
+"judy__stand_2h_arms_crossed__01__gestures__01": {
+"judy__stand_2h_arms_crossed__01__gesture__01": [
+2.6,
+0.1
+],
+"judy__stand_2h_arms_crossed__01__gesture__02": [
+40.2,
+29.3
+],
+"judy__stand_2h_arms_crossed__01__gesture__03": [
+43.9,
+36.7
+]
+},
+"kerry__stand__2h_on_hip__01": {
+"kerry__stand__2h_on_hip__01": [
+0.8,
+0.2
+],
+"kerry__stand__2h_on_hip__01__2h_flick__01": [
+38.0,
+7.4
+],
+"kerry__stand__2h_on_hip__01__2h_flick__02": [
+31.5,
+28.0
+],
+"kerry__stand__2h_on_hip__01__2h_flick__03": [
+41.8,
+5.4
+],
+"kerry__stand__2h_on_hip__01__conversation_step__01": [
+9.1,
+9.7
+],
+"kerry__stand__2h_on_hip__01__describe_left__02": [
+63.3,
+47.0
+],
+"kerry__stand__2h_on_hip__01__head_flick_down__01": [
+0.5,
+0.2
+],
+"kerry__stand__2h_on_hip__01__head_flick_right__01": [
+0.5,
+0.1
+],
+"kerry__stand__2h_on_hip__01__head_flick_up__01": [
+1.1,
+0.2
+],
+"kerry__stand__2h_on_hip__01__head_flick_up__02": [
+0.5,
+0.1
+],
+"kerry__stand__2h_on_hip__01__look_around__01": [
+6.9,
+0.5
+],
+"kerry__stand__2h_on_hip__01__point_back__01": [
+58.4,
+11.2
+],
+"kerry__stand__2h_on_hip__01__shrug__01": [
+2.5,
+0.6
+],
+"kerry__stand__2h_on_hip__01__shrug__02": [
+4.5,
+0.5
+],
+"kerry__stand__2h_on_hip__01__shuffle__01": [
+4.6,
+0.1
+],
+"kerry__stand__2h_on_hip__01__shuffle__04": [
+5.3,
+0.2
+],
+"kerry__stand__2h_on_hip__01__shuffle__05": [
+6.2,
+0.1
+],
+"kerry__stand__2h_on_hip__01__shuffle__06": [
+7.7,
+0.2
+],
+"kerry__stand__2h_on_hip__01__talk__01": [
+40.7,
+29.8
+]
+},
+"takemura__stand__2h_on_sides__01": {
+"takemura__stand__2h_on_sides__01": [
+1.8,
+0.0
+],
+"takemura__stand__2h_on_sides__01__conversation_step__01": [
+20.4,
+3.3
+],
+"takemura__stand__2h_on_sides__01__conversation_step__04": [
+8.2,
+9.0
+],
+"takemura__stand__2h_on_sides__01__look_back_left__01": [
+17.7,
+2.6
+],
+"takemura__stand__2h_on_sides__01__nod__respectful__01": [
+7.8,
+1.7
+],
+"takemura__stand__2h_on_sides__01__shuffle__01": [
+6.0,
+6.6
+],
+"takemura__stand__2h_on_sides__01__shuffle__02": [
+4.6,
+2.7
+],
+"takemura__stand__2h_on_sides__01__step_forward__01": [
+11.5,
+7.4
+],
+"takemura__stand__2h_on_sides__01__talk__01": [
+14.2,
+12.4
+],
+"takemura__stand__2h_on_sides__01__talk__02": [
+15.2,
+12.2
+],
+"takemura__stand__2h_on_sides__01__talk__03": [
+29.7,
+2.9
+],
+"takemura__stand__2h_on_sides__01__talk__04": [
+14.8,
+13.7
+]
+}
+},
+"fields": [
+"reach",
+"open"
+],
+"units": "cm",
+"version": 1
+}

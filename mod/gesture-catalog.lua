@@ -44,9 +44,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.567,
+                            reach = 34.2,
                         },
                         man_base = {
                             duration = 3.567,
+                            reach = 37,
                         },
                         man_big = {
                             duration = 3.567,
@@ -61,9 +63,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.667,
+                            reach = 26.8,
                         },
                         man_base = {
                             duration = 2.667,
+                            reach = 27.9,
                         },
                         man_big = {
                             duration = 2.667,
@@ -78,9 +82,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5,
+                            reach = 31.4,
                         },
                         man_base = {
                             duration = 5,
+                            reach = 34.9,
                         },
                         man_big = {
                             duration = 5,
@@ -95,9 +101,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.867,
+                            reach = 23.3,
                         },
                         man_base = {
                             duration = 2.867,
+                            reach = 25.1,
                         },
                         man_big = {
                             duration = 2.867,
@@ -112,9 +120,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.9,
+                            reach = 29.9,
                         },
                         man_base = {
                             duration = 3.9,
+                            reach = 39.2,
                         },
                         man_big = {
                             duration = 3.9,
@@ -129,9 +139,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.1,
+                            reach = 65.6,
                         },
                         man_base = {
                             duration = 6.1,
+                            reach = 70.4,
                         },
                         man_big = {
                             duration = 6.1,
@@ -146,9 +158,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.267,
+                            reach = 56.2,
                         },
                         man_base = {
                             duration = 3.267,
+                            reach = 61,
                         },
                         man_big = {
                             duration = 3.267,
@@ -163,9 +177,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.033,
+                            reach = 60,
                         },
                         man_base = {
                             duration = 5.033,
+                            reach = 63.7,
                         },
                         man_big = {
                             duration = 5.033,
@@ -180,9 +196,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.5,
+                            reach = 36.3,
                         },
                         man_base = {
                             duration = 5.5,
+                            reach = 38.2,
                         },
                         man_big = {
                             duration = 5.5,
@@ -197,6 +215,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.267,
+                            reach = 12.8,
                         },
                         man_big = {
                             duration = 4.267,
@@ -211,9 +230,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.567,
+                            reach = 17.9,
                         },
                         man_base = {
                             duration = 5.567,
+                            reach = 19.6,
                         },
                         man_big = {
                             duration = 5.567,
@@ -228,9 +249,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.7,
+                            reach = 10.2,
                         },
                         man_base = {
                             duration = 5.7,
+                            reach = 10.7,
                         },
                         man_big = {
                             duration = 5.7,
@@ -245,9 +268,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.633,
+                            reach = 6.3,
                         },
                         man_base = {
                             duration = 5.633,
+                            reach = 6.5,
                         },
                         man_big = {
                             duration = 5.633,
@@ -262,9 +287,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.7,
+                            reach = 1.3,
                         },
                         man_base = {
                             duration = 3.7,
+                            reach = 1.4,
                         },
                         man_big = {
                             duration = 3.7,
@@ -290,9 +317,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.067,
+                            reach = 44.8,
                         },
                         man_base = {
                             duration = 5.067,
+                            reach = 50,
                         },
                         man_big = {
                             duration = 5.067,
@@ -307,9 +336,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.867,
+                            reach = 43.7,
                         },
                         man_base = {
                             duration = 4.867,
+                            reach = 48.2,
                         },
                         man_big = {
                             duration = 4.867,
@@ -324,9 +355,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 7.367,
+                            reach = 94.5,
                         },
                         man_base = {
                             duration = 7.367,
+                            reach = 104.8,
                         },
                     },
                 },
@@ -338,9 +371,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 14.367,
+                            reach = 101.8,
                         },
                         man_base = {
                             duration = 14.367,
+                            reach = 111.3,
                         },
                     },
                 },
@@ -352,9 +387,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 8.433,
+                            reach = 102.1,
                         },
                         man_base = {
                             duration = 8.433,
+                            reach = 110.9,
                         },
                     },
                 },
@@ -366,9 +403,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 7.6,
+                            reach = 105.4,
                         },
                         man_base = {
                             duration = 7.6,
+                            reach = 115.2,
                         },
                     },
                 },
@@ -380,9 +419,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 10.6,
+                            reach = 101.9,
                         },
                         man_base = {
                             duration = 10.6,
+                            reach = 112.9,
                         },
                     },
                 },
@@ -394,9 +435,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 12.833,
+                            reach = 105.2,
                         },
                         man_base = {
                             duration = 12.833,
+                            reach = 116.4,
                         },
                     },
                 },
@@ -408,9 +451,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 10.9,
+                            reach = 104.5,
                         },
                         man_base = {
                             duration = 10.9,
+                            reach = 113.6,
                         },
                     },
                 },
@@ -422,9 +467,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.733,
+                            reach = 109.4,
                         },
                         man_base = {
                             duration = 6.733,
+                            reach = 118.9,
                         },
                     },
                 },
@@ -436,9 +483,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.6,
+                            reach = 103.3,
                         },
                         man_base = {
                             duration = 4.6,
+                            reach = 113.3,
                         },
                     },
                 },
@@ -450,9 +499,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.133,
+                            reach = 52.1,
                         },
                         man_base = {
                             duration = 3.133,
+                            reach = 56.5,
                         },
                         man_big = {
                             duration = 3.133,
@@ -467,9 +518,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.833,
+                            reach = 60,
                         },
                         man_base = {
                             duration = 6.833,
+                            reach = 63.8,
                         },
                         man_big = {
                             duration = 6.833,
@@ -484,9 +537,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.3,
+                            reach = 35.8,
                         },
                         man_base = {
                             duration = 2.3,
+                            reach = 38.8,
                         },
                         man_big = {
                             duration = 2.3,
@@ -501,9 +556,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.633,
+                            reach = 31.8,
                         },
                         man_base = {
                             duration = 2.633,
+                            reach = 34.9,
                         },
                         man_big = {
                             duration = 2.633,
@@ -518,9 +575,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.6,
+                            reach = 39.5,
                         },
                         man_base = {
                             duration = 2.6,
+                            reach = 44.8,
                         },
                         man_big = {
                             duration = 2.6,
@@ -535,9 +594,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.467,
+                            reach = 33.5,
                         },
                         man_base = {
                             duration = 3.467,
+                            reach = 35.6,
                         },
                         man_big = {
                             duration = 3.467,
@@ -552,9 +613,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.667,
+                            reach = 46.2,
                         },
                         man_base = {
                             duration = 2.667,
+                            reach = 49.3,
                         },
                         man_big = {
                             duration = 2.667,
@@ -569,9 +632,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.633,
+                            reach = 62.7,
                         },
                         man_base = {
                             duration = 4.633,
+                            reach = 70.1,
                         },
                         man_big = {
                             duration = 4.633,
@@ -586,9 +651,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.933,
+                            reach = 60.3,
                         },
                         man_base = {
                             duration = 3.933,
+                            reach = 65.3,
                         },
                         man_big = {
                             duration = 3.933,
@@ -603,9 +670,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.833,
+                            reach = 69.3,
                         },
                         man_base = {
                             duration = 2.833,
+                            reach = 74.4,
                         },
                         man_big = {
                             duration = 2.833,
@@ -620,12 +689,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.433,
+                            reach = 30,
                         },
                         man_base = {
                             duration = 2.433,
+                            reach = 32.5,
                         },
                         man_big = {
                             duration = 2.433,
+                            reach = 38.4,
                         },
                     },
                 },
@@ -637,9 +709,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.467,
+                            reach = 43.6,
                         },
                         man_base = {
                             duration = 2.467,
+                            reach = 45.7,
                         },
                         man_big = {
                             duration = 2.467,
@@ -654,9 +728,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.733,
+                            reach = 65.4,
                         },
                         man_base = {
                             duration = 2.733,
+                            reach = 70.4,
                         },
                         man_big = {
                             duration = 2.733,
@@ -671,9 +747,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.167,
+                            reach = 71,
                         },
                         man_base = {
                             duration = 3.167,
+                            reach = 75.1,
                         },
                         man_big = {
                             duration = 3.167,
@@ -688,9 +766,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.167,
+                            reach = 36,
                         },
                         man_base = {
                             duration = 2.167,
+                            reach = 37.7,
                         },
                         man_big = {
                             duration = 2.167,
@@ -705,9 +785,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.633,
+                            reach = 47.1,
                         },
                         man_base = {
                             duration = 2.633,
+                            reach = 50.9,
                         },
                         man_big = {
                             duration = 2.633,
@@ -722,9 +804,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.2,
+                            reach = 69.6,
                         },
                         man_base = {
                             duration = 3.2,
+                            reach = 76.6,
                         },
                         man_big = {
                             duration = 3.2,
@@ -739,9 +823,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.933,
+                            reach = 67.8,
                         },
                         man_base = {
                             duration = 2.933,
+                            reach = 73.2,
                         },
                         man_big = {
                             duration = 2.933,
@@ -756,9 +842,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.467,
+                            reach = 54.2,
                         },
                         man_base = {
                             duration = 3.467,
+                            reach = 58.5,
                         },
                         man_big = {
                             duration = 3.467,
@@ -773,9 +861,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.767,
+                            reach = 75.9,
                         },
                         man_base = {
                             duration = 2.767,
+                            reach = 81.9,
                         },
                         man_big = {
                             duration = 2.767,
@@ -790,9 +880,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.067,
+                            reach = 60.7,
                         },
                         man_base = {
                             duration = 5.067,
+                            reach = 65.6,
                         },
                         man_big = {
                             duration = 5.067,
@@ -807,9 +899,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.7,
+                            reach = 59.1,
                         },
                         man_base = {
                             duration = 5.7,
+                            reach = 64.1,
                         },
                         man_big = {
                             duration = 5.7,
@@ -824,9 +918,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 16,
+                            reach = 1.2,
                         },
                         man_base = {
                             duration = 16,
+                            reach = 1.3,
                         },
                         man_big = {
                             duration = 16,
@@ -841,9 +937,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.333,
+                            reach = 6.3,
                         },
                         man_base = {
                             duration = 2.333,
+                            reach = 6.8,
                         },
                         man_big = {
                             duration = 2.333,
@@ -858,9 +956,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.833,
+                            reach = 13.8,
                         },
                         man_base = {
                             duration = 2.833,
+                            reach = 14.6,
                         },
                         man_big = {
                             duration = 2.833,
@@ -875,9 +975,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3,
+                            reach = 23.8,
                         },
                         man_base = {
                             duration = 3,
+                            reach = 25.4,
                         },
                         man_big = {
                             duration = 3,
@@ -892,9 +994,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.5,
+                            reach = 35.5,
                         },
                         man_base = {
                             duration = 2.5,
+                            reach = 35.8,
                         },
                         man_big = {
                             duration = 2.5,
@@ -909,9 +1013,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.4,
+                            reach = 1.3,
                         },
                         man_base = {
                             duration = 2.4,
+                            reach = 1.3,
                         },
                         man_big = {
                             duration = 2.4,
@@ -926,9 +1032,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.267,
+                            reach = 1.1,
                         },
                         man_base = {
                             duration = 2.267,
+                            reach = 1.2,
                         },
                         man_big = {
                             duration = 2.267,
@@ -943,9 +1051,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.1,
+                            reach = 1.1,
                         },
                         man_base = {
                             duration = 2.1,
+                            reach = 1.1,
                         },
                         man_big = {
                             duration = 2.1,
@@ -960,9 +1070,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.667,
+                            reach = 1.1,
                         },
                         man_base = {
                             duration = 1.667,
+                            reach = 1.2,
                         },
                         man_big = {
                             duration = 1.667,
@@ -977,9 +1089,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.167,
+                            reach = 19.9,
                         },
                         man_base = {
                             duration = 3.167,
+                            reach = 21.3,
                         },
                         man_big = {
                             duration = 3.167,
@@ -994,9 +1108,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.167,
+                            reach = 4.5,
                         },
                         man_base = {
                             duration = 4.167,
+                            reach = 4.9,
                         },
                         man_big = {
                             duration = 4.167,
@@ -1011,12 +1127,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.433,
+                            reach = 4.2,
                         },
                         man_base = {
                             duration = 2.433,
+                            reach = 4.4,
                         },
                         man_big = {
                             duration = 2.433,
+                            reach = 4.7,
                         },
                     },
                 },
@@ -1028,9 +1147,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.433,
+                            reach = 1.3,
                         },
                         man_base = {
                             duration = 2.433,
+                            reach = 1.4,
                         },
                         man_big = {
                             duration = 2.433,
@@ -1045,9 +1166,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.4,
+                            reach = 3.9,
                         },
                         man_base = {
                             duration = 2.4,
+                            reach = 4.3,
                         },
                         man_big = {
                             duration = 2.4,
@@ -1062,12 +1185,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.933,
+                            reach = 0.9,
                         },
                         man_base = {
                             duration = 2.933,
+                            reach = 1,
                         },
                         man_big = {
                             duration = 2.933,
+                            reach = 1,
                         },
                     },
                 },
@@ -1079,9 +1205,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.333,
+                            reach = 11.9,
                         },
                         man_base = {
                             duration = 2.333,
+                            reach = 12.4,
                         },
                         man_big = {
                             duration = 2.333,
@@ -1096,12 +1224,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.067,
+                            reach = 2.4,
                         },
                         man_base = {
                             duration = 2.067,
+                            reach = 2.5,
                         },
                         man_big = {
                             duration = 2.067,
+                            reach = 2.8,
                         },
                     },
                 },
@@ -1113,9 +1244,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.333,
+                            reach = 1,
                         },
                         man_base = {
                             duration = 1.333,
+                            reach = 1.1,
                         },
                         man_big = {
                             duration = 1.333,
@@ -1130,9 +1263,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.533,
+                            reach = 1.4,
                         },
                         man_base = {
                             duration = 1.533,
+                            reach = 1.5,
                         },
                         man_big = {
                             duration = 1.533,
@@ -1147,9 +1282,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.2,
+                            reach = 7.7,
                         },
                         man_base = {
                             duration = 2.2,
+                            reach = 7.8,
                         },
                         man_big = {
                             duration = 2.2,
@@ -1164,9 +1301,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.233,
+                            reach = 3,
                         },
                         man_base = {
                             duration = 2.233,
+                            reach = 3,
                         },
                         man_big = {
                             duration = 2.233,
@@ -1181,9 +1320,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.8,
+                            reach = 3.9,
                         },
                         man_base = {
                             duration = 1.8,
+                            reach = 4.2,
                         },
                         man_big = {
                             duration = 1.8,
@@ -1198,12 +1339,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.533,
+                            reach = 5.5,
                         },
                         man_base = {
                             duration = 2.533,
+                            reach = 5.2,
                         },
                         man_big = {
                             duration = 2.533,
+                            reach = 7.1,
                         },
                     },
                 },
@@ -1215,9 +1359,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.167,
+                            reach = 3.7,
                         },
                         man_base = {
                             duration = 2.167,
+                            reach = 4,
                         },
                         man_big = {
                             duration = 2.167,
@@ -1232,9 +1378,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.4,
+                            reach = 2.6,
                         },
                         man_base = {
                             duration = 2.4,
+                            reach = 2.9,
                         },
                         man_big = {
                             duration = 2.4,
@@ -1249,9 +1397,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.333,
+                            reach = 7.2,
                         },
                         man_base = {
                             duration = 2.333,
+                            reach = 8.5,
                         },
                         man_big = {
                             duration = 2.333,
@@ -1266,9 +1416,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.1,
+                            reach = 0.9,
                         },
                         man_base = {
                             duration = 1.1,
+                            reach = 1,
                         },
                         man_big = {
                             duration = 1.1,
@@ -1283,9 +1435,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.633,
+                            reach = 2.8,
                         },
                         man_base = {
                             duration = 1.633,
+                            reach = 3,
                         },
                         man_big = {
                             duration = 1.633,
@@ -1300,9 +1454,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.5,
+                            reach = 5.6,
                         },
                         man_base = {
                             duration = 2.5,
+                            reach = 5.9,
                         },
                         man_big = {
                             duration = 2.5,
@@ -1317,12 +1473,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.767,
+                            reach = 5,
                         },
                         man_base = {
                             duration = 3.767,
+                            reach = 5.2,
                         },
                         man_big = {
                             duration = 3.767,
+                            reach = 5.1,
                         },
                     },
                 },
@@ -1334,6 +1493,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.9,
+                            reach = 12.6,
                         },
                         man_big = {
                             duration = 6.9,
@@ -1348,9 +1508,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.333,
+                            reach = 35.9,
                         },
                         man_base = {
                             duration = 4.333,
+                            reach = 38.5,
                         },
                         man_big = {
                             duration = 4.333,
@@ -1365,9 +1527,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.533,
+                            reach = 39,
                         },
                         man_base = {
                             duration = 5.533,
+                            reach = 40.9,
                         },
                         man_big = {
                             duration = 5.533,
@@ -1382,9 +1546,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.633,
+                            reach = 42.7,
                         },
                         man_base = {
                             duration = 3.633,
+                            reach = 45.9,
                         },
                         man_big = {
                             duration = 3.633,
@@ -1399,9 +1565,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.167,
+                            reach = 40.9,
                         },
                         man_base = {
                             duration = 4.167,
+                            reach = 44.2,
                         },
                         man_big = {
                             duration = 4.167,
@@ -1416,9 +1584,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.767,
+                            reach = 30,
                         },
                         man_base = {
                             duration = 2.767,
+                            reach = 30.5,
                         },
                         man_big = {
                             duration = 2.767,
@@ -1433,12 +1603,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.9,
+                            reach = 8.8,
                         },
                         man_base = {
                             duration = 2.9,
+                            reach = 8.7,
                         },
                         man_big = {
                             duration = 2.9,
+                            reach = 8.4,
                         },
                     },
                 },
@@ -1450,9 +1623,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.7,
+                            reach = 43.4,
                         },
                         man_base = {
                             duration = 4.7,
+                            reach = 40,
                         },
                         man_big = {
                             duration = 4.7,
@@ -1467,9 +1642,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4,
+                            reach = 51.7,
                         },
                         man_base = {
                             duration = 4,
+                            reach = 55.5,
                         },
                         man_big = {
                             duration = 4,
@@ -1484,9 +1661,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.867,
+                            reach = 47.1,
                         },
                         man_base = {
                             duration = 3.867,
+                            reach = 51,
                         },
                         man_big = {
                             duration = 3.867,
@@ -1501,9 +1680,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.667,
+                            reach = 1.1,
                         },
                         man_base = {
                             duration = 2.667,
+                            reach = 1.4,
                         },
                         man_big = {
                             duration = 2.667,
@@ -1518,9 +1699,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.9,
+                            reach = 45.2,
                         },
                         man_base = {
                             duration = 2.9,
+                            reach = 48.6,
                         },
                         man_big = {
                             duration = 2.9,
@@ -1535,12 +1718,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.7,
+                            reach = 32.3,
                         },
                         man_base = {
                             duration = 2.7,
+                            reach = 35.8,
                         },
                         man_big = {
                             duration = 2.7,
+                            reach = 37,
                         },
                     },
                 },
@@ -1552,12 +1738,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.767,
+                            reach = 23.6,
                         },
                         man_base = {
                             duration = 2.767,
+                            reach = 24.8,
                         },
                         man_big = {
                             duration = 2.767,
+                            reach = 25.2,
                         },
                     },
                 },
@@ -1569,9 +1758,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.267,
+                            reach = 52,
                         },
                         man_base = {
                             duration = 2.267,
+                            reach = 56.5,
                         },
                         man_big = {
                             duration = 2.267,
@@ -1586,9 +1777,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.8,
+                            reach = 56.7,
                         },
                         man_base = {
                             duration = 2.8,
+                            reach = 60,
                         },
                         man_big = {
                             duration = 2.8,
@@ -1603,6 +1796,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 1.467,
+                            reach = 29.9,
                         },
                     },
                 },
@@ -1614,9 +1808,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.2,
+                            reach = 36.1,
                         },
                         man_base = {
                             duration = 4.2,
+                            reach = 36.6,
                         },
                         man_big = {
                             duration = 4.2,
@@ -1631,9 +1827,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.167,
+                            reach = 31.7,
                         },
                         man_base = {
                             duration = 4.167,
+                            reach = 28.1,
                         },
                         man_big = {
                             duration = 4.167,
@@ -1648,12 +1846,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.867,
+                            reach = 36,
                         },
                         man_base = {
                             duration = 5.867,
+                            reach = 48.1,
                         },
                         man_big = {
                             duration = 5.867,
+                            reach = 48.7,
                         },
                     },
                 },
@@ -1665,9 +1866,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.533,
+                            reach = 56.1,
                         },
                         man_base = {
                             duration = 4.533,
+                            reach = 62.3,
                         },
                         man_big = {
                             duration = 4.533,
@@ -1682,9 +1885,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.567,
+                            reach = 64.3,
                         },
                         man_base = {
                             duration = 4.567,
+                            reach = 69.6,
                         },
                         man_big = {
                             duration = 4.567,
@@ -1699,9 +1904,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.1,
+                            reach = 71,
                         },
                         man_base = {
                             duration = 5.1,
+                            reach = 76.3,
                         },
                         man_big = {
                             duration = 5.1,
@@ -1716,9 +1923,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.267,
+                            reach = 62.9,
                         },
                         man_base = {
                             duration = 3.267,
+                            reach = 70.5,
                         },
                         man_big = {
                             duration = 3.267,
@@ -1733,12 +1942,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.633,
+                            reach = 16.7,
                         },
                         man_base = {
                             duration = 2.633,
+                            reach = 15.4,
                         },
                         man_big = {
                             duration = 2.633,
+                            reach = 15.5,
                         },
                     },
                 },
@@ -1750,9 +1962,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.333,
+                            reach = 15.6,
                         },
                         man_base = {
                             duration = 2.333,
+                            reach = 12.7,
                         },
                         man_big = {
                             duration = 2.333,
@@ -1767,9 +1981,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.3,
+                            reach = 40.1,
                         },
                         man_base = {
                             duration = 4.1,
+                            reach = 42.2,
                         },
                         man_big = {
                             duration = 4.1,
@@ -1784,9 +2000,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.4,
+                            reach = 30.4,
                         },
                         man_base = {
                             duration = 3.4,
+                            reach = 34.9,
                         },
                         man_big = {
                             duration = 3.4,
@@ -1801,9 +2019,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.933,
+                            reach = 5.5,
                         },
                         man_base = {
                             duration = 1.933,
+                            reach = 5.7,
                         },
                         man_big = {
                             duration = 1.933,
@@ -1818,9 +2038,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.967,
+                            reach = 2.8,
                         },
                         man_base = {
                             duration = 1.967,
+                            reach = 3.4,
                         },
                         man_big = {
                             duration = 1.967,
@@ -1835,9 +2057,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.733,
+                            reach = 16.4,
                         },
                         man_base = {
                             duration = 4.033,
+                            reach = 6.7,
                         },
                         man_big = {
                             duration = 4.033,
@@ -1852,9 +2076,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 8.233,
+                            reach = 20.2,
                         },
                         man_base = {
                             duration = 5.967,
+                            reach = 36.8,
                         },
                         man_big = {
                             duration = 5.967,
@@ -1869,9 +2095,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.1,
+                            reach = 15.1,
                         },
                         man_base = {
                             duration = 4.9,
+                            reach = 12.1,
                         },
                         man_big = {
                             duration = 4.9,
@@ -1886,9 +2114,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.333,
+                            reach = 13,
                         },
                         man_base = {
                             duration = 3.633,
+                            reach = 22.8,
                         },
                         man_big = {
                             duration = 3.633,
@@ -1903,6 +2133,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 5.133,
+                            reach = 17.4,
                         },
                     },
                 },
@@ -1914,6 +2145,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 4.633,
+                            reach = 8.1,
                         },
                     },
                 },
@@ -1925,9 +2157,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.2,
+                            reach = 6.1,
                         },
                         man_base = {
                             duration = 4.2,
+                            reach = 7.5,
                         },
                         man_big = {
                             duration = 4.2,
@@ -1942,9 +2176,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.733,
+                            reach = 3.9,
                         },
                         man_base = {
                             duration = 4.733,
+                            reach = 4.5,
                         },
                         man_big = {
                             duration = 4.733,
@@ -1959,9 +2195,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.633,
+                            reach = 11.3,
                         },
                         man_base = {
                             duration = 5.633,
+                            reach = 12.3,
                         },
                         man_big = {
                             duration = 5.633,
@@ -1976,6 +2214,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.567,
+                            reach = 78.8,
                         },
                     },
                 },
@@ -1987,9 +2226,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.533,
+                            reach = 68.8,
                         },
                         man_base = {
                             duration = 4.533,
+                            reach = 75.4,
                         },
                         man_big = {
                             duration = 4.533,
@@ -2004,9 +2245,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 7.267,
+                            reach = 59.4,
                         },
                         man_base = {
                             duration = 7.267,
+                            reach = 63.7,
                         },
                         man_big = {
                             duration = 7.267,
@@ -2032,9 +2275,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.533,
+                            reach = 21.2,
                         },
                         man_base = {
                             duration = 3.533,
+                            reach = 23.4,
                         },
                         man_big = {
                             duration = 3.533,
@@ -2049,9 +2294,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.8,
+                            reach = 16.4,
                         },
                         man_base = {
                             duration = 3.8,
+                            reach = 18.2,
                         },
                         man_big = {
                             duration = 3.8,
@@ -2066,6 +2313,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 6.3,
+                            reach = 119.8,
                         },
                     },
                 },
@@ -2077,6 +2325,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 6.333,
+                            reach = 85.8,
                         },
                     },
                 },
@@ -2099,9 +2348,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.167,
+                            reach = 5.6,
                         },
                         man_base = {
                             duration = 3.167,
+                            reach = 6.4,
                         },
                         man_big = {
                             duration = 3.167,
@@ -2116,6 +2367,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 3.533,
+                            reach = 51.7,
                         },
                     },
                 },
@@ -2127,6 +2379,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 2.867,
+                            reach = 44.9,
                         },
                     },
                 },
@@ -2138,12 +2391,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.8,
+                            reach = 31.6,
                         },
                         man_base = {
                             duration = 3.8,
+                            reach = 33.5,
                         },
                         man_big = {
                             duration = 3.8,
+                            reach = 36.5,
                         },
                     },
                 },
@@ -2155,9 +2411,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.233,
+                            reach = 32.7,
                         },
                         man_base = {
                             duration = 4.233,
+                            reach = 34.5,
                         },
                         man_big = {
                             duration = 4.233,
@@ -2172,9 +2430,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.367,
+                            reach = 37.9,
                         },
                         man_base = {
                             duration = 4.367,
+                            reach = 40.7,
                         },
                         man_big = {
                             duration = 4.367,
@@ -2189,9 +2449,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5,
+                            reach = 53.1,
                         },
                         man_base = {
                             duration = 5,
+                            reach = 56.3,
                         },
                         man_big = {
                             duration = 5,
@@ -2206,9 +2468,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 8.133,
+                            reach = 60.4,
                         },
                         man_base = {
                             duration = 8.133,
+                            reach = 64.3,
                         },
                         man_big = {
                             duration = 8.133,
@@ -2223,9 +2487,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 8.067,
+                            reach = 47.7,
                         },
                         man_base = {
                             duration = 3.833,
+                            reach = 38.9,
                         },
                     },
                 },
@@ -2237,9 +2503,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 8.667,
+                            reach = 51.2,
                         },
                         man_base = {
                             duration = 5.1,
+                            reach = 53.6,
                         },
                     },
                 },
@@ -2251,9 +2519,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 8.067,
+                            reach = 56.4,
                         },
                         man_base = {
                             duration = 5.9,
+                            reach = 52.5,
                         },
                     },
                 },
@@ -2265,6 +2535,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 7.3,
+                            reach = 56.8,
                         },
                     },
                 },
@@ -2276,6 +2547,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.8,
+                            reach = 51.3,
                         },
                         man_big = {
                             duration = 3.233,
@@ -2290,9 +2562,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.233,
+                            reach = 20.1,
                         },
                         man_base = {
                             duration = 3.233,
+                            reach = 21.6,
                         },
                         man_big = {
                             duration = 3.233,
@@ -2307,9 +2581,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.3,
+                            reach = 7.2,
                         },
                         man_base = {
                             duration = 6.3,
+                            reach = 7.2,
                         },
                         man_big = {
                             duration = 6.3,
@@ -2324,9 +2600,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.9,
+                            reach = 4.6,
                         },
                         man_base = {
                             duration = 3.9,
+                            reach = 4.9,
                         },
                         man_big = {
                             duration = 3.9,
@@ -2341,9 +2619,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.9,
+                            reach = 47,
                         },
                         man_base = {
                             duration = 4.9,
+                            reach = 50.9,
                         },
                         man_big = {
                             duration = 4.9,
@@ -2358,9 +2638,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.033,
+                            reach = 21.3,
                         },
                         man_base = {
                             duration = 3.033,
+                            reach = 24,
                         },
                         man_big = {
                             duration = 3.033,
@@ -2375,9 +2657,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.6,
+                            reach = 31.1,
                         },
                         man_base = {
                             duration = 3.6,
+                            reach = 34.8,
                         },
                         man_big = {
                             duration = 3.6,
@@ -2392,9 +2676,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.433,
+                            reach = 47.9,
                         },
                         man_base = {
                             duration = 3.433,
+                            reach = 51.5,
                         },
                         man_big = {
                             duration = 3.433,
@@ -2409,9 +2695,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.167,
+                            reach = 29.9,
                         },
                         man_base = {
                             duration = 4.167,
+                            reach = 31.8,
                         },
                         man_big = {
                             duration = 4.167,
@@ -2426,9 +2714,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.933,
+                            reach = 34.6,
                         },
                         man_base = {
                             duration = 4.933,
+                            reach = 36.8,
                         },
                         man_big = {
                             duration = 4.933,
@@ -2443,9 +2733,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.8,
+                            reach = 24.4,
                         },
                         man_base = {
                             duration = 2.8,
+                            reach = 26.9,
                         },
                         man_big = {
                             duration = 2.8,
@@ -2460,9 +2752,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.3,
+                            reach = 45.5,
                         },
                         man_base = {
                             duration = 3.3,
+                            reach = 49.1,
                         },
                         man_big = {
                             duration = 3.3,
@@ -2477,9 +2771,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.967,
+                            reach = 49.6,
                         },
                         man_base = {
                             duration = 2.967,
+                            reach = 52.8,
                         },
                         man_big = {
                             duration = 2.967,
@@ -2494,9 +2790,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.233,
+                            reach = 60,
                         },
                         man_base = {
                             duration = 3.233,
+                            reach = 64.7,
                         },
                         man_big = {
                             duration = 3.233,
@@ -2511,9 +2809,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.933,
+                            reach = 26.5,
                         },
                         man_base = {
                             duration = 2.933,
+                            reach = 28.4,
                         },
                         man_big = {
                             duration = 2.933,
@@ -2528,9 +2828,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.267,
+                            reach = 32.8,
                         },
                         man_base = {
                             duration = 3.267,
+                            reach = 33.7,
                         },
                         man_big = {
                             duration = 3.267,
@@ -2545,9 +2847,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.667,
+                            reach = 41.3,
                         },
                         man_base = {
                             duration = 5.667,
+                            reach = 42.7,
                         },
                         man_big = {
                             duration = 5.667,
@@ -2562,9 +2866,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.6,
+                            reach = 20.8,
                         },
                         man_base = {
                             duration = 3.6,
+                            reach = 22.6,
                         },
                         man_big = {
                             duration = 3.6,
@@ -2579,9 +2885,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.067,
+                            reach = 44.9,
                         },
                         man_base = {
                             duration = 5.067,
+                            reach = 48.2,
                         },
                         man_big = {
                             duration = 5.067,
@@ -2596,9 +2904,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.167,
+                            reach = 56,
                         },
                         man_base = {
                             duration = 4.167,
+                            reach = 61.9,
                         },
                         man_big = {
                             duration = 4.167,
@@ -2613,6 +2923,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.967,
+                            reach = 23.1,
                         },
                         man_big = {
                             duration = 3.967,
@@ -2627,9 +2938,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.067,
+                            reach = 65.8,
                         },
                         man_base = {
                             duration = 4.067,
+                            reach = 69.5,
                         },
                         man_big = {
                             duration = 4.067,
@@ -2644,9 +2957,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.067,
+                            reach = 49.2,
                         },
                         man_base = {
                             duration = 5.067,
+                            reach = 53.3,
                         },
                         man_big = {
                             duration = 5.067,
@@ -2661,6 +2976,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.167,
+                            reach = 57.3,
                         },
                         man_big = {
                             duration = 5.167,
@@ -2675,9 +2991,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.1,
+                            reach = 24.5,
                         },
                         man_base = {
                             duration = 3.1,
+                            reach = 26.4,
                         },
                         man_big = {
                             duration = 3.1,
@@ -2692,6 +3010,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.4,
+                            reach = 19.1,
                         },
                         man_big = {
                             duration = 4.4,
@@ -2706,6 +3025,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.033,
+                            reach = 40.9,
                         },
                     },
                 },
@@ -2717,9 +3037,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.133,
+                            reach = 6.5,
                         },
                         man_base = {
                             duration = 4.133,
+                            reach = 6.4,
                         },
                         man_big = {
                             duration = 4.133,
@@ -2734,9 +3056,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.467,
+                            reach = 23.8,
                         },
                         man_base = {
                             duration = 5.467,
+                            reach = 24.8,
                         },
                         man_big = {
                             duration = 5.467,
@@ -2751,9 +3075,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.5,
+                            reach = 26.4,
                         },
                         man_base = {
                             duration = 4.5,
+                            reach = 29.3,
                         },
                         man_big = {
                             duration = 4.5,
@@ -2768,9 +3094,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.767,
+                            reach = 8.5,
                         },
                         man_base = {
                             duration = 2.767,
+                            reach = 8.8,
                         },
                         man_big = {
                             duration = 2.767,
@@ -2785,6 +3113,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.4,
+                            reach = 1.6,
                         },
                     },
                 },
@@ -2796,9 +3125,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 8.2,
+                            reach = 30.4,
                         },
                         man_base = {
                             duration = 8.2,
+                            reach = 33.2,
                         },
                         man_big = {
                             duration = 8.2,
@@ -2813,6 +3144,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.667,
+                            reach = 50.3,
                         },
                     },
                 },
@@ -2824,9 +3156,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.667,
+                            reach = 1.9,
                         },
                         man_base = {
                             duration = 3.667,
+                            reach = 2.2,
                         },
                         man_big = {
                             duration = 3.667,
@@ -2841,6 +3175,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.167,
+                            reach = 47.5,
                         },
                     },
                 },
@@ -2852,9 +3187,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.467,
+                            reach = 2.4,
                         },
                         man_base = {
                             duration = 3.467,
+                            reach = 2.4,
                         },
                         man_big = {
                             duration = 3.467,
@@ -2869,9 +3206,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.467,
+                            reach = 9.3,
                         },
                         man_base = {
                             duration = 4.467,
+                            reach = 10.1,
                         },
                         man_big = {
                             duration = 4.467,
@@ -2886,6 +3225,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.733,
+                            reach = 35.4,
                         },
                     },
                 },
@@ -2932,6 +3272,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 3.867,
+                            reach = 45.4,
                         },
                     },
                 },
@@ -2944,6 +3285,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 5.867,
+                            reach = 1.2,
                         },
                     },
                 },
@@ -2956,6 +3298,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 3.5,
+                            reach = 1.6,
                         },
                     },
                 },
@@ -2968,6 +3311,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 5.767,
+                            reach = 2.8,
                         },
                     },
                 },
@@ -2980,6 +3324,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 5,
+                            reach = 54.3,
                         },
                     },
                 },
@@ -2992,6 +3337,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 5.267,
+                            reach = 49.9,
                         },
                     },
                 },
@@ -3004,6 +3350,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 5,
+                            reach = 37.2,
                         },
                     },
                 },
@@ -3016,6 +3363,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 9.333,
+                            reach = 2.6,
                         },
                     },
                 },
@@ -3028,6 +3376,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 9.833,
+                            reach = 40.2,
                         },
                     },
                 },
@@ -3040,6 +3389,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 9.333,
+                            reach = 43.9,
                         },
                     },
                 },
@@ -3051,6 +3401,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.5,
+                            reach = 0.5,
                         },
                     },
                 },
@@ -3062,12 +3413,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.5,
+                            reach = 23.7,
                         },
                         man_base = {
                             duration = 6.5,
+                            reach = 24.5,
                         },
                         man_big = {
                             duration = 6.5,
+                            reach = 30.8,
                         },
                     },
                 },
@@ -3079,12 +3433,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.067,
+                            reach = 29.1,
                         },
                         man_base = {
                             duration = 5.067,
+                            reach = 28.8,
                         },
                         man_big = {
                             duration = 5.067,
+                            reach = 32.5,
                         },
                     },
                 },
@@ -3096,12 +3453,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.1,
+                            reach = 38.1,
                         },
                         man_base = {
                             duration = 4.1,
+                            reach = 38.5,
                         },
                         man_big = {
                             duration = 4.1,
+                            reach = 35.1,
                         },
                     },
                 },
@@ -3113,9 +3473,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.967,
+                            reach = 48,
                         },
                         man_big = {
                             duration = 4.967,
+                            reach = 45.4,
                         },
                     },
                 },
@@ -3127,12 +3489,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.333,
+                            reach = 25.9,
                         },
                         man_base = {
                             duration = 5.333,
+                            reach = 25.1,
                         },
                         man_big = {
                             duration = 5.333,
+                            reach = 28.9,
                         },
                     },
                 },
@@ -3144,12 +3509,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.533,
+                            reach = 20.8,
                         },
                         man_base = {
                             duration = 5.533,
+                            reach = 20.2,
                         },
                         man_big = {
                             duration = 5.533,
+                            reach = 21.9,
                         },
                     },
                 },
@@ -3161,12 +3529,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.2,
+                            reach = 38.9,
                         },
                         man_base = {
                             duration = 5.2,
+                            reach = 39.4,
                         },
                         man_big = {
                             duration = 5.2,
+                            reach = 36.2,
                         },
                     },
                 },
@@ -3178,12 +3549,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.533,
+                            reach = 26.5,
                         },
                         man_base = {
                             duration = 3.533,
+                            reach = 26.5,
                         },
                         man_big = {
                             duration = 3.533,
+                            reach = 23.6,
                         },
                     },
                 },
@@ -3195,12 +3569,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.967,
+                            reach = 1,
                         },
                         man_base = {
                             duration = 3.967,
+                            reach = 1,
                         },
                         man_big = {
                             duration = 3.967,
+                            reach = 1.1,
                         },
                     },
                 },
@@ -3212,12 +3589,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5,
+                            reach = 46.4,
                         },
                         man_base = {
                             duration = 5,
+                            reach = 48.8,
                         },
                         man_big = {
                             duration = 5,
+                            reach = 56.3,
                         },
                     },
                 },
@@ -3229,12 +3609,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.4,
+                            reach = 29.1,
                         },
                         man_base = {
                             duration = 3.4,
+                            reach = 30.1,
                         },
                         man_big = {
                             duration = 3.4,
+                            reach = 27.9,
                         },
                     },
                 },
@@ -3246,12 +3629,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.6,
+                            reach = 19.3,
                         },
                         man_base = {
                             duration = 2.6,
+                            reach = 19.8,
                         },
                         man_big = {
                             duration = 2.6,
+                            reach = 20.7,
                         },
                     },
                 },
@@ -3263,12 +3649,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.167,
+                            reach = 40,
                         },
                         man_base = {
                             duration = 3.167,
+                            reach = 41,
                         },
                         man_big = {
                             duration = 3.167,
+                            reach = 39.6,
                         },
                     },
                 },
@@ -3280,12 +3669,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.7,
+                            reach = 46,
                         },
                         man_base = {
                             duration = 2.7,
+                            reach = 48.4,
                         },
                         man_big = {
                             duration = 2.7,
+                            reach = 50.2,
                         },
                     },
                 },
@@ -3297,12 +3689,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.467,
+                            reach = 44.9,
                         },
                         man_base = {
                             duration = 3.467,
+                            reach = 47.7,
                         },
                         man_big = {
                             duration = 3.467,
+                            reach = 53.3,
                         },
                     },
                 },
@@ -3314,12 +3709,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.367,
+                            reach = 28.1,
                         },
                         man_base = {
                             duration = 2.367,
+                            reach = 27.6,
                         },
                         man_big = {
                             duration = 2.367,
+                            reach = 26.3,
                         },
                     },
                 },
@@ -3331,12 +3729,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.1,
+                            reach = 32.8,
                         },
                         man_base = {
                             duration = 3.1,
+                            reach = 32.2,
                         },
                         man_big = {
                             duration = 3.1,
+                            reach = 30.6,
                         },
                     },
                 },
@@ -3348,12 +3749,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.833,
+                            reach = 48,
                         },
                         man_base = {
                             duration = 3.833,
+                            reach = 48,
                         },
                         man_big = {
                             duration = 3.833,
+                            reach = 45.2,
                         },
                     },
                 },
@@ -3365,12 +3769,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.633,
+                            reach = 26.5,
                         },
                         man_base = {
                             duration = 3.633,
+                            reach = 28.6,
                         },
                         man_big = {
                             duration = 3.633,
+                            reach = 26.6,
                         },
                     },
                 },
@@ -3382,12 +3789,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.133,
+                            reach = 74.2,
                         },
                         man_base = {
                             duration = 3.133,
+                            reach = 78.5,
                         },
                         man_big = {
                             duration = 3.133,
+                            reach = 84.2,
                         },
                     },
                 },
@@ -3399,9 +3809,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.833,
+                            reach = 32.2,
                         },
                         man_base = {
                             duration = 3.833,
+                            reach = 30,
                         },
                     },
                 },
@@ -3413,12 +3825,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.467,
+                            reach = 59.1,
                         },
                         man_base = {
                             duration = 4.467,
+                            reach = 65.3,
                         },
                         man_big = {
                             duration = 4.467,
+                            reach = 66.8,
                         },
                     },
                 },
@@ -3430,12 +3845,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.267,
+                            reach = 21.3,
                         },
                         man_base = {
                             duration = 3.267,
+                            reach = 22.3,
                         },
                         man_big = {
                             duration = 3.267,
+                            reach = 26.3,
                         },
                     },
                 },
@@ -3447,9 +3865,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.267,
+                            reach = 7.1,
                         },
                         man_big = {
                             duration = 4.467,
+                            reach = 63.3,
                         },
                     },
                 },
@@ -3461,6 +3881,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.267,
+                            reach = 17,
                         },
                     },
                 },
@@ -3472,12 +3893,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.267,
+                            reach = 38.4,
                         },
                         man_base = {
                             duration = 3.267,
+                            reach = 39.2,
                         },
                         man_big = {
                             duration = 3.267,
+                            reach = 35,
                         },
                     },
                 },
@@ -3489,12 +3913,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.667,
+                            reach = 35,
                         },
                         man_base = {
                             duration = 3.667,
+                            reach = 35,
                         },
                         man_big = {
                             duration = 3.667,
+                            reach = 29.5,
                         },
                     },
                 },
@@ -3506,12 +3933,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.567,
+                            reach = 32.2,
                         },
                         man_base = {
                             duration = 2.567,
+                            reach = 33.3,
                         },
                         man_big = {
                             duration = 2.567,
+                            reach = 29.2,
                         },
                     },
                 },
@@ -3523,12 +3953,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.9,
+                            reach = 23.5,
                         },
                         man_base = {
                             duration = 2.9,
+                            reach = 23.5,
                         },
                         man_big = {
                             duration = 2.9,
+                            reach = 20.9,
                         },
                     },
                 },
@@ -3540,12 +3973,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.9,
+                            reach = 31.1,
                         },
                         man_base = {
                             duration = 6.9,
+                            reach = 23.2,
                         },
                         man_big = {
                             duration = 9.267,
+                            reach = 23.4,
                         },
                     },
                 },
@@ -3557,12 +3993,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.333,
+                            reach = 0.2,
                         },
                         man_base = {
                             duration = 1.333,
+                            reach = 0.2,
                         },
                         man_big = {
                             duration = 1.333,
+                            reach = 0.2,
                         },
                     },
                 },
@@ -3574,12 +4013,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.467,
+                            reach = 1.4,
                         },
                         man_base = {
                             duration = 1.467,
+                            reach = 1.6,
                         },
                         man_big = {
                             duration = 1.467,
+                            reach = 2.2,
                         },
                     },
                 },
@@ -3591,12 +4033,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.7,
+                            reach = 1.2,
                         },
                         man_base = {
                             duration = 1.7,
+                            reach = 2.1,
                         },
                         man_big = {
                             duration = 1.7,
+                            reach = 1.5,
                         },
                     },
                 },
@@ -3608,12 +4053,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.667,
+                            reach = 3.7,
                         },
                         man_base = {
                             duration = 1.667,
+                            reach = 3.5,
                         },
                         man_big = {
                             duration = 1.667,
+                            reach = 4.4,
                         },
                     },
                 },
@@ -3625,12 +4073,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.667,
+                            reach = 2.1,
                         },
                         man_base = {
                             duration = 2.667,
+                            reach = 2.5,
                         },
                         man_big = {
                             duration = 2.667,
+                            reach = 1.6,
                         },
                     },
                 },
@@ -3642,12 +4093,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.7,
+                            reach = 1.6,
                         },
                         man_base = {
                             duration = 1.7,
+                            reach = 1.2,
                         },
                         man_big = {
                             duration = 1.7,
+                            reach = 1.4,
                         },
                     },
                 },
@@ -3659,12 +4113,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.8,
+                            reach = 1.2,
                         },
                         man_base = {
                             duration = 1.8,
+                            reach = 0.9,
                         },
                         man_big = {
                             duration = 1.8,
+                            reach = 1.1,
                         },
                     },
                 },
@@ -3676,12 +4133,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.3,
+                            reach = 0.4,
                         },
                         man_base = {
                             duration = 1.3,
+                            reach = 0.5,
                         },
                         man_big = {
                             duration = 1.3,
+                            reach = 0.6,
                         },
                     },
                 },
@@ -3693,12 +4153,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.7,
+                            reach = 0.5,
                         },
                         man_base = {
                             duration = 1.7,
+                            reach = 0.5,
                         },
                         man_big = {
                             duration = 1.7,
+                            reach = 0.4,
                         },
                     },
                 },
@@ -3710,12 +4173,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.767,
+                            reach = 1.2,
                         },
                         man_base = {
                             duration = 3.767,
+                            reach = 1.1,
                         },
                         man_big = {
                             duration = 3.767,
+                            reach = 0.8,
                         },
                     },
                 },
@@ -3727,12 +4193,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.467,
+                            reach = 0.3,
                         },
                         man_base = {
                             duration = 3.467,
+                            reach = 0.2,
                         },
                         man_big = {
                             duration = 3.467,
+                            reach = 0.3,
                         },
                     },
                 },
@@ -3744,12 +4213,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.8,
+                            reach = 0.9,
                         },
                         man_base = {
                             duration = 1.8,
+                            reach = 0.8,
                         },
                         man_big = {
                             duration = 1.8,
+                            reach = 0.8,
                         },
                     },
                 },
@@ -3761,12 +4233,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.3,
+                            reach = 0.8,
                         },
                         man_base = {
                             duration = 1.3,
+                            reach = 0.5,
                         },
                         man_big = {
                             duration = 1.3,
+                            reach = 0.6,
                         },
                     },
                 },
@@ -3778,12 +4253,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.9,
+                            reach = 1,
                         },
                         man_base = {
                             duration = 1.9,
+                            reach = 0.9,
                         },
                         man_big = {
                             duration = 1.9,
+                            reach = 0.8,
                         },
                     },
                 },
@@ -3795,12 +4273,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3,
+                            reach = 1.1,
                         },
                         man_base = {
                             duration = 3,
+                            reach = 0.8,
                         },
                         man_big = {
                             duration = 3,
+                            reach = 0.7,
                         },
                     },
                 },
@@ -3812,12 +4293,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.467,
+                            reach = 0.2,
                         },
                         man_base = {
                             duration = 3.467,
+                            reach = 0.4,
                         },
                         man_big = {
                             duration = 3.467,
+                            reach = 0.4,
                         },
                     },
                 },
@@ -3829,12 +4313,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.5,
+                            reach = 0.5,
                         },
                         man_base = {
                             duration = 1.5,
+                            reach = 0.3,
                         },
                         man_big = {
                             duration = 1.5,
+                            reach = 0.3,
                         },
                     },
                 },
@@ -3846,12 +4333,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.9,
+                            reach = 1.2,
                         },
                         man_base = {
                             duration = 1.9,
+                            reach = 0.6,
                         },
                         man_big = {
                             duration = 1.9,
+                            reach = 0.7,
                         },
                     },
                 },
@@ -3863,12 +4353,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.5,
+                            reach = 0.9,
                         },
                         man_base = {
                             duration = 1.5,
+                            reach = 1.3,
                         },
                         man_big = {
                             duration = 1.5,
+                            reach = 0.1,
                         },
                     },
                 },
@@ -3880,12 +4373,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.467,
+                            reach = 0.8,
                         },
                         man_base = {
                             duration = 4.467,
+                            reach = 0.6,
                         },
                         man_big = {
                             duration = 4.467,
+                            reach = 0.5,
                         },
                     },
                 },
@@ -3897,12 +4393,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.2,
+                            reach = 27.2,
                         },
                         man_base = {
                             duration = 2.2,
+                            reach = 27.6,
                         },
                         man_big = {
                             duration = 2.2,
+                            reach = 21.4,
                         },
                     },
                 },
@@ -3914,12 +4413,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.033,
+                            reach = 42.6,
                         },
                         man_base = {
                             duration = 3.033,
+                            reach = 44.1,
                         },
                         man_big = {
                             duration = 3.033,
+                            reach = 40.7,
                         },
                     },
                 },
@@ -3931,12 +4433,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.967,
+                            reach = 32.6,
                         },
                         man_base = {
                             duration = 2.967,
+                            reach = 31.2,
                         },
                         man_big = {
                             duration = 2.967,
+                            reach = 25.1,
                         },
                     },
                 },
@@ -3948,12 +4453,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.733,
+                            reach = 25.7,
                         },
                         man_base = {
                             duration = 2.733,
+                            reach = 25.5,
                         },
                         man_big = {
                             duration = 2.733,
+                            reach = 21.9,
                         },
                     },
                 },
@@ -3965,12 +4473,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.867,
+                            reach = 42.5,
                         },
                         man_base = {
                             duration = 2.867,
+                            reach = 42.8,
                         },
                         man_big = {
                             duration = 2.867,
+                            reach = 38.2,
                         },
                     },
                 },
@@ -3982,9 +4493,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.2,
+                            reach = 0.7,
                         },
                         man_base = {
                             duration = 5.333,
+                            reach = 3.7,
                         },
                     },
                 },
@@ -3996,9 +4509,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.533,
+                            reach = 13.6,
                         },
                         man_big = {
                             duration = 4.533,
+                            reach = 15.3,
                         },
                     },
                 },
@@ -4010,12 +4525,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.033,
+                            reach = 17.4,
                         },
                         man_base = {
                             duration = 4.033,
+                            reach = 17.8,
                         },
                         man_big = {
                             duration = 4.667,
+                            reach = 13.2,
                         },
                     },
                 },
@@ -4027,12 +4545,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.233,
+                            reach = 17.2,
                         },
                         man_base = {
                             duration = 6.233,
+                            reach = 17.3,
                         },
                         man_big = {
                             duration = 6.233,
+                            reach = 18.4,
                         },
                     },
                 },
@@ -4044,12 +4565,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 7.767,
+                            reach = 3.5,
                         },
                         man_base = {
                             duration = 7.767,
+                            reach = 3.8,
                         },
                         man_big = {
                             duration = 7.767,
+                            reach = 5.2,
                         },
                     },
                 },
@@ -4061,12 +4585,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.6,
+                            reach = 47.5,
                         },
                         man_base = {
                             duration = 3.6,
+                            reach = 47.5,
                         },
                         man_big = {
                             duration = 3.6,
+                            reach = 45.9,
                         },
                     },
                 },
@@ -4078,12 +4605,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.6,
+                            reach = 0.9,
                         },
                         man_base = {
                             duration = 4.6,
+                            reach = 1,
                         },
                         man_big = {
                             duration = 4.6,
+                            reach = 1.1,
                         },
                     },
                 },
@@ -4095,6 +4625,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.533,
+                            reach = 28.5,
                         },
                     },
                 },
@@ -4106,12 +4637,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.6,
+                            reach = 30.2,
                         },
                         man_base = {
                             duration = 2.6,
+                            reach = 30.7,
                         },
                         man_big = {
                             duration = 2.6,
+                            reach = 30.2,
                         },
                     },
                 },
@@ -4123,12 +4657,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.767,
+                            reach = 12.5,
                         },
                         man_base = {
                             duration = 3.2,
+                            reach = 10.7,
                         },
                         man_big = {
                             duration = 3.767,
+                            reach = 15.3,
                         },
                     },
                 },
@@ -4140,6 +4677,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.133,
+                            reach = 28.9,
                         },
                     },
                 },
@@ -4151,6 +4689,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.367,
+                            reach = 33.8,
                         },
                     },
                 },
@@ -4162,12 +4701,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3,
+                            reach = 1.4,
                         },
                         man_base = {
                             duration = 3,
+                            reach = 4.1,
                         },
                         man_big = {
                             duration = 3,
+                            reach = 2,
                         },
                     },
                 },
@@ -4179,12 +4721,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.5,
+                            reach = 2,
                         },
                         man_base = {
                             duration = 2.5,
+                            reach = 2.8,
                         },
                         man_big = {
                             duration = 2.5,
+                            reach = 2.3,
                         },
                     },
                 },
@@ -4196,12 +4741,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.833,
+                            reach = 2.2,
                         },
                         man_base = {
                             duration = 2.833,
+                            reach = 2.7,
                         },
                         man_big = {
                             duration = 2.833,
+                            reach = 1.3,
                         },
                     },
                 },
@@ -4213,12 +4761,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.1,
+                            reach = 1.7,
                         },
                         man_base = {
                             duration = 4.1,
+                            reach = 2.3,
                         },
                         man_big = {
                             duration = 4.1,
+                            reach = 3.1,
                         },
                     },
                 },
@@ -4230,12 +4781,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.333,
+                            reach = 1,
                         },
                         man_base = {
                             duration = 3,
+                            reach = 1.7,
                         },
                         man_big = {
                             duration = 5.333,
+                            reach = 2.8,
                         },
                     },
                 },
@@ -4247,12 +4801,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 7.167,
+                            reach = 2,
                         },
                         man_base = {
                             duration = 4.733,
+                            reach = 1.6,
                         },
                         man_big = {
                             duration = 7.167,
+                            reach = 1.9,
                         },
                     },
                 },
@@ -4264,12 +4821,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.033,
+                            reach = 0.6,
                         },
                         man_base = {
                             duration = 3.033,
+                            reach = 2.2,
                         },
                         man_big = {
                             duration = 3.033,
+                            reach = 1.9,
                         },
                     },
                 },
@@ -4281,12 +4841,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.767,
+                            reach = 2.1,
                         },
                         man_base = {
                             duration = 2.767,
+                            reach = 0.7,
                         },
                         man_big = {
                             duration = 2.767,
+                            reach = 2.7,
                         },
                     },
                 },
@@ -4298,12 +4861,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.833,
+                            reach = 0.6,
                         },
                         man_base = {
                             duration = 3.833,
+                            reach = 1.2,
                         },
                         man_big = {
                             duration = 3.833,
+                            reach = 6.1,
                         },
                     },
                 },
@@ -4315,12 +4881,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.9,
+                            reach = 5.2,
                         },
                         man_base = {
                             duration = 3.9,
+                            reach = 6.3,
                         },
                         man_big = {
                             duration = 3.9,
+                            reach = 7.9,
                         },
                     },
                 },
@@ -4332,6 +4901,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.9,
+                            reach = 0.9,
                         },
                     },
                 },
@@ -4343,12 +4913,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.867,
+                            reach = 45.2,
                         },
                         man_base = {
                             duration = 5.867,
+                            reach = 45.7,
                         },
                         man_big = {
                             duration = 5.867,
+                            reach = 48,
                         },
                     },
                 },
@@ -4360,12 +4933,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.333,
+                            reach = 55.3,
                         },
                         man_base = {
                             duration = 4.333,
+                            reach = 58.6,
                         },
                         man_big = {
                             duration = 4.333,
+                            reach = 56.6,
                         },
                     },
                 },
@@ -4377,12 +4953,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.567,
+                            reach = 41.6,
                         },
                         man_base = {
                             duration = 5.567,
+                            reach = 42,
                         },
                         man_big = {
                             duration = 5.567,
+                            reach = 45.3,
                         },
                     },
                 },
@@ -4394,6 +4973,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.833,
+                            reach = 32.4,
                         },
                     },
                 },
@@ -4405,6 +4985,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.533,
+                            reach = 3.7,
                         },
                     },
                 },
@@ -4416,12 +4997,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.767,
+                            reach = 3.5,
                         },
                         man_base = {
                             duration = 6.767,
+                            reach = 1.9,
                         },
                         man_big = {
                             duration = 6.767,
+                            reach = 1.7,
                         },
                     },
                 },
@@ -4433,12 +5017,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.5,
+                            reach = 14.1,
                         },
                         man_base = {
                             duration = 6.5,
+                            reach = 14.3,
                         },
                         man_big = {
                             duration = 6.5,
+                            reach = 10.5,
                         },
                     },
                 },
@@ -4450,12 +5037,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.567,
+                            reach = 13.8,
                         },
                         man_base = {
                             duration = 6.567,
+                            reach = 13.7,
                         },
                         man_big = {
                             duration = 6.567,
+                            reach = 10.7,
                         },
                     },
                 },
@@ -4467,12 +5057,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.933,
+                            reach = 2.9,
                         },
                         man_base = {
                             duration = 5.933,
+                            reach = 4.5,
                         },
                         man_big = {
                             duration = 5.933,
+                            reach = 5.6,
                         },
                     },
                 },
@@ -4484,12 +5077,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 8.133,
+                            reach = 27.3,
                         },
                         man_base = {
                             duration = 8.133,
+                            reach = 28.2,
                         },
                         man_big = {
                             duration = 8.133,
+                            reach = 26.9,
                         },
                     },
                 },
@@ -4501,12 +5097,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.833,
+                            reach = 1.9,
                         },
                         man_base = {
                             duration = 6.833,
+                            reach = 2,
                         },
                         man_big = {
                             duration = 6.833,
+                            reach = 1.8,
                         },
                     },
                 },
@@ -4518,12 +5117,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.833,
+                            reach = 25.5,
                         },
                         man_base = {
                             duration = 5.833,
+                            reach = 26.3,
                         },
                         man_big = {
                             duration = 5.833,
+                            reach = 22.7,
                         },
                     },
                 },
@@ -4535,12 +5137,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 7,
+                            reach = 24.1,
                         },
                         man_base = {
                             duration = 7,
+                            reach = 25,
                         },
                         man_big = {
                             duration = 7,
+                            reach = 26.7,
                         },
                     },
                 },
@@ -4552,12 +5157,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.967,
+                            reach = 38.9,
                         },
                         man_base = {
                             duration = 4.333,
+                            reach = 39,
                         },
                         man_big = {
                             duration = 5,
+                            reach = 32.6,
                         },
                     },
                 },
@@ -4569,12 +5177,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 8.167,
+                            reach = 39.6,
                         },
                         man_base = {
                             duration = 8.167,
+                            reach = 35.9,
                         },
                         man_big = {
                             duration = 8.167,
+                            reach = 35.6,
                         },
                     },
                 },
@@ -4586,12 +5197,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.6,
+                            reach = 36.1,
                         },
                         man_base = {
                             duration = 3.6,
+                            reach = 35.3,
                         },
                         man_big = {
                             duration = 3.6,
+                            reach = 39.1,
                         },
                     },
                 },
@@ -4603,12 +5217,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.067,
+                            reach = 3.6,
                         },
                         man_base = {
                             duration = 3.067,
+                            reach = 3.7,
                         },
                         man_big = {
                             duration = 3.067,
+                            reach = 4,
                         },
                     },
                 },
@@ -4620,12 +5237,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.1,
+                            reach = 9.9,
                         },
                         man_base = {
                             duration = 6.1,
+                            reach = 8.8,
                         },
                         man_big = {
                             duration = 6.1,
+                            reach = 9.8,
                         },
                     },
                 },
@@ -4637,12 +5257,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.9,
+                            reach = 26,
                         },
                         man_base = {
                             duration = 3.9,
+                            reach = 25.8,
                         },
                         man_big = {
                             duration = 3.9,
+                            reach = 21.9,
                         },
                     },
                 },
@@ -4654,12 +5277,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.8,
+                            reach = 2.5,
                         },
                         man_base = {
                             duration = 2.8,
+                            reach = 2.4,
                         },
                         man_big = {
                             duration = 2.8,
+                            reach = 2.6,
                         },
                     },
                 },
@@ -4671,12 +5297,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.8,
+                            reach = 26,
                         },
                         man_base = {
                             duration = 4.8,
+                            reach = 25.5,
                         },
                         man_big = {
                             duration = 4.8,
+                            reach = 24.8,
                         },
                     },
                 },
@@ -4688,12 +5317,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.267,
+                            reach = 21.9,
                         },
                         man_base = {
                             duration = 5.267,
+                            reach = 22,
                         },
                         man_big = {
                             duration = 5.267,
+                            reach = 20.5,
                         },
                     },
                 },
@@ -4705,12 +5337,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.3,
+                            reach = 6,
                         },
                         man_base = {
                             duration = 3.3,
+                            reach = 5.7,
                         },
                         man_big = {
                             duration = 3.3,
+                            reach = 6.9,
                         },
                     },
                 },
@@ -4722,12 +5357,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.1,
+                            reach = 28.1,
                         },
                         man_base = {
                             duration = 4.1,
+                            reach = 27.9,
                         },
                         man_big = {
                             duration = 4.1,
+                            reach = 23.2,
                         },
                     },
                 },
@@ -4739,12 +5377,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.533,
+                            reach = 22.4,
                         },
                         man_base = {
                             duration = 3.533,
+                            reach = 23.1,
                         },
                         man_big = {
                             duration = 3.533,
+                            reach = 18.1,
                         },
                     },
                 },
@@ -4756,12 +5397,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.8,
+                            reach = 2.4,
                         },
                         man_base = {
                             duration = 6.8,
+                            reach = 1.3,
                         },
                         man_big = {
                             duration = 6.8,
+                            reach = 1.5,
                         },
                     },
                 },
@@ -4773,12 +5417,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.367,
+                            reach = 4.2,
                         },
                         man_base = {
                             duration = 5.367,
+                            reach = 6.6,
                         },
                         man_big = {
                             duration = 5.367,
+                            reach = 11.3,
                         },
                     },
                 },
@@ -4790,12 +5437,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.933,
+                            reach = 4.1,
                         },
                         man_base = {
                             duration = 4.933,
+                            reach = 4.5,
                         },
                         man_big = {
                             duration = 4.933,
+                            reach = 5.1,
                         },
                     },
                 },
@@ -4807,12 +5457,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.8,
+                            reach = 27.9,
                         },
                         man_base = {
                             duration = 3.8,
+                            reach = 28.3,
                         },
                         man_big = {
                             duration = 3.8,
+                            reach = 24.9,
                         },
                     },
                 },
@@ -4824,12 +5477,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.1,
+                            reach = 54.3,
                         },
                         man_base = {
                             duration = 3.1,
+                            reach = 56.4,
                         },
                         man_big = {
                             duration = 3.1,
+                            reach = 59.5,
                         },
                     },
                 },
@@ -4841,12 +5497,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.967,
+                            reach = 39.1,
                         },
                         man_base = {
                             duration = 5.967,
+                            reach = 39.5,
                         },
                         man_big = {
                             duration = 5.967,
+                            reach = 43.5,
                         },
                     },
                 },
@@ -4858,12 +5517,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.2,
+                            reach = 5.1,
                         },
                         man_base = {
                             duration = 2.2,
+                            reach = 5.7,
                         },
                         man_big = {
                             duration = 2.2,
+                            reach = 6.9,
                         },
                     },
                 },
@@ -4875,12 +5537,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.833,
+                            reach = 42.1,
                         },
                         man_base = {
                             duration = 3.833,
+                            reach = 41.2,
                         },
                         man_big = {
                             duration = 3.833,
+                            reach = 40.1,
                         },
                     },
                 },
@@ -4892,12 +5557,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.3,
+                            reach = 49.6,
                         },
                         man_base = {
                             duration = 3.3,
+                            reach = 46.5,
                         },
                         man_big = {
                             duration = 3.3,
+                            reach = 45.9,
                         },
                     },
                 },
@@ -4909,12 +5577,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.7,
+                            reach = 2.5,
                         },
                         man_base = {
                             duration = 2.7,
+                            reach = 2.7,
                         },
                         man_big = {
                             duration = 2.7,
+                            reach = 2.5,
                         },
                     },
                 },
@@ -4926,12 +5597,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.533,
+                            reach = 41.6,
                         },
                         man_base = {
                             duration = 4.533,
+                            reach = 41,
                         },
                         man_big = {
                             duration = 4.533,
+                            reach = 43.7,
                         },
                     },
                 },
@@ -4943,12 +5617,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.4,
+                            reach = 6.9,
                         },
                         man_base = {
                             duration = 3.4,
+                            reach = 7.6,
                         },
                         man_big = {
                             duration = 3.4,
+                            reach = 9.3,
                         },
                     },
                 },
@@ -4960,12 +5637,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.133,
+                            reach = 37.5,
                         },
                         man_base = {
                             duration = 3.133,
+                            reach = 38.6,
                         },
                         man_big = {
                             duration = 3.133,
+                            reach = 39.3,
                         },
                     },
                 },
@@ -4977,12 +5657,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5,
+                            reach = 29.7,
                         },
                         man_base = {
                             duration = 5,
+                            reach = 29.4,
                         },
                         man_big = {
                             duration = 5,
+                            reach = 32.4,
                         },
                     },
                 },
@@ -4994,12 +5677,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5,
+                            reach = 42,
                         },
                         man_base = {
                             duration = 5,
+                            reach = 39.3,
                         },
                         man_big = {
                             duration = 5,
+                            reach = 36.9,
                         },
                     },
                 },
@@ -5011,12 +5697,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.367,
+                            reach = 1.8,
                         },
                         man_base = {
                             duration = 6.367,
+                            reach = 3.9,
                         },
                         man_big = {
                             duration = 6.367,
+                            reach = 3.2,
                         },
                     },
                 },
@@ -5028,12 +5717,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.333,
+                            reach = 1.9,
                         },
                         man_base = {
                             duration = 6.333,
+                            reach = 2,
                         },
                         man_big = {
                             duration = 6.333,
+                            reach = 2.3,
                         },
                     },
                 },
@@ -5045,12 +5737,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.633,
+                            reach = 17.1,
                         },
                         man_base = {
                             duration = 6.633,
+                            reach = 17.2,
                         },
                         man_big = {
                             duration = 6.633,
+                            reach = 19.7,
                         },
                     },
                 },
@@ -5062,12 +5757,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 6.6,
+                            reach = 3.2,
                         },
                         man_base = {
                             duration = 6.6,
+                            reach = 2.5,
                         },
                         man_big = {
                             duration = 6.6,
+                            reach = 2,
                         },
                     },
                 },
@@ -5079,12 +5777,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.5,
+                            reach = 3.5,
                         },
                         man_base = {
                             duration = 1.5,
+                            reach = 3.1,
                         },
                         man_big = {
                             duration = 1.5,
+                            reach = 3.9,
                         },
                     },
                 },
@@ -5096,12 +5797,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.167,
+                            reach = 3,
                         },
                         man_base = {
                             duration = 3.167,
+                            reach = 2.4,
                         },
                         man_big = {
                             duration = 3.167,
+                            reach = 2.9,
                         },
                     },
                 },
@@ -5113,12 +5817,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.467,
+                            reach = 10.3,
                         },
                         man_base = {
                             duration = 5.467,
+                            reach = 10.6,
                         },
                         man_big = {
                             duration = 5.467,
+                            reach = 10.1,
                         },
                     },
                 },
@@ -5130,12 +5837,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.167,
+                            reach = 0.7,
                         },
                         man_base = {
                             duration = 2.167,
+                            reach = 3.9,
                         },
                         man_big = {
                             duration = 2.167,
+                            reach = 0.8,
                         },
                     },
                 },
@@ -5147,12 +5857,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.767,
+                            reach = 2.9,
                         },
                         man_base = {
                             duration = 2.767,
+                            reach = 1.4,
                         },
                         man_big = {
                             duration = 2.767,
+                            reach = 1.4,
                         },
                     },
                 },
@@ -5164,12 +5877,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.267,
+                            reach = 2.6,
                         },
                         man_base = {
                             duration = 4.267,
+                            reach = 2.9,
                         },
                         man_big = {
                             duration = 4.267,
+                            reach = 2.1,
                         },
                     },
                 },
@@ -5181,12 +5897,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.5,
+                            reach = 3,
                         },
                         man_base = {
                             duration = 3.5,
+                            reach = 2.7,
                         },
                         man_big = {
                             duration = 3.5,
+                            reach = 3.2,
                         },
                     },
                 },
@@ -5198,12 +5917,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.4,
+                            reach = 1.4,
                         },
                         man_base = {
                             duration = 3.4,
+                            reach = 1.3,
                         },
                         man_big = {
                             duration = 3.4,
+                            reach = 1.4,
                         },
                     },
                 },
@@ -5215,12 +5937,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.767,
+                            reach = 0.8,
                         },
                         man_base = {
                             duration = 2.767,
+                            reach = 0.6,
                         },
                         man_big = {
                             duration = 2.767,
+                            reach = 1,
                         },
                     },
                 },
@@ -5232,12 +5957,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.867,
+                            reach = 0.5,
                         },
                         man_base = {
                             duration = 1.867,
+                            reach = 1.5,
                         },
                         man_big = {
                             duration = 1.867,
+                            reach = 0.7,
                         },
                     },
                 },
@@ -5249,12 +5977,15 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 7.5,
+                            reach = 2.5,
                         },
                         man_base = {
                             duration = 7.5,
+                            reach = 1.7,
                         },
                         man_big = {
                             duration = 7.5,
+                            reach = 1.7,
                         },
                     },
                 },
@@ -5296,9 +6027,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.233,
+                            reach = 32.9,
                         },
                         man_big = {
                             duration = 2.233,
+                            reach = 38.4,
                         },
                     },
                 },
@@ -5310,9 +6043,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.333,
+                            reach = 24.4,
                         },
                         man_big = {
                             duration = 2.333,
+                            reach = 26.2,
                         },
                     },
                 },
@@ -5324,9 +6059,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.567,
+                            reach = 36.7,
                         },
                         man_big = {
                             duration = 2.567,
+                            reach = 40.4,
                         },
                     },
                 },
@@ -5338,9 +6075,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.133,
+                            reach = 49.6,
                         },
                         man_big = {
                             duration = 5.133,
+                            reach = 59.8,
                         },
                     },
                 },
@@ -5352,9 +6091,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.633,
+                            reach = 42.1,
                         },
                         man_big = {
                             duration = 2.633,
+                            reach = 48.6,
                         },
                     },
                 },
@@ -5366,9 +6107,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.667,
+                            reach = 27.9,
                         },
                         man_big = {
                             duration = 2.667,
+                            reach = 34.9,
                         },
                     },
                 },
@@ -5380,9 +6123,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.6,
+                            reach = 45,
                         },
                         man_big = {
                             duration = 3.6,
+                            reach = 52.2,
                         },
                     },
                 },
@@ -5394,9 +6139,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.6,
+                            reach = 78.1,
                         },
                         man_big = {
                             duration = 2.6,
+                            reach = 94.6,
                         },
                     },
                 },
@@ -5408,9 +6155,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.867,
+                            reach = 73.1,
                         },
                         man_big = {
                             duration = 2.867,
+                            reach = 88.2,
                         },
                     },
                 },
@@ -5422,9 +6171,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.667,
+                            reach = 67.9,
                         },
                         man_big = {
                             duration = 2.667,
+                            reach = 79.7,
                         },
                     },
                 },
@@ -5436,9 +6187,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.433,
+                            reach = 53.7,
                         },
                         man_big = {
                             duration = 3.433,
+                            reach = 63.3,
                         },
                     },
                 },
@@ -5450,9 +6203,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.633,
+                            reach = 52.6,
                         },
                         man_big = {
                             duration = 2.633,
+                            reach = 61.2,
                         },
                     },
                 },
@@ -5464,9 +6219,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.467,
+                            reach = 56.1,
                         },
                         man_big = {
                             duration = 3.467,
+                            reach = 65.4,
                         },
                     },
                 },
@@ -5478,9 +6235,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.933,
+                            reach = 56.2,
                         },
                         man_big = {
                             duration = 1.933,
+                            reach = 65.8,
                         },
                     },
                 },
@@ -5492,9 +6251,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.367,
+                            reach = 0.4,
                         },
                         man_big = {
                             duration = 1.367,
+                            reach = 0.6,
                         },
                     },
                 },
@@ -5506,9 +6267,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.8,
+                            reach = 0.4,
                         },
                         man_big = {
                             duration = 1.8,
+                            reach = 0.6,
                         },
                     },
                 },
@@ -5520,9 +6283,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.467,
+                            reach = 0.4,
                         },
                         man_big = {
                             duration = 1.467,
+                            reach = 0.6,
                         },
                     },
                 },
@@ -5534,9 +6299,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.8,
+                            reach = 0.8,
                         },
                         man_big = {
                             duration = 1.8,
+                            reach = 1.1,
                         },
                     },
                 },
@@ -5548,9 +6315,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.4,
+                            reach = 0.4,
                         },
                         man_big = {
                             duration = 1.4,
+                            reach = 0.6,
                         },
                     },
                 },
@@ -5562,9 +6331,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 8.033,
+                            reach = 6.2,
                         },
                         man_big = {
                             duration = 8.033,
+                            reach = 7.4,
                         },
                     },
                 },
@@ -5576,9 +6347,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.6,
+                            reach = 47.7,
                         },
                         man_big = {
                             duration = 3.6,
+                            reach = 55.8,
                         },
                     },
                 },
@@ -5590,9 +6363,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.4,
+                            reach = 54.9,
                         },
                         man_big = {
                             duration = 2.4,
+                            reach = 65,
                         },
                     },
                 },
@@ -5604,9 +6379,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.433,
+                            reach = 39.6,
                         },
                         man_big = {
                             duration = 2.433,
+                            reach = 42.2,
                         },
                     },
                 },
@@ -5618,9 +6395,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.833,
+                            reach = 32.7,
                         },
                         man_big = {
                             duration = 1.833,
+                            reach = 37,
                         },
                     },
                 },
@@ -5632,9 +6411,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.4,
+                            reach = 3.1,
                         },
                         man_big = {
                             duration = 2.4,
+                            reach = 3.6,
                         },
                     },
                 },
@@ -5646,9 +6427,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.233,
+                            reach = 3.8,
                         },
                         man_big = {
                             duration = 3.233,
+                            reach = 4.3,
                         },
                     },
                 },
@@ -5660,9 +6443,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.533,
+                            reach = 2.8,
                         },
                         man_big = {
                             duration = 4.533,
+                            reach = 5.3,
                         },
                     },
                 },
@@ -5674,9 +6459,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.067,
+                            reach = 8.3,
                         },
                         man_big = {
                             duration = 4.067,
+                            reach = 11.5,
                         },
                     },
                 },
@@ -5688,6 +6475,7 @@ return {
                     perRig = {
                         man_big = {
                             duration = 3.533,
+                            reach = 7,
                         },
                     },
                 },
@@ -5699,9 +6487,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.167,
+                            reach = 7.5,
                         },
                         man_big = {
                             duration = 5.167,
+                            reach = 10.2,
                         },
                     },
                 },
@@ -5713,9 +6503,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.533,
+                            reach = 6.2,
                         },
                         man_big = {
                             duration = 3.533,
+                            reach = 9.5,
                         },
                     },
                 },
@@ -5727,9 +6519,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.667,
+                            reach = 4.3,
                         },
                         man_big = {
                             duration = 4.667,
+                            reach = 6.8,
                         },
                     },
                 },
@@ -5741,9 +6535,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.133,
+                            reach = 5.1,
                         },
                         man_big = {
                             duration = 5.133,
+                            reach = 7.4,
                         },
                     },
                 },
@@ -5755,9 +6551,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 5.333,
+                            reach = 36.3,
                         },
                         man_big = {
                             duration = 5.333,
+                            reach = 41.6,
                         },
                     },
                 },
@@ -5769,9 +6567,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.433,
+                            reach = 33,
                         },
                         man_big = {
                             duration = 3.433,
+                            reach = 38.5,
                         },
                     },
                 },
@@ -5783,9 +6583,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.333,
+                            reach = 6.6,
                         },
                         man_big = {
                             duration = 3.333,
+                            reach = 6.2,
                         },
                     },
                 },
@@ -5797,9 +6599,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.433,
+                            reach = 42.8,
                         },
                         man_big = {
                             duration = 3.433,
+                            reach = 51.6,
                         },
                     },
                 },
@@ -5811,9 +6615,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 4.067,
+                            reach = 5.8,
                         },
                         man_big = {
                             duration = 4.067,
+                            reach = 6.8,
                         },
                     },
                 },
@@ -5825,6 +6631,7 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.767,
+                            reach = 26.5,
                         },
                     },
                 },
@@ -5836,9 +6643,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.533,
+                            reach = 39.6,
                         },
                         man_big = {
                             duration = 3.533,
+                            reach = 46.9,
                         },
                     },
                 },
@@ -5850,9 +6659,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.033,
+                            reach = 28.4,
                         },
                         man_big = {
                             duration = 3.033,
+                            reach = 33.2,
                         },
                     },
                 },
@@ -5864,9 +6675,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.1,
+                            reach = 56.7,
                         },
                         man_big = {
                             duration = 3.1,
+                            reach = 65.1,
                         },
                     },
                 },
@@ -5878,9 +6691,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 1.333,
+                            reach = 0.6,
                         },
                         man_big = {
                             duration = 1.333,
+                            reach = 0.7,
                         },
                     },
                 },
@@ -5892,9 +6707,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 2.533,
+                            reach = 0.7,
                         },
                         man_big = {
                             duration = 2.533,
+                            reach = 0.8,
                         },
                     },
                 },
@@ -5906,9 +6723,11 @@ return {
                     perRig = {
                         woman_base = {
                             duration = 3.067,
+                            reach = 62,
                         },
                         man_big = {
                             duration = 3.067,
+                            reach = 71.5,
                         },
                     },
                 },
@@ -5947,6 +6766,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 2.233,
+                            reach = 38,
                         },
                     },
                 },
@@ -5959,6 +6779,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 2.333,
+                            reach = 31.5,
                         },
                     },
                 },
@@ -5971,6 +6792,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 2.567,
+                            reach = 41.8,
                         },
                     },
                 },
@@ -5983,6 +6805,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 3.433,
+                            reach = 63.3,
                         },
                     },
                 },
@@ -5995,6 +6818,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 1.367,
+                            reach = 0.5,
                         },
                     },
                 },
@@ -6007,6 +6831,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 1.467,
+                            reach = 0.5,
                         },
                     },
                 },
@@ -6019,6 +6844,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 1.8,
+                            reach = 1.1,
                         },
                     },
                 },
@@ -6031,6 +6857,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 1.4,
+                            reach = 0.5,
                         },
                     },
                 },
@@ -6043,6 +6870,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 8.033,
+                            reach = 6.9,
                         },
                     },
                 },
@@ -6055,6 +6883,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 10,
+                            reach = 58.4,
                         },
                     },
                 },
@@ -6067,6 +6896,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 2.4,
+                            reach = 2.5,
                         },
                     },
                 },
@@ -6079,6 +6909,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 3.233,
+                            reach = 4.5,
                         },
                     },
                 },
@@ -6091,6 +6922,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 4.533,
+                            reach = 4.6,
                         },
                     },
                 },
@@ -6103,6 +6935,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 4.033,
+                            reach = 5.3,
                         },
                     },
                 },
@@ -6115,6 +6948,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 4.9,
+                            reach = 6.2,
                         },
                     },
                 },
@@ -6127,6 +6961,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 5.133,
+                            reach = 7.7,
                         },
                     },
                 },
@@ -6139,6 +6974,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 7.333,
+                            reach = 40.7,
                         },
                     },
                 },
@@ -6177,6 +7013,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 3.6,
+                            reach = 7.8,
                         },
                     },
                 },
@@ -6189,6 +7026,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 6.067,
+                            reach = 6,
                         },
                     },
                 },
@@ -6201,6 +7039,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 2.533,
+                            reach = 4.6,
                         },
                     },
                 },
@@ -6213,6 +7052,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 3.867,
+                            reach = 14.2,
                         },
                     },
                 },
@@ -6225,6 +7065,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 6.067,
+                            reach = 15.2,
                         },
                     },
                 },
@@ -6237,6 +7078,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 8.5,
+                            reach = 29.7,
                         },
                     },
                 },
@@ -6249,6 +7091,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 2.7,
+                            reach = 14.8,
                         },
                     },
                 },
@@ -6287,6 +7130,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 4.5,
+                            reach = 24.8,
                         },
                     },
                 },
@@ -6299,6 +7143,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 6.533,
+                            reach = 9.7,
                         },
                     },
                 },
@@ -6311,6 +7156,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 3.5,
+                            reach = 28.2,
                         },
                     },
                 },
@@ -6323,6 +7169,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 6.2,
+                            reach = 62.7,
                         },
                     },
                 },
@@ -6335,6 +7182,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 4.9,
+                            reach = 72.7,
                         },
                     },
                 },
@@ -6347,6 +7195,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 2.533,
+                            reach = 3.9,
                         },
                     },
                 },
@@ -6359,6 +7208,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 4.4,
+                            reach = 7.5,
                         },
                     },
                 },
@@ -6371,6 +7221,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 4.433,
+                            reach = 12,
                         },
                     },
                 },
@@ -6383,6 +7234,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 5.567,
+                            reach = 13.1,
                         },
                     },
                 },
@@ -6395,6 +7247,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 6.4,
+                            reach = 88.5,
                         },
                     },
                 },
@@ -6407,6 +7260,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 3.9,
+                            reach = 41.8,
                         },
                     },
                 },
@@ -6419,6 +7273,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 2.633,
+                            reach = 66.5,
                         },
                     },
                 },
@@ -6431,6 +7286,7 @@ return {
                     perRig = {
                         man_base = {
                             duration = 4.233,
+                            reach = 31.8,
                         },
                     },
                 },
@@ -6443,6 +7299,4050 @@ return {
                     perRig = {
                         man_base = {
                             duration = 5.433,
+                            reach = 40.4,
+                        },
+                    },
+                },
+            },
+        },
+        judy_own = {
+            component = "convai_talk_judy",
+            workspot = "cyberpunk_convai\\gestures\\convai_talk_judy.workspot",
+            rigs = {
+                "woman_base",
+            },
+            blend = {
+                enter = 1.1,
+                exitNatural = 1,
+                exitForced = 0.25,
+                transition = 1,
+                clipOut = 0.7,
+            },
+            idle = {
+                name = "idle_stand",
+                sequenceId = 100,
+                clipId = 101,
+                perRig = {
+                    woman_base = {
+                        duration = 2.667,
+                    },
+                },
+            },
+            clips = {
+                {
+                    name = "judy__stand_2h_arms_crossed__01__gesture__01",
+                    category = "neutral",
+                    character = "judy",
+                    sequenceId = 102,
+                    clipId = 103,
+                    perRig = {
+                        woman_base = {
+                            duration = 9.333,
+                            reach = 2.6,
+                        },
+                    },
+                },
+                {
+                    name = "judy__stand_2h_arms_crossed__01__gesture__02",
+                    category = "neutral",
+                    character = "judy",
+                    sequenceId = 104,
+                    clipId = 105,
+                    perRig = {
+                        woman_base = {
+                            duration = 9.833,
+                            reach = 40.2,
+                        },
+                    },
+                },
+                {
+                    name = "judy__stand_2h_arms_crossed__01__gesture__03",
+                    category = "neutral",
+                    character = "judy",
+                    sequenceId = 106,
+                    clipId = 107,
+                    perRig = {
+                        woman_base = {
+                            duration = 9.333,
+                            reach = 43.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__breathe__01",
+                    category = "idlebreak",
+                    sequenceId = 108,
+                    clipId = 109,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.5,
+                            reach = 0.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__calm_down__afraid__01",
+                    category = "fear",
+                    sequenceId = 110,
+                    clipId = 111,
+                    perRig = {
+                        woman_base = {
+                            duration = 6.5,
+                            reach = 23.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__calm_down__afraid__02",
+                    category = "fear",
+                    sequenceId = 112,
+                    clipId = 113,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.067,
+                            reach = 29.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__calm_down__angry__01",
+                    category = "angry",
+                    sequenceId = 114,
+                    clipId = 115,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.1,
+                            reach = 38.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__calm_down__disgusted__01",
+                    category = "disgust",
+                    sequenceId = 116,
+                    clipId = 117,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.967,
+                            reach = 48,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__calm_down__happy__01",
+                    category = "happy",
+                    sequenceId = 118,
+                    clipId = 119,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.333,
+                            reach = 25.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__calm_down__happy__02",
+                    category = "happy",
+                    sequenceId = 120,
+                    clipId = 121,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.533,
+                            reach = 20.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__calm_down__happy__03",
+                    category = "happy",
+                    sequenceId = 122,
+                    clipId = 123,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.2,
+                            reach = 38.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__cant_hear_you__neutral__01",
+                    category = "question",
+                    sequenceId = 124,
+                    clipId = 125,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.533,
+                            reach = 26.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__cant_hear_you__neutral__02",
+                    category = "question",
+                    sequenceId = 126,
+                    clipId = 127,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.967,
+                            reach = 1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__crack_knuckles__angry__01",
+                    category = "idlebreak",
+                    sequenceId = 128,
+                    clipId = 129,
+                    perRig = {
+                        woman_base = {
+                            duration = 5,
+                            reach = 46.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_back__01",
+                    category = "neutral",
+                    sequenceId = 130,
+                    clipId = 131,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.4,
+                            reach = 29.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_back__02",
+                    category = "neutral",
+                    sequenceId = 132,
+                    clipId = 133,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.6,
+                            reach = 19.3,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_down__01",
+                    category = "neutral",
+                    sequenceId = 134,
+                    clipId = 135,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.167,
+                            reach = 40,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_down__02",
+                    category = "neutral",
+                    sequenceId = 136,
+                    clipId = 137,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.7,
+                            reach = 46,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_down__03",
+                    category = "neutral",
+                    sequenceId = 138,
+                    clipId = 139,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.467,
+                            reach = 44.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_down__04",
+                    category = "neutral",
+                    sequenceId = 140,
+                    clipId = 141,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.367,
+                            reach = 28.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_front__01",
+                    category = "neutral",
+                    sequenceId = 142,
+                    clipId = 143,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.1,
+                            reach = 32.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_front__02",
+                    category = "neutral",
+                    sequenceId = 144,
+                    clipId = 145,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.833,
+                            reach = 48,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_left__01",
+                    category = "neutral",
+                    sequenceId = 146,
+                    clipId = 147,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.633,
+                            reach = 26.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_left__02",
+                    category = "neutral",
+                    sequenceId = 148,
+                    clipId = 149,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.133,
+                            reach = 74.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_left__03",
+                    category = "neutral",
+                    sequenceId = 150,
+                    clipId = 151,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.833,
+                            reach = 32.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_right__01",
+                    category = "neutral",
+                    sequenceId = 152,
+                    clipId = 153,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.467,
+                            reach = 59.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_right__02",
+                    category = "neutral",
+                    sequenceId = 154,
+                    clipId = 155,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.267,
+                            reach = 21.3,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_right__03",
+                    category = "neutral",
+                    sequenceId = 156,
+                    clipId = 157,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.267,
+                            reach = 7.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_right__04",
+                    category = "neutral",
+                    sequenceId = 158,
+                    clipId = 159,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.267,
+                            reach = 17,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_up__01",
+                    category = "neutral",
+                    sequenceId = 160,
+                    clipId = 161,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.267,
+                            reach = 38.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_up__02",
+                    category = "neutral",
+                    sequenceId = 162,
+                    clipId = 163,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.667,
+                            reach = 35,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_up__03",
+                    category = "neutral",
+                    sequenceId = 164,
+                    clipId = 165,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.567,
+                            reach = 32.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__describe_up__04",
+                    category = "neutral",
+                    sequenceId = 166,
+                    clipId = 167,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.9,
+                            reach = 23.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__facepalm__disgusted__01",
+                    category = "disgust",
+                    sequenceId = 168,
+                    clipId = 169,
+                    perRig = {
+                        woman_base = {
+                            duration = 6.9,
+                            reach = 31.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_down__01",
+                    category = "neutral",
+                    sequenceId = 170,
+                    clipId = 171,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.333,
+                            reach = 0.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_down__02",
+                    category = "neutral",
+                    sequenceId = 172,
+                    clipId = 173,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.467,
+                            reach = 1.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_down__03",
+                    category = "neutral",
+                    sequenceId = 174,
+                    clipId = 175,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.7,
+                            reach = 1.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_down__04",
+                    category = "neutral",
+                    sequenceId = 176,
+                    clipId = 177,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.667,
+                            reach = 3.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_down__05",
+                    category = "neutral",
+                    sequenceId = 178,
+                    clipId = 179,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.667,
+                            reach = 2.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_down__06",
+                    category = "neutral",
+                    sequenceId = 180,
+                    clipId = 181,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.7,
+                            reach = 1.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_left__01",
+                    category = "neutral",
+                    sequenceId = 182,
+                    clipId = 183,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.8,
+                            reach = 1.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_left__02",
+                    category = "neutral",
+                    sequenceId = 184,
+                    clipId = 185,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.3,
+                            reach = 0.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_left__03",
+                    category = "neutral",
+                    sequenceId = 186,
+                    clipId = 187,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.7,
+                            reach = 0.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_left__04",
+                    category = "neutral",
+                    sequenceId = 188,
+                    clipId = 189,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.767,
+                            reach = 1.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_left__05",
+                    category = "neutral",
+                    sequenceId = 190,
+                    clipId = 191,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.467,
+                            reach = 0.3,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_right__01",
+                    category = "neutral",
+                    sequenceId = 192,
+                    clipId = 193,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.8,
+                            reach = 0.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_right__02",
+                    category = "neutral",
+                    sequenceId = 194,
+                    clipId = 195,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.3,
+                            reach = 0.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_right__03",
+                    category = "neutral",
+                    sequenceId = 196,
+                    clipId = 197,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.9,
+                            reach = 1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_right__04",
+                    category = "neutral",
+                    sequenceId = 198,
+                    clipId = 199,
+                    perRig = {
+                        woman_base = {
+                            duration = 3,
+                            reach = 1.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_right__05",
+                    category = "neutral",
+                    sequenceId = 200,
+                    clipId = 201,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.467,
+                            reach = 0.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_up__01",
+                    category = "neutral",
+                    sequenceId = 202,
+                    clipId = 203,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.5,
+                            reach = 0.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_up__02",
+                    category = "neutral",
+                    sequenceId = 204,
+                    clipId = 205,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.9,
+                            reach = 1.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_up__03",
+                    category = "neutral",
+                    sequenceId = 206,
+                    clipId = 207,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.5,
+                            reach = 0.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__head_flick_up__04",
+                    category = "neutral",
+                    sequenceId = 208,
+                    clipId = 209,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.467,
+                            reach = 0.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__lh_flick__01",
+                    category = "neutral",
+                    sequenceId = 210,
+                    clipId = 211,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.2,
+                            reach = 27.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__lh_flick__02",
+                    category = "neutral",
+                    sequenceId = 212,
+                    clipId = 213,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.033,
+                            reach = 42.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__lh_flick__03",
+                    category = "neutral",
+                    sequenceId = 214,
+                    clipId = 215,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.967,
+                            reach = 32.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__lh_flick__04",
+                    category = "neutral",
+                    sequenceId = 216,
+                    clipId = 217,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.733,
+                            reach = 25.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__lh_flick__05",
+                    category = "neutral",
+                    sequenceId = 218,
+                    clipId = 219,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.867,
+                            reach = 42.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__look_around__01",
+                    category = "idlebreak",
+                    sequenceId = 220,
+                    clipId = 221,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.2,
+                            reach = 0.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__me__afraid__01",
+                    category = "fear",
+                    sequenceId = 222,
+                    clipId = 223,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.533,
+                            reach = 13.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__me__angry__01",
+                    category = "angry",
+                    sequenceId = 224,
+                    clipId = 225,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.033,
+                            reach = 17.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__me__happy__01",
+                    category = "happy",
+                    sequenceId = 226,
+                    clipId = 227,
+                    perRig = {
+                        woman_base = {
+                            duration = 6.233,
+                            reach = 17.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__no__afraid__01",
+                    category = "fear",
+                    sequenceId = 228,
+                    clipId = 229,
+                    perRig = {
+                        woman_base = {
+                            duration = 7.767,
+                            reach = 3.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__no__angry__01",
+                    category = "angry",
+                    sequenceId = 230,
+                    clipId = 231,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.6,
+                            reach = 47.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__no__sad__01",
+                    category = "sad",
+                    sequenceId = 232,
+                    clipId = 233,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.6,
+                            reach = 0.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__point_back__01",
+                    category = "neutral",
+                    sequenceId = 234,
+                    clipId = 235,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.533,
+                            reach = 28.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__rh_flick__01",
+                    category = "neutral",
+                    sequenceId = 236,
+                    clipId = 237,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.6,
+                            reach = 30.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__rh_flick__02",
+                    category = "neutral",
+                    sequenceId = 238,
+                    clipId = 239,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.767,
+                            reach = 12.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__rub_eyes__01",
+                    category = "nod",
+                    sequenceId = 240,
+                    clipId = 241,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.133,
+                            reach = 28.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__rub_forehead__01",
+                    category = "idlebreak",
+                    sequenceId = 242,
+                    clipId = 243,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.367,
+                            reach = 33.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__shrug__01",
+                    category = "shrug",
+                    sequenceId = 244,
+                    clipId = 245,
+                    perRig = {
+                        woman_base = {
+                            duration = 3,
+                            reach = 1.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__shrug__02",
+                    category = "shrug",
+                    sequenceId = 246,
+                    clipId = 247,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.5,
+                            reach = 2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__shrug__03",
+                    category = "shrug",
+                    sequenceId = 248,
+                    clipId = 249,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.833,
+                            reach = 2.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__shrug__04",
+                    category = "shrug",
+                    sequenceId = 250,
+                    clipId = 251,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.1,
+                            reach = 1.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__shuffle__01",
+                    category = "idlebreak",
+                    sequenceId = 252,
+                    clipId = 253,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.333,
+                            reach = 1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__shuffle__02",
+                    category = "idlebreak",
+                    sequenceId = 254,
+                    clipId = 255,
+                    perRig = {
+                        woman_base = {
+                            duration = 7.167,
+                            reach = 2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__shuffle__05",
+                    category = "idlebreak",
+                    sequenceId = 256,
+                    clipId = 257,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.033,
+                            reach = 0.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__shuffle__06",
+                    category = "idlebreak",
+                    sequenceId = 258,
+                    clipId = 259,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.767,
+                            reach = 2.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__shuffle__07",
+                    category = "idlebreak",
+                    sequenceId = 260,
+                    clipId = 261,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.833,
+                            reach = 0.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__shuffle__08",
+                    category = "idlebreak",
+                    sequenceId = 262,
+                    clipId = 263,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.9,
+                            reach = 5.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__shuffle__10",
+                    category = "idlebreak",
+                    sequenceId = 264,
+                    clipId = 265,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.9,
+                            reach = 0.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__stop__afraid__01",
+                    category = "fear",
+                    sequenceId = 266,
+                    clipId = 267,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.867,
+                            reach = 45.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__stop__angry__01",
+                    category = "angry",
+                    sequenceId = 268,
+                    clipId = 269,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.333,
+                            reach = 55.3,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__stop__surprised__01",
+                    category = "surprise",
+                    sequenceId = 270,
+                    clipId = 271,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.567,
+                            reach = 41.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__talk__angry__05",
+                    category = "angry",
+                    sequenceId = 272,
+                    clipId = 273,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.833,
+                            reach = 32.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__talk__angry__06",
+                    category = "angry",
+                    sequenceId = 274,
+                    clipId = 275,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.533,
+                            reach = 3.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__talk__neutral__01",
+                    category = "neutral",
+                    sequenceId = 276,
+                    clipId = 277,
+                    perRig = {
+                        woman_base = {
+                            duration = 6.767,
+                            reach = 3.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__talk__neutral__02",
+                    category = "neutral",
+                    sequenceId = 278,
+                    clipId = 279,
+                    perRig = {
+                        woman_base = {
+                            duration = 6.5,
+                            reach = 14.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__talk__neutral__03",
+                    category = "neutral",
+                    sequenceId = 280,
+                    clipId = 281,
+                    perRig = {
+                        woman_base = {
+                            duration = 6.567,
+                            reach = 13.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__talk__neutral__04",
+                    category = "neutral",
+                    sequenceId = 282,
+                    clipId = 283,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.933,
+                            reach = 2.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__talk__neutral__05",
+                    category = "neutral",
+                    sequenceId = 284,
+                    clipId = 285,
+                    perRig = {
+                        woman_base = {
+                            duration = 8.133,
+                            reach = 27.3,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__talk__neutral__06",
+                    category = "neutral",
+                    sequenceId = 286,
+                    clipId = 287,
+                    perRig = {
+                        woman_base = {
+                            duration = 6.833,
+                            reach = 1.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__talk__neutral__07",
+                    category = "neutral",
+                    sequenceId = 288,
+                    clipId = 289,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.833,
+                            reach = 25.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__talk__neutral__08",
+                    category = "neutral",
+                    sequenceId = 290,
+                    clipId = 291,
+                    perRig = {
+                        woman_base = {
+                            duration = 7,
+                            reach = 24.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__talk__neutral__09",
+                    category = "neutral",
+                    sequenceId = 292,
+                    clipId = 293,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.967,
+                            reach = 38.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__talk__neutral__10",
+                    category = "neutral",
+                    sequenceId = 294,
+                    clipId = 295,
+                    perRig = {
+                        woman_base = {
+                            duration = 8.167,
+                            reach = 39.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__this_or_that__angry__01",
+                    category = "angry",
+                    sequenceId = 296,
+                    clipId = 297,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.6,
+                            reach = 36.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__this_or_that__angry__02",
+                    category = "angry",
+                    sequenceId = 298,
+                    clipId = 299,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.067,
+                            reach = 3.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what__afraid__01",
+                    category = "fear",
+                    sequenceId = 300,
+                    clipId = 301,
+                    perRig = {
+                        woman_base = {
+                            duration = 6.1,
+                            reach = 9.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what__angry__01",
+                    category = "angry",
+                    sequenceId = 302,
+                    clipId = 303,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.9,
+                            reach = 26,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what__disgusted__01",
+                    category = "disgust",
+                    sequenceId = 304,
+                    clipId = 305,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.8,
+                            reach = 2.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what__disgusted__02",
+                    category = "disgust",
+                    sequenceId = 306,
+                    clipId = 307,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.8,
+                            reach = 26,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what__happy__01",
+                    category = "happy",
+                    sequenceId = 308,
+                    clipId = 309,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.267,
+                            reach = 21.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what__neutral__01",
+                    category = "question",
+                    sequenceId = 310,
+                    clipId = 311,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.3,
+                            reach = 6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what__neutral__02",
+                    category = "question",
+                    sequenceId = 312,
+                    clipId = 313,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.1,
+                            reach = 28.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what__neutral__03",
+                    category = "question",
+                    sequenceId = 314,
+                    clipId = 315,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.533,
+                            reach = 22.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what__sad__01",
+                    category = "sad",
+                    sequenceId = 316,
+                    clipId = 317,
+                    perRig = {
+                        woman_base = {
+                            duration = 6.8,
+                            reach = 2.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what__sad__02",
+                    category = "sad",
+                    sequenceId = 318,
+                    clipId = 319,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.367,
+                            reach = 4.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what__surprised__01",
+                    category = "surprise",
+                    sequenceId = 320,
+                    clipId = 321,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.933,
+                            reach = 4.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what__surprised__02",
+                    category = "surprise",
+                    sequenceId = 322,
+                    clipId = 323,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.8,
+                            reach = 27.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what_is_this__angry__01",
+                    category = "angry",
+                    sequenceId = 324,
+                    clipId = 325,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.1,
+                            reach = 54.3,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what_is_this__disgusted__01",
+                    category = "disgust",
+                    sequenceId = 326,
+                    clipId = 327,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.967,
+                            reach = 39.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what_is_this__neutral__01",
+                    category = "question",
+                    sequenceId = 328,
+                    clipId = 329,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.2,
+                            reach = 5.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what_is_this__neutral__02",
+                    category = "question",
+                    sequenceId = 330,
+                    clipId = 331,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.833,
+                            reach = 42.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what_is_this__neutral__03",
+                    category = "question",
+                    sequenceId = 332,
+                    clipId = 333,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.3,
+                            reach = 49.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what_is_this__surprised__01",
+                    category = "surprise",
+                    sequenceId = 334,
+                    clipId = 335,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.7,
+                            reach = 2.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__what_is_this__surprised__02",
+                    category = "surprise",
+                    sequenceId = 336,
+                    clipId = 337,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.533,
+                            reach = 41.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__whatever__angry__01",
+                    category = "angry",
+                    sequenceId = 338,
+                    clipId = 339,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.4,
+                            reach = 6.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__whatever__angry__02",
+                    category = "angry",
+                    sequenceId = 340,
+                    clipId = 341,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.133,
+                            reach = 37.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__whatever__disgusted__01",
+                    category = "disgust",
+                    sequenceId = 342,
+                    clipId = 343,
+                    perRig = {
+                        woman_base = {
+                            duration = 5,
+                            reach = 29.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__whatever__happy__01",
+                    category = "happy",
+                    sequenceId = 344,
+                    clipId = 345,
+                    perRig = {
+                        woman_base = {
+                            duration = 5,
+                            reach = 42,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__whatever__sad__01",
+                    category = "sad",
+                    sequenceId = 346,
+                    clipId = 347,
+                    perRig = {
+                        woman_base = {
+                            duration = 6.367,
+                            reach = 1.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__yes__afraid__01",
+                    category = "fear",
+                    sequenceId = 348,
+                    clipId = 349,
+                    perRig = {
+                        woman_base = {
+                            duration = 6.333,
+                            reach = 1.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__yes__afraid__03",
+                    category = "fear",
+                    sequenceId = 350,
+                    clipId = 351,
+                    perRig = {
+                        woman_base = {
+                            duration = 6.633,
+                            reach = 17.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__yes__disgusted__01",
+                    category = "disgust",
+                    sequenceId = 352,
+                    clipId = 353,
+                    perRig = {
+                        woman_base = {
+                            duration = 6.6,
+                            reach = 3.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__yes__happy__01",
+                    category = "happy",
+                    sequenceId = 354,
+                    clipId = 355,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.5,
+                            reach = 3.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__yes__happy__02",
+                    category = "happy",
+                    sequenceId = 356,
+                    clipId = 357,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.167,
+                            reach = 3,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__yes__happy__03",
+                    category = "happy",
+                    sequenceId = 358,
+                    clipId = 359,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.467,
+                            reach = 10.3,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__yes__neutral__01",
+                    category = "nod",
+                    sequenceId = 360,
+                    clipId = 361,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.167,
+                            reach = 0.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__yes__neutral__02",
+                    category = "nod",
+                    sequenceId = 362,
+                    clipId = 363,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.767,
+                            reach = 2.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__yes__neutral__03",
+                    category = "nod",
+                    sequenceId = 364,
+                    clipId = 365,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.267,
+                            reach = 2.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__yes__neutral__04",
+                    category = "nod",
+                    sequenceId = 366,
+                    clipId = 367,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.5,
+                            reach = 3,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__yes__neutral__05",
+                    category = "nod",
+                    sequenceId = 368,
+                    clipId = 369,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.4,
+                            reach = 1.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__yes__neutral__06",
+                    category = "nod",
+                    sequenceId = 370,
+                    clipId = 371,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.767,
+                            reach = 0.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__yes__neutral__07",
+                    category = "nod",
+                    sequenceId = 372,
+                    clipId = 373,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.867,
+                            reach = 0.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__arms_crossed_front__01__yes__sad__01",
+                    category = "sad",
+                    sequenceId = 374,
+                    clipId = 375,
+                    perRig = {
+                        woman_base = {
+                            duration = 7.5,
+                            reach = 2.5,
+                        },
+                    },
+                },
+            },
+        },
+        panam_own = {
+            component = "convai_talk_panam",
+            workspot = "cyberpunk_convai\\gestures\\convai_talk_panam.workspot",
+            rigs = {
+                "woman_base",
+            },
+            blend = {
+                enter = 1.1,
+                exitNatural = 1,
+                exitForced = 0.25,
+                transition = 1,
+                clipOut = 0.7,
+            },
+            idle = {
+                name = "idle_stand",
+                sequenceId = 100,
+                clipId = 101,
+                perRig = {
+                    woman_base = {
+                        duration = 8.1,
+                    },
+                },
+            },
+            clips = {
+                {
+                    name = "stand__2h_on_hip__01__2h_flick__01",
+                    category = "neutral",
+                    sequenceId = 102,
+                    clipId = 103,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.233,
+                            reach = 32.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__2h_flick__02",
+                    category = "neutral",
+                    sequenceId = 104,
+                    clipId = 105,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.333,
+                            reach = 24.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__2h_flick__03",
+                    category = "neutral",
+                    sequenceId = 106,
+                    clipId = 107,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.567,
+                            reach = 36.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__calm_down__happy__01",
+                    category = "happy",
+                    sequenceId = 108,
+                    clipId = 109,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.133,
+                            reach = 49.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__describe_down__01",
+                    category = "neutral",
+                    sequenceId = 110,
+                    clipId = 111,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.633,
+                            reach = 42.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__describe_down__02",
+                    category = "neutral",
+                    sequenceId = 112,
+                    clipId = 113,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.667,
+                            reach = 27.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__describe_down__03",
+                    category = "neutral",
+                    sequenceId = 114,
+                    clipId = 115,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.6,
+                            reach = 45,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__describe_front__01",
+                    category = "neutral",
+                    sequenceId = 116,
+                    clipId = 117,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.6,
+                            reach = 78.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__describe_front__02",
+                    category = "neutral",
+                    sequenceId = 118,
+                    clipId = 119,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.867,
+                            reach = 73.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__describe_left__01",
+                    category = "neutral",
+                    sequenceId = 120,
+                    clipId = 121,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.667,
+                            reach = 67.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__describe_left__02",
+                    category = "neutral",
+                    sequenceId = 122,
+                    clipId = 123,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.433,
+                            reach = 53.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__describe_right__01",
+                    category = "neutral",
+                    sequenceId = 124,
+                    clipId = 125,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.633,
+                            reach = 52.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__describe_right__02",
+                    category = "neutral",
+                    sequenceId = 126,
+                    clipId = 127,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.467,
+                            reach = 56.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__describe_up__02",
+                    category = "neutral",
+                    sequenceId = 128,
+                    clipId = 129,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.933,
+                            reach = 56.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__head_flick_down__01",
+                    category = "neutral",
+                    sequenceId = 130,
+                    clipId = 131,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.367,
+                            reach = 0.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__head_flick_left__01",
+                    category = "neutral",
+                    sequenceId = 132,
+                    clipId = 133,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.8,
+                            reach = 0.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__head_flick_right__01",
+                    category = "neutral",
+                    sequenceId = 134,
+                    clipId = 135,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.467,
+                            reach = 0.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__head_flick_up__01",
+                    category = "neutral",
+                    sequenceId = 136,
+                    clipId = 137,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.8,
+                            reach = 0.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__head_flick_up__02",
+                    category = "neutral",
+                    sequenceId = 138,
+                    clipId = 139,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.4,
+                            reach = 0.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__look_around__01",
+                    category = "idlebreak",
+                    sequenceId = 140,
+                    clipId = 141,
+                    perRig = {
+                        woman_base = {
+                            duration = 8.033,
+                            reach = 6.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__no__angry__01",
+                    category = "angry",
+                    sequenceId = 142,
+                    clipId = 143,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.6,
+                            reach = 47.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__rh_flick__01",
+                    category = "neutral",
+                    sequenceId = 144,
+                    clipId = 145,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.4,
+                            reach = 54.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__rh_flick__02",
+                    category = "neutral",
+                    sequenceId = 146,
+                    clipId = 147,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.433,
+                            reach = 39.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__rh_flick__03",
+                    category = "neutral",
+                    sequenceId = 148,
+                    clipId = 149,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.833,
+                            reach = 32.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__shrug__01",
+                    category = "shrug",
+                    sequenceId = 150,
+                    clipId = 151,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.4,
+                            reach = 3.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__shrug__02",
+                    category = "shrug",
+                    sequenceId = 152,
+                    clipId = 153,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.233,
+                            reach = 3.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__shuffle__01",
+                    category = "idlebreak",
+                    sequenceId = 154,
+                    clipId = 155,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.533,
+                            reach = 2.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__shuffle__04",
+                    category = "idlebreak",
+                    sequenceId = 156,
+                    clipId = 157,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.067,
+                            reach = 8.3,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__shuffle__06",
+                    category = "idlebreak",
+                    sequenceId = 158,
+                    clipId = 159,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.167,
+                            reach = 7.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__shuffle__07",
+                    category = "idlebreak",
+                    sequenceId = 160,
+                    clipId = 161,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.533,
+                            reach = 6.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__shuffle__08",
+                    category = "idlebreak",
+                    sequenceId = 162,
+                    clipId = 163,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.667,
+                            reach = 4.3,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__shuffle__09",
+                    category = "idlebreak",
+                    sequenceId = 164,
+                    clipId = 165,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.133,
+                            reach = 5.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__talk__neutral__01",
+                    category = "neutral",
+                    sequenceId = 166,
+                    clipId = 167,
+                    perRig = {
+                        woman_base = {
+                            duration = 5.333,
+                            reach = 36.3,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__talk__neutral__02",
+                    category = "neutral",
+                    sequenceId = 168,
+                    clipId = 169,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.433,
+                            reach = 33,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__talk__neutral__03",
+                    category = "neutral",
+                    sequenceId = 170,
+                    clipId = 171,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.333,
+                            reach = 6.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__talk__neutral__04",
+                    category = "neutral",
+                    sequenceId = 172,
+                    clipId = 173,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.433,
+                            reach = 42.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__talk__neutral__05",
+                    category = "neutral",
+                    sequenceId = 174,
+                    clipId = 175,
+                    perRig = {
+                        woman_base = {
+                            duration = 4.067,
+                            reach = 5.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__talk__neutral__06",
+                    category = "neutral",
+                    sequenceId = 176,
+                    clipId = 177,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.767,
+                            reach = 26.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__talk__neutral__07",
+                    category = "neutral",
+                    sequenceId = 178,
+                    clipId = 179,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.533,
+                            reach = 39.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__what__surprised__01",
+                    category = "surprise",
+                    sequenceId = 180,
+                    clipId = 181,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.033,
+                            reach = 28.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__whatever__happy__01",
+                    category = "happy",
+                    sequenceId = 182,
+                    clipId = 183,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.1,
+                            reach = 56.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__yes__neutral__01",
+                    category = "nod",
+                    sequenceId = 184,
+                    clipId = 185,
+                    perRig = {
+                        woman_base = {
+                            duration = 1.333,
+                            reach = 0.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__yes__neutral__02",
+                    category = "nod",
+                    sequenceId = 186,
+                    clipId = 187,
+                    perRig = {
+                        woman_base = {
+                            duration = 2.533,
+                            reach = 0.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_hip__01__yes__neutral__03",
+                    category = "nod",
+                    sequenceId = 188,
+                    clipId = 189,
+                    perRig = {
+                        woman_base = {
+                            duration = 3.067,
+                            reach = 62,
+                        },
+                    },
+                },
+            },
+        },
+        takemura_own = {
+            component = "convai_talk_takemura_own",
+            workspot = "cyberpunk_convai\\gestures\\convai_talk_takemura_own.workspot",
+            rigs = {
+                "man_base",
+            },
+            blend = {
+                enter = 1.1,
+                exitNatural = 1,
+                exitForced = 0.25,
+                transition = 1,
+                clipOut = 0.7,
+            },
+            idle = {
+                name = "idle_stand",
+                sequenceId = 100,
+                clipId = 101,
+                perRig = {
+                    man_base = {
+                        duration = 9.433,
+                    },
+                },
+            },
+            clips = {
+                {
+                    name = "takemura__stand__2h_on_sides__01__nod__respectful__01",
+                    category = "nod",
+                    character = "takemura",
+                    sequenceId = 102,
+                    clipId = 103,
+                    perRig = {
+                        man_base = {
+                            duration = 3.6,
+                            reach = 7.8,
+                        },
+                    },
+                },
+                {
+                    name = "takemura__stand__2h_on_sides__01__shuffle__01",
+                    category = "idlebreak",
+                    character = "takemura",
+                    sequenceId = 104,
+                    clipId = 105,
+                    perRig = {
+                        man_base = {
+                            duration = 6.067,
+                            reach = 6,
+                        },
+                    },
+                },
+                {
+                    name = "takemura__stand__2h_on_sides__01__shuffle__02",
+                    category = "idlebreak",
+                    character = "takemura",
+                    sequenceId = 106,
+                    clipId = 107,
+                    perRig = {
+                        man_base = {
+                            duration = 2.533,
+                            reach = 4.6,
+                        },
+                    },
+                },
+                {
+                    name = "takemura__stand__2h_on_sides__01__talk__01",
+                    category = "neutral",
+                    character = "takemura",
+                    sequenceId = 108,
+                    clipId = 109,
+                    perRig = {
+                        man_base = {
+                            duration = 3.867,
+                            reach = 14.2,
+                        },
+                    },
+                },
+                {
+                    name = "takemura__stand__2h_on_sides__01__talk__02",
+                    category = "neutral",
+                    character = "takemura",
+                    sequenceId = 110,
+                    clipId = 111,
+                    perRig = {
+                        man_base = {
+                            duration = 6.067,
+                            reach = 15.2,
+                        },
+                    },
+                },
+                {
+                    name = "takemura__stand__2h_on_sides__01__talk__03",
+                    category = "neutral",
+                    character = "takemura",
+                    sequenceId = 112,
+                    clipId = 113,
+                    perRig = {
+                        man_base = {
+                            duration = 8.5,
+                            reach = 29.7,
+                        },
+                    },
+                },
+                {
+                    name = "takemura__stand__2h_on_sides__01__talk__04",
+                    category = "neutral",
+                    character = "takemura",
+                    sequenceId = 114,
+                    clipId = 115,
+                    perRig = {
+                        man_base = {
+                            duration = 2.7,
+                            reach = 14.8,
+                        },
+                    },
+                },
+            },
+        },
+        jackie_own = {
+            component = "convai_talk_jackie",
+            workspot = "cyberpunk_convai\\gestures\\convai_talk_jackie.workspot",
+            rigs = {
+                "man_big",
+            },
+            blend = {
+                enter = 1.1,
+                exitNatural = 1,
+                exitForced = 0.25,
+                transition = 1,
+                clipOut = 0.7,
+            },
+            idle = {
+                name = "idle_stand",
+                sequenceId = 100,
+                clipId = 101,
+                perRig = {
+                    man_big = {
+                        duration = 4.067,
+                    },
+                },
+            },
+            clips = {
+                {
+                    name = "stand__2h_on_sides__01__2h_flick__01",
+                    category = "neutral",
+                    sequenceId = 102,
+                    clipId = 103,
+                    perRig = {
+                        man_big = {
+                            duration = 3.567,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__2h_flick__02",
+                    category = "neutral",
+                    sequenceId = 104,
+                    clipId = 105,
+                    perRig = {
+                        man_big = {
+                            duration = 2.667,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__2h_flick__03",
+                    category = "neutral",
+                    sequenceId = 106,
+                    clipId = 107,
+                    perRig = {
+                        man_big = {
+                            duration = 5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__2h_flick__04",
+                    category = "neutral",
+                    sequenceId = 108,
+                    clipId = 109,
+                    perRig = {
+                        man_big = {
+                            duration = 2.867,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__2h_flick__05",
+                    category = "neutral",
+                    sequenceId = 110,
+                    clipId = 111,
+                    perRig = {
+                        man_big = {
+                            duration = 3.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__calm_down__afraid__01",
+                    category = "fear",
+                    sequenceId = 112,
+                    clipId = 113,
+                    perRig = {
+                        man_big = {
+                            duration = 6.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__calm_down__angry__01",
+                    category = "angry",
+                    sequenceId = 114,
+                    clipId = 115,
+                    perRig = {
+                        man_big = {
+                            duration = 3.267,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__calm_down__disgusted__01",
+                    category = "disgust",
+                    sequenceId = 116,
+                    clipId = 117,
+                    perRig = {
+                        man_big = {
+                            duration = 5.033,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__calm_down__happy__01",
+                    category = "happy",
+                    sequenceId = 118,
+                    clipId = 119,
+                    perRig = {
+                        man_big = {
+                            duration = 5.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__cant_hear_you__angry__01",
+                    category = "angry",
+                    sequenceId = 120,
+                    clipId = 121,
+                    perRig = {
+                        man_big = {
+                            duration = 4.267,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__cant_hear_you__neutral__01",
+                    category = "question",
+                    sequenceId = 122,
+                    clipId = 123,
+                    perRig = {
+                        man_big = {
+                            duration = 5.567,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__cant_hear_you__neutral__03",
+                    category = "question",
+                    sequenceId = 124,
+                    clipId = 125,
+                    perRig = {
+                        man_big = {
+                            duration = 5.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__cant_hear_you__neutral__04",
+                    category = "question",
+                    sequenceId = 126,
+                    clipId = 127,
+                    perRig = {
+                        man_big = {
+                            duration = 5.633,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__cant_hear_you__neutral__05",
+                    category = "question",
+                    sequenceId = 128,
+                    clipId = 129,
+                    perRig = {
+                        man_big = {
+                            duration = 3.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__crack_bones__01",
+                    category = "idlebreak",
+                    sequenceId = 130,
+                    clipId = 131,
+                    perRig = {
+                        man_big = {
+                            duration = 9.233,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__cracking_knuckles__01",
+                    category = "idlebreak",
+                    sequenceId = 132,
+                    clipId = 133,
+                    perRig = {
+                        man_big = {
+                            duration = 5.067,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__cracking_knuckles__angry__01",
+                    category = "idlebreak",
+                    sequenceId = 134,
+                    clipId = 135,
+                    perRig = {
+                        man_big = {
+                            duration = 4.867,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_back__01",
+                    category = "neutral",
+                    sequenceId = 136,
+                    clipId = 137,
+                    perRig = {
+                        man_big = {
+                            duration = 3.133,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_back__broad__02",
+                    category = "neutral",
+                    sequenceId = 138,
+                    clipId = 139,
+                    perRig = {
+                        man_big = {
+                            duration = 6.833,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_circle__01",
+                    category = "neutral",
+                    sequenceId = 140,
+                    clipId = 141,
+                    perRig = {
+                        man_big = {
+                            duration = 2.3,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_circle__02",
+                    category = "neutral",
+                    sequenceId = 142,
+                    clipId = 143,
+                    perRig = {
+                        man_big = {
+                            duration = 2.633,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_down__01",
+                    category = "neutral",
+                    sequenceId = 144,
+                    clipId = 145,
+                    perRig = {
+                        man_big = {
+                            duration = 2.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_down__02",
+                    category = "neutral",
+                    sequenceId = 146,
+                    clipId = 147,
+                    perRig = {
+                        man_big = {
+                            duration = 3.467,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_down__03",
+                    category = "neutral",
+                    sequenceId = 148,
+                    clipId = 149,
+                    perRig = {
+                        man_big = {
+                            duration = 2.667,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_front__01",
+                    category = "neutral",
+                    sequenceId = 150,
+                    clipId = 151,
+                    perRig = {
+                        man_big = {
+                            duration = 4.633,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_front__02",
+                    category = "neutral",
+                    sequenceId = 152,
+                    clipId = 153,
+                    perRig = {
+                        man_big = {
+                            duration = 3.933,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_front__03",
+                    category = "neutral",
+                    sequenceId = 154,
+                    clipId = 155,
+                    perRig = {
+                        man_big = {
+                            duration = 2.833,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_left__01",
+                    category = "neutral",
+                    sequenceId = 156,
+                    clipId = 157,
+                    perRig = {
+                        man_big = {
+                            duration = 2.433,
+                            reach = 38.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_left__02",
+                    category = "neutral",
+                    sequenceId = 158,
+                    clipId = 159,
+                    perRig = {
+                        man_big = {
+                            duration = 2.467,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_left__broad__01",
+                    category = "neutral",
+                    sequenceId = 160,
+                    clipId = 161,
+                    perRig = {
+                        man_big = {
+                            duration = 2.733,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_left__broad__02",
+                    category = "neutral",
+                    sequenceId = 162,
+                    clipId = 163,
+                    perRig = {
+                        man_big = {
+                            duration = 3.167,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_right__01",
+                    category = "neutral",
+                    sequenceId = 164,
+                    clipId = 165,
+                    perRig = {
+                        man_big = {
+                            duration = 2.167,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_right__02",
+                    category = "neutral",
+                    sequenceId = 166,
+                    clipId = 167,
+                    perRig = {
+                        man_big = {
+                            duration = 2.633,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_right__broad__01",
+                    category = "neutral",
+                    sequenceId = 168,
+                    clipId = 169,
+                    perRig = {
+                        man_big = {
+                            duration = 3.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_right__broad__02",
+                    category = "neutral",
+                    sequenceId = 170,
+                    clipId = 171,
+                    perRig = {
+                        man_big = {
+                            duration = 2.933,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_up__01",
+                    category = "neutral",
+                    sequenceId = 172,
+                    clipId = 173,
+                    perRig = {
+                        man_big = {
+                            duration = 3.467,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__describe_up__03",
+                    category = "neutral",
+                    sequenceId = 174,
+                    clipId = 175,
+                    perRig = {
+                        man_big = {
+                            duration = 2.767,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__facepalm__disgusted__01",
+                    category = "disgust",
+                    sequenceId = 176,
+                    clipId = 177,
+                    perRig = {
+                        man_big = {
+                            duration = 5.067,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__facepalm__disgusted__02",
+                    category = "disgust",
+                    sequenceId = 178,
+                    clipId = 179,
+                    perRig = {
+                        man_big = {
+                            duration = 5.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__gesture_hold__01",
+                    category = "neutral",
+                    sequenceId = 180,
+                    clipId = 181,
+                    perRig = {
+                        man_big = {
+                            duration = 16,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__gesture_hold__01__flick__01",
+                    category = "neutral",
+                    sequenceId = 182,
+                    clipId = 183,
+                    perRig = {
+                        man_big = {
+                            duration = 2.333,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__gesture_hold__01__flick__02",
+                    category = "neutral",
+                    sequenceId = 184,
+                    clipId = 185,
+                    perRig = {
+                        man_big = {
+                            duration = 2.833,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__gesture_hold__01__flick__03",
+                    category = "neutral",
+                    sequenceId = 186,
+                    clipId = 187,
+                    perRig = {
+                        man_big = {
+                            duration = 3,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__gesture_hold__01__flick__04",
+                    category = "neutral",
+                    sequenceId = 188,
+                    clipId = 189,
+                    perRig = {
+                        man_big = {
+                            duration = 2.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__gesture_hold__01__lh_fingers__01",
+                    category = "neutral",
+                    sequenceId = 190,
+                    clipId = 191,
+                    perRig = {
+                        man_big = {
+                            duration = 2.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__gesture_hold__01__lh_fingers__02",
+                    category = "neutral",
+                    sequenceId = 192,
+                    clipId = 193,
+                    perRig = {
+                        man_big = {
+                            duration = 2.267,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__gesture_hold__01__rh_fingers__01",
+                    category = "neutral",
+                    sequenceId = 194,
+                    clipId = 195,
+                    perRig = {
+                        man_big = {
+                            duration = 2.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__gesture_hold__01__rh_fingers__02",
+                    category = "neutral",
+                    sequenceId = 196,
+                    clipId = 197,
+                    perRig = {
+                        man_big = {
+                            duration = 1.667,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__gesture_hold__01__shrug__01",
+                    category = "shrug",
+                    sequenceId = 198,
+                    clipId = 199,
+                    perRig = {
+                        man_big = {
+                            duration = 3.167,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__gesture_hold__01__shuffle__01",
+                    category = "neutral",
+                    sequenceId = 200,
+                    clipId = 201,
+                    perRig = {
+                        man_big = {
+                            duration = 4.167,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_down__01",
+                    category = "neutral",
+                    sequenceId = 202,
+                    clipId = 203,
+                    perRig = {
+                        man_big = {
+                            duration = 2.433,
+                            reach = 4.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_down__02",
+                    category = "neutral",
+                    sequenceId = 204,
+                    clipId = 205,
+                    perRig = {
+                        man_big = {
+                            duration = 2.433,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_down__03",
+                    category = "neutral",
+                    sequenceId = 206,
+                    clipId = 207,
+                    perRig = {
+                        man_big = {
+                            duration = 2.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_down__04",
+                    category = "neutral",
+                    sequenceId = 208,
+                    clipId = 209,
+                    perRig = {
+                        man_big = {
+                            duration = 2.933,
+                            reach = 1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_left__01",
+                    category = "neutral",
+                    sequenceId = 210,
+                    clipId = 211,
+                    perRig = {
+                        man_big = {
+                            duration = 2.333,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_left__02",
+                    category = "neutral",
+                    sequenceId = 212,
+                    clipId = 213,
+                    perRig = {
+                        man_big = {
+                            duration = 2.067,
+                            reach = 2.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_left__03",
+                    category = "neutral",
+                    sequenceId = 214,
+                    clipId = 215,
+                    perRig = {
+                        man_big = {
+                            duration = 1.333,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_left__04",
+                    category = "neutral",
+                    sequenceId = 216,
+                    clipId = 217,
+                    perRig = {
+                        man_big = {
+                            duration = 1.533,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_left__05",
+                    category = "neutral",
+                    sequenceId = 218,
+                    clipId = 219,
+                    perRig = {
+                        man_big = {
+                            duration = 2.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_right__01",
+                    category = "neutral",
+                    sequenceId = 220,
+                    clipId = 221,
+                    perRig = {
+                        man_big = {
+                            duration = 2.233,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_right__02",
+                    category = "neutral",
+                    sequenceId = 222,
+                    clipId = 223,
+                    perRig = {
+                        man_big = {
+                            duration = 1.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_right__03",
+                    category = "neutral",
+                    sequenceId = 224,
+                    clipId = 225,
+                    perRig = {
+                        man_big = {
+                            duration = 2.533,
+                            reach = 7.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_right__04",
+                    category = "neutral",
+                    sequenceId = 226,
+                    clipId = 227,
+                    perRig = {
+                        man_big = {
+                            duration = 2.167,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_right__05",
+                    category = "neutral",
+                    sequenceId = 228,
+                    clipId = 229,
+                    perRig = {
+                        man_big = {
+                            duration = 2.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_up__01",
+                    category = "neutral",
+                    sequenceId = 230,
+                    clipId = 231,
+                    perRig = {
+                        man_big = {
+                            duration = 2.333,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_up__02",
+                    category = "neutral",
+                    sequenceId = 232,
+                    clipId = 233,
+                    perRig = {
+                        man_big = {
+                            duration = 1.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_up__03",
+                    category = "neutral",
+                    sequenceId = 234,
+                    clipId = 235,
+                    perRig = {
+                        man_big = {
+                            duration = 1.633,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__head_flick_up__04",
+                    category = "neutral",
+                    sequenceId = 236,
+                    clipId = 237,
+                    perRig = {
+                        man_big = {
+                            duration = 2.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__look_around__01",
+                    category = "idlebreak",
+                    sequenceId = 238,
+                    clipId = 239,
+                    perRig = {
+                        man_big = {
+                            duration = 3.767,
+                            reach = 5.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__look_around__02",
+                    category = "idlebreak",
+                    sequenceId = 240,
+                    clipId = 241,
+                    perRig = {
+                        man_big = {
+                            duration = 6.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__me__afraid__01",
+                    category = "fear",
+                    sequenceId = 242,
+                    clipId = 243,
+                    perRig = {
+                        man_big = {
+                            duration = 4.333,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__me__afraid__02",
+                    category = "fear",
+                    sequenceId = 244,
+                    clipId = 245,
+                    perRig = {
+                        man_big = {
+                            duration = 5.533,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__me__angry__01",
+                    category = "angry",
+                    sequenceId = 246,
+                    clipId = 247,
+                    perRig = {
+                        man_big = {
+                            duration = 3.633,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__me__angry__broad__01",
+                    category = "angry",
+                    sequenceId = 248,
+                    clipId = 249,
+                    perRig = {
+                        man_big = {
+                            duration = 4.167,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__no__01",
+                    category = "no",
+                    sequenceId = 250,
+                    clipId = 251,
+                    perRig = {
+                        man_big = {
+                            duration = 2.767,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__no__02",
+                    category = "no",
+                    sequenceId = 252,
+                    clipId = 253,
+                    perRig = {
+                        man_big = {
+                            duration = 2.9,
+                            reach = 8.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__no__angry__01",
+                    category = "angry",
+                    sequenceId = 254,
+                    clipId = 255,
+                    perRig = {
+                        man_big = {
+                            duration = 4.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__no__angry__02",
+                    category = "angry",
+                    sequenceId = 256,
+                    clipId = 257,
+                    perRig = {
+                        man_big = {
+                            duration = 4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__no__angry__broad__01",
+                    category = "angry",
+                    sequenceId = 258,
+                    clipId = 259,
+                    perRig = {
+                        man_big = {
+                            duration = 3.867,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__no__head__01",
+                    category = "no",
+                    sequenceId = 260,
+                    clipId = 261,
+                    perRig = {
+                        man_big = {
+                            duration = 2.667,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__rh_flick__01",
+                    category = "neutral",
+                    sequenceId = 262,
+                    clipId = 263,
+                    perRig = {
+                        man_big = {
+                            duration = 2.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__rh_flick__02",
+                    category = "neutral",
+                    sequenceId = 264,
+                    clipId = 265,
+                    perRig = {
+                        man_big = {
+                            duration = 2.7,
+                            reach = 37,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__rh_flick__03",
+                    category = "neutral",
+                    sequenceId = 266,
+                    clipId = 267,
+                    perRig = {
+                        man_big = {
+                            duration = 2.767,
+                            reach = 25.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__rh_flick__04",
+                    category = "neutral",
+                    sequenceId = 268,
+                    clipId = 269,
+                    perRig = {
+                        man_big = {
+                            duration = 2.267,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__rh_flick__05",
+                    category = "neutral",
+                    sequenceId = 270,
+                    clipId = 271,
+                    perRig = {
+                        man_big = {
+                            duration = 2.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__rub_hands__01",
+                    category = "idlebreak",
+                    sequenceId = 272,
+                    clipId = 273,
+                    perRig = {
+                        man_big = {
+                            duration = 4.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__rub_hands__02",
+                    category = "idlebreak",
+                    sequenceId = 274,
+                    clipId = 275,
+                    perRig = {
+                        man_big = {
+                            duration = 4.167,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__rub_hands__03",
+                    category = "idlebreak",
+                    sequenceId = 276,
+                    clipId = 277,
+                    perRig = {
+                        man_big = {
+                            duration = 5.867,
+                            reach = 48.7,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__scratch_neck__01",
+                    category = "idlebreak",
+                    sequenceId = 278,
+                    clipId = 279,
+                    perRig = {
+                        man_big = {
+                            duration = 4.533,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__scratch_neck__02",
+                    category = "idlebreak",
+                    sequenceId = 280,
+                    clipId = 281,
+                    perRig = {
+                        man_big = {
+                            duration = 4.567,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__scratch_neck__03",
+                    category = "idlebreak",
+                    sequenceId = 282,
+                    clipId = 283,
+                    perRig = {
+                        man_big = {
+                            duration = 5.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__scratch_neck__04",
+                    category = "idlebreak",
+                    sequenceId = 284,
+                    clipId = 285,
+                    perRig = {
+                        man_big = {
+                            duration = 3.267,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__shrug__01",
+                    category = "shrug",
+                    sequenceId = 286,
+                    clipId = 287,
+                    perRig = {
+                        man_big = {
+                            duration = 2.633,
+                            reach = 15.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__shrug__02",
+                    category = "shrug",
+                    sequenceId = 288,
+                    clipId = 289,
+                    perRig = {
+                        man_big = {
+                            duration = 2.333,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__shrug__broad__01",
+                    category = "shrug",
+                    sequenceId = 290,
+                    clipId = 291,
+                    perRig = {
+                        man_big = {
+                            duration = 4.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__shrug__broad__02",
+                    category = "shrug",
+                    sequenceId = 292,
+                    clipId = 293,
+                    perRig = {
+                        man_big = {
+                            duration = 3.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__shrug__narrow__01",
+                    category = "shrug",
+                    sequenceId = 294,
+                    clipId = 295,
+                    perRig = {
+                        man_big = {
+                            duration = 1.933,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__shrug__narrow__02",
+                    category = "shrug",
+                    sequenceId = 296,
+                    clipId = 297,
+                    perRig = {
+                        man_big = {
+                            duration = 1.967,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__shuffle__01",
+                    category = "idlebreak",
+                    sequenceId = 298,
+                    clipId = 299,
+                    perRig = {
+                        man_big = {
+                            duration = 4.033,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__shuffle__02",
+                    category = "idlebreak",
+                    sequenceId = 300,
+                    clipId = 301,
+                    perRig = {
+                        man_big = {
+                            duration = 5.967,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__shuffle__03",
+                    category = "idlebreak",
+                    sequenceId = 302,
+                    clipId = 303,
+                    perRig = {
+                        man_big = {
+                            duration = 4.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__shuffle__04",
+                    category = "idlebreak",
+                    sequenceId = 304,
+                    clipId = 305,
+                    perRig = {
+                        man_big = {
+                            duration = 3.633,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__sigh__01",
+                    category = "sad",
+                    sequenceId = 306,
+                    clipId = 307,
+                    perRig = {
+                        man_big = {
+                            duration = 4.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__sigh__02",
+                    category = "sad",
+                    sequenceId = 308,
+                    clipId = 309,
+                    perRig = {
+                        man_big = {
+                            duration = 4.733,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__sigh__03",
+                    category = "sad",
+                    sequenceId = 310,
+                    clipId = 311,
+                    perRig = {
+                        man_big = {
+                            duration = 5.633,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__stop__angry__02",
+                    category = "angry",
+                    sequenceId = 312,
+                    clipId = 313,
+                    perRig = {
+                        man_big = {
+                            duration = 4.533,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__stop__surprised__03",
+                    category = "surprise",
+                    sequenceId = 314,
+                    clipId = 315,
+                    perRig = {
+                        man_big = {
+                            duration = 7.267,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__stop__surprised__04",
+                    category = "surprise",
+                    sequenceId = 316,
+                    clipId = 317,
+                    perRig = {
+                        man_big = {
+                            duration = 5.967,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__stretch_arms__01",
+                    category = "idlebreak",
+                    sequenceId = 318,
+                    clipId = 319,
+                    perRig = {
+                        man_big = {
+                            duration = 3.533,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__stretch_arms__02",
+                    category = "idlebreak",
+                    sequenceId = 320,
+                    clipId = 321,
+                    perRig = {
+                        man_big = {
+                            duration = 3.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__stretch_body__01",
+                    category = "idlebreak",
+                    sequenceId = 322,
+                    clipId = 323,
+                    perRig = {
+                        man_big = {
+                            duration = 10.567,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__stretch_neck__01",
+                    category = "idlebreak",
+                    sequenceId = 324,
+                    clipId = 325,
+                    perRig = {
+                        man_big = {
+                            duration = 3.167,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__talk__neutral__01",
+                    category = "neutral",
+                    sequenceId = 326,
+                    clipId = 327,
+                    perRig = {
+                        man_big = {
+                            duration = 3.8,
+                            reach = 36.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__talk__neutral__02",
+                    category = "neutral",
+                    sequenceId = 328,
+                    clipId = 329,
+                    perRig = {
+                        man_big = {
+                            duration = 4.233,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__talk__neutral__03",
+                    category = "neutral",
+                    sequenceId = 330,
+                    clipId = 331,
+                    perRig = {
+                        man_big = {
+                            duration = 4.367,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__talk__neutral__04",
+                    category = "neutral",
+                    sequenceId = 332,
+                    clipId = 333,
+                    perRig = {
+                        man_big = {
+                            duration = 5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__talk__neutral__05",
+                    category = "neutral",
+                    sequenceId = 334,
+                    clipId = 335,
+                    perRig = {
+                        man_big = {
+                            duration = 8.133,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__this_or_that__angry__01",
+                    category = "angry",
+                    sequenceId = 336,
+                    clipId = 337,
+                    perRig = {
+                        man_big = {
+                            duration = 3.233,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__this_or_that__angry__02",
+                    category = "angry",
+                    sequenceId = 338,
+                    clipId = 339,
+                    perRig = {
+                        man_big = {
+                            duration = 3.233,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__afraid__01",
+                    category = "fear",
+                    sequenceId = 340,
+                    clipId = 341,
+                    perRig = {
+                        man_big = {
+                            duration = 6.3,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__afraid__02",
+                    category = "fear",
+                    sequenceId = 342,
+                    clipId = 343,
+                    perRig = {
+                        man_big = {
+                            duration = 3.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__afraid__03",
+                    category = "fear",
+                    sequenceId = 344,
+                    clipId = 345,
+                    perRig = {
+                        man_big = {
+                            duration = 4.9,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__angry__01",
+                    category = "angry",
+                    sequenceId = 346,
+                    clipId = 347,
+                    perRig = {
+                        man_big = {
+                            duration = 3.033,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__angry__02",
+                    category = "angry",
+                    sequenceId = 348,
+                    clipId = 349,
+                    perRig = {
+                        man_big = {
+                            duration = 3.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__disgusted__01",
+                    category = "disgust",
+                    sequenceId = 350,
+                    clipId = 351,
+                    perRig = {
+                        man_big = {
+                            duration = 3.433,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__happy__01",
+                    category = "happy",
+                    sequenceId = 352,
+                    clipId = 353,
+                    perRig = {
+                        man_big = {
+                            duration = 4.167,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__happy__02",
+                    category = "happy",
+                    sequenceId = 354,
+                    clipId = 355,
+                    perRig = {
+                        man_big = {
+                            duration = 4.933,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__neutral__01",
+                    category = "question",
+                    sequenceId = 356,
+                    clipId = 357,
+                    perRig = {
+                        man_big = {
+                            duration = 2.8,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__neutral__02",
+                    category = "question",
+                    sequenceId = 358,
+                    clipId = 359,
+                    perRig = {
+                        man_big = {
+                            duration = 3.3,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__neutral__03",
+                    category = "question",
+                    sequenceId = 360,
+                    clipId = 361,
+                    perRig = {
+                        man_big = {
+                            duration = 2.967,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__neutral__04",
+                    category = "question",
+                    sequenceId = 362,
+                    clipId = 363,
+                    perRig = {
+                        man_big = {
+                            duration = 3.233,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__neutral__05",
+                    category = "question",
+                    sequenceId = 364,
+                    clipId = 365,
+                    perRig = {
+                        man_big = {
+                            duration = 2.933,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__neutral__06",
+                    category = "question",
+                    sequenceId = 366,
+                    clipId = 367,
+                    perRig = {
+                        man_big = {
+                            duration = 3.267,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__sad__01",
+                    category = "sad",
+                    sequenceId = 368,
+                    clipId = 369,
+                    perRig = {
+                        man_big = {
+                            duration = 5.667,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__sad__02",
+                    category = "sad",
+                    sequenceId = 370,
+                    clipId = 371,
+                    perRig = {
+                        man_big = {
+                            duration = 3.6,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what__surprised__01",
+                    category = "surprise",
+                    sequenceId = 372,
+                    clipId = 373,
+                    perRig = {
+                        man_big = {
+                            duration = 5.067,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what_is_this__01",
+                    category = "question",
+                    sequenceId = 374,
+                    clipId = 375,
+                    perRig = {
+                        man_big = {
+                            duration = 4.167,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what_is_this__angry__01",
+                    category = "angry",
+                    sequenceId = 376,
+                    clipId = 377,
+                    perRig = {
+                        man_big = {
+                            duration = 3.967,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what_is_this__angry__02",
+                    category = "angry",
+                    sequenceId = 378,
+                    clipId = 379,
+                    perRig = {
+                        man_big = {
+                            duration = 4.067,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__what_is_this__broad__01",
+                    category = "question",
+                    sequenceId = 380,
+                    clipId = 381,
+                    perRig = {
+                        man_big = {
+                            duration = 5.067,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__whatever__disgusted__01",
+                    category = "disgust",
+                    sequenceId = 382,
+                    clipId = 383,
+                    perRig = {
+                        man_big = {
+                            duration = 5.167,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__whatever__disgusted__02",
+                    category = "disgust",
+                    sequenceId = 384,
+                    clipId = 385,
+                    perRig = {
+                        man_big = {
+                            duration = 3.1,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__whatever__disgusted__03",
+                    category = "disgust",
+                    sequenceId = 386,
+                    clipId = 387,
+                    perRig = {
+                        man_big = {
+                            duration = 4.4,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__whatever__sad__01",
+                    category = "sad",
+                    sequenceId = 388,
+                    clipId = 389,
+                    perRig = {
+                        man_big = {
+                            duration = 4.133,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__whatever__sad__02",
+                    category = "sad",
+                    sequenceId = 390,
+                    clipId = 391,
+                    perRig = {
+                        man_big = {
+                            duration = 5.467,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__whatever__sad__03",
+                    category = "sad",
+                    sequenceId = 392,
+                    clipId = 393,
+                    perRig = {
+                        man_big = {
+                            duration = 4.5,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__yes__01",
+                    category = "nod",
+                    sequenceId = 394,
+                    clipId = 395,
+                    perRig = {
+                        man_big = {
+                            duration = 2.767,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__yes__disgusted__01",
+                    category = "disgust",
+                    sequenceId = 396,
+                    clipId = 397,
+                    perRig = {
+                        man_big = {
+                            duration = 8.2,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__yes__head__01",
+                    category = "nod",
+                    sequenceId = 398,
+                    clipId = 399,
+                    perRig = {
+                        man_big = {
+                            duration = 3.667,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__yes__sad__01",
+                    category = "sad",
+                    sequenceId = 400,
+                    clipId = 401,
+                    perRig = {
+                        man_big = {
+                            duration = 3.467,
+                        },
+                    },
+                },
+                {
+                    name = "stand__2h_on_sides__01__yes__sad__02",
+                    category = "sad",
+                    sequenceId = 402,
+                    clipId = 403,
+                    perRig = {
+                        man_big = {
+                            duration = 4.467,
                         },
                     },
                 },
@@ -6467,15 +11367,17 @@ return {
         ["Character.Judy"] = {
             key = "judy",
             rig = "woman_base",
-            talk = "arms_crossed",
+            talk = "judy_own",
             idle = "judy",
+            fallback = "arms_crossed",
         },
         ["Character.Panam"] = {
             key = "panam",
             rig = "woman_base",
-            talk = "on_hips",
+            talk = "panam_own",
             idle = "panam",
             flavour = true,
+            fallback = "on_hips",
         },
         ["Character.Rogue"] = {
             key = "rogue",
@@ -6491,14 +11393,14 @@ return {
         ["Character.Silverhand"] = {
             key = "johnny",
             rig = "man_base",
-            talk = "johnny",
+            talk = "on_sides",
             idle = "johnny",
             flavour = true,
         },
         ["CyberpunkConvai.JohnnyCompanion"] = {
             key = "johnny",
             rig = "man_base",
-            talk = "johnny",
+            talk = "on_sides",
             idle = "johnny",
             flavour = true,
         },
@@ -6517,16 +11419,18 @@ return {
         ["Character.Takemura"] = {
             key = "takemura",
             rig = "man_base",
-            talk = "takemura",
+            talk = "takemura_own",
             idle = "takemura",
             flavour = true,
+            fallback = "takemura",
         },
         ["Character.Jackie"] = {
             key = "jackie",
             rig = "man_big",
-            talk = "on_sides",
+            talk = "jackie_own",
             idle = "jackie",
             flavour = true,
+            fallback = "on_sides",
         },
         ["Character.Sobchak"] = {
             key = "river",

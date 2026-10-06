@@ -47,6 +47,13 @@ const banned = source.banned.map((word) => word.toLowerCase());
 const categories = source.categories.map(([name, pattern]) => [name, new RegExp(pattern)]);
 const characterOf = (name) => (name.match(/^(judy|johnny|jackie|kerry|takemura|panam)__/) || [])[1];
 const transition = (depot) => /_transitions(__ow)?\.anims$/.test(depot);
+// Measured hand motion per clip (scripts/Measure-GestureMotion.py), optional.
+const motionFile = path.join(project, 'assets', 'gestures', 'clip-motion.json');
+const motion = fs.existsSync(motionFile) ? readJson(motionFile).animsets : {};
+const reachOf = (animset, name) => {
+    const row = motion[base(animset).replace(/\.anims$/, '')]?.[name];
+    return row ? row[0] : undefined;
+};
 
 // Clips of an animset list for one rig (first animset wins on duplicate names).
 const animsetCache = new Map();
@@ -64,7 +71,8 @@ function clipsOf(rigKey, animsets) {
             const declared = root.rig?.DepotPath?.$value;
             if (declared && declared.toLowerCase() !== rig.rig.toLowerCase()) fail(`${animset} targets ${declared}, not ${rig.rig}`);
             entries = root.animations.map((entry) => entry?.Data?.animation?.Data).filter((a) => a?.name?.$value).map((a) => ({
-                name: a.name.$value, duration: Number(a.duration ?? a.animBuffer?.Data?.duration ?? 0), motion: a.motionExtraction != null }));
+                name: a.name.$value, duration: Number(a.duration ?? a.animBuffer?.Data?.duration ?? 0), motion: a.motionExtraction != null,
+                reach: reachOf(animset, a.name.$value) }));
             animsetCache.set(animset, entries);
         }
         for (const entry of entries) if (!result.has(entry.name)) result.set(entry.name, entry);
@@ -109,7 +117,7 @@ for (const [familyKey, family] of Object.entries(source.families)) {
             const category = (categories.find(([, pattern]) => pattern.test(lower)) || [])[0];
             if (!category) { skipped.uncategorised++; continue; }
             const item = byName.get(clip.name) ?? { name: clip.name, category, character: characterOf(clip.name), perRig: {} };
-            item.perRig[rigKey] = { duration: round(clip.duration) };
+            item.perRig[rigKey] = { duration: round(clip.duration), reach: clip.reach };
             byName.set(clip.name, item);
         }
     }

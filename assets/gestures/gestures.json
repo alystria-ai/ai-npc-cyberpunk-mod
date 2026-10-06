@@ -211,21 +211,82 @@
           "base\\animations\\npc\\main_characters\\johnny\\interactive_scene\\johnny__stand__lh_pocket__01.anims"
         ]
       }
+    },
+    "judy_own": {
+      "component": "convai_talk_judy",
+      "workspot": "cyberpunk_convai\\gestures\\convai_talk_judy.workspot",
+      "idle": "idle_stand",
+      "prefixes": [
+        "stand__arms_crossed_front__01__",
+        "judy__stand_2h_arms_crossed__01__gesture"
+      ],
+      "animsets": {
+        "woman_base": [
+          "base\\animations\\npc\\main_characters\\judy\\locomotion\\wa_judy_unarmed_locomotion_relaxed.anims",
+          "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_female_average__stand__arms_crossed_front__01.anims",
+          "base\\animations\\npc\\main_characters\\judy\\interactive_scene\\judy__stand_2h_arms_crossed__01__gestures__01.anims"
+        ]
+      }
+    },
+    "panam_own": {
+      "component": "convai_talk_panam",
+      "workspot": "cyberpunk_convai\\gestures\\convai_talk_panam.workspot",
+      "idle": "idle_stand",
+      "prefixes": [
+        "stand__2h_on_hip__01__"
+      ],
+      "animsets": {
+        "woman_base": [
+          "base\\animations\\npc\\main_characters\\panam\\locomotion\\wa_panam_unarmed_locomotion_relaxed.anims",
+          "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_female_average__stand__2h_on_hip__01.anims"
+        ]
+      }
+    },
+    "takemura_own": {
+      "component": "convai_talk_takemura_own",
+      "workspot": "cyberpunk_convai\\gestures\\convai_talk_takemura_own.workspot",
+      "idle": "idle_stand",
+      "prefixes": [
+        "takemura__stand__2h_on_sides__01__"
+      ],
+      "animsets": {
+        "man_base": [
+          "base\\animations\\npc\\main_characters\\takemura\\locomotion\\ma_takemura_unarmed_locomotion_relaxed.anims",
+          "base\\animations\\npc\\main_characters\\takemura\\interactive_scene\\takemura__stand__2h_on_sides__01.anims"
+        ]
+      }
+    },
+    "jackie_own": {
+      "component": "convai_talk_jackie",
+      "workspot": "cyberpunk_convai\\gestures\\convai_talk_jackie.workspot",
+      "idle": "idle_stand",
+      "prefixes": [
+        "stand__2h_on_sides__01__"
+      ],
+      "animsets": {
+        "man_big": [
+          "base\\animations\\npc\\main_characters\\jackie\\locomotion\\jackie_dialogue_relaxed_locomotion.anims",
+          "base\\animations\\npc\\main_characters\\jackie\\interactive_scene\\jackie__stand__2h_on_sides.anims",
+          "base\\animations\\npc\\generic_characters\\male_big\\interactive_scene\\generic_big_male_stand_2h_on_sides.anims"
+        ]
+      }
     }
   },
   "characters": {
     "Character.Judy": {
       "key": "judy",
       "rig": "woman_base",
-      "talk": "arms_crossed",
-      "idle": "judy"
+      "talk": "judy_own",
+      "idle": "judy",
+      "fallback": "arms_crossed"
     },
     "Character.Panam": {
       "key": "panam",
       "rig": "woman_base",
-      "talk": "on_hips",
+      "talk": "panam_own",
       "idle": "panam",
-      "flavour": true
+      "flavour": true,
+      "fallback": "on_hips"
     },
     "Character.Rogue": {
       "key": "rogue",
@@ -241,14 +302,14 @@
     "Character.Silverhand": {
       "key": "johnny",
       "rig": "man_base",
-      "talk": "johnny",
+      "talk": "on_sides",
       "idle": "johnny",
       "flavour": true
     },
     "CyberpunkConvai.JohnnyCompanion": {
       "key": "johnny",
       "rig": "man_base",
-      "talk": "johnny",
+      "talk": "on_sides",
       "idle": "johnny",
       "flavour": true
     },
@@ -267,16 +328,18 @@
     "Character.Takemura": {
       "key": "takemura",
       "rig": "man_base",
-      "talk": "takemura",
+      "talk": "takemura_own",
       "idle": "takemura",
-      "flavour": true
+      "flavour": true,
+      "fallback": "takemura"
     },
     "Character.Jackie": {
       "key": "jackie",
       "rig": "man_big",
-      "talk": "on_sides",
+      "talk": "jackie_own",
       "idle": "jackie",
-      "flavour": true
+      "flavour": true,
+      "fallback": "on_sides"
     },
     "Character.Sobchak": {
       "key": "river",

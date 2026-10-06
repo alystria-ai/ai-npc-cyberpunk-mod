@@ -147,7 +147,7 @@ test('the generated catalog works with the policy for every rig and maps signatu
     for _,rig in ipairs(family.rigs) do
       local s=m.new(lcg)
       local n=0
-      local who=(name=='kerry' or name=='takemura' or name=='johnny') and name or 'judy'
+      local who=(name=='kerry' or name=='takemura' or name=='johnny') and name or (name:match('^(%a+)_own$') or 'judy')
       for t=0,60,.1 do
         local item=m.next(s,{now=t,mode='speaking',rig=rig,character=who,family='sadness',scale=2,remaining=30,clips=family.clips})
         if item then n=n+1;assert(item.clip.perRig[rig],'clip not on rig');assert(item.clip.category~='idlebreak') end
@@ -187,4 +187,21 @@ test('a ten-second reply gets several gestures, not two', () => run(`
     end
   end
   assert(n/10>=2.0,'average '..(n/10))
+`));
+
+test('measured hand reach drives the choice: clips under 15 cm are almost never used', () => run(`
+  local function reachClip(name,reach) local c=clip(name,'neutral',all);c.perRig.woman_base.reach=reach;return c end
+  local pool={reachClip('c__head_flick__01',2),reachClip('c__lh_flick__01',4),reachClip('c__describe_left__02',74),
+    reachClip('c__describe_right__01',59),reachClip('c__talk__neutral__10',40),reachClip('c__what__neutral__03',50),
+    reachClip('c__describe_down__02',46),reachClip('c__describe_up__01',38),reachClip('c__lh_flick__05',42),reachClip('c__talk__neutral__09',39),
+    reachClip('c__describe_front__02',48),reachClip('c__what_is_this__neutral__02',42)}
+  local big,small=0,0
+  for i=1,20 do
+    local s=m.new(lcg)
+    for t=0,30,.1 do
+      local item=m.next(s,{now=t,mode='speaking',rig='woman_base',character='judy',family='neutral',scale=2,remaining=30,total=30,clips=pool})
+      if item then if (item.clip.perRig.woman_base.reach or 0)<15 then small=small+1 else big=big+1 end end
+    end
+  end
+  assert(big>small*8,'big '..big..' small '..small)
 `));
