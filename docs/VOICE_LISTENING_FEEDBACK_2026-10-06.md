@@ -33,3 +33,4 @@ The user's per-character verdicts from the report page (http://127.0.0.1:8765/),
 ### Decoder A "holographic" follow-up
 - The Carol set: only decoder A sounds holographic; the pretrained decoder is normal. Removing decoder A's 200 Hz line comb made no audible difference, so the comb isn't the cause.
 - The user doesn't want character effects (no DSP chains). Adam Smasher can just sound menacing, and Johnny human (his companion form is flesh). The goal is only that the holographic sound never appears unexpectedly.
+- Control verdict (Carol line 0): holographic in 04 (A with pretrained highs) and 10 (A highs replaced by noise); fine in 05, 06 (A with pretrained mids 1.5–4 kHz) and 07 (A levels with pretrained phase); 09 sounds low quality; 11 and 12 a little. Conclusion: the cause is decoder A's mid-band (about 1.5–4 kHz) phase, not the highs or the 200 Hz comb.
