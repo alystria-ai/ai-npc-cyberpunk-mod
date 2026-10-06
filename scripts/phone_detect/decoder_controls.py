@@ -15,6 +15,8 @@ Each control keeps everything of the suspect except one thing:
   10 highs-as-noise    suspect above 4 kHz replaced by noise with the same smoothed envelope (no fine structure)
   11 tails-shortened   2:1 downward expander below -20 dB re the local peak (reverb-like tails and floor noise pulled down)
   12 clean-brightened  clean voice with the suspect's long-term spectrum applied (EQ only)
+  13 midphase-from-clean  suspect, but the clean phase only in 1.5-4 kHz
+  14 clean-with-midphase  clean, but the suspect's phase only in 1.5-4 kHz
 """
 from __future__ import annotations
 
@@ -105,6 +107,10 @@ def controls(suspect, clean):
     ltas_c = np.log10((np.abs(C) ** 2).mean(1) + 1e-12)
     eq = 10 ** (np.clip(medfilt(ltas_s - ltas_c, 9), -2, 2) / 2)
     out["12_clean-brightened"] = inv(C * eq[:, None], n)
+    band = (f >= 1500) & (f < 4000)
+    in_band = band[:, None]
+    out["13_midphase-from-clean"] = inv(np.abs(S) * np.exp(1j * np.where(in_band, np.angle(C), np.angle(S))), n)
+    out["14_clean-with-midphase"] = inv(np.abs(C) * np.exp(1j * np.where(in_band, np.angle(S), np.angle(C))), n)
     peak = max(np.abs(v).max() for v in out.values())
     return {k: v * min(1.0, 0.95 / peak) for k, v in out.items()}
 
@@ -123,6 +129,21 @@ def main() -> int:
     for name, wav in controls(s, c).items():
         sf.write(a.out / f"{a.prefix}{name}.wav", wav, SR, subtype="PCM_16")
     return 0
+
+
+
+
+def phase_coherence(x, ref, lo=1500.0, hi=4000.0):
+    """Magnitude-weighted phase agreement (0-1) of two sample-aligned decodes of the same latents in [lo, hi) Hz, on
+    speech frames.  1 = same phase.  Paired metric: the retrain gate is coherence(new decoder, pretrained decoder)."""
+    n = min(len(x), len(ref))
+    X, R = spec(x[:n]), spec(ref[:n])
+    f = freqs()
+    level = 10 * np.log10((np.abs(R) ** 2).sum(0) + 1e-12)
+    keep = level > level.max() - 30
+    m = (f >= lo) & (f < hi)
+    a, b = X[m][:, keep], R[m][:, keep]
+    return float(np.abs((a * np.conj(b)).sum()) / np.sqrt((np.abs(a) ** 2).sum() * (np.abs(b) ** 2).sum() + 1e-12))
 
 
 if __name__ == "__main__":

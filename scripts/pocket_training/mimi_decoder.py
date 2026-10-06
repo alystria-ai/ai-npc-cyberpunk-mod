@@ -200,6 +200,45 @@ def ltas_losses(y, x, device):
     return l1, excess
 
 
+MID_LO, MID_HI = 1500.0, 4000.0       # the band whose phase made decoder A sound "holographic"
+
+
+def _band_bins(n_fft: int, lo: float, hi: float):
+    return int(lo / (24000 / n_fft)), int(hi / (24000 / n_fft))
+
+
+def anchor_loss(y, ref, lo: float = MID_LO, hi: float = MID_HI):
+    """Complex-STFT L1 between the decoder output and the frozen pretrained decoder's output for the same latents,
+    in [lo, hi) Hz only, normalised by the reference magnitude (about 1.4 for unrelated phase, 0 when identical).
+    Anchors the mid-band PHASE to the pretrained decoder, which the mel loss cannot constrain, and leaves magnitude
+    and everything outside the band to the mel loss and the GAN."""
+    import torch
+    total = 0.0
+    for n_fft in (512, 1024, 2048):
+        win = torch.hann_window(n_fft, device=y.device)
+        a = torch.stft(y.squeeze(1), n_fft, n_fft // 4, window=win, return_complex=True)
+        b = torch.stft(ref.squeeze(1), n_fft, n_fft // 4, window=win, return_complex=True)
+        k0, k1 = _band_bins(n_fft, lo, hi)
+        a, b = a[:, k0:k1], b[:, k0:k1]
+        total = total + (a - b).abs().mean() / (b.abs().mean() + 1e-6)
+    return total / 3
+
+
+def mid_coherence(y, ref, lo: float = MID_LO, hi: float = MID_HI):
+    """Paired phase agreement in [lo, hi) Hz (1 = same phase), magnitude weighted on speech frames; the artifact gate:
+    decoder A scored 0.61-0.77 against the pretrained decoder (holographic), controls that sounded normal scored >= 0.94."""
+    import torch
+    n_fft = 1024
+    win = torch.hann_window(n_fft, device=y.device)
+    a = torch.stft(y.reshape(-1), n_fft, n_fft // 4, window=win, return_complex=True)
+    b = torch.stft(ref.reshape(-1), n_fft, n_fft // 4, window=win, return_complex=True)
+    level = 10 * torch.log10(b.abs().pow(2).sum(0) + 1e-12)
+    keep = level > level.max() - 30
+    k0, k1 = _band_bins(n_fft, lo, hi)
+    a, b = a[k0:k1][:, keep], b[k0:k1][:, keep]
+    return float((a * b.conj()).sum().abs() / torch.sqrt(a.abs().pow(2).sum() * b.abs().pow(2).sum() + 1e-12))
+
+
 def resources(device) -> dict:
     """Host RSS, free disk and GPU memory, logged with training progress (a crash leaves a trail)."""
     import shutil
@@ -244,6 +283,10 @@ def main(argv=None) -> int:
     p.add_argument("--lambda-fm", type=float, default=2.0)
     p.add_argument("--lambda-ltas", type=float, default=0.0, help="Fine long-term-spectrum L1 (kills persistent lines)")
     p.add_argument("--lambda-grid", type=float, default=0.0, help="Hinge on excess 200 Hz line-comb contrast (dB)")
+    p.add_argument("--lambda-anchor", type=float, default=0.0,
+                   help="Complex-STFT L1 to the frozen pretrained decoder in 1.5-4 kHz (anchors the mid-band phase)")
+    p.add_argument("--coherence-floor", type=float, default=0.92,
+                   help="Held-out mid-band phase coherence with the pretrained decoder below which a checkpoint is penalised")
     p.add_argument("--exclude-ids", type=Path, default=None, help="JSON of clip ids (or {'clips': {...}}) to leave out")
     p.add_argument("--disc-warmup", type=int, default=500)
     p.add_argument("--ema", type=float, default=0.999)
@@ -284,6 +327,9 @@ def main(argv=None) -> int:
     opt_g = torch.optim.AdamW(trainable, lr=args.lr_g, betas=(0.8, 0.99), weight_decay=0.0)
     opt_d = torch.optim.AdamW(disc.parameters(), lr=args.lr_d, betas=(0.8, 0.99), weight_decay=0.0)
     mel_loss = MelLoss(device)
+    ref_mimi = copy.deepcopy(mimi).eval()                           # pretrained decoder, frozen: phase reference + gate
+    for q in ref_mimi.parameters():
+        q.requires_grad_(False)
 
     holdout = set(json.loads(args.holdout_ids.read_text()))
     excluded = load_exclusions(args.exclude_ids)
@@ -339,7 +385,7 @@ def main(argv=None) -> int:
     def evaluate(step: int, use_ema: bool) -> dict:
         backup = swap_in_ema() if use_ema else None
         mimi.eval()
-        mels, highs, grids = [], [], []
+        mels, highs, grids, cohs = [], [], [], []
         try:
             with torch.no_grad():
                 for r in eval_rows:
@@ -350,14 +396,16 @@ def main(argv=None) -> int:
                     highs.append(high_band_db(y[0, 0], x[0, 0], device))
                     both = grid_contrast(ltas_db(torch.cat([y[:, 0], x[:, 0]]), device))
                     grids.append(float(both[0] - both[1]))
+                    cohs.append(mid_coherence(y[0, 0], decode(ref_mimi, ref_mimi.encode_to_latent(x))[0, 0, : x.shape[-1]]))
         finally:
             mimi.train()
             if backup is not None:
                 restore(backup)
-        mel, grid = sum(mels) / len(mels), sum(grids) / len(grids)
+        mel, grid, coh = sum(mels) / len(mels), sum(grids) / len(grids), sum(cohs) / len(cohs)
         return {"step": step, "weights": "ema" if use_ema else "raw", "heldout_mel_l1": mel,
                 "heldout_high_band_db": sum(highs) / len(highs), "heldout_grid200_excess_db": grid,
-                "score": mel + 0.02 * max(0.0, grid), "heldout_lines": len(mels)}
+                "heldout_mid_coherence": coh,
+                "score": mel + 0.02 * max(0.0, grid) + 2.0 * max(0.0, args.coherence_floor - coh), "heldout_lines": len(mels)}
 
     def export(tag: str, use_ema: bool, metrics: dict):
         backup = swap_in_ema() if use_ema else None
@@ -403,6 +451,12 @@ def main(argv=None) -> int:
                     count += 1
             loss_fm = loss_fm / count
             loss_g = args.lambda_mel * loss_mel + args.lambda_adv * loss_adv + args.lambda_fm * loss_fm
+            if args.lambda_anchor > 0:
+                with torch.no_grad():
+                    y_ref = decode(ref_mimi, lat)[..., : x.shape[-1]]
+                loss_anchor = anchor_loss(y, y_ref)
+                loss_g = loss_g + args.lambda_anchor * loss_anchor
+                record.update(loss_anchor=float(loss_anchor))
             if args.lambda_ltas or args.lambda_grid:
                 loss_ltas, loss_grid = ltas_losses(y, x, device)
                 loss_g = loss_g + args.lambda_ltas * loss_ltas + args.lambda_grid * loss_grid

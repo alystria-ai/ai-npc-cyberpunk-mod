@@ -65,6 +65,28 @@ class MimiDecoderPolicyTests(unittest.TestCase):
         self.assertGreater(float(excess), 4.0)
         self.assertGreater(float(l1), 0.0)
 
+    def test_anchor_loss_and_mid_coherence_see_only_the_mid_band_phase(self):
+        import torch
+        torch.manual_seed(0)
+        n = 48000
+        ref = torch.randn(1, 1, n) * 0.1
+        self.assertAlmostEqual(float(mimi_decoder.anchor_loss(ref, ref)), 0.0, places=6)
+        self.assertAlmostEqual(mimi_decoder.mid_coherence(ref, ref), 1.0, places=4)
+        # Same magnitudes, phase scrambled only inside 1.5-4 kHz.
+        spec = torch.stft(ref[0, 0], 1024, 256, window=torch.hann_window(1024), return_complex=True)
+        k0, k1 = int(1500 / 23.4375), int(4000 / 23.4375)
+        scrambled = spec.clone()
+        scrambled[k0:k1] = scrambled[k0:k1].abs() * torch.polar(torch.ones_like(scrambled[k0:k1].abs()), torch.rand_like(scrambled[k0:k1].abs()) * 6.28)
+        y = torch.istft(scrambled, 1024, 256, window=torch.hann_window(1024), length=n)[None, None]
+        self.assertGreater(float(mimi_decoder.anchor_loss(y, ref)), 0.5)
+        self.assertLess(mimi_decoder.mid_coherence(y, ref), 0.5)
+        # A change outside the band is invisible to both.
+        out_band = spec.clone()
+        out_band[k1 + 20:] = out_band[k1 + 20:] * complex(0.4161468, 0.9092974)
+        z = torch.istft(out_band, 1024, 256, window=torch.hann_window(1024), length=n)[None, None]
+        self.assertLess(float(mimi_decoder.anchor_loss(z, ref)), 0.15)
+        self.assertGreater(mimi_decoder.mid_coherence(z, ref), 0.9)
+
     def test_discriminator_scores_every_scale(self):
         import torch
         disc = mimi_decoder.build_discriminator()
