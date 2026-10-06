@@ -22,6 +22,7 @@ M.profiles = {
     rogue = {rate = .85}, misty = {rate = .8},
 }
 local gaps = {{1.5, 4.0}, {1.2, 3.0}, {.8, 2.0}} -- seconds between clips, by intensity 1..3
+M.minimumSpeech = 5 -- seconds of reply audio before talk gestures are used at all
 local HISTORY, COOLDOWN = 4, 30
 
 function M.allowed(name)
@@ -125,6 +126,8 @@ function M.next(s, input)
     if now < s.nextAt then return nil end
     local item
     if input.mode == 'speaking' then
+        -- User decision: talk gestures only for fairly long replies.
+        if input.total and input.total < M.minimumSpeech then return nil end
         if input.remaining and input.remaining < 1.2 then return nil end
         item = speaking(s, input)
     elseif input.mode == 'listening' then

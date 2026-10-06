@@ -85,7 +85,8 @@ The controller calls `next(state, input)` every tick with the clock, mode
 family and scale (from `facial-playback.lua`), remaining speech seconds and
 the generated catalog; it returns a clip to start now or nil.
 
-- **Speaking:** first clip 0.3–0.8 s after speech starts; then clip duration
+- **Speaking:** only for replies of at least 5 s of audio (user decision; short
+  replies and idle never use talk clips). First clip 0.3–0.8 s after speech starts; then clip duration
   plus a gap of 1.5–4 s (scale 1), 1.2–3 s (2) or 0.8–2 s (3), divided by the
   character's rate (Takemura .7, Viktor .85, Johnny 1.2, Panam/Kerry 1.15 …).
   60 % of picks use the emotion's categories (joy → happy/emphatic, sadness →

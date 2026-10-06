@@ -103,6 +103,15 @@ test('a clip must fit the remaining speech; nothing starts in the last second', 
   for t=0,3,.1 do assert(speak(s2,t,{remaining=1})==nil) end
 `));
 
+test('short replies never gesture; long replies do', () => run(`
+  local s=m.new(lcg)
+  for t=0,4,.1 do assert(speak(s,t,{total=4,remaining=4-t})==nil,'short reply gestured') end
+  local s2=m.new(lcg)
+  local n=0
+  for t=0,8,.1 do if speak(s2,t,{total=8,remaining=8-t}) then n=n+1 end end
+  assert(n>=1,'long reply should gesture')
+`));
+
 test('rig and character availability: Takemura clips only for Takemura on man_base', () => run(`
   for i=1,10 do
     for _,p in ipairs(run(m.new(lcg),60,{rig='man_base',character='johnny'})) do assert(not p.name:find('takemura'),p.name) end
