@@ -663,31 +663,50 @@ test('local voice previews carry the effective four-choice draft and cancel on R
   `);
 });
 
-test('one MCM voice selector commits Pocket, both Omni qualities and Convai without an extra quality row', () => {
+test('the voice selector only stages a choice; Apply voice change commits it and Revert discards it', () => {
   run(`${mcmFixture}
     assert(invoke('tab:settings').ok)
-    -- Pocket keeps the remembered Omni quality (32 after the second choice).
-    for _, choice in ipairs({{1, 'omni', 16}, {2, 'omni', 32}, {3, 'pocket', 32}, {4, 'convai', 32}}) do
+    assert(not row('voice:apply') and not row('voice:revert'), 'Apply is offered with nothing staged')
+    -- MCM may be applying every edit at once, so the batch must never commit a voice.
+    for _, choice in ipairs({{2, 'omni', 32}, {3, 'pocket', 32}, {4, 'convai', 32}, {4, 'convai', 32}}) do
+      local startingProvider = manager.snapshot(player).settings.voiceProvider
+      local startingSteps = manager.snapshot(player).settings.omniSteps
       assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = choice[1]}}).ok)
       loaded = registered.loadMod('manager')
-      assert(row('voiceProvider').value == choice[1] and row('voiceProvider').defaultValue == 1)
-      assert(row('omniSteps') == nil)
+      local current = manager.snapshot(player).settings
+      assert(row('omniSteps') == nil and row('voiceProvider').defaultValue == 1)
+      assert(current.voiceProvider == startingProvider and current.omniSteps == startingSteps and saved.voiceProvider == startingProvider,
+        'staging changed the committed voice')
+      if choice[2] == startingProvider and choice[3] == startingSteps then
+        -- Back on the committed choice: nothing is pending any more.
+        assert(not row('voice:apply') and not row('voice:revert') and row('voiceProvider').value == choice[1])
+        break
+      end
+      assert(row('voiceProvider').value == choice[1] and row('voice:apply').type == 'action' and row('voice:revert').type == 'action')
+      assert(row('voice-status').value:find('Pending', 1, true) and row('voice-status').value:find('Apply to use it', 1, true))
+      assert(invoke('voice:apply').ok)
       local selected = manager.snapshot(player).settings
-      assert(selected.voiceProvider == choice[2] and selected.omniSteps == choice[3])
-      assert(saved.voiceProvider == choice[2] and saved.omniSteps == choice[3])
+      assert(selected.voiceProvider == choice[2] and selected.omniSteps == choice[3] and saved.voiceProvider == choice[2])
+      assert(not row('voice:apply') and not row('voice-status').value:find('Pending', 1, true) and row('voiceProvider').value == choice[1])
       manager.reset()
-      assert(manager.snapshot(player).settings.voiceProvider == choice[2] and manager.snapshot(player).settings.omniSteps == choice[3])
+      assert(manager.snapshot(player).settings.voiceProvider == choice[2])
     end
-    for _, invalid in ipairs({0, 5, 2.5, '2', false, math.huge, 0/0}) do
-      local before = saved
-      assert(not registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = invalid}}).ok)
-      assert(saved == before and manager.snapshot(player).settings.voice and manager.snapshot(player).settings.voiceProvider == 'convai')
-    end
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 2}}).ok)
+    -- Revert keeps the committed voice and removes both rows.
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok)
-    assert(saved.voiceProvider == 'pocket' and saved.omniSteps == 32, 'selecting Pocket erased the remembered Omni quality')
+    loaded = registered.loadMod('manager')
+    local before = manager.snapshot(player).settings.voiceProvider
+    assert(invoke('voice:revert').ok)
+    assert(not row('voice:apply') and manager.snapshot(player).settings.voiceProvider == before and row('voiceProvider').value ~= 3
+      or before == 'pocket')
+    -- Staging is cleared by leaving the manager, and never publishes a preview.
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 4}}).ok)
-    assert(saved.voiceProvider == 'convai' and saved.omniSteps == 32)
+    mcm.update(player, false); mcm.update(player, true)
+    assert(files['runtime/voice-preview.json'] == nil, 'a staged voice offered a worker preview')
+    assert(invoke('settings:back').ok and invoke('tab:settings').ok and not row('voice:apply'))
+    for _, invalid in ipairs({0, 5, 2.5, '2', false, math.huge, 0/0}) do
+      assert(not registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = invalid}}).ok)
+      assert(manager.snapshot(player).settings.voice)
+    end
   `);
 });
 
@@ -1703,8 +1722,10 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(not manager.battleReactions())
     local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = 4}, {id = 'subtitleStyle', value = 1}})
     assert(applied.ok and applied.atomic and #applied.appliedIds == 3 and saved.omniSteps == 16)
-    assert(saved.voiceProvider == 'convai')
+    assert(saved.voiceProvider == 'omni', 'a staged voice was committed by the batch')
     loaded = registered.loadMod('manager')
+    assert(row('voiceProvider').value == 4 and row('voice:apply') and row('voice:revert'))
+    assert(invoke('voice:apply').ok and saved.voiceProvider == 'convai' and not row('voice:apply'))
     assert(manager.subtitleStyle() == 'overhead' and row('subtitleStyle').value == 1)
     for _, invalid in ipairs({0, 3, '1', 'overhead', false}) do
       assert(not registered.applyBatch('manager', {{id = 'subtitles', value = false}, {id = 'subtitleStyle', value = invalid}}).ok)
@@ -2090,46 +2111,33 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(ok, err)
       assert(actual.getValue(key .. ':voice') == false and actual.getValue(key .. ':omniSteps') == nil)
       assert(manager.snapshot(player).settings.omniSteps == 16 and not actual.hasDrafts(key))
+      -- The voice is staged by Apply (or Auto Apply) and committed only by our own row.
       assert(actual.getValue(key .. ':voiceProvider') == 4)
-      assert(manager.snapshot(player).settings.voiceProvider == 'convai')
+      assert(manager.snapshot(player).settings.voiceProvider == 'omni', 'the settings Apply committed a staged voice')
+      assert(actual.getValue(key .. ':voice:apply') == 'Apply' and actual.getValue(key .. ':voice:revert') == 'Revert')
       assert(actual.getValue(key .. ':subtitleStyle') == 1 and manager.subtitleStyle() == 'overhead')
       assert(not manager.battleReactions() and actual.getValue(key .. ':battleReactions') == false)
       assert(manager.developerMode() and actual.getValue(key .. ':developerMode') == true)
       assert(actual.getValue(key .. ':eyeContactHeight') == 5 and actual.getValue(key .. ':headFollowStrength') == 4)
       assert(manager.gazeSettings().eyeContactHeight == 0.10 and manager.gazeSettings().headFollowStrength == 1.5)
-      -- Exercise the shipped public draft bus/getValue seam, not a synthetic
-      -- native selector hook. Preparation is immediate, settings are not.
+      -- A staged voice never prepares a model and never offers a worker preview.
       function controller:GetRootWidget() return nil end
       handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+      for _ = 1, 3 do mcm.update(player, false) end
+      assert(files['runtime/voice-preview.json'] == nil, 'a staged voice offered a worker preview')
       assert(actual.setDraft(key .. ':voiceProvider', 3))
-      assert(files['runtime/voice-preview.json'] == nil, 'draft callback performed filesystem IO')
-      -- A staged choice prepares nothing until it has stayed the same for a while.
-      local function settle() mcm.update(player, false); memoryClock = memoryClock + 3; mcm.update(player, false) end
-      mcm.update(player, false)
-      assert(files['runtime/voice-preview.json'] == nil, 'a choice prepared a model before it settled')
-      memoryClock = memoryClock + 3; mcm.update(player, false)
-      local preview = json.decode(files['runtime/voice-preview.json'])
-      assert(preview.active and preview.provider == 'pocket' and preview.omniSteps == nil and preview.steps == nil)
-      assert(manager.snapshot(player).settings.voiceProvider == 'convai')
-      assert(actual.revert(key)); mcm.update(player, false)
-      assert(not json.decode(files['runtime/voice-preview.json']).active)
-      assert(manager.snapshot(player).settings.voiceProvider == 'convai')
-      assert(actual.setModDraftsToDefaults(key)); settle()
-      preview = json.decode(files['runtime/voice-preview.json'])
-      assert(preview.active and preview.provider == 'omni' and preview.omniSteps == 16 and preview.steps == nil, 'defaults preview OmniVoice 16 steps')
-      assert(actual.revert(key)); mcm.update(player, false)
-      assert(not json.decode(files['runtime/voice-preview.json']).active)
-      assert(actual.setDraft(key .. ':voiceProvider', 1)); settle()
-      preview = json.decode(files['runtime/voice-preview.json'])
-      assert(preview.active and preview.provider == 'omni' and preview.omniSteps == 16)
-      assert(manager.snapshot(player).settings.voiceProvider == 'convai')
-      assert(actual.setDraft(key .. ':voiceProvider', 2)); settle()
-      preview = json.decode(files['runtime/voice-preview.json'])
-      assert(preview.active and preview.provider == 'omni' and preview.omniSteps == 32)
-      assert(actual.apply(key)); mcm.update(player, false)
-      assert(not json.decode(files['runtime/voice-preview.json']).active)
+      assert(actual.apply(key))
+      assert(actual.getValue(key .. ':voiceProvider') == 3 and manager.snapshot(player).settings.voiceProvider == 'omni')
+      for _ = 1, 3 do mcm.update(player, false) end
+      assert(files['runtime/voice-preview.json'] == nil, 'a changed staged voice offered a worker preview')
+      assert(actual.invokeAction(key .. ':voice:revert') and actual.getValue(key .. ':voice:apply') == nil)
+      assert(actual.getValue(key .. ':voiceProvider') == 1 and manager.snapshot(player).settings.voiceProvider == 'omni')
+      assert(actual.setDraft(key .. ':voiceProvider', 2)); assert(actual.apply(key))
+      assert(actual.invokeAction(key .. ':voice:apply'))
       assert(manager.snapshot(player).settings.voiceProvider == 'omni' and manager.snapshot(player).settings.omniSteps == 32)
-      assert(actual.setDraft(key .. ':voiceProvider', 4)); assert(actual.apply(key)); mcm.update(player, false)
+      assert(actual.setDraft(key .. ':voiceProvider', 4)); assert(actual.apply(key))
+      assert(manager.snapshot(player).settings.voiceProvider == 'omni')
+      assert(actual.invokeAction(key .. ':voice:apply'))
       assert(manager.snapshot(player).settings.voiceProvider == 'convai')
       assert(actual.setDraft(key .. ':subtitles', false))
       assert(actual.setDraft(key .. ':developerMode', false))

@@ -16,9 +16,13 @@ local preparationPopup
 local presentation = {active = false, rows = {}}
 local voiceSelectors = {}
 local localeRevision = -1
--- A voice choice only stages a draft. Its model is prepared once the choice has
--- stayed the same for this long, so cycling through the list starts nothing.
-local voicePreview = dofile('voice-preview.lua').new({settleMs = 2000})
+-- The voice choice is staged here, in Lua, and committed only by this page's own
+-- "Apply voice change" row. It cannot rely on MCM's Apply bar: the player's MCM
+-- may be set to Auto Apply, which commits every edit at once. Nothing reaches the
+-- conversation service (no model is prepared) until that row is chosen.
+local stagedVoice
+local VOICE_CHOICES = {{'omni', 16}, {'omni', 32}, {'pocket'}, {'convai'}}
+local voicePreview = dofile('voice-preview.lua').new()
 -- Help page: log locations and the shareable support report. Optional: the
 -- manager works without it, and a load failure only hides the Help entry.
 local support, supportSignature
@@ -219,6 +223,7 @@ end
 
 local function navigate(nextView, context)
     view = nextView
+    if nextView == 'home' then stagedVoice = nil end
     clearSearch(context)
     return true
 end
@@ -281,12 +286,10 @@ end
 -- The status line, plus the staged choice that Apply has not committed yet.
 local function voiceStatusText(snapshot)
     local text = voiceServiceLabel(snapshot.localVoice)
-    local staged = presentation.active and view == 'settings' and voicePreview.staged()
-    local provider, steps = nil, nil
-    if staged then provider, steps = staged:match('^(%a+):(%d*)$') end
-    if provider then
+    local choice = stagedVoice and VOICE_CHOICES[stagedVoice]
+    if choice then
         text = ui.t('{status} · Pending: {voice}. Apply to use it.',
-            {status = text, voice = manager.voiceLabel(provider, tonumber(steps))})
+            {status = text, voice = manager.voiceLabel(choice[1], choice[2])})
     end
     return text
 end
@@ -671,17 +674,39 @@ local function schema()
         })
         local voiceStatus = voiceStatusText(snapshot)
         -- The list, best first: OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS, Convai cloud voice.
-        local voiceIndex = snapshot.settings.voiceProvider == 'convai' and 4
+        local savedVoice = snapshot.settings.voiceProvider == 'convai' and 4
             or (snapshot.settings.voiceProvider == 'pocket' and 3
                 or (snapshot.settings.omniSteps == 32 and 2 or 1))
-        categories[#categories + 1] = category('voices', 'Voices', {
+        if stagedVoice == savedVoice then stagedVoice = nil end
+        local voiceIndex = stagedVoice or savedVoice
+        local voiceRows = {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
             setting('voiceProvider', 'Companion voices', 'select', voiceIndex, 1,
-                'OmniVoice uses the GPU and sounds closest to the characters. 16 steps sounds the same in tests as 32 steps at half the GPU time, so it is the default. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. Choosing a voice only stages it: nothing changes until you choose Apply, and Revert discards it. A staged local voice is prepared once you stop changing the choice for a couple of seconds.',
+                'OmniVoice uses the GPU and sounds closest to the characters. 16 steps sounds the same in tests as 32 steps at half the GPU time, so it is the default. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. Choosing a voice only stages it: nothing changes, and no model is prepared, until you choose Apply voice change; Revert voice change discards it.',
                 {'OmniVoice 16 steps', 'OmniVoice 32 steps', 'Pocket TTS', 'Convai cloud voice'}),
             readonly('voice-status', 'Voice service', voiceStatus,
-                'A staged local voice is prepared once the choice stops changing, and stays warm after you apply it. Revert, or leaving without applying, discards it and releases the model; no game restart is needed.'),
-        }, 'Save changed settings to keep your choices, or discard changes to restore the saved settings.')
+                'Nothing is prepared or changed until you choose Apply voice change. Revert voice change discards the choice; no game restart is needed.'),
+        }
+        if stagedVoice then
+            local choice = VOICE_CHOICES[stagedVoice]
+            local label = manager.voiceLabel(choice[1], choice[2])
+            voiceRows[#voiceRows + 1] = action('voice:apply', 'Apply voice change', 'Apply',
+                ui.t('Switch companions to {voice}. It takes effect when no reply is being spoken.', {voice = label}),
+                function()
+                    local target = stagedVoice
+                    if not target then return false, ui.t('There is no voice change to apply.') end
+                    local pick = VOICE_CHOICES[target]
+                    local ok, err = manager.applySettings(player(), {voiceProvider = pick[1], omniSteps = pick[2]})
+                    if not ok then return false, ui.t(err) end
+                    stagedVoice = nil
+                    return true, ui.t('Voice set to {voice}.', {voice = label})
+                end)
+            voiceRows[#voiceRows + 1] = action('voice:revert', 'Revert voice change', 'Revert',
+                'Keep the current voice and discard the staged choice.',
+                function() stagedVoice = nil; return true, ui.t('Voice change discarded.') end)
+        end
+        categories[#categories + 1] = category('voices', 'Voices', voiceRows,
+            'Choosing a voice stages it. Choose Apply voice change to use it.')
         categories[#categories + 1] = category('subtitles', 'Subtitles', {
             setting('subtitles', 'Subtitles', 'bool', snapshot.settings.subtitles, true, 'Show companion replies using the selected subtitle display.'),
             setting('subtitleStyle', 'Subtitle display', 'select', snapshot.settings.subtitleStyle == 'overhead' and 1 or 2, 2,
@@ -777,8 +802,9 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 and change.value ~= 4 then
                         return {ok = false, error = ui.t('Choose OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS or Convai cloud voice.')}
                     end
-                    values.voiceProvider = change.value == 3 and 'pocket' or (change.value == 4 and 'convai' or 'omni')
-                    if change.value == 1 or change.value == 2 then values.omniSteps = change.value == 2 and 32 or 16 end
+                    -- Staged, never committed here: MCM may be applying every edit
+                    -- as it is made. The Apply voice change row commits it.
+                    stagedVoice = change.value
                 elseif key == 'eyeContactHeight' or key == 'headFollowStrength' then
                     local heights,strengths=manager.gazeChoices()
                     local choices=key=='eyeContactHeight' and heights or strengths
@@ -962,8 +988,8 @@ function M.update(currentPlayer, worldReady)
     if now >= pollAt then pollAt = now + 1; M.install() end
     -- Read MCM's supported effective draft values from top-level update. The
     -- drafts.changed listener only marks this work pending in its callback.
-    voicePreview.update(currentOwner ~= nil and view == 'settings' and presentation.active and active(),
-        presentation.controllerKey, function() return manager.snapshot(currentPlayer).settings end)
+    -- A staged voice never prepares a model, so no preview lease is ever offered.
+    voicePreview.update(false, presentation.controllerKey, function() return manager.snapshot(currentPlayer).settings end)
     -- This also restores a shared description on foreign hover and keeps only
     -- our translated sidebar item readable when another mod is selected.
     fontPresentation.update()
@@ -987,7 +1013,7 @@ function M.update(currentPlayer, worldReady)
         local snapshot = manager.snapshot(currentPlayer)
         local statusOk, statusError = pcall(updateVoiceStatus, snapshot)
         if not statusOk then lastError = 'Voice service presentation: ' .. tostring(statusError) end
-        local signature = {queue.message(), tostring(queue.count()), snapshot.localVoice.state or '',
+        local signature = {queue.message(), tostring(queue.count()), tostring(stagedVoice), snapshot.localVoice.state or '',
             snapshot.localVoice.provider or '', tostring(snapshot.localVoice.pending),
             tostring(snapshot.localVoice.previewActive), tostring(snapshot.localVoice.preparationOnly)}
         local trip = queue.chauffeur()
@@ -1047,6 +1073,7 @@ function M.resetSession()
     preparationTarget, preparationStatus, preparationActionFeedback, preparationAt = nil, nil, false, 0
     preparationPopup = nil
     owner, lastSignature, refreshQueued = nil, '', true
+    stagedVoice = nil
     presentation = {active = false, rows = {}}
     fontPresentation.reset()
     voicePreview.reset()
@@ -1061,6 +1088,7 @@ function M.shutdown(worldReady)
     preparationTarget, preparationStatus, preparationActionFeedback, preparationAt = nil, nil, false, 0
     preparationPopup = nil
     entry.reset()
+    stagedVoice = nil
     voicePreview.shutdown()
     if api then pcall(api.providers.unregisterProvider, PROVIDER, provider.registrationKey) end
     api = nil

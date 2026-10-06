@@ -35,13 +35,17 @@ no longer open it.
   names the voice in use (for example "Ready · Using Pocket TTS, OmniVoice 16
   steps unavailable") and one gameplay notice says so once.
   MCM owns setting drafts, saving, discarding, defaults and draft guards.
-  **Voice choice is staged, not live.** Choosing a voice only stages an MCM draft; the
-  voice status row adds "Pending: <voice>. Apply to use it." while the staged choice
-  differs from the saved one, and MCM's Apply commits it while Revert discards it. A staged
-  local voice prepares its model only after the choice has stayed unchanged for about two
-  seconds (`mod/voice-preview.lua`, `settleMs`), and the service (`bridge/voice-selection.mjs`,
-  `previewSettleMs`) waits 1.5 s more before starting or retiring a worker, so cycling quickly
-  through the list never loads or unloads a model per step.
+  **Voice choice is staged by this page, not by MCM.** The player's MCM can be set to Auto
+  Apply (the live install was: the banner read "Applied 1 change(s)" and there was no Apply
+  bar), which commits every edit at once, so MCM drafts cannot hold a voice change back.
+  `applyBatch` therefore only records the selector value in Lua (`stagedVoice`); it never
+  saves it. While the staged choice differs from the saved one, the Voices section shows
+  **Apply voice change** and **Revert voice change** rows and the voice status adds
+  "Pending: <voice>. Apply to use it." Apply saves the choice through `manager.applySettings`;
+  Revert, going back to the manager home, or a session reset discards it. No preview lease is
+  written, so nothing reaches the conversation service and no worker starts or retires
+  until Apply. (`bridge/voice-preview.mjs`, `mod/voice-preview.lua` and the bridge's
+  `previewSettleMs` remain but are unused by this page.)
 
 Every inner page starts with one **Back** action. Characters, Current party,
 Model browser and Settings return to the manager home; Relationships, Memory
@@ -68,7 +72,9 @@ returns to Settings, like Relationships and Memory. The page has three groups:
 - **If something goes wrong**: what to do, and whether the conversation service is Running,
   Starting, Not running or Unknown.
 - **Report for the developer**: **Generate report**, the **Last report** row (file name as the
-  value; the description and the banner show a shortened path, `…untimeeports\` then the
+  value; the description and the banner show a shortened path, `…
+untime
+eports\` then the
   file name on its own line, so a long path never overflows) and **Copy report path**, a
   button that is always offered. It writes `runtime/clipboard-request.json`; the conversation
   service puts the full path on the Windows clipboard with `clip.exe` (only the path of a
