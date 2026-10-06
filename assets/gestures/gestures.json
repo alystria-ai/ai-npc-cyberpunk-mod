@@ -1,35 +1,120 @@
 {
   "version": 2,
-  "note": "Source for scripts/Build-GestureAssets.mjs (docs/COMPANION_GESTURES.md). Each talk family becomes one workspot (idle loop + one sequence per clip) and one component on the device entity. Clips are discovered from the family animsets by prefix, categorised by name, and kept only when in place (no motion extraction) and not banned.",
+  "note": "Source for scripts/Build-GestureAssets.mjs (docs/COMPANION_GESTURES.md). Each talk family becomes one workspot (idle loop + one sequence per clip) and one component on the device entity. Clips are discovered from the family animsets by prefix, categorised by name, and kept only when in place (no motion extraction) and not banned. Idle workspots marked experimental in 'experimentalIdles' spawn props whose cleanup on exit is unverified; the controller never uses them, the probe can.",
   "device": "cyberpunk_convai\\gestures\\convai_gesture_device.ent",
   "template": "base\\workspots\\common\\ground\\big__stand_ground__stand_around__01.workspot",
-  "banned": ["step", "turn", "threaten", "fuck_you", "clap", "thumb_up", "middle_finger", "phone", "cigarette", "burger", "drop_shard", "wait_long", "dance", "cheer", "crowd_wave", "bump", "__to__", "to__stand", "spit", "elevator", "mirror", "music", "inhaler", "tablet", "listen_music", "press_", "check_", "buy_", "johnny_takes", "av_reaction", "come_closer", "go_away", "impatient", "tap__"],
+  "banned": [
+    "step",
+    "turn",
+    "threaten",
+    "fuck_you",
+    "clap",
+    "thumb_up",
+    "middle_finger",
+    "phone",
+    "cigarette",
+    "burger",
+    "drop_shard",
+    "wait_long",
+    "dance",
+    "cheer",
+    "crowd_wave",
+    "bump",
+    "__to__",
+    "to__stand",
+    "spit",
+    "elevator",
+    "mirror",
+    "music",
+    "inhaler",
+    "tablet",
+    "listen_music",
+    "press_",
+    "check_",
+    "buy_",
+    "johnny_takes",
+    "av_reaction",
+    "come_closer",
+    "go_away",
+    "impatient",
+    "tap__"
+  ],
   "categories": [
-    ["angry", "(talk__angry|no__angry|what__angry|whatever__angry|stop__angry|calm_down__angry|this_or_that__angry|me__angry|cant_hear_you__angry|what_is_this__angry)"],
-    ["happy", "__happy"],
-    ["sad", "(__sad|sigh)"],
-    ["disgust", "__disgusted"],
-    ["fear", "__afraid"],
-    ["surprise", "__surprised"],
-    ["emphatic", "(talk__confident|demonstrate_positive|talk_to_hand)"],
-    ["nod", "(yes__head|yes__0|yes__neutral|nod__)"],
-    ["no", "(no__head|no__0)"],
-    ["shrug", "shrug"],
-    ["question", "(what__neutral|what_is_this|cant_hear_you__neutral)"],
-    ["neutral", "(talk|gesture|flick|describe|point|explain|conversation)"],
-    ["idlebreak", "(shuffle|look_around|weight_shift|scratch|stretch|breathe|sigh|crack|wiggle|rub)"]
+    [
+      "angry",
+      "(talk__angry|no__angry|what__angry|whatever__angry|stop__angry|calm_down__angry|this_or_that__angry|me__angry|cant_hear_you__angry|what_is_this__angry)"
+    ],
+    [
+      "happy",
+      "__happy"
+    ],
+    [
+      "sad",
+      "(__sad|sigh)"
+    ],
+    [
+      "disgust",
+      "__disgusted"
+    ],
+    [
+      "fear",
+      "__afraid"
+    ],
+    [
+      "surprise",
+      "__surprised"
+    ],
+    [
+      "emphatic",
+      "(talk__confident|demonstrate_positive|talk_to_hand)"
+    ],
+    [
+      "nod",
+      "(yes__head|yes__0|yes__neutral|nod__)"
+    ],
+    [
+      "no",
+      "(no__head|no__0)"
+    ],
+    [
+      "shrug",
+      "shrug"
+    ],
+    [
+      "question",
+      "(what__neutral|what_is_this|cant_hear_you__neutral)"
+    ],
+    [
+      "neutral",
+      "(talk|gesture|flick|describe|point|explain|conversation)"
+    ],
+    [
+      "idlebreak",
+      "(shuffle|look_around|weight_shift|scratch|stretch|breathe|sigh|crack|wiggle|rub)"
+    ]
   ],
   "rigs": {
-    "woman_base": {"rig": "base\\characters\\base_entities\\woman_base\\woman_base.rig", "bumps": "base\\animations\\npc\\generic_characters\\female_average\\crowd_reactions\\wa_ws_bumps.anims"},
-    "man_base": {"rig": "base\\characters\\base_entities\\man_base\\man_base.rig", "bumps": "base\\animations\\npc\\generic_characters\\male_average\\crowd_reactions\\ma_ws_bumps.anims"},
-    "man_big": {"rig": "base\\characters\\base_entities\\man_big\\man_big.rig", "bumps": "base\\animations\\npc\\generic_characters\\male_big\\crowd_reactions\\mb_ws_bumps.anims"}
+    "woman_base": {
+      "rig": "base\\characters\\base_entities\\woman_base\\woman_base.rig",
+      "bumps": "base\\animations\\npc\\generic_characters\\female_average\\crowd_reactions\\wa_ws_bumps.anims"
+    },
+    "man_base": {
+      "rig": "base\\characters\\base_entities\\man_base\\man_base.rig",
+      "bumps": "base\\animations\\npc\\generic_characters\\male_average\\crowd_reactions\\ma_ws_bumps.anims"
+    },
+    "man_big": {
+      "rig": "base\\characters\\base_entities\\man_big\\man_big.rig",
+      "bumps": "base\\animations\\npc\\generic_characters\\male_big\\crowd_reactions\\mb_ws_bumps.anims"
+    }
   },
   "families": {
     "on_sides": {
       "component": "convai_talk_on_sides",
       "workspot": "cyberpunk_convai\\gestures\\convai_talk_on_sides.workspot",
       "idle": "stand__2h_on_sides__01",
-      "prefixes": ["stand__2h_on_sides__01__"],
+      "prefixes": [
+        "stand__2h_on_sides__01__"
+      ],
       "templateEntries": true,
       "animsets": {
         "woman_base": [
@@ -53,7 +138,11 @@
       "component": "convai_talk_arms_crossed",
       "workspot": "cyberpunk_convai\\gestures\\convai_talk_arms_crossed.workspot",
       "idle": "stand__arms_crossed_front__01",
-      "prefixes": ["stand__arms_crossed_front__01__", "judy__stand_2h_arms_crossed__01__gesture", "johnny__stand__arms_crossed_front__01__"],
+      "prefixes": [
+        "stand__arms_crossed_front__01__",
+        "judy__stand_2h_arms_crossed__01__gesture",
+        "johnny__stand__arms_crossed_front__01__"
+      ],
       "animsets": {
         "woman_base": [
           "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_female_average__stand__arms_crossed_front__01.anims",
@@ -72,43 +161,128 @@
       "component": "convai_talk_on_hips",
       "workspot": "cyberpunk_convai\\gestures\\convai_talk_on_hips.workspot",
       "idle": "stand__2h_on_hip__01",
-      "prefixes": ["stand__2h_on_hip__01__"],
+      "prefixes": [
+        "stand__2h_on_hip__01__"
+      ],
       "animsets": {
-        "woman_base": ["base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_female_average__stand__2h_on_hip__01.anims"],
-        "man_big": ["base\\animations\\npc\\generic_characters\\male_big\\interactive_scene\\generic_male_big__stand__2h_on_hip__01.anims"]
+        "woman_base": [
+          "base\\animations\\npc\\generic_characters\\female_average\\interactive_scene\\generic_female_average__stand__2h_on_hip__01.anims"
+        ],
+        "man_big": [
+          "base\\animations\\npc\\generic_characters\\male_big\\interactive_scene\\generic_male_big__stand__2h_on_hip__01.anims"
+        ]
       }
     },
     "kerry": {
       "component": "convai_talk_kerry",
       "workspot": "cyberpunk_convai\\gestures\\convai_talk_kerry.workspot",
       "idle": "kerry__stand__2h_on_hip__01",
-      "prefixes": ["kerry__stand__2h_on_hip__01__"],
+      "prefixes": [
+        "kerry__stand__2h_on_hip__01__"
+      ],
       "animsets": {
-        "man_base": ["base\\animations\\npc\\main_characters\\kerry\\interactive_scene\\kerry__stand__2h_on_hip__01.anims"]
+        "man_base": [
+          "base\\animations\\npc\\main_characters\\kerry\\interactive_scene\\kerry__stand__2h_on_hip__01.anims"
+        ]
       }
     },
     "takemura": {
       "component": "convai_talk_takemura",
       "workspot": "cyberpunk_convai\\gestures\\convai_talk_takemura.workspot",
       "idle": "takemura__stand__2h_on_sides__01",
-      "prefixes": ["takemura__stand__2h_on_sides__01__"],
+      "prefixes": [
+        "takemura__stand__2h_on_sides__01__"
+      ],
       "animsets": {
-        "man_base": ["base\\animations\\npc\\main_characters\\takemura\\interactive_scene\\takemura__stand__2h_on_sides__01.anims"]
+        "man_base": [
+          "base\\animations\\npc\\main_characters\\takemura\\interactive_scene\\takemura__stand__2h_on_sides__01.anims"
+        ]
+      }
+    },
+    "johnny": {
+      "component": "convai_talk_johnny",
+      "workspot": "cyberpunk_convai\\gestures\\convai_talk_johnny.workspot",
+      "idle": "johnny__stand__lh_pocket__01",
+      "prefixes": [
+        "johnny__stand__lh_pocket__01__"
+      ],
+      "animsets": {
+        "man_base": [
+          "base\\animations\\npc\\main_characters\\johnny\\interactive_scene\\johnny__stand__lh_pocket__01.anims"
+        ]
       }
     }
   },
   "characters": {
-    "Character.Judy": {"key": "judy", "rig": "woman_base", "talk": "arms_crossed", "idle": "judy"},
-    "Character.Panam": {"key": "panam", "rig": "woman_base", "talk": "on_hips", "idle": "panam", "flavour": true},
-    "Character.Rogue": {"key": "rogue", "rig": "woman_base", "talk": "arms_crossed"},
-    "Character.Misty": {"key": "misty", "rig": "woman_base", "talk": "on_sides"},
-    "Character.Silverhand": {"key": "johnny", "rig": "man_base", "talk": "on_sides", "idle": "johnny", "flavour": true},
-    "CyberpunkConvai.JohnnyCompanion": {"key": "johnny", "rig": "man_base", "talk": "on_sides", "idle": "johnny", "flavour": true},
-    "Character.Kerry": {"key": "kerry", "rig": "man_base", "talk": "kerry", "idle": "kerry", "flavour": true},
-    "Character.Victor_Vector": {"key": "viktor", "rig": "man_base", "talk": "on_sides"},
-    "Character.Takemura": {"key": "takemura", "rig": "man_base", "talk": "takemura", "idle": "takemura", "flavour": true},
-    "Character.Jackie": {"key": "jackie", "rig": "man_big", "talk": "on_sides", "idle": "jackie", "flavour": true},
-    "Character.Sobchak": {"key": "river", "rig": "man_big", "talk": "on_sides"}
+    "Character.Judy": {
+      "key": "judy",
+      "rig": "woman_base",
+      "talk": "arms_crossed",
+      "idle": "judy"
+    },
+    "Character.Panam": {
+      "key": "panam",
+      "rig": "woman_base",
+      "talk": "on_hips",
+      "idle": "panam",
+      "flavour": true
+    },
+    "Character.Rogue": {
+      "key": "rogue",
+      "rig": "woman_base",
+      "talk": "arms_crossed"
+    },
+    "Character.Misty": {
+      "key": "misty",
+      "rig": "woman_base",
+      "talk": "on_sides",
+      "idle": "misty"
+    },
+    "Character.Silverhand": {
+      "key": "johnny",
+      "rig": "man_base",
+      "talk": "johnny",
+      "idle": "johnny",
+      "flavour": true
+    },
+    "CyberpunkConvai.JohnnyCompanion": {
+      "key": "johnny",
+      "rig": "man_base",
+      "talk": "johnny",
+      "idle": "johnny",
+      "flavour": true
+    },
+    "Character.Kerry": {
+      "key": "kerry",
+      "rig": "man_base",
+      "talk": "kerry",
+      "idle": "kerry",
+      "flavour": true
+    },
+    "Character.Victor_Vector": {
+      "key": "viktor",
+      "rig": "man_base",
+      "talk": "on_sides"
+    },
+    "Character.Takemura": {
+      "key": "takemura",
+      "rig": "man_base",
+      "talk": "takemura",
+      "idle": "takemura",
+      "flavour": true
+    },
+    "Character.Jackie": {
+      "key": "jackie",
+      "rig": "man_big",
+      "talk": "on_sides",
+      "idle": "jackie",
+      "flavour": true
+    },
+    "Character.Sobchak": {
+      "key": "river",
+      "rig": "man_big",
+      "talk": "on_sides"
+    }
   },
   "idleWorkspots": {
     "judy": "base\\workspots\\main_characters\\judy\\judy__stand_ground__stand_around__02.workspot",
@@ -117,6 +291,11 @@
     "kerry": "base\\workspots\\main_characters\\kerry\\ground\\kerry__stand_ground_stand_around_01.workspot",
     "takemura": "base\\workspots\\main_characters\\takemura\\takemura__stand_ground__stand_around__01.workspot",
     "jackie": "base\\workspots\\main_characters\\jackie\\jackie__stand_ground__stand_around__01.workspot",
-    "generic": "base\\workspots\\common\\ground\\generic__stand_ground__stand_around__01.workspot"
-  }
+    "generic": "base\\workspots\\common\\ground\\generic__stand_ground__stand_around__01.workspot",
+    "johnny_smoke": "base\\workspots\\main_characters\\johnny\\johnny__stand_ground_cigarette__idle__01.workspot",
+    "misty": "base\\workspots\\quest\\main_quests\\part1\\q101\\07b_johnny_triggers_misty\\misty__stand__stand_around__01.workspot"
+  },
+  "experimentalIdles": [
+    "johnny_smoke"
+  ]
 }

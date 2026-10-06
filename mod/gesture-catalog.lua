@@ -6219,6 +6219,193 @@ return {
                 },
             },
         },
+        johnny = {
+            component = "convai_talk_johnny",
+            workspot = "cyberpunk_convai\\gestures\\convai_talk_johnny.workspot",
+            rigs = {
+                "man_base",
+            },
+            idle = {
+                name = "johnny__stand__lh_pocket__01",
+                sequenceId = 100,
+                clipId = 101,
+                perRig = {
+                    man_base = {
+                        duration = 25.467,
+                    },
+                },
+            },
+            clips = {
+                {
+                    name = "johnny__stand__lh_pocket__01__describe_front__01",
+                    category = "neutral",
+                    character = "johnny",
+                    sequenceId = 102,
+                    clipId = 103,
+                    perRig = {
+                        man_base = {
+                            duration = 4.5,
+                        },
+                    },
+                },
+                {
+                    name = "johnny__stand__lh_pocket__01__look_around__01",
+                    category = "idlebreak",
+                    character = "johnny",
+                    sequenceId = 104,
+                    clipId = 105,
+                    perRig = {
+                        man_base = {
+                            duration = 6.533,
+                        },
+                    },
+                },
+                {
+                    name = "johnny__stand__lh_pocket__01__point__01",
+                    category = "neutral",
+                    character = "johnny",
+                    sequenceId = 106,
+                    clipId = 107,
+                    perRig = {
+                        man_base = {
+                            duration = 3.5,
+                        },
+                    },
+                },
+                {
+                    name = "johnny__stand__lh_pocket__01__rub_face__01",
+                    category = "idlebreak",
+                    character = "johnny",
+                    sequenceId = 108,
+                    clipId = 109,
+                    perRig = {
+                        man_base = {
+                            duration = 6.2,
+                        },
+                    },
+                },
+                {
+                    name = "johnny__stand__lh_pocket__01__scratch_head__01",
+                    category = "idlebreak",
+                    character = "johnny",
+                    sequenceId = 110,
+                    clipId = 111,
+                    perRig = {
+                        man_base = {
+                            duration = 4.9,
+                        },
+                    },
+                },
+                {
+                    name = "johnny__stand__lh_pocket__01__shrug__01",
+                    category = "shrug",
+                    character = "johnny",
+                    sequenceId = 112,
+                    clipId = 113,
+                    perRig = {
+                        man_base = {
+                            duration = 2.533,
+                        },
+                    },
+                },
+                {
+                    name = "johnny__stand__lh_pocket__01__shuffle__01",
+                    category = "idlebreak",
+                    character = "johnny",
+                    sequenceId = 114,
+                    clipId = 115,
+                    perRig = {
+                        man_base = {
+                            duration = 4.4,
+                        },
+                    },
+                },
+                {
+                    name = "johnny__stand__lh_pocket__01__shuffle__02",
+                    category = "idlebreak",
+                    character = "johnny",
+                    sequenceId = 116,
+                    clipId = 117,
+                    perRig = {
+                        man_base = {
+                            duration = 4.433,
+                        },
+                    },
+                },
+                {
+                    name = "johnny__stand__lh_pocket__01__shuffle__03",
+                    category = "idlebreak",
+                    character = "johnny",
+                    sequenceId = 118,
+                    clipId = 119,
+                    perRig = {
+                        man_base = {
+                            duration = 5.567,
+                        },
+                    },
+                },
+                {
+                    name = "johnny__stand__lh_pocket__01__stretch_arms__01",
+                    category = "idlebreak",
+                    character = "johnny",
+                    sequenceId = 120,
+                    clipId = 121,
+                    perRig = {
+                        man_base = {
+                            duration = 6.4,
+                        },
+                    },
+                },
+                {
+                    name = "johnny__stand__lh_pocket__01__talk__01",
+                    category = "neutral",
+                    character = "johnny",
+                    sequenceId = 122,
+                    clipId = 123,
+                    perRig = {
+                        man_base = {
+                            duration = 3.9,
+                        },
+                    },
+                },
+                {
+                    name = "johnny__stand__lh_pocket__01__talk__02",
+                    category = "neutral",
+                    character = "johnny",
+                    sequenceId = 124,
+                    clipId = 125,
+                    perRig = {
+                        man_base = {
+                            duration = 2.633,
+                        },
+                    },
+                },
+                {
+                    name = "johnny__stand__lh_pocket__01__talk__03",
+                    category = "neutral",
+                    character = "johnny",
+                    sequenceId = 126,
+                    clipId = 127,
+                    perRig = {
+                        man_base = {
+                            duration = 4.233,
+                        },
+                    },
+                },
+                {
+                    name = "johnny__stand__lh_pocket__01__talk__04",
+                    category = "neutral",
+                    character = "johnny",
+                    sequenceId = 128,
+                    clipId = 129,
+                    perRig = {
+                        man_base = {
+                            duration = 5.433,
+                        },
+                    },
+                },
+            },
+        },
     },
     idleComponents = {
         judy = "convai_idle_judy",
@@ -6228,6 +6415,11 @@ return {
         takemura = "convai_idle_takemura",
         jackie = "convai_idle_jackie",
         generic = "convai_idle_generic",
+        johnny_smoke = "convai_idle_johnny_smoke",
+        misty = "convai_idle_misty",
+    },
+    experimentalIdles = {
+        "johnny_smoke",
     },
     characters = {
         ["Character.Judy"] = {
@@ -6252,18 +6444,19 @@ return {
             key = "misty",
             rig = "woman_base",
             talk = "on_sides",
+            idle = "misty",
         },
         ["Character.Silverhand"] = {
             key = "johnny",
             rig = "man_base",
-            talk = "on_sides",
+            talk = "johnny",
             idle = "johnny",
             flavour = true,
         },
         ["CyberpunkConvai.JohnnyCompanion"] = {
             key = "johnny",
             rig = "man_base",
-            talk = "on_sides",
+            talk = "johnny",
             idle = "johnny",
             flavour = true,
         },

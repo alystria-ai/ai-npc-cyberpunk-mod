@@ -146,7 +146,7 @@ test('the generated catalog works with the policy for every rig and maps signatu
     for _,rig in ipairs(family.rigs) do
       local s=m.new(lcg)
       local n=0
-      local who=(name=='kerry' or name=='takemura') and name or 'judy'
+      local who=(name=='kerry' or name=='takemura' or name=='johnny') and name or 'judy'
       for t=0,60,.1 do
         local item=m.next(s,{now=t,mode='speaking',rig=rig,character=who,family='sadness',scale=2,remaining=30,clips=family.clips})
         if item then n=n+1;assert(item.clip.perRig[rig],'clip not on rig');assert(item.clip.category~='idlebreak') end

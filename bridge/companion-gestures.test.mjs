@@ -169,7 +169,7 @@ test('unknown characters are left alone', () => run(`
   assert(count('play')==0)
 `));
 
-test('Johnny takes his signature idle now and then when settled, never Judy, and leaves it for a conversation', () => run(`
+test('Johnny takes his signature idle now and then when settled, never Judy, and talks from his own set', () => run(`
   step(130)
   assert(count('play')==0,'Judy keeps her vanilla idle (no flavour)')
   entry.record='Character.Silverhand';entry.serial=2;calls={};logs={}
@@ -183,5 +183,5 @@ test('Johnny takes his signature idle now and then when settled, never Judy, and
   speaking={knownEnd=20,at=0};step(.3)
   if lastLog('flavour-begin') and not lastLog('exit') then end
   step(1.5)
-  assert(last('play').component=='convai_talk_on_sides','Johnny talks from hands at sides like his idle: '..tostring(last('play').component))
+  assert(last('play').component=='convai_talk_johnny','Johnny talks from his hand-in-pocket set: '..tostring(last('play').component))
 `));
