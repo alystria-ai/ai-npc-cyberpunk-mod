@@ -74,6 +74,8 @@ After the agents above finish:
 
 - Expressions (live 2026-10-07): the face-test probe showed the write path works (full smile, frown, brows and jaw visible); strengths were far too low (≤0.2, resting 0.06; a smile reads at about 0.35–0.5). Retune in progress (joy about 0.45, resting about 0.15, sadness and anger brows about 0.45). Next round (user approved): a per-phrase multi-emotion timeline with a much richer local text analysis (lexicon, intensifiers, negation, contrast, sarcasm cues, mixed states), Convai's own label as the baseline when present. The user prefers this over a single model-tagged mood.
 
+- Settings Apply (user, 2026-10-07): the whole Companion Manager settings page gets a global staged Apply like the game's own settings (Apply / Reset / Defaults, a changed-value marker), replacing the voice-only Apply; nothing takes effect before Apply. Agent working. The user's MCM has `autoApply: true`; don't change their global MCM config.
+
 ### Not yet tested in game
 - Cars: fast-travel recovery, the "drive for me" chauffeur after today's changes, alternate owned cars, the boarding pause when V doesn't get in, overhead captions while boarding.
 - Movement: the spawn-pocket placement fix (exit sweep) hasn't come up in play.
