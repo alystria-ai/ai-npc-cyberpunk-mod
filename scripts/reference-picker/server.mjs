@@ -380,7 +380,8 @@ export class Picker {
     const path = decodeURIComponent(url.pathname);
     try {
       this.guard(request);
-      if (request.method === 'GET' && path.startsWith('/audio/')) return await this.audio(request, response, path);
+      // Audio routes take the raw pathname: clip ids contain '/', so segments must be decoded after splitting.
+      if (request.method === 'GET' && path.startsWith('/audio/')) return await this.audio(request, response, url.pathname);
       if (path.startsWith('/api/')) return await this.api(request, response, path, url);
       if (request.method === 'GET' && /^\/voice\/[a-z0-9-]+\/?$/.test(path)) return await this.staticFile(response, '/voice.html');       // the character page (reference clips)
       if (request.method === 'GET') return await this.staticFile(response, path);
@@ -458,7 +459,10 @@ export class Picker {
     return this.json(response, await this.card(key, line));
   }
   async audio(request, response, path) {
-    const parts = path.split('/').filter(Boolean).slice(1);
+    // Clip ids contain '/', so they arrive percent-encoded; decode each segment after splitting.
+    const parts = path.split('/').filter(Boolean).slice(1).map(part => {
+      try { return decodeURIComponent(part); } catch { return part; }
+    });
     let file;
     if (parts[0] === 'research') file = this.research.file(parts[1], parts[2], Number(parts[3]));
     else if (parts[0] === 'line' && this.pool.has(parts[1])) file = this.line(parts[1], Number(parts[2])).chosen?.path;
