@@ -77,6 +77,30 @@ the same gate the holster uses. A copy that transport, recovery or a tactic
 takes (so it is not observed) is stopped on the next tick. Dismissal and fast
 travel call `release`; world teardown calls `abandon` (no native calls).
 
+## Selection policy
+
+`mod/gesture-selection.lua` is pure (no native calls; `npm run test:gestures`).
+The controller calls `next(state, input)` every tick with the clock, mode
+(`speaking`, `listening`, `thinking`, `idle`), rig, character key, emotion
+family and scale (from `facial-playback.lua`), remaining speech seconds and
+the generated catalog; it returns a clip to start now or nil.
+
+- **Speaking:** first clip 0.3–0.8 s after speech starts; then clip duration
+  plus a gap of 1.5–4 s (scale 1), 1.2–3 s (2) or 0.8–2 s (3), divided by the
+  character's rate (Takemura .7, Viktor .85, Johnny 1.2, Panam/Kerry 1.15 …).
+  60 % of picks use the emotion's categories (joy → happy/emphatic, sadness →
+  sad, anger → angry, surprise → surprise/question …), the rest calm talk or a
+  shrug. A clip starts only if 70 % of it fits the remaining speech and never
+  in the last 1.2 s.
+- **Listening:** a nod 2–4 s in, then every clip + 5–10 s; nods may repeat.
+- **Thinking / idle:** no clips; idle uses the character's signature idle
+  component (`idleComponent`), else `convai_idle_generic`.
+- **Repetition:** never the previous clip; avoid the last four and anything
+  used in the last 30 s, relaxed only when nothing else fits. Character clips
+  (e.g. Takemura's own talk) weigh 3×.
+- **Never played:** threaten, middle finger, clap, thumbs-up, cheer, dance,
+  and anything with steps or turns.
+
 ## Building
 
 ```powershell
