@@ -17,6 +17,7 @@ Each control keeps everything of the suspect except one thing:
   12 clean-brightened  clean voice with the suspect's long-term spectrum applied (EQ only)
   13 midphase-from-clean  suspect, but the clean phase only in 1.5-4 kHz
   14 clean-with-midphase  clean, but the suspect's phase only in 1.5-4 kHz
+  15 phase-from-clean-0.5-4k  suspect, but the clean phase in 0.5-4 kHz
 """
 from __future__ import annotations
 
@@ -111,6 +112,8 @@ def controls(suspect, clean):
     in_band = band[:, None]
     out["13_midphase-from-clean"] = inv(np.abs(S) * np.exp(1j * np.where(in_band, np.angle(C), np.angle(S))), n)
     out["14_clean-with-midphase"] = inv(np.abs(C) * np.exp(1j * np.where(in_band, np.angle(S), np.angle(C))), n)
+    wide = ((f >= 500) & (f < 4000))[:, None]
+    out["15_phase-from-clean-0.5-4k"] = inv(np.abs(S) * np.exp(1j * np.where(wide, np.angle(C), np.angle(S))), n)
     peak = max(np.abs(v).max() for v in out.values())
     return {k: v * min(1.0, 0.95 / peak) for k, v in out.items()}
 
@@ -135,7 +138,8 @@ def main() -> int:
 
 def phase_coherence(x, ref, lo=1500.0, hi=4000.0):
     """Magnitude-weighted phase agreement (0-1) of two sample-aligned decodes of the same latents in [lo, hi) Hz, on
-    speech frames.  1 = same phase.  Paired metric: the retrain gate is coherence(new decoder, pretrained decoder)."""
+    speech frames.  1 = same phase.  Paired metric: the retrain gate is the worst of the 0.5-1.5 and 1.5-4 kHz values
+    for (new decoder, pretrained decoder)."""
     n = min(len(x), len(ref))
     X, R = spec(x[:n]), spec(ref[:n])
     f = freqs()

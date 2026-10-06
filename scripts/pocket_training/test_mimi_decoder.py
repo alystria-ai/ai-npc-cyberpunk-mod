@@ -78,14 +78,14 @@ class MimiDecoderPolicyTests(unittest.TestCase):
         scrambled = spec.clone()
         scrambled[k0:k1] = scrambled[k0:k1].abs() * torch.polar(torch.ones_like(scrambled[k0:k1].abs()), torch.rand_like(scrambled[k0:k1].abs()) * 6.28)
         y = torch.istft(scrambled, 1024, 256, window=torch.hann_window(1024), length=n)[None, None]
-        self.assertGreater(float(mimi_decoder.anchor_loss(y, ref)), 0.5)
-        self.assertLess(mimi_decoder.mid_coherence(y, ref), 0.5)
+        self.assertGreater(float(mimi_decoder.anchor_loss(y, ref, 1500, 4000)), 0.5)
+        self.assertLess(mimi_decoder.mid_coherence(y, ref, 1500, 4000), 0.5)
         # A change outside the band is invisible to both.
         out_band = spec.clone()
         out_band[k1 + 20:] = out_band[k1 + 20:] * complex(0.4161468, 0.9092974)
         z = torch.istft(out_band, 1024, 256, window=torch.hann_window(1024), length=n)[None, None]
-        self.assertLess(float(mimi_decoder.anchor_loss(z, ref)), 0.15)
-        self.assertGreater(mimi_decoder.mid_coherence(z, ref), 0.9)
+        self.assertLess(float(mimi_decoder.anchor_loss(z, ref, 1500, 4000)), 0.15)
+        self.assertGreater(mimi_decoder.mid_coherence(z, ref, 1500, 4000), 0.9)
 
     def test_discriminator_scores_every_scale(self):
         import torch

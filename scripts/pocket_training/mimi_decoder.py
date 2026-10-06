@@ -200,7 +200,7 @@ def ltas_losses(y, x, device):
     return l1, excess
 
 
-MID_LO, MID_HI = 1500.0, 4000.0       # the band whose phase made decoder A sound "holographic"
+MID_LO, MID_HI = 500.0, 4000.0        # the band whose phase made decoder A sound "holographic" (1.5-4 kHz mostly, 0.5-1.5 kHz too)
 
 
 def _band_bins(n_fft: int, lo: float, hi: float):
@@ -209,7 +209,7 @@ def _band_bins(n_fft: int, lo: float, hi: float):
 
 def anchor_loss(y, ref, lo: float = MID_LO, hi: float = MID_HI):
     """Complex-STFT L1 between the decoder output and the frozen pretrained decoder's output for the same latents,
-    in [lo, hi) Hz only, normalised by the reference magnitude (about 1.4 for unrelated phase, 0 when identical).
+    in [lo, hi) Hz (default 0.5-4 kHz) only, normalised by the reference magnitude (about 1.4 for unrelated phase, 0 when identical).
     Anchors the mid-band PHASE to the pretrained decoder, which the mel loss cannot constrain, and leaves magnitude
     and everything outside the band to the mel loss and the GAN."""
     import torch
@@ -224,9 +224,8 @@ def anchor_loss(y, ref, lo: float = MID_LO, hi: float = MID_HI):
     return total / 3
 
 
-def mid_coherence(y, ref, lo: float = MID_LO, hi: float = MID_HI):
-    """Paired phase agreement in [lo, hi) Hz (1 = same phase), magnitude weighted on speech frames; the artifact gate:
-    decoder A scored 0.61-0.77 against the pretrained decoder (holographic), controls that sounded normal scored >= 0.94."""
+def band_coherence(y, ref, lo: float, hi: float):
+    """Paired phase agreement in [lo, hi) Hz (1 = same phase), magnitude weighted on speech frames."""
     import torch
     n_fft = 1024
     win = torch.hann_window(n_fft, device=y.device)
@@ -237,6 +236,14 @@ def mid_coherence(y, ref, lo: float = MID_LO, hi: float = MID_HI):
     k0, k1 = _band_bins(n_fft, lo, hi)
     a, b = a[k0:k1][:, keep], b[k0:k1][:, keep]
     return float((a * b.conj()).sum().abs() / torch.sqrt(a.abs().pow(2).sum() * b.abs().pow(2).sum() + 1e-12))
+
+
+def mid_coherence(y, ref, lo: float = MID_LO, hi: float = MID_HI):
+    """The artifact gate: the WORST of the 0.5-1.5 kHz and 1.5-4 kHz phase agreements with the pretrained decoder on the
+    same latents (a single 0.5-4 kHz figure is dominated by the loud low band and hides the mid band). Decoder A scored
+    0.61-0.77 in 1.5-4 kHz (holographic); controls that sounded normal scored >= 0.94 there."""
+    edges = [lo] + [e for e in (1500.0,) if lo < e < hi] + [hi]
+    return min(band_coherence(y, ref, a, b) for a, b in zip(edges[:-1], edges[1:]))
 
 
 def resources(device) -> dict:
@@ -284,7 +291,9 @@ def main(argv=None) -> int:
     p.add_argument("--lambda-ltas", type=float, default=0.0, help="Fine long-term-spectrum L1 (kills persistent lines)")
     p.add_argument("--lambda-grid", type=float, default=0.0, help="Hinge on excess 200 Hz line-comb contrast (dB)")
     p.add_argument("--lambda-anchor", type=float, default=0.0,
-                   help="Complex-STFT L1 to the frozen pretrained decoder in 1.5-4 kHz (anchors the mid-band phase)")
+                   help="Complex-STFT L1 to the frozen pretrained decoder in 0.5-4 kHz (anchors the mid-band phase)")
+    p.add_argument("--watch-voice", default="carol-emeka",
+                   help="Voice whose held-out lines are evaluated first and gated separately (the most sensitive voice)")
     p.add_argument("--coherence-floor", type=float, default=0.92,
                    help="Held-out mid-band phase coherence with the pretrained decoder below which a checkpoint is penalised")
     p.add_argument("--exclude-ids", type=Path, default=None, help="JSON of clip ids (or {'clips': {...}}) to leave out")
@@ -347,6 +356,7 @@ def main(argv=None) -> int:
                 if r["id"] in holdout and (r["id"], ) not in {(e["id"],) for e in eval_rows}:
                     eval_rows.append({"id": r["id"], "path": str(args.audio_root / r["path"]),
                                       "start": float(r.get("start", 0)), "duration": float(r["duration"])})
+    eval_rows.sort(key=lambda r: not r["id"].startswith(args.watch_voice + "/"))      # the watched voice first
     eval_rows = eval_rows[: args.eval_limit]
     crops = Crops(rows, args.seconds, args.seed)
     import queue
@@ -385,7 +395,7 @@ def main(argv=None) -> int:
     def evaluate(step: int, use_ema: bool) -> dict:
         backup = swap_in_ema() if use_ema else None
         mimi.eval()
-        mels, highs, grids, cohs = [], [], [], []
+        mels, highs, grids, cohs, watched = [], [], [], [], []
         try:
             with torch.no_grad():
                 for r in eval_rows:
@@ -397,15 +407,18 @@ def main(argv=None) -> int:
                     both = grid_contrast(ltas_db(torch.cat([y[:, 0], x[:, 0]]), device))
                     grids.append(float(both[0] - both[1]))
                     cohs.append(mid_coherence(y[0, 0], decode(ref_mimi, ref_mimi.encode_to_latent(x))[0, 0, : x.shape[-1]]))
+                    if r["id"].startswith(args.watch_voice + "/"):
+                        watched.append(cohs[-1])
         finally:
             mimi.train()
             if backup is not None:
                 restore(backup)
         mel, grid, coh = sum(mels) / len(mels), sum(grids) / len(grids), sum(cohs) / len(cohs)
+        watch = sum(watched) / len(watched) if watched else coh
         return {"step": step, "weights": "ema" if use_ema else "raw", "heldout_mel_l1": mel,
                 "heldout_high_band_db": sum(highs) / len(highs), "heldout_grid200_excess_db": grid,
-                "heldout_mid_coherence": coh,
-                "score": mel + 0.02 * max(0.0, grid) + 2.0 * max(0.0, args.coherence_floor - coh), "heldout_lines": len(mels)}
+                "heldout_mid_coherence": coh, "heldout_watch_coherence": watch, "watch_lines": len(watched),
+                "score": mel + 0.02 * max(0.0, grid) + 2.0 * max(0.0, args.coherence_floor - min(coh, watch)), "heldout_lines": len(mels)}
 
     def export(tag: str, use_ema: bool, metrics: dict):
         backup = swap_in_ema() if use_ema else None
