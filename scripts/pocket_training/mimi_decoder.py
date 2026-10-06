@@ -35,13 +35,21 @@ def decoder_keys(state: dict) -> list[str]:
     return [k for k in state if k.startswith(DECODER_PREFIXES)]
 
 
-def read_rows(manifest: Path, holdout: set[str], audio_root: Path) -> list[dict]:
+def load_exclusions(path: Path | None) -> set[str]:
+    """Clip ids to leave out of training (effect-heavy clips; scripts/phone_detect/effect-exclusions.json)."""
+    if path is None:
+        return set()
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return set(data["clips"] if isinstance(data, dict) else data)
+
+
+def read_rows(manifest: Path, holdout: set[str], audio_root: Path, exclude: set[str] = frozenset()) -> list[dict]:
     rows = []
     for line in manifest.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
         r = json.loads(line)
-        if r["id"] in holdout or float(r["duration"]) < 1.0:
+        if r["id"] in holdout or r["id"] in exclude or float(r["duration"]) < 1.0:
             continue
         rows.append({"id": r["id"], "path": str(audio_root / r["path"]), "start": float(r.get("start", 0)),
                      "duration": float(r["duration"])})
@@ -154,11 +162,52 @@ def high_band_db(y, x, device):
     return float((a[lo:] - b[lo:]).abs().mean())
 
 
+LTAS_FFT = 4096                  # 5.86 Hz bins at 24 kHz
+GRID_HZ = 200.0                  # the decoder's own frame grid: 24 kHz / (4 * 5 * 6); lines appear at multiples of it
+
+
+def ltas_db(w, device):
+    """Long-term spectrum (dB per bin) of [B, T] audio: power averaged over time."""
+    import torch
+    win = torch.hann_window(LTAS_FFT, device=device)
+    spec = torch.stft(w, LTAS_FFT, LTAS_FFT // 4, window=win, return_complex=True).abs().pow(2).mean(-1)
+    return 10 * torch.log10(spec.clamp_min(1e-10))
+
+
+def grid_contrast(ltas, spacing: float = GRID_HZ, lo: float = 3000.0, hi: float = 11000.0):
+    """Mean dB of the long-term spectrum on the lines k*spacing minus halfway between them, [B]. A comb of
+    persistent tones (the 'holographic' buzz of the first fine-tuned decoder) makes this positive."""
+    import math
+    import torch
+    bin_hz = 24000 / LTAS_FFT
+    k = torch.arange(math.ceil(lo / spacing), math.floor(hi / spacing), device=ltas.device, dtype=torch.float32)
+
+    def at(freq):
+        pos = freq / bin_hz
+        i0 = pos.floor().long().clamp(0, ltas.shape[-1] - 2)
+        frac = (pos - i0.float()).clamp(0, 1)
+        return ltas[:, i0] * (1 - frac) + ltas[:, i0 + 1] * frac
+    return at(k * spacing).mean(-1) - 0.5 * (at((k - 0.5) * spacing) + at((k + 0.5) * spacing)).mean(-1)
+
+
+def ltas_losses(y, x, device):
+    """(fine long-term spectrum L1 in units of 10 dB over 1.5-11.5 kHz, hinge on excess 200 Hz line contrast in dB)."""
+    import torch
+    fake, real = ltas_db(y.squeeze(1), device), ltas_db(x.squeeze(1), device)
+    lo, hi = int(1500 / (24000 / LTAS_FFT)), int(11500 / (24000 / LTAS_FFT))
+    l1 = (fake[:, lo:hi] - real[:, lo:hi]).abs().mean() / 10
+    excess = torch.relu(grid_contrast(fake) - grid_contrast(real) - 0.5).mean()
+    return l1, excess
+
+
 def resources(device) -> dict:
     """Host RSS, free disk and GPU memory, logged with training progress (a crash leaves a trail)."""
     import shutil
     import torch
     out = {"gpu_alloc_gib": round(torch.cuda.memory_allocated(device) / 2**30, 2) if torch.cuda.is_available() else 0}
+    if torch.cuda.is_available():
+        free, total = torch.cuda.mem_get_info(device)
+        out["gpu_used_gib"] = round((total - free) / 2**30, 2)          # whole card, all processes
     try:
         import psutil
         out["rss_gib"] = round(psutil.Process().memory_info().rss / 2**30, 2)
@@ -193,6 +242,9 @@ def main(argv=None) -> int:
     p.add_argument("--lambda-mel", type=float, default=15.0)
     p.add_argument("--lambda-adv", type=float, default=1.0)
     p.add_argument("--lambda-fm", type=float, default=2.0)
+    p.add_argument("--lambda-ltas", type=float, default=0.0, help="Fine long-term-spectrum L1 (kills persistent lines)")
+    p.add_argument("--lambda-grid", type=float, default=0.0, help="Hinge on excess 200 Hz line-comb contrast (dB)")
+    p.add_argument("--exclude-ids", type=Path, default=None, help="JSON of clip ids (or {'clips': {...}}) to leave out")
     p.add_argument("--disc-warmup", type=int, default=500)
     p.add_argument("--ema", type=float, default=0.999)
     p.add_argument("--eval-every", type=int, default=1000)
@@ -234,7 +286,8 @@ def main(argv=None) -> int:
     mel_loss = MelLoss(device)
 
     holdout = set(json.loads(args.holdout_ids.read_text()))
-    rows = [r for m in args.manifest for r in read_rows(m, holdout, args.audio_root)]
+    excluded = load_exclusions(args.exclude_ids)
+    rows = [r for m in args.manifest for r in read_rows(m, holdout, args.audio_root, excluded)]
     seen, unique = set(), []
     for r in rows:
         if (r["path"], r["start"]) not in seen:
@@ -286,7 +339,7 @@ def main(argv=None) -> int:
     def evaluate(step: int, use_ema: bool) -> dict:
         backup = swap_in_ema() if use_ema else None
         mimi.eval()
-        mels, highs = [], []
+        mels, highs, grids = [], [], []
         try:
             with torch.no_grad():
                 for r in eval_rows:
@@ -295,12 +348,16 @@ def main(argv=None) -> int:
                     y = decode(mimi, mimi.encode_to_latent(x))[..., : x.shape[-1]]
                     mels.append(float(mel_loss(y, x)))
                     highs.append(high_band_db(y[0, 0], x[0, 0], device))
+                    both = grid_contrast(ltas_db(torch.cat([y[:, 0], x[:, 0]]), device))
+                    grids.append(float(both[0] - both[1]))
         finally:
             mimi.train()
             if backup is not None:
                 restore(backup)
-        return {"step": step, "weights": "ema" if use_ema else "raw", "heldout_mel_l1": sum(mels) / len(mels),
-                "heldout_high_band_db": sum(highs) / len(highs), "heldout_lines": len(mels)}
+        mel, grid = sum(mels) / len(mels), sum(grids) / len(grids)
+        return {"step": step, "weights": "ema" if use_ema else "raw", "heldout_mel_l1": mel,
+                "heldout_high_band_db": sum(highs) / len(highs), "heldout_grid200_excess_db": grid,
+                "score": mel + 0.02 * max(0.0, grid), "heldout_lines": len(mels)}
 
     def export(tag: str, use_ema: bool, metrics: dict):
         backup = swap_in_ema() if use_ema else None
@@ -316,8 +373,8 @@ def main(argv=None) -> int:
         return path
 
     baseline = evaluate(0, use_ema=False)
-    log({"event": "baseline", **baseline, "train_rows": len(rows), "trainable_params": sum(p_.numel() for p_ in trainable)})
-    best = {"score": baseline["heldout_mel_l1"], "step": 0}
+    log({"event": "baseline", **baseline, "train_rows": len(rows), "excluded_ids": len(excluded), "trainable_params": sum(p_.numel() for p_ in trainable)})
+    best = {"score": baseline["score"], "step": 0}
     started = time.monotonic()
     step = 0
     while step < args.steps and time.monotonic() - started < args.time_budget_seconds:
@@ -346,6 +403,10 @@ def main(argv=None) -> int:
                     count += 1
             loss_fm = loss_fm / count
             loss_g = args.lambda_mel * loss_mel + args.lambda_adv * loss_adv + args.lambda_fm * loss_fm
+            if args.lambda_ltas or args.lambda_grid:
+                loss_ltas, loss_grid = ltas_losses(y, x, device)
+                loss_g = loss_g + args.lambda_ltas * loss_ltas + args.lambda_grid * loss_grid
+                record.update(loss_ltas=float(loss_ltas), loss_grid=float(loss_grid))
             opt_g.zero_grad(set_to_none=True)
             loss_g.backward()
             torch.nn.utils.clip_grad_norm_(trainable, 1.0)
@@ -363,8 +424,8 @@ def main(argv=None) -> int:
             for use_ema in (True, False):
                 metrics = evaluate(step, use_ema)
                 log({"event": "eval", **metrics})
-                if metrics["heldout_mel_l1"] < best["score"]:
-                    best = {"score": metrics["heldout_mel_l1"], "step": step, "weights": metrics["weights"]}
+                if metrics["score"] < best["score"]:
+                    best = {"score": metrics["score"], "step": step, "weights": metrics["weights"]}
                     export("best", use_ema, metrics)
             export("last", True, {"step": step})
             if step % args.snapshot_every == 0:

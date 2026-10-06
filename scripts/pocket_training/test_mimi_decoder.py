@@ -40,6 +40,31 @@ class MimiDecoderPolicyTests(unittest.TestCase):
         quieter_highs = torch.nn.functional.avg_pool1d(x, 3, 1, 1)
         self.assertGreater(mimi_decoder.high_band_db(quieter_highs[0, 0], x[0, 0], "cpu"), 1.0)
 
+    def test_excluded_clips_never_reach_training(self):
+        with tempfile.TemporaryDirectory() as folder:
+            manifest = Path(folder) / "train.jsonl"
+            lines = [json.dumps({"id": i, "path": f"a/{i}.wav", "duration": 3.0}) for i in ("keep-1", "fx-1", "keep-2")]
+            manifest.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            listing = Path(folder) / "exclusions.json"
+            listing.write_text(json.dumps({"clips": {"fx-1": {"reasons": ["comb"]}}}), encoding="utf-8")
+            rows = mimi_decoder.read_rows(manifest, set(), Path(folder), mimi_decoder.load_exclusions(listing))
+            self.assertEqual([r["id"] for r in rows], ["keep-1", "keep-2"])
+            self.assertEqual(mimi_decoder.load_exclusions(None), set())
+
+    def test_grid_contrast_sees_a_200hz_line_comb(self):
+        import torch
+        torch.manual_seed(0)
+        t = torch.arange(48000) / 24000
+        noise = torch.randn(1, 48000) * 0.05
+        comb = sum(torch.sin(2 * torch.pi * 200 * k * t) for k in range(15, 55))[None] * 0.01
+        clean = mimi_decoder.grid_contrast(mimi_decoder.ltas_db(noise, "cpu"))
+        buzzy = mimi_decoder.grid_contrast(mimi_decoder.ltas_db(noise + comb, "cpu"))
+        self.assertLess(abs(float(clean)), 1.0)
+        self.assertGreater(float(buzzy), 5.0)
+        l1, excess = mimi_decoder.ltas_losses((noise + comb)[:, None], noise[:, None], "cpu")
+        self.assertGreater(float(excess), 4.0)
+        self.assertGreater(float(l1), 0.0)
+
     def test_discriminator_scores_every_scale(self):
         import torch
         disc = mimi_decoder.build_discriminator()
