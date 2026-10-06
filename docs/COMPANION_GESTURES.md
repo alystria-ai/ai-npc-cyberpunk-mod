@@ -1,9 +1,11 @@
 # Companion body gestures
 
-Companions use the game's own conversation gestures while they speak, nod
-while they listen, and take their own idle stance while they stand near V.
-The feature is being built in stages; **Stage 0 (a development probe) is the
-current state**. Nothing plays unless the probe is installed and asked to.
+Companions use the game's own conversation gestures while they speak a longer
+reply, nod while V talks to them, and (for Johnny, Panam, Kerry, Takemura and
+Jackie) now and then take their signature vanilla idle while settled. The
+**Body gestures** setting (Companion behavior) is **Off by default** until it
+is qualified in game. `mod/companion-gestures.lua` is the controller; the
+Stage 0 probe (`mod/gesture-probe.lua`) remains a development tool.
 
 ## What the game offers (October 6 research)
 
@@ -45,23 +47,27 @@ Evidence: archive listings and serialized assets under
 `SendJumpCommandEnt`, `SendFastExitSignal`, `SendSlowExitSignal`,
 `StopNpcInWorkspot`, `StopInDevice`, `IsActorInWorkspot`, `GetExtendedInfo`.
 
-The mod ships `convai_gestures.archive` with two new resources:
+The mod ships `convai_gestures.archive`:
 
-- `cyberpunk_convai\gestures\convai_gestures.workspot`: cloned from vanilla
-  `big__stand_ground__stand_around__01.workspot` (EP1 copy). It keeps the
-  walk entries, exits, fast exit and bump reactions, drops crowd Fear
-  reactions, and holds one looping idle sequence (`stand__2h_on_sides__01`)
-  plus one sequence per gesture clip, with the per-rig animsets above.
+- one `cyberpunk_convai\gestures\convai_talk_<family>.workspot` per stance
+  family, cloned from vanilla `big__stand_ground__stand_around__01.workspot`
+  (EP1 copy): a looping idle sequence plus one sequence per gesture clip, the
+  family's per-rig animsets, the fast exit, and (hands-at-sides only) the
+  walk entries/exits and bump reactions; crowd Fear reactions are dropped;
 - `cyberpunk_convai\gestures\convai_gesture_device.ent`: an invisible
-  gameObject with workspot components only — `convai_gestures` and one
+  gameObject with workspot components only — `convai_talk_<family>` and one
   `convai_idle_<character>` per signature idle workspot.
 
 The device is spawned at the companion's feet (DynamicEntitySystem, tag
 `CyberpunkConvaiGestureDevice`, not persistent). The companion enters with
 `DontPlayAtResourcePosition`, clips are chosen with `SendJumpToAnimEnt`, and
-the controller jumps back to the idle loop when a clip ends. Exit is
-`SendFastExitSignal`; a watchdog escalates to `StopNpcInWorkspot` (0.6 s) and
-`StopInDevice` (1.2 s). Combat uses the instant stop.
+the controller jumps back to the idle loop when a clip ends. Exit is the
+native `SendFastExitSignal` with default arguments; after 3 s still inside it
+calls `StopInDevice`, after 6 s it gives up and cools down for 30 s. It never
+calls `StopNpcInWorkspot` (that wedged the AI command queue). Combat uses the
+fast exit with `instant=true`. If, after an exit, a wanted move stays only
+queued for 1.5 s, the controller re-enters for 0.9 s and leaves with a clean
+fast exit (verified live to repair a wedge), at most twice a minute.
 
 Rejected: `ApplyFeature`/`PushEvent` (no gesture input in the body graph),
 the AI action slot (combat AIAction records), `AIUseWorkspotCommand` (needs a
@@ -185,10 +191,13 @@ lines: requests, native call results, 4 Hz traces while active).
 
 ## Stages
 
-0. Probe (this). Decide: hold kept vs suspended, start API, clip/idle
-   behaviour, face and gaze interplay, interrupt latency, vehicle exit.
-1. `companion-gestures.lua` controller behind the setting (default Off):
-   speaking gestures, safety gates, watchdog, diagnostics, fixture tests.
-2. Emotion/intensity mapping, per-rig catalog, character clips.
-3. Listening nods (V speaking, group chat), signature idles when settled.
-4. MCM string in all locales, docs, TODO log.
+0. Probe — done for start, slide, clips, face/gaze, guard, wedge/recovery;
+   still open: clean walk-away with native exit, suspend variant, long hold,
+   signature idles, missing clip, vehicle.
+1. Controller behind the setting (default Off) — built (`companion-gestures.lua`,
+   `gesture-workspot.lua`, fixture tests `bridge/companion-gestures.test.mjs`).
+2. Emotion/intensity mapping, stance families, character clips — built.
+3. Listening nods (V speaking) and signature idle flavour — built; group-chat
+   listeners are not yet included.
+4. MCM string in 9 locales + `localization/en.json` — done. In-game
+   qualification of the controller is next.
