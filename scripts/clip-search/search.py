@@ -605,15 +605,25 @@ def main(argv=None) -> int:
     shown = json.loads((ROOT / "scripts/reference-picker/shown-voices.json").read_text(encoding="utf-8"))
     voices = args.voices.split(",") if args.voices else shown
     from score import Scorer
-    if args.rechoose:                                  # cached scores only: no renderer, no workers
+    if args.rechoose:                                  # cached scores only; a renderer starts lazily if a score is missing
         class _Cached:
             tag = args.tag or (f"omni{args.steps}" if args.engine == "omni" else f"pocket-{args.export.name}")
+            inner = None
 
             def render(self, jobs):
-                raise RuntimeError("rechoose must not render")
+                if self.inner is None:
+                    print(f"rechoose: {len(jobs)} score(s) missing in the cache, starting a renderer", flush=True)
+                    if args.engine == "omni":
+                        from render import OmniDirectRenderer
+                        self.inner = OmniDirectRenderer(args.steps)
+                    else:
+                        from render import PocketRenderer
+                        self.inner = PocketRenderer(args.export, 1, args.threads, tag=_Cached.tag)
+                return self.inner.render(jobs)
 
             def close(self):
-                pass
+                if self.inner is not None:
+                    self.inner.close()
         renderer = _Cached()
     elif args.engine == "omni":
         if args.wait_gpu:
