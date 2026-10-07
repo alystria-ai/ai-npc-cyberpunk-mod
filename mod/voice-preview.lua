@@ -7,6 +7,30 @@ local INTERVAL = 1000
 -- so cycling through the voices never loads or unloads a worker per step.
 local DEFAULT_SETTLE = 0
 
+-- The Companion voices list in menu order; the select's value is the index here. Pocket TTS is the default.
+-- OmniVoice has two step counts and two reference lengths (short up to 10 s, long up to 18 s).
+M.CHOICES = {
+    {provider = 'pocket'},
+    {provider = 'omni', steps = 16, reference = 'short'},
+    {provider = 'omni', steps = 16, reference = 'long'},
+    {provider = 'omni', steps = 32, reference = 'short'},
+    {provider = 'omni', steps = 32, reference = 'long'},
+    {provider = 'convai'},
+}
+
+-- The select index of a saved choice ({voiceProvider, omniSteps, omniReference}).
+function M.indexOf(saved)
+    saved = type(saved) == 'table' and saved or {}
+    if saved.voiceProvider == 'convai' then return #M.CHOICES end
+    if saved.voiceProvider == 'pocket' then return 1 end
+    local steps = saved.omniSteps == 32 and 32 or 16
+    local reference = saved.omniReference == 'short' and 'short' or 'long'
+    for index, choice in ipairs(M.CHOICES) do
+        if choice.provider == 'omni' and choice.steps == steps and choice.reference == reference then return index end
+    end
+    return 1
+end
+
 local function writeFile(path, raw)
     local temporary = path .. '.tmp'
     local file = io.open(temporary, 'wb')
@@ -45,7 +69,8 @@ function M.new(options)
     local seed = 'mcm-' .. tostring(os.time()) .. '-' .. tostring({}):gsub('[^A-Za-z0-9]', ''):sub(1, 32)
 
     local function publish(value, stamp)
-        local signature = table.concat({value.owner, tostring(value.active), value.provider, tostring(value.omniSteps or '')}, ':')
+        local signature = table.concat({value.owner, tostring(value.active), value.provider, tostring(value.omniSteps or ''),
+            tostring(value.omniReference or '')}, ':')
         if attempted == signature and stamp < nextAttempt then return false end
         attempted, nextAttempt = signature, stamp + INTERVAL
         -- os.time has one-second resolution. Sequence disambiguates rapid
@@ -66,7 +91,8 @@ function M.new(options)
 
     local function cancel(stamp)
         if current and current.active then
-            publish({owner = current.owner, active = false, provider = current.provider, omniSteps = current.omniSteps}, stamp)
+            publish({owner = current.owner, active = false, provider = current.provider, omniSteps = current.omniSteps,
+                omniReference = current.omniReference}, stamp)
         end
     end
 
@@ -104,7 +130,8 @@ function M.new(options)
         if not pendingOk or not pending then staged = nil; cancel(stamp); return end
         local providerOk, provider, providerError = pcall(api.getValue, MOD_KEY .. ':voiceProvider')
         local savedOk, saved = pcall(readCommitted)
-        if not providerOk or providerError or (provider ~= 1 and provider ~= 2 and provider ~= 3 and provider ~= 4)
+        local choice = providerOk and not providerError and M.CHOICES[provider] or nil
+        if not choice
             or not savedOk or type(saved) ~= 'table'
             or (saved.voiceProvider ~= 'pocket' and saved.voiceProvider ~= 'omni'
                 and saved.voiceProvider ~= 'hybrid' and saved.voiceProvider ~= 'convai') then
@@ -112,26 +139,29 @@ function M.new(options)
             cancel(stamp)
             return
         end
-        -- Select order: OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS, Convai cloud voice.
-        local omniSteps = provider == 1 and 16 or (provider == 2 and 32 or nil)
-        provider = provider == 3 and 'pocket' or (provider == 4 and 'convai' or 'omni')
+        -- Select order: M.CHOICES (Pocket TTS, OmniVoice 16/32 steps with a short/long reference, Convai).
+        local omniSteps, omniReference = choice.steps, choice.reference
+        provider = choice.provider
         local savedProvider = saved.voiceProvider == 'hybrid' and 'omni' or saved.voiceProvider
         local savedSteps = saved.omniSteps == 32 and 32 or 16
-        if provider == savedProvider and (provider ~= 'omni' or omniSteps == savedSteps) then
+        local savedReference = saved.omniReference == 'short' and 'short' or 'long'
+        if provider == savedProvider and (provider ~= 'omni' or (omniSteps == savedSteps and omniReference == savedReference)) then
             staged = nil
             cancel(stamp); return
         end
-        local choice = provider .. ':' .. tostring(omniSteps or '')
-        if staged ~= choice then staged, stagedSince = choice, stamp end
+        local stagedChoice = provider .. ':' .. tostring(omniSteps or '') .. ':' .. tostring(omniReference or '')
+        if staged ~= stagedChoice then staged, stagedSince = stagedChoice, stamp end
         if stamp - stagedSince < settleMs then
             -- Still being changed. Keep an earlier lease alive and start none; the next
             -- poll notices the choice once it has settled.
             if current and current.active then
-                publish({owner = leaseOwner, active = true, provider = current.provider, omniSteps = current.omniSteps}, stamp)
+                publish({owner = leaseOwner, active = true, provider = current.provider, omniSteps = current.omniSteps,
+                    omniReference = current.omniReference}, stamp)
             end
             return
         end
-        publish({owner = leaseOwner, active = true, provider = provider, omniSteps = omniSteps}, stamp)
+        publish({owner = leaseOwner, active = true, provider = provider, omniSteps = omniSteps,
+            omniReference = omniReference}, stamp)
     end
 
     function P.reset()
@@ -146,7 +176,8 @@ function M.new(options)
 
     function P.inspect()
         return {available = subscription ~= nil, active = current and current.active or false,
-            provider = current and current.provider or nil, omniSteps = current and current.omniSteps or nil, error = failure}
+            provider = current and current.provider or nil, omniSteps = current and current.omniSteps or nil,
+            omniReference = current and current.omniReference or nil, error = failure}
     end
 
     return P

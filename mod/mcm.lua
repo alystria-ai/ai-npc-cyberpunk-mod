@@ -24,10 +24,13 @@ local localeRevision = -1
 -- prompt when leaving, and the close guard. A person's Apply comes much later.
 local AUTO_APPLY_WINDOW = 0.25
 local lastDraftEventAt = -1000
-local VOICE_CHOICES = {{'omni', 16}, {'omni', 32}, {'pocket'}, {'convai'}}
+-- The Companion voices list (menu order) lives with the draft preview: Pocket TTS, OmniVoice 16/32 steps with a
+-- short or long reference, Convai cloud voice.
+local voicePreviewModule = dofile('voice-preview.lua')
+local VOICE_CHOICES = voicePreviewModule.CHOICES
 -- No voice model is prepared from a draft: nothing reaches the conversation
 -- service until Apply.
-local voicePreview = dofile('voice-preview.lua').new()
+local voicePreview = voicePreviewModule.new()
 -- Back is a native button in MCM's bottom action row, laid out with Revert, Apply,
 -- Defaults and Modified. MCM has no provider API for that row, so after each render
 -- the button is added and the others are shifted to make room. If it cannot be
@@ -269,7 +272,7 @@ local function profileDescription(profile, snapshot)
     if active == 'pocket' or active == 'omni' then
         for _, key in ipairs(snapshot.localVoice.routedProfiles or {}) do
             if key == profile.key then
-                voice = manager.voiceLabel(active, snapshot.localVoice.omniSteps)
+                voice = manager.voiceLabel(active, snapshot.localVoice.omniSteps, snapshot.localVoice.omniReference)
                 break
             end
         end
@@ -294,8 +297,8 @@ local function voiceServiceLabel(state)
         and (fallback.to == 'pocket' or fallback.to == 'convai') then
         return ui.t('{status} · Using {voice}, {requested} unavailable', {
             status = ui.t(labels[state.state] or 'Waiting for voice service'),
-            voice = manager.voiceLabel(fallback.to, state.omniSteps),
-            requested = manager.voiceLabel(fallback.from, state.requestedOmniSteps)})
+            voice = manager.voiceLabel(fallback.to, state.omniSteps, state.omniReference),
+            requested = manager.voiceLabel(fallback.from, state.requestedOmniSteps, state.requestedOmniReference)})
     end
     if state.preparationOnly and state.previewActive
         and (state.previewProvider == 'pocket' or state.previewProvider == 'omni') and state.state == 'ready' then
@@ -311,8 +314,22 @@ end
 -- The status line. While a different voice is pending in MCM's drafts it names
 -- that voice instead (short, so the row is not truncated).
 local function savedVoiceIndex(settings)
-    return settings.voiceProvider == 'convai' and 4
-        or (settings.voiceProvider == 'pocket' and 3 or (settings.omniSteps == 32 and 2 or 1))
+    return voicePreviewModule.indexOf(settings)
+end
+
+-- The select's labels, in menu order. An OmniVoice entry says what it needs while the optional pack is missing; it
+-- cannot be applied then (applyBatch refuses it) and the bridge would fall back to Pocket TTS anyway.
+local function voiceMenuLabels(pack)
+    local elements = {}
+    for index, choice in ipairs(VOICE_CHOICES) do
+        local label = choice.provider == 'pocket' and ui.t('Pocket TTS · recommended')
+            or manager.voiceLabel(choice.provider, choice.steps, choice.reference)
+        if choice.provider == 'omni' and not pack.installed then
+            label = ui.t('{voice} · Requires the optional OmniVoice pack (GPU)', {voice = label})
+        end
+        elements[index] = label
+    end
+    return elements
 end
 
 local function voiceStatusText(snapshot, allowPending)
@@ -321,7 +338,7 @@ local function voiceStatusText(snapshot, allowPending)
         local ok, value, err = pcall(api.getValue, MOD_KEY .. ':voiceProvider')
         local choice = ok and not err and VOICE_CHOICES[value]
         if choice and value ~= savedVoiceIndex(snapshot.settings) then
-            return ui.t('Pending: {voice}', {voice = manager.voiceLabel(choice[1], choice[2])})
+            return ui.t('Pending: {voice}', {voice = manager.voiceLabel(choice.provider, choice.steps, choice.reference)})
         end
     end
     return voiceServiceLabel(snapshot.localVoice)
@@ -775,13 +792,18 @@ local function schema()
                 'Companions gesture with their body while they speak longer replies and nod while you talk to them, using the game’s own animations in their usual stance. They stop at once when anyone moves or a fight starts.'),
         })
         local voiceStatus = voiceStatusText(snapshot)
-        -- The list, best first: OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS, Convai cloud voice.
+        -- The list: Pocket TTS (default), OmniVoice 16 steps short/long, OmniVoice 32 steps short/long, Convai.
         local voiceIndex = savedVoiceIndex(snapshot.settings)
+        local pack = manager.omniPack()
         categories[#categories + 1] = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
             setting('voiceProvider', 'Companion voices', 'select', voiceIndex, 1,
-                'OmniVoice uses the GPU and sounds closest to the characters. 16 steps sounds the same in tests as 32 steps at half the GPU time, so it is the default. Pocket TTS runs on the CPU. Convai cloud voice streams online voices. If a choice cannot run, the next one in the list is used and you are told once. A change waits until you choose Apply, and no voice model is prepared before then.',
-                {'OmniVoice 16 steps', 'OmniVoice 32 steps', 'Pocket TTS', 'Convai cloud voice'}),
+                'Pocket TTS runs on your CPU. It is light and fast (first audio in about 0.15 s) and is the recommended default.\nOmniVoice runs on a capable GPU and sounds closest to the characters: by ear about 15-20% better than Pocket TTS at 16 steps and 20-25% better at 32 steps. For characters with plenty of source audio, such as Johnny, Judy, Panam and Alex, Pocket TTS is nearly as good (within about 5%).\nA short reference (up to 10 s) starts a little faster than a long one (up to 18 s), which matches the voice a little better. First audio takes about 1.3 s (16 steps, short), 1.45 s (16, long), 2.1 s (32, short) or 2.5 s (32, long).\nOmniVoice needs the optional OmniVoice pack. Convai cloud voice streams online voices. If a choice cannot run, a simpler voice is used instead (Pocket TTS, then Convai cloud voice) and you are told once. A change waits until you choose Apply, and no voice model is prepared before then.',
+                voiceMenuLabels(pack), {elements = true}),
+            setting('keepPreparedVoices', 'Keep prepared voices', 'bool', snapshot.settings.keepPreparedVoices, true,
+                'Remember each companion’s prepared voice so summoning them again is quicker. Pocket TTS saves one small file per character (about 5 to 15 MB) in the mod’s runtime folder; OmniVoice does a short hidden warm-up at your chosen quality while a companion joins. Turn this off to save nothing on disk. The change applies without a restart.'),
+            readonly('voice-pack', 'OmniVoice pack', pack.known and (pack.installed and 'Installed' or 'Not installed') or 'Waiting for voice service',
+                'OmniVoice is an optional add-on for computers with a capable GPU. Pocket TTS needs nothing extra.'),
             readonly('voice-status', 'Voice service', voiceStatus,
                 'Changes wait until you choose Apply; Revert discards them. No game restart is needed.'),
         }, 'Changes wait until you choose Apply.')
@@ -910,7 +932,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                 local key = change.id
                 if key == 'voice' or key == 'subtitles' or key == 'followUpQuestions' or key == 'developerMode'
                     or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures'
-                    or key == 'autoConnectNearby' then values[key] = change.value
+                    or key == 'autoConnectNearby' or key == 'keepPreparedVoices' then values[key] = change.value
                 elseif key == 'subtitleStyle' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose Above speaker or Dialogue HUD.')} end
                     values.subtitleStyle = change.value == 1 and 'overhead' or 'dialogue'
@@ -921,11 +943,17 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     end
                     values.uiLanguage = choices[change.value].value
                 elseif key == 'voiceProvider' then
-                    if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 and change.value ~= 4 then
-                        return {ok = false, error = ui.t('Choose OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS or Convai cloud voice.')}
+                    local choice = type(change.value) == 'number' and VOICE_CHOICES[change.value] or nil
+                    if not choice then
+                        return {ok = false, error = ui.t('Choose one of the listed companion voices.')}
                     end
-                    values.voiceProvider = change.value == 3 and 'pocket' or (change.value == 4 and 'convai' or 'omni')
-                    if change.value == 1 or change.value == 2 then values.omniSteps = change.value == 2 and 32 or 16 end
+                    -- Without the optional pack an OmniVoice entry cannot be applied: nothing changes and the
+                    -- player is told what it needs.
+                    if choice.provider == 'omni' and not manager.omniPack().installed then
+                        return {ok = false, error = ui.t('Requires the optional OmniVoice pack (GPU)')}
+                    end
+                    values.voiceProvider = choice.provider
+                    if choice.provider == 'omni' then values.omniSteps, values.omniReference = choice.steps, choice.reference end
                 elseif key == 'eyeContactHeight' or key == 'headFollowStrength' then
                     local heights,strengths=manager.gazeChoices()
                     local choices=key=='eyeContactHeight' and heights or strengths
@@ -1042,8 +1070,8 @@ function M.install()
         if key and presentation.active and active()
             and voiceSelectors[key] == presentation.controllerKey and type(api.getValue) == 'function' then
             local ok, value, err = pcall(api.getValue, MOD_KEY .. ':voiceProvider')
-            if ok and not err and ((forward == false and value == 1) or (forward == true and value == 4)) then
-                -- Stop at the end of this four-choice row. Intercept the child
+            if ok and not err and ((forward == false and value == 1) or (forward == true and value == #VOICE_CHOICES)) then
+                -- Stop at the end of this voice list. Intercept the child
                 -- before it emits the host event observed by MCM, whose normal
                 -- cyclic navigation would move the marker the opposite way.
                 return

@@ -18,7 +18,7 @@ function run(body) {
 const fixture = `
 local clock, nativeCallback, reads, attempts, failWrite = 100000, false, 0, 0, false
 local files, publications, encoded, handlers = {}, {}, {}, {}
-local pending, values = false, {voiceProvider = 4}
+local pending, values = false, {voiceProvider = 6}
 local committed = {voiceProvider = 'convai', omniSteps = 32}
 local api = {}
 local nextToken = 0
@@ -67,11 +67,11 @@ end
 local function current() return files['runtime/voice-preview.json'] end
 `;
 
-// Selector order: 1 OmniVoice 16 steps, 2 OmniVoice 32 steps, 3 Pocket TTS, 4 Convai cloud voice.
+// Selector order: 1 Pocket TTS, 2 Omni 16 short, 3 Omni 16 long, 4 Omni 32 short, 5 Omni 32 long, 6 Convai cloud voice. 1 OmniVoice 16 steps, 2 OmniVoice 32 steps, 3 Pocket TTS, 4 Convai cloud voice.
 test('voice selector immediately publishes a preparation preview without applying settings or callback IO', () => {
   run(`
     update(); assert(#publications == 0)
-    changed(3, true)
+    changed(1, true)
     assert(#publications == 0 and reads == 0, 'selector callback did work before update')
     update()
     local value = current()
@@ -80,13 +80,13 @@ test('voice selector immediately publishes a preparation preview without applyin
     assert(value.sequence == 1)
     assert(type(value.owner) == 'string' and #value.owner <= 96 and value.owner:match('^mcm%-'))
     assert(committed.voiceProvider == 'convai' and committed.omniSteps == 32)
-    changed(3, true); update()
-    assert(current().omniSteps == nil and #publications == 1, 'unchanged selection must not publish another preview')
     changed(1, true); update()
+    assert(current().omniSteps == nil and #publications == 1, 'unchanged selection must not publish another preview')
+    changed(3, true); update()
     assert(current().active and current().provider == 'omni' and current().omniSteps == 16 and current().sequence == 2)
-    changed(2, true); update()
+    changed(5, true); update()
     assert(current().active and current().provider == 'omni' and current().omniSteps == 32 and current().sequence == 3)
-    changed(4, true); update()
+    changed(6, true); update()
     assert(not current().active and #publications == 4 and current().sequence == 4 and current().omniSteps == 32)
     assert(current().updated == value.updated, 'test must exercise same-timestamp changes')
     assert(committed.omniSteps == 32, 'quality preview persisted before Apply')
@@ -95,14 +95,14 @@ test('voice selector immediately publishes a preparation preview without applyin
 
 test('lease refresh is bounded but a changed selector is not delayed by the heartbeat', () => {
   run(`
-    changed(3, true); update()
+    changed(1, true); update()
     local owner = current().owner
     for i = 1, 59 do clock = clock + 10; update() end
     assert(#publications == 1 and reads == 1)
-    changed(1, true); update()
+    changed(3, true); update()
     assert(#publications == 2 and current().active and current().provider == 'omni' and current().omniSteps == 16)
     assert(current().updated == clock and current().owner == owner)
-    changed(3, true); update()
+    changed(1, true); update()
     clock = clock + 1000; update()
     assert(#publications == 4 and current().updated == clock and current().owner == owner)
   `);
@@ -111,12 +111,12 @@ test('lease refresh is bounded but a changed selector is not delayed by the hear
 test('Revert and returning the voice choice to the committed Omni quality cancel even when other drafts remain', () => {
   run(`
     committed.voiceProvider, committed.omniSteps = 'omni', 16
-    changed(2, true); update()
+    changed(5, true); update()
     assert(current().active and current().provider == 'omni' and current().omniSteps == 32)
-    changed(1, true); update()
+    changed(3, true); update()
     assert(not current().active and current().sequence == 2 and committed.voiceProvider == 'omni')
-    changed(3, true); update(); assert(current().active and current().omniSteps == nil)
-    changed(1, false); update()
+    changed(1, true); update(); assert(current().active and current().omniSteps == nil)
+    changed(3, false); update()
     assert(not current().active and committed.omniSteps == 16)
     local count = #publications
     clock = clock + 1000; update(); update()
@@ -126,11 +126,11 @@ test('Revert and returning the voice choice to the committed Omni quality cancel
 
 test('Apply cancels only the preview while the independently committed selection remains authoritative', () => {
   run(`
-    changed(3, true); update()
+    changed(1, true); update()
     committed.voiceProvider, committed.omniSteps = 'pocket', 16
-    changed(3, false); update()
+    changed(1, false); update()
     assert(not current().active and committed.voiceProvider == 'pocket' and committed.omniSteps == 16)
-    changed(4, true); update()
+    changed(6, true); update()
     assert(current().active and current().provider == 'convai' and current().omniSteps == nil)
     assert(committed.voiceProvider == 'pocket' and committed.omniSteps == 16)
   `);
@@ -138,7 +138,7 @@ test('Apply cancels only the preview while the independently committed selection
 
 test('menu loss and reset cancel ownership; reopened and replacement menus get distinct leases', () => {
   run(`
-    changed(3, true); update()
+    changed(1, true); update()
     local first = current().owner
     update(false); assert(not current().active and current().owner == first)
     clock = clock + 10; update(); assert(current().active and current().owner ~= first)
@@ -155,9 +155,9 @@ test('menu loss and reset cancel ownership; reopened and replacement menus get d
 
 test('invalid or unavailable draft values cancel and unsupported APIs do not publish', () => {
   run(`
-    changed(3, true); update()
-    changed(5, true); update(); assert(not current().active)
-    changed(3, true); update(); assert(current().active)
+    changed(1, true); update()
+    changed(7, true); update(); assert(not current().active)
+    changed(1, true); update(); assert(current().active)
     api.getValue = function() error('unavailable') end
     changed(); update(); assert(not current().active)
     preview.bind({}); update()
@@ -168,7 +168,7 @@ test('invalid or unavailable draft values cancel and unsupported APIs do not pub
 test('unrelated events and unrelated setting drafts never prepare a local model', () => {
   run(`
     update()
-    changed(4, true); update(); assert(#publications == 0)
+    changed(6, true); update(); assert(#publications == 0)
     local before = reads
     changed(nil, nil, 'some-other-mod:settings'); update()
     assert(reads == before and #publications == 0)
@@ -179,7 +179,7 @@ test('unrelated events and unrelated setting drafts never prepare a local model'
 
 test('failed writes retry at the heartbeat and failed cancellation leaves only the bounded prior lease', () => {
   run(`
-    failWrite = true; changed(2, true); update()
+    failWrite = true; changed(5, true); update()
     assert(not current() and attempts == 1 and preview.inspect().error)
     for i = 1, 10 do clock = clock + 10; update() end
     assert(attempts == 1)
@@ -198,10 +198,10 @@ test('failed writes retry at the heartbeat and failed cancellation leaves only t
 test('a saved legacy hybrid choice matches its effective Omni quality without preparing a different model', () => {
   run(`
     committed.voiceProvider, committed.omniSteps = 'hybrid', 16
-    changed(1, true); update(); assert(#publications == 0)
-    changed(2, true); update()
+    changed(3, true); update(); assert(#publications == 0)
+    changed(5, true); update()
     assert(current().active and current().provider == 'omni' and current().omniSteps == 32)
-    changed(1, true); update(); assert(not current().active)
+    changed(3, true); update(); assert(not current().active)
     assert(committed.voiceProvider == 'hybrid' and committed.omniSteps == 16)
   `);
 });
@@ -215,21 +215,45 @@ test('a staged choice prepares nothing until it has stayed unchanged, and rapid 
     settled.bind(api)
     local function step(provider) changed(provider, true); settled.update(true, 'native-menu-1', function() return committed end) end
     -- Cycle through every choice, one per second: none stays long enough.
-    for _, provider in ipairs({3, 1, 2, 3, 1}) do step(provider); clock = clock + 1000 end
+    for _, provider in ipairs({1, 3, 5, 1, 3}) do step(provider); clock = clock + 1000 end
     assert(#publications == 0, 'a choice that kept changing prepared a model')
-    assert(settled.staged() == 'omni:16')
+    assert(settled.staged() == 'omni:16:long')
     -- The last choice stays: after two unchanged seconds it is published once.
-    step(1); assert(#publications == 0, 'published before the settle time')
-    clock = clock + 1000; step(1)
+    step(3); assert(#publications == 0, 'published before the settle time')
+    clock = clock + 1000; step(3)
     assert(#publications == 1 and current().active and current().provider == 'omni' and current().omniSteps == 16)
     -- Moving on keeps the earlier lease alive instead of dropping the worker, then replaces it.
-    clock = clock + 1000; step(3)
+    clock = clock + 1000; step(1)
     assert(#publications == 2 and current().provider == 'omni', 'cycling dropped the prepared choice')
-    clock = clock + 2000; step(3)
+    clock = clock + 2000; step(1)
     assert(current().provider == 'pocket')
     -- Back on the saved choice: staging is cancelled.
     committed.voiceProvider = 'omni'; committed.omniSteps = 16
-    clock = clock + 1000; step(1)
+    clock = clock + 1000; step(3)
     assert(not current().active and settled.staged() == nil)
+  `);
+});
+
+test('the reference length is part of the choice: it is previewed, carried in the lease and matched against the saved one', () => {
+  run(`
+    local module = (function() ${source} end)()
+    assert(#module.CHOICES == 6 and module.CHOICES[1].provider == 'pocket' and module.CHOICES[6].provider == 'convai')
+    assert(module.indexOf({voiceProvider = 'pocket'}) == 1 and module.indexOf({voiceProvider = 'convai'}) == 6)
+    assert(module.indexOf({voiceProvider = 'omni', omniSteps = 16, omniReference = 'short'}) == 2)
+    assert(module.indexOf({voiceProvider = 'omni', omniSteps = 16, omniReference = 'long'}) == 3)
+    assert(module.indexOf({voiceProvider = 'omni', omniSteps = 32, omniReference = 'short'}) == 4)
+    assert(module.indexOf({voiceProvider = 'hybrid', omniSteps = 32}) == 5, 'a save without a reference means long')
+    committed.voiceProvider, committed.omniSteps, committed.omniReference = 'omni', 16, 'long'
+    changed(3, true); update(); assert(#publications == 0, 'the saved choice must not prepare a model')
+    changed(2, true); update()
+    assert(current().active and current().provider == 'omni' and current().omniSteps == 16 and current().omniReference == 'short')
+    changed(4, true); update()
+    assert(current().active and current().omniSteps == 32 and current().omniReference == 'short')
+    changed(5, true); update()
+    assert(current().active and current().omniSteps == 32 and current().omniReference == 'long')
+    changed(1, true); update()
+    assert(current().active and current().provider == 'pocket' and current().omniReference == nil)
+    committed.omniReference = 'short'
+    changed(2, true); update(); assert(not current().active, 'the saved short choice was previewed')
   `);
 });

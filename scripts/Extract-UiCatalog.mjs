@@ -134,6 +134,9 @@ const reviewed = {
     'Unavailable', 'Waiting for voice service', 'Not configured', 'Stopped',
     'Releasing local voice memory', 'Convai voices · Local model unloaded',
     'Changing after the current reply', 'Ready · Unsaved selection',
+    'OmniVoice 16 steps · short reference', 'OmniVoice 16 steps · long reference',
+    'OmniVoice 32 steps · short reference', 'OmniVoice 32 steps · long reference',
+    'Installed', 'Not installed',
   ],
   'mcm.memory': [
     'Choose a character', 'Unavailable', 'Memories can be managed here.',
@@ -157,7 +160,8 @@ const reviewed = {
   ],
   'mcm.validation': [
     'Reopen the manager; that action is no longer available.', 'Choose Above speaker or Dialogue HUD.',
-    'Choose OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS or Convai cloud voice.', 'Choose an eye contact option.', 'That setting is read-only.',
+    'Choose one of the listed companion voices.', 'Requires the optional OmniVoice pack (GPU)', 'Choose 16 or 32 voice steps.',
+    'Choose a short or a long voice reference.', 'Choose an eye contact option.', 'That setting is read-only.',
   ],
   'memory.feedback': [
     'all characters you have talked to', 'the selected character',

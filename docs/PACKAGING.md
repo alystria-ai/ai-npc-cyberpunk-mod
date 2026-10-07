@@ -38,7 +38,8 @@ place the complete MCM ZIP in Runtime or copy a player's MCM state or CET bindin
 
 ## Voice behavior to preserve
 
-- The default selector is **OmniVoice**. The current development registry has
+- The default selector is **Pocket TTS** (shipped with the mod); **OmniVoice** (16 or 32 steps, short or long
+  reference) is an optional GPU pack, see below. The current development registry has
   prepared local references for 75 of 79 profiles; the four unprepared profiles
   use their configured Convai voices. **Convai** selects online voices for all
   characters. The user's saved selection takes priority.
@@ -58,6 +59,23 @@ place the complete MCM ZIP in Runtime or copy a player's MCM state or CET bindin
   while later phrases generate. Preserve these distinct producer paths.
 - Do not include benchmark recordings, generated listening samples, training
   data, the rejected fine-tune or other engines.
+
+## The optional OmniVoice pack (GPU)
+
+Pocket TTS (the distilled student with decoder v2, about 418 MB of weights, CPU) is the voice that ships with the mod. OmniVoice
+is an optional add-on pack for players with a capable CUDA GPU; Settings > Voices greys its four menu entries out with
+"Requires the optional OmniVoice pack (GPU)" until the pack is installed, and a saved Omni choice without it falls back to Pocket
+TTS. The bridge decides by looking for these files (`bridge/omni-pack.mjs`), so the pack is exactly this set:
+
+| Pack component | Where the bridge looks (development layout / portable override) |
+|---|---|
+| Worker Python environment with Torch (CUDA), transformers and the OmniVoice package | `vendor/reference-voicestudio/.venv/Scripts/python.exe` / `CYBERPUNK_CONVAI_PYTHON` |
+| OmniVoice model and audio tokenizer, revision `c5fdb5ccb189668d56333f77ba2629f4cd7535f4` (3.04 GiB on disk) | `<model in the config>/model.safetensors` / `CYBERPUNK_CONVAI_OMNI_MODEL` |
+| Voice adapter (VoiceStudio revision `08a1592e3cb9b4c36beef5fa3185ec2313bb1fea`, reviewed import closure) | `.../backend/services/tts_backend.py` / `CYBERPUNK_CONVAI_OMNI_ADAPTER` |
+
+The two reference configurations the Omni choices read (`local-voices.autobest-short.json`, `...-long.json`) and their
+references are generated per player from their own game files, like Pocket's, and are not part of the pack. The pack is not built
+yet; this only fixes its contents and its detection. The licence notes for the weights and the adapter below apply to the pack.
 
 ## Concrete runtime inventory
 

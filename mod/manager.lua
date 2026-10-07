@@ -17,8 +17,17 @@ local party, partySignature, previousStates = {}, '', {}
 local visible, selectedItem = {}, nil
 local localVoiceState, localVoiceSignature = {}, ''
 local localVoices = {}
--- The voice list, best first: OmniVoice (16 or 32 steps), Pocket TTS, Convai.
-local DEFAULT_VOICE_PROVIDER, DEFAULT_OMNI_STEPS = 'omni', 16
+-- The Companion voices list: Pocket TTS (default), OmniVoice at 16 or 32 steps with a short or a long
+-- reference, Convai. The fallback order inside the bridge stays OmniVoice, Pocket TTS, Convai.
+local DEFAULT_VOICE_PROVIDER, DEFAULT_OMNI_STEPS, DEFAULT_OMNI_REFERENCE = 'pocket', 16, 'long'
+-- The menu text of each OmniVoice choice (also the names used in status lines and fallback notices).
+local OMNI_LABELS = {
+    ['16:short'] = 'OmniVoice 16 steps · short reference',
+    ['16:long'] = 'OmniVoice 16 steps · long reference',
+    ['32:short'] = 'OmniVoice 32 steps · short reference',
+    ['32:long'] = 'OmniVoice 32 steps · long reference',
+}
+local OMNI_PACK_MISSING = 'Requires the optional OmniVoice pack (GPU)'
 local voiceFallbackSeen, voiceFallbackNotice = {}, nil
 local eyeContactHeights = {-0.10, -0.05, 0, 0.05, 0.10}
 local headFollowStrengths = {0, 0.5, 1, 1.5}
@@ -280,9 +289,11 @@ local function isChoice(value, choices)
 end
 
 -- Maps any saved engine name to the nearest current choice. Unknown values
--- take the default. Provider names stay stable so older saves keep working:
--- Pocket TTS was and remains 'pocket', OmniVoice 'omni' (old 'hybrid'), Convai
--- 'convai'. Any Pocket variant name resolves to the one Pocket TTS entry.
+-- take the default (Pocket TTS). Provider names stay stable so older saves keep
+-- working: Pocket TTS was and remains 'pocket', OmniVoice 'omni' (old 'hybrid'),
+-- Convai 'convai'. Any Pocket variant name resolves to the one Pocket TTS entry.
+-- A save from before the short/long choice has no omniReference and migrates to
+-- 'long': whoever chose OmniVoice chose quality, and long is the better match.
 local function normalizeVoiceProvider(value)
     if type(value) ~= 'string' then return DEFAULT_VOICE_PROVIDER end
     local name = value:lower()
@@ -336,6 +347,10 @@ local function loadSettings()
     if settings.omniSteps ~= 16 and settings.omniSteps ~= 32 then
         settings.omniSteps, settingsNeedSave = DEFAULT_OMNI_STEPS, true
     end
+    if settings.omniReference ~= 'short' and settings.omniReference ~= 'long' then
+        settings.omniReference, settingsNeedSave = DEFAULT_OMNI_REFERENCE, true
+    end
+    if type(settings.keepPreparedVoices) ~= 'boolean' then settings.keepPreparedVoices, settingsNeedSave = true, true end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
         if type(settings.enabledByKey[key]) ~= 'boolean' and type(settings.enabled) == 'table'
@@ -388,11 +403,22 @@ end
 
 -- The feedback paths read the already loaded saved choice. Never load files,
 -- query native settings or retain native handles from a menu callback.
--- One of the four voice choices, as the player reads it in Settings.
-function M.voiceLabel(provider, steps)
+-- One of the voice choices, as the player reads it in Settings.
+function M.voiceLabel(provider, steps, reference)
     if provider == 'pocket' then return ui.t('Pocket TTS') end
     if provider == 'convai' then return ui.t('Convai cloud voice') end
-    return ui.t(steps == 32 and 'OmniVoice 32 steps' or 'OmniVoice 16 steps')
+    return ui.t(OMNI_LABELS[(steps == 32 and '32' or '16') .. ':' .. (reference == 'short' and 'short' or 'long')])
+end
+
+-- The optional OmniVoice pack, as the bridge reports it (worker Python, model weights, adapter). Unknown (no fresh
+-- report) counts as installed: Settings never locks a choice because the service has not answered yet.
+function M.omniPack()
+    local pack = type(localVoiceState) == 'table' and localVoiceState.omniPack or nil
+    local fresh = type(localVoiceState.updated) == 'number' and math.abs(os.time() - localVoiceState.updated / 1000) < 15
+    if fresh and type(pack) == 'table' and pack.installed == false then
+        return {installed = false, known = true, missing = pack.missing or {}}
+    end
+    return {installed = true, known = fresh and type(pack) == 'table'}
 end
 
 -- The pending "chosen voice could not run" notice, once. The caller asks only
@@ -402,7 +428,7 @@ function M.takeVoiceFallbackNotice()
     voiceFallbackNotice = nil
     if not pending then return nil end
     return ui.t('{requested} is unavailable. Companions are using {voice} instead.', {
-        requested = M.voiceLabel(pending.from, pending.steps), voice = M.voiceLabel(pending.to)})
+        requested = M.voiceLabel(pending.from, pending.steps, pending.reference), voice = M.voiceLabel(pending.to)})
 end
 
 function M.developerMode()
@@ -532,7 +558,8 @@ local function updateLocalVoice()
         local id = fallback.from .. '>' .. fallback.to
         if not voiceFallbackSeen[id] then
             voiceFallbackSeen[id] = true
-            voiceFallbackNotice = {from = fallback.from, to = fallback.to, steps = state.requestedOmniSteps}
+            voiceFallbackNotice = {from = fallback.from, to = fallback.to, steps = state.requestedOmniSteps,
+                reference = state.requestedOmniReference}
         end
         signature = signature .. ':' .. id
     elseif fresh then
@@ -746,7 +773,7 @@ local function detail(player, item)
             .. '\n\nConversation: ' .. (M.profileEnabled(profile.key) and 'on' or 'off')
             .. '\nCopies in party: ' .. copyCount(profile.key)
         if localVoices[profile.key] and (localVoiceState.provider == 'pocket' or localVoiceState.provider == 'omni') then
-            body = body .. '\nVoice: ' .. M.voiceLabel(localVoiceState.provider, localVoiceState.omniSteps)
+            body = body .. '\nVoice: ' .. M.voiceLabel(localVoiceState.provider, localVoiceState.omniSteps, localVoiceState.omniReference)
         elseif profile.voiceName then body = body .. '\nVoice: ' .. clean(profile.voiceName, 140) end
         if not item.definition then body = body .. '\nChoose a model in Models, then assign this profile in Party.' end
         primary, primaryLabel, primaryEnabled = 'spawn:' .. profile.key, 'Add a copy', item.definition ~= nil and #party < 8
@@ -927,6 +954,8 @@ function M.snapshot(player)
             headFollowStrength = settings.headFollowStrength,
             voiceProvider = settings.voiceProvider,
             omniSteps = settings.omniSteps,
+            omniReference = settings.omniReference,
+            keepPreparedVoices = settings.keepPreparedVoices,
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         localVoice = localVoiceState,
@@ -964,7 +993,8 @@ function M.applySettings(player, values)
     for key, value in pairs(settings.relationshipModes) do nextSettings.relationshipModes[key] = value end
     for key, value in pairs(values) do
         if key == 'voice' or key == 'subtitles' or key == 'followUpQuestions' or key == 'developerMode'
-            or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby' then
+            or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
+            or key == 'keepPreparedVoices' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'relationshipModes' then
@@ -984,12 +1014,17 @@ function M.applySettings(player, values)
         elseif key == 'voiceProvider' then
             if value == 'hybrid' then value = 'omni' end
             if value ~= 'pocket' and value ~= 'omni' and value ~= 'convai' then
-                return false, 'Choose OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS or Convai cloud voice.'
+                return false, 'Choose one of the listed companion voices.'
             end
+            -- An OmniVoice choice cannot be saved while the optional pack is missing; the choice never takes effect.
+            if value == 'omni' and not M.omniPack().installed then return false, OMNI_PACK_MISSING end
             nextSettings.voiceProvider = value
         elseif key == 'omniSteps' then
             if value ~= 16 and value ~= 32 then return false, 'Choose 16 or 32 voice steps.' end
             nextSettings.omniSteps = value
+        elseif key == 'omniReference' then
+            if value ~= 'short' and value ~= 'long' then return false, 'Choose a short or a long voice reference.' end
+            nextSettings.omniReference = value
         elseif key == 'eyeContactHeight' then
             if not isChoice(value, eyeContactHeights) then return false, 'Choose an eye-contact height from the available settings.' end
             nextSettings.eyeContactHeight = value
