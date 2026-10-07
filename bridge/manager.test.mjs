@@ -77,7 +77,6 @@ const managerFixture = `
   function api.registerDefinition(key, value) defs[key] = value; return true end
   function api.list() return members end
   function api.spawn(key)
-    if #members >= 8 then return nil, 'There is no room for another companion. Dismiss one first.' end
     nextSerial = nextSerial + 1
     spawned[#spawned + 1] = key
     local def = assert(defs[key])
@@ -147,22 +146,23 @@ test('MCM party invitations reserve distinct copies, cancel without spawning and
     local queue = (function() ${queueSource} end)().new(api)
     assert(queue.invite('johnny-silverhand') == false)
     queue.bind('player-1')
-    for _ = 1, 8 do assert(queue.invite('johnny-silverhand')) end
-    assert(#spawned == 0 and queue.count() == 8 and #queue.list() == 8)
-    assert(queue.invite('person-1') == false)
+    -- The party has no size limit: well past the eight formation places every invitation is accepted.
+    for _ = 1, 12 do assert(queue.invite('johnny-silverhand')) end
+    assert(#spawned == 0 and queue.count() == 12 and #queue.list() == 12)
+    assert(queue.invite('person-1') and queue.count() == 13)
     local first, second = queue.list()[1].id, queue.list()[2].id
     assert(first ~= second and queue.list()[1].state == 'queued')
-    assert(queue.dismiss(first) and queue.count() == 7 and #spawned == 0)
+    assert(queue.dismiss(first) and queue.count() == 12 and #spawned == 0)
     assert(queue.assign(second, 'person-1', 'Person 01'))
     queue.flush()
-    assert(#spawned == 7 and #members == 7 and members[1].profileKey == 'person-1')
-    queue.flush(); assert(#spawned == 7, 'menu operation replayed')
+    assert(#spawned == 12 and #members == 12 and members[1].profileKey == 'person-1')
+    queue.flush(); assert(#spawned == 12, 'menu operation replayed')
     queue.bind(nil); queue.bind('player-2'); queue.flush()
-    assert(#spawned == 7)
+    assert(#spawned == 12)
   `);
 });
 
-test('MCM dismissals free planned places, cannot undo into an overfull party and cleanly report world failures', () => {
+test('MCM dismissals free planned places, can be undone at any party size and cleanly report world failures', () => {
   run(`${managerFixture}
     manager.configure(api, profiles)
     local queue = (function() ${queueSource} end)().new(api)
@@ -171,7 +171,10 @@ test('MCM dismissals free planned places, cannot undo into an overfull party and
     local id = queue.list()[1].id
     assert(queue.dismiss(id) and #members == 8 and queue.count() == 7)
     assert(queue.invite('person-1') and queue.count() == 8)
-    assert(queue.undoDismiss(id) == false)
+    -- A dismissal can be undone however large the party is.
+    assert(queue.undoDismiss(id) == true and queue.count() == 9)
+    assert(queue.list()[1].state ~= 'leaving')
+    assert(queue.dismiss(id) and queue.count() == 8)
     assert(queue.list()[1].state == 'leaving')
     queue.flush()
     assert(#members == 8 and members[8].key == 'person-1')
@@ -179,11 +182,14 @@ test('MCM dismissals free planned places, cannot undo into an overfull party and
     queue.dismiss(queue.list()[1].id)
     local oldDismiss = api.dismiss
     api.dismiss = function() return false, 'World unavailable' end
+    local oldSpawn = api.spawn
+    api.spawn = function() return nil, 'The game could not create a copy of this model.' end
     queue.invite('person-2')
     queue.flush()
     assert(#members == 8 and #spawned == 9)
-    assert(queue.list()[9].state == 'failed' and queue.message():find('no room', 1, true))
+    assert(queue.list()[9].state == 'failed' and queue.message():find('could not create', 1, true))
     queue.flush(); assert(#spawned == 9, 'failed request must not retry every frame')
+    api.spawn = oldSpawn
     api.dismiss = oldDismiss
     queue.bind(nil); assert(#queue.list() == 8, 'loading a save cancels pending work')
   `);
@@ -2383,28 +2389,28 @@ test('dismissing removes the row at once while paused, defers the despawn, and r
   `);
 });
 
-test('a phone dismissal and a menu dismissal share one optimistic path and one companion limit that is never displayed', () => {
+test('a phone dismissal and a menu dismissal share one optimistic path and a full eight-place party never shows or enforces a limit', () => {
   run(`${mcmFixture}
     for _ = 1, 8 do api.spawn('johnny-silverhand') end
     for _, member in ipairs(members) do member.state = 'ready' end
     assert(invoke('tab:characters').ok)
-    -- A full party never shows a limit; the invitation is refused with a message.
+    -- There is no party size limit: a full party neither shows one nor refuses a ninth invitation.
     local invite = row('invite:johnny-silverhand')
     assert(not invite.disabled and invite.type == 'action')
-    local refused = registered.invokeAction('manager', 'invite:johnny-silverhand', {})
-    assert(refused.ok == false and not refused.error:find('8', 1, true) and not refused.error:lower():find('eight', 1, true), refused.error)
-    assert(not (loaded.categories[1].description or ''):lower():find('eight', 1, true))
     for _, section in ipairs(loaded.categories) do
       assert(not (section.description or ''):lower():find('eight', 1, true) and not (section.description or ''):find('8', 1, true))
     end
+    local ninth = registered.invokeAction('manager', 'invite:johnny-silverhand', {})
+    assert(ninth.ok == true, ninth.error)
+    mcm.update(player, true); assert(#members == 9)
+    for _, member in ipairs(members) do member.state = 'ready' end
     assert(invoke('characters:back').ok and invoke('tab:party').ok)
-    assert(row('dismiss:live:8'))
+    assert(row('dismiss:live:9'))
     local accepted, message, dismissedId = mcm.party().dismissCharacter('johnny-silverhand')
-    assert(accepted == true and dismissedId == 'live:8' and #members == 8)
+    assert(accepted == true and dismissedId == 'live:9' and #members == 9)
     loaded = registered.loadMod('manager')
-    assert(not row('dismiss:live:8') and row('dismiss:live:7'), 'a phone dismissal left its row on the page')
-    mcm.update(player, true); assert(#members == 7)
-    -- The freed place is usable at once.
+    assert(not row('dismiss:live:9') and row('dismiss:live:8'), 'a phone dismissal left its row on the page')
+    mcm.update(player, true); assert(#members == 8)
     assert(invoke('party:back').ok and invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
   `);
 });
@@ -2771,13 +2777,15 @@ test('Pocket TTS is the default while saved choices migrate to the nearest voice
   `);
 });
 
-test('party uses actual copy serials, assigns and clears profiles, reports asynchronous failures, and enforces the party limit', () => {
+test('party uses actual copy serials, assigns and clears profiles, reports asynchronous failures, and has no party size limit', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
     for _ = 1, 8 do request('spawn:person-1') end
     assert(#members == 8 and #spawned == 8)
+    -- A ninth copy is added: the party has no size limit and the page shows no capacity.
     request('spawn:person-1')
-    assert(#members == 8 and #spawned == 8 and player.feedback:find('no room', 1, true))
+    assert(#members == 9 and #spawned == 9 and not (player.feedback or ''):find('no room', 1, true))
+    assert(player.partyStatus == 'Party: 9', tostring(player.partyStatus))
     request('tab:party')
     assert(#player.rows == 8 and player.detail[3] == 'dismiss:1')
     request('assign:1'); request('search:Johnny')
@@ -2792,9 +2800,9 @@ test('party uses actual copy serials, assigns and clears profiles, reports async
     manager.update(player, 0.6)
     assert(player.feedback:find('No compatible AI controller.', 1, true))
     request('dismiss:2')
-    assert(#members == 7 and members[2].serial == 3)
-    request('spawn:person-1'); assert(#members == 8 and members[8].serial == 9)
-    request('dismiss:9999'); assert(#members == 8)
+    assert(#members == 8 and members[2].serial == 3)
+    request('spawn:person-1'); assert(#members == 9 and members[9].serial == 10)
+    request('dismiss:9999'); assert(#members == 9)
     player.hash = 'player-2'; manager.update(player, 0.1)
     assert(player.tab == 'characters' and player.search == '')
   `);

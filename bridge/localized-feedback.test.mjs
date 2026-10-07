@@ -15,10 +15,8 @@ const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const translations = {
   'Load a save before inviting a companion.': 'Chargez une sauvegarde avant une invitation.',
   'That character model is unavailable.': 'Ce modèle est indisponible.',
-  'There is no room for another companion. Dismiss one first.': 'Plus de place pour un compagnon. Renvoyez-en un.',
   'That copy is no longer in your party.': 'Cette copie a quitté le groupe.',
   'That dismissal is no longer pending.': 'Ce renvoi n’est plus en attente.',
-  'Cancel an invitation first; the party is full.': 'Annulez une invitation ; le groupe est complet.',
   'Choose an active or invited copy.': 'Choisissez une copie active ou invitée.',
   'Companion preparation is unavailable.': 'La préparation est indisponible.',
   'Companion preparation returned an invalid state.': 'État de préparation invalide.',
@@ -273,12 +271,11 @@ test('French local validation errors remain separate from opaque provider errors
   assert(not ok and message == 'Ce renvoi n’est plus en attente.')
   ok, message = q.assign('missing', 'panam', profileName)
   assert(not ok and message == 'Choisissez une copie active ou invitée.')
-  for i = 1, 8 do assert(q.invite('known')) end
-  ok, message = q.invite('known')
-  assert(not ok and message == 'Plus de place pour un compagnon. Renvoyez-en un.')
+  -- The party has no size limit: past eight copies an invitation and an undone dismissal still succeed.
+  for i = 1, 9 do assert(q.invite('known')) end
   env.members[1] = {serial = 99, name = actorName, state = 'ready'}
   assert(q.dismiss('live:99')); ok, message = q.undoDismiss('live:99')
-  assert(not ok and message == 'Annulez une invitation ; le groupe est complet.')
+  assert(ok, tostring(message))
   local raw = 'Microphone unavailable. Check your Windows input device.'
   local failed = makeParty(true); failed.prepareError = raw
   ok, message = failed.queue.invite('known')

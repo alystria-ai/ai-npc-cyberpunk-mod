@@ -70,7 +70,6 @@ local companions = {
 function companions.spawn(key, job)
     local status = readiness.status(job)
     assert(status.state == 'ready' or status.state == 'model-only', 'CreateEntity crossed preparation gate')
-    if #members >= 8 then return nil, 'There is no room for another companion. Dismiss one first.' end
     nextSerial = nextSerial + 1
     spawned[#spawned + 1] = copy(job)
     members[#members + 1] = {serial = nextSerial, key = key, name = definitions[key].name,
@@ -282,9 +281,9 @@ queue.flush()
 assert(#request().invitations == 0 and queue.message():find('Actor attachment failed', 1, true))
 `));
 
-test('eight reservations retain independent copy membership and returned rows cannot mutate jobs or actors', () => run(`
-for _ = 1, 8 do assert(queue.invite('judy')) end
-assert(queue.count() == 8 and #request().invitations == 8 and queue.invite('raw') == false)
+test('twelve reservations retain independent copy membership and returned rows cannot mutate jobs or actors', () => run(`
+for _ = 1, 12 do assert(queue.invite('judy')) end
+assert(queue.count() == 12 and #request().invitations == 12)
 local copies = queue.list()
 local firstId, secondId = copies[1].id, copies[2].id
 assert(firstId ~= secondId)
@@ -292,19 +291,21 @@ copies[1].id, copies[1].profileKey, copies[1].revision = 'changed', 'johnny-silv
 assert(queue.list()[1].id == firstId and queue.list()[1].profileKey == 'judy-alvarez')
 assert(queue.assign(secondId, 'johnny-silverhand', 'Johnny'))
 assert(request().invitations[1].revision == 1 and request().invitations[2].revision == 2)
-assert(queue.dismiss(firstId) and queue.count() == 7 and #request().invitations == 7)
-assert(queue.invite('raw') and queue.count() == 8 and queue.invite('raw') == false)
+assert(queue.dismiss(firstId) and queue.count() == 11 and #request().invitations == 11)
+assert(queue.invite('raw') and queue.count() == 12)
 receipt('ready'); readiness.update(); queue.flush()
-assert(#spawned == 8 and #members == 8 and #request().invitations == 8)
+assert(#spawned == 12 and #members == 12 and #request().invitations == 12)
 assert(members[1].profileKey == 'johnny-silverhand' and members[2].profileKey == 'judy-alvarez')
 local liveCopy = queue.list()[1]; liveCopy.profileKey, liveCopy.state = nil, 'failed'
 assert(members[1].profileKey == 'johnny-silverhand' and members[1].state == 'spawning')
 for _, member in ipairs(members) do member.state = 'ready' end
-queue.flush(); assert(#request().invitations == 0 and queue.count() == 8)
-assert(queue.dismiss('live:1') and queue.count() == 7)
-assert(queue.invite('raw') and queue.count() == 8 and queue.undoDismiss('live:1') == false)
+queue.flush(); assert(#request().invitations == 0 and queue.count() == 12)
+assert(queue.dismiss('live:1') and queue.count() == 11)
+assert(queue.invite('raw') and queue.count() == 12)
+-- Undoing a dismissal is never refused for the size of the party.
+assert(queue.undoDismiss('live:1') == true and queue.count() == 13)
 queue.flush()
-assert(#members == 8 and #spawned == 9)
+assert(#members == 13 and #spawned == 13)
 `));
 
 test('injected file and codec fixtures and runtime directory use the same reservation protocol', () => run(`

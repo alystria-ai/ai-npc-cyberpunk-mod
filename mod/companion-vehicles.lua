@@ -199,7 +199,12 @@ local function allocate(s,player)
     end
     local queue=pending(s)
     if #queue==0 or s.clock<s.spawnAt or s.spawnFailures>=MAX_ATTEMPTS then return end
-    if #s.cars>=8 then s.error='Party vehicle limit reached.'; return end
+    -- Runaway guard on cars the mod may create, never a party limit: eight cars
+    -- seat 31 companions (three beside V, four per car), and the guard grows with
+    -- the number of people travelling so a larger party still gets its cars.
+    local travelling=0
+    for _ in pairs(s.people) do travelling=travelling+1 end
+    if #s.cars>=math.max(8,2+math.ceil(travelling/4)) then s.error='Party vehicle limit reached.'; return end
     local choice,driver=catalog.choose(queue)
     if s.spawnAttempts>0 then choice=catalog.fallback end
     local attempts,at=s.spawnAttempts,s.spawnAt

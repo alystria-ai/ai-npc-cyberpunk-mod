@@ -47,7 +47,6 @@ export const FOLLOW_UNAVAILABLE = Object.freeze({
   working: 'you have to keep working here',
   vehicle: 'you are in a vehicle right now',
   busy: 'you are busy with something else right now',
-  'party-full': 'V already has as many companions as can travel together',
   'already-here': 'it is not possible for you to come along right now',
 });
 export const followActionName = offer => token(offer?.token) ? `${FOLLOW_ACTION} ${offer.token}` : null;

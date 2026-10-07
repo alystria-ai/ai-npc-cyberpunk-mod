@@ -6,6 +6,9 @@ import {RealtimeHost} from './realtime-host.mjs';
 const flush = () => new Promise(done => setImmediate(done));
 const deferred = () => { let resolve, reject; const promise = new Promise((done, fail) => { resolve = done; reject = fail; }); return {promise, resolve, reject}; };
 const profiles = ['alex', 'judy', 'panam', 'kerry', 'viktor', 'misty', 'river', 'jackie'];
+// Characters beyond the eight warm private connections (the party has no size limit).
+const extraProfiles = ['evelyn', 'claire', 'wakako', 'rogue', 'takemura', 'saul', 'goro', 'hanako'];
+const everyone = [...profiles, ...extraProfiles];
 function fixture({canWarm = () => true} = {}) {
   let time = 100000;
   const live = new Map(), calls = [], reports = [], pending = [], refreshes = [];
@@ -38,7 +41,7 @@ function fixture({canWarm = () => true} = {}) {
     },
   };
   const connections = new PartyConnections({host, now: () => time, canWarm,
-    isKnown: profile => [...profiles, 'nearby'].includes(profile),
+    isKnown: profile => [...everyone, 'nearby'].includes(profile),
     configFor: (profile, scope) => ({key: 'secret-key', characterId: profile, scope, sessionId: 'secret-session'}),
     onState: state => reports.push(state),
   });
@@ -47,10 +50,13 @@ function fixture({canWarm = () => true} = {}) {
   return {connections, host, live, calls, reports, pending, refreshes, heartbeat, step, now: () => time};
 }
 
-test('party protocol preserves slot order, deduplicates profiles, and rejects oversized or future snapshots', () => {
+test('party protocol preserves slot order, deduplicates profiles, has no size limit and rejects future snapshots', () => {
   assert.deepEqual(parsePartyConnections({updated: 100, profiles: ['panam', 'alex', 'panam']}, 100), {updated: 100, profiles: ['panam', 'alex']});
-  for (const bad of [{}, {updated: 6000, profiles: []}, {updated: 100, profiles: [...profiles, 'extra']},
+  for (const bad of [{}, {updated: 6000, profiles: []},
     {updated: 100, profiles: ['bad/key']}, {updated: '100', profiles: []}]) assert.equal(parsePartyConnections(bad, 100), null);
+  // A party past the eight formation places is a valid snapshot, not a rejected one.
+  const large = Array.from({length: 40}, (_, index) => 'member-' + index);
+  assert.deepEqual(parsePartyConnections({updated: 100, profiles: large}, 100), {updated: 100, profiles: large});
 });
 
 test('spawn warms without a composer, duplicate copies reuse identity, dismissal of last copy closes its page', async () => {
@@ -204,13 +210,61 @@ test('invitation retention hands the same private page to party membership and r
   f.heartbeat([]); await f.step(); assert.equal(f.live.size, 0);
 });
 
-test('eight party and invitation identities fit the protected allocation and ninth reservation fails', async () => {
+test('eight party and invitation identities fit the protected allocation and a ninth reservation is accepted without exceeding it', async () => {
   const f = fixture(); f.heartbeat(profiles.slice(0, 5));
   await f.connections.setInvitations(profiles.slice(5));
   assert.equal(f.connections.plan().length, CONNECTION_LIMIT);
   assert.equal(f.connections.plan().filter(row => row.scope === 'private').length, 8);
-  assert.throws(() => f.connections.setInvitations([...profiles.slice(5), 'nearby']), /limit/);
-  assert.deepEqual(f.connections.invitations, profiles.slice(5));
+  // There is no party limit: the ninth reservation is accepted. A pending invitation outranks the member
+  // who was talked to least recently, so the warm private places stay at eight.
+  await f.connections.setInvitations([...profiles.slice(5), 'nearby']);
+  assert.deepEqual(f.connections.invitations, [...profiles.slice(5), 'nearby']);
+  const specs = f.connections.plan(), privateSpecs = specs.filter(row => row.scope === 'private');
+  assert.equal(privateSpecs.length, 8); assert(specs.length <= CONNECTION_LIMIT);
+  assert(privateSpecs.some(spec => spec.profile === 'nearby' && spec.role === 'invitation'));
+  assert(!privateSpecs.some(spec => spec.profile === 'viktor'), 'the last party member in list order connects lazily');
+  await f.connections.clear();
+});
+
+test('a party past the warm limit keeps eight private connections, opens the others on talk and keeps the most recently talked-to warm', async () => {
+  const f = fixture(); const party = everyone.slice(0, 12);
+  f.heartbeat(party);
+  let specs = f.connections.plan(), warm = specs.filter(spec => spec.scope === 'private');
+  assert.deepEqual(warm.map(spec => spec.profile), profiles); assert(warm.every(spec => spec.role === 'party'));
+  assert(specs.length <= CONNECTION_LIMIT);
+  // V talks to a member who is not warm: the request takes an optional place, never one of the protected eight.
+  await f.connections.setRequest({profileKey: 'wakako'});
+  specs = f.connections.plan(); warm = specs.filter(spec => spec.scope === 'private');
+  assert.equal(warm.length, 9); assert.equal(warm.at(-1).profile, 'wakako'); assert.equal(warm.at(-1).role, 'party');
+  assert(profiles.every(profile => warm.some(spec => spec.profile === profile)));
+  assert(specs.length <= CONNECTION_LIMIT);
+  f.connections.used({profileKey: 'wakako'}, {connectionMs: 5});
+  await f.connections.setRequest(null);
+  // The conversation partner is now the most recently used: it keeps a warm place and the idlest member gives
+  // theirs up, still eight private connections in all.
+  warm = f.connections.plan().filter(spec => spec.scope === 'private');
+  assert.equal(warm.length, 8); assert(warm.some(spec => spec.profile === 'wakako' && spec.role === 'party'));
+  assert(!warm.some(spec => spec.profile === 'jackie'));
+  // A member who leaves is forgotten.
+  f.heartbeat(party.filter(profile => profile !== 'wakako'));
+  assert(!f.connections.lastUsed.has('wakako'));
+  await f.connections.clear();
+});
+
+test('an invitation past the warm places waits for a place instead of failing, and takes it as soon as an earlier one joins', async () => {
+  const f = fixture(); f.heartbeat([]);
+  const wanted = everyone.slice(0, 9);
+  await f.connections.setInvitations(wanted);
+  assert.equal(f.connections.plan().filter(spec => spec.scope === 'private').length, 8);
+  const waiting = await f.connections.warmInvitation(wanted[8]);
+  assert.equal(waiting.gated, true); assert.equal(waiting.ready, false);
+  assert.equal((await f.connections.invitationReadiness(wanted[8])).ready, false);
+  // The first invitation joins the party and stops being an invitation: the ninth takes a place, and the
+  // new member (the only one who is not pending) connects lazily from then on.
+  f.heartbeat([wanted[0]]); await f.connections.setInvitations(wanted.slice(1));
+  const warm = f.connections.plan().filter(spec => spec.scope === 'private').map(spec => spec.profile);
+  assert.deepEqual(warm, wanted.slice(1));
+  assert.equal((await f.connections.warmInvitation(wanted[8])).ready, true);
   await f.connections.clear();
 });
 

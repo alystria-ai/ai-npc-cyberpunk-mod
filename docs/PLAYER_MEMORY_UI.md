@@ -58,7 +58,7 @@ messages setting has been removed.
 
 ## Invitation preparation
 
-Inviting a character reserves one of the eight party places and starts preparation
+Inviting a character reserves a place in the party (which has no size limit) and starts preparation
 while the menu is open. The companion count includes those reservations.
 The manager banner shows **Preparing {name}…**, **Connecting {name}…**, then **ready to
 join**. **Current party** lists each pending copy as a single row with **Cancel

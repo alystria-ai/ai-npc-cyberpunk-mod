@@ -513,7 +513,6 @@ function M.new(companions, readiness, options)
         if not owner then return false, ui.t('Load a save before inviting a companion.') end
         local definition = companions.definition(key)
         if not definition then return false, ui.t('That character model is unavailable.') end
-        if Q.count() >= 8 then return false, ui.t('There is no room for another companion. Dismiss one first.') end
         sequence = sequence + 1
         local id = 'queued:' .. sequence
         if readiness and readiness.newId then
@@ -607,7 +606,6 @@ function M.new(companions, readiness, options)
         if not member or not member.serial or not leaves[member.serial] then
             return false, ui.t('That dismissal is no longer pending.')
         end
-        if Q.count() >= 8 then return false, ui.t('Cancel an invitation first; the party is full.') end
         leaves[member.serial] = nil
         feedback = ui.t('{name} will stay in the party.', {name = member.name})
         return true, feedback

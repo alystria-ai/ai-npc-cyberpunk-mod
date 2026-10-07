@@ -1,7 +1,10 @@
 -- Reservations prepare in the bridge while menus are open. A fresh, exact
 -- receipt is the permission to create an actor; this module never creates one.
 local M = {}
-local MAX_ROWS, RECEIPT_AGE, SERVICE_TIMEOUT = 8, 2500, 15000
+local RECEIPT_AGE, SERVICE_TIMEOUT = 2500, 15000
+-- A receipt row is a few hundred bytes. The allowance for a receipt file grows with the reservations
+-- in flight, so a larger party is never rejected for its size.
+local RECEIPT_BYTES_BASE, RECEIPT_BYTES_PER_ROW = 64 * 1024, 1024
 local MAX_INTEGER = 9007199254740991
 
 local function integer(value, minimum)
@@ -176,7 +179,6 @@ function M.new(options)
         if previous and job.revision <= previous.revision then
             return false, 'That invitation revision has already been prepared.'
         end
-        if not previous and #order >= MAX_ROWS then return false, 'Eight invitations are already reserved.' end
         if not previous then order[#order + 1] = job.id end
         local row = {id = job.id, revision = job.revision, modelKey = modelKey, profileKey = job.profileKey,
             worldToken = boundary.worldToken, generation = boundary.generation, phase = 'preparing', started = stamp}
@@ -213,7 +215,7 @@ function M.new(options)
             local found, count, valid, seen = nil, 0, true, {}
             for key, candidate in pairs(receipt.invitations) do
                 count = count + 1
-                if not integer(key, 1) or key > MAX_ROWS or type(candidate) ~= 'table'
+                if not integer(key, 1) or type(candidate) ~= 'table'
                     or not token(candidate.id, 240) or not integer(candidate.revision, 1)
                     or not token(candidate.modelKey, 160) or (candidate.profileKey ~= nil and not profile(candidate.profileKey))
                     or not ({memory = true, connecting = true, ready = true, error = true})[candidate.state] then valid = false; break end
@@ -225,7 +227,7 @@ function M.new(options)
                 end
             end
             for index = 1, count do if receipt.invitations[index] == nil then valid = false; break end end
-            if valid and count <= MAX_ROWS and found then
+            if valid and found then
                 if found.state == 'error' then
                     return failed(type(found.error) == 'string' and found.error:sub(1, 300) or 'Companion preparation failed.')
                 end
@@ -264,7 +266,7 @@ function M.new(options)
         if owner == nil or not boundary or not stamp then receipt = nil; return end
         local called, raw = pcall(read, receiptPath)
         receipt = nil
-        if called and type(raw) == 'string' and #raw <= 64 * 1024 then
+        if called and type(raw) == 'string' and #raw <= RECEIPT_BYTES_BASE + #order * RECEIPT_BYTES_PER_ROW then
             local decoded, value = pcall(decode, raw)
             if decoded and type(value) == 'table' then receipt = value end
         end

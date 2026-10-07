@@ -17,7 +17,7 @@ Why not give the live NPC `AIFollowerRole`:
 - **Quest state.** Changing a quest or community actor's AI role can break the scripts that own it. The copy has no quest identity. The original is left alone apart from visibility, which is runtime-only and is reset by any load.
 - **Persistence and duplicates.** Copies are created with `persistState`/`persistSpawn` false, so after a load there is no party and the original is visible again. Nothing is saved.
 
-The copy goes through the same invitation path as a Characters-page summon. It uses the same party limit (8), duplicate rules, Current party row, Dismiss, fast travel, vehicles and tactics.
+The copy goes through the same invitation path as a Characters-page summon. The party has no size limit (see Party size in `docs/MANAGER_UI.md`). It uses the same duplicate rules, Current party row, Dismiss, fast travel, vehicles and tactics.
 
 ## Safety checks (`mod/companion-adoption.lua`)
 
@@ -33,7 +33,6 @@ Follow is offered only when every check reads cleanly. A signal that cannot be r
 | `IsHostile()` | `hostile` |
 | Mounted in a vehicle | `vehicle` |
 | Already a vanilla companion, has any AI role, no AI, a child | `busy` |
-| Party (members plus pending invitations) already 8 | `party-full` |
 | A named character already in the party or already being adopted | `already-here` |
 
 Generic people (residents, archetypes) may follow more than once, because each body is a different person. A named character cannot. The same checks run again when the action arrives and once more just before the copy is placed. If the original has walked more than 15 m away, or a quest has picked it up in the meantime, the reservation is released with a notice and nothing is hidden.
@@ -88,5 +87,5 @@ Install: CET reload for `mod/companion-adoption.lua` (new), `init.lua`, `compani
 7. **Group chat** with two companions: "Panam, you can go home". Only Panam leaves, after the round. "Both of you, go home" makes both leave.
 8. **Partner role**: after a follow, `probe.log` shows 'partner ... joined the party', and the party connection is ready without a second warm-up.
 9. **Ending cases**: fast travel with an adopted member (it returns with the party, wearing the same appearance), riding in a car, parting 500 m from the original's home, saving and loading (no party, original visible).
-10. **Party limit**: with 8 members, "come with me" is declined (`party-full`).
+10. **Large party**: with 8 or more members, "come with me" is still accepted (there is no `party-full` reason). The copy takes the next formation place behind the group and the Current party list grows.
 11. **Crowd pedestrian**: once V is 50 m away the original pedestrian is visible again, while the copy keeps following.

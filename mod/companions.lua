@@ -264,7 +264,6 @@ local function spawnCopy(key, invitation, returning)
             return nil, checked and reason or 'Companion preparation is unavailable.'
         end
     end
-    if not returning and #entries >= #slots then return nil, 'There is no room for another companion. Dismiss one first.' end
     local player = Game.GetPlayer()
     local system = Game.GetDynamicEntitySystem()
     if not player or not system or not system:IsReady() then return nil, 'World is not ready' end
@@ -283,13 +282,18 @@ local function spawnCopy(key, invitation, returning)
     local occupied, lanes = {}, {}
     for _, entry in ipairs(entries) do occupied[entry.slot] = true; lanes[entry.lane or entry.slot] = true end
     local freeSlot, freeLane=returning and returning.slot,returning and returning.lane
-    for slot = 1, #slots do
-        if not freeSlot and not occupied[slot] then freeSlot = slot; break end
+    -- The party has no size limit: the lowest unused place and formation lane,
+    -- however many members already stand in the group.
+    local slot=1
+    while not freeSlot do
+        if not occupied[slot] then freeSlot = slot end
+        slot = slot + 1
     end
-    for slot = 1, #slots do
-        if not freeLane and not lanes[slot] then freeLane = slot; break end
+    slot=1
+    while not freeLane do
+        if not lanes[slot] then freeLane = slot end
+        slot = slot + 1
     end
-    if not freeSlot then return nil, 'Party is full' end
     local body=returning and returning.clearance or placement.profile(definition,key)
     -- An adopted world character's copy takes the original's place when that
     -- spot passes the same checks; otherwise the usual nearby search applies.
@@ -996,7 +1000,9 @@ end
 local function reassignReversal(order)
     -- On an actual sustained U-turn, friends can trade left/right virtual lanes
     -- instead of crossing through V to preserve a mathematical slot.
-    for pair=1,4 do
+    local lastLane=0
+    for _,entry in ipairs(order) do lastLane=math.max(lastLane,entry.lane or 0) end
+    for pair=1,math.ceil(lastLane/2) do
         local left,right
         for _,entry in ipairs(order) do
             if entry.lane==pair*2-1 then left=entry end

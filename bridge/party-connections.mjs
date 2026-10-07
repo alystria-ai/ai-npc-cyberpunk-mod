@@ -1,7 +1,11 @@
 import {abortable, throwIfCancelled, transportKey} from './transport-pool.mjs';
 
-export const PARTY_LIMIT = 8;
-export const CONNECTION_LIMIT = PARTY_LIMIT + 3;
+// The party itself has no size limit. This is the technical bound: how many party members and pending
+// invitations keep a private Convai connection (a browser page) warm at once. Further members connect
+// lazily when V talks to them (the request target takes an optional slot, see plan()), and the least
+// recently talked-to member's connection is the one released. Group chat keeps its own three slots.
+export const WARM_PARTY_LIMIT = 8;
+export const CONNECTION_LIMIT = WARM_PARTY_LIMIT + 3;
 // Characters prepared ahead by "Auto-connect nearby characters" (bridge/nearby-warm.mjs).
 export const NEARBY_LIMIT = 2;
 // Conversation partners: world characters V just talked to (mod/auto-connect.lua), kept warm outside the two
@@ -11,7 +15,7 @@ export const connectionKey = (profile, scope) => JSON.stringify([profile, scope]
 
 export function parsePartyConnections(value, now = Date.now()) {
   if (!value || !Number.isSafeInteger(value.updated) || value.updated < 0 || value.updated > now + 5000
-      || !Array.isArray(value.profiles) || value.profiles.length > PARTY_LIMIT
+      || !Array.isArray(value.profiles)
       || value.profiles.some(profile => typeof profile !== 'string' || !/^[a-z0-9-]{1,80}$/.test(profile))) return null;
   return {updated: value.updated, profiles: [...new Set(value.profiles)]};
 }
@@ -26,7 +30,11 @@ export class PartyConnections {
     this.invitations = []; this.retiring = new Map(); this.retirementDebt = new Map();
     this.entries = new Map(); this.composer = this.request = null; this.nearby = []; this.partners = [];
     this.nextStart = 0; this.reconciling = null; this.revision = 0; this.paused = false;
+    // Recency of use per profile (a counter, so ties and clock jumps cannot reorder anything). It only decides
+    // whose connection stays warm once the party is larger than WARM_PARTY_LIMIT.
+    this.lastUsed = new Map(); this.useClock = 0;
   }
+  touch(profile) { this.lastUsed.set(profile, ++this.useClock); }
   emit() { void Promise.resolve(this.onState(this.diagnostic())).catch(() => {}); }
   ingest(value) {
     const snapshot = parsePartyConnections(value, this.now());
@@ -36,6 +44,7 @@ export class PartyConnections {
     this.profiles = snapshot.profiles; this.updated = snapshot.updated;
     this.stale = this.now() - snapshot.updated > this.staleMs;
     if (this.stale) { this.composer = this.request = null; this.nearby = []; this.partners = []; }
+    for (const profile of removed) this.lastUsed.delete(profile);
     for (const field of ['composer', 'request']) {
       if (this[field]?.audience.some(profile => removed.includes(profile))) this[field] = null;
     }
@@ -91,20 +100,31 @@ export class PartyConnections {
     return this.reconcile();
   }
   setInvitations(profiles) {
-    if (!Array.isArray(profiles) || profiles.length > PARTY_LIMIT
-        || profiles.some(profile => typeof profile !== 'string' || !/^[a-z0-9-]{1,80}$/.test(profile))) {
+    if (!Array.isArray(profiles) || profiles.some(profile => typeof profile !== 'string' || !/^[a-z0-9-]{1,80}$/.test(profile))) {
       throw Error('Invalid invitation profiles');
     }
     const pending = [...new Set(profiles)];
-    const party = this.stale ? [] : this.profiles.filter(this.isKnown);
-    if (new Set([...party, ...pending]).size > PARTY_LIMIT) throw Error('Invitations exceed the party connection limit');
+    // A new copy that joins starts as the most recently used member, so its warm connection survives joining.
+    for (const profile of pending) if (!this.lastUsed.has(profile)) this.touch(profile);
     this.invitations = pending; this.revision++;
     return this.reconcile();
+  }
+  // Party members and pending invitations that keep a private connection warm. Up to WARM_PARTY_LIMIT it is all
+  // of them in list order. Beyond that pending invitations come first (their copy cannot appear before its
+  // connection is ready), then the most recently talked-to members; everyone else connects lazily on talk.
+  warmPrivate(party, invitations) {
+    const eligible = [...new Set([...party, ...invitations])];
+    if (eligible.length <= WARM_PARTY_LIMIT) return eligible;
+    const rank = profile => invitations.includes(profile) ? Number.MAX_SAFE_INTEGER : this.lastUsed.get(profile) ?? 0;
+    const kept = new Set(eligible.map((profile, index) => ({profile, index}))
+      .sort((a, b) => rank(b.profile) - rank(a.profile) || a.index - b.index)
+      .slice(0, WARM_PARTY_LIMIT).map(row => row.profile));
+    return eligible.filter(profile => kept.has(profile));
   }
   plan() {
     if (this.paused) return [];
     const party = this.stale ? [] : this.profiles.filter(this.isKnown), focus = this.request || this.composer;
-    const privateProfiles = [...new Set([...party, ...this.invitations.filter(this.isKnown)])].slice(0, PARTY_LIMIT);
+    const privateProfiles = this.warmPrivate(party, this.invitations.filter(this.isKnown));
     if (focus?.scope === 'private' && this.isKnown(focus.audience[0]) && !privateProfiles.includes(focus.audience[0])) {
       privateProfiles.push(focus.audience[0]);
     }
@@ -116,8 +136,8 @@ export class PartyConnections {
     privateProfiles.push(...nearbyProfiles);
     const audience = focus?.scope.startsWith('group:') ? focus.audience.filter(this.isKnown) : party.slice(0, 3);
     const groupScope = focus?.scope.startsWith('group:') ? focus.scope : 'group:' + [...audience].sort().join(',');
-    // A nearby non-party private target occupies one of the three optional
-    // group slots while the eight party private connections remain protected.
+    // A nearby non-party (or not currently warm) private target occupies one of the three optional
+    // group slots while the warm party private connections remain protected.
     const minimumGroup = focus?.scope.startsWith('group:') ? 1 : 2;
     const groupProfiles = audience.length >= minimumGroup ? audience.slice(0, CONNECTION_LIMIT - privateProfiles.length) : [];
     const privateSpecs = privateProfiles.map(profile => ({profile, scope: 'private',
@@ -127,7 +147,7 @@ export class PartyConnections {
     const groupSpecs = groupProfiles.map(profile => ({profile, scope: groupScope, role: 'group'}));
     const specs = focus?.scope.startsWith('group:') ? [...groupSpecs, ...privateSpecs] : [...privateSpecs, ...groupSpecs];
     if (focus?.config && !specs.some(spec => spec.profile === focus.profile && spec.scope === focus.scope)) {
-      // Eight party private pages remain protected. A physical ambient target
+      // The warm party private pages remain protected. A physical ambient target
       // uses one optional slot, just like a nearby named private target.
       while (specs.length >= CONNECTION_LIMIT) {
         const optional = specs.findLastIndex(spec => spec.role === 'group');
@@ -241,7 +261,12 @@ export class PartyConnections {
       throwIfCancelled(signal);
     }
     const entry = this.entries.get(connectionKey(profile, 'private'));
-    if (!entry) throw Error('The invitation has no retained private connection');
+    if (!entry) {
+      // More invitations than warm places: this one waits for a place to free up (an earlier invitation joining
+      // the party). It is not a failure and nothing is opened outside the connection bound.
+      if (this.isKnown(profile) && this.invitations.includes(profile)) return {present: false, ready: false, gated: true};
+      throw Error('The invitation has no retained private connection');
+    }
     const status = await this.invitationReadiness(profile);
     throwIfCancelled(signal);
     if (this.entries.get(entry.identity) !== entry) throw Object.assign(Error('The invitation connection was replaced'),
@@ -315,6 +340,7 @@ export class PartyConnections {
   used(input, timing) {
     const scope = input.group ? 'group:' + [...input.group.audience].sort().join(',') : 'private';
     const entry = this.entries.get(connectionKey(input.profileKey, scope));
+    if (this.profiles.includes(input.profileKey)) this.touch(input.profileKey);
     if (!entry) return;
     entry.state = this.needsRetirement(entry.profile) ? 'waiting' : 'ready'; entry.failures = 0; entry.retryAt = null; entry.nextCheck = 0;
     entry.readyAt = this.now(); entry.connectionMs = timing?.connectionMs;
@@ -322,6 +348,7 @@ export class PartyConnections {
   }
   async clear() {
     this.stale = true; this.profiles = []; this.invitations = []; this.composer = this.request = null; this.nearby = []; this.partners = [];
+    this.lastUsed.clear();
     await this.reconcile(); this.emit();
   }
   async reconfigure(profiles) {
@@ -344,7 +371,7 @@ export class PartyConnections {
     return true;
   }
   diagnostic() {
-    return {updated: this.now(), partyUpdated: this.updated, stale: this.stale, limit: CONNECTION_LIMIT,
+    return {updated: this.now(), partyUpdated: this.updated, stale: this.stale, limit: CONNECTION_LIMIT, warmPartyLimit: WARM_PARTY_LIMIT,
       profiles: this.profiles, invitations: this.invitations, partners: this.partners, unconfigured: this.profiles.filter(profile => !this.isKnown(profile)),
       ready: [...this.entries.values()].filter(entry => entry.state === 'ready').length,
       connecting: [...this.entries.values()].filter(entry => entry.state === 'connecting').length,

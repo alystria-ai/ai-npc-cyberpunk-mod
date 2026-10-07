@@ -51,6 +51,7 @@ test('follow and leave offers are strict game snapshots and a malformed one neve
     const bad = leave(); change(bad); assert.equal(parseLeaveOffer(bad), null);
   }
   for (const reason of Object.keys(FOLLOW_UNAVAILABLE)) assert.equal(parseFollowUnavailable(reason), reason);
+  assert.equal(parseFollowUnavailable('party-full'), null, 'the party has no size limit to refuse for');
   assert.equal(parseFollowUnavailable('because'), null);
   const parsed = parseInput(JSON.stringify(prepared({followOffer: follow(), leaveOffer: leave(), followUnavailable: 'quest'}).input));
   assert.deepEqual(parsed.followOffer, follow()); assert.deepEqual(parsed.leaveOffer, leave());
@@ -444,13 +445,15 @@ test('a character that becomes unavailable before its copy is placed is never ad
   assert(queue.takeNotices()[1].message:find('no longer nearby',1,true))
 `));
 
-test('party size and the follow offer of an offer never made are refused', () => runWorld(`
+test('the follow offer of an offer never made is refused, and a large party never refuses a follow', () => runWorld(`
   local judy=worldNpc('900',3,0)
   assert(not adoption.queueFollow({available=true,actor={id='900',key='judy-alvarez'},name='Judy'},'900','r'),
     'the game did not offer this follow')
   for index=1,8 do companions.registerDefinition('filler'..index,{id='Character.Filler',name='Filler'}); assert(queue.invite('filler'..index)) end
+  -- The party has no size limit: nine members and invitations later, V can still be joined.
   local offer=adoption.offer('900',judy,'judy-alvarez','Judy Alvarez')
-  assert(offer.available==false and offer.reason=='party-full')
+  assert(offer.available==true and offer.reason==nil, tostring(offer.reason))
+  busy=false; assert(adoption.queueFollow(offer,'900','request-1'))
 `));
 
 test('a companion told to leave says goodbye first, then leaves through Dismiss; its original returns out of view', () => runWorld(`

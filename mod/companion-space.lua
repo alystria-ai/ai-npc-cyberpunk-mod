@@ -2,6 +2,18 @@
 local M = {}
 M.slots = {{-1.5,0.05},{1.5,0.05},{-2.5,-1.0},{2.5,-1.0},
     {-1.2,-2.3},{1.2,-2.3},{-2.5,-3.5},{2.5,-3.5}}
+-- The party has no size limit. The eight authored places above keep their exact
+-- geometry; a ninth and later member continues the formation in staggered rows
+-- of two (inner and outer files alternating), 1.2 m further back each row.
+-- Place N is generated and cached on first use, so M.slots[n] works for any n >= 1.
+setmetatable(M.slots,{__index=function(slots,n)
+    if type(n)~='number' or n<9 or n~=math.floor(n) then return nil end
+    local row=math.ceil(n/2)
+    local lateral=(row%2==1) and 1.5 or 2.5
+    local place={(n%2==1) and -lateral or lateral,-3.5-1.2*(row-4)}
+    rawset(slots,n,place)
+    return place
+end})
 
 function M.copy(p) return {x=p.x,y=p.y,z=p.z or 0,w=p.w or 1} end
 function M.distance(a,b) return math.sqrt((a.x-b.x)^2+(a.y-b.y)^2+((a.z or 0)-(b.z or 0))^2) end
@@ -42,11 +54,19 @@ function M.comfortable(point,frame,slot,others,id,shape)
         and along>spec[2]-1.4 and along<spec[2]+1.6
         and M.clear(point,frame.position,others,id,nil,shape)
 end
+-- How far from V still counts as the group. The authored places keep their
+-- radii; later rows reach as far back as their place does.
+function M.nearGroupReach(slot)
+    if slot<=2 then return 3.5 end
+    if slot<=8 then return 5.5 end
+    local spec=M.slots[slot]
+    return math.sqrt(spec[1]^2+spec[2]^2)+1.2
+end
 function M.nearGroup(point,frame,slot,others,id,shape)
     -- The end of a stop animation may overshoot the preferred side region.
     -- A safe actual stance is better than a backwards correction of one metre.
     return math.abs(point.z-frame.position.z)<1.0
-        and M.ground(point,frame.position)<(slot<=2 and 3.5 or 5.5)
+        and M.ground(point,frame.position)<M.nearGroupReach(slot)
         and M.clear(point,frame.position,others,id,nil,shape)
 end
 function M.candidates(frame,slot,origin)

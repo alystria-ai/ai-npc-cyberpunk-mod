@@ -67,8 +67,10 @@ At most two mount/unmount/follow submissions occur per update. Boarding uses a
 20-second deadline, exit uses 12 seconds, attachment uses 12 seconds. Each
 boarding, exit, failed spawn/attachment, route, and recovery operation has at
 most three attempts. Creation is serial: the controller inspects and fills one
-new car before creating the next. Eight owned car receipts are the hard upper
-bound, covering a party of eight even if every available model has one seat.
+new car before creating the next. The owned car count is a runaway guard, not a
+party limit: at least eight cars (V's and seven more, seating 31 companions),
+growing to two plus one car per four people travelling, so a party of any size
+gets the cars it needs while a car that cannot seat anyone still stops creation.
 
 Native `NotExecuting` is still an owned command state. Cancellation is sent once
 for the exact handle; terminal state must subsequently be observed. A binding

@@ -340,6 +340,54 @@ test('eight copies share a navigation budget and retain unique lanes after a rea
   for _,row in ipairs(companions.list()) do assert(not lanes[row.lane]); lanes[row.lane]=true end
 `));
 
+test('a party of sixteen has no size limit: places extend the formation, every copy gets its own lane and planning stays within its budget',()=>run(`${companionEngine}
+  local space=dofile('companion-space.lua')
+  for n=1,16 do
+    local place=space.slots[n]
+    assert(place and place[1]~=0, 'no place '..n)
+    assert((n%2==1)==(place[1]<0), 'odd places stand to the left of V')
+    for m=1,n-1 do assert(space.slots[m][1]~=place[1] or space.slots[m][2]~=place[2], 'places '..m..' and '..n..' coincide') end
+    if n>8 then assert(place[2]<space.slots[n-2][2], 'later rows stand further back') end
+  end
+  assert(space.slots[1][1]==-1.5 and space.slots[8][1]==2.5 and space.slots[8][2]==-3.5, 'authored places changed')
+  assert(space.slots[17]==rawget(space.slots,17) and space.slots[0]==nil and space.slots[1.5]==nil)
+  assert(space.nearGroupReach(1)==3.5 and space.nearGroupReach(8)==5.5 and space.nearGroupReach(16)>space.nearGroupReach(9))
+  for i=1,16 do
+    local serial,err=companions.spawn('judy-alvarez')
+    assert(serial,'copy '..i..' was refused: '..tostring(err))
+    tick()
+  end
+  local rows=companions.list(); assert(#rows==16)
+  local slots,lanes={},{}
+  for _,row in ipairs(rows) do
+    assert(not slots[row.slot] and not lanes[row.lane]); slots[row.slot]=true; lanes[row.lane]=true
+  end
+  local nav=Game.GetAINavigationSystem(); local queries=0
+  local find=nav.FindPointInSphereForCharacter
+  nav.FindPointInSphereForCharacter=function(self,...) queries=queries+1; return find(self,...) end
+  Game.GetAINavigationSystem=function() return nav end
+  local function followCommands()
+    local count=0
+    for _,member in pairs(entities) do
+      for _,cmd in ipairs(member.ai.commands) do if cmd.kind=='AIFollowTargetCommand' then count=count+1 end end
+    end
+    return count
+  end
+  for i=1,45 do
+    player.pos.y=-i*0.2
+    local before,follows=queries,followCommands(); companions.update(player,0.1)
+    assert(queries-before<=2+followCommands()-follows,'more than two cruise navigation requests in one update')
+  end
+  rows=companions.list(); lanes={}
+  for _,row in ipairs(rows) do assert(not row.error, row.error); assert(not lanes[row.lane], 'lane shared after the reversal'); lanes[row.lane]=true end
+  assert(rows[1].travelDirection.y< -0.9,'actual reverse travel was not recognized')
+  local serial=rows[1].serial; assert(companions.dismiss(serial))
+  assert(companions.spawn('judy-alvarez')); companions.update(player,0.1)
+  lanes={}
+  for _,row in ipairs(companions.list()) do assert(not lanes[row.lane]); lanes[row.lane]=true end
+  assert(#companions.list()==16)
+`));
+
 const strandedPocket=(facing='Vector4.new(0,1)',before='')=>`${companionEngine}
   local teleports,transformTeleports={},0
   -- A transform teleport on an AI-driven copy was undone in the live trace;

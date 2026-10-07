@@ -159,9 +159,6 @@ function M.new(options)
                     if key == profileKey then return 'already-here' end
                 end
             end
-            local party = queue()
-            local count = party and guard(party.count)
-            if type(count) == 'number' and count >= 8 then return 'party-full' end
         end
         local ok, reason = pcall(native.refusal, npc, current)
         if not ok then return 'busy' end
@@ -169,7 +166,6 @@ function M.new(options)
     end
 
     local function refusalMessage(reason, name)
-        if reason == 'party-full' then return ui.t('There is no room for another companion. Dismiss one first.') end
         if reason == 'already-here' then return ui.t('{name} is already with you.', {name = name}) end
         if reason == 'gone' then return ui.t('{name} is no longer nearby.', {name = name}) end
         return ui.t('{name} can\'t come along right now.', {name = name})

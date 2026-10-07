@@ -945,7 +945,7 @@ local function detail(player, item)
             body = body .. '\nVoice: ' .. M.voiceLabel(localVoiceState.provider, localVoiceState.omniSteps, localVoiceState.omniReference)
         elseif profile.voiceName then body = body .. '\nVoice: ' .. clean(profile.voiceName, 140) end
         if not item.definition then body = body .. '\nChoose a model in Models, then assign this profile in Party.' end
-        primary, primaryLabel, primaryEnabled = 'spawn:' .. profile.key, 'Add a copy', item.definition ~= nil and #party < 8
+        primary, primaryLabel, primaryEnabled = 'spawn:' .. profile.key, 'Add a copy', item.definition ~= nil
         secondary, secondaryLabel, secondaryEnabled = 'toggle-profile:' .. profile.key,
             M.profileEnabled(profile.key) and 'Turn chat off' or 'Turn chat on', true
     elseif item.kind == 'model' then
@@ -953,7 +953,7 @@ local function detail(player, item)
         title, body = model.name, model.record
         body = body .. '\n\n' .. (model.profileKey and ('Conversation: ' .. model.profileName) or 'Conversation profile not assigned.')
             .. '\nAdd a copy, then use Party to choose its conversation profile.'
-        primary, primaryLabel, primaryEnabled = 'spawn:' .. model.key, 'Add a copy', #party < 8
+        primary, primaryLabel, primaryEnabled = 'spawn:' .. model.key, 'Add a copy', true
     elseif item.kind == 'party' then
         local member = item.member
         title = member.name
@@ -970,7 +970,6 @@ local function detail(player, item)
         body = body .. '\n\nCurrently ' .. (settings[item.setting] and 'on.' or 'off.')
         primary, primaryLabel, primaryEnabled = 'toggle:' .. item.setting, settings[item.setting] and 'Turn off' or 'Turn on', true
     end
-    if #party >= 8 and (tab == 'characters' or tab == 'models') then body = body .. '\n\nParty full: dismiss a copy before adding another.' end
     player:ConvaiManagerSetDetail(clean(title, 160), clean(body, 1800), primary, primaryLabel,
         primaryEnabled, secondary, secondaryLabel, secondaryEnabled)
 end
@@ -1004,7 +1003,7 @@ render = function(player)
     player:ConvaiManagerSetTab(tab)
     pcall(function() player:ConvaiManagerSetSearch(query) end)
     player:ConvaiManagerSetFeedback(feedback)
-    pcall(function() player:ConvaiManagerSetPartyStatus('Party: ' .. #party .. ' / 8') end)
+    pcall(function() player:ConvaiManagerSetPartyStatus('Party: ' .. #party) end)
     player:ConvaiManagerRefresh()
     dirty = false
 end

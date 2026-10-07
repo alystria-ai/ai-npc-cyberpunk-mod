@@ -20,9 +20,8 @@ no longer open it.
   status text, party count, per-copy conversation entry or last-action line.
   A dismissed copy leaves the list at once, even while the game is paused; the
   world deletion is queued and runs after gameplay resumes. If the game refuses
-  it, the row returns with the reason beside it. The party keeps a fixed number
-  of formation places that is never displayed: a full party answers an
-  invitation with a message instead.
+  it, the row returns with the reason beside it. The party has no size limit and
+  nothing on the page shows or enforces one (see Party size below).
 - **Model browser:** discovers installed Character records in batches of 48,
   shows at most 18 model results per page and searches the full discovered
   catalogue by name or record. Use MCM's **Search settings** field. It is visible to
@@ -111,6 +110,25 @@ returns to gameplay. The adapter waits for native Settings to accept the close
 and detach, then activates the real pause-menu Resume item once. MCM retains
 its unsaved-settings prompt; cancelling that prompt stays in Settings. Other
 providers and native settings retain their own exit behavior.
+
+## Party size
+
+The party has no size limit. The menu, the phone, the follow action ("come with me"), undoing a
+dismissal and the bridge never refuse a companion because of how many are already travelling, and
+no text mentions a capacity. The old refusals and their strings (`party-full`, "There is no room for
+another companion", "Cancel an invitation first; the party is full.", "Party full: ...",
+"Party: {count} / 8") are gone. The technical bounds that remain are resource guards that scale with
+the party instead of refusing it:
+
+| Bound | Where | What happens in a larger party |
+| --- | --- | --- |
+| Formation places | `mod/companion-space.lua` | The eight authored places keep their geometry. Place 9 and later continue the formation in staggered rows of two, 1.2 m further back each row, generated on demand. Lanes, the stand-off distance and the "near group" radius follow. |
+| Route planning and physics queries | `mod/companions.lua`, `mod/companion-clearance.lua` | Unchanged: 192 spatial queries per update and two new route plans per update, started round-robin. A larger party is planned over more updates; nobody is refused or starved. |
+| Warm Convai connections | `bridge/party-connections.mjs` | At most 8 private connections stay warm (`WARM_PARTY_LIMIT`), inside the 11 browser pages (8 plus 3 for the talk target, group chat, partners and nearby). With more members, pending invitations come first (a copy cannot appear before its connection is ready), then the members V talked to most recently. Everyone else connects when V talks to them: the request target takes one of the optional pages and the longest-idle warm member gives theirs up. The first reply to a member who was not warm waits for a connection. |
+| Invitations preparing at once | `bridge/companion-invitations.mjs` | At most 8 characters have their memory and voice prepared at the same time (`PREPARATION_LIMIT`). More invitations wait in "Preparing" and start as earlier ones finish. An invitation whose connection has no warm place yet stays in "Connecting" until an earlier one joins; it does not fail. |
+| Spawning | `mod/manager-party.lua`, `mod/companion-placement.lua` | Placement spends the shared per-update query budget. When it is spent the invitation is retried on a later update. |
+| Group chat | `mod/group-chat.lua` | Three speakers per round. This is a conversation size (three group connections), not a party size; any members can be chosen. |
+| Party cars | `mod/companion-vehicles.lua` | A runaway guard on cars the mod may create: at least 8 cars in all (V's and 7 more, seating 31), growing to 2 plus one car per 4 people travelling, so a larger party still gets the cars it needs. |
 
 ## Help and support report
 

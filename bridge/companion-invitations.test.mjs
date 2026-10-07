@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as fs from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {CompanionInvitations, parseCompanionInvitations} from './companion-invitations.mjs';
+import {CompanionInvitations, parseCompanionInvitations, PREPARATION_LIMIT} from './companion-invitations.mjs';
 import {PartyConnections, CONNECTION_LIMIT} from './party-connections.mjs';
 import {PlayerMemory} from './player-memory.mjs';
 import {abortable, transportKey} from './transport-pool.mjs';
@@ -11,7 +11,8 @@ import {abortable, transportKey} from './transport-pool.mjs';
 const flush = () => new Promise(done => setImmediate(done));
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return {promise, resolve, reject}; };
 const ids = Object.freeze({judy: 'owned-judy', panam: 'owned-panam', alex: 'owned-alex',
-  kerry: 'owned-kerry', viktor: 'owned-viktor', misty: 'owned-misty', river: 'owned-river', jackie: 'owned-jackie'});
+  kerry: 'owned-kerry', viktor: 'owned-viktor', misty: 'owned-misty', river: 'owned-river', jackie: 'owned-jackie',
+  evelyn: 'owned-evelyn', claire: 'owned-claire', wakako: 'owned-wakako', rogue: 'owned-rogue'});
 function ticket(id = 'queued:1', profileKey, extra = {}) {
   if (arguments.length < 2) profileKey = 'judy';
   return {id, revision: 1, modelKey: 'judy-model', ...(profileKey === undefined ? {} : {profileKey}), phase: 'preparing', ...extra};
@@ -126,13 +127,16 @@ test('invitation protocol rejects stale, malformed, duplicated or oversized tick
   const value = {version: 1, worldToken: 'world-1', generation: 1, updated: 10000, invitations: [ticket()]};
   assert.deepEqual(parseCompanionInvitations(value, 10000), value);
   for (const change of [{version: 2}, {worldToken: ''}, {generation: -1}, {generation: 0}, {updated: 16000}, {updated: 3499},
-    {invitations: [ticket(), ticket()]}, {invitations: Array.from({length: 9}, (_, n) => ticket('queued:' + n))},
+    {invitations: [ticket(), ticket()]},
     {invitations: [ticket('bad/id')]}, {invitations: [ticket('queued:1', 'bad/key')]},
     {invitations: [ticket('queued:1', 'judy', {revision: 0})]}, {invitations: [ticket('queued:1', 'judy', {phase: 'ready'})]},
     {invitations: [ticket('queued:1', 'judy', {modelKey: 'bad/model'})]}]) {
     assert.equal(parseCompanionInvitations({...value, ...change}, 10000), null);
   }
   assert.ok(parseCompanionInvitations({...value, updated: 3500}, 10000));
+  // The party has no size limit: a request with many reservations is valid.
+  const many = Array.from({length: 40}, (_, n) => ticket('queued:' + n));
+  assert.equal(parseCompanionInvitations({...value, invitations: many}, 10000).invitations.length, 40);
   assert.ok(parseCompanionInvitations({...value, invitations: [ticket('queued:1', undefined, {modelKey: 'model:6000'})]}, 10000));
 });
 
@@ -491,6 +495,39 @@ test('new dispatch waits for the foreground gate while all eight tickets remain 
   assert.equal(f.warmCalls.length, 0); assert.deepEqual(f.connections.invitations, ['judy']);
   f.gate(true); await f.poll(500); await until(() => f.invitations.snapshot().invitations.every(row => row.state === 'ready'));
   assert.equal(f.warmCalls.length, 1); assert.equal(f.live.size, 1);
+});
+
+test('more than eight different characters queue their preparation, none fails, and the extra connections wait for a warm place', async t => {
+  const f = fixture(t), names = Object.keys(ids), gates = new Map(names.map(name => [name, deferred()]));
+  assert.equal(PREPARATION_LIMIT, 8);
+  for (const [name, gate] of gates) f.memoryGates.set(name, gate);
+  const tickets = names.map((name, n) => ticket('queued:' + n, name));
+  assert(tickets.length > PREPARATION_LIMIT);
+  f.ingest(tickets);
+  await until(() => f.memoryCalls.length === PREPARATION_LIMIT);
+  for (let n = 0; n < 5; n++) await flush();
+  assert.equal(f.memoryCalls.length, PREPARATION_LIMIT, 'preparation ran past its bound');
+  assert(f.invitations.snapshot().invitations.every(row => row.state === 'memory'), 'a queued reservation failed or skipped ahead');
+  // A finished preparation starts the next queued one.
+  gates.get(names[0]).resolve();
+  await until(() => f.memoryCalls.length === PREPARATION_LIMIT + 1);
+  for (const gate of gates.values()) gate.resolve();
+  await until(() => f.memoryCalls.length === names.length);
+  for (let n = 0; n < 40 && f.invitations.snapshot().invitations.filter(row => row.state === 'ready').length < PREPARATION_LIMIT; n++) {
+    await f.poll(600); await flush(); await f.connections.maintain(); await flush();
+  }
+  let rows = f.invitations.snapshot().invitations;
+  assert.equal(rows.filter(row => row.state === 'ready').length, PREPARATION_LIMIT);
+  assert(rows.every(row => row.state !== 'error'), JSON.stringify(rows));
+  assert.deepEqual(rows.filter(row => row.state === 'connecting').map(row => row.id), tickets.slice(PREPARATION_LIMIT).map(row => row.id));
+  assert(f.live.size <= CONNECTION_LIMIT);
+  // The first eight copies spawn and join the party; the rest take the freed places.
+  f.ingest(tickets.slice(PREPARATION_LIMIT));
+  for (let n = 0; n < 40 && f.invitations.snapshot().invitations.some(row => row.state !== 'ready'); n++) {
+    await f.poll(600); await flush(); await f.connections.maintain(); await flush();
+  }
+  rows = f.invitations.snapshot().invitations;
+  assert.equal(rows.length, names.length - PREPARATION_LIMIT); assert(rows.every(row => row.state === 'ready'), JSON.stringify(rows));
 });
 
 test('expired input drops the old receipt and the last invitation page', async t => {

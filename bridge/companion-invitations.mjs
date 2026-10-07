@@ -1,5 +1,4 @@
 import {abortable} from './transport-pool.mjs';
-import {PARTY_LIMIT} from './party-connections.mjs';
 
 const token = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,255}$/.test(value);
 const model = value => token(value) && value.length <= 160;
@@ -21,6 +20,10 @@ const ERRORS = Object.freeze({
   connection: 'The companion connection could not become ready. Choose a profile or cancel the invitation.',
   capacity: 'The party has no free conversation connection.'
 });
+// Memory and voice preparations in flight at once. The party has no size limit; a larger burst of different
+// characters queues here (state stays "memory") and starts as earlier ones finish, so the memory service
+// and the voice worker never receive an unbounded stampede.
+export const PREPARATION_LIMIT = 8;
 // Preserve a bounded diagnostic reason, never arbitrary provider error text or
 // identifiers. Otherwise a transient provider failure is indistinguishable from
 // a broken local identity and cannot be diagnosed from the invitation log.
@@ -33,7 +36,7 @@ const PREPARATION_CODES = new Set(['CANCELLED', 'TIMEOUT', 'DISABLED', 'NOT_MOD_
 export function parseCompanionInvitations(value, now = Date.now(), staleMs = 6500) {
   if (!object(value) || value.version !== 1 || !token(value.worldToken) || !integer(value.generation) || value.generation < 1
       || !integer(value.updated) || value.updated > now + 5000 || now - value.updated > staleMs
-      || !Array.isArray(value.invitations) || value.invitations.length > PARTY_LIMIT) return null;
+      || !Array.isArray(value.invitations)) return null;
   const seen = new Set(), invitations = [];
   for (const row of value.invitations) {
     if (!object(row) || !token(row.id) || seen.has(row.id) || !integer(row.revision) || row.revision < 1
@@ -215,8 +218,18 @@ export class CompanionInvitations {
     });
     return this.retention;
   }
+  preparingCount() { return [...this.lanes.values()].filter(lane => lane.preparing).length; }
+  startQueued() {
+    for (const lane of this.lanes.values()) if (lane.queued) {
+      if (!this.current(lane)) { lane.queued = false; continue; }
+      if (this.preparingCount() >= PREPARATION_LIMIT) return;
+      this.prepare(lane);
+    }
+  }
   prepare(lane) {
-    lane.stage = 'memory';
+    if (lane.preparing) return;
+    if (this.preparingCount() >= PREPARATION_LIMIT) { lane.queued = true; return; }
+    lane.queued = false; lane.stage = 'memory';
     lane.preparing = (async () => {
       try {
         const prepared = await this.memory.prepareCharacter({profileKey: lane.profileKey,
@@ -257,7 +270,7 @@ export class CompanionInvitations {
           this.fail(lane, lane.stage === 'voice' ? ERRORS.voice
             : lane.stage === 'connection' || lane.prepared ? ERRORS.connection : ERRORS.memory);
         }
-      } finally { lane.preparing = null; }
+      } finally { lane.preparing = null; this.startQueued(); }
     })();
   }
   warm(lane) {

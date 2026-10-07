@@ -109,6 +109,23 @@ test('eight companions use three V passengers, one full four-seat car, then one 
   tick(100); assert(count('mount')==8 and count('follow')==2)
 `));
 
+test('the overflow car guard grows with the party, so a party of thirty-six still gets every car it needs',()=>run(`${fixture}
+  party(36); tick(900)
+  -- Three ride with V, the other thirty-three fill nine four-seat cars: ten cars in all, past the old fixed eight.
+  assert(#world.spawned==9,#world.spawned)
+  assert(fleet.error==nil,fleet.error)
+  local seated=0
+  for _,p in pairs(fleet.people) do if p.phase=='riding' then seated=seated+1 end end
+  assert(seated==36,seated)
+`));
+
+test('the overflow car guard still stops a runaway: it never creates cars beyond what the party needs plus one spare',()=>run(`${fixture}
+  party(4); world.capacity=1
+  tick(900)
+  -- One-seat cars cannot ever seat anybody, so creation must stop at the guard instead of spawning forever.
+  assert(#world.spawned+1<=math.max(8,2+math.ceil(4/4)),#world.spawned)
+`));
+
 test('real foreign occupants and reservations reduce capacity without eviction',()=>run(`${fixture}
   party(5); primary.info.seats[2].occupant='quest-npc'; primary.info.seats[3].reserved=true
   tick(80)
