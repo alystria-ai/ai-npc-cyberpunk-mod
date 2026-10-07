@@ -9,10 +9,16 @@ local families={
     ja={path=base..'japanese\\mgenplus\\mgenplus.inkfontfamily',styles={'Regular','Light','Medium','Bold','Heavy','Semi-Bold'}},
     ko={path=base..'korean\\nanum_square\\nanum_square.inkfontfamily',styles={'Regular','Light','Bold','Extra Bold','Semi-Bold'}},
     ru={path=base..'russian\\raj_rus.inkfontfamily',styles={'Medium','Semi-Bold'}},
+    -- Ukrainian ships with the game as ua-ua and uses the same Cyrillic family.
+    uk={path=base..'russian\\raj_rus.inkfontfamily',styles={'Medium','Semi-Bold'}},
 }
+-- Italian, Polish, Czech, Hungarian and Turkish need only Latin / Latin
+-- Extended-A. The game ships those languages with its ordinary Latin family,
+-- so they deliberately have no entry: owned text keeps its original font.
 local autonyms={['English']='en',['简体中文']='zh-cn',['繁體中文']='zh-tw',
     ['Español']='es',['Português (Brasil)']='pt-br',['Français']='fr',
-    ['Deutsch']='de',['Русский']='ru',['日本語']='ja',['한국어']='ko'}
+    ['Deutsch']='de',['Italiano']='it',['Polski']='pl',['Čeština']='cs',['Magyar']='hu',
+    ['Türkçe']='tr',['Русский']='ru',['Українська']='uk',['日本語']='ja',['한국어']='ko'}
 function M.family(code) return families[code] and families[code].path or nil end
 function M.codeForText(text,code)
     if code==false then return false end

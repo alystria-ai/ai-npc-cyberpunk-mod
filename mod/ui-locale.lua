@@ -14,7 +14,13 @@ local languages = {
     {value = 'pt-br', label = 'Português (Brasil)'},
     {value = 'fr', label = 'Français'},
     {value = 'de', label = 'Deutsch'},
+    {value = 'it', label = 'Italiano'},
+    {value = 'pl', label = 'Polski'},
+    {value = 'cs', label = 'Čeština'},
+    {value = 'hu', label = 'Magyar'},
+    {value = 'tr', label = 'Türkçe'},
     {value = 'ru', label = 'Русский'},
+    {value = 'uk', label = 'Українська'},
     {value = 'ja', label = '日本語'},
     {value = 'ko', label = '한국어'},
 }
@@ -30,6 +36,10 @@ local aliases = {
     ['fr-fr'] = 'fr', ['fr-ca'] = 'fr', ['de-de'] = 'de', ['ru-ru'] = 'ru',
     ['ja-jp'] = 'ja', ['jp'] = 'ja', ['jp-jp'] = 'ja',
     ['ko-kr'] = 'ko', ['kr'] = 'ko', ['kr-kr'] = 'ko',
+    -- Cyberpunk's own codes are it-it, pl-pl, cz-cz, hu-hu, tr-tr and ua-ua.
+    ['it-it'] = 'it', ['it-ch'] = 'it', ['pl-pl'] = 'pl',
+    ['cz'] = 'cs', ['cz-cz'] = 'cs', ['cs-cz'] = 'cs', ['hu-hu'] = 'hu', ['tr-tr'] = 'tr',
+    ['ua'] = 'uk', ['ua-ua'] = 'uk', ['uk-ua'] = 'uk',
 }
 local selected, detected, resolved, generation = 'auto', 'en', 'en', 0
 local dictionary, dictionaries, catalogAvailable = {}, {}, true

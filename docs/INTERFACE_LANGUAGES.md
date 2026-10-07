@@ -7,8 +7,16 @@ Choose a language, then save the setting. Discarding unsaved changes restores
 the previous selection.
 The default, **Automatic (game interface language)**, follows Cyberpunk's
 on-screen language. The mod supports English, Simplified Chinese, Traditional
-Chinese, Spanish, Brazilian Portuguese, French, German, Russian, Japanese and
-Korean. Unsupported game languages fall back to English.
+Chinese, Spanish, Brazilian Portuguese, French, German, Italian, Polish, Czech,
+Hungarian, Turkish, Russian, Ukrainian, Japanese and Korean (sixteen in all).
+Unsupported game languages (Arabic and Thai, which need right-to-left or
+script-specific font work) fall back to English.
+
+The selector lists each language by its own name, in this order: English,
+简体中文, 繁體中文, Español, Português (Brasil), Français, Deutsch, Italiano,
+Polski, Čeština, Magyar, Türkçe, Русский, Українська, 日本語, 한국어. Automatic
+maps the game's own codes `it-it`, `pl-pl`, `cz-cz`, `hu-hu`, `tr-tr` and
+`ua-ua` (also `cs-cz` and `uk-ua`) to `it`, `pl`, `cs`, `hu`, `tr` and `uk`.
 
 This setting covers mod-owned manager labels, descriptions, feedback, the phone
 Chat tab and composer, and the F6/F8 text box. Character names, conversation
@@ -44,14 +52,14 @@ global settings or another mod's UI to match a manual selection.
 - Unknown provider errors remain literal. Immediate native phone invite/dismiss
   notices pass through two narrowly scoped wrappers, with no native lookups in
   the translation callback. Thinking-message suppression remains in place.
-- `mod/locales/*.lua` contains the nine non-English dictionaries. English uses
+- `mod/locales/*.lua` contains the fifteen non-English dictionaries. English uses
   the source key directly. Missing or malformed translations fall back to that
   source, and catalog paths come only from the supported-language allowlist.
 
 ## Catalog and development workflow
 
 `localization/en.json` is a generated developer inventory, not a runtime file.
-Its 383 keys include active UI and explicitly marked historical/native sources;
+Its 550 keys include active UI and explicitly marked historical/native sources;
 coverage alone is not proof that a particular renderer is translated.
 
 ```powershell
@@ -67,7 +75,7 @@ translation to each dictionary, regenerate the catalog, and verify token counts,
 UTF-8, ownership and actual menu behavior. Do not translate arbitrary strings or
 use localized display text as a success signal.
 
-The locale core and nine dictionaries are explicitly listed in both development
+The locale core and fifteen dictionaries are explicitly listed in both development
 and proposed release manifests. They stay in the Lua-only Scripts package.
 No game fonts, credentials, histories, local benchmark recordings or developer
 runtime folders are included by this change.
@@ -92,7 +100,17 @@ and restored readable labels. This established the cause rather than assuming
 catalog coverage proved rendering.
 
 `ui-fonts.lua` selects the game's existing Chinese, Traditional Chinese,
-Japanese, Korean and Russian families. It keeps supported original weights and
+Japanese, Korean and Russian families (Ukrainian uses the same Cyrillic family
+as Russian; its autonym Українська is rendered with it before the choice is
+saved). Italian, Polish, Czech, Hungarian and Turkish need only Basic Latin,
+Latin-1 and Latin Extended-A letters (ł ą ę ś ż ő ű ř ů č ě ğ ş ı İ). The game
+ships those languages with its ordinary Latin family, so they have no override
+and owned text keeps its original font. `bridge/ui-catalog.test.mjs` fails if a
+dictionary uses a glyph outside the range its font renders (Latin through U+017F
+for those five, Cyrillic U+0400-04FF for Russian and Ukrainian) and checks that
+each file really uses its characteristic letters. The tests prove the mapping
+and character ranges; they cannot see the game's glyph tables, so the first
+in-game look at ї є ґ and İ ı ğ ş is still worth doing. It keeps supported original weights and
 uses Semi-Bold when a family lacks that weight. Per-surface scopes retain plain
 original family paths, styles, locks and full-width hash strings; no widget
 handles. Restoration uses ink's family/style setter and checks that a later

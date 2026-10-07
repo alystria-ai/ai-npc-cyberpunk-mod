@@ -146,6 +146,10 @@ test('an unsaved autonym follows its native script before Apply and restores for
   assert(assigned(p.option, 'ja'), 'native draft callback changed a font synchronously')
   frame(); assert(assigned(p.option, 'ko') and code == 'en')
   p.option.text = 'Русский'; emitSelect(); frame(); assert(assigned(p.option, 'ru') and p.option.style == 'Semi-Bold')
+  p.option.text = 'Українська'; emitSelect(); frame(); assert(assigned(p.option, 'ru') and p.option.style == 'Semi-Bold')
+  for _, native in ipairs({'Italiano', 'Polski', 'Čeština', 'Magyar', 'Türkçe'}) do
+    p.option.text = native; emitSelect(); frame(); assert(original(p.option), native .. ' must keep the game Latin font')
+  end
   p.option.text = 'English'; emitSelect(); frame(); assert(original(p.option))
 `));
 

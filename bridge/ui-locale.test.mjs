@@ -102,18 +102,26 @@ test('Auto reads OnScreen on a bounded cadence and reports only displayed langua
   assert(reads == 3)
 `));
 
-test('native locale aliases resolve the ten offered languages including the Korean game code', () => run(`
+test('native locale aliases resolve the sixteen offered languages including the game-specific codes', () => run(`
   for _, pair in ipairs({{'en-us','en'},{'EN_gb','en'},{'zh-cn','zh-cn'},{'zh-tw','zh-tw'},
       {'zh-Hans','zh-cn'},{'zh-Hant-TW','zh-tw'},{'es-mx','es'},{'pt-br','pt-br'},
       {'fr-fr','fr'},{'de-de','de'},{'ru-ru','ru'},{'ja-jp','ja'},{'kr-kr','ko'},{'ko-kr','ko'},
-      {'  fr-FR  ','fr'},{'pl-pl','en'}}) do
+      {'  fr-FR  ','fr'},{'it-it','it'},{'pl-pl','pl'},{'uk-ua','uk'},{'ua-ua','uk'},{'tr-tr','tr'},
+      {'cs-cz','cs'},{'cz-cz','cs'},{'hu-hu','hu'},{'it','it'},{'PL_pl','pl'},{'uk','uk'},{'cs','cs'},
+      {'ar-ar','en'},{'th-th','en'}}) do
       gameCode = pair[1]; tick(2)
       assert(ui.current() == pair[2], 'incorrect locale: ' .. pair[1])
   end
   local offered = ui.supported()
-  assert(#offered == 10 and offered[1] == 'en' and offered[10] == 'ko')
+  assert(#offered == 16 and offered[1] == 'en' and offered[16] == 'ko')
+  local expected = {'en','zh-cn','zh-tw','es','pt-br','fr','de','it','pl','cs','hu','tr','ru','uk','ja','ko'}
+  local natives = {it = 'Italiano', pl = 'Polski', cs = 'Čeština', hu = 'Magyar', tr = 'Türkçe', uk = 'Українська'}
   local choices = ui.choices()
-  assert(#choices == 11 and choices[1].value == 'auto')
+  assert(#choices == 17 and choices[1].value == 'auto')
+  for index, code in ipairs(expected) do
+      assert(offered[index] == code and choices[index + 1].value == code, 'order: ' .. code)
+      if natives[code] then assert(choices[index + 1].label == natives[code], 'native name: ' .. code) end
+  end
   assert(choices[3].label == '简体中文' and choices[4].label == '繁體中文')
   offered[1], choices[3].label, choices[3].value = 'bad', 'bad', 'bad'
   assert(ui.supported()[1] == 'en' and ui.choices()[3].label == '简体中文')

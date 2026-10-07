@@ -63,6 +63,11 @@ The review is **complete** (2026-10-07; verdict and decisions are in the log). D
 
 ## Captain's log
 
+**2026-10-07 (evening): six more interface languages**
+- Added Italian, Polish, Czech, Hungarian, Turkish and Ukrainian (`mod/locales/{it,pl,cs,hu,tr,uk}.lua`, 550 strings each, translated by Sonnet helpers, spot-reviewed; not native-reviewed). Sixteen interface languages now; every new UI string needs all fifteen dictionaries. Arabic and Thai remain deferred (RTL/script fonts).
+- `ui-locale.lua`: list order en, zh-cn, zh-tw, es, pt-br, fr, de, it, pl, cs, hu, tr, ru, uk, ja, ko with native names; game codes it-it, pl-pl, cz-cz, hu-hu, tr-tr, ua-ua (and cs-cz, uk-ua) map in Auto. `ui-fonts.lua`: Ukrainian reuses the Russian Cyrillic family (and its autonym does before Apply); the Latin Extended languages keep the game's default font. Tests prove the mapping and that each dictionary stays inside its font's character range; the game's actual glyph tables for ї є ґ and İ ı ğ ş ő ű are unverified until a look in game.
+- Install: CET Reload All Mods (the six new locale files plus `ui-locale.lua`, `ui-fonts.lua`). Both manifests list the new files.
+
 **2026-10-07 (afternoon): settings decisions, cleanup, backups**
 - Settings review decisions applied (`3e97237`): quality-named voice menu (Pocket · Performance default, no "recommended"; OmniVoice Balanced / Quality / High Quality / Ultra Quality; Convai · Cloud voice; "· needs Omni pack" when missing), shorter voice description, Body gestures (experimental), Auto / Romantic / Ordinary (Meredith: Casual), Head tracking Eyes only / Subtle / Gentle / Strong, full Developer mode description, `followUpQuestions` removed, Auto-connect On by default and silent, Voice status, Who can talk, Cinematic subtitles / Above the speaker, the "capture NPC diagnostic" hotkey removed (the request-file path stays), notice audit (auto-connect hint removed, phone dismissal confirmation dev-only). The user's own `settings.json` was flipped to `autoConnectNearby: true` (backup in `E:/CyberpunkConvai-offload/backups/`). Everything in `mod/` installed from HEAD (game closed); a bridge restart happens at the next game start.
 - Natural speech (`48cd9d4`) and Expressive emotions (`2eecbfa`), both off by default, installed with the above.

@@ -47,6 +47,27 @@ test('every native language uses an existing style and selector autonyms work be
  local choice=widget('한국어');scope.apply(choice,'en');assert(choice.fontFamily.path==fonts.family('ko'))
  local input=widget('한국어');scope.apply(input,'en','');assert(input.sets==0)
 `));
+test('Ukrainian shares the Cyrillic family while Latin Extended languages keep the original font',()=>run(`
+ local scope=fonts.new()
+ assert(fonts.family('uk')==fonts.family('ru') and fonts.family('uk'):find('russian',1,true))
+ local w=widget('Налаштування ї є ґ і','Regular');scope.apply(w,'uk')
+ assert(w.fontFamily.path==fonts.family('uk') and w.style=='Semi-Bold' and w.lock)
+ for _,code in ipairs({'it','pl','cs','hu','tr'})do
+  assert(fonts.family(code)==nil,code..' must use the game default Latin family')
+  local latin=widget('Zażółć gęślą jaźń ő ű ğ ş ı İ ř ů','Regular')
+  assert(not scope.apply(latin,code) and latin.sets==0 and latin.fontFamily.path=='base/fonts/original.inkfontfamily' and not latin.lock)
+ end
+ local autonyms={Italiano='it',Polski='pl',['Čeština']='cs',Magyar='hu',['Türkçe']='tr',['Українська']='uk',['English']='en'}
+ for text,code in pairs(autonyms)do
+  assert(fonts.codeForText(text,'ja')==code,text)
+  local choice=widget(text,'Regular');scope.apply(choice,'en')
+  if code=='uk' then assert(choice.fontFamily.path==fonts.family('uk'))
+  else assert(choice.sets==0,text..' autonym must stay in the original font') end
+ end
+ -- A Cyrillic autonym is restored when its draft candidate becomes Latin.
+ local option=widget('Українська','Regular');scope.apply(option,'en')
+ option.text='Polski';scope.apply(option,'en');assert(option.fontFamily.path=='base/fonts/original.inkfontfamily' and not option.lock)
+`));
 test('restoration does not overwrite a later independent font, style or lock change',()=>run(`
  local scope=fonts.new();local w=widget('owned');scope.apply(w,'ja')
  w:SetFontFamily('other/mod.inkfontfamily','Bold')
