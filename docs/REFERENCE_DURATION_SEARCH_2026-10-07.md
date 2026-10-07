@@ -183,3 +183,56 @@ Fresh-line ECAPA (cosine to the held-out centroid, mean over the same fresh line
 **Conclusion.** For OmniVoice the constraints did not help: the constrained long set ties the overnight set, and costs about +0.2 s more reference latency at 16 steps (13 s of reference against 9 s). For Pocket they probably help (+0.043 ECAPA, a borderline result on six lines, from a 23 s three-clip reference, which is inside the range where the Pocket curve is flat), so the row is worth a listen. The report keeps the overnight row and adds a labelled variant row for A/B listening ("Jackie Welles (constrained: <= +2 dB, clips > 6 s, few stops)"); header averages are unchanged.
 
 **Proposal for other voices.** Do not apply this rule to OmniVoice voices on the strength of this one result. For Pocket, a looser form is worth testing on a few voices with long pools (loudness at most +2 dB and at most 2 stops per clip, no 6 s minimum, since the minimum made short sets impossible), and the user's ear on the Jackie variant row decides whether to proceed. If the user prefers the constrained Jackie by ear, mention the rule in the devslot handoff as "prefer clips at or below the voice's median loudness (+2 dB), long, and with few sentence breaks".
+
+
+## Remaining 43 voices (2026-10-07)
+
+The same search, with the same rules (combat-cleaned pool with effect exclusions, at least two clips unless no multi-clip set is feasible, Omni caps of 10 s and 18 s, Pocket growth with early stop capped at 27 s, ECAPA primary, shortest set within one standard error wins), was run for every other voice that has a live reference: OmniVoice 16 steps on Kaggle T4 notebooks, Pocket (new student + decoder v2) on Kaggle CPU notebooks, with no 32-step verify (Omni 32 uses the 16-step winners) and no listening page. Not searched: jim-jarry (all 67 clips are combat- or effect-flagged), coach-fred and life-coach (no usable clips). Results are merged into `runtime/autobest-sets.json` (72 voices) and the proposed configs `runtime/pocket-voices.autobest.json` and `runtime/local-voices.autobest*.json` now cover all of them (never live).
+
+Averages over the 43: Omni short 8.6 s (+0.064 ECAPA over today's single reference), Omni long 12.7 s (+0.092), Pocket best 17.2 s (+0.114). The Pocket best lengths cluster nearer 20 to 25 s than the 29 report characters' median of 14 s: these voices have smaller pools, so the search keeps adding clips until the 27 s cap or the noise floor.
+
+| Voice | Omni short s | ECAPA | Omni long s | ECAPA | Pocket best s | ECAPA | Today Omni / Pocket ECAPA |
+|---|---|---|---|---|---|---|---|
+| aaron | 9.9 | 0.721 | 11.4 | 0.750 | 16.5 | 0.633 | 0.607 / 0.478 |
+| alan-noel | 9.8 | 0.663 | 9.8 | 0.663 | 14.6 | 0.550 | 0.634 / 0.525 |
+| ana-friedman | 9.6 | 0.711 | 9.6 | 0.711 | 22.5 | 0.653 | 0.620 / 0.559 |
+| arthur-jenkins | 9.9 | 0.620 | 11.3 | 0.682 | 16.4 | 0.602 | 0.573 / 0.515 |
+| babs-okoye | 9.0 | 0.753 | 17.6 | 0.809 | 19.9 | 0.671 | 0.753 / 0.504 |
+| bill-mitchell | 9.9 | 0.578 | 13.2 | 0.661 | 9.2 | 0.594 | 0.590 / 0.515 |
+| blue-moon | 8.2 | 0.691 | 14.2 | 0.722 | 14.1 | 0.635 | 0.526 / 0.309 |
+| bob-sagan | 8.9 | 0.737 | 8.9 | 0.737 | 19.6 | 0.601 | 0.675 / 0.519 |
+| briana-dolson | 9.9 | 0.768 | 16.2 | 0.783 | 16.2 | 0.710 | 0.788 / 0.691 |
+| cassidy-righter | 8.1 | 0.788 | 8.3 | 0.787 | 11.9 | 0.660 | 0.630 / 0.499 |
+| chang-hoon-nam | 9.2 | 0.640 | 11.7 | 0.666 | 10.2 | 0.526 | 0.537 / 0.422 |
+| cynthia-najarro | 8.3 | 0.593 | 17.5 | 0.685 | 25.2 | 0.530 | 0.573 / 0.452 |
+| dakota-smith | 7.3 | 0.690 | 14.0 | 0.712 | 15.5 | 0.564 | 0.577 / 0.470 |
+| dennis-cranmer | 8.8 | 0.796 | 8.8 | 0.796 | 9.1 | 0.687 | 0.705 / 0.543 |
+| dino-dinovic | 9.8 | 0.736 | 17.6 | 0.766 | 16.7 | 0.729 | 0.541 / 0.561 |
+| frank-nostra | 8.7 | 0.653 | 15.9 | 0.708 | 19.6 | 0.584 | 0.666 / 0.449 |
+| iris-tanner | 7.7 | 0.745 | 11.9 | 0.768 | 25.8 | 0.576 | 0.657 / 0.397 |
+| jefferson-peralez | 7.8 | 0.715 | 10.8 | 0.742 | 22.6 | 0.706 | 0.620 / 0.552 |
+| jesse | 9.5 | 0.661 | 9.5 | 0.661 | 21.0 | 0.595 | 0.642 / 0.562 |
+| joss-kutcher | 9.0 | 0.762 | 18.0 | 0.798 | 13.1 | 0.580 | 0.666 / 0.268 |
+| liam-northom | 9.8 | 0.701 | 9.8 | 0.701 | 15.0 | 0.586 | 0.591 / 0.520 |
+| mark-bana | 6.6 | 0.679 | 13.6 | 0.711 | 19.0 | 0.618 | 0.541 / 0.420 |
+| misty-olszewski | 9.0 | 0.831 | 9.0 | 0.831 | 16.0 | 0.706 | 0.750 / 0.582 |
+| muamar-reyes | 8.0 | 0.715 | 14.7 | 0.755 | 25.5 | 0.637 | 0.668 / 0.527 |
+| nancy-hartley | 7.5 | 0.673 | 10.0 | 0.677 | 9.5 | 0.584 | 0.627 / 0.495 |
+| nele-springer | 8.9 | 0.740 | 8.9 | 0.740 | 8.2 | 0.539 | 0.661 / 0.537 |
+| nix | 7.3 | 0.693 | 16.2 | 0.680 | 25.6 | 0.640 | 0.661 / 0.560 |
+| paco-torres | 9.9 | 0.691 | 9.9 | 0.691 | 16.4 | 0.653 | 0.571 / 0.484 |
+| r3n0 | 7.5 | 0.605 | 12.3 | 0.664 | 6.9 | 0.531 | 0.579 / 0.493 |
+| rachel-casich | 9.5 | 0.756 | 12.7 | 0.789 | 22.1 | 0.707 | 0.718 / 0.629 |
+| regina-jones | 6.6 | 0.727 | 15.8 | 0.730 | 22.6 | 0.658 | 0.645 / 0.465 |
+| robert-wilson | 6.0 | 0.580 | 16.0 | 0.627 | 16.9 | 0.545 | 0.550 / 0.465 |
+| sandra-dorsett | 8.6 | 0.716 | 9.0 | 0.735 | 19.9 | 0.537 | 0.637 / 0.423 |
+| santiago | 8.3 | 0.744 | 11.8 | 0.769 | 24.5 | 0.686 | 0.727 / 0.577 |
+| saul-bright | 9.8 | 0.740 | 15.5 | 0.763 | 15.2 | 0.699 | 0.639 / 0.568 |
+| sergei-karasinsky | 7.4 | 0.687 | 15.4 | 0.730 | 15.4 | 0.655 | 0.746 / 0.629 |
+| shank | 6.2 | 0.647 | 15.0 | 0.747 | 23.0 | 0.648 | 0.709 / 0.610 |
+| spider-murphy | 7.0 | 0.622 | 16.9 | 0.676 | 12.2 | 0.527 | 0.516 / 0.358 |
+| steven-santos | 9.8 | 0.688 | 9.8 | 0.688 | 20.8 | 0.579 | 0.654 / 0.487 |
+| t-bug | 9.1 | 0.711 | 9.1 | 0.711 | 11.0 | 0.562 | 0.610 / 0.441 |
+| thompson | 8.6 | 0.720 | 16.8 | 0.774 | 11.3 | 0.628 | 0.672 / 0.559 |
+| wakako-okada | 9.9 | 0.749 | 10.5 | 0.771 | 24.0 | 0.613 | 0.698 / 0.527 |
+| yorinobu-arasaka | 9.9 | 0.667 | 13.0 | 0.721 | 19.2 | 0.629 | 0.603 / 0.524 |
