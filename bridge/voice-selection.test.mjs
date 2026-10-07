@@ -376,13 +376,16 @@ function dualFixture({holdClose=false,start,fail=[]}={}){
   };
   const voice=new VoiceSelection(pocketSettings(voices),{onState:value=>states.push(value),factory:factory('pocket'),
     omniConfig:{version:2,provider:'hybrid',engine:'omnivoice',steps:32,voices},omniFactory:factory('omni')});
-  // The default is OmniVoice; a test that needs another committed start asks for it.
+  // The default is Pocket TTS; a test that needs another committed start asks for it.
   if(start){voice.request({voiceProvider:start});voice.applyWhenIdle(false);}
   return{voice,calls,workers,states,live:()=>live,peak:()=>peak};
 }
 
-test('four choices default to OmniVoice 16; both Omni qualities share the one warmed model and cache',async()=>{
-  const h=dualFixture();await h.voice.start();
+test('the default is Pocket TTS; both Omni qualities share the one warmed model and cache',async()=>{
+  const fresh=dualFixture();
+  assert.equal(fresh.voice.provider,'pocket');assert.equal(fresh.voice.requestedProvider,'pocket');
+  assert.equal(fresh.voice.fallback,null);await fresh.voice.close();
+  const h=dualFixture({start:'omni'});await h.voice.start();
   assert.equal(h.voice.provider,'omni');assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.steps,16);
   assert.equal(h.workers[0].backend,'omni');assert.equal(h.voice.fallback,null);
   h.voice.update({voiceProvider:'omni',omniSteps:32},null,false);await h.voice.start();
@@ -480,16 +483,18 @@ test('shared selection rejects Omni readiness immediately on actual worker failu
   }
 });
 
-test('the default list order is OmniVoice, then Pocket, then Convai',async()=>{
+test('the fallback order is OmniVoice, then Pocket, then Convai, though the menu lists Pocket first',async()=>{
   const {VOICE_FALLBACK_ORDER}=await import('./voice-selection.mjs');
   assert.deepEqual([...VOICE_FALLBACK_ORDER],['omni','pocket','convai']);
   const h=dualFixture();
-  assert.equal(h.voice.provider,'omni');assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.steps,16);
+  assert.equal(h.voice.provider,'pocket');assert.equal(h.voice.requestedProvider,'pocket');
+  h.voice.request({voiceProvider:'omni',omniSteps:16});h.voice.applyWhenIdle(false);
+  assert.equal(h.voice.provider,'omni');assert.equal(h.voice.steps,16);
   await h.voice.close();
 });
 
 test('an Omni worker that cannot start falls to Pocket once, and invitation readiness follows the fallback',async()=>{
-  const h=dualFixture({fail:['omni']});
+  const h=dualFixture({fail:['omni'],start:'omni'});
   const invited=h.voice.prepareProfile('johnny-silverhand');
   await tick();await tick();
   // The fallback commits at the next idle settings poll, like any routing change.
@@ -509,7 +514,7 @@ test('an Omni worker that cannot start falls to Pocket once, and invitation read
 });
 
 test('a failure during an owned turn waits for the idle boundary before the route changes',async()=>{
-  const h=dualFixture({fail:['omni']});h.voice.update({},null,true);
+  const h=dualFixture({fail:['omni'],start:'omni'});h.voice.update({},null,true);
   await h.voice.start().catch(()=>{});await tick();
   assert.equal(h.voice.provider,'omni','the owned turn keeps its route');assert.equal(h.voice.pending,true);
   h.voice.update({},null,false);
@@ -523,7 +528,7 @@ test('Pocket failing, or both local voices failing, falls down to Convai',async(
   assert.equal(pocketOnly.voice.provider,'convai');assert.deepEqual(pocketOnly.voice.fallback,{from:'pocket',to:'convai'});
   assert.equal((await pocketOnly.voice.prepareProfile('johnny-silverhand')).provider,'convai');
   await pocketOnly.voice.close();
-  const both=dualFixture({fail:['omni','pocket']});
+  const both=dualFixture({fail:['omni','pocket'],start:'omni'});
   await both.voice.start().catch(()=>{});await tick();both.voice.update({},null,false);
   await both.voice.start().catch(()=>{});await tick();both.voice.update({},null,false);
   assert.equal(both.voice.provider,'convai');assert.deepEqual(both.voice.fallback,{from:'omni',to:'convai'});
@@ -534,6 +539,8 @@ test('a saved Convai choice never reports a fallback, and a missing Omni setup s
   const convai=dualFixture({start:'convai'});
   assert.equal(convai.voice.provider,'convai');assert.equal(convai.voice.fallback,null);await convai.voice.close();
   const h=fixture();
+  assert.equal(h.voice.requestedProvider,'pocket');assert.equal(h.voice.provider,'pocket');assert.equal(h.voice.fallback,null);
+  h.voice.update({voiceProvider:'omni',omniSteps:16},null,false);
   assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.provider,'pocket');
   assert.deepEqual(h.voice.fallback,{from:'omni',to:'pocket'});
   await h.voice.close();
@@ -555,5 +562,113 @@ test('a draft that keeps changing never starts or retires a worker until it has 
   // Moving on again waits for the new choice to settle before the worker is retired.
   h.voice.update({voiceProvider:'convai'},null,false);await tick();
   assert.equal(h.workers[0].closes,1);
+  await h.voice.close();
+});
+
+// Omni's two reference choices (short, long) each have their own configuration and worker; the optional pack
+// decides whether Omni can run at all; "Keep prepared voices" reaches whichever worker is live.
+function referenceFixture({omniPack,fail=[],clock}={}){
+  const workers=[],states=[];let now=1000;
+  const ref=name=>({'johnny-silverhand':{reference:`runtime/voice-references/${name}/johnny.wav`,sha256:'a'.repeat(64),transcript:'Original line.'},
+    'judy-alvarez':{reference:`runtime/voice-references/${name}/judy.wav`,sha256:'b'.repeat(64),transcript:'Another line.'}});
+  const omni=name=>({version:2,provider:'hybrid',engine:'omnivoice',steps:32,voices:ref(name)});
+  const factory=backend=>(config,hooks)=>{
+    const {onState}=hooks;let loaded=false;
+    const worker={backend,config,hooks,keep:hooks.keepPreparedVoices,starts:0,closes:0,steps:32,keepCalls:[],
+      get loaded(){return loaded;},hasProfile:key=>Object.hasOwn(config.voices,key),profileReady(key){return loaded&&this.hasProfile(key);},
+      setSteps(value){this.steps=value;},setKeepPrepared(value){this.keep=value;this.keepCalls.push(value);},
+      async start(){this.starts++;
+        if(fail.includes(backend)){this.failure=Error(backend+' failed');onState({state:'error'});throw this.failure;}
+        loaded=true;onState({state:'ready',resident:true});},
+      async prepareProfile(profile){return{provider:backend,ready:true,profile};},
+      async synthesize(){return{};},async synthesizeStream(){return{};},
+      async close(){this.closes++;loaded=false;onState({state:'stopped',resident:false});}};
+    workers.push(worker);return worker;
+  };
+  const voices=ref('pocket');
+  const voice=new VoiceSelection(pocketSettings(voices),{onState:value=>states.push(value),factory:factory('pocket'),
+    omniFactory:factory('omni'),omniConfigs:{short:omni('short'),long:omni('long')},
+    omniConfigPaths:{short:resolve('runtime/local-voices.short.json'),long:resolve('runtime/local-voices.long.json')},
+    omniPack,clock:clock||(()=>now),previewSettleMs:0});
+  return{voice,workers,states,advance:ms=>{now+=ms;}};
+}
+
+test('Omni short and long references each run on their own configuration; steps never restart the worker',async()=>{
+  const h=referenceFixture();
+  assert.equal(h.voice.omniReference,'long','long is the default reference');
+  h.voice.update({voiceProvider:'omni',omniSteps:16,omniReference:'short'},null,false);
+  assert.equal(h.voice.provider,'omni');assert.equal(h.voice.omniReference,'short');
+  await h.voice.start();
+  assert.equal(h.workers.length,1);assert.match(h.workers[0].config.voices['judy-alvarez'].reference,/\/short\//);
+  assert.equal(h.workers[0].hooks.configPath,resolve('runtime/local-voices.short.json'));
+  h.voice.update({voiceProvider:'omni',omniSteps:32,omniReference:'short'},null,false);await h.voice.start();
+  assert.equal(h.workers.length,1,'16 to 32 steps keeps the worker');assert.equal(h.workers[0].steps,32);
+  // Long needs the other configuration: a new worker after the old one is released.
+  assert.equal(h.voice.update({voiceProvider:'omni',omniSteps:32,omniReference:'long'},null,false),true);
+  assert.equal(h.voice.omniReference,'long');await h.voice.start();
+  assert.equal(h.workers[0].closes,1);assert.equal(h.workers.length,2);
+  assert.match(h.workers[1].config.voices['judy-alvarez'].reference,/\/long\//);
+  assert.equal(h.workers[1].hooks.configPath,resolve('runtime/local-voices.long.json'));
+  assert.equal(h.states.at(-1).omniReference,'long');assert.equal(h.states.at(-1).requestedOmniReference,'long');
+  assert.deepEqual(await h.voice.prepareProfile('judy-alvarez'),{provider:'omni',ready:true,profile:'judy-alvarez'});
+  await h.voice.close();
+});
+
+test('a reference change waits for the idle boundary and an owned turn keeps its worker',async()=>{
+  const h=referenceFixture();
+  h.voice.update({voiceProvider:'omni',omniSteps:16,omniReference:'short'},null,false);await h.voice.start();
+  assert.equal(h.voice.update({voiceProvider:'omni',omniSteps:16,omniReference:'long'},null,true),false);
+  assert.equal(h.voice.pending,true);assert.equal(h.voice.omniReference,'short');assert.equal(h.workers[0].closes,0);
+  h.voice.update({voiceProvider:'omni',omniSteps:16,omniReference:'long'},null,false);await h.voice.start();
+  assert.equal(h.voice.pending,false);assert.equal(h.workers[0].closes,1);assert.equal(h.workers.length,2);
+  await h.voice.close();
+});
+
+test('a Settings draft warms the draft reference before Apply, and Apply keeps that worker',async()=>{
+  const h=referenceFixture();
+  h.voice.update({voiceProvider:'pocket',omniReference:'long'},null,false);await h.voice.start();
+  h.voice.update({voiceProvider:'pocket',omniReference:'long'},{provider:'omni',omniSteps:16,omniReference:'short'},false);
+  await h.voice.retiring;await tick();await h.voice.start();
+  const omniWorkers=h.workers.filter(worker=>worker.backend==='omni');
+  assert.equal(omniWorkers.length,1);assert.match(omniWorkers[0].config.voices['judy-alvarez'].reference,/\/short\//);
+  assert.equal(h.voice.provider,'pocket','a draft never commits the route');
+  h.voice.update({voiceProvider:'omni',omniSteps:16,omniReference:'short'},{provider:'omni',omniSteps:16,omniReference:'short'},false);
+  assert.equal(h.voice.provider,'omni');assert.equal(h.workers.filter(worker=>worker.backend==='omni').length,1);
+  assert.equal(omniWorkers[0].closes,0,'Apply reuses the warmed worker');
+  await h.voice.close();
+});
+
+test('without the optional OmniVoice pack an Omni choice falls to Pocket and says what is missing',async()=>{
+  let installed=false;
+  const h=referenceFixture({omniPack:()=>({installed,missing:installed?[]:['python','model']})});
+  assert.equal(h.voice.omniPack.installed,false);
+  h.voice.update({voiceProvider:'omni',omniSteps:16,omniReference:'short'},null,false);
+  assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.provider,'pocket');
+  assert.deepEqual(h.voice.fallback,{from:'omni',to:'pocket'});
+  h.voice.publish();
+  assert.deepEqual(h.states.at(-1).omniPack,{installed:false,missing:['python','model']});
+  // A draft of an unavailable Omni never starts an Omni worker.
+  h.voice.update({voiceProvider:'omni',omniSteps:16,omniReference:'short'},{provider:'omni',omniSteps:16,omniReference:'short'},false);
+  await tick();assert.equal(h.workers.filter(worker=>worker.backend==='omni').length,0);
+  assert.equal((await h.voice.prepareProfile('judy-alvarez')).provider,'pocket');
+  // Installing the pack while the game runs is noticed on a later settings poll.
+  installed=true;h.advance(31_000);
+  h.voice.update({voiceProvider:'omni',omniSteps:16,omniReference:'short'},null,false);
+  assert.equal(h.voice.omniPack.installed,true);assert.equal(h.voice.provider,'omni');assert.equal(h.voice.fallback,null);
+  await h.voice.close();
+});
+
+test('Keep prepared voices defaults on and reaches the live worker and every new one',async()=>{
+  const h=referenceFixture();
+  await h.voice.start();
+  assert.equal(h.voice.keepPrepared,true);assert.equal(h.workers[0].hooks.keepPreparedVoices,true);assert.equal(h.workers[0].keep,true);
+  h.voice.update({voiceProvider:'pocket',keepPreparedVoices:false},null,false);
+  assert.equal(h.workers[0].keep,false);
+  h.voice.update({voiceProvider:'omni',omniSteps:16,omniReference:'long',keepPreparedVoices:false},null,false);
+  await h.voice.start();
+  const omni=h.workers.find(worker=>worker.backend==='omni');
+  assert.equal(omni.hooks.keepPreparedVoices,false);assert.equal(omni.keep,false);
+  h.voice.update({voiceProvider:'omni',omniSteps:16,omniReference:'long',keepPreparedVoices:true},null,false);
+  assert.equal(omni.keep,true);
   await h.voice.close();
 });

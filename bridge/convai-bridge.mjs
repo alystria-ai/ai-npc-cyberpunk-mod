@@ -26,6 +26,8 @@ import {PartyConnections, parsePartyConnections} from './party-connections.mjs';
 import {NearbyWarm} from './nearby-warm.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
+import {resolveVoiceConfigPaths} from './voice-config-paths.mjs';
+import {detectOmniPack} from './omni-pack.mjs';
 import {ResidentPhoneAnalysis} from './resident-phone-analysis.mjs';
 import {VoicePreviewLease} from './voice-preview.mjs';
 import {PhoneChat, parsePhoneState, phoneRecentConversationContext} from './phone-chat.mjs';
@@ -54,15 +56,17 @@ const relationshipVariants = JSON.parse(await readFile(resolve(stateDirectory, '
   throw error;
 }));
 const relationshipRoutes = new RelationshipRouting({ordinaryIds: ids, variants: relationshipVariants});
-const localVoiceConfigPath = resolve(stateDirectory, 'pocket-voices.json');
-const voiceConfig = JSON.parse(await readFile(localVoiceConfigPath, 'utf8').catch(error => {
+// Which voice configuration files are live is named by runtime/voice-configs.json (bridge/voice-config-paths.mjs):
+// the searched references for Pocket and for OmniVoice's short and long choices, each falling back to the base file.
+const voiceConfigPaths = resolveVoiceConfigPaths(stateDirectory);
+for (const warning of voiceConfigPaths.warnings) console.error('[CyberpunkConvai] Voice configuration: ' + warning);
+const readVoiceConfig = async path => JSON.parse(await readFile(path, 'utf8').catch(error => {
   if (error.code === 'ENOENT') return '{}';
   throw error;
 }));
-const omniVoiceConfigPath=resolve(stateDirectory,'local-voices.json');
-const omniVoiceConfig=JSON.parse(await readFile(omniVoiceConfigPath,'utf8').catch(error=>{
-  if(error.code==='ENOENT')return '{}';throw error;
-}));
+const localVoiceConfigPath = voiceConfigPaths.pocket;
+const voiceConfig = await readVoiceConfig(localVoiceConfigPath);
+const omniVoiceConfigs = {short: await readVoiceConfig(voiceConfigPaths.omni.short), long: await readVoiceConfig(voiceConfigPaths.omni.long)};
 let voiceMetricsWriting = Promise.resolve();
 const phoneAnalysisConfigPath=resolve(stateDirectory,'phone-analysis.json');
 let phoneAnalysisConfig={};
@@ -87,7 +91,9 @@ const jaliFace = await JaliFace.load(resolve(stateDirectory, 'lipsync-model')).c
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
-  omniConfig:omniVoiceConfig,omniConfigPath:omniVoiceConfigPath,previewSettleMs:1500,
+  omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
+  // The optional OmniVoice pack (worker Python, model weights, adapter); Settings greys Omni out without it.
+  omniPack:()=>detectOmniPack({project,config:omniVoiceConfigs.long}),
   profileKeys:roster.map(profile=>profile.key),
   onState: state => {
     voiceMetricsWriting = voiceMetricsWriting.catch(() => {}).then(() => atomic(resolve(runtime, 'local-voice-state.json'), JSON.stringify(state)));

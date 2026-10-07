@@ -45,3 +45,15 @@ test('Omni draft quality changes are explicit and legacy hybrid leases preserve 
   assert.deepEqual(state.observe(lease({provider:'omni',omniSteps:8,sequence:3}),100000),{provider:'omni',omniSteps:32});
   assert.deepEqual(new VoicePreviewLease().observe(lease({provider:'hybrid',steps:16}),100000),{provider:'omni',omniSteps:16});
 });
+
+test('an Omni draft carries its reference length; a missing one is left to the default and a bad one is refused',()=>{
+  const state=new VoicePreviewLease();
+  assert.deepEqual(state.observe(lease({provider:'omni',omniSteps:32,omniReference:'short'}),100000),
+    {provider:'omni',omniSteps:32,omniReference:'short'});
+  const next=new VoicePreviewLease();
+  assert.deepEqual(next.observe(lease({provider:'omni',omniSteps:16}),100000),{provider:'omni',omniSteps:16});
+  const bad=new VoicePreviewLease();
+  assert.equal(bad.observe(lease({provider:'omni',omniSteps:16,omniReference:'medium'}),100000),null);
+  const pocket=new VoicePreviewLease();
+  assert.deepEqual(pocket.observe(lease({provider:'pocket',omniReference:'short'}),100000),{provider:'pocket'});
+});

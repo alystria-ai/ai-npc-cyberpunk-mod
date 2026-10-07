@@ -19,7 +19,8 @@ export class VoicePreviewLease {
       && Number.isSafeInteger(value.sequence) && value.sequence > 0 && value.sequence <= 2147483647
       && Number.isSafeInteger(value.updated) && value.updated > 0 && fresh(value, now)
       && (!value.active || (['pocket','omni','hybrid','convai'].includes(value.provider)
-        && (!['omni','hybrid'].includes(value.provider)||[16,32].includes(value.omniSteps??value.steps??16))));
+        && (!['omni','hybrid'].includes(value.provider)||([16,32].includes(value.omniSteps??value.steps??16)
+          && (value.omniReference===undefined||['short','long'].includes(value.omniReference))))));
     if (valid && !this.retired.has(value.owner)) {
       if (!this.last || !fresh(this.last, now)) this.last = value;
       else if (value.owner === this.last.owner) {
@@ -31,6 +32,7 @@ export class VoicePreviewLease {
     }
     const current = fresh(this.last, now) && this.last.active ? this.last : null;
     return current?{provider:current.provider==='hybrid'?'omni':current.provider,
-      ...(['omni','hybrid'].includes(current.provider)?{omniSteps:current.omniSteps??current.steps??16}:{})}:null;
+      ...(['omni','hybrid'].includes(current.provider)?{omniSteps:current.omniSteps??current.steps??16,
+        ...(current.omniReference?{omniReference:current.omniReference}:{})}:{})}:null;
   }
 }

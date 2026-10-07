@@ -2,14 +2,20 @@ import {PocketVoice, validatePocketConfig} from './pocket-voice.mjs';
 import {ResidentVoice} from './resident-voice.mjs';
 import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
+import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
 // can begin from a settings draft while that routing remains unchanged.
 // CPU/CUDA workers retire through confirmed EOF before another backend starts.
 export const canonicalVoiceProvider = value => ['hybrid','omnivoice'].includes(value) ? 'omni' : value;
-// The player's list, best first: OmniVoice (16 or 32 steps), Pocket TTS, Convai.
-// A choice that cannot run falls to the next entry; Convai is always runnable.
+// OmniVoice reads either its short (up to 10 s) or its long (up to 18 s) searched reference per character.
+export const canonicalOmniReference = value => OMNI_REFERENCES.includes(value) ? value : null;
+// Fallback order, best first: OmniVoice (16 or 32 steps), Pocket TTS, Convai. The Settings menu lists Pocket first
+// because it is the default, but a choice that cannot run still falls to the next entry of THIS list: an Omni
+// choice (the optional pack missing, no CUDA) lands on Pocket, a Pocket failure lands on Convai, which is always
+// runnable.
 export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket','convai']);
+const PACK_RECHECK_MS = 30_000;
 const local = value => value === 'pocket' || value === 'omni';
 const equalSet = (a,b) => a.size===b.size&&[...a].every(key=>b.has(key));
 export class VoiceSelection {
@@ -17,41 +23,86 @@ export class VoiceSelection {
     const supplied = Object.keys(config).length > 0;
     const validated = supplied ? validatePocketConfig(config) : null;
     const empty=createVoiceProfileRegistry({}),pocketRegistry=validated?.registry||empty;
-    const omniInput=options.omniConfig||{},omniRegistry=createVoiceProfileRegistry(omniInput);
     const snapshot=(value,registry)=>Object.freeze({...value,voices:Object.freeze({...registry.profiles,
       ...Object.fromEntries(Object.entries(registry.unavailable).map(([key,status])=>[key,Object.freeze({status})]))}),
       preparation:registry.preparation});
-    this.registries={pocket:pocketRegistry,omni:omniRegistry,convai:empty};
-    this.configs={pocket:snapshot(validated,pocketRegistry),omni:snapshot(omniInput,omniRegistry)};
+    // OmniVoice has one reference configuration per choice (short, long); a caller with one config uses it for both.
+    const omniInputs=options.omniConfigs||{short:options.omniConfig||{},long:options.omniConfig||{}};
+    const omniPaths=options.omniConfigPaths||{short:options.omniConfigPath,long:options.omniConfigPath};
+    this.omniVariants=Object.fromEntries(OMNI_REFERENCES.map(reference=>{
+      const input=omniInputs[reference]||{},registry=createVoiceProfileRegistry(input);
+      return [reference,{input,registry,snapshot:snapshot(input,registry),path:omniPaths[reference],
+        configured:input.provider==='hybrid'&&registry.keys.length>0,availability:new Set(registry.keys)}];
+    }));
+    this.registries={pocket:pocketRegistry,convai:empty};
+    this.configs={pocket:snapshot(validated,pocketRegistry)};
+    this.configuredByBackend={pocket:!!validated&&pocketRegistry.keys.length>0};
+    this.availabilities={pocket:new Set(pocketRegistry.keys),convai:new Set()};
+    // The optional OmniVoice pack (worker Python, model weights): a function or a fixed {installed, missing}.
+    this.omniPackSource=options.omniPack||(()=>({installed:true,missing:[]}));
+    this.clock = options.clock || Date.now;
+    this.packCheckedAt=0;this.refreshOmniPack();
+    this.omniReference=this.requestedOmniReference=DEFAULT_OMNI_REFERENCE;
+    this.activateOmni();
     this.options = options;
     // A draft must stay unchanged this long before it may prepare a model, so
     // cycling quickly through the choices never starts or retires a worker.
     // Zero keeps the preview immediate for callers that do not debounce.
     this.previewSettleMs = Number.isFinite(options.previewSettleMs) ? Math.max(0, options.previewSettleMs) : 0;
-    this.clock = options.clock || Date.now; this.previewSince = 0;
+    this.previewSince = 0;
     this.phoneAnalysis=options.phoneAnalysis;
     this.factory = options.factory || ((settings, hooks) => new PocketVoice(settings, hooks));
     this.omniFactory=options.omniFactory||((settings,hooks)=>new ResidentVoice(settings,hooks));
-    this.configuredByBackend={pocket:!!validated&&pocketRegistry.keys.length>0,
-      omni:omniInput.provider==='hybrid'&&omniRegistry.keys.length>0};
+    // "Keep prepared voices" (default on): Pocket saves each voice's prepared state to disk; Omni warms at the
+    // selected steps while the companion joins.
+    this.keepPrepared=options.keepPreparedVoices!==false;
     this.provider = this.requestedProvider = 'pocket';
     // 16 steps is the default; the saved setting replaces it on the first poll.
     this.omniSteps=this.requestedOmniSteps=16;
     this.playbackEnabled=true;
-    this.routeKeys=[...new Set([...Object.keys(this.configs.pocket.voices),...Object.keys(this.configs.omni.voices),
+    this.routeKeys=[...new Set([...Object.keys(this.configs.pocket.voices),
+      ...OMNI_REFERENCES.flatMap(reference=>Object.keys(this.omniVariants[reference].snapshot.voices)),
       ...(options.profileKeys||[])])].sort();
     this.retiring = Promise.resolve(); this.releasing = false;
     this.state = this.configured ? 'stopped' : 'disabled'; this.details = {};
-    this.availabilities={pocket:new Set(pocketRegistry.keys),omni:new Set(omniRegistry.keys),convai:new Set()};
-    // The default choice is OmniVoice; it starts on the first usable entry of
-    // the list so a machine without Omni begins on Pocket without a switch.
-    this.requestedProvider='omni';this.failedBackends=new Set();
-    this.provider=this.resolve('omni');
+    // The default choice is Pocket TTS, the voice that ships with the mod.
+    this.requestedProvider='pocket';this.failedBackends=new Set();
+    this.provider=this.resolve('pocket');
     this.state = this.configured ? 'stopped' : 'disabled';
     this.verifiedAvailabilities=new Map();this.busy=false;
     // failedBackends: local workers that could not start or died (no CUDA, load
     // error, crash) stay out of routing until the player chooses them again.
     this.routeRevision = 0; this.routeChanges = new Set(); this.routingWaiters = new Set();
+  }
+  // The optional OmniVoice pack. A machine without it keeps Omni out of routing (the choice falls to Pocket) and
+  // the Settings menu says what is missing. A pack installed while the game runs is noticed within 30 s.
+  refreshOmniPack(){
+    this.packCheckedAt=this.clock();
+    const found=typeof this.omniPackSource==='function'?this.omniPackSource():this.omniPackSource;
+    const next={installed:found?.installed!==false,missing:[...(found?.missing||[])]};
+    const changed=!this.omniPack||this.omniPack.installed!==next.installed;
+    this.omniPack=Object.freeze(next);
+    if(this.omniVariants&&this.omniReference)this.activateOmni();
+    return changed;
+  }
+  // Point the shared 'omni' slots at the committed reference choice's configuration.
+  activateOmni(){
+    const variant=this.omniVariants[this.omniReference];
+    this.registries.omni=variant.registry;this.configs.omni=variant.snapshot;
+    this.configuredByBackend.omni=variant.configured&&this.omniPack.installed;
+    this.availabilities.omni=variant.availability;
+  }
+  // Verified availability is per worker configuration: Omni short and long each have their own.
+  verifiedKey(backend,reference=this.omniReference){return backend==='omni'?`omni:${reference}`:backend;}
+  setAvailability(backend,set){
+    if(backend==='omni'){this.omniVariants[this.omniReference].availability=set;this.availabilities.omni=set;}
+    else this.availabilities[backend]=set;
+  }
+  // The reference the Omni worker should hold: the settled draft's, else the committed one.
+  get wantedReference(){return this.previewSettled&&this.preview.provider==='omni'?this.preview.omniReference:this.omniReference;}
+  setKeepPrepared(value){
+    this.keepPrepared=value!==false;
+    this.client?.setKeepPrepared?.(this.keepPrepared);
   }
   backendUsable(backend){
     return backend==='convai'||(!!this.configuredByBackend[backend]&&this.availabilities[backend].size>0
@@ -97,16 +148,22 @@ export class VoiceSelection {
       this.requestedProvider=chosen;
     }
     if ([16,32].includes(settings?.omniSteps))this.requestedOmniSteps=settings.omniSteps;
+    const reference=canonicalOmniReference(settings?.omniReference);
+    if(reference)this.requestedOmniReference=reference;
+    if(typeof settings?.keepPreparedVoices==='boolean'&&settings.keepPreparedVoices!==this.keepPrepared)
+      this.setKeepPrepared(settings.keepPreparedVoices);
   }
   get pending() { return this.provider!==this.resolvedProvider
-    ||(this.provider==='omni'&&this.omniSteps!==this.requestedOmniSteps); }
-  get availabilityPending() { const verified=this.verifiedAvailabilities.get(this.provider);
+    ||(this.provider==='omni'&&(this.omniSteps!==this.requestedOmniSteps||this.omniReference!==this.requestedOmniReference)); }
+  get availabilityPending() { const verified=this.verifiedAvailabilities.get(this.verifiedKey(this.provider));
     return !!verified&&!equalSet(this.availability,verified); }
   get previewRoutingPending(){return local(this.provider)&&this.targetBackend!==null&&this.targetBackend!==this.provider;}
   consumeRouteChanges() { const value = [...this.routeChanges].sort(); this.routeChanges.clear(); return value; }
   stageAvailability(client,backend=this.clientBackend) {
     if (this.client !== client || this.closed || !client.loaded) return;
-    this.verifiedAvailabilities.set(backend,new Set(this.registries[backend].keys.filter(key=>client.hasProfile(key))));
+    const registry=backend==='omni'?this.omniVariants[this.clientReference].registry:this.registries[backend];
+    this.verifiedAvailabilities.set(this.verifiedKey(backend,this.clientReference),
+      new Set(registry.keys.filter(key=>client.hasProfile(key))));
   }
   routingSettled({signal} = {}) {
     throwIfCancelled(signal);
@@ -140,9 +197,11 @@ export class VoiceSelection {
   get warmSteps(){return this.previewSettled&&this.preview.provider==='omni'?this.preview.omniSteps:this.requestedOmniSteps;}
   setPreview(preview) {
     const chosen=canonicalVoiceProvider(preview?.provider),quality=preview?.omniSteps??preview?.steps??16;
+    const reference=canonicalOmniReference(preview?.omniReference)||DEFAULT_OMNI_REFERENCE;
     const next=preview&&['pocket','omni','convai'].includes(chosen)&&(!['omni'].includes(chosen)||[16,32].includes(quality))
-      ?{provider:chosen,...(chosen==='omni'?{omniSteps:quality}:{})}:null;
-    const changed=this.preview?.provider!==next?.provider||this.preview?.omniSteps!==next?.omniSteps;
+      ?{provider:chosen,...(chosen==='omni'?{omniSteps:quality,omniReference:reference}:{})}:null;
+    const changed=this.preview?.provider!==next?.provider||this.preview?.omniSteps!==next?.omniSteps
+      ||this.preview?.omniReference!==next?.omniReference;
     this.preview = next;
     if (changed) this.previewSince = this.clock();
     return changed;
@@ -155,7 +214,10 @@ export class VoiceSelection {
   }
   update(settings, preview, busy) {
     if (this.closed) return false;
-    this.busy=!!busy;this.request(settings);
+    this.busy=!!busy;
+    // A pack installed while the game runs becomes usable without a restart.
+    if(!this.omniPack.installed&&this.clock()-this.packCheckedAt>=PACK_RECHECK_MS)this.refreshOmniPack();
+    this.request(settings);
     const previewChanged = this.setPreview(preview);
     const applied = this.applyWhenIdle(busy);
     this.reconcile();
@@ -166,9 +228,10 @@ export class VoiceSelection {
     const wanted=this.targetBackend;
     this.phoneAnalysis?.setWanted((this.busy&&this.clientBackend==='pocket'&&this.provider==='pocket')
       ||(this.playbackEnabled!==false&&wanted==='pocket'));
-    if(this.client&&this.clientBackend!==wanted){
+    if(this.client&&(this.clientBackend!==wanted||(wanted==='omni'&&this.clientReference!==this.wantedReference))){
       // A settings draft queues warm-up immediately, but never stops the
-      // model that still owns a submitted local turn.
+      // model that still owns a submitted local turn. An Omni worker holds
+      // one reference configuration; the other one needs a new worker.
       if(this.busy&&this.clientBackend===this.provider)return;
       this.retire();
     }
@@ -182,6 +245,10 @@ export class VoiceSelection {
       requestedProvider: this.requestedProvider, fallback: this.fallback, pending: this.pending,
       playbackEnabled:this.playbackEnabled,
       omniSteps:this.omniSteps,requestedOmniSteps:this.requestedOmniSteps,
+      omniReference:this.omniReference,requestedOmniReference:this.requestedOmniReference,
+      previewOmniReference:this.preview?.omniReference,
+      omniPack:{installed:this.omniPack.installed,missing:this.omniPack.missing},
+      keepPreparedVoices:this.keepPrepared,
       workerBackend:this.clientBackend,preparationQueued:this.targetBackend!==this.clientBackend,
       configured: this.configured, bridgePid: process.pid,
       configuredProfiles: this.profileKeys,
@@ -199,13 +266,16 @@ export class VoiceSelection {
     if (!this.pending && !this.availabilityPending) { this.settleRouting(); return false; }
     if (busy) { this.reconcile(); this.publish(); return false; }
     const previous = new Set(this.profileKeys.filter(key => this.usesProfile(key)));
+    // The reference choice commits with the rest; its own configuration and
+    // verified availability replace the previous one's.
+    this.omniReference=this.requestedOmniReference;this.activateOmni();
     // Verified availability can make the chosen backend unusable (every
     // reference gone); settle on the first entry that stays usable once it
     // is applied, so one commit reaches the final route.
     let target=this.resolvedProvider;
     for(let step=0;step<VOICE_FALLBACK_ORDER.length;step++){
-      const verified=this.verifiedAvailabilities.get(target);
-      if(verified)this.availabilities[target]=new Set(verified);
+      const verified=this.verifiedAvailabilities.get(this.verifiedKey(target));
+      if(verified)this.setAvailability(target,new Set(verified));
       const next=this.resolvedProvider;
       if(next===target)break;
       target=next;
@@ -233,23 +303,26 @@ export class VoiceSelection {
     }
     const backend=this.targetBackend;
     if(this.clientBackend===backend&&this.client?.failure)return Promise.reject(this.client.failure);
-    if(this.client&&this.clientBackend!==backend){
+    if(this.client&&(this.clientBackend!==backend||(backend==='omni'&&this.clientReference!==this.wantedReference))){
       if(this.busy&&this.clientBackend===this.provider)return this.starting||Promise.resolve();
       this.retire();
     }
     if (this.starting) return this.starting;
     let client;
     this.clientBackend=backend;
+    this.clientReference=backend==='omni'?this.wantedReference:null;
+    const variant=backend==='omni'?this.omniVariants[this.clientReference]:null;
     const factory=backend==='omni'?this.omniFactory:this.factory;
-    const hooks={...this.options,...(backend==='omni'?{configPath:this.options.omniConfigPath,
+    const hooks={...this.options,keepPreparedVoices:this.keepPrepared,...(backend==='omni'?{configPath:variant.path,
       pythonExecutable:this.options.omniPythonExecutable}:{}),onState: value => {
       if (this.client !== client || this.closed) return;
       if (value.state === 'error') queueMicrotask(()=>this.backendFailed(backend,client));
       if (value.state === 'ready') this.stageAvailability(client,backend);
       this.details = value; this.publish(value.state);
     }};
-    client=this.client=factory(this.configs[backend],hooks);
+    client=this.client=factory(backend==='omni'?variant.snapshot:this.configs[backend],hooks);
     if(backend==='omni')client.setSteps(this.warmSteps);
+    client.setKeepPrepared?.(this.keepPrepared);
     this.publish(this.releasing ? 'releasing' : 'loading');
     this.starting = this.retiring.then(async () => {
       if (this.client !== client || this.closed) return;
@@ -270,7 +343,7 @@ export class VoiceSelection {
   retire() {
     const client = this.client;
     const backend=this.clientBackend;
-    this.client = this.starting = this.clientBackend = null;
+    this.client = this.starting = this.clientBackend = this.clientReference = null;
     if (!client) { this.publish(this.releasing ? 'releasing' : (this.closed ? 'stopped' : 'remote')); return this.retiring; }
     this.releasing = true;
     this.publish('releasing');
