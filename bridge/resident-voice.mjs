@@ -5,6 +5,7 @@ import {inspectWav} from './speech-audio.mjs';
 import {abortable, throwIfCancelled, cancelled} from './transport-pool.mjs';
 import {createVoiceProfileRegistry, LEGACY_LOCAL_VOICE_KEYS} from './voice-profile-registry.mjs';
 import {absoluteRuntimeOverride, OMNI_RUNTIME_PATHS, omniRuntimeOverrides} from './runtime-paths.mjs';
+import {realpathSync} from 'node:fs';
 
 // Historical accepted-reference fixture/packaging list. Eligibility is always
 // read from the validated registry, never from this compatibility export.
@@ -159,7 +160,9 @@ export class ResidentVoice {
         const normalized = value => {
           if (typeof value !== 'string') return null;
           absoluteRuntimeOverride(value, 'Local voice worker path');
-          const path = resolve(value);
+          // Real location: CI and some installs name a folder by its short 8.3 form on one side.
+          let path = resolve(value);
+          try { path = realpathSync.native(path); } catch {}
           return process.platform === 'win32' ? path.toLowerCase() : path;
         };
         if (!paths || typeof paths !== 'object' || Array.isArray(paths)

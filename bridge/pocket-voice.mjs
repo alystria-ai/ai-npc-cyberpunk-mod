@@ -2,6 +2,7 @@
 // the complete reply once and never enters Omni's text/phrase WAV queue.
 import {spawn} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
+import {realpathSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
 import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
@@ -18,7 +19,13 @@ const modelFields = ['sha256', 'configSha256', 'tokenizerSha256', 'receiptSha256
 const pathFields = ['sourceDirectory', 'exportDirectory', 'referenceDirectory', 'workDirectory'];
 // Where a voice's prepared state came from: memory, a saved setup on disk, or freshly encoded.
 const preparationSource = frame => ['memory', 'disk', 'computed'].includes(frame.preparationSource) ? frame.preparationSource : undefined;
-const samePath = (a, b) => process.platform === 'win32' ? resolve(a).toLowerCase() === resolve(b).toLowerCase() : resolve(a) === resolve(b);
+// Compare real locations: Windows can name one folder by its short 8.3 form (RUNNER~1) on one
+// side and its long form on the other, and links can point the same way.
+const canonicalPath = path => { try { return realpathSync.native(path); } catch { return resolve(path); } };
+const samePath = (a, b) => {
+  const left = canonicalPath(a), right = canonicalPath(b);
+  return process.platform === 'win32' ? left.toLowerCase() === right.toLowerCase() : left === right;
+};
 
 export function validatePocketConfig(config) {
   if (!object(config) || config.version !== 1 || config.engine !== 'pocket-tts' || config.provider !== 'pocket')

@@ -1,4 +1,5 @@
 import {readFile,lstat} from 'node:fs/promises';
+import {realpathSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {resolve,relative,dirname,isAbsolute,sep} from 'node:path';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
@@ -11,7 +12,8 @@ export const PHONE_ANALYSIS_FRONTEND=Object.freeze({inputSampleRate:24000,analys
 const sha=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
 const object=value=>value&&typeof value==='object'&&!Array.isArray(value);
 const inside=(root,path)=>{const part=relative(root,path);return part===''||(!isAbsolute(part)&&part!=='..'&&!part.startsWith('..'+sep));};
-const same=(a,b)=>process.platform==='win32'?resolve(a).toLowerCase()===resolve(b).toLowerCase():resolve(a)===resolve(b);
+const real=p=>{try{return realpathSync.native(p);}catch{return resolve(p);}};
+const same=(a,b)=>process.platform==='win32'?real(a).toLowerCase()===real(b).toLowerCase():real(a)===real(b);
 const path=value=>absoluteRuntimeOverride(value,'Phone-analysis asset');
 
 export function validatePhoneAnalysisConfig(config){
