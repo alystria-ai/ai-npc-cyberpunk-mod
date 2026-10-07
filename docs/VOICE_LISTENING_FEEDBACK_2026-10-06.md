@@ -62,3 +62,8 @@ The user's per-character verdicts from the report page (http://127.0.0.1:8765/),
 - The review is complete. Massive improvement over the original version.
 - Overall by ear: Pocket = x, Omni 16 about 15-20% better, Omni 32 about 20-25% better.
 - But it depends on the character. Johnny, Judy, Panam and Alex sound very good on Pocket, so the gap is even or at most about 5%. For some, Pocket beats Omni (e.g. Carol). Omni shines on the harder voices lower on the page, likely the difficult ones or those with less data.
+
+### Product tiers (the user's vision, 2026-10-07)
+- Pocket base: the cheap CPU option.
+- Pocket fine-tuned (student + decoder fine-tune + auto best-clip references): an upfront cost, but good performance. Per-character models should be the default: one model trained on one character's voice. Everything is in the cloud, so many models are fine, and the user expects a massive quality boost.
+- OmniVoice: expensive, needs a GPU, but less setup work (zero-shot).
