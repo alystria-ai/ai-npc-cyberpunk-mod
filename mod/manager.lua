@@ -343,6 +343,8 @@ local function loadSettings()
     if type(settings.bodyGestures) ~= 'boolean' then settings.bodyGestures, settingsNeedSave = false, true end
     -- On by default (a missing key); an explicitly saved choice is kept.
     if type(settings.autoConnectNearby) ~= 'boolean' then settings.autoConnectNearby, settingsNeedSave = true, true end
+    -- On by default: recent subtitled game dialogue is attached to the next manual turn (mod/game-dialogue.lua).
+    if type(settings.gameDialogueContext) ~= 'boolean' then settings.gameDialogueContext, settingsNeedSave = true, true end
     if not isChoice(settings.eyeContactHeight, eyeContactHeights) then
         settings.eyeContactHeight, settingsNeedSave = 0, true
     end
@@ -568,6 +570,13 @@ end
 function M.autoConnectNearby()
     loadSettings()
     return settings.autoConnectNearby == true
+end
+
+-- On by default: a character addressed right after the game's own dialogue with them knows the last lines that
+-- were said (docs/GAME_DIALOGUE_CONTEXT.md). Off, no game dialogue is recorded or sent.
+function M.gameDialogueContext()
+    loadSettings()
+    return settings.gameDialogueContext == true
 end
 
 -- Read by the ordinary companion update, never by a native menu callback.
@@ -1047,6 +1056,7 @@ function M.snapshot(player)
             lootReactions = settings.lootReactions,
             bodyGestures = settings.bodyGestures,
             autoConnectNearby = settings.autoConnectNearby,
+            gameDialogueContext = settings.gameDialogueContext,
             eyeContactHeight = settings.eyeContactHeight,
             headFollowStrength = settings.headFollowStrength,
             voiceProvider = settings.voiceProvider,
@@ -1094,6 +1104,7 @@ function M.applySettings(player, values)
     for key, value in pairs(values) do
         if key == 'voice' or key == 'subtitles' or key == 'developerMode'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
+            or key == 'gameDialogueContext'
             or key == 'keepPreparedVoices' or key == 'naturalSpeech' or key == 'expressiveEmotions'
             or key == 'multilingualConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end

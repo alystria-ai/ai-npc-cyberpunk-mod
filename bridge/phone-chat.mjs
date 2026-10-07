@@ -5,6 +5,7 @@ import {parseJournal, conversationContext} from './quest-context.mjs';
 import {parseBattle} from './battle-context.mjs';
 import {parseWorldSnapshot} from './world-knowledge.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
+import {parseGameDialogue} from './game-dialogue.mjs';
 
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const token = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(value);
@@ -114,6 +115,7 @@ export function parsePhoneState(raw) {
   const journal = parseJournal(state.request.journal), battle = parseBattle(state.request.battle);
   const worldKnowledge = state.request.worldKnowledge === undefined ? undefined : parseWorldSnapshot(state.request.worldKnowledge);
   const journalHistory = state.request.journalHistory === undefined ? undefined : parseJournalHistory(state.request.journalHistory);
+  const gameDialogue = parseGameDialogue(state.request.gameDialogue);
   const memoryReset=state.request.memoryReset===undefined ? undefined : parsePhoneReset(state.request.memoryReset);
   if (state.request.memoryReset!==undefined && !memoryReset) return null;
   const recent=state.request.recentConversation===undefined ? undefined : recentConversation(state.request.recentConversation,
@@ -122,7 +124,7 @@ export function parsePhoneState(raw) {
   result.request = {id, contact, text: text.trim(), saveIdentity: requestBinding,
     ...(memoryReset?{memoryReset}:{}),...(recent?{recentConversation:recent}:{}),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(worldKnowledge ? {worldKnowledge} : {}),
-    ...(journalHistory ? {journalHistory} : {})};
+    ...(journalHistory ? {journalHistory} : {}), ...(gameDialogue ? {gameDialogue} : {})};
   return result;
 }
 

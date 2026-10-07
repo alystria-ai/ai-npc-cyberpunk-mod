@@ -501,6 +501,8 @@ return {
     ["the game folder"] = "ゲームフォルダー",
     ["the runtime folder of the mod project, or the data folder inside the mod folder"] = "MODプロジェクトのランタイムフォルダー、またはMODフォルダー内のデータフォルダー",
     ["Auto-connect nearby characters"] = "近くのキャラクターに自動接続",
+    ["Continue from game dialogue"] = "ゲーム内の会話から続ける",
+    ["When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default."] = "ゲーム内の会話の直後にそのキャラクターと話すと、選んだ返答や電話での会話を含め、直前に交わされた数行をキャラクターが把握しているため、自然に話が続きます。使われるのは、そのキャラクターが関わった直近数分間のセリフだけで、キャラクターの記憶には追加されません。既定ではオン。",
     ["Preparing connection to {name}…"] = "{name}への接続を準備中…",
     ["Preparing {names}…"] = "{names}を準備中…",
     ["Connecting {names}…"] = "{names}に接続中…",

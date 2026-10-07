@@ -354,6 +354,32 @@ local function profileIdentity(npc)
     return key, canonical, body
 end
 
+-- Recent game dialogue (subtitled scene lines and V's chosen options), attached
+-- to manual turns so a reply follows on from what was just said in the game.
+-- See docs/GAME_DIALOGUE_CONTEXT.md. The bridge scopes it to the addressee.
+-- Optional: the adapter keeps working unchanged if this module is absent.
+local gameDialogueLoaded, gameDialogueModule = pcall(dofile, 'game-dialogue.lua')
+local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
+    and type(gameDialogueModule.new) == 'function' and gameDialogueModule.new({
+    enabled = function() return type(manager.gameDialogueContext) ~= 'function' or manager.gameDialogueContext() == true end,
+    resolve = function(speaker)
+        if not speaker:IsNPC() then return nil end
+        local key, canonical = profileIdentity(speaker)
+        return key, canonical
+    end,
+    resolveName = function(name) return (characterCatalog.resolve(catalog, {name = name, crowd = false})) end,
+    contactKey = function(contact) return (companions.phoneContactKey(contact)) end,
+    present = function(radius)
+        local keys = {}
+        for _, person in ipairs(companions.conversationCandidates(Game.GetPlayer(), radius)) do keys[#keys + 1] = person.profileKey end
+        return keys
+    end}) or nil
+convaiGameDialogue = gameDialogue
+local function captureGameDialogue() return gameDialogue and gameDialogue:capture() or nil end
+groupChat.captureGameDialogue = captureGameDialogue
+phoneChat.captureGameDialogue = captureGameDialogue
+microphone.captureGameDialogue = captureGameDialogue
+
 local function warmConversation(participants, key)
     local f = io.open('runtime/conversation-prewarm.json.tmp', 'wb')
     if not f then return end
@@ -946,6 +972,10 @@ local function sendRequest(context)
     local owner = attachKnowledge(context)
     if not owner then return false end
     context.journal = context.journal or questContext.capture()
+    -- Manual turns only: an automatic reaction has its own single subject.
+    if not context.reaction and convaiGameDialogue then
+        context.gameDialogue = context.gameDialogue or convaiGameDialogue:capture()
+    end
     -- Automatic turns have one subject. Manual conversations may still discuss
     -- recent combat and pickups together when V asks about them.
     if context.reaction and context.reaction.kind == 'loot' then context.battle = nil
@@ -1558,6 +1588,8 @@ local function abandonSession(reason,preserveTransit)
     mcm.resetSession()
     speech.abandon()
     subtitles.abandon()
+    -- A load, death or detach ends the scene; fast travel keeps the last lines.
+    if preserveTransit ~= true and convaiGameDialogue then convaiGameDialogue:reset(reason) end
     microphone.cancel()
     groupChat.cancel()
     phoneChat.abandon()
@@ -1582,6 +1614,7 @@ registerForEvent('onInit', function()
         if not ok then log('Interrupted driver cleanup initialization failed: '..tostring(error)) end
     end
     subtitles.install()
+    if convaiGameDialogue and not convaiGameDialogue:install() then log('Game dialogue capture unavailable') end
     lootObserver.configure({captureContext = captureLootContext})
     lootObserver.install()
     convaiLocomotion = dofile('companion-locomotion.lua')

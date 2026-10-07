@@ -1,0 +1,432 @@
+-- Recent in-game dialogue for mod conversations (docs/GAME_DIALOGUE_CONTEXT.md).
+-- Read-only. Observes the game's subtitle line feed and V's chosen dialogue
+-- options, keeps a short bounded buffer of plain strings (never a native
+-- handle), and hands a snapshot to the next mod turn. The bridge scopes that
+-- snapshot to the addressed character; nothing here is written to memory.
+local M = {}
+M.MAX_AGE, M.MAX_LINES, M.MAX_AMBIENT, M.MAX_TEXT = 180, 40, 10, 600
+local DUPLICATE_WINDOW, PRESENT_RADIUS = 6, 15
+-- mod/subtitles.lua shows its own replies as CRUID(0x436F6E760000 + serial).
+local OWN_LINE_BASE = 0x436F6E760000
+-- Native scnDialogLineType names, and what each means here. Lines whose type
+-- is not listed (TV, radio broadcasts, scene comments, narrator, invisible,
+-- speakerless cinematic text) are never recorded.
+M.TYPES = {'Regular', 'Holocall', 'SceneComment', 'OverHead', 'Radio', 'GlobalTV', 'Invisible',
+    'OverHeadAlwaysVisible', 'OwnerlessRegular', 'AlwaysCinematicNoSpeaker', 'GlobalTVAlwaysVisible', 'Narrator'}
+local POLICY = {Regular = 'scene', OwnerlessRegular = 'scene', Holocall = 'phone',
+    OverHead = 'ambient', OverHeadAlwaysVisible = 'ambient', Radio = 'call-only'}
+
+local function clean(value, limit)
+    if type(value) ~= 'string' then return nil end
+    local text = value:gsub('<[^>]*>', ''):gsub('%c', ' '):gsub('%s+', ' '):match('^%s*(.-)%s*$')
+    if text == '' or text:match('^LocKey#') then return nil end
+    if #text > limit then
+        -- Cut on a UTF-8 boundary, never inside a character.
+        local cut = limit - 3
+        while cut > 0 and text:byte(cut + 1) and text:byte(cut + 1) >= 0x80 and text:byte(cut + 1) < 0xC0 do cut = cut - 1 end
+        text = text:sub(1, cut) .. '...'
+    end
+    return text
+end
+local function profileKey(value)
+    if type(value) ~= 'string' or not value:match('^[a-z0-9%-]+$') or #value > 80 then return nil end
+    if value:match('^resident%-') then return nil end -- generic crowd profiles are not identities
+    return value
+end
+local function entityId(value)
+    value = value ~= nil and tostring(value) or nil
+    return value and value:match('^%d+ULL$') and #value <= 23 and value or nil
+end
+
+-- Default native adapter. Every call is guarded by the caller; tests replace it.
+local function nativeAdapter()
+    local N, enums = {}, nil
+    local function enum(kind, name)
+        local ok, value = pcall(Enum.new, kind, name)
+        return ok and value or nil
+    end
+    function N.player() return Game.GetPlayer() end
+    function N.ready(player)
+        return player ~= nil and player:IsAttached() and not player:IsDeadNoStatPool()
+    end
+    function N.entity(object) return tostring(object:GetEntityID().hash) end
+    function N.braindance()
+        local defs = Game.GetAllBlackboardDefs()
+        return Game.GetBlackboardSystem():Get(defs.Braindance):GetBool(defs.Braindance.IsActive) == true
+    end
+    function N.replacer(player) return player:IsReplacer() == true end
+    function N.playerCombat(player) return player:IsInCombat() == true end
+    function N.npcCombat(object) return object:IsNPC() and NPCPuppet.IsInCombat(object) == true end
+    function N.isVehicle(object) return object:IsVehicle() == true end
+    function N.call()
+        local defs = Game.GetAllBlackboardDefs()
+        local call = FromVariant(Game.GetBlackboardSystem():Get(defs.UI_ComDevice):GetVariant(defs.UI_ComDevice.PhoneCallInformation))
+        if not call or call.callPhase ~= Enum.new('questPhoneCallPhase', 'StartCall') then return nil end
+        local okName, contact = pcall(function() return call.contactName.value end)
+        if not okName or type(contact) ~= 'string' then
+            okName, contact = pcall(function() return Game.NameToString(call.contactName) end)
+        end
+        return {active = true, contact = okName and type(contact) == 'string' and contact or nil}
+    end
+    function N.lineType(value)
+        if not enums then
+            enums = {}
+            for _, name in ipairs(M.TYPES) do enums[name] = enum('scnDialogLineType', name) end
+        end
+        for _, name in ipairs(M.TYPES) do
+            if enums[name] ~= nil and value == enums[name] then return name end
+        end
+        -- Some CET wrappers compare enum values by number only.
+        local ok, number = pcall(EnumInt, value)
+        if ok and type(number) == 'number' then
+            for _, name in ipairs(M.TYPES) do
+                local same, other = pcall(EnumInt, enums[name])
+                if same and other == number then return name end
+            end
+        end
+        return 'unknown'
+    end
+    -- The text the player was shown: a Kiroshi/mother-tongue line shows its translation.
+    function N.text(line)
+        local tagged = false
+        pcall(function()
+            tagged = scnDialogLineData.HasKiroshiTag(line) or scnDialogLineData.HasMothertongueTag(line)
+        end)
+        if tagged then
+            local ok, display = pcall(function() return scnDialogLineData.GetDisplayText(line) end)
+            if ok and display then
+                local translated = display.translation
+                if type(translated) == 'string' and translated:find('%S') then return translated end
+                if type(display.text) == 'string' and display.text:find('%S') then return display.text end
+            end
+        end
+        return line.text
+    end
+    function N.speakerName(line)
+        if type(line.speakerName) == 'string' and line.speakerName:find('%S') then return line.speakerName end
+        if line.speaker then return line.speaker:GetDisplayName() end
+        return nil
+    end
+    function N.lineId(line) return tostring(line.id) end
+    function N.lineNumber(line)
+        local ok, value = pcall(function() return line.id.hash end)
+        local digits = tostring(ok and value ~= nil and value or line.id):match('(%d+)')
+        return digits and tonumber(digits) or nil
+    end
+    function N.fromVariant(value) return FromVariant(value) end
+    function N.dialogChoice(value)
+        return value.isSuccess == true and value.visualizerType == Enum.new('EVisualizerType', 'Dialog')
+    end
+    function N.activeHub()
+        local defs = Game.GetAllBlackboardDefs()
+        return Game.GetBlackboardSystem():Get(defs.UIInteractions):GetInt(defs.UIInteractions.ActiveChoiceHubID)
+    end
+    function N.localized(text)
+        if type(text) == 'string' and text:match('^LocKey#') then return GetLocalizedText(text) end
+        return text
+    end
+    function N.subtitles() return convaiSubtitles end
+    return N
+end
+
+local Instance = {}
+Instance.__index = Instance
+
+-- options: now(), enabled(), resolve(speaker) -> profileKey, name;
+-- resolveName(name) -> profileKey; contactKey(contact) -> profileKey;
+-- present() -> {profileKey}; native (adapter override); observe (hook registrar).
+function M.new(options)
+    options = options or {}
+    local self = setmetatable({options = options, native = options.native or nativeAdapter()}, Instance)
+    self:reset('created')
+    self.counts = {hooks = {}, types = {}, skipped = {}, recorded = 0}
+    return self
+end
+
+function Instance:now()
+    local value = self.options.now and self.options.now() or os.time()
+    return type(value) == 'number' and value or os.time()
+end
+function Instance:enabled()
+    if not self.options.enabled then return true end
+    local ok, value = pcall(self.options.enabled)
+    return ok and value == true
+end
+function Instance:count(group, key)
+    local bucket = self.counts[group]
+    bucket[key] = (bucket[key] or 0) + 1
+end
+function Instance:skip(reason) self:count('skipped', reason); return false, reason end
+local function call(fn, ...)
+    if type(fn) ~= 'function' then return nil end
+    local ok, a, b = pcall(fn, ...)
+    if ok then return a, b end
+    return nil
+end
+
+function Instance:reset(reason)
+    self.lines, self.seen, self.hubs, self.serial = {}, {}, {}, self.serial or 0
+    self.presentAt, self.presentKeys = nil, nil
+    self.resetReason = reason
+end
+
+function Instance:prune(now)
+    local kept, ambient = {}, 0
+    for index = #self.lines, 1, -1 do
+        local row = self.lines[index]
+        if now - row.at <= M.MAX_AGE and #kept < M.MAX_LINES then
+            if row.channel ~= 'ambient' or ambient < M.MAX_AMBIENT then
+                if row.channel == 'ambient' then ambient = ambient + 1 end
+                table.insert(kept, 1, row)
+            end
+        end
+    end
+    self.lines = kept
+    for id, at in pairs(self.seen) do
+        if now - at > M.MAX_AGE then self.seen[id] = nil end
+    end
+end
+
+function Instance:present(now)
+    if self.presentAt == now and self.presentKeys then return self.presentKeys end
+    local keys, seen = {}, {}
+    for _, key in ipairs(call(self.options.present, PRESENT_RADIUS) or {}) do
+        key = profileKey(key)
+        if key and not seen[key] and #keys < 6 then seen[key] = true; keys[#keys + 1] = key end
+    end
+    self.presentAt, self.presentKeys = now, keys
+    return keys
+end
+
+function Instance:push(row, now)
+    -- One speaker repeating the same words within a few seconds is one line
+    -- (a re-shown or fast-forwarded line under a new native id).
+    for index = #self.lines, 1, -1 do
+        local other = self.lines[index]
+        if now - other.at > DUPLICATE_WINDOW then break end
+        if other.text == row.text and other.speaker == row.speaker and other.entity == row.entity then
+            return self:skip('repeated')
+        end
+    end
+    self.serial = self.serial + 1
+    row.id, row.at = 'g-' .. tostring(self.serial), now
+    self.lines[#self.lines + 1] = row
+    self.counts.recorded = self.counts.recorded + 1
+    self:prune(now)
+    return true
+end
+
+function Instance:ownLine(line)
+    local N = self.native
+    local subtitles = call(N.subtitles)
+    if type(subtitles) ~= 'table' then return false end
+    local current = subtitles.line
+    if current and call(N.lineId, current) and call(N.lineId, current) == call(N.lineId, line) then return true end
+    local number, serial = call(N.lineNumber, line), tonumber(subtitles.serial) or 0
+    return number ~= nil and number > OWN_LINE_BASE and number <= OWN_LINE_BASE + serial + 1
+end
+
+-- One native scnDialogLineData (or a test table with the same fields).
+function Instance:line(line, source)
+    if source then self:count('hooks', source) end
+    if not self:enabled() then return self:skip('disabled') end
+    local N, now = self.native, self:now()
+    if type(line) ~= 'table' and type(line) ~= 'userdata' then return self:skip('invalid') end
+    local id = call(N.lineId, line)
+    if not id then return self:skip('invalid') end
+    if self.seen[id] then return self:skip('duplicate') end
+    if self:ownLine(line) then self.seen[id] = now; return self:skip('mod-reply') end
+    local kind = call(N.lineType, line.type) or 'unknown'
+    self:count('types', kind)
+    local policy = POLICY[kind]
+    if not policy then self.seen[id] = now; return self:skip('type') end
+    local player = call(N.player)
+    if not player or not call(N.ready, player) then return self:skip('no-player') end
+    if call(N.braindance) then self.seen[id] = now; return self:skip('braindance') end
+    if call(N.replacer, player) then self.seen[id] = now; return self:skip('replacer') end
+    local callInfo = call(N.call)
+    local speaker = line.speaker
+    if policy == 'call-only' then
+        -- Radio-styled lines count only during a call, and never from a car radio.
+        if not callInfo or (speaker and call(N.isVehicle, speaker)) then self.seen[id] = now; return self:skip('radio') end
+        policy = 'phone'
+    end
+    local channel = policy
+    if callInfo and policy == 'scene' then channel = 'phone' end
+    local text = clean(call(N.text, line), M.MAX_TEXT)
+    if not text then self.seen[id] = now; return self:skip('empty') end
+    local row = {kind = 'line', channel = channel, text = text, type = kind}
+    local playerEntity = call(N.entity, player)
+    local speakerEntity = speaker and call(N.entity, speaker) or nil
+    if speakerEntity and speakerEntity == playerEntity then
+        row.speaker = 'v'
+    else
+        row.speaker = 'npc'
+        row.entity = entityId(speakerEntity)
+        local key, canonical = nil, nil
+        if speaker then key, canonical = call(self.options.resolve, speaker) end
+        local shown = clean(call(N.speakerName, line), 120)
+        if not key and shown then key = call(self.options.resolveName, shown) end
+        if not key and channel == 'phone' and callInfo and callInfo.contact then
+            key = call(self.options.contactKey, callInfo.contact)
+        end
+        row.profileKey = profileKey(key)
+        row.name = clean(canonical, 120) or shown
+        if not row.entity and not row.profileKey and not row.name then self.seen[id] = now; return self:skip('unattributed') end
+        if channel == 'ambient' then
+            -- Combat barks never count, from anyone.
+            if call(N.playerCombat, player) or (speaker and call(N.npcCombat, speaker)) then
+                self.seen[id] = now; return self:skip('combat')
+            end
+        end
+    end
+    if channel == 'phone' and callInfo and callInfo.contact and callInfo.contact:match('^[%w_%.%-]+$') and #callInfo.contact <= 80 then
+        row.contact = callInfo.contact
+    end
+    if channel == 'scene' then
+        local present = self:present(now)
+        if #present > 0 then row.present = present end
+    end
+    self.seen[id] = now
+    return self:push(row, now)
+end
+
+-- Plain strings from the dialogue choice hubs, so a chosen option can be named.
+function Instance:dialogHubs(data)
+    self:count('hooks', 'hubs')
+    if not self:enabled() or type(data) ~= 'table' and type(data) ~= 'userdata' then return end
+    local hubs = {}
+    local list = data.choiceHubs or {}
+    for index = 1, math.min(#list, 8) do
+        local hub = list[index]
+        local row = {id = tonumber(hub.id), title = clean(call(self.native.localized, hub.title), 120), choices = {}}
+        local choices = hub.choices or {}
+        for choice = 1, math.min(#choices, 12) do
+            row.choices[choice] = clean(call(self.native.localized, choices[choice].localizedName), M.MAX_TEXT) or false
+        end
+        hubs[#hubs + 1] = row
+    end
+    -- An empty update (hub closed) keeps the last options for a choice that is
+    -- reported just after the hub disappears.
+    if #hubs > 0 then self.hubs = hubs end
+end
+
+function Instance:choice(attempted)
+    self:count('hooks', 'choice')
+    if not self:enabled() then return self:skip('disabled') end
+    local N, now = self.native, self:now()
+    if type(attempted) ~= 'table' and type(attempted) ~= 'userdata' then return self:skip('invalid') end
+    if not call(N.dialogChoice, attempted) then return self:skip('not-dialogue') end
+    local player = call(N.player)
+    if not player or not call(N.ready, player) then return self:skip('no-player') end
+    if call(N.braindance) or call(N.replacer, player) then return self:skip('braindance') end
+    local index = tonumber(attempted.choiceIdx)
+    local activeId, hub = call(N.activeHub), nil
+    for _, candidate in ipairs(self.hubs) do
+        if candidate.id ~= nil and candidate.id == activeId then hub = candidate end
+    end
+    if not hub and #self.hubs == 1 then hub = self.hubs[1] end
+    local text = hub and index and hub.choices[index + 1] or nil
+    if not text then
+        local caption = nil
+        pcall(function() caption = attempted.choice.caption end)
+        text = clean(call(N.localized, caption), M.MAX_TEXT)
+    end
+    if not text then return self:skip('empty') end
+    local callInfo = call(N.call)
+    local row = {kind = 'choice', speaker = 'v', channel = callInfo and 'phone' or 'scene', text = text, type = 'choice'}
+    local addressee = hub and hub.title and call(self.options.resolveName, hub.title) or nil
+    if not addressee and callInfo and callInfo.contact then addressee = call(self.options.contactKey, callInfo.contact) end
+    row.addressee = profileKey(addressee)
+    if row.channel == 'scene' then
+        local present = self:present(now)
+        if #present > 0 then row.present = present end
+    end
+    return self:push(row, now)
+end
+
+-- The snapshot attached to one mod turn, or nil when off or empty.
+function Instance:capture()
+    if not self:enabled() then self:reset('disabled'); return nil end
+    local now = self:now()
+    self:prune(now)
+    if #self.lines == 0 then return nil end
+    local rows = {}
+    for _, line in ipairs(self.lines) do
+        local row = {id = line.id, age = math.max(0, math.floor(now - line.at)), kind = line.kind,
+            channel = line.channel, speaker = line.speaker, text = line.text}
+        for _, field in ipairs({'entity', 'profileKey', 'name', 'contact', 'addressee'}) do
+            if line[field] ~= nil then row[field] = line[field] end
+        end
+        if line.present then
+            row.present = {}
+            for index, key in ipairs(line.present) do row.present[index] = key end
+        end
+        rows[#rows + 1] = row
+    end
+    return {version = 1, status = 'ready', lines = rows}
+end
+
+function Instance:status()
+    local types, skipped, hooks = {}, {}, {}
+    for key, value in pairs(self.counts.types) do types[key] = value end
+    for key, value in pairs(self.counts.skipped) do skipped[key] = value end
+    for key, value in pairs(self.counts.hooks) do hooks[key] = value end
+    return {enabled = self:enabled(), installed = self.installed == true, lines = #self.lines,
+        recorded = self.counts.recorded, hooks = hooks, types = types, skipped = skipped,
+        resetReason = self.resetReason, lastError = self.lastError}
+end
+
+-- Local, read-only probe for the in-game check list: the adapter counters and
+-- the lines currently held (they never leave this machine through this file).
+function Instance:dump(path)
+    path = path or 'runtime/game-dialogue-probe.json'
+    local now, lines = self:now(), {}
+    for index, line in ipairs(self.lines) do
+        lines[index] = {age = now - line.at, kind = line.kind, type = line.type, channel = line.channel,
+            speaker = line.speaker, entity = line.entity, profileKey = line.profileKey, name = line.name,
+            contact = line.contact, addressee = line.addressee, present = line.present, text = line.text}
+    end
+    local ok, raw = pcall(json.encode, {status = self:status(), lines = lines, capturedAt = os.time()})
+    if not ok then return false end
+    local file = io.open(path, 'wb'); if not file then return false end
+    file:write(raw); file:close()
+    return true
+end
+
+function Instance:guard(source, fn)
+    return function(...)
+        local ok, err = pcall(fn, ...)
+        if not ok then self.lastError = source .. ': ' .. tostring(err) end
+    end
+end
+
+-- Hooks (CET ObserveAfter). The two subtitle hooks see the same lines; native
+-- ids make the second sighting a duplicate. Counters show which ones fire.
+function Instance:install()
+    if self.installed then return true end
+    local observe = self.options.observe or ObserveAfter
+    if type(observe) ~= 'function' then return false end
+    local N = self.native
+    observe('BaseSubtitlesGameController', 'ShowDialogLines', self:guard('show', function(_, lines)
+        if type(lines) ~= 'table' then return end
+        for _, line in ipairs(lines) do self:line(line, 'show') end
+    end))
+    observe('BaseSubtitlesGameController', 'OnShowDialogLine', self:guard('event', function(_, value)
+        local lines = call(N.fromVariant, value)
+        if type(lines) ~= 'table' then return end
+        for _, line in ipairs(lines) do self:line(line, 'event') end
+    end))
+    observe('PreventionSystem', 'OnPlayerChoice', self:guard('choice', function(_, value)
+        local attempted = call(N.fromVariant, value)
+        if attempted then self:choice(attempted) end
+    end))
+    observe('InteractionUIBase', 'OnDialogsData', self:guard('hubs', function(_, value)
+        local data = call(N.fromVariant, value)
+        if data then self:dialogHubs(data) end
+    end))
+    self.installed = true
+    return true
+end
+
+return M

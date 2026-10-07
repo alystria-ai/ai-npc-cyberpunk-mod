@@ -20,7 +20,7 @@ import {abortable, cancelled} from './transport-pool.mjs';
 export function turnKey(input) {
   return JSON.stringify([input.requestId, input.generation, input.entity, input.name, input.bodyType,
     input.profileKey, input.text, input.group ?? null,
-    input.journal ?? null, input.battle ?? null, input.reaction ?? null]);
+    input.journal ?? null, input.battle ?? null, input.reaction ?? null, input.gameDialogue ?? null]);
 }
 
 // source: {input, text, userText?, current}. A microphone speaker's own request

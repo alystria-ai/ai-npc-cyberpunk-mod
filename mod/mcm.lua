@@ -785,6 +785,8 @@ local function schema()
                 'Talk to companions in any language: each character answers in the language you use. It uses a multilingual copy of each character, so what they remember from these conversations is kept apart from your English ones; forgetting a character clears both. Pocket TTS speaks only English, so turning this on switches Companion voices to OmniVoice · Balanced when the optional OmniVoice pack is installed, or to Convai · Cloud voice otherwise; without the pack, Natural speech and Expressive emotions are turned off, because the cloud voice would read their tags aloud. Off by default.'),
             setting('autoConnectNearby', 'Auto-connect nearby characters', 'bool', snapshot.settings.autoConnectNearby, true,
                 'Prepares the conversation with a character you look at, walk up to or have just talked to, so they answer without a wait; it pauses during combat and scenes. At most two characters are kept ready at any moment, at most one new connection starts every 3 seconds and a character is released after 40 seconds unused, so a crowd never adds up.'),
+            setting('gameDialogueContext', 'Continue from game dialogue', 'bool', snapshot.settings.gameDialogueContext, true,
+                'When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default.'),
         })
         local heights,strengths=manager.gazeChoices()
         local heightIndex,strengthIndex=3,3
@@ -947,6 +949,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                 if key == 'voice' or key == 'subtitles' or key == 'developerMode'
                     or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures'
                     or key == 'autoConnectNearby' or key == 'keepPreparedVoices' or key == 'naturalSpeech'
+                    or key == 'gameDialogueContext'
                     or key == 'expressiveEmotions' or key == 'multilingualConversations' then values[key] = change.value
                 elseif key == 'subtitleStyle' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose one of the listed subtitle displays.')} end

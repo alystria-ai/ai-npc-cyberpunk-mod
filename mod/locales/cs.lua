@@ -26,6 +26,8 @@ return {
     ["Auto follows the completed encounter in this save. Casual uses the casual profile; Ordinary uses the ordinary profile. This does not imply an ongoing relationship."] = "Automaticky se řídí dokončeným setkáním v této uložené hře. Nezávazný používá nezávazný profil, Běžný používá běžný profil. Neznamená to trvalý vztah.",
     ["Auto follows the relationship in this save. Romantic uses the romantic profile; Ordinary uses the ordinary profile. This changes conversations without changing game choices."] = "Automaticky se řídí vztahem v této uložené hře. Romantický používá romantický profil, Běžný používá běžný profil. Mění konverzace, ale ne rozhodnutí ve hře.",
     ["Auto-connect nearby characters"] = "Automaticky připojovat postavy poblíž",
+    ["Continue from game dialogue"] = "Navázat na herní dialog",
+    ["When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default."] = "Když s postavou mluvíš hned po herním dialogu s ní, zná posledních pár replik, které právě zazněly, včetně tvých zvolených odpovědí a telefonátů s ní, takže její odpověď na ně přirozeně naváže. Používají se jen repliky z posledních několika minut, kterých se tato postava účastnila, a neukládají se do její paměti. Ve výchozím nastavení zapnuto.",
     ["Automatic (game interface language)"] = "Automaticky (jazyk rozhraní hry)",
     ["Automatic reactions"] = "Automatické reakce",
     ["Back"] = "Zpět",

@@ -6,6 +6,7 @@ import {parseBattle, parseReaction} from './battle-context.mjs';
 import {parseLoot} from './loot-context.mjs';
 import {parseWorldSnapshot} from './world-knowledge.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
+import {parseGameDialogue} from './game-dialogue.mjs';
 import {parseChauffeurOffer, parseTacticOffer} from './companion-actions.mjs';
 
 export function profileFor(input, roster) {
@@ -28,6 +29,8 @@ export function parseInput(raw) {
   const journal = parseJournal(value.journal);
   const worldKnowledge = value.worldKnowledge === undefined ? undefined : parseWorldSnapshot(value.worldKnowledge);
   const journalHistory = value.journalHistory === undefined ? undefined : parseJournalHistory(value.journalHistory);
+  // Optional recent game dialogue; a malformed snapshot carries no lines but keeps the message.
+  const gameDialogue = parseGameDialogue(value.gameDialogue);
   const loot = parseLoot(value.loot, {entity, profileKey});
   if (loot === null) return null;
   const battle = parseBattle(value.battle), reaction = parseReaction(value.reaction, battle, loot);
@@ -39,5 +42,6 @@ export function parseInput(raw) {
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
-    ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {})};
+    ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {}),
+    ...(gameDialogue ? {gameDialogue} : {})};
 }

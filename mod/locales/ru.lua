@@ -501,6 +501,8 @@ return {
     ["the game folder"] = "папка игры",
     ["the runtime folder of the mod project, or the data folder inside the mod folder"] = "папка среды выполнения проекта мода или папка данных внутри папки мода",
     ["Auto-connect nearby characters"] = "Автоподключение ближайших персонажей",
+    ["Continue from game dialogue"] = "Продолжать игровые диалоги",
+    ["When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default."] = "Если вы говорите с персонажем сразу после игрового диалога с ним, он знает последние только что прозвучавшие реплики, включая выбранные вами ответы и телефонные звонки с ним, и его ответ естественно продолжает разговор. Используются только реплики за последние несколько минут с участием этого персонажа, и они не добавляются в его память. Включено по умолчанию.",
     ["Preparing connection to {name}…"] = "Подготовка подключения к {name}…",
     ["Preparing {names}…"] = "{names}: подготовка…",
     ["Connecting {names}…"] = "{names}: подключение…",

@@ -5,6 +5,7 @@ import {battleContext} from './battle-context.mjs';
 import {lootContext} from './loot-context.mjs';
 import {parseWorldSnapshot} from './world-knowledge.mjs';
 import {parseJournalHistory, selectJournalHistory} from './journal-history.mjs';
+import {gameDialogueContext} from './game-dialogue.mjs';
 
 const unavailable = () => ({version: 1, status: 'unavailable'});
 const id = value => typeof value === 'string' && /^-?\d{1,12}$/.test(value);
@@ -70,7 +71,8 @@ function contextIdentity(input) {
   try {
     return createHash('sha256').update(JSON.stringify([input.requestId, input.id, input.generation,
       input.entity, input.name, input.profileKey, input.channel, input.saveIdentity, input.text, input.group,
-      input.journal, input.battle, input.loot, input.reaction, input.worldKnowledge, input.journalHistory])).digest('hex');
+      input.journal, input.battle, input.loot, input.reaction, input.worldKnowledge, input.journalHistory,
+      input.gameDialogue])).digest('hex');
   } catch { return null; }
 }
 function currentBinding(snapshot, generation, worldToken) {
@@ -116,6 +118,7 @@ export function conversationContext(input) {
   const trusted = attached?.identity && attached.identity === contextIdentity(input) ? attached : null;
   const knowledge = trusted?.knowledgeContext || (input.worldKnowledge !== undefined ? WORLD_UNAVAILABLE : '');
   const history = trusted?.historyContext || (input.journalHistory !== undefined ? HISTORY_UNAVAILABLE : '');
-  return [groupContext(input), knowledge, history, journalContext(input.journal), battleContext(input), lootContext(input),
+  return [groupContext(input), knowledge, history, journalContext(input.journal), gameDialogueContext(input),
+    battleContext(input), lootContext(input),
     knowledge || history ? CURRENT_AUTHORITY : '', SPOKEN_OUTPUT, followUpContext(input)].filter(Boolean).join('\n\n');
 }

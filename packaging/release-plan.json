@@ -126,6 +126,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/quest-context.lua"
         },
         {
+          "source": "mod/game-dialogue.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/game-dialogue.lua"
+        },
+        {
           "source": "mod/world-knowledge.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/world-knowledge.lua"
         },
@@ -472,6 +476,7 @@
             "bridge/expression-timeline.mjs",
             "bridge/expressive-emotions.mjs",
             "bridge/facial-timeline.mjs",
+            "bridge/game-dialogue.mjs",
             "bridge/game-launch.mjs",
             "bridge/group-context.mjs",
             "bridge/group-lookahead.mjs",

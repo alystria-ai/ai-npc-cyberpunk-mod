@@ -26,6 +26,8 @@ return {
     ["Auto follows the completed encounter in this save. Casual uses the casual profile; Ordinary uses the ordinary profile. This does not imply an ongoing relationship."] = "«Авто» орієнтується на завершену зустріч у цьому збереженні. «Невимушений» використовує невимушений профіль, «Звичайний» — звичайний профіль. Це не означає тривалих стосунків.",
     ["Auto follows the relationship in this save. Romantic uses the romantic profile; Ordinary uses the ordinary profile. This changes conversations without changing game choices."] = "«Авто» орієнтується на стосунки в цьому збереженні. «Романтичний» використовує романтичний профіль, «Звичайний» — звичайний профіль. Це змінює розмови, але не впливає на вибір у грі.",
     ["Auto-connect nearby characters"] = "Автопідключення персонажів поблизу",
+    ["Continue from game dialogue"] = "Продовжувати ігрові діалоги",
+    ["When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default."] = "Якщо ви говорите з персонажем одразу після ігрового діалогу з ним, він знає останні щойно сказані репліки, зокрема вибрані вами відповіді й телефонні дзвінки з ним, тож його відповідь природно продовжує розмову. Використовуються лише репліки за останні кілька хвилин за участю цього персонажа, і вони не додаються до його пам’яті. Увімкнено за замовчуванням.",
     ["Automatic (game interface language)"] = "Автоматично (мова інтерфейсу гри)",
     ["Automatic reactions"] = "Автоматичні реакції",
     ["Back"] = "Назад",

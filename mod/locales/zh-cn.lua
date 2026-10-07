@@ -501,6 +501,8 @@ return {
     ["the game folder"] = "游戏文件夹",
     ["the runtime folder of the mod project, or the data folder inside the mod folder"] = "模组项目的运行时文件夹，或模组文件夹内的数据文件夹",
     ["Auto-connect nearby characters"] = "自动连接附近角色",
+    ["Continue from game dialogue"] = "接续游戏内对话",
+    ["When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default."] = "在与某个角色进行游戏内对话后立即和其交谈时，该角色会知道刚刚说过的最后几句台词，包括你选择的回答以及与其通话的内容，因此回复会自然地衔接下去。只会使用最近几分钟内该角色参与的台词，且不会写入该角色的记忆。默认开启。",
     ["Preparing connection to {name}…"] = "正在准备连接 {name}…",
     ["Preparing {names}…"] = "正在准备 {names}…",
     ["Connecting {names}…"] = "正在连接 {names}…",

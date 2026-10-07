@@ -452,6 +452,7 @@ function M.update(player, delta)
             local worldKnowledge = capture(M.captureWorldKnowledge, player, key, copy(M.saveIdentity))
             local journalHistory = capture(M.captureJournalHistory, player, key, copy(M.saveIdentity))
             local journal, battle = capture(M.captureJournal), capture(M.captureBattle)
+            local gameDialogue = capture(M.captureGameDialogue)
             local confirmed = binding(capture(M.captureBinding, player))
             if bindingKey(confirmed) ~= before then
                 M.abandon(); return
@@ -461,7 +462,7 @@ function M.update(player, delta)
             M.pending = {id = M.world .. '-' .. M.serial, contact = submission.contact, profileKey = key, text = text,
                 memoryReset=reset,recentConversation=recentPhoneConversation(submission.contact,key,reset),
                 saveIdentity = copy(confirmed), worldKnowledge = worldKnowledge or {version=1,status='unavailable'},
-                journalHistory = journalHistory, journal = journal, battle = battle}
+                journalHistory = journalHistory, journal = journal, battle = battle, gameDialogue = gameDialogue}
             M.sentAt = os.time()
             M.errors[submission.contact] = nil
             if publish(true) then

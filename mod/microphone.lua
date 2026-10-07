@@ -67,6 +67,7 @@ function M.begin(context, targetValid)
     if not capture(context) then return false end
     context.journal = M.captureJournal and M.captureJournal()
     context.battle = M.captureBattle and M.captureBattle()
+    context.gameDialogue = M.captureGameDialogue and M.captureGameDialogue()
     if not currentOwner() then M.knowledgeOwner = nil; return false end
     -- The old microphone owner has already been cancelled. Capture optional
     -- gameplay capabilities immediately before the actual start publication.
@@ -95,6 +96,7 @@ function M.finish(mode)
     M.finishPending = nil
     context.journal = M.captureJournal and M.captureJournal()
     context.battle = M.captureBattle and M.captureBattle()
+    context.gameDialogue = M.captureGameDialogue and M.captureGameDialogue()
     if M.context ~= context then return nil end
     local current, problem = currentOwner()
     if not current then

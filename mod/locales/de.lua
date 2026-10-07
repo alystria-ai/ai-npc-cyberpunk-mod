@@ -501,6 +501,8 @@ return {
     ["the game folder"] = "der Spielordner",
     ["the runtime folder of the mod project, or the data folder inside the mod folder"] = "der Runtime-Ordner des Mod-Projekts oder der Datenordner im Mod-Ordner",
     ["Auto-connect nearby characters"] = "Figuren in der Nähe automatisch verbinden",
+    ["Continue from game dialogue"] = "An Spieldialoge anknüpfen",
+    ["When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default."] = "Wenn du direkt nach einem Spieldialog mit einer Figur mit ihr sprichst, kennt sie die letzten gerade gesagten Zeilen, einschließlich deiner gewählten Antworten und Telefonate mit ihr, sodass ihre Antwort natürlich daran anknüpft. Verwendet werden nur Zeilen aus den letzten Minuten, an denen diese Figur beteiligt war; sie werden nicht in das Gedächtnis der Figur aufgenommen. Standardmäßig an.",
     ["Preparing connection to {name}…"] = "Verbindung zu {name} wird vorbereitet…",
     ["Preparing {names}…"] = "{names} werden vorbereitet…",
     ["Connecting {names}…"] = "Verbindung zu {names} wird hergestellt…",

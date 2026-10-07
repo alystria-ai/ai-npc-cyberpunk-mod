@@ -501,6 +501,8 @@ return {
     ["the game folder"] = "게임 폴더",
     ["the runtime folder of the mod project, or the data folder inside the mod folder"] = "모드 프로젝트의 런타임 폴더 또는 모드 폴더 안의 데이터 폴더",
     ["Auto-connect nearby characters"] = "근처 캐릭터 자동 연결",
+    ["Continue from game dialogue"] = "게임 대화에서 이어가기",
+    ["When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default."] = "게임 속 대화 직후에 그 캐릭터와 이야기하면, 선택한 대답과 그 캐릭터와의 통화를 포함해 방금 오간 마지막 몇 줄을 캐릭터가 알고 있어 대답이 자연스럽게 이어집니다. 그 캐릭터가 참여한 최근 몇 분 동안의 대사만 사용되며, 캐릭터의 기억에는 추가되지 않습니다. 기본값은 켜짐입니다.",
     ["Preparing connection to {name}…"] = "{name} 연결 준비 중…",
     ["Preparing {names}…"] = "{names} 준비 중…",
     ["Connecting {names}…"] = "{names} 연결 중…",

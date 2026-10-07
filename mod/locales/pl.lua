@@ -26,6 +26,8 @@ return {
     ["Auto follows the completed encounter in this save. Casual uses the casual profile; Ordinary uses the ordinary profile. This does not imply an ongoing relationship."] = "Auto uwzględnia zakończone spotkanie w tym zapisie. Luźna używa profilu luźnego, a Zwykła profilu zwykłego. Nie oznacza to trwającej relacji.",
     ["Auto follows the relationship in this save. Romantic uses the romantic profile; Ordinary uses the ordinary profile. This changes conversations without changing game choices."] = "Auto uwzględnia relację w tym zapisie. Romantyczna używa profilu romantycznego, a Zwykła profilu zwykłego. Zmienia to rozmowy, ale nie wpływa na wybory w grze.",
     ["Auto-connect nearby characters"] = "Automatycznie łącz z pobliskimi postaciami",
+    ["Continue from game dialogue"] = "Kontynuuj dialogi z gry",
+    ["When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default."] = "Gdy rozmawiasz z postacią zaraz po dialogu z nią w grze, zna ona ostatnie wypowiedziane kwestie, w tym wybrane przez ciebie odpowiedzi i rozmowy telefoniczne z nią, więc jej odpowiedź naturalnie je kontynuuje. Używane są tylko kwestie z ostatnich kilku minut z udziałem tej postaci i nie są one dodawane do jej pamięci. Domyślnie włączone.",
     ["Automatic (game interface language)"] = "Automatycznie (język interfejsu gry)",
     ["Automatic reactions"] = "Reakcje automatyczne",
     ["Back"] = "Wstecz",

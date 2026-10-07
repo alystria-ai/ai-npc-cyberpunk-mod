@@ -26,6 +26,8 @@ return {
     ["Auto follows the completed encounter in this save. Casual uses the casual profile; Ordinary uses the ordinary profile. This does not imply an ongoing relationship."] = "Otomatik, bu kayıtta tamamlanan karşılaşmayı izler. Gündelik, gündelik profili kullanır; Sıradan, sıradan profili kullanır. Bu, süregelen bir ilişki anlamına gelmez.",
     ["Auto follows the relationship in this save. Romantic uses the romantic profile; Ordinary uses the ordinary profile. This changes conversations without changing game choices."] = "Otomatik, bu kayıttaki ilişkiyi izler. Romantik, romantik profili kullanır; Sıradan, sıradan profili kullanır. Bu, oyundaki seçimleri değiştirmeden konuşmaları değiştirir.",
     ["Auto-connect nearby characters"] = "Yakındaki karakterlere otomatik bağlan",
+    ["Continue from game dialogue"] = "Oyun diyaloglarından devam et",
+    ["When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default."] = "Bir karakterle oyunun kendi diyaloğundan hemen sonra konuştuğunda, seçtiğin cevaplar ve onunla yaptığın telefon görüşmeleri dahil az önce söylenen son birkaç satırı bilir; böylece cevabı doğal şekilde devam eder. Yalnızca son birkaç dakikada o karakterin dahil olduğu satırlar kullanılır ve karakterin hafızasına eklenmez. Varsayılan olarak açık.",
     ["Automatic (game interface language)"] = "Otomatik (oyun arayüz dili)",
     ["Automatic reactions"] = "Otomatik tepkiler",
     ["Back"] = "Geri",
