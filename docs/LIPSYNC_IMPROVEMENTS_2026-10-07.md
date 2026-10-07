@@ -246,6 +246,8 @@ In-game checks: the same as the earlier lip-sync plan (m/b/p closure, f/v, "oo" 
 
 ## Text conditioning: what shipping needs
 
+**Done the same evening:** see the addendum at the end ("the text path is built into the runtime").
+
 1. **JS:**
    - keep the phone head (`aux.w/b`) in the export, so it is no longer dropped;
    - a stage-2 network in `jali-face-model.mjs` (the same conv code), and a phone-lexicon module (CMUdict as a compact table, about 1 MB gzipped);
@@ -299,3 +301,113 @@ $PP lab_clone.py select; $PY lab_clone.py omni; $PP lab_clone.py pocket --per-se
 ```
 
 All corpus, audio, clones, labels and weights stay in ignored folders: `runtime/` and `E:/CyberpunkConvai-offload/work/lipsync-lab/`.
+
+
+## Addendum: the text path is built into the runtime (2026-10-07, evening)
+
+The user approved:
+- **Candidate A is installed.** The coordinator copied it over `face-model.*`; the backup is `E:\CyberpunkConvai-offload\backups\lipsync-face-model-20261007-162230`.
+- **The text stage was built on top of it.**
+
+What was built:
+- **Stage 1 = the installed Candidate A, unchanged.**
+  - Its phone head was refit on the frozen network (`lab_auxhead.py`): a 1×1 layer over 40 phones, 80 % frame accuracy against the PocketSphinx labels. This way the head sits on exactly the shipped weights.
+  - `face-text.json` records the SHA-256 of the `face-model.bin` it belongs to. The worker refuses a mismatched pair.
+- **Stage 2:** two 64-channel nets, 4 blocks (dilations 1, 2, 4, 8), 106 k weights each, trained 48 epochs on stage 1's hidden layer.
+  - stream: the phone input is decided 3 rows late (Pocket, Convai);
+  - phrase: the whole phrase is aligned first (Omni).
+  - 48 channels was measured and was clearly worse: Omni contact r +0.027 vs +0.051, purse +0.011 vs +0.025.
+  - 48 epochs beat 16: phrase purse +0.05, contact +0.012; stream +0.002 to +0.012.
+- **Pronunciation table** (`face-lexicon.txt.gz`, 0.86 MB): CMUdict from Rhubarb's PocketSphinx resources (BSD-2-Clause; notice in `face-lexicon-NOTICE.txt`), plus 6,553 game-vocabulary words (choom, preem, Kiroshi …) from the game's 98 k subtitles.
+  - The game words' pronunciations were generated with espeak-ng, which is GPL-3. The output of a GPL program is generally not covered by it, but if the user wants zero doubt, drop those lines. Words not in the table fall back to the audio model, which is the garbage path below.
+- **Reply text normalisation:**
+  - `{emotion}` tags are dropped.
+  - `[voice tags]` and any other `[...]` become a garbage state: the mouth follows the audio model there.
+  - Numbers become words: 2077 → "twenty seventy seven", 2,077 → "two thousand seventy seven", $300 → "three hundred dollars", 5% → "five percent".
+  - Letters outside the table's alphabet become garbage.
+- **Python reference and JS:** the reference is `scripts/lipsync/lab_textpipe.py`. `bridge/jali-face-text.mjs` mirrors it line by line.
+  - `scripts/lipsync/lab_textparity.mjs` checks them against each other.
+  - Normalisation and alignment labels are identical.
+  - Output rows: max |JS − Python| is 2e-6 in stream mode. In phrase mode it is ≤ 3e-3 on 0.26 % of values: float rounding magnified by near-vertical steps in the quantile maps, with labels identical.
+  - Streamed output is identical for 80 ms, 333-sample and whole-utterance packets.
+
+### Final results vs Candidate A
+
+Held-out speakers, 1,024 lines, paired 95 % CI. The phrase column uses the Omni whole-phrase mode.
+
+| Metric | Candidate A | + text, streaming (Pocket / Convai) | + text, phrase (Omni) |
+| --- | ---: | ---: | ---: |
+| Aperture r | 0.843 | 0.849 (+0.005 [+0.005, +0.006]) | 0.856 (+0.013 [+0.009, +0.015]) |
+| Aperture error (mm) | 1.08 | 1.06 (−0.023) | 1.04 (−0.046) |
+| Width r | 0.535 | 0.558 (+0.023 [+0.019, +0.027]) | 0.591 (+0.056 [+0.048, +0.062]) |
+| Protrusion r | 0.715 | 0.734 (+0.019) | 0.760 (+0.045) |
+| Contact control r | 0.794 | 0.805 (+0.012 [+0.008, +0.018]) | 0.856 (+0.063 [+0.048, +0.077]) |
+| Purse r | 0.704 | 0.739 (+0.035 [+0.028, +0.040]) | 0.782 (+0.078 [+0.068, +0.088]) |
+| Corner stretch r | 0.717 | 0.741 (+0.024) | 0.783 (+0.066) |
+| Lower roll r | 0.789 | 0.801 (+0.012) | 0.858 (+0.069) |
+| Contact recall / precision | 0.555 / 0.448 | 0.548 / 0.469 (−0.007 / +0.021) | 0.566 / 0.477 (+0.011 / +0.028) |
+| F/V recall | 0.746 | 0.769 (+0.022 [+0.011, +0.031]) | 0.823 (+0.077 [+0.055, +0.100]) |
+| Rounding recall / precision | 0.714 / 0.397 | 0.751 / 0.429 (+0.037 / +0.025) | 0.779 / 0.459 (+0.065 / +0.050) |
+| Lag | 0 ms | 0 ms | 0 ms |
+
+Across the other test sets:
+- **Per character:**
+  - Judy, streaming: purse +0.052, rounding recall +0.10.
+  - Judy, phrase: contact +0.10, purse +0.11, F/V +0.18.
+  - Johnny and Panam: similar gains.
+- **Clones:**
+  - OmniVoice clones, phrase mode: contact +0.033, purse +0.067, rounding +0.058.
+  - Pocket clones, streaming: purse +0.041, corner +0.032, rounding +0.031.
+- **Flagged combat/effect lines:** the same pattern.
+- **The one consistent cost:** streaming lip-contact *recall* is −0.007 to −0.026 (fewer, more precise closures; precision up to +0.02). This is worth watching in game on m/b/p.
+- **How often the text path drops out:** the text path is active on 97 % of held-out lines (the rest have no alignable words). The confidence latch gave up on 1.5–2 % of lines with the right text. On mismatched text it gives up on 82 %; the threshold was set at the 99th percentile of right-text windows.
+
+**CPU** (single thread, the bridge's `FaceModelStream`, 80 ms packets):
+- **With 30 busy threads on this machine:** the audio model alone takes 0.122 s per audio second; with text, 0.151 s, i.e. +24 %. Without the synthetic load the overhead was +16–18 %.
+- **Estimate in game:** the shipped model measured 0.25–0.32 s per second inside the game with Pocket training running. Scaled by +20 %, that gives about **0.30–0.38 s**, at or slightly over the 0.35 budget in the worst case.
+- **Safety net:** the worker drops the text path for a stream whose packets wait more than 250 ms in its queue, or whose text work exceeds 40 % of real time. The mouth then eases back to the audio model; the face never waits for text.
+
+### How the routes use it
+
+- **Omni:** `synthesizeOmniPhrase` passes the phrase text as voiced (tags included) to `analyseWav`. The worker aligns the whole phrase, then releases the rows.
+- **Pocket:** `PocketFacialStream` starts the model with the whole reply text (`result.text`). The rows stream with no added latency.
+- **Convai continuous:** the session starts with the snapshot text so far (`textComplete: false`). Each later snapshot calls `setText`.
+  - Text alignment starts when the first whole word is known, catching up on the audio already heard. Stage 2 then warms up for 330 ms before it takes over.
+  - The text still to come is a penalised tail state.
+  - A text that no longer extends what was aligned gives up for that reply.
+- **Fallback to Candidate A,** with a 60 ms blend each way:
+  - no text, or no alignable word;
+  - voice tags and unknown words (for their frames);
+  - low alignment confidence (latched for the rest of the reply);
+  - the real-time guard;
+  - any text-path error;
+  - a face-text built for another face-model;
+  - `CYBERPUNK_CONVAI_FACE_TEXT=off`.
+- **Streaming vs whole utterance:** identical in stream mode. Two exceptions:
+  - the real-time guard depends on timing;
+  - Convai text that arrives after the audio starts.
+  Omni's phrase mode is by design a whole-phrase analysis.
+
+### Install
+
+- **Already in place:** `runtime/lipsync-model/` holds `face-text.json`, `face-text.bin`, `face-lexicon.txt.gz` and `face-lexicon-NOTICE.txt`. They were built against the installed Candidate A.
+- **To activate:** restart the bridge so it loads the new JavaScript. No Lua, archive or game restart is needed.
+- **To roll back:** set `CYBERPUNK_CONVAI_FACE_TEXT=off`, or delete the `face-text.*` files. The mouth then uses Candidate A alone.
+- **Release packaging:** `bridge/jali-face-text.mjs` is listed as a worker-only file in `packaging/runtime-layout.mjs` and `release-plan.json`. The weights and lexicon go with the other lip-sync weights at release.
+
+### What to check in game
+
+- **Omni (biggest change):**
+  - m/b/p closures land on the word;
+  - "oo"/"w" rounding;
+  - F/V lower-lip tuck;
+  - "ee" stretch;
+  - a `[laughter]` or `[sigh]` phrase keeps an audio-driven mouth during the sound.
+- **Pocket:** the same, plus that closures are not missing compared with yesterday (streaming contact recall is slightly lower).
+- **Convai:** a long reply whose text streams in. The mouth should not jump when text conditioning takes over, about 0.3 s after the first words.
+- **Performance:** the Omni timing receipt carries `lipText` (`active`, `lost`, `reason`). If `reason` is often `budget` or `behind`, the CPU is short; set `CYBERPUNK_CONVAI_FACE_TEXT=off`.
+
+### Not done
+
+- No Kaggle runs: no further training was needed. The 48-channel and 48-epoch variants had already finished locally before the user switched to Silent.
+- A stage 2 trained for 96 epochs may add a little more; the 16 → 48 epoch step gained up to +0.05 on phrase purse.

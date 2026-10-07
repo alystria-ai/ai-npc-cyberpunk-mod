@@ -50,8 +50,25 @@ def _init(models):
     _G['models'] = {name: load_model(path) for name, path in models}
 
 
+class TextPipeModel:
+    """textpipe:<dir>:<stream|phrase>[:threshold] - the runtime text path (lab_textpipe.py) with the line's own text."""
+
+    def __init__(self, spec):
+        import lab_textpipe
+        rest = spec[len('textpipe:'):]
+        directory, _, self.mode = rest.rpartition(':')
+        self.pipe = lab_textpipe.TextPipeline(Path(directory))
+
+    def timeline(self, audio16k, text):
+        tracks, frames, info = self.pipe.timeline(audio16k.astype(np.float32), text, self.mode)
+        _G.setdefault('textinfo', []).append(info)
+        return tracks, frames
+
+
 def load_model(path):
     from lipsync_model import NumpyModel
+    if str(path).startswith('textpipe:'):
+        return TextPipeModel(str(path))
     path = Path(path)
     if path.suffix == '.pt':
         return TorchModel(path)
@@ -149,11 +166,26 @@ def _job(job):
             lab = np.load(path).astype(np.int64) if path.exists() else None
     times = np.arange(len(gt)) / 30
     out = {}
+    text = _G.setdefault('texts', _load_texts()).get(key, '')
+    infos = {}
     for name, model in _G['models'].items():
-        tracks, frames = model.timeline(audio, lab) if isinstance(model, TorchModel) else model.timeline(audio)
+        if isinstance(model, TextPipeModel):
+            tracks, frames = model.timeline(audio, text)
+            infos[name] = _G['textinfo'][-1]
+        else:
+            tracks, frames = model.timeline(audio, lab) if isinstance(model, TorchModel) else model.timeline(audio)
         rows = le.sample(frames, times)
         out[name] = le.line_metrics(gt, rows, tracks, gt_geo, le.geometry(mouth, rows, tracks))
+        if name in infos:
+            out[name]['textInfo'] = infos[name]
     return key, out
+
+
+def _load_texts():
+    texts = {}
+    for r in json.loads((LAB / 'pack/index.json').read_text()):
+        texts.setdefault(r['key'], r['text'])
+    return texts
 
 
 def _load_labels():
@@ -243,6 +275,12 @@ def main():
         flat = {name: [flatten(r[name]) for _, r in rows] for name, _ in models}
         entry = {'lines': len(rows), 'clusters': len(set(clusters)), 'models': {}, 'perLine': {name: flat[name] for name, _ in models}}
         for name, _ in models:
+            infos = [r[name]['textInfo'] for _, r in rows if 'textInfo' in r[name]]
+            if infos:
+                entry.setdefault('text', {})[name] = dict(active=float(np.mean([i['active'] for i in infos])),
+                    lost=float(np.mean([bool(i.get('lost')) for i in infos])),
+                    meanWeight=float(np.mean([i.get('meanWeight', 0) for i in infos])))
+        for name, _ in models:
             entry['models'][name] = {}
             for metric, _, _ in SCALARS:
                 vals = [f[metric] for f in flat[name]]
@@ -265,6 +303,8 @@ def print_report(report, metrics=None):
     for s, entry in report['sets'].items():
         names = list(entry['models'])
         print(f"\n== {s}: {entry['lines']} lines, {entry['clusters']} clusters")
+        if entry.get('text'):
+            print('   text path:', {k: {a: round(b, 3) for a, b in v.items()} for k, v in entry['text'].items()})
         print(f"{'metric':20s}" + ''.join(f'{n:>30s}' for n in names))
         for m in metrics:
             cells = []

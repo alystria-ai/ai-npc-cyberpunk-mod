@@ -635,7 +635,7 @@ async function synthesizeReply(input, result, signal, current, profile = profile
 async function synthesizeOmniPhrase(profile,text,options){
   const generated=await localVoice.synthesize(profile,text,options);
   if(jaliFace)try{
-    const facial=await jaliFace.analyseWav(generated.audio,options);
+    const facial=await jaliFace.analyseWav(generated.audio,{...options,text});// the phrase as voiced, tags included
     return {...generated,...facial,timing:{...generated.timing,...facial.timing,voiceProvider:'omni'}};
   }catch(error){
     throwIfCancelled(options?.signal);console.error('[CyberpunkConvai] Facial model fallback:',error.message);

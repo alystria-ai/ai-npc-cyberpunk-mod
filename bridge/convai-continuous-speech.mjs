@@ -62,7 +62,9 @@ export class ConvaiContinuousSpeech {
   feedModel(snapshot) {
     if (!this.jaliFace || this.modelDropped) return;
     try {
-      if (!this.model) { this.model = this.jaliFace.begin(snapshot.sampleRate); this.model.onUpdate = () => { this.modelRevision = (this.modelRevision || 0) + 1; }; }
+      // The reply text grows with the stream; the text path aligns what is known and the audio model covers the rest.
+      if (!this.model) { this.model = this.jaliFace.begin(snapshot.sampleRate, {text: snapshot.text, textComplete: snapshot.textComplete}); this.model.onUpdate = () => { this.modelRevision = (this.modelRevision || 0) + 1; }; }
+      else this.model.setText?.(snapshot.text, snapshot.textComplete);
       if (snapshot.pcm !== undefined) {
         const pcm = decodeAnalysisPcm(snapshot.pcm, this.pcmFrames);
         if (this.pcmFrames + pcm.length > snapshot.receivedFrames) throw Error('Analysis PCM exceeds the renderer');

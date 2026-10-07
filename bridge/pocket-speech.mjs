@@ -7,7 +7,7 @@ import {throwIfCancelled} from './transport-pool.mjs';
 // prefetched: optional BufferedPcm already synthesizing this exact text while the
 // previous speaker was audible; its buffered packets are replayed in order first.
 export async function deliverPocketSpeech({input,profile,result,current,signal,voice,host,speech,lipsync,phoneAnalysis,jaliFace,onAnalysis,prefetched}) {
-  const facial=new PocketFacialStream({input,lipsync,phoneAnalysis,jaliFace,signal,expressionSignal:result.expressionSignal,onAnalysis});
+  const facial=new PocketFacialStream({input,lipsync,phoneAnalysis,jaliFace,signal,expressionSignal:result.expressionSignal,text:result.text,onAnalysis});
   try {
     const generated=await host.playLocalPcm({token:speech.token,text:result.text,
       expressionSignal:result.expressionSignal,userText:result.userText},async(emit,{signal:localSignal})=>{

@@ -33,7 +33,7 @@ export function parseFaceModel(meta, buffer) {
 }
 
 // Conv weights (Cout, Cin, k) -> [k][Cout][Cin] for contiguous dot products.
-function layer({data, shape: [out, inp, k]}, bias) {
+export function layer({data, shape: [out, inp, k]}, bias) {
   const weights = new Float32Array(out * inp * k);
   for (let o = 0; o < out; o++) for (let i = 0; i < inp; i++) for (let j = 0; j < k; j++)
     weights[(j * out + o) * inp + i] = data[(o * inp + i) * k + j];
@@ -42,7 +42,7 @@ function layer({data, shape: [out, inp, k]}, bias) {
 
 // Valid convolution: rows of `input` (row-major, layer.inp wide) -> T rows.
 // Four output rows share each weight load; this is the hot loop of the model.
-function conv(input, rows, {weights, bias, out, inp, k}, dilation, output, relu) {
+export function conv(input, rows, {weights, bias, out, inp, k}, dilation, output, relu) {
   const T = Math.max(0, rows - (k - 1) * dilation), whole = T - (T & 3);
   for (let o = 0; o < out; o++) {
     const b = bias[o];
@@ -72,7 +72,7 @@ function conv(input, rows, {weights, bias, out, inp, k}, dilation, output, relu)
 }
 
 // Join a layer's retained input tail with new rows; keep the new tail.
-function extend(state, rows, count, width, keep) {
+export function extend(state, rows, count, width, keep) {
   const total = state.rows + count, joined = new Float32Array(total * width);
   joined.set(state.data.subarray(0, state.rows * width)); joined.set(rows.subarray(0, count * width), state.rows * width);
   const kept = Math.min(keep, total);
@@ -163,6 +163,8 @@ export class FaceModel {
       }
       h = next; length = T;
     }
+    // Last hidden layer of the newest rows: the text path (jali-face-text.mjs) reads it.
+    state.hidden = h; state.hiddenRows = Math.max(0, length);
     const outputs = new Float32Array(Math.max(0, length) * this.outputs);
     conv(h, length, this.output, 1, outputs, true);
     for (let r = 0; r < length; r++) for (let o = 0; o < this.outputs; o++) {
@@ -228,7 +230,9 @@ export class FaceModelFrames {
 // Streaming analysis for one utterance. push() accepts PCM at its own rate and
 // returns the newly predicted rows; finish() resolves the lookahead tail.
 export class FaceModelStream extends FaceModelFrames {
-  constructor(model, sampleRate) {
+  // text: optional TextSession (jali-face-text.mjs). Its rows replace the mouth outputs; it never delays a row in
+  // stream mode. Any text-path failure leaves this stream on the audio-only rows.
+  constructor(model, sampleRate, {text} = {}) {
     if (!Number.isInteger(sampleRate) || sampleRate < 8000 || sampleRate > 96000) throw Error('Invalid facial model audio rate');
     super(model);
     Object.assign(this, {model, sampleRate});
@@ -236,13 +240,25 @@ export class FaceModelStream extends FaceModelFrames {
     this.audio = new Float32Array(16000 * 4); this.samples = 0;
     this.featureRows = 0;
     this.state = model.createState(); this.closing = false;
+    this.text = text || null; this.textFailed = undefined; this.pending = [];
   }
+  // Real-time guard: a stream whose packets wait too long in the worker queue, or whose text path costs too much,
+  // continues on the audio model alone (the mouth eases back over blendRows rows).
+  guard(sentAt) {
+    if (!this.text) return;
+    const lag = Number.isFinite(sentAt) ? performance.timeOrigin + performance.now() - sentAt : 0, audio = this.samples / 16000;
+    if (lag > 250) this.text.lose('behind');
+    else if (audio >= 2 && this.text.computeMs > audio * 1000 * .4) this.text.lose('budget');
+  }
+  setText(text, complete) { try { this.text?.setText(text, complete); } catch { this.dropText('text'); } }
+  dropText(reason) { this.textFailed = reason; this.text = null; }
   growAudio(needed) {
     if (this.audio.length >= needed) return;
     const next = new Float32Array(Math.max(needed, this.audio.length * 2)); next.set(this.audio); this.audio = next;
   }
-  push(pcm) {
+  push(pcm, {sentAt} = {}) {
     if (this.finished || this.closing) throw Error('Facial model stream already finished');
+    this.guard(sentAt);
     if (!(pcm instanceof Float32Array)) throw Error('Facial model expects Float32 PCM');
     const converted = this.resampler.push(pcm);
     this.growAudio(this.samples + converted.length);
@@ -261,13 +277,31 @@ export class FaceModelStream extends FaceModelFrames {
   }
   analyse(final) {
     const {model} = this, available = this.samples < 400 ? 0 : Math.floor((this.samples - 400) / 160) + 1;
-    let rows = new Float32Array(0);
+    let rows = new Float32Array(0), count = 0;
     if (available > this.featureRows) {
       const fresh = new Float32Array((available - this.featureRows) * model.mels);
       for (let row = this.featureRows; row < available; row++)
         model.melFrame(this.audio, row * 160, fresh, (row - this.featureRows) * model.mels);
-      rows = model.step(this.state, fresh, available - this.featureRows);
+      count = available - this.featureRows;
+      rows = model.step(this.state, fresh, count);
       this.featureRows = available;
+    }
+    if (this.text) {
+      // Phrase mode releases rows at finish; keep the audio-only rows so a failure can still deliver them.
+      if (this.text.mode === 'phrase' && count) this.pending.push(rows);
+      try {
+        if (count && this.state.hiddenRows !== count) throw Error('Facial model hidden rows');
+        const audioRows = rows;
+        rows = this.text.process(count ? this.state.hidden : new Float32Array(0), audioRows, count, Boolean(final));
+        if (final) this.pending = [];
+      } catch {
+        this.dropText('error');
+        if (this.pending.length) {
+          rows = new Float32Array(this.pending.reduce((n, part) => n + part.length, 0));
+          let at = 0; for (const part of this.pending) { rows.set(part, at); at += part.length; }
+          this.pending = [];
+        }
+      }
     }
     this.append(rows, final);
     return rows;

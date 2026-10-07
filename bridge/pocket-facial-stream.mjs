@@ -30,7 +30,7 @@ export function pocketAnalysisWav(pcm) {
 // Only the part of a result that is still ahead of the device cursor can be
 // admitted. Completed work is not evidence of phonetic coverage at playback.
 export class PocketFacialStream {
-  constructor({input, lipsync, phoneAnalysis, jaliFace, signal, expressionSignal, onAnalysis = () => {}}) {
+  constructor({input, lipsync, phoneAnalysis, jaliFace, signal, expressionSignal, text, onAnalysis = () => {}}) {
     if (typeof input?.requestId !== 'string' || typeof input.entity !== 'string' || !Number.isSafeInteger(input.generation))
       throw Error('Pocket facial stream needs an owned utterance');
     Object.assign(this,{input,lipsync,signal,expressionSignal,onAnalysis});
@@ -44,7 +44,8 @@ export class PocketFacialStream {
       // Game-trained model on a worker thread: it follows the same copied PCM
       // and supersedes the phone/Rhubarb paths. Failure leaves the envelope.
       try{
-        this.model=jaliFace.begin(RATE);this.lipsync=undefined;phoneAnalysis=undefined;
+        // The whole reply text is known before the first packet: the text path aligns it as the PCM streams.
+        this.model=jaliFace.begin(RATE,typeof text==='string'?{text}:{});this.lipsync=undefined;phoneAnalysis=undefined;
         this.model.onUpdate=()=>{if(this.closed)return;this.revision++;this.cached=this.geometry=null;};
       }catch{this.model=null;}
     }

@@ -32,12 +32,18 @@ export class JaliFace {
     if (process.env.CYBERPUNK_CONVAI_FACE_MODEL === 'off') return null;
     const meta = resolve(directory, 'face-model.json'), weights = resolve(directory, 'face-model.bin');
     try { await access(meta); await access(weights); } catch { return null; }
-    const face = new JaliFace({meta, weights, WorkerImpl, respawnMs});
+    // Optional text path (docs/LIPSYNC_IMPROVEMENTS_2026-10-07.md): face-text.{json,bin} + face-lexicon.txt.gz.
+    let text;
+    if (process.env.CYBERPUNK_CONVAI_FACE_TEXT !== 'off') {
+      const files = {meta: resolve(directory, 'face-text.json'), weights: resolve(directory, 'face-text.bin'), lexicon: resolve(directory, 'face-lexicon.txt.gz')};
+      try { await access(files.meta); await access(files.weights); await access(files.lexicon); text = files; } catch { text = undefined; }
+    }
+    const face = new JaliFace({meta, weights, text, WorkerImpl, respawnMs});
     try { await face.ready; } catch (error) { face.close(); throw error; }
     return face;
   }
-  constructor({meta, weights, WorkerImpl, respawnMs}) {
-    Object.assign(this, {paths: {meta, weights}, WorkerImpl, respawnMs});
+  constructor({meta, weights, text, WorkerImpl, respawnMs}) {
+    Object.assign(this, {paths: {meta, weights, ...(text ? {text} : {})}, WorkerImpl, respawnMs});
     this.sessions = new Map(); this.sequence = 0; this.respawns = [];
     this.spawn();
   }
@@ -78,17 +84,24 @@ export class JaliFace {
   failAll() { for (const session of [...this.sessions.values()]) session.fail(Error('Facial model worker stopped')); }
   // Active analysis keeps the worker referenced; an idle model never keeps the process alive.
   release(id) { this.sessions.delete(id); if (!this.sessions.size) this.worker.unref?.(); }
-  begin(sampleRate) {
+  // True when the worker loaded a text model that matches the audio model.
+  get textReady() { return this.info?.text === 'ready'; }
+  // text: the words this audio speaks (voice and emotion tags allowed). textComplete: false while it still grows
+  // (Convai); later text arrives through session.setText(). textMode 'phrase' waits for the whole phrase.
+  begin(sampleRate, {text, textComplete = true, textMode = 'stream'} = {}) {
     if (this.closed || !this.info) throw Error('Facial model is unavailable');
     const session = new JaliFaceSession(this, ++this.sequence, sampleRate);
     this.sessions.set(session.id, session); this.worker.ref?.();
-    this.worker.postMessage({type: 'begin', id: session.id, sampleRate});
+    const withText = this.textReady && typeof text === 'string';
+    this.worker.postMessage({type: 'begin', id: session.id, sampleRate,
+      ...(withText ? {text: text.slice(0, 12000), textComplete: textComplete !== false, textMode} : {})});
+    session.textEnabled = withText;
     return session;
   }
-  // Whole phrase (Omni). Resolves with a finished FaceModelFrames.
-  async analyse(pcm, sampleRate, {signal} = {}) {
+  // Whole phrase (Omni). Resolves with a finished FaceModelFrames. With `text`, the phrase is aligned whole.
+  async analyse(pcm, sampleRate, {signal, text} = {}) {
     throwIfCancelled(signal);
-    const session = this.begin(sampleRate);
+    const session = this.begin(sampleRate, typeof text === 'string' && text.trim() ? {text, textMode: 'phrase'} : {});
     const cancel = () => session.close();
     signal?.addEventListener('abort', cancel, {once: true});
     try {
@@ -113,7 +126,8 @@ export class JaliFace {
       pcm[frame] = sum / wav.channels;
     }
     const result = await this.analyse(pcm, wav.sampleRate, options);
-    return {jaliFrames: result, timing: {lipAnalysisMs: performance.now() - started, lipEngine: JALI_ARTICULATION}};
+    return {jaliFrames: result, timing: {lipAnalysisMs: performance.now() - started, lipEngine: JALI_ARTICULATION,
+      ...(result.text ? {lipText: result.text} : {})}};
   }
   close() { this.closed = true; this.failAll(); this.sessions.clear(); return this.worker.terminate(); }
 }
@@ -129,7 +143,14 @@ export class JaliFaceSession {
   push(pcm) {
     if (this.closed || this.failed) return;
     const copy = Float32Array.from(pcm);
-    this.owner.worker.postMessage({type: 'push', id: this.id, pcm: copy}, [copy.buffer]);
+    this.owner.worker.postMessage({type: 'push', id: this.id, pcm: copy, sentAt: performance.timeOrigin + performance.now()}, [copy.buffer]);
+  }
+  // Growing reply text (Convai). Ignored unless this session started with text.
+  setText(text, complete = true) {
+    if (this.closed || this.failed || !this.textEnabled || typeof text !== 'string') return;
+    if (text === this.lastText && complete === this.lastComplete) return;
+    this.lastText = text; this.lastComplete = complete;
+    this.owner.worker.postMessage({type: 'text', id: this.id, text: text.slice(0, 12000), complete});
   }
   finish() { if (!this.closed && !this.failed) this.owner.worker.postMessage({type: 'finish', id: this.id}); }
   receive(message) {
@@ -137,6 +158,7 @@ export class JaliFaceSession {
     if (message.type === 'error') { this.fail(Error(message.error)); return; }
     try { this.frames.append(message.rows, {finished: message.finished, duration: message.duration}); }
     catch (error) { this.fail(error); return; }
+    if (message.text) this.frames.text = message.text;
     if (message.finished) { this.owner.release(this.id); this.resolve(this.frames); }
     try { this.onUpdate(this.frames); } catch { /* Diagnostics cannot stop voice. */ }
   }

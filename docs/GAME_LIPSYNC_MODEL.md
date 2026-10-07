@@ -153,6 +153,11 @@ NumPy/PyTorch reference is exact at 16 kHz (resampling from 24 kHz differs by
 
 ## Integration per route
 
+**Text path (2026-10-07):** when `runtime/lipsync-model/face-text.*` and `face-lexicon.txt.gz` are present (and
+`CYBERPUNK_CONVAI_FACE_TEXT` is not `off`), every route also passes the words being spoken and a small second network
+uses the aligned phones (`bridge/jali-face-text.mjs`; measurements and fallbacks in
+`docs/LIPSYNC_IMPROVEMENTS_2026-10-07.md`). Without them the behaviour below is unchanged.
+
 - **Pocket (streamed PCM):** `PocketFacialStream` feeds the same copied PCM
   packets to the model; poses are available ~215 ms behind received audio,
   inside the 0.4 s playback start buffer. Uncovered audio uses the
