@@ -59,7 +59,7 @@ def aggregate(curves, grid, reference=18):
                 deltas.append(v - base)
         se = (statistics.stdev(deltas) / math.sqrt(len(deltas))) if len(deltas) > 1 else None
         rows.append({"seconds": g, "voices": len(values), "ecapa": round(statistics.mean(values), 4) if values else None,
-                     "delta_vs_18": round(statistics.mean(deltas), 4) if deltas else None, "delta_se": round(se, 4) if se is not None else None})
+                     "delta_vs_ref": round(statistics.mean(deltas), 4) if deltas else None, "reference_seconds": reference, "delta_se": round(se, 4) if se is not None else None})
     return rows
 
 
@@ -101,7 +101,7 @@ def main(argv=None) -> int:
             data["voices"][voice] = row
     omni_curves = [v["omni"]["curve"] for v in data["voices"].values() if "omni" in v]
     pocket_curves = [v["pocket"]["curve"] for v in data["voices"].values() if "pocket" in v]
-    data["curves"] = {"omni": aggregate(omni_curves, GRID_OMNI), "pocket": aggregate(pocket_curves, GRID_POCKET)}
+    data["curves"] = {"omni": aggregate(omni_curves, GRID_OMNI, reference=10), "pocket": aggregate(pocket_curves, GRID_POCKET, reference=18)}
 
     def fmt(p, key="ecapa"):
         return f"{p[key]:.3f}" if p else ""
@@ -136,10 +136,10 @@ def main(argv=None) -> int:
                      f"{(str(round(today['seconds'], 1)) + ' / ' + format(today['ecapa'], '.3f')) if today else ''} | "
                      f"{(str(round(beyond['seconds'], 1)) + ' s ' + format(beyond['ecapa'], '.3f')) if beyond else ''} |")
     for engine, grid_rows in data["curves"].items():
-        lines += ["", f"## Aggregate ECAPA vs reference duration: {engine}", "", "| Seconds | Voices reaching it | Mean ECAPA | Change vs 18 s (±SE) |", "|---|---|---|---|"]
+        lines += ["", f"## Aggregate ECAPA vs reference duration: {engine}", "", f"| Seconds | Voices reaching it | Mean ECAPA | Change vs {grid_rows[0]['reference_seconds']} s, same voices (±SE) |", "|---|---|---|---|"]
         for g in grid_rows:
             lines.append(f"| {g['seconds']} | {g['voices']} | {g['ecapa'] if g['ecapa'] is not None else ''} | "
-                         f"{('%+.4f' % g['delta_vs_18']) + (' ±%.4f' % g['delta_se'] if g['delta_se'] is not None else '') if g['delta_vs_18'] is not None else ''} |")
+                         f"{('%+.4f' % g['delta_vs_ref']) + (' ±%.4f' % g['delta_se'] if g['delta_se'] is not None else '') if g['delta_vs_ref'] is not None else ''} |")
     results_dir = common.WORK / "results"
     results_dir.mkdir(parents=True, exist_ok=True)
     text = json.dumps(data, indent=1)
