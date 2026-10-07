@@ -67,3 +67,8 @@ The user's per-character verdicts from the report page (http://127.0.0.1:8765/),
 - Pocket base: the cheap CPU option.
 - Pocket fine-tuned (student + decoder fine-tune + auto best-clip references): an upfront cost, but good performance. Per-character models should be the default: one model trained on one character's voice. Everything is in the cloud, so many models are fine, and the user expects a massive quality boost.
 - OmniVoice: expensive, needs a GPU, but less setup work (zero-shot).
+
+### Multilingual (2026-10-07)
+- Omni speaking Judy's cloned voice in Spanish, German, Japanese, Chinese and Russian, from her English reference: sounds like those languages, and the quality is good.
+- Microphone in other languages: the user expects it to work. Earlier mods on Convai got no reports that non-English speech fails, so it is not treated as a blocker; confirm with one test in game.
+- Lip sync with English mouth shapes for other languages: fine.
