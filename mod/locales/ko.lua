@@ -541,4 +541,7 @@ return {
     ["Changes wait until you choose Apply."] = "변경 사항은 적용을 선택할 때까지 대기합니다.",
     ["Changes wait until you choose Apply; Revert discards them. No game restart is needed."] = "변경 사항은 적용을 선택할 때까지 대기하며, 되돌리기로 취소할 수 있습니다. 게임을 다시 시작할 필요는 없습니다.",
     ["Pending: {voice}"] = "대기 중: {voice}",
+    ["Natural speech"] = "자연스러운 말투",
+    ["Let companions speak the way a real person with their personality would: now and then a pause, a hesitation, a laugh or a sigh. Each character decides when it fits, and it stays rare; a fluent, confident speaker will hardly use it. OmniVoice can voice laughs and sighs; Pocket TTS uses only pauses in the sentence. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. Off by default."] = "동료가 그 성격을 가진 실제 사람처럼 말하게 합니다. 가끔 말을 멈추거나, 머뭇거리거나, 웃거나, 한숨을 쉽니다. 언제 어울리는지는 각 캐릭터가 정하며 드물게만 나타납니다. 유창하고 자신감 있는 화자는 거의 쓰지 않습니다. OmniVoice는 웃음과 한숨을 소리 낼 수 있고, Pocket TTS는 문장 속 쉼만 사용합니다. 로컬 음성이 필요하므로 Convai 클라우드 음성이 선택된 상태에서 적용하면 동료 음성이 Pocket TTS로 바뀝니다. 기본값은 꺼짐입니다.",
+    ["Natural speech needs a local voice, so {setting} was switched to {voice}."] = "자연스러운 말투에는 로컬 음성이 필요하므로 {setting}을(를) {voice}(으)로 변경했습니다.",
 }

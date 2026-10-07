@@ -6,6 +6,7 @@ import {attachExpressionTrack} from './expression-timeline.mjs';
 import {ownedExpressionReceipt} from './companion-expressions.mjs';
 import {decodeAnalysisPcm} from './analysis-pcm.mjs';
 import {JALI_LEAD_SECONDS} from './jali-face.mjs';
+import {displayText} from './natural-speech.mjs';
 
 const SHARING_ERRORS = new Set(['EPERM', 'EACCES', 'EBUSY']);
 const finite = value => typeof value === 'number' && Number.isFinite(value);
@@ -120,6 +121,9 @@ export class ConvaiContinuousSpeech {
       || typeof snapshot.textComplete !== 'boolean' || typeof snapshot.sourceComplete !== 'boolean'
       || typeof snapshot.ended !== 'boolean' || !integer(snapshot.underruns)
       || typeof snapshot.state !== 'string' || snapshot.state.length > 50) throw Error('Invalid continuous speech state');
+    // Natural speech: voice tags never reach a subtitle (a local voice's text arrives clean; this covers the rest).
+    const shown = displayText(snapshot.text, snapshot.textComplete);
+    if (shown !== snapshot.text) snapshot = {...snapshot, text: shown};
     if (this.sampleRate && (snapshot.sampleRate !== this.sampleRate || snapshot.channels !== this.channels))
       throw Error('Continuous speech format changed');
     if (this.sourceComplete && (!snapshot.sourceComplete || snapshot.receivedFrames !== this.receivedFrames))

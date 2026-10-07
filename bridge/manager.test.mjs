@@ -2982,3 +2982,111 @@ test('a voice that could not run is announced once in gameplay, again only after
     assert(manager.voiceLabel('pocket') == 'Pocket TTS' and manager.voiceLabel('convai') == 'Convai cloud voice')
   `);
 });
+
+test('Natural speech is off by default and a saved pairing with the Convai cloud voice cannot stand', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(saved.naturalSpeech == false and manager.naturalSpeech() == false)
+    assert(manager.snapshot(player).settings.naturalSpeech == false)
+    for _, case in ipairs({{'missing', 'convai'}, {true, 'convai'}, {true, 'pocket'}, {true, 'omni'}, {false, 'convai'}, {'yes', 'convai'}}) do
+      seed = {version = 2, voiceProvider = case[2], enabledByKey = {}, future = {keep = 'unchanged'}}
+      if case[1] ~= 'missing' then seed.naturalSpeech = case[1] end
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      local on = case[1] == true
+      assert(manager.naturalSpeech() == on and saved.naturalSpeech == on, tostring(case[1]))
+      -- Natural speech needs a local voice: only the cloud voice with the setting on is moved, to Pocket TTS.
+      local expected = (on and case[2] == 'convai') and 'pocket' or case[2]
+      assert(saved.voiceProvider == expected and manager.snapshot(player).settings.voiceProvider == expected)
+      assert(saved.future.keep == 'unchanged')
+    end
+  `);
+});
+
+test('Natural speech applies with the voice in one Apply: the cloud voice is switched to Pocket TTS, once, with a clear notice', () => {
+  run(`${mcmFixture}
+    local clock = 5000
+    os.clock = function() return clock end
+    local sent = {}
+    function player:ConvaiPhoneFeedback(text) sent[#sent + 1] = text end
+    assert(invoke('tab:settings').ok)
+    local entry = row('naturalSpeech')
+    assert(entry and entry.type == 'bool' and entry.value == false and entry.defaultValue == false, 'off by default')
+    local NOTICE = 'Natural speech needs a local voice, so Companion voices was switched to ' .. manager.voiceLabel('pocket') .. '.'
+    -- The menu positions of the cloud voice and of the first OmniVoice entry, wherever the list puts them.
+    local CLOUD, OMNI
+    for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do
+      if choice.provider == 'convai' then CLOUD = index end
+      if choice.provider == 'omni' and not OMNI then OMNI = index end
+    end
+    assert(CLOUD and OMNI)
+    local function apply(...)
+      clock = clock + 2
+      local changes = {}
+      for _, change in ipairs({...}) do changes[#changes + 1] = {id = change[1], value = change[2]} end
+      return registered.applyBatch('manager', changes)
+    end
+    -- On with a local voice: nothing else changes and nothing is announced.
+    local result = apply({'naturalSpeech', true})
+    assert(result.ok and manager.naturalSpeech() and saved.naturalSpeech == true and saved.voiceProvider == 'pocket')
+    assert(result.schemaChanged == false and manager.takeNaturalSpeechNotice() == nil)
+    -- Choosing the cloud voice while it is on ends on Pocket TTS, and says so.
+    result = apply({'voiceProvider', CLOUD})
+    assert(result.ok and saved.voiceProvider == 'pocket' and saved.naturalSpeech == true)
+    assert(manager.snapshot(player).settings.voiceProvider == 'pocket' and result.schemaChanged == true)
+    assert(manager.snapshot(player).feedback == NOTICE, manager.snapshot(player).feedback)
+    mcm.update(player, true)
+    assert(#sent == 1 and sent[1] == NOTICE, 'the notice reaches the player in gameplay: ' .. tostring(sent[1]))
+    mcm.update(player, true); assert(#sent == 1, 'announced once')
+    -- Natural speech off: the cloud voice is allowed again.
+    assert(apply({'naturalSpeech', false}).ok and not manager.naturalSpeech())
+    assert(apply({'voiceProvider', CLOUD}).ok and saved.voiceProvider == 'convai' and manager.takeNaturalSpeechNotice() == nil)
+    -- Turning it on while the cloud voice is saved switches the voice in the same Apply.
+    result = apply({'naturalSpeech', true})
+    assert(result.ok and saved.naturalSpeech == true and saved.voiceProvider == 'pocket' and result.schemaChanged == true)
+    assert(manager.takeNaturalSpeechNotice() == NOTICE and manager.takeNaturalSpeechNotice() == nil)
+    -- Both staged together (drafts are applied as one batch): natural speech on and the cloud voice picked.
+    assert(apply({'naturalSpeech', false}).ok)
+    assert(apply({'voiceProvider', CLOUD}).ok and saved.voiceProvider == 'convai')
+    result = apply({'voiceProvider', CLOUD}, {'naturalSpeech', true})
+    assert(result.ok and saved.voiceProvider == 'pocket' and saved.naturalSpeech == true)
+    assert(manager.takeNaturalSpeechNotice() == NOTICE)
+    -- Both staged together, but the voice moves to an OmniVoice choice instead: it is kept.
+    assert(apply({'naturalSpeech', false}).ok and apply({'voiceProvider', CLOUD}).ok)
+    result = apply({'voiceProvider', OMNI}, {'naturalSpeech', true})
+    assert(result.ok and saved.voiceProvider == 'omni' and saved.naturalSpeech == true)
+    assert(manager.takeNaturalSpeechNotice() == nil and result.schemaChanged == false)
+    -- A failed save changes nothing and sends no notice.
+    assert(apply({'naturalSpeech', false}).ok and apply({'voiceProvider', CLOUD}).ok)
+    failSave = true
+    result = apply({'voiceProvider', CLOUD}, {'naturalSpeech', true})
+    assert(result.ok == false and saved.voiceProvider == 'convai' and not manager.naturalSpeech())
+    assert(manager.takeNaturalSpeechNotice() == nil)
+    failSave = false
+    assert(registered.applyBatch('manager', {{id = 'naturalSpeech', value = 'yes'}}).ok == false)
+  `);
+});
+
+test('Natural speech sits in the Voices category and Auto Apply cannot commit it before the person chooses Apply', () => {
+  run(`${mcmFixture}
+    assert(invoke('tab:settings').ok)
+    local owner
+    for _, category in ipairs(loaded.categories) do
+      for _, item in ipairs(category.settings) do if item.id == 'naturalSpeech' then owner = category end end
+    end
+    assert(owner and owner.id == 'voices' and row('voiceProvider') and row('naturalSpeech').label == 'Natural speech')
+    assert(row('naturalSpeech').description:find('Pocket TTS', 1, true) and row('naturalSpeech').description:find('Off by default', 1, true))
+    local clock = 5000
+    os.clock = function() return clock end
+    local listeners = {}
+    nativeApi.subscribe = function(name, callback) listeners[#listeners + 1] = callback; return #listeners end
+    nativeApi.unsubscribe = function() return true end
+    mcm.shutdown(); mcm.install()
+    for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = 1}) end
+    local refused = registered.applyBatch('manager', {{id = 'naturalSpeech', value = true}})
+    assert(refused.ok == false and refused.error:find('Change pending', 1, true))
+    assert(not manager.naturalSpeech() and saved.naturalSpeech == false)
+    clock = clock + 2
+    assert(registered.applyBatch('manager', {{id = 'naturalSpeech', value = true}}).ok and manager.naturalSpeech())
+  `);
+});

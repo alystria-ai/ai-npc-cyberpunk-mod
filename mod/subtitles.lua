@@ -187,6 +187,9 @@ end
 -- Preserve UTF-8 even in CJK text without spaces or unusually long words.
 function M.split(text, style)
     if type(text) ~= 'string' then return {}, {} end
+    -- Natural speech: a voice tag such as [laughter] is for the voice engine, never for the reader. The bridge
+    -- already removes them; this keeps one that slipped through off the screen.
+    text = text:gsub('%s*%[%a[%a%-]*%]', '')
     text = text:gsub('%s+', ' '):match('^%s*(.-)%s*$')
     local chars, pages, ranges = {}, {}, {}
     for char in text:gmatch(UTF8) do chars[#chars + 1] = char end

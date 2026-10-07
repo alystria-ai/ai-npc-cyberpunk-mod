@@ -29,6 +29,9 @@ local OMNI_LABELS = {
 }
 local OMNI_PACK_MISSING = 'Requires the optional OmniVoice pack (GPU)'
 local voiceFallbackSeen, voiceFallbackNotice = {}, nil
+-- Natural speech needs a local voice (the Convai cloud voice would read its tags aloud). The pending "switched to
+-- Pocket TTS" notice, once, after an Apply that had to change the voice.
+local naturalSpeechNotice = nil
 local eyeContactHeights = {-0.10, -0.05, 0, 0.05, 0.10}
 local headFollowStrengths = {0, 0.5, 1, 1.5}
 local relationshipProfiles = {
@@ -351,6 +354,9 @@ local function loadSettings()
         settings.omniReference, settingsNeedSave = DEFAULT_OMNI_REFERENCE, true
     end
     if type(settings.keepPreparedVoices) ~= 'boolean' then settings.keepPreparedVoices, settingsNeedSave = true, true end
+    -- Off by default. A saved pairing with the Convai cloud voice cannot stand: the voice moves to Pocket TTS.
+    if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
+    if settings.naturalSpeech and settings.voiceProvider == 'convai' then settings.voiceProvider, settingsNeedSave = 'pocket', true end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
         if type(settings.enabledByKey[key]) ~= 'boolean' and type(settings.enabled) == 'table'
@@ -431,8 +437,22 @@ function M.takeVoiceFallbackNotice()
         requested = M.voiceLabel(pending.from, pending.steps, pending.reference), voice = M.voiceLabel(pending.to)})
 end
 
+-- Once, after an Apply that switched the voice because Natural speech needs a local one.
+function M.takeNaturalSpeechNotice()
+    local pending = naturalSpeechNotice
+    naturalSpeechNotice = nil
+    return pending
+end
+
 function M.developerMode()
     return settings ~= nil and settings.developerMode == true
+end
+
+-- Off by default: companions speak as before. On, the conversation service tells each character which pauses and
+-- sounds its voice engine can render and lets it decide, from its personality, when one fits.
+function M.naturalSpeech()
+    loadSettings()
+    return settings.naturalSpeech == true
 end
 
 function M.relationshipChoices()
@@ -956,6 +976,7 @@ function M.snapshot(player)
             omniSteps = settings.omniSteps,
             omniReference = settings.omniReference,
             keepPreparedVoices = settings.keepPreparedVoices,
+            naturalSpeech = settings.naturalSpeech,
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         localVoice = localVoiceState,
@@ -994,7 +1015,7 @@ function M.applySettings(player, values)
     for key, value in pairs(values) do
         if key == 'voice' or key == 'subtitles' or key == 'followUpQuestions' or key == 'developerMode'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
-            or key == 'keepPreparedVoices' then
+            or key == 'keepPreparedVoices' or key == 'naturalSpeech' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'relationshipModes' then
@@ -1041,6 +1062,10 @@ function M.applySettings(player, values)
             end
         else return false, ui.t('Unknown setting: {setting}',{setting=tostring(key)}) end
     end
+    -- Natural speech needs a local voice. Both settings are judged as they will be after this Apply, so turning it on
+    -- while the cloud voice is saved, choosing the cloud voice while it is on, or both in one Apply, ends on Pocket TTS.
+    local switchedVoice = nextSettings.naturalSpeech == true and nextSettings.voiceProvider == 'convai'
+    if switchedVoice then nextSettings.voiceProvider = 'pocket' end
     local previous = settings
     settings = nextSettings
     if not saveSettings() then
@@ -1056,6 +1081,12 @@ function M.applySettings(player, values)
         end
     end
     if companions.onPartyChanged then pcall(companions.onPartyChanged) end
+    if switchedVoice then
+        naturalSpeechNotice = ui.t('Natural speech needs a local voice, so {setting} was switched to {voice}.',
+            {setting = ui.t('Companion voices'), voice = M.voiceLabel('pocket')})
+        feedback, dirty = clean(naturalSpeechNotice, 400), true
+        return true, nil, naturalSpeechNotice
+    end
     say('Settings saved.')
     return true
 end

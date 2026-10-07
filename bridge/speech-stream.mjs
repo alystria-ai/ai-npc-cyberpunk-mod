@@ -67,9 +67,11 @@ export class SpeechSlots {
 }
 
 export class SpeechStream {
-  constructor({input, phrases, steps, slots, readState, writeManifest, synthesize, current,
+  // speech: optional text to voice for each phrase (the display phrase plus any voice tags); the display phrase is
+  // what the manifest, subtitles and captions carry.
+  constructor({input, phrases, speech, steps, slots, readState, writeManifest, synthesize, current,
     signal, lookahead, expressionPlan, spans, now = Date.now, wait = ms => new Promise(done => setTimeout(done, ms))}) {
-    Object.assign(this, {input, phrases, steps, slots, readState, writeManifest, synthesize, current, signal, now, wait,
+    Object.assign(this, {input, phrases, speech, steps, slots, readState, writeManifest, synthesize, current, signal, now, wait,
       expressionPlan, spans});
     this.manifest = {version: 1, streamId: randomUUID(), requestId: input.requestId,
       generation: input.generation, entity: input.entity, total: phrases.length, complete: false, chunks: []};
@@ -89,7 +91,7 @@ export class SpeechStream {
   }
   queueSynthesis(index) {
     if (index >= this.phrases.length || this.pending.has(index)) return;
-    const job = Promise.resolve().then(() => this.synthesize(this.phrases[index], {signal: this.queue.signal, steps: this.steps}));
+    const job = Promise.resolve().then(() => this.synthesize(this.speech?.[index] ?? this.phrases[index], {signal: this.queue.signal, steps: this.steps}));
     job.catch(() => {});
     this.pending.set(index, job);
   }

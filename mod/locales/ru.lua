@@ -541,4 +541,7 @@ return {
     ["Changes wait until you choose Apply."] = "Изменения ждут, пока вы не выберете «Применить».",
     ["Changes wait until you choose Apply; Revert discards them. No game restart is needed."] = "Изменения ждут, пока вы не выберете «Применить»; «Отменить» сбрасывает их. Перезапуск игры не нужен.",
     ["Pending: {voice}"] = "Ожидает: {voice}",
+    ["Natural speech"] = "Естественная речь",
+    ["Let companions speak the way a real person with their personality would: now and then a pause, a hesitation, a laugh or a sigh. Each character decides when it fits, and it stays rare; a fluent, confident speaker will hardly use it. OmniVoice can voice laughs and sighs; Pocket TTS uses only pauses in the sentence. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. Off by default."] = "Напарники говорят так, как говорил бы живой человек с их характером: время от времени пауза, запинка, смех или вздох. Каждый персонаж сам решает, когда это уместно, и случается это редко; уверенный и беглый собеседник почти не пользуется этим. OmniVoice умеет озвучивать смех и вздохи, а Pocket TTS использует только паузы внутри предложения. Нужен локальный голос: если применить параметр при выбранном облачном голосе Convai, голоса напарников переключатся на Pocket TTS. По умолчанию выключено.",
+    ["Natural speech needs a local voice, so {setting} was switched to {voice}."] = "Для естественной речи нужен локальный голос, поэтому параметр «{setting}» переключён на «{voice}».",
 }

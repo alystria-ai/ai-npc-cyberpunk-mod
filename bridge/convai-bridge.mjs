@@ -26,6 +26,7 @@ import {PartyConnections, parsePartyConnections} from './party-connections.mjs';
 import {NearbyWarm} from './nearby-warm.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
+import {NaturalSpeech, OMNI_TAGS, speechPhrases} from './natural-speech.mjs';
 import {resolveVoiceConfigPaths} from './voice-config-paths.mjs';
 import {detectOmniPack} from './omni-pack.mjs';
 import {ResidentPhoneAnalysis} from './resident-phone-analysis.mjs';
@@ -130,7 +131,9 @@ const knowledgeRouter = new PlayerKnowledge({playerMemory, pack: knowledgePack, 
   isWorldCurrent: worldCurrent, getBoundary: currentBoundary,
   selectProfile: (profile, boundary) => relationshipRoutes.select(profile, boundary)});
 const phoneKnowledge = new PlayerPhoneKnowledge({router: knowledgeRouter, getBoundary: currentBoundary});
-const phoneRealtime = new RealtimeHost();
+// "Natural speech": the setting, and the display text of every reply with voice tags removed (bridge/natural-speech.mjs).
+const naturalSpeech = new NaturalSpeech();
+const phoneRealtime = new RealtimeHost({transformReply: result => naturalSpeech.process(result)});
 const knowledgeTurns = new Map();
 function rememberKnowledgeTurn(prepared) {
   const requestId = prepared.input.requestId || prepared.input.id;
@@ -254,7 +257,8 @@ function writeStreamManifest(document,current){
 }
 const companionActions = new CompanionActions({createToken: () => 'drive-' + randomUUID(),
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options)});
-const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet)});
+const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet),
+  transformReply: result => naturalSpeech.process(result)});
 let observed = '', observedIdentity = null;
 let lastAcceptedIdentity = '';
 let polling = false, active = null, stopped = false;
@@ -268,13 +272,23 @@ const preparedInputs = new WeakMap();
 const intrinsicConversationContext = createIntrinsicConversationContext({baseContext: baseConversationContext,
   intrinsic: intrinsicHistory, resolveAdmission: input => preparedInputs.get(input),
   isCurrentSync: prepared => knowledgeRouter.currentSync(prepared)});
+// Natural speech: the devices the CURRENT voice engine can render, for spoken replies only. Phone chat is text,
+// battle and loot reactions are short barks, and the Convai cloud voice cannot follow it (it would read tags aloud).
+const naturalSpeechContext = input => {
+  const prepared = preparedInputs.get(input);
+  const phone = input.channel === 'phone' || prepared?.route?.channel === 'phone';
+  const spoken = !phone && !input.reaction && localVoice.playbackEnabled !== false;
+  const engine = localVoice.usesProfile(input.profileKey) ? localVoice.provider : 'convai';
+  return naturalSpeech.contextFor({engine, spoken, sessionId: realtimeSessions.get(sessionKey(input))});
+};
 const conversationContext = input => {
   const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
   return [intrinsicConversationContext(input),
     admitted ? relationshipContext(prepared.relationship, prepared.route.channel,
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : '',
-    admitted && prepared.route.channel === 'phone' ? phoneRecentConversationContext(prepared.input) : '']
+    admitted && prepared.route.channel === 'phone' ? phoneRecentConversationContext(prepared.input) : '',
+    naturalSpeechContext(input)]
     .filter(Boolean).join('\n\n');
 };
 const boundaryFor = input => ({entity: input?.entity,
@@ -510,14 +524,16 @@ async function synthesizeReply(input, result, signal, current, profile = profile
     signal?.addEventListener('abort',cancelLookahead,{once:true});
     try{
       const phrases=splitSpeechText(result.text),steps=localVoice.steps;
-      const first=synthesizeOmniPhrase(input.profileKey,phrases[0],{signal,steps});
+      // Voice tags (Natural speech) go to OmniVoice only, where the model wrote them; subtitles keep the clean phrase.
+      const voiced=(naturalSpeech.enabled?speechPhrases(phrases,result.speechText,OMNI_TAGS):undefined)??phrases;
+      const first=synthesizeOmniPhrase(input.profileKey,voiced[0],{signal,steps});
       // Queue phrase 2 behind phrase 1 now: the GPU renders it while phrase 1's
       // lip analysis, storage and publication run, instead of after them.
       let second;
-      if(phrases.length>1){second=synthesizeOmniPhrase(input.profileKey,phrases[1],{signal:lookahead.signal,steps});second.catch(()=>{});}
+      if(phrases.length>1){second=synthesizeOmniPhrase(input.profileKey,voiced[1],{signal:lookahead.signal,steps});second.catch(()=>{});}
       const generated=await first;
       return {...result,...generated,text:result.text,timing:{...result.timing,...generated.timing},
-        streamPlan:phrases.length>1?{phrases,steps,lookahead:{promise:second,cancel:cancelLookahead},
+        streamPlan:phrases.length>1?{phrases,speech:voiced,steps,lookahead:{promise:second,cancel:cancelLookahead},
           expressionPlan:result.expressionPlan,spans}:undefined};
     }catch(error){
       cancelLookahead();
@@ -1281,6 +1297,8 @@ async function pollSettings(checkShutdown = true) {
     if (localVoice.update(settings, preview, voiceBoundaryBusy())) {
       dropPrefetch(); prefetchObserved = '';
     }
+    // A prepared reply was written under the previous Natural speech instructions.
+    if (naturalSpeech.update(settings)) { dropPrefetch(); prefetchObserved = ''; }
     await syncRelationshipRoutes(); await syncVoiceRoutes();
     publishRelationshipRoutes();
     if (Date.now() - lastVoiceHeartbeat >= 5000) {

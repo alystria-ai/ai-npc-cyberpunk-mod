@@ -1,0 +1,274 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {resolve} from 'node:path';
+import {readFileSync} from 'node:fs';
+import {NaturalSpeech, OMNI_TAGS, MAX_VOICED_TAGS, naturalSpeechContext, stripSpeechTags, keepSpeechTags, displayText,
+  hasSpeechTags, parseTagged, speechPhrases, devicesUsed} from './natural-speech.mjs';
+import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
+import {silentWav} from './speech-audio.mjs';
+import {RealtimeHost} from './realtime-host.mjs';
+import {VoiceSelection} from './voice-selection.mjs';
+
+// ---- the setting: off by default ---------------------------------------------------------------------------
+
+test('Natural speech is off by default: no block is sent for any engine and nothing is recorded', () => {
+  const speech = new NaturalSpeech();
+  assert.equal(speech.enabled, false);
+  for (const engine of ['omni', 'pocket', 'convai', undefined]) assert.equal(speech.contextFor({engine, spoken: true}), '');
+  speech.record('session-1', 'Well... maybe.');
+  assert.equal(speech.last.size, 0);
+  // A reply passes through untouched except that a tag never reaches the display text.
+  const plain = {text: 'Nothing special here.', sessionID: 'session-1'};
+  assert.equal(speech.process(plain), plain);
+  assert.equal(speech.update(undefined), false, 'a missing or unreadable settings file leaves it as it was');
+  assert.equal(speech.update({voice: true}), false);
+  assert.equal(speech.update({naturalSpeech: 'yes'}), false, 'only an explicit true turns it on');
+  assert.equal(speech.enabled, false);
+});
+
+test('the setting follows runtime/settings.json and a change is reported once', () => {
+  const speech = new NaturalSpeech();
+  assert.equal(speech.update({naturalSpeech: true}), true);
+  assert.equal(speech.update({naturalSpeech: true}), false);
+  assert.equal(speech.enabled, true);
+  speech.record('s', 'Well... maybe.');
+  assert.equal(speech.update(undefined), false, 'a transient unreadable file does not switch it off');
+  assert.equal(speech.enabled, true);
+  assert.equal(speech.update({naturalSpeech: false}), true);
+  assert.equal(speech.enabled, false);
+  assert.equal(speech.last.size, 0, 'turning it off forgets what was used');
+});
+
+// ---- the dynamic context per engine ------------------------------------------------------------------------
+
+test('the OmniVoice block lists its tags and pauses and tells the character to choose by personality, rarely and without a pattern', () => {
+  const text = naturalSpeechContext({engine: 'omni'});
+  for (const tag of OMNI_TAGS) assert.ok(text.includes(`[${tag}]`), `[${tag}] is offered`);
+  for (const phrase of ['"..."', '" — "', 'hm', 'uh', 'I mean']) assert.ok(text.includes(phrase), phrase);
+  // The model chooses: optional, rare, no pattern, never repeated, by personality, even with no such samples.
+  for (const phrase of ['optional', 'most replies should use none', 'rarely', 'predictable pattern', 'fixed position',
+    'previous replies', 'who you are', 'personality', 'even if your sample dialogue contains no such sounds',
+    'fluent, confident speaker rarely hesitates', 'cold, controlled or formal person rarely laughs',
+    'When in doubt, use nothing', 'not a stage direction', 'removed from the subtitles']) assert.ok(text.includes(phrase), phrase);
+  assert.ok(!text.includes('Pocket'));
+});
+
+test('the Pocket block offers punctuation only: no tags, no spelled sounds, and still rare, personal and never repeated', () => {
+  const text = naturalSpeechContext({engine: 'pocket'});
+  for (const tag of OMNI_TAGS) assert.ok(!text.includes(`[${tag}]`) || /never write tags such as \[laughter\] or \[sigh\]/.test(text), tag);
+  // The only bracketed names are the two in the prohibition.
+  assert.deepEqual([...text.matchAll(/\[([a-z-]+)\]/g)].map(match => match[1]), ['laughter', 'sigh']);
+  for (const phrase of ['Pocket TTS', 'never write tags', 'would read any bracketed tag', 'ordinary punctuation', '("—")', '("...")',
+    'rarely', 'predictable pattern', 'previous replies', 'personality', 'fluent, confident speaker rarely does this',
+    'When in doubt, speak plainly']) assert.ok(text.includes(phrase), phrase);
+  assert.ok(!text.includes('OmniVoice') && !text.includes('confirmation-en'));
+});
+
+test('no block for the Convai cloud voice or an unknown engine, and the previous reply\'s devices are not offered again', () => {
+  assert.equal(naturalSpeechContext({engine: 'convai'}), '');
+  assert.equal(naturalSpeechContext({engine: 'something'}), '');
+  assert.equal(naturalSpeechContext({}), '');
+  const omni = naturalSpeechContext({engine: 'omni', recent: ['laughter', 'ellipsis']});
+  assert.ok(omni.endsWith('Your previous reply already used [laughter], an ellipsis ("..."): do not use those in this reply.'), omni);
+  // A device the engine cannot render is never mentioned, even if an older reply happened to contain it.
+  const pocket = naturalSpeechContext({engine: 'pocket', recent: ['laughter', 'filler', 'dash']});
+  assert.ok(pocket.endsWith('Your previous reply already used a dash ("—"): do not use it in this reply.'), pocket);
+  assert.equal(naturalSpeechContext({engine: 'pocket', recent: ['laughter']}), naturalSpeechContext({engine: 'pocket'}));
+});
+
+test('contextFor gates on the setting, spoken turns and the engine, and remembers each conversation\'s last reply', () => {
+  const speech = new NaturalSpeech();
+  speech.update({naturalSpeech: true});
+  assert.equal(speech.contextFor({engine: 'omni', spoken: false}), '', 'phone chat, reactions and silent playback');
+  assert.equal(speech.contextFor({engine: 'convai', spoken: true}), '');
+  assert.equal(speech.contextFor({engine: 'omni', spoken: true, sessionId: 'a'}), naturalSpeechContext({engine: 'omni'}));
+  speech.process({text: 'Heh [laughter] well... fine.', sessionID: 'a'});
+  assert.match(speech.contextFor({engine: 'omni', spoken: true, sessionId: 'a'}), /already used \[laughter\], an ellipsis/);
+  assert.equal(speech.contextFor({engine: 'omni', spoken: true, sessionId: 'b'}), naturalSpeechContext({engine: 'omni'}),
+    'another conversation is unaffected');
+  speech.process({text: 'A plain reply.', sessionID: 'a'});
+  assert.equal(speech.contextFor({engine: 'omni', spoken: true, sessionId: 'a'}), naturalSpeechContext({engine: 'omni'}));
+  for (let n = 0; n < 100; n++) speech.record(`s${n}`, 'Hm.');
+  assert.ok(speech.last.size <= 64, 'bounded');
+});
+
+test('devicesUsed names the tags, pauses and fillers a reply contained', () => {
+  assert.deepEqual(devicesUsed('Hm, okay [sigh] so... that — is it. [Laughter]').sort(), ['dash', 'ellipsis', 'filler', 'laughter', 'sigh']);
+  assert.deepEqual(devicesUsed('A perfectly plain sentence, with commas.'), []);
+  assert.deepEqual(devicesUsed('Wait… what?'), ['ellipsis']);
+  assert.deepEqual(devicesUsed('I mean, sure.'), ['filler']);
+  assert.deepEqual(devicesUsed('Mum made the humming thing.'), [], 'words that merely contain a filler are not fillers');
+  assert.deepEqual(devicesUsed(undefined), []);
+});
+
+// ---- tag stripping: subtitles, display, unsupported engines --------------------------------------------------
+
+test('stripSpeechTags removes tags from display text and leaves text without a tag exactly as it was', () => {
+  assert.equal(stripSpeechTags('Yeah, [laughter] I get it. [sigh] Let\'s go.'), 'Yeah, I get it. Let\'s go.');
+  assert.equal(stripSpeechTags('[sigh] Okay, so.'), 'Okay, so.');
+  assert.equal(stripSpeechTags('Okay, so. [sigh]'), 'Okay, so.');
+  assert.equal(stripSpeechTags('Well[laughter]. Fine.'), 'Well. Fine.');
+  assert.equal(stripSpeechTags('Hm[sigh], fine.'), 'Hm, fine.');
+  assert.equal(stripSpeechTags('[Laughter] Mixed [SURPRISE-OH] case.'), 'Mixed case.');
+  assert.equal(stripSpeechTags('[laughter][sigh] Both.'), 'Both.');
+  assert.equal(stripSpeechTags('[laughter]'), '');
+  // Text without a tag is returned as the same string, whitespace and all.
+  const untouched = 'Line one.\nLine  two — "quoted"... [B EY1 S] and [A1] stay.';
+  assert.equal(hasSpeechTags(untouched), false);
+  assert.equal(stripSpeechTags(untouched), untouched);
+  assert.equal(stripSpeechTags(undefined), undefined);
+});
+
+test('streaming subtitles never show a half-written tag', () => {
+  assert.equal(displayText('Yeah, [laugh', false), 'Yeah,');
+  assert.equal(displayText('Yeah, [laughter] okay [si', false), 'Yeah, okay');
+  assert.equal(displayText('Yeah, [laughter] okay', false), 'Yeah, okay');
+  assert.equal(displayText('Yeah, [laughter] okay', true), 'Yeah, okay');
+  assert.equal(displayText('Plain text, no tag.', false), 'Plain text, no tag.');
+  assert.equal(displayText('Hm [', false), 'Hm');
+});
+
+test('keepSpeechTags lets an engine keep only the tags it renders', () => {
+  assert.equal(keepSpeechTags('Yeah, [laughter] ok [question-ei] then [sigh].', OMNI_TAGS), 'Yeah, [laughter] ok then. [sigh]');
+  assert.equal(keepSpeechTags('Yeah, [laughter] ok.', []), 'Yeah, ok.');
+  assert.equal(keepSpeechTags('No tag here.', OMNI_TAGS), 'No tag here.');
+  assert.equal(keepSpeechTags('[laughter] Hi.', ['laughter']), '[laughter] Hi.');
+});
+
+test('speechPhrases puts the allowed tags back where the model wrote them, phrase by phrase, and nothing else', () => {
+  const raw = 'Hey V, [sigh] I have been thinking about what happened last night. We could head down to the market together, pick up some food [laughter] and talk about the next job. That sounds good to me. [confirmation-en]';
+  const display = stripSpeechTags(raw), phrases = splitSpeechText(display);
+  assert.ok(phrases.length >= 2);
+  const voiced = speechPhrases(phrases, raw, OMNI_TAGS);
+  assert.equal(voiced.length, phrases.length);
+  // The display phrases carry no tag; the voiced ones carry the (at most two) tags in their original place.
+  assert.ok(phrases.every(phrase => !hasSpeechTags(phrase)));
+  assert.equal(stripSpeechTags(voiced.join(' ')), display);
+  assert.match(voiced[0], /^Hey V, \[sigh\] I have/);
+  assert.equal(voiced.join(' ').match(/\[[a-z-]+\]/g).length, MAX_VOICED_TAGS);
+  assert.ok(!voiced.join(' ').includes('[confirmation-en]'), 'the third tag is a runaway and is not voiced');
+  // An engine that renders none of them (or nothing to put back) gets the display phrases.
+  assert.equal(speechPhrases(phrases, raw, []), undefined);
+  assert.equal(speechPhrases(phrases, display, OMNI_TAGS), undefined);
+  assert.equal(speechPhrases(phrases, 'Different words [sigh] entirely.', OMNI_TAGS), undefined);
+  // Unsupported tags and adjacent repeats are dropped; a trailing tag belongs to the last phrase.
+  assert.deepEqual(speechPhrases(['Yeah, fine.'], 'Yeah, [question-ei] [laughter] [laughter] fine. [sigh]', OMNI_TAGS),
+    ['Yeah, [laughter] fine. [sigh]']);
+  assert.deepEqual(speechPhrases(['Fine.'], '[laughter] Fine.', OMNI_TAGS, 0), undefined);
+  assert.equal(parseTagged('a [x-y] b').display, 'a b');
+});
+
+// ---- where tags are removed in the bridge --------------------------------------------------------------------
+
+test('a reply from Convai keeps its tags only in speechText: subtitles, memory and history see the clean text', () => {
+  const speech = new NaturalSpeech();
+  const result = speech.process({text: 'Heh. [laughter] You really did that? [sigh] Okay.', sessionID: 's1', timing: {}});
+  assert.equal(result.text, 'Heh. You really did that? Okay.');
+  assert.equal(result.speechText, 'Heh. [laughter] You really did that? [sigh] Okay.');
+  assert.equal(result.sessionID, 's1');
+  // A reply that is only a tag has nothing to show: it is left whole rather than sent on empty.
+  const alone = {text: '[laughter]', sessionID: 's2'};
+  assert.equal(speech.process(alone), alone);
+  assert.equal(speech.process({sessionID: 's3'}).text, undefined);
+  assert.equal(speech.process(undefined), undefined);
+});
+
+test('RealtimeHost hands every finished reply, text or microphone, to its transformReply', async () => {
+  const seen = [];
+  const speech = new NaturalSpeech();
+  const host = new RealtimeHost({transformReply: result => { seen.push(result.text); return speech.process(result); }});
+  const lease = {value: {}, reused: true, release: async () => {}};
+  Object.assign(host, {start: async () => {}, pool: {acquire: async () => lease, entries: new Map()},
+    evaluateSpeech: async () => ({text: 'Okay [sigh] then.', sessionID: 'convai-session', timing: {}})});
+  const reply = await host.reply({characterId: 'judy', scope: 'private', ttsEnabled: false});
+  assert.equal(reply.text, 'Okay then.');
+  assert.equal(reply.speechText, 'Okay [sigh] then.');
+  assert.deepEqual(seen, ['Okay [sigh] then.']);
+  // Without a transform the reply is exactly what the page returned.
+  const plain = new RealtimeHost();
+  Object.assign(plain, {start: async () => {}, pool: {acquire: async () => lease, entries: new Map()},
+    evaluateSpeech: async () => ({text: 'Okay [sigh] then.', sessionID: 'x', timing: {}})});
+  assert.equal((await plain.reply({characterId: 'judy', scope: 'private', ttsEnabled: false})).text, 'Okay [sigh] then.');
+});
+
+test('Omni phrases carry the tags to synthesis while the stream manifest, which subtitles read, stays clean', async () => {
+  const raw = 'Hey V, [sigh] I have been thinking about what happened last night. We could head down to the market together, pick up some food and talk about the next job. That sounds good to me.';
+  const display = stripSpeechTags(raw), phrases = splitSpeechText(display), speech = speechPhrases(phrases, raw, OMNI_TAGS);
+  const audio = {audio: silentWav().toString('base64'), timing: {voiceSteps: 32}};
+  const generated = [], manifests = [], waiters = [];
+  let state = {};
+  const slots = new SpeechSlots({depot: 'unused', readState: async () => state,
+    store: async (base64, depot, slot) => ({slot, event: `convai_reply_${slot}`, duration: 2})});
+  const stream = new SpeechStream({input: {requestId: 'one', generation: 4, entity: 'judy-2'}, steps: 32, phrases, speech, slots,
+    current: async () => true, readState: async () => state, writeManifest: async value => manifests.push(structuredClone(value)),
+    synthesize: async text => { generated.push(text); return audio; }, wait: () => new Promise(done => waiters.push(done))});
+  await stream.begin(audio);
+  state = {requestId: 'one', state: 'playing', updated: Date.now(), streamId: stream.manifest.streamId, completedChunk: 0, slot: 0};
+  const finished = stream.finish();
+  for (let n = 0; n < 40 && !stream.manifest.complete; n++) {
+    state = {...state, updated: Date.now(), completedChunk: stream.manifest.chunks.length};
+    waiters.splice(0).forEach(done => done());
+    await new Promise(done => setImmediate(done));
+  }
+  await finished;
+  assert.deepEqual(stream.manifest.chunks.map(chunk => chunk.text), phrases);
+  assert.ok(manifests.every(manifest => manifest.chunks.every(chunk => !hasSpeechTags(chunk.text))), 'no tag in any manifest');
+  assert.equal(stream.descriptor().firstText, phrases[0]);
+  assert.deepEqual(generated, speech.slice(1), 'phrases after the first are synthesized with their tags');
+  assert.ok(speech[0].includes('[sigh]'));
+});
+
+// ---- engines that cannot render a tag never receive it -------------------------------------------------------
+
+function engines() {
+  const calls = [];
+  const voices = {'johnny-silverhand': {reference: 'runtime/voice-references/johnny.wav', sha256: 'a'.repeat(64), transcript: 'Original line.'}};
+  const worker = backend => (config, {onState}) => {
+    let loaded = false;
+    return {backend, steps: 32, get loaded() { return loaded; },
+      hasProfile: key => Object.hasOwn(config.voices, key), profileReady(key) { return loaded && this.hasProfile(key); },
+      setSteps() {}, async start() { loaded = true; onState({state: 'ready', resident: true}); },
+      async prepareProfile(profile) { return {provider: backend, ready: true, profile}; },
+      async synthesize(profile, text) { calls.push([backend, text]); return {}; },
+      async synthesizeStream(profile, text) { calls.push([backend, text]); return {}; },
+      async close() { loaded = false; onState({state: 'stopped', resident: false}); }};
+  };
+  const runtime = Object.fromEntries(['sourceDirectory', 'exportDirectory', 'referenceDirectory', 'workDirectory'].map(key => [key, resolve('fixture', key)]));
+  const settings = {version: 1, provider: 'pocket', engine: 'pocket-tts', voices, runtime,
+    model: {sha256: 'a'.repeat(64), configSha256: 'b'.repeat(64), tokenizerSha256: 'c'.repeat(64), receiptSha256: 'd'.repeat(64),
+      inputIdentity: 'e'.repeat(64), selectedStep: 1500}};
+  const voice = new VoiceSelection(settings, {factory: worker('pocket'), omniFactory: worker('omni'),
+    omniConfig: {version: 2, provider: 'hybrid', engine: 'omnivoice', steps: 32, voices}});
+  return {voice, calls};
+}
+
+test('Pocket never receives a tag, even one that slipped through, and OmniVoice receives only the tags it renders', async () => {
+  const {voice, calls} = engines();
+  await voice.start();
+  assert.equal(voice.provider, 'pocket');
+  await voice.synthesizeStream('johnny-silverhand', 'Heh. [laughter] Fine. [sigh]', {onPcm() {}});
+  await voice.synthesizeStream('johnny-silverhand', 'Nothing to strip, really.', {onPcm() {}});
+  assert.deepEqual(calls, [['pocket', 'Heh. Fine.'], ['pocket', 'Nothing to strip, really.']]);
+  calls.length = 0;
+  voice.request({voiceProvider: 'omni', omniSteps: 16}); voice.applyWhenIdle(false); await voice.start();
+  assert.equal(voice.provider, 'omni');
+  await voice.synthesize('johnny-silverhand', 'Heh. [laughter] Fine [question-ei] [sigh].');
+  assert.deepEqual(calls, [['omni', 'Heh. [laughter] Fine. [sigh]']]);
+  await voice.close();
+});
+
+// ---- the bridge and the subtitles use these in the right places ----------------------------------------------
+
+test('the bridge wires Natural speech through the context, the reply transform, Omni synthesis and the settings poll', () => {
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(bridge, /import \{NaturalSpeech, OMNI_TAGS, speechPhrases\} from '\.\/natural-speech\.mjs'/);
+  assert.equal(bridge.match(/transformReply: result => naturalSpeech\.process\(result\)/g).length, 2, 'text hosts: conversation and phone');
+  // The block is the last piece of the conversation context and is gated on the committed voice, never on Convai.
+  assert.match(bridge, /naturalSpeechContext\(input\)\]\s*\.filter\(Boolean\)/);
+  assert.match(bridge, /localVoice\.usesProfile\(input\.profileKey\) \? localVoice\.provider : 'convai'/);
+  assert.match(bridge, /input\.channel === 'phone' \|\| prepared\?\.route\?\.channel === 'phone'/);
+  assert.match(bridge, /naturalSpeech\.enabled\?speechPhrases\(phrases,result\.speechText,OMNI_TAGS\)/);
+  assert.match(bridge, /if \(naturalSpeech\.update\(settings\)\)/);
+  const subtitles = readFileSync(new URL('../mod/subtitles.lua', import.meta.url), 'utf8');
+  assert.match(subtitles, /text:gsub\('%s\*%\[%a\[%a%-\]\*%\]', ''\)/);
+});

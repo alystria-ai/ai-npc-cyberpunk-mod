@@ -541,4 +541,7 @@ return {
     ["Changes wait until you choose Apply."] = "変更は「適用」を選ぶまで保留されます。",
     ["Changes wait until you choose Apply; Revert discards them. No game restart is needed."] = "変更は「適用」を選ぶまで保留され、「元に戻す」で破棄されます。ゲームの再起動は不要です。",
     ["Pending: {voice}"] = "保留中: {voice}",
+    ["Natural speech"] = "自然な話し方",
+    ["Let companions speak the way a real person with their personality would: now and then a pause, a hesitation, a laugh or a sigh. Each character decides when it fits, and it stays rare; a fluent, confident speaker will hardly use it. OmniVoice can voice laughs and sighs; Pocket TTS uses only pauses in the sentence. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. Off by default."] = "コンパニオンが、その人格を持つ実在の人間のように話します。ときどき間を置いたり、ためらったり、笑ったり、ため息をついたりします。いつ入れるかは各キャラクターが判断し、頻度は低く抑えられます。流暢で自信のある話し手はほとんど使いません。OmniVoiceは笑い声やため息を発声できますが、Pocket TTSは文中の間だけを使います。ローカル音声が必要なため、Convaiクラウド音声を選んだ状態で適用すると、コンパニオンの音声はPocket TTSに切り替わります。初期設定はオフです。",
+    ["Natural speech needs a local voice, so {setting} was switched to {voice}."] = "自然な話し方にはローカル音声が必要なため、{setting}を{voice}に切り替えました。",
 }

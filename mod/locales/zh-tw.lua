@@ -541,4 +541,7 @@ return {
     ["Changes wait until you choose Apply."] = "變更會等到你選擇「套用」後才生效。",
     ["Changes wait until you choose Apply; Revert discards them. No game restart is needed."] = "變更會等到你選擇「套用」後才生效；「還原」會放棄變更。無需重新啟動遊戲。",
     ["Pending: {voice}"] = "待套用：{voice}",
+    ["Natural speech"] = "自然說話",
+    ["Let companions speak the way a real person with their personality would: now and then a pause, a hesitation, a laugh or a sigh. Each character decides when it fits, and it stays rare; a fluent, confident speaker will hardly use it. OmniVoice can voice laughs and sighs; Pocket TTS uses only pauses in the sentence. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. Off by default."] = "讓夥伴像擁有相應性格的真人一樣說話：偶爾停頓、猶豫、發笑或嘆氣。每個角色自行判斷何時合適，而且很少出現；說話流利自信的人幾乎不會用到。OmniVoice 可以發出笑聲和嘆息聲，Pocket TTS 只會在句中使用停頓。此功能需要本機語音，因此在已選擇 Convai 雲端語音時套用，夥伴語音會切換為 Pocket TTS。預設為關閉。",
+    ["Natural speech needs a local voice, so {setting} was switched to {voice}."] = "自然說話需要本機語音，因此{setting}已切換為{voice}。",
 }

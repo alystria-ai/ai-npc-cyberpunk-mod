@@ -541,4 +541,7 @@ return {
     ["Changes wait until you choose Apply."] = "As mudanças esperam até você escolher Aplicar.",
     ["Changes wait until you choose Apply; Revert discards them. No game restart is needed."] = "As mudanças esperam até você escolher Aplicar; Reverter as descarta. Não é necessário reiniciar o jogo.",
     ["Pending: {voice}"] = "Pendente: {voice}",
+    ["Natural speech"] = "Fala natural",
+    ["Let companions speak the way a real person with their personality would: now and then a pause, a hesitation, a laugh or a sigh. Each character decides when it fits, and it stays rare; a fluent, confident speaker will hardly use it. OmniVoice can voice laughs and sighs; Pocket TTS uses only pauses in the sentence. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. Off by default."] = "Deixe os companheiros falarem como uma pessoa de verdade com a personalidade deles: de vez em quando uma pausa, uma hesitação, uma risada ou um suspiro. Cada personagem decide quando combina, e isso continua raro; quem fala com fluência e confiança quase não usa. OmniVoice consegue reproduzir risadas e suspiros; Pocket TTS usa apenas pausas dentro da frase. É preciso uma voz local: ao aplicar com a voz na nuvem da Convai escolhida, as vozes dos companheiros mudam para Pocket TTS. Desativado por padrão.",
+    ["Natural speech needs a local voice, so {setting} was switched to {voice}."] = "A fala natural precisa de uma voz local, então {setting} foi alterado para {voice}.",
 }

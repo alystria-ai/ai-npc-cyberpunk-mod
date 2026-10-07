@@ -3,6 +3,7 @@ import {ResidentVoice} from './resident-voice.mjs';
 import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs';
+import {OMNI_TAGS, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
 // can begin from a settings draft while that routing remains unchanged.
@@ -369,7 +370,8 @@ export class VoiceSelection {
     await abortable(this.start(), options.signal); throwIfCancelled(options.signal);
     const client = this.client;
     if (!client || this.clientBackend!=='pocket'||!this.usesProfile(profile))throw Error('Voice selection changed before synthesis');
-    return client.synthesizeStream(profile, text, options);
+    // Pocket cannot render voice tags and would read them aloud: a last line of defence behind the display strip.
+    return client.synthesizeStream(profile, stripSpeechTags(text), options);
   }
   async synthesize(profile,text,options={}){
     if(this.provider!=='omni'||!this.usesProfile(profile))throw Error('This character does not use OmniVoice');
@@ -378,7 +380,8 @@ export class VoiceSelection {
     const client=this.client;
     if(!client||this.clientBackend!=='omni'||this.provider!=='omni'||!this.usesProfile(profile))
       throw Error('Voice selection changed before synthesis');
-    return client.synthesize(profile,text,{...options,steps});
+    // Only the tags OmniVoice renders reach it; any other bracketed tag is removed.
+    return client.synthesize(profile,keepSpeechTags(text,OMNI_TAGS),{...options,steps});
   }
   async prepareProfile(profile, options = {}) {
     const remote = reason => ({provider: 'convai', ready: true, reason});

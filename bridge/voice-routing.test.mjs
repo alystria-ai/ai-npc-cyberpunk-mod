@@ -8,6 +8,7 @@ import {VoiceSelection} from './voice-selection.mjs';
 import {SpeechStream,splitSpeechText} from './speech-stream.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {BufferedPcm, waitUntil} from './group-lookahead.mjs';
+import {NaturalSpeech, OMNI_TAGS, speechPhrases} from './natural-speech.mjs';
 import {textExpressionSignal} from './text-emotion.mjs';
 import {analyseReply, planSignal, createPlanner, phraseOffsets, baselineFromSignal} from './emotion-analysis.mjs';
 
@@ -28,7 +29,7 @@ function fixture({local = false, available = true, audioFailure = false, continu
     localVoice: selectedVoice,
     ownedPocketFace:()=>{},lipsync:{analyse:async()=>{calls.push('rhubarb');return{mouthCues:[],mouthCuesFormat:'rhubarb-phonetic-v1'};}},
     jaliFace,textExpressionSignal,analyseReply,planSignal,createPlanner,phraseOffsets,baselineFromSignal,
-    splitSpeechText,streaming:0,writeStreamManifest:async value=>calls.push(['omni-manifest',value]),
+    splitSpeechText,naturalSpeech:new NaturalSpeech(),OMNI_TAGS,speechPhrases,streaming:0,writeStreamManifest:async value=>calls.push(['omni-manifest',value]),
     deliverPocketSpeech: async ({result,profile,speech}) => {
       calls.push(['pocket-stream',profile.key,result.text]);
       return {...result,continuous:true,timing:{...result.timing,voiceProvider:'pocket'},
@@ -523,4 +524,38 @@ test('stored Invite voice receipts are invalid during pending selection, page re
   assert.equal(f.api.invitedVoiceCurrent('alex', receipt), false); f.localVoice.availabilityPending = false;
   f.localVoice.profileReady = () => false; assert.equal(f.api.invitedVoiceCurrent('alex', receipt), false);
   f.local.delete('alex'); assert.equal(f.api.invitedVoiceCurrent('alex', {provider: 'convai', ready: true}), true);
+});
+
+test('Natural speech: OmniVoice voices the tags the model wrote while every shown or stored text stays clean',async()=>{
+  const raw='We have a long enough original sentence to produce [sigh] the first local phrase. Then we have another long enough sentence [laughter] for the following phrase.';
+  const clean=raw.replace(/ ?\[[a-z-]+\]/g,'');
+  for(const enabled of [true,false]){
+    const generated=[],voice={provider:'omni',steps:16,usesProfile:()=>true,
+      async synthesize(key,text){generated.push(text);
+        return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
+    const f=fixture({voiceSelection:voice,continuous:true}),current=async()=>true;
+    f.naturalSpeech.update({naturalSpeech:enabled});
+    f.remote.text=clean;f.remote.speechText=raw;
+    const result=await f.api.respond(f.input,f.profile,{current});
+    await f.api.publishResult(f.input,f.profile,result,current);
+    assert.equal(result.text,clean);
+    const voiced=generated.join(' ');
+    if(enabled){assert.match(generated[0],/\[sigh\]/);assert.match(voiced,/\[laughter\]/);}
+    else assert.ok(!/\[/.test(voiced),'setting off: no tag is voiced');
+    const reply=f.publications.find(([path])=>path==='reply.json')[1];
+    assert.equal(reply.text,clean);assert.ok(!/\[/.test(reply.text));
+    const manifests=f.calls.filter(value=>Array.isArray(value)&&value[0]==='omni-manifest');
+    assert.ok(manifests.length>0);
+    assert.ok(manifests.every(([,manifest])=>manifest.chunks.every(chunk=>!/\[/.test(chunk.text))),'no tag in a stream chunk');
+  }
+});
+
+test('Natural speech: Pocket is handed only the clean text, whatever the reply carried',async()=>{
+  const f=fixture({local:true,continuous:true});
+  f.naturalSpeech.update({naturalSpeech:true});
+  f.remote.text='A complete reply. With two sentences.';f.remote.speechText='A complete reply. [laughter] With two sentences.';
+  const result=await f.api.respond(f.input,f.profile,{current:async()=>true});
+  const spoken=f.calls.find(value=>Array.isArray(value)&&value[0]==='pocket-stream');
+  assert.equal(spoken[2],'A complete reply. With two sentences.');
+  assert.equal(result.text,'A complete reply. With two sentences.');
 });

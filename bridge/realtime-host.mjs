@@ -93,7 +93,8 @@ export async function installCompanionActionBinding(page, {isCurrent, onAction})
 }
 
 export class RealtimeHost {
-  constructor({disconnectTimeoutMs = 2500, onCompanionAction,
+  // transformReply: optional, applied to every finished reply (Natural speech removes voice tags from the display text).
+  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply,
     browserExecutable = process.env.CYBERPUNK_CONVAI_BROWSER,
     clientAssetsDirectory = process.env.CYBERPUNK_CONVAI_CLIENT_ASSETS,
     launchBrowser = options => chromium.launch(options)} = {}) {
@@ -103,6 +104,7 @@ export class RealtimeHost {
     this.epoch = 0; this.sessions = new SessionBindings(); this.connectOwners = new WeakMap();
     this.disconnects = new WeakMap(); this.disconnectTimeoutMs = disconnectTimeoutMs;
     this.onCompanionAction = onCompanionAction;
+    this.transformReply = typeof transformReply === 'function' ? transformReply : result => result;
   }
   disconnectPage(page) {
     if (!page || page.isClosed?.()) return Promise.resolve();
@@ -297,7 +299,7 @@ export class RealtimeHost {
       this.sessions.bind(config, result.sessionID);
       failed = false;
       const host = {browserStartupMs: startupMs, poolWaitMs, pageReused: lease.reused, pages: this.pool?.entries.size || 0};
-      return method === 'warm' ? {...result, ...host} : {...result, timing: {...result.timing, ...host}};
+      return method === 'warm' ? {...result, ...host} : this.transformReply({...result, timing: {...result.timing, ...host}});
     } finally {
       signal?.removeEventListener('abort', cancel);
       await lease.release({discard: discard || failed || signal?.aborted});
@@ -398,7 +400,7 @@ export class RealtimeHost {
       if (lease.epoch !== this.epoch || this.voiceLease !== lease) throw cancelled();
       this.sessions.accept(config || lease.config);
       this.sessions.bind(lease.config, result.sessionID);
-      failed = false; return result;
+      failed = false; return this.transformReply(result);
     }
     finally {
       await lease.value.context().clearPermissions().catch(() => {});
