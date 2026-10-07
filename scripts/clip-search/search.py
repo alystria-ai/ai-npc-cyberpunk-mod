@@ -34,6 +34,7 @@ import math
 import os
 from pathlib import Path
 import random
+import re
 import shutil
 import statistics
 import subprocess
@@ -65,6 +66,27 @@ SIZES = {
 # trained on; every other Pocket voice stops at 27 s, or earlier once its score has fallen two steps past its best.
 PROBES = {"johnny-silverhand", "songbird", "judy-alvarez", "carol-emeka", "alex", "claire-russell", "adam-smasher", "dexter-deshawn"}
 PROBE_CAP = 40.0
+
+
+def stops(text: str) -> int:
+    """Sentence breaks in a transcript: runs of . ! ? or an ellipsis that end a word (a run counts once)."""
+    return len(re.findall(r"[.!?…]+(?=\s|$)", text or ""))
+
+
+# Hand-set candidate constraints for one voice (named on the command line).  Loudness is the picker's relative scale
+# (clip loudness minus the voice's median, dB).  The stops rule is a hard cap per clip; see the results doc for the reasoning.
+CONSTRAINTS = {
+    "jackie-constrained": {
+        "label": "loudness at most +2 dB, each clip longer than 6 s, at most 2 sentence stops per clip",
+        "max_rel_db": 2.0, "min_seconds": 6.0, "max_stops": 2,
+    },
+}
+
+
+def constraint_ok(rule: dict, clip, loud_median) -> bool:
+    rel = None if clip.get("lv") is None or loud_median is None else clip["lv"] - loud_median
+    return (rel is not None and rel <= rule["max_rel_db"] and clip.d > rule["min_seconds"]
+            and stops(clip["t"]) <= rule["max_stops"])
 
 
 def split_for(index, voice):
@@ -99,9 +121,11 @@ def residual_sd(matrix) -> float:
 
 
 class Search:
-    def __init__(self, engine, renderer, scorer, voice, index, out_root: Path, sizes: dict, log=print, plan=None):
+    def __init__(self, engine, renderer, scorer, voice, index, out_root: Path, sizes: dict, log=print, plan=None, constraint=None, compare_dir=None):
         self.engine, self.renderer, self.scorer, self.voice, self.sizes, self.log = engine, renderer, scorer, voice, sizes, log
         self.plan = plan                  # {"split", "screened"}: a precomputed split and prescreen (portable runs)
+        self.constraint = CONSTRAINTS[constraint] if constraint else None
+        self.compare_dir = compare_dir    # another run's folder: its picks are re-rendered in this final as baselines
         self.pool = common.VoicePool(index, voice)
         self.index_voice = index["voices"][voice]
         self.dir = out_root / renderer.tag / voice
@@ -236,6 +260,9 @@ class Search:
             return {"restricted_to": len(self.restrict), "screened": len(self.screened)}
         candidates = [pool.clip(i) for i in split["candidates"]]
         median = pool.loud_median
+        if self.constraint:
+            candidates = [c for c in candidates if constraint_ok(self.constraint, c, median)]
+            self.log(f"  [{self.voice}] constraint ({self.constraint['label']}): {len(candidates)} of {len(split['candidates'])} candidates left")
         near = [c for c in candidates if median is None or c.get("lv") is None or abs(c["lv"] - median) <= 3.5]
         if len(near) < 60:
             near = [c for c in candidates if median is None or c.get("lv") is None or abs(c["lv"] - median) <= 6.0]
@@ -314,6 +341,8 @@ class Search:
                  f"pool for growth {len(pool_q)} of {len(self.screened)}")
         # ---- greedy forward selection under each duration cap
         caps = (PROBE_CAP,) if (self.engine == "pocket" and self.voice in PROBES) else sizes["caps"]
+        if self.constraint:                                   # two whole clips of the minimum length must fit under a cap
+            caps = tuple(c for c in caps if c >= 2 * self.constraint["min_seconds"] + common.GAP_SECONDS)
         self.stop_after_fall = None if self.voice in PROBES else sizes.get("stop_after_fall")
         histories = {cap: self.grow(cap, s1, pool_q, dev) for cap in caps}
         result = self.finalize(histories, final, s1)
@@ -408,7 +437,13 @@ class Search:
         elif self.restrict and self.pool.live.get(engine_key, {}).get("exists"):
             today = (f"live:{engine_key}",)
         finalists = list(dict.fromkeys(finalists))
-        everything = finalists + ([today] if today else [])
+        compare = {}
+        if self.compare_dir and (self.compare_dir / self.voice / "result.json").is_file():
+            earlier = json.loads((self.compare_dir / self.voice / "result.json").read_text(encoding="utf-8"))
+            for name, row in (earlier.get("picks") or {}).items():
+                if row and name in ("short", "long", "best"):
+                    compare[f"overnight-{name}"] = tuple(row["ids"])
+        everything = finalists + [s for s in compare.values() if s not in finalists] + ([today] if today else [])
         keep_wavs = not getattr(self, "rechoose", False)
         self.evaluate(everything, final, seeds, keep=keep_wavs, stage="4 final")
 
@@ -438,7 +473,7 @@ class Search:
             # A reference has at least two whole clips (user rule), except for a voice with no feasible multi-clip set.
             pool = [s for s in candidates if self.seconds(s) <= cap + 1e-6]
             multi = [s for s in pool if len(s) >= 2]
-            pool = multi or pool
+            pool = multi if self.constraint else (multi or pool)      # a hand-constrained run never falls back to one clip
             if not pool:
                 return None
             top = max(pool, key=lambda s: self.value(s, final, seeds))
@@ -451,6 +486,7 @@ class Search:
         if self.engine == "omni":
             picks["short"], picks["long"] = choose(10.0), choose(18.0)
             short, long_ = picks["short"], picks["long"]
+            self.infeasible = [name for name, cap in (("short", 10.0), ("long", 18.0)) if picks[name] is None]
             picks["best"] = long_ if (short is None or (long_ and self.seconds(long_) > self.seconds(short) and
                                                          self.value(long_, final, seeds) - self.value(short, final, seeds) >
                                                          self.paired_se(self.cells(long_, final, seeds), self.cells(short, final, seeds)))) else short
@@ -461,6 +497,8 @@ class Search:
         longest = max(histories)
         curve = [self.describe(s, final, seeds, with_pls=False) for s in paths[longest]]
         result = {"picks": {k: (self.describe(v, final, seeds) if v else None) for k, v in picks.items()},
+                  "compare": {name: self.describe(ids, final, seeds) for name, ids in compare.items()},
+                  "constraint": self.constraint, "infeasible": getattr(self, "infeasible", []),
                   "today": self.describe(today, final, seeds) if today else None,
                   "curve": curve,
                   "paths": {f"{cap:g}": [self.describe(s, final, seeds, with_pls=False) for s in path] for cap, path in paths.items()},
@@ -597,6 +635,8 @@ def main(argv=None) -> int:
     parser.add_argument("--make-plans", type=Path, help="write the plans for --voices into this folder and exit")
     parser.add_argument("--rechoose", action="store_true", help="recompute the picks of finished voices from the cached scores (no renders)")
     parser.add_argument("--omni-direct", action="store_true", help="call the omnivoice package directly (portable GPU runs) instead of the VoiceStudio backend")
+    parser.add_argument("--constraint", choices=sorted(CONSTRAINTS), help="hand-set candidate constraints (see CONSTRAINTS)")
+    parser.add_argument("--compare-with", type=Path, help="another run's <tag> folder; its picks are re-rendered in this run's final as baselines")
     parser.add_argument("--wait-gpu", action="store_true")
     parser.add_argument("--scorer-device", default="cuda")
     args = parser.parse_args(argv)
@@ -663,7 +703,8 @@ def main(argv=None) -> int:
             plan = None
             if args.plan_dir and (args.plan_dir / f"{voice}.json").is_file():
                 plan = json.loads((args.plan_dir / f"{voice}.json").read_text(encoding="utf-8"))
-            search = Search(args.engine, renderer, scorer, voice, index, out_root, SIZES[args.engine], plan=plan)
+            search = Search(args.engine, renderer, scorer, voice, index, out_root, SIZES[args.engine], plan=plan,
+                            constraint=args.constraint, compare_dir=args.compare_with)
             try:
                 if args.rechoose:
                     search.old_result = json.loads(result_file.read_text(encoding="utf-8"))
@@ -680,7 +721,9 @@ def main(argv=None) -> int:
                 print(f"{voice}: skipped ({result['skipped']})")
                 continue
             best = result["picks"]["best"]
-            extra = "" if args.engine == "pocket" else f" short {result['picks']['short']['seconds']} s {result['picks']['short']['ecapa']}, long {result['picks']['long']['seconds']} s {result['picks']['long']['ecapa']};"
+            def brief(row):
+                return "none (infeasible)" if row is None else f"{row['seconds']} s {row['ecapa']}"
+            extra = "" if args.engine == "pocket" else f" short {brief(result['picks']['short'])}, long {brief(result['picks']['long'])};"
             print(f"{voice}: best {best['seconds']} s ecapa {best['ecapa']} (+-{best['ecapa_se']});{extra} renders {result['budget']['renders']} in {result['budget']['wall_seconds']:.0f}s", flush=True)
     finally:
         renderer.close()

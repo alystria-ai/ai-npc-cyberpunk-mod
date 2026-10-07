@@ -48,8 +48,31 @@ ORDER = list(COLUMNS)
 LOW, HIGH = "pocket-base", "omni32-long"
 
 
+def load_variants():
+    """Hand-constrained variant rows (make_variant.py): {key: {base, label, rule, notes, sets}} - one extra row per file."""
+    folder = common.WORK / "variants"
+    return {v["key"]: v for v in (json.loads(f.read_text(encoding="utf-8")) for f in sorted(folder.glob("*.json")))} if folder.is_dir() else {}
+
+
 def load_data():
-    return json.loads((ROOT / "runtime/autobest-sets.json").read_text(encoding="utf-8"))
+    data = json.loads((ROOT / "runtime/autobest-sets.json").read_text(encoding="utf-8"))
+    for key, variant in load_variants().items():
+        data["voices"][key] = variant["sets"]
+    return data
+
+
+def base_of(key):
+    return load_variants().get(key, {}).get("base", key)
+
+
+def row_keys(shown):
+    """The shown voices with each variant row right after its voice."""
+    out = []
+    variants = load_variants()
+    for voice in shown:
+        out.append(voice)
+        out += [k for k, v in variants.items() if v["base"] == voice]
+    return out
 
 
 def page_lines(index, voice):
@@ -83,13 +106,13 @@ def render(args):
     for column in columns:
         group, label, engine, variant, steps = COLUMNS[column]
         jobs = []
-        for voice in shown:
+        for voice in row_keys(shown):
             chosen = set_of(data, voice, column)
             if not chosen:
                 continue
-            pool = common.VoicePool(index, voice)
+            pool = common.VoicePool(index, base_of(voice))
             ref, transcript = reference_for(pool, tuple(chosen["ids"]))
-            for li, line in enumerate(page_lines(index, voice)):
+            for li, line in enumerate(page_lines(index, base_of(voice))):
                 out = args.out / "audio" / column / f"{voice}__{li}.wav"
                 if not out.is_file():
                     jobs.append({"ref": ref, "transcript": transcript, "text": line["t"], "seed": SEED, "out": str(out)})
@@ -201,11 +224,16 @@ def build(args):
             dest = audio / "original" / f"{voice}__{li}.wav"
             if not dest.is_file():
                 shutil.copy2(line["path"], dest)
+    variants = load_variants()
+    base_voices = list(per_voice)                       # header averages use the real characters only, never a variant row
+    for key, variant in variants.items():
+        if variant["base"] in per_voice:
+            per_voice[key] = per_voice[variant["base"]]
     files = {}     # (column, voice, line) -> path
     for column in ["original"] + ORDER:
         for voice, info in per_voice.items():
             for li in range(len(info["lines"])):
-                path = audio / column / f"{voice}__{li}.wav"
+                path = audio / column / f"{base_of(voice) if column == 'original' else voice}__{li}.wav"
                 if path.is_file() and (column == "original" or set_of(data, voice, column)):
                     files[(column, voice, li)] = path
     ecapa, rows = {}, {}
@@ -214,13 +242,13 @@ def build(args):
     metrics = {}
     for column in ["original"] + ORDER:
         lines = [(voice, scorer.features(files[(column, voice, li)]), scorer.features(per_voice[voice]["lines"][li]["path"]))
-                 for voice, info in per_voice.items() for li in range(len(info["lines"])) if (column, voice, li) in files]
+                 for voice, info in per_voice.items() if voice in base_voices for li in range(len(info["lines"])) if (column, voice, li) in files]
         if not lines:
             continue
-        m = likeness.condition_metrics(lines, {v: i["stats"] for v, i in per_voice.items()})
+        m = likeness.condition_metrics(lines, {v: i["stats"] for v, i in per_voice.items() if v in base_voices})
         by_voice = {}
         for (c, v, li), e in ecapa.items():
-            if c == column:
+            if c == column and v in base_voices:
                 by_voice.setdefault(v, []).append(e)
         m["ecapa"] = sum(sum(x) / len(x) for x in by_voice.values()) / len(by_voice)
         m["ecapa_voices"] = len(by_voice)
@@ -232,7 +260,7 @@ def build(args):
     def average_seconds(column):
         if column == "original":
             return None
-        values = [set_of(data, v, column)["seconds"] for v in per_voice if set_of(data, v, column)]
+        values = [set_of(data, v, column)["seconds"] for v in base_voices if set_of(data, v, column)]
         return sum(values) / len(values) if values else None
 
     def latency_text(column, seconds):
@@ -249,7 +277,8 @@ def build(args):
         extra = f"<br><span class='s'>avg {seconds:.1f} s{latency_text(column, seconds)}</span>" if seconds else ""
         return f"<br><span class='s'>{score}</span>{extra}"
 
-    shown_here = [v for v in shown if v in per_voice]
+    shown_here = [v for v in row_keys(shown) if v in per_voice]
+    n_characters = len([v for v in shown if v in per_voice])
     out = ["<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>",
            f"<title>Voice report v3</title><style>{CSS}</style></head><body>", "<h1>Voice report v3</h1>",
            "<p class='note'>Every column speaks the original game line's text; those two lines per character are held out from every "
@@ -258,7 +287,7 @@ def build(args):
            "use the same best-length reference; OmniVoice uses a <b>short</b> (up to 10 s) and a <b>long</b> (up to 18 s) one, at 16 and at "
            "32 steps. Under each header: ECAPA (speaker identity: cosine to the centroid of the character's held-out real clips, higher is "
            "better) first, then PLS (perceptual likeness; the study's scale where stock Pocket with one clip = 60 and OmniVoice 32 with one clip = 90; the new student matches each original line's delivery closely, which the PLS delivery part rewards), both averaged over "
-           f"the {len(shown_here)} characters, then the average reference length and, for OmniVoice, the predicted added first-audio latency "
+           f"the {n_characters} characters, then the average reference length and, for OmniVoice, the predicted added first-audio latency "
            "(42 ms per second of reference at 16 steps, 95 ms at 32). Under each player: this reference's length and that line's ECAPA. "
            "Adam Smasher's references come only from the 11 clips the user chose, searched on his two lines (overfitting on purpose).</p>"]
     head1 = "<tr><th rowspan=2>Line (original text)</th><th rowspan=2>Original" + head("original") + "</th>"
@@ -274,17 +303,21 @@ def build(args):
     for voice in shown_here:
         info = per_voice[voice]
         pool = info["pool"]
-        name = voice.replace("-", " ").title()
-        out.append(f"<h2>{html.escape(name)} <a href='/voice/{voice}' target='_blank' rel='noopener'>Change reference ↗</a></h2>")
+        variant = variants.get(voice)
+        name = variant["label"] if variant else voice.replace("-", " ").title()
+        out.append(f"<h2>{html.escape(name)} <a href='/voice/{base_of(voice)}' target='_blank' rel='noopener'>Change reference ↗</a></h2>")
+        if variant:
+            out.append(f"<p class='note'>A variant row for A/B listening; the overnight row of this character above is kept. Rule: {html.escape(variant['rule'])}. "
+                       + html.escape(" ".join(variant["notes"])) + " Header averages do not include variant rows.</p>")
         out.append(f"<table>{head1}{head2}")
         for li, line in enumerate(info["lines"]):
             cells = [f"<td class='text'>{html.escape(line['t'])}</td>"]
             for column in ["original"] + ORDER:
                 path = files.get((column, voice, li))
                 if path is None:
-                    cells.append("<td>—</td>")
+                    cells.append("<td class='s'>not possible under the rule</td>" if variant and column != "original" else "<td>—</td>")
                     continue
-                src = f"audio/{column}/{voice}__{li}.wav"
+                src = f"audio/{column}/{base_of(voice) if column == 'original' else voice}__{li}.wav"
                 sub = ""
                 if column != "original":
                     chosen = set_of(data, voice, column)
@@ -312,7 +345,7 @@ def build(args):
                 out.append(f"<div class='clip'><audio controls preload='none' src='{clip_audio(voice, cid)}'></audio>"
                            f"<span class='m'>{dur:.1f} s</span><span class='t'>{html.escape(text)}</span></div>")
         usable = [c for c in pool.clips if not c.get("fx")]
-        out.append(f"<details class='pool' data-voice='{voice}' data-used='{html.escape(json.dumps(sorted(set(used))))}'>"
+        out.append(f"<details class='pool' data-voice='{base_of(voice)}' data-used='{html.escape(json.dumps(sorted(set(used))))}'>"
                    f"<summary>Available clips ({len(usable)})</summary><div class='poolbody'></div></details></div>")
     out.append(f"<script>{JS}</script></body></html>")
     args.out.mkdir(parents=True, exist_ok=True)

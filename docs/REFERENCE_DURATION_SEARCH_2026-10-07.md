@@ -161,3 +161,23 @@ OmniVoice 32 one clip = 90); the new student follows each original line's delive
 - The new student was trained on most clips of the pool (only the research panel lines and a few dev lines were excluded), so absolute Pocket ECAPA runs high; the ranking of sets is what matters.
 - Viktor's local Pocket run chose 25.0 s (ECAPA 0.701); a Kaggle repeat chose 15.0 s (0.707): a tie, as many comparisons are. Per-voice Pocket lengths are noisy; the aggregate curve is the reliable part.
 - Selection is by the held-out centroid, not by ear; the user's listening decides. The live configs are not changed.
+
+## Jackie Welles with hand-set constraints (2026-10-07, local run)
+
+The user asked for a re-search of Jackie's references where every candidate clip must have a loudness of at most +2 dB on the picker's relative scale, be longer than 6 s on its own, and contain few sentence breaks. The rule used: transcript stops (runs of `.`, `!`, `?` or an ellipsis that end a word, a run counted once) at most 2 per clip (a hard cap; clips with 3 or more stops are dropped). Existing filters still apply (combat-cleaned, effect exclusions, at least two clips, same held-out centroid and lines as the overnight run). The rule leaves 65 of Jackie's 833 candidate clips (750 are at most +2 dB; 127 of those are longer than 6 s; 65 of those have at most 2 stops). Code: `search.py --constraint jackie-constrained --compare-with <overnight run>`; results in `E:/CyberpunkConvai-offload/work/clip-search/runs-constrained/`.
+
+**A short OmniVoice set (up to 10 s, at least two clips) is impossible under this rule:** two clips longer than 6 s need at least 12.4 s with the gap. It was not relaxed; the report row says "not possible under the rule". At most two such clips also fit the 18 s long set.
+
+Fresh-line ECAPA (cosine to the held-out centroid, mean over the same fresh lines and seeds, ± standard error over lines), constrained set against the overnight set re-rendered in the same run (a paired comparison) and against today's single clip:
+
+| Engine | Constrained set | Overnight set (same run) | Today's clip | Constrained minus overnight | Constrained minus today |
+|---|---|---|---|---|---|
+| OmniVoice 16, long | 12.6 s clips, 2 clips: 0.699 ± 0.013 | 8.7 s: 0.707 ± 0.013 (0.725 ± 0.021 in the overnight run itself) | 0.627 ± 0.030 | -0.007 ± 0.015 (t = -0.5): a tie | +0.073 ± 0.018 (t = 4.1) |
+| OmniVoice 32 (check) | 0.704 ± 0.019 | 0.727 ± 0.013 | 0.616 to 0.638 | not significant | |
+| Pocket new student + decoder v2 | 23.2 s clips, 3 clips: 0.642 ± 0.026 | 7.0 s, 2 clips: 0.599 ± 0.027 | 0.601 ± 0.025 | +0.043 ± 0.017 (t = 2.5 on 6 lines, just short of the 5% level) | +0.041 ± 0.008 (t = 5.1) |
+
+(OmniVoice sampling varies by about 0.02 between runs of the same set, so only the paired same-run comparison counts.) The chosen sets have fewer stops per second of clip (0.32 vs 0.46 per second for OmniVoice, 0.26 vs 0.43 for Pocket).
+
+**Conclusion.** For OmniVoice the constraints did not help: the constrained long set ties the overnight set, and costs about +0.2 s more reference latency at 16 steps (13 s of reference against 9 s). For Pocket they probably help (+0.043 ECAPA, a borderline result on six lines, from a 23 s three-clip reference, which is inside the range where the Pocket curve is flat), so the row is worth a listen. The report keeps the overnight row and adds a labelled variant row for A/B listening ("Jackie Welles (constrained: <= +2 dB, clips > 6 s, few stops)"); header averages are unchanged.
+
+**Proposal for other voices.** Do not apply this rule to OmniVoice voices on the strength of this one result. For Pocket, a looser form is worth testing on a few voices with long pools (loudness at most +2 dB and at most 2 stops per clip, no 6 s minimum, since the minimum made short sets impossible), and the user's ear on the Jackie variant row decides whether to proceed. If the user prefers the constrained Jackie by ear, mention the rule in the devslot handoff as "prefer clips at or below the voice's median loudness (+2 dB), long, and with few sentence breaks".
