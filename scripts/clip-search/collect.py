@@ -71,9 +71,11 @@ def main(argv=None) -> int:
     parser.add_argument("--pocket", default="pocket-student-v2-s2000-ema-decv2")
     args = parser.parse_args(argv)
     shown = json.loads((common.ROOT / "scripts/reference-picker/shown-voices.json").read_text(encoding="utf-8"))
+    on_disk = {f.parent.name for tag in (args.omni, args.pocket) for f in (args.runs / tag).glob("*/result.json")}
+    everyone = shown + sorted(on_disk - set(shown))        # the 29 report characters first, then every other searched voice
     data = {"version": 2, "generated": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
             "engines": {"omni": {"tag": args.omni}, "pocket": {"tag": args.pocket}}, "voices": {}}
-    for voice in shown:
+    for voice in everyone:
         row = {}
         omni_file = args.runs / args.omni / voice / "result.json"
         if omni_file.is_file():
@@ -108,7 +110,7 @@ def main(argv=None) -> int:
 
     lines = ["## OmniVoice 16 steps (32-step check in brackets)", "",
              "| Voice | Short s | ECAPA | +latency 16/32 | Long s | ECAPA | +latency 16/32 | Best | Today s / ECAPA |", "|---|---|---|---|---|---|---|---|---|"]
-    for voice in shown:
+    for voice in everyone:
         o = data["voices"].get(voice, {}).get("omni")
         if not o:
             lines.append(f"| {voice} | not searched | | | | | | | |")
@@ -126,7 +128,7 @@ def main(argv=None) -> int:
                      f"| {voice} | {cell('short')} | {cell('long')} | {best_name} | |")
     lines += ["", "## Pocket (new student + decoder v2)", "",
               "| Voice | Best s | ECAPA ±SE | Today s / ECAPA | Beyond 30 s (research) |", "|---|---|---|---|---|"]
-    for voice in shown:
+    for voice in everyone:
         p = data["voices"].get(voice, {}).get("pocket")
         if not p:
             lines.append(f"| {voice} | not searched | | | |")

@@ -306,6 +306,9 @@ class Search:
         if not self.split["ok"]:
             return {"voice": self.voice, "engine": self.engine, "skipped": self.split["reason"]}
         sizes, dev, final = self.sizes, self.split["dev"], self.split["final"]
+        if len(self.split["candidates"]) < 2:
+            return {"voice": self.voice, "engine": self.engine,
+                    "skipped": f"{len(self.split['candidates'])} candidate clip(s) after the holdout and exclusions"}
         screen_info = self.screen()
         if prune_from is not None and not self.restrict and (prune_from / self.voice / "result.json").is_file():
             self.screened = self.screen_from_other(prune_from)
@@ -565,6 +568,9 @@ def make_plans(index, voices, scorer, out_dir: Path, engine: str = "pocket"):
         search = Search(engine, _Tag, scorer, voice, index, common.WORK / "plans-work", SIZES[engine])
         if not search.split["ok"]:
             print(f"{voice}: no split ({search.split['reason']})")
+            continue
+        if len(search.split["candidates"]) < 2:
+            print(f"{voice}: skipped, {len(search.split['candidates'])} candidate clip(s) after the holdout and exclusions")
             continue
         info = search.screen()
         ids = list(dict.fromkeys(search.screened + search.split["holdout"] + (search.restrict or [])))
