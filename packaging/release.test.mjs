@@ -201,3 +201,21 @@ test('the project licence keeps Convai selectable and the notices cover the bund
     assert(notices.includes(name), `THIRD_PARTY_NOTICES.md must mention ${name}`);
   }
 });
+
+test('release versions follow 2077.N with 2077.N.M hotfixes and the workflow accepts the same forms', async () => {
+  const {isReleaseVersion, npmVersion} = await import('./lib/version.mjs');
+  for (const good of ['2077.1', '2077.2', '2077.10', '2077.1.1', '2077.1-rc.1']) assert(isReleaseVersion(good), good);
+  for (const bad of ['2077', 'v2077.1', '2077.', '2077.1.1.1.1', 'latest', '']) assert(!isReleaseVersion(bad), bad);
+  assert.equal(npmVersion('2077.1'), '2077.1.0');
+  assert.equal(npmVersion('2077.1.1'), '2077.1.1');
+  assert.equal(npmVersion('2077.1-rc.1'), '2077.1.0-rc.1');
+  const workflow = await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8');
+  assert(workflow.includes("- 'v[0-9]+.[0-9]+'") && workflow.includes("- 'v[0-9]+.[0-9]+.[0-9]+'"), 'tag filters for v2077.1 and v2077.1.1');
+  assert(workflow.includes(String.raw`'^\d+(\.\d+){1,3}([-+][0-9A-Za-z.-]+)?$'`), 'the workflow version check matches lib/version.mjs');
+});
+
+test('developer-only folders never feed a package', () => {
+  const sources = [...config.catalogs.map(item => item.source), ...config.appData, ...config.bridgeEntries, ...config.bridgeWorkers,
+    ...config.releaseData.archives.map(item => item.source)];
+  for (const source of sources) assert(!/^(?:misc|vendor|runtime|ref mods)\//.test(source), source);
+});

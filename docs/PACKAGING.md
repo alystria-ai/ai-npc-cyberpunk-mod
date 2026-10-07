@@ -22,6 +22,20 @@ All three use game-root-relative paths and merge into one install. Versions must
 `app/launcher/start-service.mjs` logs a warning when the Scripts `release.json` differs from the
 Runtime one.
 
+## Version numbers
+
+Releases are numbered `2077.N`: the first is 2077.1, then 2077.2, and a hotfix of one release is
+`2077.N.M` (2077.1.1). The tag is `v` + the number (`v2077.1`) and the workflow accepts both forms
+(`v2077.1`, `v2077.1.1`); a manual run takes the number without the `v`. The same string goes into
+the package file names (`CyberpunkConvai-Scripts-2077.1.zip`), the release title, both
+`release.json` files and the OmniVoice `omni-pack.json`. The only version check at run time is
+`start-service.mjs` comparing the Scripts and Runtime strings for equality, so any form works; the
+builder accepts two to four numbers with an optional `-pre`/`+build` suffix
+(`packaging/lib/version.mjs`, guarded by `release.test.mjs`), and writes a three-part form
+(2077.1.0) only into `app/package.json`, which npm-style tooling wants as semver. The installed-layout
+tool `test-release-install.mjs` matches package files by exact version, so 2077.1 never picks up
+2077.1.1 or 2077.10.
+
 ## Installed layout
 
 ```
@@ -121,9 +135,9 @@ are split into `.partN` byte ranges with a `.parts.json`, joined on first start.
 ### Local dry run and install test
 
 ```powershell
-node packaging/build-release.mjs --version 0.9.0 --dry-run                 # Scripts + Runtime + Omni
-node packaging/build-release.mjs --version 0.9.0 --dry-run --packages scripts,runtime
-node packaging/test-release-install.mjs --version 0.9.0 --packages dist/release/packages [--omni] [--key-file runtime/convai-key.txt]
+node packaging/build-release.mjs --version 2077.1 --dry-run                 # Scripts + Runtime + Omni
+node packaging/build-release.mjs --version 2077.1 --dry-run --packages scripts,runtime
+node packaging/test-release-install.mjs --version 2077.1 --packages dist/release/packages [--omni] [--key-file runtime/convai-key.txt]
 node --test packaging/release.test.mjs
 ```
 
@@ -142,8 +156,8 @@ To try a build in the real game, remove the development launcher first
 ## GitHub Actions
 
 `.github/workflows/release.yml` runs only from Actions > Release > Run workflow or on a pushed
-`vX.Y.Z` tag. Job 1 builds and install-tests Scripts + Runtime on `windows-2025`, keeps the Scripts
-zip as a workflow artifact (for Nexus), and creates the GitHub release `vX.Y.Z` in this same
+`v2077.N` tag. Job 1 builds and install-tests Scripts + Runtime on `windows-2025`, keeps the Scripts
+zip as a workflow artifact (for Nexus), and creates the GitHub release `v2077.N` in this same
 repository, uploading the packages to it. Job 2 builds the OmniVoice pack and adds it to the same
 release. Large packages are not stored as workflow artifacts (private-repository artifact storage
 is small).
@@ -152,7 +166,7 @@ The release is published immediately, not left as a draft (the manual run has a 
 to skip release creation). While the repository is private, only collaborators can see the release
 and its downloads; it becomes visible to everyone when the repository is made public. A manual run
 tags the commit it was started from. The OmniVoice pack arrives a while after the Runtime
-package, because it is built by the second job, so a release can briefly lack it. If `vX.Y.Z`
+package, because it is built by the second job, so a release can briefly lack it. If `v2077.N`
 already exists, the workflow only re-uploads (`--clobber`) and leaves its title and notes alone.
 
 Permissions and secrets: the workflow uses the built-in `GITHUB_TOKEN` with `contents: write`
@@ -176,7 +190,7 @@ permission can stay read-only.
 ## Not shipped
 
 Tests, fixtures, research scripts and caches, training data and notebooks, benchmark audio,
-`vendor/`, developer `runtime/`, backups, keys and tokens, the development-only Lua files
+`misc/` (developer launchers and benchmark runs), `vendor/`, developer `runtime/`, backups, keys and tokens, the development-only Lua files
 (`diagnostics.lua` and the probes it loads, `face-test.lua`, `gesture-probe.lua`), the retired
 `KnowledgeState.reds`, Rhubarb (only a last fallback behind the lip-sync model) and the resident
 phone analyser (not started when the lip-sync model is present).

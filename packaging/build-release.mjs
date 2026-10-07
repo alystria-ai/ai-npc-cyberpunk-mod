@@ -1,7 +1,7 @@
 // Builds the player release packages. Run by .github/workflows/release.yml, and locally:
 //
-//   node packaging/build-release.mjs --version 0.9.0 --dry-run          (local stand-ins, no secrets)
-//   node packaging/build-release.mjs --version 0.9.0 --models hf --key-env CONVAI_API_KEY   (CI)
+//   node packaging/build-release.mjs --version 2077.1 --dry-run          (local stand-ins, no secrets)
+//   node packaging/build-release.mjs --version 2077.1 --models hf --key-env CONVAI_API_KEY   (CI)
 //
 // Packages (dist/release/packages/):
 //   CyberpunkConvai-Scripts-<v>.zip        text only: CET Lua, redscript, JSON catalogs (for Nexus Mods)
@@ -11,7 +11,7 @@
 // plus SHA256SUMS.txt and release-manifest.json. See docs/PACKAGING.md.
 //
 // Options:
-//   --version V        release version (required)
+//   --version V        release version, 2077.N or 2077.N.M (required)
 //   --dry-run          local build: models from the developer runtime/ folder, no key embedded
 //   --models local|hf  where trained models come from (default: hf, or local with --dry-run)
 //   --packages LIST    comma list of scripts,runtime,omni (default: all three)
@@ -28,6 +28,7 @@ import {spawnSync} from 'node:child_process';
 import {basename, dirname, join, relative, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {ZipWriter, listZip} from './lib/zip.mjs';
+import {isReleaseVersion, npmVersion} from './lib/version.mjs';
 import {importClosure, checkLuaPartition} from './lib/closure.mjs';
 import {copyInto, download, exists, extractZip, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
 
@@ -39,8 +40,8 @@ const argv = process.argv.slice(2);
 const flag = name => argv.includes(name);
 const value = (name, fallback) => { const at = argv.indexOf(name); return at >= 0 && argv[at + 1] ? argv[at + 1] : fallback; };
 const version = value('--version');
-if (!version || !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
-  console.error('Usage: node packaging/build-release.mjs --version X.Y.Z [--dry-run] [--models local|hf] [--packages scripts,runtime,omni]');
+if (!isReleaseVersion(version)) {
+  console.error('Usage: node packaging/build-release.mjs --version 2077.N [--dry-run] [--models local|hf] [--packages scripts,runtime,omni]');
   process.exit(2);
 }
 const dryRun = flag('--dry-run');
@@ -345,7 +346,7 @@ async function runtimePackage(source, config, models, key) {
 
   // Launcher scripts, application metadata and notices.
   for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs']) pkg.file(`${app}/launcher/${name}`, resolve(source.root, 'packaging/runtime', name));
-  pkg.json(`${app}/package.json`, {name: 'cyberpunk-convai', version, private: true, type: 'module'});
+  pkg.json(`${app}/package.json`, {name: 'cyberpunk-convai', version: npmVersion(version), private: true, type: 'module'});
 
   // Game-side binary assets: the three generated archives and the Audioware reply bank.
   for (const item of config.releaseData.archives) pkg.file(item.target, resolve(source.root, item.source));
@@ -561,6 +562,7 @@ async function main() {
   // Final guard: no archive may carry an obvious credential file or development state.
   for (const item of Object.values(report.packages).flatMap(entry => entry.archives)) {
     for (const entry of await listZip(resolve(out, 'packages', item.file))) {
+      if (/^misc\//.test(entry.name)) throw Error(`${item.file} contains developer-only material: ${entry.name}`);
       if (/(?:^|\/)(?:convai-key\.txt|kaggle-access-token\.txt|huggingface-[^/]*\.txt|\.env|player-memory[^/]*\.(?:json|bak|tmp)|phone-sessions\.json|characters-verified\.json)$/i.test(entry.name)) {
         throw Error(`${item.file} contains a forbidden file: ${entry.name}`);
       }

@@ -1,6 +1,6 @@
 // Clean-install test for built release packages. It never touches a real game folder.
 //
-//   node packaging/test-release-install.mjs --packages dist/release/packages --version 0.9.0
+//   node packaging/test-release-install.mjs --packages dist/release/packages --version 2077.1
 //        [--host dist/release/native/test-host.exe] [--key-file runtime/convai-key.txt] [--omni] [--keep]
 //
 // 1. Makes a stand-in game folder under %TEMP% whose path has spaces and non-ASCII characters
@@ -141,7 +141,10 @@ async function main() {
 
     // Extract and compare every file with the build's file list.
     const names = await readdir(packagesDir);
-    const pick = prefix => names.filter(name => name.startsWith(`CyberpunkConvai-${prefix}-${version}`) && name.endsWith('.zip')).sort();
+    // Exact names only: version 2077.1 must not pick up files of 2077.1.1 or 2077.10.
+    const escaped = text => text.replace(/[.+]/g, '\\$&');
+    const pick = prefix => names.filter(name => name === `CyberpunkConvai-${prefix}-${version}.zip`
+      || new RegExp(`^CyberpunkConvai-${prefix}-${escaped(version)}-part\\d+of\\d+\\.zip$`).test(name)).sort();
     const wanted = [...pick('Scripts'), ...pick('Runtime'), ...(omni ? pick('OmniPack') : [])];
     check('packages present', pick('Scripts').length === 1 && pick('Runtime').length >= 1 && (!omni || pick('OmniPack').length >= 1), wanted.join(', '));
     let t = Date.now();
