@@ -355,16 +355,28 @@ the first reply.
   call, a dialogue or a vehicle (the same `battleSample` gate as automatic reactions) and not while a menu
   pauses the game; a looked-at character may replace the idlest unwanted one; a character is released 40 s after
   it stops being wanted, or after 10 minutes without a conversation, and then waits 20 s (3 minutes after the age
-  release) before it can be warmed again. A conversation in progress keeps its connection. Party members are
-  never listed here.
+  release) before it can be warmed again. Party members are never listed here.
+- **Ranking:** a looked-at character first (looking is intent), then nearby characters by prominence (tier-1
+  named, other named, generic residents and archetypes; `autoConnect.prominence`, from the catalogue `kind` and the
+  tier-1 list, or a profile's own `tier`/`prominence` field), then by distance.
+- **Conversation partner:** a world character V talks to (not a party member) becomes a partner, a role of its own
+  that does not use one of the two slots (published as `partners` in the same file; `PartyConnections.setPartners`,
+  role `partner`, below the party, invitations and the current target, above nearby). The private connection is the
+  one the conversation opened (same profile and scope), so no second connection is made. It stays warm (connection
+  and voice) while V stays with it and is released when they part: more than 15 m away for 20 s, 3 minutes without
+  an exchange, the character despawns, or a scene or game dialogue starts (config `partnerRange`, `partnerAway`,
+  `partnerIdle`). Talking to someone else makes them the partner and gives the previous one 30 s (`partnerGrace`); at
+  most 2 at once (a group chat). Promotion to the party: `convaiAutoConnect.promote(key)` (or the character being in
+  the party) ends the role. Ambient residents keyed per entity cannot be warmed without their entity, so they are not
+  kept as partners.
 - **Release:** the setting turned off, a world change and CET shutdown publish an empty list at once; the bridge
   also treats a list not refreshed for 8 s as empty (a paused, crashed or closed game), which closes the
   connections. The composer hint (`conversation-prewarm.json`) is untouched and still wins for the character
   being talked to.
 - **Not done by it:** it sends no message, creates no memory and records no contact; it is a connection and
   voice warm-up, like the composer hint.
-- Tests: `bridge/auto-connect.test.mjs` (policy), `bridge/nearby-warm.test.mjs` and the nearby cases in
-  `bridge/party-connections.test.mjs` (bridge), `bridge/world-lifecycle.test.mjs` (the talk notice and the real
+- Tests: `bridge/auto-connect.test.mjs` (policy, prominence, partners), `bridge/nearby-warm.test.mjs`,
+  `bridge/conversation-partner.test.mjs` and the nearby cases in `bridge/party-connections.test.mjs` (bridge), `bridge/world-lifecycle.test.mjs` (the talk notice and the real
   adapter's gaze warm-up) and the setting in `bridge/manager.test.mjs`.
 
 ## Native section and option styling — October 2

@@ -439,15 +439,30 @@ do
     end
     local loaded, module = pcall(dofile, 'auto-connect.lua')
     if loaded and type(module) == 'table' and type(module.new) == 'function' then
+        local catalogued = {}
+        for _, profile in ipairs(profiles) do catalogued[profile.key] = profile end
         local built, value = pcall(module.new, {
             enabled = function() return type(manager.autoConnectNearby) == 'function' and manager.autoConnectNearby() == true end,
             scan = scanNearbyCharacters,
+            -- Tier-1 named, other named, generic: the tie-breaker before distance for nearby characters.
+            prominence = function(key) return module.prominence(catalogued[key]) end,
+            -- A conversation partner's distance from V in metres; nil once it is gone, false when unknown.
+            locate = function(partner)
+                local npc = partner.entity
+                if not npc then return false end
+                if not npc:IsAttached() or npc:IsDeadNoStatPool() then return nil end
+                local player = Game.GetPlayer()
+                if not player then return false end
+                local a, b = npc:GetWorldPosition(), player:GetWorldPosition()
+                return math.sqrt((a.x - b.x)^2 + (a.y - b.y)^2 + (a.z - b.z)^2)
+            end,
             party = function(key)
                 for _, member in ipairs(companions.connectionProfiles()) do if member == key then return true end end
                 return false
             end,
             log = function(line) log(line) end})
-        if built and type(value) == 'table' then autoConnect = value
+        -- convaiAutoConnect.promote(key): a conversation partner asked to follow leaves the partner role.
+        if built and type(value) == 'table' then autoConnect = value; convaiAutoConnect = value
         else print('[CyberpunkConvai] auto-connect.lua unavailable: ' .. tostring(value)) end
     else print('[CyberpunkConvai] auto-connect.lua unavailable: ' .. tostring(module)) end
 end
@@ -1838,8 +1853,11 @@ registerForEvent('onUpdate', function(delta)
             or battleSample.combat == true or tactics.busy()
         local talking = (active and active.profileKey) or (pending and pending.profileKey)
             or (microphone.context and microphone.context.profileKey) or nil
+        -- A scripted scene (or game dialogue) ends a conversation partnership.
+        local scene = battleSample ~= nil and battleSample.available == true
+            and (battleSample.tier ~= 1 or battleSample.dialogue == true)
         local ok, err = pcall(autoConnect.update, elapsedPoll, {worldReady = worldReady == true, blocked = blocked,
-            player = player, talking = talking})
+            player = player, talking = talking, talkingEntity = active and speech.target or nil, scene = scene})
         if not ok then log('Auto-connect update failed: ' .. tostring(err)) end
     end
     if pending then

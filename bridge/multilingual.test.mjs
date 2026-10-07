@@ -56,42 +56,35 @@ test('English with street Spanish, Japanese names or voice tags stays English; u
 // ---- The voice of a turn ---------------------------------------------------------------------------------------
 
 const POCKET = {uses: true, provider: 'pocket'}, OMNI = {uses: true, provider: 'omni'}, CLOUD = {uses: false, provider: 'convai'};
-test('turn voice: off keeps the chosen voice; on, a non-English turn needs Omni or the cloud voice', () => {
-  const plan = (enabled, language, local, omni = {}) => planTurnVoice({enabled, language, local, omni}).engine;
+test('turn voice: off keeps the chosen voice; on, a non-English turn uses OmniVoice or the cloud voice, never Pocket', () => {
+  const plan = (enabled, language, local) => planTurnVoice({enabled, language, local}).engine;
   // Off: exactly the voice used before, whatever the language.
-  assert.equal(plan(false, 'es', POCKET, {usable: true, ready: true}), 'pocket');
+  assert.equal(plan(false, 'es', POCKET), 'pocket');
   assert.equal(plan(false, 'es', OMNI), 'omni');
   assert.equal(plan(false, 'es', CLOUD), 'convai');
   // On, English: the chosen voice.
   for (const local of [POCKET, OMNI, CLOUD]) assert.equal(plan(true, 'en', local), local.uses ? local.provider : 'convai');
-  // On, another language.
+  // On, another language: Omni speaks it; the cloud voice speaks it; Pocket (a fallback) hands it to the cloud voice.
   assert.equal(plan(true, 'ja', OMNI), 'omni');
   assert.equal(plan(true, 'ja', CLOUD), 'convai');
-  assert.equal(plan(true, 'ja', POCKET, {usable: true, ready: true}), 'omni');
-  assert.equal(planTurnVoice({enabled: true, language: 'ja', local: POCKET, omni: {usable: true, ready: false}}).reason, 'omni-loading');
-  assert.equal(planTurnVoice({enabled: true, language: 'ja', local: POCKET, omni: {usable: false}}).reason, 'no-omni');
-  assert.equal(plan(true, 'ja', POCKET, {usable: true, ready: false}), 'convai');
-  assert.equal(plan(true, 'ja', POCKET, {usable: false}), 'convai');
+  assert.equal(plan(true, 'ja', POCKET), 'convai');
+  assert.equal(planTurnVoice({enabled: true, language: 'ja', local: POCKET}).reason, 'english-only-voice');
 });
 
 test('reply voice: a local turn follows the reply language; a cloud turn stays on Convai', () => {
-  const local = (enabled, language, provider = 'pocket', omni = {}) => planTurnVoice({enabled, language,
-    local: {uses: true, provider}, omni});
-  const reply = (plan, text, provider = 'pocket', omni = {}) => replyVoice({plan, text, local: {uses: true, provider}, omni});
+  const local = (enabled, language, provider = 'pocket') => planTurnVoice({enabled, language, local: {uses: true, provider}});
+  const reply = (plan, text, provider = 'pocket') => replyVoice({plan, text, local: {uses: true, provider}});
   const es = 'Claro que sí, V. Vamos al bar esta noche y hablamos con calma.';
   const en = 'Sure thing, V. Let us talk it over at the bar tonight.';
   assert.deepEqual(reply(local(true, 'en'), en), {engine: 'pocket', language: 'en'});
-  assert.deepEqual(reply(local(true, 'en'), es), {engine: 'none', language: 'es', reason: 'no-omni'});
-  assert.deepEqual(reply(local(true, 'en'), es, 'pocket', {usable: true, ready: false}), {engine: 'none', language: 'es', reason: 'omni-loading'});
-  assert.deepEqual(reply(local(true, 'en'), es, 'pocket', {usable: true, ready: true}), {engine: 'omni', language: 'es'});
-  assert.deepEqual(reply(local(true, 'es', 'pocket', {usable: true, ready: true}), en, 'pocket', {usable: true, ready: true}),
-    {engine: 'pocket', language: 'en'}, 'an English reply keeps the chosen voice');
+  assert.deepEqual(reply(local(true, 'en'), es), {engine: 'none', language: 'es', reason: 'english-only-voice'});
   assert.deepEqual(reply(local(true, 'en', 'omni'), es, 'omni'), {engine: 'omni', language: 'es'});
+  assert.deepEqual(reply(local(true, 'es', 'omni'), en, 'omni'), {engine: 'omni', language: 'en'});
   // Unclear reply text keeps the turn's expected language.
-  assert.deepEqual(reply(local(true, 'es', 'pocket', {usable: true, ready: true}), '...', 'pocket', {usable: true, ready: true}),
-    {engine: 'omni', language: 'es'});
+  assert.deepEqual(reply(local(true, 'es', 'omni'), '...', 'omni'), {engine: 'omni', language: 'es'});
   // A cloud-voice turn is already being spoken by Convai.
   assert.equal(replyVoice({plan: planTurnVoice({enabled: true, language: 'es', local: CLOUD}), text: en}).engine, 'convai');
+  assert.equal(replyVoice({plan: planTurnVoice({enabled: true, language: 'es', local: POCKET}), text: es}).engine, 'convai');
   // Off: the plan's own voice, no language.
   assert.deepEqual(reply(local(false, 'en'), es), {engine: 'pocket', language: null});
 });
@@ -100,16 +93,13 @@ test('the turn plan gates Natural speech and Expressive emotions: the cloud voic
   const speech = new NaturalSpeech(), emotions = new ExpressiveEmotions();
   speech.update({naturalSpeech: true}); emotions.update({expressiveEmotions: true});
   const blocks = plan => [speech.contextFor({engine: plan.engine}), emotions.contextFor({engine: plan.engine})];
-  // Without the Omni pack a Spanish turn is a cloud-voice turn: no blocks at all.
-  const cloud = planTurnVoice({enabled: true, language: 'es', local: POCKET, omni: {usable: false}});
-  assert.deepEqual(blocks(cloud), ['', '']);
-  // The English turn of the same player keeps both.
-  const english = planTurnVoice({enabled: true, language: 'en', local: POCKET, omni: {usable: false}});
-  assert.ok(blocks(english).every(Boolean));
-  assert.match(blocks(english)[0], /Pocket TTS/);
-  // With the pack ready the Spanish turn is an Omni turn and gets the Omni instructions.
-  const omni = planTurnVoice({enabled: true, language: 'es', local: POCKET, omni: {usable: true, ready: true}});
-  assert.match(blocks(omni)[0], /OmniVoice/); assert.ok(blocks(omni)[1]);
+  // A cloud-voice turn (chosen, or Pocket handing a Spanish turn over): no blocks at all.
+  assert.deepEqual(blocks(planTurnVoice({enabled: true, language: 'es', local: CLOUD})), ['', '']);
+  assert.deepEqual(blocks(planTurnVoice({enabled: true, language: 'es', local: POCKET})), ['', '']);
+  // An Omni turn in any language keeps the Omni instructions.
+  const omni = blocks(planTurnVoice({enabled: true, language: 'es', local: OMNI}));
+  assert.match(omni[0], /OmniVoice/); assert.ok(omni[1]);
+  assert.match(blocks(planTurnVoice({enabled: true, language: 'en', local: POCKET}))[0], /Pocket TTS/);
 });
 
 test('the setting holder remembers the conversation language only while on', () => {
@@ -341,7 +331,7 @@ test('the bridge loads the twins, gives memory their markers and decides the voi
   assert.match(bridge, /characterFamilies: relationshipRoutes\.providerFamilies/);
   assert.match(bridge, /chatResetFamilies: relationshipRoutes\.providerFamilies/);
   assert.match(bridge, /ttsEnabled: localVoice\.playbackEnabled!==false&&!turnUsesLocal\(input\)/);
-  assert.match(bridge, /const multilingualChanged = multilingual\.update\(settings\);\s*localVoice\.setMultilingual\(multilingual\.enabled\);/);
+  assert.match(bridge, /const multilingualChanged = multilingual\.update\(settings\);/);
   // Every per-turn voice check goes through the plan; only invitation readiness asks about the profile.
   const perTurn = bridge.slice(bridge.indexOf('async function synthesizeReply('), bridge.indexOf('async function pollMicrophone('));
   assert.doesNotMatch(perTurn, /usesProfile\(input\.profileKey\)|localVoice\.provider\s*===\s*'omni'\s*\)/);

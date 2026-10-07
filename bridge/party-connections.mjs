@@ -4,6 +4,9 @@ export const PARTY_LIMIT = 8;
 export const CONNECTION_LIMIT = PARTY_LIMIT + 3;
 // Characters prepared ahead by "Auto-connect nearby characters" (bridge/nearby-warm.mjs).
 export const NEARBY_LIMIT = 2;
+// Conversation partners: world characters V just talked to (mod/auto-connect.lua), kept warm outside the two
+// nearby slots. Two at most (a group chat).
+export const PARTNER_LIMIT = 2;
 export const connectionKey = (profile, scope) => JSON.stringify([profile, scope]);
 
 export function parsePartyConnections(value, now = Date.now()) {
@@ -21,7 +24,7 @@ export class PartyConnections {
     Object.assign(this, {host, configFor, isKnown, onState, now, staleMs, canWarm});
     this.profiles = []; this.updated = null; this.stale = true;
     this.invitations = []; this.retiring = new Map(); this.retirementDebt = new Map();
-    this.entries = new Map(); this.composer = this.request = null; this.nearby = [];
+    this.entries = new Map(); this.composer = this.request = null; this.nearby = []; this.partners = [];
     this.nextStart = 0; this.reconciling = null; this.revision = 0; this.paused = false;
   }
   emit() { void Promise.resolve(this.onState(this.diagnostic())).catch(() => {}); }
@@ -32,7 +35,7 @@ export class PartyConnections {
     const changed = JSON.stringify(this.profiles) !== JSON.stringify(snapshot.profiles) || this.stale;
     this.profiles = snapshot.profiles; this.updated = snapshot.updated;
     this.stale = this.now() - snapshot.updated > this.staleMs;
-    if (this.stale) { this.composer = this.request = null; this.nearby = []; }
+    if (this.stale) { this.composer = this.request = null; this.nearby = []; this.partners = []; }
     for (const field of ['composer', 'request']) {
       if (this[field]?.audience.some(profile => removed.includes(profile))) this[field] = null;
     }
@@ -54,6 +57,18 @@ export class PartyConnections {
     const next = [...new Set(profiles)].slice(0, NEARBY_LIMIT);
     if (JSON.stringify(next) === JSON.stringify(this.nearby)) return Promise.resolve();
     this.nearby = next; this.revision++;
+    return this.reconcile();
+  }
+  // Conversation partners: rank below the party, invitations and the current target, above nearby characters.
+  // A partner's private connection is the same entry (profile + private scope) its conversation used, so it is
+  // kept, never opened a second time.
+  setPartners(profiles) {
+    if (!Array.isArray(profiles) || profiles.some(profile => typeof profile !== 'string' || !/^[a-z0-9-]{1,80}$/.test(profile))) {
+      throw Error('Invalid conversation partners');
+    }
+    const next = [...new Set(profiles)].slice(0, PARTNER_LIMIT);
+    if (JSON.stringify(next) === JSON.stringify(this.partners)) return Promise.resolve();
+    this.partners = next; this.revision++;
     return this.reconcile();
   }
   setRequest(input, exactConfig) {
@@ -93,6 +108,9 @@ export class PartyConnections {
     if (focus?.scope === 'private' && this.isKnown(focus.audience[0]) && !privateProfiles.includes(focus.audience[0])) {
       privateProfiles.push(focus.audience[0]);
     }
+    const partnerProfiles = this.stale ? [] : this.partners.filter(profile => this.isKnown(profile) && !privateProfiles.includes(profile))
+      .slice(0, Math.max(0, CONNECTION_LIMIT - privateProfiles.length));
+    privateProfiles.push(...partnerProfiles);
     const nearbyProfiles = this.stale ? [] : this.nearby.filter(profile => this.isKnown(profile) && !privateProfiles.includes(profile))
       .slice(0, Math.max(0, CONNECTION_LIMIT - privateProfiles.length));
     privateProfiles.push(...nearbyProfiles);
@@ -104,7 +122,8 @@ export class PartyConnections {
     const groupProfiles = audience.length >= minimumGroup ? audience.slice(0, CONNECTION_LIMIT - privateProfiles.length) : [];
     const privateSpecs = privateProfiles.map(profile => ({profile, scope: 'private',
       role: party.includes(profile) ? 'party' : this.invitations.includes(profile) ? 'invitation'
-        : nearbyProfiles.includes(profile) && focus?.audience[0] !== profile ? 'nearby' : 'target'}));
+        : focus?.audience[0] === profile ? 'target' : partnerProfiles.includes(profile) ? 'partner'
+          : nearbyProfiles.includes(profile) ? 'nearby' : 'target'}));
     const groupSpecs = groupProfiles.map(profile => ({profile, scope: groupScope, role: 'group'}));
     const specs = focus?.scope.startsWith('group:') ? [...groupSpecs, ...privateSpecs] : [...privateSpecs, ...groupSpecs];
     if (focus?.config && !specs.some(spec => spec.profile === focus.profile && spec.scope === focus.scope)) {
@@ -150,7 +169,7 @@ export class PartyConnections {
   }
   async maintain() {
     if (this.updated !== null && this.now() - this.updated > this.staleMs && !this.stale) {
-      this.stale = true; this.composer = this.request = null; this.nearby = []; this.revision++; this.emit();
+      this.stale = true; this.composer = this.request = null; this.nearby = []; this.partners = []; this.revision++; this.emit();
     }
     await this.reconcile();
     const now = this.now();
@@ -302,7 +321,7 @@ export class PartyConnections {
     this.emit();
   }
   async clear() {
-    this.stale = true; this.profiles = []; this.invitations = []; this.composer = this.request = null; this.nearby = [];
+    this.stale = true; this.profiles = []; this.invitations = []; this.composer = this.request = null; this.nearby = []; this.partners = [];
     await this.reconcile(); this.emit();
   }
   async reconfigure(profiles) {
@@ -326,7 +345,7 @@ export class PartyConnections {
   }
   diagnostic() {
     return {updated: this.now(), partyUpdated: this.updated, stale: this.stale, limit: CONNECTION_LIMIT,
-      profiles: this.profiles, invitations: this.invitations, unconfigured: this.profiles.filter(profile => !this.isKnown(profile)),
+      profiles: this.profiles, invitations: this.invitations, partners: this.partners, unconfigured: this.profiles.filter(profile => !this.isKnown(profile)),
       ready: [...this.entries.values()].filter(entry => entry.state === 'ready').length,
       connecting: [...this.entries.values()].filter(entry => entry.state === 'connecting').length,
       connections: [...this.entries.values()].map(({profile, scope, role, state, attempts, failures, startedAt, readyAt, warmMs, connectionMs, retryAt}) =>

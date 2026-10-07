@@ -3246,10 +3246,42 @@ test('Multilingual conversations is off by default and only a saved boolean is k
   `);
 });
 
-test('Multilingual conversations sits in Conversations, applies with the batch and never changes the voice', () => {
-  run(`${mcmFixture}
-    local clock = 5000
+// Shared by the staged-Apply cases: the voice menu positions and a batch helper (each Apply after the Auto Apply window).
+const multilingualApplyFixture = `
+    local clock, wall = 5000, 1000
     os.clock = function() return clock end
+    os.time = function() return wall end
+    local sent = {}
+    function player:ConvaiPhoneFeedback(text) sent[#sent + 1] = text end
+    local POCKET, BALANCED, ULTRA, CLOUD
+    for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do
+      if choice.provider == 'pocket' then POCKET = index end
+      if choice.provider == 'convai' then CLOUD = index end
+      if choice.provider == 'omni' and choice.steps == 16 and choice.reference == 'short' then BALANCED = index end
+      if choice.provider == 'omni' and choice.steps == 32 and choice.reference == 'long' then ULTRA = index end
+    end
+    assert(POCKET and BALANCED and ULTRA and CLOUD)
+    local function apply(...)
+      clock = clock + 2
+      local changes = {}
+      for _, change in ipairs({...}) do changes[#changes + 1] = {id = change[1], value = change[2]} end
+      return registered.applyBatch('manager', changes)
+    end
+    local function pack(installed)
+      jsonFixtures['voice-runtime'] = {state = 'ready', provider = 'pocket', updated = wall * 1000,
+        omniPack = {installed = installed, missing = installed and {} or {'model'}}}
+      files['runtime/local-voice-state.json'] = 'voice-runtime'
+      manager.snapshot(player)
+    end
+    local SWITCH = 'Multilingual conversations needs a voice that speaks every language, so Companion voices was switched to '
+    local OFF = 'Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together.'
+    local NO_POCKET = 'Pocket TTS speaks only English. Turn off Multilingual conversations to choose it.'
+    local NO_TAGS = 'Natural speech and Expressive emotions need the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read their tags aloud.'
+    assert(invoke('tab:settings').ok)
+`;
+
+test('Multilingual conversations sits in Conversations and is off by default', () => {
+  run(`${mcmFixture}
     assert(invoke('tab:settings').ok)
     local owner
     for _, category in ipairs(loaded.categories) do
@@ -3258,75 +3290,113 @@ test('Multilingual conversations sits in Conversations, applies with the batch a
     local entry = row('multilingualConversations')
     assert(owner and owner.id == 'conversation-controls', 'in Conversations')
     assert(entry.type == 'bool' and entry.value == false and entry.defaultValue == false and entry.label == 'Multilingual conversations')
-    assert(entry.description:find('OmniVoice', 1, true) and entry.description:find('Off by default', 1, true))
-    clock = clock + 2
-    local before = saved.voiceProvider
-    local result = registered.applyBatch('manager', {{id = 'multilingualConversations', value = true}})
-    assert(result.ok and manager.multilingualConversations() and saved.multilingualConversations == true)
-    assert(saved.voiceProvider == before and result.schemaChanged == false)
+    assert(entry.description:find('OmniVoice · Balanced', 1, true) and entry.description:find('Off by default', 1, true))
     assert(registered.applyBatch('manager', {{id = 'multilingualConversations', value = 'yes'}}).ok == false)
     assert(not manager.applySettings(player, {multilingualConversations = 1}))
   `);
 });
 
-test('without the OmniVoice pack, Multilingual with Natural speech or Expressive emotions keeps both on and explains it once', () => {
-  run(`${mcmFixture}
-    local clock, wall = 5000, 1000
-    os.clock = function() return clock end
-    os.time = function() return wall end
-    local sent = {}
-    function player:ConvaiPhoneFeedback(text) sent[#sent + 1] = text end
-    jsonFixtures['voice-runtime'] = {state = 'ready', provider = 'pocket', omniPack = {installed = false, missing = {'model'}},
-      updated = wall * 1000}
-    files['runtime/local-voice-state.json'] = 'voice-runtime'
-    assert(invoke('tab:settings').ok)
-    local NOTICE = 'Without the OmniVoice pack, replies in other languages use the Convai cloud voice, so Natural speech and Expressive emotions apply only to English replies.'
-    local function apply(...)
-      clock = clock + 2
-      local changes = {}
-      for _, change in ipairs({...}) do changes[#changes + 1] = {id = change[1], value = change[2]} end
-      return registered.applyBatch('manager', changes)
-    end
-    -- Natural speech on first, then Multilingual: both stay on, the voice is untouched, one notice.
-    assert(apply({'naturalSpeech', true}).ok and manager.takeNaturalSpeechNotice() == nil)
+test('with the Omni pack, turning Multilingual on moves Pocket to OmniVoice · Balanced once; Pocket is refused while on; off keeps the voice', () => {
+  run(`${mcmFixture}${multilingualApplyFixture}
+    pack(true)
+    assert(saved.voiceProvider == 'pocket')
     local result = apply({'multilingualConversations', true})
-    assert(result.ok and saved.multilingualConversations == true and saved.naturalSpeech == true and saved.voiceProvider == 'pocket')
+    assert(result.ok and result.schemaChanged == true and saved.multilingualConversations == true)
+    assert(saved.voiceProvider == 'omni' and saved.omniSteps == 16 and saved.omniReference == 'short', 'the lightest Omni')
+    local NOTICE = SWITCH .. 'OmniVoice · Balanced.'
     assert(manager.snapshot(player).feedback == NOTICE, manager.snapshot(player).feedback)
-    mcm.update(player, true)
-    assert(#sent == 1 and sent[1] == NOTICE, tostring(sent[1]))
+    mcm.update(player, true); assert(#sent == 1 and sent[1] == NOTICE, tostring(sent[1]))
     mcm.update(player, true); assert(#sent == 1, 'announced once')
-    -- Already in that state: another Apply says nothing.
-    assert(apply({'expressiveEmotions', true}).ok and manager.takeNaturalSpeechNotice() == nil)
-    -- Off and on again in one batch with Expressive emotions only.
-    assert(apply({'multilingualConversations', false}, {'naturalSpeech', false}, {'expressiveEmotions', false}).ok)
-    assert(apply({'multilingualConversations', true}).ok and manager.takeNaturalSpeechNotice() == nil, 'nothing to limit')
-    assert(apply({'expressiveEmotions', true}).ok and manager.takeNaturalSpeechNotice() == NOTICE)
-    -- The cloud voice chosen with Natural speech: the existing switch to Pocket is told together with this.
-    assert(apply({'expressiveEmotions', false}).ok)
-    local CLOUD
-    for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do if choice.provider == 'convai' then CLOUD = index end end
+    -- Pocket while it is on: refused, nothing saved, the draft stays pending.
+    result = apply({'voiceProvider', POCKET})
+    assert(result.ok == false and result.error == NO_POCKET and saved.voiceProvider == 'omni')
+    -- Another Omni tier and the cloud voice are fine; Natural speech works with Omni.
+    assert(apply({'voiceProvider', ULTRA}).ok and saved.omniSteps == 32 and saved.omniReference == 'long')
+    assert(apply({'naturalSpeech', true}, {'expressiveEmotions', true}).ok and saved.voiceProvider == 'omni')
+    assert(manager.takeNaturalSpeechNotice() == nil and saved.naturalSpeech and saved.expressiveEmotions)
+    -- The cloud voice chosen while a tag setting is on moves to OmniVoice · Balanced, never to Pocket.
+    result = apply({'voiceProvider', CLOUD})
+    assert(result.ok and saved.voiceProvider == 'omni' and saved.omniSteps == 16 and saved.omniReference == 'short')
+    assert(manager.takeNaturalSpeechNotice() == 'Natural speech needs a local voice, so Companion voices was switched to OmniVoice · Balanced.')
+    assert(apply({'naturalSpeech', false}, {'expressiveEmotions', false}).ok)
     assert(apply({'voiceProvider', CLOUD}).ok and saved.voiceProvider == 'convai' and manager.takeNaturalSpeechNotice() == nil)
-    result = apply({'naturalSpeech', true})
-    assert(result.ok and saved.voiceProvider == 'pocket')
-    local both = manager.takeNaturalSpeechNotice()
-    assert(both:find('Natural speech needs a local voice', 1, true) and both:find(NOTICE, 1, true), both)
-    -- With the pack installed, everything works together: no notice.
-    assert(apply({'multilingualConversations', false}, {'naturalSpeech', false}).ok)
-    jsonFixtures['voice-runtime'].omniPack = {installed = true, missing = {}}
-    assert(apply({'naturalSpeech', true}, {'multilingualConversations', true}).ok and manager.takeNaturalSpeechNotice() == nil)
+    -- Off: the voice stays as it is (no silent switch back).
+    assert(apply({'multilingualConversations', false}).ok and saved.voiceProvider == 'convai')
+    assert(manager.takeNaturalSpeechNotice() == nil)
+    -- Off and Pocket in one batch is allowed.
+    assert(apply({'multilingualConversations', true}).ok and saved.voiceProvider == 'omni', 'the saved cloud voice moves to Omni')
+    assert(manager.takeNaturalSpeechNotice() == NOTICE)
+    assert(apply({'multilingualConversations', false}, {'voiceProvider', POCKET}).ok and saved.voiceProvider == 'pocket')
+    -- On together with Pocket in one batch is refused.
+    result = apply({'multilingualConversations', true}, {'voiceProvider', POCKET})
+    assert(result.ok == false and result.error == NO_POCKET and saved.multilingualConversations == false)
+    -- An Omni tier is kept; a cloud voice chosen in the same Apply is kept.
+    assert(apply({'voiceProvider', ULTRA}).ok)
+    result = apply({'multilingualConversations', true})
+    assert(result.ok and saved.voiceProvider == 'omni' and saved.omniSteps == 32 and saved.omniReference == 'long')
+    assert(result.schemaChanged == false and manager.takeNaturalSpeechNotice() == nil)
+    assert(apply({'multilingualConversations', false}, {'voiceProvider', POCKET}).ok)
+    result = apply({'multilingualConversations', true}, {'voiceProvider', CLOUD})
+    assert(result.ok and saved.voiceProvider == 'convai' and manager.takeNaturalSpeechNotice() == nil)
+    -- With Natural speech on, a cloud voice chosen with it still ends on Omni (it needs a local voice).
+    assert(apply({'multilingualConversations', false}, {'voiceProvider', POCKET}).ok and apply({'naturalSpeech', true}).ok)
+    result = apply({'multilingualConversations', true}, {'voiceProvider', CLOUD})
+    assert(result.ok and saved.voiceProvider == 'omni' and saved.naturalSpeech == true)
+    assert(manager.takeNaturalSpeechNotice() == NOTICE)
   `);
 });
 
-test('the multilingual voice notice is decided from the settings before and after the Apply', () => {
+test('without the Omni pack, Multilingual moves to the cloud voice and wins over Natural speech and Expressive emotions', () => {
+  run(`${mcmFixture}${multilingualApplyFixture}
+    pack(false)
+    local first = apply({'naturalSpeech', true}, {'expressiveEmotions', true})
+    assert(first.ok and saved.voiceProvider == 'pocket', tostring(first.error) .. ' ' .. tostring(saved.voiceProvider))
+    local result = apply({'multilingualConversations', true})
+    assert(result.ok and result.schemaChanged == true and saved.multilingualConversations == true, 'on: ' .. tostring(result.error))
+    assert(saved.voiceProvider == 'convai' and saved.naturalSpeech == false and saved.expressiveEmotions == false,
+      'cloud: ' .. tostring(saved.voiceProvider) .. ' ' .. tostring(saved.naturalSpeech))
+    local NOTICE = SWITCH .. 'Convai · Cloud voice. ' .. OFF
+    assert(manager.snapshot(player).feedback == NOTICE, manager.snapshot(player).feedback)
+    mcm.update(player, true); assert(#sent == 1 and sent[1] == NOTICE, tostring(sent[1]))
+    -- While it is on, either tag setting is refused with the reason; Pocket and Omni are refused too.
+    for _, key in ipairs({'naturalSpeech', 'expressiveEmotions'}) do
+      result = apply({key, true})
+      assert(result.ok == false and result.error == NO_TAGS and saved[key] == false, key)
+    end
+    assert(apply({'voiceProvider', POCKET}).error == NO_POCKET)
+    assert(apply({'voiceProvider', BALANCED}).error == 'Requires the optional OmniVoice pack (GPU)')
+    -- Off: the voice stays the cloud voice and the two settings stay off.
+    assert(apply({'multilingualConversations', false}).ok and saved.voiceProvider == 'convai' and not saved.naturalSpeech)
+    assert(manager.takeNaturalSpeechNotice() == nil)
+    -- Turning it on together with Natural speech: Multilingual wins in the same Apply.
+    assert(apply({'multilingualConversations', true}, {'naturalSpeech', true}).ok)
+    assert(saved.multilingualConversations and saved.voiceProvider == 'convai' and saved.naturalSpeech == false)
+    assert(manager.takeNaturalSpeechNotice() == OFF, 'already on the cloud voice: only the settings notice')
+    -- A failed save changes nothing.
+    assert(apply({'multilingualConversations', false}, {'voiceProvider', POCKET}).ok and apply({'naturalSpeech', true}).ok)
+    failSave = true
+    result = apply({'multilingualConversations', true})
+    assert(result.ok == false and saved.multilingualConversations == false and saved.voiceProvider == 'pocket' and saved.naturalSpeech)
+    assert(manager.takeNaturalSpeechNotice() == nil)
+    failSave = false
+  `);
+});
+
+test('a saved Multilingual pairing with Pocket or with the cloud voice and a tag setting cannot stand', () => {
   run(`${managerFixture}
-    local notice = manager.multilingualVoiceNotice
-    local off = {multilingualConversations = false, naturalSpeech = true, voiceProvider = 'pocket'}
-    local on = {multilingualConversations = true, naturalSpeech = true, voiceProvider = 'pocket'}
-    assert(notice(off, on, false) ~= nil)
-    assert(notice(on, on, false) == nil, 'already limited')
-    assert(notice(off, on, true) == nil, 'the pack is installed')
-    assert(notice(off, {multilingualConversations = true, naturalSpeech = true, voiceProvider = 'omni'}, false) == nil, 'Omni chosen')
-    assert(notice(off, {multilingualConversations = true, voiceProvider = 'pocket'}, false) == nil, 'nothing to limit')
-    assert(notice(off, {multilingualConversations = true, expressiveEmotions = true, voiceProvider = 'pocket'}, false) ~= nil)
+    for _, case in ipairs({
+      {{voiceProvider = 'pocket'}, 'convai', false},
+      {{voiceProvider = 'pocket', naturalSpeech = true}, 'convai', false},
+      {{voiceProvider = 'convai', expressiveEmotions = true}, 'convai', false},
+      {{voiceProvider = 'omni', naturalSpeech = true}, 'omni', true},
+    }) do
+      seed = {version = 2, enabledByKey = {}, multilingualConversations = true}
+      for key, value in pairs(case[1]) do seed[key] = value end
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      local effects = saved.naturalSpeech or saved.expressiveEmotions
+      assert(saved.voiceProvider == case[2] and effects == case[3], case[1].voiceProvider)
+      assert(saved.multilingualConversations == true)
+    end
   `);
 });

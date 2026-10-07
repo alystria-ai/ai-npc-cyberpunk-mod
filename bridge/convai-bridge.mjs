@@ -291,19 +291,17 @@ const intrinsicConversationContext = createIntrinsicConversationContext({baseCon
 // battle and loot reactions are short barks, and the Convai cloud voice cannot follow it (it would read tags aloud).
 // The voice of each turn (bridge/multilingual.mjs). Decided once per submitted turn, the first time it is needed, so
 // the context (tags or none), the Convai TTS flag and the delivery all agree. With Multilingual conversations off it
-// is exactly the character's chosen voice; on, a turn expected in another language needs OmniVoice or the cloud voice.
+// is exactly the character's chosen voice; on (Settings keep the voice on OmniVoice or the cloud voice), a turn in
+// another language never reaches Pocket, and a cloud-voice turn never gets tag instructions.
 const turnVoices = new Map();
 const localChoice = profile => ({uses: localVoice.usesProfile(profile), provider: localVoice.provider});
-const languageOmni = profile => multilingual.enabled ? localVoice.languageOmni(profile) : {usable: false, ready: false};
 function turnVoice(input) {
   const id = input?.requestId || input?.id, cacheKey = id ? JSON.stringify([id, input.profileKey]) : null;
   if (cacheKey && turnVoices.has(cacheKey)) return turnVoices.get(cacheKey);
   const profile = input.profileKey;
   const plan = planTurnVoice({enabled: multilingual.enabled,
     language: multilingual.enabled ? multilingual.expected(input.reaction ? '' : input.text) : 'en',
-    local: localChoice(profile), omni: languageOmni(profile)});
-  // The first turn in another language starts OmniVoice and is spoken by the cloud voice meanwhile.
-  if (plan.reason === 'omni-loading') void localVoice.warmLanguageOmni().catch(() => {});
+    local: localChoice(profile)});
   if (cacheKey) {
     turnVoices.set(cacheKey, plan);
     while (turnVoices.size > 64) turnVoices.delete(turnVoices.keys().next().value);
@@ -313,7 +311,7 @@ function turnVoice(input) {
 const turnUsesLocal = input => turnVoice(input).engine !== 'convai';
 // Warm connections are prepared before any text exists: they follow the language of the last exchange.
 const warmUsesConvaiVoice = profile => localVoice.playbackEnabled !== false && planTurnVoice({enabled: multilingual.enabled,
-  language: multilingual.lastLanguage ?? 'en', local: localChoice(profile), omni: languageOmni(profile)}).engine === 'convai';
+  language: multilingual.lastLanguage ?? 'en', local: localChoice(profile)}).engine === 'convai';
 const naturalSpeechContext = input => {
   const prepared = preparedInputs.get(input);
   const phone = input.channel === 'phone' || prepared?.route?.channel === 'phone';
@@ -376,7 +374,7 @@ const nearbyWarm = new NearbyWarm({connections, isKnown: profile => Object.hasOw
   onError: error => console.error('[CyberpunkConvai] Nearby warm-up:', error.message)});
 let voiceRouteSync = Promise.resolve();
 // A warm connection's Convai TTS flag follows warmUsesConvaiVoice; when that changes (the setting, the language of
-// the conversation, the multilingual Omni worker becoming ready), the page is replaced at the next idle boundary.
+// the conversation), the page is replaced at the next idle boundary.
 const warmVoices = new Map();
 function refreshWarmVoices() {
   for (const profile of localVoice.routeKeys) {
@@ -540,9 +538,8 @@ async function synthesizeReply(input, result, signal, current, profile = profile
   const turnPlan = turnVoice(input);
   if (turnPlan.engine === 'convai') return {...result, timing: {...result.timing, voiceProvider: 'convai'}};
   // A local turn follows its reply's language: English keeps the chosen voice, another language needs OmniVoice.
-  const voice = replyVoice({plan: turnPlan, text: result.text, local: localChoice(input.profileKey), omni: languageOmni(input.profileKey)});
+  const voice = replyVoice({plan: turnPlan, text: result.text, local: localChoice(input.profileKey)});
   if (voice.engine === 'none') {
-    if (voice.reason === 'omni-loading') void localVoice.warmLanguageOmni().catch(() => {});
     return {...result, audio: undefined, faces: [], captions: [], timing: {...result.timing, voiceProvider: 'none'},
       audioError: 'The selected voice speaks English only; showing the written reply.'};
   }
@@ -590,8 +587,7 @@ async function synthesizeReply(input, result, signal, current, profile = profile
     const lookahead=new AbortController(),cancelLookahead=()=>lookahead.abort();
     signal?.addEventListener('abort',cancelLookahead,{once:true});
     try{
-      // The multilingual Omni worker (Pocket chosen) renders at the saved Omni quality.
-      const phrases=splitSpeechText(result.text),steps=localVoice.provider==='omni'?localVoice.steps:localVoice.requestedOmniSteps;
+      const phrases=splitSpeechText(result.text),steps=localVoice.steps;
       // Voice tags (Natural speech) go to OmniVoice only, where the model wrote them; subtitles keep the clean phrase.
       const voiced=(naturalSpeech.enabled?speechPhrases(phrases,result.speechText,OMNI_TAGS):undefined)??phrases;
       const first=synthesizeOmniPhrase(input.profileKey,voiced[0],{signal,steps,language});
@@ -1371,8 +1367,8 @@ async function pollSettings(checkShutdown = true) {
     // A prepared reply was written under the previous Natural speech instructions.
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     // Multilingual conversations changes which voice a turn uses (and so its instructions).
+    // (The voice selection reads the same setting: while it is on, a fallback never lands on Pocket.)
     const multilingualChanged = multilingual.update(settings);
-    localVoice.setMultilingual(multilingual.enabled);
     if (speechChanged || emotionsChanged || multilingualChanged) { dropPrefetch(); prefetchObserved = ''; }
     refreshWarmVoices();
     await syncRelationshipRoutes(); await syncVoiceRoutes();

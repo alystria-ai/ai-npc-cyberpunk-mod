@@ -605,12 +605,12 @@ test('Expressive emotions: Pocket\'s streaming planner is given the marks, and a
 });
 
 // ---- Multilingual conversations: the voice of each turn, end to end through respond/synthesizeReply/publish ----
+// Settings keep the voice on OmniVoice or the cloud voice while the setting is on; Pocket appears here only as the
+// safety net (a fallback or hand-edited setup).
 const SPANISH_REPLY='Claro que sí, V. Vamos al bar de Lizzie esta noche y hablamos con calma de todo lo que pasó.';
-function multilingualVoice({omniReady=false,omniUsable=omniReady,provider='pocket'}={}){
-  const generated=[],warmed=[];
-  return {generated,warmed,provider,steps:provider==='omni'?16:undefined,requestedOmniSteps:16,usesProfile:()=>true,
-    languageOmni:()=>({usable:omniUsable,ready:omniReady}),
-    warmLanguageOmni:async()=>{warmed.push(true);},
+function multilingualVoice({provider='pocket'}={}){
+  const generated=[];
+  return {generated,provider,steps:provider==='omni'?16:undefined,usesProfile:()=>true,
     async synthesize(key,text,options){generated.push({key,text,language:options.language,steps:options.steps});
       return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
 }
@@ -626,7 +626,7 @@ const sent=f=>f.calls.find(value=>Array.isArray(value)&&value[0]==='send')[1];
 const pocketUsed=f=>f.calls.some(value=>Array.isArray(value)&&value[0]==='pocket-stream');
 
 test('Multilingual off: a Spanish message keeps exactly the chosen local voice (no plan change)',async()=>{
-  const voice=multilingualVoice({omniReady:true});
+  const voice=multilingualVoice();
   const f=multilingualFixture({voiceSelection:voice,continuous:true});
   f.input.text='¿Qué tal, Judy? ¿Vamos al bar esta noche?';
   await f.api.respond(f.input,f.profile,{current:async()=>true});
@@ -634,8 +634,32 @@ test('Multilingual off: a Spanish message keeps exactly the chosen local voice (
   assert.equal(voice.generated.length,0,'Omni was not used');assert.ok(pocketUsed(f));
 });
 
-test('Multilingual, Pocket chosen, no Omni pack: a Spanish turn is sent for the Convai cloud voice and published as Convai audio',async()=>{
-  const voice=multilingualVoice({omniUsable:false});
+test('Multilingual with OmniVoice: Spanish and Japanese turns stay local and every phrase gets its language',async()=>{
+  for(const [text,reply,language] of [['¿Qué tal, Judy? ¿Vamos al bar esta noche?',SPANISH_REPLY,'es'],
+    ['こんにちは、ジュディ。今夜は何をしているの？','こんばんは、V。今夜はリジーズで少し飲んでから、ゆっくり話そうよ。','ja']]){
+    const voice=multilingualVoice({provider:'omni'});
+    const f=multilingualFixture({voiceSelection:voice,continuous:true,multilingual:multilingualOn()});
+    f.input.text=text;f.remote.text=reply;
+    const result=await f.api.respond(f.input,f.profile,{current:async()=>true});
+    assert.equal(sent(f).ttsEnabled,false);assert.ok(!pocketUsed(f));
+    await f.api.publishResult(f.input,f.profile,result,async()=>true);
+    assert.ok(voice.generated.length>=1&&voice.generated.every(value=>value.language===language&&value.steps===16),language);
+    if(result.streamPlan)assert.equal(voice.generated.length,result.streamPlan.phrases.length);
+    assert.equal(f.multilingual.lastLanguage,language,'the exchange language predicts the next turn without text');
+  }
+});
+
+test('Multilingual with OmniVoice: an English reply to a Spanish message stays on Omni, without a language',async()=>{
+  const voice=multilingualVoice({provider:'omni'});
+  const f=multilingualFixture({voiceSelection:voice,continuous:true,multilingual:multilingualOn()});
+  f.input.text='¿Qué tal, Judy? ¿Vamos al bar esta noche?';
+  f.remote.text='Sure thing, V. Let us grab a drink at the Afterlife and talk it over.';
+  await f.api.respond(f.input,f.profile,{current:async()=>true});
+  assert.ok(voice.generated.length>=1&&voice.generated.every(value=>value.language===undefined));
+});
+
+test('Multilingual safety net: a Spanish turn on a Pocket fallback goes to the Convai cloud voice and plays Convai audio',async()=>{
+  const voice=multilingualVoice();
   const f=multilingualFixture({voiceSelection:voice,continuous:false,multilingual:multilingualOn()});
   f.input.text='¿Qué tal, Judy? ¿Vamos al bar esta noche?';
   f.remote.text=SPANISH_REPLY;
@@ -643,61 +667,17 @@ test('Multilingual, Pocket chosen, no Omni pack: a Spanish turn is sent for the 
   assert.equal(sent(f).ttsEnabled,true);
   assert.equal(result.audio,f.remote.audio);assert.equal(result.timing.audioRoute,'convai-data-only');
   assert.equal(voice.generated.length,0);assert.ok(!pocketUsed(f));
-  await f.api.publishResult(f.input,f.profile,result,async()=>true);
-  assert.equal(f.multilingual.lastLanguage,'es','the exchange language predicts the next turn without text');
 });
 
-test('Multilingual, Pocket chosen, Omni pack ready: a Spanish turn stays local and every phrase is cloned by OmniVoice in Spanish',async()=>{
-  const voice=multilingualVoice({omniReady:true});
-  const f=multilingualFixture({voiceSelection:voice,continuous:true,multilingual:multilingualOn()});
-  f.input.text='¿Qué tal, Judy? ¿Vamos al bar esta noche?';
-  f.remote.text=SPANISH_REPLY;
-  const result=await f.api.respond(f.input,f.profile,{current:async()=>true});
-  assert.equal(sent(f).ttsEnabled,false);assert.ok(!pocketUsed(f));
-  assert.ok(voice.generated.length>=1&&voice.generated.every(value=>value.language==='es'&&value.steps===16));
-  await f.api.publishResult(f.input,f.profile,result,async()=>true);
-  if(result.streamPlan)assert.equal(voice.generated.length,result.streamPlan.phrases.length);
-  assert.ok(voice.generated.every(value=>value.language==='es'),'later phrases keep the language');
-});
-
-test('Multilingual, Omni pack still loading: the first Spanish turn uses the cloud voice and starts the Omni worker',async()=>{
-  const voice=multilingualVoice({omniUsable:true,omniReady:false});
-  const f=multilingualFixture({voiceSelection:voice,continuous:false,multilingual:multilingualOn()});
-  f.input.text='Hola, ¿cómo estás? Cuéntame qué pasó ayer.';
-  f.remote.text=SPANISH_REPLY;
-  const result=await f.api.respond(f.input,f.profile,{current:async()=>true});
-  assert.equal(sent(f).ttsEnabled,true);
-  assert.equal(result.audio,f.remote.audio);assert.equal(voice.warmed.length,1);
-});
-
-test('Multilingual, an English message answered in Spanish without Omni: the reply is shown, never read by Pocket',async()=>{
-  const voice=multilingualVoice({omniUsable:false});
+test('Multilingual safety net: an English message answered in Spanish on Pocket is shown, never read by Pocket',async()=>{
+  const voice=multilingualVoice();
   const f=multilingualFixture({voiceSelection:voice,continuous:true,multilingual:multilingualOn()});
   f.input.text='How are you doing tonight, Judy?';
   f.remote.text=SPANISH_REPLY;
   const result=await f.api.respond(f.input,f.profile,{current:async()=>true});
   assert.equal(sent(f).ttsEnabled,false);
   assert.equal(result.audio,undefined);assert.match(result.audioError,/English only/);
-  assert.ok(!pocketUsed(f));assert.equal(voice.generated.length,0);
+  assert.ok(!pocketUsed(f));
   await f.api.publishResult(f.input,f.profile,result,async()=>true);
   assert.equal(f.publications.find(([path])=>path==='reply.json')[1].text,SPANISH_REPLY);
-});
-
-test('Multilingual, a Spanish message answered in English with Omni ready: the English reply keeps Pocket',async()=>{
-  const voice=multilingualVoice({omniReady:true});
-  const f=multilingualFixture({voiceSelection:voice,continuous:true,multilingual:multilingualOn()});
-  f.input.text='¿Qué tal, Judy? ¿Vamos al bar esta noche?';
-  f.remote.text='Sure thing, V. Let us grab a drink at the Afterlife and talk it over.';
-  await f.api.respond(f.input,f.profile,{current:async()=>true});
-  assert.equal(voice.generated.length,0);assert.ok(pocketUsed(f));
-});
-
-test('Multilingual with OmniVoice chosen: a Japanese reply is spoken by the main Omni worker with the language',async()=>{
-  const voice=multilingualVoice({provider:'omni',omniReady:true});
-  const f=multilingualFixture({voiceSelection:voice,continuous:true,multilingual:multilingualOn()});
-  f.input.text='こんにちは、ジュディ。今夜は何をしているの？';
-  f.remote.text='こんばんは、V。今夜はリジーズで少し飲んでから、ゆっくり話そうよ。';
-  await f.api.respond(f.input,f.profile,{current:async()=>true});
-  assert.equal(sent(f).ttsEnabled,false);
-  assert.ok(voice.generated.length>=1&&voice.generated.every(value=>value.language==='ja'));
 });

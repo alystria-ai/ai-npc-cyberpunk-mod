@@ -5,15 +5,11 @@
 // or romantic first; the twin of THAT profile is used (bridge/relationship-routing.mjs). A twin is its own
 // character for memory: its memories are separate, and Forget clears both (the twin shares the original's family).
 //
-// The voice is decided per turn, because Pocket TTS speaks English only:
-//   - before the send, from the player's message (or, without one, the language of the last exchange): an English
-//     turn keeps the chosen voice; a turn expected in another language uses OmniVoice when it can (the selected
-//     voice is Omni, or the optional Omni pack is installed and its worker is ready), else the Convai cloud voice
-//     (the twins have Azure multilingual voices). That choice also decides whether Natural speech and Expressive
-//     emotions instructions are sent: only a local voice gets them, so the cloud voice never reads a tag aloud;
-//   - after the reply, from its own text: a local turn whose reply is not English moves to OmniVoice, or is shown
-//     as text when no Omni can speak it; an English reply keeps the chosen voice. A cloud-voice turn is already
-//     being spoken by Convai, whatever language came back.
+// Voices: Pocket TTS speaks only English, so turning the setting on moves Companion voices to OmniVoice (the optional
+// pack) or the Convai cloud voice (mod/manager.lua); the twins have Azure multilingual cloud voices. The voice of each
+// turn is still planned here as a safety net: a turn the cloud voice speaks gets no Natural speech or Expressive
+// emotions instructions (the cloud voice would read their tags aloud), OmniVoice is told the reply's language, and a
+// reply in another language never reaches Pocket.
 // Pure functions plus one small state holder: no I/O.
 import {detectLanguage} from './reply-language.mjs';
 
@@ -79,33 +75,31 @@ export class MultilingualConversations {
 /**
  * The voice for one turn, decided before it is sent.
  *   enabled: the setting; language: the expected language ('en', 'es', ...);
- *   local: {uses, provider} — does the chosen local voice speak this character, and which one ('pocket' | 'omni');
- *   omni: {usable, ready} — can an OmniVoice worker speak this character, and is it loaded now.
+ *   local: {uses, provider} — does the chosen local voice speak this character, and which one ('pocket' | 'omni').
  * Returns {engine: 'pocket' | 'omni' | 'convai', language, reason}. Off, it is exactly the voice used before.
+ * While the setting is on, Settings keep the voice on OmniVoice or the cloud voice, so this is a safety net: a turn in
+ * another language never reaches Pocket (a fallback or hand-edited setup), and goes to the cloud voice instead.
  */
-export function planTurnVoice({enabled = false, language = 'en', local = {}, omni = {}} = {}) {
+export function planTurnVoice({enabled = false, language = 'en', local = {}} = {}) {
   const chosen = local.uses ? local.provider : 'convai';
   if (!enabled) return {engine: chosen, language: null, reason: 'multilingual-off'};
   if (!language || language === 'en') return {engine: chosen, language: 'en', reason: 'english'};
-  if (!local.uses) return {engine: 'convai', language, reason: 'cloud-voice'};
-  if (local.provider === 'omni') return {engine: 'omni', language, reason: 'omni-selected'};
-  if (omni.usable && omni.ready) return {engine: 'omni', language, reason: 'omni-pack'};
-  return {engine: 'convai', language, reason: omni.usable ? 'omni-loading' : 'no-omni'};
+  if (local.uses && local.provider === 'omni') return {engine: 'omni', language, reason: 'omni'};
+  return {engine: 'convai', language, reason: local.uses ? 'english-only-voice' : 'cloud-voice'};
 }
 
 /**
  * The voice for a finished reply of a turn planned with planTurnVoice. A cloud-voice turn stays on Convai. A local
- * turn follows the reply's own language: English keeps the chosen voice, another language needs OmniVoice
- * ('none' when no Omni can speak it now: the reply is shown as text).
+ * turn follows the reply's own language: English keeps the chosen voice; another language needs OmniVoice, and a
+ * Pocket turn whose reply is not English is shown as text ('none') rather than read by an English-only voice.
  */
-export function replyVoice({plan, text, local = {}, omni = {}} = {}) {
+export function replyVoice({plan, text, local = {}} = {}) {
   if (!plan || plan.engine === 'convai') return {engine: 'convai', language: plan?.language ?? null};
   if (plan.reason === 'multilingual-off') return {engine: plan.engine, language: null};
   const detected = detectLanguage(text).language;
   // An unclear reply keeps what the turn expected.
   const language = detected ?? plan.language ?? 'en';
-  if (language === 'en') return {engine: local.provider === 'omni' ? 'omni' : 'pocket', language: 'en'};
   if (local.provider === 'omni') return {engine: 'omni', language};
-  if (omni.usable && omni.ready) return {engine: 'omni', language};
-  return {engine: 'none', language, reason: omni.usable ? 'omni-loading' : 'no-omni'};
+  if (language === 'en') return {engine: 'pocket', language: 'en'};
+  return {engine: 'none', language, reason: 'english-only-voice'};
 }

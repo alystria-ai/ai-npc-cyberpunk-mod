@@ -20,12 +20,15 @@ function run(code) {
 const fixture = `
   local module = (function() ${source} end)()
   local setting, nearby, published, readyKeys, party, wall = true, {}, {}, {}, {}, 1000
-  local scans, logs = 0, {}
+  local scans, logs, publishedPartners = 0, {}, {}
   local function make(overrides)
     local options = {
       enabled = function() return setting end,
       scan = function() scans = scans + 1; local rows = {}; for _, row in ipairs(nearby) do rows[#rows + 1] = row end; return rows end,
-      publish = function(list) published[#published + 1] = table.concat(list, ',') end,
+      publish = function(list, partners)
+        published[#published + 1] = table.concat(list, ',')
+        publishedPartners[#publishedPartners + 1] = table.concat(partners or {}, ',')
+      end,
       ready = function(key) return readyKeys[key] == true end,
       party = function(key) return party[key] == true end,
       wall = function() return wall end,
@@ -153,10 +156,10 @@ test('a character is released after ten minutes without a conversation but not w
     assert(#auto.active() == 0, 'it was warmed again inside the long cooldown')
     step(auto, 90)
     assert(#auto.active() == 1)
-    -- A conversation in progress keeps it warm and restarts its age.
+    -- A conversation moves it to the partner role: it keeps its connection, outside the two slots.
     step(auto, 580)
     step(auto, 40, {worldReady = true, blocked = false, talking = 'judy-alvarez'})
-    assert(#auto.active() == 1, 'a conversation did not keep the connection')
+    assert(#auto.active() == 0 and auto.partners()[1] == 'judy-alvarez', 'a conversation did not keep the connection')
   `);
 });
 
@@ -206,5 +209,154 @@ test('the heartbeat keeps a non-empty list fresh for the bridge and a reset publ
     -- A failing scan or publisher never breaks the update.
     local broken = make({scan = function() error('native failure') end, publish = function() error('disk full') end})
     step(broken, 2)
+  `);
+});
+
+// ---- Prominence: tier-1 named, then other named, then generic, before distance -------------------------------
+test('nearby characters rank by prominence before distance; a looked-at generic still beats a nearby named one', () => {
+  run(`${fixture}
+    local tiers = {['judy-alvarez'] = 1, ['bartender-dex'] = 2, ['resident-male'] = 3, ['archetype-fixer'] = 3}
+    local prominence = function(key) return tiers[key] end
+    nearby = {{key = 'resident-male', name = 'Resident', distance = 1}, {key = 'bartender-dex', name = 'Named', distance = 2},
+      {key = 'judy-alvarez', name = 'Judy', distance = 4.5}}
+    local auto = make({prominence = prominence})
+    step(auto, 0.1)
+    assert(table.concat(auto.active(), ',') == 'judy-alvarez', 'tier-1 first, though farthest: ' .. table.concat(auto.active(), ','))
+    step(auto, 3.1)
+    assert(table.concat(auto.active(), ',') == 'judy-alvarez,bartender-dex', 'then the other named character')
+    -- Same prominence: distance decides.
+    local same = make({prominence = function() return 3 end})
+    nearby = {{key = 'resident-male', name = 'R', distance = 3}, {key = 'archetype-fixer', name = 'F', distance = 1}}
+    step(same, 0.1)
+    assert(same.active()[1] == 'archetype-fixer')
+    -- Looking is intent: a looked-at generic takes a slot from the idlest unwanted named one.
+    nearby = {}
+    step(auto, 5)
+    for _ = 1, 4 do auto.look('resident-male', 'e9', 'Resident', 0.2) end
+    nearby = {{key = 'bartender-dex', name = 'Named', distance = 2}}
+    step(auto, 0.1)
+    local list = table.concat(auto.active(), ',')
+    assert(list:find('resident-male', 1, true), 'the looked-at generic was not warmed: ' .. list)
+    -- Without a prominence source every row is named (2): distance alone, as before.
+    local plain = make()
+    nearby = {{key = 'resident-male', name = 'R', distance = 1}, {key = 'judy-alvarez', name = 'J', distance = 4}}
+    step(plain, 0.1)
+    assert(plain.active()[1] == 'resident-male')
+  `);
+});
+
+test('catalogue prominence: tier-1 named, other named, generic residents and archetypes', () => {
+  run(`
+    local module = (function() ${source} end)()
+    assert(module.prominence({key = 'judy-alvarez', kind = 'named'}) == 1)
+    assert(module.prominence({key = 'dakota-smith', kind = 'named'}) == 2)
+    assert(module.prominence({key = 'resident-male', kind = 'ambient'}) == 3)
+    assert(module.prominence({key = 'fixer-generic', kind = 'archetype'}) == 3)
+    assert(module.prominence({key = 'someone', kind = 'named', tier = 1}) == 1)
+    assert(module.prominence({key = 'judy-alvarez', kind = 'named', prominence = 2}) == 2, 'an explicit field wins')
+    assert(module.prominence(nil) == 2)
+  `);
+});
+
+// ---- Conversation partner: a talked-to world character keeps its connection outside the two slots -----------
+const partnerFixture = `
+  local distances = {}
+  local function locate(partner) return distances[partner.key] end
+  local function talk(auto, key, seconds) step(auto, seconds or 0.1, {worldReady = true, blocked = false, talking = key}) end
+  local function partners(auto) return table.concat(auto.partners(), ',') end
+`;
+
+test('a talked-to character stays warm for a follow-up without using a slot, and is published as a partner', () => {
+  run(`${fixture}${partnerFixture}
+    nearby = {{key = 'a', name = 'A', distance = 1}, {key = 'b', name = 'B', distance = 2}}
+    local auto = make({locate = locate})
+    distances['dex'] = 3
+    step(auto, 4)
+    assert(table.concat(auto.active(), ',') == 'a,b')
+    -- Talking to a world character who was not prepared: adopted at once, without the stagger, outside the cap.
+    talk(auto, 'dex', 0.1)
+    assert(partners(auto) == 'dex' and #auto.active() == 2, 'the two slots stay for prepared characters')
+    assert(publishedPartners[#publishedPartners] == 'dex' and last() == 'a,b')
+    -- The chat ends; V stays nearby: still warm two minutes later for a follow-up.
+    step(auto, 120)
+    assert(partners(auto) == 'dex', 'released before a follow-up')
+    -- Talking to a prepared character moves it from its slot into the partner role (one connection, one owner).
+    talk(auto, 'a', 0.1)
+    assert(not table.concat(auto.active(), ','):find('a', 1, true), 'a partner kept its slot too')
+    assert(partners(auto) == 'a,dex')
+  `);
+});
+
+test('a partner is released when they part: distance for 20 s, three minutes without an exchange, despawn or a scene', () => {
+  run(`${fixture}${partnerFixture}
+    local auto = make({locate = locate})
+    -- Distance: more than 15 m for 20 s; coming back in time resets it.
+    distances['dex'] = 4; talk(auto, 'dex'); step(auto, 1)
+    distances['dex'] = 20; step(auto, 15)
+    distances['dex'] = 10; step(auto, 1)
+    distances['dex'] = 20; step(auto, 19)
+    assert(partners(auto) == 'dex', 'released before 20 s away')
+    step(auto, 2)
+    assert(partners(auto) == '', 'kept after parting ways')
+    -- Idle: three minutes without an exchange, even close by.
+    distances['dex'] = 2; talk(auto, 'dex'); step(auto, 179)
+    assert(partners(auto) == 'dex')
+    step(auto, 2)
+    assert(partners(auto) == '', 'kept after three idle minutes')
+    -- Despawn: the character is gone.
+    distances['eve'] = 2; talk(auto, 'eve'); step(auto, 1)
+    distances['eve'] = nil; step(auto, 0.1)
+    assert(partners(auto) == '', 'kept after it despawned')
+    -- A scene starts.
+    distances['fay'] = 2; talk(auto, 'fay'); step(auto, 1)
+    step(auto, 0.1, {worldReady = true, blocked = true, scene = true})
+    assert(partners(auto) == '', 'kept during a scene')
+    -- An unknown position (false) never releases on distance.
+    local unknown = make({locate = function() return false end})
+    talk(unknown, 'gus'); step(unknown, 60)
+    assert(table.concat(unknown.partners(), ',') == 'gus')
+  `);
+});
+
+test('talking to someone else makes them the partner; the previous one gets a 30 s grace; at most two at once', () => {
+  run(`${fixture}${partnerFixture}
+    local auto = make({locate = locate})
+    for _, key in ipairs({'dex', 'eve', 'fay'}) do distances[key] = 2 end
+    talk(auto, 'dex'); step(auto, 1)
+    talk(auto, 'eve')
+    assert(partners(auto) == 'eve,dex')
+    step(auto, 29)
+    assert(partners(auto) == 'eve,dex', 'the grace ended early')
+    step(auto, 2)
+    assert(partners(auto) == 'eve', 'the previous partner outlived its grace')
+    -- A group chat alternating between two keeps both; a third replaces the oldest at once (cap 2).
+    talk(auto, 'dex'); talk(auto, 'eve'); talk(auto, 'dex')
+    assert(partners(auto) == 'dex,eve')
+    talk(auto, 'fay')
+    assert(#auto.partners() == 2 and partners(auto) == 'fay,dex', partners(auto))
+    for _ = 1, 50 do talk(auto, ({'dex', 'eve', 'fay', 'gus'})[math.random(4)]) end
+    assert(#auto.partners() <= 2 and #auto.active() <= 2, 'the total is bounded')
+  `);
+});
+
+test('party members never become partners, a promoted partner leaves the role, and the setting off releases partners', () => {
+  run(`${fixture}${partnerFixture}
+    local auto = make({locate = locate})
+    party['judy-alvarez'] = true
+    talk(auto, 'judy-alvarez')
+    assert(partners(auto) == '', 'a party member became a partner')
+    distances['dex'] = 2; talk(auto, 'dex'); step(auto, 1)
+    assert(auto.promote('dex') == true and partners(auto) == '' and publishedPartners[#publishedPartners] == '')
+    assert(auto.promote('dex') == false)
+    -- Joining the party by any route also ends the role.
+    talk(auto, 'eve'); step(auto, 1); party['eve'] = true; step(auto, 0.1)
+    assert(partners(auto) == '')
+    party['eve'] = nil
+    talk(auto, 'eve'); step(auto, 1)
+    setting = false; step(auto, 0.1)
+    assert(partners(auto) == '' and publishedPartners[#publishedPartners] == '')
+    -- A reset (load, death) clears partners too.
+    setting = true; talk(auto, 'eve'); auto.reset()
+    assert(partners(auto) == '')
   `);
 });

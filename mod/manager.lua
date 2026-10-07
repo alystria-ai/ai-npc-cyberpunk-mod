@@ -362,11 +362,18 @@ local function loadSettings()
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
     -- Expressive emotions (the character marks its own feelings; off by default) needs a local voice for the same reason.
     if type(settings.expressiveEmotions) ~= 'boolean' then settings.expressiveEmotions, settingsNeedSave = false, true end
-    if (settings.naturalSpeech or settings.expressiveEmotions) and settings.voiceProvider == 'convai' then
-        settings.voiceProvider, settingsNeedSave = 'pocket', true
-    end
-    -- Multilingual conversations (off by default): conversations go to each character's multilingual twin.
+    -- Multilingual conversations (off by default): conversations go to each character's multilingual twin. Pocket TTS
+    -- speaks only English, so a saved pairing with it cannot stand (Apply never makes one): the voice moves to the cloud
+    -- voice, which every installation can run. With the cloud voice, Multilingual wins over the two tag settings.
     if type(settings.multilingualConversations) ~= 'boolean' then settings.multilingualConversations, settingsNeedSave = false, true end
+    if settings.multilingualConversations and settings.voiceProvider == 'pocket' then
+        settings.voiceProvider, settingsNeedSave = 'convai', true
+    end
+    if (settings.naturalSpeech or settings.expressiveEmotions) and settings.voiceProvider == 'convai' then
+        if settings.multilingualConversations then
+            settings.naturalSpeech, settings.expressiveEmotions, settingsNeedSave = false, false, true
+        else settings.voiceProvider, settingsNeedSave = 'pocket', true end
+    end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
         if type(settings.enabledByKey[key]) ~= 'boolean' and type(settings.enabled) == 'table'
@@ -473,20 +480,59 @@ function M.multilingualConversations()
     return settings.multilingualConversations == true
 end
 
--- Without the OmniVoice pack, a reply in another language can only use the Convai cloud voice, which would read voice
--- and emotion tags aloud. The conversation service then sends those instructions only for turns a local voice speaks
--- (English ones), so the two settings keep working in English. This returns the one-time explanation for an Apply that
--- makes that combination (nil otherwise). The cloud voice chosen for every reply is not affected: Natural speech and
--- Expressive emotions already move it to Pocket TTS.
-local function multilingualVoiceNotice(before, after, packInstalled)
-    local function limited(value)
-        return value.multilingualConversations == true and (value.naturalSpeech == true or value.expressiveEmotions == true)
-            and value.voiceProvider ~= 'convai' and value.voiceProvider ~= 'omni'
+-- Multilingual conversations needs a voice that speaks every language. Pocket TTS speaks only English; OmniVoice (the
+-- optional pack) and the Convai cloud voice speak them all, but the cloud voice would read Natural speech and Expressive
+-- emotions tags aloud. Judged on the settings as they will be after this Apply (`after` is changed in place):
+--   - turning it on moves the voice to OmniVoice · Balanced (16 steps, short reference: the lightest Omni) when the pack
+--     is installed, or to the cloud voice otherwise; an OmniVoice tier is kept, and so is a cloud voice chosen in the
+--     same Apply;
+--   - without the pack, Multilingual wins: the two tag settings are turned off, and turning one on later is refused;
+--   - while it is on, choosing Pocket TTS is refused (turning Multilingual off is the player's own choice to make);
+--   - with the pack, a tag setting with the cloud voice moves the voice to OmniVoice · Balanced, never to Pocket.
+-- Turning it off leaves the voice as it is. Returns an error to refuse the Apply, and the notices to show.
+local function resolveMultilingualVoice(before, after, values, packInstalled)
+    local result = {notices = {}}
+    if after.multilingualConversations ~= true then return result end
+    local turningOn = before.multilingualConversations ~= true
+    if values.voiceProvider ~= nil and after.voiceProvider == 'pocket' then
+        result.error = ui.t('Pocket TTS speaks only English. Turn off Multilingual conversations to choose it.')
+        return result
     end
-    if packInstalled or not limited(after) or limited(before) then return nil end
-    return ui.t('Without the OmniVoice pack, replies in other languages use the Convai cloud voice, so Natural speech and Expressive emotions apply only to English replies.')
+    local effects = after.naturalSpeech == true or after.expressiveEmotions == true
+    local function switched(voice)
+        local named = {setting = ui.t('Companion voices'), voice = voice}
+        if turningOn then
+            return ui.t('Multilingual conversations needs a voice that speaks every language, so {setting} was switched to {voice}.', named)
+        end
+        return after.naturalSpeech == true
+            and ui.t('Natural speech needs a local voice, so {setting} was switched to {voice}.', named)
+            or ui.t('Expressive emotions need a local voice, so {setting} was switched to {voice}.', named)
+    end
+    if not packInstalled then
+        local newlyOn = (values.naturalSpeech == true and before.naturalSpeech ~= true)
+            or (values.expressiveEmotions == true and before.expressiveEmotions ~= true)
+        if newlyOn and not turningOn then
+            result.error = ui.t('Natural speech and Expressive emotions need the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read their tags aloud.')
+            return result
+        end
+        if after.voiceProvider ~= 'convai' then
+            after.voiceProvider = 'convai'
+            result.notices[#result.notices + 1] = switched(M.voiceLabel('convai'))
+        end
+        if effects then
+            after.naturalSpeech, after.expressiveEmotions = false, false
+            result.notices[#result.notices + 1] = ui.t('Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together.')
+        end
+        return result
+    end
+    local keepCloud = after.voiceProvider == 'convai' and not effects and (not turningOn or values.voiceProvider == 'convai')
+    if after.voiceProvider ~= 'omni' and not keepCloud then
+        after.voiceProvider, after.omniSteps, after.omniReference = 'omni', 16, 'short'
+        result.notices[#result.notices + 1] = switched(M.voiceLabel('omni', 16, 'short'))
+    end
+    return result
 end
-M.multilingualVoiceNotice = multilingualVoiceNotice
+M.resolveMultilingualVoice = resolveMultilingualVoice
 
 function M.relationshipChoices()
     loadSettings()
@@ -1098,10 +1144,13 @@ function M.applySettings(player, values)
     end
     -- Natural speech needs a local voice. Both settings are judged as they will be after this Apply, so turning it on
     -- while the cloud voice is saved, choosing the cloud voice while it is on, or both in one Apply, ends on Pocket TTS.
-    local switchedVoice = (nextSettings.naturalSpeech == true or nextSettings.expressiveEmotions == true)
+    -- With Multilingual conversations on, the voice is resolved by its own rules below instead (never Pocket TTS).
+    local multilingual = resolveMultilingualVoice(settings, nextSettings, values, M.omniPack().installed)
+    if multilingual.error then return false, multilingual.error end
+    local switchedVoice = nextSettings.multilingualConversations ~= true
+        and (nextSettings.naturalSpeech == true or nextSettings.expressiveEmotions == true)
         and nextSettings.voiceProvider == 'convai'
     if switchedVoice then nextSettings.voiceProvider = 'pocket' end
-    local multilingualNotice = multilingualVoiceNotice(settings, nextSettings, M.omniPack().installed)
     local previous = settings
     settings = nextSettings
     if not saveSettings() then
@@ -1117,7 +1166,7 @@ function M.applySettings(player, values)
         end
     end
     if companions.onPartyChanged then pcall(companions.onPartyChanged) end
-    if switchedVoice or multilingualNotice then
+    if switchedVoice or #multilingual.notices > 0 then
         local notices = {}
         if switchedVoice then
             local named = {setting = ui.t('Companion voices'), voice = M.voiceLabel('pocket')}
@@ -1125,7 +1174,7 @@ function M.applySettings(player, values)
                 and ui.t('Natural speech needs a local voice, so {setting} was switched to {voice}.', named)
                 or ui.t('Expressive emotions need a local voice, so {setting} was switched to {voice}.', named)
         end
-        if multilingualNotice then notices[#notices + 1] = multilingualNotice end
+        for _, notice in ipairs(multilingual.notices) do notices[#notices + 1] = notice end
         naturalSpeechNotice = table.concat(notices, ' ')
         feedback, dirty = clean(naturalSpeechNotice, 800), true
         return true, nil, naturalSpeechNotice
