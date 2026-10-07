@@ -27,6 +27,7 @@ import {NearbyWarm} from './nearby-warm.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {NaturalSpeech, OMNI_TAGS, speechPhrases} from './natural-speech.mjs';
+import {ExpressiveEmotions} from './expressive-emotions.mjs';
 import {resolveVoiceConfigPaths} from './voice-config-paths.mjs';
 import {detectOmniPack} from './omni-pack.mjs';
 import {ResidentPhoneAnalysis} from './resident-phone-analysis.mjs';
@@ -133,7 +134,10 @@ const knowledgeRouter = new PlayerKnowledge({playerMemory, pack: knowledgePack, 
 const phoneKnowledge = new PlayerPhoneKnowledge({router: knowledgeRouter, getBoundary: currentBoundary});
 // "Natural speech": the setting, and the display text of every reply with voice tags removed (bridge/natural-speech.mjs).
 const naturalSpeech = new NaturalSpeech();
-const phoneRealtime = new RealtimeHost({transformReply: result => naturalSpeech.process(result)});
+// "Expressive emotions": the character marks its own feelings inline; the marks drive the face (bridge/expressive-emotions.mjs).
+const expressiveEmotions = new ExpressiveEmotions();
+const cleanReply = result => expressiveEmotions.process(naturalSpeech.process(result));
+const phoneRealtime = new RealtimeHost({transformReply: cleanReply});
 const knowledgeTurns = new Map();
 function rememberKnowledgeTurn(prepared) {
   const requestId = prepared.input.requestId || prepared.input.id;
@@ -258,7 +262,7 @@ function writeStreamManifest(document,current){
 const companionActions = new CompanionActions({createToken: () => 'drive-' + randomUUID(),
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options)});
 const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet),
-  transformReply: result => naturalSpeech.process(result)});
+  transformReply: cleanReply});
 let observed = '', observedIdentity = null;
 let lastAcceptedIdentity = '';
 let polling = false, active = null, stopped = false;
@@ -281,6 +285,13 @@ const naturalSpeechContext = input => {
   const engine = localVoice.usesProfile(input.profileKey) ? localVoice.provider : 'convai';
   return naturalSpeech.contextFor({engine, spoken, sessionId: realtimeSessions.get(sessionKey(input))});
 };
+// Expressive emotions: spoken turns on a local voice, battle and loot barks included (they have a face). Not phone chat.
+const expressiveEmotionsContext = input => {
+  const prepared = preparedInputs.get(input);
+  const phone = input.channel === 'phone' || prepared?.route?.channel === 'phone';
+  const engine = localVoice.usesProfile(input.profileKey) ? localVoice.provider : 'convai';
+  return expressiveEmotions.contextFor({engine, spoken: !phone && localVoice.playbackEnabled !== false});
+};
 const conversationContext = input => {
   const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
   return [intrinsicConversationContext(input),
@@ -288,7 +299,7 @@ const conversationContext = input => {
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : '',
     admitted && prepared.route.channel === 'phone' ? phoneRecentConversationContext(prepared.input) : '',
-    naturalSpeechContext(input)]
+    naturalSpeechContext(input), expressiveEmotionsContext(input)]
     .filter(Boolean).join('\n\n');
 };
 const boundaryFor = input => ({entity: input?.entity,
@@ -496,8 +507,9 @@ async function synthesizeReply(input, result, signal, current, profile = profile
       const phrases = splitSpeechText(result.text);
       spans = phraseOffsets(result.text, phrases);
       plan = analyseReply(result.text, {profile: input.profileKey, baseline: baselineFromSignal(result.expressionSignal),
-        breaks: spans.slice(1).map(span => span[0])});
-    } else plan = analyseReply(result.text, {profile: input.profileKey, baseline: baselineFromSignal(result.expressionSignal)});
+        breaks: spans.slice(1).map(span => span[0]), marks: result.emotionMarks});
+    } else plan = analyseReply(result.text, {profile: input.profileKey, baseline: baselineFromSignal(result.expressionSignal),
+      marks: result.emotionMarks});
   } catch { plan = undefined; }
   if (result.expressionSignal === undefined) {
     const cue = plan ? planSignal(plan) : textExpressionSignal(result.text, {profile: input.profileKey});
@@ -545,7 +557,7 @@ async function synthesizeReply(input, result, signal, current, profile = profile
     return {...result, audio: undefined, faces: [], captions: [],
       audioError: 'Local streaming is unavailable; showing the written reply.'};
   }
-  const speech = continuousSpeech(input, profile, current, signal, receiptPrepared, true);
+  const speech = continuousSpeech(input, profile, current, signal, receiptPrepared, true, result.emotionMarks);
   let prefetched;
   if (ahead?.isHeld()) {
     // Synthesize now, into memory (the one renderer page may still be draining
@@ -585,11 +597,11 @@ async function status(state, detail = '') {
   await atomic(statusPath, JSON.stringify({state, detail: detail.slice(0, 200), updated: Date.now()}));
 }
 
-function continuousSpeech(input, profile, current, signal, receiptPrepared = preparedInputs.get(input), local = false) {
+function continuousSpeech(input, profile, current, signal, receiptPrepared = preparedInputs.get(input), local = false, marks) {
   const options = {signal, isCurrent: current, isCurrentSync: current.sync};
   const ahead = current.ahead;
   const speech = new ConvaiContinuousSpeech({input, profile, current, signal,
-    planExpression: createPlanner({profile: input.profileKey}),
+    planExpression: createPlanner({profile: input.profileKey, marks}),
     ...(local ? {faceBuilder: ownedPocketFace} : {jaliFace}),
     // A look-ahead turn buffers silently until the game submits it. Once its
     // complete text is known (and it is no longer held), the next group speaker
@@ -1298,7 +1310,8 @@ async function pollSettings(checkShutdown = true) {
       dropPrefetch(); prefetchObserved = '';
     }
     // A prepared reply was written under the previous Natural speech instructions.
-    if (naturalSpeech.update(settings)) { dropPrefetch(); prefetchObserved = ''; }
+    const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
+    if (speechChanged || emotionsChanged) { dropPrefetch(); prefetchObserved = ''; }
     await syncRelationshipRoutes(); await syncVoiceRoutes();
     publishRelationshipRoutes();
     if (Date.now() - lastVoiceHeartbeat >= 5000) {

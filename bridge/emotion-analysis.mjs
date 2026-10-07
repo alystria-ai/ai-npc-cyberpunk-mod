@@ -7,6 +7,7 @@
 // weights (0..1) and a spoken-duration estimate. bridge/expression-timeline.mjs
 // aligns that plan to the real audio time.
 import {FAMILIES, WORDS, INTENSIFIERS, DIMINISHERS, NEGATORS, CONTRAST, PROFANITY, ADDRESS, SARCASM} from './emotion-lexicon.mjs';
+import {plannedMarks} from './expressive-emotions.mjs';
 export {FAMILIES};
 
 const POSITIVE = new Set(['joy', 'trust']);
@@ -268,10 +269,14 @@ function scoreSegment(segment, trait) {
 
 const toWeight = score => clamp01(score * .85);
 
-export function analyseReply(text, {profile, baseline, breaks = [], now} = {}) {
+// `marks` (optional): the character's own emotion tags ("Expressive emotions"), as offsets into `text`. Each mark
+// starts a segment (a forced boundary, like an Omni phrase edge) and its feeling holds until the next mark; text
+// before the first mark keeps the text-based reading. No marks: exactly the text-based plan.
+export function analyseReply(text, {profile, baseline, breaks = [], marks, now} = {}) {
   if (typeof text !== 'string' || !text.trim() || text.length > 12000) return undefined;
   const traitName = traitFor(profile), trait = TRAITS[traitName];
-  const segmentsRaw = segmentText(text, {breaks});
+  const placed = plannedMarks(marks, text.length);
+  const segmentsRaw = segmentText(text, {breaks: placed.length ? [...breaks, ...placed.map(mark => mark.at)] : breaks});
   if (!segmentsRaw.length) return undefined;
   // Baseline: the character's resting weights, replaced by Convai's own
   // reply-level label (kept at 60 % so phrase analysis can still vary it).
@@ -289,10 +294,16 @@ export function analyseReply(text, {profile, baseline, breaks = [], now} = {}) {
     let emphasis = 1;
     if (segment.contrastNext) { emphasis *= .6; tags.add('pre-contrast'); }
     if (segment.contrast) { emphasis *= 1.18; tags.add('contrast'); }
-    const feelings = {};
+    let feelings = {};
     for (const family of FAMILIES) {
       const weight = clamp01(toWeight(scores[family]) * emphasis * trait.range);
       if (weight >= .2) feelings[family] = weight;
+    }
+    // The character's own mark in force at the start of this segment replaces the text reading.
+    const mark = placed.findLast(candidate => candidate.at <= segment.start);
+    if (mark) {
+      feelings = mark.family ? {[mark.family]: clamp01(mark.weight * trait.range)} : {};
+      tags.add('llm-emotion');
     }
     // Baseline yields to a clearly negative phrase and is topped up by feelings.
     const negativeSum = [...NEGATIVE].reduce((sum, family) => sum + (feelings[family] || 0), 0);
@@ -379,13 +390,14 @@ export function baselineFromSignal(signal, strength = [.4, .67, 1]) {
 }
 
 // One-entry cache: continuous streams republish the same growing text many times a second.
-export function createPlanner({profile, breaks} = {}) {
+// `marks`: the reply's own emotion tags (offsets into the complete text; a growing prefix uses the ones it reaches).
+export function createPlanner({profile, breaks, marks} = {}) {
   let key, plan;
   return (text, signal) => {
     const baseline = baselineFromSignal(signal), id = text + '\u0000' + (baseline ? baseline.family + baseline.weight : '');
     if (id !== key) {
       key = id;
-      try { plan = analyseReply(text, {profile, baseline, breaks}); } catch { plan = undefined; }
+      try { plan = analyseReply(text, {profile, baseline, breaks, marks}); } catch { plan = undefined; }
     }
     return plan;
   };

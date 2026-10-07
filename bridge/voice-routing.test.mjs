@@ -559,3 +559,43 @@ test('Natural speech: Pocket is handed only the clean text, whatever the reply c
   assert.equal(spoken[2],'A complete reply. With two sentences.');
   assert.equal(result.text,'A complete reply. With two sentences.');
 });
+
+const EMOTION_TEXT = 'We have a long enough original sentence to produce the first local phrase. Then we have another long enough sentence for the following phrase.';
+const EMOTION_MARKS = [{at: 0, name: 'interest', strength: 'subtle'},
+  {at: EMOTION_TEXT.indexOf('Then'), name: 'sadness', strength: 'strong'}];
+
+test('Expressive emotions: OmniVoice plans each phrase from the character\'s own marks, and the text reading is the fallback',async()=>{
+  const voice={provider:'omni',steps:16,usesProfile:()=>true,
+    async synthesize(){return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
+  const f=fixture({voiceSelection:voice,continuous:true});
+  f.remote.text=EMOTION_TEXT;f.remote.emotionMarks=EMOTION_MARKS;
+  const marked=await f.api.respond(f.input,f.profile,{current:async()=>true});
+  const plan=marked.expressionPlan,second=EMOTION_TEXT.indexOf('Then');
+  assert.ok(plan.segments.every(segment=>segment.tags.includes('llm-emotion')));
+  assert.equal(plan.segments.find(segment=>segment.start===0).dominant,'anticipation');
+  assert.equal(plan.segments.find(segment=>segment.start===second).dominant,'sadness');
+  assert.equal(marked.streamPlan.expressionPlan,plan,'the stream hands each phrase its own slice of this plan');
+  assert.equal(marked.streamPlan.spans[1][0],second,'the second phrase opens at the sad mark');
+  assert.ok(planSignal(plan).emotion,'the reply-level cue comes from the marks');
+  // No marks in the reply: the text-based plan, exactly as before.
+  const plainFixture=fixture({voiceSelection:voice,continuous:true});
+  plainFixture.remote.text=EMOTION_TEXT;
+  const plain=await plainFixture.api.respond(plainFixture.input,plainFixture.profile,{current:async()=>true});
+  assert.ok(plain.expressionPlan.segments.every(segment=>!segment.tags.includes('llm-emotion')));
+});
+
+test('Expressive emotions: Pocket\'s streaming planner is given the marks, and a reply without marks keeps the text reading',async()=>{
+  for(const marks of [EMOTION_MARKS,undefined]){
+    const f=fixture({local:true,continuous:true});let captured;
+    const sandbox={...f,deliverPocketSpeech:async value=>{captured=value;return value.result;}};
+    runInNewContext(code+';globalThis.runLocal=synthesizeReply;',sandbox);
+    await sandbox.runLocal(f.input,{...f.remote,text:EMOTION_TEXT,audio:undefined,...(marks?{emotionMarks:marks}:{})},undefined,async()=>true,f.profile);
+    const planned=captured.speech.callbacks.planExpression(EMOTION_TEXT);
+    assert.equal(captured.result.text,EMOTION_TEXT);
+    if(marks){
+      assert.equal(planned.segments.find(segment=>segment.start===EMOTION_TEXT.indexOf('Then')).dominant,'sadness');
+      assert.ok(planned.segments.every(segment=>segment.tags.includes('llm-emotion')));
+      assert.ok(captured.result.expressionPlan.segments.every(segment=>segment.tags.includes('llm-emotion')));
+    }else assert.ok(planned.segments.every(segment=>!segment.tags.includes('llm-emotion')));
+  }
+});

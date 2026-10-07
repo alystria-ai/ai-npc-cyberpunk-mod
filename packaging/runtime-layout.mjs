@@ -27,6 +27,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/emotion-analysis.mjs',
   'bridge/emotion-lexicon.mjs',
   'bridge/expression-timeline.mjs',
+  'bridge/expressive-emotions.mjs',
   'bridge/facial-timeline.mjs',
   'bridge/game-launch.mjs',
   'bridge/group-context.mjs',

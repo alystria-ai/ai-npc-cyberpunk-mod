@@ -804,6 +804,8 @@ local function schema()
                 'Remember each companion’s prepared voice so summoning them again is quicker. Pocket TTS saves one small file per character (about 5 to 15 MB) in the mod’s runtime folder; OmniVoice does a short hidden warm-up at your chosen quality while a companion joins. Turn this off to save nothing on disk. The change applies without a restart.'),
             setting('naturalSpeech', 'Natural speech', 'bool', snapshot.settings.naturalSpeech, false,
                 'Let companions speak the way a real person with their personality would: now and then a pause, a hesitation, a laugh or a sigh. Each character decides when it fits, and it stays rare; a fluent, confident speaker will hardly use it. OmniVoice can voice laughs and sighs; Pocket TTS uses only pauses in the sentence. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. Off by default.'),
+            setting('expressiveEmotions', 'Expressive emotions', 'bool', snapshot.settings.expressiveEmotions, false,
+                'Let each character mark its own feelings as it speaks, so the face changes when that part is spoken instead of being guessed from the words. Subtle by default, chosen by personality, and only where the feeling really shifts. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. A reply without marks uses the usual text-based expression. Off by default.'),
             readonly('voice-pack', 'OmniVoice pack', pack.known and (pack.installed and 'Installed' or 'Not installed') or 'Waiting for voice service',
                 'OmniVoice is an optional add-on for computers with a capable GPU. Pocket TTS needs nothing extra.'),
             readonly('voice-status', 'Voice service', voiceStatus,
@@ -934,7 +936,8 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                 local key = change.id
                 if key == 'voice' or key == 'subtitles' or key == 'followUpQuestions' or key == 'developerMode'
                     or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures'
-                    or key == 'autoConnectNearby' or key == 'keepPreparedVoices' or key == 'naturalSpeech' then values[key] = change.value
+                    or key == 'autoConnectNearby' or key == 'keepPreparedVoices' or key == 'naturalSpeech'
+                    or key == 'expressiveEmotions' then values[key] = change.value
                 elseif key == 'subtitleStyle' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose Above speaker or Dialogue HUD.')} end
                     values.subtitleStyle = change.value == 1 and 'overhead' or 'dialogue'

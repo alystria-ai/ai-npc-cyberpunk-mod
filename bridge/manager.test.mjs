@@ -3090,3 +3090,113 @@ test('Natural speech sits in the Voices category and Auto Apply cannot commit it
     assert(registered.applyBatch('manager', {{id = 'naturalSpeech', value = true}}).ok and manager.naturalSpeech())
   `);
 });
+
+test('Expressive emotions is off by default and a saved pairing with the Convai cloud voice cannot stand', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(saved.expressiveEmotions == false and manager.expressiveEmotions() == false)
+    assert(manager.snapshot(player).settings.expressiveEmotions == false)
+    for _, case in ipairs({{'missing', 'convai'}, {true, 'convai'}, {true, 'pocket'}, {true, 'omni'}, {false, 'convai'}, {'yes', 'convai'}}) do
+      seed = {version = 2, voiceProvider = case[2], enabledByKey = {}, future = {keep = 'unchanged'}}
+      if case[1] ~= 'missing' then seed.expressiveEmotions = case[1] end
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      local on = case[1] == true
+      assert(manager.expressiveEmotions() == on and saved.expressiveEmotions == on, tostring(case[1]))
+      local expected = (on and case[2] == 'convai') and 'pocket' or case[2]
+      assert(saved.voiceProvider == expected and manager.snapshot(player).settings.voiceProvider == expected)
+      assert(saved.future.keep == 'unchanged')
+    end
+  `);
+});
+
+test('Expressive emotions needs a local voice too: the cloud voice is switched to Pocket TTS in the same Apply, with its own notice, and both settings coexist', () => {
+  run(`${mcmFixture}
+    local clock = 5000
+    os.clock = function() return clock end
+    local sent = {}
+    function player:ConvaiPhoneFeedback(text) sent[#sent + 1] = text end
+    assert(invoke('tab:settings').ok)
+    local entry = row('expressiveEmotions')
+    assert(entry and entry.type == 'bool' and entry.value == false and entry.defaultValue == false, 'off by default')
+    local owner
+    for _, category in ipairs(loaded.categories) do
+      for _, item in ipairs(category.settings) do if item.id == 'expressiveEmotions' then owner = category end end
+    end
+    assert(owner and owner.id == 'voices' and entry.label == 'Expressive emotions')
+    assert(entry.description:find('Off by default', 1, true) and entry.description:find('local voice', 1, true))
+    local EMOTIONS = 'Expressive emotions need a local voice, so Companion voices was switched to ' .. manager.voiceLabel('pocket') .. '.'
+    local SPEECH = 'Natural speech needs a local voice, so Companion voices was switched to ' .. manager.voiceLabel('pocket') .. '.'
+    local CLOUD, OMNI
+    for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do
+      if choice.provider == 'convai' then CLOUD = index end
+      if choice.provider == 'omni' and not OMNI then OMNI = index end
+    end
+    local function apply(...)
+      clock = clock + 2
+      local changes = {}
+      for _, change in ipairs({...}) do changes[#changes + 1] = {id = change[1], value = change[2]} end
+      return registered.applyBatch('manager', changes)
+    end
+    -- On with a local voice: nothing else changes and nothing is announced.
+    local result = apply({'expressiveEmotions', true})
+    assert(result.ok and manager.expressiveEmotions() and saved.expressiveEmotions == true and saved.voiceProvider == 'pocket')
+    assert(result.schemaChanged == false and manager.takeNaturalSpeechNotice() == nil and not manager.naturalSpeech())
+    -- Choosing the cloud voice while it is on ends on Pocket TTS and says so.
+    result = apply({'voiceProvider', CLOUD})
+    assert(result.ok and saved.voiceProvider == 'pocket' and saved.expressiveEmotions == true and result.schemaChanged == true)
+    assert(manager.snapshot(player).feedback == EMOTIONS, manager.snapshot(player).feedback)
+    mcm.update(player, true)
+    assert(#sent == 1 and sent[1] == EMOTIONS and not manager.takeNaturalSpeechNotice(), tostring(sent[1]))
+    -- Off: the cloud voice is allowed again. Turning it on while the cloud voice is saved switches the voice in that Apply.
+    assert(apply({'expressiveEmotions', false}).ok and apply({'voiceProvider', CLOUD}).ok and saved.voiceProvider == 'convai')
+    assert(manager.takeNaturalSpeechNotice() == nil)
+    result = apply({'expressiveEmotions', true})
+    assert(result.ok and saved.voiceProvider == 'pocket' and result.schemaChanged == true)
+    assert(manager.takeNaturalSpeechNotice() == EMOTIONS)
+    -- Both staged together: the setting on and the cloud voice picked, in one batch.
+    assert(apply({'expressiveEmotions', false}).ok and apply({'voiceProvider', CLOUD}).ok)
+    result = apply({'voiceProvider', CLOUD}, {'expressiveEmotions', true})
+    assert(result.ok and saved.voiceProvider == 'pocket' and saved.expressiveEmotions == true)
+    assert(manager.takeNaturalSpeechNotice() == EMOTIONS)
+    -- Both settings on together stay together; the voice moves once, and the notice names Natural speech.
+    assert(apply({'expressiveEmotions', false}).ok and apply({'voiceProvider', CLOUD}).ok)
+    result = apply({'expressiveEmotions', true}, {'naturalSpeech', true})
+    assert(result.ok and saved.voiceProvider == 'pocket' and saved.expressiveEmotions == true and saved.naturalSpeech == true)
+    assert(manager.takeNaturalSpeechNotice() == SPEECH and manager.takeNaturalSpeechNotice() == nil)
+    -- With Natural speech still on, turning Expressive emotions off leaves the voice rule in force for the other one.
+    assert(apply({'expressiveEmotions', false}).ok and manager.naturalSpeech() and not manager.expressiveEmotions())
+    result = apply({'voiceProvider', CLOUD})
+    assert(result.ok and saved.voiceProvider == 'pocket' and manager.takeNaturalSpeechNotice() == SPEECH)
+    -- OmniVoice is a local voice: it is kept with both on.
+    result = apply({'voiceProvider', OMNI}, {'expressiveEmotions', true})
+    assert(result.ok and saved.voiceProvider == 'omni' and saved.expressiveEmotions == true and saved.naturalSpeech == true)
+    assert(manager.takeNaturalSpeechNotice() == nil and result.schemaChanged == false)
+    -- A failed save changes nothing and sends no notice; a non-boolean is refused.
+    assert(apply({'expressiveEmotions', false}).ok and apply({'naturalSpeech', false}).ok and apply({'voiceProvider', CLOUD}).ok)
+    failSave = true
+    result = apply({'voiceProvider', CLOUD}, {'expressiveEmotions', true})
+    assert(result.ok == false and saved.voiceProvider == 'convai' and not manager.expressiveEmotions())
+    assert(manager.takeNaturalSpeechNotice() == nil)
+    failSave = false
+    assert(registered.applyBatch('manager', {{id = 'expressiveEmotions', value = 'yes'}}).ok == false)
+  `);
+});
+
+test('Auto Apply cannot commit Expressive emotions before the person chooses Apply', () => {
+  run(`${mcmFixture}
+    assert(invoke('tab:settings').ok)
+    local clock = 5000
+    os.clock = function() return clock end
+    local listeners = {}
+    nativeApi.subscribe = function(name, callback) listeners[#listeners + 1] = callback; return #listeners end
+    nativeApi.unsubscribe = function() return true end
+    mcm.shutdown(); mcm.install()
+    for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = 1}) end
+    local refused = registered.applyBatch('manager', {{id = 'expressiveEmotions', value = true}})
+    assert(refused.ok == false and refused.error:find('Change pending', 1, true))
+    assert(not manager.expressiveEmotions() and saved.expressiveEmotions == false)
+    clock = clock + 2
+    assert(registered.applyBatch('manager', {{id = 'expressiveEmotions', value = true}}).ok and manager.expressiveEmotions())
+  `);
+});

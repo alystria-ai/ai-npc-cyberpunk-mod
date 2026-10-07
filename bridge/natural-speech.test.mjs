@@ -262,13 +262,14 @@ test('Pocket never receives a tag, even one that slipped through, and OmniVoice 
 test('the bridge wires Natural speech through the context, the reply transform, Omni synthesis and the settings poll', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /import \{NaturalSpeech, OMNI_TAGS, speechPhrases\} from '\.\/natural-speech\.mjs'/);
-  assert.equal(bridge.match(/transformReply: result => naturalSpeech\.process\(result\)/g).length, 2, 'text hosts: conversation and phone');
+  assert.match(bridge, /const cleanReply = result => expressiveEmotions\.process\(naturalSpeech\.process\(result\)\)/);
+  assert.equal(bridge.match(/transformReply: cleanReply/g).length, 2, 'text hosts: conversation and phone');
   // The block is the last piece of the conversation context and is gated on the committed voice, never on Convai.
-  assert.match(bridge, /naturalSpeechContext\(input\)\]\s*\.filter\(Boolean\)/);
+  assert.match(bridge, /naturalSpeechContext\(input\), expressiveEmotionsContext\(input\)\]\s*\.filter\(Boolean\)/);
   assert.match(bridge, /localVoice\.usesProfile\(input\.profileKey\) \? localVoice\.provider : 'convai'/);
   assert.match(bridge, /input\.channel === 'phone' \|\| prepared\?\.route\?\.channel === 'phone'/);
   assert.match(bridge, /naturalSpeech\.enabled\?speechPhrases\(phrases,result\.speechText,OMNI_TAGS\)/);
-  assert.match(bridge, /if \(naturalSpeech\.update\(settings\)\)/);
+  assert.match(bridge, /naturalSpeech\.update\(settings\), emotionsChanged/);
   const subtitles = readFileSync(new URL('../mod/subtitles.lua', import.meta.url), 'utf8');
   assert.match(subtitles, /text:gsub\('%s\*%\[%a\[%a%-\]\*%\]', ''\)/);
 });

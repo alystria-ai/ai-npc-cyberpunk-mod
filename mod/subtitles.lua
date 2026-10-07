@@ -1,6 +1,7 @@
 -- Native subtitles, owned by one reply and one exact world speaker at a time.
 -- Overhead projection/layout stays in the game. We only advance owned lines.
 local M = convaiSubtitles or {serial = 0}
+local EMOTION_TAGS = {'joy', 'warm', 'interest', 'surprise', 'sadness', 'fear', 'anger', 'disgust', 'calm'}
 local UTF8 = '[%z\1-\127\194-\244][\128-\191]*'
 
 local function finite(value)
@@ -190,6 +191,10 @@ function M.split(text, style)
     -- Natural speech: a voice tag such as [laughter] is for the voice engine, never for the reader. The bridge
     -- already removes them; this keeps one that slipped through off the screen.
     text = text:gsub('%s*%[%a[%a%-]*%]', '')
+    -- Expressive emotions: {joy}, {anger:strong} and the other feeling tags are for the face, never for the reader.
+    for _, name in ipairs(EMOTION_TAGS) do
+        text = text:gsub('%s*{' .. name .. '}', ''):gsub('%s*{' .. name .. ':%a+}', '')
+    end
     text = text:gsub('%s+', ' '):match('^%s*(.-)%s*$')
     local chars, pages, ranges = {}, {}, {}
     for char in text:gmatch(UTF8) do chars[#chars + 1] = char end

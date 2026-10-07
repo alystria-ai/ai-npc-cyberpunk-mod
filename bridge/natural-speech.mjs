@@ -15,27 +15,51 @@ export const OMNI_TAGS = Object.freeze(['laughter', 'sigh', 'confirmation-en', '
 // More than this in one reply is a runaway; the rest are not voiced (they never reach the display text anyway).
 export const MAX_VOICED_TAGS = 2;
 
-// A tag is one lowercase word (hyphens allowed) in square brackets. Phoneme syntax such as [B EY1 S] has spaces,
+// A voice tag is one lowercase word (hyphens allowed) in square brackets. Phoneme syntax such as [B EY1 S] has spaces,
 // digits or capitals, so it never matches. Matching is case-insensitive so "[Laughter]" is still cleaned up.
 const TAG = /\[([a-z]+(?:-[a-z]+)*)\]/gi;
 const TAG_PRESENT = /\[[a-z]+(?:-[a-z]+)*\]/i;
+// An emotion tag ("Expressive emotions", bridge/expressive-emotions.mjs) is one of a small fixed set in CURLY braces,
+// optionally with a strength: {joy}, {anger:strong}. The two syntaxes cannot collide: brackets are sounds for the
+// voice, braces are feelings for the face. Only the known names count; any other braces are ordinary text.
+export const EMOTION_NAMES = Object.freeze(['joy', 'warm', 'interest', 'surprise', 'sadness', 'fear', 'anger', 'disgust', 'calm']);
+const EMOTION = new RegExp(`\\{(${EMOTION_NAMES.join('|')})(?::(strong|subtle))?\\}`, 'gi');
+const EMOTION_PRESENT = new RegExp(EMOTION.source, 'i');
 const MARK = '\u0001';
 const PUNCTUATION_ONLY = /^[,.;:!?…]+$/;
 
-export const hasSpeechTags = text => typeof text === 'string' && TAG_PRESENT.test(text);
+export const hasSpeechTags = text => typeof text === 'string' && (TAG_PRESENT.test(text) || EMOTION_PRESENT.test(text));
+export const hasEmotionTags = text => typeof text === 'string' && EMOTION_PRESENT.test(text);
 
-/** Words of a reply with the tags that precede each word. Whitespace is normalized to single spaces. */
+/**
+ * Words of a reply with the voice tags and emotion tags that precede each word. Whitespace is normalized to single
+ * spaces. `marks` are the emotion tags with `at`, the character offset in `display` of the word each one precedes
+ * (a tag with no word after it marks nothing and is dropped).
+ */
 export function parseTagged(text) {
   const words = [];
-  let pending = [];
-  for (const token of String(text).replace(TAG, (_, name) => ` ${MARK}${name.toLowerCase()}${MARK} `).split(/\s+/)) {
+  let pending = [], pendingEmotions = [];
+  const marked = String(text)
+    .replace(TAG, (_, name) => ` ${MARK}v:${name.toLowerCase()}${MARK} `)
+    .replace(EMOTION, (_, name, strength) => ` ${MARK}e:${name.toLowerCase()}:${strength ? strength.toLowerCase() : ''}${MARK} `);
+  for (const token of marked.split(/\s+/)) {
     if (!token) continue;
-    if (token.startsWith(MARK) && token.endsWith(MARK) && token.length > 2) { pending.push(token.slice(1, -1)); continue; }
+    if (token.startsWith(MARK) && token.endsWith(MARK) && token.length > 2) {
+      const [kind, name, strength] = token.slice(1, -1).split(':');
+      if (kind === 'v') pending.push(name); else pendingEmotions.push({name, strength: strength || 'subtle'});
+      continue;
+    }
     // "[sigh]." leaves a stray full stop: it belongs to the word before the tag.
-    if (pending.length && words.length && PUNCTUATION_ONLY.test(token)) { words.at(-1).text += token; continue; }
-    words.push({text: token, before: pending}); pending = [];
+    if ((pending.length || pendingEmotions.length) && words.length && PUNCTUATION_ONLY.test(token)) { words.at(-1).text += token; continue; }
+    words.push({text: token, before: pending, emotions: pendingEmotions}); pending = []; pendingEmotions = [];
   }
-  return {words, tail: pending, display: words.map(word => word.text).join(' ')};
+  const marks = [];
+  let at = 0;
+  for (const word of words) {
+    for (const emotion of word.emotions) marks.push({at, ...emotion});
+    at += word.text.length + 1;
+  }
+  return {words, tail: pending, marks, display: words.map(word => word.text).join(' ')};
 }
 
 /** The text with every tag removed. Text without a tag is returned untouched (same string, same whitespace). */
@@ -46,7 +70,7 @@ export function stripSpeechTags(text) {
 /** Streaming text for display: tags removed, and a tag still being written ("[laug") held back until it completes. */
 export function displayText(text, complete = true) {
   if (typeof text !== 'string') return text;
-  const held = complete ? text : text.replace(/\s*\[[a-z-]*$/i, '');
+  const held = complete ? text : text.replace(/\s*[\[{][a-z:-]*$/i, '');
   return stripSpeechTags(held);
 }
 
@@ -189,14 +213,22 @@ export class NaturalSpeech {
   }
   /**
    * A reply as it comes back from Convai: its display text never carries a tag (subtitles, phone chat, memory,
-   * history). The tagged original is kept as `speechText` for an engine that renders tags.
+   * history). The voice-tagged original is kept as `speechText` for an engine that renders tags, and the emotion
+   * tags as `emotionMarks` (character offsets in the display text).
    */
   process(result) {
     if (typeof result?.text !== 'string') return result;
     this.record(result.sessionID, result.text);
     if (!hasSpeechTags(result.text)) return result;
-    const display = parseTagged(result.text).display;
+    const parsed = parseTagged(result.text), display = parsed.display;
     // A reply that is only a tag has no text to show; leave it whole rather than send an empty reply on.
-    return display ? {...result, text: display, speechText: result.text} : result;
+    if (!display) return result;
+    const out = {...result, text: display};
+    // The voice-tagged original, for an engine that renders voice tags (emotion tags never reach a voice).
+    const voice = [...parsed.words.flatMap(word => word.before), ...parsed.tail];
+    if (voice.length) out.speechText = keepSpeechTags(result.text, voice);
+    // Where each emotion tag sits in the display text, for Expressive emotions (which drops them when it is off).
+    if (parsed.marks.length) out.emotionMarks = parsed.marks;
+    return out;
   }
 }

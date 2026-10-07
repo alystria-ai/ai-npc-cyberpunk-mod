@@ -544,4 +544,7 @@ return {
     ["Natural speech"] = "自然说话",
     ["Let companions speak the way a real person with their personality would: now and then a pause, a hesitation, a laugh or a sigh. Each character decides when it fits, and it stays rare; a fluent, confident speaker will hardly use it. OmniVoice can voice laughs and sighs; Pocket TTS uses only pauses in the sentence. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. Off by default."] = "让伙伴像拥有相应性格的真人一样说话：偶尔停顿、犹豫、发笑或叹气。每个角色自行判断何时合适，而且很少出现；说话流利自信的人几乎不会用到。OmniVoice 可以发出笑声和叹息声，Pocket TTS 只会在句中使用停顿。此功能需要本地语音，因此在已选择 Convai 云端语音时应用，伙伴语音会切换为 Pocket TTS。默认关闭。",
     ["Natural speech needs a local voice, so {setting} was switched to {voice}."] = "自然说话需要本地语音，因此{setting}已切换为{voice}。",
+    ["Expressive emotions"] = "情绪表达",
+    ["Let each character mark its own feelings as it speaks, so the face changes when that part is spoken instead of being guessed from the words. Subtle by default, chosen by personality, and only where the feeling really shifts. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. A reply without marks uses the usual text-based expression. Off by default."] = "让每个角色在说话时自己标记情绪，使面部在说到那一部分时才发生变化，而不是根据文字猜测。默认较为含蓄，按性格选择，且只在情绪真正转变时使用。此功能需要本地语音，因此在已选择 Convai 云端语音时应用，伙伴语音会切换为 Pocket TTS。没有标记的回复使用常规的文本表情。默认关闭。",
+    ["Expressive emotions need a local voice, so {setting} was switched to {voice}."] = "情绪表达需要本地语音，因此{setting}已切换为{voice}。",
 }

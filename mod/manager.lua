@@ -356,7 +356,11 @@ local function loadSettings()
     if type(settings.keepPreparedVoices) ~= 'boolean' then settings.keepPreparedVoices, settingsNeedSave = true, true end
     -- Off by default. A saved pairing with the Convai cloud voice cannot stand: the voice moves to Pocket TTS.
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
-    if settings.naturalSpeech and settings.voiceProvider == 'convai' then settings.voiceProvider, settingsNeedSave = 'pocket', true end
+    -- Expressive emotions (the character marks its own feelings; off by default) needs a local voice for the same reason.
+    if type(settings.expressiveEmotions) ~= 'boolean' then settings.expressiveEmotions, settingsNeedSave = false, true end
+    if (settings.naturalSpeech or settings.expressiveEmotions) and settings.voiceProvider == 'convai' then
+        settings.voiceProvider, settingsNeedSave = 'pocket', true
+    end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
         if type(settings.enabledByKey[key]) ~= 'boolean' and type(settings.enabled) == 'table'
@@ -453,6 +457,13 @@ end
 function M.naturalSpeech()
     loadSettings()
     return settings.naturalSpeech == true
+end
+
+-- Off by default: a local voice's face follows our text-based reading of the reply. On, the character marks where its
+-- feeling changes and the face follows those marks, timed to the voice. Needs a local voice, like Natural speech.
+function M.expressiveEmotions()
+    loadSettings()
+    return settings.expressiveEmotions == true
 end
 
 function M.relationshipChoices()
@@ -977,6 +988,7 @@ function M.snapshot(player)
             omniReference = settings.omniReference,
             keepPreparedVoices = settings.keepPreparedVoices,
             naturalSpeech = settings.naturalSpeech,
+            expressiveEmotions = settings.expressiveEmotions,
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         localVoice = localVoiceState,
@@ -1015,7 +1027,7 @@ function M.applySettings(player, values)
     for key, value in pairs(values) do
         if key == 'voice' or key == 'subtitles' or key == 'followUpQuestions' or key == 'developerMode'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
-            or key == 'keepPreparedVoices' or key == 'naturalSpeech' then
+            or key == 'keepPreparedVoices' or key == 'naturalSpeech' or key == 'expressiveEmotions' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'relationshipModes' then
@@ -1064,7 +1076,8 @@ function M.applySettings(player, values)
     end
     -- Natural speech needs a local voice. Both settings are judged as they will be after this Apply, so turning it on
     -- while the cloud voice is saved, choosing the cloud voice while it is on, or both in one Apply, ends on Pocket TTS.
-    local switchedVoice = nextSettings.naturalSpeech == true and nextSettings.voiceProvider == 'convai'
+    local switchedVoice = (nextSettings.naturalSpeech == true or nextSettings.expressiveEmotions == true)
+        and nextSettings.voiceProvider == 'convai'
     if switchedVoice then nextSettings.voiceProvider = 'pocket' end
     local previous = settings
     settings = nextSettings
@@ -1082,8 +1095,10 @@ function M.applySettings(player, values)
     end
     if companions.onPartyChanged then pcall(companions.onPartyChanged) end
     if switchedVoice then
-        naturalSpeechNotice = ui.t('Natural speech needs a local voice, so {setting} was switched to {voice}.',
-            {setting = ui.t('Companion voices'), voice = M.voiceLabel('pocket')})
+        local named = {setting = ui.t('Companion voices'), voice = M.voiceLabel('pocket')}
+        naturalSpeechNotice = nextSettings.naturalSpeech == true
+            and ui.t('Natural speech needs a local voice, so {setting} was switched to {voice}.', named)
+            or ui.t('Expressive emotions need a local voice, so {setting} was switched to {voice}.', named)
         feedback, dirty = clean(naturalSpeechNotice, 400), true
         return true, nil, naturalSpeechNotice
     end
