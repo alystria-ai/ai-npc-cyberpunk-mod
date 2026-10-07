@@ -758,7 +758,8 @@ local function block(s,reason,c,target,following)
             local localPrefix=following or s.kind=='move' and not s.finish
             local mode=localPrefix and 'escape' or 'travel'
             local candidates=detourCandidates(c.position,target,rejection,s.clearance,localPrefix)
-            if localPrefix and space.ground(c.position,rejection.center)>recoveryPolicy.nearObstacle then
+            local farObstacle=localPrefix and space.ground(c.position,rejection.center)>recoveryPolicy.nearObstacle
+            if farObstacle and not following then
                 -- Approach only a freshly verified short horizon before a far
                 -- obstacle. Do not walk an entire remote detour at escape pace.
                 local direction=space.bearing(c.position,target)
@@ -766,10 +767,16 @@ local function block(s,reason,c,target,following)
                 candidates={{space.offset(c.position,direction,0,math.min(recoveryPolicy.travelHorizon,math.max(.8,along-2)))}}
                 mode='advance'
             end
-            s.recoveryTicket=s.ticket
-            s.detourSearch={origin=space.copy(c.position),target=space.copy(target),following=following,
-                mode=mode,candidates=candidates,index=1,leg=1,legs={}}
-            s.clearanceWaiting=true
+            -- A follower blocked beyond the near range plans no detour at all.
+            -- It keeps the owned hold, so the party's ordinary catch-up and
+            -- relocation recovery (and the periodic recheck of the rejection)
+            -- take over instead of a partial walk toward a distant obstacle.
+            if not (farObstacle and following) then
+                s.recoveryTicket=s.ticket
+                s.detourSearch={origin=space.copy(c.position),target=space.copy(target),following=following,
+                    mode=mode,candidates=candidates,index=1,leg=1,legs={}}
+                s.clearanceWaiting=true
+            end
         end
     end
     s.failed,s.error=true,s.blockedReason

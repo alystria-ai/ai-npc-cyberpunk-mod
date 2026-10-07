@@ -642,3 +642,71 @@ test('the same obstruction still gets its detour when V is far away (cap applies
   local moved,seen=drive(200)
   assert(seen['detour-ready'] and not seen['detour-refused'],'a far companion lost its legitimate detour')
 `));
+
+// A follow rejected on an obstacle beyond the 6 m near-obstacle range plans no
+// detour (no "advance" approach). It keeps the owned hold, so the ordinary
+// catch-up/relocation recovery and the rejection recheck take over. A native
+// route that bends far from the feet is the way a follow reaches such a block.
+const farObstacle = `
+  local helper=dofile('companion-clearance.lua')
+  local function drive(frames,after)
+    local seen,modes,moved={},{},false
+    for frame=1,frames do
+      motor.useSpatialBudget(helper.newBudget())
+      update(0.1)
+      if state.detourSearch then modes[state.detourSearch.mode]=true end
+      for _,event in ipairs(state.events) do seen[event.event]=true end
+      if last(npc,'AIMoveToCommand') then moved=true end
+      if after then after(frame) end
+    end
+    return seen,modes,moved
+  end
+  local function distanceFromFeet(point) return math.sqrt((point.x-npc.pos.x)^2+(point.y-npc.pos.y)^2) end
+`;
+
+const farFollowRoute = `
+  player.pos=Vector4.new(0,5); context.frame.position=player.pos; context.playerGap=5
+  local nav=Game.GetAINavigationSystem()
+  -- The native route to the stand-off bends 11 m sideways first.
+  nav.CalculatePathForCharacter=function(_,origin,destination)
+    return {path={origin,Vector4.new(11,0),destination},CalculateLength=function() return 12 end}
+  end
+  Game.GetAINavigationSystem=function() return nav end
+  solid('Vehicle',11,0,1.3,1.3)
+`;
+
+test('a follow blocked beyond 6 m plans no detour and keeps the owned hold', () => run(walking + solids + farObstacle + farFollowRoute + `
+  decision.operation={ticket='far-follow',kind='follow',gait='Run'}
+  local seen,modes,moved=drive(80)
+  assert(seen['route-rejected'],'the far obstruction was never rejected')
+  local rejection=state.blockedContext and state.blockedContext.rejection
+  assert(rejection and rejection.group=='Vehicle' and rejection.stage=='path')
+  assert(distanceFromFeet(rejection.center)>6,'the obstruction was not beyond the 6 m near range')
+  assert(not modes.advance and not modes.escape and not modes.travel,'a far follow planned a detour')
+  assert(not state.detourSearch and not state.execution and not seen['detour-ready'] and not seen['detours-exhausted'])
+  assert(state.failed and state.blockedReason,'the far follow was not held blocked')
+  assert(not moved and npc.pos.x==0 and npc.pos.y==0,'the held follower walked toward the obstruction')
+  assert(not last(npc,'AIFollowTargetCommand') and active(npc)[1].kind=='AIHoldPositionCommand')
+`));
+
+test('a far-blocked follow resumes the ordinary follow once the obstruction clears', () => run(walking + solids + farObstacle + farFollowRoute + `
+  decision.operation={ticket='far-follow',kind='follow',gait='Run'}
+  drive(40)
+  assert(state.failed and state.blockedReason and not state.detourSearch)
+  obstacles={}
+  local commands=#npc.ai.commands
+  local seen=drive(60)
+  assert(not state.failed and not state.blockedReason,'the far-blocked follow never recovered')
+  local command=active(npc)[1]
+  assert(#npc.ai.commands>commands and command and command.kind~='AIHoldPositionCommand',
+    'normal movement was not resumed after the hold')
+  assert(not state.detourSearch and not seen['detour-ready'] and not seen['detours-exhausted'])
+`));
+
+test('a move beyond 6 m keeps its advance detour (only follow drops it)', () => run(walking + solids + farObstacle + `
+  decision.operation={ticket='far-move',kind='move',goal=Vector4.new(0,10),gait='Walk',finish=false,face=false}
+  solid('Vehicle',0,8,.9,1.3)
+  local seen,modes=drive(120)
+  assert(seen['route-rejected'],'the far move was never rejected')
+  assert(modes.advance,'a non-follow move lost its advance detour')
+`));
