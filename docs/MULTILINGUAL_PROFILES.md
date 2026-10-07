@@ -1,93 +1,109 @@
-# Multilingual Convai profiles (tier 1)
+# Multilingual Convai profiles (tier 1 and romance)
 
 Each of the 23 tier-1 characters with a Convai profile has a twin named
-"<name> Multilingual" in the same account. The twins exist and are verified; the
-mod does not use them yet (no routing change). Alt Cunningham is the 24th tier-1
-voice but has no Convai profile.
+"<name> Multilingual" in the same account, and so does each of the five romantic
+profiles (Judy, Panam, River, Kerry, Meredith: 28 twins in all). The twins exist and
+are verified; the mod does not use them yet (no routing change). Alt Cunningham is
+the 24th tier-1 voice but has no Convai profile.
 
 ```powershell
 node scripts/Create-MultilingualProfiles.mjs --dry-run        # default: plan only, no remote calls
-node scripts/Create-MultilingualProfiles.mjs --apply          # create/adopt + verify all 23
-node scripts/Create-MultilingualProfiles.mjs --apply --only judy-alvarez
+node scripts/Create-MultilingualProfiles.mjs --apply          # create/adopt + verify all 28
+node scripts/Create-MultilingualProfiles.mjs --apply --only judy-alvarez,judy-alvarez-romantic
 node --test bridge/multilingual-profiles.test.mjs
 ```
 
 The mapping is `runtime/multilingual-profiles.json` (ignored by Git, no secrets):
-per character the original ID, twin ID, name, voice, language list, model,
-`verified`, `replyAnyLanguageApplied`, `manualUntickRequired` and `notCloned`.
-Only new characters are created; originals are only read. A re-run adopts the
-mapped twin, or an existing twin found by exact name plus the exact marker line
-`[CyberpunkConvai profile v2:<key>:multilingual]`, and re-verifies it, so it never
-duplicates. An interrupted create with no matching character stops instead of
-guessing.
+per profile key the original ID, twin ID, name, voice, language list, model,
+`verified`, `languageBoxField`, `languageBoxOff` and `notCloned`. Romantic twins are
+keyed `<key>-romantic` (the provider key used in `runtime/relationship-profiles.json`)
+and also record `variant: "romantic"` and `baseKey`. Only new characters are created;
+originals are only read. A re-run adopts the mapped twin, or an existing twin found by
+exact name plus the exact marker line, and re-verifies it, so it never duplicates. An
+interrupted create with no matching character stops instead of guessing.
+
+Ownership markers (the exact backstory line that identifies a character as ours):
+
+| Profile | Marker line |
+| --- | --- |
+| Ordinary original | `[CyberpunkConvai profile v2:<key>]` |
+| Ordinary twin | `[CyberpunkConvai profile v2:<key>:multilingual]` |
+| Romantic original | `[CyberpunkConvai profile v2:<key>-romantic]` |
+| Romantic twin | `[CyberpunkConvai profile v2:<key>-romantic:multilingual]` |
+
+The romantic original has the same Convai display name as the ordinary profile (for
+example both are "Judy Alvarez"), so the ordinary twin and the romantic twin are both
+named "Judy Alvarez Multilingual". Tell them apart by character ID or marker, never by
+name. (The name can be changed on the twin later without affecting the script, which
+matches on name plus marker only to recover a lost create receipt.)
 
 ## What a twin copies and what differs
 
-Copied and read back: biography (only the ownership marker line differs, so the
-twin never matches the original's marker), speaking style description, sample
-dialogues, model (list readback), memory enabled, state of mind, verbosity, and
-every other compared setting (moderation, filters, guardrails, traits, listing,
-actions, narrative flag, and so on; any difference is listed in `notCloned`, all
-empty today).
+Copied and read back: biography (only the ownership marker line differs, so a twin
+never matches its original's marker or another twin's), speaking style description,
+sample dialogues, model (list readback), memory enabled, state of mind, verbosity,
+and every other compared setting (moderation, filters, guardrails, traits, listing,
+actions, narrative flag, temperature, and so on; any difference is listed in
+`notCloned`, all empty today). A romantic twin clones the romantic profile, including
+its added "CONVERSATION PROFILE" paragraph and affectionate style and samples.
 
 Different on purpose:
 
 - **Voice.** Convai refuses non-English `languageCodes` on a Kokoro voice
-  ("Given voice incompatible with the language code"). Twins use a
-  gender-matched Azure multilingual voice (Emma for women, Christopher for men;
-  71 languages). The original Kokoro voice is not kept. The mod mostly speaks with
-  its own local voices, so this matters only for Convai cloud voice.
-- **Languages.** `languageCodes` is the ten interface languages (en-US, zh-CN,
-  zh-TW, es-ES, pt-BR, fr-FR, de-DE, ru-RU, ja-JP, ko-KR). The playground offers
-  1 to 4, the API accepts all ten.
+  ("Given voice incompatible with the language code"). Twins use a gender-matched
+  Azure multilingual voice (Emma for women, Christopher for men; 71 languages). The
+  original Kokoro voice is not kept. The mod mostly speaks with its own local voices,
+  so this matters only for Convai cloud voice. Romantic twins match the voice gender
+  of the ordinary profile (Judy, Panam, Meredith: Emma; River, Kerry: Christopher).
+- **Languages.** `languageCodes` is `['en-US']` only. With the language box off (next
+  section) the character answers in whatever language the player uses, so the
+  languages do not need to be listed. An earlier version listed ten interface
+  languages; that is no longer wanted.
 - **Not cloned:** the avatar (Convai assigns a random one; the mod does not use
   it) and `embodiment_data`. The originals have no knowledge bank files
-  (`character/knowledge-bank/list` returned none for all 23), no narrative
-  design (`is_narrative_driven` false) and no actions, so nothing was missing.
+  (`character/knowledge-bank/list` returned none for the 23 tier-1 profiles), no
+  narrative design (`is_narrative_driven` false) and no actions, so nothing was
+  missing.
 
 ## The "Only reply in the selected languages" box
 
-Convai documents this setting ("sits together under Core AI Settings") but
-neither the Core, Character Base nor Core AI Settings API pages list a request
-field for it, and `/character/get` and `/character/list` return no such field
-(no character in the account shows a difference, including the older
-"Multilingual" Witcher twins). Unknown request fields are accepted silently, so a
-guessed name cannot be verified by readback. About 60 camelCase guesses were
-tried on a test twin with a behavioural check (German or Swedish prompt, look at
-the reply language); none changed anything. `languageCodes` (camelCase) is the only
-language field the update endpoint reads.
+The box is the dashboard field `language_hardening_mode`: `default` means ticked and
+`off` means unticked. The twins want it unticked (`off`).
 
-The Dan Walker pair from the user's manual test is not in this account (350
-characters before this work, none named Dan Walker), so it could not be diffed.
+- Core `POST /character/update` **ignores** the field (camelCase and snake_case were
+  both tried; readback was unchanged), and `/character/get` and `/character/list`
+  never return it.
+- The Core API key gets 401 on the web dashboard API
+  (`https://convai.com/api/character/...`). Only a signed-in browser session can set
+  it, with `POST https://convai.com/api/character/update` and JSON
+  `{character_id, workspace_id, language_hardening_mode: 'off'}`.
+- The script therefore **never sets it**. Its output includes `needsLanguageBoxOff`,
+  the `{key, id, name}` of every twin whose mapping entry is not marked
+  `languageBoxOff: true`. After the box is set through the browser session, edit the
+  mapping entry to `languageBoxOff: true` (the script preserves that flag on re-runs).
 
-What does work through the API, checked by chat on the Judy, Johnny and Jackie
-twins: with the voice and the ten language codes set, replies follow the player's
-language (Spanish, German, French, Korean, Chinese, Portuguese, Italian answered
-in kind). A twin limited to en-US answered Spanish and Japanese prompts in English.
-Languages outside the list were mixed: Italian and Russian were answered in kind,
-Hindi and Swedish in English (Judy: "I don't speak Hindi"). That residual
-restriction is what unticking the box should lift.
+Status (2026-10-07): the 23 tier-1 twins have the box off and are marked. The five
+romantic twins were created with the box still ticked and are listed in
+`needsLanguageBoxOff`.
 
-**Manual step:** for each twin, open its playground page, Core AI Settings, and
-untick "Only reply in the selected languages" (all 23 have `manualUntickRequired`
-true). To get the exact field, open the browser Network tab on one Dan Walker or
-twin save and note the `character/update` body; set `REPLY_ANY_LANGUAGE_FIELD` in
-the script to `{field, value}` and re-run `--apply` to set and record it for all.
+## Voice and memory
+
+- Voices stay Azure multilingual (Kokoro rejects non-English).
+- Memory is per profile: Convai long-term memory is scoped by character ID plus
+  end-user ID, so each twin keeps its own memory, as if it were another character.
 
 ## Routing (not done)
 
-- Memory: Convai long-term memory is scoped by character ID plus end-user ID, so an
-  original and its twin keep separate memories for the same player UUID. Options:
-  (a) pick one profile per character for the whole save based on a setting and
-  accept a reset when switching; (b) keep both and add the twin to the
+- Memory: an original and its twin keep separate memories for the same player UUID.
+  Options: (a) pick one profile per character for the whole save based on a setting
+  and accept a reset when switching; (b) keep both and add the twin to the
   family/forget scope (`bridge/player-memory-api.mjs` allows only exact
-  `[CyberpunkConvai profile v2:<key>]` markers, so the twin marker needs its own
+  `[CyberpunkConvai profile v2:<key>]` markers, so each twin marker needs its own
   provider key and a family map entry, like `canonical-romantic`); (c) seed
-  nothing (no `/memory/add` exists). Forget must clear both.
-- Relationship alternates: Judy, Panam, River, Kerry and Meredith also have a
-  romantic profile (`runtime/relationship-profiles.json`). Twins exist only for the
-  ordinary profile. Routing needs a multilingual version of each romantic profile
-  (five more characters) or a rule that the twin wins and carries a style hint.
+  nothing (no `/memory/add` exists). Forget must clear all of them.
+- Relationship alternates: the five romantic twins exist (see the table above), so
+  routing can pick the ordinary twin or the romantic twin by the same relationship
+  decision that picks the ordinary or romantic original.
 - Provider keys and ID maps (`runtime/characters.json`,
   `relationship-profiles.json`) are unchanged; the twin map is separate.
 - Transient sessions and phone chat sessions key by provider ID, so switching
