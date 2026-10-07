@@ -37,8 +37,8 @@ Everything here is committed; "installed" means copied into the game. Baseline: 
 The review is **complete** (2026-10-07; verdict and decisions are in the log). Done and waiting for the in-game test: the voice switch, the six-entry menu, the Omni pack detection and saved voice setups (above). The shareable report is built (`Downloads/Cyberpunk Voice Report v3.html`, one file with audio embedded) and the devslot handoff for the voice research is in `Downloads/convai voice cloning devslot/devslot handoff 2026-10-07 voice research/`. Still open:
 - Build the optional Omni pack (`bridge/omni-pack.mjs` detects it; contents in `docs/PACKAGING.md`).
 - Remaining 43 voices: see In progress.
-- Set the language box off on the 5 romantic multilingual twins (status unclear: the review note says done, `docs/MULTILINGUAL_PROFILES.md` still lists them as ticked), then the mod routing; see Later.
-- Refresh the voice devslot handoff after the remaining-voice search and the lip-sync research land (status unclear whether anything new is needed).
+- Multilingual twins: the language box is off on all 28 (23 tier-1 + 5 romantic; set through the web session 2026-10-07; `docs/MULTILINGUAL_PROFILES.md` is stale on this). Twins for the remaining characters are being created (agent); untick their box in one batch afterwards. Then the mod routing (after natural speech).
+- Update the lip-sync report and the lip-sync devslot folder when the lip-sync research lands; the voice handoff needs no refresh unless the remaining-voice search changes a finding.
 
 ### Later
 - **Multilingual conversations** (user, 2026-10-07). Today only the interface is translated (9 locales); conversations, Pocket TTS (English-only), the mod's speech model (US English) and the lip-sync phonetics are English.
