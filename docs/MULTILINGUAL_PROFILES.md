@@ -87,9 +87,9 @@ The box is the dashboard field `language_hardening_mode`: `default` means ticked
   `languageBoxOff: true`. After the box is set through the browser session, edit the
   mapping entry to `languageBoxOff: true` (the script preserves that flag on re-runs).
 
-Status (2026-10-07): the 23 tier-1 twins and the 5 romantic twins have the box off and
-are marked `languageBoxOff: true`. The other 56 twins (the rest of the roster) were
-created with the box still ticked and are listed in `needsLanguageBoxOff`.
+Status (2026-10-07): all 84 twins (23 tier-1, 5 romantic, 56 for the rest of the roster)
+have the box off, set through the web session and verified by readback, and are marked
+`languageBoxOff: true` in the mapping.
 
 ## Voice and memory
 
