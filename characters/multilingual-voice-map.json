@@ -1,0 +1,667 @@
+{
+ "version": 1,
+ "note": "Azure multilingual Convai voices for the '<name> Multilingual' twins. Romantic twins use the base character's voice. Source of truth for scripts/Create-MultilingualProfiles.mjs.",
+ "defaults": {
+  "FEMALE": "AZURE-MULTILINGUAL-a0810a758f",
+  "MALE": "AZURE-MULTILINGUAL-3ea74315c9"
+ },
+ "voices": {
+  "AZURE-MULTILINGUAL-a274d6d359": {
+   "name": "Ada Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-a274d6d359.wav"
+  },
+  "AZURE-MULTILINGUAL-1aabb8bc8a": {
+   "name": "Adam Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-1aabb8bc8a.wav"
+  },
+  "AZURE-MULTILINGUAL-92203654f0": {
+   "name": "Alessio Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-92203654f0.wav"
+  },
+  "AZURE-MULTILINGUAL-f1ebefb495": {
+   "name": "AlloyTurbo Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-f1ebefb495.wav"
+  },
+  "AZURE-MULTILINGUAL-c1eb570bf7": {
+   "name": "Amanda Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-c1eb570bf7.wav"
+  },
+  "AZURE-MULTILINGUAL-c387a0c635": {
+   "name": "Andrew Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-c387a0c635.wav"
+  },
+  "AZURE-MULTILINGUAL-c49149301e": {
+   "name": "Arabella Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-c49149301e.wav"
+  },
+  "AZURE-MULTILINGUAL-54251ef38f": {
+   "name": "Ava Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-54251ef38f.wav"
+  },
+  "AZURE-MULTILINGUAL-99b13147b2": {
+   "name": "Brandon Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-99b13147b2.wav"
+  },
+  "AZURE-MULTILINGUAL-df94d676e2": {
+   "name": "Brian Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-df94d676e2.wav"
+  },
+  "AZURE-MULTILINGUAL-3ea74315c9": {
+   "name": "Christopher Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-3ea74315c9.wav"
+  },
+  "AZURE-MULTILINGUAL-8a6fbf3e26": {
+   "name": "Cora Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-8a6fbf3e26.wav"
+  },
+  "AZURE-MULTILINGUAL-65374d4054": {
+   "name": "Davis Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-65374d4054.wav"
+  },
+  "AZURE-MULTILINGUAL-19f6a69dbc": {
+   "name": "Derek Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-19f6a69dbc.wav"
+  },
+  "AZURE-MULTILINGUAL-1aa256e8f9": {
+   "name": "Dustin Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-1aa256e8f9.wav"
+  },
+  "AZURE-MULTILINGUAL-8087ad87b4": {
+   "name": "EchoTurbo Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-8087ad87b4.wav"
+  },
+  "AZURE-MULTILINGUAL-a0810a758f": {
+   "name": "Emma Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-a0810a758f.wav"
+  },
+  "AZURE-MULTILINGUAL-8f3af70863": {
+   "name": "Evelyn Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-8f3af70863.wav"
+  },
+  "AZURE-MULTILINGUAL-3cff3776e9": {
+   "name": "Florian Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-3cff3776e9.wav"
+  },
+  "AZURE-MULTILINGUAL-742a42448d": {
+   "name": "Giuseppe Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-742a42448d.wav"
+  },
+  "AZURE-MULTILINGUAL-61873ce320": {
+   "name": "Hyunsu Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-61873ce320.wav"
+  },
+  "AZURE-MULTILINGUAL-ea3de26c8e": {
+   "name": "Isabella Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-ea3de26c8e.wav"
+  },
+  "AZURE-MULTILINGUAL-552d02efd8": {
+   "name": "Isidora Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-552d02efd8.wav"
+  },
+  "JennyMultilingualV2Neural": {
+   "name": "JennyMultilingualV2 Female American English Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/JennyMultilingualV2Neuralen_US_sampleVoice.wav"
+  },
+  "AZURE-MULTILINGUAL-67e07b0e1f": {
+   "name": "Lewis Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-67e07b0e1f.wav"
+  },
+  "AZURE-MULTILINGUAL-579bb40ede": {
+   "name": "Lola Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-579bb40ede.wav"
+  },
+  "AZURE-MULTILINGUAL-3e4638872a": {
+   "name": "Lucien Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-3e4638872a.wav"
+  },
+  "AZURE-MULTILINGUAL-6d586af64a": {
+   "name": "Macerio Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-6d586af64a.wav"
+  },
+  "AZURE-MULTILINGUAL-a2e2d3c386": {
+   "name": "Marcello Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-a2e2d3c386.wav"
+  },
+  "AZURE-MULTILINGUAL-d71516a5ca": {
+   "name": "Masaru Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-d71516a5ca.wav"
+  },
+  "AZURE-MULTILINGUAL-674bb044a0": {
+   "name": "Nancy Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-674bb044a0.wav"
+  },
+  "AZURE-MULTILINGUAL-ccad980348": {
+   "name": "NovaTurbo Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-ccad980348.wav"
+  },
+  "AZURE-MULTILINGUAL-3ff4a9681c": {
+   "name": "Ollie Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-3ff4a9681c.wav"
+  },
+  "AZURE-MULTILINGUAL-b56af7ad45": {
+   "name": "OnyxTurbo Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-b56af7ad45.wav"
+  },
+  "AZURE-MULTILINGUAL-8fb9b03aef": {
+   "name": "Phoebe Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-8fb9b03aef.wav"
+  },
+  "AZURE-MULTILINGUAL-4ef14f6865": {
+   "name": "Remy Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-4ef14f6865.wav"
+  },
+  "RyanMultilingualNeural": {
+   "name": "RyanMultilingual Male American English Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/RyanMultilingualNeuralen_US_sampleVoice.wav"
+  },
+  "AZURE-MULTILINGUAL-de811bb34d": {
+   "name": "Samuel Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-de811bb34d.wav"
+  },
+  "AZURE-MULTILINGUAL-ad8798063c": {
+   "name": "Seraphina Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-ad8798063c.wav"
+  },
+  "AZURE-MULTILINGUAL-9a90389ca0": {
+   "name": "Serena Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-9a90389ca0.wav"
+  },
+  "AZURE-MULTILINGUAL-c419069dad": {
+   "name": "ShimmerTurbo Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-c419069dad.wav"
+  },
+  "AZURE-MULTILINGUAL-7c29b4eda9": {
+   "name": "Steffan Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-7c29b4eda9.wav"
+  },
+  "AZURE-MULTILINGUAL-fa9bf5ee42": {
+   "name": "Thalita Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-fa9bf5ee42.wav"
+  },
+  "AZURE-MULTILINGUAL-7fb84283de": {
+   "name": "Tristan Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-7fb84283de.wav"
+  },
+  "AZURE-MULTILINGUAL-b439921109": {
+   "name": "Vivienne Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-b439921109.wav"
+  },
+  "AZURE-MULTILINGUAL-c54bd099e4": {
+   "name": "Xiaochen Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-c54bd099e4.wav"
+  },
+  "AZURE-MULTILINGUAL-ad3499ac3d": {
+   "name": "Xiaoxiao Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-ad3499ac3d.wav"
+  },
+  "AZURE-MULTILINGUAL-94e17e5330": {
+   "name": "Xiaoyu Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-94e17e5330.wav"
+  },
+  "AZURE-MULTILINGUAL-eb15982107": {
+   "name": "Ximena Female Multilingual Voice",
+   "gender": "FEMALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-eb15982107.wav"
+  },
+  "AZURE-MULTILINGUAL-713bbb4510": {
+   "name": "Yunfan Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-713bbb4510.wav"
+  },
+  "AZURE-MULTILINGUAL-83464fdaf7": {
+   "name": "Yunxiao Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-83464fdaf7.wav"
+  },
+  "AZURE-MULTILINGUAL-99eda63017": {
+   "name": "Yunyi Male Multilingual Voice",
+   "gender": "MALE",
+   "sampleLink": "https://storage.googleapis.com/tts-voice-samples/AZURE-MULTILINGUAL-99eda63017.wav"
+  }
+ },
+ "assignments": {
+  "8ug8ear": {
+   "voice": "AZURE-MULTILINGUAL-54251ef38f",
+   "voiceName": "Ava",
+   "reason": "Bright young-adult voice for a risk-taking Japantown netrunner."
+  },
+  "aaron": {
+   "voice": "AZURE-MULTILINGUAL-8087ad87b4",
+   "voiceName": "EchoTurbo",
+   "reason": "Light young male voice for a young Dogtown boxer."
+  },
+  "adam-smasher": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo",
+   "reason": "Lowest male register on offer, for a menacing cyborg mercenary."
+  },
+  "alan-noel": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy",
+   "reason": "Smooth, low French-native voice for a discreet hardware dealer with a Francophone name."
+  },
+  "alex": {
+   "voice": "AZURE-MULTILINGUAL-a0810a758f",
+   "voiceName": "Emma",
+   "reason": "Cheerful, adaptable voice for an operative who plays roles (keeps the old default)."
+  },
+  "ana-friedman": {
+   "voice": "AZURE-MULTILINGUAL-fa9bf5ee42",
+   "voiceName": "Thalita",
+   "reason": "Brazilian Portuguese-native voice for a Brazilian intelligence analyst."
+  },
+  "arthur-jenkins": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel",
+   "reason": "Higher, sharper male voice for a bitter, rank-conscious corporate counterintelligence head."
+  },
+  "babs-okoye": {
+   "voice": "AZURE-MULTILINGUAL-c419069dad",
+   "voiceName": "ShimmerTurbo",
+   "reason": "Low, steady female voice for a wary BARGHEST veteran."
+  },
+  "bill-mitchell": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian",
+   "reason": "Casual, sincere mid-register voice for an unsure young NCPD officer."
+  },
+  "blue-moon": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao",
+   "reason": "Bright, cheerful voice for a pop-trio star."
+  },
+  "bob-sagan": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis",
+   "reason": "Relaxed, slightly rough mid-low male voice for a dry, practical nomad veteran."
+  },
+  "briana-dolson": {
+   "voice": "AZURE-MULTILINGUAL-ccad980348",
+   "voiceName": "NovaTurbo",
+   "reason": "Friendly, grounded low-mid voice for a trusted neighborhood organizer."
+  },
+  "carol-emeka": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena",
+   "reason": "Calm, mature female voice for a technician and ex-army netrunner."
+  },
+  "cassidy-righter": {
+   "voice": "AZURE-MULTILINGUAL-19f6a69dbc",
+   "voiceName": "Derek",
+   "reason": "Easygoing mid-low male voice for an older, dry-humored gunslinger."
+  },
+  "chang-hoon-nam": {
+   "voice": "AZURE-MULTILINGUAL-61873ce320",
+   "voiceName": "Hyunsu",
+   "reason": "Korean-native male voice, matching the Korean name, for a veteran Japantown netrunner."
+  },
+  "claire-russell": {
+   "voice": "AZURE-MULTILINGUAL-8a6fbf3e26",
+   "voiceName": "Cora",
+   "reason": "Warm, slightly husky mid female voice for the Afterlife bartender and mechanic."
+  },
+  "coach-fred": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo",
+   "reason": "Deep, confident voice for a retired boxer and trainer."
+  },
+  "cynthia-najarro": {
+   "voice": "AZURE-MULTILINGUAL-552d02efd8",
+   "voiceName": "Isidora",
+   "reason": "Spanish-native female voice for a Heywood mother and office worker."
+  },
+  "dakota-smith": {
+   "voice": "AZURE-MULTILINGUAL-579bb40ede",
+   "voiceName": "Lola",
+   "reason": "Deep, authoritative female voice for the Badlands fixer Mad Coyote."
+  },
+  "dennis-cranmer": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew",
+   "reason": "Measured, businesslike warm voice for an economical Afterlife contact."
+  },
+  "dexter-deshawn": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon",
+   "reason": "Smooth, assured mid male voice for a veteran fixer."
+  },
+  "dino-dinovic": {
+   "voice": "AZURE-MULTILINGUAL-a2e2d3c386",
+   "voiceName": "Marcello",
+   "reason": "Smooth, expressive Italian-native voice for a party-scene fixer and bassist."
+  },
+  "elizabeth-peralez": {
+   "voice": "AZURE-MULTILINGUAL-ea3de26c8e",
+   "voiceName": "Isabella",
+   "reason": "Polished, clear female voice for a lawyer and campaign strategist."
+  },
+  "evelyn-parker": {
+   "voice": "AZURE-MULTILINGUAL-b439921109",
+   "voiceName": "Vivienne",
+   "reason": "Soft, light French-native voice for a vulnerable would-be actress."
+  },
+  "frank-nostra": {
+   "voice": "AZURE-MULTILINGUAL-19f6a69dbc",
+   "voiceName": "Derek",
+   "reason": "Confident mid male voice for a self-assured Arasaka operative."
+  },
+  "hanako-arasaka": {
+   "voice": "AZURE-MULTILINGUAL-ad8798063c",
+   "voiceName": "Seraphina",
+   "reason": "Cool, precise German-native voice for an Arasaka heiress and netrunner."
+  },
+  "iris-tanner": {
+   "voice": "AZURE-MULTILINGUAL-c49149301e",
+   "voiceName": "Arabella",
+   "reason": "Low, direct female voice for a hard-bargaining nomad techie."
+  },
+  "jackie-welles": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan",
+   "reason": "Warm, energetic Spanish-native male voice for a Heywood Latino merc."
+  },
+  "jake-estevez": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon",
+   "reason": "Confident mid male voice for a gifted vehicle mechanic."
+  },
+  "jefferson-peralez": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan",
+   "reason": "Mature, crisp voice for a mayoral candidate."
+  },
+  "jesse": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "Ryan",
+   "reason": "Ordinary American male voice for a panicked Night City resident."
+  },
+  "jim-jarry": {
+   "voice": "AZURE-MULTILINGUAL-83464fdaf7",
+   "voiceName": "Yunxiao",
+   "reason": "Mid-high male voice for a street-race organizer contact."
+  },
+  "johnny-silverhand": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis",
+   "reason": "Casual, expressive, slightly gritty male voice for a sardonic rockerboy."
+  },
+  "joss-kutcher": {
+   "voice": "AZURE-MULTILINGUAL-eb15982107",
+   "voiceName": "Ximena",
+   "reason": "Gentle, warm Spanish-native female voice for a mother of three."
+  },
+  "judy-alvarez": {
+   "voice": "AZURE-MULTILINGUAL-54251ef38f",
+   "voiceName": "Ava",
+   "reason": "Bright, engaging voice for a young braindance editor (romantic twin shares it)."
+  },
+  "kerry-eurodyne": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis",
+   "reason": "Higher, animated male voice for a flamboyant rock singer (romantic twin shares it)."
+  },
+  "liam-northom": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie",
+   "reason": "Young British-native male voice for a smooth pop-star manager."
+  },
+  "life-coach": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan",
+   "reason": "Even, encouraging mid male voice for a coaching contact."
+  },
+  "lina-malina": {
+   "voice": "AZURE-MULTILINGUAL-a0810a758f",
+   "voiceName": "Emma",
+   "reason": "Upbeat, forceful female voice for a braindance performer."
+  },
+  "lizzy-wizzy": {
+   "voice": "AZURE-MULTILINGUAL-8fb9b03aef",
+   "voiceName": "Phoebe",
+   "reason": "Highest female register, theatrical, for a conceptual pop star."
+  },
+  "mama-welles": {
+   "voice": "AZURE-MULTILINGUAL-c419069dad",
+   "voiceName": "ShimmerTurbo",
+   "reason": "Low, warm, commanding female voice for a restaurant owner and mother."
+  },
+  "mark-bana": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio",
+   "reason": "Brazilian Portuguese-native male voice for a veteran of the Brazilian Intelligence Agency."
+  },
+  "meredith-stout": {
+   "voice": "AZURE-MULTILINGUAL-8f3af70863",
+   "voiceName": "Evelyn",
+   "reason": "Mature, straightforward, believable voice for a senior Militech executive (romantic twin shares it)."
+  },
+  "misty-olszewski": {
+   "voice": "AZURE-MULTILINGUAL-674bb044a0",
+   "voiceName": "Nancy",
+   "reason": "Calm, gentle female voice for a spiritual shopkeeper."
+  },
+  "mitch-anderson": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher",
+   "reason": "Low, steady voice for an older mechanic and war veteran."
+  },
+  "mr-hands": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan",
+   "reason": "Mature, crisp, polished voice for a discreet fixer."
+  },
+  "muamar-reyes": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio",
+   "reason": "Warm, authoritative Latin-leaning male voice for an independent fixer."
+  },
+  "nancy-hartley": {
+   "voice": "AZURE-MULTILINGUAL-a274d6d359",
+   "voiceName": "Ada",
+   "reason": "British-native female voice for an investigative reporter and ex-Samurai keyboardist (Bes Isis)."
+  },
+  "nele-springer": {
+   "voice": "AZURE-MULTILINGUAL-674bb044a0",
+   "voiceName": "Nancy",
+   "reason": "Calm, serious female voice for a practical chemist."
+  },
+  "nix": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo",
+   "reason": "Neutral, curious mid male voice for an enthusiastic netrunner."
+  },
+  "ozob-bozo": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio",
+   "reason": "Brazilian Portuguese-native male voice for a Brazilian mercenary joker."
+  },
+  "paco-torres": {
+   "voice": "AZURE-MULTILINGUAL-7fb84283de",
+   "voiceName": "Tristan",
+   "reason": "Spanish-native male voice for an eager Latino BARGHEST recruit."
+  },
+  "padre-ibarra": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew",
+   "reason": "Warm, empathetic male voice for an ex-counselor turned fixer."
+  },
+  "panam-palmer": {
+   "voice": "AZURE-MULTILINGUAL-ccad980348",
+   "voiceName": "NovaTurbo",
+   "reason": "Energetic, low-mid, slightly husky voice for a feisty nomad (romantic twin shares it)."
+  },
+  "pepe-najarro": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian",
+   "reason": "Casual, sincere voice for a worn-out family bartender."
+  },
+  "placide": {
+   "voice": "AZURE-MULTILINGUAL-3e4638872a",
+   "voiceName": "Lucien",
+   "reason": "Deep French-native male voice for a Haitian Voodoo Boy elder."
+  },
+  "r3n0": {
+   "voice": "AZURE-MULTILINGUAL-a274d6d359",
+   "voiceName": "Ada",
+   "reason": "Clear British-native female voice for a guarded netrunner."
+  },
+  "rachel-casich": {
+   "voice": "JennyMultilingualV2Neural",
+   "voiceName": "Jenny",
+   "reason": "Friendly, brisk American voice for a commercially minded braindance producer."
+  },
+  "regina-jones": {
+   "voice": "AZURE-MULTILINGUAL-c54bd099e4",
+   "voiceName": "Xiaochen",
+   "reason": "Confident, broadcast-style voice for a Chinese-heritage fixer and former reporter."
+  },
+  "resident-female": {
+   "voice": "JennyMultilingualV2Neural",
+   "voiceName": "Jenny",
+   "reason": "Friendly, ordinary American female voice for an ambient resident."
+  },
+  "resident-male": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "Ryan",
+   "reason": "Ordinary American male voice for an ambient resident."
+  },
+  "river-ward": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin",
+   "reason": "Soft-spoken, calm, trustworthy male voice for a detective (romantic twin shares it)."
+  },
+  "robert-wilson": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan",
+   "reason": "Even, careful mid male voice for a meticulous gunsmith."
+  },
+  "rogue-amendiares": {
+   "voice": "AZURE-MULTILINGUAL-579bb40ede",
+   "voiceName": "Lola",
+   "reason": "Deep, weathered female voice for the Afterlife owner and legendary fixer."
+  },
+  "sandra-dorsett": {
+   "voice": "AZURE-MULTILINGUAL-ad8798063c",
+   "voiceName": "Seraphina",
+   "reason": "Cool, controlled German-native voice for a cautious corporate netrunner."
+  },
+  "santiago": {
+   "voice": "AZURE-MULTILINGUAL-742a42448d",
+   "voiceName": "Giuseppe",
+   "reason": "Smooth, persuasive Italian-native male voice for a nomad negotiator."
+  },
+  "saul-bright": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam",
+   "reason": "Deep, warm, steady male voice for the Aldecaldo family leader."
+  },
+  "sergei-karasinsky": {
+   "voice": "AZURE-MULTILINGUAL-3e4638872a",
+   "voiceName": "Lucien",
+   "reason": "Deep French-native male voice for a gruff, trouble-prone solo."
+  },
+  "shank": {
+   "voice": "AZURE-MULTILINGUAL-99eda63017",
+   "voiceName": "Yunyi",
+   "reason": "Mid-high male voice for a Brainporium owner."
+  },
+  "solomon-reed": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher",
+   "reason": "Low, authoritative male voice for a veteran FIA operative."
+  },
+  "songbird": {
+   "voice": "AZURE-MULTILINGUAL-c1eb570bf7",
+   "voiceName": "Amanda",
+   "reason": "Bright, youthful voice for an ambitious young netrunner."
+  },
+  "spider-murphy": {
+   "voice": "AZURE-MULTILINGUAL-94e17e5330",
+   "voiceName": "Xiaoyu",
+   "reason": "Lively, quick female voice for a showy veteran netrunner."
+  },
+  "steven-santos": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin",
+   "reason": "Calm, measured male voice for a Brazilian intelligence risk analyst."
+  },
+  "t-bug": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena",
+   "reason": "Calm, mature female voice for a survival-minded professional netrunner."
+  },
+  "takemura": {
+   "voice": "AZURE-MULTILINGUAL-d71516a5ca",
+   "voiceName": "Masaru",
+   "reason": "Japanese-native male voice for a stoic former Arasaka bodyguard."
+  },
+  "thompson": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie",
+   "reason": "British-native male voice for a veteran armed reporter."
+  },
+  "viktor-vektor": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam",
+   "reason": "Deep, warm, calm male voice for a ripperdoc and ex-boxer."
+  },
+  "wakako-okada": {
+   "voice": "AZURE-MULTILINGUAL-c49149301e",
+   "voiceName": "Arabella",
+   "reason": "Low, measured female voice for a formidable Japantown broker."
+  },
+  "yorinobu-arasaka": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian",
+   "reason": "Cold, precise German-native male voice for an estranged Arasaka heir."
+  }
+ }
+}

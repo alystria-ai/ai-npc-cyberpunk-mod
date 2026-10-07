@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createMultilingualProfiles, twinPayload, twinMarker, originalMarker, needsLanguageBoxOff, romanceKey, LANGUAGE_CODES, LANGUAGE_BOX_FIELD, MULTILINGUAL_VOICES, ROMANCE_BASE_KEYS, TIER1_KEYS} from '../scripts/Create-MultilingualProfiles.mjs';
+import {readFileSync} from 'node:fs';
+import {createMultilingualProfiles, applyTwinVoices, voiceFor, withoutCostEstimates, twinPayload, twinMarker, originalMarker, needsLanguageBoxOff, romanceKey, LANGUAGE_CODES, LANGUAGE_BOX_FIELD, MULTILINGUAL_VOICES, ROMANCE_BASE_KEYS, TIER1_KEYS} from '../scripts/Create-MultilingualProfiles.mjs';
 
 function fixture(keys = ['judy-alvarez', 'jackie-welles']) {
   const objects = new Map(), calls = [];
@@ -151,4 +152,84 @@ test('continueOnError records a failing row and still processes the others', asy
   const result = await createMultilingualProfiles({rows: f.rows, api: f.api, continueOnError: true});
   assert.deepEqual(result.failures.map(row => row.key), ['judy-alvarez']);
   assert.deepEqual(result.results.map(row => row.key), ['jackie-welles']);
+});
+
+const voiceMap = JSON.parse(readFileSync(new URL('../characters/multilingual-voice-map.json', import.meta.url), 'utf8'));
+const rosterRows = JSON.parse(readFileSync(new URL('../characters/roster.json', import.meta.url), 'utf8'));
+
+test('voice map describes every voice it assigns, with the right gender, and covers the whole roster', () => {
+  assert.equal(Object.keys(voiceMap.assignments).length, 79);
+  const used = new Set();
+  for (const row of rosterRows) {
+    const entry = voiceMap.assignments[row.key];
+    assert.ok(entry, 'no voice for ' + row.key);
+    assert.match(entry.voice, /^AZURE-MULTILINGUAL-|^[A-Za-z]+Multilingual(V2)?Neural$/u);
+    assert.equal(voiceMap.voices[entry.voice].gender, row.gender, row.key);
+    assert.ok(entry.reason.length > 10 && !entry.reason.includes('\n'), row.key);
+    used.add(entry.voice);
+  }
+  assert.ok(used.size >= 40, 'voices should be spread, not two');
+  assert.deepEqual(Object.keys(voiceMap.voices).sort(), [...used].sort());
+  // The main cast that appears together never shares a voice.
+  const main = ['judy-alvarez', 'panam-palmer', 'johnny-silverhand', 'kerry-eurodyne', 'river-ward', 'jackie-welles', 'viktor-vektor',
+    'misty-olszewski', 'rogue-amendiares', 'takemura', 'mama-welles', 'meredith-stout', 'claire-russell', 'solomon-reed'];
+  assert.equal(new Set(main.map(key => voiceMap.assignments[key].voice)).size, main.length);
+});
+
+test('voiceFor uses the map, lets the romantic twin follow its base, and falls back by gender', () => {
+  const map = {voices: {'v-f': {gender: 'FEMALE'}, 'v-m': {gender: 'MALE'}}, assignments: {'judy-alvarez': {voice: 'v-f'}}};
+  assert.deepEqual(voiceFor({key: 'judy-alvarez', gender: 'FEMALE', voiceMap: map}), {voice: 'v-f', source: 'map'});
+  assert.deepEqual(voiceFor({key: 'judy-alvarez-romantic', baseKey: 'judy-alvarez', gender: 'FEMALE', voiceMap: map}), {voice: 'v-f', source: 'map'});
+  assert.deepEqual(voiceFor({key: 'jackie-welles', gender: 'MALE', voiceMap: map}), {voice: MULTILINGUAL_VOICES.MALE, source: 'fallback'});
+  assert.throws(() => voiceFor({key: 'judy-alvarez', gender: 'MALE', voiceMap: map}), /gender mismatch/);
+  assert.throws(() => voiceFor({key: 'judy-alvarez', gender: 'FEMALE', voiceMap: {voices: {}, assignments: {'judy-alvarez': {voice: 'v-x'}}}}), /does not describe/);
+});
+
+test('a created twin gets the mapped voice', async () => {
+  const f = fixture(['judy-alvarez']);
+  const rows = f.rows.map(row => ({...row, voice: 'AZURE-MULTILINGUAL-test'}));
+  const result = await createMultilingualProfiles({rows, api: f.api});
+  assert.equal(f.objects.get(result.mapping.characters['judy-alvarez'].multilingualCharacterId).voice_type, 'AZURE-MULTILINGUAL-test');
+});
+
+test('applyTwinVoices sends only the voice, to twins only, and rejects a readback that changed anything else', async () => {
+  const f = fixture(['judy-alvarez', 'jackie-welles']);
+  const created = await createMultilingualProfiles({rows: f.rows, api: f.api});
+  const calls = f.calls.length;
+  const rows = [{key: 'judy-alvarez', voice: 'v-new'}, {key: 'jackie-welles', voice: MULTILINGUAL_VOICES.MALE}];
+  const result = await applyTwinVoices({rows, mapping: created.mapping, api: f.api});
+  const updates = f.calls.slice(calls).filter(call => call.endpoint === '/character/update');
+  assert.deepEqual(updates.map(call => Object.keys(call.body).sort()), [['charID', 'voiceType']], 'only the changed twin, only the voice');
+  assert.ok(updates.every(call => call.body.charID.startsWith('twin-')));
+  assert.deepEqual(result.results.map(row => row.changed), [true, false]);
+  assert.equal(result.mapping.characters['judy-alvarez'].voiceType, 'v-new');
+  assert.equal(f.objects.get(created.mapping.characters['judy-alvarez'].multilingualCharacterId).voice_type, 'v-new');
+  // A backend that also rewrites another field is caught.
+  const g = fixture(['judy-alvarez']);
+  const made = await createMultilingualProfiles({rows: g.rows, api: g.api});
+  const base = g.api;
+  const rewriting = async (endpoint, body) => {
+    const value = await base(endpoint, body);
+    if (endpoint === '/character/update') g.objects.get(body.charID).backstory += ' extra';
+    return value;
+  };
+  await assert.rejects(() => applyTwinVoices({rows: [{key: 'judy-alvarez', voice: 'v-new'}], mapping: made.mapping, api: rewriting}), /changed other fields.*backstory/);
+  // A twin without a mapping entry fails without any remote write.
+  const h = fixture(['judy-alvarez']);
+  await assert.rejects(() => applyTwinVoices({rows: [{key: 'judy-alvarez', voice: 'v'}], mapping: {version: 1, characters: {}}, api: h.api}), /No mapped twin/);
+  assert.equal(h.calls.length, 0);
+});
+
+test('computed credit-cost estimates that flip between reads do not count as a change, real settings do', async () => {
+  assert.deepEqual(withoutCostEstimates({memory_settings: {enabled: false, kb_min_credit_cost_e8: 1, ltm_min_credit_cost_e8: 2}, x: [{a_min_credit_cost_e8: 3, b: 4}]}),
+    {memory_settings: {enabled: false}, x: [{b: 4}]});
+  const f = fixture(['judy-alvarez']);
+  const made = await createMultilingualProfiles({rows: f.rows, api: f.api});
+  const flipping = async (endpoint, body) => {
+    const value = await f.api(endpoint, body);
+    if (endpoint === '/character/get') value.memory_settings = {...value.memory_settings, ltm_min_credit_cost_e8: Math.random()};
+    return value;
+  };
+  const result = await applyTwinVoices({rows: [{key: 'judy-alvarez', voice: 'v-new'}], mapping: made.mapping, api: flipping});
+  assert.equal(result.results[0].changed, true);
 });

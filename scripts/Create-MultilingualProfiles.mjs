@@ -10,7 +10,9 @@
 //   - name: "<name> Multilingual";
 //   - voice: Convai rejects non-English language codes on an English-only Kokoro
 //     voice ("Given voice incompatible with the language code"), so the twin
-//     uses a gender-matched Azure multilingual voice.
+//     uses an Azure multilingual voice picked for the character in
+//     characters/multilingual-voice-map.json (gender-matched Emma/Christopher
+//     only as the fallback for a character that has no entry).
 // Languages stay en-US only. With the playground box "Only reply in the selected
 // languages" unticked, a character replies in whatever language the player uses,
 // so the languages need not be listed. That box is the dashboard field
@@ -25,6 +27,7 @@
 // the browser session then records languageBoxOff: true in the mapping.
 //
 // Default is a plan (no remote reads or writes). --apply performs the remote work.
+// --apply --voices-only touches nothing but the voice of already-mapped twins (see applyTwinVoices).
 // Re-runs never create duplicates: an existing mapping, or an existing twin found
 // by its exact ownership marker, is adopted and re-verified.
 import {readFile, writeFile, rename, mkdir, open, unlink} from 'node:fs/promises';
@@ -52,11 +55,25 @@ export const LANGUAGE_CODES = Object.freeze(['en-US']);
 // Dashboard field behind "Only reply in the selected languages" ("off" = unticked).
 // Web session only; see the header. Never sent by this script.
 export const LANGUAGE_BOX_FIELD = 'language_hardening_mode';
-// Voice values come from runtime/convai-voices.json ("Azure Voices", 71 languages).
+// Fallback voices (Azure multilingual, 71 languages), used only when
+// characters/multilingual-voice-map.json has no entry for a character.
 export const MULTILINGUAL_VOICES = Object.freeze({
   FEMALE: 'AZURE-MULTILINGUAL-a0810a758f',   // Emma Female Multilingual Voice
   MALE: 'AZURE-MULTILINGUAL-3ea74315c9',     // Christopher Male Multilingual Voice
 });
+
+/** Voice for a profile key. Romantic twins use the base character's voice. Returns {voice, source}. */
+export function voiceFor({key, baseKey, gender, voiceMap}) {
+  const entry = voiceMap?.assignments?.[baseKey ?? key];
+  if (entry?.voice) {
+    if (!voiceMap.voices?.[entry.voice]) throw Error('Voice map assigns a voice it does not describe: ' + (baseKey ?? key));
+    if (voiceMap.voices[entry.voice].gender !== gender) throw Error(`Voice map gender mismatch for ${key}: ${voiceMap.voices[entry.voice].gender} voice, ${gender} character`);
+    return {voice: entry.voice, source: 'map'};
+  }
+  const voice = MULTILINGUAL_VOICES[gender];
+  if (!voice) throw Error('No multilingual voice for gender ' + gender + ': ' + key);
+  return {voice, source: 'fallback'};
+}
 
 export const originalMarker = key => `[CyberpunkConvai profile v2:${key}]`;
 export const twinMarker = key => `[CyberpunkConvai profile v2:${key}:multilingual]`;
@@ -78,11 +95,11 @@ const COMPARED_FIELDS = Object.freeze([
   'nsfw_model_size', 'character_actions', 'character_emotions', 'is_narrative_driven', 'start_narrative_section_id',
   'custom_feature', 'custom_character_feature']);
 
-export function twinPayload({key, source, model, gender}) {
+export function twinPayload({key, source, model, gender, voice: chosen}) {
   const marker = originalMarker(key);
   const lines = source.backstory.split(/\r?\n/u);
   if (lines.filter(line => line === marker).length !== 1) throw Error('Original ownership marker is missing or repeated: ' + key);
-  const voice = MULTILINGUAL_VOICES[gender];
+  const voice = chosen ?? MULTILINGUAL_VOICES[gender];
   if (!voice) throw Error('No multilingual voice for gender ' + gender + ': ' + key);
   if (typeof model !== 'string' || !model) throw Error('Original model is unknown: ' + key);
   return {
@@ -138,7 +155,7 @@ export function needsLanguageBoxOff(mapping) {
 }
 
 /** Core flow, separated from I/O for tests.
- * rows: [{key, originalId, gender, baseKey?}] (baseKey set for romantic profiles). api(endpoint, body, {create}) returns parsed JSON. */
+ * rows: [{key, originalId, gender, voice?, baseKey?}] (baseKey set for romantic profiles; voice defaults to the gender fallback). api(endpoint, body, {create}) returns parsed JSON. */
 export async function createMultilingualProfiles({rows, mapping = {version: 1, characters: {}}, api, persist = async () => {}, log = () => {}, continueOnError = false}) {
   const next = clone(mapping);
   next.version = 1; next.characters ??= {};
@@ -147,12 +164,12 @@ export async function createMultilingualProfiles({rows, mapping = {version: 1, c
   const listed = new Map(cloud.characters.map(row => [row.character_id, row]));
   const modelOf = id => listed.get(id)?.personalised_prompt_config?.MODEL;
   const results = [], failures = [];
-  for (const {key, originalId, gender, baseKey} of rows) {
+  for (const {key, originalId, gender, baseKey, voice} of rows) {
     try {
       const entry = next.characters[key] ??= {};
       const source = await api('/character/get', {charID: originalId});
       if (source?.character_id !== originalId || !listed.has(originalId)) throw Error('Original profile is not in this account: ' + key);
-      const payload = twinPayload({key, source, model: modelOf(originalId), gender});
+      const payload = twinPayload({key, source, model: modelOf(originalId), gender, voice});
       let id = entry.multilingualCharacterId, found, created = false;
       if (id) {
         if (!listed.has(id)) throw Error('Mapped multilingual profile is not in the account: ' + key);
@@ -219,9 +236,59 @@ export async function createMultilingualProfiles({rows, mapping = {version: 1, c
   return {mapping: next, results, failures, needsLanguageBoxOff: needsLanguageBoxOff(next)};
 }
 
+/** Convai returns computed credit-cost estimates (for example memory_settings.kb_min_credit_cost_e8) that flip between
+ * reads of the same, unchanged character. They are not settings, so they are dropped before two readbacks are compared. */
+export function withoutCostEstimates(value) {
+  if (Array.isArray(value)) return value.map(withoutCostEstimates);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).filter(([name]) => !/min_credit_cost_e8$/u.test(name)).map(([name, item]) => [name, withoutCostEstimates(item)]));
+  }
+  return value;
+}
+
+/** Existing twins only: send the mapped voice (and nothing else) to every twin whose voice differs, then read each
+ * twin back and require that the voice changed and that every other field is identical to before the update.
+ * rows: [{key, voice, baseKey?}]. The original characters are never read or written here. */
+export async function applyTwinVoices({rows, mapping, api, persist = async () => {}, log = () => {}, continueOnError = false}) {
+  const next = clone(mapping);
+  const results = [], failures = [];
+  for (const {key, voice, baseKey} of rows) {
+    try {
+      const entry = next.characters?.[key];
+      const id = entry?.multilingualCharacterId;
+      if (!id) throw Error('No mapped twin: ' + key);
+      if (id === entry.originalCharacterId) throw Error('Twin ID equals the original ID: ' + key);
+      const before = await api('/character/get', {charID: id});
+      if (before?.character_id !== id) throw Error('Twin readback has the wrong ID: ' + key);
+      if (!before.backstory?.split(/\r?\n/u).includes(twinMarker(key))) throw Error('Multilingual ownership marker mismatch: ' + key);
+      let changed = false;
+      if (before.voice_type !== voice) {
+        const response = await api('/character/update', {charID: id, voiceType: voice});
+        if (response?.STATUS !== 'SUCCESS') throw Error('Voice update was not confirmed: ' + key);
+        const after = await api('/character/get', {charID: id});
+        if (after?.voice_type !== voice) throw Error('Voice did not change on readback: ' + key);
+        const {voice_type: was, ...beforeRest} = withoutCostEstimates(before), {voice_type: now, ...afterRest} = withoutCostEstimates(after);
+        const differing = [...new Set([...Object.keys(beforeRest), ...Object.keys(afterRest)])].filter(field => !isDeepStrictEqual(beforeRest[field], afterRest[field]));
+        if (differing.length) throw Error(`Voice update changed other fields for ${key}: ${differing.join(', ')} (${differing.map(field => JSON.stringify(beforeRest[field])?.slice(0, 120) + ' -> ' + JSON.stringify(afterRest[field])?.slice(0, 120)).join('; ')})`);
+        changed = true;
+        log(`Voice of ${entry.name}: ${before.voice_type} -> ${voice}`);
+      }
+      entry.voiceType = voice;
+      if (baseKey) Object.assign(entry, {variant: 'romantic', baseKey});
+      await persist(clone(next));
+      results.push({key, id, changed});
+    } catch (error) {
+      if (!continueOnError) throw error;
+      failures.push({key, error: error.message});
+      log(`FAILED ${key}: ${error.message}`);
+    }
+  }
+  return {mapping: next, results, failures};
+}
+
 async function main() {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..'), runtime = resolve(root, 'runtime');
-  const args = process.argv.slice(2), apply = args.includes('--apply') && !args.includes('--dry-run');
+  const args = process.argv.slice(2), apply = args.includes('--apply') && !args.includes('--dry-run'), voicesOnly = args.includes('--voices-only');
   const onlyAt = args.indexOf('--only');
   const only = onlyAt < 0 ? null : new Set(args[onlyAt + 1].split(','));
   const read = async (path, fallback) => {
@@ -233,11 +300,12 @@ async function main() {
   const kokoro = await read(resolve(root, 'characters/kokoro-voices.json'));
   const genderOfVoice = new Map(kokoro.voices.map(voice => [voice.voice_value, voice.gender]));
   const relationships = await read(resolve(runtime, 'relationship-profiles.json'));
+  const voiceMap = await read(resolve(root, 'characters/multilingual-voice-map.json'), {assignments: {}, voices: {}});
   const profiled = roster.map(row => row.key).filter(key => ids[key]);
   const known = [...profiled, ...ROMANCE_BASE_KEYS.map(romanceKey)];
   if (only && [...only].some(key => !known.includes(key))) throw Error('--only names a profile outside the profiled roster and the romance profiles.');
   // Gender of the twin voice: the original Kokoro voice's gender, else the roster's own gender field.
-  const genderFallbacks = [];
+  const genderFallbacks = [], voiceFallbacks = [];
   const rows = known.filter(key => !only || only.has(key)).map(key => {
     const baseKey = key.endsWith('-romantic') ? key.slice(0, -'-romantic'.length) : null;
     const profile = roster.find(row => row.key === (baseKey ?? key));
@@ -245,7 +313,9 @@ async function main() {
     if (!gender && ['MALE', 'FEMALE'].includes(profile?.gender)) { gender = profile.gender; genderFallbacks.push(key); }
     const originalId = baseKey ? relationships.characters?.[baseKey]?.romanticCharacterId : ids[key];
     if (!originalId || !gender) throw Error('Missing Convai ID or voice gender: ' + key);
-    return {key, originalId, gender, name: profile.name, ...(baseKey && {baseKey})};
+    const {voice, source} = voiceFor({key, baseKey, gender, voiceMap});
+    if (source === 'fallback') voiceFallbacks.push(key);
+    return {key, originalId, gender, voice, name: profile.name, ...(baseKey && {baseKey})};
   });
   const target = resolve(runtime, 'multilingual-profiles.json');
   const mapping = await read(target, {version: 1, characters: {}});
@@ -253,10 +323,10 @@ async function main() {
     console.log(JSON.stringify({mode: 'dry-run', writes: 'none', total: rows.length,
       toCreate: rows.filter(row => !mapping.characters[row.key]?.multilingualCharacterId).length,
       alreadyMapped: rows.filter(row => mapping.characters[row.key]?.multilingualCharacterId).length,
-      genderFromRosterFallback: genderFallbacks, languageCodes: LANGUAGE_CODES,
+      genderFromRosterFallback: genderFallbacks, voiceFromGenderFallback: voiceFallbacks, languageCodes: LANGUAGE_CODES,
       languageBox: `${LANGUAGE_BOX_FIELD} is set through the web session only; see needsLanguageBoxOff after --apply`,
       profiles: rows.map(row => ({key: row.key, original: row.originalId, twinName: apiCharacterName({name: row.name + ' Multilingual'}),
-        voice: MULTILINGUAL_VOICES[row.gender], alreadyMapped: Boolean(mapping.characters[row.key]?.multilingualCharacterId)}))}, null, 2));
+        voice: row.voice, voiceName: voiceMap.voices?.[row.voice]?.name, alreadyMapped: Boolean(mapping.characters[row.key]?.multilingualCharacterId)}))}, null, 2));
     return;
   }
   const keyText = (await readFile(process.env.CYBERPUNK_CONVAI_KEY_FILE || resolve(runtime, 'convai-key.txt'), 'utf8')).trim();
@@ -296,6 +366,14 @@ async function main() {
   try {
     await lock.writeFile(String(process.pid));
     await mkdir(runtime, {recursive: true});
+    if (voicesOnly) {
+      // Existing twins: send only the mapped voice, verify by readback that nothing else changed.
+      const result = await applyTwinVoices({rows, mapping, api, persist: value => atomic(target, value), log: console.log, continueOnError: true});
+      await atomic(target, result.mapping);
+      console.log(JSON.stringify({mode: 'voices-only', changed: result.results.filter(row => row.changed).length, unchanged: result.results.filter(row => !row.changed).length, failures: result.failures}, null, 2));
+      if (result.failures.length) process.exitCode = 1;
+      return;
+    }
     const result = await createMultilingualProfiles({rows, mapping, api, persist: value => atomic(target, value), log: console.log, continueOnError: true});
     await atomic(target, result.mapping);
     console.log(JSON.stringify({results: result.results, failures: result.failures, needsLanguageBoxOff: result.needsLanguageBoxOff}, null, 2));
