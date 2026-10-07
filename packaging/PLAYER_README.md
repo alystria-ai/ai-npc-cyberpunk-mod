@@ -7,7 +7,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - Cyberpunk 2077 2.31 on Windows 10 or 11 (64-bit)
 - Install these from Nexus Mods first: Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu
 - An internet connection while you talk
-- About 3 GB of free disk space (about 11 GB more for the optional OmniVoice pack)
+- About 3 GB of free disk space (about 15 GB more while installing the optional OmniVoice pack, 9 GB once installed)
 
 You do not need to install anything else. The voice service, its voices and models are included and start with the game.
 
