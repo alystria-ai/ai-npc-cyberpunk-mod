@@ -6,7 +6,7 @@
 import {createReadStream, existsSync, statSync} from 'node:fs';
 import {resolve, sep} from 'node:path';
 
-export const V3_REPORT_ROOT = process.env.V3_REPORT_ROOT ?? 'E:\CyberpunkConvai-offload\work\voice-report-v3';
+export const V3_REPORT_ROOT = process.env.V3_REPORT_ROOT ?? 'E:/CyberpunkConvai-offload/work/voice-report-v3';
 const PREFIX = '/v3';
 const TYPES = {'.html': 'text/html; charset=utf-8', '.wav': 'audio/wav'};
 const NOTICE = '<!doctype html><meta charset="utf-8"><title>Voice report</title><body style="font:16px system-ui;margin:2em">'

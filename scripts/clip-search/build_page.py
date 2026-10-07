@@ -225,9 +225,9 @@ def build(args):
         m["ecapa"] = sum(sum(x) / len(x) for x in by_voice.values()) / len(by_voice)
         m["ecapa_voices"] = len(by_voice)
         metrics[column] = m
-    pls = likeness.pls({k: v for k, v in metrics.items() if k != "original"}, LOW, HIGH) if LOW in metrics and HIGH in metrics else {}
-    if "original" in metrics and LOW in metrics and HIGH in metrics:
-        pls["original"] = likeness.pls(metrics, LOW, HIGH).get("original")
+    # PLS with the October 5 study's fixed anchors (stock Pocket 1 clip = 60, OmniVoice 32 1 clip = 90, 67 voices), so pages stay
+    # comparable. The original has no PLS: its same-line distance is zero by definition.
+    pls = {c: pls_from_components(m) for c, m in metrics.items() if c != "original"}
     # reference length and latency averages per column
     def average_seconds(column):
         if column == "original":
@@ -257,7 +257,7 @@ def build(args):
            "automatic search (speaker similarity first). <b>Pocket base</b> (the stock model) and the <b>new Pocket student + decoder v2</b> "
            "use the same best-length reference; OmniVoice uses a <b>short</b> (up to 10 s) and a <b>long</b> (up to 18 s) one, at 16 and at "
            "32 steps. Under each header: ECAPA (speaker identity: cosine to the centroid of the character's held-out real clips, higher is "
-           "better) first, then PLS (perceptual likeness, Pocket base = 60 and OmniVoice 32 long = 90 on these characters), both averaged over "
+           "better) first, then PLS (perceptual likeness; the study's scale where stock Pocket with one clip = 60 and OmniVoice 32 with one clip = 90; the new student matches each original line's delivery closely, which the PLS delivery part rewards), both averaged over "
            f"the {len(shown_here)} characters, then the average reference length and, for OmniVoice, the predicted added first-audio latency "
            "(42 ms per second of reference at 16 steps, 95 ms at 32). Under each player: this reference's length and that line's ECAPA. "
            "Adam Smasher's references come only from the 11 clips the user chose, searched on his two lines (overfitting on purpose).</p>"]
