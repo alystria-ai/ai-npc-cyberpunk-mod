@@ -950,7 +950,8 @@ async function pollMicrophone() {
         // snapshot and native input data refresh at microphone completion.
         preparedInputs.set(refreshed.input, refreshed);
         const signal = mic.current?.controller.signal;
-        companionActions.admit(refreshed, {source: 'private-voice', signal,
+        // A group recording arms only a leave offer for its round (docs/WORLD_COMPANIONS.md).
+        companionActions.admit(refreshed, {source: refreshed.input.group ? 'group-voice' : 'private-voice', signal,
           isCurrent: async () => !stopped && !signal?.aborted && await knowledgeRouter.current(refreshed)
             && await readFile(micPath, 'utf8').catch(() => '') === raw,
           isCurrentSync: () => !stopped && !signal?.aborted && knowledgeRouter.currentSync(refreshed)});
@@ -1125,9 +1126,10 @@ async function processInput(request, prepared) {
     await knowledgeRouter.submitted(knowledgeTurn);
     stages.submissionRecordedMs = performance.now() - preparationStarted;
     if (!await current()) return;
-    // Group turns never admit gameplay actions, so a look-ahead skips the
-    // admission that would also clear the mailbox beside the speaker still heard.
-    if (!ahead) companionActions.admit(knowledgeTurn, {source: 'private-text', signal: controller.signal,
+    // Only the first speaker of a group round may admit an action (sending
+    // companions away), so a look-ahead skips the admission that would also
+    // clear the mailbox beside the speaker still heard.
+    if (!ahead) companionActions.admit(knowledgeTurn, {source: input.group ? 'group-text' : 'private-text', signal: controller.signal,
       isCurrent: async () => !stopped && !controller.signal.aborted && await knowledgeRouter.current(knowledgeTurn)
         && await request.owner.current(),
       isCurrentSync: () => !stopped && !controller.signal.aborted && knowledgeRouter.currentSync(knowledgeTurn)});

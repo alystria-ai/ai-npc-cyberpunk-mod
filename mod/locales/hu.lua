@@ -558,4 +558,11 @@ return {
     ["{status} · After current reply"] = "{status} · Az aktuális válasz után",
     ["{status} · Using {voice}, {requested} unavailable"] = "{status} · Használt hang: {voice}, {requested} nem elérhető",
     ["{voice} · needs Omni pack"] = "{voice} · Omni-csomag szükséges",
+    ["That action is not available."] = "Ez a művelet nem érhető el.",
+    ["That companion is no longer in your party."] = "Ez a társ már nincs a csoportodban.",
+    ["{name} can't come along right now."] = "{name} most nem tud veled jönni.",
+    ["{name} is already with you."] = "{name} már veled van.",
+    ["{name} is coming with you."] = "{name} veled jön.",
+    ["{name} is leaving your party."] = "{name} elhagyja a csoportodat.",
+    ["{name} is no longer nearby."] = "{name} már nincs a közelben.",
 }

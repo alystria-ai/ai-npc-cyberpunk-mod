@@ -41,7 +41,9 @@ local function tacticModule(path, options, fallback)
     print('[CyberpunkConvai] ' .. path .. ' unavailable: ' .. tostring(module))
     return fallback
 end
-local marking = tacticModule('companion-marking.lua', {owned = function(npc) return companions.owns(npc) end,
+-- A hidden adopted original (companion-adoption.lua) is never a target either.
+local marking = tacticModule('companion-marking.lua', {owned = function(npc)
+        return companions.owns(npc) or (convaiCompanionAdoption ~= nil and convaiCompanionAdoption.hidden(npc)) end,
     log = function(line) if tacticEnv.log then tacticEnv.log(line) end end},
     {current = function() return nil end, abandon = function() end})
 local tactics = tacticModule('companion-tactics.lua', {env = tacticEnv}, {
@@ -184,6 +186,15 @@ local function attachKnowledge(context)
     return captured.owner
 end
 
+-- World characters joining V and party members leaving (docs/WORLD_COMPANIONS.md).
+-- Created after the conversation state it reads; see companion-adoption.lua.
+local adoption
+-- The native actor of the conversation that owns this entity, if any.
+local function conversationNpc(entity)
+    local npc = speech.target
+    local ok, id = pcall(function() return npc and tostring(npc:GetEntityID().hash) end)
+    return ok and id == entity and npc or nil
+end
 gameplayActions = dofile('gameplay-actions.lua').new({
     world = function()
         return {ready = knowledgeAllowed and knowledgeFrame ~= nil and knowledgeFrame.status == 'ready',
@@ -194,6 +205,18 @@ gameplayActions = dofile('gameplay-actions.lua').new({
     queue = function(serial, offer, entity) return companions.queueChauffeur(serial, offer, entity) end,
     tacticOffer = function(entity) return tactics.offer(entity) end,
     queueTactic = function(kind, offer, entity) return tactics.start(kind, offer, entity) end,
+    followOffer = function(entity, context)
+        return adoption and adoption.offer(entity, conversationNpc(entity), context.profileKey, context.name) or nil
+    end,
+    leaveOffer = function(entity, context) return adoption and adoption.leaveOffer(entity, context) or nil end,
+    queueFollow = function(offer, entity, requestId)
+        if not adoption then return false, ui.t('That action is not available.') end
+        return adoption.queueFollow(offer, entity, requestId)
+    end,
+    queueLeave = function(target, offer, entity, requestId, groupId)
+        if not adoption then return false, ui.t('That action is not available.') end
+        return adoption.queueLeave(target, offer, entity, requestId, groupId)
+    end,
     developerMode = manager.developerMode,
     feedback = function(state, reason)
         local player = Game.GetPlayer()
@@ -201,7 +224,9 @@ gameplayActions = dofile('gameplay-actions.lua').new({
             and 'Your companion is preparing to drive.' or 'The driving request could not be queued.'))) end
     end})
 convaiGameplayActions = gameplayActions
-microphone.captureActions = function(context) return gameplayActions.capture(context, 'private-voice') end
+microphone.captureActions = function(context)
+    return gameplayActions.capture(context, context.group and 'group-voice' or 'private-voice')
+end
 
 local function capturePhoneBinding()
     local frame = refreshKnowledgeFrame()
@@ -428,6 +453,47 @@ local function log(line)
     print('[CyberpunkConvai] ' .. line)
 end
 
+-- World characters asked to follow join as managed copies; party members asked
+-- to leave are dismissed after their goodbye (docs/WORLD_COMPANIONS.md). A
+-- missing module only removes the two actions.
+do
+    local named = {}
+    for _, profile in ipairs(profiles) do named[profile.key] = profile.kind == nil or profile.kind == 'named' end
+    local loaded, module = pcall(dofile, 'companion-adoption.lua')
+    local built, value = false, module
+    if loaded and type(module) == 'table' and type(module.new) == 'function' then
+        built, value = pcall(module.new, {companions = companions,
+            party = function() return mcm.party and mcm.party() or nil end,
+            player = function() return Game.GetPlayer() end,
+            -- The reply that requested the action is still being written or heard.
+            busy = function(requestId, groupId)
+                if groupId and groupChat.round and groupChat.round.id == groupId then return true end
+                if pending and pending.requestId == requestId then return true end
+                if microphone.context and microphone.context.requestId == requestId then return true end
+                return speech.requestId ~= nil and speech.requestId == requestId
+            end,
+            -- Two copies of one named character are refused; generic people (residents and
+            -- archetypes, bridge/protocol.mjs isAmbientProfile) are not one person.
+            named = function(key)
+                if key == 'resident-male' or key == 'resident-female' or tostring(key):match('^npc%-') then return false end
+                return named[key] ~= false
+            end,
+            groupEntities = function(context)
+                local round, result = groupChat.round, {}
+                if not round or not context.group or round.id ~= context.group.id then return result end
+                for _, person in ipairs(round.participants) do result[#result + 1] = person.entity end
+                return result
+            end,
+            -- A conversation partner who joins the party leaves the partner role.
+            promote = function(key)
+                if convaiAutoConnect and type(convaiAutoConnect.promote) == 'function' then convaiAutoConnect.promote(key) end
+            end,
+            log = log})
+    end
+    if built and type(value) == 'table' then adoption = value; convaiCompanionAdoption = value
+    else print('[CyberpunkConvai] companion-adoption.lua unavailable: ' .. tostring(value)) end
+end
+
 -- Auto-connect nearby characters (docs/MANAGER_UI.md). Off by default, and a
 -- missing module only removes the feature. The module decides which world
 -- characters to prepare; the bridge opens their connection and local voice.
@@ -448,7 +514,7 @@ do
             local component = TS_TargetPartInfo.GetComponent(part)
             local entity = component and component:GetEntity()
             if entity and entity:IsNPC() and entity:IsAttached() and not entity:IsDeadNoStatPool()
-                and not companions.owns(entity) then
+                and not companions.owns(entity) and not (adoption and adoption.hidden(entity)) then
                 local id = tostring(entity:GetEntityID().hash)
                 if not seen[id] then
                     seen[id] = true
@@ -607,6 +673,7 @@ local function targetAtCrosshair()
     for _, npc in ipairs(candidates) do
         local valid, score = pcall(function()
             if not npc:IsNPC() or not npc:IsAttached() or npc:IsDeadNoStatPool() then return nil end
+            if adoption and adoption.hidden(npc) then return nil end
             local id = tostring(npc:GetEntityID().hash)
             local pos = npc:GetWorldPosition()
             local points = {{x = pos.x, y = pos.y, z = pos.z + 1.3}}
@@ -982,7 +1049,10 @@ local function sendRequest(context)
     else context.battle = context.battle or battles.capture() end
     local current = knowledgeOwner(refreshKnowledgeFrame())
     if not knowledgeAllowed or current.paused or not sameKnowledgeOwner(owner, current) then return false end
-    if not context.group and not context.reaction then gameplayActions.capture(context, 'private-text') end
+    if not context.group and not context.reaction then gameplayActions.capture(context, 'private-text')
+    elseif context.group and context.group.index == 1 and not context.reaction then
+        gameplayActions.capture(context, 'group-text')
+    end
     local file = io.open('runtime/last-input.json.tmp', 'wb')
     if not file then gameplayActions.revoke('request-write-failed', context.requestId); return false end
     file:write(json.encode(context)); file:close()
@@ -1585,6 +1655,7 @@ local function abandonSession(reason,preserveTransit)
     if tactics then tactics.abandon() end
     if marking then marking.abandon() end
     companions.abandon(preserveTransit==true)
+    if adoption then pcall(adoption.abandon, preserveTransit==true) end
     mcm.resetSession()
     speech.abandon()
     subtitles.abandon()
@@ -1840,6 +1911,11 @@ registerForEvent('onUpdate', function(delta)
     local managerOk, managerError = pcall(manager.update, player, 0.1)
     if not managerOk then log('Manager update failed: ' .. tostring(managerError)) end
     if worldReady then companions.update(player, elapsedPoll, focusEntity) end
+    -- The global keeps this callback's upvalue count unchanged (LuaJIT limits upvalues).
+    if worldReady and convaiCompanionAdoption then
+        local adoptionOk, adoptionError = pcall(convaiCompanionAdoption.update, elapsedPoll)
+        if not adoptionOk then log('Companion adoption update failed: ' .. tostring(adoptionError)) end
+    end
     local tacticOk, tacticError = pcall(tactics.update, player, elapsedPoll, worldReady)
     if not tacticOk then tactics.cancel('update-error'); log('Companion tactic update failed: ' .. tostring(tacticError)) end
     movementLog.update(worldReady and manager.developerMode(), elapsedPoll, companions.movementSnapshot)

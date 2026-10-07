@@ -558,4 +558,11 @@ return {
     ["{status} · After current reply"] = "{status} · Після поточної відповіді",
     ["{status} · Using {voice}, {requested} unavailable"] = "{status} · Використовується {voice}; недоступно: {requested}",
     ["{voice} · needs Omni pack"] = "{voice} · потрібен пакет Omni",
+    ["That action is not available."] = "Ця дія недоступна.",
+    ["That companion is no longer in your party."] = "Цього супутника вже немає у твоїй групі.",
+    ["{name} can't come along right now."] = "Зараз не може піти з тобою: {name}.",
+    ["{name} is already with you."] = "Уже з тобою: {name}.",
+    ["{name} is coming with you."] = "Іде з тобою: {name}.",
+    ["{name} is leaving your party."] = "Залишає твою групу: {name}.",
+    ["{name} is no longer nearby."] = "Уже не поруч: {name}.",
 }

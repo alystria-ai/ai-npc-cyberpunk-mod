@@ -558,4 +558,11 @@ return {
     ["Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together."] = "Habla natural y Emociones expresivas se desactivaron: la voz en la nube de Convai leería sus etiquetas en voz alta. Con el paquete de OmniVoice, las tres funcionan juntas.",
     ["Voice status"] = "Estado de la voz",
     ["Who can talk"] = "Quién puede hablar",
+    ["That action is not available."] = "Esa acción no está disponible.",
+    ["That companion is no longer in your party."] = "Ese acompañante ya no está en tu grupo.",
+    ["{name} can't come along right now."] = "{name} no puede acompañarte ahora mismo.",
+    ["{name} is already with you."] = "{name} ya está contigo.",
+    ["{name} is coming with you."] = "{name} viene contigo.",
+    ["{name} is leaving your party."] = "{name} deja tu grupo.",
+    ["{name} is no longer nearby."] = "{name} ya no está cerca.",
 }

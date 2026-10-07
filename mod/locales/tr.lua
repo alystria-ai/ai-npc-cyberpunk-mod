@@ -558,4 +558,11 @@ return {
     ["{status} · After current reply"] = "{status} · Mevcut yanıttan sonra",
     ["{status} · Using {voice}, {requested} unavailable"] = "{status} · {voice} kullanılıyor, {requested} kullanılamıyor",
     ["{voice} · needs Omni pack"] = "{voice} · Omni paketi gerekir",
+    ["That action is not available."] = "Bu işlem kullanılamıyor.",
+    ["That companion is no longer in your party."] = "Bu yoldaş artık grupta değil.",
+    ["{name} can't come along right now."] = "{name} şu anda seninle gelemiyor.",
+    ["{name} is already with you."] = "{name} zaten seninle.",
+    ["{name} is coming with you."] = "{name} seninle geliyor.",
+    ["{name} is leaving your party."] = "{name} gruptan ayrılıyor.",
+    ["{name} is no longer nearby."] = "{name} artık yakında değil.",
 }

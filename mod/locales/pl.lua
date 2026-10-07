@@ -558,4 +558,11 @@ return {
     ["{status} · After current reply"] = "{status} · Po bieżącej odpowiedzi",
     ["{status} · Using {voice}, {requested} unavailable"] = "{status} · Używany: {voice}, niedostępny: {requested}",
     ["{voice} · needs Omni pack"] = "{voice} · wymaga pakietu Omni",
+    ["That action is not available."] = "Ta akcja jest niedostępna.",
+    ["That companion is no longer in your party."] = "Tego towarzysza nie ma już w grupie.",
+    ["{name} can't come along right now."] = "Nie może teraz z tobą pójść: {name}.",
+    ["{name} is already with you."] = "Już jest z tobą: {name}.",
+    ["{name} is coming with you."] = "Idzie z tobą: {name}.",
+    ["{name} is leaving your party."] = "Opuszcza grupę: {name}.",
+    ["{name} is no longer nearby."] = "Nie ma już w pobliżu: {name}.",
 }

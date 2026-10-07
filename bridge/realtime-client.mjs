@@ -694,16 +694,19 @@ async function updateContext(config, allowActions = false) {
       + 'Any relationship state not explicitly supplied is unknown; do not infer it from character presence or past sessions. '
       + (config.context || 'This is a private conversation with V.')};
   const baseContext = context.text;
-  const privateManual = allowActions && !config.reaction && !config.freshSession
-    && /^private(?::|$)/.test(config.scope || '') && typeof config.endUserId === 'string';
-  const offered = privateManual && config.companionAction;
+  const manual = allowActions && !config.reaction && !config.freshSession && typeof config.endUserId === 'string';
+  const privateManual = manual && /^private(?::|$)/.test(config.scope || '');
+  // A group round's first speaker may carry a leave-only offer (docs/WORLD_COMPANIONS.md).
+  const groupManual = manual && /^group:/.test(config.scope || '');
+  const offered = config.companionAction && ((privateManual && config.companionAction.group !== true)
+    || (groupManual && config.companionAction.group === true)) ? config.companionAction : null;
   const verified = verifiedProvider?.connection === client && currentParticipant(client, audioParticipant);
   companionActions.clear();
   const armed = verified && offered && companionActions.open(offered);
-  observed.actionEligibility = {allowed: allowActions, privateManual: !!privateManual,
+  observed.actionEligibility = {allowed: allowActions, privateManual: !!privateManual, groupManual: !!groupManual,
     hasOffer: !!config.companionAction, verified: !!verified, armed: !!armed};
   if (armed) observed.actionsOffered = (observed.actionsOffered ?? 0) + 1;
-  // Driving and marked-target prompt material lives beside its strict parser.
+  // Driving, marked-target and party prompt material lives beside its strict parser.
   if (armed) context.text += CompanionActionWindow.contextText(offered);
   if (armed || actionContextConfigured) {
     try {

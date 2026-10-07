@@ -558,4 +558,11 @@ return {
     ["{status} · After current reply"] = "{status} · Po aktuální odpovědi",
     ["{status} · Using {voice}, {requested} unavailable"] = "{status} · Používá se {voice}, {requested} není k dispozici",
     ["{voice} · needs Omni pack"] = "{voice} · vyžaduje balíček Omni",
+    ["That action is not available."] = "Tato akce není dostupná.",
+    ["That companion is no longer in your party."] = "Tento společník už není ve skupině.",
+    ["{name} can't come along right now."] = "Teď s tebou nemůže jít: {name}.",
+    ["{name} is already with you."] = "Už je s tebou: {name}.",
+    ["{name} is coming with you."] = "Jde s tebou: {name}.",
+    ["{name} is leaving your party."] = "Opouští skupinu: {name}.",
+    ["{name} is no longer nearby."] = "Už není poblíž: {name}.",
 }

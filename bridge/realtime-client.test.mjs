@@ -1515,3 +1515,49 @@ test('invalid continuous admission cannot leave an active turn or submit text', 
   const pending = api.reply(config); await flush(); sendAudio(clients[0]); finalText(clients[0]);
   assert.equal((await pending).continuous, undefined); await api.close();
 });
+
+// Party membership actions (docs/WORLD_COMPANIONS.md): follow in private chat,
+// leave in private chat or from a group round's first speaker.
+test('a group round arms only its leave offer, and a private offer never arms in a group scope', async () => {
+  const accepted = [], {api, clients, events} = fixture({onCompanionAction: value => accepted.push(value)});
+  const token = 'drive-' + '7'.padStart(20, '0');
+  const group = {...config, scope: 'group:judy-alvarez,panam-palmer', endUserId: 'fixture-user', ttsEnabled: false,
+    companionAction: {version: 1, token, source: 'group-text', expiresAt: Date.now() + 89000, drive: false, group: true,
+      leave: {members: [{name: 'Judy Alvarez', self: true}, {name: 'Panam Palmer', self: false}]}}};
+  await api.warm(group);
+  const reply = api.reply(group); await flush(); const client = clients[0];
+  const published = events.filter(row => row[0] === 'publish').at(-1)[1].data;
+  assert.deepEqual(published.action_config.actions,
+    [`Leave V's Party ${token}`, `Panam Palmer Leaves V's Party ${token}`, `Everyone Leaves V's Party ${token}`]);
+  assert.match(published.text, /Only the companion V addresses leaves/);
+  assert.equal(api.diagnostics().actions.eligibility.groupManual, true);
+  client.data(wire({type: 'action-response', actions: [{name: `Panam Palmer Leaves V's Party ${token}`}]})); await flush();
+  assert.deepEqual(accepted, [{version: 1, token, leave: 2}]);
+  finalText(client); await reply;
+  // The same follow offer that private chat would arm is ignored in a group scope.
+  const follow = {...group, companionAction: {version: 1, token: 'drive-' + '8'.padStart(20, '0'), source: 'private-text',
+    expiresAt: Date.now() + 89000, drive: false, follow: {name: 'Judy Alvarez'}}};
+  const second = api.reply(follow); await flush();
+  assert.deepEqual(events.filter(row => row[0] === 'publish').at(-1)[1].data.action_config.actions, []);
+  assert.equal(api.diagnostics().actions.eligibility.armed, false);
+  finalText(client, 'Next.', 'reply-2'); await second; await api.close();
+});
+
+test('a private follow offer arms the world character and a group-flagged offer is refused in private chat', async () => {
+  const accepted = [], {api, clients, events} = fixture({onCompanionAction: value => accepted.push(value)});
+  const request = chauffeurConfig(9);
+  request.companionAction = {...request.companionAction, drive: false, follow: {name: 'Judy Alvarez'}};
+  await api.warm(request);
+  const reply = api.reply(request); await flush(); const client = clients[0];
+  const published = events.filter(row => row[0] === 'publish').at(-1)[1].data;
+  assert.deepEqual(published.action_config.actions, [`Follow V ${request.companionAction.token}`]);
+  assert.match(published.text, /come along with V as a companion/);
+  client.data(wire({type: 'action-response', actions: [{name: 'Follow V', target: request.companionAction.token}]})); await flush();
+  assert.deepEqual(accepted, [{version: 1, token: request.companionAction.token, follow: true}]);
+  finalText(client); await reply;
+  const flagged = {...request, companionAction: {...request.companionAction, token: 'drive-' + '10'.padStart(20, '0'),
+    source: 'group-text', group: true, follow: undefined, leave: {members: [{name: 'Judy Alvarez', self: true}]}}};
+  const second = api.reply(flagged); await flush();
+  assert.deepEqual(events.filter(row => row[0] === 'publish').at(-1)[1].data.action_config.actions, []);
+  finalText(client, 'Next.', 'reply-2'); await second; await api.close();
+});

@@ -11,7 +11,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const files = [
   'mod/mcm.lua', 'mod/manager.lua', 'mod/manager-party.lua', 'mod/init.lua', 'mod/auto-connect.lua',
   'mod/companions.lua', 'mod/companion-vehicles.lua', 'mod/companion-vehicle-native.lua', 'mod/companion-chauffeur.lua',
-  'mod/companion-chauffeur-native.lua', 'mod/gameplay-actions.lua',
+  'mod/companion-chauffeur-native.lua', 'mod/gameplay-actions.lua', 'mod/companion-adoption.lua',
   'mod/companion-clearance.lua', 'mod/companion-placement.lua',
   'mod/phone-chat.lua', 'mod/phone-chat-style.lua', 'mod/phone-input.lua',
   'mod/composer-input.lua', 'mod/microphone.lua', 'mod/service-status.lua', 'mod/support-report.lua',

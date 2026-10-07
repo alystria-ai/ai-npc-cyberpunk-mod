@@ -1,4 +1,7 @@
 -- Managed copies only. World and quest NPCs are never assigned a follower role.
+-- A world character asked to follow joins as a managed copy placed where it
+-- stood (invitation.adoption, docs/WORLD_COMPANIONS.md); the original is only
+-- hidden and shown again by companion-adoption.lua, never given a role.
 local M = {}
 local behavior = dofile('companion-behavior.lua')
 local space = dofile('companion-space.lua')
@@ -288,16 +291,27 @@ local function spawnCopy(key, invitation, returning)
     end
     if not freeSlot then return nil, 'Party is full' end
     local body=returning and returning.clearance or placement.profile(definition,key)
-    local spawnPosition, placementError, deferred = placement.find(player, formationPosition(player, freeLane),occupiedPositions(),body)
+    -- An adopted world character's copy takes the original's place when that
+    -- spot passes the same checks; otherwise the usual nearby search applies.
+    local adoption=not returning and invitation and type(invitation.adoption)=='table' and invitation.adoption or nil
+    local preferred=adoption and clearance.isPoint(adoption.position) and copyPosition(adoption.position)
+        or formationPosition(player, freeLane)
+    local spawnPosition, placementError, deferred = placement.find(player, preferred,occupiedPositions(),body)
     if deferred then return nil,nil,true end
     if not spawnPosition then return nil, placementError end
     local spawnRecord, recordError, spawnRecordName, spawnAppearance = spawnRecords.resolve(recordID)
     if not spawnRecord then return nil, recordError end
     local spec = NewObject('DynamicEntitySpec')
     spec.recordID = spawnRecord
-    if spawnAppearance then spec.appearanceName = CName.new(spawnAppearance) end
+    -- A copy of a world character wears the original's current appearance. A
+    -- private spawn record (Johnny) keeps its own physical appearance.
+    local appearance=returning and returning.appearance or (adoption and type(adoption.appearance)=='string'
+        and adoption.appearance~='' and adoption.appearance) or nil
+    if appearance and spawnRecordName then appearance=nil end
+    if appearance then spec.appearanceName = CName.new(appearance)
+    elseif spawnAppearance then spec.appearanceName = CName.new(spawnAppearance) end
     spec.position = spawnPosition
-    spec.orientation = player:GetWorldOrientation()
+    spec.orientation = adoption and adoption.orientation or player:GetWorldOrientation()
     spec.spawnInView = true
     spec.active = true
     spec.alwaysSpawned = true
@@ -321,7 +335,7 @@ local function spawnCopy(key, invitation, returning)
         entityID = entityID, system = system, state = 'spawning',
         requestedAt = os.time(), requestedClock = runtimeClock,
         spawnPosition = copyPosition(spawnPosition),
-        clearance = body,
+        clearance = body, appearance = appearance,
         person = behavior.new(returning and returning.serial or serial),
         transitRecreated = returning ~= nil,
     }
@@ -464,6 +478,20 @@ function M.ownsTravelCommand(npc,command)
         end
     end
     return false
+end
+
+-- The exact ready party member at this entity, for a leave offer. A driver
+-- mid-trip cannot leave (dismissal is refused until the trip has ended).
+function M.partyMember(entity)
+    if type(entity)~='string' then return nil end
+    for _,entry in ipairs(entries) do
+        if entry.state=='ready' and entry.profileKey and tostring(entry.entityID.hash)==entity then
+            local allowed=vehicles.canDismissChauffeurDriver(fleet,entry.serial)
+            return {serial=entry.serial,id=entity,key=entry.profileKey,name=entry.profileName or entry.name,
+                driving=allowed~=true}
+        end
+    end
+    return nil
 end
 
 function M.identity(npc)
@@ -840,6 +868,7 @@ function M.beginFastTravel()
                 profileKey=entry.profileKey,profileName=entry.profileName,record=entry.record,
                 modelRecordID=entry.modelRecordID,spawnRecord=entry.spawnRecord,entityID=entry.entityID,
                 state='transit',spawnPosition=space.copy(entry.spawnPosition),clearance=entry.clearance,
+                appearance=entry.appearance,
                 phantomControllersDisabled=entry.phantomControllersDisabled,
                 retiredCommands=commands,
                 transitError=entry.motor and entry.motor.look and 'The previous gaze request could not be released.' or nil}

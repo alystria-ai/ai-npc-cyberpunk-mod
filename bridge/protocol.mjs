@@ -7,7 +7,8 @@ import {parseLoot} from './loot-context.mjs';
 import {parseWorldSnapshot} from './world-knowledge.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
 import {parseGameDialogue} from './game-dialogue.mjs';
-import {parseChauffeurOffer, parseTacticOffer} from './companion-actions.mjs';
+import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseFollowUnavailable}
+  from './companion-actions.mjs';
 
 export function profileFor(input, roster) {
   return roster.find(profile => profile.key === input.profileKey);
@@ -39,9 +40,14 @@ export function parseInput(raw) {
   // conversation is still valid and must keep its actor/request identity.
   const chauffeurOffer = parseChauffeurOffer(value.chauffeurOffer);
   const tacticOffer = parseTacticOffer(value.tacticOffer);
+  // Party membership offers (docs/WORLD_COMPANIONS.md): join V, leave V's party, or why joining is refused.
+  const followOffer = parseFollowOffer(value.followOffer), leaveOffer = parseLeaveOffer(value.leaveOffer);
+  const followUnavailable = parseFollowUnavailable(value.followUnavailable);
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
+    ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}),
+    ...(followUnavailable ? {followUnavailable} : {}),
     ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {}),
     ...(gameDialogue ? {gameDialogue} : {})};
 }

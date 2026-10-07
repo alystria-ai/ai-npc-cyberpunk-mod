@@ -558,4 +558,11 @@ return {
     ["Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together."] = "自然說話和情緒表達已關閉：Convai 雲端語音會把它們的標籤直接唸出來。安裝 OmniVoice 擴充包後，三者可以同時使用。",
     ["Voice status"] = "語音狀態",
     ["Who can talk"] = "誰可以說話",
+    ["That action is not available."] = "該操作無法使用。",
+    ["That companion is no longer in your party."] = "該同伴已不在隊伍中。",
+    ["{name} can't come along right now."] = "{name} 現在不能跟你走。",
+    ["{name} is already with you."] = "{name} 已經和你在一起了。",
+    ["{name} is coming with you."] = "{name} 會跟你一起走。",
+    ["{name} is leaving your party."] = "{name} 正在離開隊伍。",
+    ["{name} is no longer nearby."] = "{name} 已不在附近。",
 }

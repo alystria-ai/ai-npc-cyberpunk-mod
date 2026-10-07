@@ -498,7 +498,11 @@ function M.new(companions, readiness, options)
         return true
     end
 
-    function Q.invite(key)
+    -- extra (optional): adoption, the world character this copy stands in for
+    -- (companions.spawn places and dresses the copy from it), and gate, called
+    -- before the spawn: true spawns now, false waits, nil plus a reason cancels
+    -- (docs/WORLD_COMPANIONS.md).
+    function Q.invite(key, extra)
         Q.bind(owner)
         if not owner then return false, ui.t('Load a save before inviting a companion.') end
         local definition = companions.definition(key)
@@ -512,7 +516,12 @@ function M.new(companions, readiness, options)
         end
         local job = {id = id, revision = 1, key = key, name = definition.name,
             record = definition.id, profileKey = definition.profileKey,
-            profileName = definition.profileName or definition.name}
+            profileName = definition.profileName or definition.name,
+            adoption = type(extra) == 'table' and type(extra.adoption) == 'table' and extra.adoption or nil,
+            gate = type(extra) == 'table' and type(extra.gate) == 'function' and extra.gate or nil}
+        -- A generic person (no memory of its own to prepare) joins as a model
+        -- and receives its conversation profile once attached.
+        if type(extra) == 'table' and extra.modelOnly == true then job.profileKey, job.profileName = nil, nil end
         joins[#joins + 1] = job
         preparationId = job.id
         local ok, reason = prepare(job)
@@ -708,7 +717,20 @@ function M.new(companions, readiness, options)
         local remaining = {}
         for _, job in ipairs(joins) do
             local status = preparation(job)
-            if not job.error and (status.state == 'ready' or status.state == 'model-only') then
+            local gate, gateReason = true, nil
+            if not job.error and job.gate and (status.state == 'ready' or status.state == 'model-only') then
+                local checked, open, reason = pcall(job.gate)
+                if checked then gate, gateReason = open, reason else gate, gateReason = nil, tostring(open) end
+            end
+            if not job.error and gate == nil then
+                -- The adopted character can no longer join: release its reservation.
+                job.error = tostring(gateReason or ui.t('The character was removed before joining.'))
+                if readiness then readiness.cancel(job) end
+                report(ui.t('{name} could not join: {reason}', {name = job.name, reason = ui.t(job.error)}), true, job.id,
+                    nil, {kind = 'failed', name = job.name})
+            elseif not job.error and gate == false then
+                remaining[#remaining + 1] = job
+            elseif not job.error and (status.state == 'ready' or status.state == 'model-only') then
                 local called, serial, err, deferred = pcall(companions.spawn, job.key, job)
                 if called and deferred == true then
                     -- A shared frame budget is scheduling, not an invitation

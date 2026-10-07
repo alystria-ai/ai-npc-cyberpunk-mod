@@ -398,6 +398,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-marking.lua"
     },
     {
+      "source": "mod/companion-adoption.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-adoption.lua"
+    },
+    {
       "source": "mod/tactic-perception.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/tactic-perception.lua"
     },

@@ -1,9 +1,17 @@
 -- Conversation actions are capabilities captured by this game process. Provider
 -- dialogue and an action packet alone cannot select an actor, car, waypoint or
--- target. One manual private request leases at most one drive offer and one
--- companion-tactic offer; the first matching packet consumes the whole lease.
+-- target. One manual private request leases at most one drive offer, one
+-- companion-tactic offer, one follow offer (a world character joining the
+-- party) and one leave offer (a party member leaving); the first matching
+-- packet consumes the whole lease. The first speaker of a manual group round
+-- leases a leave offer only (docs/WORLD_COMPANIONS.md).
 local M = {}
 local MAX_PACKET, MAX_LEASE_MS = 16384, 125000
+-- Why a world character cannot follow V now. Only these codes reach the bridge,
+-- which turns them into a short instruction to decline in character.
+local FOLLOW_UNAVAILABLE = {quest = true, scene = true, combat = true, police = true, hostile = true,
+    working = true, vehicle = true, busy = true, ['party-full'] = true, ['already-here'] = true}
+M.FOLLOW_UNAVAILABLE = FOLLOW_UNAVAILABLE
 
 local function copy(value, depth)
     if type(value) ~= 'table' then return value end
@@ -47,6 +55,14 @@ local function ownedOffer(offer, context)
         and offer.actor.id == context.entity and offer.actor.key == context.profileKey
 end
 
+-- A leave packet names one offered member by entity, or 'all'.
+local function offeredMember(offer, target)
+    if type(offer) ~= 'table' or type(offer.members) ~= 'table' or type(target) ~= 'string' then return false end
+    if target == 'all' then return #offer.members >= 1 end
+    for _, member in ipairs(offer.members) do if member.id == target then return true end end
+    return false
+end
+
 local function offeredKind(offer, kind)
     if type(offer) ~= 'table' or type(offer.kinds) ~= 'table' or type(kind) ~= 'string' then return false end
     for _, value in ipairs(offer.kinds) do if value == kind then return true end end
@@ -64,13 +80,22 @@ function M.new(options)
         return ok and enabled == true
     end
 
+    -- Returns the normalized available offer, or nil plus the raw answer so an
+    -- unavailable follow can still explain itself without leasing anything.
     local function capturedOffer(source, entity, context)
         if type(source) ~= 'function' then return nil end
-        local ok, offer = pcall(source, entity)
-        if not ok or not ownedOffer(offer, context) then return nil end
+        local ok, offer = pcall(source, entity, context)
+        if not ok then return nil end
+        if not ownedOffer(offer, context) then return nil, offer end
         local normalized, captured = pcall(options.normalizeOffer or normalizeOffer, offer)
         if not normalized or not ownedOffer(captured, context) then return nil end
         return captured
+    end
+    local lastAdvisory
+
+    local function assign(context, from)
+        context.chauffeurOffer, context.tacticOffer = copy(from.offer), copy(from.tacticOffer)
+        context.followOffer, context.leaveOffer = copy(from.followOffer), copy(from.leaveOffer)
     end
 
     function Q.revoke(reason, requestId)
@@ -81,10 +106,17 @@ function M.new(options)
 
     -- Call only at actual manual request admission, never for warmup, phone,
     -- group prefetch or AI-authored text. Unavailable native offers stay absent.
+    -- Group sources admit only the first speaker of a manual round, and only a
+    -- leave offer: V may send one or more companions of that round away.
     function Q.capture(context, source)
         if type(context) ~= 'table' then return false end
         context.chauffeurOffer, context.tacticOffer = nil, nil
-        if (source ~= 'private-text' and source ~= 'private-voice') or context.group or context.reaction
+        context.followOffer, context.leaveOffer, context.followUnavailable = nil, nil, nil
+        local private = source == 'private-text' or source == 'private-voice'
+        local group = source == 'group-text' or source == 'group-voice'
+        if not (private or group) or (private and context.group ~= nil) or context.reaction
+            or (group and (type(context.group) ~= 'table' or context.group.index ~= 1
+                or type(context.group.id) ~= 'string'))
             or type(context.requestId) ~= 'string' or type(context.entity) ~= 'string'
             or type(context.profileKey) ~= 'string' or type(context.generation) ~= 'number' then
             Q.revoke('ineligible-conversation'); return false
@@ -94,22 +126,33 @@ function M.new(options)
         local admission = table.concat({world.worldToken, tostring(world.generation), context.requestId,
             tostring(context.generation), context.entity, context.profileKey, source}, '\n')
         if admission == lastAdmission then
-            if lease then
-                context.chauffeurOffer, context.tacticOffer = copy(lease.offer), copy(lease.tacticOffer)
-                return true
-            end
+            context.followUnavailable = lastAdvisory
+            if lease then assign(context, lease); return true end
             return false
         end
         Q.revoke('new-conversation')
-        lastAdmission = admission
-        local drive = capturedOffer(options.offer, context.entity, context)
-        local tactic = capturedOffer(options.tacticOffer, context.entity, context)
-        if not drive and not tactic then return false end
+        lastAdmission, lastAdvisory = admission, nil
+        local drive, tactic, follow, refusal
+        if private then
+            drive = capturedOffer(options.offer, context.entity, context)
+            tactic = capturedOffer(options.tacticOffer, context.entity, context)
+            follow, refusal = capturedOffer(options.followOffer, context.entity, context)
+        end
+        local leave = capturedOffer(options.leaveOffer, context.entity, context)
+        if leave and (type(leave.members) ~= 'table' or #leave.members < 1 or #leave.members > 3) then leave = nil end
+        -- A follow the game refuses carries only its reason code: no lease, no action.
+        if not follow and type(refusal) == 'table' and refusal.available == false
+            and FOLLOW_UNAVAILABLE[refusal.reason] then
+            lastAdvisory = refusal.reason
+            context.followUnavailable = refusal.reason
+        end
+        if not drive and not tactic and not follow and not leave then return false end
         lease = {requestId = context.requestId, generation = context.generation, entity = context.entity,
             profileKey = context.profileKey, source = source, worldToken = world.worldToken,
             worldGeneration = world.generation, offer = copy(drive), tacticOffer = copy(tactic),
-            expiresAt = clock() + MAX_LEASE_MS}
-        context.chauffeurOffer, context.tacticOffer = copy(drive), copy(tactic)
+            followOffer = copy(follow), leaveOffer = copy(leave),
+            group = group and context.group.id or nil, expiresAt = clock() + MAX_LEASE_MS}
+        assign(context, lease)
         result = {state = 'available'}
         return true
     end
@@ -136,7 +179,10 @@ function M.new(options)
         local drive = packet.action == 'drive-to-waypoint' and lease.offer ~= nil
         local tactic = packet.action == 'companion-tactic' and lease.tacticOffer ~= nil
             and offeredKind(lease.tacticOffer, packet.tactic)
-        if packet.version ~= 1 or not (drive or tactic)
+        local follow = packet.action == 'companion-follow' and lease.followOffer ~= nil
+        local leave = packet.action == 'companion-leave' and lease.leaveOffer ~= nil
+            and offeredMember(lease.leaveOffer, packet.leave)
+        if packet.version ~= 1 or not (drive or tactic or follow or leave)
             or type(packet.actionId) ~= 'string' or #packet.actionId < 1 or #packet.actionId > 240
             or packet.requestId ~= lease.requestId or packet.generation ~= lease.generation
             or packet.entity ~= lease.entity or packet.profileKey ~= lease.profileKey
@@ -147,7 +193,9 @@ function M.new(options)
             or packet.createdAt > now + 5000 or packet.createdAt < now - MAX_LEASE_MS
             or packet.expiresAt <= now or packet.expiresAt > packet.createdAt + MAX_LEASE_MS
             or (drive and not equal(packet.offer, lease.offer))
-            or (tactic and not equal(packet.tacticOffer, lease.tacticOffer)) then return end
+            or (tactic and not equal(packet.tacticOffer, lease.tacticOffer))
+            or (follow and not equal(packet.followOffer, lease.followOffer))
+            or (leave and not equal(packet.leaveOffer, lease.leaveOffer)) then return end
         -- Consume before the native callback: even a throw after a side effect
         -- cannot execute this action twice. Native queue admission rechecks the
         -- actual managed copy and every other precondition.
@@ -158,6 +206,20 @@ function M.new(options)
                 copy(admitted.offer), admitted.entity)
             report(called and accepted == true and 'queued' or 'rejected', called and reason or nil,
                 'The driving request could not be queued.')
+            return
+        end
+        if follow or leave then
+            local queue = follow and options.queueFollow or options.queueLeave
+            if type(queue) ~= 'function' then report('rejected', nil, 'That action is not available.'); return end
+            local called, accepted, reason
+            if follow then
+                called, accepted, reason = pcall(queue, copy(admitted.followOffer), admitted.entity, admitted.requestId)
+            else
+                called, accepted, reason = pcall(queue, packet.leave, copy(admitted.leaveOffer), admitted.entity,
+                    admitted.requestId, admitted.group)
+            end
+            report(called and accepted == true and 'queued' or 'rejected', called and reason or nil,
+                'That action is not available.')
             return
         end
         if type(options.queueTactic) ~= 'function' then
@@ -172,7 +234,8 @@ function M.new(options)
     function Q.inspect()
         return {pending = lease ~= nil, state = result and result.state or 'idle',
             reason = result and result.reason, drive = lease ~= nil and lease.offer ~= nil,
-            tactic = lease ~= nil and lease.tacticOffer ~= nil}
+            tactic = lease ~= nil and lease.tacticOffer ~= nil, follow = lease ~= nil and lease.followOffer ~= nil,
+            leave = lease ~= nil and lease.leaveOffer ~= nil, followUnavailable = lastAdvisory}
     end
 
     return Q

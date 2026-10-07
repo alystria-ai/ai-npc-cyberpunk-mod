@@ -558,4 +558,11 @@ return {
     ["Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together."] = "자연스러운 말투와 감정 표현을 껐습니다. Convai 클라우드 음성은 태그를 그대로 읽어 버립니다. OmniVoice 팩이 있으면 세 가지를 모두 함께 사용할 수 있습니다.",
     ["Voice status"] = "음성 상태",
     ["Who can talk"] = "대화할 수 있는 캐릭터",
+    ["That action is not available."] = "해당 동작을 사용할 수 없습니다.",
+    ["That companion is no longer in your party."] = "해당 동료는 더 이상 그룹에 없습니다.",
+    ["{name} can't come along right now."] = "{name}은(는) 지금 함께 갈 수 없습니다.",
+    ["{name} is already with you."] = "{name}은(는) 이미 함께 있습니다.",
+    ["{name} is coming with you."] = "{name}이(가) 함께 갑니다.",
+    ["{name} is leaving your party."] = "{name}이(가) 그룹을 떠납니다.",
+    ["{name} is no longer nearby."] = "{name}은(는) 더 이상 근처에 없습니다.",
 }
