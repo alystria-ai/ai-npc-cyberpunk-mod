@@ -203,6 +203,8 @@ return {
     ["Ready · Unsaved selection"] = "Готово · Выбор не сохранён",
     ["Relationships"] = "Отношения",
     ["Talk to ordinary NPCs"] = "Разговоры с обычными NPC",
+    ["Conversation: {name} (archetype)"] = "Разговор: {name} (архетип)",
+    ["{count} of them can talk."] = "Из них могут говорить: {count}.",
     ["Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save. Named characters are not affected. On by default."] = "Позволяет разговаривать с безымянными людьми, у которых нет роли в сюжете: бандитами, полицейскими NCPD, корпоративной охраной, риперами, торговцами, барменами и прохожими. Каждый отвечает как человек своего типа, не знает вашей истории и не помнит вас после загрузки сохранения. На персонажей с именами это не влияет. Включено по умолчанию.",
     ["Releasing local voice memory"] = "Освобождение памяти локальных голосов",
     ["Remove only this copy from your group."] = "Убрать из группы только эту копию.",

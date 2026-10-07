@@ -303,7 +303,13 @@ local archetypes = type(characterCatalog.buildArchetypes) == 'function'
     and characterCatalog.buildArchetypes(characterCatalog.ARCHETYPES) or {keys = {}, records = {}}
 for key in pairs(archetypes.keys) do supportedProfiles[key] = true end
 manager.configure(companions, profiles)
-if type(manager.configureArchetypes) == 'function' then manager.configureArchetypes(archetypes.keys) end
+if type(manager.configureArchetypes) == 'function' then
+    manager.configureArchetypes(archetypes.keys,
+        type(characterCatalog.classifyRecord) == 'function'
+            and function(facts) return (characterCatalog.classifyRecord(archetypes, facts)) end or nil,
+        type(characterCatalog.archetypeLabel) == 'function'
+            and function(key) return characterCatalog.archetypeLabel(archetypes, key) end or nil)
+end
 subtitles.configure({style = manager.subtitleStyle})
 companions.onBeforeRemove = speech.clearEntity
 phoneChat.configure(profiles, manager, {
@@ -955,7 +961,11 @@ local function selectConversation(player, groupMode, singleAction)
     end
     if not profileEnabled(player, key) then log('Companion disabled in manager: ' .. name); return nil end
     local primary = {npc = npc, name = name, entity = tostring(npc:GetEntityID().hash), bodyType = bodyType, profileKey = key}
-    -- An archetype or resident learns which kind of NPC it is and where it stands.
+    -- An archetype or resident learns which kind of NPC it is and where it stands
+    -- (a summoned archetype copy from its profile key alone).
+    if not archetype and archetypes.keys[key] and type(characterCatalog.describe) == 'function' then
+        archetype = characterCatalog.describe(archetypes, key, {})
+    end
     if archetype or key == 'resident-male' or key == 'resident-female' then
         primary.archetype = archetype or {category = 'resident'}
         local place = currentDistrict()

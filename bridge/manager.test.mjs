@@ -3400,3 +3400,74 @@ test('a saved Multilingual pairing with Pocket or with the cloud voice and a tag
     end
   `);
 });
+
+// Model browser records map to NPC archetype profiles (docs/NPC_ARCHETYPES.md).
+const catalogSource = readFileSync(new URL('../mod/character-catalog.lua', import.meta.url), 'utf8');
+test('Model browser maps generic records to archetypes, shows it in the row, counts talkers and invites them talking', () => {
+  run(`${mcmFixture}
+    local catalog = (function() ${catalogSource} end)()
+    local index = catalog.buildArchetypes(catalog.ARCHETYPES)
+    manager.configure(api, {{key = 'johnny-silverhand', name = 'Johnny Silverhand', records = {'Character.Silverhand'}},
+      {key = 'resident-male', name = 'Night City Resident Male'}, {key = 'resident-female', name = 'Night City Resident Female'}})
+    manager.configureArchetypes(index.keys, function(facts) return (catalog.classifyRecord(index, facts)) end,
+      function(key) return catalog.archetypeLabel(index, key) end)
+    local enum = function(name) return name and {EnumName = function() return name end} or nil end
+    local function record(id, facts)
+      return {GetID = function() return id end, Affiliation = function() return enum(facts.affiliation) end,
+        IsCrowd = function() return facts.crowd == true end, IsChild = function() return facts.child == true end,
+        CharacterType = function() return enum(facts.kind or 'Human') end, Quest = function() return enum(facts.quest) end,
+        VendorID = function() return facts.vendor and {VendorType = function() return enum(facts.vendor) end} or nil end}
+    end
+    function TweakDB:GetRecords()
+      scans = scans + 1
+      return {record('Character.Silverhand', {affiliation = 'Unaffiliated'}),
+        record('Character.maelstrom_grunt1_ranged1_lexington_ma', {affiliation = 'Maelstrom'}),
+        record('Character.tyger_claws_gang3_katana_wa', {affiliation = 'TygerClaws'}),
+        record('Character.wat_kab_ripperdoc_01', {affiliation = 'Civilian', vendor = 'RipperDoc'}),
+        record('Character.CorpoWomanBag', {crowd = true, affiliation = 'Civilian'}),
+        record('Character.Waitress', {crowd = true, affiliation = 'Civilian'}),
+        record('Character.maxtac_rifle_ma', {affiliation = 'NCPD'}),
+        record('Character.q105_valentino_ma', {affiliation = 'Valentinos'}),
+        record('Character.valentinos_grunt_ma', {affiliation = 'Valentinos', quest = 'MainQuest'}),
+        record('Character.maelstrom_base_android', {affiliation = 'MaelstromAndroid', kind = 'Android'}),
+        record('Character.ChildPoor_ma', {crowd = true, child = true})}
+    end
+    assert(invoke('tab:models').ok)
+    for _ = 1, 4 do mcm.update(player, false) end
+    loaded = registered.loadMod('manager')
+    local byRecord = {}
+    for _, model in ipairs(manager.snapshot(player).models) do byRecord[model.record] = model end
+    local expected = {['Character.Silverhand'] = 'johnny-silverhand',
+      ['Character.maelstrom_grunt1_ranged1_lexington_ma'] = 'npc-maelstrom-male',
+      ['Character.tyger_claws_gang3_katana_wa'] = 'npc-tyger-claws-female',
+      ['Character.wat_kab_ripperdoc_01'] = 'npc-ripperdoc-male', ['Character.CorpoWomanBag'] = 'npc-corpo-resident-female',
+      ['Character.Waitress'] = false, ['Character.maxtac_rifle_ma'] = false, ['Character.q105_valentino_ma'] = false,
+      ['Character.valentinos_grunt_ma'] = false, ['Character.maelstrom_base_android'] = false, ['Character.ChildPoor_ma'] = false}
+    for id, key in pairs(expected) do
+      assert(byRecord[id], id)
+      assert(byRecord[id].profileKey == (key or nil), id .. ' -> ' .. tostring(byRecord[id].profileKey))
+    end
+    local function description(record)
+      for _, category in ipairs(loaded.categories) do
+        for _, item in ipairs(category.settings) do
+          if item.id == 'invite:' .. byRecord[record].key then return item.description end
+        end
+      end
+    end
+    assert(description('Character.maelstrom_grunt1_ranged1_lexington_ma'):find('Conversation: Maelstrom ganger (archetype)', 1, true))
+    assert(description('Character.Silverhand'):find('Conversation: Johnny Silverhand', 1, true))
+    assert(not description('Character.Silverhand'):find('archetype', 1, true))
+    assert(description('Character.maxtac_rifle_ma'):find('No conversation profile', 1, true))
+    assert(row('model-status').description:find('5 of them can talk.', 1, true))
+    -- A Waitress has no gender in its name and no resident kind: it stays a silent follower.
+    assert(description('Character.Waitress'):find('No conversation profile', 1, true))
+    -- Invited, the copy joins as a model (nothing to prepare) and talks as the archetype once spawned.
+    local key = byRecord['Character.maelstrom_grunt1_ranged1_lexington_ma'].key
+    assert(invoke('invite:' .. key).ok and #spawned == 0)
+    mcm.update(player, true)
+    assert(members[1].key == key and members[1].profileKey == 'npc-maelstrom-male' and members[1].profileName == 'Maelstrom ganger')
+    local named = byRecord['Character.Silverhand'].key
+    assert(invoke('invite:' .. named).ok); mcm.update(player, true)
+    assert(members[2].profileKey == 'johnny-silverhand', 'named records keep their prepared profile')
+  `);
+});

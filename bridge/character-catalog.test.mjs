@@ -101,11 +101,50 @@ test('the generated archetype block matches characters/archetypes.json and every
   const {luaArchetypeBlock,LUA_BEGIN,LUA_END}=await import('../scripts/Build-ArchetypeProfiles.mjs');
   const catalog=JSON.parse(readFileSync(new URL('../characters/archetypes.json',import.meta.url),'utf8'));
   const source=readFileSync(new URL('../mod/character-catalog.lua',import.meta.url),'utf8').replace(/\r\n/g,'\n');
-  assert.equal(source.slice(source.indexOf(LUA_BEGIN),source.indexOf(LUA_END)+LUA_END.length),luaArchetypeBlock(catalog));
+  const genders=JSON.parse(readFileSync(new URL('../characters/archetype-record-genders.json',import.meta.url),'utf8')).records;
+  assert.equal(source.slice(source.indexOf(LUA_BEGIN),source.indexOf(LUA_END)+LUA_END.length),luaArchetypeBlock(catalog,genders));
   const roster=JSON.parse(readFileSync(new URL('../characters/archetype-roster.json',import.meta.url),'utf8'));
   assert.deepEqual(roster.map(p=>p.key),catalog.archetypes.map(a=>a.key));
   for(const base of Object.keys(catalog.bases))for(const gender of ['male','female'])
     assert(roster.some(p=>p.key===`npc-${base}-${gender}`),`${base} ${gender}`);
   const named=JSON.parse(readFileSync(new URL('../characters/roster.json',import.meta.url),'utf8'));
   assert(!named.some(p=>p.key.startsWith('npc-')),'archetypes stay out of the named roster');
+});
+test('Model browser records classify from TweakDB facts alone; record-name gender matches the extractor rule',async()=>{
+  const {nameGender}=await import('../scripts/Extract-ArchetypeRecordGenders.mjs');
+  const names=['maelstrom_grunt1_ranged1_lexington_ma','tyger_claws_gang_wa','CorpoWoman','CorpoManAfterWork','HomelessFemale',
+    'Grilled_Food_Woman','Grilled_Food','ep1_combat_zone_citizen_obese_waf','ep1_combat_zone_citizen_obese_mf','Waitress','lizzies_barman',
+    'Policeman','WomanChubbyCorpo','LightCrowd_kabuki_ma','CitizenAldecaldosFemaleNomad','arasaka_ninja_fmelee3_katana_wa','Character.Mallrat'];
+  const expected=names.map(name=>`${name}=${nameGender(name)??'nil'}`).join(';');
+  runLua(`
+    local out={}
+    for _,name in ipairs({${names.map(name=>`'${name}'`).join(',')}}) do out[#out+1]=name..'='..tostring(api.nameGender(name) or 'nil') end
+    assert(table.concat(out,';')=='${expected}', table.concat(out,';'))
+    local index=api.buildArchetypes(api.ARCHETYPES)
+    local function key(facts) return (api.classifyRecord(index,facts)) end
+    assert(key({recordName='Character.maelstrom_grunt1_ranged1_lexington_ma',affiliation='Maelstrom'})=='npc-maelstrom-male')
+    assert(key({recordName='Character.tyger_claws_biker3_shotgun3_zhuo_ma_elite',affiliation='TygerClaws'})=='npc-tyger-claws-male')
+    assert(key({recordName='Character.arasaka_ninja_fmelee3_katana_wa',affiliation='Arasaka'})=='npc-corpo-security-female')
+    assert(key({recordName='Character.ncpd_police_ranged1_omaha_wa',affiliation='NCPD'})=='npc-ncpd-female')
+    assert(key({recordName='Character.maxtac_rifle_ma',affiliation='NCPD'})==nil)
+    assert(key({recordName='Character.kurtz_base',affiliation='Barghest'})==nil, 'no gender in the name')
+    -- Vendor records take their gender from the generated table (shipped tweak sources).
+    assert(key({recordName='Character.wat_kab_ripperdoc_01',affiliation='Civilian',vendor=true,vendorType='RipperDoc'})=='npc-ripperdoc-male')
+    assert(key({recordName='Character.hey_spr_gunsmith_01',vendor=true,vendorType='Gunsmith'})=='npc-weapons-dealer-female')
+    assert(key({recordName='Character.cz_monument_foodshop_01',vendor=true,vendorType='Food'})=='npc-bartender-female')
+    assert(key({recordName='Character.wat_kab_gunsmith_02',affiliation='Maelstrom',vendor=true,vendorType='Gunsmith'})=='npc-weapons-dealer-male')
+    -- Crowd records: a resident kind, else the generic resident; never children or machines.
+    assert(key({recordName='Character.HomelessFemaleDE',crowd=true})=='npc-homeless-female')
+    assert(key({recordName='Character.LightCrowd_kabuki_wa',crowd=true})=='resident-female')
+    assert(key({recordName='Character.ChildPoor_ma',crowd=true,children=true})==nil)
+    assert(key({recordName='Character.TrainingRobot_ma',crowd=true,human=false})==nil)
+    -- Story actors stay without a profile: quest tags and quest-prefixed record names.
+    assert(key({recordName='Character.valentinos_grunt2_ma',affiliation='Valentinos',quest='SideQuest'})==nil)
+    assert(key({recordName='Character.q105_tyger_ma',affiliation='TygerClaws'})==nil)
+    assert(key({recordName='Character.sq021_mox_wa',affiliation='TheMox'})==nil)
+    assert(key({recordName='Character.mq041_ncpd_ma',affiliation='NCPD'})==nil)
+    assert(key({recordName='Character.generic_street_base_ma',affiliation='Unaffiliated'})==nil)
+    assert(api.archetypeLabel(index,'npc-mox-female')=='Mox member' and api.archetypeLabel(index,'npc-ripperdoc-male')=='Ripperdoc')
+    assert(api.archetypeLabel(index,'judy-alvarez')==nil)
+  `);
 });

@@ -3,6 +3,12 @@
 local M = {}
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 
+-- Residents and NPC archetypes (npc-*): generic profiles with no per-character
+-- memory (same rule as bridge/protocol.mjs isAmbientProfile).
+function M.ambientProfile(key)
+    return key == 'resident-male' or key == 'resident-female' or (type(key) == 'string' and key:match('^npc%-[%w%-]+$') ~= nil)
+end
+
 -- The invitation notice board. Every invitation in flight (manager or phone) is
 -- one entry, and the board turns all of them into ONE compact notice that
 -- replaces the previous one: "Preparing Judy and Johnny...", then "Judy and
@@ -522,6 +528,12 @@ function M.new(companions, readiness, options)
         -- A generic person (no memory of its own to prepare) joins as a model
         -- and receives its conversation profile once attached.
         if type(extra) == 'table' and extra.modelOnly == true then job.profileKey, job.profileName = nil, nil end
+        -- A generic profile (resident or NPC archetype, docs/NPC_ARCHETYPES.md) has no
+        -- memory or bodiless connection to prepare: the copy joins as a model and its
+        -- profile is assigned as it spawns, so it talks as that archetype.
+        if M.ambientProfile(job.profileKey) then
+            job.attachProfileKey, job.attachProfileName, job.profileKey = job.profileKey, job.profileName, nil
+        end
         joins[#joins + 1] = job
         preparationId = job.id
         local ok, reason = prepare(job)
@@ -737,7 +749,8 @@ function M.new(companions, readiness, options)
                     -- failure. Keep its prepared reservation and retry later.
                     remaining[#remaining + 1] = job
                 elseif called and serial then
-                    local assigned, assignmentError = companions.setProfile(serial, job.profileKey, job.profileName)
+                    local assigned, assignmentError = companions.setProfile(serial, job.profileKey or job.attachProfileKey,
+                        job.profileKey and job.profileName or job.attachProfileName or job.profileName)
                     job.warning = not assigned and tostring(assignmentError) or nil
                     attaching[serial] = job
                     if readiness then readiness.spawned(job, serial) end

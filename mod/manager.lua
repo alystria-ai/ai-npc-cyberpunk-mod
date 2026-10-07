@@ -421,9 +421,14 @@ end
 -- Generic NPC archetypes (npc-* keys) are talk-only profiles: not listed on the
 -- Characters page or in Who can talk, never invited, governed by one setting.
 local archetypeKeys = {}
-function M.configureArchetypes(keys)
+-- classifyRecord(facts) -> profile key or nil, label(key) -> display name: the
+-- Model browser maps character records to archetypes (docs/NPC_ARCHETYPES.md).
+local classifyRecord, archetypeLabel
+function M.configureArchetypes(keys, classify, label)
     archetypeKeys = {}
     for key in pairs(keys or {}) do archetypeKeys[key] = true end
+    classifyRecord = type(classify) == 'function' and classify or nil
+    archetypeLabel = type(label) == 'function' and label or nil
 end
 
 function M.archetypeConversations()
@@ -752,6 +757,45 @@ local function beginModels()
     modelRows = records
 end
 
+-- TweakDB-only facts of a character record for the archetype mapping. Each read
+-- is guarded; enum names are CNames (read as text).
+local function nameText(value)
+    if type(value) == 'string' then return value end
+    if value == nil then return nil end
+    local ok, text = pcall(function() return value.value end)
+    if ok and type(text) == 'string' and text ~= '' then return text end
+    ok, text = pcall(function() return Game.NameToString(value) end)
+    if ok and type(text) == 'string' and text ~= '' and text ~= 'None' then return text end
+    return nil
+end
+local function recordFacts(record, id)
+    local facts = {recordName = id}
+    local function read(name, fn)
+        local ok, value = pcall(fn)
+        if ok and value ~= nil then facts[name] = value end
+    end
+    read('affiliation', function() local value = record:Affiliation(); return value and nameText(value:EnumName()) end)
+    read('crowd', function() return record:IsCrowd() == true end)
+    read('children', function() return record:IsChild() == true end)
+    read('human', function() local value = record:CharacterType(); return value and nameText(value:EnumName()) == 'Human' end)
+    read('quest', function() local value = record:Quest(); return value and nameText(value:EnumName()) end)
+    read('vendorType', function()
+        local vendor = record:VendorID(); local kind = vendor and vendor:VendorType()
+        return kind and nameText(kind:EnumName())
+    end)
+    facts.vendor = facts.vendorType ~= nil
+    return facts
+end
+-- {key, name} of the generic profile a copy of this record would use, or nil.
+local function archetypeFor(record, id)
+    if not classifyRecord or not id then return nil end
+    local ok, key = pcall(classifyRecord, recordFacts(record, id))
+    if not ok or type(key) ~= 'string' then return nil end
+    local name = (archetypeLabel and archetypeLabel(key)) or (byKey[key] and 'Night City resident')
+    if not name then return nil end
+    return {key = key, name = name}
+end
+
 local function modelRecord(record, index)
     local recordID = record:GetID()
     local debugId = tostring(recordID)
@@ -761,6 +805,7 @@ local function modelRecord(record, index)
     if modelSeen[unique] then return end
     modelSeen[unique] = true
     local profile = id and byRecord[id] or nil
+    local archetype = not profile and archetypeFor(record, id) or nil
     local label
     if id then
         local ok, localized = pcall(function()
@@ -774,11 +819,12 @@ local function modelRecord(record, index)
     label = clean(label or (profile and profile.name) or id or ('Unnamed model ' .. index), 160)
     local key = 'model:' .. tostring(index)
     local definition = {id = id, recordID = recordID, name = label,
-        profileKey = profile and profile.key or nil, profileName = profile and profile.name or nil}
+        profileKey = profile and profile.key or (archetype and archetype.key) or nil,
+        profileName = profile and profile.name or (archetype and archetype.name) or nil}
     local registered = companions.registerDefinition(key, definition)
     if registered then
         models[#models + 1] = {key = key, name = label, unnamedIndex = unnamedIndex, record = id or debugId,
-            profileKey = definition.profileKey, profileName = definition.profileName,
+            profileKey = definition.profileKey, profileName = definition.profileName, archetype = archetype ~= nil,
             search = (label .. ' ' .. (id or debugId) .. ' ' .. (definition.profileName or '')):lower()}
     end
 end

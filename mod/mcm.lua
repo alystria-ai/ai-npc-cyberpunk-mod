@@ -618,9 +618,12 @@ local function schema()
         local pages = math.max(1, math.ceil(#matches / MODEL_PAGE_SIZE))
         modelPage = math.max(1, math.min(modelPage, pages))
         local scan = snapshot.scan
+        local talking = 0
+        for _, model in ipairs(matches) do if model.profileName then talking = talking + 1 end end
         rows[#rows + 1] = readonly('model-status', scan.finished and ui.t('{count} matching models',{count=#matches}) or 'Reading installed models…',
             ui.t('Page {page} / {pages}',{page=modelPage,pages=pages}),
             ui.t('Search by character name or model record using Search settings. {query}',{query=modelQuery})
+                .. '\n' .. ui.t('{count} of them can talk.', {count = talking})
                 .. '\n' .. (ui.t(scan.error) or ''))
         if modelPage > 1 then
             rows[#rows + 1] = action('models:previous', 'Previous models', 'Previous', modelQuery,
@@ -634,9 +637,11 @@ local function schema()
             local model = matches[index]
             local key = model.key
             local modelName = model.unnamedIndex and ui.t('Unnamed model {index}',{index=model.unnamedIndex}) or model.name
+            local conversation = model.archetype and ui.t('Conversation: {name} (archetype)', {name = model.profileName})
+                or model.profileName and ui.t('Conversation: {state}',{state=model.profileName})
+                or ui.t('No conversation profile. This model joins as a follower without AI conversations.')
             rows[#rows + 1] = action('invite:' .. key, modelName, 'Invite',
-                model.record .. '\n\n' .. (model.profileName and ui.t('Conversation: {state}',{state=model.profileName})
-                    or ui.t('No conversation profile. This model joins as a follower without AI conversations.'))
+                model.record .. '\n\n' .. conversation
                     .. '\n' .. ui.t('Some game models have special rigs or roles and may not behave as ordinary companions.'),
                 function() return queue.invite(key) end, canInvite)
         end

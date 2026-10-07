@@ -83,6 +83,141 @@ M.ARCHETYPES = {
         {key = 'npc-homeless-male', base = 'homeless', gender = 'MALE'},
         {key = 'npc-homeless-female', base = 'homeless', gender = 'FEMALE'},
     },
+    recordGenders = {
+        ['Character.Chinese_Food'] = 'MALE',
+        ['Character.Claire'] = 'MALE',
+        ['Character.Clothes'] = 'MALE',
+        ['Character.Drinks'] = 'MALE',
+        ['Character.Grilled_Food'] = 'MALE',
+        ['Character.Kiosk'] = 'MALE',
+        ['Character.Market'] = 'MALE',
+        ['Character.Packed_Food'] = 'MALE',
+        ['Character.Tech_Junk'] = 'MALE',
+        ['Character.bls_ina_se1_clothingshop_01'] = 'FEMALE',
+        ['Character.bls_ina_se1_foodshop_01'] = 'MALE',
+        ['Character.bls_ina_se1_foodshop_02'] = 'MALE',
+        ['Character.bls_ina_se1_foodshop_03'] = 'MALE',
+        ['Character.bls_ina_se1_gunsmith_01'] = 'MALE',
+        ['Character.bls_ina_se1_gunsmith_02'] = 'FEMALE',
+        ['Character.bls_ina_se1_junkshop_01'] = 'MALE',
+        ['Character.bls_ina_se1_medicstore_01'] = 'FEMALE',
+        ['Character.bls_ina_se1_ripperdoc_01'] = 'MALE',
+        ['Character.bls_ina_se1_ripperdoc_02'] = 'MALE',
+        ['Character.bls_ina_se5_foodshop_01'] = 'MALE',
+        ['Character.bls_ina_se5_gunsmith_01'] = 'MALE',
+        ['Character.bls_ina_se5_junkshop_01'] = 'MALE',
+        ['Character.bls_ina_se5_melee_01'] = 'FEMALE',
+        ['Character.cct_cpz_cloth_02'] = 'MALE',
+        ['Character.cct_cpz_food_01'] = 'FEMALE',
+        ['Character.cct_cpz_food_02'] = 'MALE',
+        ['Character.cct_cpz_medic_01'] = 'FEMALE',
+        ['Character.cct_dtn_food_01'] = 'MALE',
+        ['Character.cct_dtn_food_02'] = 'MALE',
+        ['Character.cct_dtn_guns_01'] = 'MALE',
+        ['Character.cct_dtn_medic_01'] = 'FEMALE',
+        ['Character.cct_dtn_ripdoc_01'] = 'MALE',
+        ['Character.cz_con_clothingshop_01'] = 'MALE',
+        ['Character.cz_con_foodshop_01'] = 'FEMALE',
+        ['Character.cz_con_gunsmith_01'] = 'MALE',
+        ['Character.cz_con_junkshop_01'] = 'FEMALE',
+        ['Character.cz_con_medicstore_01'] = 'FEMALE',
+        ['Character.cz_con_netrunner_01'] = 'FEMALE',
+        ['Character.cz_con_ripdoc_01'] = 'MALE',
+        ['Character.cz_monument_foodshop_01'] = 'FEMALE',
+        ['Character.cz_monument_ripperdoc_anderson'] = 'MALE',
+        ['Character.cz_stadium_black_market_01'] = 'MALE',
+        ['Character.cz_stadium_clothing_01'] = 'FEMALE',
+        ['Character.cz_stadium_food_01'] = 'MALE',
+        ['Character.cz_stadium_food_02'] = 'MALE',
+        ['Character.cz_stadium_food_03'] = 'MALE',
+        ['Character.cz_stadium_gunsmith_01'] = 'FEMALE',
+        ['Character.cz_stadium_junk_01_marcin_i'] = 'MALE',
+        ['Character.cz_stadium_junk_01_michal_k'] = 'MALE',
+        ['Character.cz_stadium_medic_01'] = 'FEMALE',
+        ['Character.cz_stadium_netrunner_01'] = 'MALE',
+        ['Character.cz_stadium_ripperdoc_01'] = 'MALE',
+        ['Character.hey_gle_foodshop_01'] = 'MALE',
+        ['Character.hey_gle_foodshop_02'] = 'MALE',
+        ['Character.hey_gle_gunsmith_01'] = 'MALE',
+        ['Character.hey_rey_foodshop_02'] = 'MALE',
+        ['Character.hey_rey_foodshop_03'] = 'MALE',
+        ['Character.hey_rey_foodshop_04'] = 'MALE',
+        ['Character.hey_rey_gunsmith_01'] = 'FEMALE',
+        ['Character.hey_rey_netrunner_01'] = 'FEMALE',
+        ['Character.hey_spr_clothingshop_01'] = 'FEMALE',
+        ['Character.hey_spr_foodshop_01'] = 'FEMALE',
+        ['Character.hey_spr_gunsmith_01'] = 'FEMALE',
+        ['Character.hey_spr_junk_01'] = 'MALE',
+        ['Character.hey_spr_medicstore_01'] = 'MALE',
+        ['Character.hey_spr_ripperdoc_01'] = 'MALE',
+        ['Character.nw4_spaceport_medic_01'] = 'MALE',
+        ['Character.pac_cvi_clothingshop_01'] = 'FEMALE',
+        ['Character.pac_cvi_foodshop_01'] = 'MALE',
+        ['Character.pac_cvi_medicstore_01'] = 'MALE',
+        ['Character.pac_cvi_techstore_01'] = 'FEMALE',
+        ['Character.pac_wwd_guns_01'] = 'FEMALE',
+        ['Character.pac_wwd_melee_01'] = 'MALE',
+        ['Character.pac_wwd_ripdoc_01'] = 'MALE',
+        ['Character.std_arr_clothingshop_01'] = 'FEMALE',
+        ['Character.std_arr_foodshop_01'] = 'MALE',
+        ['Character.std_arr_foodshop_02'] = 'MALE',
+        ['Character.std_arr_foodshop_03'] = 'MALE',
+        ['Character.std_arr_gunsmith_01'] = 'MALE',
+        ['Character.std_arr_medicstore_01'] = 'MALE',
+        ['Character.std_arr_melee_01'] = 'MALE',
+        ['Character.std_arr_ripperdoc_01'] = 'MALE',
+        ['Character.std_arr_techstore_01'] = 'FEMALE',
+        ['Character.std_rcr_clothingshop_01'] = 'FEMALE',
+        ['Character.std_rcr_foodshop_01'] = 'FEMALE',
+        ['Character.std_rcr_gunsmith_01'] = 'FEMALE',
+        ['Character.std_rcr_medicstore_01'] = 'FEMALE',
+        ['Character.std_rcr_ripperdoc_01'] = 'MALE',
+        ['Character.std_rcr_techstore_01'] = 'FEMALE',
+        ['Character.wat_kab_clothingshop_01'] = 'MALE',
+        ['Character.wat_kab_foodshop_01'] = 'MALE',
+        ['Character.wat_kab_foodshop_02'] = 'MALE',
+        ['Character.wat_kab_foodshop_03'] = 'FEMALE',
+        ['Character.wat_kab_foodshop_04'] = 'MALE',
+        ['Character.wat_kab_gunsmith_01'] = 'MALE',
+        ['Character.wat_kab_gunsmith_02'] = 'MALE',
+        ['Character.wat_kab_junkshop_01'] = 'MALE',
+        ['Character.wat_kab_medicstore_01'] = 'MALE',
+        ['Character.wat_kab_netrunner_01'] = 'FEMALE',
+        ['Character.wat_kab_ripperdoc_01'] = 'MALE',
+        ['Character.wat_kab_ripperdoc_03'] = 'MALE',
+        ['Character.wat_kab_techstore_01'] = 'MALE',
+        ['Character.wat_lch_clothingshop_01'] = 'MALE',
+        ['Character.wat_lch_foodshop_02'] = 'MALE',
+        ['Character.wat_lch_medic_01'] = 'FEMALE',
+        ['Character.wat_lch_melee_01'] = 'MALE',
+        ['Character.wat_lch_melee_02'] = 'MALE',
+        ['Character.wat_nid_clothingshop_01'] = 'FEMALE',
+        ['Character.wat_nid_foodshop_01'] = 'MALE',
+        ['Character.wat_nid_foodshop_02'] = 'FEMALE',
+        ['Character.wat_nid_gunsmith_01'] = 'MALE',
+        ['Character.wat_nid_medicstore_01'] = 'MALE',
+        ['Character.wat_nid_medicstore_02'] = 'MALE',
+        ['Character.wat_nid_ripperdoc_01'] = 'MALE',
+        ['Character.wbr_hil_clothingshop_01'] = 'FEMALE',
+        ['Character.wbr_hil_foodshop_01'] = 'MALE',
+        ['Character.wbr_hil_foodshop_02'] = 'MALE',
+        ['Character.wbr_hil_ripdoc_01'] = 'FEMALE',
+        ['Character.wbr_jpn_cloth_01'] = 'FEMALE',
+        ['Character.wbr_jpn_food_01'] = 'FEMALE',
+        ['Character.wbr_jpn_food_02'] = 'MALE',
+        ['Character.wbr_jpn_food_03'] = 'MALE',
+        ['Character.wbr_jpn_food_04'] = 'MALE',
+        ['Character.wbr_jpn_food_05'] = 'MALE',
+        ['Character.wbr_jpn_guns_01'] = 'MALE',
+        ['Character.wbr_jpn_jig_bar_01'] = 'FEMALE',
+        ['Character.wbr_jpn_junk_01'] = 'MALE',
+        ['Character.wbr_jpn_junk_03'] = 'MALE',
+        ['Character.wbr_jpn_medic_01'] = 'MALE',
+        ['Character.wbr_jpn_melee_01'] = 'MALE',
+        ['Character.wbr_jpn_netrun_01'] = 'MALE',
+        ['Character.wbr_jpn_ripdoc_01'] = 'FEMALE',
+        ['Character.wbr_nok_medic_01'] = 'MALE',
+    },
 }
 -- END GENERATED ARCHETYPES
 
@@ -125,7 +260,8 @@ end
 -- once the adapter adds them, TweakDBID strings) to a base.
 function M.buildArchetypes(data, enabledKeys)
     data = data or M.ARCHETYPES
-    local index = {bases = data.bases or {}, keys = {}, byBase = {}, records = {}, vendorSpecific = {}, vendorGeneric = {}}
+    local index = {bases = data.bases or {}, keys = {}, byBase = {}, records = {}, vendorSpecific = {}, vendorGeneric = {},
+        recordGenders = data.recordGenders or {}}
     for _, variant in ipairs(data.variants or {}) do
         if index.bases[variant.base] and (not enabledKeys or enabledKeys[variant.key]) then
             index.keys[variant.key] = variant
@@ -209,12 +345,64 @@ end
 -- Plain description of the classified actor for the per-turn context. Only
 -- fixed vocabulary leaves the game: no free text, handles or IDs.
 function M.describe(index, key, facts)
+    facts = facts or {}
     local variant = index.keys[key]
     if not variant then return nil end
     local base = index.bases[variant.base] or {}
     return {base = variant.base, category = base.category, title = base.title,
         affiliation = facts.affiliation ~= 'Unknown' and facts.affiliation or nil,
         vendorType = facts.vendor == true and facts.vendorType or nil}
+end
+
+-- Gender from a record name alone ("_wa", "Woman", "CorpoManBig", "barman"); women first.
+-- Mirrors scripts/Extract-ArchetypeRecordGenders.mjs nameGender.
+local FEMALE_TOKENS = {woman = true, women = true, female = true, girl = true, wa = true, wb = true, wc = true,
+    waf = true, wbf = true, wah = true, wf = true}
+local MALE_TOKENS = {man = true, men = true, male = true, boy = true, ma = true, mb = true, mc = true,
+    maf = true, mbf = true, mah = true, mbh = true, mf = true}
+local function ends(value, suffix) return #value >= #suffix and value:sub(-#suffix) == suffix end
+function M.nameGender(name)
+    if type(name) ~= 'string' or name == '' then return nil end
+    local text = name:gsub('^Character%.', ''):gsub('([%l%d])(%u)', '%1_%2'):lower()
+    local tokens = {}
+    for token in text:gmatch('[%l%d]+') do tokens[#tokens + 1] = token end
+    for _, token in ipairs(tokens) do
+        if FEMALE_TOKENS[token] or ends(token, 'woman') or ends(token, 'female') then return 'FEMALE' end
+    end
+    for _, token in ipairs(tokens) do
+        if MALE_TOKENS[token] or ends(token, 'man') or ends(token, 'male') then return 'MALE' end
+    end
+    return nil
+end
+
+-- A character record from the Model browser (no live body): the conversation
+-- profile a spawned copy of it should use, or nil. Facts come from TweakDB only
+-- (recordName, affiliation, vendor, vendorType, crowd, children, human, quest).
+-- Quest-prefixed records (q105_..., sq027_..., mq041_...) are story actors.
+-- Crowd records without a resident kind fall back to the two residents.
+function M.classifyRecord(index, facts)
+    if type(index) ~= 'table' or type(facts) ~= 'table' or type(facts.recordName) ~= 'string' then return nil, 'no-facts' end
+    local bare = facts.recordName:gsub('^Character%.', ''):lower()
+    if bare:match('^q%d%d%d') or bare:match('^sq%d%d%d') or bare:match('^mq%d%d%d') then return nil, 'story-bound' end
+    local gender = index.recordGenders[facts.recordName] or M.nameGender(facts.recordName)
+    if not gender then return nil, 'no-gender' end
+    local copy = {}
+    for name, value in pairs(facts) do copy[name] = value end
+    copy.gender, copy.bodyType = gender == 'FEMALE' and 'Female' or 'Male', nil
+    local key, reason = M.classify(index, copy)
+    if key then return key, reason end
+    if reason == 'unclassified' and facts.crowd == true then
+        return gender == 'FEMALE' and 'resident-female' or 'resident-male', 'resident'
+    end
+    return nil, reason
+end
+
+-- Display name of an archetype key ("Maelstrom ganger"), or nil.
+function M.archetypeLabel(index, key)
+    local variant = index and index.keys[key]
+    local base = variant and index.bases[variant.base]
+    if not base or type(base.title) ~= 'string' then return nil end
+    return base.title:sub(1, 1):upper() .. base.title:sub(2)
 end
 
 function M.build(profiles, archetypes)

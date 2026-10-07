@@ -109,7 +109,7 @@ export const LUA_BEGIN = '-- BEGIN GENERATED ARCHETYPES (node scripts/Build-Arch
 export const LUA_END = '-- END GENERATED ARCHETYPES';
 const luaString = value => `'${String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
 const luaList = values => `{${values.map(luaString).join(', ')}}`;
-export function luaArchetypeBlock(catalog) {
+export function luaArchetypeBlock(catalog, recordGenders = {}) {
   const fields = ['affiliations', 'police', 'crowd', 'vendorTypes', 'records', 'recordTokens', 'recordPrefixes', 'excludeRecordPrefixes'];
   const bases = Object.keys(catalog.bases).sort().map(name => {
     const base = catalog.bases[name], parts = [`category = ${luaString(base.category)}`, `title = ${luaString(base.title)}`];
@@ -122,8 +122,11 @@ export function luaArchetypeBlock(catalog) {
   });
   const variants = catalog.archetypes.map(row =>
     `        {key = ${luaString(row.key)}, base = ${luaString(row.base)}, gender = ${luaString(row.gender)}},`);
+  // Vendor record genders for the Model browser (scripts/Extract-ArchetypeRecordGenders.mjs).
+  const genders = Object.keys(recordGenders).sort().map(record =>
+    `        [${luaString(record)}] = ${luaString(recordGenders[record])},`);
   return [LUA_BEGIN, 'M.ARCHETYPES = {', '    version = 1,', '    bases = {', ...bases, '    },',
-    '    variants = {', ...variants, '    },', '}', LUA_END].join('\n');
+    '    variants = {', ...variants, '    },', '    recordGenders = {', ...genders, '    },', '}', LUA_END].join('\n');
 }
 export function replaceLuaBlock(source, block) {
   const start = source.indexOf(LUA_BEGIN), end = source.indexOf(LUA_END);
@@ -146,7 +149,11 @@ export async function buildArchetypes() {
   if (errors.length) return {errors, profiles: []};
   const profiles = catalog.archetypes.map(row => buildArchetype(row, catalog.bases[row.base], dossiers.get(row.base), settings.model));
   for (const profile of profiles) characterPayload(profile);   // same preflight as provisioning
-  return {errors, profiles, lua: luaArchetypeBlock(catalog)};
+  const genders = await read('characters/archetype-record-genders.json').catch(error => {
+    if (error.code === 'ENOENT') return {records: {}};
+    throw error;
+  });
+  return {errors, profiles, lua: luaArchetypeBlock(catalog, genders.records ?? {})};
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

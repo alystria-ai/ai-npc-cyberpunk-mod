@@ -305,6 +305,8 @@ return {
     ["Redscript log"] = "Log Redscript",
     ["Relationships"] = "Vztahy",
     ["Talk to ordinary NPCs"] = "Mluvit s běžnými NPC",
+    ["Conversation: {name} (archetype)"] = "Konverzace: {name} (archetyp)",
+    ["{count} of them can talk."] = "Mluvit umí: {count}.",
     ["Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save. Named characters are not affected. On by default."] = "Umožňuje mluvit s bezejmennými lidmi, kterým hra nedává příběhovou roli: členy gangů, strážníky NCPD, korporátními strážci, ripperdoky, obchodníky, barmany a kolemjdoucími. Každý odpovídá jako člověk svého druhu, nezná tvůj příběh a po načtení uložené hry si tě nepamatuje. Pojmenovaných postav se to netýká. Ve výchozím stavu zapnuto.",
     ["Releasing local voice memory"] = "Uvolňuje se paměť místního hlasu",
     ["Remember each companion’s prepared voice so summoning them again is quicker. Pocket TTS saves one small file per character (about 5 to 15 MB) in the mod’s runtime folder; OmniVoice does a short hidden warm-up at your chosen quality while a companion joins. Turn this off to save nothing on disk. The change applies without a restart."] = "Pamatuj si připravený hlas každého společníka, aby bylo další přivolání rychlejší. Pocket TTS ukládá jeden malý soubor na postavu (asi 5 až 15 MB) do běhové složky módu; OmniVoice při připojování společníka provede krátké skryté zahřátí ve zvolené kvalitě. Vypni to, aby se na disk nic neukládalo. Změna se projeví bez restartu.",

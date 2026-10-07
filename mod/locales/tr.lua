@@ -305,6 +305,8 @@ return {
     ["Redscript log"] = "Redscript günlüğü",
     ["Relationships"] = "İlişkiler",
     ["Talk to ordinary NPCs"] = "Sıradan NPC'lerle konuş",
+    ["Conversation: {name} (archetype)"] = "Sohbet: {name} (arketip)",
+    ["{count} of them can talk."] = "Bunlardan {count} tanesi konuşabilir.",
     ["Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save. Named characters are not affected. On by default."] = "Oyunun hikâyede rol vermediği isimsiz kişilerle konuşmanı sağlar: çete üyeleri, NCPD memurları, şirket güvenlikçileri, ripperdoc'lar, esnaf, barmenler ve yoldan geçenler. Her biri kendi türünden biri olarak yanıt verir, hikâyeni bilmez ve bir kayıt yüklediğinde seni hatırlamaz. İsimli karakterler etkilenmez. Varsayılan olarak açık.",
     ["Releasing local voice memory"] = "Yerel ses belleği serbest bırakılıyor",
     ["Remember each companion’s prepared voice so summoning them again is quicker. Pocket TTS saves one small file per character (about 5 to 15 MB) in the mod’s runtime folder; OmniVoice does a short hidden warm-up at your chosen quality while a companion joins. Turn this off to save nothing on disk. The change applies without a restart."] = "Her yoldaşın hazırlanmış sesini hatırla; böylece onları tekrar çağırmak daha hızlı olur. Pocket TTS, modun çalışma klasörüne karakter başına küçük bir dosya (yaklaşık 5 ila 15 MB) kaydeder; OmniVoice, bir yoldaş katılırken seçtiğin kalitede kısa, gizli bir ısınma yapar. Diske hiçbir şey kaydetmemek için bunu kapat. Değişiklik yeniden başlatma gerektirmeden uygulanır.",
