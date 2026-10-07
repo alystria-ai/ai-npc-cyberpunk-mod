@@ -8,8 +8,10 @@ import copy
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import struct
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -206,6 +208,39 @@ class ActorContinuityTests(unittest.TestCase):
             self.assertFalse(sidecar["canonicalRecordEdgeVerified"])
             self.assertFalse(sidecar["audioDecodedByThisValidation"])
             self.assertEqual(set(sidecar["sourceAuthentication"]), {"anchor", "target"})
+
+
+class ProjectFileContainmentTests(unittest.TestCase):
+    """Offload junctions are allowed only when they point into the named offload root."""
+
+    def junction(self, link, target):
+        if sys.platform != "win32":
+            os.symlink(target, link, target_is_directory=True)
+        else:
+            subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(target)], check=True, capture_output=True)
+
+    def test_junction_into_offload_root_is_accepted_and_everything_else_rejected(self):
+        with tempfile.TemporaryDirectory() as raw:
+            base = Path(raw).resolve()
+            project, offload, other = base / "project", base / "offload", base / "other"
+            for folder in (project, offload / "data", other / "data"):
+                folder.mkdir(parents=True)
+            (offload / "data" / "a.json").write_text("{}")
+            (other / "data" / "b.json").write_text("{}")
+            (project / "plain.json").write_text("{}")
+            self.junction(project / "moved", offload / "data")
+            self.junction(project / "elsewhere", other / "data")
+            with patch.object(cast, "OFFLOAD_ROOT", offload):
+                self.assertEqual(cast.project_file("plain.json", project), project / "plain.json")
+                self.assertEqual(cast.project_file("moved/a.json", project), project / "moved" / "a.json")
+                for escape in ("elsewhere/b.json", "../other/data/b.json", str(other / "data" / "b.json"), "missing.json"):
+                    with self.subTest(escape=escape), self.assertRaisesRegex(ValueError, "existing project file"):
+                        cast.project_file(escape, project)
+            with patch.object(cast, "OFFLOAD_ROOT", base / "absent"):
+                with self.assertRaisesRegex(ValueError, "existing project file"):
+                    cast.project_file("moved/a.json", project)
+            os.rmdir(project / "moved")
+            os.rmdir(project / "elsewhere")
 
 
 if __name__ == "__main__":

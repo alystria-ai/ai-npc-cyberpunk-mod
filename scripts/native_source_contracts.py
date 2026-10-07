@@ -9,6 +9,7 @@ from collections import defaultdict
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -17,6 +18,7 @@ HERE = Path(__file__).resolve().parent
 PINNED_WK = "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
 PINNED_EXTRACT = "565077b46ff96bfaf2a44dfd3addf792c1d2bf6b7eb9e14a68acf74a06f3144f"
 PINNED_BUNDLE = "2be04d3eae0c1aae2ee8c35ac37147d174692ff0d0eb07ec26884b8661f4d881"
+OFFLOAD_ROOT = Path(os.environ.get("CYBERPUNK_CONVAI_OFFLOAD_ROOT", r"E:\CyberpunkConvai-offload"))
 UINT64 = (1 << 64) - 1
 WEM = re.compile(r"(?:base|ep1)\\localization\\en-us\\(vo(?:_[a-z]+)?)\\[^\\]+_([fm])_([a-f0-9]{16})\.wem")
 
@@ -58,10 +60,15 @@ def pointer(doc, value):
 def bounded_file(project, value, limit=128 * 1024 * 1024):
     if not isinstance(value, str):
         raise ValueError("Explicit project source path required")
-    p = (project / value).resolve()
-    if not p.is_relative_to(project) or not 0 < p.stat().st_size <= limit:
+    # Offloaded evidence folders are directory junctions inside the project that
+    # resolve into one named offload root; the path must stay lexically inside
+    # the project and its real location inside the project or that root.
+    lexical = Path(os.path.abspath(project / value))
+    real = lexical.resolve()
+    allowed = real.is_relative_to(project) or (OFFLOAD_ROOT.is_dir() and real.is_relative_to(OFFLOAD_ROOT.resolve()))
+    if not lexical.is_relative_to(project) or not allowed or not 0 < real.stat().st_size <= limit:
         raise ValueError("Source escaped project or byte bound")
-    return p
+    return lexical
 
 
 def extract_module():
@@ -187,7 +194,7 @@ class NativeSourceContracts:
         if digest(p.read_bytes()) != asset["jsonSha256"]:
             raise ValueError("Native serialized source bytes changed")
         doc = json_no_duplicates(p)
-        if Path(doc["Header"]["ArchiveFileName"]).resolve() != raw or canonical_data(doc["Data"]) != asset["dataSha256"]:
+        if Path(doc["Header"]["ArchiveFileName"]).resolve() != raw.resolve() or canonical_data(doc["Data"]) != asset["dataSha256"]:
             raise ValueError("Native JSON source path/Data does not match original bytes")
         ser = asset["serialization"]
         if ser.get("tool") != "WolvenKit.CLI 9.0.1" or ser.get("toolSha256") != PINNED_WK or ser.get("sourcePathMatches") is not True or ser.get("exitCode") != 0:
@@ -234,7 +241,7 @@ class NativeSourceContracts:
             raise ValueError("Native scene raw/entry/JSON hash mismatch")
         self.current_index(source["depotPath"], source["archive"], source["entrySha1"])
         doc = json_no_duplicates(js)
-        if Path(doc["Header"]["ArchiveFileName"]).resolve() != raw or doc["Data"]["RootChunk"].get("$type") != "scnSceneResource":
+        if Path(doc["Header"]["ArchiveFileName"]).resolve() != raw.resolve() or doc["Data"]["RootChunk"].get("$type") != "scnSceneResource":
             raise ValueError("Actor source is not its exact serialized native scene")
         manifest = json_no_duplicates(bounded_file(self.project, source["manifestPath"]))
         rows = [r for r in manifest["assets"] if r.get("winner") is True and r.get("depotPath") == source["depotPath"]]
@@ -245,7 +252,7 @@ class NativeSourceContracts:
         ser = row.get("serializationVerification", {})
         if (row.get("archivePath") != source["archive"] or row.get("archiveEntrySha1") != source["entrySha1"]
                 or row.get("assetSha256") != source["rawSha256"] or row.get("jsonSha256") != source["jsonSha256"]
-                or (parent / row["rawPath"]).resolve() != raw or (parent / row["jsonPath"]).resolve() != js
+                or (parent / row["rawPath"]).resolve() != raw.resolve() or (parent / row["jsonPath"]).resolve() != js.resolve()
                 or row.get("serializationVerified") is not True or ser.get("verified") is not True
                 or ser.get("toolSha256") != PINNED_WK or ser.get("rawSha256") != source["rawSha256"]
                 or ser.get("cachedJsonSha256") != source["jsonSha256"] or ser.get("dataSha256") != canonical_data(doc["Data"])):

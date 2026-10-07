@@ -161,14 +161,25 @@ def read_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
+# Large evidence folders were moved off the system drive and left as directory
+# junctions inside the project (see TODO.md, "Disk offload"). A junction resolves
+# outside the project, so evidence is accepted when its path is lexically inside
+# the project (no ".." escape) and its real location is inside the project or
+# inside this one named offload root. Anything else is still rejected.
+OFFLOAD_ROOT = Path(os.environ.get("CYBERPUNK_CONVAI_OFFLOAD_ROOT", r"E:\CyberpunkConvai-offload"))
+
+
 def project_file(value, project: Path) -> Path:
     if not isinstance(value, str) or not value:
         raise ValueError("A contained evidence path is required")
     path = Path(value)
-    path = (path if path.is_absolute() else project / path).resolve()
-    if not extract.contained(path, project) or not path.is_file():
+    lexical = Path(os.path.abspath(path if path.is_absolute() else project / path))
+    real = lexical.resolve()
+    inside = lexical.is_relative_to(Path(os.path.abspath(project)))
+    on_disk = extract.contained(real, project) or (OFFLOAD_ROOT.is_dir() and extract.contained(real, OFFLOAD_ROOT))
+    if not inside or not on_disk or not real.is_file():
         raise ValueError("Evidence path must be an existing project file")
-    return path
+    return lexical
 
 
 def output_path(project: Path, lane: str, supplied=None) -> Path:
@@ -683,7 +694,7 @@ def validate_native_source(source, project, extensions=(".scene",)):
     checked_hash(raw, source["entrySha1"], "Native resource entry", "sha1")
     checked_hash(json_path, source["jsonSha256"], "Native resource serialization")
     document = read_json(json_path)
-    if Path(document["Header"]["ArchiveFileName"]).resolve() != raw:
+    if Path(document["Header"]["ArchiveFileName"]).resolve() != raw.resolve():
         raise ValueError("Native resource serialization source mismatch")
     manifest_path = project_file(source["manifestPath"], project)
     manifest = read_json(manifest_path)
@@ -698,8 +709,8 @@ def validate_native_source(source, project, extensions=(".scene",)):
     row = rows[0]
     if (row["archivePath"] != source["archive"] or row["archiveEntrySha1"] != source["entrySha1"]
             or row["assetSha256"] != source["rawSha256"]
-            or (manifest_path.parent / row["rawPath"]).resolve() != raw
-            or (manifest_path.parent / row["jsonPath"]).resolve() != json_path):
+            or (manifest_path.parent / row["rawPath"]).resolve() != raw.resolve()
+            or (manifest_path.parent / row["jsonPath"]).resolve() != json_path.resolve()):
         raise ValueError("Resource receipt does not match native export provenance")
     if source["archive"] not in SCENE_ARCHIVES:
         raise ValueError("Unsupported native attribution archive")
@@ -968,7 +979,7 @@ def authenticate_serialization(scene, project, out, verified):
     checked_hash(source_raw, scene["entrySha1"], "Current native entry", "sha1")
     checked_hash(source_json, scene["jsonSha256"], "Current native JSON")
     expected = read_json(source_json)
-    if Path(expected["Header"]["ArchiveFileName"]).resolve() != source_raw:
+    if Path(expected["Header"]["ArchiveFileName"]).resolve() != source_raw.resolve():
         raise ValueError("Current native JSON original Header source mismatch")
     data_hash = hashlib.sha256(json.dumps(expected["Data"], ensure_ascii=False,
         sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
@@ -994,7 +1005,7 @@ def authenticate_serialization(scene, project, out, verified):
                        capture_output=True, check=True, timeout=120,
                        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
         actual = read_json(raw.with_name(raw.name + ".json"))
-        if (Path(actual["Header"]["ArchiveFileName"]).resolve() != raw
+        if (Path(actual["Header"]["ArchiveFileName"]).resolve() != raw.resolve()
                 or actual["Data"] != expected["Data"]):
             raise ValueError("Cached actor/line JSON is not the serialization of verified native raw")
         receipt = {"verified": True, "tool": "WolvenKit.CLI 9.0.1", "toolSha256": WOLVENKIT_SHA256,

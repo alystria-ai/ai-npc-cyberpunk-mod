@@ -13,7 +13,7 @@ from pathlib import Path
 POLICY = "registered_native_main_recovery_v1"
 MAIN_POLICY = "registered_native_main_for_all_v1"
 BUNDLE = "runtime/voice-data-expansion-20261003/source-admission-review/bank-experiment-complete-01.json"
-READER_SHA = "46aef2aaecd6ecd23cad9c7d214da440c3e4fd37754405cec3153aefb6e93ddb"
+READER_SHA = "f5cdba7f1262b2424cc727049254c3314a1bab4fed7803077e3262c42ec32388"
 HERE = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("candidate_native_source_contracts", HERE / "native_source_contracts.py")
 contracts = importlib.util.module_from_spec(spec)
