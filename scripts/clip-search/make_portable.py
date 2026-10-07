@@ -44,6 +44,7 @@ def digest(text: str) -> str:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--plans", type=Path, required=True)
+    parser.add_argument("--plans-omni", type=Path, help="a second plans folder (the OmniVoice prescreen); its clips are included and its plans go to data/plans-omni")
     parser.add_argument("--voices", required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--export", type=Path, default=EXPORT)
@@ -59,6 +60,9 @@ def main(argv=None) -> int:
     trimmed = {"version": index.get("version", 1), "dataRoot": "__set CLIP_SEARCH_DATA_ROOT__", "voices": {}}
     for voice in voices:
         plan = json.loads((args.plans / f"{voice}.json").read_text(encoding="utf-8"))
+        plan_omni = json.loads((args.plans_omni / f"{voice}.json").read_text(encoding="utf-8")) if args.plans_omni else None
+        if plan_omni:
+            plan = {**plan, "files": {**plan["files"], **plan_omni["files"]}}
         source = index["voices"][voice]
         by_id = {c["id"]: c for c in source["clips"]}
         pool = common.VoicePool(index, voice)
@@ -90,8 +94,12 @@ def main(argv=None) -> int:
             live[engine] = {**entry, "reference": rel}
         trimmed["voices"][voice] = {"clips": clips, "loudMedian": source.get("loudMedian"), "lines": lines, "live": live,
                                     "proposed": {}, "embedded": 0, "typicalityRanked": False}
-        (plans / f"{voice}.json").write_text(json.dumps({k: v for k, v in plan.items() if k not in ("files", "lines", "live")}, indent=1),
-                                             encoding="utf-8")
+        (plans / f"{voice}.json").write_text(json.dumps({k: v for k, v in (json.loads((args.plans / f"{voice}.json").read_text(encoding="utf-8"))).items()
+                                                         if k not in ("files", "lines", "live")}, indent=1), encoding="utf-8")
+        if plan_omni:
+            (out / "data/plans-omni").mkdir(parents=True, exist_ok=True)
+            (out / "data/plans-omni" / f"{voice}.json").write_text(json.dumps({k: v for k, v in plan_omni.items() if k not in ("files", "lines", "live")}, indent=1),
+                                                                    encoding="utf-8")
         print(f"{voice}: {len(clips)} clips, {len(lines)} lines", flush=True)
     (out / "data/pool-index.json").write_text(json.dumps(trimmed, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     # code
