@@ -44,7 +44,7 @@ const fixture = `
   local function last() return published[#published] end
 `;
 
-test('with the setting off nothing is prepared and the wait notice mentions the setting only twice', () => {
+test('with the setting off nothing is prepared and the short wait notice never mentions the setting', () => {
   run(`${fixture}
     setting = false
     nearby = {{key = 'judy-alvarez', name = 'Judy', distance = 2}}
@@ -52,19 +52,17 @@ test('with the setting off nothing is prepared and the wait notice mentions the 
     for _ = 1, 20 do auto.look('judy-alvarez', 'e1', 'Judy', 0.2) end
     step(auto, 5)
     assert(scans == 0 and #published == 0 and #auto.active() == 0, 'the setting off still warmed a character')
-    assert(auto.talkNotice('judy-alvarez', 'Judy') == 'Preparing connection to Judy… (turn on Auto-connect to skip this wait)')
-    assert(auto.talkNotice('judy-alvarez', 'Judy') == 'Preparing connection to Judy… (turn on Auto-connect to skip this wait)')
-    assert(auto.talkNotice('judy-alvarez', 'Judy') == 'Preparing connection to Judy…', 'the hint nagged a third time')
+    for _ = 1, 4 do assert(auto.talkNotice('judy-alvarez', 'Judy') == 'Preparing connection to Judy…', 'no hint about the setting') end
     assert(auto.talkNotice('panam', 'Panam') == 'Preparing connection to Panam…')
     readyKeys['judy-alvarez'] = true
     assert(auto.talkNotice('judy-alvarez', 'Judy') == nil, 'a connected character still showed the wait notice')
   `);
 });
 
-test('the hint is not shown with the setting on, and a warm character shows no notice', () => {
+test('with the setting on a wait is silent: no notice before or after the warm-up finishes', () => {
   run(`${fixture}
     local auto = make()
-    assert(auto.talkNotice('judy-alvarez', 'Judy') == 'Preparing connection to Judy…')
+    assert(auto.talkNotice('judy-alvarez', 'Judy') == nil, 'a warm-up announced itself')
     readyKeys['judy-alvarez'] = true
     assert(auto.talkNotice('judy-alvarez', 'Judy') == nil)
   `);

@@ -35,14 +35,14 @@ test('phone protocol accepts remote contacts without world entity spoofing and b
 
 async function finish(chat, value) { await chat.accept(value); await chat.active?.work; }
 
-test('phone opt-in reaches provider context once per send and does not change displayed text or add turns', async () => {
+test('a legacy follow-up field is ignored and provider context is built once per send without changing displayed text or adding turns', async () => {
   for (const followUpQuestions of [undefined, false, null, 'true', 1, true]) {
     const message = 'How is the editing going?';
     const value = state({request: {id: 'world-1-1', contact: 'judy', text: message, followUpQuestions}});
     const {chat, calls, output} = fixture(async () => ({text: 'Going well.', sessionID: 'session'}));
     await finish(chat, value);
     assert.equal(calls.length, 1);
-    assert.equal(calls[0].input.followUpQuestions, followUpQuestions === true);
+    assert.equal('followUpQuestions' in calls[0].input, false);
     assert.equal(calls[0].input.text, message);
     assert.match(calls[0].context, /Whether you ask V anything is your own call/);
     assert.doesNotMatch(calls[0].context, /follow-up question/i);
@@ -421,18 +421,16 @@ local function resetJournal(receipts,pending,blocked,all,trackedOverride)
 end
 local function clearAction(id,key) return {id=id,scope=key and 'character' or 'all',profileKey=key} end
 `;
-test('phone Lua captures the preference on Send and keeps it through pending heartbeat updates', () => runLua(setup + `
-local followUps=false
-m.manager.followUpQuestions=function()return followUps end
+test('phone Lua never puts the retired follow-up field on a pending send', () => runLua(setup + `
 update();submission={contact='judy',text='Hello'};update()
-assert(m.pending.followUpQuestions==false)
-followUps=true;clock=clock+1;update()
-assert(m.pending.followUpQuestions==false)
+assert(m.pending and m.pending.followUpQuestions==nil)
+clock=clock+1;update()
+assert(m.pending.followUpQuestions==nil)
 local pending=m.pending
 put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=pending.id,contact='judy',state='reply',text='Hey V'})
 update();submission={contact='judy',text='How are you?'};update()
-assert(m.pending.followUpQuestions==true)
-followUps=false;clock=clock+1;update();assert(m.pending.followUpQuestions==true)
+assert(m.pending and m.pending.followUpQuestions==nil)
+clock=clock+1;update();assert(m.pending.followUpQuestions==nil)
 `));
 
 test('Lua recent phone continuity includes only six actual rows before the current send and preserves full history', () => runLua(setup + `

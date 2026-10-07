@@ -128,28 +128,24 @@ test('an unconfigured addressed companion is never replaced by a different speak
   assert(#nearby==1 and nearby[1]==alex)
 `));
 
-test('one follow-up preference is frozen per round and a departed last speaker transfers final-speaker ownership', () => check(`
-  local enabled=false
-  group.captureFollowUpQuestions=function()return enabled end
+test('a departed last speaker transfers final-speaker ownership and no turn carries the retired follow-up field', () => check(`
   group.start('off',{judy,panam,alex},'Hello')
-  enabled=true
   local first=group.next(1,100,live)
-  assert(first.followUpQuestions==false)
+  assert(first.followUpQuestions==nil)
   group.received(first.requestId,'Hello V',false,{'judy','panam','alex'})
   local prepared=group.preview(2,101,live)
-  assert(prepared.followUpQuestions==false and prepared.group.index~=prepared.group.total)
+  assert(prepared.followUpQuestions==nil and prepared.group.index~=prepared.group.total)
   live['3ULL']=nil
   local last=group.preview(3,102,live)
   assert(last.requestId~=prepared.requestId and last.group.index==last.group.total)
-  assert(last.followUpQuestions==false)
+  assert(last.followUpQuestions==nil)
   group.completed(first.requestId,true)
   assert(group.next(4,103,live).requestId==last.requestId)
   group.received(last.requestId,'See you',false,{'judy','panam'})
   group.completed(last.requestId,true)
   assert(group.next(5,104,live)==nil)
   group.start('on',{judy,panam},'Another message')
-  enabled=false
-  assert(group.next(6,105,live).followUpQuestions==true)
+  assert(group.next(6,105,live).followUpQuestions==nil)
   group.cancel();assert(group.next(7,106,live)==nil)
 `));
 test('next speaker cannot start before playback completes; duplicate completions are harmless', () => check(`
@@ -283,26 +279,24 @@ test('validate group metadata and isolate private and group session scopes', () 
 });
 
 test('voice round freezes its audience, owns the first microphone reply and forwards only recognized V text', () => check(`
-  local enabled=true
-  group.captureFollowUpQuestions=function()return enabled end
   group.captureJournal=function()return {serial=1}end
   group.captureBattle=function()return {serial=1}end
   local participants={alex,judy,panam}
   local first=group.startVoice('voice-round',participants,9,100)
   assert(first.profileKey=='alex'and first.group.index==1 and first.group.total==3)
-  assert(first.text=='[Microphone]'and first.followUpQuestions==true)
+  assert(first.text=='[Microphone]'and first.followUpQuestions==nil)
   assert(group.round.stage=='recording'and group.next(10,101,live)==nil)
   assert(not group.received(first.requestId,'too early',false,{},nil,'Hello'))
   participants[1]=judy;alex.profileKey='changed'
   assert(group.round.participants[1].profileKey=='alex')
   assert(not group.voiceSubmitted({requestId='wrong'}))
-  first.journal={serial=2};first.battle={serial=3};enabled=false
+  first.journal={serial=2};first.battle={serial=3}
   assert(group.voiceSubmitted(first)and group.round.stage=='waiting')
   assert(not group.voiceSubmitted(first)and group.next(10,101,live)==nil)
   assert(group.received(first.requestId,'Hi V',false,{'alex','judy','panam'},nil,'How was your night?'))
   local prepared=group.preview(10,102,live)
   assert(prepared.profileKey=='judy'and prepared.text=='How was your night?')
-  assert(prepared.journal.serial==2 and prepared.battle.serial==3 and prepared.followUpQuestions==true)
+  assert(prepared.journal.serial==2 and prepared.battle.serial==3 and prepared.followUpQuestions==nil)
   assert(prepared.group.heard[1].text=='Hi V'and group.round.stage=='playing')
   assert(not group.received(first.requestId,'duplicate',false,{},nil,'Wrong text'))
   group.completed(first.requestId,true)

@@ -67,16 +67,20 @@ Tests: `npm run test:reference-picker`.
 
 ## The live voice setup — October 7, 2026 (supersedes the October 5 four-choice section below)
 
-**Menu** (Settings > Voices > Companion voices, in this order): Pocket TTS · recommended (default), OmniVoice 16 steps · short
-reference, OmniVoice 16 steps · long reference, OmniVoice 32 steps · short reference, OmniVoice 32 steps · long reference,
-Convai cloud voice. There is no Pocket base. Settings store `voiceProvider` (`pocket`, `omni`, `convai`), `omniSteps` (16 or
+**Menu** (Settings > Voices > Companion voices, in this order, fastest to best): Pocket · Performance (default),
+OmniVoice · Balanced (16 steps, short reference), OmniVoice · Quality (16 steps, long reference), OmniVoice · High Quality
+(32 steps, short reference), OmniVoice · Ultra Quality (32 steps, long reference), Convai · Cloud voice. Without the Omni pack
+the four OmniVoice entries end in "· needs Omni pack" and Apply refuses them. There is no Pocket base. Settings store `voiceProvider` (`pocket`, `omni`, `convai`), `omniSteps` (16 or
 32), `omniReference` (`short` up to 10 s of reference audio, `long` up to 18 s) and `keepPreparedVoices` (default on). A fresh
 profile starts on Pocket TTS. Migration (`mod/manager.lua`): a saved `omni`/`hybrid` choice keeps its steps and gains
 `omniReference = "long"` (whoever chose OmniVoice chose quality; long matches the voice better for about 0.15 s more latency at
-16 steps); a saved `pocket` or `convai` stays; a missing or unknown provider becomes Pocket TTS. The description in the menu says
-Pocket TTS is light and fast (first audio about 0.15 s) and recommended, and that OmniVoice, which needs a capable GPU, sounds
-closest: by ear about 15–20 % better at 16 steps and 20–25 % at 32, while for well-covered voices (Johnny, Judy, Panam, Alex)
-Pocket is within about 5 %. First audio: Omni 16 about 1.3 s short / 1.45 s long, Omni 32 about 2.1 s / 2.5 s.
+16 steps); a saved `pocket` or `convai` stays; a missing or unknown provider becomes Pocket TTS. The description in the menu is three sentences with no
+listening percentages: Pocket is light and fast on the CPU (first audio about 0.2 s); OmniVoice sounds better,
+especially on harder voices, needs a capable GPU and the optional pack, and the higher tiers take longer to start (about 1 to
+2.5 s); Convai uses the cloud, and a choice that cannot run falls to a simpler voice with one notice. The measured numbers
+live here, not in the game: by ear OmniVoice was about 15–20 % better than Pocket at 16 steps and 20–25 % at 32, while for
+well-covered voices (Johnny, Judy, Panam, Alex) Pocket is within about 5 %. First audio: Omni 16 about 1.3 s short / 1.45 s
+long, Omni 32 about 2.1 s / 2.5 s.
 
 **Fallback order is unchanged** (`bridge/voice-selection.mjs`, `VOICE_FALLBACK_ORDER`): OmniVoice, then Pocket, then Convai.
 The menu lists Pocket first, but an Omni choice that cannot run (pack missing, no CUDA, worker failure) falls to Pocket, a Pocket
@@ -136,7 +140,7 @@ characters, and the fine-tuned Pocket student was no better than stock Pocket
 (speaker similarity 0.930 against 0.926 on 77 voices, within noise). The
 selector was therefore reduced to one global setting with four choices, in this
 order: **OmniVoice 16 steps (default), OmniVoice 32 steps, Pocket TTS, Convai
-cloud voice**. 16 steps was made the default after research showed it equals 32
+cloud voice** (the live menu now has six entries with Pocket as the default; see the section above). 16 steps was made the default after research showed it equals 32
 on every perceptual metric at half the GPU time. Earlier lists (Pocket first, and separate student/teacher or
 fine-tuning variants) are gone. There is no separate quality row and no
 per-character voice selector.
@@ -172,8 +176,8 @@ commits at the next idle settings poll, like any routing change, so a turn in
 progress keeps its voice. The bridge publishes `fallback: {from, to}` in
 `runtime/local-voice-state.json` (and the support report) once the lower voice
 is the committed route; the CET mod reads it and posts one gameplay notice per
-fallback ("OmniVoice 16 steps is unavailable. Companions are using Pocket TTS
-instead."), and the Settings voice status names the voice in use. Invitations
+fallback ("OmniVoice · Balanced is unavailable. Companions are using Pocket ·
+Performance instead."), and the Settings voice status names the voice in use. Invitations
 that were preparing against the failed backend continue on the fallback instead
 of failing. The pre-existing readiness and availability checks are unchanged.
 The same machinery lets a machine with no OmniVoice setup start on Pocket
@@ -263,8 +267,9 @@ opt-out. FP8 remains an isolated candidate, not the installed voice precision.
 
 ## Routing and lifetime
 
-- **Companion Manager → Settings → Companion voices** selects OmniVoice
-  16 steps (default), OmniVoice 32 steps, Pocket TTS or Convai cloud voice. The manager uses the player's assigned
+- **Companion Manager → Settings → Companion voices** selects Pocket ·
+  Performance (default), one of four OmniVoice quality tiers (Balanced, Quality, High Quality, Ultra Quality) or Convai ·
+  Cloud voice. The manager uses the player's assigned
   CET shortcut. Saving the selection keeps it for future launches; valid saved
   choices take precedence over the new-user default.
 - The current catalog has **75 prepared local voice profiles** out of 79.

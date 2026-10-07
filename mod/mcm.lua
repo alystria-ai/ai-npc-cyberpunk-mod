@@ -317,15 +317,15 @@ local function savedVoiceIndex(settings)
     return voicePreviewModule.indexOf(settings)
 end
 
--- The select's labels, in menu order. An OmniVoice entry says what it needs while the optional pack is missing; it
+-- The select's labels, in menu order (fastest to best). An OmniVoice entry says what it needs while the optional pack is missing; it
 -- cannot be applied then (applyBatch refuses it) and the bridge would fall back to Pocket TTS anyway.
 local function voiceMenuLabels(pack)
     local elements = {}
     for index, choice in ipairs(VOICE_CHOICES) do
-        local label = choice.provider == 'pocket' and ui.t('Pocket TTS · recommended')
-            or manager.voiceLabel(choice.provider, choice.steps, choice.reference)
+        local label = manager.voiceLabel(choice.provider, choice.steps, choice.reference)
+        -- Short, so the entry does not truncate; the voice description says what the pack is.
         if choice.provider == 'omni' and not pack.installed then
-            label = ui.t('{voice} · Requires the optional OmniVoice pack (GPU)', {voice = label})
+            label = ui.t('{voice} · needs Omni pack', {voice = label})
         end
         elements[index] = label
     end
@@ -549,8 +549,11 @@ local function schema()
     if view == 'home' then
         for _, tab in ipairs({{'characters', 'Characters'}, {'party', 'Current party'},
             {'models', 'Model browser'}, {'settings', 'Settings'}}) do
-            rows[#rows + 1] = action('tab:' .. tab[1], tab[2], 'Open',
-                ui.t('Browse {section}. {query}',{section=ui.t(tab[2]):lower(),query=modelQuery}),
+            -- The Model browser lists every character model in the game, so it says that and what joining means.
+            local description = tab[1] == 'models'
+                and ui.t('Browse every character model in the game and invite any of them, including characters without conversation support. They join as followers and do not talk.')
+                or ui.t('Browse {section}. {query}',{section=ui.t(tab[2]):lower(),query=modelQuery})
+            rows[#rows + 1] = action('tab:' .. tab[1], tab[2], 'Open', description,
                 function(context) return navigate(tab[1], context) end)
         end
         categories[#categories + 1] = category('navigation', 'Companion Manager', rows)
@@ -637,7 +640,8 @@ local function schema()
                     .. '\n' .. ui.t('Some game models have special rigs or roles and may not behave as ordinary companions.'),
                 function() return queue.invite(key) end, canInvite)
         end
-        categories[#categories + 1] = category('models', 'Installed character models', rows)
+        categories[#categories + 1] = category('models', 'Installed character models', rows,
+            'Every character model found in the game, including characters without conversation support. Those join as followers and do not talk.')
     elseif view == 'memory' then
         rows = memorySettings(snapshot)
         table.insert(rows, 1, action('memory:settings', 'Back to settings', 'Back',
@@ -687,11 +691,14 @@ local function schema()
             'Return to conversation settings.', function(context) return navigate('settings', context) end)
         for _, profile in ipairs(manager.relationshipChoices()) do
             local mode = snapshot.settings.relationshipModes[profile.key]
-            local description = profile.key == 'meredith-stout'
-                and 'Auto follows the completed encounter in this save. On uses the intimate profile; Off uses the ordinary profile. This does not imply an ongoing relationship.'
-                or 'Auto follows the relationship in this save. On uses the romantic profile; Off uses the ordinary profile. This changes conversations without changing game choices.'
+            -- The saved values stay auto / on / off; only the labels read Romantic (Casual for Meredith) / Ordinary.
+            local casual = profile.key == 'meredith-stout'
+            local description = casual
+                and 'Auto follows the completed encounter in this save. Casual uses the casual profile; Ordinary uses the ordinary profile. This does not imply an ongoing relationship.'
+                or 'Auto follows the relationship in this save. Romantic uses the romantic profile; Ordinary uses the ordinary profile. This changes conversations without changing game choices.'
             rows[#rows + 1] = setting('relationship:' .. profile.key, profile.name, 'select',
-                mode == 'on' and 2 or mode == 'off' and 3 or 1, 1, description, {'Auto', 'On', 'Off'})
+                mode == 'on' and 2 or mode == 'off' and 3 or 1, 1, description,
+                {'Auto', casual and 'Casual' or 'Romantic', 'Ordinary'})
         end
         categories[#categories + 1] = category('relationships', 'Relationships', rows,
             'Choose ordinary or romantic conversations for supported characters.')
@@ -703,7 +710,7 @@ local function schema()
                 snapshot.settings.enabledByKey[profile.key] ~= false, true,
                 ui.t('Allow {name} in private and group conversations. Existing copies can still follow you when this is off.',{name=profile.name}))
         end
-        categories[#categories + 1] = category('permissions', 'Character conversations', rows)
+        categories[#categories + 1] = category('permissions', 'Who can talk', rows)
     elseif view == 'help' and support then
         local where, report = support.locations(), support.status()
         local files = {mod = 'probe.log, mcm.log', bridge = 'bridge.stderr.log', launcher = 'launcher.log',
@@ -765,7 +772,7 @@ local function schema()
                 languageElements, {elements=true}),
         })
         categories[#categories + 1] = category('conversation-controls', 'Conversations', {
-            action('permissions', 'Character conversations', 'Manage',
+            action('permissions', 'Who can talk', 'Manage',
                 'Enable or disable each character’s participation in AI conversations.',
                 function(context) return navigate('permissions', context) end),
             action('memory', 'Memory', 'Manage',
@@ -774,8 +781,8 @@ local function schema()
             action('relationships', 'Relationships', 'Manage',
                 'Choose ordinary or romantic conversations for supported characters.',
                 function(context) return navigate('relationships', context) end),
-            setting('autoConnectNearby', 'Auto-connect nearby characters', 'bool', snapshot.settings.autoConnectNearby, false,
-                'Prepare the conversation with a character you look at or walk up to, so they answer without a wait. Off by default: the connection is made when you start talking. It uses a little memory and bandwidth, and pauses during combat and scenes.'),
+            setting('autoConnectNearby', 'Auto-connect nearby characters', 'bool', snapshot.settings.autoConnectNearby, true,
+                'Prepare the conversation with a character you look at or walk up to, so they answer without a wait. It uses a little memory and bandwidth, and pauses during combat and scenes. Turn it off to connect only when you start talking.'),
         })
         local heights,strengths=manager.gazeChoices()
         local heightIndex,strengthIndex=3,3
@@ -783,22 +790,23 @@ local function schema()
         for index,value in ipairs(strengths) do if snapshot.settings.headFollowStrength==value then strengthIndex=index end end
         categories[#categories + 1] = category('companion-behavior', 'Companion behavior', {
             setting('eyeContactHeight', 'Eye contact height', 'select', heightIndex, 3,
-                'Raise or lower the point companions look at on V. Default uses V’s usual eye contact target.',
+                'Raise or lower where companions look when they make eye contact with you.',
                 {'10 cm lower', '5 cm lower', 'Default', '5 cm higher', '10 cm higher'}),
             setting('headFollowStrength', 'Head tracking strength', 'select', strengthIndex, 3,
                 'Choose how much companions turn their heads during eye contact. Eyes only relies on eye movement.',
-                {'Eyes only', 'Less', 'Gentle (default)', 'More'}),
-            setting('bodyGestures', 'Body gestures', 'bool', snapshot.settings.bodyGestures, false,
+                {'Eyes only', 'Subtle', 'Gentle (default)', 'Strong'}),
+            setting('bodyGestures', 'Body gestures (experimental)', 'bool', snapshot.settings.bodyGestures, false,
                 'Companions gesture with their body while they speak longer replies and nod while you talk to them, using the game’s own animations in their usual stance. They stop at once when anyone moves or a fight starts.'),
         })
         local voiceStatus = voiceStatusText(snapshot)
-        -- The list: Pocket TTS (default), OmniVoice 16 steps short/long, OmniVoice 32 steps short/long, Convai.
+        -- The list: Pocket Performance (the default), OmniVoice Balanced / Quality (16 steps, short / long reference),
+        -- High Quality / Ultra Quality (32 steps, short / long reference), Convai Cloud voice.
         local voiceIndex = savedVoiceIndex(snapshot.settings)
         local pack = manager.omniPack()
         categories[#categories + 1] = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
             setting('voiceProvider', 'Companion voices', 'select', voiceIndex, 1,
-                'Pocket TTS runs on your CPU. It is light and fast (first audio in about 0.15 s) and is the recommended default.\nOmniVoice runs on a capable GPU and sounds closest to the characters: by ear about 15-20% better than Pocket TTS at 16 steps and 20-25% better at 32 steps. For characters with plenty of source audio, such as Johnny, Judy, Panam and Alex, Pocket TTS is nearly as good (within about 5%).\nA short reference (up to 10 s) starts a little faster than a long one (up to 18 s), which matches the voice a little better. First audio takes about 1.3 s (16 steps, short), 1.45 s (16, long), 2.1 s (32, short) or 2.5 s (32, long).\nOmniVoice needs the optional OmniVoice pack. Convai cloud voice streams online voices. If a choice cannot run, a simpler voice is used instead (Pocket TTS, then Convai cloud voice) and you are told once. A change waits until you choose Apply, and no voice model is prepared before then.',
+                'Pocket is light and fast on your CPU and starts speaking in about 0.2 s. OmniVoice sounds better, especially on harder voices, but needs a capable GPU and the optional OmniVoice pack (without it those entries are marked and cannot be applied), and the higher tiers take longer to start speaking, about 1 to 2.5 s. Convai uses the cloud; if a choice cannot run, a simpler voice takes over and you are told once.',
                 voiceMenuLabels(pack), {elements = true}),
             setting('keepPreparedVoices', 'Keep prepared voices', 'bool', snapshot.settings.keepPreparedVoices, true,
                 'Remember each companion’s prepared voice so summoning them again is quicker. Pocket TTS saves one small file per character (about 5 to 15 MB) in the mod’s runtime folder; OmniVoice does a short hidden warm-up at your chosen quality while a companion joins. Turn this off to save nothing on disk. The change applies without a restart.'),
@@ -808,14 +816,14 @@ local function schema()
                 'Let each character mark its own feelings as it speaks, so the face changes when that part is spoken instead of being guessed from the words. Subtle by default, chosen by personality, and only where the feeling really shifts. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. A reply without marks uses the usual text-based expression. Off by default.'),
             readonly('voice-pack', 'OmniVoice pack', pack.known and (pack.installed and 'Installed' or 'Not installed') or 'Waiting for voice service',
                 'OmniVoice is an optional add-on for computers with a capable GPU. Pocket TTS needs nothing extra.'),
-            readonly('voice-status', 'Voice service', voiceStatus,
+            readonly('voice-status', 'Voice status', voiceStatus,
                 'Changes wait until you choose Apply; Revert discards them. No game restart is needed.'),
         }, 'Changes wait until you choose Apply.')
         categories[#categories + 1] = category('subtitles', 'Subtitles', {
             setting('subtitles', 'Subtitles', 'bool', snapshot.settings.subtitles, true, 'Show companion replies using the selected subtitle display.'),
-            setting('subtitleStyle', 'Subtitle display', 'select', snapshot.settings.subtitleStyle == 'overhead' and 1 or 2, 2,
-                'Use the regular dialogue HUD by default, or place subtitles above the speaking companion. The Subtitles switch controls both.',
-                {'Above speaker', 'Dialogue HUD'}),
+            setting('subtitleStyle', 'Subtitle display', 'select', snapshot.settings.subtitleStyle == 'overhead' and 2 or 1, 1,
+                'Cinematic subtitles use the game’s regular dialogue display; Above the speaker places them over the speaking companion. The Subtitles switch controls both.',
+                {'Cinematic subtitles', 'Above the speaker'}),
         })
         categories[#categories + 1] = category('reactions', 'Automatic reactions', {
             setting('battleReactions', 'React to battles', 'bool', snapshot.settings.battleReactions, true,
@@ -825,7 +833,7 @@ local function schema()
         })
         categories[#categories + 1] = category('development', 'Development', {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
-                'Show routine companion popups: the joining step, dismissal confirmations, and driving instructions such as boarding and exit. Preparation progress, joined notices, failures and replies to Stop trip remain visible when off.'),
+                'For testing and bug reports; leave it off for normal play. It shows routine companion popups (the joining step, dismissal confirmations, driving instructions such as boarding and exit, results of companion actions, and a notice when a support report is ready), writes a movement trace file in the mod’s runtime folder, logs body gesture decisions, and adds this setting to support reports. Preparation progress, joined notices, failures and replies to Stop trip remain visible when off.'),
         })
         if support then
             categories[#categories + 1] = category('help', 'Help', {
@@ -934,13 +942,14 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
             local values, applied = {enabledByKey = {}, relationshipModes = {}}, {}
             for _, change in ipairs(changes) do
                 local key = change.id
-                if key == 'voice' or key == 'subtitles' or key == 'followUpQuestions' or key == 'developerMode'
+                if key == 'voice' or key == 'subtitles' or key == 'developerMode'
                     or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures'
                     or key == 'autoConnectNearby' or key == 'keepPreparedVoices' or key == 'naturalSpeech'
                     or key == 'expressiveEmotions' then values[key] = change.value
                 elseif key == 'subtitleStyle' then
-                    if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose Above speaker or Dialogue HUD.')} end
-                    values.subtitleStyle = change.value == 1 and 'overhead' or 'dialogue'
+                    if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose one of the listed subtitle displays.')} end
+                    -- Order: 1 Cinematic subtitles (stored 'dialogue'), 2 Above the speaker (stored 'overhead').
+                    values.subtitleStyle = change.value == 1 and 'dialogue' or 'overhead'
                 elseif key == 'uiLanguage' then
                     local choices = ui.choices()
                     if type(change.value) ~= 'number' or change.value ~= math.floor(change.value) or not choices[change.value] then
@@ -969,7 +978,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     values[key]=choices[change.value]
                 elseif key:sub(1, 13) == 'relationship:' then
                     if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 then
-                        return {ok = false, error = ui.t('Choose Auto, On or Off for each relationship.')}
+                        return {ok = false, error = ui.t('Choose one of the listed relationship options.')}
                     end
                     values.relationshipModes[key:sub(14)] = ({'auto', 'on', 'off'})[change.value]
                 elseif key:sub(1, 8) == 'enabled:' then values.enabledByKey[key:sub(9)] = change.value

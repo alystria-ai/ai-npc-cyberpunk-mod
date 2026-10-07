@@ -58,10 +58,10 @@ function check(body) {
   } finally { lua.lua_close(vm); }
 }
 
-test('microphone keeps mode and frozen follow-up preference while refreshing finish context', () => check(`
- local context=input(true);context.followUpQuestions=false
+test('microphone keeps mode and never carries the retired follow-up field while refreshing finish context', () => check(`
+ local context=input(true)
  assert(mic.begin(context)and #commands==1 and commands[1].action=='start')
- assert(commands[1].input.followUpQuestions==false)
+ assert(commands[1].input.followUpQuestions==nil)
  state('recording');mic.update(player)
  assert(mic.state=='recording'and feedback[1]=='Listening - press the same voice chat shortcut again to finish')
  local previous=files['runtime/microphone-command.json']
@@ -69,7 +69,7 @@ test('microphone keeps mode and frozen follow-up preference while refreshing fin
  now=103;assert(mic.finish('group')==context)
  local sent=commands[#commands]
  assert(sent.action=='finish'and sent.input.requestId=='voice-1'and sent.input.group.index==1)
- assert(sent.input.followUpQuestions==false and sent.input.worldKnowledge.at==103)
+ assert(sent.input.followUpQuestions==nil and sent.input.worldKnowledge.at==103)
  assert(sent.input.journal.at==103 and sent.input.battle.at==103 and sent.input.journalHistory.at==103)
  assert(mic.finish('group')==nil and #commands==2)
  assert(not mic.received('stale')and mic.context==context)

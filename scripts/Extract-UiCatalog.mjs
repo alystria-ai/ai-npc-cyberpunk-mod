@@ -134,8 +134,7 @@ const reviewed = {
     'Unavailable', 'Waiting for voice service', 'Not configured', 'Stopped',
     'Releasing local voice memory', 'Convai voices · Local model unloaded',
     'Changing after the current reply', 'Ready · Unsaved selection',
-    'OmniVoice 16 steps · short reference', 'OmniVoice 16 steps · long reference',
-    'OmniVoice 32 steps · short reference', 'OmniVoice 32 steps · long reference',
+    'OmniVoice · Balanced', 'OmniVoice · Quality', 'OmniVoice · High Quality', 'OmniVoice · Ultra Quality',
     'Installed', 'Not installed',
   ],
   'mcm.memory': [
@@ -145,8 +144,9 @@ const reviewed = {
     'Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.',
   ],
   'mcm.relationships': [
-    'Auto follows the completed encounter in this save. On uses the intimate profile; Off uses the ordinary profile. This does not imply an ongoing relationship.',
-    'Auto follows the relationship in this save. On uses the romantic profile; Off uses the ordinary profile. This changes conversations without changing game choices.',
+    'Auto', 'Romantic', 'Casual', 'Ordinary',
+    'Auto follows the completed encounter in this save. Casual uses the casual profile; Ordinary uses the ordinary profile. This does not imply an ongoing relationship.',
+    'Auto follows the relationship in this save. Romantic uses the romantic profile; Ordinary uses the ordinary profile. This changes conversations without changing game choices.',
   ],
   'mcm.party': [
     'Invite', 'Profile only', 'Dismiss', 'Cancel invitation',
@@ -159,7 +159,7 @@ const reviewed = {
     'Some game models have special rigs or roles and may not behave as ordinary companions.',
   ],
   'mcm.validation': [
-    'Reopen the manager; that action is no longer available.', 'Choose Above speaker or Dialogue HUD.',
+    'Reopen the manager; that action is no longer available.', 'Choose one of the listed subtitle displays.',
     'Choose one of the listed companion voices.', 'Requires the optional OmniVoice pack (GPU)', 'Choose 16 or 32 voice steps.',
     'Choose a short or a long voice reference.', 'Choose an eye contact option.', 'That setting is read-only.',
   ],

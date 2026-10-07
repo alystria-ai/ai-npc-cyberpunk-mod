@@ -2,7 +2,7 @@
 
 **Development:** see [TODO.md](TODO.md) for open work, the captain's log and the standing facts (paths, protected files, credential locations, decisions).
 
-Talk with Night City characters, invite travelling companions, and keep in touch through a native phone Chat tab. Conversations use Convai for dialogue, with a choice of OmniVoice, Pocket TTS or Convai cloud voices. The companion manager uses Cyberpunk's Mod Configuration Menu, and replies use native subtitles and facial animation.
+Talk with Night City characters, invite travelling companions, and keep in touch through a native phone Chat tab. Conversations use Convai for dialogue, with a choice of Pocket, OmniVoice or Convai cloud voices. The companion manager uses Cyberpunk's Mod Configuration Menu, and replies use native subtitles and facial animation.
 
 **Development build for Cyberpunk 2077 2.31 on Windows x64.** This repository contains the working development integration. The proposed Scripts and Runtime downloads are not yet a portable release: setup still needs local dependencies, account configuration, and generated assets. Some gameplay features remain under testing.
 
@@ -43,14 +43,14 @@ See [invitations](docs/COMPANION_INVITATIONS.md), [movement](docs/COMPANION_MOVE
 
 ### Voices, faces, and subtitles
 
-- **Companion voices** offers four choices, in this order: **OmniVoice 16 steps (default), OmniVoice 32 steps, Pocket TTS, Convai cloud voice**. OmniVoice sounds closest to the characters, and 16 steps matches 32 on every perceptual metric at half the GPU time. The prepared development catalog has local references for **75 of 79 profiles**; characters without a prepared reference use their configured Convai voice. If the chosen voice cannot run (no CUDA GPU, OmniVoice failing to load, Pocket unavailable), the next one down the list is used and the game tells you once; choosing it again retries it. Older saved settings map to the nearest choice (Pocket stays Pocket, `hybrid` becomes OmniVoice, anything unknown becomes the default, and an explicitly saved 32 steps stays 32).
+- **Companion voices** offers six choices, fastest to best, in this order: **Pocket · Performance (the default), OmniVoice · Balanced, OmniVoice · Quality, OmniVoice · High Quality, OmniVoice · Ultra Quality, Convai · Cloud voice**. Pocket is light and fast on the CPU and starts speaking in about 0.2 s. The four OmniVoice entries need a capable GPU and the optional OmniVoice pack, sound better (especially on harder voices) and take longer to start speaking (about 1 to 2.5 s): Balanced and Quality use 16 steps with a short and a long reference voice clip, High Quality and Ultra Quality use 32 steps with a short and a long clip. Without the pack the OmniVoice entries read "needs Omni pack" and cannot be applied. The prepared development catalog has local references for **75 of 79 profiles**; characters without a prepared reference use their configured Convai voice. If the chosen voice cannot run (no CUDA GPU, OmniVoice failing to load, Pocket unavailable), a simpler voice is used (OmniVoice, then Pocket, then Convai cloud voice) and the game tells you once; choosing it again retries it. Older saved settings map to the nearest choice (Pocket stays Pocket, `hybrid` becomes OmniVoice, anything unknown becomes Pocket, and an explicitly saved 32 steps stays 32; saved OmniVoice choices gain the long reference).
 - Each local backend uses **one shared model** and original character recordings. Pocket TTS uses the six-layer student (update 5,000, raw weights) chosen after listening tests; its teacher stays in training. Neither backend needs a separate neural model or LoRA per character.
 - Pocket uses **float32 on CPU**, with four threads and no model GPU allocation. This student is trained for English and uses one sampler step. Omni uses **FP16 on CUDA**, with 16 or 32 generation steps; those choices share the same model and cached references.
 - Selecting a local voice option in Settings requests warm-up immediately. Switching backends waits for owned work and confirmed retirement of the previous worker. The selected local choice stays warm; Convai releases local model memory after the current reply.
 - Pocket and Convai use continuous PCM playback. Pocket receives the complete reply text once; Omni prepares its first native audio phrase while later phrases generate during playback. All modes keep the original Convai dialogue turn and avoid added EQ, denoising, pitch effects or audio crossfades.
 - Native lip, jaw, and facial controls follow the actual playback clock. Pocket's prepared facial path uses resident CPU phone analysis with the shared calibrated native shapes; it warms during local-voice preparation and keeps original playback samples untouched. Pocket and Omni use smoothed transitions between those shapes. Omni retains its phrase analyser, and Convai uses its supplied facial data. [Phone analysis setup and qualification](docs/RESIDENT_PHONE_ANALYSIS.md) records the remaining native visual check.
 - A light resting expression is standard behavior. Supported Convai emotional signals can adjust it, while native blinking and gaze remain available.
-- **Dialogue HUD** subtitles are the default. **Above speaker** is optional; conversations in vehicles use the Dialogue HUD. On boarding, an overhead reply continues with its unread text rather than repeating the page already shown on foot. The game's subtitle preferences still affect native visibility.
+- **Cinematic subtitles** (the game's dialogue HUD) are the default and the first option. **Above the speaker** is optional; conversations in vehicles use the dialogue HUD. On boarding, an overhead reply continues with its unread text rather than repeating the page already shown on foot. The game's subtitle preferences still affect native visibility.
 
 All four options still need Convai and internet access for dialogue generation. Pocket's native Windows streaming/cancellation/cache checks pass, and live voice playback is confirmed; current facial and restored four-option acceptance remain separate game checks. See [local voices](docs/LOCAL_VOICES.md), [Pocket runtime](docs/POCKET_TTS_RUNTIME.md), [voice reference activation](docs/VOICE_SOURCE_ACTIVATION.md), [streamed audio](docs/CONVAI_AUDIO_STREAMING.md), [expressions](docs/COMPANION_EXPRESSIONS.md), and [subtitles](docs/OVERHEAD_SUBTITLES.md).
 
@@ -181,22 +181,25 @@ Switch to **Chat**, choose a contact, and use the phone's confirm/message action
 
 ## Customize
 
-Open **Companion Manager → Settings** to change options. Memory, Relationships, and Character conversations have their own pages with Back controls.
+Open **Companion Manager → Settings** to change options. Memory, Relationships, and Who can talk have their own pages with Back controls.
 
 | Setting | New-user default |
 |---|---|
-| Companion voices | OmniVoice 16 steps |
+| Companion voices | Pocket · Performance |
 | Voice playback | On |
-| Subtitles | On, Dialogue HUD |
+| Subtitles | On, Cinematic subtitles |
 | React to battles | On |
 | React to collected loot | On |
 | Interface language | Automatic |
 | Relationship choices | Auto |
 | Eye contact height | Default |
 | Head tracking strength | Gentle |
-| Character conversations | Enabled |
+| Body gestures (experimental) | Off |
+| Auto-connect nearby characters | On (silent) |
+| Keep prepared voices | On |
+| Who can talk (character conversations) | Enabled |
 
-Existing saved choices take precedence. Older Omni choices retain their 16/32 quality; a saved Pocket or Convai choice stays as it was; an unknown value becomes the default. The single voice selector contains OmniVoice 16 steps, OmniVoice 32 steps, Pocket TTS and Convai cloud voice, in that order. Selecting a local voice requests preparation immediately. There is no separate quality row, per-character voice-provider selector or disappearing-message option. Exploration observations do not trigger automatic replies.
+Existing saved choices take precedence. Older Omni choices retain their 16/32 quality; a saved Pocket or Convai choice stays as it was; an unknown value becomes the default. The single voice selector contains Pocket · Performance, OmniVoice · Balanced, Quality, High Quality and Ultra Quality, and Convai · Cloud voice, in that order. The Relationships page offers Auto, Romantic (Casual for Meredith Stout) and Ordinary. Selecting a local voice requests preparation immediately. There is no separate quality row, per-character voice-provider selector or disappearing-message option. Exploration observations do not trigger automatic replies.
 
 Ordinary battle and loot reactions have independent ten-minute cooldowns. Newly acquired Legendary equipment has a separate two-minute loot cooldown. Save changes reset reaction context and cooldowns, while player identity and Chat history remain.
 

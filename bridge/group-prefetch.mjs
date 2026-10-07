@@ -1,6 +1,5 @@
 import {createHash} from 'node:crypto';
 import {parseInput} from './protocol.mjs';
-import {followUpsEnabled} from './conversation-style.mjs';
 import {abortable, cancelled} from './transport-pool.mjs';
 
 // Use every normalized input field, including listener order and heard text.
@@ -30,7 +29,6 @@ export function validatePrefetch(command, source) {
   if (!before || !next || next.id !== before.id || next.index <= before.index || next.total !== before.total
       || input.requestId === source.input.requestId || input.generation <= source.input.generation
       || input.profileKey === source.input.profileKey || input.text !== source.input.text
-      || input.followUpQuestions !== followUpsEnabled(source.input.followUpQuestions)
       || !next.audience.includes(input.profileKey)
       || JSON.stringify(next.audience) !== JSON.stringify(before.audience)) return null;
   // The current reply is only *predicted* to be heard. The submitted input must

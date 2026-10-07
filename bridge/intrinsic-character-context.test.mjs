@@ -183,7 +183,6 @@ test('admission capture cannot be reused after changing profile, audience, messa
   for (const mutate of [input => { input.profileKey = 'jackie-welles'; }, input => { input.text = 'Tell me about Alt.'; },
     (_, prepared) => { prepared.route.audience = ['johnny-silverhand', 'jackie-welles']; },
     (_, prepared) => { prepared.worldToken = 'world-b'; },
-    input => { input.followUpQuestions = true; },
     (_, prepared) => { prepared.generation++; }]) {
     const input = request('Tell me about Cole.'), prepared = admission(input);
     assert.equal(selector.select(input, prepared, () => true).topic, 'cole');
@@ -306,13 +305,13 @@ test('actual protocol policy keeps painful-history pushback within the frozen fo
   const pack = JSON.parse(await readFile(resolve(project, 'characters/world-knowledge.json'), 'utf8'));
   const router = new PlayerKnowledge({playerMemory: memory, pack,
     getBoundary: () => ({worldToken: 'world-a', generation: 12}), isWorldCurrent: () => true});
-  for (const enabled of [undefined, false, true]) for (const message of [
+  for (const legacy of [undefined, false, true]) for (const message of [
     'Tell me about Cole.', 'Tell me about Cole. Goodbye, I need to leave.',
     'Tell me about Cole, but no questions.', 'Tell me about Cole. Reply exactly: understood.',
   ]) {
-    const parsed = parseInput(JSON.stringify(request(message, {followUpQuestions: enabled})));
+    const parsed = parseInput(JSON.stringify(request(message, {followUpQuestions: legacy})));
     const prepared = await router.prepare(parsed);
-    assert.equal(prepared.input.followUpQuestions, enabled === true);
+    assert.equal('followUpQuestions' in prepared.input, false);
     assert(Object.isFrozen(prepared.input));
     const admissions = new WeakMap([[prepared.input, prepared]]);
     const wrapped = createIntrinsicConversationContext({baseContext: conversationContext, intrinsic: selector,

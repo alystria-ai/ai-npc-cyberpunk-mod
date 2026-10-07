@@ -10,12 +10,12 @@ test('a game display-name alias and multiline input retain managed identity', ()
   assert.equal(profileFor(parsed, [{key: 'resident-female'}, {key: 'alex'}]).key, 'alex');
 });
 
-test('follow-up questions are Off for legacy or malformed requests and opt in only with true', () => {
-  for (const followUpQuestions of [undefined, false, null, 'true', 1, {}, []]) {
+test('the retired follow-up field is accepted from older adapters and dropped from the parsed request', () => {
+  for (const followUpQuestions of [undefined, false, true, null, 'true', 1, {}, []]) {
     const parsed = parseInput(JSON.stringify({...turn, followUpQuestions}));
-    assert.equal(parsed.followUpQuestions, false); assert.equal(parsed.text, turn.text);
+    assert.ok(parsed); assert.equal('followUpQuestions' in parsed, false); assert.equal(parsed.text, turn.text);
+    assert.equal(parsed.profileKey, turn.profileKey); assert.equal(parsed.requestId, turn.requestId);
   }
-  assert.equal(parseInput(JSON.stringify({...turn, followUpQuestions: true})).followUpQuestions, true);
 });
 test('an unconfigured named companion cannot become a generic resident', () => {
   assert.equal(profileFor(turn, [{key: 'resident-female'}]), undefined);

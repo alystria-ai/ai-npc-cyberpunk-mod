@@ -463,6 +463,30 @@ local function receipt(state)
 end
 `;
 
+test('a phone dismissal confirmation is a Developer-mode popup; the phone already says it was queued', () => {
+  const dismissal = `
+local before = #feedback()
+player.phoneOpen, player.phoneRequest = true, '-judy'; events.onUpdate(0)
+local posted = #feedback() - before
+`;
+  run(`${phoneNoticeFixture}${dismissal}
+assert(posted == 0, 'a routine dismissal confirmation popped up: ' .. tostring(posted))
+`);
+  run(`${phoneNoticeFixture}`.replace('events.onInit();', 'stats.developer = true; events.onInit();') + `${dismissal}
+assert(posted == 1, 'Developer mode shows the dismissal confirmation: ' .. tostring(posted))
+`);
+});
+
+test('the NPC diagnostic hotkey is gone, but the request file still triggers a capture and a response', () => run(`
+events.onInit(); events.onUpdate(0)
+assert(hotkeys.cyberpunk_convai_diagnostic == nil, 'the diagnostic hotkey is still registered')
+assert(hotkeys.cyberpunk_convai_text and hotkeys.cyberpunk_convai_manager)
+files['runtime/diagnostic-request.txt'] = 'probe-1'
+events.onUpdate(1)
+assert((stats.loads['diagnostics.lua'] or 0) == 1, 'the request file did not start a capture')
+assert(files['runtime/diagnostic-response.txt'] == 'probe-1')
+`));
+
 test('phone invitation progress is always shown, the acknowledgement is Developer-only, and a failure waits for gameplay', () => run(`${phoneNoticeFixture}
 local function has(text) for _, line in ipairs(feedback()) do if line:find(text, 1, true) then return true end end return false end
 -- Accepting posts only the progress line, after the notice delay; the acknowledgement is Developer-only.
@@ -537,7 +561,7 @@ do
 end
 `;
 
-test('starting a conversation with a world character that is not connected explains the wait, mentioning Auto-connect only twice', () => run(`${worldCharacterFixture}
+test('with Auto-connect off, starting a conversation with a world character that is not connected explains the wait briefly, never mentioning the setting', () => run(`${worldCharacterFixture}
 local function talk()
     hotkeys.cyberpunk_convai_text(); assert(player.composerOpen)
     player.composerOpen = false; events.onUpdate(0.1); clock = clock + 1
@@ -545,9 +569,8 @@ end
 talk(); talk(); talk()
 local posted = feedback()
 assert(#posted == 3, #posted)
-assert(posted[1] == 'Preparing connection to Judy… (turn on Auto-connect to skip this wait)')
-assert(posted[2] == posted[1])
-assert(posted[3] == 'Preparing connection to Judy…', 'the hint nagged a third time')
+assert(posted[1] == 'Preparing connection to Judy…')
+assert(posted[2] == posted[1] and posted[3] == posted[1], 'no hint about the setting')
 -- Once the bridge reports the connection ready, nothing is said.
 files['runtime/party-connection-state.json'] = json.encode({connections = {{profile = 'judy-alvarez', scope = 'private', state = 'ready'}}})
 talk(); assert(#feedback() == 3, 'a connected character still showed the wait notice')
@@ -574,9 +597,10 @@ for _ = 1, 12 do events.onUpdate(0.1) end
 local list = assert(published(), 'no nearby-connections publication')
 assert(#list.profiles == 1 and list.profiles[1] == 'judy-alvarez')
 assert(list.updated == clock * 1000)
--- A talk now needs no wait notice only once connected; until then it is explained without the hint.
+-- With Auto-connect on a talk before the warm-up finishes is silent: no wait notice, no hint.
+local noticesBefore = #feedback()
 hotkeys.cyberpunk_convai_text(); assert(player.composerOpen); player.composerOpen = false; events.onUpdate(0.1)
-assert(feedback()[#feedback()] == 'Preparing connection to Judy…')
+assert(#feedback() == noticesBefore, 'a warm-up wait posted a notice')
 -- The setting off releases it at once.
 manager.autoConnectNearby = function() return false end
 events.onUpdate(0.1)

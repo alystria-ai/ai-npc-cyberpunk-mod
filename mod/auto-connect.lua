@@ -2,15 +2,15 @@
 -- the party) get their conversation connection and local voice prepared before
 -- the player speaks to them, and explains the wait when nothing was prepared.
 --
--- Off (the default): nothing is prepared ahead. When the player starts talking
--- to a character that is not connected yet, talkNotice() returns the wait
--- notice, with a hint about this setting shown only twice per game session.
--- On: a character the player looks at for a moment, or stands near, is wanted.
+-- On (the default): a character the player looks at for a moment, or stands near, is wanted.
 -- At most two are kept warm, one new start every few seconds, never in combat
 -- or scenes, with a cooldown after a release; an unused one is released after
 -- a while. The wanted list is published to runtime/nearby-connections.json and
 -- the bridge (bridge/nearby-warm.mjs) opens the connections and prepares the
--- voices. Nothing here touches the world, the party or a conversation.
+-- voices. Nothing here touches the world, the party or a conversation, and it is silent: no notice
+-- announces a warm-up, and a player who talks before one finishes just waits.
+-- Off: nothing is prepared ahead. When the player starts talking to a character that is not connected
+-- yet, talkNotice() returns the short wait notice (no hint about this setting).
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 local M = {version = 1}
 
@@ -26,7 +26,6 @@ M.DEFAULTS = {
     stagger = 3,       -- seconds between two new warm-ups
     lookExpiry = 1.0,  -- a gaze sample older than this no longer counts
     heartbeat = 2,     -- the bridge treats a list older than a few seconds as empty
-    hintLimit = 2,     -- how often the notice mentions the setting
 }
 
 local PATH = 'runtime/nearby-connections.json'
@@ -75,7 +74,6 @@ function M.new(options)
     local look = {}
     local active, cooling = {}, {}
     local lastSignature, lastPublish = nil, nil
-    local hintsShown = 0
     local publish = options.publish or publishFile
     local ready = options.ready or connectionReady
     local wall = options.wall or os.time
@@ -118,15 +116,11 @@ function M.new(options)
         look.seen = clock
     end
 
-    -- The notice for the wait at the start of a conversation, or nil when the
-    -- character is already connected. The hint about this setting is shown
-    -- only twice per game session and only while the setting is off.
+    -- The notice for the wait at the start of a conversation: only while the
+    -- setting is off and the character is not connected yet. With the setting
+    -- on the wait is silent.
     function A.talkNotice(key, name)
-        if not key or ready(key) then return nil end
-        if not enabled() and hintsShown < cfg.hintLimit then
-            hintsShown = hintsShown + 1
-            return ui.t('Preparing connection to {name}… (turn on Auto-connect to skip this wait)', {name = name})
-        end
+        if not key or enabled() or ready(key) then return nil end
         return ui.t('Preparing connection to {name}…', {name = name})
     end
 
@@ -236,7 +230,7 @@ function M.new(options)
         for _, entry in ipairs(active) do
             rows[#rows + 1] = {key = entry.key, reason = entry.reason, since = entry.since, lastWanted = entry.lastWanted}
         end
-        return {active = rows, hintsShown = hintsShown, clock = clock, look = look.key}
+        return {active = rows, clock = clock, look = look.key}
     end
 
     return A

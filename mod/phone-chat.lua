@@ -460,7 +460,6 @@ function M.update(player, delta)
             local reset = phoneReset(key)
             M.pending = {id = M.world .. '-' .. M.serial, contact = submission.contact, profileKey = key, text = text,
                 memoryReset=reset,recentConversation=recentPhoneConversation(submission.contact,key,reset),
-                followUpQuestions = type(M.manager.followUpQuestions) == 'function' and M.manager.followUpQuestions() == true,
                 saveIdentity = copy(confirmed), worldKnowledge = worldKnowledge or {version=1,status='unavailable'},
                 journalHistory = journalHistory, journal = journal, battle = battle}
             M.sentAt = os.time()

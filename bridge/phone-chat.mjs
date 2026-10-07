@@ -5,7 +5,6 @@ import {parseJournal, conversationContext} from './quest-context.mjs';
 import {parseBattle} from './battle-context.mjs';
 import {parseWorldSnapshot} from './world-knowledge.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
-import {followUpsEnabled} from './conversation-style.mjs';
 
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const token = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(value);
@@ -121,7 +120,6 @@ export function parsePhoneState(raw) {
     {world:state.world,binding:phoneBindingKey(requestBinding),contact,memoryReset});
   if (state.request.recentConversation!==undefined && !recent) return null;
   result.request = {id, contact, text: text.trim(), saveIdentity: requestBinding,
-    followUpQuestions: followUpsEnabled(state.request.followUpQuestions),
     ...(memoryReset?{memoryReset}:{}),...(recent?{recentConversation:recent}:{}),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(worldKnowledge ? {worldKnowledge} : {}),
     ...(journalHistory ? {journalHistory} : {})};

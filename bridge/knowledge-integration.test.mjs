@@ -234,28 +234,20 @@ test('private sends use the fresh Lua world and audience, preserving battle and 
  assert(versionReads==1,'pack was repeatedly configured');assert(saveIdentityReads==0)
 `));
 
-test('real send, microphone and group adapters snapshot follow-up settings without reopening conversations', () => run(`
- start();local enabled=false
- modules['manager.lua'].followUpQuestions=function()return enabled end
- assert(runtime.send(input('off')))
- assert(stored('runtime/last-input.json').followUpQuestions==false)
- enabled=true;assert(runtime.send(input('on')))
- assert(stored('runtime/last-input.json').followUpQuestions==true)
- local reaction=input('reaction');reaction.reaction={kind='loot'};reaction.followUpQuestions=true
- assert(runtime.send(reaction));assert(stored('runtime/last-input.json').followUpQuestions==false)
- assert(microphone.begin(input('mic-on')))
- assert(stored('runtime/microphone-command.json').input.followUpQuestions==true)
- enabled=false;assert(microphone.finish())
- assert(stored('runtime/microphone-command.json').input.followUpQuestions==true)
- microphone.cancel()
- assert(microphone.begin(input('mic-off')))
- assert(stored('runtime/microphone-command.json').input.followUpQuestions==false)
- enabled=true;assert(microphone.finish())
- assert(stored('runtime/microphone-command.json').input.followUpQuestions==false)
+test('real send, microphone and group adapters never send the retired follow-up field', () => run(`
+ start()
+ assert(runtime.send(input('plain')))
+ assert(stored('runtime/last-input.json').followUpQuestions==nil)
+ local reaction=input('reaction');reaction.reaction={kind='loot'}
+ assert(runtime.send(reaction));assert(stored('runtime/last-input.json').followUpQuestions==nil)
+ assert(microphone.begin(input('mic')))
+ assert(stored('runtime/microphone-command.json').input.followUpQuestions==nil)
+ assert(microphone.finish())
+ assert(stored('runtime/microphone-command.json').input.followUpQuestions==nil)
  microphone.cancel()
  group.start('on',{{entity='1ULL',profileKey='judy-alvarez',name='Judy'}},'Hello')
- enabled=false;local next=group.next(1,now,{['1ULL']=true})
- assert(runtime.send(next)and stored('runtime/last-input.json').followUpQuestions==true)
+ local next=group.next(1,now,{['1ULL']=true})
+ assert(runtime.send(next)and stored('runtime/last-input.json').followUpQuestions==nil)
  group.cancel();assert(not group.round and not microphone.context)
 `));
 
@@ -442,17 +434,16 @@ test('temporary collector unavailability preserves the Lua world and omits old f
 
 test('real group voice hotkey freezes three distinct speakers, uses the first microphone reply once and sequences recognized text', () => run(`
  start();looked=resident;people={judy,actor('judy-alvarez',4,'Judy copy'),alex,resident}
- local enabled=true;modules['manager.lua'].followUpQuestions=function()return enabled end
  assert(hotkeyLabels.cyberpunk_convai_group_voice=='Cyberpunk Convai: group voice chat')
  hotkeys.cyberpunk_convai_group_voice()
  local context=microphone.context;local first=stored('runtime/microphone-command.json').input
  assert(context and group.round.stage=='recording'and runtime.pending()==nil)
  assert(first.profileKey=='resident-male'and first.group.index==1 and first.group.total==3)
  assert(table.concat(first.group.audience,',')=='resident-male,judy-alvarez,alex')
- assert(first.worldKnowledge.audience.channel=='group'and first.followUpQuestions==true)
+ assert(first.worldKnowledge.audience.channel=='group'and first.followUpQuestions==nil)
  tick();assert(files['runtime/last-input.json']==nil and #commands==1)
  micState('recording');tick();assert(feedback[#feedback]=='Listening - press the same voice chat shortcut again to finish')
- looked=judy;people={alex};enabled=false;now=1002;journalVersion=2;factValue=2;runtime.step(0)
+ looked=judy;people={alex};now=1002;journalVersion=2;factValue=2;runtime.step(0)
  hotkeys.cyberpunk_convai_voice()
  assert(microphone.context==context and #commands==1 and group.round.stage=='recording')
  assert(feedback[#feedback]=='Press your Group voice chat shortcut to finish recording.')
@@ -460,7 +451,7 @@ test('real group voice hotkey freezes three distinct speakers, uses the first mi
  local finish=commands[#commands]
  assert(#commands==2 and finish.action=='finish'and finish.input.requestId==first.requestId)
  assert(finish.input.profileKey=='resident-male'and #finish.input.group.audience==3)
- assert(finish.input.followUpQuestions==true and finish.input.journal.serial==2 and finish.input.battle.serial==2)
+ assert(finish.input.followUpQuestions==nil and finish.input.journal.serial==2 and finish.input.battle.serial==2)
  assert(finish.input.worldKnowledge.facts.observed_fact.value==2)
  assert(group.round.stage=='waiting'and runtime.pending()==context and not files['runtime/last-input.json'])
  hotkeys.cyberpunk_convai_group_voice();assert(#commands==2)
@@ -469,14 +460,14 @@ test('real group voice hotkey freezes three distinct speakers, uses the first mi
  assert(group.round.stage=='playing'and group.round.text=='What would you all like to do tonight?')
  tick();local preview=stored('runtime/group-prefetch.json').input
  assert(preview.profileKey=='judy-alvarez'and preview.group.index==2 and preview.group.total==3)
- assert(preview.text=='What would you all like to do tonight?'and preview.followUpQuestions==true)
+ assert(preview.text=='What would you all like to do tonight?'and preview.followUpQuestions==nil)
  assert(preview.journal.serial==2 and preview.battle.serial==2 and not files['runtime/last-input.json'])
  speech.requestId=nil;tick();local second=stored('runtime/last-input.json')
  assert(second.requestId==preview.requestId and second.entity==judy.entity and #playbacks==1)
  assert(second.text~='[Microphone]'and second.group.heard[1].speaker=='Resident')
  respond(second);tick();assert(#playbacks==2)
  speech.requestId=nil;tick();local third=stored('runtime/last-input.json')
- assert(third.profileKey=='alex'and third.group.index==third.group.total and third.followUpQuestions==true)
+ assert(third.profileKey=='alex'and third.group.index==third.group.total and third.followUpQuestions==nil)
  assert(third.text=='What would you all like to do tonight?'and #third.group.heard==2)
  respond(third);tick();speech.requestId=nil;tick()
  assert(#playbacks==3 and group.round==nil and #commands==2)

@@ -370,7 +370,7 @@ function bindingValid(prepared, input) {
 }
 const identity = (input, prepared) => digest(JSON.stringify([input?.profileKey, input?.text, input?.channel,
   input?.requestId, input?.id, input?.generation, input?.entity, input?.group, input?.reaction,
-  input?.source, input?.trigger, input?.automatic, input?.followUpQuestions,
+  input?.source, input?.trigger, input?.automatic,
   prepared?.route, prepared?.worldToken, prepared?.generation]));
 
 export class IntrinsicCharacterContext {

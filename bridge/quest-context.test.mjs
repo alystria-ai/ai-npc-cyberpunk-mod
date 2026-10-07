@@ -130,7 +130,7 @@ test('the authoritative tracked objective is sent once while unrelated journal h
 test('trusted context cannot survive IPC or be reused for another request, character, audience or mutated capture', () => {
   const trusted = withConversationKnowledge(knowledgeInput(), knowledgeOptions);
   for (const changed of [parseInput(JSON.stringify(trusted)), {...trusted, requestId: '101-1-10ULL'},
-    {...trusted, profileKey: 'panam-palmer'}, {...trusted, text: 'A different question'}, {...trusted, followUpQuestions: true},
+    {...trusted, profileKey: 'panam-palmer'}, {...trusted, text: 'A different question'},
     {...trusted, group: {index: 1, total: 2, audience: ['judy-alvarez', 'panam-palmer'], heard: []}},
     {...trusted, worldKnowledge: {...trusted.worldKnowledge, worldToken: 'load-8'}}]) {
     const context = conversationContext(changed);

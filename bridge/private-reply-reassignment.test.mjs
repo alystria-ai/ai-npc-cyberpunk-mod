@@ -79,7 +79,6 @@ function run(code) {
     local function warmConversation() end
     local logs = {}
     local function log(line) logs[#logs+1]=line end
-    local function followUpQuestions() return false end
     local function attachKnowledge() return {session=1} end
     local function refreshKnowledgeFrame() return {} end
     local function knowledgeOwner() return {session=1, paused=false} end

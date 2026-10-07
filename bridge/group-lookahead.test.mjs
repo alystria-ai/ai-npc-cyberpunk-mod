@@ -4,7 +4,6 @@ import {GroupLookahead, BufferedPcm, AheadOwner, turnKey, validateLookahead, wai
 import {parseInput} from './protocol.mjs';
 
 const first = {requestId: '100-1-1ULL', generation: 1, entity: '1ULL', name: 'Judy', bodyType: 'female', profileKey: 'judy', text: 'Hello',
-  followUpQuestions: false,
   group: {id: 'round-1', index: 1, total: 3, audience: ['judy', 'panam', 'alex'], heard: []}};
 const second = {...first, requestId: '100-2-2ULL', generation: 2, entity: '2ULL', name: 'Panam', profileKey: 'panam',
   group: {...first.group, index: 2, heard: [{speaker: 'Judy', text: 'Hey V.'}]}};
@@ -18,9 +17,11 @@ test('the turn key ignores the knowledge snapshots the game recaptures at submis
   const parsed = parseInput(JSON.stringify(second));
   const resubmitted = parseInput(JSON.stringify({...second, sentAt: 999, journalHistory: undefined}));
   assert.equal(turnKey(parsed), turnKey(resubmitted));
+  // The retired follow-up field from an older adapter is dropped, not part of the turn.
+  assert.equal(turnKey(parseInput(JSON.stringify({...second, followUpQuestions: true}))), turnKey(parsed));
   for (const change of [{text: 'other'}, {generation: 3, requestId: '100-3-2ULL'}, {profileKey: 'alex'}, {entity: '3ULL', requestId: '100-2-3ULL'},
     {group: {...second.group, heard: [{speaker: 'Judy', text: 'changed'}]}}, {group: {...second.group, audience: ['panam', 'judy']}},
-    {followUpQuestions: true}, {name: 'Someone'}]) {
+    {name: 'Someone'}]) {
     assert.notEqual(turnKey(parseInput(JSON.stringify({...second, ...change}))), turnKey(parsed), JSON.stringify(change));
   }
 });

@@ -200,24 +200,24 @@ test('MCM settings apply as one saved transaction and leave playback unchanged o
     assert(manager.snapshot(player).settings.keepPreparedVoices == true and saved.keepPreparedVoices == true)
     assert(manager.battleReactions() and manager.snapshot(player).settings.battleReactions)
     assert(manager.lootReactions() and manager.snapshot(player).settings.lootReactions)
-    assert(not manager.followUpQuestions() and manager.snapshot(player).settings.followUpQuestions == false)
+    assert(manager.followUpQuestions == nil and manager.snapshot(player).settings.followUpQuestions == nil)
     assert(manager.applySettings(player, {lootReactions = false}))
     assert(not manager.lootReactions() and saved.lootReactions == false)
     assert(manager.applySettings(player, {lootReactions = 'on'}) == false)
     assert(manager.applySettings(player, {battleReactions = false}))
     assert(not manager.battleReactions() and saved.battleReactions == false)
     assert(manager.applySettings(player, {battleReactions = 'on'}) == false)
-    assert(manager.applySettings(player, {voice = false, subtitleStyle = 'overhead', voiceProvider = 'convai', followUpQuestions = true, enabledByKey = {['johnny-silverhand'] = false}}))
+    assert(manager.applySettings(player, {voice = false, subtitleStyle = 'overhead', voiceProvider = 'convai', enabledByKey = {['johnny-silverhand'] = false}}))
     assert(player.voice == false and saved.omniSteps == 16 and not manager.profileEnabled('johnny-silverhand'))
     assert(saved.disappearingMessages == nil)
-    assert(saved.followUpQuestions == true and manager.followUpQuestions())
+    assert(saved.followUpQuestions == nil)
     failSave = true
-    assert(manager.applySettings(player, {voice = true, subtitles = false, subtitleStyle = 'dialogue', voiceProvider = 'pocket', followUpQuestions = false}) == false)
+    assert(manager.applySettings(player, {voice = true, subtitles = false, subtitleStyle = 'dialogue', voiceProvider = 'pocket'}) == false)
     local values = manager.snapshot(player).settings
     assert(values.voice == false and values.subtitles == true and values.omniSteps == 16)
     assert(player.voice == false and player.subtitles == true)
     assert(values.disappearingMessages == nil)
-    assert(values.followUpQuestions == true and manager.followUpQuestions())
+    assert(values.followUpQuestions == nil)
     assert(values.voiceProvider == 'convai')
     assert(values.subtitleStyle == 'overhead' and manager.subtitleStyle() == 'overhead')
     failSave = false
@@ -226,17 +226,15 @@ test('MCM settings apply as one saved transaction and leave playback unchanged o
     assert(manager.applySettings(player, {voice = true, keepPreparedVoices = 'yes'}) == false)
     assert(manager.applySettings(player, {enabledByKey = {unknown = true}}) == false)
     assert(manager.applySettings(player, {disappearingMessages = 'yes'}) == false)
-    assert(manager.applySettings(player, {voice = true, followUpQuestions = 'yes'}) == false)
-    assert(not manager.snapshot(player).settings.voice and manager.followUpQuestions())
+    assert(not manager.snapshot(player).settings.voice)
     assert(manager.applySettings(player, {voiceProvider = 'unknown'}) == false)
     assert(manager.applySettings(nil, {voice = true}))
     manager.reset(); manager.snapshot(player); assert(player.voice == true)
-    assert(manager.followUpQuestions(), 'reset replaced the saved follow-up setting')
     assert(manager.subtitleStyle() == 'overhead', 'failed save or reset replaced explicit subtitle choice')
   `);
 });
 
-test('follow-up questions migrate to Off and retain explicit saved On or Off choices', () => {
+test('a saved retired follow-up setting loads fine, is dropped from the file and never reaches the snapshot', () => {
   run(`${managerFixture}
     for _, savedValue in ipairs({'missing', 'on', 0, true, false}) do
       seed = {version = 2, voice = false, subtitles = false, subtitleStyle = 'dialogue',
@@ -246,17 +244,16 @@ test('follow-up questions migrate to Off and retain explicit saved On or Off cho
       if savedValue ~= 'missing' then seed.followUpQuestions = savedValue end
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles)
-      local enabled = savedValue == true
-      assert(manager.followUpQuestions() == enabled)
+      assert(manager.followUpQuestions == nil)
       local state = manager.snapshot(player).settings
-      assert(state.followUpQuestions == enabled)
+      assert(state.followUpQuestions == nil)
       assert(not state.voice and not state.subtitles and state.voiceProvider == 'convai' and state.omniSteps == 16)
       assert(not state.battleReactions and not state.lootReactions and state.disappearingMessages == nil)
-      if type(savedValue) ~= 'boolean' then
-        assert(saved.followUpQuestions == false and saved.future.keep == 'unchanged', 'migration must save its default')
+      if savedValue ~= 'missing' then
+        assert(saved and saved.followUpQuestions == nil and saved.future.keep == 'unchanged', 'the retired key must be dropped and re-saved')
       end
-      manager.reset()
-      assert(manager.followUpQuestions() == enabled, 'reload did not preserve the persisted choice')
+      manager.reset(); manager.configure(api, profiles)
+      assert(manager.snapshot(player).settings.followUpQuestions == nil)
     end
   `);
 });
@@ -605,10 +602,10 @@ test('voice selector arrows stay within their displayed direction and use effect
     emit(false); assert(effective == 1 and forwarded == 10, 'left at Pocket TTS must not wrap right')
     assert(row('voiceProvider').defaultValue == 1)
     local elements = row('voiceProvider').elements
-    assert(#elements == 6 and elements[1] == 'Pocket TTS · recommended')
-    assert(elements[2] == 'OmniVoice 16 steps · short reference' and elements[3] == 'OmniVoice 16 steps · long reference')
-    assert(elements[4] == 'OmniVoice 32 steps · short reference' and elements[5] == 'OmniVoice 32 steps · long reference')
-    assert(elements[6] == 'Convai cloud voice')
+    assert(#elements == 6 and elements[1] == 'Pocket · Performance')
+    assert(elements[2] == 'OmniVoice · Balanced' and elements[3] == 'OmniVoice · Quality')
+    assert(elements[4] == 'OmniVoice · High Quality' and elements[5] == 'OmniVoice · Ultra Quality')
+    assert(elements[6] == 'Convai · Cloud voice')
     assert(row('omniSteps') == nil and row('omniReference') == nil, 'retired quality steps remain in the active menu')
     assert(row('keepPreparedVoices').type == 'bool' and row('keepPreparedVoices').value == true
       and row('keepPreparedVoices').defaultValue == true, 'Keep prepared voices is on by default')
@@ -624,7 +621,7 @@ test('local voice previews carry the effective six-choice draft and cancel on Re
     assert(manager.applySettings(player, {voiceProvider = 'convai'}))
     local committed = saved
     local preview = (function() ${voicePreviewSource} end)().new({now = function() return 1000 end})
-    -- Select order: 1 Pocket TTS, 2 Omni 16 short, 3 Omni 16 long, 4 Omni 32 short, 5 Omni 32 long, 6 Convai cloud voice.
+    -- Select order: 1 Pocket Performance, 2 Omni Balanced (16 short), 3 Omni Quality (16 long), 4 Omni High Quality (32 short), 5 Omni Ultra Quality (32 long), 6 Convai Cloud voice.
     local effective, pending, callback, inCallback, reads = 3, true, nil, false, 0
     local bus = {
       subscribe = function(topic, listener) assert(topic == 'drafts.changed'); callback = listener; return 'preview-token' end,
@@ -923,7 +920,7 @@ test('with Auto Apply every setting waits for an explicit Apply: the automatic a
     local before, writes = snapshotOf(), #fileWrites
     -- One setting of every kind: bool, select, voice, gaze, language, relationship, conversation.
     for _, change in ipairs({{'voiceProvider', 3}, {'voiceProvider', 2}, {'voiceProvider', 6}, {'keepPreparedVoices', false}, {'voice', false}, {'subtitles', false},
-        {'subtitleStyle', 1}, {'battleReactions', false}, {'lootReactions', false}, {'bodyGestures', true},
+        {'subtitleStyle', 2}, {'battleReactions', false}, {'lootReactions', false}, {'bodyGestures', true},
         {'developerMode', true}, {'eyeContactHeight', 5}, {'headFollowStrength', 4}, {'uiLanguage', 2},
         {'relationship:judy-alvarez', 2}, {'enabled:person-1', false}, {'autoConnectNearby', true}}) do
       local result = autoApply(change)
@@ -967,14 +964,14 @@ test('the voice status names a pending voice in a short line and nothing prepare
     function controller:GetRootWidget() return content end
     handlers.McmUiSetContentTitle(controller, 'Companion Manager')
     mcm.update(player, false)
-    assert(text == 'Pending: Convai cloud voice', text)
-    assert(#text < 30, 'the pending line must stay short')
+    assert(text == 'Pending: Convai · Cloud voice', text)
+    assert(utf8.len(text) < 30, 'the pending line must stay short')
     pending = 3
     handlers.McmUiSetContentTitle(controller, 'Companion Manager')
     local sooner = os.time() + 5
     os.time = function() return sooner end
     mcm.update(player, false)
-    assert(text == 'Pending: OmniVoice 16 steps · long reference', text)
+    assert(text == 'Pending: OmniVoice · Quality', text)
     pending = 1
     handlers.McmUiSetContentTitle(controller, 'Companion Manager')
     local later = os.time() + 10
@@ -1389,25 +1386,25 @@ test('manager popup identities distinguish duplicate copies then expire on world
   `);
 });
 
-test('Auto-connect nearby characters is off by default, offered under Conversations and saved with the settings', () => {
+test('Auto-connect nearby characters is on by default, offered under Conversations and saved with the settings', () => {
   run(`${mcmFixture}
-    assert(manager.autoConnectNearby() == false and manager.snapshot(player).settings.autoConnectNearby == false)
+    assert(manager.autoConnectNearby() == true and manager.snapshot(player).settings.autoConnectNearby == true)
     assert(invoke('tab:settings').ok)
     local auto = assert(row('autoConnectNearby'), 'the setting is not offered')
-    assert(auto.type == 'bool' and auto.value == false and auto.defaultValue == false and auto.capabilities.draft)
+    assert(auto.type == 'bool' and auto.value == true and auto.defaultValue == true and auto.capabilities.draft)
     assert(auto.label == 'Auto-connect nearby characters')
     local conversations
     for _, category in ipairs(loaded.categories) do if category.id == 'conversation-controls' then conversations = category end end
     local found = false
     for _, item in ipairs(conversations.settings) do if item.id == 'autoConnectNearby' then found = true end end
     assert(found, 'the setting is not in the Conversations section')
-    assert(registered.applyBatch('manager', {{id = 'autoConnectNearby', value = true}}).ok)
-    assert(manager.autoConnectNearby() == true and saved.autoConnectNearby == true)
-    loaded = registered.loadMod('manager'); assert(row('autoConnectNearby').value == true)
+    assert(registered.applyBatch('manager', {{id = 'autoConnectNearby', value = false}}).ok)
+    assert(manager.autoConnectNearby() == false and saved.autoConnectNearby == false, 'an explicit Off is kept')
+    loaded = registered.loadMod('manager'); assert(row('autoConnectNearby').value == false)
     -- It does not disturb the other settings, and only a boolean is accepted.
     assert(manager.snapshot(player).settings.voice == true)
-    assert(not manager.applySettings(player, {autoConnectNearby = 'yes'}) and manager.autoConnectNearby() == true)
-    assert(registered.applyBatch('manager', {{id = 'autoConnectNearby', value = false}}).ok and not manager.autoConnectNearby())
+    assert(not manager.applySettings(player, {autoConnectNearby = 'yes'}) and manager.autoConnectNearby() == false)
+    assert(registered.applyBatch('manager', {{id = 'autoConnectNearby', value = true}}).ok and manager.autoConnectNearby())
   `);
 });
 
@@ -1728,9 +1725,12 @@ test('without the optional OmniVoice pack Omni entries say what they need and ca
     assert(invoke('tab:settings').ok)
     loaded = registered.loadMod('manager')
     local elements = row('voiceProvider').elements
-    assert(elements[1] == 'Pocket TTS · recommended' and elements[6] == 'Convai cloud voice')
-    assert(elements[2] == 'OmniVoice 16 steps · short reference · Requires the optional OmniVoice pack (GPU)', elements[2])
-    for index = 2, 5 do assert(elements[index]:find('Requires the optional OmniVoice pack (GPU)', 1, true), 'entry ' .. index) end
+    assert(elements[1] == 'Pocket · Performance' and elements[6] == 'Convai · Cloud voice')
+    assert(elements[2] == 'OmniVoice · Balanced · needs Omni pack', elements[2])
+    for index = 2, 5 do
+      assert(elements[index]:find(' · needs Omni pack', 1, true), 'entry ' .. index)
+      assert(utf8.len(elements[index]) <= 44, 'entry ' .. index .. ' must stay short enough not to truncate')
+    end
     assert(row('voice-pack').value == 'Not installed')
     local before = saved.voiceProvider
     for index = 2, 5 do
@@ -1748,7 +1748,7 @@ test('without the optional OmniVoice pack Omni entries say what they need and ca
       updated = clock * 1000}
     manager.snapshot(player)
     loaded = registered.loadMod('manager')
-    assert(row('voiceProvider').elements[2] == 'OmniVoice 16 steps · short reference')
+    assert(row('voiceProvider').elements[2] == 'OmniVoice · Balanced')
     assert(row('voice-pack').value == 'Installed')
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 2}}).ok)
     assert(saved.voiceProvider == 'omni' and saved.omniSteps == 16 and saved.omniReference == 'short')
@@ -1935,8 +1935,13 @@ test('Relationships use their own MCM page and only applied selections reach sav
   assert(invoke('relationships').ok)
   local selected=row('relationship:judy-alvarez')
   assert(selected and selected.value==1 and selected.defaultValue==1)
-  assert(selected.elements[1]=='Auto' and selected.elements[2]=='On' and selected.elements[3]=='Off')
-  assert(row('relationship:meredith-stout').description:find('does not imply an ongoing relationship',1,true))
+  assert(selected.elements[1]=='Auto' and selected.elements[2]=='Romantic' and selected.elements[3]=='Ordinary')
+  assert(selected.description:find('Romantic uses the romantic profile',1,true) and not selected.description:find('Off uses',1,true))
+  local meredith=row('relationship:meredith-stout')
+  assert(meredith.elements[1]=='Auto' and meredith.elements[2]=='Casual' and meredith.elements[3]=='Ordinary')
+  assert(meredith.description:find('does not imply an ongoing relationship',1,true))
+  assert(row('relationship:panam-palmer').elements[2]=='Romantic' and row('relationship:river-ward').elements[2]=='Romantic')
+  assert(row('relationship:kerry-eurodyne').elements[2]=='Romantic')
   assert(manager.snapshot(player).settings.relationshipModes['judy-alvarez']=='auto')
   assert(registered.applyBatch('manager',{{id='relationship:judy-alvarez',value=2}}).ok)
   assert(saved.relationshipModes['judy-alvarez']=='on')
@@ -2104,9 +2109,10 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(invoke('party:back').ok and invoke('tab:settings').ok)
     assert(row('voice').type == 'bool' and row('omniSteps') == nil)
     assert(row('subtitles').type == 'bool' and row('subtitles').value == true)
-    assert(row('subtitleStyle').type == 'select' and row('subtitleStyle').value == 2)
-    assert(row('subtitleStyle').defaultValue == 2 and row('subtitleStyle').capabilities.draft)
-    assert(row('subtitleStyle').elements[1] == 'Above speaker' and row('subtitleStyle').elements[2] == 'Dialogue HUD')
+    -- Order: 1 Cinematic subtitles (stored dialogue, the default), 2 Above the speaker (stored overhead).
+    assert(row('subtitleStyle').type == 'select' and row('subtitleStyle').value == 1)
+    assert(row('subtitleStyle').defaultValue == 1 and row('subtitleStyle').capabilities.draft)
+    assert(row('subtitleStyle').elements[1] == 'Cinematic subtitles' and row('subtitleStyle').elements[2] == 'Above the speaker')
     assert(row('voiceProvider').type == 'select' and row('voiceProvider').value == 1)
     assert(row('keepPreparedVoices').type == 'bool' and row('keepPreparedVoices').value == true)
     assert(row('voice-pack').value == 'Waiting for voice service' or row('voice-pack').value == 'Installed')
@@ -2119,16 +2125,16 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(not manager.lootReactions())
     assert(registered.applyBatch('manager', {{id = 'battleReactions', value = false}}).ok)
     assert(not manager.battleReactions())
-    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = 6}, {id = 'subtitleStyle', value = 1}})
+    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = 6}, {id = 'subtitleStyle', value = 2}})
     assert(applied.ok and applied.atomic and #applied.appliedIds == 3 and saved.omniSteps == 16)
     assert(saved.voiceProvider == 'convai')
     loaded = registered.loadMod('manager')
-    assert(manager.subtitleStyle() == 'overhead' and row('subtitleStyle').value == 1)
+    assert(manager.subtitleStyle() == 'overhead' and row('subtitleStyle').value == 2)
     for _, invalid in ipairs({0, 3, '1', 'overhead', false}) do
       assert(not registered.applyBatch('manager', {{id = 'subtitles', value = false}, {id = 'subtitleStyle', value = invalid}}).ok)
       assert(manager.subtitleStyle() == 'overhead' and player.subtitles)
     end
-    assert(registered.applyBatch('manager', {{id = 'subtitleStyle', value = 2}}).ok)
+    assert(registered.applyBatch('manager', {{id = 'subtitleStyle', value = 1}}).ok)
     assert(manager.subtitleStyle() == 'dialogue' and saved.voiceProvider == 'convai')
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}}).ok)
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 0}}).ok)
@@ -2154,6 +2160,28 @@ test('MCM schema uses native controls, operates on current copies while paused, 
   `);
 });
 
+test('settings review wording: short voice description, experimental gestures, full Developer mode text, Model browser says what it lists', () => {
+  run(`${mcmFixture}
+    local home = row('tab:models')
+    assert(home and home.label == 'Model browser')
+    assert(home.description:find('without conversation support', 1, true) and home.description:find('do not talk', 1, true))
+    assert(invoke('tab:settings').ok)
+    local voices = row('voiceProvider')
+    assert(voices.defaultValue == 1 and voices.value == 1)
+    assert(voices.description:find('about 0.2 s', 1, true) and voices.description:find('1 to 2.5 s', 1, true))
+    assert(not voices.description:find('%', 1, true), 'no listening percentages in the voice description')
+    assert(not voices.description:find(string.char(10), 1, true) and utf8.len(voices.description) < 600, 'the voice description stays short')
+    assert(row('bodyGestures').label == 'Body gestures (experimental)' and row('bodyGestures').defaultValue == false)
+    assert(row('autoConnectNearby').defaultValue == true and row('keepPreparedVoices').defaultValue == true)
+    local developer = row('developerMode').description
+    for _, part in ipairs({'popups', 'movement trace', 'gesture', 'support reports'}) do
+      assert(developer:find(part, 1, true), 'Developer mode must say it enables ' .. part)
+    end
+    assert(row('headFollowStrength').defaultValue == 3)
+    assert(manager.snapshot(player).settings.headFollowStrength == 1, 'the saved strength values are unchanged')
+  `);
+});
+
 test('MCM gaze controls use ordinary selectors, persist and reset without native refresh in Apply', () => {
   run(`${mcmFixture}
     assert(invoke('tab:settings').ok)
@@ -2164,7 +2192,7 @@ test('MCM gaze controls use ordinary selectors, persist and reset without native
       assert(setting.color==nil and setting.indent==nil and setting.label:sub(1,1)~=' ')
     end
     assert(row('eyeContactHeight').elements[1]=='10 cm lower' and row('eyeContactHeight').elements[5]=='10 cm higher')
-    assert(row('headFollowStrength').elements[1]=='Eyes only' and row('headFollowStrength').elements[4]=='More')
+    assert(row('headFollowStrength').elements[1]=='Eyes only' and row('headFollowStrength').elements[2]=='Subtle' and row('headFollowStrength').elements[3]=='Gentle (default)' and row('headFollowStrength').elements[4]=='Strong')
     local before=reloads
     local result=registered.applyBatch('manager',{{id='eyeContactHeight',value=5},{id='headFollowStrength',value=4}})
     assert(result.ok and result.atomic and not result.schemaChanged and reloads==before)
@@ -2514,7 +2542,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(actual.setDraft(key .. ':voice', false))
       assert(actual.getValue(key .. ':omniSteps') == nil)
       assert(actual.setDraft(key .. ':voiceProvider', 6))
-      assert(actual.setDraft(key .. ':subtitleStyle', 1))
+      assert(actual.setDraft(key .. ':subtitleStyle', 2))
       assert(actual.setDraft(key .. ':battleReactions', false))
       assert(actual.getValue(key .. ':eyeContactHeight') == 3 and actual.getValue(key .. ':headFollowStrength') == 3)
       assert(actual.setDraft(key .. ':eyeContactHeight', 5))
@@ -2542,7 +2570,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(manager.snapshot(player).settings.omniSteps == 16 and not actual.hasDrafts(key))
       assert(actual.getValue(key .. ':voiceProvider') == 6)
       assert(manager.snapshot(player).settings.voiceProvider == 'convai')
-      assert(actual.getValue(key .. ':subtitleStyle') == 1 and manager.subtitleStyle() == 'overhead')
+      assert(actual.getValue(key .. ':subtitleStyle') == 2 and manager.subtitleStyle() == 'overhead')
       assert(not manager.battleReactions() and actual.getValue(key .. ':battleReactions') == false)
       assert(manager.developerMode() and actual.getValue(key .. ':developerMode') == true)
       assert(actual.getValue(key .. ':eyeContactHeight') == 5 and actual.getValue(key .. ':headFollowStrength') == 4)
@@ -2709,7 +2737,7 @@ test('Pocket TTS is the default while saved choices migrate to the nearest voice
       -- A save from before the short/long choice has no reference: OmniVoice players land on the long one.
       assert(state.omniReference == 'long' and saved.omniReference == 'long' and state.keepPreparedVoices == true)
       assert(not state.voice and not state.subtitles and state.subtitleStyle == 'overhead')
-      assert(state.followUpQuestions and not state.battleReactions and not state.lootReactions)
+      assert(state.followUpQuestions == nil and not state.battleReactions and not state.lootReactions)
       assert(not state.enabledByKey['johnny-silverhand'] and saved.future.keep == 'unchanged')
       manager.reset(); manager.prepare(player)
       assert(manager.snapshot(player).settings.voiceProvider == expected)
@@ -2869,8 +2897,8 @@ test('Developer mode is a cached default-Off choice and persists only after an a
     for i = 1, 20 do assert(not manager.developerMode()) end
     io.open = open
     failSave = true
-    assert(not manager.applySettings(nil, {developerMode = true, followUpQuestions = true}))
-    assert(not manager.developerMode() and not manager.followUpQuestions() and not saved.developerMode)
+    assert(not manager.applySettings(nil, {developerMode = true}))
+    assert(not manager.developerMode() and not saved.developerMode)
     failSave = false
     assert(manager.applySettings(nil, {developerMode = true}))
     assert(manager.developerMode() and saved.developerMode == true)
@@ -2965,7 +2993,7 @@ test('a voice that could not run is announced once in gameplay, again only after
     popupTick(false); popupTick(false)
     assert(#popups == 0, 'a paused menu consumed the one fallback notice')
     popupTick(true)
-    assert(#popups == 1 and popups[1] == 'OmniVoice 16 steps · short reference is unavailable. Companions are using Pocket TTS instead.', popups[1])
+    assert(#popups == 1 and popups[1] == 'OmniVoice · Balanced is unavailable. Companions are using Pocket · Performance instead.', popups[1])
     for _ = 1, 6 do popupTick(true) end
     assert(#popups == 1, 'the same fallback was announced again')
     -- Omni recovers (the player chose it again and it loaded), then Pocket fails too.
@@ -2974,12 +3002,12 @@ test('a voice that could not run is announced once in gameplay, again only after
     assert(#popups == 1)
     state.fallback, state.provider, state.routedProfiles = {from = 'pocket', to = 'convai'}, 'convai', {}
     for _ = 1, 3 do popupTick(true) end
-    assert(#popups == 2 and popups[2] == 'Pocket TTS is unavailable. Companions are using Convai cloud voice instead.', popups[2])
-    assert(manager.voiceLabel('omni', 32, 'short') == 'OmniVoice 32 steps · short reference')
-    assert(manager.voiceLabel('omni', 32, 'long') == 'OmniVoice 32 steps · long reference')
-    assert(manager.voiceLabel('omni', 16, 'short') == 'OmniVoice 16 steps · short reference')
-    assert(manager.voiceLabel('omni', 16) == 'OmniVoice 16 steps · long reference')
-    assert(manager.voiceLabel('pocket') == 'Pocket TTS' and manager.voiceLabel('convai') == 'Convai cloud voice')
+    assert(#popups == 2 and popups[2] == 'Pocket · Performance is unavailable. Companions are using Convai · Cloud voice instead.', popups[2])
+    assert(manager.voiceLabel('omni', 32, 'short') == 'OmniVoice · High Quality')
+    assert(manager.voiceLabel('omni', 32, 'long') == 'OmniVoice · Ultra Quality')
+    assert(manager.voiceLabel('omni', 16, 'short') == 'OmniVoice · Balanced')
+    assert(manager.voiceLabel('omni', 16) == 'OmniVoice · Quality')
+    assert(manager.voiceLabel('pocket') == 'Pocket · Performance' and manager.voiceLabel('convai') == 'Convai · Cloud voice')
   `);
 });
 

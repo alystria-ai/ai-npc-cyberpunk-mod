@@ -20,12 +20,14 @@ local localVoices = {}
 -- The Companion voices list: Pocket TTS (default), OmniVoice at 16 or 32 steps with a short or a long
 -- reference, Convai. The fallback order inside the bridge stays OmniVoice, Pocket TTS, Convai.
 local DEFAULT_VOICE_PROVIDER, DEFAULT_OMNI_STEPS, DEFAULT_OMNI_REFERENCE = 'pocket', 16, 'long'
--- The menu text of each OmniVoice choice (also the names used in status lines and fallback notices).
+-- The menu text of each OmniVoice choice, named by quality from fastest to best (Balanced and Quality are 16 steps
+-- with a short and a long reference, High Quality and Ultra Quality 32 steps). These are also the names used in
+-- status lines and fallback notices. The saved values (omniSteps, omniReference) never change.
 local OMNI_LABELS = {
-    ['16:short'] = 'OmniVoice 16 steps · short reference',
-    ['16:long'] = 'OmniVoice 16 steps · long reference',
-    ['32:short'] = 'OmniVoice 32 steps · short reference',
-    ['32:long'] = 'OmniVoice 32 steps · long reference',
+    ['16:short'] = 'OmniVoice · Balanced',
+    ['16:long'] = 'OmniVoice · Quality',
+    ['32:short'] = 'OmniVoice · High Quality',
+    ['32:long'] = 'OmniVoice · Ultra Quality',
 }
 local OMNI_PACK_MISSING = 'Requires the optional OmniVoice pack (GPU)'
 local voiceFallbackSeen, voiceFallbackNotice = {}, nil
@@ -333,12 +335,14 @@ local function loadSettings()
             settings.relationshipModes[key], settingsNeedSave = 'auto', true
         end
     end
-    if type(settings.followUpQuestions) ~= 'boolean' then settings.followUpQuestions, settingsNeedSave = false, true end
+    -- The retired Follow-up questions setting: an old saved key is dropped (nothing reads it).
+    if settings.followUpQuestions ~= nil then settings.followUpQuestions, settingsNeedSave = nil, true end
     if type(settings.developerMode) ~= 'boolean' then settings.developerMode, settingsNeedSave = false, true end
     if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = true, true end
     if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = true, true end
     if type(settings.bodyGestures) ~= 'boolean' then settings.bodyGestures, settingsNeedSave = false, true end
-    if type(settings.autoConnectNearby) ~= 'boolean' then settings.autoConnectNearby, settingsNeedSave = false, true end
+    -- On by default (a missing key); an explicitly saved choice is kept.
+    if type(settings.autoConnectNearby) ~= 'boolean' then settings.autoConnectNearby, settingsNeedSave = true, true end
     if not isChoice(settings.eyeContactHeight, eyeContactHeights) then
         settings.eyeContactHeight, settingsNeedSave = 0, true
     end
@@ -406,17 +410,12 @@ function M.profileEnabled(key)
     return key ~= nil and byKey[key] ~= nil and settings.enabledByKey[key] ~= false
 end
 
-function M.followUpQuestions()
-    loadSettings()
-    return settings.followUpQuestions == true
-end
-
 -- The feedback paths read the already loaded saved choice. Never load files,
 -- query native settings or retain native handles from a menu callback.
 -- One of the voice choices, as the player reads it in Settings.
 function M.voiceLabel(provider, steps, reference)
-    if provider == 'pocket' then return ui.t('Pocket TTS') end
-    if provider == 'convai' then return ui.t('Convai cloud voice') end
+    if provider == 'pocket' then return ui.t('Pocket · Performance') end
+    if provider == 'convai' then return ui.t('Convai · Cloud voice') end
     return ui.t(OMNI_LABELS[(steps == 32 and '32' or '16') .. ':' .. (reference == 'short' and 'short' or 'long')])
 end
 
@@ -495,9 +494,8 @@ function M.bodyGestures()
     return settings.bodyGestures == true
 end
 
--- Off by default: a connection is made when the player starts talking. On, the
--- connection and local voice of a character the player looks at or walks up to
--- are prepared ahead (mod/auto-connect.lua).
+-- On by default, silently: the connection and local voice of a character the player looks at or walks up to
+-- are prepared ahead (mod/auto-connect.lua). Off, a connection is made when the player starts talking.
 function M.autoConnectNearby()
     loadSettings()
     return settings.autoConnectNearby == true
@@ -974,7 +972,6 @@ function M.snapshot(player)
     return {
         profiles = profiles, models = models, party = party, feedback = feedback,
         settings = {voice = settings.voice, subtitles = settings.subtitles, subtitleStyle = settings.subtitleStyle,
-            followUpQuestions = settings.followUpQuestions,
             developerMode = settings.developerMode,
             relationshipModes = relationshipModes,
             battleReactions = settings.battleReactions,
@@ -1025,21 +1022,21 @@ function M.applySettings(player, values)
     nextSettings.relationshipModes = {}
     for key, value in pairs(settings.relationshipModes) do nextSettings.relationshipModes[key] = value end
     for key, value in pairs(values) do
-        if key == 'voice' or key == 'subtitles' or key == 'followUpQuestions' or key == 'developerMode'
+        if key == 'voice' or key == 'subtitles' or key == 'developerMode'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
             or key == 'keepPreparedVoices' or key == 'naturalSpeech' or key == 'expressiveEmotions' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'relationshipModes' then
-            if type(value) ~= 'table' then return false, 'Choose Auto, On or Off for each relationship.' end
+            if type(value) ~= 'table' then return false, 'Choose one of the listed relationship options.' end
             for profileKey, mode in pairs(value) do
                 if not relationshipKeys[profileKey] or not isChoice(mode, {'auto', 'on', 'off'}) then
-                    return false, 'Choose Auto, On or Off for each relationship.'
+                    return false, 'Choose one of the listed relationship options.'
                 end
                 nextSettings.relationshipModes[profileKey] = mode
             end
         elseif key == 'subtitleStyle' then
-            if value ~= 'overhead' and value ~= 'dialogue' then return false, 'Choose Above speaker or Dialogue HUD.' end
+            if value ~= 'overhead' and value ~= 'dialogue' then return false, 'Choose one of the listed subtitle displays.' end
             nextSettings.subtitleStyle = value
         elseif key == 'uiLanguage' then
             if value ~= 'auto' and not isChoice(value, ui.supported()) then return false, ui.t('Choose an interface language.') end

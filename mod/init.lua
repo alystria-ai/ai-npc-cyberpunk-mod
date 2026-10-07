@@ -244,11 +244,6 @@ microphone.currentKnowledgeOwner = function()
     return knowledgeOwner(refreshKnowledgeFrame())
 end
 groupChat.captureJournal = questContext.capture
-local function followUpQuestions()
-    return type(manager.followUpQuestions) == 'function' and manager.followUpQuestions() == true
-end
-groupChat.captureFollowUpQuestions = followUpQuestions
-microphone.captureFollowUpQuestions = followUpQuestions
 phoneChat.captureJournal = questContext.capture
 microphone.captureJournal = questContext.capture
 groupChat.captureBattle = battles.capture
@@ -933,8 +928,6 @@ local function toggleVoice(groupMode)
 end
 
 local function sendRequest(context)
-    if context.reaction then context.followUpQuestions = false
-    elseif context.followUpQuestions == nil then context.followUpQuestions = followUpQuestions() end
     local owner = attachKnowledge(context)
     if not owner then return false end
     context.journal = context.journal or questContext.capture()
@@ -1408,20 +1401,6 @@ local function captureDiagnostic()
     if not ok then log('Diagnostic capture failed: ' .. tostring(err)) end
 end
 
-local function captureNpcDiagnostic()
-    -- The diagnostic hotkey must not repeat the previous remote command.
-    local nonce = 'npc-diagnostic:' .. tostring(os.time()) .. ':' .. tostring(os.clock())
-    local request = io.open('runtime/diagnostic-request.txt', 'wb')
-    if not request then
-        log('NPC diagnostic request could not be written')
-        return
-    end
-    request:write(nonce)
-    request:close()
-    lastDiagnosticRequest = nonce
-    captureDiagnostic()
-end
-
 local function openManager()
     local ok, result, reason = pcall(mcm.open)
     if ok and result then
@@ -1481,7 +1460,10 @@ local function processPhoneAction(player)
     local accepted, message, dismissedId = queue.dismissCharacter(key)
     if accepted ~= nil then
         log('Phone dismissal ' .. (accepted and 'requested' or 'refused') .. ' for ' .. key)
-        player:ConvaiPhoneFeedback(tostring(message))
+        -- The phone already says "dismiss queued", so the confirmation is a Developer-mode popup; a refusal is shown.
+        if not accepted or (manager.developerMode and manager.developerMode()) then
+            player:ConvaiPhoneFeedback(tostring(message))
+        end
         return
     end
     log('Phone dismiss: no active copy of ' .. key)
@@ -1542,7 +1524,6 @@ registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', functi
 registerHotkey('cyberpunk_convai_group_text', 'Cyberpunk Convai: group text chat', function() beginText(true) end)
 registerHotkey('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice', function() toggleVoice(false) end)
 registerHotkey('cyberpunk_convai_group_voice', 'Cyberpunk Convai: group voice chat', function() toggleVoice(true) end)
-registerHotkey('cyberpunk_convai_diagnostic', 'Cyberpunk Convai: capture NPC diagnostic', captureNpcDiagnostic)
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
 
 local worldSuspended, sessionHasState = false, false

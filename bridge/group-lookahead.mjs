@@ -19,7 +19,7 @@ import {abortable, cancelled} from './transport-pool.mjs';
 // snapshot it was prepared with (still bound to the live world by the router).
 export function turnKey(input) {
   return JSON.stringify([input.requestId, input.generation, input.entity, input.name, input.bodyType,
-    input.profileKey, input.text, input.followUpQuestions === true, input.group ?? null,
+    input.profileKey, input.text, input.group ?? null,
     input.journal ?? null, input.battle ?? null, input.reaction ?? null]);
 }
 

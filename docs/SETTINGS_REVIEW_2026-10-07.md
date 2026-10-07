@@ -416,3 +416,71 @@ with `runtime/Invoke-McmStyleProbe.ps1` or in game.
 10. **Natural speech (in progress).** Not in the tree yet. When it lands, should it sit
     under Voices, and should it hide when the voice is Pocket (where, per your listening
     verdict, fillers do not work)?
+
+## Decisions applied (2026-10-07)
+
+The user answered the questions above and the Companion Manager now follows them. Internal
+saved values did not change (`voiceProvider`, `omniSteps`, `omniReference`,
+`relationshipModes`, `headFollowStrength`), so existing `runtime/settings.json` files load
+as before. The tables above describe the code before this change.
+
+- **Voice menu (flags 1, 3 and 27, question 1):** six entries, fastest to best: "Pocket ·
+  Performance" (the default, no "recommended" tag), "OmniVoice · Balanced" (16 steps, short reference),
+  "OmniVoice · Quality" (16, long), "OmniVoice · High Quality" (32, short), "OmniVoice ·
+  Ultra Quality" (32, long), "Convai · Cloud voice". Without the Omni pack the four OmniVoice
+  entries end in "· needs Omni pack" (longest entry 43 characters; the old text was about 80);
+  Apply still refuses them with the full message. Status lines, fallback notices and the
+  Characters "Voice:" line use the same names.
+- **Voice description (flag 2):** three sentences. Pocket is light and fast on the CPU and
+  starts in about 0.2 s (no "recommended" wording); OmniVoice sounds better, especially on harder voices, needs a capable
+  GPU and the optional pack, and the higher tiers take longer to start (about 1 to 2.5 s);
+  Convai uses the cloud and a choice that cannot run falls to a simpler voice with one notice.
+  No listening percentages (they remain in `docs/LOCAL_VOICES.md`).
+- **Model browser (flag 26, question 6):** still visible to everyone. Its Home row and page
+  now say it lists every game character model and that characters without conversation
+  support join as followers and do not talk.
+- **Body gestures (flag 12, question 3):** labelled "Body gestures (experimental)", still Off.
+- **Auto-connect (question 2, reversed later the same day):** now On by default and silent. A
+  missing key defaults On and an explicit saved value is kept (an existing file that holds
+  `autoConnectNearby: false`, written by the old default, stays Off). No connecting or ready
+  notice for a warm-up and no hint about the setting; with the setting Off the short "Preparing
+  connection to {name}…" wait notice remains, without the hint. **Keep prepared voices
+  (question 7):** unchanged (On). Question 4 (Pocket model in the release package) was not part of this change and is still to
+  be confirmed.
+- **Relationships (flag 6, question 8):** the select reads Auto / Romantic / Ordinary;
+  Meredith Stout reads Auto / Casual / Ordinary (her routing kind is `casual-intimacy` in
+  `bridge/relationship-routing.mjs`). Descriptions say the same words; values stay
+  `auto`/`on`/`off`.
+- **`followUpQuestions` (flag 17, question 5):** removed end to end. Before removal, nothing
+  read it for behaviour: it only travelled in requests and request identities, and
+  `followUpContext` never used it. An old key in the settings file is dropped on load; the
+  bridge ignores the field if an older adapter still sends it.
+- **Developer mode (flag 30, question 9):** one switch; the description lists routine popups,
+  the movement trace file, gesture logging and the setting appearing in support reports.
+- **Head tracking (flag 4):** Eyes only / Subtle / Gentle (default) / Strong (values 0, 0.5,
+  1, 1.5).
+- **Page names (flag 7):** left as they were in the first round; the second round renames
+  "Character conversations" to "Who can talk". Characters and Character memories keep their names.
+- **Not changed in the first round (several were done in the second round below):** flags 3 (the
+  Voice playback rename), 9, 10, 11, 14, 18 to 25 and 29 (duplicates, jargon in smaller
+  descriptions, prepared-voice disk total, legacy `enabled` array, HUD manager copy,
+  dependency hints, log rows).
+- **Docs:** README.md, docs/MANAGER_UI.md, docs/LOCAL_VOICES.md and docs/POCKET_TTS_RUNTIME.md
+  describe the six-entry menu with Pocket as the default (flag 31).
+
+### Second round (same day)
+
+- **Wording and names:** Eye contact height reads "Raise or lower where companions look when they
+  make eye contact with you." (flag 5). "Voice service" is now "Voice status" (flag 3, only that
+  rename). Subtitle display options are "Cinematic subtitles" (stored `dialogue`, default, first)
+  and "Above the speaker" (stored `overhead`, second); the select index is mapped from the saved
+  string in both directions (flag 8). The "Character conversations" row and page are "Who can talk"
+  (flag 7), description unchanged in meaning.
+- **CET hotkey (flag 28):** "Cyberpunk Convai: capture NPC diagnostic" is no longer registered.
+  The `runtime/diagnostic-request.txt` poll in `mod/init.lua` is independent of the hotkey and
+  still runs the capture and writes `runtime/diagnostic-response.txt`. `mod/diagnostics.lua` was
+  not touched. A saved CET binding for the old hotkey simply disappears.
+- **Notice audit:** see the table in the report of that session and the Captain's log entry in
+  TODO.md. Changes: auto-connect notices removed; the phone dismissal confirmation is
+  Developer-only. Already gated and left alone: the support-report "saved" popup (Developer mode
+  only), routine party and driving popups, gameplay-action acknowledgements.

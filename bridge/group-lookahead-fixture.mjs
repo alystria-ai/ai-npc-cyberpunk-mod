@@ -103,7 +103,7 @@ export class GroupScenario {
     const speaker = SPEAKERS[index - 1], generation = ++this.sequence;
     return {requestId: requestId ?? `${Date.now()}-${generation}-${speaker.entity}`, generation, entity: speaker.entity,
       name: speaker.name, bodyType: 'female', profileKey: speaker.key, text: this.text ?? 'What do you think?',
-      followUpQuestions: false, group: {id: this.groupId, index, total: this.speakers,
+      group: {id: this.groupId, index, total: this.speakers,
         audience: SPEAKERS.slice(0, this.speakers).map(item => item.key), heard}};
   }
   async submit(input) {

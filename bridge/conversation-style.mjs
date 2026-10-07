@@ -1,7 +1,3 @@
-// The retired follow-up toggle still travels through older adapters and cached
-// request identities. Parse it strictly, but it no longer changes the prompt.
-export const followUpsEnabled = value => value === true;
-
 // Ordinary turns carry no question rule either way: whether a character asks V
 // anything is left to their personality and the moment. Only turn-order and
 // automatic-event constraints remain, since those turns hand off to someone else.

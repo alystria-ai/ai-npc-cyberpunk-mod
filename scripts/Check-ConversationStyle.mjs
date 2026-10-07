@@ -17,25 +17,23 @@ if (args.some(value => !['--run', ...phases].includes(value))
     || phases.filter(value => args.includes(value)).length > 1) throw Error('Use [--run] [--before|--after|--exceptions].');
 const normal = 'Tell me one thing you like about Night City.';
 const rows = phase === 'before' ? [
-  {profileKey: '8ug8ear', mode: 'on', text: normal, followUpQuestions: true},
-  {profileKey: '8ug8ear', mode: 'on-company', text: 'I am thinking of taking a walk around the neighborhood.', followUpQuestions: true},
-  {profileKey: '8ug8ear', mode: 'off', text: normal, followUpQuestions: false},
+  {profileKey: '8ug8ear', mode: 'on', text: normal},
+  {profileKey: '8ug8ear', mode: 'on-company', text: 'I am thinking of taking a walk around the neighborhood.'},
 ] : phase === 'exceptions' ? [
-  {profileKey: '8ug8ear', mode: 'goodbye', text: 'I need to go now. Talk later.', followUpQuestions: true},
-  {profileKey: '8ug8ear', mode: 'goodbye-short', text: 'See you later. Bye.', followUpQuestions: true},
-  {profileKey: '8ug8ear', mode: 'no-question', text: 'Tell me one thing you like about Night City. No questions back, please.', followUpQuestions: true},
-  {profileKey: '8ug8ear', mode: 'on', text: normal, followUpQuestions: true},
+  {profileKey: '8ug8ear', mode: 'goodbye', text: 'I need to go now. Talk later.'},
+  {profileKey: '8ug8ear', mode: 'goodbye-short', text: 'See you later. Bye.'},
+  {profileKey: '8ug8ear', mode: 'no-question', text: 'Tell me one thing you like about Night City. No questions back, please.'},
+  {profileKey: '8ug8ear', mode: 'on', text: normal},
 ] : [
   ...['8ug8ear', 'judy-alvarez', 'johnny-silverhand'].flatMap(profileKey => [
-    {profileKey, mode: 'on', text: normal, followUpQuestions: true},
-    {profileKey, mode: 'off', text: normal, followUpQuestions: false},
+    {profileKey, mode: 'on', text: normal},
   ]),
-  {profileKey: '8ug8ear', mode: 'group-first', text: normal, followUpQuestions: true,
+  {profileKey: '8ug8ear', mode: 'group-first', text: normal,
     group: {id: 'style-check', index: 1, total: 2, audience: ['8ug8ear', 'judy-alvarez'], heard: []}},
-  {profileKey: '8ug8ear', mode: 'group-last', text: normal, followUpQuestions: true,
+  {profileKey: '8ug8ear', mode: 'group-last', text: normal,
     group: {id: 'style-check', index: 2, total: 2, audience: ['judy-alvarez', '8ug8ear'], heard: []}},
-  {profileKey: '8ug8ear', mode: 'goodbye', text: 'I need to go now. Talk later.', followUpQuestions: true},
-  {profileKey: '8ug8ear', mode: 'no-question', text: 'Tell me one thing you like about Night City. No questions back, please.', followUpQuestions: true},
+  {profileKey: '8ug8ear', mode: 'goodbye', text: 'I need to go now. Talk later.'},
+  {profileKey: '8ug8ear', mode: 'no-question', text: 'Tell me one thing you like about Night City. No questions back, please.'},
 ];
 if (!run) {
   console.log(JSON.stringify({phase, turns: rows.length, profiles: [...new Set(rows.map(x => x.profileKey))],

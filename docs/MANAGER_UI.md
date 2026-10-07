@@ -25,15 +25,21 @@ no longer open it.
   invitation with a message instead.
 - **Model browser:** discovers installed Character records in batches of 48,
   shows at most 18 model results per page and searches the full discovered
-  catalogue by name or record. Use MCM's **Search settings** field. Models without
-  a researched identity join as followers without AI conversations.
+  catalogue by name or record. Use MCM's **Search settings** field. It is visible to
+  every player: it lets you invite any game character model, including characters
+  without conversation support, which join as followers and do not talk.
 - **Settings:** conversation participation, Memory and Relationships submenus,
-  **Auto-connect nearby characters** (off by default, see below), voice playback, subtitles, automatic reactions, interface language and
-  Developer mode. The global voice choices are **OmniVoice 16 steps (default),
-  OmniVoice 32 steps, Pocket TTS and Convai cloud voice**, in that order, with
-  service readiness alongside. If the chosen voice cannot run, the status line
-  names the voice in use (for example "Ready · Using Pocket TTS, OmniVoice 16
-  steps unavailable") and one gameplay notice says so once.
+  **Auto-connect nearby characters** (on by default and silent, see below), eye contact height, head tracking strength
+  (Eyes only / Subtle / Gentle (default) / Strong), **Body gestures (experimental)** (off by default), voice playback,
+  **Keep prepared voices** (on by default), subtitles, automatic reactions, interface language and
+  Developer mode (routine popups, a movement trace file, gesture logs and the setting in support reports; leave it off
+  for normal play). The global voice choices are **Pocket · Performance (the default), OmniVoice · Balanced,
+  OmniVoice · Quality, OmniVoice · High Quality, OmniVoice · Ultra Quality and Convai · Cloud voice**, in that order,
+  with service readiness alongside. Without the optional OmniVoice pack the four OmniVoice entries read
+  "needs Omni pack" and cannot be applied. If the chosen voice cannot run, the status line
+  names the voice in use (for example "Ready · Using Pocket · Performance, OmniVoice · Balanced
+  unavailable") and one gameplay notice says so once. Relationship choices read Auto / Romantic / Ordinary
+  (Auto / Casual / Ordinary for Meredith Stout); the saved values stay `auto`, `on` and `off`.
   MCM owns setting drafts, saving, discarding, defaults and draft guards.
   **Every setting waits for Apply, even under MCM's Auto Apply.** The installed MCM had
   `"autoApply": true` in its own `config.json` (a global player preference we never change):
@@ -74,7 +80,7 @@ render, so it follows drafts appearing or clearing and page changes, and it exis
 non-root page, including the one MCM restores on reopen. Its click arrives through
 `McmUiEmitAction`; it returns to the parent page and is ignored while changes are pending. If the
 button cannot be added, Back is the last row of the page (`inspect().backMode == 'list'`).
-Settings, Relationships and Character conversations start with a status line, the row
+Settings, Relationships and Who can talk start with a status line, the row
 "Changes wait until you choose Apply.", which changes in place to "Change pending. Choose Apply to
 use it, or Revert to discard it." while changes are pending.
 
@@ -91,7 +97,7 @@ Live result: with no changes Esc fires `OnButtonRelease` (`UI_Cancel`, `cancel`,
 
 Every inner page ends with one **Back** action. Characters, Current party,
 Model browser and Settings return to the manager home; Relationships, Memory
-and Character conversations return to Settings. The memory character picker
+and Who can talk return to Settings. The memory character picker
 returns to Memory, and the removed per-copy conversation page no longer exists. Navigation clears the previous page's search.
 The parent Back action remains visible when a search has no matching results.
 **Your group** (the Back action and the companion driver's trip status) appears only
@@ -326,16 +332,15 @@ Their visibility in the running game remains the live acceptance gate.
 
 ## Auto-connect nearby characters
 
-**Settings → Conversations → Auto-connect nearby characters** (default **Off**). The talk key already
+**Settings → Conversations → Auto-connect nearby characters** (default **On**, silent). The talk key already
 works on any NPC within 8 m whose record or name resolves to a profile (`profileIdentity` →
 `characterCatalog.resolve`), so the game's own Judy met in the world can talk. The connection used to
 open only when the chat did (`warmConversation` → `runtime/conversation-prewarm.json`), which costs a wait on
 the first reply.
 
 - **Off:** connect on talk, as before. Starting a text or voice chat with a world character that is not
-  connected yet shows `Preparing connection to Judy… (turn on Auto-connect to skip this wait)`. The hint in
-  brackets appears the first **two** times per game session only; later waits show `Preparing connection to
-  Judy…`. A character already connected (a copy in the party, or one the bridge reports ready in
+  connected yet shows `Preparing connection to Judy…` (there is no hint about the setting any more). With the
+  setting **On** that wait is silent: no connecting or ready notice for a warm-up. A character already connected (a copy in the party, or one the bridge reports ready in
   `runtime/party-connection-state.json`) shows nothing. Group chat shows no wait notice. With a voice chat
   the line is joined to `Connecting microphone - wait for Listening`.
 - **On** (`mod/auto-connect.lua`): a character with a profile that V looks at for 0.6 s (the existing gaze

@@ -67,9 +67,6 @@ function M.begin(context, targetValid)
     if not capture(context) then return false end
     context.journal = M.captureJournal and M.captureJournal()
     context.battle = M.captureBattle and M.captureBattle()
-    if context.followUpQuestions == nil then
-        context.followUpQuestions = type(M.captureFollowUpQuestions) == 'function' and M.captureFollowUpQuestions() == true
-    end
     if not currentOwner() then M.knowledgeOwner = nil; return false end
     -- The old microphone owner has already been cancelled. Capture optional
     -- gameplay capabilities immediately before the actual start publication.

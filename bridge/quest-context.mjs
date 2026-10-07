@@ -69,7 +69,7 @@ const SPOKEN_OUTPUT = 'Speak only your own dialogue. Do not put a speaker name, 
 function contextIdentity(input) {
   try {
     return createHash('sha256').update(JSON.stringify([input.requestId, input.id, input.generation,
-      input.entity, input.name, input.profileKey, input.channel, input.saveIdentity, input.text, input.group, input.followUpQuestions,
+      input.entity, input.name, input.profileKey, input.channel, input.saveIdentity, input.text, input.group,
       input.journal, input.battle, input.loot, input.reaction, input.worldKnowledge, input.journalHistory])).digest('hex');
   } catch { return null; }
 }
