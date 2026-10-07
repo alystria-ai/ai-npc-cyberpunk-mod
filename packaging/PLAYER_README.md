@@ -16,7 +16,7 @@ You do not need to install anything else. The voice service, its voices and mode
 Close the game, then extract each download into your Cyberpunk 2077 folder (the folder that contains `bin`, `archive` and `r6`). Allow folders to merge.
 
 1. **Scripts**: from Nexus Mods, with Vortex or by hand.
-2. **Runtime**: from https://github.com/alystria-ai/cyberpunk-convai-releases/releases. Use the same version number as the Scripts. If it comes in several parts, extract every part.
+2. **Runtime**: from the Releases page of https://github.com/alystria-ai/cyberpunk-convai. Use the same version number as the Scripts. If it comes in several parts, extract every part.
 3. **OmniVoice pack (optional)**: a higher-quality voice for NVIDIA graphics cards with at least 8 GB of video memory and a current driver. Download every part from the same release page and extract them all. Then choose an OmniVoice option in Settings > Voices.
 
 Start the game. The first start after installing takes a little longer while the voice service prepares itself.
@@ -35,6 +35,10 @@ Delete these folders from your Cyberpunk 2077 folder:
 - `red4ext\plugins\CyberpunkConvai`
 - `r6\scripts\CyberpunkConvai` and `r6\audioware\CyberpunkConvai`
 - `archive\pc\mod\convai_facial.archive`, `convai_gestures.archive` and `cyberpunk_convai_ambient_driver_guard.archive`
+
+## Licence
+
+Cyberpunk Convai is released under the Cyberpunk Convai Use License (see `LICENSE.txt`): you may use, modify and share it, including commercially, as long as modified versions that offer AI character conversations keep Convai available as a selectable option. You do not have to use Convai. Bundled components keep their own licences (see `THIRD-PARTY-NOTICES.txt`), and Cyberpunk 2077 and its assets belong to their owners.
 
 ## Help
 

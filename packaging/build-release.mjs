@@ -235,6 +235,7 @@ async function scriptsPackage(source, config) {
   }
   pkg.json(`${mod}/release.json`, {product: config.product, package: 'scripts', version, commit: source.commit});
   pkg.text(`${mod}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
+  pkg.text(`${mod}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
   for (const name of pkg.entries.keys()) {
     if (!/\.(?:lua|reds|json|txt)$/.test(name)) throw Error(`Scripts package must stay text-only: ${name}`);
   }
@@ -254,6 +255,7 @@ async function runtimePackage(source, config, models, key) {
   pkg.file(`${plugin}/${config.layout.pluginDll}`, dll);
   pkg.add(`${plugin}/launcher.ini`, {buffer: launcherIni()});
   pkg.text(`${plugin}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
+  pkg.text(`${plugin}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
 
   // Node.js: the official Windows build, node.exe and its licence only.
   const nodeZip = await download(tool.node.url, resolve(cache, 'downloads', basename(tool.node.url)), tool.node.sha256, log);
@@ -352,9 +354,16 @@ async function runtimePackage(source, config, models, key) {
   await initializeAudioDepot(bank);
   await pkg.tree('r6/audioware/CyberpunkConvai', resolve(bank, 'r6/audioware/CyberpunkConvai'));
 
-  notices.push('Lip-sync pronunciation table: see app/models/lipsync/face-lexicon-NOTICE.txt');
+  notices.push('Convai Web SDK (@convai/web-sdk) - Apache-2.0 (compiled into app/assets/realtime-client.js; licence text in app/licenses/client/)');
+  notices.push('Lip-sync pronunciation table (app/models/lipsync/face-lexicon.txt.gz): CMU Pronouncing Dictionary, BSD-2-Clause, Copyright (c) 1993-2015 Carnegie Mellon University,'
+    + ' plus 6553 game-vocabulary pronunciations generated with espeak-ng (espeak-ng is not shipped); see app/models/lipsync/face-lexicon-NOTICE.txt');
+  notices.push('Pocket voice model (app/models/pocket/): adapted from Kyutai Pocket TTS (kyutai/pocket-tts), weights CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/), code MIT.'
+    + ' Changes: the flow language-model tensors are weights trained for this mod and the Mimi decoder tensors are retrained. Kyutai prohibits voice impersonation or cloning without explicit and lawful consent.');
   notices.push('Pocket voice and lip-sync weights: trained for this mod; free for personal use with the mod.');
+  notices.push('Cyberpunk 2077, its audio and voice performances belong to CD PROJEKT RED and the performers; the reference voice clips (voices/) and game archives (archive/pc/mod/) are not licensed by the Cyberpunk Convai Use License.');
+  notices.push('Cyberpunk Convai itself: Cyberpunk Convai Use License, see LICENSE.txt in the plugin folder.');
   pkg.text(`${app}/licenses/THIRD-PARTY-NOTICES.txt`, ['Cyberpunk Convai runtime - third-party components', '', ...notices.map(line => `- ${line}`), ''].join('\r\n'));
+  pkg.text(`${app}/licenses/THIRD_PARTY_NOTICES.md`, await readFile(resolve(source.root, 'THIRD_PARTY_NOTICES.md'), 'utf8'));
   pkg.json(`${app}/release.json`, {product: config.product, package: 'runtime', version, commit: source.commit,
     node: tool.node.version, python: tool.python.version, browser: `${tool.browser.name} ${tool.browser.version}`,
     pocketTts: tool.pocketTts.revision, pocketModel: pocketConfig.model.sha256, convaiKey: key ? 'package' : 'player'});
@@ -441,6 +450,9 @@ async function omniPackage(source, config, models) {
   }
   notices.push(`OmniVoice model (${model.repository} ${model.revision}) - code Apache-2.0, pretrained weights CC-BY-NC (see app/omni/model/README.md)`);
   notices.push('OmniVoice audio tokenizer - Boson Higgs Audio 2 Community License (app/omni/model/audio_tokenizer/LICENSE)');
+  notices.push(`The OmniVoice weights are non-commercial (CC-BY-NC). VoiceStudio is AGPL-3.0-only: complete source at ${studio.repository} revision ${studio.revision} (app/omni/voicestudio/SOURCE.txt).`);
+  notices.push('Cyberpunk Convai itself: Cyberpunk Convai Use License, see LICENSE.txt in this folder.');
+  pkg.text(`${omni}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
 
   // OmniVoice voice configurations and their reference clips.
   const configs = config.models.groups.find(item => item.target === 'voice-configs/');

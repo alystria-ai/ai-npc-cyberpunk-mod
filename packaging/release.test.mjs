@@ -191,3 +191,13 @@ test('player-facing text never mentions credentials or keys', async () => {
   const readme = await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8');
   assert.doesNotMatch(readme, /\b(?:api[- ]?key|key|token|secret|credential)s?\b/i);
 });
+
+test('the project licence keeps Convai selectable and the notices cover the bundled components', async () => {
+  const licence = await readFile(resolve(project, 'LICENSE'), 'utf8');
+  assert.match(licence, /user-selectable Convai integration/);
+  assert.match(licence, /Copyright \(c\) 2026 Alystria AI/);
+  const notices = await readFile(resolve(project, 'THIRD_PARTY_NOTICES.md'), 'utf8');
+  for (const name of ['AGPL-3.0', 'CC-BY-NC', 'Chrome for Testing', 'Node.js', 'CPython', 'BSD-2-Clause', 'espeak-ng', 'CC-BY-4.0', 'Kyutai']) {
+    assert(notices.includes(name), `THIRD_PARTY_NOTICES.md must mention ${name}`);
+  }
+});

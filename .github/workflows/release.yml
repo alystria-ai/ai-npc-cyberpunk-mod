@@ -4,13 +4,11 @@
 # Secrets (Settings > Secrets and variables > Actions):
 #   HF_TOKEN         read access to the private Hugging Face bucket with the trained models
 #   CONVAI_API_KEY   the Convai key built into the Runtime package
-#   RELEASES_TOKEN   fine-grained token with Contents: read and write on the public releases repository
-# Variable (optional): RELEASES_REPO, the public releases repository (owner/name).
 #
-# Packages are uploaded to a release in the public releases repository (as a draft unless
-# "draft" is turned off), so players can download them while this source repository stays
-# private. The Scripts package is also kept as a workflow artifact for uploading to Nexus Mods.
-# See docs/PACKAGING.md.
+# Packages are uploaded to a release in this same repository with the built-in GITHUB_TOKEN
+# (permission: contents: write), and the release is published immediately. While the repository
+# is private, only collaborators can see it. The Scripts package is also kept as a workflow
+# artifact for uploading to Nexus Mods. See docs/PACKAGING.md.
 name: Release
 
 on:
@@ -24,11 +22,7 @@ on:
         type: boolean
         default: true
       publish:
-        description: Upload the packages to the public releases repository
-        type: boolean
-        default: true
-      draft:
-        description: Keep the public release as a draft until you publish it
+        description: Create the GitHub release and upload the packages to it
         type: boolean
         default: true
   push:
@@ -36,7 +30,7 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -47,7 +41,6 @@ env:
   PYTHON_VERSION: '3.12.10'
   PIP_VERSION: '25.2'
   HF_HUB_VERSION: '1.33.0'
-  RELEASES_REPO: ${{ vars.RELEASES_REPO || 'alystria-ai/cyberpunk-convai-releases' }}
   OUT: C:\cpc\release
   CACHE: C:\cpc\cache
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
@@ -111,26 +104,26 @@ jobs:
             ${{ env.OUT }}\packages\release-manifest.json
           retention-days: 30
 
-      - name: Publish to the public releases repository
+      - name: Publish the GitHub release
         if: github.ref_type == 'tag' || inputs.publish
         shell: pwsh
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           $version = '${{ steps.version.outputs.version }}'
           $tag = "v$version"
-          $createArgs = @('release', 'create', $tag, '--repo', $env:RELEASES_REPO, '--title', "Cyberpunk Convai $version", '--notes-file', $notes)
-          if ('${{ github.ref_type }}' -eq 'tag' -or '${{ inputs.draft }}' -eq 'true') { $createArgs += '--draft' }
           $notes = Join-Path $env:RUNNER_TEMP 'notes.md'
+          # A manual run tags the commit it was started from; a tag run already has its tag.
+          $createArgs = @('release', 'create', $tag, '--repo', $env:GITHUB_REPOSITORY, '--target', $env:GITHUB_SHA, '--title', "Cyberpunk Convai $version", '--notes-file', $notes)
           (Get-Content packaging/PLAYER_README.md -Raw) + "`n## Checksums`n`nSHA-256 values for every file are in the SHA256SUMS files below.`n" | Set-Content $notes -Encoding utf8
           Copy-Item "$env:OUT\packages\SHA256SUMS.txt" "$env:OUT\packages\SHA256SUMS-runtime.txt"
-          gh release view $tag --repo $env:RELEASES_REPO *> $null
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -ne 0) {
             gh @createArgs
-            if ($LASTEXITCODE -ne 0) { throw 'Could not create the public release.' }
+            if ($LASTEXITCODE -ne 0) { throw 'Could not create the release.' }
           }
           $files = Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName
-          gh release upload $tag --repo $env:RELEASES_REPO --clobber @files "$env:OUT\packages\SHA256SUMS-runtime.txt"
+          gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files "$env:OUT\packages\SHA256SUMS-runtime.txt"
           if ($LASTEXITCODE -ne 0) { throw 'Uploading the packages failed.' }
 
   omni:
@@ -165,14 +158,14 @@ jobs:
           Remove-Item -Recurse -Force "$env:OUT\stage" -ErrorAction SilentlyContinue
           Get-PSDrive C | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
 
-      - name: Publish to the public releases repository
+      - name: Add the OmniVoice pack to the release
         if: github.ref_type == 'tag' || inputs.publish
         shell: pwsh
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           $tag = 'v${{ needs.runtime.outputs.version }}'
           Copy-Item "$env:OUT\packages\SHA256SUMS.txt" "$env:OUT\packages\SHA256SUMS-omni.txt"
           $files = Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName
-          gh release upload $tag --repo $env:RELEASES_REPO --clobber @files "$env:OUT\packages\SHA256SUMS-omni.txt"
+          gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files "$env:OUT\packages\SHA256SUMS-omni.txt"
           if ($LASTEXITCODE -ne 0) { throw 'Uploading the OmniVoice pack failed.' }
