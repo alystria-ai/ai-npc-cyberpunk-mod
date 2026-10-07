@@ -1,12 +1,14 @@
 import {open} from 'node:fs/promises';
 import {normalizeMemoryText} from './convai-memory.mjs';
+import {isAmbientProfile} from './protocol.mjs';
 
 const MAX_QUALIFICATION_BYTES = 128 * 1024;
 const token = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,255}$/.test(value);
 const uuid = value => typeof value === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value);
 const PROVIDER_POLICY = 'explicit-rest-anonymous-live-v1';
 const profile = value => typeof value === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(value);
-const ambient = new Set(['resident-male', 'resident-female']);
+// Residents and generic NPC archetypes (npc-*) share one predicate (bridge/protocol.mjs).
+const ambient = {has: isAmbientProfile};
 const copy = value => structuredClone(value);
 const codeOf = error => typeof error?.code === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(error.code) ? error.code : 'SYNC_OPERATION_FAILED';
 const failed = code => Object.assign(new Error(`Quest memory synchronization: ${code}`), {code});

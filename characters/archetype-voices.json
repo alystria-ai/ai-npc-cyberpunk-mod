@@ -1,0 +1,723 @@
+{
+  "version": 1,
+  "builtAt": "2026-10-07T20:45:34Z",
+  "rules": {
+    "engineCapsSeconds": {
+      "omni-short": 10.0,
+      "omni-long": 18.0,
+      "pocket": 20.0
+    },
+    "gapSeconds": 0.4,
+    "clipSeconds": [
+      1.5,
+      9.0
+    ],
+    "maxPeak": 0.99,
+    "loudnessWindowDb": {
+      "above": 4.0,
+      "below": 8.0
+    },
+    "minWords": 4,
+    "maxWords": 28,
+    "linesPerBatch": 40,
+    "oneVoicesetPerArchetype": true,
+    "format": "24 kHz mono 16-bit PCM, whole clips, no EQ/denoise/gain/trim",
+    "source": "generic NPC voicesets of the English voice archives; no dialogue text is stored here"
+  },
+  "voices": {
+    "npc-maelstrom-male": {
+      "status": "ready",
+      "voiceset": "gang_mls_m_02_enus_40",
+      "clips": [
+        "1730081817145741312",
+        "1805717135029919752",
+        "1844456393079017472",
+        "1801606125864050688",
+        "1720327385940070400",
+        "1977780239453954048"
+      ],
+      "seconds": {
+        "omniShort": 9.96,
+        "omniLong": 17.74,
+        "pocket": 19.92
+      }
+    },
+    "npc-maelstrom-female": {
+      "status": "ready",
+      "voiceset": "gang_mls_f_01_enus_30",
+      "clips": [
+        "1822935073178640388",
+        "1822935073950392324",
+        "2170957432258019328",
+        "2172014344705654784",
+        "1822935073262526468"
+      ],
+      "seconds": {
+        "omniShort": 4.98,
+        "omniLong": 16.9,
+        "pocket": 19.82
+      }
+    },
+    "npc-tyger-claws-male": {
+      "status": "ready",
+      "voiceset": "gang_tcl_m_12_jap_40",
+      "clips": [
+        "1719969910040662016",
+        "1806851570397732864",
+        "1806824014894194688",
+        "1890939495988813824",
+        "1656633501370589184",
+        "1167502628989845504"
+      ],
+      "seconds": {
+        "omniShort": 5.76,
+        "omniLong": 17.83,
+        "pocket": 19.45
+      }
+    },
+    "npc-tyger-claws-female": {
+      "status": "ready",
+      "voiceset": "gang_tcl_f_02_jap_25",
+      "clips": [
+        "1876517393079476228",
+        "1876517394253881348",
+        "1876525237501698048",
+        "1917332994835976220",
+        "1763597470908432384",
+        "1876517393012367364"
+      ],
+      "seconds": {
+        "omniShort": 5.01,
+        "omniLong": 16.38,
+        "pocket": 19.6
+      }
+    },
+    "npc-valentinos-male": {
+      "status": "ready",
+      "voiceset": "gang_val_m_13_mex_40",
+      "clips": [
+        "1805603863909752836",
+        "1705377489126072320",
+        "1803978363759636480",
+        "1913961881966792704"
+      ],
+      "seconds": {
+        "omniShort": 7.8,
+        "omniLong": 16.52,
+        "pocket": 16.52
+      }
+    },
+    "npc-valentinos-female": {
+      "status": "ready",
+      "voiceset": "gang_val_f_02_mex_25",
+      "clips": [
+        "1806585775725862916",
+        "1862015399393808384",
+        "1806585776279511044",
+        "1751501175633842176",
+        "1751531523889532928",
+        "1751506725251682304"
+      ],
+      "seconds": {
+        "omniShort": 4.19,
+        "omniLong": 17.72,
+        "pocket": 19.83
+      }
+    },
+    "npc-sixth-street-male": {
+      "status": "ready",
+      "voiceset": "gang_6th_m_10_enus_40",
+      "clips": [
+        "1789965629799108612",
+        "1902280437531987968",
+        "1548862505315491840",
+        "1853003670409760768",
+        "1789965629547450368"
+      ],
+      "seconds": {
+        "omniShort": 6.1,
+        "omniLong": 15.46,
+        "pocket": 19.27
+      }
+    },
+    "npc-sixth-street-female": {
+      "status": "ready",
+      "voiceset": "gang_6th_f_03_enus_30",
+      "clips": [
+        "1925414102636294144",
+        "1789974754390020100",
+        "1789974755497316356",
+        "1789974755564425220",
+        "1789974754037698564"
+      ],
+      "seconds": {
+        "omniShort": 9.07,
+        "omniLong": 16.22,
+        "pocket": 18.39
+      }
+    },
+    "npc-animals-male": {
+      "status": "ready",
+      "voiceset": "gang_ani_m_02_enus_40",
+      "clips": [
+        "1935856110292750336",
+        "1714196674373816320",
+        "1924184327453986816",
+        "1609553811866980352",
+        "1771898546821632000",
+        "1703728653948440576"
+      ],
+      "seconds": {
+        "omniShort": 9.5,
+        "omniLong": 17.98,
+        "pocket": 19.97
+      }
+    },
+    "npc-animals-female": {
+      "status": "ready",
+      "voiceset": "gang_ani_f_01_enus_30",
+      "clips": [
+        "2309881230246240256",
+        "1627465537138561024",
+        "1940468366752571392",
+        "1712569812856893448",
+        "1714011396111667200"
+      ],
+      "seconds": {
+        "omniShort": 9.74,
+        "omniLong": 17.19,
+        "pocket": 19.83
+      }
+    },
+    "npc-voodoo-boys-male": {
+      "status": "ready",
+      "voiceset": "gang_vdb_m_10_car_20",
+      "clips": [
+        "1562159252455624704",
+        "1562154694102814720",
+        "1590804374063747072",
+        "1966412078938607616"
+      ],
+      "seconds": {
+        "omniShort": 9.75,
+        "omniLong": 15.35,
+        "pocket": 19.76
+      }
+    },
+    "npc-voodoo-boys-female": {
+      "status": "ready",
+      "voiceset": "civ_mid_f_71_car_25",
+      "clips": [
+        "1832749029860069380",
+        "3297178993144086528",
+        "3546551923510239232",
+        "1954568576366059524",
+        "3009711211556020224"
+      ],
+      "seconds": {
+        "omniShort": 5.03,
+        "omniLong": 15.42,
+        "pocket": 19.3
+      }
+    },
+    "npc-scavengers-male": {
+      "status": "ready",
+      "voiceset": "gang_scv_m_08_rus_30",
+      "clips": [
+        "1897984687077974020",
+        "1854693778175348736",
+        "1854562672285372416",
+        "1897993511558045696",
+        "2222884428949569536"
+      ],
+      "seconds": {
+        "omniShort": 9.76,
+        "omniLong": 17.86,
+        "pocket": 19.91
+      }
+    },
+    "npc-scavengers-female": {
+      "status": "ready",
+      "voiceset": "gang_scv_f_01_rus_25",
+      "clips": [
+        "3292525370209116160",
+        "3274227718710284288",
+        "1636331862939910144",
+        "3375177459482054656",
+        "1898279628605874176"
+      ],
+      "seconds": {
+        "omniShort": 9.98,
+        "omniLong": 17.43,
+        "pocket": 19.44
+      }
+    },
+    "npc-wraiths-male": {
+      "status": "ready",
+      "voiceset": "gang_wrt_m_03_enus_30",
+      "clips": [
+        "1825835016071536644",
+        "2276544313377857548",
+        "2276543926663028760",
+        "2276543686883057680",
+        "1825835015886987268",
+        "2211102282144215040"
+      ],
+      "seconds": {
+        "omniShort": 4.05,
+        "omniLong": 17.42,
+        "pocket": 18.86
+      }
+    },
+    "npc-wraiths-female": {
+      "status": "ready",
+      "voiceset": "gang_wrt_f_04_arb_25",
+      "clips": [
+        "2189692490727776256",
+        "2189731502939136000",
+        "2276543156219715584",
+        "2276543511947026440",
+        "1722724943924191232"
+      ],
+      "seconds": {
+        "omniShort": 4.39,
+        "omniLong": 17.93,
+        "pocket": 19.61
+      }
+    },
+    "npc-mox-male": {
+      "status": "ready",
+      "voiceset": "gang_liz_m_03_afam_30",
+      "clips": [
+        "1896687755751710724",
+        "1896687755651047428",
+        "1896707080604737536",
+        "1896687755466498052",
+        "1896687755449720836",
+        "1896687755399389188"
+      ],
+      "seconds": {
+        "omniShort": 4.6,
+        "omniLong": 17.78,
+        "pocket": 19.56
+      }
+    },
+    "npc-mox-female": {
+      "status": "ready",
+      "voiceset": "gang_liz_f_01_enus_25",
+      "clips": [
+        "1689581513534775296",
+        "1822649938973679620",
+        "1822649939862872068",
+        "1273338647704469504",
+        "1602684391126687744"
+      ],
+      "seconds": {
+        "omniShort": 4.02,
+        "omniLong": 17.61,
+        "pocket": 19.79
+      }
+    },
+    "npc-aldecaldos-male": {
+      "status": "ready",
+      "voiceset": "gang_ald_m_02_arb_40",
+      "clips": [
+        "1967776311715581952",
+        "2247508754209894400",
+        "2178270466683510784",
+        "1967669232594079748"
+      ],
+      "seconds": {
+        "omniShort": 7.52,
+        "omniLong": 16.78,
+        "pocket": 16.78
+      }
+    },
+    "npc-aldecaldos-female": {
+      "status": "ready",
+      "voiceset": "gang_ald_f_03_enus_30",
+      "clips": [
+        "1975121119063855104",
+        "1944521994287489028",
+        "2188259241702940672",
+        "2218662293661270016",
+        "2227249210888634368"
+      ],
+      "seconds": {
+        "omniShort": 4.06,
+        "omniLong": 17.83,
+        "pocket": 19.52
+      }
+    },
+    "npc-barghest-male": {
+      "status": "ready",
+      "voiceset": "gang_kml_m_07_afam_30",
+      "clips": [
+        "3214592085539098624",
+        "3489883390785511424",
+        "3305956635507597312",
+        "3305958081653284864",
+        "3489885042988965892"
+      ],
+      "seconds": {
+        "omniShort": 9.67,
+        "omniLong": 15.67,
+        "pocket": 19.27
+      }
+    },
+    "npc-barghest-female": {
+      "status": "ready",
+      "voiceset": "gang_kml_f_01_enus_30",
+      "clips": [
+        "3347750215128276992",
+        "3369589231010426880",
+        "3318735535992725504",
+        "3588149826364477440",
+        "3324355560527093760",
+        "3318736268368535552"
+      ],
+      "seconds": {
+        "omniShort": 4.35,
+        "omniLong": 17.48,
+        "pocket": 19.59
+      }
+    },
+    "npc-ncpd-male": {
+      "status": "ready",
+      "voiceset": "ncpd_mid_m_04_jap_40",
+      "clips": [
+        "1735739653548003328",
+        "1700982118597382144",
+        "1740348082186997760",
+        "1740237178850103296"
+      ],
+      "seconds": {
+        "omniShort": 4.85,
+        "omniLong": 16.9,
+        "pocket": 19.54
+      }
+    },
+    "npc-ncpd-female": {
+      "status": "ready",
+      "voiceset": "ncpd_mid_f_03_afam_25",
+      "clips": [
+        "1612765491155537920",
+        "1976538829537251332",
+        "1976538829235261444",
+        "1643563422775087104",
+        "1976538829134598148",
+        "1612842697303101440"
+      ],
+      "seconds": {
+        "omniShort": 9.82,
+        "omniLong": 17.12,
+        "pocket": 19.99
+      }
+    },
+    "npc-corpo-security-male": {
+      "status": "ready",
+      "voiceset": "sec_mid_m_09_enus_40",
+      "clips": [
+        "1832938095933419520",
+        "1699951574917681152",
+        "1923069242860236800",
+        "2177951371297484800"
+      ],
+      "seconds": {
+        "omniShort": 7.8,
+        "omniLong": 17.64,
+        "pocket": 17.64
+      }
+    },
+    "npc-corpo-security-female": {
+      "status": "ready",
+      "voiceset": "sec_high_f_01_enus_30",
+      "clips": [
+        "1812400529293926404",
+        "1659177849091174400",
+        "2229135248905834496",
+        "1812480592651706368",
+        "1905465107513327616"
+      ],
+      "seconds": {
+        "omniShort": 5.27,
+        "omniLong": 16.05,
+        "pocket": 20.0
+      }
+    },
+    "npc-ripperdoc-male": {
+      "status": "ready",
+      "voiceset": "civ_mid_m_15_enus_25",
+      "clips": [
+        "3192624310379692032",
+        "3294303901404274688",
+        "3220455392690933760",
+        "3217725088926633984"
+      ],
+      "seconds": {
+        "omniShort": 4.26,
+        "omniLong": 17.93,
+        "pocket": 17.93
+      }
+    },
+    "npc-ripperdoc-female": {
+      "status": "ready",
+      "voiceset": "civ_high_f_02_enus_30",
+      "clips": [
+        "1756171866316083200",
+        "1670866674812731392",
+        "3359292448245633024",
+        "1966418178060541952"
+      ],
+      "seconds": {
+        "omniShort": 8.99,
+        "omniLong": 17.7,
+        "pocket": 17.7
+      }
+    },
+    "npc-weapons-dealer-male": {
+      "status": "ready",
+      "voiceset": "civ_low_m_105_nat_50",
+      "clips": [
+        "1963287909145550848",
+        "1729811608318373888",
+        "2028759379389169664",
+        "1728528223235076124"
+      ],
+      "seconds": {
+        "omniShort": 9.62,
+        "omniLong": 17.15,
+        "pocket": 19.87
+      }
+    },
+    "npc-weapons-dealer-female": {
+      "status": "ready",
+      "voiceset": "civ_mid_f_62_jap_40",
+      "clips": [
+        "3221530907382771728",
+        "3221530857789321232",
+        "3221530881763962904",
+        "3221530865087410196"
+      ],
+      "seconds": {
+        "omniShort": 9.08,
+        "omniLong": 17.73,
+        "pocket": 17.73
+      }
+    },
+    "npc-food-vendor-male": {
+      "status": "ready",
+      "voiceset": "civ_cbz_m_05_mex_30",
+      "clips": [
+        "3236120448299159552",
+        "3265260177938882560",
+        "3582662048067457024",
+        "3317552698795331584",
+        "3304312363297447936"
+      ],
+      "seconds": {
+        "omniShort": 4.94,
+        "omniLong": 16.95,
+        "pocket": 18.38
+      }
+    },
+    "npc-food-vendor-female": {
+      "status": "ready",
+      "voiceset": "civ_high_f_44_engb_50",
+      "clips": [
+        "1986542014458306560",
+        "1986539748963721216",
+        "1979365591839653888",
+        "1979279357855383552",
+        "1979342116487938048"
+      ],
+      "seconds": {
+        "omniShort": 7.48,
+        "omniLong": 14.94,
+        "pocket": 19.76
+      }
+    },
+    "npc-bartender-male": {
+      "status": "ready",
+      "voiceset": "civ_low_m_05_enus_40",
+      "clips": [
+        "1743202766943903744",
+        "1831630867118186496",
+        "3347830476236038144",
+        "1922701010485432320"
+      ],
+      "seconds": {
+        "omniShort": 9.76,
+        "omniLong": 17.45,
+        "pocket": 17.45
+      }
+    },
+    "npc-bartender-female": {
+      "status": "ready",
+      "voiceset": "civ_low_f_45_afam_30",
+      "clips": [
+        "2228826334876241920",
+        "1963524457871687680",
+        "2169293528373710848",
+        "2189482860722479104"
+      ],
+      "seconds": {
+        "omniShort": 7.34,
+        "omniLong": 16.84,
+        "pocket": 16.84
+      }
+    },
+    "npc-clothing-vendor-male": {
+      "status": "ready",
+      "voiceset": "civ_high_m_07_enus_40",
+      "clips": [
+        "1730089146722955264",
+        "1694147336263888896",
+        "1873364335832199168",
+        "1795382939944087552"
+      ],
+      "seconds": {
+        "omniShort": 8.37,
+        "omniLong": 16.97,
+        "pocket": 16.97
+      }
+    },
+    "npc-clothing-vendor-female": {
+      "status": "ready",
+      "voiceset": "civ_high_f_01_enus_25",
+      "clips": [
+        "1833077473474756608",
+        "1692466260461969408",
+        "3070866844421386240",
+        "1831359764638711808"
+      ],
+      "seconds": {
+        "omniShort": 8.73,
+        "omniLong": 15.78,
+        "pocket": 15.78
+      }
+    },
+    "npc-corpo-resident-male": {
+      "status": "ready",
+      "voiceset": "civ_high_m_02_enus_30",
+      "clips": [
+        "1861660028634796032",
+        "1806739150014636032",
+        "1863495466248097792",
+        "1711094993326231552"
+      ],
+      "seconds": {
+        "omniShort": 8.22,
+        "omniLong": 15.88,
+        "pocket": 15.88
+      }
+    },
+    "npc-corpo-resident-female": {
+      "status": "ready",
+      "voiceset": "civ_high_f_04_enus_50",
+      "clips": [
+        "1804076161638879236",
+        "1843188214396751872",
+        "3576931206534553616",
+        "3730488495807307776",
+        "1809562891425992704",
+        "3489878520946909200"
+      ],
+      "seconds": {
+        "omniShort": 9.4,
+        "omniLong": 17.88,
+        "pocket": 18.97
+      }
+    },
+    "npc-street-resident-male": {
+      "status": "ready",
+      "voiceset": "civ_low_m_41_enus_40",
+      "clips": [
+        "1722795905808003072",
+        "2169386492236189696",
+        "1659285692616679424",
+        "1831526983235674112"
+      ],
+      "seconds": {
+        "omniShort": 8.76,
+        "omniLong": 17.52,
+        "pocket": 17.52
+      }
+    },
+    "npc-street-resident-female": {
+      "status": "ready",
+      "voiceset": "civ_low_f_08_enus_20",
+      "clips": [
+        "1834589745467486208",
+        "2189535832970059776",
+        "2189789918302789632",
+        "2189717470292197376"
+      ],
+      "seconds": {
+        "omniShort": 7.12,
+        "omniLong": 15.75,
+        "pocket": 19.88
+      }
+    },
+    "npc-nomad-resident-male": {
+      "status": "ready",
+      "voiceset": "civ_low_m_09_enus_25",
+      "clips": [
+        "1834594405574111232",
+        "1608190737223950336",
+        "3231661305175433252",
+        "1344492501838336000"
+      ],
+      "seconds": {
+        "omniShort": 6.94,
+        "omniLong": 17.66,
+        "pocket": 17.66
+      }
+    },
+    "npc-nomad-resident-female": {
+      "status": "ready",
+      "voiceset": "civ_low_f_123_arb_40",
+      "clips": [
+        "2182437598520664064",
+        "1811507218289811456",
+        "2221567679705485312",
+        "1811440619100856320"
+      ],
+      "seconds": {
+        "omniShort": 7.44,
+        "omniLong": 16.79,
+        "pocket": 16.79
+      }
+    },
+    "npc-homeless-male": {
+      "status": "ready",
+      "voiceset": "civ_hmls_m_02_afam_30",
+      "clips": [
+        "1802405955932643328",
+        "2197005845561827328",
+        "1811399193838628864",
+        "2178092036442013696",
+        "1811406095700078592"
+      ],
+      "seconds": {
+        "omniShort": 5.05,
+        "omniLong": 16.41,
+        "pocket": 19.66
+      }
+    },
+    "npc-homeless-female": {
+      "status": "ready",
+      "voiceset": "civ_hmls_f_02_afam_30",
+      "clips": [
+        "1953249202543828996",
+        "1953249202493497348",
+        "1783754628670443532"
+      ],
+      "seconds": {
+        "omniShort": 9.97,
+        "omniLong": 12.12,
+        "pocket": 12.12
+      }
+    }
+  }
+}

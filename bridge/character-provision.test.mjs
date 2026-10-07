@@ -206,3 +206,40 @@ globalThis.fetch=async(url,options)=>{
     await rm(root, {recursive: true, force: true});
   }
 });
+
+// Generic NPC archetypes (docs/NPC_ARCHETYPES.md): the builder keeps the three Convai fields and marker conventions.
+test('archetype profiles build with markers, knowledge boundaries and plain samples, and the provisioner plans them', async () => {
+  const build = await import('../scripts/Build-ArchetypeProfiles.mjs');
+  const {errors, profiles} = await build.buildArchetypes();
+  assert.deepEqual(errors, []);
+  assert.equal(profiles.length, 44);
+  for (const row of profiles) {
+    assert.match(row.key, build.ARCHETYPE_KEY);
+    assert(row.backstory.endsWith(build.ownershipMarker(row.key)), row.key);
+    assert.match(row.backstory, /You do not know V's story/);
+    assert.match(row.backstory, /never claim to sell, give, buy/);
+    assert.equal(row.kind, 'archetype'); assert.deepEqual(row.records, []);
+    const payload = characterPayload(row);
+    assert.equal(payload.charName, row.name);
+    assert(!/(^|\n)[^:\n]{1,40}:\s/.test(payload.speaking_style_sample_dialogues), row.key);
+  }
+  const committed = JSON.parse(await readFile(new URL('../characters/archetype-roster.json', import.meta.url), 'utf8'));
+  assert.deepEqual(committed, JSON.parse(JSON.stringify(profiles)), 'run node scripts/Build-ArchetypeProfiles.mjs');
+  const catalog = JSON.parse(await readFile(new URL('../characters/archetypes.json', import.meta.url), 'utf8'));
+  assert.deepEqual(build.validateCatalog(catalog), []);
+  const broken = JSON.parse(JSON.stringify(catalog));
+  broken.archetypes[0].key = 'npc-maelstrom-woman'; broken.archetypes[1].gender = 'MALE';
+  assert(build.validateCatalog(broken).length >= 2);
+  const dossier = JSON.parse(await readFile(new URL('../characters/archetype-profiles/maelstrom.json', import.meta.url), 'utf8'));
+  assert.deepEqual(build.validateDossier(dossier, 'maelstrom', 'Maelstrom ganger'), []);
+  assert(build.validateDossier({...dossier, samples: [...dossier.samples.slice(1), 'Ganger: you again?']}, 'maelstrom', 'Maelstrom ganger').length);
+  assert(build.validateDossier({...dossier, background: [...dossier.background, 'You carry the Relic.']}, 'maelstrom', 'Maelstrom ganger').length);
+  const run = promisify(execFile);
+  const projectRoot = (await import('node:url')).fileURLToPath(new URL('..', import.meta.url));
+  const {stdout} = await run(process.execPath, ['scripts/Provision-Characters.mjs', '--roster', 'archetypes', '--only', 'npc-ncpd-male'],
+    {cwd: projectRoot});
+  const plan = JSON.parse(stdout);
+  assert.equal(plan.mode, 'plan'); assert.deepEqual(plan.characters.map(row => row.key), ['npc-ncpd-male']);
+  await assert.rejects(run(process.execPath, ['scripts/Provision-Characters.mjs', '--roster', 'everyone'],
+    {cwd: projectRoot}));
+});

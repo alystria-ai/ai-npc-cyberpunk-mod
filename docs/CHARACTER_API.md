@@ -82,6 +82,11 @@ node scripts/Provision-Characters.mjs --apply --existing-style-only
 ```
 
 Both entry points plan by default; `--apply` or `-Apply` performs remote writes.
+
+Generic NPC archetypes (docs/NPC_ARCHETYPES.md) use the same implementation with their own roster:
+`node scripts/Build-ArchetypeProfiles.mjs`, then
+`node scripts/Provision-Characters.mjs --roster archetypes [--only npc-...] --apply`. Their IDs share
+`runtime/characters.json` under `npc-*` keys; `characters/roster.json` stays the 79 named and ambient profiles.
 The PowerShell script delegates to the Node implementation so their payloads,
 ownership checks and readback cannot drift apart.
 

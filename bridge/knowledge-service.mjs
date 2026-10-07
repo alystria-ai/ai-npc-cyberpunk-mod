@@ -4,6 +4,7 @@ import {dirname, resolve} from 'node:path';
 import {setTimeout as sleep} from 'node:timers/promises';
 import {QuestMemoryLedger} from './quest-memory.mjs';
 import {parseWorldSnapshot, resolveKnowledge, validateKnowledgePack} from './world-knowledge.mjs';
+import {isAmbientProfile} from './protocol.mjs';
 
 const MAX_BYTES = 256 * 1024;
 const FACT_STORAGE = 'quest-facts-v1', MAX_FACT_COMMIT = 1073741823;
@@ -14,7 +15,8 @@ const clone = value => structuredClone(value);
 const token = value => typeof value === 'string' && /^[a-f0-9]{32}$/.test(value) && !/^0+$/.test(value);
 const integer = value => Number.isInteger(value) && value >= 0 && value <= 2147483647;
 const opaque = () => randomBytes(16).toString('hex');
-const AMBIENT = new Set(['resident-male', 'resident-female']);
+// Residents and generic NPC archetypes (npc-*) share one predicate (bridge/protocol.mjs).
+const AMBIENT = {has: isAmbientProfile};
 const ACTIVITY_KINDS = new Set(['submitted-input', 'generated-reply', 'delivered-reply', 'cancelled-turn']);
 const RETAINED_TEXT_CHARS = 1200;
 const MAX_ACTIVITY_TEXT_CHARS = 16000;

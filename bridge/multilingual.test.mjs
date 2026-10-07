@@ -315,10 +315,12 @@ test('the installed twin map covers every profiled character and romantic profil
   const ids = read('characters.json'), relationship = read('relationship-profiles.json');
   const {twins: loaded, skipped} = multilingualTwins(read('multilingual-profiles.json'), {ordinaryIds: ids, variants: relationship});
   assert.deepEqual(skipped, []);
-  for (const key of Object.keys(ids)) assert.ok(loaded[key], key);
+  // Generic NPC archetypes (npc-*) have no twins yet: they stay English-only (docs/NPC_ARCHETYPES.md).
+  const twinned = Object.keys(ids).filter(key => !key.startsWith('npc-'));
+  for (const key of twinned) assert.ok(loaded[key], key);
   for (const key of Object.keys(relationship.characters)) assert.ok(loaded[key + '-romantic'], key + '-romantic');
   const routes = new RelationshipRouting({ordinaryIds: ids, variants: relationship, multilingual: loaded});
-  for (const key of Object.keys(ids)) assert.equal(routes.providerFamilies[key + '-multilingual'], key);
+  for (const key of twinned) assert.equal(routes.providerFamilies[key + '-multilingual'], key);
 });
 
 // ---- The bridge wiring ---------------------------------------------------------------------------------------

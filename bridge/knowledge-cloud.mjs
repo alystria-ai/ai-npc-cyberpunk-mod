@@ -1,10 +1,12 @@
 import {isDeepStrictEqual} from 'node:util';
 import {ConvaiMemoryAdapter} from './convai-memory.mjs';
 import {QuestMemorySync, readMemoryQualification} from './quest-memory-sync.mjs';
+import {isAmbientProfile} from './protocol.mjs';
 
 const API = 'https://api.convai.com';
 const CORE = new Set(['/character/list','/character/get']);
-const AMBIENT = new Set(['resident-male','resident-female']);
+// Residents and generic NPC archetypes (npc-*) share one predicate (bridge/protocol.mjs).
+const AMBIENT = {has: isAmbientProfile};
 const token = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,255}$/.test(value);
 const profile = value => typeof value === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(value);
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value);

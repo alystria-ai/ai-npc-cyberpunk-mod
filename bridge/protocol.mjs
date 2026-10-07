@@ -14,7 +14,16 @@ export function profileFor(input, roster) {
   return roster.find(profile => profile.key === input.profileKey);
 }
 
+// A game request, plus the optional archetype facts of an unnamed NPC (docs/NPC_ARCHETYPES.md).
 export function parseInput(raw) {
+  const input = parseRequest(raw);
+  if (!input) return input;
+  let archetype;
+  try { archetype = parseArchetype(JSON.parse(raw)?.archetype); } catch { archetype = null; }
+  return archetype ? {...input, archetype} : input;
+}
+
+function parseRequest(raw) {
   let value;
   try { value = JSON.parse(raw); } catch { return null; }
   if (!value || typeof value !== 'object') return null;
@@ -50,4 +59,55 @@ export function parseInput(raw) {
     ...(followUnavailable ? {followUnavailable} : {}),
     ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {}),
     ...(gameDialogue ? {gameDialogue} : {})};
+}
+
+// Generic NPC profiles: the two ambient residents and every archetype (npc-*). They have no individual identity:
+// sessions are partitioned by the actor entity, save-bound memory and quest knowledge are never attached.
+export function isAmbientProfile(key) {
+  return key === 'resident-male' || key === 'resident-female' || (typeof key === 'string' && /^npc-[a-z0-9-]+$/.test(key));
+}
+
+// The archetype facts the adapter sends: fixed vocabulary only (TweakDB enum names, the catalog base and title).
+const ARCHETYPE_FIELDS = ['base', 'category', 'title', 'affiliation', 'vendorType', 'district', 'area'];
+const ARCHETYPE_VALUE = /^[A-Za-z0-9][A-Za-z0-9 _.'-]{0,63}$/;
+export function parseArchetype(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const result = {};
+  for (const field of ARCHETYPE_FIELDS) {
+    if (typeof value[field] === 'string' && ARCHETYPE_VALUE.test(value[field])) result[field] = value[field];
+  }
+  return Object.keys(result).length ? result : null;
+}
+
+const AFFILIATION_NAMES = {TygerClaws: 'Tyger Claws', SixthStreet: '6th Street', TheMox: 'the Mox', KangTao: 'Kang Tao',
+  VoodooBoys: 'Voodoo Boys', NCPD: 'NCPD', MaelstromAndroid: 'Maelstrom', ScavengersAndroid: 'Scavengers',
+  SixthStreetAndroid: '6th Street', WraithsAndroid: 'Wraiths', UnaffiliatedCorpo: 'a private security firm'};
+const VENDOR_NAMES = {RipperDoc: 'a ripperdoc clinic', Gunsmith: 'a weapons shop', Food: 'a food and drink counter',
+  GrilledFood: 'a street grill', PackedFood: 'a packaged food stall', Drinks: 'a drinks stand', Kiosk: 'a kiosk',
+  Market: 'a market stall', Clothing: 'a clothing shop', Clothes: 'a clothes stall', Armorsmith: 'an armored clothing shop'};
+// "SantoDomingo" -> "Santo Domingo", "Badlands_RockyRidge" -> "Rocky Ridge".
+export function placeName(value) {
+  if (typeof value !== 'string' || !value) return null;
+  const last = value.split('_').filter(Boolean).pop() ?? value;
+  return last.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').trim() || null;
+}
+
+// Per-turn context for an archetype or resident: what kind of person this is and where. Empty for named characters.
+export function archetypeContext(input) {
+  if (!input || !isAmbientProfile(input.profileKey)) return '';
+  const facts = input.archetype ?? {};
+  const lines = [];
+  const label = typeof input.name === 'string' && input.name.trim() ? input.name.trim().slice(0, 60) : null;
+  if (facts.title) lines.push(`You are an unnamed ${facts.title}${label ? `; the game labels you "${label}"` : ''}.`);
+  else if (label) lines.push(`The game labels you "${label}". You are an ordinary person, not a story character.`);
+  if (facts.category === 'corpo-security' && facts.affiliation) {
+    lines.push(`Your employer: ${AFFILIATION_NAMES[facts.affiliation] ?? placeName(facts.affiliation)}.`);
+  }
+  if (facts.category === 'vendor' && facts.vendorType && VENDOR_NAMES[facts.vendorType]) {
+    lines.push(`You work at ${VENDOR_NAMES[facts.vendorType]} here.`);
+  }
+  const district = placeName(facts.district), area = placeName(facts.area);
+  if (district) lines.push(`Where you are now: ${area && area !== district ? `${area}, ` : ''}${district}. Let the place flavor what you say, without inventing a specific address.`);
+  if (!lines.length) return '';
+  return ['CURRENT PERSON (from the game, this conversation only)', ...lines].join('\n');
 }

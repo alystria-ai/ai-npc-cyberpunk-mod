@@ -32,7 +32,7 @@ local function startRound(id, participants, text)
     local frozen = {}
     for _, person in ipairs(participants) do
         local row = {}
-        for _, key in ipairs({'entity', 'profileKey', 'name', 'bodyType', 'npc'}) do row[key] = person[key] end
+        for _, key in ipairs({'entity', 'profileKey', 'name', 'bodyType', 'npc', 'archetype'}) do row[key] = person[key] end
         frozen[#frozen + 1] = row
     end
     M.round = {id = id, participants = frozen, text = text, index = 0, stage = 'next', heard = {},
@@ -64,7 +64,7 @@ local function makeInput(r, index, generation, now, live, includePlaying)
     if includePlaying and r.reply then addHeard(r.reply) end
     local input = {requestId = tostring(now) .. '-' .. tostring(generation) .. '-' .. speaker.entity,
         generation = generation, entity = speaker.entity, name = speaker.name, bodyType = speaker.bodyType,
-        profileKey = speaker.profileKey, text = r.text, sentAt = now, journal = r.journal, battle = r.battle,
+        profileKey = speaker.profileKey, archetype = speaker.archetype, text = r.text, sentAt = now, journal = r.journal, battle = r.battle,
         gameDialogue = r.gameDialogue,
         group = {id = r.id, index = index, total = total, audience = audience, heard = heard}}
     return input

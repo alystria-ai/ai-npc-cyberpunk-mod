@@ -21,6 +21,8 @@
     "build:profiles": "node scripts/Build-CharacterProfiles.mjs",
     "profiles:plan": "node scripts/Provision-Characters.mjs",
     "test:profiles": "node --test bridge/character-provision.test.mjs bridge/multilingual-profiles.test.mjs",
+    "build:archetypes": "node scripts/Build-ArchetypeProfiles.mjs",
+    "test:archetypes": "node scripts/Build-ArchetypeProfiles.mjs --check && node --test bridge/character-catalog.test.mjs bridge/character-provision.test.mjs bridge/protocol.test.mjs bridge/player-knowledge.test.mjs",
     "test:memory": "node --test bridge/player-memory.test.mjs bridge/player-memory-api.test.mjs bridge/player-memory-control.test.mjs bridge/player-knowledge.test.mjs bridge/player-phone-knowledge.test.mjs bridge/bridge-startup.test.mjs bridge/manager.test.mjs bridge/world-lifecycle.test.mjs bridge/guarded-file.test.mjs bridge/realtime-teardown.test.mjs bridge/companion-invitations.test.mjs bridge/invitation-readiness.test.mjs bridge/world-session.test.mjs bridge/microphone-retention.test.mjs",
     "test:invitations": "node --test bridge/companion-invitations.test.mjs bridge/invitation-readiness.test.mjs bridge/party-connections.test.mjs bridge/nearby-warm.test.mjs bridge/conversation-partner.test.mjs bridge/auto-connect.test.mjs bridge/invitation-notices.test.mjs bridge/player-memory.test.mjs bridge/manager.test.mjs bridge/world-lifecycle.test.mjs",
     "test:group-voice": "node --test bridge/group-chat.test.mjs bridge/group-lookahead.test.mjs bridge/group-lookahead-bridge.test.mjs bridge/microphone-session.test.mjs bridge/microphone-adapter.test.mjs bridge/realtime-client.test.mjs bridge/knowledge-integration.test.mjs bridge/world-lifecycle.test.mjs bridge/microphone-retention.test.mjs",

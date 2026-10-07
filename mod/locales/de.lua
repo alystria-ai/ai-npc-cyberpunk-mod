@@ -202,6 +202,8 @@ return {
     ["Ready"] = "Bereit",
     ["Ready · Unsaved selection"] = "Bereit · Auswahl nicht gespeichert",
     ["Relationships"] = "Beziehungen",
+    ["Talk to ordinary NPCs"] = "Mit gewöhnlichen NPCs sprechen",
+    ["Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save. Named characters are not affected. On by default."] = "Ermöglicht Gespräche mit namenlosen Personen ohne Rolle in der Geschichte: Gangmitglieder, NCPD-Beamte, Konzernwachen, Ripperdocs, Händler, Barkeeper und Passanten. Jede Person antwortet ihrer Art entsprechend, kennt deine Geschichte nicht und erinnert sich nach dem Laden eines Spielstands nicht an dich. Benannte Figuren sind nicht betroffen. Standardmäßig an.",
     ["Releasing local voice memory"] = "Lokaler Sprachspeicher wird freigegeben",
     ["Remove only this copy from your group."] = "Nur diese Kopie aus deiner Gruppe entfernen.",
     ["Reopen the manager; that action is no longer available."] = "Öffne die Verwaltung erneut; diese Aktion ist nicht mehr verfügbar.",

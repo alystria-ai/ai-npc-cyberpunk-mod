@@ -202,6 +202,8 @@ return {
   ["Ready"] = "準備完了",
   ["Ready · Unsaved selection"] = "準備完了 · 選択は未保存",
   ["Relationships"] = "関係",
+  ["Talk to ordinary NPCs"] = "一般NPCと会話",
+  ["Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save. Named characters are not affected. On by default."] = "物語上の役割を持たない名前のない人々と会話できます。ギャングの構成員、NCPDの警官、企業の警備員、リパードク、店主、バーテンダー、通行人などです。それぞれが自分の立場の人間として答え、あなたの物語は知らず、セーブデータをロードするとあなたのことを覚えていません。名前のあるキャラクターには影響しません。初期設定はオンです。",
   ["Releasing local voice memory"] = "ローカル音声のメモリを解放中",
   ["Remove only this copy from your group."] = "このコピーだけをグループから外します。",
   ["Reopen the manager; that action is no longer available."] = "この操作は現在利用できません。管理画面を開き直してください。",

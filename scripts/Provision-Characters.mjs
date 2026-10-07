@@ -15,7 +15,13 @@ const onlyIndex=args.indexOf('--only');
 const only=onlyIndex<0?null:new Set(args[onlyIndex+1].split(','));
 const read=async path=>JSON.parse((await readFile(path,'utf8')).replace(/^\uFEFF/,''));
 const atomic=async(path,value)=>{await writeFile(path+'.tmp',JSON.stringify(value,null,2)+'\n');await rename(path+'.tmp',path);};
-const roster=await read(resolve(root,'characters/roster.json'));
+// --roster archetypes provisions the generic NPC archetypes (characters/archetype-roster.json,
+// scripts/Build-ArchetypeProfiles.mjs) with the same payload, marker recovery and readback as named characters.
+// Their IDs go into the same runtime/characters.json mapping under their npc-* keys.
+const rosterIndex=args.indexOf('--roster'),rosterKind=rosterIndex<0?'named':args[rosterIndex+1];
+const rosterFiles={named:'characters/roster.json',archetypes:'characters/archetype-roster.json'};
+if(!rosterFiles[rosterKind])throw Error('--roster must be named or archetypes.');
+const roster=await read(resolve(root,rosterFiles[rosterKind]));
 const selected=roster.filter(p=>!only||only.has(p.key));
 if(only&&selected.length!==only.size)throw Error('Unknown profile in --only selection.');
 // Validate every three-field payload before the first remote write.

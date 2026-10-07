@@ -239,7 +239,7 @@ def validate_config(raw, *, yaml_load=None, source_hasher=digest_source):
         raise ValueError("Pocket student requires one sampler step and a valid temperature")
     inference = inspect_student_export(paths["exportDirectory"], raw.get("model"), yaml_load=yaml_load)
     voices = raw.get("voices", {})
-    if not isinstance(voices, dict) or len(voices) > 128:
+    if not isinstance(voices, dict) or len(voices) > 256:
         raise ValueError("Invalid Pocket voice registry")
     refs, unavailable, descriptors = {}, {}, {}
     for key, descriptor in voices.items():

@@ -360,6 +360,8 @@ local function loadSettings()
         settings.omniReference, settingsNeedSave = DEFAULT_OMNI_REFERENCE, true
     end
     if type(settings.keepPreparedVoices) ~= 'boolean' then settings.keepPreparedVoices, settingsNeedSave = true, true end
+    -- On by default: unnamed gang members, police, vendors and residents can be talked to (docs/NPC_ARCHETYPES.md).
+    if type(settings.archetypeConversations) ~= 'boolean' then settings.archetypeConversations, settingsNeedSave = true, true end
     -- Off by default. A saved pairing with the Convai cloud voice cannot stand: the voice moves to Pocket TTS.
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
     -- Expressive emotions (the character marks its own feelings; off by default) needs a local voice for the same reason.
@@ -416,8 +418,22 @@ local function saveSettings()
     return true
 end
 
+-- Generic NPC archetypes (npc-* keys) are talk-only profiles: not listed on the
+-- Characters page or in Who can talk, never invited, governed by one setting.
+local archetypeKeys = {}
+function M.configureArchetypes(keys)
+    archetypeKeys = {}
+    for key in pairs(keys or {}) do archetypeKeys[key] = true end
+end
+
+function M.archetypeConversations()
+    loadSettings()
+    return settings.archetypeConversations ~= false
+end
+
 function M.profileEnabled(key)
     loadSettings()
+    if key ~= nil and archetypeKeys[key] and byKey[key] == nil then return settings.archetypeConversations ~= false end
     return key ~= nil and byKey[key] ~= nil and settings.enabledByKey[key] ~= false
 end
 
@@ -1066,6 +1082,7 @@ function M.snapshot(player)
             naturalSpeech = settings.naturalSpeech,
             expressiveEmotions = settings.expressiveEmotions,
             multilingualConversations = settings.multilingualConversations,
+            archetypeConversations = settings.archetypeConversations,
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         localVoice = localVoiceState,
@@ -1117,6 +1134,9 @@ function M.applySettings(player, values)
                 end
                 nextSettings.relationshipModes[profileKey] = mode
             end
+        elseif key == 'archetypeConversations' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.archetypeConversations = value
         elseif key == 'subtitleStyle' then
             if value ~= 'overhead' and value ~= 'dialogue' then return false, 'Choose one of the listed subtitle displays.' end
             nextSettings.subtitleStyle = value

@@ -70,3 +70,25 @@ test('malformed optional knowledge does not drop valid text or reuse another cap
   assert.equal(Object.hasOwn(legacy, 'worldKnowledge'), false);
   assert.equal(Object.hasOwn(legacy, 'journalHistory'), false);
 });
+
+// Generic NPC archetypes (docs/NPC_ARCHETYPES.md).
+test('archetype facts pass through as fixed vocabulary only; ambient covers residents and npc-* keys', async () => {
+  const {parseArchetype, isAmbientProfile, archetypeContext} = await import('./protocol.mjs');
+  const parsed = parseInput(JSON.stringify({...turn, profileKey: 'npc-ripperdoc-female',
+    archetype: {base: 'ripperdoc', category: 'vendor', title: 'ripperdoc', vendorType: 'RipperDoc', district: 'Watson',
+      area: 'Kabuki', note: 'ignored', affiliation: 'Bad <tag>'}}));
+  assert.deepEqual(parsed.archetype, {base: 'ripperdoc', category: 'vendor', title: 'ripperdoc', vendorType: 'RipperDoc',
+    district: 'Watson', area: 'Kabuki'});
+  assert.equal(Object.hasOwn(parseInput(JSON.stringify(turn)), 'archetype'), false);
+  assert.equal(parseArchetype('gang'), null); assert.equal(parseArchetype({base: ''}), null);
+  for (const key of ['resident-male', 'resident-female', 'npc-maelstrom-male', 'npc-ncpd-female']) assert.equal(isAmbientProfile(key), true, key);
+  for (const key of ['judy-alvarez', 'npc', 'npc-', 'resident', undefined]) assert.equal(isAmbientProfile(key), false, String(key));
+  const context = archetypeContext(parsed);
+  assert.match(context, /unnamed ripperdoc/); assert.match(context, /ripperdoc clinic/); assert.match(context, /Kabuki, Watson/);
+  assert.equal(archetypeContext({...turn}), '', 'named characters get no archetype context');
+  const guard = archetypeContext({...turn, profileKey: 'npc-corpo-security-male', name: 'Guard',
+    archetype: {title: 'corporate security officer', category: 'corpo-security', affiliation: 'KangTao', district: 'SantoDomingo'}});
+  assert.match(guard, /Your employer: Kang Tao\./); assert.match(guard, /Santo Domingo/);
+  assert.match(archetypeContext({...turn, profileKey: 'resident-male', name: 'Pedestrian', archetype: {category: 'resident'}}),
+    /not a story character/);
+});

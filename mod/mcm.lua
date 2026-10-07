@@ -781,6 +781,8 @@ local function schema()
             action('relationships', 'Relationships', 'Manage',
                 'Choose ordinary or romantic conversations for supported characters.',
                 function(context) return navigate('relationships', context) end),
+            setting('archetypeConversations', 'Talk to ordinary NPCs', 'bool', snapshot.settings.archetypeConversations ~= false, true,
+                'Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save. Named characters are not affected. On by default.'),
             setting('multilingualConversations', 'Multilingual conversations', 'bool', snapshot.settings.multilingualConversations, false,
                 'Talk to companions in any language: each character answers in the language you use. It uses a multilingual copy of each character, so what they remember from these conversations is kept apart from your English ones; forgetting a character clears both. Pocket TTS speaks only English, so turning this on switches Companion voices to OmniVoice · Balanced when the optional OmniVoice pack is installed, or to Convai · Cloud voice otherwise; without the pack, Natural speech and Expressive emotions are turned off, because the cloud voice would read their tags aloud. Off by default.'),
             setting('autoConnectNearby', 'Auto-connect nearby characters', 'bool', snapshot.settings.autoConnectNearby, true,
@@ -987,6 +989,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     end
                     values.relationshipModes[key:sub(14)] = ({'auto', 'on', 'off'})[change.value]
                 elseif key:sub(1, 8) == 'enabled:' then values.enabledByKey[key:sub(9)] = change.value
+                elseif key == 'archetypeConversations' then values.archetypeConversations = change.value
                 else return {ok = false, error = ui.t('That setting is read-only.')} end
                 applied[#applied + 1] = key
             end

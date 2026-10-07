@@ -87,7 +87,8 @@ function fixture(options = {}) {
   let now = NOW;
   const world = {ready: true, generation: 12, worldToken: 'world-a', updatedAt: NOW};
   const ids = {'judy-alvarez': 'judy-provider', 'panam-palmer': 'panam-provider',
-    'resident-female': 'resident-female-provider', 'resident-male': 'resident-male-provider'};
+    'resident-female': 'resident-female-provider', 'resident-male': 'resident-male-provider',
+    'npc-maelstrom-male': 'npc-maelstrom-male-provider'};
   const epochs = {global: 0, character: new Map()};
   const routes = [], forbidden = [];
   const memory = {
@@ -321,6 +322,20 @@ test('mapped ambient actors keep the same player ID with separate physical entit
   delete input.entity; const missing = await f.router.prepare(input);
   assert.equal(missing.sendAllowed, false); assert.equal(missing.remoteConfig, null);
   assert.equal(await f.router.current(missing), false); assert.equal(missing.memoryReason, 'ambient-entity-unavailable');
+});
+
+test('an NPC archetype is ambient: one session per physical NPC, never without its entity (docs/NPC_ARCHETYPES.md)', async () => {
+  const f = fixture(), input = forProfile(f.input, 'npc-maelstrom-male');
+  const first = await f.router.prepare(input);
+  assert.equal(first.sendAllowed, true); assert.equal(first.remoteConfig.endUserId, USER);
+  input.entity = '15ULL'; const other = await f.router.prepare(input);
+  assert.notEqual(first.sessionKey, other.sessionKey); assert.notEqual(first.scope, other.scope);
+  // The same NPC (same entity) in the same loaded world keeps its conversation.
+  assert.equal((await f.router.prepare(input)).sessionKey, other.sessionKey);
+  assert.equal(f.router.configFor('npc-maelstrom-male'), null);
+  assert.equal(f.router.configFor('npc-maelstrom-male', 'private', {...f.getBoundary(), entity: '15ULL'}).sessionKey, other.sessionKey);
+  delete input.entity; const missing = await f.router.prepare(input);
+  assert.equal(missing.sendAllowed, false); assert.equal(missing.memoryReason, 'ambient-entity-unavailable');
 });
 
 test('unknown profiles and pending clears never warm or proceed as anonymous', async () => {

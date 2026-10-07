@@ -1,7 +1,7 @@
 import {readFile, stat, mkdir} from 'node:fs/promises';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {parseInput, profileFor} from './protocol.mjs';
+import {archetypeContext, parseInput, profileFor} from './protocol.mjs';
 import {audioReady} from './speech-audio.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
@@ -52,7 +52,13 @@ const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(pro
 const game = process.env.CYBERPUNK_CONVAI_GAME || 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077';
 const runtime = resolve(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime');
 const keyFile = process.env.CYBERPUNK_CONVAI_KEY_FILE || resolve(stateDirectory, 'convai-key.txt');
-const roster = JSON.parse(await readFile(resolve(project, 'characters/roster.json'), 'utf8'));
+// Named characters, then the generic NPC archetypes (docs/NPC_ARCHETYPES.md). The archetype roster is optional:
+// without it (or without their IDs in characters.json) unnamed NPCs simply have no profile.
+const roster = [...JSON.parse(await readFile(resolve(project, 'characters/roster.json'), 'utf8')),
+  ...JSON.parse(await readFile(resolve(project, 'characters/archetype-roster.json'), 'utf8').catch(error => {
+    if (error.code === 'ENOENT') return '[]';
+    throw error;
+  }))];
 const ids = JSON.parse(await readFile(resolve(stateDirectory, 'characters.json'), 'utf8'));
 const relationshipVariants = JSON.parse(await readFile(resolve(stateDirectory, 'relationship-profiles.json'), 'utf8').catch(error => {
   if (error.code === 'ENOENT') return '{}';
@@ -328,7 +334,7 @@ const expressiveEmotionsContext = input => {
 };
 const conversationContext = input => {
   const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
-  return [intrinsicConversationContext(input),
+  return [intrinsicConversationContext(input), archetypeContext(input),
     admitted ? relationshipContext(prepared.relationship, prepared.route.channel,
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : '',

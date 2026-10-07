@@ -202,6 +202,8 @@ return {
   ["Ready"] = "준비됨",
   ["Ready · Unsaved selection"] = "준비됨 · 저장하지 않은 선택",
   ["Relationships"] = "관계",
+  ["Talk to ordinary NPCs"] = "일반 NPC와 대화",
+  ["Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save. Named characters are not affected. On by default."] = "게임에서 이야기 속 역할이 없는 이름 없는 사람들과 대화할 수 있습니다. 갱단원, NCPD 경관, 기업 경비원, 리퍼닥, 상인, 바텐더, 행인 등입니다. 각자 자기 처지의 사람으로서 대답하며, 당신의 이야기를 모르고, 저장 데이터를 불러오면 당신을 기억하지 못합니다. 이름 있는 캐릭터에는 영향이 없습니다. 기본값은 켜짐입니다.",
   ["Releasing local voice memory"] = "로컬 음성 메모리 해제 중",
   ["Remove only this copy from your group."] = "이 복제 동료만 그룹에서 내보냅니다.",
   ["Reopen the manager; that action is no longer available."] = "이 작업은 더 이상 사용할 수 없습니다. 관리 화면을 다시 여세요.",

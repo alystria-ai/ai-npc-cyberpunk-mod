@@ -1,8 +1,10 @@
 import {createHash, randomUUID} from 'node:crypto';
 import {parseWorldSnapshot} from './world-knowledge.mjs';
 import {withConversationKnowledge} from './quest-context.mjs';
+import {isAmbientProfile} from './protocol.mjs';
 
-const AMBIENT = new Set(['resident-male', 'resident-female']);
+// Residents and generic NPC archetypes (npc-*) share one predicate (bridge/protocol.mjs).
+const AMBIENT = {has: isAmbientProfile};
 const PROFILE = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const TOKEN = /^[A-Za-z0-9_:-][A-Za-z0-9._:/@+#-]{0,159}$/;
 const clone = value => structuredClone(value);

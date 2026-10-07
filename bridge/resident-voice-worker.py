@@ -22,7 +22,7 @@ import wave
 
 ROOT = Path(__file__).resolve().parents[1]
 LEGACY_KEYS = ('johnny-silverhand', 'judy-alvarez', 'panam-palmer')
-MAX_PROFILES = 128
+MAX_PROFILES = 256
 MAX_CACHED_PROFILES = 8
 MAX_INPUT = 48_000
 MAX_CONFIG_BYTES = 4 * 1024 * 1024

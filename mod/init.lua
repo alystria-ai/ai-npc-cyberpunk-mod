@@ -297,7 +297,13 @@ do
         for _, profile in ipairs(profiles) do supportedProfiles[profile.key] = true end
     end
 end
+-- Generic NPC archetypes (docs/NPC_ARCHETYPES.md): talk-only profiles chosen
+-- from an unnamed NPC's TweakDB facts. They are not listed as companions.
+local archetypes = type(characterCatalog.buildArchetypes) == 'function'
+    and characterCatalog.buildArchetypes(characterCatalog.ARCHETYPES) or {keys = {}, records = {}}
+for key in pairs(archetypes.keys) do supportedProfiles[key] = true end
 manager.configure(companions, profiles)
+if type(manager.configureArchetypes) == 'function' then manager.configureArchetypes(archetypes.keys) end
 subtitles.configure({style = manager.subtitleStyle})
 companions.onBeforeRemove = speech.clearEntity
 phoneChat.configure(profiles, manager, {
@@ -337,10 +343,18 @@ convaiNoticeLog = function(message)
 end
 mcm.configure(manager, companions, dofile('manager-party.lua'), dofile('mcm-entry.lua'), invitations)
 convaiManager = mcm
-local catalog = characterCatalog.build(profiles)
+local catalog = characterCatalog.build(profiles, archetypes)
 for record, profile in pairs(characterCatalog.build(profiles).records) do
     local ok, id = pcall(function() return tostring(TweakDBID.new(record)) end)
     if ok then catalog.records[id] = profile end
+end
+do -- archetype crowd/vendor record names, also by TweakDBID string
+    local named = {}
+    for record, base in pairs(archetypes.records) do named[record] = base end
+    for record, base in pairs(named) do
+        local ok, id = pcall(function() return tostring(TweakDBID.new(record)) end)
+        if ok then archetypes.records[id] = archetypes.records[id] or base end
+    end
 end
 convaiCompanions = companions
 local generation = 0
@@ -367,6 +381,78 @@ local function profileEnabled(player, key)
     return manager.profileEnabled(key)
 end
 
+-- Plain TweakDB facts of an unnamed NPC for archetype classification. Each
+-- read is guarded; an unreadable fact is simply absent. Cached per entity
+-- (a record never changes for a spawned actor); the cache is small and reset
+-- when full. Confirm each read in game: docs/NPC_ARCHETYPES.md.
+local archetypeFactCache, archetypeFactCount = {}, 0
+local function nameString(value)
+    if type(value) == 'string' then return value end
+    if value == nil then return nil end
+    local ok, text = pcall(function() return Game.NameToString(value) end)
+    if ok and type(text) == 'string' and text ~= '' and text ~= 'None' then return text end
+    ok, text = pcall(tostring, value)
+    return ok and type(text) == 'string' and text or nil
+end
+local function archetypeFacts(npc, entity, body)
+    local cached = entity and archetypeFactCache[entity]
+    if cached then return cached end
+    local facts = {bodyType = body}
+    local function read(name, fn)
+        local ok, value = pcall(fn)
+        if ok and value ~= nil then facts[name] = value end
+    end
+    local recordId
+    read('recordId', function() recordId = npc:GetRecordID(); return tostring(recordId) end)
+    read('recordName', function()
+        local text = TDBID.ToStringDEBUG(recordId)
+        return type(text) == 'string' and text:find('^Character%.') and text or nil
+    end)
+    read('crowd', function() return npc:IsCrowd() == true end)
+    read('children', function() return npc:IsCharacterChildren() == true end)
+    read('police', function() return npc:IsCharacterPolice() == true end)
+    read('vendor', function() return npc:IsVendor() == true end)
+    read('human', function() return npc:GetNPCType() == Enum.new('gamedataNPCType', 'Human') end)
+    read('affiliation', function() return nameString(npc:GetAffiliation()) end)
+    read('gender', function() return nameString(npc:GetResolvedGenderName()) end)
+    local record
+    read('quest', function()
+        record = TweakDBInterface.GetCharacterRecord(recordId)
+        local quest = record and record:Quest()
+        return quest and nameString(quest:EnumName()) or nil
+    end)
+    if facts.vendor then
+        read('vendorType', function()
+            record = record or TweakDBInterface.GetCharacterRecord(recordId)
+            local vendor = record and record:VendorID()
+            local kind = vendor and vendor:VendorType()
+            return kind and nameString(kind:EnumName()) or nil
+        end)
+    end
+    if entity then
+        if archetypeFactCount >= 256 then archetypeFactCache, archetypeFactCount = {}, 0 end
+        archetypeFactCache[entity], archetypeFactCount = facts, archetypeFactCount + 1
+    end
+    return facts
+end
+
+-- The district V is in (top-level and the most specific known), for archetype
+-- and resident context. Nil when the prevention system cannot say.
+local function currentDistrict()
+    local ok, top, local_ = pcall(function()
+        local system = Game.GetScriptableSystemsContainer():Get('PreventionSystem')
+        local district = system and system:GetCurrentDistrict()
+        local record = district and TweakDBInterface.GetDistrictRecord(district:GetDistrictID())
+        if not record then return nil end
+        local specific = nameString(record:EnumName())
+        local root, guard = record, 0
+        while root and root:ParentDistrict() and guard < 6 do root, guard = root:ParentDistrict(), guard + 1 end
+        return nameString(root:EnumName()), specific
+    end)
+    if not ok or type(top) ~= 'string' then return nil end
+    return {district = top, area = local_ ~= top and local_ or nil}
+end
+
 local function profileIdentity(npc)
     local managedKey, managedName, owned = companions.identity(npc)
     local name = managedName or tostring(npc:GetTweakDBFullDisplayName(true) or 'NPC')
@@ -374,9 +460,14 @@ local function profileIdentity(npc)
     if owned and not managedKey then return nil, name, body end
     local recordOk, record = pcall(function() return tostring(npc:GetRecordID()) end)
     local crowdOk, crowd = pcall(function() return npc:IsCrowd() end)
-    local key, canonical = characterCatalog.resolve(catalog, {managedKey = managedKey, name = name,
-        bodyType = body, record = recordOk and record or '', crowd = crowdOk and crowd})
-    return key, canonical, body
+    local actor = {managedKey = managedKey, name = name,
+        bodyType = body, record = recordOk and record or '', crowd = crowdOk and crowd}
+    if not managedKey and type(manager.archetypeConversations) == 'function' and manager.archetypeConversations() then
+        local idOk, entity = pcall(function() return tostring(npc:GetEntityID().hash) end)
+        actor.facts = archetypeFacts(npc, idOk and entity or nil, body)
+    end
+    local key, canonical, archetype = characterCatalog.resolve(catalog, actor)
+    return key, canonical, body, archetype
 end
 
 -- Recent game dialogue (subtitled scene lines and V's chosen options), attached
@@ -533,6 +624,7 @@ do
     if loaded and type(module) == 'table' and type(module.new) == 'function' then
         local catalogued = {}
         for _, profile in ipairs(profiles) do catalogued[profile.key] = profile end
+        for key in pairs(archetypes.keys) do catalogued[key] = {key = key, kind = 'archetype'} end
         local built, value = pcall(module.new, {
             enabled = function() return type(manager.autoConnectNearby) == 'function' and manager.autoConnectNearby() == true end,
             scan = scanNearbyCharacters,
@@ -855,7 +947,7 @@ local function selectConversation(player, groupMode, singleAction)
     end
     if not npc and groupMode and candidates[1] then npc = candidates[1].npc end
     if not npc then player:ConvaiPhoneFeedback(ui.t(reason)); return nil end
-    local key, name, bodyType = profileIdentity(npc)
+    local key, name, bodyType, archetype = profileIdentity(npc)
     if not key or not supportedProfiles[key] then
         player:ConvaiPhoneFeedback(ui.t('{name} does not have a conversation profile configured yet.',{name=name}))
         log('Conversation unavailable: profile=' .. tostring(key))
@@ -863,6 +955,14 @@ local function selectConversation(player, groupMode, singleAction)
     end
     if not profileEnabled(player, key) then log('Companion disabled in manager: ' .. name); return nil end
     local primary = {npc = npc, name = name, entity = tostring(npc:GetEntityID().hash), bodyType = bodyType, profileKey = key}
+    -- An archetype or resident learns which kind of NPC it is and where it stands.
+    if archetype or key == 'resident-male' or key == 'resident-female' then
+        primary.archetype = archetype or {category = 'resident'}
+        local place = currentDistrict()
+        if place then primary.archetype.district, primary.archetype.area = place.district, place.area end
+        log('Archetype conversation: profile=' .. key .. ' base=' .. tostring(primary.archetype.base)
+            .. ' district=' .. tostring(primary.archetype.district))
+    end
     local participants = groupMode and groupChat.choose(primary, candidates, supportedProfiles) or nil
     if participants and #participants < 2 then
         local shortcut = ui.boundKey(singleAction)
@@ -966,7 +1066,7 @@ local function beginText(groupMode)
         resetGaze()
         focusUntil = os.time() + 45
         active = {generation = generation, entity = identity, name = name, bodyType = bodyType,
-            profileKey = key, participants = participants}
+            profileKey = key, participants = participants, archetype = primary.archetype}
         warmConversation(participants, key)
         if connectNote then pcall(function() player:ConvaiPhoneFeedback(connectNote) end) end
         pending = nil
@@ -1019,7 +1119,7 @@ local function toggleVoice(groupMode)
             context = groupChat.startVoice('group-' .. tostring(os.time()) .. '-' .. tostring(generation), participants, generation, os.time())
         else
             context = {generation = generation, entity = entity, name = name, bodyType = body,
-                profileKey = key, text = '[Microphone]', sentAt = os.time()}
+                profileKey = key, text = '[Microphone]', sentAt = os.time(), archetype = primary.archetype}
             context.requestId = tostring(os.time()) .. '-' .. tostring(generation) .. '-' .. entity
         end
         active, pending, pendingKnowledgeOwner = nil, nil, nil

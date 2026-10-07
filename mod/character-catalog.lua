@@ -1,11 +1,224 @@
 -- Resolve a named actor before considering a generic crowd voice. Body type
 -- alone is never an identity for a quest character or a managed companion.
+--
+-- Order (docs/NPC_ARCHETYPES.md): a managed copy's assigned profile, then a
+-- named roster profile (record or name), then a generic NPC archetype chosen
+-- from the actor's TweakDB facts (vendor type, affiliation, police flag, crowd
+-- record), then the two ambient resident profiles for any other crowd member.
 local M = {}
 local function normalized(value)
     return tostring(value or ''):lower():gsub('%s+', ' '):gsub('^%s+', ''):gsub('%s+$', '')
 end
-function M.build(profiles)
-    local catalog = {keys = {}, names = {}, records = {}}
+
+-- BEGIN GENERATED ARCHETYPES (node scripts/Build-ArchetypeProfiles.mjs; source characters/archetypes.json)
+M.ARCHETYPES = {
+    version = 1,
+    bases = {
+        ['aldecaldos'] = {category = 'gang', title = 'Aldecaldos nomad', affiliations = {'Aldecaldos'}},
+        ['animals'] = {category = 'gang', title = 'Animals ganger', affiliations = {'Animals'}},
+        ['barghest'] = {category = 'gang', title = 'Barghest soldier', affiliations = {'Barghest'}},
+        ['bartender'] = {category = 'vendor', title = 'bartender', vendorTypes = {'Food', 'Drinks'}, records = {'Character.bls_ina_se1_foodshop_01', 'Character.cct_dtn_food_02', 'Character.cz_con_foodshop_01', 'Character.cz_monument_foodshop_01', 'Character.cz_stadium_food_03', 'Character.hey_rey_foodshop_02', 'Character.wat_kab_foodshop_02', 'Character.wat_kab_foodshop_04', 'Character.wbr_hil_foodshop_02', 'Character.lizzies_barman'}, recordTokens = {'barman', 'bartender'}},
+        ['clothing-vendor'] = {category = 'vendor', title = 'clothing vendor', vendorTypes = {'Clothing', 'Clothes', 'Armorsmith'}},
+        ['corpo-resident'] = {category = 'resident', title = 'corporate worker', crowd = true, records = {'Character.CorpoMan', 'Character.CorpoManCorporat', 'Character.CorpoManAfterWork', 'Character.CorpoManNoReaction', 'Character.CorpoManBig', 'Character.CorpoManCigarette', 'Character.CorpoManBraindance', 'Character.CorpoManCoffee', 'Character.CorpoManCellphone', 'Character.CorpoManLaptopBag', 'Character.CorpoManArasaka', 'Character.CorpoManDE', 'Character.CorpoManAfterWorkDE', 'Character.CorpoWoman', 'Character.CorpoWomanCorporat', 'Character.CorpoWomanAfterWork', 'Character.CorpoWomanBag', 'Character.CorpoWomanArasaka', 'Character.CorpoWomanDE', 'Character.CorpoWomanAfterWorkDE', 'Character.WomanChubbyCorpo', 'Character.ObeseMaleCorpo', 'Character.NonBinaryMaleBodyCorpo', 'Character.NonBinaryFemaleBodyCorpo', 'Character.CitizenRichMale', 'Character.CitizenRichMaleCasual', 'Character.CitizenRichMaleUmbrella', 'Character.CitizenRichMaleDE', 'Character.CitizenRichFemale', 'Character.CitizenRichFemaleCasual', 'Character.CitizenArasakaHatoCorpoMale', 'Character.LightCrowd_corpoplaza_ma', 'Character.LightCrowd_corpoplaza_wa', 'Character.LightCrowd_downtown_ma', 'Character.LightCrowd_downtown_wa', 'Character.LightCrowd_charterhill_ma', 'Character.LightCrowd_charterhill_wa', 'Character.LightCrowd_northoaks_ma', 'Character.LightCrowd_northoaks_wa', 'Character.ep1_combat_zone_citizen_business_ma'}, recordPrefixes = {'CorpoMan', 'CorpoWoman', 'CitizenRich'}},
+        ['corpo-security'] = {category = 'corpo-security', title = 'corporate security officer', affiliations = {'Arasaka', 'Militech', 'KangTao'}, recordPrefixes = {'security_', 'civilianguard_'}},
+        ['food-vendor'] = {category = 'vendor', title = 'food and drink vendor', vendorTypes = {'Food', 'GrilledFood', 'PackedFood', 'Drinks', 'Kiosk', 'Market'}},
+        ['homeless'] = {category = 'resident', title = 'person living rough', crowd = true, records = {'Character.HomelessMan', 'Character.HobotownHomelessMan', 'Character.HomelessFemale', 'Character.HobotownHomelessWoman', 'Character.HomelessManBig', 'Character.HomelessManBackpack', 'Character.HomelessManDE', 'Character.HomelessFemaleDE', 'Character.ep1_combat_zone_citizen_outcast_ma', 'Character.ep1_combat_zone_citizen_outcast_wa'}, recordPrefixes = {'Homeless', 'HobotownHomeless'}},
+        ['maelstrom'] = {category = 'gang', title = 'Maelstrom ganger', affiliations = {'Maelstrom', 'MaelstromAndroid'}},
+        ['mox'] = {category = 'gang', title = 'Mox member', affiliations = {'TheMox'}},
+        ['ncpd'] = {category = 'police', title = 'NCPD officer', affiliations = {'NCPD'}, police = true, excludeRecordPrefixes = {'maxtac'}},
+        ['nomad-resident'] = {category = 'resident', title = 'nomad', crowd = true, records = {'Character.CitizenAldecaldosMale', 'Character.CitizenAldecaldosMaleFarmer', 'Character.CitizenAldecaldosMaleMechanic', 'Character.CitizenAldecaldosMaleNomad', 'Character.CitizenAldecaldosMaleTeenager', 'Character.CitizenAldecaldosMaleBig', 'Character.CitizenAldecaldosFemale', 'Character.CitizenAldecaldosFemaleNomad', 'Character.CitizenAldecaldosFemaleTeenager', 'Character.CitizenAldecaldosMaleDE', 'Character.CitizenAldecaldosFemaleDE', 'Character.AldecaldosMale', 'Character.AldecaldosFemale', 'Character.ObeseMaleNomad'}, recordPrefixes = {'CitizenAldecaldos', 'AldecaldosMale', 'AldecaldosFemale'}},
+        ['ripperdoc'] = {category = 'vendor', title = 'ripperdoc', vendorTypes = {'RipperDoc'}},
+        ['scavengers'] = {category = 'gang', title = 'Scavenger', affiliations = {'Scavengers', 'ScavengersAndroid'}},
+        ['sixth-street'] = {category = 'gang', title = '6th Street member', affiliations = {'SixthStreet', 'SixthStreetAndroid'}},
+        ['street-resident'] = {category = 'resident', title = 'street local', crowd = true, records = {'Character.LowlifeMale', 'Character.LowlifeMaleRedneck', 'Character.LowlifeMaleBig', 'Character.LowlifeWoman', 'Character.LowlifeWomanNoTalk', 'Character.LowlifeWomanRedneck', 'Character.LowlifeMaleDE', 'Character.LowlifeMaleDEfriendly', 'Character.LowlifeWomanDE', 'Character.LowlifeWomanDEfriendly', 'Character.LowlifeWomanRedneckDE', 'Character.SlackerMale', 'Character.SlackerMaleCigarette', 'Character.SlackerMaleCoffee', 'Character.SlackerMaleBig', 'Character.SlackerMaleBurger', 'Character.SlackerMaleCellphone', 'Character.SlackerMaleDuffelBag', 'Character.SlackerFemale', 'Character.SlackerMaleDE', 'Character.SlackerFemaleDE', 'Character.HobotownSlackerMale', 'Character.HobotownSlackerFemale', 'Character.StoopKing', 'Character.StoopKingNoReaction', 'Character.StoopKingBig', 'Character.StoopQueen', 'Character.StoopQueenNoReaction', 'Character.YoungsterMale', 'Character.YoungsterMaleBig', 'Character.YoungsterFemale', 'Character.YoungsterMaleDE', 'Character.YoungsterFemaleDE', 'Character.ObeseMaleLowlife', 'Character.ep1_combat_zone_citizen_stacks_lowlife_ma', 'Character.ep1_combat_zone_citizen_stacks_lowlife_wa', 'Character.ep1_combat_zone_citizen_stacks_ma', 'Character.ep1_combat_zone_citizen_stacks_wa', 'Character.ep1_combat_zone_citizen_pacific_ma', 'Character.ep1_combat_zone_citizen_pacific_wa'}, recordPrefixes = {'Lowlife', 'Slacker', 'Stoop', 'Youngster', 'HobotownSlacker'}},
+        ['tyger-claws'] = {category = 'gang', title = 'Tyger Claws ganger', affiliations = {'TygerClaws'}},
+        ['valentinos'] = {category = 'gang', title = 'Valentinos ganger', affiliations = {'Valentinos'}},
+        ['voodoo-boys'] = {category = 'gang', title = 'Voodoo Boys member', affiliations = {'VoodooBoys'}},
+        ['weapons-dealer'] = {category = 'vendor', title = 'weapons dealer', vendorTypes = {'Gunsmith'}},
+        ['wraiths'] = {category = 'gang', title = 'Wraith raider', affiliations = {'Wraiths', 'WraithsAndroid'}},
+    },
+    variants = {
+        {key = 'npc-maelstrom-male', base = 'maelstrom', gender = 'MALE'},
+        {key = 'npc-maelstrom-female', base = 'maelstrom', gender = 'FEMALE'},
+        {key = 'npc-tyger-claws-male', base = 'tyger-claws', gender = 'MALE'},
+        {key = 'npc-tyger-claws-female', base = 'tyger-claws', gender = 'FEMALE'},
+        {key = 'npc-valentinos-male', base = 'valentinos', gender = 'MALE'},
+        {key = 'npc-valentinos-female', base = 'valentinos', gender = 'FEMALE'},
+        {key = 'npc-sixth-street-male', base = 'sixth-street', gender = 'MALE'},
+        {key = 'npc-sixth-street-female', base = 'sixth-street', gender = 'FEMALE'},
+        {key = 'npc-animals-male', base = 'animals', gender = 'MALE'},
+        {key = 'npc-animals-female', base = 'animals', gender = 'FEMALE'},
+        {key = 'npc-voodoo-boys-male', base = 'voodoo-boys', gender = 'MALE'},
+        {key = 'npc-voodoo-boys-female', base = 'voodoo-boys', gender = 'FEMALE'},
+        {key = 'npc-scavengers-male', base = 'scavengers', gender = 'MALE'},
+        {key = 'npc-scavengers-female', base = 'scavengers', gender = 'FEMALE'},
+        {key = 'npc-wraiths-male', base = 'wraiths', gender = 'MALE'},
+        {key = 'npc-wraiths-female', base = 'wraiths', gender = 'FEMALE'},
+        {key = 'npc-mox-male', base = 'mox', gender = 'MALE'},
+        {key = 'npc-mox-female', base = 'mox', gender = 'FEMALE'},
+        {key = 'npc-aldecaldos-male', base = 'aldecaldos', gender = 'MALE'},
+        {key = 'npc-aldecaldos-female', base = 'aldecaldos', gender = 'FEMALE'},
+        {key = 'npc-barghest-male', base = 'barghest', gender = 'MALE'},
+        {key = 'npc-barghest-female', base = 'barghest', gender = 'FEMALE'},
+        {key = 'npc-ncpd-male', base = 'ncpd', gender = 'MALE'},
+        {key = 'npc-ncpd-female', base = 'ncpd', gender = 'FEMALE'},
+        {key = 'npc-corpo-security-male', base = 'corpo-security', gender = 'MALE'},
+        {key = 'npc-corpo-security-female', base = 'corpo-security', gender = 'FEMALE'},
+        {key = 'npc-ripperdoc-male', base = 'ripperdoc', gender = 'MALE'},
+        {key = 'npc-ripperdoc-female', base = 'ripperdoc', gender = 'FEMALE'},
+        {key = 'npc-weapons-dealer-male', base = 'weapons-dealer', gender = 'MALE'},
+        {key = 'npc-weapons-dealer-female', base = 'weapons-dealer', gender = 'FEMALE'},
+        {key = 'npc-food-vendor-male', base = 'food-vendor', gender = 'MALE'},
+        {key = 'npc-food-vendor-female', base = 'food-vendor', gender = 'FEMALE'},
+        {key = 'npc-bartender-male', base = 'bartender', gender = 'MALE'},
+        {key = 'npc-bartender-female', base = 'bartender', gender = 'FEMALE'},
+        {key = 'npc-clothing-vendor-male', base = 'clothing-vendor', gender = 'MALE'},
+        {key = 'npc-clothing-vendor-female', base = 'clothing-vendor', gender = 'FEMALE'},
+        {key = 'npc-corpo-resident-male', base = 'corpo-resident', gender = 'MALE'},
+        {key = 'npc-corpo-resident-female', base = 'corpo-resident', gender = 'FEMALE'},
+        {key = 'npc-street-resident-male', base = 'street-resident', gender = 'MALE'},
+        {key = 'npc-street-resident-female', base = 'street-resident', gender = 'FEMALE'},
+        {key = 'npc-nomad-resident-male', base = 'nomad-resident', gender = 'MALE'},
+        {key = 'npc-nomad-resident-female', base = 'nomad-resident', gender = 'FEMALE'},
+        {key = 'npc-homeless-male', base = 'homeless', gender = 'MALE'},
+        {key = 'npc-homeless-female', base = 'homeless', gender = 'FEMALE'},
+    },
+}
+-- END GENERATED ARCHETYPES
+
+-- Classification works on plain facts gathered by the adapter (init.lua);
+-- this module never touches native objects.
+local STORY_BOUND = {MainQuest = true, SideQuest = true, MinorQuest = true}
+local function has(list, value)
+    if type(list) ~= 'table' or value == nil then return false end
+    for _, item in ipairs(list) do if item == value then return true end end
+    return false
+end
+local function lowerPrefix(list, name)
+    if type(list) ~= 'table' or type(name) ~= 'string' then return false end
+    local bare = name:gsub('^Character%.', ''):lower()
+    for _, prefix in ipairs(list) do
+        if bare:sub(1, #prefix) == prefix:lower() then return true end
+    end
+    return false
+end
+local function containsToken(list, name)
+    if type(list) ~= 'table' or type(name) ~= 'string' then return false end
+    local bare = name:lower()
+    for _, token in ipairs(list) do if bare:find(token:lower(), 1, true) then return true end end
+    return false
+end
+
+-- 'MALE', 'FEMALE' or nil, from the explicit gender fact or the rig name
+-- ("WomanAverage" contains "man", so women are checked first).
+function M.gender(facts)
+    local explicit = normalized(facts.gender)
+    if explicit == 'female' then return 'FEMALE' end
+    if explicit == 'male' then return 'MALE' end
+    local body = normalized(facts.bodyType)
+    if body:find('woman', 1, true) or body:find('female', 1, true) then return 'FEMALE' end
+    if body:find('man', 1, true) or body:find('male', 1, true) then return 'MALE' end
+    return nil
+end
+
+-- Lookup tables for one archetype data set. `records` maps record names (and,
+-- once the adapter adds them, TweakDBID strings) to a base.
+function M.buildArchetypes(data, enabledKeys)
+    data = data or M.ARCHETYPES
+    local index = {bases = data.bases or {}, keys = {}, byBase = {}, records = {}, vendorSpecific = {}, vendorGeneric = {}}
+    for _, variant in ipairs(data.variants or {}) do
+        if index.bases[variant.base] and (not enabledKeys or enabledKeys[variant.key]) then
+            index.keys[variant.key] = variant
+            index.byBase[variant.base] = index.byBase[variant.base] or {}
+            index.byBase[variant.base][variant.gender] = variant.key
+        end
+    end
+    local names = {}
+    for name in pairs(index.bases) do names[#names + 1] = name end
+    table.sort(names)
+    for _, name in ipairs(names) do
+        local base = index.bases[name]
+        if base.category == 'resident' then
+            for _, record in ipairs(base.records or {}) do index.records[record] = name end
+        elseif base.category == 'vendor' then
+            if base.records or base.recordTokens then index.vendorSpecific[#index.vendorSpecific + 1] = name
+            else index.vendorGeneric[#index.vendorGeneric + 1] = name end
+            for _, record in ipairs(base.records or {}) do index.records[record] = index.records[record] or name end
+        end
+    end
+    return index
+end
+
+-- Which base describes these facts, or nil. Facts (all optional): vendor,
+-- vendorType, affiliation, police, crowd, children, human, quest, recordName,
+-- recordId. A child, a machine and a main/side quest actor are never routed to
+-- an archetype (a vendor still is, unless main-quest bound).
+function M.classifyBase(index, facts)
+    if type(index) ~= 'table' or type(facts) ~= 'table' then return nil, 'no-facts' end
+    if facts.children == true then return nil, 'child' end
+    if facts.human == false then return nil, 'not-human' end
+    local recordName, recordId = facts.recordName, facts.recordId
+    local recordBase = (recordName and index.records[recordName]) or (recordId and index.records[recordId])
+    if facts.vendor == true and facts.quest ~= 'MainQuest' then
+        for _, name in ipairs(index.vendorSpecific) do
+            local base = index.bases[name]
+            if has(base.vendorTypes, facts.vendorType)
+                and (recordBase == name or containsToken(base.recordTokens, recordName)) then return name, 'vendor' end
+        end
+        for _, name in ipairs(index.vendorGeneric) do
+            if has(index.bases[name].vendorTypes, facts.vendorType) then return name, 'vendor' end
+        end
+    end
+    if STORY_BOUND[facts.quest or ''] then return nil, 'story-bound' end
+    local names = {}
+    for name in pairs(index.bases) do names[#names + 1] = name end
+    table.sort(names)
+    for _, category in ipairs({'police', 'corpo-security', 'gang'}) do
+        for _, name in ipairs(names) do
+            local base = index.bases[name]
+            if base.category == category then
+                local matched = has(base.affiliations, facts.affiliation)
+                    or (base.police and facts.police == true)
+                    or lowerPrefix(base.recordPrefixes, recordName)
+                if matched and not lowerPrefix(base.excludeRecordPrefixes, recordName) then return name, category end
+                if matched then return nil, 'excluded-record' end
+            end
+        end
+    end
+    if facts.crowd == true then
+        if recordBase and index.bases[recordBase] and index.bases[recordBase].category == 'resident' then return recordBase, 'resident' end
+        for _, name in ipairs(names) do
+            local base = index.bases[name]
+            if base.category == 'resident' and lowerPrefix(base.recordPrefixes, recordName) then return name, 'resident' end
+        end
+    end
+    return nil, 'unclassified'
+end
+
+-- The archetype profile key for these facts, or nil (with a reason).
+function M.classify(index, facts)
+    local base, reason = M.classifyBase(index, facts)
+    if not base then return nil, reason end
+    local gender = M.gender(facts)
+    local variants = index.byBase[base]
+    local key = variants and gender and variants[gender]
+    if not key then return nil, 'no-variant' end
+    return key, base
+end
+
+-- Plain description of the classified actor for the per-turn context. Only
+-- fixed vocabulary leaves the game: no free text, handles or IDs.
+function M.describe(index, key, facts)
+    local variant = index.keys[key]
+    if not variant then return nil end
+    local base = index.bases[variant.base] or {}
+    return {base = variant.base, category = base.category, title = base.title,
+        affiliation = facts.affiliation ~= 'Unknown' and facts.affiliation or nil,
+        vendorType = facts.vendor == true and facts.vendorType or nil}
+end
+
+function M.build(profiles, archetypes)
+    local catalog = {keys = {}, names = {}, records = {}, archetypes = archetypes}
     for _, profile in ipairs(profiles) do
         catalog.keys[profile.key] = profile
         catalog.names[normalized(profile.name)] = profile
@@ -21,6 +234,10 @@ function M.resolve(catalog, actor)
     end
     local profile = catalog.records[actor.record] or catalog.names[normalized(actor.name)]
     if profile then return profile.key, profile.name end
+    if catalog.archetypes and type(actor.facts) == 'table' then
+        local key = M.classify(catalog.archetypes, actor.facts)
+        if key then return key, actor.name, M.describe(catalog.archetypes, key, actor.facts) end
+    end
     if not actor.crowd then return nil, actor.name end
     local body = normalized(actor.bodyType)
     if body:find('woman',1,true) or body:find('female',1,true) then return 'resident-female', actor.name end
