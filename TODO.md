@@ -38,7 +38,7 @@ Everything here is committed; "installed" means copied into the game. Baseline: 
 The review is **complete** (2026-10-07; verdict and decisions are in the log). Done and waiting for the in-game test: the voice switch, the six-entry menu, the Omni pack detection and saved voice setups (above). The shareable report is built (`Downloads/Cyberpunk Voice Report v3.html`, one file with audio embedded) and the devslot handoff for the voice research is in `Downloads/convai voice cloning devslot/devslot handoff 2026-10-07 voice research/`. Still open:
 - Build the optional Omni pack (`bridge/omni-pack.mjs` detects it; contents in `docs/PACKAGING.md`).
 - Remaining 43 voices: see In progress.
-- Multilingual twins: the language box is off on all 28 (23 tier-1 + 5 romantic; set through the web session 2026-10-07; `docs/MULTILINGUAL_PROFILES.md` is stale on this). Twins for the remaining characters are being created (agent); untick their box in one batch afterwards. Then the mod routing (after natural speech).
+- Multilingual twins: 84 "<name> Multilingual" Convai profiles (the whole profiled roster: 23 tier-1, 5 romantic, 56 more), all English-only with the language box off (set through the web session 2026-10-07). Next: the mod setting and routing (queued). Without the Omni pack, natural speech and multilingual conflict (natural speech needs a local voice; multilingual without Omni needs the Convai voice); the design must handle that.
 - Update the lip-sync report and the lip-sync devslot folder when the lip-sync research lands; the voice handoff needs no refresh unless the remaining-voice search changes a finding.
 
 ### Later
@@ -48,16 +48,11 @@ The review is **complete** (2026-10-07; verdict and decisions are in the log). D
   - Also check: player speech recognition in other languages (Convai STT vs our model), lip sync and expressions for non-English audio, subtitles, and the tags in natural speech.
 - **Packaging a player release:** ship the prebuilt voice client; use the auto-start supervisor instead of `packaging/runtime-bootstrap.mjs`; allow `red4ext/` paths in `release-plan.json`; first-run key setup; no keys, player data, audio or training data in the package.
 - **Packaging trained models** (user decision, 2026-10-07): ship our already-trained weights with the free mod; players never train anything (CD Projekt allows game material in free fan content). Applies to the lip-sync model (`runtime/lipsync-model/face-model.{json,bin}`, 2.7 MB), the Pocket student + decoder v2 export (`runtime/pocket-student-v2-s2000-ema-decv2`), the searched reference clips and the saved configs; Omni weights go in the optional Omni pack. Add them to `release-plan.json` and the package at release.
-- **Report server stability:** the v3 report server (`node scripts/Reference-Picker.mjs`, port 8765) died unnoticed after the overnight search. Make it survive (start it detached and restart it when it's down, or note the start command in the report doc), and check it's up before giving the user a link.
 
 ### Smaller gaps
-- Convai test user `44634786-9337-4103-b8dd-dc553202563b` (on alex): `memory/list` returns HTTP 502, which looks like a Convai server fault. Remove the user when it's no longer needed (`memory/delete-all`, then the dashboard).
 - `npm test` flakes under load (not product bugs): `group-lookahead-bridge` fails in roughly 2 of 3 full runs with "Continuous speech game lease expired" (the simulated game's 2 s heartbeat starves while ~30 test files and the game run); it passes alone every time. If it matters, run it in its own serial `node --test` pass. `bridge-startup` can still hit a transient Windows `EPERM` rename (now tolerated). Environment skips: `pwsh.exe` isn't installed, so the two binding-setup tests skip (`Set-DevelopmentBindings.ps1` needs PowerShell 7's `ConvertFrom-Json -AsHashtable`). `scripts/pocket_training/test_*.py` need `torch`/`safetensors` and a `/mnt/c` data file, so they only run in the training environment.
 - Convai early audio-player open (latency item A): not done. The player fails with "admission expired" if no control arrives within 2 s of opening, so opening it at turn start would break slow Convai turns. Needs a different design (for example, open early with a longer or renewable admission window).
-- Movement design questions from the test triage: (1) a follow blocked beyond 6 m can still enter the "advance" detour mode (`block()` in `companion-actuator.lua`), but no current test reaches it. Decide whether to keep it for follow, and test it if so. (2) Initial follow admissions skip the 2-member planning turn, so each costs one native navigation query (8 at once costs 8). The 192 physics-query cap still holds. Treated as intended.
-- The bridge refuses Pocket references over 30 s (`bridge/pocket_voice_runtime.py`), so anything past 30 s is research-only until that changes (the search found the curve flat from 18 to 24 s, so probably not worth it).
 - Optional: decoder v2 retrained with a weaker anchor (5-10) might win back some of A's ECAPA gain if it stays artifact-free (a listening question).
-- Leftover storage to prune: Kaggle bucket teacher slots (about 5 GB each) and a 3.4 GB payload at `data/pocket-v2-e416611a/`; the private Kaggle dataset `cp2077-omni-lora-input-e8e1e39e` (33 MB); the Kaggle datasets and kernels from the clip search; HF bucket slots in `akshitireddy/cyberpunk-pocket-rolling-checkpoints`.
 
 ### Dropped by the user
 - Mixed voice providers in one group (and their cancellation).
@@ -67,6 +62,18 @@ The review is **complete** (2026-10-07; verdict and decisions are in the log). D
 - A new Pocket teacher/student run: not needed per the user (the v2 student already meets the plan criteria).
 
 ## Captain's log
+
+**2026-10-07 (afternoon): settings decisions, cleanup, backups**
+- Settings review decisions applied (`3e97237`): quality-named voice menu (Pocket · Performance default, no "recommended"; OmniVoice Balanced / Quality / High Quality / Ultra Quality; Convai · Cloud voice; "· needs Omni pack" when missing), shorter voice description, Body gestures (experimental), Auto / Romantic / Ordinary (Meredith: Casual), Head tracking Eyes only / Subtle / Gentle / Strong, full Developer mode description, `followUpQuestions` removed, Auto-connect On by default and silent, Voice status, Who can talk, Cinematic subtitles / Above the speaker, the "capture NPC diagnostic" hotkey removed (the request-file path stays), notice audit (auto-connect hint removed, phone dismissal confirmation dev-only). The user's own `settings.json` was flipped to `autoConnectNearby: true` (backup in `E:/CyberpunkConvai-offload/backups/`). Everything in `mod/` installed from HEAD (game closed); a bridge restart happens at the next game start.
+- Natural speech (`48cd9d4`) and Expressive emotions (`2eecbfa`), both off by default, installed with the above.
+- Follow blocked beyond 6 m no longer enters the advance detour (`00eb4a4`, user decision); moves keep it.
+- Multilingual twins for the whole roster: 84, all with the language box off (`language_hardening_mode` = off via the web session; the core API can't set it).
+- Convai test user on Alex: memories cleared by the user (`memory/delete-all`, HTTP 200).
+- HF bucket pruned by the user with `scripts/Prune-HfBucket.py`: 43.9 GB to 1.26 GB (kept the Pocket v2 teacher `selected`). Final models backed up to `final/` (0.96 GB: live Pocket export, decoder v2, student source, lip-sync model, live and autobest voice configs, 192 reference clips, `MANIFEST.json` with sha256; OmniVoice base pinned at `c5fdb5cc…`, not uploaded).
+- Lip-sync research (in progress): the user decided lip sync trains on ALL lines (combat/effect lines keep valid authored curves; all-data tested better); voice stays clean. Per-character models give no reliable gain; text/phone input gives a large gain (needs a runtime change and the user's OK). Service docs: recommend per-game models, per-character optional, we handle training and inference.
+- Dropped: the report server stability item, the 30 s Pocket reference cap note (no voice needs it).
+- Queued: interface languages (Italian, Polish, Ukrainian, Turkish, Czech, Hungarian; Arabic and Thai later for RTL/script fonts), multilingual mod routing, Convai early audio-player open (latency).
+
 
 **2026-10-07: settings review, second round (auto-connect On and silent, notice audit, renames, hotkey removed)**
 - Auto-connect nearby characters: default On (missing key; explicit saved values kept, so a settings.json that already holds false stays Off). Silent: no notice for a warm-up and no hint; with the setting Off only the short "Preparing connection to X…" wait notice remains. Phone dismissal confirmation is Developer-only. Notice audit (kept: invite progress Preparing/Connecting/ready/joined, failures, voice fallback, natural-speech voice switch, service-down notices, microphone and conversation errors, group-chat guidance, tactic outcomes; Developer-only already: support-report saved, routine party and driving popups, gameplay-action acknowledgements, MCM dismissal confirmations; now Developer-only: phone dismissal confirmation; removed: auto-connect wait hint and warm-up notices).
@@ -241,6 +248,8 @@ atural-speech\`). Pause numbers from silence detection only (no Whisper). Script
 - Computer use can see the game, but can't drive it reliably. The user does the playing; I launch the game and ask what they saw.
 
 ## Standing facts
+
+- Final models are backed up to the private HF bucket `akshitireddy/cyberpunk-pocket-rolling-checkpoints` under `final/` (2026-10-07; see `final/README.md` there). Code is backed up to the private GitHub repo `alystria-ai/cyberpunk-convai`.
 
 **Paths**
 - Project: `C:\Users\akshi\Desktop\Code Palace\Cyberpunk Mod`
