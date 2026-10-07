@@ -112,7 +112,6 @@ class Package {
 }
 
 const sizeOf = async entry => entry.buffer ? entry.buffer.length : entry.length ?? (await stat(entry.source)).size;
-const hashOf = entry => entry.buffer ? sha256Buffer(entry.buffer) : sha256File(entry.source, entry.length === undefined ? {} : entry);
 
 // ---------------------------------------------------------------- helpers
 function sourceDigest(files) {
@@ -219,7 +218,9 @@ async function installPython(spec, lockFile, target, pthExtra) {
 
 // Files a Python worker never loads at run time: C/C++ headers, link libraries, CMake files, caches.
 const PYTHON_SKIP = rel => /(?:^|\/)__pycache__(?:\/|$)/.test(rel) || /\.pyc$/.test(rel)
-  || /^Lib\/site-packages\/torch\/(?:include|share)\//.test(rel) || /^Lib\/site-packages\/torch\/lib\/[^/]+\.lib$/i.test(rel);
+  || /^Lib\/site-packages\/torch\/(?:include|share)\//.test(rel) || /^Lib\/site-packages\/torch\/lib\/[^/]+\.lib$/i.test(rel)
+  // Build tools inside wheels: setuptools' script-launcher stubs and PyTorch's protobuf compiler.
+  || /^Lib\/site-packages\/setuptools\/(?:cli|gui)[^/]*\.exe$/i.test(rel) || /^Lib\/site-packages\/torch\/bin\/[^/]+\.exe$/i.test(rel);
 
 async function scriptsPackage(source, config) {
   const pkg = new Package('scripts');
@@ -311,7 +312,14 @@ async function runtimePackage(source, config, models, key) {
     notices.push(`${name} ${info.version ?? ''} - ${typeof info.license === 'string' ? info.license : 'see package'} (compiled into app/assets/realtime-client.js)`);
   }
 
-  // Data the bridge reads from the application directory.
+  // Data the bridge reads from the application directory. A literal data path in the closure
+  // that is missing from appData would fail at start-up, so refuse to build without it.
+  for (const rel of closure) {
+    const text = await readFile(resolve(source.root, rel), 'utf8');
+    for (const match of text.matchAll(/resolve\(project, '((?:characters|research)\/[^']+\.json)'\)/g)) {
+      if (!config.appData.includes(match[1])) throw Error(`${rel} reads ${match[1]}, which appData in release.config.json does not ship.`);
+    }
+  }
   for (const rel of config.appData) pkg.file(`${app}/${rel}`, resolve(source.root, rel));
   const intrinsic = await import(pathToFileURL(resolve(source.root, 'bridge/intrinsic-character-context.mjs')).href);
   for (const descriptor of intrinsic.REVIEWED_INTRINSIC_PACKS) pkg.file(`${app}/${descriptor.file}`, resolve(source.root, descriptor.file));
@@ -458,11 +466,11 @@ async function splitLargeFiles(pkg, config) {
   for (const [name, entry] of [...pkg.entries]) {
     const size = await sizeOf(entry);
     if (size <= config.limits.splitFileBytes) continue;
-    if (!entry.source || !name.includes('/app/omni/model/')) throw Error(`${name} is too large to ship in one piece.`);
+    if (!entry.source || !name.includes('/app/omni/')) throw Error(`${name} is too large to ship in one piece.`);
     const sha = await sha256File(entry.source);
     const parts = [];
-    for (let start = 0, index = 1; start < size; start += config.limits.splitFileBytes, index++) {
-      const length = Math.min(config.limits.splitFileBytes, size - start);
+    for (let start = 0, index = 1; start < size; start += config.limits.splitPartBytes, index++) {
+      const length = Math.min(config.limits.splitPartBytes, size - start);
       parts.push({name: `${basename(name)}.part${index}`, size: length, sha256: await sha256File(entry.source, {start, length}), start});
     }
     pkg.entries.delete(name);
@@ -489,8 +497,8 @@ async function writeArchives(pkg, baseName, config, timestamp) {
     if (writer.count && (writer.size + bound > config.limits.assetBytes || writer.count >= 60000)) {
       archives.push(await writer.close()); await open();
     }
-    await writer.add(name, entry);
-    files.push({path: name, bytes: size, sha256: await hashOf(entry)});
+    const added = await writer.add(name, entry);
+    files.push({path: name, bytes: size, sha256: added.sha256});
   }
   archives.push(await writer.close());
   const result = [];
@@ -541,7 +549,7 @@ async function main() {
   // Final guard: no archive may carry an obvious credential file or development state.
   for (const item of Object.values(report.packages).flatMap(entry => entry.archives)) {
     for (const entry of await listZip(resolve(out, 'packages', item.file))) {
-      if (/(?:^|\/)(?:convai-key\.txt|kaggle-access-token\.txt|huggingface-[^/]*\.txt|\.env|player-memory[^/]*|phone-sessions\.json)$/i.test(entry.name)) {
+      if (/(?:^|\/)(?:convai-key\.txt|kaggle-access-token\.txt|huggingface-[^/]*\.txt|\.env|player-memory[^/]*\.(?:json|bak|tmp)|phone-sessions\.json|characters-verified\.json)$/i.test(entry.name)) {
         throw Error(`${item.file} contains a forbidden file: ${entry.name}`);
       }
     }

@@ -1,229 +1,190 @@
-# Two-archive distribution plan
+# Release packaging (developer notes)
 
-Status: **planned, not yet a portable release**. The machine-readable plan was
-created on September 30, 2026; this document was refreshed against the current
-manifest on October 2. No release ZIP has been built or published.
+How the player release is built, what it contains and how it starts. Players read
+`packaging/PLAYER_README.md` instead (it ships in every package and is the release notes).
 
-The requested player experience is to extract both archives into the Cyberpunk
-2077 game directory. Later Lua updates replace only the Scripts archive. Keep
-that requirement explicit while resolving the current runtime setup gaps.
+## The three packages
 
-## Archive contract
-
-| Archive | Contents | Installation root |
+| Package | Where players get it | Contents |
 |---|---|---|
-| `CyberpunkConvai-Scripts.zip` | Only `.lua` files; currently 63 own-mod development files, plus approved Lua files from any bundled dependencies | Game-relative CET mod paths, including `bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/` |
-| `CyberpunkConvai-Runtime.zip` | Every other mod component: catalogs, nine redscript files, facial archive, audio manifest, portable bridge/browser/Python, OmniVoice code and weights, local lip-sync tool, bootstrap and notices | Paths relative to the game directory |
+| `CyberpunkConvai-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, `README.txt` and `release.json`. |
+| `CyberpunkConvai-Runtime-<v>.zip` | GitHub (public releases repository) | Everything else needed to play: the RED4ext launcher, bundled Node, Chrome for Testing and Python, the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
+| `CyberpunkConvai-OmniPack-<v>-partNofM.zip` | GitHub | Optional OmniVoice pack: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
 
-The current shared development manifest contributes 14 known non-Lua files to
-Runtime. **Those listed files are not a complete runtime package.** The proposed
-additional components and unresolved requirements are listed in
-[`packaging/release-plan.json`](../packaging/release-plan.json). It deliberately
-has `status: proposal-not-buildable`; it is not an installer or a copy command.
+Why this split: Nexus Mods scans every upload and holds files that its scanners flag for manual
+review (help.nexusmods.com articles 128 and 117); it has no blanket rule against DLLs or
+executables, but a text-only file never needs that review and is never quarantined. The large,
+binary runtime goes to GitHub Releases as plain zips, which is how the core frameworks
+(RED4ext, Codeware, TweakXL, Audioware) are distributed too; RED4ext also builds in Actions and
+publishes SHA-256 values with each release, which this pipeline does as well.
 
-ZIPs must have `bin/`, `r6/` and `archive/` directly at their roots, as applicable,
-without a wrapper directory. Do not include CET's global bindings or settings.
-Scripts must carry a compatible runtime version in Lua; Runtime must carry its
-own version/hash manifest so a mismatched update can explain what is missing.
+All three use game-root-relative paths and merge into one install. Versions must match;
+`app/launcher/start-service.mjs` logs a warning when the Scripts `release.json` differs from the
+Runtime one.
 
-Any approved bundled dependency follows the same partition: its `.lua` entries
-belong to Scripts; its non-Lua assets belong to Runtime. Preserve each approved
-archive entry's game-relative path. The pinned development MCM 0.10.3 ZIP has
-**57 Lua files and 34 non-Lua files**: 19 locale JSON files, 14 redscript files
-and one `ModConfigurationMenuAPI/data/storage.version` marker. The plan records
-its source ZIP/hash and separate `plannedDependencyComponents` declarations for
-both archives. These declarations do not authorize redistribution or provide a
-built dependency package; notices and compatibility still need review. Never
-place the complete MCM ZIP in Runtime or copy a player's MCM state or CET bindings.
+## Installed layout
 
-## Voice behavior to preserve
+```
+red4ext/plugins/CyberpunkConvai/
+  CyberpunkConvai.dll        launcher (native/autostart, compiled in the build)
+  launcher.ini               UTF-16: %PLUGIN%\app\node\node.exe app\launcher\start-service.mjs
+  app/                       the application, replaced by every update
+    node/node.exe            official Node.js (node.exe and LICENSE only)
+    browser/chrome-win64/    official Chrome for Testing, the build Playwright 1.58.2 targets
+    python/                  official CPython 3.12 embeddable + hash-locked wheels (Pocket worker)
+    pocket-tts/              Kyutai pocket-tts source at the pinned revision (tree hash verified)
+    bridge/                  production import closure + worker scripts + the supervisor
+    node_modules/            playwright and playwright-core only
+    assets/                  fresh realtime-client.js bundle + PCM player modules
+    characters/, research/   data the bridge reads (roster, world knowledge, quest catalog, intrinsic packs)
+    models/pocket/           Pocket student v2 + decoder v2 export
+    models/lipsync/          lip-sync model, text stage and lexicon
+    defaults/                templates and managed defaults copied into data/ at start-up
+    launcher/                start-service.mjs, prepare-state.mjs, assemble-parts.mjs
+    licenses/                third-party notices (Python packages keep theirs in *.dist-info)
+    omni/                    the OmniVoice pack, when installed
+  voices/                    reference clips (outside app/: the Omni worker requires it)
+bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/
+  *.lua, locales/, *.json    Scripts package
+  data/                      player state, created on first start
+  runtime/                   Lua <-> bridge exchange files
+r6/scripts/CyberpunkConvai/  redscript (Scripts package)
+r6/audioware/CyberpunkConvai speech.yml + eight silent reply slots (Runtime)
+archive/pc/mod/              convai_facial, convai_gestures, cyberpunk_convai_ambient_driver_guard (Runtime)
+```
 
-- The default selector is **Pocket TTS** (shipped with the mod); **OmniVoice** (16 or 32 steps, short or long
-  reference) is an optional GPU pack, see below. The current development registry has
-  prepared local references for 75 of 79 profiles; the four unprepared profiles
-  use their configured Convai voices. **Convai** selects online voices for all
-  characters. The user's saved selection takes priority.
-- OmniVoice defaults to **32 generation steps**, with **16 steps** as the other
-  option. Both use **FP16 on CUDA through PyTorch**. These step counts are not
-  floating-point precision, training epochs or separate voice models.
-- The existing bounded CUDA graph optimization can remain. Production currently
-  uses no TensorRT or FP8 model.
-- One shared local model stays warm while OmniVoice is selected. Johnny, Judy
-  and Panam are the three initial conditioning profiles; other references are
-  prepared lazily, with at most eight conditioning profiles cached. Selecting
-  **Convai** unloads the model through the existing owned-worker lifecycle.
-  Packaging must not start an extra model worker or VoiceStudio UI.
-- Settings stay as pending MCM drafts until the player chooses Apply (Auto Apply
-  is refused for this provider); no voice model is prepared before then.
-- Convai delivers continuous original PCM. OmniVoice plays completed phrases
-  while later phrases generate. Preserve these distinct producer paths.
-- Do not include benchmark recordings, generated listening samples, training
-  data, the rejected fine-tune or other engines.
+RED4ext loads DLLs only from `red4ext/plugins/*.dll` and `red4ext/plugins/<name>/*.dll`
+(PluginSystem.cpp stops at depth 1), so the Python, torch and Chrome DLLs under `app/` are never
+loaded into the game. Keeping the application there also keeps paths short: the build refuses any
+entry whose game-relative path would exceed 255 characters under a 70-character game folder
+(the default Steam path is 61). Windows' built-in zip extractor fails beyond 260.
 
-## The optional OmniVoice pack (GPU)
+## How it starts
 
-Pocket TTS (the distilled student with decoder v2, about 418 MB of weights, CPU) is the voice that ships with the mod. OmniVoice
-is an optional add-on pack for players with a capable CUDA GPU; Settings > Voices greys its four menu entries out with
-"Requires the optional OmniVoice pack (GPU)" until the pack is installed, and a saved Omni choice without it falls back to Pocket
-TTS. The bridge decides by looking for these files (`bridge/omni-pack.mjs`), so the pack is exactly this set:
+1. RED4ext loads `CyberpunkConvai.dll`. It checks that CET and the CET mod are present, reads
+   `launcher.ini` and starts `app\node\node.exe app\launcher\start-service.mjs` hidden, with a pipe
+   whose closing tells the service that the game ended.
+2. `start-service.mjs` prepares `data/` (below), joins split OmniVoice files on the first start
+   after extraction (verifying their SHA-256), and sets every path explicitly:
+   `CYBERPUNK_CONVAI_BROWSER`, `CYBERPUNK_CONVAI_CLIENT_ASSETS`, the four `CYBERPUNK_CONVAI_OMNI_*`
+   paths and `CYBERPUNK_CONVAI_PYTHON` when the pack is installed, the key file and state folder.
+   It clears inherited `NODE_OPTIONS`, `PYTHONPATH` and similar overrides. Nothing is looked up on PATH.
+3. It then runs the development supervisor unchanged (`bridge/bridge-supervisor.mjs`): one bridge
+   per game session, crash restarts, the status file the in-game Help page reads, and a graceful
+   stop when the game exits. `--prepare-only` stops after step 2 and prints a summary.
 
-| Pack component | Where the bridge looks (development layout / portable override) |
-|---|---|
-| Worker Python environment with Torch (CUDA), transformers and the OmniVoice package | `vendor/reference-voicestudio/.venv/Scripts/python.exe` / `CYBERPUNK_CONVAI_PYTHON` |
-| OmniVoice model and audio tokenizer, revision `c5fdb5ccb189668d56333f77ba2629f4cd7535f4` (3.04 GiB on disk) | `<model in the config>/model.safetensors` / `CYBERPUNK_CONVAI_OMNI_MODEL` |
-| Voice adapter (VoiceStudio revision `08a1592e3cb9b4c36beef5fa3185ec2313bb1fea`, reviewed import closure) | `.../backend/services/tts_backend.py` / `CYBERPUNK_CONVAI_OMNI_ADAPTER` |
+The embedded Pythons use their `._pth` file (`Lib\site-packages`, `..\bridge`, `import site`), so
+they ignore any Python installed on the machine.
 
-The two reference configurations the Omni choices read (`local-voices.autobest-short.json`, `...-long.json`) and their
-references are generated per player from their own game files, like Pocket's, and are not part of the pack. The pack is not built
-yet; this only fixes its contents and its detection. The licence notes for the weights and the adapter below apply to the pack.
+### Player state (`data/`)
 
-## Concrete runtime inventory
+- **Generated, refreshed every start:** `pocket-voices.autobest.json` (absolute paths for this
+  install), the two OmniVoice configs (with the pack), `voice-configs.json`, `lipsync-model/`.
+- **Managed until edited:** `characters.json`, `relationship-profiles.json`,
+  `multilingual-profiles.json` follow the package; once the player edits one it is kept
+  (`package-defaults.json` remembers what was written).
+- **Player-owned, never touched:** memories, sessions, phone history, settings, logs, and an own
+  `convai-key.txt`.
 
-| Component | Current development source | Packaging requirement |
-|---|---|---|
-| Bridge | `bridge/convai-bridge.mjs` and its production import closure | Copy reviewed runtime modules, not tests or every historical prototype. |
-| Browser client | Fresh `build:voice` output plus `bridge/continuous-pcm-player.mjs`, `bridge/continuous-pcm-core.mjs` and `bridge/continuous-pcm-worklet.mjs` | The host serves these three modules for continuous Convai PCM playback. Stage them with the fresh bundle and verify their hashes; the old capture worklet is not part of this path. Never copy the entire developer `runtime/` directory. |
-| JavaScript runtime | Currently global Node, observed version `20.20.2` | Pin and test a portable Windows x64 distribution; current version is an inventory observation, not a future support promise. |
-| Browser transport | Playwright `1.58.2`; currently `channel: msedge` | Bundle a matching browser or explicitly qualify an installed-browser dependency. The requested self-contained Runtime needs an executable-path bootstrap and browser notices. |
-| Convai SDK | `@convai/web-sdk` `1.7.0`, compiled into browser client | Retain SDK/transitive notices; no API key embedded in its bundle. |
-| Python | VoiceStudio `.venv`, CPython 3.11 | Build a fresh relocatable runtime; the existing venv is not portable. |
-| GPU dependencies | Torch `2.8.0+cu128`, torchaudio `2.8.0+cu128`, torchvision `0.23.0+cu128` | Review actual import closure, pin wheels, retain their bundled CUDA/dependency notices, and test driver compatibility. A GPU driver is a system prerequisite, not something to overwrite from the mod ZIP. |
-| Other observed Python libraries | transformers `5.15.1`, accelerate `1.14.0`, NumPy `2.2.6`, soundfile `0.14.0`, safetensors `0.8.0`, einops `0.8.2` | This is a partial observed inventory, not a complete dependency lock. Do not copy all optional VoiceStudio engines/ASR/web UI dependencies by default. |
-| Voice adapter | VoiceStudio commit `08a1592e3cb9b4c36beef5fa3185ec2313bb1fea` | Package a reviewed import closure with corresponding source/notice inventory. Keep the same synthesis settings and voice quality. |
-| Model and audio tokenizer | `k2-fsa/OmniVoice`, revision `c5fdb5ccb189668d56333f77ba2629f4cd7535f4` | Preserve exact files/hashes and distinct license terms; do not substitute a smaller model or quantize silently. |
-| Local lip sync | Rhubarb `1.14.0`, phonetic mode | Include executable, required resources and the complete combined license file. |
-| Positional speech bank | Generated by `initializeAudioDepot()` | Generate eight new silent WAV placeholders and `speech.yml`; never package live reply-slot recordings. |
-| Facial graph archive | Fresh validated `convai_facial.archive` from the existing builder | Include only this explicitly generated mod asset, not extracted game archives or build work directories. |
-| Ambient-car Johnny guard | `Build-AmbientJohnnyDriverGuard.py --stage-development` | Stages only `cyberpunk_convai_ambient_driver_guard.archive`. The reviewed 2.31 phase fingerprint and native round-trip check are required; runtime carries this one generated file. No extracted source assets or evidence folders are included. Live fresh-entry acceptance is still pending. |
-| Character/quest data | Approved roster/catalog exports and explicit intrinsic-history files | Ship a reviewed release profile mapping and the file-loaded intrinsic data listed in the plan. Never copy the developer's private account mapping or experimental research tree wholesale. |
-| Required quest catalog | `research/cyberpunk/generated/quest-catalog.json` | Explicitly stage this file at `bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/app/research/cyberpunk/generated/quest-catalog.json`. The production bridge reads it at startup; omitting it prevents startup. The plan's `quest-catalog` component is an individual file allowlist, not permission to include the generated research tree. |
+The Convai key is built into the Runtime package at `app/defaults/service.txt` from the
+`CONVAI_API_KEY` secret. A valid `data/convai-key.txt` (format `api-key = ...`) always wins, so
+anyone can use their own account (with their own `characters.json`). Do not describe the built-in
+key in player-facing text.
 
-Observed pinned model snapshot size is **3,267,470,260 bytes (about 3.04 GiB)**:
-2,450,344,112 bytes main weights, 805,665,628 bytes audio-tokenizer weights, plus
-tokenizer/configuration/model-card files. This is **disk size**, not GPU memory
-or a measured ZIP size. No weights were read for inference or copied for this
-inventory.
+## Building
 
-### Native game dependencies
+`packaging/build-release.mjs` packages a git commit (default `HEAD`, exported with
+`git archive` and `core.autocrlf=false`), never the working tree, so uncommitted work cannot slip
+into a release. Inputs:
 
-Current development versions are CET 1.37.1, RED4ext 1.30.0, redscript 0.5.31,
-Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and MCM 0.10.3. They are required
-by the current Lua/native code. Their compatibility, notice files and chosen
-distribution method must be part of the release build; listing them here does
-not mean the proposed Runtime ZIP already supplies them. Avoid overwriting a
-player's newer shared frameworks or user configuration without a version check.
-If MCM is bundled after those checks, the Scripts and Runtime staging declarations
-above apply to its Lua and non-Lua entries respectively. If it remains a separate
-prerequisite, the installation instructions must say so; the current declarations
-are not a claim that extracting two ZIPs already supplies it.
+- `packaging/release.config.json`: pinned toolchain URLs and SHA-256 values (Node 24.21.0,
+  CPython 3.12.10 and 3.11.9 embeddable, Chrome for Testing 145.0.7632.6, pocket-tts and
+  VoiceStudio revisions, every OmniVoice model file), package layout and limits.
+- `packaging/python/*.lock.txt`: every wheel by URL and SHA-256, installed with `--no-deps
+  --require-hashes --only-binary=:all:` for the target platform. pip's generated console-script
+  launchers, `__pycache__`, torch headers, link libraries and CMake files are left out.
+- `packaging/release-data/`: the default character-ID mappings and the three game archives
+  (built from game files with WolvenKit, so CI cannot make them).
+- Trained models from the private HF bucket `akshitireddy/cyberpunk-pocket-rolling-checkpoints`,
+  `final/` (`packaging/fetch-models.py`, every file checked against `final/MANIFEST.json`), or from
+  the developer `runtime/` folder with `--models local`. The Pocket export is also checked against
+  the hashes in its voice config, and every reference clip against its descriptor.
+- The launcher, compiled from `native/autostart` with MSVC (`/Brepro`, reproducible).
 
-## Why the existing development folder cannot simply be zipped
+Archives are deterministic (`packaging/lib/zip.mjs`): sorted entries, one timestamp (the commit
+time), fixed deflate level, weights stored. Each archive stays under 1.95 GB (GitHub's limit is
+2 GiB per asset) and 65,535 entries; files over 1 GB (only OmniVoice's 2.45 GB `model.safetensors`)
+are split into `.partN` byte ranges with a `.parts.json`, joined on first start. Output:
+`dist/release/packages/` with the zips, `*.files.json` (every file's size and SHA-256),
+`SHA256SUMS.txt` and `release-manifest.json`.
 
-1. `vendor/reference-voicestudio/.venv/pyvenv.cfg` points to a Python installation
-   under this developer's `C:\Users\...` workspace. Its
-   `_editable_impl_omnivoice.pth` also has an absolute workspace path. Both break
-   after relocation. Build and test a proper portable Python layout instead.
-2. Development defaults still use the existing venv. The worker now accepts
-   explicit app model/adapter paths and separate persistent reference/cache
-   paths, validates its source before CUDA, and confirms the layout in its
-   readiness frame. The actual portable dependency closure remains to be built.
-3. The source bootstrap discovers the game root from its installed app location
-   and passes explicit Python/browser/client/voice/tool paths. Its relocated
-   fixture tests do not qualify a complete portable runtime distribution.
-4. `Start-ConversationBridge.ps1` relies on global Node and a source rebuild. That
-   is now safer for development but is not the finished player launcher. The
-   release needs a prebuilt, verified client and packaged executable lookup.
-5. Development autostart exists: `native/autostart` is a runtime-independent
-   RED4ext plugin that starts `scripts/Supervise-ConversationBridge.mjs` when
-   the game starts and hands it a stdin lifeline that closes when the game ends.
-   The supervisor owns single-instance startup, crash restarts, explicit stops
-   and game-exit shutdown, and publishes `runtime/bridge-service.json` for the
-   in-game messages. A release should ship the same DLL with a `launcher.ini`
-   whose `%GAME%`-relative paths name the packaged Node and supervisor, and a
-   prebuilt verified client instead of `--build-voice-client`. Wiring that to
-   the packaged layout (and its environment overrides) and the first-run UI
-   remain pending.
-6. The current registry has 75 prepared conditioning references and transcripts,
-   including the three startup voices. Current setup reads an ignored registry
-   and extracted game dialogue; one model serves the whole catalog. The release
-   must produce supported references from the user's installed game through a
-   narrow, version-checked extraction path and explicit manifest. Do not ship
-   personal audio/sample folders or claim cloning works without references.
-7. A user-owned Convai credential and an approved character-ID catalog need a
-   defined first-run setup flow. Missing credentials must yield a clear status,
-   never borrow the developer key or provision dozens of characters implicitly.
+### Local dry run and install test
 
-## License and source inventory
+```powershell
+node packaging/build-release.mjs --version 0.9.0 --dry-run                 # Scripts + Runtime + Omni
+node packaging/build-release.mjs --version 0.9.0 --dry-run --packages scripts,runtime
+node packaging/test-release-install.mjs --version 0.9.0 --packages dist/release/packages [--omni] [--key-file runtime/convai-key.txt]
+node --test packaging/release.test.mjs
+```
 
-These are observed license labels and release-review requirements, not a blanket
-claim that all artifacts can be redistributed together:
+The dry run uses the developer `runtime/` models and embeds no key. The install test builds a
+stand-in game folder under `%TEMP%` (spaces and non-ASCII in the path), extracts with
+`Expand-Archive`, checks every file, then with a PATH of Windows folders only: speaks with the
+Pocket voice from the packaged Python, runs the lip-sync model on that audio (and OmniVoice on the
+GPU with `--omni`), and loads the real launcher DLL through `native/autostart/test-host.c`, which
+must start the packaged service and stop it when the "game" exits. With `--key-file` the key is
+copied as the player's own key (never printed) and the bridge must report Ready. Never point it at
+the real game folder; it always makes its own.
 
-- VoiceStudio's pinned `pyproject.toml` says **AGPL-3.0-only** and its `LICENSE`
-  contains AGPLv3. Preserve its applicable source and notices; decide the mod's
-  release license and distribution obligations before publication.
-- OmniVoice's model card distinguishes **Apache-2.0 code** from **CC-BY-NC
-  pretrained weights**. The local model card does not specify a CC-BY-NC version.
-  Do not label the weights Apache-2.0. The upstream card confirms this distinction:
-  [OmniVoice model card](https://huggingface.co/k2-fsa/OmniVoice).
-- `audio_tokenizer/LICENSE` contains the **Boson Higgs Audio 2 Community License**.
-  Treat it separately from both VoiceStudio and the main model's terms.
-- Convai Web SDK and Playwright identify Apache-2.0; Rhubarb's combined license
-  file covers its MIT code and bundled dependencies. Python, Node, browser,
-  PyTorch/CUDA and all transitive packages still need their own notice inventory.
-- No project-level release license is currently declared. Audioware's staged
-  package also needs a verified license/source inventory; absence of a LICENSE
-  at the inspected repository root is not permission to invent a license.
+To try a build in the real game, remove the development launcher first
+(`scripts/Uninstall-BridgeAutostart.ps1`), or both launchers start a service.
 
-## Privacy and update contract
+## GitHub Actions
 
-Exclude API keys, authentication tokens, player IDs, memory registries, sessions,
-phone history/drafts, requests/replies, microphone captures, logs, diagnostic
-receipts, backups, research downloads, raw game dialogue extracts, training data
-and unrelated user files. Use an explicit allowlist; a broad `runtime/**` or
-`vendor/**` include is unacceptable.
+`.github/workflows/release.yml` runs only from Actions > Release > Run workflow or on a pushed
+`vX.Y.Z` tag. Job 1 builds and install-tests Scripts + Runtime on `windows-2025`, keeps the Scripts
+zip as a workflow artifact (for Nexus), and uploads the packages to a release in the public
+releases repository (draft by default). Job 2 builds the OmniVoice pack and adds it to the same
+release. Large packages are not stored as workflow artifacts (private-repository artifact storage
+is small).
 
-Pocket TTS is a separate CPU research environment, not a production dependency
-or proposed Runtime component. Its downloaded weights, exported Johnny state,
-benchmark samples, Python environment and Hugging Face credential are excluded.
+Secrets: `HF_TOKEN` (bucket read), `CONVAI_API_KEY`, `RELEASES_TOKEN` (fine-grained token with
+Contents read/write on the public releases repository only). Optional variable `RELEASES_REPO`
+(default `alystria-ai/cyberpunk-convai-releases`). GitHub masks secrets in logs; the builder also
+masks the parsed key and token and never prints them.
 
-Generated player state lives separately from application binaries and is never
-included in an upgrade archive. Updates preserve one existing player ID, all
-settings/history and chosen bindings. Generate fresh default config only when
-absent. An uninstall/update must not reset Convai memory.
+## Keeping the inputs current
 
-## GitHub size constraint
+- New models or voice configs: upload them to the bucket's `final/` and update
+  `final/MANIFEST.json` (the build only accepts files listed there). `--models local` builds from
+  `runtime/` before that.
+- New character IDs or rebuilt archives: `node packaging/Refresh-ReleaseData.mjs`, review, commit.
+- Python versions: edit `packaging/python/<name>.in`, run `python packaging/python/lock.py <name>`.
+- Node, Python, Chrome: change URL, version and SHA-256 in `release.config.json` (Chrome must match
+  `node_modules/playwright-core/browsers.json`).
+- Lua files that must not ship: `devOnlyLua` in the config. The build fails if a shipped file
+  loads one without a guarded `pcall`.
 
-GitHub currently requires each release asset to be **under 2 GiB**.
-[GitHub release limits](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases).
-The raw model snapshot already exceeds that size before Python, CUDA or browser
-files. Compression has not been measured, so do not promise that the complete
-Runtime ZIP fits. Measure the actual archive; if it exceeds the cap, the hosting
-or physical-download arrangement needs a decision. Keep the two logical package
-roles. Do not silently omit weights, make OmniVoice download at first launch,
-split the requested ZIP, or upload anything as part of this planning work.
+## Not shipped
 
-## Build and acceptance method
+Tests, fixtures, research scripts and caches, training data and notebooks, benchmark audio,
+`vendor/`, developer `runtime/`, backups, keys and tokens, the development-only Lua files
+(`diagnostics.lua` and the probes it loads, `face-test.lua`, `gesture-probe.lua`), the retired
+`KnowledgeState.reds`, Rhubarb (only a last fallback behind the lip-sync model) and the resident
+phone analyser (not started when the lip-sync model is present).
 
-1. Resolve the above runtime layout, bootstrap, reference preparation, dependency
-   and license decisions. Convert the proposal into an explicit build manifest.
-2. Stage both packages in fresh directories; build binaries/bundles from pinned
-   sources. Include content hashes and compatible Scripts/Runtime versions.
-3. Assert every Scripts entry ends in `.lua` and no Runtime entry does. Reject
-   absolute/traversing/duplicate archive paths and all private-state filenames.
-   Apply these checks to bundled dependency entries too, verify the pinned source
-   archive hash/counts, and confirm required bridge data such as `quest-catalog.json`
-   exists at the package-relative paths loaded by the production code.
-4. Scan staged text and executable configuration for developer absolute paths,
-   credentials and model-hub caches outside the intended package. Retain notices.
-5. Extract onto a clean, relocated game installation with spaces/non-ASCII path
-   characters and no developer Node/Python/Edge assumption. Test startup,
-   disconnect/restart, world reload and safe updates independently of source tests.
-6. Qualify Convai-only speech, OmniVoice 32/16, model unload/reload, group ordering,
-   native audio/lip sync, UI and no visible helper windows. Audio/visual acceptance
-   still requires the installed game.
-7. Measure ZIP sizes/checksums and inspect their complete entry lists. Publication
-   remains a separate explicitly authorized action.
+## Licences to keep in view
 
-`bridge/packaging-plan.test.mjs` checks the proposal's partition, relative paths,
-privacy exclusions, voice settings and explicit unresolved gates. Passing it
-means the **plan** is internally consistent; it does not certify a built package.
+VoiceStudio is AGPL-3.0-only (the pack carries its licence and the source location). OmniVoice
+weights are CC-BY-NC and its audio tokenizer uses the Boson Higgs Audio 2 Community License; both
+licence files ship with the pack. Chrome for Testing ships without a licence file in its zip; the
+notices point to the Chromium licence. The lip-sync lexicon notice ships with the model. A project
+licence for the mod's own code is still undeclared.
+
+## Superseded
+
+The earlier design in `packaging/release-plan.json`, `packaging/runtime-layout.mjs`,
+`runtime-bootstrap.mjs`, `Runtime-Service.mjs`, `Start-Runtime.ps1`, `Create-RuntimeManifest.mjs`
+and `RUNTIME_BOOTSTRAP.md` (with `bridge/packaging-plan.test.mjs` and
+`packaging/runtime-bootstrap.test.mjs`) is not used by the release build. It stays only until its
+tests are removed from `package.json`.

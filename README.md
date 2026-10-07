@@ -142,12 +142,13 @@ bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/
 
 ### Planned downloads
 
-| Proposed archive | Contents | Status |
+| Release package | Contents | Hosted on |
 |---|---|---|
-| `CyberpunkConvai-Scripts.zip` | Lua adapter and interface dictionaries | Planned |
-| `CyberpunkConvai-Runtime.zip` | Catalogs, native scripts/assets, bridge/browser, local voice runtime and notices | Planned |
+| `CyberpunkConvai-Scripts-<v>.zip` | Text only: CET Lua, redscript, JSON catalogs | Nexus Mods |
+| `CyberpunkConvai-Runtime-<v>.zip` | RED4ext launcher, bundled Node, Chrome for Testing and Python, bridge, Pocket voice, lip-sync model, voices, game archives | GitHub releases |
+| `CyberpunkConvai-OmniPack-<v>-partNofM.zip` | Optional OmniVoice GPU pack | GitHub releases |
 
-The intended release will use matching archives extracted into the game directory. Neither archive is currently a qualified portable installer. The [release plan](packaging/release-plan.json) and [packaging document](docs/PACKAGING.md) track the remaining work.
+Players extract the matching archives into the game directory and install nothing else. GitHub Actions builds them (`.github/workflows/release.yml`); see the [packaging document](docs/PACKAGING.md) for the pipeline, the local dry run and the install test.
 
 ### Update and keep your data
 

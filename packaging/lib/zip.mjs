@@ -2,7 +2,8 @@
 //
 // The same entries in the same order always give byte-identical archives: entries are
 // added in the caller's (sorted) order, every entry carries one fixed DOS timestamp and
-// no extra fields, and deflate runs with a fixed level. Data is streamed from disk, so
+// no extra fields, and deflate runs with one fixed level (6 by default: close to the size of
+// level 9 in a fraction of the time on large CUDA libraries). Data is streamed from disk, so
 // multi-gigabyte inputs never sit in memory. Entries can be byte ranges of a file, which
 // lets one large file be split across archives without temporary copies.
 //
@@ -12,6 +13,7 @@
 import {open} from 'node:fs/promises';
 import {createReadStream} from 'node:fs';
 import {crc32, createDeflateRaw} from 'node:zlib';
+import {createHash} from 'node:crypto';
 
 const LIMIT = 0xFFFFFFFF;
 const MAX_ENTRIES = 0xFFFF;
@@ -29,7 +31,7 @@ export function dosDateTime(date) {
 }
 
 export class ZipWriter {
-  static async create(path, {timestamp = new Date(Date.UTC(2026, 0, 1)), level = 9} = {}) {
+  static async create(path, {timestamp = new Date(Date.UTC(2026, 0, 1)), level = 6} = {}) {
     const handle = await open(path, 'w');
     return new ZipWriter(handle, path, dosDateTime(timestamp), level);
   }
@@ -78,6 +80,7 @@ export class ZipWriter {
     header.writeUInt16LE(nameBytes.length, 26);
     await this.write(Buffer.concat([header, nameBytes]));
     let crc = 0, uncompressed = 0;
+    const hash = createHash('sha256');
     const dataStart = this.offset;
     const chunks = buffer !== undefined
       ? [buffer.subarray(start, length === undefined ? undefined : start + length)]
@@ -85,7 +88,7 @@ export class ZipWriter {
         highWaterMark: 4 * 1024 * 1024});
     if (method === 0) {
       for await (const chunk of chunks) {
-        crc = crc32(chunk, crc); uncompressed += chunk.length;
+        crc = crc32(chunk, crc); uncompressed += chunk.length; hash.update(chunk);
         await this.write(chunk);
       }
     } else {
@@ -94,7 +97,7 @@ export class ZipWriter {
       deflate.on('data', chunk => pending.push(chunk));
       const flush = async () => { while (pending.length) await this.write(pending.shift()); };
       for await (const chunk of chunks) {
-        crc = crc32(chunk, crc); uncompressed += chunk.length;
+        crc = crc32(chunk, crc); uncompressed += chunk.length; hash.update(chunk);
         await new Promise((resolve, reject) => deflate.write(chunk, error => error ? reject(error) : resolve()));
         await flush();
       }
@@ -108,7 +111,7 @@ export class ZipWriter {
     sizes.writeUInt32LE(crc >>> 0, 0); sizes.writeUInt32LE(compressed, 4); sizes.writeUInt32LE(uncompressed, 8);
     await this.handle.write(sizes, 0, 12, headerOffset + 14);
     this.entries.push({nameBytes, method, crc: crc >>> 0, compressed, uncompressed, headerOffset});
-    return {name, method, compressed, uncompressed};
+    return {name, method, compressed, uncompressed, sha256: hash.digest('hex')};
   }
 
   async close() {

@@ -1,0 +1,178 @@
+# Builds the player release packages. Runs only when started by hand (Actions > Release >
+# Run workflow) or when a version tag such as v1.0.0 is pushed; never on ordinary pushes.
+#
+# Secrets (Settings > Secrets and variables > Actions):
+#   HF_TOKEN         read access to the private Hugging Face bucket with the trained models
+#   CONVAI_API_KEY   the Convai key built into the Runtime package
+#   RELEASES_TOKEN   fine-grained token with Contents: read and write on the public releases repository
+# Variable (optional): RELEASES_REPO, the public releases repository (owner/name).
+#
+# Packages are uploaded to a release in the public releases repository (as a draft unless
+# "draft" is turned off), so players can download them while this source repository stays
+# private. The Scripts package is also kept as a workflow artifact for uploading to Nexus Mods.
+# See docs/PACKAGING.md.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version, for example 1.0.0
+        required: true
+      omni:
+        description: Also build the optional OmniVoice pack
+        type: boolean
+        default: true
+      publish:
+        description: Upload the packages to the public releases repository
+        type: boolean
+        default: true
+      draft:
+        description: Keep the public release as a draft until you publish it
+        type: boolean
+        default: true
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '24.21.0'
+  PYTHON_VERSION: '3.12.10'
+  PIP_VERSION: '25.2'
+  HF_HUB_VERSION: '1.33.0'
+  RELEASES_REPO: ${{ vars.RELEASES_REPO || 'alystria-ai/cyberpunk-convai-releases' }}
+  OUT: C:\cpc\release
+  CACHE: C:\cpc\cache
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+  HF_HUB_DISABLE_TELEMETRY: '1'
+
+jobs:
+  runtime:
+    name: Scripts and Runtime
+    runs-on: windows-2025
+    timeout-minutes: 120
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Release version
+        id: version
+        shell: pwsh
+        run: |
+          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '${{ inputs.version }}' }
+          if ($version -notmatch '^\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?$') { throw "Invalid version: $version" }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Build tools
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check "pip==$env:PIP_VERSION" "huggingface_hub==$env:HF_HUB_VERSION"
+          npm ci --no-audit --no-fund
+
+      - name: Release pipeline tests
+        run: node --test packaging/release.test.mjs
+
+      - name: Build Scripts and Runtime
+        shell: pwsh
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          CONVAI_API_KEY: ${{ secrets.CONVAI_API_KEY }}
+        run: |
+          Get-PSDrive C | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+          node packaging/build-release.mjs --version "${{ steps.version.outputs.version }}" --packages scripts,runtime `
+            --models hf --key-env CONVAI_API_KEY --out $env:OUT --cache $env:CACHE
+
+      - name: Clean-install test
+        shell: pwsh
+        run: node packaging/test-release-install.mjs --packages "$env:OUT\packages" --version "${{ steps.version.outputs.version }}" --host "$env:OUT\native\test-host.exe"
+
+      - name: Keep the Scripts package for Nexus Mods
+        uses: actions/upload-artifact@v4
+        with:
+          name: CyberpunkConvai-Scripts-${{ steps.version.outputs.version }}
+          path: |
+            ${{ env.OUT }}\packages\CyberpunkConvai-Scripts-*.zip
+            ${{ env.OUT }}\packages\SHA256SUMS.txt
+            ${{ env.OUT }}\packages\release-manifest.json
+          retention-days: 30
+
+      - name: Publish to the public releases repository
+        if: github.ref_type == 'tag' || inputs.publish
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $tag = "v$version"
+          $createArgs = @('release', 'create', $tag, '--repo', $env:RELEASES_REPO, '--title', "Cyberpunk Convai $version", '--notes-file', $notes)
+          if ('${{ github.ref_type }}' -eq 'tag' -or '${{ inputs.draft }}' -eq 'true') { $createArgs += '--draft' }
+          $notes = Join-Path $env:RUNNER_TEMP 'notes.md'
+          (Get-Content packaging/PLAYER_README.md -Raw) + "`n## Checksums`n`nSHA-256 values for every file are in the SHA256SUMS files below.`n" | Set-Content $notes -Encoding utf8
+          Copy-Item "$env:OUT\packages\SHA256SUMS.txt" "$env:OUT\packages\SHA256SUMS-runtime.txt"
+          gh release view $tag --repo $env:RELEASES_REPO *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh @createArgs
+            if ($LASTEXITCODE -ne 0) { throw 'Could not create the public release.' }
+          }
+          $files = Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName
+          gh release upload $tag --repo $env:RELEASES_REPO --clobber @files "$env:OUT\packages\SHA256SUMS-runtime.txt"
+          if ($LASTEXITCODE -ne 0) { throw 'Uploading the packages failed.' }
+
+  omni:
+    name: OmniVoice pack
+    needs: runtime
+    if: github.ref_type == 'tag' || inputs.omni
+    runs-on: windows-2025
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Build tools
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check "pip==$env:PIP_VERSION" "huggingface_hub==$env:HF_HUB_VERSION"
+          npm ci --no-audit --no-fund
+
+      - name: Build the OmniVoice pack
+        shell: pwsh
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          Get-PSDrive C | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+          node packaging/build-release.mjs --version "${{ needs.runtime.outputs.version }}" --packages omni `
+            --models hf --out $env:OUT --cache $env:CACHE
+          Remove-Item -Recurse -Force "$env:OUT\stage" -ErrorAction SilentlyContinue
+          Get-PSDrive C | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+
+      - name: Publish to the public releases repository
+        if: github.ref_type == 'tag' || inputs.publish
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          $tag = 'v${{ needs.runtime.outputs.version }}'
+          Copy-Item "$env:OUT\packages\SHA256SUMS.txt" "$env:OUT\packages\SHA256SUMS-omni.txt"
+          $files = Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName
+          gh release upload $tag --repo $env:RELEASES_REPO --clobber @files "$env:OUT\packages\SHA256SUMS-omni.txt"
+          if ($LASTEXITCODE -ne 0) { throw 'Uploading the OmniVoice pack failed.' }
