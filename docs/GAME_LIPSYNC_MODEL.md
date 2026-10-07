@@ -205,8 +205,7 @@ audio with the previous local mouth or the model for the replay probe
 
 The corpus (`runtime/lipsync-corpus2`) and trained weights
 (`runtime/lipsync-model/face-model.{json,bin}`) are derived from game assets.
-They stay in the ignored `runtime/` folder and are rebuilt locally from the
-user's own install; they are not committed or redistributed. Without weights
+They stay in the ignored `runtime/` folder during development. **Distribution (user decision, 2026-10-07):** the trained weights ship with the free mod, so players never train anything (CD Projekt permits free fan content made from game material). Without weights
 the bridge keeps the previous phone/Rhubarb paths unchanged
 (`CYBERPUNK_CONVAI_FACE_MODEL=off` also disables the model).
 

@@ -122,7 +122,7 @@ atural-speech\page\index.html` (and `/natural-speech/` on the picker after its n
   - Also check: player speech recognition in other languages (Convai STT vs our model), lip sync and expressions for non-English audio, subtitles, and the tags in natural speech.
 - Packaging a player release: ship the prebuilt voice client; use the auto-start supervisor instead of `packaging/runtime-bootstrap.mjs`; allow `red4ext/` paths in `release-plan.json`; first-run key setup; no keys, player data, audio or training data in the package.
 
-- Packaging the lip sync model: its weights are trained on game audio and animation, so they stay in ignored `runtime/` and aren't committed. Decide how players get it, for example by shipping the weights (legal check) or training on first run from the player's own game files.
+- Packaging trained models (user decision, 2026-10-07): ship our already-trained weights with the mod; players never train anything. Basis (the user): CD Projekt allows using game material to make free fan content, and the mod is free. Applies to the lip-sync model (`runtime/lipsync-model/face-model.{json,bin}`, 2.7 MB), the Pocket student + decoder v2 export, and the searched reference clips. To do at release: add them to `release-plan.json` and the package (Omni weights go in the optional Omni pack); keep the mod free.
 
 ### Dropped by the user
 - Mixed voice providers in one group (and their cancellation).
