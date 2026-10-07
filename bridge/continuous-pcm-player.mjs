@@ -9,21 +9,26 @@ export class ContinuousPcmPlayer {
     now = () => performance.now(), setIntervalFn = (...args) => globalThis.setInterval(...args),
     clearIntervalFn = value => globalThis.clearInterval(value),
     setTimeoutFn = (...args) => globalThis.setTimeout(...args),
-    clearTimeoutFn = value => globalThis.clearTimeout(value)} = {}) {
+    clearTimeoutFn = value => globalThis.clearTimeout(value), standbyMs = PCM_LIMITS.standbyMs} = {}) {
     Object.assign(this, {AudioContextClass, AudioWorkletNodeClass, now, setIntervalFn, clearIntervalFn,
       setTimeoutFn, clearTimeoutFn});
     this.pending = new Map(); this.commandId = 0; this.history = new PcmClockHistory();
     this.latest = empty(); this.submittedFrames = 0; this.heardFrames = 0;
     this.admission = {allow: false, paused: false, volume: 1, pan: 0};
     this.stopped = false; this.opened = false; this.opening = null; this.closePromise = null;
+    this.standby = false; this.standbySince = 0; this.standbyMs = standbyMs;
     this.whenStopped = new Promise(resolve => { this.resolveStopped = resolve; });
   }
 
-  async open({sampleRate, channels, token} = {}) {
+  // standby: open the device now, before any audio exists. A standby player is
+  // silent, takes no audio and has no game lease (only the standbyMs ceiling);
+  // arm() converts it to an ordinary player whose 2 s lease starts at that moment.
+  async open({sampleRate, channels, token, standby = false} = {}) {
     if (this.opening || this.stopped) throw Error('PCM player has already been opened or stopped');
     const format = pcmFormat(sampleRate, channels);
     if (typeof token !== 'string' || !token || token.length > 256) throw Error('Invalid PCM playback owner');
     Object.assign(this, format); this.token = token; this.lastControlMs = this.now();
+    this.standby = standby === true;
     this.latest = {...empty(), sampleRate, channels};
     this.opening = this.prepare();
     return this.opening;
@@ -38,7 +43,8 @@ export class ContinuousPcmPlayer {
       if (this.stopped) throw Error('PCM player was stopped during startup');
       this.node = new this.AudioWorkletNodeClass(this.context, 'convai-continuous-pcm', {
         numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [this.channels],
-        processorOptions: {sampleRate: this.sampleRate, channels: this.channels, token: this.token},
+        processorOptions: {sampleRate: this.sampleRate, channels: this.channels, token: this.token,
+          standby: this.standby},
       });
       this.gain = this.context.createGain(); this.gain.gain.value = 0;
       this.panner = this.context.createStereoPanner(); this.panner.pan.value = 0;
@@ -56,7 +62,7 @@ export class ContinuousPcmPlayer {
       await this.command('ready');
       if (this.stopped) throw Error('PCM player was stopped during startup');
       if (this.context.state !== 'running') throw Error('Audio output could not start');
-      this.opened = true; this.lastControlMs = this.now();
+      this.opened = true; this.lastControlMs = this.standbySince = this.now();
       this.timer = this.setIntervalFn(() => this.check(), 50);
       return this.snapshot();
     } catch (error) {
@@ -117,7 +123,7 @@ export class ContinuousPcmPlayer {
 
   append(bytes, offsetFrames) {
     try {
-      if (!this.opened || this.stopped || this.ending) throw Error('PCM player cannot accept audio');
+      if (!this.opened || this.stopped || this.ending || this.standby) throw Error('PCM player cannot accept audio');
       if (!(bytes instanceof Uint8Array) || !bytes.byteLength || bytes.byteLength % this.align
           || !Number.isSafeInteger(offsetFrames) || offsetFrames !== this.submittedFrames)
         throw Error('PCM append is malformed or out of order');
@@ -133,6 +139,7 @@ export class ContinuousPcmPlayer {
   control(value) {
     try {
       if (!this.opened || this.stopped) throw Error('PCM player is not open');
+      if (this.standby) return; // Only arm() starts the lease; nothing is admitted on standby.
       if (this.now() - this.lastControlMs >= PCM_LIMITS.expireAfterMs) throw Error('Playback admission expired');
       this.admission = playbackControl(value); this.lastControlMs = this.now();
       this.holdSent = false;
@@ -141,6 +148,17 @@ export class ContinuousPcmPlayer {
         if (!this.stopped) this.fail(error.message);
       });
     } catch (error) { this.fail(error.message); throw error; }
+  }
+
+  // Ends standby: the lease starts now and the stream accepts audio and controls.
+  async arm() {
+    if (!this.opened || this.stopped || !this.standby) throw Error('PCM player is not on standby');
+    this.lastControlMs = this.now(); this.holdSent = false;
+    try { await this.command('arm'); }
+    catch (error) { this.fail(error.message); throw error; }
+    if (this.stopped) throw Error(this.latest.error || 'PCM player was stopped');
+    this.standby = false; this.lastControlMs = this.now();
+    return this.snapshot();
   }
 
   end(totalFrames) {
@@ -197,6 +215,10 @@ export class ContinuousPcmPlayer {
 
   check() {
     if (this.stopped) return;
+    if (this.standby) {
+      if (this.now() - this.standbySince >= this.standbyMs) this.fail('Playback standby expired');
+      return;
+    }
     if (this.now() - this.lastControlMs >= PCM_LIMITS.expireAfterMs && this.latest.state !== 'drained') {
       this.fail('Playback admission expired'); return;
     }

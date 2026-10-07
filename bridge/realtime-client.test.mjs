@@ -31,7 +31,7 @@ function manualTimers() {
     }
   };
 }
-function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, timers, onConnect, onDisconnect, onDisableAudio, botReady = true, player} = {}) {
+function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, timers, onConnect, onDisconnect, onDisableAudio, botReady = true, player, clock} = {}) {
   const clients = [], events = [];
   class Client {
     constructor(options) {
@@ -91,15 +91,15 @@ function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, tim
     endUserOptions, transportKey, SessionBindings, ConvaiDataAudio, AnalysisPcm, ConvaiEmotion, TextDecoder, TextEncoder,
     CompanionActionWindow, publishCompanionActionContext, chauffeurActionName,
     ContinuousPcmPlayer: player || ForbiddenAudio,
-    window, performance, setTimeout: timers?.setTimeout ?? setTimeout, clearTimeout: timers?.clearTimeout ?? clearTimeout,
+    window, performance: clock ?? performance, setTimeout: timers?.setTimeout ?? setTimeout, clearTimeout: timers?.clearTimeout ?? clearTimeout,
     setInterval, clearInterval,
     btoa: data => Buffer.from(data, 'binary').toString('base64')});
   return {api: window.convaiRealtime, clients, events};
 }
 const config = {key: 'test-key', characterId: 'alex', scope: 'group:alex,panam', text: 'Hello'};
 const wire = data => ({label: 'rtvi-ai', type: 'server-message', data});
-function audioFixture({seconds = .4, sequence = 1} = {}) {
-  const sampleRate = 8000, fps = 60, samples = Buffer.alloc(Math.round(seconds * sampleRate) * 2);
+function audioFixture({seconds = .4, sequence = 1, sampleRate = 8000} = {}) {
+  const fps = 60, samples = Buffer.alloc(Math.round(seconds * sampleRate) * 2);
   for (let i = 0; i < samples.length / 2; i++) samples.writeInt16LE([-32768, -1, 0, 1, 32767][i % 5], i * 2);
   const owner = {response_id: 'speech-' + sequence, neurosync_turn_id: sequence, epoch: 1};
   const frameCount = Math.round(seconds * fps);
@@ -1245,30 +1245,46 @@ test('a microphone reply carries recognized V text alongside one source PCM WAV'
   await api.close();
 });
 
-function playerFixture({appendGate, openError} = {}) {
-  const instances = [];
+// `instances` lists the players that serve a turn (opened normally, or promoted from
+// standby by arm()); `standbys` lists every device opened ahead of its audio.
+function playerFixture({appendGate, openError, standbyError} = {}) {
+  const instances = [], standbys = [];
   class Player {
-    constructor() { this.packets = []; this.controls = []; this.state = {state: 'opening', ended: false}; instances.push(this); }
-    async open(format) { if (openError) throw Error(openError); this.format = format; this.state.state = 'awaiting-admission'; }
+    constructor() { this.packets = []; this.controls = []; this.state = {state: 'opening', ended: false}; }
+    async open(format) {
+      if (format.standby) { if (standbyError) throw Error(standbyError); standbys.push(this); this.standby = true; }
+      else { if (openError) throw Error(openError); instances.push(this); }
+      this.format = format; this.opened = true;
+      this.sampleRate = format.sampleRate; this.channels = format.channels;
+      this.state.state = format.standby ? 'standby' : 'awaiting-admission';
+    }
+    async arm() {
+      assert.equal(this.standby, true, 'only a standby player can be armed');
+      this.standby = false; this.armed = true; this.state.state = 'awaiting-admission'; instances.push(this);
+    }
     async append(bytes, offsetFrames) {
+      assert.ok(!this.standby, 'a standby player must be armed before it accepts audio');
       assert.equal(this.inAppend, undefined, 'append acknowledgements must be ordered');
       this.inAppend = true;
       await appendGate?.();
       this.packets.push({bytes: Buffer.from(bytes), offsetFrames});
       this.inAppend = undefined;
     }
-    control(control) { assert.ok(this.format, 'control must wait for open'); this.controls.push(control); }
+    control(control) {
+      assert.ok(this.format, 'control must wait for open'); assert.ok(!this.standby, 'a standby player takes no control');
+      this.controls.push(control);
+    }
     async end(totalFrames) { this.totalFrames = totalFrames; this.state.state = 'draining'; }
     snapshot() { return {...this.state, sampleRate: this.format?.sampleRate, channels: this.format?.channels}; }
     async stop(reason) { this.stopped = reason; this.state.state = 'stopped'; this.state.ended = false; }
     drain() { this.state = {...this.state, state: 'ended', ended: true,
       playedFrames: this.totalFrames, positionSeconds: this.totalFrames / this.format.sampleRate}; }
   }
-  return {Player, instances};
+  return {Player, instances, standbys};
 }
 
 test('continuous playback receives owned original PCM before terminal, preserves faces and holds result until audible drain', async () => {
-  const {Player, instances} = playerFixture();
+  const {Player, instances, standbys} = playerFixture();
   const {api, clients} = fixture({player: Player});
   await api.warm(config);
   let settled = false;
@@ -1278,7 +1294,8 @@ test('continuous playback receives owned original PCM before terminal, preserves
   assert.equal(api.continuousSnapshot('foreign-turn'), null);
   api.continuousControl('audible-turn', {allow: false, paused: false, volume: 1, pan: 0});
   c.data(data.pcm(data.samples.subarray(0, 3200))); await flush();
-  assert.equal(instances[0].packets.length, 0, 'ownerless PCM must wait');
+  assert.equal(instances.length, 0, 'ownerless PCM must wait');
+  assert.equal(standbys[0].packets.length, 0); assert.equal(standbys[0].stopped, undefined);
   c.data(data.faces); await flush();
   assert.equal(instances[0].packets.length, 1, 'playback need not wait for source completion');
   assert.equal(instances[0].controls.length, 1);
@@ -1304,6 +1321,7 @@ test('continuous playback receives owned original PCM before terminal, preserves
   const result = await pending;
   assert.equal(result.continuous, true); assert.equal(Object.hasOwn(result, 'audio'), false);
   assert.equal(result.faces.length, 24); assert.equal(instances[0].stopped, 'completed');
+  assert.equal(standbys[0].stopped, 'Standby replaced', '24 kHz standby cannot carry 8 kHz source PCM');
   assert.equal(api.continuousSnapshot('audible-turn').ended, true);
   assert.equal(api.continuousSnapshot('audible-turn', 3000).pcm.frames, 200, 'the drained turn still serves its tail');
   await api.close();
@@ -1315,7 +1333,7 @@ test('continuous renderer startup failure cancels the provider without returning
   const pending = api.reply({...config, liveSpeechToken: 'failed-turn'}); pending.catch(() => {}); await flush();
   sendAudio(clients[0]); finalText(clients[0]);
   await assert.rejects(pending, /Test audio output unavailable/);
-  assert.equal(clients[0].isBotReady, false); assert.equal(instances[0].packets.length, 0);
+  assert.equal(clients[0].isBotReady, false); assert.equal(instances.length, 0);
 });
 
 test('continuous clock faults preserve only bounded numeric evidence through append and collection failures', async () => {
@@ -1370,11 +1388,12 @@ test('continuous cancellation fences pending append acknowledgements and late co
 });
 
 test('microphone finish attaches continuous playback before end-of-input and reuses its recording owner', async () => {
-  const {Player, instances} = playerFixture();
+  const {Player, instances, standbys} = playerFixture();
   const {api, clients} = fixture({player: Player, allowMic: true}); await api.beginVoice(config);
   clients[0].chatMessages = [{id: 'live-stt', type: 'user-transcription', content: '\tWhat do you both\u0000 think?\n', isStreaming: false}];
   clients[0].handlers.get('messagesChange')(clients[0].chatMessages);
   const pending = api.finishVoice({...config, liveSpeechToken: 'microphone-turn'}); pending.catch(() => {}); await flush();
+  assert.equal(standbys.length, 1, 'the device opens when the recording finishes');
   sendAudio(clients[0]); finalText(clients[0]);
   await new Promise(done => setTimeout(done, 80));
   assert.equal(instances[0].packets.length, 1); assert.equal(instances[0].totalFrames, 3200);
@@ -1384,6 +1403,87 @@ test('microphone finish attaches continuous playback before end-of-input and reu
   const result = await pending;
   assert.equal(result.continuous, true); assert.equal(result.userText, 'What do you both think?');
   assert.equal(api.continuousSnapshot('microphone-turn').userText, result.userText);
+  await api.close();
+});
+
+test('the output device opens on standby at turn start and the first audio promotes it without reopening', async () => {
+  const {Player, instances, standbys} = playerFixture();
+  const {api, clients} = fixture({player: Player}); await api.warm(config);
+  const pending = api.reply({...config, liveSpeechToken: 'standby-turn'}); pending.catch(() => {}); await flush();
+  assert.equal(standbys.length, 1, 'the device opens before any audio exists');
+  assert.deepEqual(JSON.parse(JSON.stringify(standbys[0].format)),
+    {sampleRate: 24000, channels: 1, token: 'standby-turn', standby: true});
+  assert.equal(instances.length, 0);
+  // The bridge's quiet controls during the provider's thinking wait for the stream.
+  assert.equal(api.continuousControl('standby-turn', {allow: false, paused: true, volume: 0, pan: 0}), true);
+  assert.equal(standbys[0].controls.length, 0);
+  const data = audioFixture({sampleRate: 24000}); sendAudio(clients[0], data); finalText(clients[0]);
+  await new Promise(done => setTimeout(done, 80));
+  assert.deepEqual(instances, [standbys[0]], 'the standby device itself carries the turn');
+  assert.equal(standbys[0].armed, true); assert.equal(standbys.length, 1, 'no second device was opened');
+  assert.deepEqual(Buffer.concat(standbys[0].packets.map(p => p.bytes)), data.samples);
+  assert.equal(standbys[0].controls.length, 1, 'the control that waited for the device is applied after arming');
+  assert.equal(api.continuousControl('standby-turn', {allow: true, paused: false, volume: 1, pan: 0}), true);
+  assert.equal(standbys[0].controls.at(-1).allow, true);
+  standbys[0].drain();
+  const result = await pending;
+  assert.equal(result.continuous, true); assert.equal(standbys[0].stopped, 'completed');
+  await api.close();
+});
+
+test('a different source format discards the standby device and opens one in the ordinary way', async () => {
+  const {Player, instances, standbys} = playerFixture();
+  const {api, clients} = fixture({player: Player}); await api.warm(config);
+  const pending = api.reply({...config, liveSpeechToken: 'other-format'}); pending.catch(() => {}); await flush();
+  const data = audioFixture({sampleRate: 16000}); sendAudio(clients[0], data); finalText(clients[0]);
+  await new Promise(done => setTimeout(done, 80));
+  assert.equal(standbys[0].stopped, 'Standby replaced'); assert.equal(instances.length, 1);
+  assert.notEqual(instances[0], standbys[0]); assert.equal(instances[0].format.sampleRate, 16000);
+  assert.equal(instances[0].format.standby, undefined);
+  instances[0].drain(); await pending; await api.close();
+});
+
+test('a standby device that cannot open never fails the turn: the first audio opens one as before', async () => {
+  const {Player, instances, standbys} = playerFixture({standbyError: 'Test audio output unavailable'});
+  const {api, clients} = fixture({player: Player}); await api.warm(config);
+  const pending = api.reply({...config, liveSpeechToken: 'no-standby'}); pending.catch(() => {}); await flush();
+  assert.equal(standbys.length, 0); assert.equal(api.diagnostics().activeTurn, true);
+  sendAudio(clients[0], audioFixture({sampleRate: 24000})); finalText(clients[0]);
+  await new Promise(done => setTimeout(done, 80));
+  assert.equal(instances.length, 1); assert.equal(instances[0].format.sampleRate, 24000);
+  instances[0].drain(); assert.equal((await pending).continuous, true); await api.close();
+});
+
+test('cancelling a turn that is still waiting for its first audio closes the standby device', async () => {
+  const {Player, instances, standbys} = playerFixture();
+  const {api} = fixture({player: Player}); await api.warm(config);
+  const pending = api.reply({...config, liveSpeechToken: 'cancelled-early'}); pending.catch(() => {}); await flush();
+  assert.equal(standbys.length, 1); assert.equal(standbys[0].stopped, undefined);
+  await api.close('User cancelled');
+  await assert.rejects(pending, /User cancelled/);
+  assert.equal(standbys[0].stopped, 'User cancelled'); assert.equal(instances.length, 0);
+  assert.equal(api.continuousControl('cancelled-early', {allow: true}), false);
+});
+
+test('a turn that never receives audio closes the standby device when the reply times out', async () => {
+  let offset = 0;
+  const clock = {now: () => performance.now() + offset};
+  const {Player, instances, standbys} = playerFixture();
+  const {api, clients} = fixture({player: Player, clock}); await api.warm(config);
+  const pending = api.reply({...config, liveSpeechToken: 'silent-turn'}); pending.catch(() => {}); await flush();
+  finalText(clients[0]);
+  offset = 61000; // past the 60 s reply ceiling
+  await assert.rejects(pending, /did not finish the reply/);
+  assert.equal(standbys[0].stopped, 'Convai did not finish the reply'); assert.equal(instances.length, 0);
+  assert.equal(clients[0].isBotReady, false);
+});
+
+test('a text send that fails before collection releases the standby device', async () => {
+  const {Player, standbys} = playerFixture();
+  const {api, clients} = fixture({player: Player}); await api.warm(config);
+  clients[0].sendUserTextMessage = () => { throw Error('Test send failure'); };
+  await assert.rejects(api.reply({...config, liveSpeechToken: 'send-fails'}), /Test send failure/);
+  assert.equal(standbys.length, 1); assert.equal(standbys[0].stopped, 'Conversation failed');
   await api.close();
 });
 

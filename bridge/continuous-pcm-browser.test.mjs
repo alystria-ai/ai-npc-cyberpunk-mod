@@ -67,3 +67,55 @@ test('real muted headless worklet pauses, resumes, and drains one continuous sou
     await browser?.close(); await new Promise(resolve => server.close(resolve));
   }
 });
+
+test('real muted worklet: a standby device outlives the 2s lease, then arms and plays; the lease still expires after arming', {timeout: 180000}, async () => {
+  const allowed = new Set(['/continuous-pcm-player.mjs', '/continuous-pcm-worklet.mjs', '/continuous-pcm-core.mjs']);
+  const server = createServer(async (request, response) => {
+    if (request.url === '/') { response.setHeader('Content-Type', 'text/html'); response.end('<!doctype html><title>Muted PCM standby test</title>'); return; }
+    if (!allowed.has(request.url)) { response.writeHead(404).end(); return; }
+    try {
+      response.setHeader('Content-Type', 'text/javascript');
+      response.end(await readFile(new URL(`.${request.url}`, import.meta.url)));
+    } catch { response.writeHead(500).end(); }
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  let browser;
+  try {
+    // Muted and all-zero source, as above: no tone, microphone or provider call.
+    browser = await chromium.launch({channel: 'msedge', headless: true,
+      args: ['--mute-audio', '--autoplay-policy=no-user-gesture-required']});
+    const page = await browser.newPage();
+    await page.goto(`http://127.0.0.1:${server.address().port}`);
+    const result = await page.evaluate(async () => {
+      const {ContinuousPcmPlayer} = await import('/continuous-pcm-player.mjs');
+      const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+      const player = new ContinuousPcmPlayer();
+      await player.open({sampleRate: 24000, channels: 1, token: 'muted-standby-test', standby: true});
+      // A slow provider: well past the 2 s lease and the 500 ms hold, with an
+      // (ignored) allowing control and no game traffic at all.
+      await delay(2600);
+      player.control({allow: true, paused: false, volume: 1, pan: 0});
+      const waiting = player.snapshot();
+      await player.arm();
+      await player.append(new Uint8Array(9600 * 2), 0);
+      const armed = player.snapshot();
+      player.control({allow: true, paused: false, volume: 1, pan: 0});
+      const deadline = performance.now() + 3000;
+      while (player.snapshot().playedFrames === 0 && !player.snapshot().error && performance.now() < deadline) await delay(5);
+      const playing = player.snapshot();
+      // After arming the lease is the ordinary one: no refresh, no sound.
+      await delay(2300);
+      const lapsed = player.snapshot();
+      await player.stop();
+      return {waiting, armed, playing, lapsed};
+    });
+    assert.equal(result.waiting.error, null, JSON.stringify(result)); assert.equal(result.waiting.state, 'standby');
+    assert.equal(result.waiting.playedFrames, 0);
+    assert.equal(result.armed.error, null, JSON.stringify(result)); assert.equal(result.armed.playedFrames, 0);
+    assert.equal(result.playing.error, null, JSON.stringify(result));
+    assert.ok(result.playing.playedFrames > 0, JSON.stringify(result));
+    assert.match(result.lapsed.error, /expired/, JSON.stringify(result));
+  } finally {
+    await browser?.close(); await new Promise(resolve => server.close(resolve));
+  }
+});

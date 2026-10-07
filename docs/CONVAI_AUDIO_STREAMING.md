@@ -39,6 +39,18 @@ cancels. Replacement requests, actor loss, death, unload and cancellation retire
 the exact old stream. Buffers are bounded to 120 seconds and 24 MB of source PCM.
 Short complete replies can begin below the 400 ms threshold.
 
+The output device opens at turn start, not at the first packet. A new AudioContext
+and worklet only start rendering 120-230 ms after `open()` returns, which used to
+sit between the game's admission and the first sound. The turn therefore opens a
+*standby* player (`open({standby: true})`, 24 kHz mono): silent, no game lease, no
+audio accepted, controls ignored, bounded by a 70 s ceiling. The first audio packet
+arms it (`arm()`), which starts the ordinary 2 s lease at that moment; admission
+still needs the game's allowing control. A standby that failed, was replaced by a
+device change or does not match the real source format is discarded and a player
+opens at the first audio as before. Cancellation, a failed send or finish, and the
+60 s no-audio timeout stop it. Measured first packet to first rendered samples:
+about 300 to 140 ms on a warm page and about 270 to 135 ms on a page's first turn.
+
 Device-correlated output timestamps map through the reader's actual consumed
 samples. Native subtitles and growing NeuroSync timelines follow that clock;
 they do not advance through buffering gaps. Final provider text and exact PCM

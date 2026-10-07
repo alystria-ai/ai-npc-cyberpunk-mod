@@ -1,7 +1,11 @@
 // One source sample clock for a whole utterance. The renderer never interprets
 // packet boundaries as sound boundaries and never changes the supplied PCM.
 export const PCM_LIMITS = Object.freeze({maxSeconds: 120, maxBytes: 24000000,
-  startupSeconds: 0.4, holdAfterMs: 500, expireAfterMs: 2000});
+  startupSeconds: 0.4, holdAfterMs: 500, expireAfterMs: 2000,
+  // A device opened before its first audio exists waits silently for at most this
+  // long (the Convai request's own 60 s ceiling plus margin). It is not a lease:
+  // nothing can sound until arm() starts the ordinary 2 s game lease.
+  standbyMs: 70000});
 
 export function pcmFormat(sampleRate, channels) {
   if (!Number.isInteger(sampleRate) || sampleRate < 8000 || sampleRate > 96000
@@ -75,7 +79,7 @@ export class PcmQuantumClock {
 
 export class ContinuousPcmCore {
   constructor({sampleRate, channels, capacityFrames, startupSeconds = PCM_LIMITS.startupSeconds,
-    nowMs = 0} = {}) {
+    nowMs = 0, standby = false} = {}) {
     Object.assign(this, pcmFormat(sampleRate, channels));
     if (!Number.isFinite(startupSeconds) || startupSeconds < 0 || startupSeconds > 2
         || !Number.isFinite(nowMs)) throw Error('Invalid continuous PCM buffer policy');
@@ -90,6 +94,9 @@ export class ContinuousPcmCore {
     this.readFrame = 0; this.writeFrame = 0; this.underruns = 0;
     this.allow = false; this.paused = false; this.lastControlMs = nowMs;
     this.externalHold = false;
+    // Standby: the output device is already running but the stream is not yet
+    // admitted. Silent, no lease clock, and no audio may be appended; arm() ends it.
+    this.standby = standby === true;
     this.started = false; this.rebuffering = false; this.sealed = false;
     this.stopped = false; this.error = null; this.state = 'awaiting-admission';
     this.startAt = null; this.drainAt = null;
@@ -104,6 +111,7 @@ export class ContinuousPcmCore {
 
   append(bytes, offsetFrames) {
     if (this.stopped || this.sealed) throw Error(this.error || 'PCM stream is closed');
+    if (this.standby) return this.fail('PCM audio arrived before the stream was armed');
     if (!(bytes instanceof Uint8Array) || !bytes.byteLength || bytes.byteLength % this.align
         || !Number.isSafeInteger(offsetFrames) || offsetFrames !== this.receivedFrames)
       return this.fail('PCM append is malformed or out of order');
@@ -121,8 +129,20 @@ export class ContinuousPcmCore {
     this.receivedFrames += frames; this.bufferedFrames += frames;
   }
 
+  // Ends standby and starts the ordinary lease at nowMs. Playback still needs a
+  // fresh allowing control; arming never admits anything by itself.
+  arm(nowMs) {
+    if (this.stopped) throw Error(this.error || 'PCM stream is closed');
+    if (!this.standby) return;
+    if (!Number.isFinite(nowMs) || nowMs < this.lastControlMs) return this.fail('Playback control clock regressed');
+    this.standby = false; this.lastControlMs = nowMs; this.allow = false; this.paused = false;
+    this.externalHold = false; this.state = 'awaiting-admission';
+  }
+
   control(value, nowMs) {
     if (this.stopped) throw Error(this.error || 'PCM stream is closed');
+    // Controls sent while on standby are ignored: only arm() starts the lease.
+    if (this.standby) { playbackControl(value); return; }
     if (!Number.isFinite(nowMs) || nowMs < this.lastControlMs) return this.fail('Playback control clock regressed');
     if (nowMs - this.lastControlMs >= PCM_LIMITS.expireAfterMs) return this.fail('Playback admission expired');
     const valid = playbackControl(value);
@@ -130,7 +150,7 @@ export class ContinuousPcmCore {
     this.externalHold = false;
   }
 
-  hold() { this.externalHold = true; }
+  hold() { if (!this.standby) this.externalHold = true; }
 
   end(totalFrames) {
     if (this.stopped) throw Error(this.error || 'PCM stream is closed');
@@ -158,6 +178,7 @@ export class ContinuousPcmCore {
     if (!Number.isFinite(contextSeconds) || !Number.isFinite(nowMs) || frames < 1 || !validChannels) {
       this.error = 'PCM output format changed'; this.stopped = true; this.state = 'error'; return segment;
     }
+    if (this.standby) { this.state = 'standby'; return segment; }
     if (this.sealed && this.bufferedFrames === 0) { this.state = 'drained'; return segment; }
     const age = nowMs - this.lastControlMs;
     if (age >= PCM_LIMITS.expireAfterMs) {

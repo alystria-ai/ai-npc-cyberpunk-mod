@@ -30,6 +30,7 @@ function fixture({actualRate, addModule, suppressAcks = false} = {}) {
         try {
           switch (message.type) {
             case 'append': this.core.append(new Uint8Array(message.bytes), message.offsetFrames); break;
+            case 'arm': this.core.arm(ctx.currentTime * 1000); break;
             case 'control': this.core.control(message.value, ctx.currentTime * 1000); break;
             case 'hold': this.core.hold(); break;
             case 'end': this.core.end(message.totalFrames); break;
@@ -124,4 +125,53 @@ test('device suspension fails closed instead of advancing lipsync from wall time
   f.context.state = 'suspended'; f.context.onstatechange(); await flush();
   assert.match(f.player.snapshot().error, /no longer running/);
   assert.equal(f.context.closeCount, 1); assert.equal(f.player.snapshot().positionSeconds, 0);
+});
+
+test('a standby player sits silent far beyond the 2s lease, ignores controls, then arms into a normal lease', async () => {
+  const f = fixture(); await f.player.open({sampleRate: 8000, channels: 1, token: 'owner', standby: true});
+  assert.equal(f.context.gain.gain.value, 0);
+  for (let i = 0; i < 8; i++) { f.advance(5000); await flush(); f.node.render(128); }
+  assert.equal(f.player.snapshot().error, null); assert.equal(f.context.closeCount, 0);
+  assert.equal(f.player.snapshot().state, 'standby'); assert.equal(f.node.core.externalHold, false);
+  f.player.control({allow: true, paused: false, volume: 1, pan: 0}); await flush(); // ignored
+  assert.equal(f.node.core.allow, false); assert.equal(f.context.gain.gain.value, 0);
+  await assert.rejects(f.player.append(pcm(100), 0), /cannot accept audio/);
+  assert.equal(f.context.closeCount, 1, 'audio before arming fails closed');
+  const g = fixture(); await g.player.open({sampleRate: 8000, channels: 1, token: 'owner', standby: true});
+  g.advance(30000); await flush();
+  await g.player.arm(); assert.equal(g.player.snapshot().state, 'awaiting-admission');
+  await g.player.append(pcm(3200), 0);
+  g.player.control({allow: true, paused: false, volume: .5, pan: 0}); await flush();
+  assert.equal(g.context.gain.gain.value, .5);
+  g.node.render(128); assert.equal(g.player.snapshot().state, 'playing');
+  // The lease started at arming: a game that never refreshes it expires after 2 s, as before.
+  g.advance(2000); await flush();
+  assert.match(g.player.snapshot().error, /expired/); assert.equal(g.context.closeCount, 1);
+  await assert.rejects(g.player.arm(), /not on standby/);
+});
+
+test('arming restarts the lease from the first audio, not from when the device opened', async () => {
+  const f = fixture(); await f.player.open({sampleRate: 8000, channels: 1, token: 'owner', standby: true});
+  f.advance(6000); await flush(); await f.player.arm();
+  f.advance(1900); await flush(); assert.equal(f.player.snapshot().error, null);
+  f.player.control({allow: true, paused: false, volume: 1, pan: 0}); await flush();
+  f.advance(1900); await flush(); assert.equal(f.player.snapshot().error, null);
+  await f.player.stop(); assert.equal(f.context.closeCount, 1);
+});
+
+test('a standby player is bounded and stopping it releases the device', async () => {
+  const f = fixture(); await f.player.open({sampleRate: 8000, channels: 1, token: 'owner', standby: true});
+  f.advance(69000); await flush(); assert.equal(f.player.snapshot().error, null);
+  f.advance(1000); await flush();
+  assert.match(f.player.snapshot().error, /standby expired/); assert.equal(f.context.closeCount, 1);
+  const g = fixture(); await g.player.open({sampleRate: 8000, channels: 1, token: 'owner', standby: true});
+  await g.player.stop('cancelled'); assert.equal(g.context.closeCount, 1);
+  assert.equal(g.player.snapshot().state, 'stopped'); await assert.rejects(g.player.arm(), /not on standby/);
+});
+
+test('a standby player never opens an ordinary player twice and a plain player cannot be armed', async () => {
+  const f = fixture(); await f.player.open({sampleRate: 8000, channels: 1, token: 'owner'});
+  await assert.rejects(f.player.arm(), /not on standby/);
+  assert.equal(f.player.snapshot().error, null);
+  await f.player.stop();
 });

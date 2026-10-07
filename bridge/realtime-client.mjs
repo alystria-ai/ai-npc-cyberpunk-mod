@@ -19,6 +19,12 @@ let actionContextConfigured = false;
 // This later ceiling is cancellation only if that finish never reaches us.
 const MICROPHONE_CANCEL_AFTER_MS = 35000;
 const USER_TRANSCRIPT_LIMIT = 1200;
+// Convai's source PCM is 24 kHz mono. The output device is opened on standby at
+// turn start in this format so its start-up (about 20-190 ms of context, worklet
+// and device warm-up) overlaps the provider's thinking time instead of following
+// the first audio packet. A different actual format discards the standby player
+// and opens one in the ordinary way.
+const STANDBY_FORMAT = Object.freeze({sampleRate: 24000, channels: 1});
 const AUDIO_DATA_TYPES = new Set(['audio-data', 'chunked-neurosync-blendshapes',
   'blendshape-turn-stats', 'bot-started-speaking', 'bot-stopped-speaking',
   'bot-turn-completed', 'neurosync-blendshapes-cancel']);
@@ -138,6 +144,7 @@ async function close(reason = 'Conversation cancelled') {
     previous.turn.dataAudio?.abort(reason);
     // Retire audible output immediately, before waiting for SDK shutdown.
     if (previous.turn.live) {
+      retireStandby(previous.turn.live, reason);
       void previous.turn.live.player.stop(reason).catch(() => {});
       previousContinuous = continuousView(previous.turn);
       previousAnalysis = {token: previous.turn.live.token, analysis: previous.turn.live.analysis};
@@ -430,7 +437,35 @@ function attachContinuous(current, token) {
   }
   previousContinuous = null; previousAnalysis = null;
   current.live = {token, player: new ContinuousPcmPlayer(), chain: Promise.resolve(), opened: false};
+  startStandby(current.live);
   queueContinuous(current);
+}
+
+// Open the output device now, silently and without a game lease. A failure here
+// is not a turn failure: the first audio packet opens a player as it always did.
+function startStandby(live) {
+  const player = new ContinuousPcmPlayer();
+  live.standby = player;
+  live.standbyOpen = player.open({...STANDBY_FORMAT, token: live.token, standby: true}).catch(() => {});
+}
+
+// Stop a standby player that never became the turn's player. Idempotent.
+function retireStandby(live, reason = 'Conversation cancelled') {
+  const player = live?.standby;
+  if (player) void player.stop(reason).catch(() => {});
+}
+
+// Hand the turn the standby player if it is still healthy and has the real format.
+// Anything else (failed open, device change, other format) discards it.
+async function takeStandby(live, sampleRate, channels) {
+  const player = live.standby;
+  if (!player) return null;
+  await live.standbyOpen;
+  if (player.sampleRate === sampleRate && player.channels === channels && player.opened && !player.stopped) {
+    try { await player.arm(); return player; } catch { /* fall through: open normally */ }
+  }
+  retireStandby(live, 'Standby replaced');
+  return null;
 }
 
 function clockDiagnostic(playback) {
@@ -470,7 +505,10 @@ function queueContinuous(current) {
     const owned = () => !current.error && turn === current && current.epoch === epoch;
     if (!owned()) return;
     if (!live.opened) {
-      await live.player.open({sampleRate, channels, token: live.token});
+      const standby = await takeStandby(live, sampleRate, channels);
+      if (standby) live.player = standby;
+      else await live.player.open({sampleRate, channels, token: live.token});
+      live.standby = null;
       live.opened = true;
       if (owned() && live.pendingControl) live.player.control(live.pendingControl);
     }
@@ -599,8 +637,12 @@ async function reply(config) {
     const timing = await connect(config);
     await updateContext(config, true);
     const current = beginTurn(timing, config);
-    if (config.reaction) client.sendTriggerMessage(undefined, config.text);
-    else client.sendUserTextMessage(config.text);
+    // collect() owns every later failure path. Until it runs, a failed send must
+    // not leave the standby output device open.
+    try {
+      if (config.reaction) client.sendTriggerMessage(undefined, config.text);
+      else client.sendUserTextMessage(config.text);
+    } catch (error) { retireStandby(current.live, 'Conversation failed'); throw error; }
     return await collect(current);
   } finally { if (admitting === admission) admitting = null; }
 }
@@ -699,8 +741,10 @@ async function finishVoice(config) {
   try { attachContinuous(current, config?.liveSpeechToken); }
   catch (error) { await close('Microphone playback admission failed'); throw error; }
   current.recording = false;
-  await disableMic();
-  if (turn !== current || current.epoch !== epoch) throw Error('Microphone finish cancelled');
+  try {
+    await disableMic();
+    if (turn !== current || current.epoch !== epoch) throw Error('Microphone finish cancelled');
+  } catch (error) { retireStandby(current.live, 'Microphone finish failed'); throw error; }
   return collect(current);
 }
 

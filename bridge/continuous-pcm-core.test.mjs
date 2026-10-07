@@ -94,6 +94,39 @@ test('stale admission holds at 500ms, fresh admission can resume, 2s expires per
   const late = core(); assert.throws(() => late.control(allowed, 2000), /expired/);
 });
 
+test('standby is silent with no lease for a slow provider, admits nothing, and takes no audio', () => {
+  const sound = core({standby: true});
+  // Far past both the 500 ms hold and the 2 s expiry, up to the 70 s standby ceiling.
+  for (const seconds of [0, .6, 2.5, 30, 69]) {
+    const {outputs} = render(sound, 4, seconds, seconds * 1000);
+    assert.equal(sound.state, 'standby'); assert.equal(sound.error, null); assert.deepEqual([...outputs[0]], [0, 0, 0, 0]);
+  }
+  // An allowing control cannot admit it, hold() is a no-op, and invalid controls are still rejected.
+  sound.control(allowed, 69000); sound.hold();
+  assert.equal(sound.allow, false); assert.equal(sound.externalHold, false);
+  assert.throws(() => sound.control({allow: 'yes', paused: false}, 69001), /Invalid playback admission/);
+  assert.throws(() => sound.append(pcm([1, 2, 3]), 0), /before the stream was armed/);
+  assert.equal(sound.state, 'error'); assert.equal(sound.stopped, true);
+  assert.equal(sound.receivedFrames, 0);
+});
+
+test('arming ends standby: the ordinary 2s lease starts then and still needs an allowing control', () => {
+  const sound = core({standby: true}); render(sound, 4, 40, 40000);
+  sound.arm(40000); assert.equal(sound.standby, false); assert.equal(sound.state, 'awaiting-admission');
+  sound.append(pcm([42, 43, 44]), 0);
+  render(sound, 1, 40.1, 40100); assert.equal(sound.playedFrames, 0, 'arming alone admits nothing');
+  sound.control(allowed, 40200);
+  assert.equal(render(sound, 1, 40.2, 40200).outputs[0][0], 42 / 32768);
+  render(sound, 1, 42.3, 42300); assert.equal(sound.state, 'error'); assert.match(sound.error, /expired/);
+  assert.throws(() => sound.arm(50000), /expired/); // an expired stream cannot be revived
+  assert.equal(sound.state, 'error');
+  const late = core({standby: true, nowMs: 5000});
+  assert.throws(() => late.arm(4000), /clock regressed/);
+  const plain = core(); plain.arm(1); assert.equal(plain.state, 'awaiting-admission');
+  const stopped = core({standby: true}); stopped.stop();
+  assert.throws(() => stopped.arm(0), /closed/);
+});
+
 test('bad ordering, format, overflow and EOF never partially append or fabricate samples', () => {
   for (const mutate of [s => s.append(pcm([1]), 1), s => s.append(new Uint8Array(1), 0),
     s => s.append(pcm([1, 2, 3]), 0), s => s.end(1)]) {
