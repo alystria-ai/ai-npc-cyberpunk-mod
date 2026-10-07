@@ -22,7 +22,7 @@ import {existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {sha256File} from './lib/files.mjs';
+import {childEnv, sha256File} from './lib/files.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const argv = process.argv.slice(2);
@@ -55,7 +55,7 @@ const cleanEnv = () => {
 async function expand(zip, destination) {
   const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
     `$ProgressPreference='SilentlyContinue'; Expand-Archive -LiteralPath $env:ZIP -DestinationPath $env:DEST -Force`],
-  {env: {...process.env, ZIP: zip, DEST: destination}, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024});
+  {env: childEnv('powershell.exe', {...process.env, ZIP: zip, DEST: destination}), encoding: 'utf8', maxBuffer: 64 * 1024 * 1024});
   if (result.status !== 0) throw Error(`Expand-Archive failed for ${zip}: ${result.stderr.slice(-2000)}`);
 }
 

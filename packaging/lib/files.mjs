@@ -80,9 +80,20 @@ export async function download(url, target, sha256, log = () => {}) {
   return target;
 }
 
+// Windows PowerShell 5.1 started from a PowerShell 7 step (GitHub's default shell) inherits a
+// PSModulePath that points at PowerShell 7 modules, and then core cmdlets such as Get-FileHash
+// fail to load. Give it its own default module path.
+export function childEnv(command, env = process.env) {
+  const copy = {...env};
+  if (/(^|[\\/])powershell(\.exe)?$/i.test(command)) {
+    for (const key of Object.keys(copy)) if (key.toLowerCase() === 'psmodulepath') delete copy[key];
+  }
+  return copy;
+}
+
 export function run(command, args, {cwd, env, quiet = false} = {}) {
   return new Promise((resolveRun, reject) => {
-    const child = spawn(command, args, {cwd, env, windowsHide: true, stdio: quiet ? ['ignore', 'pipe', 'pipe'] : 'inherit'});
+    const child = spawn(command, args, {cwd, env: childEnv(command, env), windowsHide: true, stdio: quiet ? ['ignore', 'pipe', 'pipe'] : 'inherit'});
     let output = '';
     child.stdout?.on('data', data => { output = (output + data).slice(-20000); });
     child.stderr?.on('data', data => { output = (output + data).slice(-20000); });
