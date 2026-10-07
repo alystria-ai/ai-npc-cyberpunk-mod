@@ -2,6 +2,7 @@
 // relationship receipts; it never changes quests, sends dialogue, provisions
 // profiles, enables memory or copies one provider profile's memories to another.
 import {parseGroup} from './group-context.mjs';
+import {MULTILINGUAL_SUFFIX, twinMarkerKey, twinProviderKey} from './multilingual.mjs';
 
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value)
   && [Object.prototype, null].includes(Object.getPrototypeOf(value));
@@ -46,8 +47,12 @@ function freeze(value) {
 
 /** Preserve the existing ordinary mapping. Each additional ID has exactly one
  * internal provider key, while every visible/history/voice key stays canonical.
- * A missing variant file is a compatible ordinary-only installation. */
-export function relationshipRegistry(ordinaryIds, variants = {}) {
+ * A missing variant file is a compatible ordinary-only installation.
+ * `twins` ({providerKey: twinId}, from bridge/multilingual.mjs) adds each
+ * multilingual twin as provider key "<providerKey>-multilingual" in the same
+ * family, so memory guards, Forget and history treat it like the original's
+ * sibling. A missing twin map is a compatible English-only installation. */
+export function relationshipRegistry(ordinaryIds, variants = {}, twins = {}) {
   if (!plain(ordinaryIds) || Object.keys(ordinaryIds).length > 256
       || Object.entries(ordinaryIds).some(([profile, value]) => !key(profile) || !id(value))) fail('INVALID_ORDINARY_IDS');
   if (!plain(variants) || (Object.keys(variants).length && (variants.version !== 1 || !plain(variants.characters)))
@@ -66,8 +71,19 @@ export function relationshipRegistry(ordinaryIds, variants = {}) {
     characters[profile] = {ordinaryCharacterId: ordinaryIds[profile], romanticCharacterId: row.romanticCharacterId,
       romanticProviderKey: providerProfileKey};
   }
+  if (!plain(twins) || Object.keys(twins).length > 512) fail('INVALID_MULTILINGUAL_REGISTRY');
+  const multilingual = {}, markerKeys = {};
+  for (const [providerKey, twinId] of Object.entries(twins)) {
+    if (!Object.hasOwn(providerIds, providerKey) || providerKey.endsWith(MULTILINGUAL_SUFFIX) || !id(twinId)) fail('INVALID_MULTILINGUAL_PROFILE');
+    const twinKey = twinProviderKey(providerKey);
+    if (Object.hasOwn(providerIds, twinKey) || Object.hasOwn(twins, twinKey) || !key(twinKey)) fail('MULTILINGUAL_KEY_COLLISION');
+    multilingual[providerKey] = twinKey; markerKeys[twinKey] = twinMarkerKey(providerKey);
+  }
+  for (const [providerKey, twinKey] of Object.entries(multilingual)) {
+    providerIds[twinKey] = twins[providerKey]; providerFamilies[twinKey] = providerFamilies[providerKey];
+  }
   if (new Set(Object.values(providerIds)).size !== Object.keys(providerIds).length) fail('DUPLICATE_PROVIDER_ID');
-  return freeze({providerIds, providerFamilies, characters});
+  return freeze({providerIds, providerFamilies, characters, multilingual, markerKeys});
 }
 
 export function parseRelationshipState(raw) {
@@ -114,11 +130,13 @@ function confirmed(profile, snapshot) {
 const fresh = (snapshot, boundary, now) => snapshot?.status === 'ready' && sameWorld(snapshot, boundary)
   && now - snapshot.capturedAt >= -1000 && now - snapshot.capturedAt <= 5000;
 
-export function selectRelationshipProfile({profileKey, mode = 'auto', snapshot, boundary, now = Date.now(), registry} = {}) {
+export function selectRelationshipProfile({profileKey, mode = 'auto', snapshot, boundary, now = Date.now(), registry,
+  multilingual = false} = {}) {
   if (!key(profileKey) || !MODES.has(mode) || !registry || !Object.hasOwn(registry.providerIds, profileKey)
       || !Number.isSafeInteger(now)) fail('INVALID_SELECTION');
   const rule = RELATIONSHIP_PROFILES[profileKey], configured = registry.characters[profileKey];
-  const observed = snapshot == null ? null : parseRelationshipState(snapshot);
+  // Only the five relationship characters read save facts; every other character skips the parse.
+  const observed = !rule || snapshot == null ? null : parseRelationshipState(snapshot);
   // Ordinary-only installs continue operating while the optional profile bundle
   // is prepared. Explicit On still fails visibly instead of ignoring the choice.
   if (rule && mode === 'on' && !configured) return freeze({status: 'unavailable', profileKey, reason: 'romantic-profile-unavailable'});
@@ -126,14 +144,18 @@ export function selectRelationshipProfile({profileKey, mode = 'auto', snapshot, 
     return freeze({status: 'unavailable', profileKey, reason: 'relationship-state-unavailable'});
   }
   const romantic = !!rule && !!configured && (mode === 'on' || mode === 'auto' && confirmed(profileKey, observed));
-  const providerProfileKey = romantic ? configured.romanticProviderKey : profileKey;
+  const relationshipKey = romantic ? configured.romanticProviderKey : profileKey;
+  // Multilingual conversations: the twin of exactly the profile chosen above.
+  // A profile without a usable twin keeps its original (English-only) profile.
+  const twinKey = multilingual === true ? registry.multilingual?.[relationshipKey] : undefined;
+  const providerProfileKey = twinKey ?? relationshipKey;
   // History and delivery are separate. On is never evidence, and Off does not
   // erase a real event. Capture only this speaker's current-save receipt with
   // the admitted selection; group prompts never receive other partners' facts.
   const saveRelationship = rule && fresh(observed, boundary, now) && confirmed(profileKey, observed)
     ? {status: 'confirmed', evidenceRule: rule.rule} : null;
   return freeze({status: 'ready', profileKey, providerProfileKey, characterId: registry.providerIds[providerProfileKey],
-    variant: romantic ? 'romantic' : 'ordinary', kind: rule?.kind ?? 'ordinary', mode,
+    variant: romantic ? 'romantic' : 'ordinary', kind: rule?.kind ?? 'ordinary', mode, multilingual: !!twinKey,
     reason: !rule ? 'unsupported' : mode === 'on' ? 'explicit-on' : mode === 'off' ? 'explicit-off'
       : !configured ? 'ordinary-only-install' : romantic ? 'verified-current-save' : 'auto-unconfirmed',
     ...(romantic && mode === 'auto' ? {evidenceRule: rule.rule} : {}),
@@ -144,22 +166,30 @@ export function selectRelationshipProfile({profileKey, mode = 'auto', snapshot, 
 /** Settings and native updates commit only at an idle turn boundary. A prepared
  * turn owns its frozen selection; a settings change never redirects its send. */
 export class RelationshipRouting {
-  constructor({ordinaryIds, variants, now = Date.now} = {}) {
-    this.registry = relationshipRegistry(ordinaryIds, variants);
+  constructor({ordinaryIds, variants, multilingual, now = Date.now} = {}) {
+    this.registry = relationshipRegistry(ordinaryIds, variants, multilingual);
     this.providerIds = this.registry.providerIds; this.providerFamilies = this.registry.providerFamilies;
+    // Provider key -> the key in its ownership marker (only twins differ).
+    this.markerKeys = this.registry.markerKeys;
     this.now = now; this.modes = relationshipModes(); this.snapshot = null; this.revision = 0;
+    this.multilingual = false;
     this.pending = null; this.changes = new Set(); this.fingerprints = new Map();
+    // Every character whose route can change: the relationship characters and every character with a twin.
+    this.routedProfiles = [...new Set([...Object.keys(RELATIONSHIP_PROFILES).filter(profile => Object.hasOwn(this.providerIds, profile)),
+      ...Object.keys(this.registry.multilingual).map(providerKey => this.providerFamilies[providerKey])])];
   }
   update(settings, rawSnapshot, {boundary, busy = false} = {}) {
     const modes = settings === undefined ? this.pending?.modes ?? this.modes : relationshipModes(settings?.relationshipModes);
     if (!modes) return false;
+    // Multilingual conversations commits at the same idle boundary as the relationship modes.
+    const multilingual = settings === undefined ? this.pending?.multilingual ?? this.multilingual
+      : settings?.multilingualConversations === true;
     const snapshot = rawSnapshot === undefined ? this.pending?.snapshot ?? this.snapshot : parseRelationshipState(rawSnapshot);
-    this.pending = {modes, snapshot};
+    this.pending = {modes, snapshot, multilingual};
     if (busy) return false;
-    this.modes = modes; this.snapshot = snapshot; this.pending = null;
+    this.modes = modes; this.snapshot = snapshot; this.multilingual = multilingual; this.pending = null;
     let changed = false;
-    for (const profileKey of Object.keys(RELATIONSHIP_PROFILES)) {
-      if (!Object.hasOwn(this.providerIds, profileKey)) continue;
+    for (const profileKey of this.routedProfiles) {
       const selected = this.select(profileKey, boundary);
       const signature = JSON.stringify([selected.status, selected.providerProfileKey ?? null]);
       const previous = this.fingerprints.get(profileKey);
@@ -177,7 +207,7 @@ export class RelationshipRouting {
       && fresh(this.pending.snapshot, boundary, this.now())
       ? {...this.snapshot, capturedAt: this.pending.snapshot.capturedAt} : this.snapshot;
     return selectRelationshipProfile({profileKey, mode: this.modes[profileKey] ?? 'auto', snapshot: retained,
-      boundary, now: this.now(), registry: this.registry});
+      boundary, now: this.now(), registry: this.registry, multilingual: this.multilingual});
   }
   consumeRouteChanges() { const keys = [...this.changes]; this.changes.clear(); return keys; }
   /** What the next admitted turn of each supported character would use. Names
@@ -189,7 +219,7 @@ export class RelationshipRouting {
       let selected;
       try { selected = this.select(profileKey, boundary); } catch { selected = {status: 'unavailable', reason: 'invalid-selection'}; }
       rows.push({profileKey, mode: this.modes[profileKey] ?? 'auto', status: selected.status,
-        variant: selected.variant ?? null, reason: selected.reason ?? null,
+        variant: selected.variant ?? null, multilingual: selected.multilingual === true, reason: selected.reason ?? null,
         confirmedInSave: selected.saveRelationship?.status === 'confirmed'});
     }
     return rows;

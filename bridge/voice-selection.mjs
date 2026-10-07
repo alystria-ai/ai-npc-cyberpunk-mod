@@ -74,6 +74,11 @@ export class VoiceSelection {
     // failedBackends: local workers that could not start or died (no CUDA, load
     // error, crash) stay out of routing until the player chooses them again.
     this.routeRevision = 0; this.routeChanges = new Set(); this.routingWaiters = new Set();
+    // Multilingual conversations: a second, OmniVoice-only worker that speaks the replies Pocket cannot (any
+    // language but English) while Pocket stays the chosen voice. Started on the first such turn, never warmed
+    // ahead (it holds GPU memory), and released when the setting or the chosen voice no longer needs it.
+    this.multilingual=false;this.languageClient=null;this.languageFailed=false;this.languageState='stopped';
+    this.languageRetiring=Promise.resolve();
   }
   // The optional OmniVoice pack. A machine without it keeps Omni out of routing (the choice falls to Pocket) and
   // the Settings menu says what is missing. A pack installed while the game runs is noticed within 30 s.
@@ -126,6 +131,75 @@ export class VoiceSelection {
     if(this.requestedProvider==='convai')return 'selected';
     const status=this.registries.pocket.status(profile);
     return status==='ready'?'unavailable':status;
+  }
+  // ---- Multilingual conversations: OmniVoice for replies that are not in English ----------------------------
+  setMultilingual(value){
+    const next=value===true;
+    if(next===this.multilingual)return false;
+    this.multilingual=next;if(next)this.languageFailed=false;
+    this.reconcileLanguage();this.publish();
+    return true;
+  }
+  // The second worker is wanted while the setting is on, the chosen local voice is not already OmniVoice and the
+  // pack and a configured Omni reference exist. With Omni chosen the main worker speaks every language itself.
+  get languageOmniWanted(){
+    const variant=this.omniVariants[this.omniReference];
+    // Only one OmniVoice worker may hold the GPU model slot (resident-voice-worker.py model_admission): a draft
+    // or a worker of the main voice on Omni always wins over this one.
+    return !this.closed&&this.multilingual&&this.playbackEnabled!==false&&this.provider!=='omni'
+      &&this.targetBackend!=='omni'&&this.clientBackend!=='omni'
+      &&this.omniPack.installed&&variant.configured&&!this.languageFailed;
+  }
+  // Can OmniVoice speak this character in another language, and is that worker loaded now?
+  languageOmni(profile){
+    // With Omni chosen, the main worker already speaks every reply of the characters it voices.
+    if(this.provider==='omni'){const usable=this.usesProfile(profile);return {usable,ready:usable};}
+    const variant=this.omniVariants[this.omniReference];
+    const usable=this.languageOmniWanted&&variant.registry.has(profile)&&variant.availability.has(profile);
+    const client=this.languageClient;
+    return {usable,ready:usable&&!!client?.loaded&&!client.failure&&!client.closing};
+  }
+  // Start the second worker (no-op when it is not wanted or already starting). Failures leave it out until the
+  // setting is turned on again; the turn that needed it already chose the cloud voice or the written reply.
+  warmLanguageOmni(){
+    if(!this.languageOmniWanted||this.languageClient)return this.languageClient?.ready||Promise.resolve();
+    const variant=this.omniVariants[this.omniReference];
+    let client;
+    client=this.languageClient=this.omniFactory(variant.snapshot,{...this.options,keepPreparedVoices:false,
+      configPath:variant.path,pythonExecutable:this.options.omniPythonExecutable,onState:value=>{
+        if(this.languageClient!==client||this.closed)return;
+        if(value.state==='error')queueMicrotask(()=>this.languageWorkerFailed(client));
+        if(this.languageState!==value.state){this.languageState=value.state;this.publish();}
+      }});
+    client.setSteps?.(this.requestedOmniSteps);
+    // A main Omni worker that is still exiting keeps the model slot until it is gone.
+    const starting=this.retiring.catch(()=>{}).then(()=>{
+      if(this.languageClient!==client)throw Error('Multilingual voice was released');
+      return client.start();
+    });
+    starting.catch(()=>this.languageWorkerFailed(client));
+    this.languageState='loading';this.publish();
+    return starting;
+  }
+  languageWorkerFailed(client){
+    if(this.closed||this.languageClient!==client)return;
+    this.languageFailed=true;this.retireLanguage();
+  }
+  retireLanguage(){
+    const client=this.languageClient;
+    if(!client)return Promise.resolve();
+    this.languageClient=null;this.languageState='stopped';this.publish();
+    const closing=Promise.resolve().then(()=>client.close()).catch(()=>{});
+    // A main Omni worker starting next waits for this exit (one model slot).
+    this.languageRetiring=Promise.all([this.languageRetiring,closing]).then(()=>{});
+    return closing;
+  }
+  reconcileLanguage(){
+    if(this.languageClient&&(!this.languageOmniWanted||this.languageClient.configPath!==undefined
+      &&this.languageClient.configPath!==this.omniVariants[this.omniReference].path)){
+      // A reply being spoken keeps its worker until the idle boundary.
+      if(!this.busy)void this.retireLanguage();
+    }
   }
   get registry(){return this.registries[this.provider];}
   get config(){return this.configs[this.provider]||{};}
@@ -239,6 +313,7 @@ export class VoiceSelection {
     if(this.clientBackend==='omni'&&wanted==='omni')this.client?.setSteps(this.warmSteps);
     if(wanted)void this.start().catch(()=>{});
     else if(this.client&&!this.busy)this.retire();
+    this.reconcileLanguage();
   }
   publish(state = this.state, extra = {}) {
     this.state = state;
@@ -250,6 +325,8 @@ export class VoiceSelection {
       previewOmniReference:this.preview?.omniReference,
       omniPack:{installed:this.omniPack.installed,missing:this.omniPack.missing},
       keepPreparedVoices:this.keepPrepared,
+      multilingual:this.multilingual,languageOmni:{state:this.languageClient?this.languageState:'stopped',
+        resident:!!this.languageClient?.loaded,unavailable:this.languageFailed},
       workerBackend:this.clientBackend,preparationQueued:this.targetBackend!==this.clientBackend,
       configured: this.configured, bridgePid: process.pid,
       configuredProfiles: this.profileKeys,
@@ -309,6 +386,8 @@ export class VoiceSelection {
       this.retire();
     }
     if (this.starting) return this.starting;
+    // The multilingual Omni worker gives the model slot to a main Omni worker.
+    if(backend==='omni'&&this.languageClient)void this.retireLanguage();
     let client;
     this.clientBackend=backend;
     this.clientReference=backend==='omni'?this.wantedReference:null;
@@ -325,7 +404,7 @@ export class VoiceSelection {
     if(backend==='omni')client.setSteps(this.warmSteps);
     client.setKeepPrepared?.(this.keepPrepared);
     this.publish(this.releasing ? 'releasing' : 'loading');
-    this.starting = this.retiring.then(async () => {
+    this.starting = this.retiring.then(()=>backend==='omni'?this.languageRetiring:undefined).then(async () => {
       if (this.client !== client || this.closed) return;
       await client.start();
       this.stageAvailability(client,backend);
@@ -373,7 +452,10 @@ export class VoiceSelection {
     // Pocket cannot render voice tags and would read them aloud: a last line of defence behind the display strip.
     return client.synthesizeStream(profile, stripSpeechTags(text), options);
   }
+  // `language` (ISO 639-1, e.g. 'es') reaches the worker; a non-English reply while Pocket is chosen is spoken by
+  // the multilingual worker instead of the main one.
   async synthesize(profile,text,options={}){
+    if(this.provider!=='omni'&&options.language&&options.language!=='en')return this.synthesizeLanguage(profile,text,options);
     if(this.provider!=='omni'||!this.usesProfile(profile))throw Error('This character does not use OmniVoice');
     const steps=options.steps??this.omniSteps;
     await abortable(this.start(),options.signal);throwIfCancelled(options.signal);
@@ -381,6 +463,14 @@ export class VoiceSelection {
     if(!client||this.clientBackend!=='omni'||this.provider!=='omni'||!this.usesProfile(profile))
       throw Error('Voice selection changed before synthesis');
     // Only the tags OmniVoice renders reach it; any other bracketed tag is removed.
+    return client.synthesize(profile,keepSpeechTags(text,OMNI_TAGS),{...options,steps});
+  }
+  async synthesizeLanguage(profile,text,options={}){
+    const client=this.languageClient;
+    if(!this.languageOmni(profile).usable||!client)throw Error('OmniVoice cannot speak this reply');
+    const steps=options.steps??this.requestedOmniSteps;
+    await abortable(client.start(),options.signal);throwIfCancelled(options.signal);
+    if(this.languageClient!==client)throw Error('Voice selection changed before synthesis');
     return client.synthesize(profile,keepSpeechTags(text,OMNI_TAGS),{...options,steps});
   }
   async prepareProfile(profile, options = {}) {
@@ -448,6 +538,6 @@ export class VoiceSelection {
     this.closed = true; this.preview = null;
     for (const waiter of this.routingWaiters) waiter.reject(Error('Voice service is closed'));
     this.routingWaiters.clear();
-    return this.closing=Promise.all([this.retire(),this.phoneAnalysis?.close()]);
+    return this.closing=Promise.all([this.retire(),this.retireLanguage(),this.phoneAnalysis?.close()]);
   }
 }

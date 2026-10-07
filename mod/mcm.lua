@@ -781,6 +781,8 @@ local function schema()
             action('relationships', 'Relationships', 'Manage',
                 'Choose ordinary or romantic conversations for supported characters.',
                 function(context) return navigate('relationships', context) end),
+            setting('multilingualConversations', 'Multilingual conversations', 'bool', snapshot.settings.multilingualConversations, false,
+                'Talk to companions in any language: each character answers in the language you use. It uses a multilingual copy of each character, so what they remember from these conversations is kept apart from your English ones; forgetting a character clears both. Pocket TTS speaks only English, so replies in other languages use OmniVoice when the optional OmniVoice pack is installed, or the Convai cloud voice otherwise; without the pack, Natural speech and Expressive emotions apply only to English replies. Off by default.'),
             setting('autoConnectNearby', 'Auto-connect nearby characters', 'bool', snapshot.settings.autoConnectNearby, true,
                 'Prepare the conversation with a character you look at or walk up to, so they answer without a wait. It uses a little memory and bandwidth, and pauses during combat and scenes. Turn it off to connect only when you start talking.'),
         })
@@ -945,7 +947,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                 if key == 'voice' or key == 'subtitles' or key == 'developerMode'
                     or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures'
                     or key == 'autoConnectNearby' or key == 'keepPreparedVoices' or key == 'naturalSpeech'
-                    or key == 'expressiveEmotions' then values[key] = change.value
+                    or key == 'expressiveEmotions' or key == 'multilingualConversations' then values[key] = change.value
                 elseif key == 'subtitleStyle' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose one of the listed subtitle displays.')} end
                     -- Order: 1 Cinematic subtitles (stored 'dialogue'), 2 Above the speaker (stored 'overhead').

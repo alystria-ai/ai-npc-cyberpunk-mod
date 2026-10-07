@@ -296,15 +296,19 @@ export class ResidentVoice {
     if (this.child && !this.child.stdin.writableEnded) this.child.stdin.end();
     this.awaitExit();
   }
-  synthesize(profile, text, {signal, steps: chosenSteps} = {}) {
+  // `language`: the reply's ISO 639-1 code when it is not English (Multilingual conversations). OmniVoice clones
+  // the English reference into that language. Absent or 'en' sends nothing, so English requests are unchanged.
+  synthesize(profile, text, {signal, steps: chosenSteps, language} = {}) {
     if (!this.usesProfile(profile)) return Promise.reject(Error('This character uses its Convai voice'));
     if (typeof text !== 'string' || !text.trim() || text.length > 12_000) return Promise.reject(Error('Invalid speech text'));
     if (chosenSteps !== undefined && ![16, 32].includes(chosenSteps)) return Promise.reject(Error('Invalid voice quality'));
+    if (language !== undefined && language !== null && !/^[a-z]{2,3}$/.test(language)) return Promise.reject(Error('Invalid speech language'));
+    const languageField = language && language !== 'en' ? {language} : {};
     const steps = chosenSteps ?? this.steps, queued = performance.now();
     const operation = this.tail.then(async () => {
       await this.ensurePrepared(profile, signal);
       const started = performance.now();
-      const frame = await this.command('synthesize', profile, {text, steps});
+      const frame = await this.command('synthesize', profile, {text, steps, ...languageField});
       throwIfCancelled(signal);
       if (this.closing || this.failure) throw this.failure || cancelled();
       const bytes = Buffer.from(frame.audio, 'base64'), wav = inspectWav(bytes);

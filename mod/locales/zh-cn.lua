@@ -545,9 +545,12 @@ return {
     ["Cinematic subtitles"] = "电影式字幕",
     ["Cinematic subtitles use the game’s regular dialogue display; Above the speaker places them over the speaking companion. The Subtitles switch controls both."] = "电影式字幕使用游戏常规的对话界面；“说话者上方”则把字幕显示在说话的伙伴上方。“字幕”开关同时控制两者。",
     ["Choose one of the listed subtitle displays."] = "请选择列表中的一种字幕显示方式。",
+    ["Multilingual conversations"] = "多语言对话",
     ["Pocket is light and fast on your CPU and starts speaking in about 0.2 s. OmniVoice sounds better, especially on harder voices, but needs a capable GPU and the optional OmniVoice pack (without it those entries are marked and cannot be applied), and the higher tiers take longer to start speaking, about 1 to 2.5 s. Convai uses the cloud; if a choice cannot run, a simpler voice takes over and you are told once."] = "Pocket 在你的 CPU 上轻巧快速，约 0.2 秒即可开口。OmniVoice 音质更好，尤其适合较难还原的声音，但需要性能强劲的 GPU 和可选的 OmniVoice 扩展包（没有扩展包时，这些选项会被标出且无法应用），而且档位越高，开口越慢，约 1 至 2.5 秒。Convai 使用云端；如果所选项无法运行，会改用更简单的语音，并仅提示一次。",
     ["Prepare the conversation with a character you look at or walk up to, so they answer without a wait. It uses a little memory and bandwidth, and pauses during combat and scenes. Turn it off to connect only when you start talking."] = "提前准备与你注视或走近的角色的对话，让对方无需等待即可回答。会占用少量内存和带宽，战斗和过场中会暂停。关闭后，仅在你开始说话时才连接。",
     ["Raise or lower where companions look when they make eye contact with you."] = "升高或降低伙伴与你对视时看向的位置。",
+    ["Talk to companions in any language: each character answers in the language you use. It uses a multilingual copy of each character, so what they remember from these conversations is kept apart from your English ones; forgetting a character clears both. Pocket TTS speaks only English, so replies in other languages use OmniVoice when the optional OmniVoice pack is installed, or the Convai cloud voice otherwise; without the pack, Natural speech and Expressive emotions apply only to English replies. Off by default."] = "用任何语言与伙伴交谈：每个角色都会用你使用的语言回答。此功能会使用每个角色的多语言副本，因此角色对这些对话的记忆会与你的英语对话分开保存；清除某个角色的记忆会同时清除两者。Pocket TTS 只会说英语，因此其他语言的回复会在已安装可选的 OmniVoice 扩展包时使用 OmniVoice，否则使用 Convai 云端语音；没有该扩展包时，自然说话和情绪表达仅适用于英语回复。默认关闭。",
     ["Voice status"] = "语音状态",
     ["Who can talk"] = "谁可以说话",
+    ["Without the OmniVoice pack, replies in other languages use the Convai cloud voice, so Natural speech and Expressive emotions apply only to English replies."] = "没有 OmniVoice 扩展包时，其他语言的回复会使用 Convai 云端语音，因此自然说话和情绪表达仅适用于英语回复。",
 }

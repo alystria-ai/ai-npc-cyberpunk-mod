@@ -310,7 +310,8 @@ function companionProviders({settings, voice, routing, party}) {
     const route = routes.get(key);
     rows.push({profile: key, state: member.state, conversation: 'convai-realtime',
       voice: local && routed.has(key) ? local : 'convai',
-      relationshipVariant: route ? {mode: route.mode, variant: route.variant, status: route.status} : undefined,
+      relationshipVariant: route ? {mode: route.mode, variant: route.variant, status: route.status,
+        ...(route.multilingual === true ? {multilingual: true} : {})} : undefined,
       conversationEnabled: settings?.enabledByKey ? settings.enabledByKey[key] !== false : undefined});
   }
   return {conversation: 'convai-realtime', voiceSelected: settings?.voiceProvider ?? voice?.requestedProvider ?? null,
@@ -319,6 +320,7 @@ function companionProviders({settings, voice, routing, party}) {
     omniReference: voice?.omniReference ?? settings?.omniReference ?? null,
     omniPackInstalled: voice?.omniPack?.installed ?? null,
     keepPreparedVoices: voice?.keepPreparedVoices ?? settings?.keepPreparedVoices ?? null,
+    multilingualConversations: settings?.multilingualConversations ?? null,
     companions: rows};
 }
 

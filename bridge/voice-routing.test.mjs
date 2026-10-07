@@ -11,22 +11,26 @@ import {BufferedPcm, waitUntil} from './group-lookahead.mjs';
 import {NaturalSpeech, OMNI_TAGS, speechPhrases} from './natural-speech.mjs';
 import {textExpressionSignal} from './text-emotion.mjs';
 import {analyseReply, planSignal, createPlanner, phraseOffsets, baselineFromSignal} from './emotion-analysis.mjs';
+import {MultilingualConversations, planTurnVoice, replyVoice} from './multilingual.mjs';
 
 // Execute the production routing/publication functions. These checks catch a
 // future shared batching path accidentally processing remote Convai speech.
 const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
 const section = (start, end) => source.slice(source.indexOf(start), source.indexOf(end));
-const code = section('async function synthesizeReply(', 'async function status(')
+// The per-turn voice plan (Multilingual conversations) is part of the routing under test.
+const code = section('const turnVoices = new Map();', 'const warmUsesConvaiVoice')
+  + section('async function synthesizeReply(', 'async function status(')
   + section('function continuousSpeech(', 'async function respond(')
   + section('async function respond(', 'const micPath =');
-function fixture({local = false, available = true, audioFailure = false, continuous = false, voiceSelection, jaliFace = null} = {}) {
+function fixture({local = false, available = true, audioFailure = false, continuous = false, voiceSelection, jaliFace = null,
+  multilingual = new MultilingualConversations()} = {}) {
   const calls = [], publications = [];
   const remote = {text: 'A complete reply. With two sentences.', sessionID: 'test-session',
     audio: silentWav().toString('base64'), faces: [{at: 0, values: [0.2]}],
     facesFormat: 'arkit61', facesTimebase: 'audio-seconds', timing: {audioRoute: 'convai-data-only'}};
   const selectedVoice = voiceSelection ?? {provider:'pocket',usesProfile: () => local};
   const sandbox = {remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json',
-    localVoice: selectedVoice,
+    localVoice: selectedVoice, multilingual, planTurnVoice, replyVoice,
     ownedPocketFace:()=>{},lipsync:{analyse:async()=>{calls.push('rhubarb');return{mouthCues:[],mouthCuesFormat:'rhubarb-phonetic-v1'};}},
     jaliFace,textExpressionSignal,analyseReply,planSignal,createPlanner,phraseOffsets,baselineFromSignal,
     splitSpeechText,naturalSpeech:new NaturalSpeech(),OMNI_TAGS,speechPhrases,streaming:0,writeStreamManifest:async value=>calls.push(['omni-manifest',value]),
@@ -598,4 +602,102 @@ test('Expressive emotions: Pocket\'s streaming planner is given the marks, and a
       assert.ok(captured.result.expressionPlan.segments.every(segment=>segment.tags.includes('llm-emotion')));
     }else assert.ok(planned.segments.every(segment=>!segment.tags.includes('llm-emotion')));
   }
+});
+
+// ---- Multilingual conversations: the voice of each turn, end to end through respond/synthesizeReply/publish ----
+const SPANISH_REPLY='Claro que sí, V. Vamos al bar de Lizzie esta noche y hablamos con calma de todo lo que pasó.';
+function multilingualVoice({omniReady=false,omniUsable=omniReady,provider='pocket'}={}){
+  const generated=[],warmed=[];
+  return {generated,warmed,provider,steps:provider==='omni'?16:undefined,requestedOmniSteps:16,usesProfile:()=>true,
+    languageOmni:()=>({usable:omniUsable,ready:omniReady}),
+    warmLanguageOmni:async()=>{warmed.push(true);},
+    async synthesize(key,text,options){generated.push({key,text,language:options.language,steps:options.steps});
+      return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
+}
+const multilingualOn=()=>{const value=new MultilingualConversations();value.update({multilingualConversations:true});return value;};
+// The fixture's realtimeConfig mirrors the bridge: Convai TTS only when the turn does not use a local voice.
+function multilingualFixture(options){
+  const f=fixture(options);
+  f.realtimeConfig=input=>({profileKey:input.profileKey,text:input.text,ttsEnabled:!f.turnUsesLocal(input)});
+  runInNewContext(code+';globalThis.api={respond,publishResult};globalThis.turnUsesLocal=turnUsesLocal;',f);
+  return f;
+}
+const sent=f=>f.calls.find(value=>Array.isArray(value)&&value[0]==='send')[1];
+const pocketUsed=f=>f.calls.some(value=>Array.isArray(value)&&value[0]==='pocket-stream');
+
+test('Multilingual off: a Spanish message keeps exactly the chosen local voice (no plan change)',async()=>{
+  const voice=multilingualVoice({omniReady:true});
+  const f=multilingualFixture({voiceSelection:voice,continuous:true});
+  f.input.text='¿Qué tal, Judy? ¿Vamos al bar esta noche?';
+  await f.api.respond(f.input,f.profile,{current:async()=>true});
+  assert.equal(sent(f).ttsEnabled,false);
+  assert.equal(voice.generated.length,0,'Omni was not used');assert.ok(pocketUsed(f));
+});
+
+test('Multilingual, Pocket chosen, no Omni pack: a Spanish turn is sent for the Convai cloud voice and published as Convai audio',async()=>{
+  const voice=multilingualVoice({omniUsable:false});
+  const f=multilingualFixture({voiceSelection:voice,continuous:false,multilingual:multilingualOn()});
+  f.input.text='¿Qué tal, Judy? ¿Vamos al bar esta noche?';
+  f.remote.text=SPANISH_REPLY;
+  const result=await f.api.respond(f.input,f.profile,{current:async()=>true});
+  assert.equal(sent(f).ttsEnabled,true);
+  assert.equal(result.audio,f.remote.audio);assert.equal(result.timing.audioRoute,'convai-data-only');
+  assert.equal(voice.generated.length,0);assert.ok(!pocketUsed(f));
+  await f.api.publishResult(f.input,f.profile,result,async()=>true);
+  assert.equal(f.multilingual.lastLanguage,'es','the exchange language predicts the next turn without text');
+});
+
+test('Multilingual, Pocket chosen, Omni pack ready: a Spanish turn stays local and every phrase is cloned by OmniVoice in Spanish',async()=>{
+  const voice=multilingualVoice({omniReady:true});
+  const f=multilingualFixture({voiceSelection:voice,continuous:true,multilingual:multilingualOn()});
+  f.input.text='¿Qué tal, Judy? ¿Vamos al bar esta noche?';
+  f.remote.text=SPANISH_REPLY;
+  const result=await f.api.respond(f.input,f.profile,{current:async()=>true});
+  assert.equal(sent(f).ttsEnabled,false);assert.ok(!pocketUsed(f));
+  assert.ok(voice.generated.length>=1&&voice.generated.every(value=>value.language==='es'&&value.steps===16));
+  await f.api.publishResult(f.input,f.profile,result,async()=>true);
+  if(result.streamPlan)assert.equal(voice.generated.length,result.streamPlan.phrases.length);
+  assert.ok(voice.generated.every(value=>value.language==='es'),'later phrases keep the language');
+});
+
+test('Multilingual, Omni pack still loading: the first Spanish turn uses the cloud voice and starts the Omni worker',async()=>{
+  const voice=multilingualVoice({omniUsable:true,omniReady:false});
+  const f=multilingualFixture({voiceSelection:voice,continuous:false,multilingual:multilingualOn()});
+  f.input.text='Hola, ¿cómo estás? Cuéntame qué pasó ayer.';
+  f.remote.text=SPANISH_REPLY;
+  const result=await f.api.respond(f.input,f.profile,{current:async()=>true});
+  assert.equal(sent(f).ttsEnabled,true);
+  assert.equal(result.audio,f.remote.audio);assert.equal(voice.warmed.length,1);
+});
+
+test('Multilingual, an English message answered in Spanish without Omni: the reply is shown, never read by Pocket',async()=>{
+  const voice=multilingualVoice({omniUsable:false});
+  const f=multilingualFixture({voiceSelection:voice,continuous:true,multilingual:multilingualOn()});
+  f.input.text='How are you doing tonight, Judy?';
+  f.remote.text=SPANISH_REPLY;
+  const result=await f.api.respond(f.input,f.profile,{current:async()=>true});
+  assert.equal(sent(f).ttsEnabled,false);
+  assert.equal(result.audio,undefined);assert.match(result.audioError,/English only/);
+  assert.ok(!pocketUsed(f));assert.equal(voice.generated.length,0);
+  await f.api.publishResult(f.input,f.profile,result,async()=>true);
+  assert.equal(f.publications.find(([path])=>path==='reply.json')[1].text,SPANISH_REPLY);
+});
+
+test('Multilingual, a Spanish message answered in English with Omni ready: the English reply keeps Pocket',async()=>{
+  const voice=multilingualVoice({omniReady:true});
+  const f=multilingualFixture({voiceSelection:voice,continuous:true,multilingual:multilingualOn()});
+  f.input.text='¿Qué tal, Judy? ¿Vamos al bar esta noche?';
+  f.remote.text='Sure thing, V. Let us grab a drink at the Afterlife and talk it over.';
+  await f.api.respond(f.input,f.profile,{current:async()=>true});
+  assert.equal(voice.generated.length,0);assert.ok(pocketUsed(f));
+});
+
+test('Multilingual with OmniVoice chosen: a Japanese reply is spoken by the main Omni worker with the language',async()=>{
+  const voice=multilingualVoice({provider:'omni',omniReady:true});
+  const f=multilingualFixture({voiceSelection:voice,continuous:true,multilingual:multilingualOn()});
+  f.input.text='こんにちは、ジュディ。今夜は何をしているの？';
+  f.remote.text='こんばんは、V。今夜はリジーズで少し飲んでから、ゆっくり話そうよ。';
+  await f.api.respond(f.input,f.profile,{current:async()=>true});
+  assert.equal(sent(f).ttsEnabled,false);
+  assert.ok(voice.generated.length>=1&&voice.generated.every(value=>value.language==='ja'));
 });

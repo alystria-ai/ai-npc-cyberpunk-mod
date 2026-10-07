@@ -356,10 +356,16 @@ class ProfileSession:
                            **self.model_info, **self.memory_info()})
             elif request.get('op') == 'synthesize':
                 text, steps = request.get('text'), request.get('steps')
+                # Multilingual conversations: the reply's ISO 639-1 code when it is not English. OmniVoice
+                # clones the English reference into that language; without one the request is unchanged.
+                language = request.get('language')
                 if type(steps) is not int or steps not in (16, 32) or not valid_transcript(text):
                     raise ValueError('Invalid local speech text/quality')
+                if language is not None and (not isinstance(language, str) or not re.fullmatch(r'[a-z]{2,3}', language)):
+                    raise ValueError('Invalid local speech language')
                 self.validate_profile_reference(key)
-                values, elapsed = self.render(key, text, steps)
+                values, elapsed = (self.render(key, text, steps, language) if language
+                                   else self.render(key, text, steps))
                 audio = self.encode(values)
                 self.remember(key)
                 self.send({'op': 'audio', 'id': request_id, 'profile': key, 'steps': steps,
@@ -547,7 +553,7 @@ def run_worker(registry):
                     'acceleration': graph.snapshot()['mode'] if graph else 'eager',
                     'cudaGraph': graph.snapshot() if graph else None}
 
-        def render(key, text, steps):
+        def render(key, text, steps, language=None):
             ref, transcript = registry['refs'][key]
             torch.manual_seed(1042)
             if graph:
@@ -555,7 +561,7 @@ def run_worker(registry):
             started = time.perf_counter()
             with torch.inference_mode():
                 wav = backend.generate(text, ref_audio=ref, ref_text=transcript,
-                    language='English', num_step=steps, guidance_scale=2.0,
+                    language=language or 'English', num_step=steps, guidance_scale=2.0,
                     speed=1, denoise=False, postprocess_output=False)
             torch.cuda.synchronize()
             values = np.asarray(wav.detach().float().cpu() if hasattr(wav, 'detach') else wav).reshape(-1)

@@ -365,6 +365,8 @@ local function loadSettings()
     if (settings.naturalSpeech or settings.expressiveEmotions) and settings.voiceProvider == 'convai' then
         settings.voiceProvider, settingsNeedSave = 'pocket', true
     end
+    -- Multilingual conversations (off by default): conversations go to each character's multilingual twin.
+    if type(settings.multilingualConversations) ~= 'boolean' then settings.multilingualConversations, settingsNeedSave = false, true end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
         if type(settings.enabledByKey[key]) ~= 'boolean' and type(settings.enabled) == 'table'
@@ -464,6 +466,27 @@ function M.expressiveEmotions()
     loadSettings()
     return settings.expressiveEmotions == true
 end
+
+-- Off by default. On, conversations go to each character's multilingual twin, which answers in the player's language.
+function M.multilingualConversations()
+    loadSettings()
+    return settings.multilingualConversations == true
+end
+
+-- Without the OmniVoice pack, a reply in another language can only use the Convai cloud voice, which would read voice
+-- and emotion tags aloud. The conversation service then sends those instructions only for turns a local voice speaks
+-- (English ones), so the two settings keep working in English. This returns the one-time explanation for an Apply that
+-- makes that combination (nil otherwise). The cloud voice chosen for every reply is not affected: Natural speech and
+-- Expressive emotions already move it to Pocket TTS.
+local function multilingualVoiceNotice(before, after, packInstalled)
+    local function limited(value)
+        return value.multilingualConversations == true and (value.naturalSpeech == true or value.expressiveEmotions == true)
+            and value.voiceProvider ~= 'convai' and value.voiceProvider ~= 'omni'
+    end
+    if packInstalled or not limited(after) or limited(before) then return nil end
+    return ui.t('Without the OmniVoice pack, replies in other languages use the Convai cloud voice, so Natural speech and Expressive emotions apply only to English replies.')
+end
+M.multilingualVoiceNotice = multilingualVoiceNotice
 
 function M.relationshipChoices()
     loadSettings()
@@ -986,6 +1009,7 @@ function M.snapshot(player)
             keepPreparedVoices = settings.keepPreparedVoices,
             naturalSpeech = settings.naturalSpeech,
             expressiveEmotions = settings.expressiveEmotions,
+            multilingualConversations = settings.multilingualConversations,
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         localVoice = localVoiceState,
@@ -1024,7 +1048,8 @@ function M.applySettings(player, values)
     for key, value in pairs(values) do
         if key == 'voice' or key == 'subtitles' or key == 'developerMode'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
-            or key == 'keepPreparedVoices' or key == 'naturalSpeech' or key == 'expressiveEmotions' then
+            or key == 'keepPreparedVoices' or key == 'naturalSpeech' or key == 'expressiveEmotions'
+            or key == 'multilingualConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'relationshipModes' then
@@ -1076,6 +1101,7 @@ function M.applySettings(player, values)
     local switchedVoice = (nextSettings.naturalSpeech == true or nextSettings.expressiveEmotions == true)
         and nextSettings.voiceProvider == 'convai'
     if switchedVoice then nextSettings.voiceProvider = 'pocket' end
+    local multilingualNotice = multilingualVoiceNotice(settings, nextSettings, M.omniPack().installed)
     local previous = settings
     settings = nextSettings
     if not saveSettings() then
@@ -1091,12 +1117,17 @@ function M.applySettings(player, values)
         end
     end
     if companions.onPartyChanged then pcall(companions.onPartyChanged) end
-    if switchedVoice then
-        local named = {setting = ui.t('Companion voices'), voice = M.voiceLabel('pocket')}
-        naturalSpeechNotice = nextSettings.naturalSpeech == true
-            and ui.t('Natural speech needs a local voice, so {setting} was switched to {voice}.', named)
-            or ui.t('Expressive emotions need a local voice, so {setting} was switched to {voice}.', named)
-        feedback, dirty = clean(naturalSpeechNotice, 400), true
+    if switchedVoice or multilingualNotice then
+        local notices = {}
+        if switchedVoice then
+            local named = {setting = ui.t('Companion voices'), voice = M.voiceLabel('pocket')}
+            notices[#notices + 1] = nextSettings.naturalSpeech == true
+                and ui.t('Natural speech needs a local voice, so {setting} was switched to {voice}.', named)
+                or ui.t('Expressive emotions need a local voice, so {setting} was switched to {voice}.', named)
+        end
+        if multilingualNotice then notices[#notices + 1] = multilingualNotice end
+        naturalSpeechNotice = table.concat(notices, ' ')
+        feedback, dirty = clean(naturalSpeechNotice, 800), true
         return true, nil, naturalSpeechNotice
     end
     say('Settings saved.')

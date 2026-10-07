@@ -4,7 +4,8 @@ Every character the mod has a Convai profile for (all 79 in `characters/roster.j
 with an ID in `runtime/characters.json`) has a twin named "<name> Multilingual" in the
 same account, and so does each relationship variant. Today the only variants are the
 five romantic profiles (Judy, Panam, River, Kerry, Meredith), so there are 84 twins.
-The twins exist and are verified; the mod does not use them yet (no routing change).
+The twins exist and are verified; the mod uses them while Settings > Conversations > Multilingual
+conversations is on (see "Multilingual conversations" below).
 Alt Cunningham is a tier-1 voice but has no Convai profile.
 
 ```powershell
@@ -97,21 +98,85 @@ have the box off, set through the web session and verified by readback, and are 
 - Memory is per profile: Convai long-term memory is scoped by character ID plus
   end-user ID, so each twin keeps its own memory, as if it were another character.
 
-## Routing (not done)
+## Multilingual conversations (the mod setting)
 
-- Memory: an original and its twin keep separate memories for the same player UUID.
-  Options: (a) pick one profile per character for the whole save based on a setting
-  and accept a reset when switching; (b) keep both and add the twin to the
-  family/forget scope (`bridge/player-memory-api.mjs` allows only exact
-  `[CyberpunkConvai profile v2:<key>]` markers, so each twin marker needs its own
-  provider key and a family map entry, like `canonical-romantic`); (c) seed
-  nothing (no `/memory/add` exists). Forget must clear all of them.
-- Relationship alternates: the five romantic twins exist (see the table above), so
-  routing can pick the ordinary twin or the romantic twin by the same relationship
-  decision that picks the ordinary or romantic original.
-- Provider keys and ID maps (`runtime/characters.json`,
-  `relationship-profiles.json`) are unchanged; the twin map is separate.
-- Transient sessions and phone chat sessions key by provider ID, so switching
-  profiles starts fresh sessions; local Chat history stays under the canonical key.
-- Local TTS: Pocket is English-only, so non-English replies need Omni or the
-  Convai Azure voice the twin already has.
+Settings > Conversations > **Multilingual conversations**, off by default (`multilingualConversations` in
+`runtime/settings.json`). Code: `bridge/multilingual.mjs` (twin map, setting, per-turn voice),
+`bridge/reply-language.mjs` (language detection), `bridge/relationship-routing.mjs` (twin selection),
+`bridge/voice-selection.mjs` (the multilingual Omni worker), `mod/manager.lua` / `mod/mcm.lua` (setting, Apply notice).
+
+### Routing
+
+- The bridge loads `runtime/multilingual-profiles.json` at start. A twin is used only when its entry is
+  `verified: true`, `languageBoxOff: true` and its `originalCharacterId` equals the ID the mod uses today
+  (`runtime/characters.json`, or `relationship-profiles.json` for `<key>-romantic`); anything else stays on the
+  original and is logged as "Multilingual profiles not used". No map is an English-only installation.
+- Each twin becomes provider key `<providerKey>-multilingual` (`judy-alvarez-multilingual`,
+  `judy-alvarez-romantic-multilingual`) in the original's family (`judy-alvarez`).
+- On, relationship routing first decides ordinary or romantic exactly as before (Auto / Romantic / Ordinary, the
+  same save facts), then the twin of THAT profile is used. A profile without a usable twin keeps its original.
+- The setting commits at the same idle boundary as the relationship modes; every character with a twin is
+  marked changed once, so its warm connections are replaced with the new character ID.
+
+### Memory and Forget
+
+- A twin is its own character for Convai memory (character ID + player ID), so its memories are separate from the
+  original's, and switching the setting starts on the other profile's memories (nothing is copied; there is no
+  memory-add API).
+- The twin keys are in the family map (`providerFamilies`) used by player memory, the Forget command and chat
+  history resets, so Forget for a character clears the original, the romantic profile and both twins, and Forget all
+  clears every twin the player talked to. The Memory screen shows the canonical character only.
+- `PlayerMemoryApi` checks each twin's own marker (`markerKeys`: `[CyberpunkConvai profile v2:<key>:multilingual]`);
+  an original's marker on a twin ID, or the reverse, is refused (`NOT_MOD_OWNED`).
+
+### Voice per turn
+
+Pocket TTS speaks English only, so the voice is decided per turn (`planTurnVoice`) and again per reply
+(`replyVoice`):
+
+| Turn expected in | Chosen voice | Voice used | Natural speech / Expressive emotions instructions |
+| --- | --- | --- | --- |
+| English (or unclear) | any | the chosen voice | as today (local voices only) |
+| another language | OmniVoice | OmniVoice, with the language | yes (Omni) |
+| another language | Pocket, Omni pack installed and worker ready | OmniVoice (multilingual worker) | yes (Omni) |
+| another language | Pocket, Omni pack installed, worker still loading | Convai cloud voice (twin's Azure voice); starts the worker | none |
+| another language | Pocket, no Omni pack | Convai cloud voice | none |
+| another language | Convai cloud voice | Convai cloud voice | none (as today) |
+
+- The expected language is the player's message (script, function words, greetings), else the language of the last
+  exchange (for reactions, the microphone placeholder and warm connections), else English.
+- After a local turn's reply arrives, its own language decides: English keeps the chosen voice; another language uses
+  OmniVoice (main worker or the multilingual worker) or, when none is ready, the reply is shown as text
+  (`audioError`). A cloud-voice turn is already spoken by Convai whatever language came back (an English reply
+  then uses the twin's Azure voice).
+- The multilingual Omni worker is a second `ResidentVoice` (GPU) used only while Pocket is chosen. It is started by
+  the first turn that needs it (never warmed ahead), renders at the saved Omni quality and reference, and is released
+  when the setting goes off or OmniVoice becomes the chosen voice (only one Omni worker may hold the model slot, so
+  the main worker waits for its exit). A failed start keeps it out until the setting is turned on again.
+- The worker passes `language` (ISO 639-1) to OmniVoice; English requests are unchanged (`language='English'`).
+  Checked on 2026-10-07 with Judy's reference: en, es, ja, de, zh, ru all render (16 steps, about 2.3 to 3 s each on
+  the laptop GPU under load).
+
+### Natural speech and Expressive emotions without the Omni pack
+
+Both need a local voice (the cloud voice would read the tags aloud). The instructions are sent per turn only when the
+planned voice is local, so a turn that goes to the cloud voice never asks for tags. Without the pack, the two
+settings therefore keep working for English replies and are simply absent from replies in other languages; nothing
+is switched off. The Apply that creates this combination (Multilingual on, no Omni pack, Pocket chosen, either
+setting on) says so once: "Without the OmniVoice pack, replies in other languages use the Convai cloud voice, so
+Natural speech and Expressive emotions apply only to English replies." With the pack (or OmniVoice chosen)
+everything works together.
+
+### Known limits
+
+- **Microphone:** the player's speech is transcribed by Convai's server STT through the realtime SDK (no local
+  recogniser; the PocketSphinx "US English" model is only the lip-sync phone analyser). The SDK has no STT language
+  field; recognition follows the character's languages, and the twins list only `en-US`. Speaking another language
+  into the microphone is untested and probably transcribes as English. Text chat works in any language.
+- **Lip sync:** the facial model is trained on English game audio but works from audio alone, so the mouth still moves
+  for other languages, with English-shaped visemes.
+- **Subtitles and phone chat:** the text path is UTF-8 safe (character-based splitting, no byte truncation of reply
+  text). The mod sets no font on reply text; the game's font for the selected game language draws it, so CJK or
+  Cyrillic replies with an English game language may show missing glyphs (to check in game).
+- **Cloud voice:** with the Convai cloud voice, a twin speaks with its Azure multilingual voice (Emma or Christopher),
+  not the original Kokoro voice, also in English.

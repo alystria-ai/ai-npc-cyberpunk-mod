@@ -570,9 +570,9 @@ test('describe() reports each supported character\'s next route without provider
   const rows = Object.fromEntries(h.routes.describe(world).map(row => [row.profileKey, row]));
   assert.deepEqual(Object.keys(rows).sort(), [...PROFILES].sort());
   assert.deepEqual(rows['judy-alvarez'], {profileKey: 'judy-alvarez', mode: 'auto', status: 'ready',
-    variant: 'romantic', reason: 'verified-current-save', confirmedInSave: true});
+    variant: 'romantic', multilingual: false, reason: 'verified-current-save', confirmedInSave: true});
   assert.deepEqual(rows['panam-palmer'], {profileKey: 'panam-palmer', mode: 'auto', status: 'ready',
-    variant: 'ordinary', reason: 'auto-unconfirmed', confirmedInSave: false});
+    variant: 'ordinary', multilingual: false, reason: 'auto-unconfirmed', confirmedInSave: false});
   assert.equal(rows['river-ward'].variant, 'romantic'); assert.equal(rows['river-ward'].confirmedInSave, false);
   assert.equal(rows['kerry-eurodyne'].variant, 'ordinary'); assert.equal(rows['kerry-eurodyne'].confirmedInSave, true);
   assert.doesNotMatch(JSON.stringify(rows), /-ord|-rom|sq0\d\d|q003/);

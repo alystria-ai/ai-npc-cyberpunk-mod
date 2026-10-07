@@ -266,7 +266,10 @@ test('the bridge wires Natural speech through the context, the reply transform, 
   assert.equal(bridge.match(/transformReply: cleanReply/g).length, 2, 'text hosts: conversation and phone');
   // The block is the last piece of the conversation context and is gated on the committed voice, never on Convai.
   assert.match(bridge, /naturalSpeechContext\(input\), expressiveEmotionsContext\(input\)\]\s*\.filter\(Boolean\)/);
-  assert.match(bridge, /localVoice\.usesProfile\(input\.profileKey\) \? localVoice\.provider : 'convai'/);
+  // The engine is the turn's planned voice (bridge/multilingual.mjs): with Multilingual conversations off it is the
+  // committed choice (local provider, else Convai); a turn the cloud voice speaks never gets the block.
+  assert.match(bridge, /const engine = turnVoice\(input\)\.engine;/);
+  assert.match(bridge, /const localChoice = profile => \(\{uses: localVoice\.usesProfile\(profile\), provider: localVoice\.provider\}\)/);
   assert.match(bridge, /input\.channel === 'phone' \|\| prepared\?\.route\?\.channel === 'phone'/);
   assert.match(bridge, /naturalSpeech\.enabled\?speechPhrases\(phrases,result\.speechText,OMNI_TAGS\)/);
   assert.match(bridge, /naturalSpeech\.update\(settings\), emotionsChanged/);

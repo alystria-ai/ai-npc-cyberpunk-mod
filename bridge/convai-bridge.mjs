@@ -43,6 +43,7 @@ import {PlayerPhoneKnowledge, playerPhoneGeneration} from './player-phone-knowle
 import {atomicFile as atomic} from './guarded-file.mjs';
 import {readWorldSession} from './world-session.mjs';
 import {RelationshipRouting, relationshipContext, retireRelationshipConnections} from './relationship-routing.mjs';
+import {MultilingualConversations, multilingualTwins, planTurnVoice, replyVoice} from './multilingual.mjs';
 import {CompanionActions} from './companion-actions.mjs';
 import {RequestFileOwner, fileIdentity} from './request-ownership.mjs';
 
@@ -57,7 +58,15 @@ const relationshipVariants = JSON.parse(await readFile(resolve(stateDirectory, '
   if (error.code === 'ENOENT') return '{}';
   throw error;
 }));
-const relationshipRoutes = new RelationshipRouting({ordinaryIds: ids, variants: relationshipVariants});
+// Multilingual twins (docs/MULTILINGUAL_PROFILES.md): used only while "Multilingual conversations" is on. A missing
+// map is an English-only installation; a twin that no longer clones the current profile is left out.
+const multilingualProfiles = multilingualTwins(JSON.parse(await readFile(resolve(stateDirectory, 'multilingual-profiles.json'), 'utf8').catch(error => {
+  if (error.code === 'ENOENT') return 'null';
+  throw error;
+})), {ordinaryIds: ids, variants: relationshipVariants});
+if (multilingualProfiles.skipped.length) console.error('[CyberpunkConvai] Multilingual profiles not used:', multilingualProfiles.skipped.join(', '));
+const relationshipRoutes = new RelationshipRouting({ordinaryIds: ids, variants: relationshipVariants,
+  multilingual: multilingualProfiles.twins});
 // Which voice configuration files are live is named by runtime/voice-configs.json (bridge/voice-config-paths.mjs):
 // the searched references for Pocket and for OmniVoice's short and long choices, each falling back to the base file.
 const voiceConfigPaths = resolveVoiceConfigPaths(stateDirectory);
@@ -123,7 +132,7 @@ const worldCurrent = boundary => {
   return !!current && current.worldToken === boundary.worldToken && current.generation === boundary.generation;
 };
 let playerMemory;
-const memoryProvider = new PlayerMemoryApi({key, characterIds: relationshipRoutes.providerIds,
+const memoryProvider = new PlayerMemoryApi({key, characterIds: relationshipRoutes.providerIds, markerKeys: relationshipRoutes.markerKeys,
   historicalPairAllowed: ({profileKey, characterId}) => playerMemory?.hasContactedProviderPair(profileKey, characterId) === true});
 playerMemory = await PlayerMemory.open({path: resolve(stateDirectory, 'player-memory.json'),
   characterIds: relationshipRoutes.providerIds, characterFamilies: relationshipRoutes.providerFamilies,
@@ -137,6 +146,8 @@ const naturalSpeech = new NaturalSpeech();
 // "Expressive emotions": the character marks its own feelings inline; the marks drive the face (bridge/expressive-emotions.mjs).
 const expressiveEmotions = new ExpressiveEmotions();
 const cleanReply = result => expressiveEmotions.process(naturalSpeech.process(result));
+// "Multilingual conversations": the setting and the language the conversation was last in (bridge/multilingual.mjs).
+const multilingual = new MultilingualConversations();
 const phoneRealtime = new RealtimeHost({transformReply: cleanReply});
 const knowledgeTurns = new Map();
 function rememberKnowledgeTurn(prepared) {
@@ -278,18 +289,43 @@ const intrinsicConversationContext = createIntrinsicConversationContext({baseCon
   isCurrentSync: prepared => knowledgeRouter.currentSync(prepared)});
 // Natural speech: the devices the CURRENT voice engine can render, for spoken replies only. Phone chat is text,
 // battle and loot reactions are short barks, and the Convai cloud voice cannot follow it (it would read tags aloud).
+// The voice of each turn (bridge/multilingual.mjs). Decided once per submitted turn, the first time it is needed, so
+// the context (tags or none), the Convai TTS flag and the delivery all agree. With Multilingual conversations off it
+// is exactly the character's chosen voice; on, a turn expected in another language needs OmniVoice or the cloud voice.
+const turnVoices = new Map();
+const localChoice = profile => ({uses: localVoice.usesProfile(profile), provider: localVoice.provider});
+const languageOmni = profile => multilingual.enabled ? localVoice.languageOmni(profile) : {usable: false, ready: false};
+function turnVoice(input) {
+  const id = input?.requestId || input?.id, cacheKey = id ? JSON.stringify([id, input.profileKey]) : null;
+  if (cacheKey && turnVoices.has(cacheKey)) return turnVoices.get(cacheKey);
+  const profile = input.profileKey;
+  const plan = planTurnVoice({enabled: multilingual.enabled,
+    language: multilingual.enabled ? multilingual.expected(input.reaction ? '' : input.text) : 'en',
+    local: localChoice(profile), omni: languageOmni(profile)});
+  // The first turn in another language starts OmniVoice and is spoken by the cloud voice meanwhile.
+  if (plan.reason === 'omni-loading') void localVoice.warmLanguageOmni().catch(() => {});
+  if (cacheKey) {
+    turnVoices.set(cacheKey, plan);
+    while (turnVoices.size > 64) turnVoices.delete(turnVoices.keys().next().value);
+  }
+  return plan;
+}
+const turnUsesLocal = input => turnVoice(input).engine !== 'convai';
+// Warm connections are prepared before any text exists: they follow the language of the last exchange.
+const warmUsesConvaiVoice = profile => localVoice.playbackEnabled !== false && planTurnVoice({enabled: multilingual.enabled,
+  language: multilingual.lastLanguage ?? 'en', local: localChoice(profile), omni: languageOmni(profile)}).engine === 'convai';
 const naturalSpeechContext = input => {
   const prepared = preparedInputs.get(input);
   const phone = input.channel === 'phone' || prepared?.route?.channel === 'phone';
   const spoken = !phone && !input.reaction && localVoice.playbackEnabled !== false;
-  const engine = localVoice.usesProfile(input.profileKey) ? localVoice.provider : 'convai';
+  const engine = turnVoice(input).engine;
   return naturalSpeech.contextFor({engine, spoken, sessionId: realtimeSessions.get(sessionKey(input))});
 };
 // Expressive emotions: spoken turns on a local voice, battle and loot barks included (they have a face). Not phone chat.
 const expressiveEmotionsContext = input => {
   const prepared = preparedInputs.get(input);
   const phone = input.channel === 'phone' || prepared?.route?.channel === 'phone';
-  const engine = localVoice.usesProfile(input.profileKey) ? localVoice.provider : 'convai';
+  const engine = turnVoice(input).engine;
   return expressiveEmotions.contextFor({engine, spoken: !phone && localVoice.playbackEnabled !== false});
 };
 const conversationContext = input => {
@@ -309,12 +345,12 @@ const routeFor = input => preparedInputs.get(input)
   || knowledgeRouter.configFor(input.profileKey, conversationScope(input), boundaryFor(input));
 const sessionKey = input => routeFor(input)?.sessionKey || JSON.stringify(['unavailable', input.profileKey, input.requestId]);
 const completeContext = input => JSON.stringify([conversationContext(input), routeFor(input)?.guard?.characterId, realtimeSessions.get(sessionKey(input)) || null,
-  localVoice.usesProfile(input.profileKey) ? 'local' : 'convai']);
+  turnUsesLocal(input) ? 'local' : 'convai']);
 const realtimeConfig = input => ({key, characterId: routeFor(input)?.guard?.characterId, sessionId: realtimeSessions.get(sessionKey(input)),
   scope: routeFor(input)?.scope || conversationScope(input), ...(routeFor(input)?.remoteConfig || {}),
   context: conversationContext(input), text: battleTrigger(input), reaction: input.reaction,
   companionAction: companionActions.configFor(input),
-  ttsEnabled: localVoice.playbackEnabled!==false&&!localVoice.usesProfile(input.profileKey)});
+  ttsEnabled: localVoice.playbackEnabled!==false&&!turnUsesLocal(input)});
 const warmRoute = (profile, scope) => memoryQuiescing ? null : knowledgeRouter.configFor(profile, scope,
   {worldToken: worldSession?.token, generation: worldSession?.generation});
 const connections = new PartyConnections({host: realtime,
@@ -324,7 +360,7 @@ const connections = new PartyConnections({host: realtime,
     const route = warmRoute(profile, scope);
     if (!route) throw Error('No current world for conversation warmup');
     return {key, characterId: route.guard.characterId, scope: route.scope, ...(route.remoteConfig || {}),
-      sessionId: realtimeSessions.get(route.sessionKey), ttsEnabled: localVoice.playbackEnabled!==false&&!localVoice.usesProfile(profile)};
+      sessionId: realtimeSessions.get(route.sessionKey), ttsEnabled: warmUsesConvaiVoice(profile)};
   },
   onState: state => {
     connectionMetricsWriting = connectionMetricsWriting.catch(() => {}).then(() => atomic(resolve(runtime, 'party-connection-state.json'), JSON.stringify(state)));
@@ -339,6 +375,16 @@ const nearbyWarm = new NearbyWarm({connections, isKnown: profile => Object.hasOw
   prepareVoice: (profile, options) => localVoice.prepareProfile(profile, options),
   onError: error => console.error('[CyberpunkConvai] Nearby warm-up:', error.message)});
 let voiceRouteSync = Promise.resolve();
+// A warm connection's Convai TTS flag follows warmUsesConvaiVoice; when that changes (the setting, the language of
+// the conversation, the multilingual Omni worker becoming ready), the page is replaced at the next idle boundary.
+const warmVoices = new Map();
+function refreshWarmVoices() {
+  for (const profile of localVoice.routeKeys) {
+    const next = warmUsesConvaiVoice(profile), previous = warmVoices.get(profile);
+    warmVoices.set(profile, next);
+    if (previous !== undefined && previous !== next) voiceRoutePending.set(profile, localVoice.routeRevision);
+  }
+}
 const voiceRoutePending = new Map();
 let voiceRouteReservation = false;
 const voiceRouteWaiters = new Set();
@@ -491,7 +537,16 @@ const dropPrefetch = () => { prefetch.invalidate(); lookahead.cancel(); };
 
 async function synthesizeReply(input, result, signal, current, profile = profileFor(input, roster), receiptPrepared = preparedInputs.get(input)) {
   if(localVoice.playbackEnabled===false)return{...result,audio:undefined,faces:[],captions:[]};
-  if (!localVoice.usesProfile(input.profileKey)) return {...result, timing: {...result.timing, voiceProvider: 'convai'}};
+  const turnPlan = turnVoice(input);
+  if (turnPlan.engine === 'convai') return {...result, timing: {...result.timing, voiceProvider: 'convai'}};
+  // A local turn follows its reply's language: English keeps the chosen voice, another language needs OmniVoice.
+  const voice = replyVoice({plan: turnPlan, text: result.text, local: localChoice(input.profileKey), omni: languageOmni(input.profileKey)});
+  if (voice.engine === 'none') {
+    if (voice.reason === 'omni-loading') void localVoice.warmLanguageOmni().catch(() => {});
+    return {...result, audio: undefined, faces: [], captions: [], timing: {...result.timing, voiceProvider: 'none'},
+      audioError: 'The selected voice speaks English only; showing the written reply.'};
+  }
+  const omni = voice.engine === 'omni', language = voice.language && voice.language !== 'en' ? voice.language : undefined;
   throwIfCancelled(signal);
   // Text-only Convai turns carry no emotion (live probe): derive a cue from
   // this reply's own text (lexicon, then tone, then the character's resting
@@ -503,7 +558,7 @@ async function synthesizeReply(input, result, signal, current, profile = profile
   // by pauses/duration (bridge/expression-timeline.mjs).
   let plan, spans;
   try {
-    if (localVoice.provider === 'omni') {
+    if (omni) {
       const phrases = splitSpeechText(result.text);
       spans = phraseOffsets(result.text, phrases);
       plan = analyseReply(result.text, {profile: input.profileKey, baseline: baselineFromSignal(result.expressionSignal),
@@ -520,14 +575,14 @@ async function synthesizeReply(input, result, signal, current, profile = profile
   // Receipt for the next in-game reply: reply-level cue plus the per-segment plan
   // (character offsets, top families and tags; no dialogue text).
   atomic(resolve(runtime, 'expression-receipt.json'), JSON.stringify({version: 2, updated: Date.now(),
-    requestId: input.requestId, profile: input.profileKey, provider: localVoice.provider,
+    requestId: input.requestId, profile: input.profileKey, provider: omni ? 'omni' : 'pocket',
     emotion: expression?.emotion ?? null, scale: expression?.scale ?? null, basis: expression?.basis ?? null,
     delivered: expression !== undefined,
     plan: plan ? {trait: plan.trait, baseline: plan.baseline, segments: plan.segments.map(segment => ({
       from: segment.start, to: segment.end, seconds: Math.round(segment.seconds * 100) / 100, weights: segment.weights,
       dominant: segment.dominant, mixed: segment.mixed, tags: segment.tags})), phrases: spans} : null})).catch(() => {});
   const ahead = current?.ahead;
-  if(localVoice.provider==='omni'){
+  if(omni){
     // The one GPU worker is FIFO. A look-ahead phrase queued while the speaker
     // being heard still has phrases to render would delay that speaker's own
     // next phrase; wait for its production to finish (its audio plays on).
@@ -535,17 +590,18 @@ async function synthesizeReply(input, result, signal, current, profile = profile
     const lookahead=new AbortController(),cancelLookahead=()=>lookahead.abort();
     signal?.addEventListener('abort',cancelLookahead,{once:true});
     try{
-      const phrases=splitSpeechText(result.text),steps=localVoice.steps;
+      // The multilingual Omni worker (Pocket chosen) renders at the saved Omni quality.
+      const phrases=splitSpeechText(result.text),steps=localVoice.provider==='omni'?localVoice.steps:localVoice.requestedOmniSteps;
       // Voice tags (Natural speech) go to OmniVoice only, where the model wrote them; subtitles keep the clean phrase.
       const voiced=(naturalSpeech.enabled?speechPhrases(phrases,result.speechText,OMNI_TAGS):undefined)??phrases;
-      const first=synthesizeOmniPhrase(input.profileKey,voiced[0],{signal,steps});
+      const first=synthesizeOmniPhrase(input.profileKey,voiced[0],{signal,steps,language});
       // Queue phrase 2 behind phrase 1 now: the GPU renders it while phrase 1's
       // lip analysis, storage and publication run, instead of after them.
       let second;
-      if(phrases.length>1){second=synthesizeOmniPhrase(input.profileKey,voiced[1],{signal:lookahead.signal,steps});second.catch(()=>{});}
+      if(phrases.length>1){second=synthesizeOmniPhrase(input.profileKey,voiced[1],{signal:lookahead.signal,steps,language});second.catch(()=>{});}
       const generated=await first;
       return {...result,...generated,text:result.text,timing:{...result.timing,...generated.timing},
-        streamPlan:phrases.length>1?{phrases,speech:voiced,steps,lookahead:{promise:second,cancel:cancelLookahead},
+        streamPlan:phrases.length>1?{phrases,speech:voiced,steps,language,lookahead:{promise:second,cancel:cancelLookahead},
           expressionPlan:result.expressionPlan,spans}:undefined};
     }catch(error){
       cancelLookahead();
@@ -656,7 +712,7 @@ async function respond(input, profile, {signal, prepared, current} = {}) {
       if (cached) return synthesizeReply(input, cached, signal, current, profile);
     }
     throwIfCancelled(signal);
-    if (!localVoice.usesProfile(input.profileKey)) return convaiReply(input, profile, current, signal);
+    if (!turnUsesLocal(input)) return convaiReply(input, profile, current, signal);
     return synthesizeReply(input, {...await realtime.reply(realtimeConfig(input), {signal}), transport: 'realtime'}, signal, current, profile);
   }
   prefetch.invalidate(); prepared?.cancel();
@@ -668,6 +724,9 @@ async function respond(input, profile, {signal, prepared, current} = {}) {
 
 async function publishResult(input, profile, result, current = async () => true, signal) {
   if (!await current()) return false;
+  // The language of this exchange predicts the next turn without text (reactions, warm connections).
+  if (!input.reaction) multilingual.observe(input.text);
+  multilingual.observe(result.text);
   if (result.continuous) {
     if (!result.liveDelivery?.published || !result.liveDelivery.ended) throw Error('Continuous speech did not finish');
     // The game already received admission, live text and the consumed-sample
@@ -687,7 +746,7 @@ async function publishResult(input, profile, result, current = async () => true,
       if(result.streamPlan){
         stream=new SpeechStream({input,...result.streamPlan,slots,readState:readSpeechState,current,signal,
           writeManifest:document=>writeStreamManifest(document,current),
-          synthesize:(text,options)=>synthesizeOmniPhrase(profile.key,text,options)});
+          synthesize:(text,options)=>synthesizeOmniPhrase(profile.key,text,{...options,language:result.streamPlan.language})});
         const first=await stream.begin(result);audio=first.audio;face=first.face;
       }else{
         const id=randomUUID();await slots.begin(id,current);audio=await slots.write(id,1,result.audio,current);
@@ -745,7 +804,7 @@ let micPolling = false;
 const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
   onState: (state, input) => atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state, requestId: input.requestId, updated: Date.now()})),
   prepareReply: async (input, signal) => {
-    if(localVoice.playbackEnabled===false||localVoice.usesProfile(input.profileKey)||(await readSpeechState()).continuousAvailable!==true)return;
+    if(localVoice.playbackEnabled===false||turnUsesLocal(input)||(await readSpeechState()).continuousAvailable!==true)return;
     const prepared = microphoneKnowledge.get(input.requestId);
     const current = async () => {
       if (stopped || signal.aborted || mic.current?.requestId !== input.requestId || !prepared) return false;
@@ -861,7 +920,7 @@ async function admitPlayerConversation(prepared, {signal} = {}) {
     await connections.retireInvitation(prepared.route.profileKey, {signal});
     const host = prepared.route.channel === 'phone' ? phoneRealtime : realtime;
     const config = {...realtimeConfig(prepared.input), ttsEnabled: prepared.route.channel === 'phone'
-      ? false : localVoice.playbackEnabled!==false&&!localVoice.usesProfile(prepared.route.profileKey)};
+      ? false : localVoice.playbackEnabled!==false&&!turnUsesLocal(prepared.input)};
     if (!await host.refreshIdle(config)) throw Error('The character connection is still releasing. Please try again.');
     throwIfCancelled(signal);
     if (!await knowledgeRouter.current(prepared)) throw Error('Conversation world changed');
@@ -1311,7 +1370,11 @@ async function pollSettings(checkShutdown = true) {
     }
     // A prepared reply was written under the previous Natural speech instructions.
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
-    if (speechChanged || emotionsChanged) { dropPrefetch(); prefetchObserved = ''; }
+    // Multilingual conversations changes which voice a turn uses (and so its instructions).
+    const multilingualChanged = multilingual.update(settings);
+    localVoice.setMultilingual(multilingual.enabled);
+    if (speechChanged || emotionsChanged || multilingualChanged) { dropPrefetch(); prefetchObserved = ''; }
+    refreshWarmVoices();
     await syncRelationshipRoutes(); await syncVoiceRoutes();
     publishRelationshipRoutes();
     if (Date.now() - lastVoiceHeartbeat >= 5000) {

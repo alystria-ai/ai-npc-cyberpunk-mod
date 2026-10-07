@@ -74,22 +74,29 @@ async function boundedJson(response, maxBytes, signal) {
 }
 
 export class PlayerMemoryApi {
-  #key; #ids; #fetch; #timeout; #maxBytes; #polls; #interval; #historicalPairAllowed;
+  #key; #ids; #fetch; #timeout; #maxBytes; #polls; #interval; #historicalPairAllowed; #markers;
+  // markerKeys: provider key -> the key written in its ownership marker, for the
+  // provider keys whose marker differs (a multilingual twin "<key>-multilingual"
+  // carries "[CyberpunkConvai profile v2:<key>:multilingual]"). Exact match only.
   constructor({key, characterIds = {}, fetchImpl = globalThis.fetch, timeoutMs = 15000,
-    maxResponseBytes = 4 * 1024 * 1024, maxClearPolls = 5, pollIntervalMs = 250, historicalPairAllowed} = {}) {
+    maxResponseBytes = 4 * 1024 * 1024, maxClearPolls = 5, pollIntervalMs = 250, historicalPairAllowed, markerKeys = {}} = {}) {
     if ((key !== undefined && typeof key !== 'string') || typeof fetchImpl !== 'function'
         || !Number.isInteger(timeoutMs) || timeoutMs < 10 || timeoutMs > 60000
         || !Number.isInteger(maxResponseBytes) || maxResponseBytes < 128 || maxResponseBytes > 8 * 1024 * 1024
         || !Number.isInteger(maxClearPolls) || maxClearPolls < 1 || maxClearPolls > 20
         || !Number.isInteger(pollIntervalMs) || pollIntervalMs < 0 || pollIntervalMs > 2000
         || !(characterIds instanceof Map || object(characterIds))
-        || (historicalPairAllowed !== undefined && typeof historicalPairAllowed !== 'function')) fail('INVALID_CONFIGURATION');
+        || (historicalPairAllowed !== undefined && typeof historicalPairAllowed !== 'function')
+        || !(markerKeys instanceof Map || object(markerKeys))) fail('INVALID_CONFIGURATION');
+    this.#markers = new Map(markerKeys instanceof Map ? markerKeys : Object.entries(markerKeys));
+    if (this.#markers.size > 1024 || [...this.#markers].some(([profileKey, marker]) => !token(profileKey) || !token(marker))) fail('INVALID_CONFIGURATION');
     this.#ids = new Map(characterIds instanceof Map ? characterIds : Object.entries(characterIds));
     if (this.#ids.size > 1024 || [...this.#ids].some(([profileKey, id]) => !token(profileKey) || !token(id))) fail('INVALID_CONFIGURATION');
     this.#key = key?.trim(); this.#fetch = fetchImpl; this.#timeout = timeoutMs; this.#maxBytes = maxResponseBytes;
     this.#polls = maxClearPolls; this.#interval = pollIntervalMs;
     this.#historicalPairAllowed = historicalPairAllowed;
   }
+  #marker(profileKey) { return `[CyberpunkConvai profile v2:${this.#markers.get(profileKey) ?? profileKey}]`; }
   #pair({profileKey, characterId, endUserId} = {}, {historical = false} = {}) {
     if (!this.#key) fail('DISABLED');
     if (!token(profileKey) || !token(characterId) || !uuid(endUserId)) fail('INVALID_IDENTITY');
@@ -164,7 +171,7 @@ export class PlayerMemoryApi {
     if (detail.character_id !== characterId) fail('CHARACTER_MISMATCH');
     if (typeof detail.backstory !== 'string') fail('NOT_MOD_OWNED');
     const markers = detail.backstory.split(/\r?\n/).map(line => line.trim()).filter(line => /^\[CyberpunkConvai profile v2:.*\]$/.test(line));
-    if (markers.length !== 1 || markers[0] !== `[CyberpunkConvai profile v2:${profileKey}]`) fail('NOT_MOD_OWNED');
+    if (markers.length !== 1 || markers[0] !== this.#marker(profileKey)) fail('NOT_MOD_OWNED');
     return detail;
   }
   enableMemory(options = {}) {
@@ -180,7 +187,7 @@ export class PlayerMemoryApi {
       try {
         const after = await this.#request('/character/get', {charID: characterId}, {signal: combined});
         if (after.character_id !== characterId || !object(after.memory_settings) || after.memory_settings.enabled !== true
-            || typeof after.backstory !== 'string' || !after.backstory.split(/\r?\n/).some(line => line.trim() === `[CyberpunkConvai profile v2:${profileKey}]`)) {
+            || typeof after.backstory !== 'string' || !after.backstory.split(/\r?\n/).some(line => line.trim() === this.#marker(profileKey))) {
           throw new PlayerMemoryApiError('ENABLE_UNVERIFIED', {writeUncertain: true});
         }
         if (memoryConfiguration(before) !== memoryConfiguration(after) || PROFILE_FIELDS.some(field =>
