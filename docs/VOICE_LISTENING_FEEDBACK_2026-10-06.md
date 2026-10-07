@@ -48,3 +48,12 @@ The user's per-character verdicts from the report page (http://127.0.0.1:8765/),
 - 1 clip sounds bad; 2 clips (10 s) sound about as good as 3. Never use 1 clip; at least 2.
 - Omni's remaining advantage: laughs, sighs and other emotional tags (natural speech), so it isn't obsolete.
 - Why Adam was switched (user): his combat dialogue sounds very different from his normal conversation, and the dataset had more combat than conversation for him, so references and targets drawn from it sounded wrong. A combat-delivery flag is being built for all voices.
+
+### Voice report v3 (2026-10-07, after the overnight duration search)
+- Overall: the custom Pocket student + decoder v2 with the searched references is "genuinely amazing", a night-and-day difference from Pocket base. At moments it matches OmniVoice and sometimes beats it, which is remarkable given the latency. No new student or decoder is needed.
+- Relative quality by ear (Pocket = x): Omni 16 about 1.10-1.15x, Omni 32 about 1.15-1.25x. Omni still has the edge (up to about 15-25%), and 32 steps does sound better than 16 at moments ("genuinely feels amazing"), though 16 often gets there too.
+- Messaging rule: never make OmniVoice sound worse than Pocket. Omni sounds amazing, and with the hardware it is the move; Pocket is the recommended default because it's light and fast.
+- Keep Omni 32 (no harm in offering the option).
+- Voice menu order: Pocket TTS (the new student + decoder v2; default, recommended), OmniVoice 16 short, OmniVoice 16 long, OmniVoice 32 short, OmniVoice 32 long. No Pocket base. (Convai cloud wasn't mentioned this time; the earlier decision keeps it last.)
+- Wants v3 packaged as a shareable report: one self-contained HTML file if possible, otherwise a zip.
+- Wants the voice research since the last devslot handoff packaged for the devslots: auto/best clip search, duration-based references, combat and effect cleaning, decoder v2 fine-tuning (phase anchor), the new student, metrics (ECAPA primary, PLS), findings.
