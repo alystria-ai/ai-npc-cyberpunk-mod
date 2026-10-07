@@ -503,3 +503,22 @@ test('a hidden crowd original is shown again once V has moved on, and a load cle
   adoption.abandon(false)
   assert(#adoption.inspect().adoptions==0 and #person.events==events)
 `));
+
+test('a copy that cannot be created frees its party place and the character can be asked again', () => runWorld(`
+  local judy=worldNpc('900',3,0)
+  local offer=adoption.offer('900',judy,'judy-alvarez','Judy Alvarez')
+  local system=Game.GetDynamicEntitySystem()
+  local create=system.CreateEntity
+  system.CreateEntity=function() error('native refused') end
+  busy=false; assert(adoption.queueFollow(offer,'900','request-1')); step(1)
+  assert(#companions.list()==0 and judy.visible==nil)
+  step(.5)
+  assert(#queue.list()==0 and queue.count()==0,'the failed reservation no longer holds a place')
+  local notices=queue.takeNotices(); assert(#notices>=1 and notices[1].failed)
+  system.CreateEntity=create
+  local again=adoption.offer('900',judy,'judy-alvarez','Judy Alvarez')
+  assert(again.available,'not stuck as already-here: '..tostring(again.reason))
+  local long=string.rep('é',70)
+  local clipped=adoption.offer('900',judy,'judy-alvarez',long).name
+  assert(#clipped<=120 and #clipped%2==0,'names are clipped on a UTF-8 boundary')
+`));

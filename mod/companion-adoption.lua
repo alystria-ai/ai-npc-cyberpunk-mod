@@ -24,6 +24,16 @@ M.CONFIG = {
     restoreWait = 20,     -- ... or after this many seconds
 }
 
+-- At most 120 bytes, never cutting a UTF-8 character (the bridge compares the
+-- offer it receives byte for byte with the lease).
+local function clip(value)
+    value = tostring(value)
+    if #value <= 120 then return value end
+    local cut = 120
+    while cut > 0 and value:byte(cut + 1) and value:byte(cut + 1) >= 128 and value:byte(cut + 1) < 192 do cut = cut - 1 end
+    return value:sub(1, cut)
+end
+
 local function dist(a, b)
     if not a or not b then return math.huge end
     return math.sqrt((a.x - b.x)^2 + (a.y - b.y)^2 + (a.z - b.z)^2)
@@ -172,7 +182,7 @@ function M.new(options)
         if guard(companions.owns, npc) or guard(companions.partyMember, entity) then return nil end
         local reason = refusal(entity, npc, profileKey)
         if reason then return {available = false, reason = reason} end
-        local label = type(name) == 'string' and name ~= '' and name:sub(1, 120) or profileKey
+        local label = type(name) == 'string' and name ~= '' and clip(name) or profileKey
         -- One conversation leases one offer at a time; only the latest is kept.
         offered = {[entity] = {npc = npc, profileKey = profileKey, name = label}}
         return {available = true, actor = {id = entity, key = profileKey}, name = label}
@@ -198,7 +208,7 @@ function M.new(options)
             seen[id] = true
             if member and not member.driving and not leaving[member.serial] and #members < 3 then
                 members[#members + 1] = {serial = member.serial, id = member.id, key = member.key,
-                    name = tostring(member.name or member.key):sub(1, 120)}
+                    name = clip(member.name or member.key)}
             end
         end
         if #members == 0 then return nil end
@@ -344,6 +354,11 @@ function M.new(options)
                     record.state, record.endedAt = 'ended', clock
                 elseif not row and not pendingJobs[record.key] then
                     record.state, record.endedAt = 'ended', clock
+                elseif not row and pendingJobs[record.key].state == 'failed' then
+                    -- The copy could not be created (no clear spot, preparation
+                    -- error). The failure was reported; free its party place.
+                    record.state, record.endedAt = 'ended', clock
+                    pcall(party.dismiss, pendingJobs[record.key].id)
                 end
             elseif record.state == 'joined' then
                 if not row or row.state == 'failed' or row.state == 'dead' or row.state == 'missing' then
