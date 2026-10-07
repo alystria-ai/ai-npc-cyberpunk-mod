@@ -189,7 +189,7 @@ Fresh-line ECAPA (cosine to the held-out centroid, mean over the same fresh line
 
 The same search, with the same rules (combat-cleaned pool with effect exclusions, at least two clips unless no multi-clip set is feasible, Omni caps of 10 s and 18 s, Pocket growth with early stop capped at 27 s, ECAPA primary, shortest set within one standard error wins), was run for every other voice that has a live reference: OmniVoice 16 steps on Kaggle T4 notebooks, Pocket (new student + decoder v2) on Kaggle CPU notebooks, with no 32-step verify (Omni 32 uses the 16-step winners) and no listening page. Not searched: jim-jarry (all 67 clips are combat- or effect-flagged), coach-fred and life-coach (no usable clips). Results are merged into `runtime/autobest-sets.json` (72 voices) and the proposed configs `runtime/pocket-voices.autobest.json` and `runtime/local-voices.autobest*.json` now cover all of them (never live).
 
-Averages over the 43: Omni short 8.6 s (+0.064 ECAPA over today's single reference), Omni long 12.7 s (+0.092), Pocket best 17.2 s (+0.114). The Pocket best lengths cluster nearer 20 to 25 s than the 29 report characters' median of 14 s: these voices have smaller pools, so the search keeps adding clips until the 27 s cap or the noise floor.
+Averages over the 43: Omni short 8.6 s (+0.064 ECAPA over today's single reference), Omni long 12.7 s (+0.092), Pocket best 17.2 s (+0.114). The Pocket best lengths are longer than the 29 report characters' (a mean of 17.2 s against a median of 14.2 s); several of these voices have small pools, and the search keeps adding clips until the 27 s cap or the noise floor.
 
 | Voice | Omni short s | ECAPA | Omni long s | ECAPA | Pocket best s | ECAPA | Today Omni / Pocket ECAPA |
 |---|---|---|---|---|---|---|---|
