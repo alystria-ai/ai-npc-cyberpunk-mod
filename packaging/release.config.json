@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "product": "CyberpunkConvai",
+  "notes": "Pinned inputs of the release build (packaging/build-release.mjs). Every download is official, unmodified and checked against the SHA-256 recorded here. See docs/PACKAGING.md.",
+  "layout": {
+    "modDirectory": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai",
+    "pluginDirectory": "red4ext/plugins/CyberpunkConvai",
+    "pluginDll": "CyberpunkConvai.dll",
+    "maxGameRootLength": 70,
+    "maxPathLength": 255
+  },
+  "limits": {
+    "assetBytes": 1950000000,
+    "splitFileBytes": 1000000000
+  },
+  "toolchain": {
+    "node": {
+      "version": "24.21.0",
+      "url": "https://nodejs.org/dist/v24.21.0/node-v24.21.0-win-x64.zip",
+      "sha256": "158f7685b44de51f6c0df1d153526cbcd3e1bc739a8dfc607721cef75de9e541",
+      "root": "node-v24.21.0-win-x64",
+      "files": ["node.exe", "LICENSE"]
+    },
+    "python": {
+      "version": "3.12.10",
+      "url": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip",
+      "sha256": "4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c3",
+      "pth": "python312._pth",
+      "lock": "packaging/python/pocket.lock.txt"
+    },
+    "omniPython": {
+      "version": "3.11.9",
+      "url": "https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip",
+      "sha256": "009d6bf7e3b2ddca3d784fa09f90fe54336d5b60f0e0f305c37f400bf83cfd3b",
+      "pth": "python311._pth",
+      "lock": "packaging/python/omni.lock.txt"
+    },
+    "browser": {
+      "name": "Chrome for Testing",
+      "version": "145.0.7632.6",
+      "matches": "Playwright 1.58.2 (node_modules/playwright-core/browsers.json, chromium revision 1208)",
+      "url": "https://storage.googleapis.com/chrome-for-testing-public/145.0.7632.6/win64/chrome-win64.zip",
+      "sha256": "08476e6fe550ccbc0d11d1ab030292fc4e32d4987400c77b2d1905a6bd13b4f6",
+      "root": "chrome-win64",
+      "executable": "chrome.exe"
+    },
+    "pocketTts": {
+      "repository": "https://github.com/kyutai-labs/pocket-tts.git",
+      "revision": "41cbc84af539ea78a804ffca5f9c6edc1a22ce44",
+      "treeSha256": "b86f98955b6c4776bb24a748b321408aba89d3b66f6b911f415ef4f4191a7666",
+      "license": "MIT"
+    },
+    "voiceStudio": {
+      "repository": "https://github.com/debpalash/VoiceStudio.git",
+      "revision": "08a1592e3cb9b4c36beef5fa3185ec2313bb1fea",
+      "license": "AGPL-3.0-only",
+      "adapter": ["backend/core", "backend/services", "backend/utils"],
+      "package": "omnivoice",
+      "packageExclude": ["omnivoice/eval", "omnivoice/training", "omnivoice/scripts"],
+      "notices": ["LICENSE", "LICENSE-NOTICE.md"]
+    },
+    "omniModel": {
+      "repository": "k2-fsa/OmniVoice",
+      "revision": "c5fdb5ccb189668d56333f77ba2629f4cd7535f4",
+      "urlTemplate": "https://huggingface.co/k2-fsa/OmniVoice/resolve/{revision}/{path}",
+      "localSnapshot": "vendor/voice-models/hub/models--k2-fsa--OmniVoice/snapshots/c5fdb5ccb189668d56333f77ba2629f4cd7535f4",
+      "files": {
+        "README.md": {"size": 9424, "sha256": "b5d645a1874baa96a460a0e3a7d5a262811d682d04ce235878a16d5fed287fd3"},
+        "chat_template.jinja": {"size": 4168, "sha256": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8"},
+        "config.json": {"size": 2238, "sha256": "5e359117e13b420c5e0c925d4aba650d624767131f1d1746928f8b850d5dc372"},
+        "model.safetensors": {"size": 2450344112, "sha256": "730839316de585f4c8298ec0e1712efc10fb19c6fa4e36eb741cb8d51ebcf6aa"},
+        "tokenizer.json": {"size": 11423986, "sha256": "408f669b7e2b045fdf54201d815bd364e6667dbd845115da81239c40bc6dcfd1"},
+        "tokenizer_config.json": {"size": 533, "sha256": "49f78845596a82bf15c83673794bdf9f76f812b11f60ab6a2239d9be65b00676"},
+        "audio_tokenizer/LICENSE": {"size": 9171, "sha256": "ac933dc084d119bd20401956b90d11ae87c248b2da62622cd580d82cdf2fa049"},
+        "audio_tokenizer/README.md": {"size": 5174, "sha256": "0336368f8274a5ed09f54cee8d56a851ecee96026d9f391a6735762c16608a60"},
+        "audio_tokenizer/config.json": {"size": 2531, "sha256": "eefb20806f7104e77c9a5277c9df0f9bb8826b08eb1d4e8ab2b9829b6ef9fac1"},
+        "audio_tokenizer/model.safetensors": {"size": 805665628, "sha256": "fe7c5e8785e0a05833e1bfc3e002ec7f55af21e306b2e7154a448c1f54ccfb0d"},
+        "audio_tokenizer/preprocessor_config.json": {"size": 206, "sha256": "ae61eea88558608ee2fa86d2aec9fce8d99a5ff75d09cb7651ccce21ae1d9084"}
+      }
+    }
+  },
+  "models": {
+    "bucket": "akshitireddy/cyberpunk-pocket-rolling-checkpoints",
+    "manifest": "final/MANIFEST.json",
+    "groups": [
+      {"bucket": "final/pocket-voice/student-v2-s2000-ema-decv2/", "local": "runtime/pocket-student-v2-s2000-ema-decv2/", "target": "app/models/pocket/",
+       "files": ["model.safetensors", "inference.yaml", "tokenizer.json", "receipt.json", "decoder-receipt.json"]},
+      {"bucket": "final/lipsync-model/", "local": "runtime/lipsync-model/", "target": "app/models/lipsync/",
+       "files": ["face-model.json", "face-model.bin", "face-text.json", "face-text.bin", "face-lexicon.txt.gz", "face-lexicon-NOTICE.txt"]},
+      {"bucket": "final/voice-configs/", "local": "runtime/", "target": "voice-configs/",
+       "files": ["pocket-voices.autobest.json", "local-voices.autobest-short.json", "local-voices.autobest-long.json"]}
+    ],
+    "references": {"bucket": "final/voice-references/", "local": "runtime/voice-references/"}
+  },
+  "devOnlyLua": [
+    "diagnostics.lua", "face-probe.lua", "face-test.lua", "fact-identity-probe.lua", "gesture-probe.lua",
+    "knowledge-probe.lua", "loot-probe.lua", "save-identity-probe.lua", "speech-cadence-probe.lua",
+    "speech-replay-probe.lua"
+  ],
+  "retiredRedscript": ["KnowledgeState.reds"],
+  "catalogs": [
+    {"source": "characters/world-knowledge.json", "target": "world-knowledge.json"},
+    {"source": "characters/manager-characters.json", "target": "manager-characters.json"},
+    {"source": "characters/roster.json", "target": "conversation-characters.json"},
+    {"source": "characters/phone-contacts.json", "target": "phone-contacts.json"}
+  ],
+  "appData": [
+    "characters/roster.json", "characters/world-knowledge.json", "characters/phone-contacts.json",
+    "research/cyberpunk/generated/quest-catalog.json"
+  ],
+  "bridgeEntries": ["bridge/convai-bridge.mjs", "bridge/bridge-supervisor.mjs"],
+  "bridgeWorkers": [
+    "bridge/pocket-voice-worker.py", "bridge/pocket_voice_runtime.py",
+    "bridge/resident-voice-worker.py", "bridge/voice-cuda-graph.py"
+  ],
+  "clientModules": ["continuous-pcm-player.mjs", "continuous-pcm-worklet.mjs", "continuous-pcm-core.mjs", "local-pcm-client.mjs"],
+  "nodePackages": ["playwright", "playwright-core"],
+  "releaseData": {
+    "managed": ["characters.json", "relationship-profiles.json", "multilingual-profiles.json"],
+    "archives": [
+      {"source": "packaging/release-data/archives/convai_facial.archive", "target": "archive/pc/mod/convai_facial.archive"},
+      {"source": "packaging/release-data/archives/convai_gestures.archive", "target": "archive/pc/mod/convai_gestures.archive"},
+      {"source": "packaging/release-data/archives/cyberpunk_convai_ambient_driver_guard.archive", "target": "archive/pc/mod/cyberpunk_convai_ambient_driver_guard.archive"}
+    ]
+  }
+}

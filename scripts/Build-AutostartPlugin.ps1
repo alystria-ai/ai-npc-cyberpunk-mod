@@ -5,7 +5,8 @@ param(
     [switch]$TestHost
 )
 # Builds the RED4ext launcher DLL with the installed MSVC toolset. Static CRT
-# (/MT) keeps the DLL free of a Visual C++ redistributable dependency.
+# (/MT) keeps the DLL free of a Visual C++ redistributable dependency. /Brepro makes the
+# output reproducible: the same source and toolset give a byte-identical DLL.
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath($ProjectDirectory)
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $projectRoot 'dist\autostart' }
@@ -25,9 +26,9 @@ if (-not (Test-Path -LiteralPath $vcvars -PathType Leaf)) { throw 'vcvars64.bat 
 $objects = Join-Path $output 'obj'
 [IO.Directory]::CreateDirectory($objects) | Out-Null
 $dll = Join-Path $output 'CyberpunkConvaiLauncher.dll'
-$common = '/nologo /std:c11 /W4 /WX /O2 /GS /guard:cf /MT'
+$common = '/nologo /std:c11 /W4 /WX /O2 /GS /guard:cf /MT /Brepro'
 $commands = @(
-    "cl $common /LD /Fo`"$objects\\`" /Fe`"$dll`" `"$source`" /link /DLL /NXCOMPAT /DYNAMICBASE /guard:cf kernel32.lib"
+    "cl $common /LD /Fo`"$objects\\`" /Fe`"$dll`" `"$source`" /link /DLL /NXCOMPAT /DYNAMICBASE /guard:cf /Brepro kernel32.lib"
 )
 if ($TestHost) {
     $hostExe = Join-Path $output 'test-host.exe'
