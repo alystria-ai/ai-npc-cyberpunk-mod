@@ -411,3 +411,23 @@ Across the other test sets:
 
 - No Kaggle runs: no further training was needed. The 48-channel and 48-epoch variants had already finished locally before the user switched to Silent.
 - A stage 2 trained for 96 epochs may add a little more; the 16 → 48 epoch step gained up to +0.05 on phrase purse.
+
+**2026-10-08: stage 2 retrained for 96 epochs.**
+- **Where:** on the local 4080, 34 min for both nets in parallel. Kaggle would have been slower: a 1.5 GB private upload plus a 4-core data loader, against about 30 % local CPU load.
+- **Phrase (Omni) net vs 48 epochs**, 1,024 held-out lines, per-line paired 95 % CI:
+  - width +0.007 [+0.004, +0.009]
+  - protrusion +0.005 [+0.003, +0.007]
+  - purse +0.004 [+0.000, +0.008]
+  - lower roll +0.008 [+0.005, +0.011]
+  - F/V recall +0.011 [+0.004, +0.018]
+  - rounding recall +0.006 [+0.000, +0.013]
+  - contact r +0.003 (n.s.)
+  - The same small gains hold on Omni and Pocket clones (contact precision +0.015), and nothing regresses.
+- **Streaming net:** no gain (all within ±0.003). On Omni clones, aperture r −0.004 and contact recall −0.012, so it stays at 48 epochs.
+- **Installed:** `face-text.*` = stream net 48 epochs + phrase net 96 epochs.
+  - Same architecture and CPU cost.
+  - JS parity passes, and stream rows are byte-identical to before.
+- **Previous files and rollback:**
+  - local backup: `E:\CyberpunkConvai-offload\backups\lipsync-face-text-20261008-s48p48\`;
+  - HF: `final/lipsync-model/previous-text-20261007/`.
+  - The HF `final/lipsync-model/face-text.*`, `MANIFEST.json` and `README.md` were refreshed and verified by re-download.
