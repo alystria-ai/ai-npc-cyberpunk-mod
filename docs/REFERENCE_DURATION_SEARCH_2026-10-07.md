@@ -164,6 +164,8 @@ OmniVoice 32 one clip = 90); the new student follows each original line's delive
 
 ## Jackie Welles with hand-set constraints (2026-10-07, local run)
 
+**User verdict (2026-10-07): the overnight best-length set was fine; the constrained variant is dropped from the report and is not to be mentioned in the devslot handoff.** The record below is kept for reference only.
+
 The user asked for a re-search of Jackie's references where every candidate clip must have a loudness of at most +2 dB on the picker's relative scale, be longer than 6 s on its own, and contain few sentence breaks. The rule used: transcript stops (runs of `.`, `!`, `?` or an ellipsis that end a word, a run counted once) at most 2 per clip (a hard cap; clips with 3 or more stops are dropped). Existing filters still apply (combat-cleaned, effect exclusions, at least two clips, same held-out centroid and lines as the overnight run). The rule leaves 65 of Jackie's 833 candidate clips (750 are at most +2 dB; 127 of those are longer than 6 s; 65 of those have at most 2 stops). Code: `search.py --constraint jackie-constrained --compare-with <overnight run>`; results in `E:/CyberpunkConvai-offload/work/clip-search/runs-constrained/`.
 
 **A short OmniVoice set (up to 10 s, at least two clips) is impossible under this rule:** two clips longer than 6 s need at least 12.4 s with the gap. It was not relaxed; the report row says "not possible under the rule". At most two such clips also fit the 18 s long set.
