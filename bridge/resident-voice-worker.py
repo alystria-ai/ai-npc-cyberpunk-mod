@@ -304,7 +304,9 @@ class ProfileSession:
                     self.prepared.pop(prepared_key)
             raise
 
-    def prepare(self, key):
+    def prepare(self, key, steps=32):
+        # `steps` is the hidden warm-up render's step count. The conditioning prompt does not depend on it, so a
+        # player on 16 steps can warm in half the time ("Keep prepared voices"); 32 is the original behaviour.
         # Revalidate before a cache hit as well, so a file edit cannot appear
         # ready while the adapter is still retaining another conditioning prompt.
         self.validate_profile_reference(key)
@@ -316,7 +318,7 @@ class ProfileSession:
         if resident is not None and key in resident:
             self.remember(key)
             return 0
-        _, elapsed = self.render(key, WARM_PHRASE, 32)
+        _, elapsed = self.render(key, WARM_PHRASE, steps)
         self.remember(key)
         return elapsed
 
@@ -345,7 +347,10 @@ class ProfileSession:
                     or not isinstance(key, str) or key not in self.registry['refs']):
                 raise ValueError('Invalid local voice selection')
             if request.get('op') == 'prepare':
-                elapsed = self.prepare(key)
+                steps = request.get('steps', 32)
+                if type(steps) is not int or steps not in (16, 32):
+                    raise ValueError('Invalid local warm-up quality')
+                elapsed = self.prepare(key, steps)
                 self.send({'op': 'prepared', 'id': request_id, 'profile': key,
                            'generationMs': elapsed, 'preparedProfiles': list(self.prepared),
                            **self.model_info, **self.memory_info()})

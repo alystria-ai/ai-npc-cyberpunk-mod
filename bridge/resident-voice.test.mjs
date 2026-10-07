@@ -425,3 +425,26 @@ test('preparation timeout/close keeps the same bounded process retirement and di
   assert.equal(h.child.kills, 1); h.finish(); await closed;
   assert.equal(h.client.loaded, false); assert.equal(timers.size(), 0);
 });
+
+test('Keep prepared voices makes the join-time warm-up use the selected steps; off keeps the original request', async () => {
+  const off = harness({settings: widerConfig(), protocolVersion: 2});
+  await off.client.start(); off.client.setSteps(16);
+  const first = off.client.prepareProfile('alex'); await tick();
+  assert.deepEqual(off.requests[0], {op: 'prepare', id: 1, profile: 'alex'});
+  off.reply(0); await first;
+  const closedOff = off.client.close(); off.finish(); await closedOff;
+  const on = harness({settings: widerConfig(), protocolVersion: 2});
+  await on.client.start(); on.client.setSteps(16); on.client.setKeepPrepared(true);
+  const prepared = on.client.prepareProfile('alex'); await tick();
+  assert.deepEqual(on.requests[0], {op: 'prepare', id: 1, profile: 'alex', steps: 16});
+  on.reply(0); await prepared;
+  on.client.setSteps(32);
+  const second = on.client.prepareProfile('iris'); await tick();
+  assert.deepEqual(on.requests[1], {op: 'prepare', id: 2, profile: 'iris', steps: 32});
+  on.reply(1); await second;
+  on.client.setKeepPrepared(false);
+  const third = on.client.prepareProfile('river-ward'); await tick();
+  assert.deepEqual(on.requests[2], {op: 'prepare', id: 3, profile: 'river-ward'});
+  on.reply(2); await third;
+  const closed = on.client.close(); on.finish(); await closed;
+});

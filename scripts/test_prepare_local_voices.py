@@ -83,6 +83,23 @@ class WorkerProfiles(Fixtures):
         self.assertEqual(frames[-1]['protocolVersion'], 2)
         self.assertEqual(frames[-1]['referenceHashes'], {key: ref['sha256'] for key, ref in config['voices'].items()})
 
+    def test_prepare_warms_at_the_requested_steps_and_defaults_to_the_original_32(self):
+        keys = [*worker.LEGACY_KEYS, 'alex', 'iris', 'river-ward']
+        config = self.config(keys)
+        config.update(version=2)
+        session, frames, renders = self.session(config)
+        session.startup()
+        del renders[:]
+        session.handle({'op': 'prepare', 'id': 1, 'profile': 'alex'})
+        self.assertEqual(renders, [('alex', worker.WARM_PHRASE, 32)], 'no steps keeps the previous behaviour')
+        session.handle({'op': 'prepare', 'id': 2, 'profile': 'iris', 'steps': 16})
+        self.assertEqual(renders[-1], ('iris', worker.WARM_PHRASE, 16), 'Keep prepared voices warms at the chosen steps')
+        self.assertEqual(frames[-1]['op'], 'prepared')
+        count = len(renders)
+        session.handle({'op': 'prepare', 'id': 3, 'profile': 'river-ward', 'steps': 8})
+        self.assertEqual(frames[-1]['op'], 'error')
+        self.assertEqual(len(renders), count, 'an invalid warm-up quality must not render')
+
     def test_wider_registry_lazy_only_three_startup_and_remote_statuses(self):
         keys = [*worker.LEGACY_KEYS, '8ug8ear', *[f'cast-{i}' for i in range(72)]]
         config = self.config(keys)

@@ -19,9 +19,34 @@ import threading
 import time
 
 from pocket_voice_runtime import (
-    MAX_AUDIO_SECONDS, MAX_COMMAND_BYTES, PROTOCOL_VERSION, SOURCE_REVISION,
-    SOURCE_SHA256, ReferenceCache, cpu_environment, read_json, text_valid, validate_config,
+    MAX_AUDIO_SECONDS, MAX_COMMAND_BYTES, PREPARED_FORMAT, PROTOCOL_VERSION, SOURCE_REVISION,
+    SOURCE_SHA256, PreparedVoiceStore, ReferenceCache, cpu_environment, read_json, text_valid,
+    validate_config,
 )
+
+
+def safetensors_state_io():
+    """Save/load a voice's prepared state with its identity in the file header (no pickle)."""
+    from safetensors import safe_open
+    from safetensors.torch import save_file
+
+    def save_state(path, state, identity):
+        flat = {f"{module}/{name}": tensor.detach().contiguous().cpu()
+                for module, values in state.items() for name, tensor in values.items()}
+        save_file(flat, str(path), metadata={"format": PREPARED_FORMAT, "identity": identity})
+
+    def load_state(path, identity):
+        state = {}
+        with safe_open(str(path), framework="pt", device="cpu") as handle:
+            header = handle.metadata() or {}
+            if header.get("format") != PREPARED_FORMAT or header.get("identity") != identity:
+                return None
+            for key in handle.keys():
+                module, name = key.rsplit("/", 1)
+                state.setdefault(module, {})[name] = handle.get_tensor(key)
+        return state or None
+
+    return save_state, load_state
 
 
 class Cancelled(RuntimeError):
@@ -378,7 +403,12 @@ def main():
             dtypes = require_cpu_float32(torch, model)
         send({"op": "state", "state": "loading", "phase": "student-loaded"})
 
-        cache = ReferenceCache(registry, lambda path: model.get_state_for_audio_prompt(path, truncate=False))
+        # Saved voice setups live beside the worker's other mutable files (runtime, never the immutable assets).
+        save_state, load_state = safetensors_state_io()
+        store = PreparedVoiceStore(registry["paths"]["workDirectory"] / "prepared-voices",
+                                   registry["raw"]["model"]["sha256"], SOURCE_SHA256, save_state, load_state)
+        cache = ReferenceCache(registry, lambda path: model.get_state_for_audio_prompt(path, truncate=False),
+                               store=store)
         for key in registry["startup"]:
             if commands.shutdown.is_set():
                 return 0
@@ -415,13 +445,15 @@ def main():
                 commands.check()
                 if not isinstance(key, str) or key not in registry["refs"]:
                     raise ValueError("Pocket voice is unavailable for this character")
+                # "keep" is the player's "Keep prepared voices" setting; absent means off (no disk cache).
                 with redirect_stdout(sys.stderr):
-                    state, preparation_ms = cache.prepare(key)
+                    state, preparation_ms = cache.prepare(key, keep=request.get("keep") is True)
                 commands.check()
                 if request["op"] == "prepare":
                     commands.finish(request_id)
                     send({"op": "prepared", "id": request_id, "profile": key,
-                          "preparationMs": preparation_ms, **profiles()})
+                          "preparationMs": preparation_ms, "preparationSource": cache.last_source,
+                          **profiles()})
                     continue
                 text = request.get("text")
                 if not text_valid(text):
@@ -442,7 +474,8 @@ def main():
                     result = stream_request(model, state, text, commands, send, request_id, key, encode_pcm)
                 commands.finish(request_id)
                 send({"op": "done", "id": request_id, "profile": key,
-                      "preparationMs": preparation_ms, **result, **profiles()})
+                      "preparationMs": preparation_ms, "preparationSource": cache.last_source,
+                      **result, **profiles()})
             except Cancelled:
                 commands.finish(request_id)
                 send({"op": "cancelled", "id": request_id, "profile": key, **profiles()})

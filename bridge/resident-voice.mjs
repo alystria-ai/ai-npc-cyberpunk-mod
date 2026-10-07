@@ -30,7 +30,10 @@ export class ResidentVoice {
     this.sequence = 0; this.pending = new Map(); this.state = this.enabled ? 'stopped' : 'disabled';
     this.loaded = false; this.details = {};
     this.prepared = new Set(); this.available = new Set(this.registry.keys);
+    // "Keep prepared voices": the hidden warm-up render made while a companion joins uses the selected steps.
+    this.keepPrepared = false;
   }
+  setKeepPrepared(value) { this.keepPrepared = value === true; }
   schedule(callback, delay) {
     const timer = this.setTimer(callback, delay); timer?.unref?.(); return timer;
   }
@@ -266,7 +269,7 @@ export class ResidentVoice {
     if (!this.hasProfile(profile)) throw Error('This character uses its Convai voice');
     if (!this.prepared.has(profile)) {
       if (this.protocolVersion !== 2) throw Error('Local voice worker cannot prepare this character');
-      await this.command('prepare', profile);
+      await this.command('prepare', profile, this.keepPrepared ? {steps: this.steps} : {});
       throwIfCancelled(signal);
       if (this.closing || this.failure) throw this.failure || cancelled();
     }

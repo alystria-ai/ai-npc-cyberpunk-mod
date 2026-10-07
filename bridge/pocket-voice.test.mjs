@@ -162,3 +162,22 @@ test('hung cancellation and shutdown kill only the owned handle and require exit
   timers.advance(POCKET_LIMITS.exitMs);await failed;assert.equal(h.child.kills,1);
   h.finish();
 });
+
+test('Keep prepared voices is sent with each prepare and stream request only while on, and the source is reported',async()=>{
+  const off=harness();
+  const first=off.client.prepareProfile(profile);await tick();
+  assert.equal(off.requests[0].op,'prepare');assert.equal('keep' in off.requests[0],false,'off sends no keep flag');
+  off.prepared(0);assert.equal((await first).preparationSource,undefined);
+  off.client.setKeepPrepared(true);
+  const second=off.client.synthesizeStream(profile,'A reply.',{onPcm:()=>{}});await tick();
+  const prepare=off.requests.find((row,at)=>at>0&&row.op==='prepare');
+  assert.equal(prepare.keep,true);off.prepared(off.requests.indexOf(prepare),{preparationSource:'disk',preparationMs:14});await tick();
+  const stream=off.requests.find(row=>row.op==='stream');assert.equal(stream.keep,true);
+  off.pcm(stream,1,0);await tick();off.done(stream,4,1,{preparationSource:'memory'});
+  const result=await second;assert.equal(result.timing.voicePreparationSource,'memory');
+  await off.close();
+  const on=new PocketVoice(config(),{project:process.cwd(),configPath:resolve('pocket-fixtures/config.json'),
+    pythonExecutable:resolve('pocket-fixtures/python.exe'),keepPreparedVoices:true,spawnImpl:()=>{throw Error('not started');}});
+  assert.equal(on.keepPrepared,true);on.setKeepPrepared(false);assert.equal(on.keepPrepared,false);
+  on.setKeepPrepared('yes');assert.equal(on.keepPrepared,false,'only a real boolean turns it on');
+});

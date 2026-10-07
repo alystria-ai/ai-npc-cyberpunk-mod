@@ -16,6 +16,8 @@ const object = value => value && typeof value === 'object' && !Array.isArray(val
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const modelFields = ['sha256', 'configSha256', 'tokenizerSha256', 'receiptSha256', 'inputIdentity'];
 const pathFields = ['sourceDirectory', 'exportDirectory', 'referenceDirectory', 'workDirectory'];
+// Where a voice's prepared state came from: memory, a saved setup on disk, or freshly encoded.
+const preparationSource = frame => ['memory', 'disk', 'computed'].includes(frame.preparationSource) ? frame.preparationSource : undefined;
 const samePath = (a, b) => process.platform === 'win32' ? resolve(a).toLowerCase() === resolve(b).toLowerCase() : resolve(a) === resolve(b);
 
 export function validatePocketConfig(config) {
@@ -48,7 +50,7 @@ export function validatePocketConfig(config) {
 export class PocketVoice {
   constructor(config, {project, configPath, pythonExecutable, spawnImpl = spawn,
     onState = () => {}, onLog = () => {}, now = () => performance.now(),
-    setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
+    setTimer = setTimeout, clearTimer = clearTimeout, keepPreparedVoices = false} = {}) {
     this.config = validatePocketConfig(config); this.registry = this.config.registry;
     this.project = absoluteRuntimeOverride(project, 'Pocket application directory');
     this.configPath = absoluteRuntimeOverride(configPath, 'Pocket configuration path');
@@ -57,8 +59,11 @@ export class PocketVoice {
     Object.assign(this, {spawnImpl, onState, onLog, now, setTimer, clearTimer});
     this.owner = randomUUID().replaceAll('-', ''); this.sequence = 0;
     this.pending = new Map(); this.available = new Set(this.registry.keys); this.prepared = new Set();
+    // "Keep prepared voices": the worker saves each voice's prepared state to disk and reloads it later.
+    this.keepPrepared = keepPreparedVoices === true;
     this.tail = Promise.resolve(); this.receiving = Promise.resolve(); this.state = 'stopped'; this.loaded = false;
   }
+  setKeepPrepared(value) { this.keepPrepared = value === true; }
   get enabled() { return this.registry.keys.length > 0 && !this.closing; }
   get profileKeys() { return this.registry.keys.filter(key => this.available.has(key)); }
   hasProfile(key) { return this.registry.has(key) && this.available.has(key); }
@@ -219,7 +224,8 @@ export class PocketVoice {
     if (frame.op === 'prepared') {
       if (request.kind !== 'prepare' || !this.prepared.has(request.profile) || !finite(frame.preparationMs) || frame.preparationMs < 0)
         throw Error('Invalid Pocket reference preparation');
-      this.finishRequest(request, null, {provider: 'pocket', ready: this.profileReady(request.profile), profile: request.profile}); return;
+      this.finishRequest(request, null, {provider: 'pocket', ready: this.profileReady(request.profile), profile: request.profile,
+        preparationMs: frame.preparationMs, preparationSource: preparationSource(frame)}); return;
     }
     if (request.kind !== 'stream' || frame.frames !== request.frames || frame.chunks !== request.chunks || request.frames < 1
         || frame.sampleRate !== 24000 || frame.channels !== 1 || !this.prepared.has(request.profile)
@@ -231,6 +237,7 @@ export class PocketVoice {
       modelSha256: this.config.model.sha256, timing: {voiceProvider: 'pocket', voiceEngine: 'pocket-tts',
         voiceWarm: true, voiceDtype: 'torch.float32', voiceRuntime: 'pytorch', voiceDevice: 'cpu',
         voiceQueueMs: request.started - request.queued, voicePreparationMs: frame.preparationMs,
+        voicePreparationSource: preparationSource(frame),
         voiceFirstPcmYieldMs: frame.firstPcmYieldMs, voiceFirstPcmCopiedReadyMs: frame.firstPcmCopiedReadyMs,
         voiceFirstPcmReceivedMs: request.firstReceivedMs, voiceGenerationMs: frame.generationMs,
         voiceRoundTripMs: this.now() - request.started}});
@@ -248,7 +255,7 @@ export class PocketVoice {
       request.timer = this.timer(() => this.cancelRequest(request, Error('Pocket speech timed out')),
         kind === 'prepare' ? POCKET_LIMITS.prepareMs : POCKET_LIMITS.renderMs);
       this.publish(kind === 'prepare' ? 'warming' : 'speaking', {profile});
-      try { this.send({op: kind, id, profile, ...(text !== undefined ? {text} : {})}); }
+      try { this.send({op: kind, id, profile, ...(text !== undefined ? {text} : {}), ...(this.keepPrepared ? {keep: true} : {})}); }
       catch (error) { this.fail(error); }
       if (signal?.aborted) request.cancel();
     });
@@ -272,13 +279,15 @@ export class PocketVoice {
     if (this.closing || this.failure) throw this.failure || cancelled();
     if (!this.hasProfile(profile)) throw Error('This character has no available Pocket voice');
     // The worker revalidates the exact source file before a cache hit as well.
-    await this.command('prepare', profile, {signal}); throwIfCancelled(signal);
+    const prepared = await this.command('prepare', profile, {signal}); throwIfCancelled(signal);
+    return prepared;
   }
   prepareProfile(profile, {signal} = {}) {
     if (!this.usesProfile(profile)) return Promise.resolve({provider: 'convai', ready: true,
       reason: this.registry.has(profile) ? 'unavailable' : this.registry.status(profile)});
-    const operation = this.tail.then(async () => { await this.ensurePrepared(profile, signal);
-      return {provider: 'pocket', ready: this.profileReady(profile), profile}; });
+    const operation = this.tail.then(async () => { const prepared = await this.ensurePrepared(profile, signal);
+      return {provider: 'pocket', ready: this.profileReady(profile), profile,
+        ...(prepared?.preparationSource ? {preparationMs: prepared.preparationMs, preparationSource: prepared.preparationSource} : {})}; });
     this.tail = operation.catch(() => {}); return abortable(operation, signal);
   }
   synthesizeStream(profile, text, {signal, onPcm} = {}) {

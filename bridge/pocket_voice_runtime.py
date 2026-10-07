@@ -273,16 +273,110 @@ def validate_config(raw, *, yaml_load=None, source_hasher=digest_source):
             "cacheLimit": limit}
 
 
+PREPARED_FORMAT = "pocket-prepared-voice-v1"
+MAX_PREPARED_FILES = 160
+
+
+class PreparedVoiceStore:
+    """Saved voice setups: one file per voice, keyed by voice + reference + model.
+
+    The prepared state of a voice is a pure function of its reference audio, the student export and the pinned
+    Pocket source, so a saved copy is exactly what encoding the reference again would produce, minus 0.5 to 1.4 s
+    of Mimi encoding and prompting. Saving and loading are injected (the worker uses safetensors); this module
+    stays free of Torch. A file that is missing, damaged or written for another identity is simply a miss.
+    """
+    def __init__(self, directory, model_sha256, source_sha256, save_state, load_state,
+                 max_files=MAX_PREPARED_FILES):
+        self.directory = Path(directory)
+        self.model_sha256, self.source_sha256 = model_sha256, source_sha256
+        self.save_state, self.load_state, self.max_files = save_state, load_state, max_files
+
+    def identity(self, key, reference_sha256):
+        text = json.dumps({"format": PREPARED_FORMAT, "voice": key, "reference": reference_sha256,
+                           "model": self.model_sha256, "source": self.source_sha256}, sort_keys=True)
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+    def path(self, key, reference_sha256):
+        return self.directory / f"{key}-{self.identity(key, reference_sha256)[:24]}.safetensors"
+
+    def load(self, key, reference_sha256):
+        path = self.path(key, reference_sha256)
+        if not path.is_file() or path.is_symlink():
+            return None
+        try:
+            state = self.load_state(path, self.identity(key, reference_sha256))
+        except Exception:
+            state = None
+        if state is None:
+            try:
+                path.unlink()
+            except OSError:
+                pass
+            return None
+        try:
+            os.utime(path, None)
+        except OSError:
+            pass
+        return state
+
+    def save(self, key, reference_sha256, state):
+        """Atomic write; never raises (a full disk must not break a reply)."""
+        path = self.path(key, reference_sha256)
+        temporary = path.with_name(path.name + ".tmp")
+        try:
+            self.directory.mkdir(parents=True, exist_ok=True)
+            self.save_state(temporary, state, self.identity(key, reference_sha256))
+            os.replace(temporary, path)
+        except Exception:
+            try:
+                temporary.unlink()
+            except OSError:
+                pass
+            return False
+        self.prune(keep=path)
+        return True
+
+    def prune(self, keep):
+        """Drop this voice's files for older references/models, then the oldest beyond the file limit."""
+        try:
+            files = [file for file in self.directory.glob("*.safetensors") if file.is_file()]
+            prefix = keep.name.rsplit("-", 1)[0] + "-"
+            for file in files:
+                if file != keep and file.name.startswith(prefix) and file.name[len(prefix):-12].isalnum():
+                    file.unlink()
+            files = sorted((file for file in self.directory.glob("*.safetensors") if file.is_file()),
+                           key=lambda file: file.stat().st_mtime)
+            for file in files[:max(0, len(files) - self.max_files)]:
+                file.unlink()
+        except OSError:
+            pass
+
+    def clear(self):
+        removed = 0
+        for file in self.directory.glob("*.safetensors*") if self.directory.is_dir() else ():
+            try:
+                file.unlink()
+                removed += 1
+            except OSError:
+                pass
+        return removed
+
+
 class ReferenceCache:
-    """One shared model with a bounded LRU of exact acoustic prompt states."""
-    def __init__(self, registry, encode, now=time.perf_counter):
-        self.registry, self.encode, self.now = registry, encode, now
+    """One shared model with a bounded LRU of exact acoustic prompt states.
+
+    With a PreparedVoiceStore and keep=True, a voice that is not in memory is loaded from its saved setup before
+    the reference is encoded again, and a freshly encoded one is saved. `last_source` says which happened.
+    """
+    def __init__(self, registry, encode, now=time.perf_counter, store=None):
+        self.registry, self.encode, self.now, self.store = registry, encode, now, store
         self.states = OrderedDict()
+        self.last_source = "memory"
 
     def prepared(self):
         return list(self.states)
 
-    def prepare(self, key):
+    def prepare(self, key, keep=False):
         if key not in self.registry["refs"]:
             raise ValueError("This character has no available Pocket voice")
         try:
@@ -294,9 +388,18 @@ class ReferenceCache:
             raise
         if key in self.states:
             self.states.move_to_end(key)
+            self.last_source = "memory"
             return self.states[key], 0.0
         started = self.now()
-        state = self.encode(path)
+        saving = keep and self.store is not None
+        reference_sha256 = self.registry["descriptors"][key]["sha256"]
+        state = self.store.load(key, reference_sha256) if saving else None
+        self.last_source = "disk"
+        if state is None:
+            self.last_source = "computed"
+            state = self.encode(path)
+            if saving:
+                self.store.save(key, reference_sha256, state)
         self.states[key] = state
         while len(self.states) > self.registry["cacheLimit"]:
             self.states.popitem(last=False)

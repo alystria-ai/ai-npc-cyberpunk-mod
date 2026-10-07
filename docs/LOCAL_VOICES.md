@@ -65,7 +65,71 @@ It never writes the live configs; switching to a picked config is a separate, ap
 
 Tests: `npm run test:reference-picker`.
 
-## Four global voice choices — October 5
+## The live voice setup — October 7, 2026 (supersedes the October 5 four-choice section below)
+
+**Menu** (Settings > Voices > Companion voices, in this order): Pocket TTS · recommended (default), OmniVoice 16 steps · short
+reference, OmniVoice 16 steps · long reference, OmniVoice 32 steps · short reference, OmniVoice 32 steps · long reference,
+Convai cloud voice. There is no Pocket base. Settings store `voiceProvider` (`pocket`, `omni`, `convai`), `omniSteps` (16 or
+32), `omniReference` (`short` up to 10 s of reference audio, `long` up to 18 s) and `keepPreparedVoices` (default on). A fresh
+profile starts on Pocket TTS. Migration (`mod/manager.lua`): a saved `omni`/`hybrid` choice keeps its steps and gains
+`omniReference = "long"` (whoever chose OmniVoice chose quality; long matches the voice better for about 0.15 s more latency at
+16 steps); a saved `pocket` or `convai` stays; a missing or unknown provider becomes Pocket TTS. The description in the menu says
+Pocket TTS is light and fast (first audio about 0.15 s) and recommended, and that OmniVoice, which needs a capable GPU, sounds
+closest: by ear about 15–20 % better at 16 steps and 20–25 % at 32, while for well-covered voices (Johnny, Judy, Panam, Alex)
+Pocket is within about 5 %. First audio: Omni 16 about 1.3 s short / 1.45 s long, Omni 32 about 2.1 s / 2.5 s.
+
+**Fallback order is unchanged** (`bridge/voice-selection.mjs`, `VOICE_FALLBACK_ORDER`): OmniVoice, then Pocket, then Convai.
+The menu lists Pocket first, but an Omni choice that cannot run (pack missing, no CUDA, worker failure) falls to Pocket, a Pocket
+failure falls to Convai. The reference choice is part of the Omni worker: a worker holds one reference configuration, so a
+change of short/long (at the next idle boundary, like any routing change) releases the worker and starts one on the other
+configuration; a change of steps never restarts it. A Settings draft warms the draft's reference before Apply.
+
+**Which files are live.** `runtime/voice-configs.json` (bridge/voice-config-paths.mjs) names the live file for each choice:
+
+```json
+{"version": 1, "pocket": "pocket-voices.autobest.json",
+ "omni": {"short": "local-voices.autobest-short.json", "long": "local-voices.autobest-long.json"}}
+```
+
+Names are plain files in `runtime/`; a missing manifest or file falls back to the base file (`pocket-voices.json`,
+`local-voices.json`) with a warning in the bridge log. The other search agent's regenerated files only need to be dropped over
+those names (then restart the bridge): `node scripts/Build-AutobestConfigs.mjs` builds them from the base files, which already
+carry the new student, so the model identity can't regress. Voices without a searched set keep the base reference.
+`node scripts/Switch-VoiceConfigs.mjs` did the switch (backup of the previous live files in
+`runtime/backups/voice-configs-2026-10-07/`); it is idempotent.
+
+**Pocket student.** `runtime/pocket-student-v2-s2000-ema-decv2` is a copy of
+`E:\CyberpunkConvai-offload\work\pocket-v2\exports\student-v2-s2000-ema-decv2`: the distilled student (EMA weights, update 2,000, run
+`pocket-v2-student-11320cda`) with Mimi decoder v2 (phase-anchored, `decoder-v2-phase-anchored-step9590`; the receipt's decoder
+hash matches the weights file, and all 44 decoder tensors in `model.safetensors` equal that file). The old student
+(`runtime/pocket-student-full-a-s5000-raw`) stays on disk for rollback.
+
+**Optional OmniVoice pack.** `bridge/omni-pack.mjs` checks what the resident worker needs before it can start: its Python
+(`vendor/reference-voicestudio/.venv/Scripts/python.exe` or `CYBERPUNK_CONVAI_PYTHON`), the model weights
+(`<config.model>/model.safetensors` or `CYBERPUNK_CONVAI_OMNI_MODEL`), the adapter (`.../backend/services/tts_backend.py`) and the
+worker script. The bridge publishes `omniPack: {installed, missing}` in `local-voice-state.json` (re-checked every 30 s while
+missing). Without the pack the four Omni menu entries read "… · Requires the optional OmniVoice pack (GPU)", Apply refuses them
+with that message, a saved Omni choice falls back to Pocket with the usual one-time notice, and Settings shows "OmniVoice pack:
+Not installed". An unknown status (the service has not reported) never locks an entry. CUDA is not probed up front; a worker
+that cannot get a GPU fails at start and the same fallback applies.
+
+**Keep prepared voices** (Settings > Voices, default on; the bridge picks it up from `settings.json` without a restart).
+- Pocket saves each companion's prepared voice state (the encoded reference and its prompt, bit-identical to what encoding
+  again gives) to `runtime/pocket-voice-work/prepared-voices/<voice>-<key>.safetensors`. The key hashes voice, reference
+  sha256, student model sha256 and the pinned Pocket source; a changed reference or model is a different file and the old one of
+  that voice is removed on save. A missing or damaged file is a miss. At most 160 files are kept. Measured: about 0.58 MiB per
+  second of reference (7.3 MiB for Judy's 12.7 s, 11.3 MiB for Johnny's 19.6 s, 12.8 MiB for Mr. Hands' 22.1 s).
+  Preparation of a voice in a fresh worker: 0.8–1.5 s computed (1.6–3.1 s on a loaded machine) against about 15–20 ms from the
+  saved file. Off: nothing is read or written (existing files stay until cleared). Clear them with
+  `node scripts/Clear-PreparedVoices.mjs` or by deleting that folder.
+- OmniVoice has no saved setup (the adapter re-reads the reference each reply). Its preparation already rendered a hidden warm-up
+  phrase while a companion joins, always at 32 steps; with the setting on that render uses the selected steps (about 0.7 s
+  instead of 1.0 s at 16 steps, unchanged at 32). The worker keeps one CUDA graph at a time, so a reply whose text has a new
+  shape still captures a graph (about 0.35 s); that cost is not removable by warming.
+
+Measurements: `node scripts/Measure-VoiceStartup.mjs pocket|omni ...` (real workers, game closed).
+
+## Four global voice choices — October 5 (historical; see the section above)
 
 Listening tests put OmniVoice (GPU, `k2-fsa/OmniVoice`) closest to the real
 characters, and the fine-tuned Pocket student was no better than stock Pocket

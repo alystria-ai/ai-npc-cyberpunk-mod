@@ -116,6 +116,91 @@ class Assets(unittest.TestCase):
         self.assertEqual(cache.prepared(),['judy-alvarez','panam-palmer'])
         self.assertEqual(len(encoded),3)
 
+    def prepared_store(self, directory=None, model='m'*64, saved=None, loaded=None):
+        """A store whose file format is JSON, so the tests need no tensor library."""
+        def save_state(path, state, identity):
+            if saved is not None:
+                saved.append(path.name)
+            Path(path).write_text(json.dumps({'identity': identity, 'state': state}))
+        def load_state(path, identity):
+            if loaded is not None:
+                loaded.append(path.name)
+            value = json.loads(Path(path).read_text())
+            return value['state'] if value['identity'] == identity else None
+        return runtime.PreparedVoiceStore(directory or self.work/'prepared-voices', model, runtime.SOURCE_SHA256,
+                                          save_state, load_state)
+
+    def test_saved_voice_setup_is_written_once_and_replaces_encoding_on_the_next_start(self):
+        registry=self.validate();encoded=[];saved=[];loaded=[]
+        store=self.prepared_store(saved=saved,loaded=loaded)
+        first=runtime.ReferenceCache(registry,lambda path:encoded.append(path) or {'prompt':path.name},store=store)
+        state,_=first.prepare('judy-alvarez',keep=True)
+        self.assertEqual(first.last_source,'computed');self.assertEqual(len(saved),1);self.assertEqual(len(encoded),1)
+        self.assertTrue(saved[0].startswith('judy-alvarez-') and saved[0].endswith('.safetensors.tmp'))
+        _,ms=first.prepare('judy-alvarez',keep=True)
+        self.assertEqual((first.last_source,ms),('memory',0.0))
+        # A new worker (a restart, or re-summoning after the memory cache evicted the voice) loads it from disk.
+        second=runtime.ReferenceCache(registry,lambda path:self.fail('must not encode again'),store=store)
+        again,_=second.prepare('judy-alvarez',keep=True)
+        self.assertEqual(second.last_source,'disk');self.assertEqual(again,state);self.assertEqual(len(saved),1)
+
+    def test_with_the_setting_off_nothing_is_read_or_written(self):
+        registry=self.validate();saved=[];loaded=[]
+        store=self.prepared_store(saved=saved,loaded=loaded)
+        cache=runtime.ReferenceCache(registry,lambda path:{'prompt':path.name},store=store)
+        cache.prepare('judy-alvarez');self.assertEqual(cache.last_source,'computed')
+        self.assertEqual((saved,loaded),([],[]));self.assertFalse((self.work/'prepared-voices').exists())
+        # An existing saved setup is ignored too.
+        runtime.ReferenceCache(registry,lambda path:{'prompt':'x'},store=store).prepare('judy-alvarez',keep=True)
+        fresh=runtime.ReferenceCache(registry,lambda path:{'prompt':path.name},store=store)
+        fresh.prepare('judy-alvarez',keep=False);self.assertEqual(fresh.last_source,'computed');self.assertEqual(loaded,[])
+
+    def test_saved_setup_is_keyed_by_reference_model_and_voice(self):
+        registry=self.validate();store=self.prepared_store()
+        key=lambda voice,ref='r'*64,model='m'*64:self.prepared_store(model=model).path(voice,ref).name
+        names={key('judy-alvarez'),key('judy-alvarez','s'*64),key('judy-alvarez',model='n'*64),key('panam-palmer')}
+        self.assertEqual(len(names),4)
+        # A changed reference file (new hash) is a miss, and saving it removes the old file of that voice only.
+        cache=runtime.ReferenceCache(registry,lambda path:{'prompt':path.name},store=store)
+        cache.prepare('judy-alvarez',keep=True);cache.prepare('panam-palmer',keep=True)
+        old=store.path('judy-alvarez',registry['descriptors']['judy-alvarez']['sha256'])
+        self.assertTrue(old.is_file())
+        self.assertTrue(store.save('judy-alvarez','z'*64,{'prompt':'new'}))
+        self.assertFalse(old.is_file());self.assertTrue(store.path('judy-alvarez','z'*64).is_file())
+        self.assertTrue(store.path('panam-palmer',registry['descriptors']['panam-palmer']['sha256']).is_file())
+
+    def test_damaged_or_foreign_saved_setup_is_a_miss_that_is_replaced(self):
+        registry=self.validate();store=self.prepared_store()
+        sha=registry['descriptors']['judy-alvarez']['sha256']
+        runtime.ReferenceCache(registry,lambda path:{'prompt':'old'},store=store).prepare('judy-alvarez',keep=True)
+        file=store.path('judy-alvarez',sha);file.write_bytes(b'garbage, not a saved state')
+        encoded=[]
+        cache=runtime.ReferenceCache(registry,lambda path:encoded.append(1) or {'prompt':'new'},store=store)
+        state,_=cache.prepare('judy-alvarez',keep=True)
+        self.assertEqual((cache.last_source,state,len(encoded)),('computed',{'prompt':'new'},1))
+        self.assertEqual(store.load('judy-alvarez',sha),{'prompt':'new'})
+        # A file whose header names another identity is not used either.
+        other=self.prepared_store(model='n'*64)
+        self.assertIsNone(other.load('judy-alvarez',sha))
+
+    def test_a_failing_disk_never_breaks_preparation_and_clear_removes_every_file(self):
+        registry=self.validate()
+        def refuse(*_):raise OSError('disk full')
+        broken=runtime.PreparedVoiceStore(self.work/'prepared-voices','m'*64,runtime.SOURCE_SHA256,refuse,refuse)
+        cache=runtime.ReferenceCache(registry,lambda path:{'prompt':'x'},store=broken)
+        state,_=cache.prepare('judy-alvarez',keep=True);self.assertEqual(state,{'prompt':'x'})
+        self.assertEqual(list((self.work/'prepared-voices').glob('*')),[])
+        store=self.prepared_store();ok=runtime.ReferenceCache(registry,lambda path:{'prompt':'x'},store=store)
+        ok.prepare('judy-alvarez',keep=True);ok.prepare('panam-palmer',keep=True)
+        self.assertEqual(store.clear(),2);self.assertEqual(list((self.work/'prepared-voices').glob('*')),[])
+
+    def test_saved_setups_are_limited_to_the_newest_files(self):
+        store=self.prepared_store();store.max_files=3
+        for index in range(5):
+            store.save(f'voice-{index}','r'*64,{'n':index});os.utime(store.path(f'voice-{index}','r'*64),(index,index))
+            store.prune(keep=store.path(f'voice-{index}','r'*64))
+        self.assertEqual(len(list((self.work/'prepared-voices').glob('*.safetensors'))),3)
+
     def test_changed_reference_invalidates_a_cached_state_and_withdraws_only_that_character(self):
         registry=self.validate();cache=runtime.ReferenceCache(registry,lambda path:object())
         cache.prepare('johnny-silverhand');cache.prepare('judy-alvarez')
