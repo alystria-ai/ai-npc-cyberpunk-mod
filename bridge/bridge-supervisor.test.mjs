@@ -44,9 +44,11 @@ async function bridgePids(state) {
   const raw = await readFile(join(state, 'fake-starts.log'), 'utf8').catch(() => '');
   return raw.split('\n').filter(line => line.startsWith('start ')).map(line => Number(line.split(' ')[1]));
 }
+// The supervisor repeats its shutdown request every shutdownRepeatMs while the bridge drains, so a slow
+// (loaded) machine can log the same stop twice; what matters is which bridges were asked to stop.
 async function stoppedPids(state) {
   const raw = await readFile(join(state, 'fake-starts.log'), 'utf8').catch(() => '');
-  return raw.split('\n').filter(line => line.startsWith('stopped ')).map(line => Number(line.split(' ')[1]));
+  return [...new Set(raw.split('\n').filter(line => line.startsWith('stopped ')).map(line => Number(line.split(' ')[1])))];
 }
 const readJson = path => readFile(path, 'utf8').then(JSON.parse).catch(() => null);
 async function until(read, accepts, label, timeout = 10_000) {

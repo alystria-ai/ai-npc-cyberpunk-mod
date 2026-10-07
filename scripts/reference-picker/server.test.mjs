@@ -134,8 +134,9 @@ test('while another process holds the GPU, Pocket renders and OmniVoice waits ("
   try {
     await call('/api/voice/v/regenerate', {});
     for (let wait = 0; wait < 100 && rendered.length < 1; wait++) await new Promise(done => setTimeout(done, 20));
-    await new Promise(done => setTimeout(done, 100));
+    // Wait for the held slot to report the GPU wait (a fixed pause is too short on a busy machine).
     let card = (await call('/api/voice/v')).body;
+    for (let wait = 0; wait < 250 && card.samples.omni16.state !== 'gpu-busy'; wait++) { await new Promise(done => setTimeout(done, 20)); card = (await call('/api/voice/v')).body; }
     assert.equal(card.samples.pocket.state, 'ready');                  // Pocket does not wait for the GPU
     assert.equal(card.samples.omni16.state, 'gpu-busy');
     assert.equal(card.job.status, 'waiting-gpu');

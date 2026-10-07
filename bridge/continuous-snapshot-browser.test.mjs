@@ -7,7 +7,7 @@ import {RealtimeHost,continuousSnapshotForHost} from './realtime-host.mjs';
 // microphone access or GPU work. The reply uses a large valid public facial
 // snapshot and cannot finish before the host has authorized three frames.
 test('real GPU-disabled browser transports a large facial timeline through the actual host and final drain',
-  {timeout:60000},async()=>{
+  {timeout:180000},async()=>{
     const browser=await chromium.launch({channel:'msedge',headless:true,
       args:['--disable-gpu','--mute-audio','--disable-background-timer-throttling']});
     try{

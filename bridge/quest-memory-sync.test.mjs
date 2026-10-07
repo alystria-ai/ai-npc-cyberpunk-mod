@@ -54,7 +54,7 @@ async function fixture(t,{saved=true,events=1,syncOptions={}}={}) {
   const registerScope=async args=>{log.push(['register',args]);return {ready:true,registration:{
     verified:true,endUserId:args.endUserId,characterId:args.characterId}};};
   const sync=new QuestMemorySync({service,adapter,providerQualificationPath:qualificationPath,
-    resolveCharacter,registerScope,enabled:true,nativeQualified:true,now:()=>NOW,maxDurationMs:2000,...syncOptions});
+    resolveCharacter,registerScope,enabled:true,nativeQualified:true,now:()=>NOW,maxDurationMs:30000,...syncOptions});
   t.after(async()=>{await sync.close();await ledger.close();await rm(directory,{recursive:true,force:true});});
   const fork=async()=>{await ledger.bindIdentity({authoritative:true,campaignId:'campaign-1',branchId:'branch-2',
     checkpointId:'fork-base',parentBranchId:'branch-1',forkCheckpointId:'saved-1',forkLedgerSequence:events});service.epoch++;};

@@ -365,7 +365,7 @@ async function assetFixture(t, {browserExecutable, onLaunch, omitAsset} = {}) {
     // Recursive cleanup is limited to this test's exact mkdtemp directory.
     assert.equal(dirname(resolve(root)), resolve(tmpdir()));
     assert(basename(root).startsWith('cyberpunk-host-assets-'));
-    await rm(root, {recursive: true, force: true});
+    await rm(root, {recursive: true, force: true, maxRetries: 10, retryDelay: 100});
   });
   return {host, browser, launches, assets, directory};
 }

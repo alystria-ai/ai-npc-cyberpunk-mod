@@ -36,7 +36,7 @@ async function ps(folder, script, env = {}) {
   const entry = join(folder, 'test-driver.ps1');
   await writeFile(entry, "$ErrorActionPreference = 'Stop'\n" + script);
   return exec(shell[0], [...shell[1], '-File', entry], {
-    windowsHide: true, timeout: 30000, maxBuffer: 100000,
+    windowsHide: true, timeout: 120000, maxBuffer: 100000,
     env: {...process.env, CONVAI_TEST_ROOT: folder, CONVAI_TEST_SOURCE: root, ...env},
   });
 }

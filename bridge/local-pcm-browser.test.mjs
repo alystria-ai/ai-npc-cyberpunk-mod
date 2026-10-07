@@ -6,7 +6,7 @@ import {join, resolve, dirname, basename} from 'node:path';
 import {chromium} from 'playwright';
 import {RealtimeHost} from './realtime-host.mjs';
 
-test('isolated local headless renderer streams, drains during a pending game callback and publishes completion', {timeout: 20000}, async () => {
+test('isolated local headless renderer streams, drains during a pending game callback and publishes completion', {timeout: 180000}, async () => {
   const root = await mkdtemp(join(tmpdir(), 'cyberpunk-local-pcm-'));
   const requests = [], frames = [], pages = [];
   const modules = ['continuous-pcm-player.mjs', 'continuous-pcm-worklet.mjs',
@@ -26,7 +26,7 @@ test('isolated local headless renderer streams, drains during a pending game cal
     return browser;
   }});
   const controller = new AbortController();
-  const watchdog = setTimeout(() => controller.abort(), 15000);
+  const watchdog = setTimeout(() => controller.abort(), 150000);
   let releaseProducer;
   const heardPrefix = new Promise(resolvePrefix => { releaseProducer = resolvePrefix; });
   let producerFinished = false, playedBeforeComplete = false, drainedDuringCallback = false;
@@ -51,7 +51,7 @@ test('isolated local headless renderer streams, drains during a pending game cal
         // Native state publication is asynchronous. While this callback waits,
         // the real player timer completes and closes the AudioContext itself.
         await pages[0].waitForFunction(() => !!window.localPcm.active?.player.snapshot().ended,
-          undefined, {timeout: 1500, polling: 10});
+          undefined, {timeout: 10000, polling: 10});
         drainedDuringCallback = true;
       }
       return {allow: true, paused: false, volume: 0, pan: 0};

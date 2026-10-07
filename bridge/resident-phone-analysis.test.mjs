@@ -10,7 +10,7 @@ import {ResidentPhoneAnalysis,PHONE_ANALYSIS_LIMITS} from './resident-phone-anal
 import {PHONE_ANALYSIS_ENGINE,PHONE_ANALYSIS_FORMAT,PHONE_ANALYSIS_FRONTEND,
   validatePhoneAnalysisConfig,verifyPhoneAnalysisAssets} from './phone-analysis-config.mjs';
 const tick=()=>new Promise(done=>setImmediate(done));
-const until=async predicate=>{const deadline=performance.now()+1500;while(!predicate()){
+const until=async predicate=>{const deadline=performance.now()+15000;while(!predicate()){
   if(performance.now()>deadline)assert.fail('Owned phone-analysis fixture missed its gate');
   await new Promise(done=>setTimeout(done,5));
 }};

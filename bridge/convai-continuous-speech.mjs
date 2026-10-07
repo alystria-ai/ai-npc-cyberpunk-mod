@@ -12,6 +12,14 @@ const SHARING_ERRORS = new Set(['EPERM', 'EACCES', 'EBUSY']);
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const integer = value => Number.isSafeInteger(value) && value >= 0;
 const quiet = () => ({allow: false, paused: true, volume: 0, pan: 0});
+// The game must refresh playback control within this window or the stream stops.
+// Test harnesses that run the real bridge beside dozens of other processes may
+// lengthen it (never shorten it) so a starved simulated game is not mistaken for
+// a dead one. Production leaves the variable unset; the exact 2 s / 5 s limits
+// are covered by convai-continuous-speech.test.mjs with an injected clock.
+const requestedLease = Number(process.env.CYBERPUNK_CONVAI_TEST_LEASE_MS);
+const LEASE_MS = Number.isFinite(requestedLease) && requestedLease > 2000 ? requestedLease : 2000;
+const FIRST_LEASE_MS = Math.max(5000, LEASE_MS);
 
 export class ConvaiContinuousSpeech {
   constructor({input, profile, current, signal, readControl, writeState, writeReply,
@@ -88,7 +96,7 @@ export class ConvaiContinuousSpeech {
     if (!await this.valid()) throw Error('Continuous speech owner changed');
     const now = this.now();
     if (this.matches(value) && integer(value.sequence) && value.sequence > this.controlSequence
-      && finite(value.updated) && now - value.updated >= -1500 && now - value.updated <= 2000
+      && finite(value.updated) && now - value.updated >= -1500 && now - value.updated <= LEASE_MS
       && typeof value.allow === 'boolean' && typeof value.paused === 'boolean'
       && finite(value.volume) && value.volume >= 0 && value.volume <= 1
       && finite(value.pan) && Math.abs(value.pan) <= 1) {
@@ -100,7 +108,7 @@ export class ConvaiContinuousSpeech {
     }
     if (this.retired) throw Error('Continuous speech was stopped by the game');
     const age = this.controlAt === undefined ? now - this.publishedAt : now - this.controlAt;
-    if (age > (this.controlAt === undefined ? 5000 : 2000)) throw Error('Continuous speech game lease expired');
+    if (age > (this.controlAt === undefined ? FIRST_LEASE_MS : LEASE_MS)) throw Error('Continuous speech game lease expired');
     return this.lastControl && age <= 400 ? {...this.lastControl} : quiet();
   }
 

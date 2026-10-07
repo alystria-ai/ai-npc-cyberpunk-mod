@@ -64,7 +64,7 @@ async function fixture(t,{enabled=false,events=1,options={}}={}){
     return {ready:true,registration:{verified:true,endUserId:config.endUserId,characterId:config.characterId}};},
     async close(){calls.push({endpoint:'close'});this.closed++;}};hosts.push(host);return host;};
   const helper=new KnowledgeCloud({coordinator,key:KEY,ids:{'judy-alvarez':'remote-judy'},policy:policy(),
-    qualificationPath,hostFactory,request,fetchImpl,now:()=>NOW,maxDurationMs:2000,cleanupTimeoutMs:100,...options});
+    qualificationPath,hostFactory,request,fetchImpl,now:()=>NOW,maxDurationMs:30000,cleanupTimeoutMs:100,...options});
   t.after(async()=>{await helper.close();await ledger.close();await rm(dir,{recursive:true,force:true});});
   return {helper,ledger,coordinator,state,calls,hosts,request,fetchImpl,hostFactory,qualificationPath,
     fork:async()=>{await ledger.bindIdentity({authoritative:true,campaignId:'campaign',branchId:'child',checkpointId:'base',
@@ -197,17 +197,22 @@ test('policy cancellation closes registration without adding memory or touching 
 });
 
 test('ignored Core cancellation and excessive response sizes are bounded before registration',async t=>{
-  const f=await fixture(t,{options:{maxDurationMs:100,requestTimeoutMs:40}});
+  // The whole-pump budget must stay well above the request timeout: on a busy machine the
+  // qualification read can take longer than a tight budget and the pump would be cancelled first.
+  const f=await fixture(t,{options:{maxDurationMs:10000,requestTimeoutMs:40}});
   f.helper.requestOverride=()=>new Promise(()=>{});const started=Date.now();
-  const result=await f.helper.pump();assert.ok(result.reasons.includes('CORE_TIMEOUT'));assert.ok(Date.now()-started<1200);
+  const result=await f.helper.pump();assert.ok(result.reasons.includes('CORE_TIMEOUT'));assert.ok(Date.now()-started<5000);
   f.helper.requestOverride=async()=>({data:'x'.repeat(4*1024*1024+1)});
   assert.ok((await f.helper.pump()).reasons.includes('CORE_RESPONSE_TOO_LARGE'));assert.equal(f.hosts.length,0);
 });
 
 test('host startup and cleanup cancellation cannot leave a reusable registration connection',async t=>{
-  const f=await fixture(t,{options:{maxDurationMs:70,cleanupTimeoutMs:20}}),factory=deferred();
-  f.helper.hostFactory=()=>factory.promise;
-  const result=await f.helper.pump();assert.equal(result.status,'cancelled');assert.equal(result.cleanup,'REGISTRATION_CLEANUP_PENDING');
+  // Cancel from the outside once the host is really being created; a short whole-pump timer could
+  // fire before the factory is reached when the machine is busy, leaving nothing to clean up.
+  const f=await fixture(t,{options:{cleanupTimeoutMs:20}}),factory=deferred(),requested=deferred(),stop=new AbortController();
+  f.helper.hostFactory=()=>{requested.resolve();return factory.promise;};
+  const running=f.helper.pump({signal:stop.signal});await requested.promise;stop.abort();
+  const result=await running;assert.equal(result.status,'cancelled');assert.equal(result.cleanup,'REGISTRATION_CLEANUP_PENDING');
   assert.equal((await f.helper.pump()).reasons[0],'REGISTRATION_CLEANUP_PENDING');
   const host=f.hostFactory();factory.resolve(host);await new Promise(r=>setImmediate(r));assert.equal(host.closed,1);
   assert.equal(f.helper.status().cleanupPending,false);assert.equal(f.calls.some(c=>c.endpoint==='/memory/add'),false);

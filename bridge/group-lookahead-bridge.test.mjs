@@ -7,6 +7,13 @@ import {GroupScenario, DEFAULT_TIMINGS, SPEAKERS, measureRound} from './group-lo
 // Convai speech provider (see group-lookahead-fixture.mjs). Timing assertions
 // carry wide margins; the measured numbers are printed by
 // scripts/Measure-GroupGap.mjs.
+// The simulated game renews playback control from a wall-clock timer. When the
+// whole suite runs ~30 files in parallel that timer can starve for longer than
+// the production 2 s lease, and the bridge would (correctly) drop the stream.
+// Lengthen the lease for the bridges this file spawns (the fixture copies
+// process.env); the exact production limits are tested with an injected clock in
+// convai-continuous-speech.test.mjs, and none of these tests expects a lease expiry.
+process.env.CYBERPUNK_CONVAI_TEST_LEASE_MS = '60000';
 const [JUDY, PANAM, ALEX] = SPEAKERS;
 const last = (events, name, id) => events.findLast(row => row.event === name && row.characterId === id)?.t;
 const first = (events, name, id) => events.find(row => row.event === name && row.characterId === id)?.t;

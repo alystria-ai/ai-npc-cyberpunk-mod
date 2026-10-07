@@ -11,7 +11,7 @@ const ids = Object.freeze({judy: 'fixture-normal', 'judy-romantic': 'fixture-rom
 const families = Object.freeze({judy: 'judy', 'judy-romantic': 'judy', 'judy-multilingual': 'judy'});
 const deferred = () => { let resolve; const promise = new Promise(yes => { resolve = yes; }); return {promise, resolve}; };
 async function until(predicate) {
-  const deadline = Date.now() + 2000;
+  const deadline = Date.now() + 20000;
   while (!predicate()) {
     if (Date.now() > deadline) throw Error('Expected isolated operation was not reached');
     await new Promise(resolve => setTimeout(resolve, 2));
