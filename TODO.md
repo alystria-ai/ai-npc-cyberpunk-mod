@@ -74,6 +74,13 @@ The review is **complete** (2026-10-07; verdict and decisions are in the log). D
 
 ## Captain's log
 
+**2026-10-08: first release 2077.1 built by GitHub Actions**
+- https://github.com/alystria-ai/cyberpunk-convai/releases/tag/v2077.1 (private until the repo is public): Scripts 1.6 MB, Runtime 914 MB, OmniVoice pack in 4 parts (6.3 GB), SHA256SUMS for runtime and omni. Run 37696530969: both jobs green, the clean-install test 13/13 in CI.
+- Fixes needed on the CI runner: Windows PowerShell children inherited PowerShell 7's PSModulePath (Get-FileHash missing; `packaging/lib/files.mjs` `childEnv`), and the voice workers' path attestation compared an 8.3 short path (RUNNER~1) with the long one (realpath in `pocket-voice.mjs`, `resident-voice.mjs`, `phone-analysis-config.mjs`).
+- Commit history rewritten to the Alystria author and force-pushed (backup bundle in `E:/CyberpunkConvai-offload/backups/`).
+- Next: try the packaged install in the real game (remove the development launcher first), then upload the Scripts zip to Nexus when going public.
+
+
 **2026-10-08: release prep, licence, repo tidy**
 - Commits in this repo are now authored "Alystria <330941192+alystria-ai@users.noreply.github.com>" (repo-local git config). The 660 older commits are to be rewritten to the same author when all agents are idle (user-approved; back up the old history first, then force-push the private repo).
 - Licence and notices (`d4d4daf`, `f0379e7`): `LICENSE` = Cyberpunk Convai Use License 1.1, from the Dawnwalker licence (free to use and modify while Convai stays an available AI option). Notices cover VoiceStudio AGPL-3.0, OmniVoice CC-BY-NC, the Higgs Audio tokenizer licence, Pocket TTS (code MIT, weights CC-BY-4.0, with a prohibited-use clause on voice cloning without consent; flagged to the user), Chrome for Testing, Node, CPython, CMUdict and the espeak lexicon note.
