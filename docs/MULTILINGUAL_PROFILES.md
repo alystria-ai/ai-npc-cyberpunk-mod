@@ -1,26 +1,29 @@
-# Multilingual Convai profiles (tier 1 and romance)
+# Multilingual Convai profiles (full roster)
 
-Each of the 23 tier-1 characters with a Convai profile has a twin named
-"<name> Multilingual" in the same account, and so does each of the five romantic
-profiles (Judy, Panam, River, Kerry, Meredith: 28 twins in all). The twins exist and
-are verified; the mod does not use them yet (no routing change). Alt Cunningham is
-the 24th tier-1 voice but has no Convai profile.
+Every character the mod has a Convai profile for (all 79 in `characters/roster.json`
+with an ID in `runtime/characters.json`) has a twin named "<name> Multilingual" in the
+same account, and so does each relationship variant. Today the only variants are the
+five romantic profiles (Judy, Panam, River, Kerry, Meredith), so there are 84 twins.
+The twins exist and are verified; the mod does not use them yet (no routing change).
+Alt Cunningham is a tier-1 voice but has no Convai profile.
 
 ```powershell
 node scripts/Create-MultilingualProfiles.mjs --dry-run        # default: plan only, no remote calls
-node scripts/Create-MultilingualProfiles.mjs --apply          # create/adopt + verify all 28
+node scripts/Create-MultilingualProfiles.mjs --apply          # create/adopt + verify all 84
 node scripts/Create-MultilingualProfiles.mjs --apply --only judy-alvarez,judy-alvarez-romantic
 node --test bridge/multilingual-profiles.test.mjs
 ```
 
 The mapping is `runtime/multilingual-profiles.json` (ignored by Git, no secrets):
-per profile key the original ID, twin ID, name, voice, language list, model,
+per profile key (a roster key, or `<key>-romantic`) the original ID, twin ID, name, voice, language list, model,
 `verified`, `languageBoxField`, `languageBoxOff` and `notCloned`. Romantic twins are
 keyed `<key>-romantic` (the provider key used in `runtime/relationship-profiles.json`)
 and also record `variant: "romantic"` and `baseKey`. Only new characters are created;
 originals are only read. A re-run adopts the mapped twin, or an existing twin found by
 exact name plus the exact marker line, and re-verifies it, so it never duplicates. An
-interrupted create with no matching character stops instead of guessing.
+interrupted create with no matching character stops that profile instead of guessing.
+`--apply` keeps going after a failing profile and lists it under `failures` (exit
+code 1); re-running retries only what is not yet verified.
 
 Ownership markers (the exact backstory line that identifies a character as ours):
 
@@ -51,7 +54,9 @@ Different on purpose:
 
 - **Voice.** Convai refuses non-English `languageCodes` on a Kokoro voice
   ("Given voice incompatible with the language code"). Twins use a gender-matched
-  Azure multilingual voice (Emma for women, Christopher for men; 71 languages). The
+  Azure multilingual voice (Emma for women, Christopher for men; 71 languages). Gender comes from the original Kokoro voice, falling back to the roster's `gender`
+  field (the dry run lists any key that needed the fallback; none did, and the two
+  sources agree for the whole roster). The
   original Kokoro voice is not kept. The mod mostly speaks with its own local voices,
   so this matters only for Convai cloud voice. Romantic twins match the voice gender
   of the ordinary profile (Judy, Panam, Meredith: Emma; River, Kerry: Christopher).
@@ -82,9 +87,9 @@ The box is the dashboard field `language_hardening_mode`: `default` means ticked
   `languageBoxOff: true`. After the box is set through the browser session, edit the
   mapping entry to `languageBoxOff: true` (the script preserves that flag on re-runs).
 
-Status (2026-10-07): the 23 tier-1 twins have the box off and are marked. The five
-romantic twins were created with the box still ticked and are listed in
-`needsLanguageBoxOff`.
+Status (2026-10-07): the 23 tier-1 twins and the 5 romantic twins have the box off and
+are marked `languageBoxOff: true`. The other 56 twins (the rest of the roster) were
+created with the box still ticked and are listed in `needsLanguageBoxOff`.
 
 ## Voice and memory
 

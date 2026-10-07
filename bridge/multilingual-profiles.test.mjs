@@ -143,3 +143,12 @@ test('romantic twins carry their own marker, never the ordinary twin or the roma
   assert.equal(recovered.results[1].created, false);
   assert.equal(g.calls.filter(call => call.endpoint === '/character/create').length, 2);
 });
+
+test('continueOnError records a failing row and still processes the others', async () => {
+  const f = fixture(['judy-alvarez', 'jackie-welles']);
+  f.objects.get('orig-judy-alvarez').backstory = 'No marker here.';
+  await assert.rejects(() => createMultilingualProfiles({rows: f.rows, api: f.api}), /marker/);
+  const result = await createMultilingualProfiles({rows: f.rows, api: f.api, continueOnError: true});
+  assert.deepEqual(result.failures.map(row => row.key), ['judy-alvarez']);
+  assert.deepEqual(result.results.map(row => row.key), ['jackie-welles']);
+});

@@ -1,5 +1,7 @@
-// Creates a multilingual twin of each tier-1 Convai character profile and of the
-// five romantic (relationship) profiles.
+// Creates a multilingual twin of every Convai character profile the mod has (the
+// full roster in characters/roster.json with an ID in runtime/characters.json) and
+// of each relationship variant (today the five romantic profiles, keyed
+// "<key>-romantic").
 //
 // Only NEW characters are created. The original profile is read (list/get) and
 // never written. The twin is a faithful clone: same biography (with its own
@@ -137,78 +139,84 @@ export function needsLanguageBoxOff(mapping) {
 
 /** Core flow, separated from I/O for tests.
  * rows: [{key, originalId, gender, baseKey?}] (baseKey set for romantic profiles). api(endpoint, body, {create}) returns parsed JSON. */
-export async function createMultilingualProfiles({rows, mapping = {version: 1, characters: {}}, api, persist = async () => {}, log = () => {}}) {
+export async function createMultilingualProfiles({rows, mapping = {version: 1, characters: {}}, api, persist = async () => {}, log = () => {}, continueOnError = false}) {
   const next = clone(mapping);
   next.version = 1; next.characters ??= {};
   const cloud = await api('/character/list', {});
   if (!Array.isArray(cloud?.characters)) throw Error('Character listing is unavailable.');
   const listed = new Map(cloud.characters.map(row => [row.character_id, row]));
   const modelOf = id => listed.get(id)?.personalised_prompt_config?.MODEL;
-  const results = [];
+  const results = [], failures = [];
   for (const {key, originalId, gender, baseKey} of rows) {
-    const entry = next.characters[key] ??= {};
-    const source = await api('/character/get', {charID: originalId});
-    if (source?.character_id !== originalId || !listed.has(originalId)) throw Error('Original profile is not in this account: ' + key);
-    const payload = twinPayload({key, source, model: modelOf(originalId), gender});
-    let id = entry.multilingualCharacterId, found, created = false;
-    if (id) {
-      if (!listed.has(id)) throw Error('Mapped multilingual profile is not in the account: ' + key);
-      found = await api('/character/get', {charID: id});
-      if (!found?.backstory?.split(/\r?\n/u).includes(twinMarker(key))) throw Error('Multilingual ownership marker mismatch: ' + key);
-    } else {
-      // Recover a create whose receipt was lost: exact name and exact marker line.
-      for (const candidate of cloud.characters.filter(row => row.character_id !== originalId && row.character_name === payload.charName)) {
-        const detail = await api('/character/get', {charID: candidate.character_id});
-        if (detail?.backstory?.split(/\r?\n/u).includes(twinMarker(key))) {
-          if (id) throw Error('Several characters carry the multilingual marker: ' + key);
-          id = candidate.character_id; found = detail;
+    try {
+      const entry = next.characters[key] ??= {};
+      const source = await api('/character/get', {charID: originalId});
+      if (source?.character_id !== originalId || !listed.has(originalId)) throw Error('Original profile is not in this account: ' + key);
+      const payload = twinPayload({key, source, model: modelOf(originalId), gender});
+      let id = entry.multilingualCharacterId, found, created = false;
+      if (id) {
+        if (!listed.has(id)) throw Error('Mapped multilingual profile is not in the account: ' + key);
+        found = await api('/character/get', {charID: id});
+        if (!found?.backstory?.split(/\r?\n/u).includes(twinMarker(key))) throw Error('Multilingual ownership marker mismatch: ' + key);
+      } else {
+        // Recover a create whose receipt was lost: exact name and exact marker line.
+        for (const candidate of cloud.characters.filter(row => row.character_id !== originalId && row.character_name === payload.charName)) {
+          const detail = await api('/character/get', {charID: candidate.character_id});
+          if (detail?.backstory?.split(/\r?\n/u).includes(twinMarker(key))) {
+            if (id) throw Error('Several characters carry the multilingual marker: ' + key);
+            id = candidate.character_id; found = detail;
+          }
+        }
+        if (!id) {
+          if (entry.phase === 'creating') throw Error('An earlier create of ' + key + ' has an unknown outcome and no matching character; inspect the account before retrying.');
+          Object.assign(entry, {phase: 'creating', originalCharacterId: originalId, startedAt: new Date().toISOString()});
+          await persist(clone(next));
+          const result = await api('/character/create', payload, {create: true});
+          if (typeof result?.charID !== 'string' || !result.charID) throw Error('Create returned no character ID: ' + key);
+          id = result.charID; created = true;
+          log(`Created ${payload.charName}`);
         }
       }
-      if (!id) {
-        if (entry.phase === 'creating') throw Error('An earlier create of ' + key + ' has an unknown outcome and no matching character; inspect the account before retrying.');
-        Object.assign(entry, {phase: 'creating', originalCharacterId: originalId, startedAt: new Date().toISOString()});
-        await persist(clone(next));
-        const result = await api('/character/create', payload, {create: true});
-        if (typeof result?.charID !== 'string' || !result.charID) throw Error('Create returned no character ID: ' + key);
-        id = result.charID; created = true;
-        log(`Created ${payload.charName}`);
+      Object.assign(entry, {phase: 'created', key, name: payload.charName, originalCharacterId: originalId, multilingualCharacterId: id});
+      await persist(clone(next));
+      let actual = found ?? await api('/character/get', {charID: id});
+      // Apply the language list, copied settings and memory. Voice is
+      // part of create; it is re-sent here only if a re-run finds it different.
+      const updates = {...settingUpdates(source, actual), ...languageUpdates(actual)};
+      if (actual.voice_type !== payload.voiceType) updates.voiceType = payload.voiceType;
+      if (actual.speaking_style?.description !== payload.speaking_style_description
+          || actual.speaking_style?.sample_dialogues !== payload.speaking_style_sample_dialogues) {
+        updates.speaking_style_description = payload.speaking_style_description;
+        updates.speaking_style_sample_dialogues = payload.speaking_style_sample_dialogues;
       }
+      if (actual.backstory !== payload.backstory) updates.backstory = payload.backstory;
+      if (Object.keys(updates).length) {
+        const response = await api('/character/update', {charID: id, ...updates});
+        if (response?.STATUS !== 'SUCCESS') throw Error('Update was not confirmed: ' + key);
+        actual = await api('/character/get', {charID: id});
+      }
+      const final = await api('/character/list', {});
+      const model = final.characters?.find(row => row.character_id === id)?.personalised_prompt_config?.MODEL;
+      verifyTwin({id, key, source, actual, payload, model});
+      Object.assign(entry, {
+        phase: 'verified', verified: true, verifiedAt: new Date().toISOString(), voiceType: payload.voiceType,
+        languageCodes: [...actual.language_codes], model,
+        languageBoxField: LANGUAGE_BOX_FIELD, languageBoxOff: entry.languageBoxOff === true,
+        notCloned: notCloned(source, actual),
+      });
+      // Fields of the retired "reply any language" approach.
+      for (const legacy of ['replyAnyLanguageApplied', 'replyAnyLanguageField', 'manualUntickRequired']) delete entry[legacy];
+      if (baseKey) Object.assign(entry, {variant: 'romantic', baseKey});
+      await persist(clone(next));
+      results.push({key, id, created, languageBoxOff: entry.languageBoxOff, notCloned: entry.notCloned});
+      log(`Verified ${payload.charName} (${id})`);
+    } catch (error) {
+      if (!continueOnError) throw error;
+      failures.push({key, error: error.message});
+      log(`FAILED ${key}: ${error.message}`);
     }
-    Object.assign(entry, {phase: 'created', key, name: payload.charName, originalCharacterId: originalId, multilingualCharacterId: id});
-    await persist(clone(next));
-    let actual = found ?? await api('/character/get', {charID: id});
-    // Apply the language list, copied settings and memory. Voice is
-    // part of create; it is re-sent here only if a re-run finds it different.
-    const updates = {...settingUpdates(source, actual), ...languageUpdates(actual)};
-    if (actual.voice_type !== payload.voiceType) updates.voiceType = payload.voiceType;
-    if (actual.speaking_style?.description !== payload.speaking_style_description
-        || actual.speaking_style?.sample_dialogues !== payload.speaking_style_sample_dialogues) {
-      updates.speaking_style_description = payload.speaking_style_description;
-      updates.speaking_style_sample_dialogues = payload.speaking_style_sample_dialogues;
-    }
-    if (actual.backstory !== payload.backstory) updates.backstory = payload.backstory;
-    if (Object.keys(updates).length) {
-      const response = await api('/character/update', {charID: id, ...updates});
-      if (response?.STATUS !== 'SUCCESS') throw Error('Update was not confirmed: ' + key);
-      actual = await api('/character/get', {charID: id});
-    }
-    const final = await api('/character/list', {});
-    const model = final.characters?.find(row => row.character_id === id)?.personalised_prompt_config?.MODEL;
-    verifyTwin({id, key, source, actual, payload, model});
-    Object.assign(entry, {
-      phase: 'verified', verified: true, verifiedAt: new Date().toISOString(), voiceType: payload.voiceType,
-      languageCodes: [...actual.language_codes], model,
-      languageBoxField: LANGUAGE_BOX_FIELD, languageBoxOff: entry.languageBoxOff === true,
-      notCloned: notCloned(source, actual),
-    });
-    // Fields of the retired "reply any language" approach.
-    for (const legacy of ['replyAnyLanguageApplied', 'replyAnyLanguageField', 'manualUntickRequired']) delete entry[legacy];
-    if (baseKey) Object.assign(entry, {variant: 'romantic', baseKey});
-    await persist(clone(next));
-    results.push({key, id, created, languageBoxOff: entry.languageBoxOff, notCloned: entry.notCloned});
-    log(`Verified ${payload.charName} (${id})`);
   }
-  return {mapping: next, results, needsLanguageBoxOff: needsLanguageBoxOff(next)};
+  return {mapping: next, results, failures, needsLanguageBoxOff: needsLanguageBoxOff(next)};
 }
 
 async function main() {
@@ -225,12 +233,16 @@ async function main() {
   const kokoro = await read(resolve(root, 'characters/kokoro-voices.json'));
   const genderOfVoice = new Map(kokoro.voices.map(voice => [voice.voice_value, voice.gender]));
   const relationships = await read(resolve(runtime, 'relationship-profiles.json'));
-  const known = [...TIER1_KEYS, ...ROMANCE_BASE_KEYS.map(romanceKey)];
-  if (only && [...only].some(key => !known.includes(key))) throw Error('--only names a profile outside tier 1 and the romance profiles.');
+  const profiled = roster.map(row => row.key).filter(key => ids[key]);
+  const known = [...profiled, ...ROMANCE_BASE_KEYS.map(romanceKey)];
+  if (only && [...only].some(key => !known.includes(key))) throw Error('--only names a profile outside the profiled roster and the romance profiles.');
+  // Gender of the twin voice: the original Kokoro voice's gender, else the roster's own gender field.
+  const genderFallbacks = [];
   const rows = known.filter(key => !only || only.has(key)).map(key => {
     const baseKey = key.endsWith('-romantic') ? key.slice(0, -'-romantic'.length) : null;
     const profile = roster.find(row => row.key === (baseKey ?? key));
-    const gender = genderOfVoice.get(profile?.voice);
+    let gender = genderOfVoice.get(profile?.voice);
+    if (!gender && ['MALE', 'FEMALE'].includes(profile?.gender)) { gender = profile.gender; genderFallbacks.push(key); }
     const originalId = baseKey ? relationships.characters?.[baseKey]?.romanticCharacterId : ids[key];
     if (!originalId || !gender) throw Error('Missing Convai ID or voice gender: ' + key);
     return {key, originalId, gender, name: profile.name, ...(baseKey && {baseKey})};
@@ -238,7 +250,10 @@ async function main() {
   const target = resolve(runtime, 'multilingual-profiles.json');
   const mapping = await read(target, {version: 1, characters: {}});
   if (!apply) {
-    console.log(JSON.stringify({mode: 'dry-run', writes: 'none', languageCodes: LANGUAGE_CODES,
+    console.log(JSON.stringify({mode: 'dry-run', writes: 'none', total: rows.length,
+      toCreate: rows.filter(row => !mapping.characters[row.key]?.multilingualCharacterId).length,
+      alreadyMapped: rows.filter(row => mapping.characters[row.key]?.multilingualCharacterId).length,
+      genderFromRosterFallback: genderFallbacks, languageCodes: LANGUAGE_CODES,
       languageBox: `${LANGUAGE_BOX_FIELD} is set through the web session only; see needsLanguageBoxOff after --apply`,
       profiles: rows.map(row => ({key: row.key, original: row.originalId, twinName: apiCharacterName({name: row.name + ' Multilingual'}),
         voice: MULTILINGUAL_VOICES[row.gender], alreadyMapped: Boolean(mapping.characters[row.key]?.multilingualCharacterId)}))}, null, 2));
@@ -281,9 +296,10 @@ async function main() {
   try {
     await lock.writeFile(String(process.pid));
     await mkdir(runtime, {recursive: true});
-    const result = await createMultilingualProfiles({rows, mapping, api, persist: value => atomic(target, value), log: console.log});
+    const result = await createMultilingualProfiles({rows, mapping, api, persist: value => atomic(target, value), log: console.log, continueOnError: true});
     await atomic(target, result.mapping);
-    console.log(JSON.stringify({results: result.results, needsLanguageBoxOff: result.needsLanguageBoxOff}, null, 2));
+    console.log(JSON.stringify({results: result.results, failures: result.failures, needsLanguageBoxOff: result.needsLanguageBoxOff}, null, 2));
+    if (result.failures.length) process.exitCode = 1;
   } finally { await lock.close(); await unlink(resolve(runtime, 'character-provision.lock')); }
 }
 
