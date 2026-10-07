@@ -1,7 +1,8 @@
 // Creates a multilingual twin of every Convai character profile the mod has (the
-// full roster in characters/roster.json with an ID in runtime/characters.json) and
+// named roster in characters/roster.json and the generic NPC archetypes in
+// characters/archetype-roster.json, each with an ID in runtime/characters.json) and
 // of each relationship variant (today the five romantic profiles, keyed
-// "<key>-romantic").
+// "<key>-romantic"). --roster named|archetypes|all (default all) picks which.
 //
 // Only NEW characters are created. The original profile is read (list/get) and
 // never written. The twin is a faithful clone: same biography (with its own
@@ -25,6 +26,9 @@
 // This script therefore never sets it. It lists, as needsLanguageBoxOff, every twin
 // whose mapping entry is not marked languageBoxOff: true; whoever sets the box in
 // the browser session then records languageBoxOff: true in the mapping.
+//
+// Archetype (npc-*) twins are cloned exactly like the rest: their originals have long-term memory off, and the
+// twin keeps it off (verified by readback).
 //
 // Default is a plan (no remote reads or writes). --apply performs the remote work.
 // --apply --voices-only touches nothing but the voice of already-mapped twins (see applyTwinVoices).
@@ -117,7 +121,9 @@ export function settingUpdates(source, actual) {
   for (const [returned, request] of COPIED_SETTINGS) {
     if (!isDeepStrictEqual(source[returned], actual[returned])) updates[request] = source[returned];
   }
-  if (source.memory_settings?.enabled === true && actual.memory_settings?.enabled !== true) updates.memorySettings = {enabled: true};
+  // Memory follows the original either way: on stays on, and off (the archetypes and residents) stays off.
+  const wanted = source.memory_settings?.enabled === true;
+  if (wanted !== (actual.memory_settings?.enabled === true)) updates.memorySettings = {enabled: wanted};
   return updates;
 }
 
@@ -286,25 +292,22 @@ export async function applyTwinVoices({rows, mapping, api, persist = async () =>
   return {mapping: next, results, failures};
 }
 
-async function main() {
-  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..'), runtime = resolve(root, 'runtime');
-  const args = process.argv.slice(2), apply = args.includes('--apply') && !args.includes('--dry-run'), voicesOnly = args.includes('--voices-only');
-  const onlyAt = args.indexOf('--only');
-  const only = onlyAt < 0 ? null : new Set(args[onlyAt + 1].split(','));
-  const read = async (path, fallback) => {
-    try { return JSON.parse((await readFile(path, 'utf8')).replace(/^﻿/u, '')); }
-    catch (error) { if (error.code === 'ENOENT' && fallback !== undefined) return fallback; throw error; }
-  };
-  const ids = await read(resolve(runtime, 'characters.json'));
-  const roster = await read(resolve(root, 'characters/roster.json'));
-  const kokoro = await read(resolve(root, 'characters/kokoro-voices.json'));
-  const genderOfVoice = new Map(kokoro.voices.map(voice => [voice.voice_value, voice.gender]));
-  const relationships = await read(resolve(runtime, 'relationship-profiles.json'));
-  const voiceMap = await read(resolve(root, 'characters/multilingual-voice-map.json'), {assignments: {}, voices: {}});
+export const ROSTER_CHOICES = Object.freeze({
+  named: ['characters/roster.json'],
+  archetypes: ['characters/archetype-roster.json'],
+  all: ['characters/roster.json', 'characters/archetype-roster.json'],
+});
+
+/** The profiles to twin, in roster order, then the romantic variants: [{key, originalId, gender, voice, name, baseKey?}].
+ * rosters: arrays of roster rows ({key, name, gender, voice}); ids: runtime/characters.json; relationships: runtime/relationship-profiles.json.
+ * Gender is the original Kokoro voice's, else the roster's own gender field (listed in genderFallbacks). */
+export function buildRows({rosters, ids, genderOfVoice, relationships, voiceMap, only = null, withRomance = true}) {
+  const roster = rosters.flat();
+  const duplicate = roster.map(row => row.key).find((key, at, keys) => keys.indexOf(key) !== at);
+  if (duplicate) throw Error('A key is in two rosters: ' + duplicate);
   const profiled = roster.map(row => row.key).filter(key => ids[key]);
-  const known = [...profiled, ...ROMANCE_BASE_KEYS.map(romanceKey)];
-  if (only && [...only].some(key => !known.includes(key))) throw Error('--only names a profile outside the profiled roster and the romance profiles.');
-  // Gender of the twin voice: the original Kokoro voice's gender, else the roster's own gender field.
+  const known = [...profiled, ...(withRomance ? ROMANCE_BASE_KEYS.map(romanceKey) : [])];
+  if (only && [...only].some(key => !known.includes(key))) throw Error('--only names a profile outside the selected roster and the romance profiles.');
   const genderFallbacks = [], voiceFallbacks = [];
   const rows = known.filter(key => !only || only.has(key)).map(key => {
     const baseKey = key.endsWith('-romantic') ? key.slice(0, -'-romantic'.length) : null;
@@ -317,10 +320,34 @@ async function main() {
     if (source === 'fallback') voiceFallbacks.push(key);
     return {key, originalId, gender, voice, name: profile.name, ...(baseKey && {baseKey})};
   });
+  return {rows, genderFallbacks, voiceFallbacks};
+}
+
+async function main() {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..'), runtime = resolve(root, 'runtime');
+  const args = process.argv.slice(2), apply = args.includes('--apply') && !args.includes('--dry-run'), voicesOnly = args.includes('--voices-only');
+  const onlyAt = args.indexOf('--only');
+  const only = onlyAt < 0 ? null : new Set(args[onlyAt + 1].split(','));
+  const rosterAt = args.indexOf('--roster'), rosterChoice = rosterAt < 0 ? 'all' : args[rosterAt + 1];
+  if (!Object.hasOwn(ROSTER_CHOICES, rosterChoice)) throw Error('--roster takes named, archetypes or all.');
+  const read = async (path, fallback) => {
+    try { return JSON.parse((await readFile(path, 'utf8')).replace(/^﻿/u, '')); }
+    catch (error) { if (error.code === 'ENOENT' && fallback !== undefined) return fallback; throw error; }
+  };
+  const ids = await read(resolve(runtime, 'characters.json'));
+  const rosters = [];
+  for (const file of ROSTER_CHOICES[rosterChoice]) rosters.push(await read(resolve(root, file)));
+  const kokoro = await read(resolve(root, 'characters/kokoro-voices.json'));
+  const genderOfVoice = new Map(kokoro.voices.map(voice => [voice.voice_value, voice.gender]));
+  const relationships = await read(resolve(runtime, 'relationship-profiles.json'));
+  const voiceMap = await read(resolve(root, 'characters/multilingual-voice-map.json'), {assignments: {}, voices: {}});
+  // The romantic variants belong to the named roster.
+  const {rows, genderFallbacks, voiceFallbacks} = buildRows({rosters, ids, genderOfVoice, relationships, voiceMap, only,
+    withRomance: rosterChoice !== 'archetypes'});
   const target = resolve(runtime, 'multilingual-profiles.json');
   const mapping = await read(target, {version: 1, characters: {}});
   if (!apply) {
-    console.log(JSON.stringify({mode: 'dry-run', writes: 'none', total: rows.length,
+    console.log(JSON.stringify({mode: 'dry-run', writes: 'none', roster: rosterChoice, total: rows.length,
       toCreate: rows.filter(row => !mapping.characters[row.key]?.multilingualCharacterId).length,
       alreadyMapped: rows.filter(row => mapping.characters[row.key]?.multilingualCharacterId).length,
       genderFromRosterFallback: genderFallbacks, voiceFromGenderFallback: voiceFallbacks, languageCodes: LANGUAGE_CODES,
@@ -376,7 +403,7 @@ async function main() {
     }
     const result = await createMultilingualProfiles({rows, mapping, api, persist: value => atomic(target, value), log: console.log, continueOnError: true});
     await atomic(target, result.mapping);
-    console.log(JSON.stringify({results: result.results, failures: result.failures, needsLanguageBoxOff: result.needsLanguageBoxOff}, null, 2));
+    console.log(JSON.stringify({roster: rosterChoice, results: result.results, failures: result.failures, needsLanguageBoxOff: result.needsLanguageBoxOff}, null, 2));
     if (result.failures.length) process.exitCode = 1;
   } finally { await lock.close(); await unlink(resolve(runtime, 'character-provision.lock')); }
 }

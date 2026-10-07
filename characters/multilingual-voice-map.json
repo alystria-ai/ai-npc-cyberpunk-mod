@@ -1,6 +1,6 @@
 {
  "version": 1,
- "note": "Azure multilingual Convai voices for the '<name> Multilingual' twins. Romantic twins use the base character's voice. Source of truth for scripts/Create-MultilingualProfiles.mjs.",
+ "note": "Azure multilingual Convai voices for the '<name> Multilingual' twins. Romantic twins use the base character's voice; the npc-* archetype twins have their own entries. Source of truth for scripts/Create-MultilingualProfiles.mjs.",
  "defaults": {
   "FEMALE": "AZURE-MULTILINGUAL-a0810a758f",
   "MALE": "AZURE-MULTILINGUAL-3ea74315c9"
@@ -662,6 +662,226 @@
    "voice": "AZURE-MULTILINGUAL-3cff3776e9",
    "voiceName": "Florian",
    "reason": "Cold, precise German-native male voice for an estranged Arasaka heir."
+  },
+  "npc-maelstrom-male": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo",
+   "reason": "Lowest, roughest male register on offer, for a harsh, menacing chrome-obsessed ganger."
+  },
+  "npc-maelstrom-female": {
+   "voice": "AZURE-MULTILINGUAL-c49149301e",
+   "voiceName": "Arabella",
+   "reason": "Lowest female register on offer, low and direct, for a husky, blunt ganger."
+  },
+  "npc-tyger-claws-male": {
+   "voice": "AZURE-MULTILINGUAL-61873ce320",
+   "voiceName": "Hyunsu",
+   "reason": "East Asian-native, controlled mid-low voice for a proud, coldly polite Japantown ganger."
+  },
+  "npc-tyger-claws-female": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao",
+   "reason": "East Asian-native, bright and expressive young voice for a proud, theatrical Claw."
+  },
+  "npc-valentinos-male": {
+   "voice": "AZURE-MULTILINGUAL-92203654f0",
+   "voiceName": "Alessio",
+   "reason": "Warm, authoritative Latin-leaning voice for a proud barrio ganger who treats the gang as family."
+  },
+  "npc-valentinos-female": {
+   "voice": "AZURE-MULTILINGUAL-552d02efd8",
+   "voiceName": "Isidora",
+   "reason": "Spanish-native female voice for an upbeat, loyal Heywood Valentino."
+  },
+  "npc-sixth-street-male": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel",
+   "reason": "Higher, sharp, self-righteous male voice for an ex-soldier playing neighborhood watch."
+  },
+  "npc-sixth-street-female": {
+   "voice": "AZURE-MULTILINGUAL-ad8798063c",
+   "voiceName": "Seraphina",
+   "reason": "Cool, controlled, authoritative mid-register voice for a firm ex-military patroller."
+  },
+  "npc-animals-male": {
+   "voice": "AZURE-MULTILINGUAL-3e4638872a",
+   "voiceName": "Lucien",
+   "reason": "Deep, heavy male voice for a loud, physical bruiser (French-native, accent unverified in English)."
+  },
+  "npc-animals-female": {
+   "voice": "AZURE-MULTILINGUAL-c49149301e",
+   "voiceName": "Arabella",
+   "reason": "Low, direct female voice for a blunt, physical ganger (shared with the Maelstrom woman, different turf)."
+  },
+  "npc-voodoo-boys-male": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy",
+   "reason": "Smooth, low French-native male voice for a calm, guarded Pacifica netrunner; fits the Haitian-French flavour."
+  },
+  "npc-voodoo-boys-female": {
+   "voice": "AZURE-MULTILINGUAL-b439921109",
+   "voiceName": "Vivienne",
+   "reason": "French-native female voice for a soft-spoken, guarded Voodoo Boys member; fits the Haitian-French flavour."
+  },
+  "npc-scavengers-male": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian",
+   "reason": "Cold, precise male voice for a flat, mercenary Scavenger who prices everything."
+  },
+  "npc-scavengers-female": {
+   "voice": "AZURE-MULTILINGUAL-ad8798063c",
+   "voiceName": "Seraphina",
+   "reason": "Cool, controlled female voice for a flat, mercenary Scavenger (shared with 6th Street, different turf)."
+  },
+  "npc-wraiths-male": {
+   "voice": "AZURE-MULTILINGUAL-83464fdaf7",
+   "voiceName": "Yunxiao",
+   "reason": "Mid-high, quick male voice for a sneering, mocking Wraith raider with swagger."
+  },
+  "npc-wraiths-female": {
+   "voice": "AZURE-MULTILINGUAL-94e17e5330",
+   "voiceName": "Xiaoyu",
+   "reason": "Lively, sharp female voice for a mocking, wary Wraith raider."
+  },
+  "npc-mox-male": {
+   "voice": "AZURE-MULTILINGUAL-8087ad87b4",
+   "voiceName": "EchoTurbo",
+   "reason": "Light, young male voice for a bold, teasing, protective Mox member."
+  },
+  "npc-mox-female": {
+   "voice": "AZURE-MULTILINGUAL-8fb9b03aef",
+   "voiceName": "Phoebe",
+   "reason": "Highest, most theatrical female register for a showy, bold, punk Mox member."
+  },
+  "npc-aldecaldos-male": {
+   "voice": "AZURE-MULTILINGUAL-a2e2d3c386",
+   "voiceName": "Marcello",
+   "reason": "Smooth, warm, expressive male voice for an easygoing, road-worn Aldecaldo."
+  },
+  "npc-aldecaldos-female": {
+   "voice": "AZURE-MULTILINGUAL-a0810a758f",
+   "voiceName": "Emma",
+   "reason": "Cheerful, adaptable female voice for an easygoing, straight-talking Aldecaldo."
+  },
+  "npc-barghest-male": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon",
+   "reason": "Smooth, assured mid male voice for a disciplined, watchful soldier on checkpoint duty."
+  },
+  "npc-barghest-female": {
+   "voice": "AZURE-MULTILINGUAL-c54bd099e4",
+   "voiceName": "Xiaochen",
+   "reason": "Confident, firm broadcast-style female voice for a disciplined, clipped soldier."
+  },
+  "npc-ncpd-male": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian",
+   "reason": "Casual, sincere mid-register voice for a tired, procedural beat cop (same voice as Bill Mitchell, NCPD)."
+  },
+  "npc-ncpd-female": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena",
+   "reason": "Calm, mature, steady female voice for a wary, procedural, tired beat cop."
+  },
+  "npc-corpo-security-male": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan",
+   "reason": "Mature, crisp, polished male voice for a clipped, formal, scripted corporate guard."
+  },
+  "npc-corpo-security-female": {
+   "voice": "AZURE-MULTILINGUAL-a274d6d359",
+   "voiceName": "Ada",
+   "reason": "Clear British-native female voice for a clipped, formal, authoritative corporate guard."
+  },
+  "npc-ripperdoc-male": {
+   "voice": "AZURE-MULTILINGUAL-713bbb4510",
+   "voiceName": "Yunfan",
+   "reason": "Even, careful mid male voice for a practical, clinical, dry-humored ripperdoc."
+  },
+  "npc-ripperdoc-female": {
+   "voice": "AZURE-MULTILINGUAL-eb15982107",
+   "voiceName": "Ximena",
+   "reason": "Gentle, warm female voice for a practical, clinical ripperdoc who cares about a clean job."
+  },
+  "npc-weapons-dealer-male": {
+   "voice": "AZURE-MULTILINGUAL-742a42448d",
+   "voiceName": "Giuseppe",
+   "reason": "Smooth, persuasive male voice for a confident, salesy weapons dealer."
+  },
+  "npc-weapons-dealer-female": {
+   "voice": "AZURE-MULTILINGUAL-ea3de26c8e",
+   "voiceName": "Isabella",
+   "reason": "Polished, clear, confident female voice for an authoritative weapons dealer."
+  },
+  "npc-food-vendor-male": {
+   "voice": "AZURE-MULTILINGUAL-99eda63017",
+   "voiceName": "Yunyi",
+   "reason": "Mid-high, quick male voice for a brisk, chatty street food vendor."
+  },
+  "npc-food-vendor-female": {
+   "voice": "AZURE-MULTILINGUAL-c1eb570bf7",
+   "voiceName": "Amanda",
+   "reason": "Bright, friendly young female voice for a busy, chatty street food vendor."
+  },
+  "npc-bartender-male": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew",
+   "reason": "Warm, empathetic low male voice for an easy, observant bartender who listens without prying."
+  },
+  "npc-bartender-female": {
+   "voice": "AZURE-MULTILINGUAL-fa9bf5ee42",
+   "voiceName": "Thalita",
+   "reason": "Warm, even female voice for an unhurried, dry-witted bartender."
+  },
+  "npc-clothing-vendor-male": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie",
+   "reason": "Young British-native male voice for an enthusiastic, flattering, slightly theatrical clothing vendor."
+  },
+  "npc-clothing-vendor-female": {
+   "voice": "AZURE-MULTILINGUAL-8fb9b03aef",
+   "voiceName": "Phoebe",
+   "reason": "Highly expressive female voice for an enthusiastic, theatrical clothing vendor (shared with Mox, different business)."
+  },
+  "npc-corpo-resident-male": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo",
+   "reason": "Neutral, polished mid male voice for a stressed, clipped corporate worker."
+  },
+  "npc-corpo-resident-female": {
+   "voice": "AZURE-MULTILINGUAL-ea3de26c8e",
+   "voiceName": "Isabella",
+   "reason": "Polished, clear female voice for a stressed, clipped corporate worker (shared with the weapons dealer)."
+  },
+  "npc-street-resident-male": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "Ryan",
+   "reason": "Ordinary American male voice for a tired local; same voice as the generic Night City resident."
+  },
+  "npc-street-resident-female": {
+   "voice": "JennyMultilingualV2Neural",
+   "voiceName": "Jenny",
+   "reason": "Friendly, ordinary American female voice for a guarded local; same voice as the generic Night City resident."
+  },
+  "npc-nomad-resident-male": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio",
+   "reason": "Calm, direct mid male voice for a practical, plain-spoken nomad."
+  },
+  "npc-nomad-resident-female": {
+   "voice": "AZURE-MULTILINGUAL-a0810a758f",
+   "voiceName": "Emma",
+   "reason": "Cheerful, adaptable female voice for a practical, hospitable nomad (shared with the Aldecaldos woman)."
+  },
+  "npc-homeless-male": {
+   "voice": "AZURE-MULTILINGUAL-19f6a69dbc",
+   "voiceName": "Derek",
+   "reason": "Easygoing, mid-low, dry-humored male voice for a tired, wry man living rough."
+  },
+  "npc-homeless-female": {
+   "voice": "AZURE-MULTILINGUAL-eb15982107",
+   "voiceName": "Ximena",
+   "reason": "Gentle, warm female voice for a tired, wary but kind woman living rough (shared with the ripperdoc)."
   }
  }
 }

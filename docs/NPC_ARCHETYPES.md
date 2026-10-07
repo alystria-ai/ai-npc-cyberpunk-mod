@@ -20,6 +20,7 @@ in-game check list at the end must pass before this is trusted.
 | `mod/init.lua` | Reads the TweakDB facts of a targeted NPC (cached per entity), the current district, and sends both with the request. |
 | `bridge/protocol.mjs` | `parseArchetype`, `archetypeContext` (per-turn "who you are, where you are" text), `isAmbientProfile` (residents + `npc-*`). |
 | `scripts/archetype-voices/` | Local-voice reference builder and config registration (below). |
+| `scripts/Extract-ArchetypeRecordGenders.mjs`, `characters/archetype-record-genders.json` | Vendor record genders from the tweak sources, for the Model browser mapping. |
 | `characters/archetype-voices.json` | Tracked receipt of the chosen voiceset and clip IDs per archetype (no dialogue text). |
 
 The archetypes are kept out of `characters/roster.json` on purpose: they are not researched named
@@ -77,10 +78,11 @@ the local tweak files and the wiki page (not fetched).
 Convai settings match the residents: English (`en-US`) only, long-term memory **off**, default verbosity and
 state-of-mind settings, model `fast-gemma-4-31b-it`, Kokoro voice per variant (in `archetypes.json`).
 
-**Multilingual twins: not created in this slice.** `scripts/Create-MultilingualProfiles.mjs` only accepts
-roster keys and that script belongs to the multilingual agent. Without a twin an archetype keeps its English
-original when Multilingual conversations is on (documented behaviour for profiles without twins);
-`bridge/multilingual.test.mjs` exempts `npc-*` keys from the installed-twin check. Follow-up below.
+**Multilingual twins (2026-10-08).** All 44 archetypes have a "<name> Multilingual" twin
+(`node scripts/Create-MultilingualProfiles.mjs --roster archetypes --apply`): a faithful clone, en-US only, memory off,
+a matched Azure multilingual voice from `characters/multilingual-voice-map.json`, marker `:multilingual`. With
+Multilingual conversations on, the bridge routes an archetype to its twin like a named character; a twin is used once its
+language box is marked off (web session). See `docs/MULTILINGUAL_PROFILES.md`.
 
 ## Identity and memory
 
@@ -107,6 +109,32 @@ original when Multilingual conversations is on (documented behaviour for profile
 - Archetypes are **not** listed on the Characters page, in Who can talk or in the profile assignment list:
   they are not invitable companions (no spawn record, no identity of their own), and 44 rows would bury the
   named cast. The one setting governs all of them; the two residents keep their own Who can talk rows.
+
+## Model browser (installed character models)
+
+Home > Model browser lists every `gamedataCharacter_Record`. A record without a named profile is now classified
+from TweakDB alone (a spawned copy has no live body to read): `record:Affiliation()`, `IsCrowd()`, `IsChild()`,
+`CharacterType()` (Human only), `Quest()`, `VendorID():VendorType()` and the record name
+(`characterCatalog.classifyRecord`, facts read in `manager.lua`). The same precedence as live NPCs applies, plus:
+
+- Gender comes from the record name (`_ma`/`_wa`/`_mb`, `Woman`, `CorpoManBig`, `barman`, ...). Vendor records
+  name no gender (`Character.wat_kab_ripperdoc_01`), so `scripts/Extract-ArchetypeRecordGenders.mjs` reads it
+  from the shipped tweak sources (the `*_NPC_Base_Female` parent or the `_wa.ent` template) into
+  `characters/archetype-record-genders.json` (133 vendor records), which the builder embeds in the Lua block.
+  No gender, no profile.
+- Story actors stay silent followers: a `MainQuest`/`SideQuest`/`MinorQuest` tag or a `q###_`, `sq###_`, `mq###_`
+  record name. Children, androids and MaxTac too.
+- A crowd record without a resident kind uses the generic resident (`resident-male`/`resident-female`).
+
+The row says "Conversation: Maelstrom ganger (archetype)" (named records keep "Conversation: <name>",
+others "No conversation profile ..."), and the status row adds "{count} of them can talk." for the current search.
+
+Invited, an archetype (or resident) copy joins as a model, with nothing to prepare, because a generic profile has no memory
+of its own and no connection without a body (`manager-party.lua` `ambientProfile`). Its profile is assigned
+as it spawns, so it talks with that archetype's Convai character and voice. Its per-turn context is built from the
+profile key and the district. The session identity is the copy's entity, so each invited copy has its own
+conversation for as long as it exists, with no long-term memory, the same as live archetype NPCs. Party,
+auto-connect (generic prominence) and the follow/leave actions treat it like any generic party member.
 
 ## Local voices
 
@@ -163,12 +191,17 @@ machine like the named ones (packaging agent).
 12. The setting Off restores the old behaviour (gang members unprofiled, pedestrians as residents).
 13. Performance: gaze/scan calls stay cheap (facts cached per entity).
 14. Hostile NPCs in combat: talking is possible; decide whether to block it.
+15. Model browser: Maelstrom, Tyger Claws, NCPD and Arasaka records show "Conversation: ... (archetype)"; quest
+    records (`q###_`), MaxTac, androids and children show "No conversation profile"; the talk count looks sane. In CET,
+    `record:Affiliation():EnumName()`, `Quest()` and `VendorID()` return what `manager.lua` expects.
+16. Invite a Maelstrom grunt and a female Tyger Claw from the Model browser: each joins, answers as that archetype
+    with its voice, follows, can be sent away (Leave V's Party), and two copies of one record talk separately.
+17. Invite a vendor record (a ripperdoc) and a crowd record (CorpoWoman): the right gender variant and kind.
 
 ## Follow-up plan
 
 1. In-game verification of the list above; fix any fact read that fails (each is isolated and guarded).
-2. Multilingual twins for the 44 archetypes: give `Create-MultilingualProfiles.mjs` an archetype roster option
-   (multilingual agent), add voices to the twin voice map, set the language box through the web session.
+2. ~~Multilingual twins for the 44 archetypes~~ (done; the language box is set through the web session).
 3. More vendor kinds: medic store, netrunner/cyberware vendor (`Cyberware`), junk shop (`Junk`, `TechJunk`),
    melee vendor, drop points (device, not an NPC), skill trainers.
 4. MaxTac (probably keep unprofiled), NetWatch, Trauma Team, Biotechnica, Afterlife mercs, Kurtz militia

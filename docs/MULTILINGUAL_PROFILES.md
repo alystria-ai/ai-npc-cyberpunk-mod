@@ -1,16 +1,20 @@
 # Multilingual Convai profiles (full roster)
 
 Every character the mod has a Convai profile for (all 79 in `characters/roster.json`
-with an ID in `runtime/characters.json`) has a twin named "<name> Multilingual" in the
+with an ID in `runtime/characters.json`, and the 44 generic NPC archetypes of
+`characters/archetype-roster.json`, keys `npc-*`) has a twin named "<name> Multilingual" in the
 same account, and so does each relationship variant. Today the only variants are the
-five romantic profiles (Judy, Panam, River, Kerry, Meredith), so there are 84 twins.
+five romantic profiles (Judy, Panam, River, Kerry, Meredith), so there are 128 twins
+(84 named + romantic, 44 archetype).
 The twins exist and are verified; the mod uses them while Settings > Conversations > Multilingual
 conversations is on (see "Multilingual conversations" below).
 Alt Cunningham is a tier-1 voice but has no Convai profile.
 
 ```powershell
 node scripts/Create-MultilingualProfiles.mjs --dry-run        # default: plan only, no remote calls
-node scripts/Create-MultilingualProfiles.mjs --apply          # create/adopt + verify all 84
+node scripts/Create-MultilingualProfiles.mjs --apply          # create/adopt + verify all 128 (--roster all, the default)
+node scripts/Create-MultilingualProfiles.mjs --roster archetypes --apply   # only the 44 npc-* archetypes
+node scripts/Create-MultilingualProfiles.mjs --roster named --apply        # only the named roster and romantic profiles
 node scripts/Create-MultilingualProfiles.mjs --apply --only judy-alvarez,judy-alvarez-romantic
 node --test bridge/multilingual-profiles.test.mjs
 ```
@@ -40,6 +44,25 @@ example both are "Judy Alvarez"), so the ordinary twin and the romantic twin are
 named "Judy Alvarez Multilingual". Tell them apart by character ID or marker, never by
 name. (The name can be changed on the twin later without affecting the script, which
 matches on name plus marker only to recover a lost create receipt.)
+
+## Archetype twins (npc-*)
+
+The 44 archetype profiles (docs/NPC_ARCHETYPES.md) have twins made by the same script and the same rules: a faithful
+clone of the original (only the ownership marker line differs: `[CyberpunkConvai profile v2:npc-maelstrom-male:multilingual]`),
+`languageCodes: ['en-US']`, an Azure multilingual voice from the map, the original's model, verbosity and state of mind.
+**Memory stays as the original has it: off** (a twin whose memory differs is put back; the script turns it off as well as on).
+The twin ID is mapped under the archetype key in `runtime/multilingual-profiles.json`; the bridge routes the archetype to
+it exactly like a named character (`bridge/multilingual.mjs`, `bridge/relationship-routing.mjs`: provider key
+`npc-...-multilingual`, same memory family as the archetype). Like every twin it is used only once it is verified and its
+language box is marked off (the web-session step below); until then the archetype keeps its English original.
+
+Archetype voices (also in `characters/multilingual-voice-map.json`, keyed `npc-*`) were matched to the kind, gender, age and tone
+of each archetype from the 53 Azure voices, avoiding the fourteen main-cast voices (Judy, Panam, Johnny, Kerry, River, Jackie, Viktor,
+Misty, Rogue, Takemura, Mama Welles, Meredith, Claire, Solomon); there are only 16 non-main female Azure voices for 22 women, so six are
+shared between kinds that do not meet (for example the Maelstrom and Animals women). Examples: Maelstrom man OnyxTurbo (the lowest, roughest
+register), Voodoo Boys Remy and Vivienne (French-native, for the Haitian-French flavour), Tyger Claws Hyunsu and Xiaoxiao (East Asian-native),
+Valentinos Alessio and Isidora (Latin-leaning, Spanish-native), corporate guard Steffan and Ada (crisp, formal), street locals Ryan and Jenny (the generic
+resident voices). Not audition-tested, like the rest of the map; change the entry and run `--voices-only` to swap one.
 
 ## What a twin copies and what differs
 

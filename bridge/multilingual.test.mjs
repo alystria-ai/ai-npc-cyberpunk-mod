@@ -314,13 +314,135 @@ test('the installed twin map covers every profiled character and romantic profil
   const read = name => JSON.parse(readFileSync(new URL(name, runtime), 'utf8'));
   const ids = read('characters.json'), relationship = read('relationship-profiles.json');
   const {twins: loaded, skipped} = multilingualTwins(read('multilingual-profiles.json'), {ordinaryIds: ids, variants: relationship});
-  assert.deepEqual(skipped, []);
-  // Generic NPC archetypes (npc-*) have no twins yet: they stay English-only (docs/NPC_ARCHETYPES.md).
-  const twinned = Object.keys(ids).filter(key => !key.startsWith('npc-'));
-  for (const key of twinned) assert.ok(loaded[key], key);
+  const document = read('multilingual-profiles.json');
+  // Every profile has a verified twin, the generic NPC archetypes (npc-*) included (docs/NPC_ARCHETYPES.md). A twin is
+  // routed once its language box is marked off; a new batch may be waiting for that web-session step, and nothing else.
+  for (const key of skipped) assert.equal(document.characters[key]?.verified === true && document.characters[key].languageBoxOff !== true, true, key + ' is skipped');
+  const twinned = Object.keys(ids);
+  for (const key of twinned) {
+    assert.equal(document.characters[key]?.verified, true, key + ' has no verified twin');
+    assert.ok(loaded[key] || skipped.includes(key), key);
+  }
+  const unrouted = twinned.filter(key => !loaded[key]);
+  assert.ok(unrouted.every(key => key.startsWith('npc-')), 'only a new archetype batch may wait for the language box');
   for (const key of Object.keys(relationship.characters)) assert.ok(loaded[key + '-romantic'], key + '-romantic');
   const routes = new RelationshipRouting({ordinaryIds: ids, variants: relationship, multilingual: loaded});
-  for (const key of twinned) assert.equal(routes.providerFamilies[key + '-multilingual'], key);
+  for (const key of twinned.filter(key => loaded[key])) assert.equal(routes.providerFamilies[key + '-multilingual'], key);
+});
+
+// ---- Archetypes (npc-*) route to their twins like named characters -----------------------------------------------
+
+const archetypeKeys = JSON.parse(readFileSync(new URL('../characters/archetype-roster.json', import.meta.url), 'utf8')).map(row => row.key);
+const archetypeIds = Object.fromEntries(archetypeKeys.map(profile => [profile, profile + '-original-id']));
+const archetypeTwinDocument = () => ({version: 1, characters: Object.fromEntries(archetypeKeys
+  .map(profile => [profile, twinRow(archetypeIds[profile], profile + '-twin-id')]))});
+
+test('every archetype key and its twin key stay inside the profile-key limit used across the bridge', () => {
+  assert.equal(archetypeKeys.length, 44);
+  for (const profile of archetypeKeys) assert.match(profile + '-multilingual', /^[a-z0-9][a-z0-9-]{0,79}$/, profile);
+});
+
+test('archetype twins are loaded under the same rules as named twins', () => {
+  const ids = {...ordinaryIds, ...archetypeIds};
+  const document = {version: 1, characters: {...twinDocument().characters, ...archetypeTwinDocument().characters}};
+  const loaded = multilingualTwins(document, {ordinaryIds: ids, variants});
+  assert.deepEqual(loaded.skipped, []);
+  for (const profile of archetypeKeys) assert.equal(loaded.twins[profile], profile + '-twin-id', profile);
+  // Not routed until the language box is off, still verified, and only while it clones today's original.
+  document.characters['npc-ncpd-male'].languageBoxOff = false;
+  document.characters['npc-mox-female'].verified = false;
+  document.characters['npc-homeless-male'].originalCharacterId = 'an-older-id';
+  assert.deepEqual(multilingualTwins(document, {ordinaryIds: ids, variants}).skipped.sort(), ['npc-homeless-male', 'npc-mox-female', 'npc-ncpd-male']);
+  // An archetype missing from the ID file has nothing to clone.
+  const partial = {...ids}; delete partial['npc-ripperdoc-male'];
+  assert.deepEqual(multilingualTwins(document, {ordinaryIds: partial, variants}).skipped.includes('npc-ripperdoc-male'), true);
+});
+
+test('with Multilingual on, an archetype goes to its twin; off, to the original; the twin keeps the archetype family and marker', () => {
+  const ids = {...ordinaryIds, ...archetypeIds};
+  const archetypeTwins = multilingualTwins({version: 1, characters: {...twinDocument().characters, ...archetypeTwinDocument().characters}},
+    {ordinaryIds: ids, variants}).twins;
+  const archetypeRegistry = relationshipRegistry(ids, variants, archetypeTwins);
+  const choose = (profileKey, multilingual) => selectRelationshipProfile({profileKey, mode: 'auto', registry: archetypeRegistry, boundary, now: NOW,
+    snapshot: snapshot({}), multilingual});
+  for (const profile of archetypeKeys) {
+    const on = choose(profile, true), off = choose(profile, false);
+    assert.equal(on.status, 'ready'); assert.equal(on.multilingual, true);
+    assert.equal(on.providerProfileKey, profile + '-multilingual', profile);
+    assert.equal(on.characterId, profile + '-twin-id'); assert.equal(on.variant, 'ordinary');
+    assert.equal(off.providerProfileKey, profile); assert.equal(off.characterId, archetypeIds[profile]); assert.equal(off.multilingual, false);
+    assert.equal(archetypeRegistry.providerFamilies[profile + '-multilingual'], profile);
+    assert.equal(archetypeRegistry.markerKeys[profile + '-multilingual'], profile + ':multilingual');
+    assert.equal(archetypeRegistry.markerKeys[profile], undefined);
+  }
+  // A single missing twin keeps that archetype on its English original; the others still switch.
+  const gap = {...archetypeTwins}; delete gap['npc-bartender-female'];
+  const gapRegistry = relationshipRegistry(ids, variants, gap);
+  const route = (profileKey) => selectRelationshipProfile({profileKey, mode: 'auto', registry: gapRegistry, boundary, now: NOW, snapshot: snapshot({}), multilingual: true});
+  assert.equal(route('npc-bartender-female').providerProfileKey, 'npc-bartender-female');
+  assert.equal(route('npc-bartender-male').providerProfileKey, 'npc-bartender-male-multilingual');
+});
+
+test('the setting retires every archetype route at the idle boundary, and guards accept an archetype twin ID', () => {
+  const ids = {...ordinaryIds, ...archetypeIds};
+  const archetypeTwins = multilingualTwins({version: 1, characters: {...twinDocument().characters, ...archetypeTwinDocument().characters}},
+    {ordinaryIds: ids, variants}).twins;
+  const routes = new RelationshipRouting({ordinaryIds: ids, variants, multilingual: archetypeTwins, now: () => NOW});
+  const state = {version: 1, status: 'ready', gameVersion: '2.31', ...boundary, capturedAt: NOW, facts: {}};
+  routes.update({}, state, {boundary});
+  assert.equal(routes.select('npc-maelstrom-male', boundary).providerProfileKey, 'npc-maelstrom-male');
+  assert.equal(routes.update({multilingualConversations: true}, state, {boundary}), true);
+  assert.equal(routes.select('npc-maelstrom-male', boundary).providerProfileKey, 'npc-maelstrom-male-multilingual');
+  const changed = routes.consumeRouteChanges();
+  for (const profile of archetypeKeys) assert.ok(changed.includes(profile), profile + ' not retired');
+  const guard = {characterId: 'npc-maelstrom-male-twin-id'};
+  assert.equal(routes.providerKeyForGuard('npc-maelstrom-male', guard), 'npc-maelstrom-male-multilingual');
+  assert.equal(routes.guardSelected('npc-maelstrom-male', guard, boundary), true);
+  assert.equal(routes.guardSelected('npc-maelstrom-male', {characterId: 'npc-maelstrom-male-original-id'}, boundary), false);
+  assert.throws(() => routes.providerKeyForGuard('npc-ncpd-male', guard), {code: 'CHARACTER_MISMATCH'});
+  // Turning it off sends them back.
+  assert.equal(routes.update({multilingualConversations: false}, state, {boundary}), true);
+  assert.equal(routes.select('npc-maelstrom-male', boundary).providerProfileKey, 'npc-maelstrom-male');
+});
+
+test('an archetype twin has its own memory identity in the archetype family, and the provider adapter accepts only its marker', async t => {
+  const ids = {...ordinaryIds, ...archetypeIds};
+  const archetypeTwins = multilingualTwins({version: 1, characters: archetypeTwinDocument().characters}, {ordinaryIds: ids, variants}).twins;
+  const archetypeRegistry = relationshipRegistry(ids, variants, archetypeTwins);
+  const directory = await fs.mkdtemp(join(tmpdir(), 'multilingual-archetype-'));
+  t.after(() => fs.rm(directory, {recursive: true, force: true}));
+  const calls = [];
+  const provider = {
+    async enableMemory(value) { calls.push({kind: 'enable', ...value}); return {enabled: true, changed: false}; },
+    async clearMemory(value) { calls.push({kind: 'clear', ...value}); return {accepted: true, providerEmptyObserved: true}; },
+    async inspectMemory() { return {providerEmptyObserved: true}; },
+  };
+  const memory = await PlayerMemory.open({path: join(directory, 'player-memory.json'), characterIds: archetypeRegistry.providerIds,
+    characterFamilies: archetypeRegistry.providerFamilies, provider, quiesce: async () => ({quiesced: true})});
+  t.after(() => memory.close().catch(() => {}));
+  const original = memory.route('npc-ncpd-male'), twin = memory.route('npc-ncpd-male-multilingual');
+  assert.equal(original.endUserId, twin.endUserId);
+  assert.notEqual(original.guard.characterId, twin.guard.characterId);
+  await memory.beginConversation({profileKey: 'npc-ncpd-male-multilingual', guard: twin.guard, source: 'player', channel: 'private', requestId: 'r-npc'});
+  assert.deepEqual(memory.status().characters.map(row => row.profileKey), ['npc-ncpd-male']);
+  assert.equal((await memory.clearCharacter({profileKey: 'npc-ncpd-male-multilingual', actionId: 'forget-npc'})).profileKey, 'npc-ncpd-male');
+  assert.ok(calls.some(call => call.kind === 'clear' && call.characterId === 'npc-ncpd-male-twin-id'));
+  // The adapter: the twin marker clears a twin, an original marker on a twin ID does not.
+  const backstory = {'npc-ncpd-male-twin-id': 'Bio\n[CyberpunkConvai profile v2:npc-ncpd-male:multilingual]'};
+  const fetchImpl = async (url, request) => {
+    const body = JSON.parse(request.body), endpoint = new URL(url).pathname;
+    let value;
+    if (endpoint === '/character/list') value = {characters: Object.values(archetypeRegistry.providerIds).map(character_id => ({character_id}))};
+    else if (endpoint === '/character/get') value = {character_id: body.charID, backstory: backstory[body.charID], memory_settings: {enabled: false}};
+    else if (endpoint === '/memory/delete-all') value = {message: 'deleted'};
+    else if (endpoint === '/memory/list') value = {memories: [], total_count: 0, has_more: false, page: 1, page_size: 1};
+    return new Response(JSON.stringify(value), {status: 200, headers: {'content-type': 'application/json'}});
+  };
+  const api = new PlayerMemoryApi({key: 'test', characterIds: archetypeRegistry.providerIds, markerKeys: archetypeRegistry.markerKeys, fetchImpl});
+  const clear = () => api.clearMemory({profileKey: 'npc-ncpd-male-multilingual', characterId: 'npc-ncpd-male-twin-id', endUserId: '00000000-0000-4000-8000-000000000000'});
+  assert.equal((await clear()).accepted, true);
+  backstory['npc-ncpd-male-twin-id'] = 'Bio\n[CyberpunkConvai profile v2:npc-ncpd-male]';
+  await assert.rejects(clear(), {code: 'NOT_MOD_OWNED'});
 });
 
 // ---- The bridge wiring ---------------------------------------------------------------------------------------
