@@ -7,7 +7,7 @@ report, listen, and touch reference audio only for the voices whose generated au
 
 ```
 npm run reference-picker            # or: node scripts/Reference-Picker.mjs [--port 8765] [--open]
-Reference-Picker.bat                # double-click; opens http://127.0.0.1:8765/
+misc/Reference-Picker.bat           # double-click; opens http://127.0.0.1:8765/
 ```
 
 The server is headless and long-lived: it never opens a browser unless `--open` is given (the `.bat` does), it listens on

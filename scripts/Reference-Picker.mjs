@@ -1,6 +1,6 @@
 // The Voice report and the reference picker on one page.
 //
-//   node scripts/Reference-Picker.mjs            (or: npm run reference-picker, or Reference-Picker.bat)
+//   node scripts/Reference-Picker.mjs            (or: npm run reference-picker, or misc/Reference-Picker.bat)
 //   then open http://127.0.0.1:8765/
 //
 // Options: --port 8765  --work <dir>  --rebuild-index  --open  --gpu-busy-fraction 0.6

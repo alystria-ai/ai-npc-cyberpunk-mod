@@ -8,7 +8,7 @@
 **/[Tt][Oo][Dd][Oo]*.md
 /node_modules/
 /dist/
-/Cyberpunk-Voice-Benchmark-RT-Ultra-60FPS-2026-09-28/Audio/
+/misc/Cyberpunk-Voice-Benchmark-RT-Ultra-60FPS-2026-09-28/Audio/
 .env
 .env.*
 *.key
