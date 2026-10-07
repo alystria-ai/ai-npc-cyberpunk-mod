@@ -57,3 +57,8 @@ The user's per-character verdicts from the report page (http://127.0.0.1:8765/),
 - Voice menu order: Pocket TTS (the new student + decoder v2; default, recommended), OmniVoice 16 short, OmniVoice 16 long, OmniVoice 32 short, OmniVoice 32 long. No Pocket base. (Convai cloud wasn't mentioned this time; the earlier decision keeps it last.)
 - Wants v3 packaged as a shareable report: one self-contained HTML file if possible, otherwise a zip.
 - Wants the voice research since the last devslot handoff packaged for the devslots: auto/best clip search, duration-based references, combat and effect cleaning, decoder v2 fine-tuning (phase anchor), the new student, metrics (ECAPA primary, PLS), findings.
+
+### Voice report v3: final verdict (2026-10-07)
+- The review is complete. Massive improvement over the original version.
+- Overall by ear: Pocket = x, Omni 16 about 15-20% better, Omni 32 about 20-25% better.
+- But it depends on the character. Johnny, Judy, Panam and Alex sound very good on Pocket, so the gap is even or at most about 5%. For some, Pocket beats Omni (e.g. Carol). Omni shines on the harder voices lower on the page, likely the difficult ones or those with less data.
