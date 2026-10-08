@@ -56,6 +56,8 @@ local function makeReadiness(options)
     options.world = options.world or function() return world end
     options.isKnown = options.isKnown or function(key) return key ~= unknown and (key == 'judy-alvarez' or key == 'johnny-silverhand') end
     options.now = options.now or function() return ms end
+    -- Read on every update unless a test exercises the production 250 ms throttle.
+    options.readInterval = options.readInterval or 0
     return readinessFactory.new(options)
 end
 local readiness = makeReadiness()
@@ -321,4 +323,22 @@ assert(#value.invitations == 1 and value.worldToken == world.worldToken and cust
 value.bridgePid = 88; value.invitations[1].state = 'ready'
 customFiles['fixture-runtime/companion-invitations-state.json'] = json.encode(value)
 readiness.update(); queue.flush(); assert(#spawned == 1)
+`));
+
+test('production update reads the receipt file at most every 250 ms of wall clock', () => run(`
+local wall, reads = 10, 0
+local open = io.open
+io.open = function(path, mode)
+    if path == 'runtime/companion-invitations-state.json' then reads = reads + 1 end
+    return open(path, mode)
+end
+local throttled = makeReadiness({readInterval = .25, tick = function() return wall end})
+local throttledQueue = queueFactory.new(companions, throttled)
+throttledQueue.bind('player')
+assert(throttledQueue.invite('judy'))
+throttled.update(); local first = reads
+assert(first == 1, 'first update did not read the receipt')
+for _ = 1, 10 do wall = wall + .016; throttled.update() end
+assert(reads == first, 'receipt was read again within 250 ms: ' .. reads)
+wall = wall + .1; throttled.update(); assert(reads == first + 1)
 `));

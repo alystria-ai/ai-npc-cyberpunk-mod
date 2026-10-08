@@ -285,7 +285,13 @@ dofile = function(path)
     stats.loads[path] = (stats.loads[path] or 0) + 1
     if prohibited(path) then deny('module ' .. path) end
     if path == 'quest-context.lua' then return (function() ${questSource} end)() end
-    if path == 'invitation-readiness.lua' then return (function() ${invitationSource} end)() end
+    if path == 'invitation-readiness.lua' then
+        -- Receipts written by a test are read on the next update (production waits up to 250 ms).
+        local module = (function() ${invitationSource} end)()
+        local new = module.new
+        module.new = function(options) options = options or {}; options.readInterval = options.readInterval or 0; return new(options) end
+        return module
+    end
     if path == 'auto-connect.lua' then return (function() ${autoConnectSource} end)() end
     return assert(modules[path], 'Unexpected mod dependency: ' .. path)
 end

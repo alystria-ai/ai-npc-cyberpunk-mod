@@ -336,6 +336,24 @@ def stream_request(model, state, text, commands, send, request_id, key, encode_p
             "generationMs": (now() - started) * 1000}
 
 
+def lower_priority():
+    """Speech generation runs well ahead of playback (real-time factor about 0.4
+    on four threads), so the game's own threads win any contested core:
+    BelowNormal priority class on Windows, nice +5 elsewhere. Best effort."""
+    try:
+        if os.name == "nt":
+            import ctypes
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+            kernel32.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+            kernel32.SetPriorityClass.restype = ctypes.c_int
+            return bool(kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), 0x00004000))
+        os.nice(5)
+        return True
+    except Exception:  # noqa: BLE001 - priority is advisory only.
+        return False
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)
@@ -343,6 +361,7 @@ def main():
     args = parser.parse_args()
     if re.fullmatch(r"[a-f0-9]{32}", args.owner) is None:
         raise ValueError("Invalid Pocket worker owner")
+    lower_priority()
     output = sys.stdout
     output_lock = threading.Lock()
 

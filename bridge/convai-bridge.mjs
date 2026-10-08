@@ -725,6 +725,8 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     },
     readControl: () => readFile(resolve(runtime, 'continuous-control.json'), 'utf8'),
     writeState: value => atomic(resolve(runtime, 'continuous-speech.json'), JSON.stringify(value), options),
+    writeFace: value => atomic(resolve(runtime, 'continuous-face.json'), JSON.stringify(value), options),
+    faceFile: async () => (await readSpeechState()).continuousFaceFile === true,
     writeReply: value => atomic(replyPath, JSON.stringify(value), options),
     onPublished: timing => measure(input, {...timing, stream: {mode: local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}),
     onStarted: timing => measure(input, {...timing, continuousPlaybackObserved: true}),

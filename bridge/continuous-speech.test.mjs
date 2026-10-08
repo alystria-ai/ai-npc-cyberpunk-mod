@@ -14,7 +14,8 @@ local controls,failWrite={},false
 io.open=function(path,mode)
  if mode=='rb'then if not files[path]then return nil end;return {read=function()return files[path]end,close=function()return true end}end
  if failWrite then return nil end
- return {write=function(_,raw)files[path]=raw;return true end,close=function()return true end}
+ return {write=function(_,raw)files[path]=raw
+  if path=='runtime/continuous-control.json'then controls[#controls+1]=json.decode(raw)end;return true end,close=function()return true end}
 end
 os.time=function()return math.floor(wall)end
 os.remove=function(path)files[path]=nil;return true end
@@ -70,6 +71,7 @@ end
 function captions.reviseTimed(text,duration)captions.line=text;captions.timed.duration=duration;return true end
 function captions.syncTimed(position)captions.positions[#captions.positions+1]=position end
 local controller=(function()${source('continuous-speech')}end)()
+controller.now=function()return wall end
 local face=(function()${source('facial-playback')}end)()
 dofile=function(path)
  if path=='continuous-speech.lua'then return controller end
@@ -185,7 +187,9 @@ assert(begin());assert(control().allow and not control().paused and control().vo
 assert(math.abs(control().volume-.4)<.00001 and control().pan==1 and nativeStarts==0)
 assert(state().continuousAvailable and state().continuousId==id)
 local sequence=control().sequence
-snapshot();tick();assert(control().sequence>sequence and control().requestId==context.requestId)
+-- Unchanged permission is refreshed every 150 ms (the bridge treats 400 ms as stale).
+snapshot();tick();assert(control().sequence==sequence)
+snapshot({updated=(wall+.05)*1000});tick(.16);assert(control().sequence>sequence and control().requestId==context.requestId)
 judy.pos.x=-2;snapshot({updated=(wall+.05)*1000});tick();assert(control().pan==-1)
 judy.pos.x=18;snapshot({updated=(wall+.05)*1000});tick();assert(control().volume==0)
 speech.stop('cancelled');assert(not control().allow and not speech.requestId and nativeStarts==0 and nativeStops==0)
@@ -258,7 +262,7 @@ test('missing game volume fails silent and recovers on verified settings; failed
 settings=false;assert(begin());assert(control().volume==0 and not control().volumeKnown)
 assert(state().continuousControl.volumeKnown==false and state().continuousControl.volumeReason=='game-volume-unavailable')
 settings=true;snapshot();tick(.5);assert(control().volumeKnown and math.abs(control().volume-.4)<.00001)
-failWrite=true;tick();assert(not speech.requestId and not state().lastDelivery)
+failWrite=true;tick(.16);assert(not speech.requestId and not state().lastDelivery)
 `));
 
 test('renderer admission, lease hold and device-draining states keep one pending utterance until actual end',()=>run(`
@@ -301,10 +305,35 @@ for index=1,${fps * 2} do
 end
 assert(#judy.applied>=${fps === 30 ? 55 : fps === 60 ? 110 : 105},'Native application cadence still collapses to the file poll: '..#judy.applied)
 assert(#judy.applied<=${fps === 30 ? 61 : 121},'Timeline publication bypassed the 60 Hz heard-cursor cap: '..#judy.applied)
-assert(#controls>=49 and #controls<=51,'The 40 ms control poll discarded its game-frame remainder')
+-- A stationary speaker: the permission file is refreshed every 150 ms, not on every 40 ms state poll.
+assert(#controls>=9 and #controls<=15,'Unchanged permission was rewritten too often or too rarely: '..#controls)
 assert(nativeStarts==0 and nativeStops==0,'Convai facial smoothing must not change its PCM renderer')
 `));
 }
+
+test('a separately published face is read only when its revision changes, at most every 200 ms, and only for its owner',()=>run(`
+local open,faceReads=io.open,0
+io.open=function(path,mode)if path=='runtime/continuous-face.json'then faceReads=faceReads+1 end;return open(path,mode)end
+local function faceDoc(revision,duration,changes)
+ local value={version=1,id=id,requestId=context.requestId,entity=context.entity,generation=context.generation,
+  revision=revision,face=timeline(duration,false)}
+ for k,v in pairs(changes or {})do value[k]=v end
+ put('runtime/continuous-face.json',value)
+end
+assert(begin());assert(state().continuousFaceFile==true)
+faceDoc(1,2);snapshot({faceRevision=1,position=.2});tick()
+assert(face.active and #judy.applied==1 and faceReads==1 and face.timeline.duration==2)
+snapshot({faceRevision=1,position=.3,updated=(wall+.05)*1000});tick()
+assert(faceReads==1 and #judy.applied==2,'An unchanged revision was read again')
+faceDoc(2,3);snapshot({faceRevision=2,position=.35,bufferedDuration=3,updated=(wall+.05)*1000});tick(.05)
+assert(faceReads==1 and face.timeline.duration==2,'A new revision was read within 200 ms of the last read')
+snapshot({faceRevision=2,position=.4,bufferedDuration=3,updated=(wall+.05)*1000});tick(.16)
+assert(faceReads==2 and face.timeline.duration==3 and face.active)
+faceDoc(3,4,{generation=8});snapshot({faceRevision=3,position=.5,bufferedDuration=4,updated=(wall+.05)*1000});tick(.25)
+assert(faceReads==3 and face.timeline.duration==3 and face.active,'A foreign face file was accepted')
+assert(speech.diagnosticCadence().sourceFrames==2)
+speech.stop('cancelled');assert(not face.active)
+`));
 
 test('missing or stale snapshots cannot extrapolate the face beyond audio already confirmed heard',()=>run(`
 assert(begin());snapshot({position=.2,face=timeline(2,false)});tick()

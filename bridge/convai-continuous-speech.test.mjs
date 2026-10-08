@@ -8,7 +8,7 @@ const poses = duration => Array.from({length: Math.round(duration * 30) + 1}, (_
   const values = Array(61).fill(0); values[17] = .4;
   return {at: i / 30, values};
 });
-function fixture(input = owner) {
+function fixture(input = owner, extra = {}) {
   const f = {now: 10000, current: true, raw: '{}', events: [], states: [], replies: [],
     published: [], started: [], generated: [], abort: new AbortController()};
   f.stream = new ConvaiContinuousSpeech({input, profile: {key: 'judy-alvarez'}, token: 'continuous-1',
@@ -19,7 +19,7 @@ function fixture(input = owner) {
     writeReply: async value => { f.events.push('reply'); f.replies.push(structuredClone(value));
       await f.onReply?.(); return f.replyOk !== false; },
     onPublished: async value => { f.events.push('published'); f.published.push(value); await f.onPublished?.(); },
-    onStarted: async value => f.started.push(value), onGenerated: async value => f.generated.push(value)});
+    onStarted: async value => f.started.push(value), onGenerated: async value => f.generated.push(value), ...extra});
   f.snapshot = changes => ({version: 1, token: 'continuous-1', sampleRate: 24000, channels: 1,
     receivedFrames: 12000, positionSeconds: 0, text: 'Hey V.', textComplete: false,
     sourceComplete: false, ended: false, underruns: 0, state: 'buffering', ...changes});
@@ -346,4 +346,40 @@ test('the complete text is announced once, only after publication rules allow it
   await f.stream.frame(f.snapshot({textComplete: true, userText: 'Say hi', receivedFrames: 36000}));
   await f.stream.frame(f.snapshot({textComplete: true, userText: 'Say hi', receivedFrames: 48000}));
   assert.deepEqual(f.texts, [['Hey V.', 'Say hi']]);
+});
+
+test('when the game advertises it, the facial timeline goes to its own file only when it changes', async () => {
+  const faces = [];
+  let failNext = false;
+  const f = fixture(owner, {faceFile: async () => true, writeFace: async value => {
+    if (failNext) { failNext = false; throw sharing(); }
+    faces.push(structuredClone(value)); return true;
+  }});
+  f.control();
+  const snapshot = f.snapshot({faces: poses(.5), facesFormat: 'arkit61', facesTimebase: 'audio-seconds'});
+  await f.stream.frame(snapshot);
+  assert.equal(faces.length, 1);
+  assert.deepEqual({...faces[0], face: undefined}, {version: 1, id: 'continuous-1', ...owner, revision: 1, face: undefined});
+  assert.ok(faces[0].face.frames.length > 2);
+  assert.equal(f.states.at(-1).face, undefined);
+  assert.equal(f.states.at(-1).faceRevision, 1);
+  // Unchanged audio and face: the state is republished, the large face is not.
+  await f.stream.frame({...snapshot, positionSeconds: .1});
+  assert.equal(faces.length, 1); assert.equal(f.states.at(-1).faceRevision, 1);
+  // A grown source changes the face; a sharing error keeps the old revision until the next poll.
+  failNext = true;
+  const grown = f.snapshot({faces: poses(1), facesFormat: 'arkit61', facesTimebase: 'audio-seconds', receivedFrames: 24000, positionSeconds: .15});
+  await f.stream.frame(grown);
+  assert.equal(faces.length, 1); assert.equal(f.states.at(-1).faceRevision, 1);
+  await f.stream.frame({...grown, positionSeconds: .2});
+  assert.equal(faces.length, 2); assert.equal(faces[1].revision, 2); assert.equal(f.states.at(-1).faceRevision, 2);
+  assert.ok(faces[1].face.duration > faces[0].face.duration);
+});
+
+test('an older game adapter keeps the facial timeline inline in every state', async () => {
+  let writes = 0;
+  const f = fixture(owner, {faceFile: async () => false, writeFace: async () => { writes++; return true; }});
+  f.control();
+  await f.stream.frame(f.snapshot({faces: poses(.5), facesFormat: 'arkit61', facesTimebase: 'audio-seconds'}));
+  assert.equal(writes, 0); assert.ok(f.states.at(-1).face); assert.equal(f.states.at(-1).faceRevision, undefined);
 });

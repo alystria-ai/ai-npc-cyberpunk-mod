@@ -22,7 +22,11 @@ const LEASE_MS = Number.isFinite(requestedLease) && requestedLease > 2000 ? requ
 const FIRST_LEASE_MS = Math.max(5000, LEASE_MS);
 
 export class ConvaiContinuousSpeech {
-  constructor({input, profile, current, signal, readControl, writeState, writeReply,
+  // writeFace + faceFile(): when the game's adapter advertises it (speech-state
+  // continuousFaceFile), the facial timeline goes to its own file, written only
+  // when it changes; the state file carries faceRevision. The game then decodes
+  // ~100 KB a few times per utterance instead of on every 40 ms state poll.
+  constructor({input, profile, current, signal, readControl, writeState, writeReply, writeFace, faceFile,
     onPublished = async () => {}, onStarted = async () => {}, onGenerated = async () => {},
     // hold(): true while this turn is a look-ahead that must keep buffering and
     // publish nothing. onText(text, userText): the complete reply text is known.
@@ -31,6 +35,7 @@ export class ConvaiContinuousSpeech {
     this.planExpression = planExpression;
     this.input = input; this.profile = profile; this.current = current; this.signal = signal;
     this.readControl = readControl; this.writeState = writeState; this.writeReply = writeReply;
+    this.writeFace = writeFace; this.faceFile = faceFile; this.faceRevision = 0; this.faceWritten = 0;
     this.onPublished = onPublished; this.onStarted = onStarted; this.onGenerated = onGenerated;
     this.hold = hold; this.onHeld = onHeld; this.onText = onText; this.textAnnounced = false;
     this.woken = new Promise(resolve => { this.resolveWake = resolve; });
@@ -188,13 +193,31 @@ export class ConvaiContinuousSpeech {
         if (plan) this.face = attachExpressionTrack(this.face, plan,
           {complete: snapshot.sourceComplete, decay: snapshot.sourceComplete && snapshot.textComplete});
       }
-      this.faceKey = faceKey;
+      this.faceKey = faceKey; this.faceRevision++;
+    }
+    // Decided once, before the first state write, and fixed for this stream.
+    if (this.splitFace === undefined) {
+      let supported = false;
+      if (this.writeFace && this.faceFile) try { supported = await this.faceFile() === true; } catch { supported = false; }
+      this.splitFace = supported;
+    }
+    let faceField = {face: this.face};
+    if (this.splitFace) {
+      if (this.face && this.faceWritten !== this.faceRevision) {
+        const owner = {version: 1, id: this.token, requestId: this.input.requestId,
+          generation: this.input.generation, entity: this.input.entity};
+        const committed = await this.commit(this.writeFace, {...owner, revision: this.faceRevision, face: this.face}, false);
+        if (committed === false) throw Error('Continuous speech face could not be committed');
+        // null: the game was reading the old file; the next poll writes again.
+        if (committed !== null) this.faceWritten = this.faceRevision;
+      }
+      faceField = this.faceWritten ? {faceRevision: this.faceWritten} : {};
     }
     const document = {version: 1, id: this.token, requestId: this.input.requestId,
       generation: this.input.generation, entity: this.input.entity, updated: this.now(),
       state: snapshot.state, position: this.position, bufferedDuration: duration,
       text: snapshot.text, textComplete: snapshot.textComplete, complete: snapshot.sourceComplete,
-      ended: snapshot.ended, underruns: snapshot.underruns, face: this.face};
+      ended: snapshot.ended, underruns: snapshot.underruns, ...faceField};
     const expression = ownedExpressionReceipt(snapshot.expressionSignal, this.input);
     if (expression) document.expression = expression;
     const stateCommitted = await this.commit(this.writeState, document, snapshot.ended);

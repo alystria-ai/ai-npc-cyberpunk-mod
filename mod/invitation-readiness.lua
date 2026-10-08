@@ -68,6 +68,12 @@ function M.new(options)
     local encode = options.encode or function(value) return json.encode(value) end
     local decode = options.decode or function(value) return json.decode(value) end
     local now = options.now or function() return os.time() * 1000.0 end
+    -- update() runs every frame; each CET io.open costs about 1-2 ms of the
+    -- game's main thread. The receipt (valid for RECEIPT_AGE) is read at most
+    -- every readInterval seconds of wall clock. Injected readers default to every call.
+    local tick = options.tick or os.clock
+    local readInterval = options.readInterval or (options.read and 0 or .25)
+    local readAt
 
     local function clock()
         local ok, value = pcall(now)
@@ -263,12 +269,16 @@ function M.new(options)
     function R.update()
         synchronize(owner)
         local stamp = clock()
-        if owner == nil or not boundary or not stamp then receipt = nil; return end
-        local called, raw = pcall(read, receiptPath)
-        receipt = nil
-        if called and type(raw) == 'string' and #raw <= RECEIPT_BYTES_BASE + #order * RECEIPT_BYTES_PER_ROW then
-            local decoded, value = pcall(decode, raw)
-            if decoded and type(value) == 'table' then receipt = value end
+        if owner == nil or not boundary or not stamp then receipt, readAt = nil, nil; return end
+        local wall = tick()
+        if readInterval <= 0 or not readAt or wall - readAt >= readInterval or wall < readAt then
+            readAt = wall
+            local called, raw = pcall(read, receiptPath)
+            receipt = nil
+            if called and type(raw) == 'string' and #raw <= RECEIPT_BYTES_BASE + #order * RECEIPT_BYTES_PER_ROW then
+                local decoded, value = pcall(decode, raw)
+                if decoded and type(value) == 'table' then receipt = value end
+            end
         end
         if lastPublished == nil or stamp - lastPublished >= 1000 then publish(boundary, stamp) end
     end

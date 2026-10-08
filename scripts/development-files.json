@@ -86,6 +86,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/speech-cadence-probe.lua"
     },
     {
+      "source": "mod/perf-probe.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/perf-probe.lua"
+    },
+    {
       "source": "mod/continuous-speech.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/continuous-speech.lua"
     },

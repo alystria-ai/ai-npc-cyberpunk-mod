@@ -43,7 +43,9 @@ local function publish()
     local f = io.open('runtime/speech-state.json', 'wb')
     if f then
         local r = receipt()
-        f:write(json.encode({available = M.available, continuousAvailable = M.continuousAvailable == true, updated = os.time() * 1000,
+        f:write(json.encode({available = M.available, continuousAvailable = M.continuousAvailable == true,
+            continuousFaceFile = M.continuousAvailable == true and continuous ~= nil and continuous.faceFile == true or nil,
+            updated = os.time() * 1000,
             requestId = M.requestId, slot = M.slot, state = M.state or 'idle',
             position = M.position, paused = M.paused, error = M.error, face = face.status(),
             streamId = r and r.id, chunkIndex = r and r.index, completedChunk = r and r.completed,
@@ -358,7 +360,8 @@ local function updateContinuous(delta, player, paused)
         local caption = M.continuousCaptions
         caption.text, caption.bufferedDuration, caption.final = state.text, state.bufferedDuration, state.complete
         if type(state.face) == 'table' and state.bufferedDuration > 0 and type(face.updateContinuous) == 'function' then
-            face.updateContinuous(M.context, state.face, M.actor, state.bufferedDuration)
+            -- A separately published timeline (faceDuration) may trail the buffered audio by one refresh.
+            face.updateContinuous(M.context, state.face, M.actor, state.faceDuration or state.bufferedDuration)
         end
         M.continuousFaceTarget = math.max(M.continuousFaceTarget or 0, state.position)
         M.continuousFaceState = state.state

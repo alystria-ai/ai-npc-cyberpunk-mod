@@ -363,6 +363,9 @@ do -- archetype crowd/vendor record names, also by TweakDBID string
     end
 end
 convaiCompanions = companions
+-- Developer-mode frame-cost probe (runtime/perf-probe.json). It wraps module
+-- table fields from outside, so the onUpdate closure gains no upvalue.
+pcall(function() dofile('perf-probe.lua').install(companions, function() return manager.developerMode() end) end)
 local generation = 0
 local active = nil
 local pending = nil
