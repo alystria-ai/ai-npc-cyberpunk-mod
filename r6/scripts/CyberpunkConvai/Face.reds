@@ -105,7 +105,16 @@ public class ConvaiFaceService extends ScriptableService {
     let status = this.PrepareFaceComponent(face, true);
     if StrBeginsWith(status, "prepared:") { this.RememberWorld(npc.GetEntityID()); return status; };
     if !StrBeginsWith(status, "supported:") { return status; };
+    // Never rebuild an NPC a quest owns: one in a scene or dialogue, or one
+    // whose appearance or record belongs to a quest (q004, sq021, mq003...,
+    // e.g. the Konpeki receptionists of The Heist). Their voice still plays.
+    let scene = GameInstance.GetSceneSystem(npc.GetGame()).GetScriptInterface();
+    if IsDefined(scene) && (scene.IsEntityInScene(npc.GetEntityID()) || scene.IsEntityInDialogue(npc.GetEntityID())) {
+      return "skipped:scene";
+    };
     let appearance = npc.GetCurrentAppearanceName();
+    if ConvaiFaceService.QuestBound(NameToString(appearance))
+      || ConvaiFaceService.QuestBound(TDBID.ToStringDEBUG(npc.GetRecordID())) { return "skipped:quest"; };
     if this.HasWorldRequest(appearance) { return "requested:" + NameToString(appearance); };
     this.ReleaseOldestWorld(npc, appearance);
     if ArraySize(this.m_worldPending) >= 4 { ArrayErase(this.m_worldPending, 0); };
@@ -113,6 +122,26 @@ public class ConvaiFaceService extends ScriptableService {
     this.RememberWorld(npc.GetEntityID());
     npc.ScheduleAppearanceChange(appearance);
     return "requested:" + NameToString(appearance);
+  }
+
+  // True for a quest token: "q", "sq" or "mq" right after "_" or "." or at the
+  // start, then three digits ("..._q004_...", "Character.sq021_..."). Runs once
+  // per conversation start, on two short strings.
+  public static func QuestBound(text: String) -> Bool {
+    let digits = "0123456789";
+    let length = StrLen(text);
+    let i = 0;
+    while i + 3 < length {
+      if Equals(StrMid(text, i, 1), "q")
+        && StrContains(digits, StrMid(text, i + 1, 1)) && StrContains(digits, StrMid(text, i + 2, 1))
+        && StrContains(digits, StrMid(text, i + 3, 1)) {
+        let start = i;
+        if start > 0 && (Equals(StrMid(text, start - 1, 1), "s") || Equals(StrMid(text, start - 1, 1), "m")) { start -= 1; };
+        if start == 0 || Equals(StrMid(text, start - 1, 1), "_") || Equals(StrMid(text, start - 1, 1), ".") { return true; };
+      };
+      i += 1;
+    };
+    return false;
   }
 
   private func PrepareWorldAppearance(builder: ref<EntityBuilderWrapper>) -> Void {

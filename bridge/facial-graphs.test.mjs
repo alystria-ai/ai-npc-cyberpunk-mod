@@ -122,6 +122,14 @@ test('world NPC faces are prepared on demand for the talk target only, never at 
   assert.match(request, /if dynamic\.IsManaged\(npc\.GetEntityID\(\)\) \{ return "managed"; \};/);
   assert.match(request, /this\.PrepareFaceComponent\(face, true\)/, 'the running component is only checked');
   assert(request.indexOf('this.ReleaseOldestWorld(npc, appearance)') < request.indexOf('npc.ScheduleAppearanceChange(appearance)'));
+  // October 9: a Konpeki receptionist (appearance ..._q004_...) was rebuilt. Quest-owned
+  // NPCs, and any NPC in a scene or dialogue, are never rebuilt.
+  const rebuild = request.indexOf('npc.ScheduleAppearanceChange(appearance)');
+  for (const guard of ['return "skipped:scene"', 'return "skipped:quest"']) {
+    assert(request.indexOf(guard) >= 0 && request.indexOf(guard) < rebuild, guard);
+  }
+  assert.match(request, /scene\.IsEntityInScene\(npc\.GetEntityID\(\)\) \|\| scene\.IsEntityInDialogue\(npc\.GetEntityID\(\)\)/);
+  assert.match(request, /QuestBound\(NameToString\(appearance\)\)\s*\|\| ConvaiFaceService\.QuestBound\(TDBID\.ToStringDEBUG\(npc\.GetRecordID\(\)\)\)/);
   assert.doesNotMatch(request, /face\.graph =/);
   const release = nativeFace.slice(nativeFace.indexOf('private func ReleaseOldestWorld'),
     nativeFace.indexOf('private func PrepareFaceComponent'));
@@ -136,4 +144,21 @@ test('world NPC faces are prepared on demand for the talk target only, never at 
   assert.equal([...init.matchAll(/:ConvaiFaceRequest\(\)/g)].length, 3, 'composer, microphone and group speaker only');
   const gaze = init.slice(init.indexOf('local function updateGaze'), init.indexOf('local function updateGaze') + 4000);
   assert.doesNotMatch(gaze, /ConvaiFaceRequest/, 'a glance never rebuilds an NPC');
+});
+
+// The native quest-token check, run as written (a mechanical transliteration of
+// its redscript body, which uses only let/while/if and four string natives).
+test('QuestBound recognizes quest appearance and record tokens and leaves crowd names alone', () => {
+  const start = nativeFace.indexOf('public static func QuestBound(text: String) -> Bool {');
+  const source = nativeFace.replace(/\r\n/g, '\n');
+  const from = source.indexOf('public static func QuestBound(text: String) -> Bool {');
+  const body = source.slice(source.indexOf('{', from) + 1, source.indexOf('\n  }', from));
+  assert(start >= 0 && body.includes('return false;'));
+  const js = body.replace(/\};/g, '}').replace(/\b(if|while) ([\s\S]*?) \{/g, '$1 ($2) {');
+  const questBound = new Function('text', 'StrLen', 'StrMid', 'StrContains', 'Equals', js);
+  const run = text => questBound(text, s => s.length, (s, i, n) => s.substr(i, n), (s, x) => x !== '' && s.includes(x), (a, b) => a === b);
+  for (const name of ['citizen__arasaka_corpo_wa__q004__konpeki_receptionist_04', 'Character.sq021_river', 'mq003_vendor', 'q101_x', 'Character.q115_guard'])
+    assert.equal(run(name), true, name);
+  for (const name of ['citizen__lowlife_ma__01', 'Character.Watson_Resident_Male', 'squad_7', 'iq100', 'aq123_b', 'Character.ma_q12'])
+    assert.equal(run(name), false, name);
 });

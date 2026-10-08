@@ -2285,7 +2285,16 @@ registerForEvent('onUpdate', function(delta)
                     groupChat.received(pending.requestId, reply.text, reply.error ~= nil or (not speech.requestId and not subtitles.ownsUtterance()), listeners, utterance, reply.userText)
                     tactics.received(pending.requestId, reply)
                     if type(microphone.received) == 'function' then microphone.received(pending.requestId) end
-                    log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil))
+                    -- One line per reply: did speech start, and does the speaker's face carry
+                    -- the speech layer (world NPCs get it on demand, Face.reds ConvaiFaceRequest).
+                    local faceState = 'none'
+                    if speech.actor then
+                        local faceOk, faceReady, faceStatus = pcall(function()
+                            return speech.actor:ConvaiFaceReady(), speech.actor:ConvaiFaceStatus() end)
+                        faceState = faceOk and (tostring(faceReady) .. '/' .. tostring(faceStatus)) or 'unavailable'
+                    end
+                    log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil)
+                        .. ' speech=' .. tostring(speech.state) .. ' face=' .. faceState)
                     if automatic and pending.requestId == automatic.requestId then
                         automatic.shown = reply.error == nil
                         if automatic.shown and (speech.requestId or subtitles.ownsUtterance()) then
