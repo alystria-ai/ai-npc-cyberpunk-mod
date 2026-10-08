@@ -2,7 +2,9 @@ import {appendFile, readFile, writeFile, mkdir} from 'node:fs/promises';
 import {dirname} from 'node:path';
 
 // One line per spoken reply saying which voice was asked for, which one actually spoke, and why they differ.
-// Routing facts only: no conversation text, no provider/session IDs, no audio. The line goes to the bridge log and to a
+// Routing facts only: no conversation text, no session IDs, no audio. The Convai character the turn went to is named
+// (provider key and character ID, so a multilingual twin or a romantic profile is visible); the support report hashes
+// character IDs like every other ID. The line goes to the bridge log and to a
 // small rolling file (runtime/voice-routing.log, the last ROUTING_LOG_MAX_LINES lines) that the support report includes.
 //
 //   2026-10-08 14:03:21 profile=resident-male name="NC Resident" requested="Pocket · Performance"
@@ -88,7 +90,8 @@ const quote = value => `"${text(value)}"`;
  *   sources: raw voice configurations (for reference seconds); lipText: true/false when known, else undefined;
  *   reason: a fallback reason the caller knows better than the routing state (a worker error mid-reply).
  */
-export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey, sources, lipText, reason, now = Date.now}) {
+export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey, sources, lipText, reason, character,
+  now = Date.now}) {
   const engine = reply?.engine ?? plan?.engine ?? 'convai';
   const key = input?.profileKey ?? profile?.key ?? '?';
   const local = engine === 'pocket' || engine === 'omni';
@@ -103,6 +106,7 @@ export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey
   else record.used = `Convai cloud (${profile?.voiceName ?? 'character voice'})`;
   if (voice.multilingual) record.language = reply?.language ?? plan?.language ?? undefined;
   if (typeof lipText === 'boolean') record.lipText = lipText;
+  if (character?.id) record.character = {key: character.key, id: character.id};
   return record;
 }
 
@@ -119,6 +123,7 @@ export function formatVoiceRoute(record) {
     ? `${record.reference.set}${record.reference.seconds === undefined ? '' : ` ${record.reference.seconds}s`}` : '-';
   const parts = [stamp(record.time), `profile=${record.profile}${voiceKey}`, `name=${quote(record.name)}`,
     `requested=${quote(record.requested)}`, `used=${quote(record.used)}`, `ref=${record.reference ? quote(reference) : '-'}`];
+  if (record.character) parts.push(`character=${text(record.character.key) || '-'}`, `characterId=${text(record.character.id)}`);
   if (record.language !== undefined) parts.push(`lang=${text(record.language) || '-'}`);
   if (record.lipText !== undefined) parts.push(`lipText=${record.lipText ? 'yes' : 'no'}`);
   if (record.fallback) parts.push(`fallback=${quote(record.fallback)}`);

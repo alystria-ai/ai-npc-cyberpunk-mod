@@ -92,7 +92,8 @@ test('reply voice: a local turn follows the reply language; a cloud turn stays o
 test('the turn plan gates Natural speech and Expressive emotions: the cloud voice never gets tag instructions', () => {
   const speech = new NaturalSpeech(), emotions = new ExpressiveEmotions();
   speech.update({naturalSpeech: true}); emotions.update({expressiveEmotions: true});
-  const blocks = plan => [speech.contextFor({engine: plan.engine}), emotions.contextFor({engine: plan.engine})];
+  // random 0: this turn is one where Natural speech offers its devices.
+  const blocks = plan => [speech.contextFor({engine: plan.engine, random: () => 0}), emotions.contextFor({engine: plan.engine})];
   // A cloud-voice turn (chosen, or Pocket handing a Spanish turn over): no blocks at all.
   assert.deepEqual(blocks(planTurnVoice({enabled: true, language: 'es', local: CLOUD})), ['', '']);
   assert.deepEqual(blocks(planTurnVoice({enabled: true, language: 'es', local: POCKET})), ['', '']);
@@ -459,4 +460,22 @@ test('the bridge loads the twins, gives memory their markers and decides the voi
   // Every per-turn voice check goes through the plan; only invitation readiness asks about the profile.
   const perTurn = bridge.slice(bridge.indexOf('async function synthesizeReply('), bridge.indexOf('async function pollMicrophone('));
   assert.doesNotMatch(perTurn, /usesProfile\(input\.profileKey\)|localVoice\.provider\s*===\s*'omni'\s*\)/);
+});
+
+test('the reply-language block names the player\'s language, last in the context, only while the setting is on', async () => {
+  const {languageContext} = await import('./multilingual.mjs');
+  assert.equal(languageContext({enabled: false, text: 'hola, cómo estás'}), '');
+  // The in-game failure: a short Spanish greeting answered in English under the English context notes.
+  assert.match(languageContext({enabled: true, text: 'hola, cómo estás'}), /latest message, which is Spanish\..*whole reply in Spanish/);
+  assert.match(languageContext({enabled: true, text: 'こんにちは、ジュディ'}), /which is Japanese/);
+  assert.match(languageContext({enabled: true, text: 'How are you?'}), /which is English/);
+  // No player text (a reaction, the microphone placeholder): the language the player is using, with the last one.
+  assert.match(languageContext({enabled: true, text: '[Microphone]', lastLanguage: 'de'}), /language the player is using with you \(so far German\)/);
+  assert.match(languageContext({enabled: true, text: ''}), /language the player is using with you\. Everything else/);
+  const setting = new MultilingualConversations();
+  assert.equal(setting.contextFor('hola'), '');
+  setting.update({multilingualConversations: true}); setting.observe('Hola, ¿cómo estás?');
+  assert.match(setting.contextFor('[Microphone]'), /so far Spanish/);
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(bridge, /expressiveEmotionsContext\(input\),\s*\/\/[^\n]*\n\s*multilingual\.contextFor\(input\.reaction \? '' : input\.text\)\]\s*\.filter\(Boolean\)/);
 });

@@ -65,6 +65,8 @@ export class MultilingualConversations {
     this.lastLanguage = language;
     return true;
   }
+  /** The reply-language block for a turn (languageContext). */
+  contextFor(text) { return languageContext({enabled: this.enabled, text, lastLanguage: this.lastLanguage}); }
   /** The language a turn is expected in: its own text when that is clear, else the last exchange's, else English. */
   expected(text) {
     const {language} = detectLanguage(text);
@@ -102,4 +104,29 @@ export function replyVoice({plan, text, local = {}} = {}) {
   if (local.provider === 'omni') return {engine: 'omni', language};
   if (language === 'en') return {engine: 'pocket', language: 'en'};
   return {engine: 'none', language, reason: 'english-only-voice'};
+}
+
+// English names of the languages the detector reports, for the reply-language instruction.
+export const LANGUAGE_NAMES = Object.freeze({en: 'English', es: 'Spanish', pt: 'Portuguese', fr: 'French', de: 'German',
+  it: 'Italian', nl: 'Dutch', pl: 'Polish', cs: 'Czech', hu: 'Hungarian', tr: 'Turkish', sv: 'Swedish', ja: 'Japanese',
+  zh: 'Chinese', ko: 'Korean', ru: 'Russian', uk: 'Ukrainian', el: 'Greek', ar: 'Arabic', he: 'Hebrew', hi: 'Hindi', th: 'Thai'});
+const REFERENCE_NOTE = 'Everything else in this context is written in English only as reference notes; it never sets your reply language.';
+
+/**
+ * The reply-language block of a turn's dynamic context, last in the context (Multilingual conversations on only).
+ * The twins answer in the player's language on their own, but the mod's dynamic context (relationship, knowledge,
+ * Natural speech and Expressive emotions notes) is English, and with it a short message such as "hola, cómo estás" was
+ * answered in English in game (2026-10-08). Naming the language of the player's message fixes that. A turn without
+ * player text (a reaction, the microphone placeholder) follows the language the conversation was last in.
+ */
+export function languageContext({enabled = false, text, lastLanguage = null} = {}) {
+  if (!enabled) return '';
+  const language = detectLanguage(text).language;
+  if (language) {
+    const name = LANGUAGE_NAMES[language] ?? 'that language';
+    return `Language: answer in the language of the player's latest message, which is ${name}. ${REFERENCE_NOTE} `
+      + `Keep your own personality, slang and names, and write the whole reply in ${name}.`;
+  }
+  const previous = lastLanguage && LANGUAGE_NAMES[lastLanguage];
+  return `Language: answer in the language the player is using with you${previous ? ` (so far ${previous})` : ''}. ${REFERENCE_NOTE}`;
 }

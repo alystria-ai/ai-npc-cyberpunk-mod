@@ -338,8 +338,14 @@ function logVoiceRoute(input, profile, reply, extra = {}) {
   try {
     // The local voice that speaks (a variant of an ambient profile, decided once per turn); the profile key otherwise.
     const voiceKey = ['pocket', 'omni'].includes(reply?.engine) && typeof voiceKeyFor === 'function' ? voiceKeyFor(input) : undefined;
+    // The Convai character the turn went to (the original, a romantic profile or a multilingual twin).
+    let character;
+    try {
+      const route = routeFor(input), characterId = route?.guard?.characterId;
+      if (characterId) character = {key: route.route?.providerProfileKey ?? input.profileKey, id: characterId};
+    } catch {}
     routingLog.record(describeVoiceRoute({voice: localVoice, input, profile, plan: turnVoice(input), reply,
-      sources: voiceSources, voiceKey, ...extra}));
+      sources: voiceSources, voiceKey, character, ...extra}));
   } catch {}
 }
 // The local voice that speaks this turn: an ambient profile (unnamed NPC) may have several (bridge/voice-variants.mjs),
@@ -410,7 +416,9 @@ const conversationContext = input => {
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : '',
     admitted && prepared.route.channel === 'phone' ? phoneRecentConversationContext(prepared.input) : '',
-    naturalSpeechContext(input), expressiveEmotionsContext(input)]
+    naturalSpeechContext(input), expressiveEmotionsContext(input),
+    // Multilingual conversations: the reply language, last so it outweighs the English notes above.
+    multilingual.contextFor(input.reaction ? '' : input.text)]
     .filter(Boolean).join('\n\n');
 };
 const boundaryFor = input => ({entity: input?.entity,

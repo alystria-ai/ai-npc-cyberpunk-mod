@@ -200,3 +200,18 @@ test('logVoiceRoute hands the record to the log and swallows any failure', () =>
   assert.doesNotThrow(() => sandbox.api.logVoiceRoute({profileKey: 'resident-male'}, RESIDENT, {engine: 'convai'}));
   assert.doesNotThrow(() => sandbox.api.logVoiceRoute(undefined, undefined, undefined));
 });
+
+test('the line names the Convai character the turn went to (original, romantic or multilingual twin)', () => {
+  const voice = fixture().voice;
+  const twin = describeVoiceRoute({voice, input: {profileKey: 'judy-alvarez'}, profile: {key: 'judy-alvarez', name: 'Judy Alvarez'},
+    reply: {engine: 'convai'}, character: {key: 'judy-alvarez-romantic-multilingual', id: '60e7c180-c21a-11f1-93e8-42010a7be02f'},
+    now: () => Date.UTC(2026, 9, 8, 8, 0, 0)});
+  const line = formatVoiceRoute(twin);
+  assert.match(line, / character=judy-alvarez-romantic-multilingual characterId=60e7c180-c21a-11f1-93e8-42010a7be02f/);
+  assert.ok(line.indexOf(' character=') > line.indexOf(' ref='), 'after the voice facts');
+  // Without a known character (no admitted route) the field is left out.
+  const unknown = formatVoiceRoute(describeVoiceRoute({voice, input: {profileKey: 'judy-alvarez'}, reply: {engine: 'convai'}}));
+  assert.doesNotMatch(unknown, /character=/);
+  // The bridge passes the admitted route's provider key and character ID.
+  assert.match(bridge, /character = \{key: route\.route\?\.providerProfileKey \?\? input\.profileKey, id: characterId\}/);
+});
