@@ -93,6 +93,8 @@ The review is **complete** (2026-10-07; verdict and decisions are in the log). D
 
 ## Captain's log
 
+**2026-10-08: Natural speech by character clones, phase 1 (prototype and measurement)**: four prototype clones (Judy, Panam, Johnny, street local; nothing routes to them) measured over about 900 Convai probe requests. With 4 device lines out of 16 in the samples they reach 23-35% of lines with a device, against 15-43% for the current block: better placed, but less varied (only [laughter] and [sigh], plus an "echo + [laughter]" habit), and they split memory. Recommendation: no rollout yet; an in-game A/B for Judy first, then 84 named clones if the clone wins. `docs/NATURAL_SPEECH_CLONES.md`.
+
 **2026-10-08: Judy walked to her goal and stopped in view**
 - Installed `2580082`: the walk worked, but the goal was 24 m away; she stopped there in V's view and stood, since removal waits for V to look away or 40 m.
 - Fix (`mod/companion-adoption.lua`): first goals are 50, 40, 58, 28, 18 m (home first when it is 8-60 m away) with the same reachability checks; on arrival she takes the next goal at least 6 m farther from V and keeps chaining; removal is 1 s out of view (at 8 m or more, or stuck) or 50 m from V. Test: chained goals in `bridge/world-companions.test.mjs`.
