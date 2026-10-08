@@ -480,7 +480,7 @@ test('a companion told to leave says goodbye first, then leaves through Dismiss;
   assert(adoption.inspect().walking==1)
   step(5); assert(find('judy-alvarez'),'not removed while V watches her walk off')
   -- ... and is removed once out of view and far enough away.
-  copy.pos=Vector4.new(0,30); player.forward=Vector4.new(1,0); step(1)
+  copy.pos=Vector4.new(0,30); player.forward=Vector4.new(1,0); step(2)
   assert(find('judy-alvarez')==nil,'removed out of view through the Dismiss path')
   -- V is looking away from the original's spot too, so she is back at once.
   assert(judy.visible==true,'the original is shown again out of view')
@@ -521,7 +521,7 @@ test('a leaving companion walks to a point the mesh proves reachable, not blindl
   local g=goal(); assert(g,'she must walk: '..table.concat(logs,' / '))
   assert(g.x>=8,'goal is on the mesh: '..g.x..','..g.y)
   local gap=math.sqrt((g.x-copy.pos.x)^2+(g.y-copy.pos.y)^2)
-  assert(gap>=15 and gap<=30,'walks 15 to 30 m: '..gap)
+  assert(gap>=40 and gap<=60,'a long first walk, 40 to 60 m: '..gap)
   assert(math.sqrt(g.x^2+g.y^2)>=12,'ends well away from V')
 `));
 
@@ -535,6 +535,26 @@ test('a goal the movement actuator refuses is dropped for the next direction, an
   for _,cmd in ipairs(copy.ai.commands) do if cmd.kind=='AIMoveToCommand' then tries=tries+1 end end
   assert(tries>=1)
   assert(find('judy-alvarez'),'still walking, not removed while V watches')
+`));
+
+test('arriving while V can still see her, she takes the next goal farther from V, and keeps chaining', () => runWorld(leaveSetup + `
+  navigation(function() return true end)
+  player.forward=Vector4.new(0,1) -- V watches her
+  assert(adoption.queueLeave(row.entityID,leave,row.entityID,'request-2')); step(3)
+  local function away(g) return math.sqrt((g.x-player.pos.x)^2+(g.y-player.pos.y)^2) end
+  local stood=0
+  for round=1,3 do
+    local g=goal(); assert(g,'round '..round..' has a goal: '..table.concat(logs,' / '))
+    assert(away(g)>stood+5,'each goal farther from V: '..away(g)..' after '..stood)
+    -- She arrives and the command succeeds; V has walked after her, so she is
+    -- still in view and well inside the removal distance.
+    copy.pos=Vector4.new(g.x,g.y); last(copy,'AIMoveToCommand').state='Success'
+    player.pos=Vector4.new(g.x*0.7,g.y*0.7)
+    player.forward=Vector4.new(g.x-player.pos.x,g.y-player.pos.y)
+    stood=away(copy.pos)
+    step(3)
+    assert(find('judy-alvarez'),'not removed while V sees her: '..table.concat(logs,' / '))
+  end
 `));
 
 test('a goal that gets her nowhere is replaced after a few seconds by a different direction', () => runWorld(leaveSetup + `
@@ -586,8 +606,8 @@ test('V far away removes a stuck companion even in view', () => runWorld(leaveSe
   player.forward=Vector4.new(0,1)
   assert(adoption.queueLeave(row.entityID,leave,row.entityID,'request-2')); step(3)
   assert(find('judy-alvarez'))
-  player.pos=Vector4.new(0,-45); step(2)
-  assert(find('judy-alvarez')==nil,'V is 45 m away: '..table.concat(logs,' / '))
+  player.pos=Vector4.new(0,-60); step(2)
+  assert(find('judy-alvarez')==nil,'V is 60 m away: '..table.concat(logs,' / '))
 `));
 
 test('headway keeps a walking companion from being called stuck', () => runWorld(leaveSetup + `

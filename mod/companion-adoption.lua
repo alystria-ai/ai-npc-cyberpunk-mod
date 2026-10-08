@@ -31,7 +31,7 @@ M.CONFIG = {
     restoreDistance = 60, -- metres: a former member's original is shown again past this ...
     restoreAngle = 70,    -- ... or once it is this many degrees away from where V is looking ...
     restoreWait = 20,     -- ... or after this many seconds
-    walkDistances = {24, 17, 29}, -- metres: how far a leaving companion heads (15 to 30), tried in this order
+    walkDistances = {50, 40, 58, 28, 18}, -- metres: how far a leaving companion heads, tried in this order (long first)
     walkBearings = {0, 40, -40, 80, -80, 120, -120}, -- degrees off straight away from V; never back toward V
     walkProbes = 2,       -- candidate goals checked per update while none is held
     walkRetry = 0.4,      -- seconds before the next candidate while she is walking
@@ -41,14 +41,14 @@ M.CONFIG = {
     walkSnap = 3,         -- metres: how far from a candidate the nearest walkable ground may be
     walkRouteSlack = 4,   -- metres: a route longer than the straight line by more than this is a detour
     walkMinGap = 12,      -- metres: a goal must end at least this far from V
+    walkFarther = 6,      -- metres: a chained goal must end this much farther from V than she stands (2 from the second round)
     walkGoalWait = 4,     -- seconds a goal may go without headway before the next one is tried
     walkStuck = 6,        -- seconds without 1.5 m of headway: she is stuck; she stands and keeps trying, and goes ...
     walkStuckHidden = 1,  -- ... only once V has not seen her for this long ...
-    walkFar = 40,         -- ... or V is this far away (metres), seen or not
+    walkFar = 50,         -- ... or she is this far from V (metres), seen or not
     walkHomeMin = 8,      -- metres: an original's home closer or ...
     walkHomeMax = 60,     -- ... farther than this is not walked to; away from V instead
-    walkGone = 25,        -- metres: out of view and this far away, the copy is removed ...
-    walkHidden = 3,       -- ... or out of view this many seconds while at least ...
+    walkHidden = 1,       -- ... or out of view this many seconds while at least ...
     walkHiddenGap = 8,    -- ... this far away
     walkTimeout = 180,    -- seconds: after this she goes as soon as V cannot see her ...
     walkTimeoutHard = 300, -- ... and never later than this, seen or not
@@ -479,7 +479,13 @@ function M.new(options)
             end
             walker.cursor = walker.cursor + 1
             if not walker.refused[keyOf(desired)] then
-                local point = reachable(desired, at, from, who, walker.pass > 1 and cfg.walkShortGap or cfg.walkMinGap)
+                local second = walker.pass > 1
+                local gap = second and cfg.walkShortGap or cfg.walkMinGap
+                -- Chained goals lead farther from V than she stands now.
+                if walker.fartherThan then
+                    gap = math.max(gap, walker.fartherThan + (second and 2 or cfg.walkFarther))
+                end
+                local point = reachable(desired, at, from, who, gap)
                 if point then return point end
             end
         end
@@ -507,7 +513,12 @@ function M.new(options)
                 local stuck = clock - walker.progressAt >= cfg.walkStuck
                 walker.nextTryAt = clock + (stuck and cfg.walkRetryStuck or cfg.walkRetry)
             elseif motion.complete then
-                walker.operation = {ticket = operation.ticket .. '-rest', kind = 'hold'}
+                -- Arrived. V may still see her: the next goal leads farther from V,
+                -- and so on until V cannot see her or she is far away.
+                walker.operation, walker.candidates, walker.cursor, walker.pass = nil, nil, nil, 1
+                walker.refused, walker.nextTryAt = {}, 0
+                walker.fartherThan = context.playerGap or 0
+                walker.attempt = walker.attempt + 1
             end
         end
         if not walker.operation and clock >= (walker.nextTryAt or 0) then
@@ -624,7 +635,6 @@ function M.new(options)
                 elseif hidden and clock - walker.since >= cfg.walkTimeout then reason = 'timeout, out of view'
                 elseif hidden and stuckFor >= cfg.walkStuck and clock - walker.hiddenSince >= cfg.walkStuckHidden then
                     reason = 'stuck, out of view'
-                elseif hidden and gap >= cfg.walkGone then reason = 'out of view'
                 elseif hidden and gap >= cfg.walkHiddenGap and clock - walker.hiddenSince >= cfg.walkHidden then
                     reason = 'out of view'
                 end
