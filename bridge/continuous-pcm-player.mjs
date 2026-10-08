@@ -259,13 +259,18 @@ export class ContinuousPcmPlayer {
   deviceTime() {
     const context = this.context;
     if (!context) return 0;
+    const latency = Math.max(0, context.baseLatency || 0) + Math.max(0, context.outputLatency || 0);
     const stamp = context.getOutputTimestamp?.();
     if (Number.isFinite(stamp?.contextTime) && stamp.contextTime > 0
         && Number.isFinite(stamp.performanceTime) && stamp.performanceTime >= 0) {
       const age = Math.max(0, Math.min(.1, (this.now() - stamp.performanceTime) / 1000));
-      return Math.max(0, Math.min(context.currentTime, stamp.contextTime + age));
+      // Edge's output timestamp does not include the output path: a loopback
+      // recording of the Windows mix (scripts/audio-level/measure-playback-clock.mjs)
+      // put the audio 49.3 ms after this clock with baseLatency 10 + outputLatency
+      // 40 ms reported, so the face and subtitles led the voice by that much.
+      // Subtract the reported latency: the cursor is then the sample being mixed.
+      return Math.max(0, Math.min(context.currentTime, stamp.contextTime + age - latency));
     }
-    const latency = Math.max(0, context.baseLatency || 0) + Math.max(0, context.outputLatency || 0);
     // Be conservative before the device supplies its first correlated clock.
     return Math.max(0, context.currentTime - latency - 128 / this.sampleRate);
   }

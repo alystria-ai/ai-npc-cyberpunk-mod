@@ -156,3 +156,28 @@ ChatterHelper.PlayVoiceOver(Game.GetTargetingSystem():GetLookAtObject(Game.GetPl
 limiter, slot WAVs on/off, settings file, control validation, graph routing)
 and `bridge/dialogue-level-browser.test.mjs` (real Edge offline render).
 In-game loudness and position acceptance remain open.
+
+## Lip-sync clock (October 8)
+
+In-game report after install: the mouth led the voice slightly (Judy, Pocket).
+`scripts/audio-level/measure-playback-clock.mjs` plays three faint (-50 dBFS)
+2 kHz ticks through the real renderer in Edge, logs its heard position on the
+wall clock, and finds the ticks in a loopback recording of the Windows mix
+(sample 0 of the recording is tied to the system clock).
+
+| Renderer clock | Limiter | Audio reached the mix after the clock said |
+| --- | --- | --- |
+| before (output timestamp only) | off | 49.2, 49.3, 49.2 ms |
+| before | on (6 dB) | 49.4, 49.3, 49.3 ms |
+| after (timestamp minus base + output latency) | off | -0.7, -0.7, -0.9 ms |
+| after | on (6 dB) | -0.9, -0.9, -0.9 ms |
+
+Edge reported `baseLatency` 10 ms and `outputLatency` 40 ms; its output
+timestamp does not include them, so the heard cursor (subtitles, face) ran
+about 49 ms ahead of the sound. The limiter's 6 ms look-ahead was already
+compensated exactly (on and off agree). The player now subtracts the reported
+latency, which puts the cursor within 1 ms of the mixed sample. Delay after
+the Windows mix (the device buffer, and a Bluetooth headset's link, often
+100 ms or more) is not visible to software and is not compensated; the game's
+own dialogue has the same delay. Omni plays through Audioware, whose
+`Position()` clock is unchanged.

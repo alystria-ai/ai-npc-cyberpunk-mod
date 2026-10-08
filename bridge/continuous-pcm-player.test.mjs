@@ -82,11 +82,13 @@ test('rendered EOF is not declared heard until the device-correlated cursor reac
   const f = fixture(); await f.player.open({sampleRate: 8000, channels: 1, token: 'owner'});
   await f.player.append(pcm(800), 0); await f.player.end(800);
   f.player.control({allow: true, paused: false}); await flush();
-  f.node.render(800); f.context.outputTime = .05;
+  // The output stamp runs ahead of the mix by base + output latency (.01 + .02
+  // here, measured 49 ms in Edge): the heard cursor is the stamp minus that.
+  f.node.render(800); f.context.outputTime = .08;
   let state = f.player.snapshot();
   assert.equal(state.playedFrames, 800); assert.equal(state.ended, false); assert.equal(state.state, 'draining');
   assert.ok(Math.abs(state.positionSeconds - .05) < 1e-8); assert.equal(f.context.closeCount, 0);
-  f.context.outputTime = .1; state = f.player.snapshot();
+  f.context.outputTime = .13; state = f.player.snapshot();
   assert.equal(state.ended, true); assert.equal(state.state, 'ended'); assert.equal(state.positionSeconds, .1);
   await f.player.stop('completed'); assert.equal(f.context.closeCount, 1);
   assert.equal(f.player.snapshot().ended, true);

@@ -150,7 +150,11 @@ namespace CyberpunkConvaiAudio {
       long total = (long)(seconds * rate);
       var samples = new float[total * channels];
       var log = new StreamWriter(csvPath); log.WriteLine("t,pid,process,state,volume,mute,peak");
-      long startTicks = Stopwatch.GetTimestamp(); double qpcStart = -1;
+      // Sample 0 is the QPC instant startTicks (packet qpcPosition is QPC in 100 ns
+      // units), paired with the precise system clock so other processes (the
+      // browser's performance.timeOrigin + now()) can be aligned to the recording.
+      long startTicks = Stopwatch.GetTimestamp(); double wallStartMs = (DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+      double qpcStart = startTicks / (double)Stopwatch.Frequency;
       Check(client.Start(), "start");
       long nextMeter = 0; int packets = 0;
       while (true) {
@@ -167,7 +171,6 @@ namespace CyberpunkConvaiAudio {
           Check(capture.GetBuffer(out data, out frames, out flags, out devPos, out qpc), "get buffer");
           // qpcPosition is in 100 ns units.
           double t = qpc / 1e7;
-          if (qpcStart < 0) qpcStart = t - elapsed;
           long index = (long)Math.Round((t - qpcStart) * rate);
           if ((flags & 2) == 0 && index >= 0) {
             var chunk = new float[frames * channels]; Marshal.Copy(data, chunk, 0, chunk.Length);
@@ -187,6 +190,7 @@ namespace CyberpunkConvaiAudio {
         w.Write((short)(channels * 4)); w.Write((short)32); w.Write(new char[] {'d','a','t','a'}); w.Write(dataBytes);
         var bytes = new byte[dataBytes]; Buffer.BlockCopy(samples, 0, bytes, 0, dataBytes); w.Write(bytes);
       }
+      File.WriteAllText(Path.ChangeExtension(wavPath, ".clock.json"), string.Format(System.Globalization.CultureInfo.InvariantCulture, "{{\"wallStartMs\":{0:F3},\"rate\":{1}}}", wallStartMs, rate));
       return string.Format("{0} Hz, {1} ch, {2} packets", rate, channels, packets);
     }
   }
