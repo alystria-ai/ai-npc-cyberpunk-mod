@@ -2,6 +2,8 @@
 
 > **October 5:** local voices and continuous Convai speech now use a model trained on the game's own JALI dialogue lipsync when local weights exist; see [GAME_LIPSYNC_MODEL.md](GAME_LIPSYNC_MODEL.md). The paths below remain the fallback.
 
+> **October 8: world NPCs.** The layer is no longer companion-only. `ConvaiFaceService.OnWorldInitialize` (`Entity/Initialize`, `EntityTarget.Type(n"NPCPuppet")`) gives every non-dynamic NPC with a supported rig and `*_sermo` graph (crowd, community, vendors, named characters met in the world) the same additive graph before component initialization. Zero inputs leave its face as vanilla. `ConvaiFaceReady()` accepts such a prepared world NPC; a dynamic entity still needs the `CyberpunkConvaiCompanion` tag. In Lua, speech playback writes to whoever `speech.lua` is voicing (`speaker()`), and idle, thinking and listening faces stay on managed companions (`owns()`). NPCs that spawned before the scripts loaded are not prepared and keep their voice without a moving mouth. Statements below that the layer is for owned companions only date from before this change.
+
 ## October 2: facial graph lifetime across appearance changes
 
 Johnny's seated reply delivered 186 facial applications and a reset, but the

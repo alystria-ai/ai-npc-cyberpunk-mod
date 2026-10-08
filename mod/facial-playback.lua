@@ -25,10 +25,18 @@ local limits = {jaw_mid_open = .7, lips_together_up = 1, lips_together_dn = 1, l
 local function trackLimit(track)
     return limits[track] or .5
 end
-local function owns(actor, entity)
-    return actor and convaiCompanions and convaiCompanions.owns(actor)
-        and tostring(actor:GetEntityID().hash) == (entity or M.entity)
+-- The speaker: whoever speech.lua is voicing right now, a managed companion or
+-- a world NPC (ambient resident, archetype, named character met in the world).
+-- ConvaiFaceReady() is the native ownership proof: a tagged companion copy or a
+-- world NPC whose face_rig ConvaiFaceService prepared (Face.reds). Speech hands
+-- only its own target here, matched to the reply's entity.
+local function speaker(actor, entity)
+    return actor and tostring(actor:GetEntityID().hash) == (entity or M.entity)
         and actor:IsAttached() and not actor:IsDeadNoStatPool() and actor:ConvaiFaceReady()
+end
+-- Idle, thinking and listening faces stay on managed companions only.
+local function owns(actor, entity)
+    return actor and convaiCompanions and convaiCompanions.owns(actor) and speaker(actor, entity)
 end
 -- Speech and expressions share this one native writer. These per-copy entries
 -- retain primitives and feature values only, never actors or world components.
@@ -507,7 +515,7 @@ local function modelExpressions(timeline)
 end
 local function reset(actor)
     local ok, done = pcall(function()
-        return owns(actor) and actor:ConvaiFaceReset()
+        return speaker(actor) and actor:ConvaiFaceReset()
     end)
     M.restored = ok and done == true
     if M.restored and M.entity and M.expressions[M.entity] then
@@ -580,7 +588,7 @@ function M.start(context, timeline, actor, duration, expectedSegment)
                 'Facial segment does not match its native audio')
             segment = {version=1,index=value.index,startSeconds=value.startSeconds,first=value.first,last=value.last}
         end
-        assert(owns(actor, context.entity), 'Speaker has no prepared owned facial layer')
+        assert(speaker(actor, context.entity), 'Speaker has no prepared facial layer')
         feature = NewObject('ConvaiFaceFeature')
         assert(feature, 'Native facial feature is unavailable')
     end)
@@ -666,7 +674,7 @@ function M.updateContinuous(context, timeline, actor, duration)
                 assert(track == M.timeline.tracks[index], 'Continuous facial controls changed')
             end
         end
-        assert(owns(actor, context.entity), 'Speaker has no prepared owned facial layer')
+        assert(speaker(actor, context.entity), 'Speaker has no prepared facial layer')
     end)
     if not ok then
         M.error = tostring(err)
@@ -714,7 +722,7 @@ end
 function M.sync(actor, position, requestId)
     if not M.active or requestId ~= M.requestId then return end
     local ok, err = pcall(function()
-        assert(owns(actor), 'Facial playback owner changed')
+        assert(speaker(actor), 'Facial playback owner changed')
         assert(finite(position) and position >= 0, 'Invalid audio cursor')
         local continuousEnd = M.continuous and position >= M.timeline.duration
         if continuousEnd and M.timeline.complete then M.stop(actor, 'finished'); return end

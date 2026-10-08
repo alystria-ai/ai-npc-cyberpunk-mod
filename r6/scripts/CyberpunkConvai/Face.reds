@@ -1,6 +1,8 @@
-// A separate graph is chosen before native component initialization, only for
-// dynamic entities tagged by our companion manager. Shared game resources are
-// never patched, and this service never owns a live actor or component handle.
+// A separate graph is chosen before native component initialization, for
+// dynamic entities tagged by our companion manager and for world NPCs (crowd,
+// community, vendors, named characters met in the world) the mod may voice.
+// Shared game resources are never patched, zero inputs leave the native face
+// unchanged, and this service never owns a live actor or component handle.
 public class ConvaiFaceService extends ScriptableService {
   private let m_names: array<String>;
   private let m_graphs: array<ResourceRef>;
@@ -15,6 +17,10 @@ public class ConvaiFaceService extends ScriptableService {
     GameInstance.GetCallbackSystem()
       .RegisterCallback(n"Entity/Initialize", this, n"OnCompanionInitialize")
       .AddTarget(DynamicEntityTarget.Tag(n"CyberpunkConvaiCompanion"));
+    // World NPCs: one preparation per NPC initialization, never per frame.
+    GameInstance.GetCallbackSystem()
+      .RegisterCallback(n"Entity/Initialize", this, n"OnWorldInitialize")
+      .AddTarget(EntityTarget.Type(n"NPCPuppet"));
     // DynamicEntityTarget is a lifecycle-event filter, not a builder filter.
     // The extraction callback repeats ownership using the builder request ID
     // before touching any newly extracted component instance.
@@ -74,6 +80,27 @@ public class ConvaiFaceService extends ScriptableService {
     let graphPath = "";
     if IsDefined(face) { graphPath = ResRef.ToString(ResourceRef.GetPath(face.graph)); };
     npc.ConvaiFacePrepared(StrBeginsWith(status, "prepared:"), status, graphPath);
+  }
+
+  // Ambient and archetype NPCs are spawned by the game, not by the companion
+  // manager, so their face_rig ran the vanilla graph with no ConvaiFace input
+  // and the mod's lip sync could never reach them. They get the same additive
+  // layer here, before native component initialization; nothing is written to
+  // it until the Lua speech owner voices this exact NPC. Dynamic entities stay
+  // with their spawner: our companions use OnCompanionInitialize, and other
+  // mods' copies are not ours to change.
+  private cb func OnWorldInitialize(event: ref<EntityLifecycleEvent>) {
+    let npc = event.GetEntity() as NPCPuppet;
+    if !IsDefined(npc) { return; };
+    let dynamic = GameInstance.GetDynamicEntitySystem();
+    if !IsDefined(dynamic) || dynamic.IsManaged(npc.GetEntityID()) { return; };
+    let face = npc.FindComponentByName(n"face_rig") as AnimatedComponent;
+    if !IsDefined(face) { return; };
+    let status = this.PrepareFaceComponent(face);
+    let ready = StrBeginsWith(status, "prepared:");
+    let graphPath = "";
+    if ready { graphPath = ResRef.ToString(ResourceRef.GetPath(face.graph)); };
+    npc.ConvaiFacePrepared(ready, status, graphPath);
   }
 
   private func PrepareFaceComponent(face: ref<AnimatedComponent>) -> String {
@@ -138,7 +165,11 @@ public final func ConvaiFaceReady() -> Bool {
   if !this.m_convaiFacePrepared || !this.IsAttached() || this.IsDeadNoStatPool()
     || Equals(this.m_convaiFaceGraphPath, "") { return false; };
   let dynamic = GameInstance.GetDynamicEntitySystem();
-  if !IsDefined(dynamic) || !dynamic.IsTagged(this.GetEntityID(), n"CyberpunkConvaiCompanion") { return false; };
+  if !IsDefined(dynamic) { return false; };
+  // A dynamic entity must be our companion copy. A world NPC is never dynamic,
+  // and only ConvaiFaceService.OnWorldInitialize sets its prepared flag.
+  if dynamic.IsManaged(this.GetEntityID())
+    && !dynamic.IsTagged(this.GetEntityID(), n"CyberpunkConvaiCompanion") { return false; };
   // Appearance changes can replace face_rig after the first initialization.
   // A previously prepared flag never certifies the replacement component.
   let face = this.FindComponentByName(n"face_rig") as AnimatedComponent;
@@ -148,9 +179,8 @@ public final func ConvaiFaceReady() -> Bool {
 
 @addMethod(NPCPuppet)
 public final func ConvaiFaceApply(feature: ref<ConvaiFaceFeature>) -> Bool {
+  // Readiness carries the ownership check (companion tag or prepared world NPC).
   if !this.ConvaiFaceReady() || !IsDefined(feature) { return false; };
-  let dynamic = GameInstance.GetDynamicEntitySystem();
-  if !IsDefined(dynamic) || !dynamic.IsTagged(this.GetEntityID(), n"CyberpunkConvaiCompanion") { return false; };
   AnimationControllerComponent.ApplyFeature(this, n"ConvaiFace", feature);
   return true;
 }

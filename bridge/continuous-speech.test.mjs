@@ -35,7 +35,7 @@ local function actor(id,x,y)
  function a:IsAttached()native();return self.attached end
  function a:IsDeadNoStatPool()native();return not self.alive end
  function a:GetWorldPosition()native();return self.pos end
- function a:ConvaiFaceReady()native();return true end
+ function a:ConvaiFaceReady()native();return self.ready~=false end
  function a:ConvaiFaceReset()native();self.resets=self.resets+1;return true end
  function a:ConvaiFaceApply(f)native();self.applied[#self.applied+1]=clone(f);return true end
  return a
@@ -392,4 +392,34 @@ snapshot({position=2,updated=(wall+.05)*1000,complete=true,textComplete=true,end
 assert(not speech.requestId and not speech.continuousFaceCursor and not speech.continuousFaceTarget)
 assert(not face.active and judy.resets==1 and state().lastDelivery.source=='continuous-playback')
 assert(not control().allow and nativeStarts==0 and nativeStops==0)
+`));
+
+// October 8 in game: a resident-male pedestrian on Pocket spoke with a still mouth.
+// The face gate required a managed companion, so speech-state.json carried
+// "Speaker has no prepared owned facial layer" for every ambient turn. The world
+// NPC is the speech target, not a companion; its native layer is ready once
+// ConvaiFaceService has prepared its face_rig (Face.reds OnWorldInitialize).
+test('an ambient world NPC on continuous Pocket gets the separately published mouth timeline, like a companion',()=>run(`
+judy.owned=false -- a crowd resident: convaiCompanions.owns() is false for it
+local function faceDoc(revision,duration,complete)
+ local timeline=timeline(duration,complete);timeline.source,timeline.articulation='local-jali','jali-audio-v1'
+ put('runtime/continuous-face.json',{version=1,id=id,requestId=context.requestId,entity=context.entity,
+  generation=context.generation,revision=revision,face=timeline})
+end
+assert(begin());faceDoc(1,2,false);snapshot({faceRevision=1,position=.2});tick()
+assert(face.active and face.source=='local-jali' and not face.error,'Ambient face rejected: '..tostring(face.error))
+assert(#judy.applied==1 and judy.applied[1].jaw_mid_open>0)
+snapshot({faceRevision=1,position=.6,updated=(wall+.05)*1000});tick()
+assert(#judy.applied==2 and face.state=='playing')
+faceDoc(2,2,true)
+snapshot({faceRevision=2,position=2,updated=(wall+.25)*1000,complete=true,textComplete=true,ended=true,state='ended'});tick(.25)
+assert(not face.active and judy.resets==1 and state().lastDelivery.entity==judy.id)
+-- The idle, thinking and listening pass stays on managed companions only.
+local before=#judy.applied
+speech.update(.05,{actors={{entity=judy.id,npc=judy}}})
+assert(#judy.applied==before and face.expressions[judy.id]==nil,'An idle face was written to a world NPC')
+-- An unprepared world NPC (unsupported rig, or the earlier native layer) keeps its voice and captions.
+judy.ready=false;assert(begin());faceDoc(3,2,false);snapshot({faceRevision=3,position=.2,updated=(wall+.05)*1000});tick()
+assert(not face.active and #judy.applied==before and speech.requestId==context.requestId and control().allow)
+assert(tostring(face.error):find('no prepared facial layer',1,true))
 `));

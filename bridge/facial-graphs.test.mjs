@@ -94,11 +94,31 @@ test('latched preparation alone cannot pass readiness after face_rig graph repla
   assert.match(ready, /this\.m_convaiFacePrepared/);
   assert.match(ready, /this\.IsAttached\(\)/);
   assert.match(ready, /this\.IsDeadNoStatPool\(\)/);
-  assert.match(ready, /dynamic\.IsTagged\(this\.GetEntityID\(\), n"CyberpunkConvaiCompanion"\)/);
+  assert.match(ready, /dynamic\.IsManaged\(this\.GetEntityID\(\)\)\s*&& !dynamic\.IsTagged\(this\.GetEntityID\(\), n"CyberpunkConvaiCompanion"\)/,
+    'a dynamic entity must carry the companion tag');
   assert.match(ready, /this\.FindComponentByName\(n"face_rig"\) as AnimatedComponent/);
   assert.match(ready, /ResourceRef\.IsLoaded\(face\.graph\)/);
   assert.match(ready, /ResourceRef\.IsFailed\(face\.graph\)/);
   assert.match(ready, /Equals\(ResRef\.ToString\(ResourceRef\.GetPath\(face\.graph\)\), this\.m_convaiFaceGraphPath\)/);
   const fields = [...nativeFace.matchAll(/@addField\(NPCPuppet\)\s*private let (\w+): ([^;]+);/g)];
   assert(fields.every(([, , type]) => ['Bool', 'String'].includes(type)), 'no actor/component/resource handle is retained on the puppet');
+});
+
+// October 8: a resident-male pedestrian on Pocket kept a still mouth. Crowd and
+// community NPCs are not dynamic entities, so the companion-only preparation
+// left their vanilla face graph without the ConvaiFace input. World NPCs now get
+// the same additive layer at initialization; dynamic entities stay with their spawner.
+test('world NPCs are prepared once at initialization; other dynamic entities and the apply path stay gated', () => {
+  assert.match(nativeFace, /RegisterCallback\(n"Entity\/Initialize", this, n"OnWorldInitialize"\)\s*\.AddTarget\(EntityTarget\.Type\(n"NPCPuppet"\)\)/);
+  const world = nativeFace.slice(nativeFace.indexOf('private cb func OnWorldInitialize'),
+    nativeFace.indexOf('private func PrepareFaceComponent'));
+  assert(world.length > 0);
+  const skip = world.indexOf('dynamic.IsManaged(npc.GetEntityID())');
+  assert(skip >= 0 && skip < world.indexOf('this.PrepareFaceComponent(face)'), 'dynamic entities are skipped before any change');
+  assert.match(world, /npc\.FindComponentByName\(n"face_rig"\) as AnimatedComponent/);
+  assert.match(world, /npc\.ConvaiFacePrepared\(ready, status, graphPath\)/);
+  assert.doesNotMatch(world, /GetResource\(|nodesToInit|animFeatures|GetComponents\(\)/);
+  const apply = nativeFace.slice(nativeFace.indexOf('public final func ConvaiFaceApply('),
+    nativeFace.indexOf('public final func ConvaiFaceReset('));
+  assert.match(apply, /if !this\.ConvaiFaceReady\(\) \|\| !IsDefined\(feature\) \{ return false; \};/);
 });

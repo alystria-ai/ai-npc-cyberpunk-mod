@@ -107,6 +107,23 @@ test('mouth follows the native audio cursor and rejoins it after pause, without 
   assert(judy.resets==2 and not face.active and not speech.requestId)
 `));
 
+// October 8: ambient and archetype NPCs are world NPCs, never managed companions.
+// Their mouth follows the native Omni cursor once Face.reds has prepared their
+// face_rig (ConvaiFaceReady); idle faces stay on companions.
+test('an ambient world NPC speaking on native Omni gets lip sync and its reset, without idle faces', () => run(`
+  local resident=actor('Resident-1'); resident.owned=false
+  local context,reply=input(resident,'ambient-omni'); assert(speech.start(context,reply))
+  cursor=0.25; speech.update(0.1)
+  assert(#resident.frames==1 and math.abs(resident.frames[1].jaw_mid_open-0.175)<0.0001, tostring(face.error))
+  cursor=2; speech.update(0.1)
+  assert(resident.resets==1 and not face.active and not speech.requestId)
+  face.updateExpressions({actors={{entity=resident.id,npc=resident}}})
+  assert(#resident.frames==1 and face.expressions[resident.id]==nil)
+  resident.ready=false; context,reply=input(resident,'ambient-unprepared'); assert(speech.start(context,reply))
+  cursor=0.25; speech.update(0.1)
+  assert(#resident.frames==1 and starts==2 and speech.requestId=='ambient-unprepared')
+`));
+
 test('the 60 Hz sampling threshold tolerates float roundoff but rejects a true half-frame step', () => run(`
   local context,reply=input(judy,'frame-boundary');assert(face.start(context,reply.face,judy,2))
   face.sync(judy,.05,context.requestId);assert(#judy.frames==1)
