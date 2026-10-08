@@ -286,9 +286,10 @@ test('the bridge cleans every reply, adds the block after Natural speech, and ha
   assert.equal(bridge.match(/transformReply: cleanReply/g).length, 2, 'conversation and phone hosts');
   assert.match(bridge, /naturalSpeechContext\(input\), expressiveEmotionsContext\(input\)\]\s*\.filter\(Boolean\)/);
   assert.match(bridge, /expressiveEmotions\.contextFor\(\{engine, spoken: !phone && localVoice\.playbackEnabled !== false\}\)/);
-  assert.equal(bridge.match(/marks: result\.emotionMarks/g).length, 2, 'Omni and Pocket plans');
-  assert.match(bridge, /continuousSpeech\(input, profile, current, signal, receiptPrepared, true, result\.emotionMarks\)/);
-  assert.match(bridge, /createPlanner\(\{profile: input\.profileKey, marks\}\)/);
+  // One plan function serves Omni and Pocket's first plan (bridge/emotion-selector.mjs); Pocket's stream planner gets the marks too.
+  assert.equal(bridge.match(/marks: result\.emotionMarks/g).length, 1, 'the reply plan');
+  assert.match(bridge, /continuousSpeech\(input, profile, current, signal, receiptPrepared, true, result\.emotionMarks, \{player, late\}\)/);
+  assert.match(bridge, /emotionSelection\.planner\(\{player, profile: input\.profileKey, marks, late\}\)/);
   assert.match(bridge, /expressiveEmotions\.update\(settings\)/);
   const subtitles = readFileSync(new URL('../mod/subtitles.lua', import.meta.url), 'utf8');
   for (const name of EMOTION_NAMES) assert.ok(subtitles.includes(`'${name}'`), name);

@@ -63,18 +63,15 @@ local function expressionLimit(track)
     return .55
 end
 local scaleStrength={.4,.67,1}
-local restSmile=.15
--- Per-character resting warmth (the smile floor under every non-negative intent,
--- idle and speaking; 0 keeps a cold face flat) and corner gain (full lips read
--- weakly on Judy's rig; the face-test probe showed .35-.5 needed). The gain
--- scales the corner caps by at most 1.3. Keys are profile keys from the actor rows.
+-- October 8: the resting face is neutral for everyone. The earlier resting warmth
+-- (.07-.22, Judy about .22 after gain) smiled under every non-negative intent, so
+-- Judy smiled while talking about Evelyn's death; a smile now needs a real cue from
+-- bridge/emotion-selector.mjs. Corner gain stays per rig (full lips read weakly on
+-- Judy's; the face-test probe showed .35-.5 needed) and scales the caps by at most
+-- 1.3. Keys are profile keys from the actor rows. Mirrors restingFor() in the bridge.
+local restSmile=0
 local traitTable={default={warmth=restSmile,gain=1}}
-for _,key in ipairs({'panam-palmer','jackie-welles','kerry-eurodyne','misty-olszewski','mama-welles','river-ward',
-    'claire-russell','dexter-deshawn','padre-ibarra','viktor-vektor'}) do traitTable[key]={warmth=.22,gain=1} end
-traitTable['judy-alvarez']={warmth=.14,gain=1.6}  -- about .22 resting once the corner gain applies
-for _,key in ipairs({'johnny-silverhand','rogue-amendiares','takemura','saul-bright','meredith-stout','solomon-reed',
-    'spider-murphy','r3n0','regina-jones'}) do traitTable[key]={warmth=.07,gain=1} end
-for _,key in ipairs({'adam-smasher','yorinobu-arasaka','hanako-arasaka','alan-noel','mr-hands'}) do traitTable[key]={warmth=0,gain=1} end
+traitTable['judy-alvarez']={warmth=restSmile,gain=1.6}
 local function traitFor(profile) return traitTable[profile] or traitTable.default end
 local speechMouthFactor=.85
 M.expressions, M.expressionClock, M.expressionFrame = {}, 0, 0

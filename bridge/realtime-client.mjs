@@ -10,6 +10,11 @@ let client, identity, turn, micTimer, verifiedProvider, audioParticipant, admitt
 let initialSession, submitted = false, epoch = 0, ttsEnabled = true;
 let retiredAudioOwners = [];
 let retiredExpressionOwners = [];
+// Text-only turns (local voices): Convai's LLM emotion arrives about 0.5 s after the reply's text is complete
+// (live probe October 8: 460-520 ms after bot-llm-stopped), so after collect() has returned. The one event on the
+// pinned provider's reliable, ordered channel between that turn's end and the next bot-llm-started belongs to it.
+let lateEmotion = null, lateEmotionSequence = 0;
+const LATE_EMOTION_MS = 4000;
 let observed = {}, previousTurnDiagnostics = null;
 let previousContinuous = null, previousAnalysis = null;
 const sessions = new SessionBindings();
@@ -151,7 +156,7 @@ async function close(reason = 'Conversation cancelled') {
     }
   }
   if (previous.turn) previousTurnDiagnostics = turnDiagnostics(previous.turn);
-  client = identity = turn = verifiedProvider = audioParticipant = null;
+  client = identity = turn = verifiedProvider = audioParticipant = lateEmotion = null;
   retiredAudioOwners = [];
   retiredExpressionOwners = [];
   initialSession = null; submitted = false;
@@ -308,6 +313,16 @@ async function connect(config) {
     if (actionProvider && turn && !turn.error && type === 'bot-llm-started' && !retiredAudioEvent(data))
       companionActions.observeOwner(data);
     if (actionProvider && type === 'bot-turn-completed') companionActions.terminal(data);
+    if (type === 'bot-llm-started' && lateEmotion && turn !== lateEmotion.turn) lateEmotion.closed = true;
+    if (type === 'bot-emotion' && !ttsEnabled && lateEmotion && !lateEmotion.closed && (!turn || (turn !== lateEmotion.turn
+        && turn.text.length === 0)) && kind === 0 && participant === audioParticipant && currentParticipant(connection, participant)
+        && verifiedProvider?.connection === connection && lateEmotion.connection === connection
+        && performance.now() - lateEmotion.at < LATE_EMOTION_MS) {
+      // A second ownerless event before the next reply makes the holder ambiguous (ConvaiEmotion drops it).
+      if (lateEmotion.emotion.acceptOrdered(data, {textStarted: true})) { observed.acceptedEmotionEvents++; noteEmotion('accepted'); }
+      else noteEmotion(lateEmotion.emotion.lastReason ?? 'unqualified-emotion');
+      return;
+    }
     if (type === 'bot-emotion') {
       // Never borrow the active request for an ownerless SDK callback. Late
       // owned metadata may affect an already draining continuous utterance,
@@ -604,8 +619,14 @@ async function collect(current) {
       previousAnalysis = {token: current.live.token, analysis: current.live.analysis};
       await current.live.player.stop('completed');
     }
+    // A text-only reply's own emotion usually arrives after this return; lateEmotionToken reads it later.
+    if (!current.ttsEnabled && !current.emotion.snapshot()) {
+      lateEmotion = {token: ++lateEmotionSequence, turn: current, connection: client, at: performance.now(), closed: false,
+        emotion: new ConvaiEmotion({retiredOwners: retiredExpressionOwners})};
+    }
     return {...collected, text: current.text, sessionID: client.characterSessionId,
       ...(current.emotion.snapshot() ? {expressionSignal: current.emotion.snapshot()} : {}),
+      ...(lateEmotion?.turn === current ? {lateEmotionToken: lateEmotion.token} : {}),
       ...(current.userText ? {userText: current.userText} : {}),
       ...(current.live ? {continuous: true, liveSpeechToken: current.live.token} : {audio: collected?.audio}),
       timing: {...current.timing, ...collected?.timing, collectionMs: collectedAt - started,
@@ -765,5 +786,15 @@ function readiness(keepAlive = false) {
   return {ready};
 }
 
+// The late emotion of the text-only reply that returned `token`: {signal} once admitted, {pending} while it can still
+// arrive, {} when it cannot (expired, ambiguous, a newer reply started, or the connection closed).
+function readLateEmotion(token) {
+  const held = lateEmotion;
+  if (!held || held.token !== token) return {};
+  const signal = held.emotion.snapshot();
+  if (signal) return {signal};
+  return !held.closed && !held.emotion.ambiguous && performance.now() - held.at < LATE_EMOTION_MS ? {pending: true} : {};
+}
+
 window.convaiRealtime = {reply, warm: connect, readiness, beginVoice, finishVoice, close, diagnostics,
-  continuousSnapshot, continuousControl};
+  continuousSnapshot, continuousControl, lateEmotion: readLateEmotion};

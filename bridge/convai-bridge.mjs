@@ -8,7 +8,8 @@ import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
 import {PhoneticLipsync} from './phonetic-lipsync.mjs';
 import {JaliFace} from './jali-face.mjs';
 import {textExpressionSignal} from './text-emotion.mjs';
-import {analyseReply, planSignal, createPlanner, phraseOffsets, baselineFromSignal} from './emotion-analysis.mjs';
+import {planSignal, phraseOffsets} from './emotion-analysis.mjs';
+import {EmotionSelection, waitLateEmotion} from './emotion-selector.mjs';
 import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
 import {deliverPocketSpeech} from './pocket-speech.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
@@ -158,6 +159,9 @@ const phoneKnowledge = new PlayerPhoneKnowledge({router: knowledgeRouter, getBou
 const naturalSpeech = new NaturalSpeech();
 // "Expressive emotions": the character marks its own feelings inline; the marks drive the face (bridge/expressive-emotions.mjs).
 const expressiveEmotions = new ExpressiveEmotions();
+// Facial emotion selection (bridge/emotion-selector.mjs): player message + reply + character manner + Convai's own
+// label; `emotionSelector: "legacy"` in settings.json returns to the reply-only planner.
+const emotionSelection = new EmotionSelection();
 const cleanReply = result => expressiveEmotions.process(naturalSpeech.process(result));
 // "Multilingual conversations": the setting and the language the conversation was last in (bridge/multilingual.mjs).
 const multilingual = new MultilingualConversations();
@@ -610,39 +614,59 @@ async function synthesizeReply(input, result, signal, current, profile = profile
   const omni = voice.engine === 'omni', language = voice.language && voice.language !== 'en' ? voice.language : undefined;
   const voiceKey = voiceKeyFor(input);
   throwIfCancelled(signal);
-  // Text-only Convai turns carry no emotion (live probe): derive a cue from
-  // this reply's own text (lexicon, then tone, then the character's resting
-  // warmth), so a local voice always has a face. The receipt below records
-  // what was derived for this turn, with no dialogue text.
-  // Omni renders one audio file per phrase: its phrase edges are forced segment
-  // boundaries, so every phrase gets its own expression aligned to its own audio.
-  // Pocket and Convai streams segment by sentence and are aligned to the audio
-  // by pauses/duration (bridge/expression-timeline.mjs).
-  let plan, spans;
-  try {
-    if (omni) {
-      const phrases = splitSpeechText(result.text);
-      spans = phraseOffsets(result.text, phrases);
-      plan = analyseReply(result.text, {profile: input.profileKey, baseline: baselineFromSignal(result.expressionSignal),
-        breaks: spans.slice(1).map(span => span[0]), marks: result.emotionMarks});
-    } else plan = analyseReply(result.text, {profile: input.profileKey, baseline: baselineFromSignal(result.expressionSignal),
-      marks: result.emotionMarks});
-  } catch { plan = undefined; }
-  if (result.expressionSignal === undefined) {
-    const cue = plan ? planSignal(plan) : textExpressionSignal(result.text, {profile: input.profileKey});
-    if (cue) result = {...result, expressionSignal: cue};
-  }
-  if (plan) result = {...result, expressionPlan: plan};
-  const expression = result.expressionSignal;
-  // Receipt for the next in-game reply: reply-level cue plus the per-segment plan
-  // (character offsets, top families and tags; no dialogue text).
-  atomic(resolve(runtime, 'expression-receipt.json'), JSON.stringify({version: 2, updated: Date.now(),
-    requestId: input.requestId, profile: input.profileKey, provider: omni ? 'omni' : 'pocket',
-    emotion: expression?.emotion ?? null, scale: expression?.scale ?? null, basis: expression?.basis ?? null,
-    delivered: expression !== undefined,
-    plan: plan ? {trait: plan.trait, baseline: plan.baseline, segments: plan.segments.map(segment => ({
-      from: segment.start, to: segment.end, seconds: Math.round(segment.seconds * 100) / 100, weights: segment.weights,
-      dominant: segment.dominant, mixed: segment.mixed, tags: segment.tags})), phrases: spans} : null})).catch(() => {});
+  // The face's plan (bridge/emotion-selector.mjs): the player's message and the reply, the character's manner and the
+  // previous turn's mood; the character's own tags (Expressive emotions) win, then Convai's own label. Text-only
+  // Convai turns send that label about 0.5 s after the text (lateEmotionToken), so it is awaited alongside the voice
+  // and used when it is there in time: Omni re-plans before the first phrase's face is built, Pocket's stream
+  // planner picks it up on its next rebuild. The receipt records what was used, with no dialogue text.
+  // Omni renders one audio file per phrase: its phrase edges are forced segment boundaries, so every phrase gets its
+  // own expression aligned to its own audio. Pocket and Convai streams segment by sentence and are aligned to the
+  // audio by pauses/duration (bridge/expression-timeline.mjs).
+  const player = typeof result.userText === 'string' && result.userText.trim() ? result.userText : input.text;
+  const spans = omni ? phraseOffsets(result.text, splitSpeechText(result.text)) : undefined;
+  const planFor = convai => emotionSelection.plan({player, reply: result.text, profile: input.profileKey, convai,
+    marks: result.emotionMarks, breaks: spans ? spans.slice(1).map(span => span[0]) : []});
+  const late = {signal: undefined, settled: false, startedAt: Date.now()};
+  if (result.expressionSignal === undefined && Number.isSafeInteger(result.lateEmotionToken)) {
+    const config = realtimeConfig(input), token = result.lateEmotionToken;
+    late.promise = waitLateEmotion(() => realtime.lateEmotion(config, token), {signal})
+      .then(value => { late.signal = value; late.settled = true; late.lateMs = Date.now() - late.startedAt; return value; });
+  } else late.settled = true;
+  const expressionReceipt = (plan, expression, extra = {}) => atomic(resolve(runtime, 'expression-receipt.json'), JSON.stringify({
+    version: 3, updated: Date.now(), requestId: input.requestId, profile: input.profileKey, provider: omni ? 'omni' : 'pocket',
+    selector: emotionSelection.mode, emotion: expression?.emotion ?? null, scale: expression?.scale ?? null,
+    basis: expression?.basis ?? null, delivered: expression !== undefined, ...extra,
+    plan: plan ? {trait: plan.trait, baseline: plan.baseline, evidence: plan.evidence ?? null, summary: plan.summary ?? null,
+      segments: plan.segments.map(segment => ({from: segment.start, to: segment.end, seconds: Math.round(segment.seconds * 100) / 100,
+        weights: segment.weights, dominant: segment.dominant, mixed: segment.mixed, tags: segment.tags})), phrases: spans} : null})).catch(() => {});
+  // A calm plan has no reply-level cue: the face rests neutral instead of holding a label after the reply.
+  const withPlan = (base, plan) => {
+    let next = {...base, expressionSignal: base.expressionSignal ?? result.expressionSignal};
+    if (next.expressionSignal === undefined || next.expressionSignal?.basis === 'text' || next.expressionSignal?.basis === 'calm') {
+      // The single-cue fallback (no plan) keeps its feeling or tone cue but not its resting-warmth default.
+      const fallback = plan ? undefined : textExpressionSignal(result.text, {profile: input.profileKey});
+      const cue = plan ? (plan.summary?.basis === 'calm' ? undefined : planSignal(plan)) : fallback?.basis === 'default' ? undefined : fallback;
+      next.expressionSignal = cue;
+      if (cue === undefined) delete next.expressionSignal;
+    }
+    if (plan) next.expressionPlan = plan;
+    return next;
+  };
+  let plan = planFor(result.expressionSignal);
+  result = withPlan(result, plan);
+  emotionSelection.remember(input.profileKey, plan);
+  expressionReceipt(plan, result.expressionSignal, {convai: result.expressionSignal?.basis === 'ordered' || result.expressionSignal?.basis === 'response-id'
+    ? result.expressionSignal.emotion : null, convaiLate: late.settled ? null : 'pending'});
+  // Convai's late label, once known: one more receipt (and, for Omni, the plan used from the first face on).
+  const refine = () => {
+    if (!late.signal) return false;
+    plan = planFor(late.signal);
+    result = withPlan({...result, expressionSignal: late.signal}, plan);
+    emotionSelection.remember(input.profileKey, plan);
+    expressionReceipt(plan, late.signal, {convai: late.signal.emotion, convaiLate: late.lateMs ?? null});
+    return true;
+  };
+  if (!omni) late.promise?.then(() => refine(), () => {});
   const ahead = current?.ahead;
   if(omni){
     // The one GPU worker is FIFO. A look-ahead phrase queued while the speaker
@@ -661,6 +685,10 @@ async function synthesizeReply(input, result, signal, current, profile = profile
       let second;
       if(phrases.length>1){second=synthesizeOmniPhrase(voiceKey,voiced[1],{signal:lookahead.signal,steps,language});second.catch(()=>{});}
       const generated=await first;
+      // Convai's late label is normally in by now (phrase 1 takes longer to render than it takes to arrive); never wait.
+      // If it comes later, the phrases not yet rendered use it: the stream holds this same plan object.
+      if(late.settled)refine();
+      else{const shared=result.expressionPlan;late.promise?.then(()=>{if(refine()&&shared&&result.expressionPlan!==shared)Object.assign(shared,result.expressionPlan);},()=>{});}
       logVoiceRoute(input, profile, voice, {lipText: !!generated.timing?.lipText});
       return {...result,...generated,text:result.text,timing:{...result.timing,...generated.timing},
         streamPlan:phrases.length>1?{phrases,speech:voiced,steps,language,voiceKey,lookahead:{promise:second,cancel:cancelLookahead},
@@ -678,7 +706,7 @@ async function synthesizeReply(input, result, signal, current, profile = profile
       audioError: 'Local streaming is unavailable; showing the written reply.'};
   }
   logVoiceRoute(input, profile, voice);
-  const speech = continuousSpeech(input, profile, current, signal, receiptPrepared, true, result.emotionMarks);
+  const speech = continuousSpeech(input, profile, current, signal, receiptPrepared, true, result.emotionMarks, {player, late});
   let prefetched;
   if (ahead?.isHeld()) {
     // Synthesize now, into memory (the one renderer page may still be draining
@@ -718,11 +746,12 @@ async function status(state, detail = '') {
   await atomic(statusPath, JSON.stringify({state, detail: detail.slice(0, 200), updated: Date.now()}));
 }
 
-function continuousSpeech(input, profile, current, signal, receiptPrepared = preparedInputs.get(input), local = false, marks) {
+function continuousSpeech(input, profile, current, signal, receiptPrepared = preparedInputs.get(input), local = false, marks,
+  {player = input.text, late} = {}) {
   const options = {signal, isCurrent: current, isCurrentSync: current.sync};
   const ahead = current.ahead;
   const speech = new ConvaiContinuousSpeech({input, profile, current, signal,
-    planExpression: createPlanner({profile: input.profileKey, marks}),
+    planExpression: emotionSelection.planner({player, profile: input.profileKey, marks, late}),
     ...(local ? {faceBuilder: ownedPocketFace} : {jaliFace}),
     // A look-ahead turn buffers silently until the game submits it. Once its
     // complete text is known (and it is no longer held), the next group speaker
@@ -1482,6 +1511,7 @@ async function pollSettings(checkShutdown = true) {
     }
     // A prepared reply was written under the previous Natural speech instructions.
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
+    if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
     // Multilingual conversations changes which voice a turn uses (and so its instructions).
     // (The voice selection reads the same setting: while it is on, a fallback never lands on Pocket.)
     const multilingualChanged = multilingual.update(settings);

@@ -335,6 +335,15 @@ export class RealtimeHost {
     if (entry.busy) return {present: true, busy: true};
     return {present: true, ...await entry.value.evaluate(keepAlive => window.convaiRealtime.readiness(keepAlive), keepAlive)};
   }
+  // Convai's emotion for a finished text-only reply (`lateEmotionToken` in that reply), which arrives about half a
+  // second after its text. Reads the reply's own page only; never connects, waits or retains anything.
+  async lateEmotion(config, token) {
+    if (!Number.isSafeInteger(token) || token < 1) return {};
+    const page = this.pool?.entries.get(pageKey(config))?.value;
+    if (!page || page.isClosed()) return {};
+    try { return await page.evaluate(token => window.convaiRealtime.lateEmotion?.(token) ?? {}, token) ?? {}; }
+    catch { return {}; }
+  }
   async refreshIdle(config) {
     // Reconnect only the exact idle transport after new memory is seeded.
     // SessionBindings and caller-owned session IDs retain their original

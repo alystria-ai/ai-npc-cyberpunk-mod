@@ -373,6 +373,32 @@ test('Omni text generation admits emotion only after its explicit raw LLM respon
   await api.close();
 });
 
+// Live October 8 probe: a text-only (local voice) turn gets its one id-less bot-emotion 0.3-0.6 s after its text is
+// complete, after reply() has returned. It is held for that turn until the next reply's LLM starts.
+test('a text-only reply returns a late-emotion token; its one id-less emotion before the next reply is readable later',async()=>{
+  const {api,clients}=fixture();const cfg={...config,ttsEnabled:false};await api.warm(cfg);
+  const late=token=>JSON.parse(JSON.stringify(api.lateEmotion(token)));
+  const first=api.reply(cfg);await flush();const c=clients[0];finalText(c,'Some days are easier.','one');
+  const done=await first;assert.equal(done.expressionSignal,undefined);assert.ok(Number.isSafeInteger(done.lateEmotionToken));
+  assert.deepEqual(late(done.lateEmotionToken),{pending:true});
+  c.data({label:'rtvi-ai',type:'bot-emotion',data:{emotion:'Sadness',scale:2}});
+  assert.deepEqual(late(done.lateEmotionToken),
+    {signal:{version:1,correlated:true,sequence:0,emotion:'Sadness',scale:2,basis:'ordered'}});
+  assert.deepEqual(late(done.lateEmotionToken+1),{},'another token reads nothing');
+  // A second ownerless event for the same turn is ambiguous: nothing is readable.
+  const second=api.reply(cfg);await flush();finalText(c,'Next reply.','two');const next=await second;
+  c.data({label:'rtvi-ai',type:'bot-emotion',data:{emotion:'Joy',scale:1}});
+  c.data({label:'rtvi-ai',type:'bot-emotion',data:{emotion:'Anger',scale:3}});
+  assert.deepEqual(late(next.lateEmotionToken),{});
+  assert.deepEqual(late(done.lateEmotionToken),{},'a newer reply retires the older holder');
+  // The next reply's LLM start closes the holder: a later event is not given to the finished turn.
+  const third=api.reply(cfg);await flush();finalText(c,'Third.','three');const last=await third;
+  c.data({label:'rtvi-ai',type:'bot-llm-started',data:{}});
+  c.data({label:'rtvi-ai',type:'bot-emotion',data:{emotion:'Fear',scale:1}});
+  assert.deepEqual(late(last.lateEmotionToken),{});
+  await api.close();
+});
+
 test('cancelled connection emotion cannot cross into a replacement copy or turn',async()=>{
   const {api,clients}=fixture();await api.warm(config);const first=api.reply(config);first.catch(()=>{});await flush();
   const retired=clients[0],data=audioFixture();retired.data(data.faces);

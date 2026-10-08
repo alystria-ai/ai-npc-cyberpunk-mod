@@ -1,5 +1,97 @@
 # Companion expressions
 
+## October 8: neutral rest, a context-aware emotion selector, and Convai's own label for local voices
+
+**The problem (user, in game).** Judy smiled when V asked her a sad question about Evelyn. With Expressive
+emotions on it was "a little better".
+
+**Root cause (measured on the labelled sets below).**
+- *Resting smile.* Lua rested every non-negative face at a smile (Judy .14 × gain 1.6 ≈ .22 corner-up; warm
+  characters .22). The text plan then added a resting Trust baseline (.67 for warm characters, ≈ .27 on Judy
+  with gain) under every sentence. A reply with no feeling at all therefore smiled while speaking.
+- *Pleasant words as smiles.* The lexicon scored "love", "family", "glad", "thanks", "beautiful", "laughed",
+  "friend", "sister" and forms of address ("V", "choom") as Joy/Trust, so grief told through fond memories
+  ("She was beautiful, V. I loved her so much") smiled harder (.65) than a neutral line.
+- *No conversation context.* Only the reply was read, never the player's question, so a sad question answered
+  briefly ("Thanks for asking. Some days are easier") had nothing sad in it.
+- *Weak negative cues.* "Sorry" was .35; regret, counterfactuals ("if I'd picked up"), "since she's gone" and
+  most concern phrases scored nothing. The baseline smile only yielded to a negative weight of .2 or more.
+- *Two bugs.* A segment starting with "V" read `tokens[-1]` and threw, so the whole plan fell back to
+  `text-emotion.mjs`, whose default is a Trust scale-2 smile for warm characters. Lexicon phrases stored
+  without apostrophes ("dont like this", "cant believe") never matched real text. Both are fixed in
+  `emotion-analysis.mjs`.
+- Negation, sentence segmentation and intensity mapping were not the cause; the joy bias was (above).
+
+**Convai's own emotion (research and live probes, `@convai/web-sdk` 1.7.0).**
+- The REST `POST /character/getResponse` and the beta `live.convai.com/connect/stream` SSE return no emotion
+  field (docs.convai.com interaction API pages). "State of Mind" is a Playground view (an emotion wheel) with
+  no read API. The SDK's `stateOfMind` / `updateEmotion()` *sets* the character's mood as an input
+  (`state_of_mind` on connect, `update-emotion` message); it is not an output.
+- The realtime SDK sends `bot-emotion` (`{type, emotion, scale}`, scale 1-3, Plutchik-style labels: Joy,
+  Serenity, Ecstasy, Trust, Acceptance, Sadness, Pensiveness, Grief, Anger, Fear, Surprise, Interest,
+  Anticipation, Disgust, Boredom, neutral) when `enableEmotion` is on, one per turn with
+  `emotionConfig.provider: 'llm'` (ours). `provider: 'nrclex'` streams several per reply (one per text chunk)
+  but is a word lexicon: Judy's grief reply came back neutral, then Pensiveness/1.
+- **Text-only turns (Pocket and Omni) do get it**, contrary to the October 5 note: it arrives 291-620 ms
+  (median about 480 ms) after `bot-llm-stopped`, after `reply()` had already returned, which is why it was
+  never seen. 43 of 43 live text-only turns on five characters carried one (fresh test end-user IDs; evidence
+  in `assets/emotion/exchanges-real.json`, scratch probes not committed).
+- Quality on those 43 real replies (blind labels): Convai's label alone is acceptable for 90.7 % (exact
+  51.2 %), with no false smiles. It is per turn, not per sentence.
+
+**What changed.**
+- `mod/facial-playback.lua`: resting warmth 0 for every character (Judy keeps corner gain 1.6). Mirrored
+  in `companion-expressions.mjs` (`restSmile: 0`).
+- `bridge/emotion-selector.mjs` (new): the selector. Inputs: the player's message, the reply, the previous
+  turn's mood for this character (three minutes, in memory, fades instead of renewing itself), the
+  character's manner (expressive, open, reserved, cold: intensity and how much evidence a smile needs),
+  Convai's label, and the character's tags. It reuses the existing segmentation, lexicon scoring and the
+  timeline aligner, adding conversation frames (grief and loss, sore questions, danger, conflict,
+  celebration, humour; death idioms such as "over my dead body" removed), about 20 phrase patterns
+  (empathy, regret, longing, concern, reassurance, hospitality, laughter, disbelief, scorn, threats),
+  whole-reply sarcasm, contraction normalising ("I am sorry"), and gates: mild words never smile, a grief
+  frame turns fond words into sadness, a clearly negative phrase leaves no smile under it. A reply with no
+  feeling is calm: no reply-level cue, neutral face.
+- Priority: the character's own tags (Expressive emotions) from the first tag on; then Convai's label as the
+  reply prior (other families' text feelings × .7, joy damped under a negative label); then the text.
+- Convai's late label: `realtime-client.mjs` keeps the one id-less `bot-emotion` that arrives between a
+  text-only reply's end and the next reply's `bot-llm-started` (4 s limit; a second one is ambiguous and
+  dropped) and returns `lateEmotionToken` with the reply; `RealtimeHost.lateEmotion()` reads it. The bridge
+  polls it (80 ms, 1.5 s limit) alongside the voice: Omni re-plans before returning the first phrase if it is
+  in (it usually is: phrase 1 takes longer to render), never waiting for it, and otherwise updates the plan
+  its later phrases use; Pocket's stream planner picks it up at its next rebuild. Nothing waits on it, so no latency is added.
+- Fallback setting: `"emotionSelector": "legacy"` in `runtime/settings.json` (no menu entry; the game keeps
+  unknown keys) returns to the reply-only planner. The Lua rest stays neutral in both.
+- Receipt: `runtime/expression-receipt.json` version 3 adds `selector`, `convai`, `convaiLate` (ms), and the
+  plan's `evidence` and `summary`; a second receipt is written when Convai's late label arrives.
+
+**Evaluation** (`node scripts/Evaluate-EmotionSelector.mjs all`; labelled sets in `assets/emotion/`, labels
+by separate writers; "acceptable" counts the gold label or one listed as also reasonable; a false smile is a
+visible corner-up ≥ .15 while speaking on a sad, afraid, angry or disgusted reply).
+
+| Set | Previous exact / acceptable | False smiles (negative) | Smiles on calm | Selector exact / acceptable | False smiles | Smiles on calm |
+| --- | --- | --- | --- | --- | --- | --- |
+| dev, 130 (tuned on) | 27.7 % / 44.6 % | 45/59 | 13/20 | 84.6 % / 93.8 % | 0/59 | 0/20 |
+| holdout, 80 (first look) | 37.5 % / 45.0 % | 25/36 | 8/12 | 75.0 % / 80.0 % | 2/36 | 0/12 |
+| blind, 90 (first look) | 26.7 % / 38.9 % | 30/41 | 9/14 | 62.2 % / 74.4 % | 5/41 | 0/14 |
+| real Convai replies, 43 (first look) | 39.5 % / 58.1 % | 13/16 | 10/14 | 37.2 % / 72.1 % | 0/16 | 0/14 |
+| real, with Convai's label (first look) | | | | 46.5 % / 88.4 % | 0/16 | 1/14 |
+
+Holdout, blind and real were then used for one round of general fixes each (now 91.2/96.3, 78.9/92.2 and,
+with Convai's label, 51.2/90.7; 0, 2 and 0 false smiles); the first-look numbers above are the honest ones.
+"Previous" is the installed code (`PREVIOUS_BRIDGE` pointed at the HEAD copy), including its crash fallback. Every Evelyn exchange in the four sets is
+now sad or the accepted feeling, with no visible smile (it smiled in all seven of the dev ones before). The
+real replies are terse and often calm, which is where the text alone is weakest and Convai's label helps most.
+Cost: about 0.15 ms median, 0.4 ms p95 per reply in Node (the previous planner 0.07 ms), off the game's thread.
+
+**A local model was not adopted.** A distilled RoBERTa emotion classifier (about 82 M weights, 7 classes, no
+warm/interest) would need onnxruntime-node and about 80-330 MB of weights (int8/fp32) downloaded, typically
+10-40 ms per sentence on one CPU core, more while the game runs, and still reads only text. Convai's label is
+already context-aware (it saw the whole conversation), free, and arrives in time; the selector covers phrase
+timing and the gaps. Not measured here (it would need the download).
+
+**In-game checks.** See TODO "Context emotion selector".
+
 ## October 7: resting warmth, calm brows, and a multi-emotion timeline
 
 **Live findings (screenshots of Judy via the face-test probe, installed `0d89060`).** Writer-mode

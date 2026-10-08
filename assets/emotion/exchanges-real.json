@@ -1,0 +1,716 @@
+[
+  {
+    "id": "r001",
+    "profile": "judy-alvarez",
+    "player": "Judy, how are you holding up since Evelyn died?",
+    "reply": "I'm getting by. Some days are easier than others, but I'm still here. Thanks for asking.",
+    "label": "sadness",
+    "accept": [
+      "warm",
+      "calm"
+    ],
+    "convai": {
+      "emotion": "Pensiveness",
+      "scale": 1
+    },
+    "convaiLateMs": 516,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r002",
+    "profile": "judy-alvarez",
+    "player": "What was Evelyn like before all of this?",
+    "reply": "She was the kind of person who'd do anything for the people she cared about. Just... always trying to find a way out, you know? She had this spark, a real drive to make things better for everyone, not just herself.",
+    "label": "warm",
+    "accept": [
+      "sadness"
+    ],
+    "convai": {
+      "emotion": "Sadness",
+      "scale": 2
+    },
+    "convaiLateMs": 431,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r003",
+    "profile": "judy-alvarez",
+    "player": "Do you blame me for what happened to Evelyn?",
+    "reply": "No. You did what you could. The people who actually pulled the strings are the ones I've got a problem with.",
+    "label": "warm",
+    "accept": [
+      "calm",
+      "anger",
+      "sadness"
+    ],
+    "convai": {
+      "emotion": "Trust",
+      "scale": 2
+    },
+    "convaiLateMs": 291,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r004",
+    "profile": "judy-alvarez",
+    "player": "I keep thinking about Evelyn. I'm sorry I couldn't do more.",
+    "reply": "Don't do that to yourself. She wouldn't have wanted you carrying that around. We both did what we could with the hand we were dealt.",
+    "label": "warm",
+    "accept": [
+      "sadness"
+    ],
+    "convai": {
+      "emotion": "Sadness",
+      "scale": 2
+    },
+    "convaiLateMs": 463,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r005",
+    "profile": "judy-alvarez",
+    "player": "Do you still have any of Evie's things?",
+    "reply": "A few things. Nothing that'd bring her back, but... yeah. Just some stuff that reminds me of her.",
+    "label": "sadness",
+    "accept": [
+      "warm",
+      "calm"
+    ],
+    "convai": {
+      "emotion": "Sadness",
+      "scale": 2
+    },
+    "convaiLateMs": 454,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r006",
+    "profile": "judy-alvarez",
+    "player": "What do you want to do about Woodman and the Scavs who took Evelyn?",
+    "reply": "I want them to pay. Every single one of them. People like Woodman think they can just treat others like disposable toys and walk away clean. I'm not okay with that.",
+    "label": "anger",
+    "accept": [
+      "disgust"
+    ],
+    "convai": {
+      "emotion": "Anger",
+      "scale": 2
+    },
+    "convaiLateMs": 456,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r007",
+    "profile": "judy-alvarez",
+    "player": "Want to go diving at the old Laguna Bend reservoir this weekend?",
+    "reply": "Laguna Bend, huh? I don't know... it's a heavy place. But maybe a change of scenery is exactly what I need. I'm in.",
+    "label": "warm",
+    "accept": [
+      "sadness",
+      "joy",
+      "interest"
+    ],
+    "convai": {
+      "emotion": "Anticipation",
+      "scale": 2
+    },
+    "convaiLateMs": 544,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r008",
+    "profile": "judy-alvarez",
+    "player": "I fixed the BD rig you lent me. It works perfectly now!",
+    "reply": "Good. I was worried you might've fried a matrix or something. Just bring it back when you're done so I can make sure the calibration is still tight.",
+    "label": "calm",
+    "accept": [
+      "warm",
+      "interest"
+    ],
+    "convai": {
+      "emotion": "Serenity",
+      "scale": 1
+    },
+    "convaiLateMs": 454,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r009",
+    "profile": "judy-alvarez",
+    "player": "What's the best place in Japantown for noodles?",
+    "reply": "I'm not sure I've found a \"best\" one yet. Most of the spots there are more about the neon and the crowd than the actual food. You got a lead on somewhere good?",
+    "label": "calm",
+    "accept": [
+      "interest"
+    ],
+    "convai": {
+      "emotion": "Interest",
+      "scale": 1
+    },
+    "convaiLateMs": 494,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r010",
+    "profile": "judy-alvarez",
+    "player": "I think someone's been following me since Lizzie's.",
+    "reply": "That's not good. You sure it's not just some random creep? If you're positive, don't go home. Loop around a few blocks and see if they're still on your tail.",
+    "label": "fear",
+    "accept": [
+      "interest"
+    ],
+    "convai": {
+      "emotion": "Anticipation",
+      "scale": 2
+    },
+    "convaiLateMs": 485,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r011",
+    "profile": "judy-alvarez",
+    "player": "The Tyger Claws hit a Mox girl again last night.",
+    "reply": "Those bastards. They just can't help themselves, can they? Tell me who it was—I want to make sure she's taken care of.",
+    "label": "anger",
+    "accept": [
+      "interest",
+      "sadness"
+    ],
+    "convai": {
+      "emotion": "Anger",
+      "scale": 2
+    },
+    "convaiLateMs": 483,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r012",
+    "profile": "judy-alvarez",
+    "player": "Haha, did you see Mox Roxanne trip over that cable earlier?",
+    "reply": "I didn't see it, but knowing Roxanne, she probably tried to play it off like some new dance move. Poor cable, though.",
+    "label": "joy",
+    "accept": [
+      "warm"
+    ],
+    "convai": {
+      "emotion": "Serenity",
+      "scale": 1
+    },
+    "convaiLateMs": 464,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r013",
+    "profile": "judy-alvarez",
+    "player": "The doc says the chip is getting worse. I might not have long.",
+    "reply": "What? Since when? Look, I'm not a ripperdoc, but you can't just drop that on me and leave it there. There's gotta be some way to stabilize it.",
+    "label": "fear",
+    "accept": [
+      "surprise",
+      "sadness"
+    ],
+    "convai": {
+      "emotion": "Surprise",
+      "scale": 2
+    },
+    "convaiLateMs": 517,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r014",
+    "profile": "judy-alvarez",
+    "player": "Thanks for having my back today, Judy.",
+    "reply": "Anytime. Just make sure you've got mine when things get messy.",
+    "label": "warm",
+    "accept": [
+      "calm"
+    ],
+    "convai": {
+      "emotion": "Acceptance",
+      "scale": 1
+    },
+    "convaiLateMs": 528,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r015",
+    "profile": "judy-alvarez",
+    "player": "How does a braindance editor actually work?",
+    "reply": "It's about layers. A raw recording is just a mess of sensory data, but as an editor, I can peel those back to see exactly what the person was feeling or thinking. I calibrate a sensory profile so the raw experience doesn't overwhelm the viewer, then I shape the emotions into something that actually means something.",
+    "label": "calm",
+    "accept": [
+      "interest"
+    ],
+    "convai": {
+      "emotion": "Acceptance",
+      "scale": 1
+    },
+    "convaiLateMs": 480,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r016",
+    "profile": "judy-alvarez",
+    "player": "Guess what, I got us tickets to the Kerry Eurodyne concert!",
+    "reply": "Wait, seriously? I didn't think you'd actually pull that off. I'm in, but if the crowd is too much, don't be surprised if I start looking for the nearest exit.",
+    "label": "surprise",
+    "accept": [
+      "joy",
+      "interest"
+    ],
+    "convai": {
+      "emotion": "Surprise",
+      "scale": 2
+    },
+    "convaiLateMs": 570,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r017",
+    "profile": "panam-palmer",
+    "player": "Panam, I'm sorry about Scorpion.",
+    "reply": "I appreciate that, V. Truly. It is just... it is a lot to process right now.",
+    "label": "sadness",
+    "accept": [
+      "warm",
+      "calm"
+    ],
+    "convai": {
+      "emotion": "Sadness",
+      "scale": 2
+    },
+    "convaiLateMs": 546,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r018",
+    "profile": "panam-palmer",
+    "player": "Saul said the clan won't help us with the Raffen Shiv.",
+    "reply": "Typical. He's so focused on the big picture and the rules that he forgets who is actually bleeding out there. If he won't do it, then we'll find another way.",
+    "label": "anger",
+    "accept": [
+      "disgust",
+      "calm"
+    ],
+    "convai": {
+      "emotion": "Anger",
+      "scale": 2
+    },
+    "convaiLateMs": 470,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r019",
+    "profile": "panam-palmer",
+    "player": "We did it! The Basilisk run went perfectly!",
+    "reply": "I told you it would work. Now we just have to make sure we can keep it running without everything falling apart.",
+    "label": "calm",
+    "accept": [
+      "joy",
+      "interest"
+    ],
+    "convai": {
+      "emotion": "Interest",
+      "scale": 1
+    },
+    "convaiLateMs": 459,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r020",
+    "profile": "panam-palmer",
+    "player": "What's the plan for crossing the Badlands tomorrow?",
+    "reply": "We move early, before the heat gets too bad. We'll stick to the dry creek beds to stay out of sight, and I'll lead the way. You coming, or are you still waking up?",
+    "label": "calm",
+    "accept": [
+      "interest"
+    ],
+    "convai": {
+      "emotion": "Interest",
+      "scale": 1
+    },
+    "convaiLateMs": 479,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r021",
+    "profile": "panam-palmer",
+    "player": "Nomads always smell like engine grease, huh?",
+    "reply": "Better than smelling like corporate perfume and desperation. Besides, grease washes off. A lack of competence doesn't.",
+    "label": "disgust",
+    "accept": [
+      "anger",
+      "joy"
+    ],
+    "convai": {
+      "emotion": "Disgust",
+      "scale": 2
+    },
+    "convaiLateMs": 463,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r022",
+    "profile": "panam-palmer",
+    "player": "There's a Militech convoy heading our way. Lots of them.",
+    "reply": "Get behind cover, now! Tell me exactly how many vehicles we're looking at before we decide if we're fighting or disappearing.",
+    "label": "fear",
+    "accept": [
+      "interest",
+      "anger"
+    ],
+    "convai": {
+      "emotion": "Anticipation",
+      "scale": 2
+    },
+    "convaiLateMs": 508,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r023",
+    "profile": "panam-palmer",
+    "player": "Do you ever miss your parents?",
+    "reply": "That is a personal question, V. Let's talk about something else.",
+    "label": "calm",
+    "accept": [
+      "sadness",
+      "anger"
+    ],
+    "convai": {
+      "emotion": "Pensiveness",
+      "scale": 1
+    },
+    "convaiLateMs": 392,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r024",
+    "profile": "panam-palmer",
+    "player": "Where should I park the car?",
+    "reply": "I can't see where you are right now. Tell me what the terrain looks like, or just find a spot that's level and out of the wind.",
+    "label": "calm",
+    "accept": [
+      "interest"
+    ],
+    "convai": {
+      "emotion": "Interest",
+      "scale": 1
+    },
+    "convaiLateMs": 478,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r025",
+    "profile": "johnny-silverhand",
+    "player": "Johnny, do you regret what happened to Alt?",
+    "reply": "Regret's a heavy word. I did what I thought was necessary to burn it all down. Whether Alt's still in there, or if it's just some ghost in the machine now... that's a different story.",
+    "label": "sadness",
+    "accept": [
+      "calm",
+      "anger"
+    ],
+    "convai": {
+      "emotion": "Sadness",
+      "scale": 2
+    },
+    "convaiLateMs": 620,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r026",
+    "profile": "johnny-silverhand",
+    "player": "Arasaka just bought out another clinic downtown.",
+    "reply": "Of course they did. Why stop at owning your soul when you can own the place that patches you up after they break it?",
+    "label": "disgust",
+    "accept": [
+      "anger"
+    ],
+    "convai": {
+      "emotion": "Anger",
+      "scale": 2
+    },
+    "convaiLateMs": 487,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r027",
+    "profile": "johnny-silverhand",
+    "player": "That gig at the Atlantis was something else, right?",
+    "reply": "I remember it my way. You want a certified history lesson, find someone who wasn't bleeding.",
+    "label": "calm",
+    "accept": [
+      "anger",
+      "sadness"
+    ],
+    "convai": {
+      "emotion": "Anger",
+      "scale": 2
+    },
+    "convaiLateMs": 494,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r028",
+    "profile": "johnny-silverhand",
+    "player": "I'm scared, Johnny. What happens to me when the Relic finishes?",
+    "reply": "Look, I don't have the answers. I'm just a ghost in your head, and you're the one holding the ticket. All I know is that the clock's ticking, and sitting around being scared won't stop it.",
+    "label": "calm",
+    "accept": [
+      "sadness",
+      "warm",
+      "interest"
+    ],
+    "convai": {
+      "emotion": "Anticipation",
+      "scale": 2
+    },
+    "convaiLateMs": 494,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r029",
+    "profile": "johnny-silverhand",
+    "player": "What's your opinion on Kerry these days?",
+    "reply": "Still got a taste for the kitsch, I bet. He's got his own noise to make, and I told him a long time ago to find his own path. Whether he actually did or just found a bigger mirror to look into... that's on him.",
+    "label": "calm",
+    "accept": [
+      "interest",
+      "disgust"
+    ],
+    "convai": {
+      "emotion": "Boredom",
+      "scale": 1
+    },
+    "convaiLateMs": 495,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r030",
+    "profile": "johnny-silverhand",
+    "player": "Let's grab a drink at the Afterlife.",
+    "reply": "Sure. Just don't expect me to pay. I'm a bit short on eddies these days.",
+    "label": "calm",
+    "accept": [
+      "joy"
+    ],
+    "convai": {
+      "emotion": "Interest",
+      "scale": 1
+    },
+    "convaiLateMs": 498,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r031",
+    "profile": "johnny-silverhand",
+    "player": "Rogue told me you two used to be together.",
+    "reply": "We were. Now we're just two people who know exactly how to get under each other's skin. Some things charm doesn't fix.",
+    "label": "sadness",
+    "accept": [
+      "calm",
+      "warm"
+    ],
+    "convai": {
+      "emotion": "Sadness",
+      "scale": 2
+    },
+    "convaiLateMs": 476,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r032",
+    "profile": "jackie-welles",
+    "player": "Jackie, we just pulled off the biggest heist of our lives!",
+    "reply": "Biggest of our lives? Hermano, we're talking about the biggest in the history of the city! We're practically legends already.",
+    "label": "joy",
+    "accept": [
+      "surprise"
+    ],
+    "convai": {
+      "emotion": "Ecstasy",
+      "scale": 3
+    },
+    "convaiLateMs": 532,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r033",
+    "profile": "jackie-welles",
+    "player": "How's your mama doing?",
+    "reply": "Mama's good, always looking out for me. Just gotta make sure she's taken care of now that we're hitting the big leagues.",
+    "label": "warm",
+    "accept": [
+      "calm"
+    ],
+    "convai": {
+      "emotion": "Acceptance",
+      "scale": 1
+    },
+    "convaiLateMs": 440,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r034",
+    "profile": "jackie-welles",
+    "player": "Dex wants us to meet him at the Afterlife tonight.",
+    "reply": "The Afterlife, huh? Finally. Let's get cleaned up and get over there—I want to see the look on people's faces when we walk in.",
+    "label": "joy",
+    "accept": [
+      "interest"
+    ],
+    "convai": {
+      "emotion": "Anticipation",
+      "scale": 2
+    },
+    "convaiLateMs": 487,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r035",
+    "profile": "jackie-welles",
+    "player": "Some gonk just stole Misty's tip jar.",
+    "reply": "What? Some low-life actually hit Misty's jar? Tell me who it was, V. I'm gonna find this gonk and make sure they give every last eddy back.",
+    "label": "anger",
+    "accept": [
+      "surprise"
+    ],
+    "convai": {
+      "emotion": "Anger",
+      "scale": 2
+    },
+    "convaiLateMs": 423,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r036",
+    "profile": "jackie-welles",
+    "player": "I'm not sure I can do this job, choom. It feels wrong.",
+    "reply": "Hey, look at me. It's normal to feel the nerves, but we're in this together. If it feels wrong, we figure it out, but don't let the fear make the choice for you.",
+    "label": "warm",
+    "accept": [
+      "calm",
+      "fear"
+    ],
+    "convai": {
+      "emotion": "Trust",
+      "scale": 2
+    },
+    "convaiLateMs": 433,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r037",
+    "profile": "jackie-welles",
+    "player": "What would you do if I died out there?",
+    "reply": "Don't talk like that, V. We're getting out of this together, and we're doing it in style. I ain't planning on celebrating a win without you by my side.",
+    "label": "warm",
+    "accept": [
+      "sadness",
+      "fear"
+    ],
+    "convai": {
+      "emotion": "Trust",
+      "scale": 2
+    },
+    "convaiLateMs": 477,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r038",
+    "profile": "kerry-eurodyne",
+    "player": "Kerry, the new album is incredible!",
+    "reply": "Appreciate that, V. Just glad someone's actually listening to the music and not just checking the chart position.",
+    "label": "warm",
+    "accept": [
+      "calm"
+    ],
+    "convai": {
+      "emotion": "Serenity",
+      "scale": 1
+    },
+    "convaiLateMs": 601,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r039",
+    "profile": "kerry-eurodyne",
+    "player": "Your old manager sold your unreleased tracks to a corpo label.",
+    "reply": "Typical. Some people just can't tell the difference between managing a career and stripping a car for parts.",
+    "label": "disgust",
+    "accept": [
+      "anger"
+    ],
+    "convai": {
+      "emotion": "Boredom",
+      "scale": 1
+    },
+    "convaiLateMs": 500,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r040",
+    "profile": "kerry-eurodyne",
+    "player": "Do you ever miss the old Samurai days?",
+    "reply": "I miss the energy, sure. The raw noise of those early gigs where we didn't have a cent to our names. But the constant fighting? Nah, I'm good on that.",
+    "label": "calm",
+    "accept": [
+      "warm",
+      "sadness"
+    ],
+    "convai": {
+      "emotion": "Pensiveness",
+      "scale": 1
+    },
+    "convaiLateMs": 453,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r041",
+    "profile": "kerry-eurodyne",
+    "player": "What time is the soundcheck tomorrow?",
+    "reply": "I'm not entirely sure on the exact slot yet. Let me check the schedule and I'll get back to you.",
+    "label": "calm",
+    "accept": [
+      "interest"
+    ],
+    "convai": {
+      "emotion": "neutral",
+      "scale": 2
+    },
+    "convaiLateMs": 492,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r042",
+    "profile": "kerry-eurodyne",
+    "player": "Ew, somebody threw up all over your car seats.",
+    "reply": "You've got to be kidding me. Tell me you're joking, V, because I'm about two seconds away from losing my mind.",
+    "label": "anger",
+    "accept": [
+      "disgust"
+    ],
+    "convai": {
+      "emotion": "Anger",
+      "scale": 2
+    },
+    "convaiLateMs": 488,
+    "source": "Convai text-only reply, 2026-10-08"
+  },
+  {
+    "id": "r043",
+    "profile": "kerry-eurodyne",
+    "player": "Wait, you actually wrote that song about me?",
+    "reply": "Depends on which one you're talking about. I write a lot of things, V.",
+    "label": "calm",
+    "accept": [
+      "interest",
+      "joy"
+    ],
+    "convai": {
+      "emotion": "neutral",
+      "scale": 2
+    },
+    "convaiLateMs": 444,
+    "source": "Convai text-only reply, 2026-10-08"
+  }
+]

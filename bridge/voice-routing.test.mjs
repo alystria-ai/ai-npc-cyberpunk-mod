@@ -12,6 +12,7 @@ import {BufferedPcm, waitUntil} from './group-lookahead.mjs';
 import {NaturalSpeech, OMNI_TAGS, speechPhrases} from './natural-speech.mjs';
 import {textExpressionSignal} from './text-emotion.mjs';
 import {analyseReply, planSignal, createPlanner, phraseOffsets, baselineFromSignal} from './emotion-analysis.mjs';
+import {EmotionSelection, waitLateEmotion} from './emotion-selector.mjs';
 import {MultilingualConversations, planTurnVoice, replyVoice} from './multilingual.mjs';
 
 // Execute the production routing/publication functions. These checks catch a
@@ -34,6 +35,7 @@ function fixture({local = false, available = true, audioFailure = false, continu
     localVoice: selectedVoice, multilingual, planTurnVoice, replyVoice, variantSeed,
     ownedPocketFace:()=>{},lipsync:{analyse:async()=>{calls.push('rhubarb');return{mouthCues:[],mouthCuesFormat:'rhubarb-phonetic-v1'};}},
     jaliFace,textExpressionSignal,analyseReply,planSignal,createPlanner,phraseOffsets,baselineFromSignal,
+    emotionSelection:new EmotionSelection(),waitLateEmotion,
     splitSpeechText,naturalSpeech:new NaturalSpeech(),OMNI_TAGS,speechPhrases,streaming:0,writeStreamManifest:async value=>calls.push(['omni-manifest',value]),
     deliverPocketSpeech: async ({result,profile,speech}) => {
       calls.push(['pocket-stream',profile.key,result.text]);
@@ -418,31 +420,49 @@ test('with local facial weights Omni phrases use the game-trained model and Rhub
   assert.ok(failing.calls.includes('rhubarb'));assert.equal(fallback.jaliFrames,undefined);
 });
 
-test('local voices always get a text cue (feeling, tone or character warmth); Convai voices keep provider metadata',async()=>{
+test('local voices get the context selector: sad text is sad, a plain reply rests neutral, Convai voices keep provider metadata',async()=>{
   const voice={provider:'omni',steps:32,usesProfile:()=>true,
     async synthesize(){return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
   const f=fixture({voiceSelection:voice,continuous:true});
   f.remote.text='I miss him. Jackie was family, and now he is gone. Sorry.';
   const local=await f.api.respond(f.input,f.profile,{current:async()=>true});
   assert.deepEqual({...local.expressionSignal,scale:undefined},{version:1,correlated:true,sequence:0,emotion:'Sadness',scale:undefined,basis:'text'});
-  // October 6: a plain reply used to leave the face neutral. It now gets the
-  // character's resting warmth, and a receipt records what was derived.
+  // October 8: a plain reply no longer gets the character's resting smile. It has no reply-level cue at all and
+  // the receipt says the plan was calm.
   const plain=fixture({voiceSelection:voice,continuous:true});plain.remote.text='Meet me at the Afterlife at nine.';
   plain.input.profileKey='judy-alvarez';plain.profile.key='judy-alvarez';
-  assert.deepEqual((await plain.api.respond(plain.input,plain.profile,{current:async()=>true})).expressionSignal,
-    {version:1,correlated:true,sequence:0,emotion:'Trust',scale:2,basis:'default'});
+  assert.equal((await plain.api.respond(plain.input,plain.profile,{current:async()=>true})).expressionSignal,undefined);
   const receipt=plain.publications.find(([path])=>path.endsWith('expression-receipt.json'));
   const {plan,...rest}=receipt[1];
-  assert.deepEqual({...rest,updated:undefined},{version:2,updated:undefined,requestId:'r1',profile:'judy-alvarez',provider:'omni',
-    emotion:'Trust',scale:2,basis:'default',delivered:true});
+  assert.deepEqual({...rest,updated:undefined},{version:3,updated:undefined,requestId:'r1',profile:'judy-alvarez',provider:'omni',
+    selector:'context',emotion:null,scale:null,basis:null,delivered:false,convai:null,convaiLate:null});
   // The receipt also lists the per-segment plan (offsets and weights, never dialogue text).
-  assert.equal(plan.trait,'warm');assert.equal(plan.segments.length,1);assert.deepEqual(plan.segments[0].weights,{trust:.67});
+  assert.equal(plan.trait,'reserved');assert.equal(plan.segments.length,1);assert.deepEqual(plan.segments[0].weights,{});
+  assert.equal(plan.summary.basis,'calm');
   assert.equal(JSON.stringify(receipt[1]).includes('Afterlife'),false);
-  const cold=fixture({voiceSelection:voice,continuous:true});cold.remote.text='Meet me at the Afterlife at nine.';
-  cold.input.profileKey='adam-smasher';
-  assert.equal((await cold.api.respond(cold.input,cold.profile,{current:async()=>true})).expressionSignal.emotion,'Interest');
   const remote=fixture();remote.remote.text='I miss him. Sorry.';
   assert.equal((await remote.api.respond(remote.input,remote.profile,{current:async()=>true})).expressionSignal,undefined);
+});
+
+test('a text-only turn uses Convai\'s late emotion when it arrives before the first Omni phrase is ready',async()=>{
+  const voice={provider:'omni',steps:32,usesProfile:()=>true,
+    async synthesize(){return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
+  const f=fixture({voiceSelection:voice,continuous:true});
+  f.remote.text='Some days are easier than others. Thanks for asking.';
+  const reply=f.realtime.reply, reads=[];
+  f.realtime.reply=async(config,options)=>({...await reply(config,options),lateEmotionToken:7});
+  f.realtime.lateEmotion=async(config,token)=>{reads.push(token);return{signal:{version:1,correlated:true,sequence:0,emotion:'Sadness',scale:2,basis:'ordered'}};};
+  f.input.text='How are you holding up since Evelyn died?';
+  const result=await f.api.respond(f.input,f.profile,{current:async()=>true});
+  assert.deepEqual(reads,[7]);
+  assert.equal(result.expressionSignal.emotion,'Sadness');assert.equal(result.expressionSignal.basis,'ordered');
+  assert.ok(result.expressionPlan.evidence.includes('convai:sadness'));
+  for(const segment of result.expressionPlan.segments)assert.equal(segment.weights.joy??0,0);
+  const receipts=f.publications.filter(([path])=>path.endsWith('expression-receipt.json')).map(([,value])=>value);
+  assert.equal(receipts.at(-1).convai,'Sadness');
+  // No token (a Convai-voiced or prefetched turn), no read.
+  const g=fixture({voiceSelection:voice,continuous:true});g.realtime.lateEmotion=async()=>{throw Error('must not be read');};
+  await g.api.respond(g.input,g.profile,{current:async()=>true});
 });
 
 test('voice playback Off yields one identified text request and never starts either local renderer',async()=>{

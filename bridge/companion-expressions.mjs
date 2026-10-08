@@ -24,7 +24,7 @@ export const EXPRESSION_POLICY = Object.freeze({
   // clearly at .35-.5 and 1.0 is an exaggerated grin; the first recalibration
   // (peaks <= .20, rest .06) was still invisible. Peaks below are the visible,
   // natural range: smile .45, frown .40, brows ~.45-.5.
-  version: 3, restSmile: .15, squintMax: .35, squintPerSmile: .6, gainCapMax: 1.3, cornerUpMax: .50, cornerDownMax: .50, browRaiseMax: .55, browLowerMax: .55,
+  version: 4, restSmile: 0, squintMax: .35, squintPerSmile: .6, gainCapMax: 1.3, cornerUpMax: .50, cornerDownMax: .50, browRaiseMax: .55, browLowerMax: .55,
   speechMouthFactor: .85, attackSeconds: .18, releaseSeconds: .55,
   // Categorical scale 1..3 (Convai) -> fraction of the family's full pose.
   scaleStrength: Object.freeze([.4, .67, 1]),

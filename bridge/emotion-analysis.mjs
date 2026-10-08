@@ -169,12 +169,14 @@ export function segmentText(text, {breaks = []} = {}) {
 }
 
 // ---- scoring ------------------------------------------------------------
-function scoreSegment(segment, trait) {
+export function scoreSegment(segment, trait, {address = true} = {}) {
   const tokens = segment.tokens, scores = Object.fromEntries(FAMILIES.map(family => [family, 0]));
   const tags = new Set();
   const lowerText = (segment.text ?? tokens.map(token => token.raw).join(' ')).toLowerCase().replace(/’/g, "'");
   let negationWindow = -10, addressDone = false;
-  const clauseBreak = index => tokens[index].comma || tokens[index].terminal || tokens[index].ellipsis;
+  // Out-of-range neighbours (a segment that starts or ends at this token) count as a break. Before October 8 a
+  // segment starting with "V" read tokens[-1] and threw, so the whole plan fell back to the single-cue path.
+  const clauseBreak = index => !tokens[index] || tokens[index].comma || tokens[index].terminal || tokens[index].ellipsis;
   let i = 0;
   const modifierFor = at => {
     let factor = 1, negated = false;
@@ -203,7 +205,9 @@ function scoreSegment(segment, trait) {
     let matched = false;
     for (let size = 4; size >= 2 && !matched; size--) {
       if (i + size > tokens.length || !tokens.slice(i, i + size).every(part => part.word)) continue;
-      const entries = phrases.get(tokens.slice(i, i + size).map(part => part.lower).join(' '));
+      // Lexicon phrases are written without apostrophes ("dont like this", "cant believe").
+      const key = tokens.slice(i, i + size).map(part => part.lower).join(' ');
+      const entries = phrases.get(key) ?? phrases.get(key.replace(/'/g, ''));
       if (entries) {
         for (const [family, weight] of entries) apply(family, weight, i);
         i += size; matched = true;
@@ -215,10 +219,10 @@ function scoreSegment(segment, trait) {
       if (found.tag) tags.add(found.tag);
       for (const [family, weight] of found.entries) apply(family, weight * found.scale, i);
     }
-    if (ADDRESS.has(token.lower) && !addressDone && !found?.entries.some(([family]) => family === 'trust')) {
+    if (address && ADDRESS.has(token.lower) && !addressDone && !found?.entries.some(([family]) => family === 'trust')) {
       scores.trust += .3; addressDone = true; tags.add('address');
     }
-    if (token.lower === 'v' && token.raw === 'V' && (clauseBreak(i - 1) || clauseBreak(i + 1) || i === 0)) {
+    if (address && token.lower === 'v' && token.raw === 'V' && (clauseBreak(i - 1) || clauseBreak(i + 1) || i === 0)) {
       scores.trust += .25; tags.add('address');
     }
     i++;

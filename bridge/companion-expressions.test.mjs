@@ -40,15 +40,15 @@ test('unknown provider labels preserve data distinction and never imply joy', ()
   assert.deepEqual(corners(expressionTarget({emotion: unknown})), [0, 0]);
 });
 
-test('calm idle and speech with no intent keep a visible resting smile; processing has none', () => {
+test('calm idle and speech with no intent rest neutral (October 8); processing has nothing either', () => {
   const idle = expressionTarget();
-  // Live face-test on Judy: .35-.5 reads clearly, so the resting smile is a
-  // soft .10 (quiet on its own, and the Trust cue lifts warm characters to .15+).
-  assert.ok(idle.lips_l_corner_up >= .10 && idle.lips_l_corner_up <= .16);
-  assert.equal(idle.lips_l_corner_up, idle.lips_r_corner_up);
-  // Speaking without any emotion used to drop the smile entirely (dead face).
+  // The resting smile (.10-.22) made Judy smile through sad conversations; a smile now needs a real cue.
+  assert.equal(EXPRESSION_POLICY.restSmile, 0);
+  assert.deepEqual(corners(idle), [0, 0]);
   const speaking = expressionTarget({phase: 'speaking'});
-  assert.ok(Math.abs(speaking.lips_l_corner_up - idle.lips_l_corner_up * EXPRESSION_POLICY.speechMouthFactor) < 1e-12);
+  assert.deepEqual(corners(speaking), [0, 0]);
+  // A caller can still pass an explicit warmth (the floor logic is unchanged).
+  assert.ok(expressionTarget({warmth: .15}).lips_l_corner_up > 0);
   for (const phase of ['listening', 'thinking'])
     assert.deepEqual(corners(expressionTarget({phase})), [0, 0]);
   assert.ok(Object.values(expressionTarget({blocked: true})).every(value => value === 0));
@@ -245,7 +245,7 @@ test('resting warmth is a floor under every non-negative intent, with a per-char
 test('blended mixes honour warmth, gain and the same mouth priority', () => {
   const bittersweet = mixTarget({weights: {joy: .5, sadness: .5}});
   assert.ok(bittersweet.lips_l_corner_up > .1 && bittersweet.eye_l_brows_raise_in > .2, 'a slight smile with sad brows');
-  assert.equal(mixTarget({weights: {anticipation: .7}, phase: 'speaking'}).lips_l_corner_up > .05, true);
+  assert.equal(mixTarget({weights: {anticipation: .7}, phase: 'speaking'}).lips_l_corner_up, 0, 'Interest has no smile at the neutral rest');
   assert.equal(mixTarget({weights: {sadness: .8}, phase: 'speaking'}).lips_l_corner_up, 0);
   assert.equal(mixTarget({weights: {}, phase: 'speaking', warmth: 0}).lips_l_corner_up, 0);
   const closed = mixTarget({weights: {joy: 1}, phase: 'speaking', gain: 1.5, speechPose: {lips_l_funnel: .32, lips_r_funnel: .32, lips_l_purse: .28, lips_r_purse: .28}});

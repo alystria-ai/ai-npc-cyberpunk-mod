@@ -1,0 +1,860 @@
+[
+  {
+    "id": "b001",
+    "profile": "jackie-welles",
+    "player": "We did it, chombata!",
+    "reply": "Ha! Jackie Welles never doubted you, hermano! Tonight we drink tequila at El Coyote Cojo and Mama's paying. Ay, you should have seen the look on Dexter's face!",
+    "label": "joy",
+    "accept": []
+  },
+  {
+    "id": "b002",
+    "profile": "judy-alvarez",
+    "player": "What do you want to do about the Scavs?",
+    "reply": "I want every last one of them to feel it, V. They took her apart and sold the pieces like she was scrap, and I can't stop seeing their faces when I close my eyes. Don't ask me to let it go. I can't, not yet.",
+    "label": "anger",
+    "accept": [
+      "sadness"
+    ]
+  },
+  {
+    "id": "b003",
+    "profile": "kerry-eurodyne",
+    "player": "Where's the rehearsal?",
+    "reply": "Studio B, down the street from Mox. Gear's loaded in, so all we need is a bass player who isn't hungover. Call time is five.",
+    "label": "calm",
+    "accept": []
+  },
+  {
+    "id": "b004",
+    "profile": "mama-welles",
+    "player": "I'm sorry about Jackie.",
+    "reply": "Gracias, mija. It still feels like a bad dream. I light a candle every night and I talk to him like he's sitting right there. He would have wanted you to eat well.",
+    "label": "sadness",
+    "accept": [
+      "warm"
+    ],
+    "note": "condolence answered with thanks"
+  },
+  {
+    "id": "b005",
+    "profile": "judy-alvarez",
+    "player": "When should we meet up?",
+    "reply": "Tomorrow after noon works for me. I'm stuck at the shop until then dropping off some shards for a client. Swing by my place in Northside around three and bring coffee if you can. Real coffee, not the vending sludge.",
+    "label": "calm",
+    "accept": []
+  },
+  {
+    "id": "b006",
+    "profile": "panam-palmer",
+    "player": "I fixed the Basilisk engine.",
+    "reply": "You fixed it? Holy shit, V, you're a genius! Listen to that thing purr. Get in, I'm driving, and no, you're not allowed to touch the radio!",
+    "label": "joy",
+    "accept": [
+      "surprise"
+    ],
+    "note": "profanity in joy"
+  },
+  {
+    "id": "b007",
+    "profile": "judy-alvarez",
+    "player": "We actually pulled it off!",
+    "reply": "Holy shit, V! It worked! It actually fucking worked! I'm shaking, I can't believe it. Come here, I'm going to kiss you on both cheeks!",
+    "label": "joy",
+    "accept": [
+      "surprise"
+    ],
+    "note": "profanity in joy"
+  },
+  {
+    "id": "b008",
+    "profile": "judy-alvarez",
+    "player": "Do you blame me for what happened to Evelyn?",
+    "reply": "No, V. God, no. For about a day I was too wrecked to think straight and I wanted someone to be angry at, but you were the one who showed up when nobody else did. I'm grateful you stood next to me through all of it. Why would you even think I'd blame you?",
+    "label": "warm",
+    "accept": [
+      "sadness"
+    ],
+    "note": "reassurance"
+  },
+  {
+    "id": "b009",
+    "profile": "johnny-silverhand",
+    "player": "I'm dying, Johnny. Because of you.",
+    "reply": "Ha, I'd say I'm a terrible roommate, but that's not funny, is it? I didn't ask for this, V. I'd swap places if I could. I don't know how to fix it, and I hate that.",
+    "label": "sadness",
+    "accept": [
+      "anger",
+      "fear"
+    ],
+    "note": "joke turns serious; V dying"
+  },
+  {
+    "id": "b010",
+    "profile": "river-ward",
+    "player": "I found a new lead on the Pierce case.",
+    "reply": "Good. Tell me what you've got: names, times, the witness. Trust is nice, but I need specifics before I can pull the files.",
+    "label": "interest",
+    "accept": []
+  },
+  {
+    "id": "b011",
+    "profile": "johnny-silverhand",
+    "player": "Do you hate Arasaka?",
+    "reply": "Hate's a soft word for it, choom. Those corpo bastards sold my city for parts and called it progress. I'll burn every tower they own and dance in the ashes.",
+    "label": "anger",
+    "accept": []
+  },
+  {
+    "id": "b012",
+    "profile": "jackie-welles",
+    "player": "The heist is going bad.",
+    "reply": "I don't like it, V. Dex has been too quiet, and Royce's boys keep swinging by the bar. If this goes sideways, we're both dead. Are you sure about this one?",
+    "label": "fear",
+    "accept": [
+      "interest"
+    ],
+    "note": "concerned question"
+  },
+  {
+    "id": "b013",
+    "profile": "rogue-amendiares",
+    "player": "I just got a bar tab for an entire year!",
+    "reply": "Ha! Not a chance, kid. But for this, I'll pour you a round on the house. Cheers, you've earned it.",
+    "label": "joy",
+    "accept": []
+  },
+  {
+    "id": "b014",
+    "profile": "judy-alvarez",
+    "player": "What are you going to do with Evelyn's stuff?",
+    "reply": "I can't make myself touch most of it. Her jacket still smells like her perfume, and her desk is a mess of half-finished sketches and sticky notes. Maybe someday I'll box it all up, but not yet. Would you help me go through it when I'm ready?",
+    "label": "sadness",
+    "accept": [
+      "calm",
+      "interest"
+    ]
+  },
+  {
+    "id": "b015",
+    "profile": "judy-alvarez",
+    "player": "Thanks for trusting me with Evelyn's story.",
+    "reply": "Hey, don't thank me. You actually listened, and you stayed even when it got ugly, which is more than most people do. I'll never forget that. I just wish I had something happier to give you than my mess.",
+    "label": "warm",
+    "accept": [
+      "sadness"
+    ],
+    "note": "gratitude to V"
+  },
+  {
+    "id": "b016",
+    "profile": "jackie-welles",
+    "player": "Thanks for looking out for me.",
+    "reply": "Bro, no need to thank me. We're family, ya? Wherever you go, I'm riding with you. Don't forget that, okay?",
+    "label": "warm",
+    "accept": []
+  },
+  {
+    "id": "b017",
+    "profile": "takemura",
+    "player": "You must be furious about Hanako.",
+    "reply": "I am not angry, V. I am simply tired. Tired of watching honor become a leash, and tired of pretending that I did not see it coming.",
+    "label": "sadness",
+    "accept": [
+      "calm"
+    ],
+    "note": "negation"
+  },
+  {
+    "id": "b018",
+    "profile": "river-ward",
+    "player": "How is your sister Joss?",
+    "reply": "She's holding up. Barely. The kids keep asking why their dad isn't home yet and she keeps inventing excuses. I don't know how much longer she can keep it going.",
+    "label": "sadness",
+    "accept": [
+      "fear"
+    ],
+    "note": "concern for someone hurting"
+  },
+  {
+    "id": "b019",
+    "profile": "judy-alvarez",
+    "player": "Have you seen the new Clouds promo?",
+    "reply": "Ugh, don't. They sell it like some glamorous lifestyle when it's just people being used up. Seeing that logo makes my skin crawl. Who even watches this garbage?",
+    "label": "disgust",
+    "accept": [
+      "anger"
+    ]
+  },
+  {
+    "id": "b020",
+    "profile": "panam-palmer",
+    "player": "I'm sorry about the losses your clan took.",
+    "reply": "Thanks, V. I appreciate it. We lost good people out there, and half of them were arguing about something stupid right until the end. Funny how that sticks with you. Anyway, you hungry? Somebody has to eat the stew before Saul does.",
+    "label": "sadness",
+    "accept": [
+      "warm"
+    ],
+    "note": "condolence answered with thanks"
+  },
+  {
+    "id": "b021",
+    "profile": "rogue-amendiares",
+    "player": "Where's the Afterlife back room?",
+    "reply": "Down the stairs past the bar. Don't touch anything, don't talk to the bartender unless you're ordering, and if Dex is there, let him come to you.",
+    "label": "calm",
+    "accept": []
+  },
+  {
+    "id": "b022",
+    "profile": "mama-welles",
+    "player": "Your enchiladas are the best.",
+    "reply": "Ay, mijo, you're too sweet. Eat, eat! You're too thin. When was the last time you had a proper meal?",
+    "label": "warm",
+    "accept": [
+      "joy"
+    ],
+    "note": "concerned question"
+  },
+  {
+    "id": "b023",
+    "profile": "judy-alvarez",
+    "player": "Tell me something good about Evelyn.",
+    "reply": "She wanted to see the ocean so badly. Not the Pacifica sludge, a real one, clean enough to swim in. She made me promise we'd go together, and when I said I'd bring a lifeguard she laughed so hard she snorted. I still keep the little shell charm she gave me, even though it looks like a toenail.",
+    "label": "sadness",
+    "accept": [
+      "warm",
+      "joy"
+    ],
+    "note": "happy memory, bittersweet"
+  },
+  {
+    "id": "b024",
+    "profile": "misty-olszewski",
+    "player": "How's the shop?",
+    "reply": "Quiet today, mostly. A couple of regulars buying incense, a kid who wanted his fortune for free. Rent is due Friday, so, same as always.",
+    "label": "calm",
+    "accept": []
+  },
+  {
+    "id": "b025",
+    "profile": "mama-welles",
+    "player": "Mama, stay inside.",
+    "reply": "Ay Dios mio, V, what is happening? I heard shots by the corner. Tell me everyone is okay, please. I can't lose another one.",
+    "label": "fear",
+    "accept": []
+  },
+  {
+    "id": "b026",
+    "profile": "johnny-silverhand",
+    "player": "Do you miss Alt?",
+    "reply": "Yeah. Every damn day. I let her down and never got the chance to fix it. She'd probably spit in my eye if I showed up now, and she'd be right.",
+    "label": "sadness",
+    "accept": [
+      "anger"
+    ]
+  },
+  {
+    "id": "b027",
+    "profile": "kerry-eurodyne",
+    "player": "Sorry about Johnny.",
+    "reply": "Ha, don't be, the bastard probably planned his own funeral for the publicity. Though, honestly, yeah. Thanks. I still hear his guitar in my sleep sometimes.",
+    "label": "sadness",
+    "accept": [
+      "warm"
+    ],
+    "note": "joke turns serious; condolence thanks"
+  },
+  {
+    "id": "b028",
+    "profile": "viktor-vektor",
+    "player": "Thanks for patching me up.",
+    "reply": "You're welcome, V. It is my job, but also, you are a friend. Come back when you are not bleeding and I will make you borscht.",
+    "label": "warm",
+    "accept": []
+  },
+  {
+    "id": "b029",
+    "profile": "jackie-welles",
+    "player": "What time do we meet at El Coyote?",
+    "reply": "Seven, chombata. Mama's making pozole, so don't be late. And bring your own tequila, the bar's dry tonight.",
+    "label": "calm",
+    "accept": []
+  },
+  {
+    "id": "b030",
+    "profile": "takemura",
+    "player": "Where should we go now?",
+    "reply": "We should depart at once. There is a safehouse in Japantown. I will explain on the way.",
+    "label": "calm",
+    "accept": []
+  },
+  {
+    "id": "b031",
+    "profile": "judy-alvarez",
+    "player": "Do you ever think about Evelyn?",
+    "reply": "All the time, choom. Mostly it's the dumb little things, like how she hummed off-key while she microwaved noodles and pretended to be a gourmet chef. It still hurts like hell, but I'd rather carry the memory than nothing at all. Did you ever get to talk to her, back before everything went wrong?",
+    "label": "sadness",
+    "accept": [
+      "warm"
+    ],
+    "note": "fond detail inside grief"
+  },
+  {
+    "id": "b032",
+    "profile": "johnny-silverhand",
+    "player": "I'm scared, Johnny.",
+    "reply": "Hey. Hey. It's okay to be scared. I've been there, more times than I like to admit. You're not alone in that skull, remember? We'll figure it out, I swear.",
+    "label": "warm",
+    "accept": [
+      "sadness"
+    ],
+    "note": "consolation offered to V"
+  },
+  {
+    "id": "b033",
+    "profile": "johnny-silverhand",
+    "player": "You're playing guitar again.",
+    "reply": "Hell yeah I am! First time in forever the strings feel like they belong in my hands. Samurai's back, choom! Come on, scream along with the chorus, you know you want to.",
+    "label": "joy",
+    "accept": []
+  },
+  {
+    "id": "b034",
+    "profile": "johnny-silverhand",
+    "player": "What time is it?",
+    "reply": "How the fuck should I know? Your clock says 3:42, and your watch is an antique. Why, you got a date?",
+    "label": "calm",
+    "accept": [
+      "interest"
+    ],
+    "note": "profanity in neutral line"
+  },
+  {
+    "id": "b035",
+    "profile": "kerry-eurodyne",
+    "player": "Did you see that tabloid?",
+    "reply": "Ugh, that rag? Kerry Eurodyne goes broke. Gutter trash. People eat it up like it's caviar. Makes me want to scrub my hands.",
+    "label": "disgust",
+    "accept": [
+      "anger"
+    ]
+  },
+  {
+    "id": "b036",
+    "profile": "judy-alvarez",
+    "player": "Glad I could help with the Mox.",
+    "reply": "Aw, V. Anytime. You've got a good heart under all those jokes, you know that? Come here, give me a hug before you run off.",
+    "label": "warm",
+    "accept": [
+      "joy"
+    ]
+  },
+  {
+    "id": "b037",
+    "profile": "takemura",
+    "player": "Look at these corpos.",
+    "reply": "Disgraceful. They squander wealth on opulence while their workers starve. Such men have no honor, only appetite.",
+    "label": "disgust",
+    "accept": [
+      "anger"
+    ]
+  },
+  {
+    "id": "b038",
+    "profile": "misty-olszewski",
+    "player": "What do the cards say?",
+    "reply": "Hm, let me see. The Tower, reversed. Something is breaking open, but also healing. Do you want me to go deeper? Tell me what's been keeping you up at night.",
+    "label": "interest",
+    "accept": []
+  },
+  {
+    "id": "b039",
+    "profile": "vendor-ripperdoc",
+    "player": "Anything for me today?",
+    "reply": "Good to see you, V, always a pleasure, and you're looking well! Well... bad news. The parts you ordered got intercepted at the border, and I can't get another batch for a month. I'm sorry.",
+    "label": "sadness",
+    "accept": [
+      "calm"
+    ],
+    "note": "pleasantry then bad news"
+  },
+  {
+    "id": "b040",
+    "profile": "takemura",
+    "player": "Do you trust me?",
+    "reply": "Trust is earned. Tell me how you plan to infiltrate: the route, the guard rotations, and who is inside. I need details before I can answer.",
+    "label": "interest",
+    "accept": []
+  },
+  {
+    "id": "b041",
+    "profile": "judy-alvarez",
+    "player": "Is Woodman still running Clouds?",
+    "reply": "That slimy bastard? Yeah, still sitting on his throne of money, smiling for the cameras. He sold her out the second she got inconvenient, and he'll do it to the next girl too. If I got him alone, I swear to god I wouldn't be able to stop myself.",
+    "label": "anger",
+    "accept": [
+      "disgust"
+    ]
+  },
+  {
+    "id": "b042",
+    "profile": "kerry-eurodyne",
+    "player": "Your new song is great.",
+    "reply": "Ha! Yeah? Hell yes. Wait until you hear the bridge. I wrote it in a hungover fever and it's the best thing I've done in years. Grab a drink, I'm playing it again.",
+    "label": "joy",
+    "accept": [
+      "warm"
+    ]
+  },
+  {
+    "id": "b043",
+    "profile": "judy-alvarez",
+    "player": "How are you coping with all of this?",
+    "reply": "I'm not okay, but I'm not falling apart either. I edit until my eyes burn, I eat when Mox reminds me, and I let myself cry in the shower when it gets bad. Some mornings feel almost normal, and honestly that's the part that scares me. How are you holding up?",
+    "label": "sadness",
+    "accept": [
+      "calm",
+      "warm"
+    ],
+    "note": "negation"
+  },
+  {
+    "id": "b044",
+    "profile": "johnny-silverhand",
+    "player": "Let's ask Militech for help.",
+    "reply": "Yeah, sure, let's ask the guys who nuked Arasaka Tower to lend a hand. What could possibly go wrong. Absolutely fucking brilliant, V.",
+    "label": "disgust",
+    "accept": [
+      "anger"
+    ],
+    "note": "sarcasm / contempt"
+  },
+  {
+    "id": "b045",
+    "profile": "jackie-welles",
+    "player": "Tell me about your pops.",
+    "reply": "He was a good man, worked the docks his whole life. Never really got over the accident, and Mama still sets his plate some nights. I try not to talk about it much. He would've liked you, though.",
+    "label": "sadness",
+    "accept": [
+      "warm"
+    ],
+    "note": "fond words about the dead"
+  },
+  {
+    "id": "b046",
+    "profile": "river-ward",
+    "player": "What's the plan?",
+    "reply": "We drive to the precinct, file the paperwork, then grab lunch. Boring, I know, but evidence logs don't write themselves.",
+    "label": "calm",
+    "accept": []
+  },
+  {
+    "id": "b047",
+    "profile": "mama-welles",
+    "player": "Jackie is going on a big heist with Dex.",
+    "reply": "He told you what? What heist? Dios mio, that boy didn't say a word to me. Is this true? Tell me it's not true.",
+    "label": "surprise",
+    "accept": [
+      "fear",
+      "anger"
+    ]
+  },
+  {
+    "id": "b048",
+    "profile": "river-ward",
+    "player": "NCPD is dragging their feet again.",
+    "reply": "They always do when it matters. Do you know which detective signed off that file, or who had access to the evidence room that night? Someone buried it, and I'd like to know who's smiling at me in the break room.",
+    "label": "interest",
+    "accept": [
+      "anger"
+    ]
+  },
+  {
+    "id": "b049",
+    "profile": "kerry-eurodyne",
+    "player": "Great show last night!",
+    "reply": "Ha! Cheers, mate! The crowd was electric, a full house screaming our lyrics back at us. Felt like twenty years ago. Now where's my coffee?",
+    "label": "joy",
+    "accept": []
+  },
+  {
+    "id": "b050",
+    "profile": "street-kid",
+    "player": "I found your cat.",
+    "reply": "No way! Seriously? Where? She's been missing for two weeks! Oh my god, thank you, thank you!",
+    "label": "surprise",
+    "accept": [
+      "joy"
+    ]
+  },
+  {
+    "id": "b051",
+    "profile": "judy-alvarez",
+    "player": "Can you show me how braindance editing works?",
+    "reply": "Sure, it's easier than it looks. You've got layers: visual, audio, tactile, emotional. Which one do you want to dig into first? I can walk you through the timeline stuff, or the emotion tracks if you're up for it, that's where the real trick is.",
+    "label": "interest",
+    "accept": [
+      "joy"
+    ]
+  },
+  {
+    "id": "b052",
+    "profile": "jackie-welles",
+    "player": "I looked at the job Dex sent over.",
+    "reply": "Hold up. A job from Dex? Tell me everything. How much are we talking, who's the target, and where's the catch? There's always a catch.",
+    "label": "interest",
+    "accept": []
+  },
+  {
+    "id": "b053",
+    "profile": "rogue-amendiares",
+    "player": "Do you miss the old Samurai days?",
+    "reply": "More than I'd tell anybody. Kerry's out there, but Johnny's gone. Sometimes I look at the stage and see ghosts. Don't mind me, I'm just an old woman getting sentimental.",
+    "label": "sadness",
+    "accept": [
+      "warm"
+    ]
+  },
+  {
+    "id": "b054",
+    "profile": "river-ward",
+    "player": "Someone is following us.",
+    "reply": "I noticed. Black sedan, two blocks back. Keep walking, don't look. If they have guns, I want you behind me.",
+    "label": "fear",
+    "accept": []
+  },
+  {
+    "id": "b055",
+    "profile": "street-kid",
+    "player": "Why so quiet?",
+    "reply": "They closed the clinic. Then some men with guns started hanging around our block. I think they're watching us. I'm scared.",
+    "label": "fear",
+    "accept": [
+      "sadness"
+    ]
+  },
+  {
+    "id": "b056",
+    "profile": "panam-palmer",
+    "player": "Saul says we should just ask Arasaka nicely.",
+    "reply": "Oh sure, because that always works. We'll just stroll up to the gate, ask the corpo pigs to be reasonable, and they'll hand over everything with a smile. Brilliant plan. I'm so glad we have you all thinking so hard.",
+    "label": "anger",
+    "accept": [
+      "disgust"
+    ],
+    "note": "sarcasm"
+  },
+  {
+    "id": "b057",
+    "profile": "rogue-amendiares",
+    "player": "You betrayed Johnny.",
+    "reply": "Betrayed? Watch your mouth, kid. I carried that man's ashes for decades. You don't know the first thing about what it cost me.",
+    "label": "anger",
+    "accept": [
+      "sadness"
+    ]
+  },
+  {
+    "id": "b058",
+    "profile": "judy-alvarez",
+    "player": "Do you feel guilty about Evelyn?",
+    "reply": "Every single day. I was her friend, I watched her go quiet and brittle, and I told myself she just needed space. If I'd pushed, if I'd asked even one more question... I keep replaying it. Do you ever do that, run the what-ifs until sunrise?",
+    "label": "sadness",
+    "accept": []
+  },
+  {
+    "id": "b059",
+    "profile": "judy-alvarez",
+    "player": "How did the braindance edit go?",
+    "reply": "Oh my god, V, it finally rendered clean! Three weeks of begging that crappy deck to cooperate and it looks gorgeous, like you can smell the rain. You have to come see it, you'll fall out of your chair.",
+    "label": "joy",
+    "accept": []
+  },
+  {
+    "id": "b060",
+    "profile": "vendor-ripperdoc",
+    "player": "My last doc did this.",
+    "reply": "Lord. Whoever did this should lose his license. Infected, crooked, sloppy. I'll fix it, but you owe me for the stench.",
+    "label": "disgust",
+    "accept": [
+      "anger"
+    ]
+  },
+  {
+    "id": "b061",
+    "profile": "mama-welles",
+    "player": "What time is dinner?",
+    "reply": "Eight o'clock sharp. The brisket needs two more hours. Set the table, please, and tell Misty to come early.",
+    "label": "calm",
+    "accept": []
+  },
+  {
+    "id": "b062",
+    "profile": "panam-palmer",
+    "player": "The convoy will reach us within the hour.",
+    "reply": "Shit. That's way sooner than we figured. If they catch us in the open with the Basilisk half-fueled, we're done. V, I need you to move right now, get the others, I'll cover the road.",
+    "label": "fear",
+    "accept": [
+      "anger"
+    ]
+  },
+  {
+    "id": "b063",
+    "profile": "viktor-vektor",
+    "player": "Done with my checkup?",
+    "reply": "Yes. Your vitals are stable, though the biochip is acting up again. Take two of these a day and come back in a week.",
+    "label": "calm",
+    "accept": []
+  },
+  {
+    "id": "b064",
+    "profile": "aldecaldos",
+    "player": "How's the old man?",
+    "reply": "Not good. His lungs are shot, and the medic says maybe a month. He keeps joking about it, but I see his hands shaking.",
+    "label": "sadness",
+    "accept": [
+      "fear"
+    ],
+    "note": "concern for someone hurting"
+  },
+  {
+    "id": "b065",
+    "profile": "panam-palmer",
+    "player": "I've got a lead on the Arasaka convoy.",
+    "reply": "A lead, huh? Okay, I'm listening. Where's it headed, how many vehicles, and who gave you the intel? If it's solid, I can have the crew ready by sundown.",
+    "label": "interest",
+    "accept": []
+  },
+  {
+    "id": "b066",
+    "profile": "judy-alvarez",
+    "player": "How is the apartment?",
+    "reply": "Same as ever. Leaky pipes, cramped, and the landlord keeps promising he'll fix it by Friday, which means never. I did get a new plant, so it's slightly less depressing in there.",
+    "label": "calm",
+    "accept": []
+  },
+  {
+    "id": "b067",
+    "profile": "panam-palmer",
+    "player": "How far to the Badlands camp?",
+    "reply": "About forty minutes at this pace, less if you stop asking for pit stops. Keep the east ridge on your left and you can't miss it. There's water in the back if you want some.",
+    "label": "calm",
+    "accept": []
+  },
+  {
+    "id": "b068",
+    "profile": "river-ward",
+    "player": "Thanks for letting me crash here.",
+    "reply": "No trouble at all. Joss would say you're welcome anytime, and so do I. Sit down, I'll put the kettle on.",
+    "label": "warm",
+    "accept": []
+  },
+  {
+    "id": "b069",
+    "profile": "johnny-silverhand",
+    "player": "What do you think of my new cyberdeck build?",
+    "reply": "Hm. Interesting. You've routed it through the optic nerve? That's risky as hell. Walk me through how you're planning to dump the heat.",
+    "label": "interest",
+    "accept": []
+  },
+  {
+    "id": "b070",
+    "profile": "judy-alvarez",
+    "player": "Do you think Evelyn would have made it as a star?",
+    "reply": "She would have been incredible, V. She had this spark, even in bad lighting, even with Woodman's cameras pointed at her. All she ever wanted was to be seen as more than a body, and instead the city ate her alive. Sometimes I like to imagine one timeline where she got her name on a marquee.",
+    "label": "sadness",
+    "accept": [
+      "warm"
+    ],
+    "note": "Evelyn dreams"
+  },
+  {
+    "id": "b071",
+    "profile": "vendor-ripperdoc",
+    "player": "How much for the optics?",
+    "reply": "Eight hundred eddies, installation included. Thirty day warranty, no refunds if you pry them out in a brawl.",
+    "label": "calm",
+    "accept": []
+  },
+  {
+    "id": "b072",
+    "profile": "misty-olszewski",
+    "player": "I had a nightmare.",
+    "reply": "The cards warned me about this. A dark figure behind you, V. Something is coming, and I don't like it at all. Stay close to the shop tonight, will you?",
+    "label": "fear",
+    "accept": []
+  },
+  {
+    "id": "b073",
+    "profile": "vendor-ripperdoc",
+    "player": "Are the new arms installed?",
+    "reply": "Beautiful work, if I say so myself! Flex them! Feel that? Smooth as butter. You're going to kill it out there!",
+    "label": "joy",
+    "accept": []
+  },
+  {
+    "id": "b074",
+    "profile": "judy-alvarez",
+    "player": "Is something wrong?",
+    "reply": "Maybe. There's been a car parked outside my building for three nights, same plates, lights off. I keep telling myself it's nothing, but I keep checking the window. Did you notice anything on your way up?",
+    "label": "fear",
+    "accept": [
+      "interest"
+    ],
+    "note": "concerned question"
+  },
+  {
+    "id": "b075",
+    "profile": "judy-alvarez",
+    "player": "The Relic is killing me, Judy.",
+    "reply": "Oh, V. I'm so sorry. I'd tear that chip out of your head myself if I could. Please don't shut me out, okay? Whatever time you've got, I want to spend some of it with you.",
+    "label": "sadness",
+    "accept": [
+      "fear",
+      "warm"
+    ],
+    "note": "V dying"
+  },
+  {
+    "id": "b076",
+    "profile": "kerry-eurodyne",
+    "player": "What's up with your label?",
+    "reply": "They want a stadium comeback single or no royalties. Fuck them. I'm not anybody's puppet, and I'm not signing another leash. They can find some other idiot to sing about sunsets.",
+    "label": "anger",
+    "accept": [],
+    "note": "profanity in anger"
+  },
+  {
+    "id": "b077",
+    "profile": "aldecaldos",
+    "player": "How is life at camp?",
+    "reply": "Same as ever. Dust, engines, and Cassidy's terrible jokes. We got a new water filter, so at least the coffee tastes less like rust.",
+    "label": "calm",
+    "accept": []
+  },
+  {
+    "id": "b078",
+    "profile": "misty-olszewski",
+    "player": "Do you miss Jackie?",
+    "reply": "Every day, dear. He used to come by with a bunch of flowers he'd clearly bought from a stand outside, and I never told him I knew. I still see him in the shop doorway sometimes. Hush now, I'm fine.",
+    "label": "sadness",
+    "accept": [
+      "warm"
+    ],
+    "note": "fond words about the dead"
+  },
+  {
+    "id": "b079",
+    "profile": "panam-palmer",
+    "player": "Thanks for having my back out there.",
+    "reply": "Always, V. You've got mine and I've got yours, that's how this works. When everything went sideways you stuck around, and I don't forget that. Not ever.",
+    "label": "warm",
+    "accept": []
+  },
+  {
+    "id": "b080",
+    "profile": "misty-olszewski",
+    "player": "Can you read my fortune?",
+    "reply": "Of course, honey. Sit, sit. Give me your hand and let me see. Is it love, money, or something darker that's bothering you? Tell me and I'll shuffle the cards.",
+    "label": "interest",
+    "accept": [
+      "warm"
+    ]
+  },
+  {
+    "id": "b081",
+    "profile": "rogue-amendiares",
+    "player": "I want to work for you.",
+    "reply": "Mm. Is that so? What's your specialty, and why now? I don't hire strays, kid, but I do like honest answers.",
+    "label": "interest",
+    "accept": []
+  },
+  {
+    "id": "b082",
+    "profile": "aldecaldos",
+    "player": "Good morning!",
+    "reply": "Morning, V, beautiful day, isn't it? Listen, though. Scouts spotted Arasaka drones two miles out, heading our way. We need to pack up before noon.",
+    "label": "fear",
+    "accept": [
+      "interest"
+    ],
+    "note": "pleasantry then bad news"
+  },
+  {
+    "id": "b083",
+    "profile": "takemura",
+    "player": "I appreciate your help.",
+    "reply": "The honor is mine, V. You have my respect, and my gratitude. Please, sit. Allow me to pour some tea.",
+    "label": "warm",
+    "accept": []
+  },
+  {
+    "id": "b084",
+    "profile": "judy-alvarez",
+    "player": "I found that shard you thought was destroyed.",
+    "reply": "Wait, what? Where the hell did you find it? I was sure it burned up in the fire. Are you serious right now, V? Show me, show me.",
+    "label": "surprise",
+    "accept": [
+      "joy"
+    ]
+  },
+  {
+    "id": "b085",
+    "profile": "viktor-vektor",
+    "player": "I got a Sandevistan upgrade.",
+    "reply": "A Sandevistan? Where did you get the credits? That is... I did not expect that. Is it a Militech piece? Are you insane?",
+    "label": "surprise",
+    "accept": [
+      "interest"
+    ]
+  },
+  {
+    "id": "b086",
+    "profile": "street-kid",
+    "player": "Gang bothering you?",
+    "reply": "Fucking Valentinos shook me down again. I swear, one day I'll bring a bat and make them regret it.",
+    "label": "anger",
+    "accept": [],
+    "note": "profanity in anger"
+  },
+  {
+    "id": "b087",
+    "profile": "aldecaldos",
+    "player": "Heard the baby came.",
+    "reply": "Yes! Healthy, loud and beautiful, seven pounds! We had a fire dance all night, you should have come!",
+    "label": "joy",
+    "accept": []
+  },
+  {
+    "id": "b088",
+    "profile": "viktor-vektor",
+    "player": "Is there any hope for me?",
+    "reply": "I will be honest, V. The chip is rewriting you, and I have seen nothing like it. I can slow it, I cannot stop it. I am sorry.",
+    "label": "sadness",
+    "accept": [
+      "fear"
+    ],
+    "note": "V dying"
+  },
+  {
+    "id": "b089",
+    "profile": "panam-palmer",
+    "player": "I heard Saul is stepping down.",
+    "reply": "What? Saul? No way, he'd never walk away from the clan. Who told you that? Wait, are you messing with me?",
+    "label": "surprise",
+    "accept": [
+      "fear"
+    ]
+  },
+  {
+    "id": "b090",
+    "profile": "viktor-vektor",
+    "player": "What do you think of this chrome?",
+    "reply": "Hmph. Knockoff, no sterilization, wires like spaghetti. This is butchery, not surgery. Throw it in the trash before it kills you.",
+    "label": "disgust",
+    "accept": [
+      "anger"
+    ]
+  }
+]
