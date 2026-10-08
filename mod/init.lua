@@ -505,7 +505,9 @@ groupChat.captureGameDialogue = captureGameDialogue
 phoneChat.captureGameDialogue = captureGameDialogue
 microphone.captureGameDialogue = captureGameDialogue
 
-local function warmConversation(participants, key)
+-- entity: the addressed character's ID ("<hash>ULL") for a private conversation. A generic resident or archetype
+-- has no connection without its body, so the bridge opens that NPC's own route while V types or speaks.
+local function warmConversation(participants, key, entity)
     local f = io.open('runtime/conversation-prewarm.json.tmp', 'wb')
     if not f then return end
     local hint = '{}'
@@ -515,7 +517,8 @@ local function warmConversation(participants, key)
             for _, person in ipairs(participants) do audience[#audience + 1] = person.profileKey end
         else audience[1] = key end
         hint = json.encode({nonce = 'composer-' .. tostring(os.time()) .. '-' .. tostring(generation),
-            audience = audience, group = participants ~= nil})
+            audience = audience, group = participants ~= nil,
+            entity = participants == nil and type(entity) == 'string' and entity or nil})
     end
     f:write(hint); f:close()
     os.remove('runtime/conversation-prewarm.json')
@@ -1151,7 +1154,7 @@ local function beginText(groupMode)
         focusUntil = os.time() + 45
         active = {generation = generation, entity = identity, name = name, bodyType = bodyType,
             profileKey = key, participants = participants, archetype = primary.archetype}
-        warmConversation(participants, key)
+        warmConversation(participants, key, identity)
         if connectNote then pcall(function() player:ConvaiPhoneFeedback(connectNote) end) end
         pending = nil
         log('Composer opened: generation=' .. generation .. ' actor=' .. identity .. ' name=' .. name)
@@ -1195,7 +1198,7 @@ local function toggleVoice(groupMode)
         gameplayActions.revoke('new-conversation')
         microphone.cancel('new-conversation')
         groupChat.cancel()
-        warmConversation(participants, key)
+        warmConversation(participants, key, entity)
         speech.stop('microphone'); subtitles.clear()
         speech.target = npc
         local context
@@ -2155,7 +2158,9 @@ registerForEvent('onUpdate', function(delta)
         local scene = battleSample ~= nil and battleSample.available == true
             and (battleSample.tier ~= 1 or battleSample.dialogue == true)
         local ok, err = pcall(autoConnect.update, elapsedPoll, {worldReady = worldReady == true, blocked = blocked,
-            player = player, talking = talking, talkingEntity = active and speech.target or nil, scene = scene})
+            player = player, talking = talking, talkingEntity = active and speech.target or nil, scene = scene,
+            talkingId = (active and active.entity) or (pending and pending.entity)
+                or (microphone.context and microphone.context.entity) or nil})
         if not ok then log('Auto-connect update failed: ' .. tostring(err)) end
     end
     if pending then

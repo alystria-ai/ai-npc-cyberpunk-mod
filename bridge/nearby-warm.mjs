@@ -27,13 +27,23 @@ export function parsePartners(value, {isKnown = () => true, now = Date.now(), st
   return [...new Set(value.partners)].filter(isKnown);
 }
 
+// The physical entity of each listed ambient character (`entities`: {profile: "<hash>ULL"}). A generic resident or
+// archetype has no route without it; a named character never needs one. {} for an older document or a stale one.
+export function parseEntities(value, {now = Date.now(), staleMs = 8000} = {}) {
+  if (!value || !Number.isSafeInteger(value.updated) || value.updated < 0 || value.updated > now + 5000
+      || now - value.updated > staleMs || !value.entities || typeof value.entities !== 'object' || Array.isArray(value.entities)) return {};
+  return Object.fromEntries(Object.entries(value.entities).filter(([profile, entity]) => /^[a-z0-9-]{1,80}$/.test(profile)
+    && typeof entity === 'string' && /^\d{1,24}ULL$/.test(entity)).slice(0, 8));
+}
+
 export class NearbyWarm {
   // connections: PartyConnections. prepareVoice(profile, {signal}): prepares the
   // local voice. canPrepare(): false while a turn, the microphone or a voice
   // change owns the voice service. onError(error): diagnostics only.
-  constructor({connections, prepareVoice, canPrepare = () => true, isKnown = () => true, now = Date.now,
+  // routeFor(profile, entity): the exact route of an ambient character's entity, or null (a named profile, no world).
+  constructor({connections, prepareVoice, canPrepare = () => true, isKnown = () => true, routeFor = () => null, now = Date.now,
       staleMs = 8000, retryMs = 30000, onError = () => {}}) {
-    Object.assign(this, {connections, prepareVoice, canPrepare, isKnown, now, staleMs, retryMs, onError});
+    Object.assign(this, {connections, prepareVoice, canPrepare, isKnown, routeFor, now, staleMs, retryMs, onError});
     this.profiles = []; this.partners = [];
     this.voices = new Map();   // profile -> {state: 'preparing' | 'ready' | 'failed', controller, retryAt}
   }
@@ -50,8 +60,13 @@ export class NearbyWarm {
     }
     // Idempotent: PartyConnections ignores an unchanged list, and re-applies it
     // after the party connection state was cleared and became fresh again.
-    try { await this.connections.setPartners?.(partners); } catch (error) { this.onError(error); }
-    try { await this.connections.setNearby(profiles); } catch (error) { this.onError(error); }
+    const entities = parseEntities(value, options), routes = {};
+    for (const profile of [...partners, ...profiles]) if (entities[profile]) {
+      try { const route = this.routeFor(profile, entities[profile]); if (route) routes[profile] = route; }
+      catch (error) { this.onError(error); }
+    }
+    try { await this.connections.setPartners?.(partners, routes); } catch (error) { this.onError(error); }
+    try { await this.connections.setNearby(profiles, routes); } catch (error) { this.onError(error); }
     this.prepareVoices();
   }
   prepareVoices() {

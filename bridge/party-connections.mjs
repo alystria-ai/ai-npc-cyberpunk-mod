@@ -13,6 +13,26 @@ export const NEARBY_LIMIT = 2;
 export const PARTNER_LIMIT = 2;
 export const connectionKey = (profile, scope) => JSON.stringify([profile, scope]);
 
+// An exact private route (a submitted ambient turn, or an ambient character's entity route): only the fields that
+// open the page. Credentials and route details stay private; diagnostics expose only the profile/scope.
+function exactRoute(config) {
+  if (!config || typeof config !== 'object' || !config.characterId || !config.scope) throw Error('Invalid submitted connection route');
+  transportKey(config);
+  return Object.freeze(Object.fromEntries(['key', 'characterId', 'endUserId', 'scope', 'sessionId', 'ttsEnabled']
+    .filter(key => Object.hasOwn(config, key)).map(key => [key, config[key]])));
+}
+function routeMap(profiles, routes) {
+  const map = new Map();
+  for (const profile of profiles) {
+    const config = routes instanceof Map ? routes.get(profile) : routes?.[profile];
+    if (config) map.set(profile, exactRoute(config));
+  }
+  return map;
+}
+// Same pages: equal transport identities (a session ID learned later does not reopen anything).
+const sameRoutes = (a, b) => a.size === b.size && [...a].every(([profile, config]) => b.has(profile)
+  && transportKey(b.get(profile)) === transportKey(config));
+
 export function parsePartyConnections(value, now = Date.now()) {
   if (!value || !Number.isSafeInteger(value.updated) || value.updated < 0 || value.updated > now + 5000
       || !Array.isArray(value.profiles)
@@ -29,6 +49,9 @@ export class PartyConnections {
     this.profiles = []; this.updated = null; this.stale = true;
     this.invitations = []; this.retiring = new Map(); this.retirementDebt = new Map();
     this.entries = new Map(); this.composer = this.request = null; this.nearby = []; this.partners = [];
+    // Exact routes for ambient nearby characters and partners (profile -> config): a generic resident or archetype
+    // has no route without its physical entity, so isKnown() rejects it and only an exact route can warm it.
+    this.nearbyRoutes = new Map(); this.partnerRoutes = new Map();
     this.nextStart = 0; this.reconciling = null; this.revision = 0; this.paused = false;
     // Recency of use per profile (a counter, so ties and clock jumps cannot reorder anything). It only decides
     // whose connection stays warm once the party is larger than WARM_PARTY_LIMIT.
@@ -52,32 +75,36 @@ export class PartyConnections {
     return {removed, changed, stale: this.stale};
   }
   setComposer(hint) {
-    this.composer = hint ? {scope: hint.scope, audience: [...hint.audience]} : null;
+    // An ambient private target arrives with its exact route (hint.config), like a submitted request.
+    const config = hint?.config && hint.scope === 'private' ? exactRoute(hint.config) : undefined;
+    this.composer = hint ? {scope: hint.scope, audience: [...hint.audience],
+      ...(config ? {profile: hint.audience[0], config} : {})} : null;
     this.request = null; this.revision++;
     return this.reconcile();
   }
   // Nearby world characters to keep a private connection ready for. They rank
   // below every party member, invitation and the composer/request target, and
   // take the optional group slots, so they can never evict anything protected.
-  setNearby(profiles) {
+  // routes: optional {profile: exact config} for ambient characters (their entity's route).
+  setNearby(profiles, routes = {}) {
     if (!Array.isArray(profiles) || profiles.some(profile => typeof profile !== 'string' || !/^[a-z0-9-]{1,80}$/.test(profile))) {
       throw Error('Invalid nearby profiles');
     }
-    const next = [...new Set(profiles)].slice(0, NEARBY_LIMIT);
-    if (JSON.stringify(next) === JSON.stringify(this.nearby)) return Promise.resolve();
-    this.nearby = next; this.revision++;
+    const next = [...new Set(profiles)].slice(0, NEARBY_LIMIT), nextRoutes = routeMap(next, routes);
+    if (JSON.stringify(next) === JSON.stringify(this.nearby) && sameRoutes(nextRoutes, this.nearbyRoutes)) return Promise.resolve();
+    this.nearby = next; this.nearbyRoutes = nextRoutes; this.revision++;
     return this.reconcile();
   }
   // Conversation partners: rank below the party, invitations and the current target, above nearby characters.
   // A partner's private connection is the same entry (profile + private scope) its conversation used, so it is
   // kept, never opened a second time.
-  setPartners(profiles) {
+  setPartners(profiles, routes = {}) {
     if (!Array.isArray(profiles) || profiles.some(profile => typeof profile !== 'string' || !/^[a-z0-9-]{1,80}$/.test(profile))) {
       throw Error('Invalid conversation partners');
     }
-    const next = [...new Set(profiles)].slice(0, PARTNER_LIMIT);
-    if (JSON.stringify(next) === JSON.stringify(this.partners)) return Promise.resolve();
-    this.partners = next; this.revision++;
+    const next = [...new Set(profiles)].slice(0, PARTNER_LIMIT), nextRoutes = routeMap(next, routes);
+    if (JSON.stringify(next) === JSON.stringify(this.partners) && sameRoutes(nextRoutes, this.partnerRoutes)) return Promise.resolve();
+    this.partners = next; this.partnerRoutes = nextRoutes; this.revision++;
     return this.reconcile();
   }
   setRequest(input, exactConfig) {
@@ -85,15 +112,7 @@ export class PartyConnections {
     // admitted request may supply that exact already-validated route so normal
     // party reconciliation does not dispose its active page. Keep credentials
     // and route details private; diagnostics expose only the profile/scope.
-    let config;
-    if (input && exactConfig !== undefined) {
-      if (!exactConfig || typeof exactConfig !== 'object' || !exactConfig.characterId || !exactConfig.scope) {
-        throw Error('Invalid submitted connection route');
-      }
-      transportKey(exactConfig);
-      config = Object.freeze(Object.fromEntries(['key', 'characterId', 'endUserId', 'scope', 'sessionId', 'ttsEnabled']
-        .filter(key => Object.hasOwn(exactConfig, key)).map(key => [key, exactConfig[key]])));
-    }
+    const config = input && exactConfig !== undefined ? exactRoute(exactConfig) : undefined;
     this.request = input ? {scope: input.group ? 'group:' + [...input.group.audience].sort().join(',') : 'private',
       audience: input.group?.audience || [input.profileKey], profile: input.profileKey, ...(config ? {config} : {})} : null;
     this.composer = null; this.revision++;
@@ -128,11 +147,18 @@ export class PartyConnections {
     if (focus?.scope === 'private' && this.isKnown(focus.audience[0]) && !privateProfiles.includes(focus.audience[0])) {
       privateProfiles.push(focus.audience[0]);
     }
-    const partnerProfiles = this.stale ? [] : this.partners.filter(profile => this.isKnown(profile) && !privateProfiles.includes(profile))
+    // An ambient partner/nearby character is warmed only through its exact route, and a focus with its own exact
+    // route (the NPC V is addressing now) replaces a same-profile one: two residents share one profile key.
+    const routes = new Map();
+    const eligible = (profile, known) => (this.isKnown(profile) || known.has(profile)) && !privateProfiles.includes(profile)
+      && !(focus?.config && focus.profile === profile);
+    const partnerProfiles = this.stale ? [] : this.partners.filter(profile => eligible(profile, this.partnerRoutes))
       .slice(0, Math.max(0, CONNECTION_LIMIT - privateProfiles.length));
+    for (const profile of partnerProfiles) if (!this.isKnown(profile)) routes.set(profile, this.partnerRoutes.get(profile));
     privateProfiles.push(...partnerProfiles);
-    const nearbyProfiles = this.stale ? [] : this.nearby.filter(profile => this.isKnown(profile) && !privateProfiles.includes(profile))
+    const nearbyProfiles = this.stale ? [] : this.nearby.filter(profile => eligible(profile, this.nearbyRoutes))
       .slice(0, Math.max(0, CONNECTION_LIMIT - privateProfiles.length));
+    for (const profile of nearbyProfiles) if (!this.isKnown(profile)) routes.set(profile, this.nearbyRoutes.get(profile));
     privateProfiles.push(...nearbyProfiles);
     const audience = focus?.scope.startsWith('group:') ? focus.audience.filter(this.isKnown) : party.slice(0, 3);
     const groupScope = focus?.scope.startsWith('group:') ? focus.scope : 'group:' + [...audience].sort().join(',');
@@ -143,7 +169,8 @@ export class PartyConnections {
     const privateSpecs = privateProfiles.map(profile => ({profile, scope: 'private',
       role: party.includes(profile) ? 'party' : this.invitations.includes(profile) ? 'invitation'
         : focus?.audience[0] === profile ? 'target' : partnerProfiles.includes(profile) ? 'partner'
-          : nearbyProfiles.includes(profile) ? 'nearby' : 'target'}));
+          : nearbyProfiles.includes(profile) ? 'nearby' : 'target',
+      ...(routes.has(profile) ? {config: routes.get(profile)} : {})}));
     const groupSpecs = groupProfiles.map(profile => ({profile, scope: groupScope, role: 'group'}));
     const specs = focus?.scope.startsWith('group:') ? [...groupSpecs, ...privateSpecs] : [...privateSpecs, ...groupSpecs];
     if (focus?.config && !specs.some(spec => spec.profile === focus.profile && spec.scope === focus.scope)) {
@@ -336,6 +363,18 @@ export class PartyConnections {
     entry.state = entry.failures >= 3 ? 'cooldown' : 'retrying';
     entry.retryAt = this.now() + (entry.failures >= 3 ? 300000 : 30000 * entry.failures);
     this.emit();
+  }
+  // bridge-latency.json: how warm the submitted turn's connection was when the turn arrived (no IDs or routes).
+  // config: the turn's own route; samePage is false when the entry is another body of the same ambient profile.
+  warmState(input, config) {
+    const scope = input?.group ? 'group:' + [...input.group.audience].sort().join(',') : 'private';
+    const entry = input && this.entries.get(connectionKey(input.profileKey, scope));
+    if (!entry) return {state: 'none'};
+    let samePage;
+    try { samePage = config ? transportKey(this.configuration(entry)) === transportKey(config) : undefined; } catch { samePage = false; }
+    return {state: entry.state, role: entry.role, ...(samePage !== undefined ? {samePage} : {}),
+      ...(entry.startedAt ? {startedMsAgo: this.now() - entry.startedAt} : {}),
+      ...(entry.warmMs !== undefined ? {warmMs: entry.warmMs} : {})};
   }
   used(input, timing) {
     const scope = input.group ? 'group:' + [...input.group.audience].sort().join(',') : 'private';

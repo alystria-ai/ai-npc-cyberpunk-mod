@@ -13,6 +13,10 @@ test('composer warming accepts only bounded configured audience hints and separa
   const ids = {judy: 'one', panam: 'two', alex: 'three'};
   assert.equal(parsePrewarm({nonce: 'open-1', group: true, audience: ['panam', 'judy']}, ids).scope, 'group:judy,panam');
   assert.equal(parsePrewarm({nonce: 'open-2', group: false, audience: ['judy']}, ids).scope, 'private');
+  // A private hint may name the addressed NPC's entity (an ambient resident's connection needs its body); a group never.
+  assert.equal(parsePrewarm({nonce: 'open-3', group: false, audience: ['judy'], entity: '10107044ULL'}, ids).entity, '10107044ULL');
+  assert.equal(parsePrewarm({nonce: 'open-4', group: false, audience: ['judy'], entity: 'x1'}, ids).entity, undefined);
+  assert.equal(parsePrewarm({nonce: 'open-5', group: true, audience: ['panam', 'judy'], entity: '1ULL'}, ids).entity, undefined);
   for (const hint of [{}, {nonce: '', group: true, audience: ['judy']},
     {nonce: 'x', group: false, audience: ['judy', 'panam']}, {nonce: 'x', group: true, audience: ['unknown']},
     {nonce: 'x', group: true, audience: ['judy', 'judy']}, {nonce: 'x', group: true, audience: ['judy', 'panam', 'alex', 'judy']}]) {

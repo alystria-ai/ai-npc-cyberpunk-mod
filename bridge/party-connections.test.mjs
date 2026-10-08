@@ -424,3 +424,56 @@ test('nearby characters are dropped when the party heartbeat goes stale or the c
   await f.connections.setNearby(['judy']); await f.connections.clear();
   assert.deepEqual(f.connections.nearby, []);
 });
+
+// An ambient resident's exact route: its scope is unique to one physical NPC (bridge/player-knowledge.mjs).
+const residentRoute = body => ({key: 'secret-key', characterId: 'resident-provider', endUserId: 'player', scope: 'private:world:' + body});
+
+test('the composer hint opens an ambient NPC\'s own route while V types, and the submitted turn reuses that page', async () => {
+  const f = fixture();
+  f.heartbeat(['judy']); await f.step();
+  await f.connections.setComposer({scope: 'private', audience: ['resident-male'], config: residentRoute('a')});
+  for (let index = 0; index < 4; index++) await f.step();
+  const opened = f.calls.filter(call => call.profile === 'resident-provider');
+  assert.equal(opened.length, 1, 'the resident connection starts at the talk key, before any submission');
+  assert.equal(f.connections.warmState({profileKey: 'resident-male'}, residentRoute('a')).state, 'ready');
+  assert.equal(f.connections.warmState({profileKey: 'resident-male'}, residentRoute('a')).samePage, true);
+  // The submitted turn carries the same route (plus a session learned later): the warm page is kept, not reopened.
+  await f.connections.setRequest({profileKey: 'resident-male'}, {...residentRoute('a'), sessionId: 'later', context: 'x'});
+  for (let index = 0; index < 4; index++) await f.step();
+  assert.equal(f.calls.filter(call => call.profile === 'resident-provider').length, 1, 'no second connection for the same NPC');
+  assert.ok(f.host.wanted.has(connectionKey('resident-provider', 'private:world:a')));
+  assert.equal(JSON.stringify(f.reports.at(-1)).includes('secret'), false, 'diagnostics carry no key, user or session');
+  // Another resident (same profile key, another body) replaces it.
+  await f.connections.setComposer({scope: 'private', audience: ['resident-male'], config: residentRoute('b')});
+  for (let index = 0; index < 4; index++) await f.step();
+  assert.deepEqual(f.calls.filter(call => call.profile === 'resident-provider').map(call => call.scope), ['private:world:a', 'private:world:b']);
+  assert.equal(f.host.wanted.has(connectionKey('resident-provider', 'private:world:a')), false);
+  // Without a route an ambient composer target still opens nothing (it has no route without its body).
+  await f.connections.setComposer({scope: 'private', audience: ['resident-male']});
+  assert.equal([...f.connections.entries.values()].some(entry => entry.profile === 'resident-male'), false);
+});
+
+test('ambient nearby characters and partners warm through their entity route within the nearby and partner caps', async () => {
+  const f = fixture();
+  f.heartbeat(profiles); await f.step();
+  await f.connections.setNearby(['resident-male', 'npc-ganger-male', 'resident-female'],
+    {'resident-male': residentRoute('a'), 'npc-ganger-male': {...residentRoute('g'), characterId: 'ganger-provider'}});
+  const nearby = [...f.connections.entries.values()].filter(entry => entry.role === 'nearby');
+  assert.deepEqual(nearby.map(entry => entry.profile), ['resident-male', 'npc-ganger-male'], 'NEARBY_LIMIT applies, unrouted ambient names are skipped');
+  assert.ok(f.connections.plan().length <= CONNECTION_LIMIT);
+  // An unchanged list with the same routes is a no-op; a new body for the same key replaces the route.
+  const revision = f.connections.revision;
+  await f.connections.setNearby(['resident-male', 'npc-ganger-male'],
+    {'resident-male': {...residentRoute('a'), sessionId: 'learned'}, 'npc-ganger-male': {...residentRoute('g'), characterId: 'ganger-provider'}});
+  assert.equal(f.connections.revision, revision);
+  await f.connections.setNearby(['resident-male'], {'resident-male': residentRoute('c')});
+  assert.equal(f.connections.entries.get(connectionKey('resident-male', 'private')).config.scope, 'private:world:c');
+  // A partner keeps its route; V addressing another body of the same key wins over the partner's.
+  await f.connections.setNearby([]);
+  await f.connections.setPartners(['resident-male'], {'resident-male': residentRoute('p')});
+  assert.equal(f.connections.entries.get(connectionKey('resident-male', 'private')).role, 'partner');
+  await f.connections.setRequest({profileKey: 'resident-male'}, residentRoute('q'));
+  const entry = f.connections.entries.get(connectionKey('resident-male', 'private'));
+  assert.equal(entry.role, 'target'); assert.equal(entry.config.scope, 'private:world:q');
+  assert.throws(() => f.connections.setNearby(['resident-male'], {'resident-male': {key: 'k'}}), /Invalid submitted connection route/);
+});

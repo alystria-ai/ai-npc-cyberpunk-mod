@@ -699,3 +699,54 @@ test('restart resolves a pre-dispatch interrupted intent locally without claimin
   assert.equal(reopened.status().command.state, 'failed'); assert.equal(reopened.status().command.uncertain, false);
   assert.equal(reopened.route('judy').guard.characterEpoch, 1);
 });
+
+test('a session-only (ambient) player send records the Forget target locally and never verifies or enables provider memory', async t => {
+  const {memory, path, calls} = await fixture(t);
+  const route = memory.route('judy');
+  const receipt = await memory.beginSessionConversation({profileKey: 'judy', guard: route.guard, source: 'player', requestId: 'resident-turn'});
+  assert.equal(receipt.memoryEnabled, false); assert.equal(receipt.reconnectRequired, false);
+  assert.deepEqual(receipt.guard, route.guard);
+  assert.deepEqual(calls, [], 'no enable, inspect or seed call for an ambient profile');
+  assert.equal(memory.connectionRefreshRequired({profileKey: 'judy', guard: route.guard}), false);
+  const first = await fs.readFile(path, 'utf8');
+  await memory.beginSessionConversation({profileKey: 'judy', guard: route.guard, requestId: 'resident-turn-2'});
+  assert.equal(await fs.readFile(path, 'utf8'), first, 'a later turn only checks the registry');
+  await assert.rejects(memory.beginSessionConversation({profileKey: 'judy', guard: route.guard, source: 'npc'}), {code: 'PLAYER_SEND_REQUIRED'});
+  await assert.rejects(memory.beginSessionConversation({profileKey: 'judy', guard: memory.route('panam').guard}), {code: 'STALE_TURN'});
+  await memory.clearAll({actionId: 'forget-after-resident'});
+  assert.deepEqual(calls.filter(row => row.kind === 'clear').map(row => row.characterId), [ids.judy], 'Forget all still covers it');
+});
+
+test('bridge admission takes the session-only fast path for ambient routes and reports the memory stage', async t => {
+  const {memory, calls} = await fixture(t);
+  const source = await fs.readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  const body = source.slice(source.indexOf('async function admitPlayerConversation('), source.indexOf('async function pollMicrophone()'));
+  const retired = [];
+  const admit = runInNewContext('(' + body + ')', {playerMemory: memory, knowledgeRouter: {current: async () => true},
+    intrinsicHistory: new IntrinsicCharacterContext([]),
+    connections: {needsRetirement: () => false, retireInvitation: async profile => { retired.push(profile); }},
+    throwIfCancelled: signal => { if (signal?.aborted) throw Error('Cancelled'); }});
+  const ambient = {sendAllowed: true, providerMemory: 'session-only', route: {profileKey: 'judy', channel: 'private', transport: 'private'},
+    guard: memory.route('judy').guard, input: {requestId: 'resident-1', text: 'Hey'}};
+  const started = Date.now();
+  const receipt = await admit(ambient);
+  assert.equal(receipt.reconnectRequired, false); assert.equal(receipt.memory.mode, 'session-only');
+  assert.ok(Number.isFinite(receipt.memory.beginMs) && receipt.memory.beginMs >= 0);
+  assert.ok(Date.now() - started < 1000, 'the ambient admission is local');
+  assert.deepEqual(calls, [], 'an ambient turn never contacts the memory provider');
+  assert.deepEqual(retired, []);
+  assert.deepEqual(memory.status().characters.map(row => row.profileKey), ['judy']);
+  // A named character still verifies (and on a change, refreshes) through the provider path.
+  const named = {...ambient, providerMemory: undefined, route: {...ambient.route, profileKey: 'panam'},
+    guard: memory.route('panam').guard, input: {requestId: 'panam-1', text: 'Hey'}};
+  const host = {refreshIdle: async () => true};
+  const namedAdmit = runInNewContext('(' + body + ')', {playerMemory: memory, knowledgeRouter: {current: async () => true},
+    intrinsicHistory: new IntrinsicCharacterContext([]), realtime: host, phoneRealtime: host,
+    connections: {needsRetirement: () => false, retireInvitation: async profile => { retired.push(profile); }},
+    realtimeConfig: () => ({}), localVoice: {playbackEnabled: true}, turnUsesLocal: () => false,
+    throwIfCancelled: signal => { if (signal?.aborted) throw Error('Cancelled'); }});
+  const provider = await namedAdmit(named);
+  assert.equal(provider.memory.mode, 'provider'); assert.equal(provider.reconnectRequired, true);
+  assert.ok(provider.memory.refreshMs >= 0);
+  assert.deepEqual(calls.map(row => row.kind), ['enable']); assert.deepEqual(retired, ['panam']);
+});

@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {NearbyWarm, parseNearby} from './nearby-warm.mjs';
+import {NearbyWarm, parseEntities, parseNearby} from './nearby-warm.mjs';
 import {NEARBY_LIMIT} from './party-connections.mjs';
 
 const flush = () => new Promise(done => setImmediate(done));
@@ -115,4 +115,20 @@ test('a connection error is reported and the next apply tries again; release emp
   assert.equal(calls.length, 2);
   await warm.release();
   assert.deepEqual(calls.at(-1), []);
+});
+
+test('an ambient character is listed with its entity and warmed through that body\'s exact route', async () => {
+  const routes = [];
+  const f = fixture({routeFor: (profile, entity) => profile.startsWith('resident') ? {characterId: profile + '-id', scope: 'private:' + entity} : null});
+  f.warm.connections.setNearby = async (profiles, given) => { routes.push({profiles: [...profiles], given}); };
+  const now = 1_000_000;
+  assert.deepEqual(parseEntities({updated: now, entities: {'resident-male': '123ULL', 'bad/key': '1ULL', judy: 'not-an-id'}}, {now}),
+    {'resident-male': '123ULL'});
+  assert.deepEqual(parseEntities({updated: now - 9000, entities: {'resident-male': '123ULL'}}, {now}), {}, 'a stale list carries nothing');
+  assert.deepEqual(parseEntities({updated: now, profiles: []}, {now}), {}, 'an older document without entities');
+  await f.warm.apply(JSON.stringify({updated: now, profiles: ['resident-male', 'judy'], partners: [],
+    entities: {'resident-male': '123ULL', judy: '9ULL'}}));
+  assert.deepEqual(routes.at(-1).profiles, ['resident-male', 'judy']);
+  assert.deepEqual(routes.at(-1).given, {'resident-male': {characterId: 'resident-male-id', scope: 'private:123ULL'}},
+    'only an ambient profile gets an entity route; a named one keeps its profile route');
 });

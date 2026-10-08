@@ -140,9 +140,29 @@ language box is marked off (web session). See `docs/MULTILINGUAL_PROFILES.md`.
   also clears it (a Forget-all fence stops in-flight turns from writing); Forget selected character does not touch it, because
   archetypes are not in the picker. Details: `docs/PLAYER_MEMORY.md`, "Vendor memory". The setting text says unnamed people
   forget you after a load, "except shopkeepers you come back to" (15 locales).
-- **Auto-connect** treats archetypes as generic (prominence 3, after named characters). Ambient profiles cannot
-  be warmed without their entity, so in practice they connect on first talk; the existing caps (2 slots,
-  one start every 3 s, 40 s release) are unchanged.
+- **Auto-connect** treats archetypes as generic (prominence 3, after named characters). An ambient profile has no
+  connection without its body, so the game publishes the entity ID of each warmed or partnered character
+  (`entities` in `runtime/nearby-connections.json`) and the bridge opens that NPC's own route; the existing caps
+  (2 slots, 2 partners, one start every 3 s, 40 s release) are unchanged.
+
+## Latency
+
+A first reply from a fresh resident or archetype should be as quick as a companion's (2026-10-08 fix):
+
+- **No memory admission.** An ambient turn takes `PlayerMemory.beginSessionConversation`: it records the Forget-all target
+  locally (a registry check of a few ms) and never calls Convai. Before, every first ambient turn after a bridge start ran
+  the named-character path, `enableMemory` (a 2.2 MB `/character/list`, `/character/get`, and when memory was off an
+  `/character/update` and a readback): 6.7 s measured on `resident-male`, which also switched that character's Convai
+  memory **on**, against this design.
+- **Connection overlapped with input.** The talk keys (text and voice) put the addressed NPC's entity in
+  `runtime/conversation-prewarm.json`; the bridge opens that NPC's exact route at once, while V types or the microphone
+  starts, and the submitted turn reuses the page (same transport identity). Looking at or standing near a resident
+  (Auto-connect) and a conversation partner do the same. Two residents share a profile key, so the NPC being addressed
+  always wins the profile's private slot.
+- **Visible stages.** `runtime/bridge-latency.json` per turn: `submissionStages.memory` (`mode` session-only or provider,
+  `beginMs`, `refreshMs` when a memory change replaced the pages) and `connectionWarm` (the turn's connection when it
+  arrived: `state` none/connecting/ready, `role`, `samePage`, `startedMsAgo`, `warmMs`); `timing.connectionReused`
+  and `poolWaitMs` then show whether the turn waited for the warm-up.
 
 ## UI
 
@@ -271,6 +291,9 @@ machine like the named ones (packaging agent).
     `runtime/vendor-memory.json`.
 23. Generic residents (`resident-male`, `resident-female`) have a local voice with Pocket and OmniVoice.
 24. Multilingual: the 30 new twins need the language box unticked in the web session before the bridge routes to them.
+25. Latency: after a bridge restart, open the text box on a pedestrian, wait ~4 s, send. In `runtime/bridge-latency.json`
+    the turn shows `submissionStages.memory.mode` "session-only" with `memoryAdmissionMs` under ~50, `connectionWarm.state`
+    "ready" with `samePage` true, and `timing.connectionReused` true. A voice turn to a pedestrian you looked at shows the same.
 
 ## Follow-up plan
 

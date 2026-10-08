@@ -1,7 +1,7 @@
 import {readFile, stat, mkdir} from 'node:fs/promises';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {archetypeContext, parseInput, profileFor} from './protocol.mjs';
+import {archetypeContext, isAmbientProfile, parseInput, profileFor} from './protocol.mjs';
 import {audioReady} from './speech-audio.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
@@ -402,6 +402,15 @@ const realtimeConfig = input => ({key, characterId: routeFor(input)?.guard?.char
   ttsEnabled: localVoice.playbackEnabled!==false&&!turnUsesLocal(input)});
 const warmRoute = (profile, scope) => memoryQuiescing ? null : knowledgeRouter.configFor(profile, scope,
   {worldToken: worldSession?.token, generation: worldSession?.generation});
+// The exact private route of one physical ambient NPC (a generic resident or npc-* archetype has no route without
+// its entity). It has the transport identity of the turn later submitted to that NPC, so the page warmed while V
+// types or looks at the NPC is the page that turn uses (docs/NPC_ARCHETYPES.md, "Latency").
+const ambientWarmConfig = (profile, entity) => {
+  if (memoryQuiescing || !isAmbientProfile(profile) || typeof entity !== 'string') return null;
+  const route = knowledgeRouter.configFor(profile, 'private', {entity, worldToken: worldSession?.token, generation: worldSession?.generation});
+  return route ? {key, characterId: route.guard.characterId, scope: route.scope, ...(route.remoteConfig || {}),
+    sessionId: realtimeSessions.get(route.sessionKey), ttsEnabled: warmUsesConvaiVoice(profile)} : null;
+};
 const connections = new PartyConnections({host: realtime,
   canWarm: () => !stopped && !memoryQuiescing && !active && !mic.current && !micPolling && !lookahead.busy,
   isKnown: profile => Object.hasOwn(ids, profile) && !!warmRoute(profile, 'private'),
@@ -418,7 +427,7 @@ const connections = new PartyConnections({host: realtime,
 });
 // "Auto-connect nearby characters": the game lists up to two characters it is looking at or
 // standing near; their connection and local voice are prepared ahead (bridge/nearby-warm.mjs).
-const nearbyWarm = new NearbyWarm({connections, isKnown: profile => Object.hasOwn(ids, profile),
+const nearbyWarm = new NearbyWarm({connections, isKnown: profile => Object.hasOwn(ids, profile), routeFor: ambientWarmConfig,
   canPrepare: () => !stopped && !memoryQuiescing && !active && !mic.current && !micPolling && !lookahead.busy
     && !voiceRouteReservation && !relationshipRouteReservation && !localVoice.pending && !localVoice.availabilityPending,
   prepareVoice: (profile, options) => localVoice.prepareProfile(profile, options),
@@ -969,12 +978,25 @@ async function admitPlayerConversation(prepared, {signal} = {}) {
     if (!await knowledgeRouter.current(prepared)) throw Error('Conversation memory changed');
     return {reconnectRequired: false};
   }
-  await playerMemory.beginConversation({profileKey: prepared.route.providerProfileKey ?? prepared.route.profileKey,
+  // Stage timing for bridge-latency.json (submissionStages.memory). performance is absent in the vm test sandbox.
+  const clock = () => globalThis.performance?.now?.() ?? Date.now(), memoryStarted = clock();
+  const begin = {profileKey: prepared.route.providerProfileKey ?? prepared.route.profileKey,
     guard: prepared.guard, source: 'player',
     channel: prepared.route.transport === 'microphone' ? 'microphone' : prepared.route.channel,
-    requestId: prepared.input.requestId || prepared.input.id, signal});
+    requestId: prepared.input.requestId || prepared.input.id, signal};
+  // Generic residents and npc-* archetypes keep Convai long-term memory off (docs/PLAYER_MEMORY.md, "Vendor
+  // memory"): record the Forget target locally, never verify or enable provider memory. That verification
+  // (character list + get, and an update + readback when off) cost 6.7 s on a first resident turn.
+  if (prepared.providerMemory === 'session-only') {
+    await playerMemory.beginSessionConversation(begin);
+    throwIfCancelled(signal);
+    if (!await knowledgeRouter.current(prepared)) throw Error('Conversation memory changed');
+    return {reconnectRequired: false, memory: {mode: 'session-only', beginMs: clock() - memoryStarted}};
+  }
+  await playerMemory.beginConversation(begin);
   throwIfCancelled(signal);
   if (!await knowledgeRouter.current(prepared)) throw Error('Conversation memory changed');
+  const memory = {mode: 'provider', beginMs: clock() - memoryStarted};
   const refresh = {profileKey: prepared.route.providerProfileKey ?? prepared.route.profileKey, guard: prepared.guard};
   const reconnectRequired = playerMemory.connectionRefreshRequired(refresh)
     || connections.needsRetirement(prepared.route.profileKey);
@@ -990,8 +1012,9 @@ async function admitPlayerConversation(prepared, {signal} = {}) {
     throwIfCancelled(signal);
     if (!await knowledgeRouter.current(prepared)) throw Error('Conversation world changed');
     playerMemory.acknowledgeConnectionRefresh(refresh);
+    memory.refreshMs = clock() - memoryStarted - memory.beginMs;
   }
-  return {reconnectRequired};
+  return {reconnectRequired, memory};
 }
 
 async function pollMicrophone() {
@@ -1190,8 +1213,9 @@ async function processInput(request, prepared) {
     // No speculative user turn may enter identified character memory.
     if (knowledgeTurn.remoteConfig?.endUserId) { prepared?.cancel(); prepared = undefined; }
     const memoryStarted = performance.now();
-    await admitPlayerConversation(knowledgeTurn, {signal: controller.signal});
+    const admission = await admitPlayerConversation(knowledgeTurn, {signal: controller.signal});
     stages.memoryAdmissionMs = performance.now() - memoryStarted;
+    if (admission?.memory) stages.memory = admission.memory;
     await knowledgeRouter.submitted(knowledgeTurn);
     stages.submissionRecordedMs = performance.now() - preparationStarted;
     if (!await current()) return;
@@ -1209,10 +1233,12 @@ async function processInput(request, prepared) {
     if (!ahead) await status('thinking', profile.name);
     const canWarm = await audioReady(runtime);
     throwIfCancelled(controller.signal);
+    // How warm this turn's page already was (opened at the talk key, the composer, a look or a partner).
+    const turnRoute = realtimeConfig(input), connectionWarm = connections.warmState(input, turnRoute);
     // The speaker being heard already holds this round's group connections.
-    if (canWarm && !ahead) await connections.setRequest(input, realtimeConfig(input));
+    if (canWarm && !ahead) await connections.setRequest(input, turnRoute);
     throwIfCancelled(controller.signal);
-    await measure(input, {transportRequestedAt: Date.now(),
+    await measure(input, {transportRequestedAt: Date.now(), connectionWarm,
       submissionStages: {...stages, beforeTransportMs: performance.now() - preparationStarted}});
     const result = await respond(input, profile, {signal: controller.signal, prepared, current});
     // Ready but not yet submitted by the game: hold until it is, or cancelled.
@@ -1297,7 +1323,9 @@ async function pollPrefetch() {
       if (!hint) await connections.setComposer(null);
       else if (await audioReady(runtime)) {
         if (mic.current || micPolling || stopped) { prewarmObserved = ''; return; }
-        await connections.setComposer(hint);
+        // A private hint for an ambient NPC carries its entity: open that NPC's own route now, while V types.
+        const config = hint.scope === 'private' && hint.entity ? ambientWarmConfig(hint.audience[0], hint.entity) : null;
+        await connections.setComposer(config ? {...hint, config} : hint);
       }
     }
     await nearbyWarm.apply(await readFile(nearbyPath, 'utf8').catch(() => ''));

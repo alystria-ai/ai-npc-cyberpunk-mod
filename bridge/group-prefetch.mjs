@@ -20,7 +20,10 @@ export function parsePrewarm(value, ids) {
       || value.audience.length < 1 || value.audience.length > 3 || (!value.group && value.audience.length !== 1)
       || value.audience.some(key => typeof key !== 'string' || !Object.hasOwn(ids, key))
       || new Set(value.audience).size !== value.audience.length) return null;
-  return {nonce: value.nonce, audience: value.audience, scope: value.group ? 'group:' + [...value.audience].sort().join(',') : 'private'};
+  // A private hint may name the addressed NPC's entity (an ambient profile has no route without it).
+  const entity = !value.group && typeof value.entity === 'string' && /^\d{1,24}ULL$/.test(value.entity) ? value.entity : undefined;
+  return {nonce: value.nonce, audience: value.audience, scope: value.group ? 'group:' + [...value.audience].sort().join(',') : 'private',
+    ...(entity ? {entity} : {})};
 }
 
 export function validatePrefetch(command, source) {

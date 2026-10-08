@@ -582,6 +582,15 @@ export class PlayerMemory {
     if (signal?.aborted || !this.isCurrent(admitted)) fail('STALE_TURN');
     return this.route(profileKey, {channel});
   }
+  // A PLAYER send to an ambient profile (generic residents and npc-* archetypes): Convai long-term memory is off
+  // for them by design (one shared character for every pedestrian). Records the Forget target locally exactly like
+  // beginConversation, but never verifies or enables provider memory and never asks for a connection refresh, so
+  // the first turn to a fresh resident pays a local registry check (a few ms), not four provider round trips.
+  async beginSessionConversation({profileKey, guard, source = 'player', channel = 'private', requestId, signal} = {}) {
+    if (source !== 'player') fail('PLAYER_SEND_REQUIRED');
+    const route = await this.recordAutomaticConversation({profileKey, guard, channel, requestId, signal});
+    return Object.freeze({...route, memoryEnabled: false, memoryEnabledNow: false, reconnectRequired: false});
+  }
   async beginConversation({profileKey, guard, source = 'player', channel = 'private', requestId, signal} = {}) {
     this.#ready();
     if (source !== 'player') fail('PLAYER_SEND_REQUIRED');

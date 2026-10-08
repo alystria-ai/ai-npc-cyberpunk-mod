@@ -418,3 +418,15 @@ test('bad world bindings, routes and packs fail closed without side effects', as
   assert.throws(() => f.router.configFor('judy-alvarez', 'group:judy-alvarez,judy-alvarez'), {code: 'INVALID_ROUTE'});
   assert.deepEqual(f.forbidden, []);
 });
+
+test('ambient routes are marked session-only for provider memory; named characters are not (first-turn latency)', async () => {
+  const f = fixture();
+  for (const profile of ['resident-male', 'npc-maelstrom-male']) {
+    const input = forProfile(f.input, profile); input.entity = '16ULL';
+    const prepared = await f.router.prepare(input);
+    assert.equal(prepared.sendAllowed, true); assert.equal(prepared.providerMemory, 'session-only', profile);
+    assert.equal(f.router.configFor(profile, 'private', {...f.getBoundary(), entity: '16ULL'}).providerMemory, 'session-only');
+  }
+  const named = await f.router.prepare(f.input);
+  assert.equal(named.sendAllowed, true); assert.equal(named.providerMemory, undefined);
+});

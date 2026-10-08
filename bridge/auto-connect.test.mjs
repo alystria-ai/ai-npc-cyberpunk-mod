@@ -360,3 +360,35 @@ test('party members never become partners, a promoted partner leaves the role, a
     assert(partners(auto) == '')
   `);
 });
+
+test('the entity of each warmed or partnered character is published, so a resident\'s own connection can open', () => {
+  run(`${fixture}${partnerFixture}
+    local ids = {}
+    local auto = make({locate = locate, publish = function(list, partnerList, entities)
+      published[#published + 1] = table.concat(list, ',')
+      publishedPartners[#publishedPartners + 1] = table.concat(partnerList or {}, ',')
+      ids[#ids + 1] = entities or {}
+    end})
+    nearby = {{key = 'resident-male', name = 'Resident', distance = 2, entity = '11ULL'}}
+    step(auto, 2)
+    assert(last() == 'resident-male' and ids[#ids]['resident-male'] == '11ULL', 'the nearby body is published')
+    -- Looking at another resident (same key, another body) moves the slot to that body.
+    for _ = 1, 5 do auto.look('resident-male', '22ULL', 'Resident', 0.2) end
+    step(auto, 0.5)
+    assert(ids[#ids]['resident-male'] == '22ULL', 'the looked-at body wins: ' .. tostring(ids[#ids]['resident-male']))
+    -- The talked-to body becomes the partner and its ID follows the conversation.
+    distances['resident-female'] = 2
+    step(auto, 0.1, {worldReady = true, blocked = false, talking = 'resident-female', talkingId = '33ULL'})
+    assert(publishedPartners[#publishedPartners] == 'resident-female' and ids[#ids]['resident-female'] == '33ULL')
+  `);
+});
+
+test('the default publisher writes the entity map beside the slots and partners', () => {
+  assert.match(source, /"entities":\{' \.\. table\.concat\(ids, ','\) \.\. '\}\}'/);
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  // The talk keys hand the addressed NPC's entity to the composer hint, and the partner its ID.
+  assert.match(init, /warmConversation\(participants, key, identity\)/);
+  assert.match(init, /warmConversation\(participants, key, entity\)/);
+  assert.match(init, /entity = participants == nil and type\(entity\) == 'string' and entity or nil/);
+  assert.match(init, /talkingId = \(active and active\.entity\)/);
+});

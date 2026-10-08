@@ -74,17 +74,21 @@ local function readJson(path)
     return ok and type(value) == 'table' and value or nil
 end
 
--- The default publisher: an atomic runtime/nearby-connections.json (the two slots, then the conversation partners).
-local function publishFile(profiles, partners)
+-- The default publisher: an atomic runtime/nearby-connections.json (the two slots, then the conversation partners,
+-- then the entity of each one that has an ID: a generic resident or archetype has no connection without its body).
+local function publishFile(profiles, partners, entities)
     local function encode(list)
         local encoded = {}
         for _, key in ipairs(list or {}) do encoded[#encoded + 1] = json.encode(key) end
         return table.concat(encoded, ',')
     end
+    local ids = {}
+    for key, id in pairs(entities or {}) do ids[#ids + 1] = json.encode(key) .. ':' .. json.encode(id) end
+    table.sort(ids)
     local file = io.open(PATH .. '.tmp', 'wb')
     if not file then return false end
     file:write('{"updated":' .. string.format('%.0f', os.time() * 1000) .. ',"profiles":[' .. encode(profiles)
-        .. '],"partners":[' .. encode(partners) .. ']}')
+        .. '],"partners":[' .. encode(partners) .. '],"entities":{' .. table.concat(ids, ',') .. '}}')
     file:close()
     os.remove(PATH)
     return os.rename(PATH .. '.tmp', PATH) ~= nil
@@ -147,12 +151,25 @@ function M.new(options)
         return ok and (value == 1 or value == 2 or value == 3) and value or 2
     end
 
+    -- Entity IDs ("<hash>ULL") of the listed characters, by profile key. The bridge uses them only for ambient
+    -- profiles, which share one key between many bodies; the partner's wins over a slot of the same key.
+    local function entityIds()
+        local ids, signature = {}, {}
+        for _, entry in ipairs(active) do if type(entry.entity) == 'string' then ids[entry.key] = entry.entity end end
+        for _, partner in ipairs(partners) do if type(partner.id) == 'string' then ids[partner.key] = partner.id end end
+        for key, id in pairs(ids) do signature[#signature + 1] = key .. '=' .. id end
+        table.sort(signature)
+        return ids, table.concat(signature, ',')
+    end
+
     local function push(force)
         local list, partnerList = keys(), partnerKeys()
-        local signature = (#list > 0 or #partnerList > 0) and table.concat(list, ',') .. '|' .. table.concat(partnerList, ',') or ''
+        local ids, idSignature = entityIds()
+        local signature = (#list > 0 or #partnerList > 0) and table.concat(list, ',') .. '|' .. table.concat(partnerList, ',')
+            .. '|' .. idSignature or ''
         local now = wall()
         if not force and signature == lastSignature and lastPublish and now - lastPublish < cfg.heartbeat then return end
-        if pcall(publish, list, partnerList) then lastSignature, lastPublish = signature, now end
+        if pcall(publish, list, partnerList, ids) then lastSignature, lastPublish = signature, now end
     end
 
     local function releaseAll(reason)
@@ -180,6 +197,7 @@ function M.new(options)
             end
             partner.lastExchange, partner.graceUntil, partner.awaySince = clock, nil, nil
             if context.talkingEntity ~= nil then partner.entity = context.talkingEntity end
+            if type(context.talkingId) == 'string' then partner.id = context.talkingId end
             for _, other in ipairs(partners) do
                 if other ~= partner and not other.graceUntil then other.graceUntil = clock + cfg.partnerGrace end
             end
@@ -247,21 +265,21 @@ function M.new(options)
         updatePartners(context)
 
         local wanted, order = {}, {}
-        local function want(key, name, priority, distance)
+        local function want(key, name, priority, distance, entity)
             -- A partner already has its own connection; it never takes a slot as well.
             if isPartner(key) then return end
             if not wanted[key] then
                 wanted[key] = {key = key, name = name, priority = priority, distance = distance or 0,
-                    prominence = priority == 2 and prominence(key) or 0}
+                    prominence = priority == 2 and prominence(key) or 0, entity = entity}
                 order[#order + 1] = wanted[key]
-            elseif priority < wanted[key].priority then wanted[key].priority = priority end
+            elseif priority < wanted[key].priority then wanted[key].priority, wanted[key].entity = priority, entity end
         end
-        if look.key and look.dwell >= cfg.gazeDwell then want(look.key, look.name, 1, 0) end
+        if look.key and look.dwell >= cfg.gazeDwell then want(look.key, look.name, 1, 0, look.entity) end
         if not context.blocked and clock >= nextScan and type(options.scan) == 'function' then
             nextScan = clock + cfg.scanInterval
             local called, rows = pcall(options.scan, context.player, cfg.radius)
             if called and type(rows) == 'table' then
-                for _, row in ipairs(rows) do want(row.key, row.name, 2, row.distance) end
+                for _, row in ipairs(rows) do want(row.key, row.name, 2, row.distance, row.entity) end
             end
         end
         table.sort(order, function(a, b)
@@ -275,7 +293,8 @@ function M.new(options)
         for index = #active, 1, -1 do
             local entry = active[index]
             local item = wanted[entry.key]
-            if item then entry.lastWanted = clock end
+            -- The same profile key may now be another body (two residents): follow the one wanted most.
+            if item then entry.lastWanted = clock; if type(item.entity) == 'string' then entry.entity = item.entity end end
             local idle, age = clock - entry.lastWanted, clock - entry.since
             if idle > cfg.hold or age > cfg.maxAge then
                 cooling[entry.key] = clock + (age > cfg.maxAge and cfg.ageCooldown or cfg.cooldown)
@@ -308,7 +327,7 @@ function M.new(options)
                     end
                     if #active < cfg.maxWarm then
                         active[#active + 1] = {key = key, name = item.name, since = clock, lastWanted = clock,
-                            reason = item.priority == 1 and 'gaze' or 'near'}
+                            reason = item.priority == 1 and 'gaze' or 'near', entity = type(item.entity) == 'string' and item.entity or nil}
                         lastStart = clock
                         log('Auto-connect warming ' .. key .. ' (' .. active[#active].reason .. ')')
                     end

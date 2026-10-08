@@ -179,6 +179,8 @@ export class PlayerKnowledge {
       route.channel, ambient ? entity : null] : null;
     return freeze({status: available ? 'ready' : 'unavailable', sendAllowed: available, route,
       ...(relationship ? {relationship} : {}),
+      // Ambient profiles keep Convai long-term memory off: admission records the Forget target only.
+      ...(ambient ? {providerMemory: 'session-only'} : {}),
       scope: available ? `${base}:world:${hash(partition).slice(0, 24)}` : null,
       sessionKey: available ? hash(partition) : null,
       remoteConfig: available ? {endUserId: memory.endUserId} : null, guard: available ? memory.guard : null,
