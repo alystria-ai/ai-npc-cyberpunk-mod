@@ -566,4 +566,8 @@ return {
     ["{name} is coming with you."] = "{name} veled jön.",
     ["{name} is leaving your party."] = "{name} elhagyja a csoportodat.",
     ["{name} is no longer nearby."] = "{name} már nincs a közelben.",
+    ["{name} · game voice"] = "{name} · játékbeli hang",
+    ["Play"] = "Lejátszás",
+    ["Plays one of this character’s own lines from the game, through the game’s normal dialogue audio, so you can compare their companion voice with it. You hear it when you return to gameplay; each press tries another line, and a character may have no line for some of them."] = "Lejátssza a karakter egyik saját játékbeli mondatát a játék szokásos párbeszédhangján, hogy összehasonlíthasd vele a társhangját. Akkor hallod, amikor visszatérsz a játékba; minden nyomás másik mondatot próbál, és egy karakternek némelyikhez nem biztos, hogy van mondata.",
+    ["{name} will say one of their game lines when you return to the game."] = "{name} elmondja egyik játékbeli mondatát, amikor visszatérsz a játékba.",
 }

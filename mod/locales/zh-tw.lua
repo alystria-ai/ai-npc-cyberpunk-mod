@@ -566,4 +566,8 @@ return {
     ["{name} is coming with you."] = "{name} 會跟你一起走。",
     ["{name} is leaving your party."] = "{name} 正在離開隊伍。",
     ["{name} is no longer nearby."] = "{name} 已不在附近。",
+    ["{name} · game voice"] = "{name} · 遊戲語音",
+    ["Play"] = "播放",
+    ["Plays one of this character’s own lines from the game, through the game’s normal dialogue audio, so you can compare their companion voice with it. You hear it when you return to gameplay; each press tries another line, and a character may have no line for some of them."] = "透過遊戲的正常對話音訊播放該角色自己的一句遊戲台詞，方便和其同伴語音對比。返回遊戲後即可聽到；每按一次會嘗試另一句，有些情況下角色可能沒有台詞。",
+    ["{name} will say one of their game lines when you return to the game."] = "{name} 將在你返回遊戲後說一句遊戲台詞。",
 }

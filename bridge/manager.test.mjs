@@ -2449,6 +2449,30 @@ test('native MCM shows invitation preparation and keeps reserved copies editable
   `);
 });
 
+test('Developer mode adds a game voice row per ready copy that queues one vanilla VO line for gameplay', () => {
+  run(`${mcmFixture}
+    api.spawn('johnny-silverhand')
+    members[1].state = 'ready'; members[1].baseName = members[1].name; members[1].name = members[1].name .. ' #1'
+    assert(invoke('tab:party').ok); assert(not row('gamevoice:live:1'), 'hidden outside Developer mode')
+    assert(registered.applyBatch('manager', {{id = 'developerMode', value = true}}).ok)
+    loaded = registered.loadMod('manager')
+    local item = assert(row('gamevoice:live:1'))
+    assert(item.type == 'action' and item.value == 'Play' and item.label:find('game voice', 1, true))
+    local queued, contexts = {}, {}
+    SoundPlayVo = {new = function() return {} end}
+    CName = CName or {new = function(value) return value end}
+    api.actor = function(serial) return serial == 1 and {QueueEvent = function(_, event) queued[#queued + 1] = event end} or nil end
+    assert(invoke('gamevoice:live:1').ok)
+    assert(#queued == 0, 'nothing plays inside the menu')
+    mcm.update(player, true)
+    assert(#queued == 1 and queued[1].ignoreFrustumCheck and queued[1].ignoreDistanceCheck)
+    contexts[1] = queued[1].voContext
+    mcm.update(player, true); assert(#queued == 1, 'one press plays one line')
+    assert(invoke('gamevoice:live:1').ok); mcm.update(player, true)
+    assert(#queued == 2 and queued[2].voContext ~= contexts[1], 'the next press asks for another line')
+  `);
+});
+
 test('Current party rows are a name, its number and Dismiss, in the same native row type as Back', () => {
   run(`${mcmFixture}
     api.spawn('johnny-silverhand'); api.spawn('johnny-silverhand'); api.spawn('person-1')

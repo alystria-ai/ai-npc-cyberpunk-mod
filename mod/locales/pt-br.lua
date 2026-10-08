@@ -566,4 +566,8 @@ return {
     ["{name} is coming with you."] = "{name} vai com você.",
     ["{name} is leaving your party."] = "{name} está saindo do seu grupo.",
     ["{name} is no longer nearby."] = "{name} não está mais por perto.",
+    ["{name} · game voice"] = "{name} · voz do jogo",
+    ["Play"] = "Reproduzir",
+    ["Plays one of this character’s own lines from the game, through the game’s normal dialogue audio, so you can compare their companion voice with it. You hear it when you return to gameplay; each press tries another line, and a character may have no line for some of them."] = "Reproduz uma das falas próprias deste personagem no jogo, pelo áudio normal de diálogo do jogo, para você comparar com a voz de companheiro. Você ouve ao voltar ao jogo; cada toque tenta outra fala, e um personagem pode não ter fala para algumas.",
+    ["{name} will say one of their game lines when you return to the game."] = "{name} dirá uma de suas falas do jogo quando você voltar ao jogo.",
 }

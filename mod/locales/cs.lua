@@ -566,4 +566,8 @@ return {
     ["{name} is coming with you."] = "Jde s tebou: {name}.",
     ["{name} is leaving your party."] = "Opouští skupinu: {name}.",
     ["{name} is no longer nearby."] = "Už není poblíž: {name}.",
+    ["{name} · game voice"] = "{name} · hlas ze hry",
+    ["Play"] = "Přehrát",
+    ["Plays one of this character’s own lines from the game, through the game’s normal dialogue audio, so you can compare their companion voice with it. You hear it when you return to gameplay; each press tries another line, and a character may have no line for some of them."] = "Přehraje jednu z vlastních replik této postavy ze hry přes běžný zvuk dialogů hry, abys s ní mohl porovnat její hlas společníka. Uslyšíš ji po návratu do hry; každé stisknutí zkusí jinou repliku a pro některé nemusí mít postava žádnou.",
+    ["{name} will say one of their game lines when you return to the game."] = "Po návratu do hry řekne jednu ze svých replik ze hry: {name}.",
 }

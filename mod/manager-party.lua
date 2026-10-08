@@ -325,6 +325,8 @@ function M.new(companions, readiness, options)
     local stopIntent, tripFeedback = false, nil
     local tripGeneration, tripNotices = nil, {}
     local preparationId, noticeBoard
+    local GAME_VOICE_LINES = {'greeting', 'bump', 'start_combat', 'combat_ended', 'danger', 'enemy_warning', 'stlh_curious_grunt'}
+    local gameVoice, gameVoiceTurn = nil, 0
 
     local function developerMode()
         if type(options.developerMode) ~= 'function' then return false end
@@ -347,7 +349,7 @@ function M.new(companions, readiness, options)
         if identity ~= owner or changed then
             owner, joins, leaves, feedback = identity, {}, {}, ''
             attaching, notices, dismissErrors = {}, {}, {}
-            stopIntent, tripFeedback = false, nil
+            stopIntent, tripFeedback, gameVoice = false, nil, nil
             tripGeneration, tripNotices = nil, {}
             preparationId = nil
             if noticeBoard then noticeBoard.reset() end
@@ -573,6 +575,45 @@ function M.new(companions, readiness, options)
         return true, feedback
     end
 
+    -- Current party "game voice": one of the copy's own vanilla voiceset lines,
+    -- through the game's normal VO path (SoundPlayVo, what GameObject.PlayVoiceOver
+    -- sends), as a loudness reference for the companion voice. It plays after the
+    -- menu closes (flush). Each press asks for the next context, because not
+    -- every character has a line for every situation.
+    function Q.gameVoice(id)
+        local member = find(id)
+        if not member or not member.serial or member.state == 'leaving' then
+            return false, ui.t('That copy is no longer in your party.')
+        end
+        gameVoiceTurn = gameVoiceTurn % #GAME_VOICE_LINES + 1
+        gameVoice = {serial = member.serial, line = GAME_VOICE_LINES[gameVoiceTurn]}
+        feedback = ui.t('{name} will say one of their game lines when you return to the game.', {name = member.name})
+        return true, feedback
+    end
+
+    local function playGameVoice()
+        local request = gameVoice
+        gameVoice = nil
+        local npc = companions.actor and companions.actor(request.serial)
+        local route = 'unavailable'
+        if npc ~= nil then
+            -- The scripted event first (no frustum/distance gate); the two game
+            -- helpers send the same event if this CET build cannot construct it.
+            if pcall(function()
+                local event = SoundPlayVo.new()
+                event.voContext = CName.new(request.line)
+                event.debugInitialContext = CName.new('Scripts:CyberpunkConvaiGameVoice')
+                event.ignoreFrustumCheck, event.ignoreDistanceCheck = true, true
+                npc:QueueEvent(event)
+            end) then route = 'SoundPlayVo'
+            elseif pcall(function() ChatterHelper.PlayVoiceOver(npc, CName.new(request.line)) end) then route = 'ChatterHelper'
+            elseif pcall(function() GameObject.PlayVoiceOver(npc, CName.new(request.line), CName.new('Scripts:CyberpunkConvaiGameVoice'), 0.0) end) then
+                route = 'GameObject.PlayVoiceOver'
+            end
+        end
+        print(('[CyberpunkConvai] Game voice line "%s" for copy %s: %s'):format(request.line, tostring(request.serial), route))
+    end
+
     -- Phone "dismiss this character". A copy belongs to the character it
     -- speaks as; a copy with no conversation profile belongs to its model.
     -- Exactly one copy is chosen, newest first: pending invitations, then
@@ -649,6 +690,7 @@ function M.new(companions, readiness, options)
     function Q.flush()
         Q.bind(owner)
         if not owner then return end
+        if gameVoice then playGameVoice() end
         if stopIntent then
             stopIntent = false
             local called, ok, reason = pcall(companions.cancelChauffeur, 'Trip cancelled from Companion Manager.')

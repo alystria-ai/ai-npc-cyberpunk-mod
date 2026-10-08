@@ -566,4 +566,8 @@ return {
     ["{name} is coming with you."] = "Іде з тобою: {name}.",
     ["{name} is leaving your party."] = "Залишає твою групу: {name}.",
     ["{name} is no longer nearby."] = "Уже не поруч: {name}.",
+    ["{name} · game voice"] = "{name} · голос із гри",
+    ["Play"] = "Відтворити",
+    ["Plays one of this character’s own lines from the game, through the game’s normal dialogue audio, so you can compare their companion voice with it. You hear it when you return to gameplay; each press tries another line, and a character may have no line for some of them."] = "Відтворює одну з власних реплік цього персонажа з гри через звичайний звук діалогів гри, щоб порівняти з нею його голос супутника. Ти почуєш її, коли повернешся до гри; кожне натискання пробує іншу репліку, і для деяких у персонажа може не бути репліки.",
+    ["{name} will say one of their game lines when you return to the game."] = "Скаже одну зі своїх реплік із гри, коли ти повернешся до гри: {name}.",
 }

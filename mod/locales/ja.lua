@@ -566,4 +566,8 @@ return {
     ["{name} is coming with you."] = "{name}が一緒に来ます。",
     ["{name} is leaving your party."] = "{name}がグループを離れます。",
     ["{name} is no longer nearby."] = "{name}はもう近くにいません。",
+    ["{name} · game voice"] = "{name} · ゲーム音声",
+    ["Play"] = "再生",
+    ["Plays one of this character’s own lines from the game, through the game’s normal dialogue audio, so you can compare their companion voice with it. You hear it when you return to gameplay; each press tries another line, and a character may have no line for some of them."] = "このキャラクター自身のゲーム内の台詞を、ゲームの通常の会話音声で再生します。仲間としての声と比べられます。ゲームに戻ると聞こえます。押すたびに別の台詞を試します。台詞がない場合もあります。",
+    ["{name} will say one of their game lines when you return to the game."] = "{name}はゲームに戻るとゲーム内の台詞を一つ話します。",
 }

@@ -793,6 +793,14 @@ local function chauffeurEntry(entity,serialToFind)
     end
 end
 
+-- Current party "game voice" (manager-party.lua): the live entity of one ready
+-- copy, looked up only when the player asked for it, never retained.
+function M.actor(serialToFind)
+    for _,entry in ipairs(entries) do
+        if entry.serial==serialToFind and entry.state=='ready' and entry.npc then return entry.npc end
+    end
+end
+
 -- Tactic hook (mod/companion-tactics.lua): read-only lookup of a ready copy on
 -- foot. M.tactics, when set, may own one copy's movement decision via
 -- owns(serial) and decide(serial,context,step); the actuator still issues it.

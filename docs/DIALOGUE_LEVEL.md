@@ -111,11 +111,44 @@ scripts\audio-level\Measure-OutputLoudness.ps1 -Sessions
 scripts\audio-level\Measure-OutputLoudness.ps1 -Seconds 90
 ```
 
-Vanilla line on demand, in the CET console while looking at an NPC:
+### The game's own voice for a companion
+
+Companions are copies without the game's Talk interaction, so there is nothing
+to compare with by ear. With **Developer mode** on, **Companion Manager >
+Current party** shows a "{name} · game voice" row (Play) under each ready copy.
+It queues one of that character's vanilla voiceset lines and plays it when the
+menu closes, through the game's VO path (a `SoundPlayVo` event on the copy,
+what `GameObject.PlayVoiceOver` sends; frustum and distance checks off). Each
+press asks for the next context: `greeting`, `bump`, `start_combat`,
+`combat_ended`, `danger`, `enemy_warning`, `stlh_curious_grunt`. A character
+without a line for that context stays silent; press again. The CET console
+prints `[CyberpunkConvai] Game voice line "<context>" for copy <n>: <route>`.
+One event per press, nothing per frame.
+
+An F Talk interaction on the copies was not added: it needs a custom
+interaction hub in redscript (game restart) and per-frame blackboard work.
+
+Any world NPC, in the CET console while looking at them:
 
 ```lua
 ChatterHelper.PlayVoiceOver(Game.GetTargetingSystem():GetLookAtObject(Game.GetPlayer(), false, false), CName.new('greeting'))
 ```
+
+### Procedure (90 s)
+
+1. Settings as normal play (here Master 100, Dialogue 100, others 0); no
+   other app playing sound. Stand 1 to 1.5 m in front of the companion,
+   facing them, with the camera still.
+2. Developer start: `scripts\audio-level\Measure-OutputLoudness.ps1 -Seconds 90`.
+3. Within those 90 s: open Companion Manager > Current party, press Play on
+   the companion's game voice row, close the menu, and wait for the line.
+   Repeat (each press is another line) until two or three game lines have
+   played. Then ask the companion one short question by text or voice and let
+   the whole reply play. Keep 2 s of quiet between sounds.
+4. The table lists each segment with its source; `Cyberpunk2077` rows are the
+   game lines (or Omni replies), `msedge` rows are Pocket/Convai. Set
+   `makeupDb` = current value + the printed difference. For Omni, compare the
+   Omni reply row with the game line rows by hand (both are `Cyberpunk2077`).
 
 ## Tests
 

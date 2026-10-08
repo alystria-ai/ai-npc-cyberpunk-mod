@@ -566,4 +566,8 @@ return {
     ["{name} is coming with you."] = "{name} seninle geliyor.",
     ["{name} is leaving your party."] = "{name} gruptan ayrılıyor.",
     ["{name} is no longer nearby."] = "{name} artık yakında değil.",
+    ["{name} · game voice"] = "{name} · oyun sesi",
+    ["Play"] = "Oynat",
+    ["Plays one of this character’s own lines from the game, through the game’s normal dialogue audio, so you can compare their companion voice with it. You hear it when you return to gameplay; each press tries another line, and a character may have no line for some of them."] = "Bu karakterin oyundaki kendi repliklerinden birini oyunun normal diyalog sesiyle çalar, böylece yoldaş sesini onunla karşılaştırabilirsin. Oyuna döndüğünde duyarsın; her basış başka bir repliği dener ve bir karakterin bazıları için repliği olmayabilir.",
+    ["{name} will say one of their game lines when you return to the game."] = "{name} oyuna döndüğünde oyundaki repliklerinden birini söyleyecek.",
 }

@@ -566,4 +566,8 @@ return {
     ["{name} is coming with you."] = "{name}이(가) 함께 갑니다.",
     ["{name} is leaving your party."] = "{name}이(가) 그룹을 떠납니다.",
     ["{name} is no longer nearby."] = "{name}은(는) 더 이상 근처에 없습니다.",
+    ["{name} · game voice"] = "{name} · 게임 음성",
+    ["Play"] = "재생",
+    ["Plays one of this character’s own lines from the game, through the game’s normal dialogue audio, so you can compare their companion voice with it. You hear it when you return to gameplay; each press tries another line, and a character may have no line for some of them."] = "이 캐릭터의 게임 속 대사 하나를 게임의 일반 대화 음성으로 재생해 동료 음성과 비교할 수 있게 합니다. 게임으로 돌아가면 들립니다. 누를 때마다 다른 대사를 시도하며, 대사가 없는 경우도 있습니다.",
+    ["{name} will say one of their game lines when you return to the game."] = "{name}은(는) 게임으로 돌아가면 게임 속 대사 하나를 말합니다.",
 }
