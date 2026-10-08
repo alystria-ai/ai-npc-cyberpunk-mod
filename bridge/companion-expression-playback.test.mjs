@@ -5,6 +5,8 @@ import fengari from 'fengari';
 import {buildFacialTimeline, buildProviderFacialTimeline, SPEECH_TRACKS} from './facial-timeline.mjs';
 import {expressionTarget, ExpressionSmoother, ownedExpressionReceipt} from './companion-expressions.mjs';
 import {silentWav} from './speech-audio.mjs';
+import {selectEmotion} from './emotion-selector.mjs';
+import {attachExpressionTrack} from './expression-timeline.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const faceSource = readFileSync(new URL('../mod/facial-playback.lua', import.meta.url), 'utf8');
@@ -75,8 +77,8 @@ function wav(duration = 1) {
 
 test('managed idle copies receive one subtle native expression each and retain no actor handles',()=>run(`
  tick(.1);assert(#a.frames==1 and #b.frames==1)
- -- October 8: the resting face is neutral; a smile needs a cue (bridge/emotion-selector.mjs).
- assert(last(a).lips_l_corner_up==0 and last(a).lips_l_corner_dn==0,last(a).lips_l_corner_up)
+ -- Idle: a light resting smile (default .12), easing in; the game's own authored smile is .10.
+ assert(last(a).lips_l_corner_up>.03 and last(a).lips_l_corner_up<=.12 and last(a).lips_l_corner_dn==0,last(a).lips_l_corner_up)
  assert(last(a).jaw_mid_open==nil and last(a).eye_l_blink==nil and last(a).HeadYaw==nil)
  for _,slot in pairs(face.expressions) do for _,value in pairs(slot) do assert(value~=a and value~=b and value~=player) end end
  tick(.1);assert(#a.frames==2 and #b.frames==2)
@@ -93,7 +95,7 @@ test('new thinking or listening input retires a previous reaction before another
  face.beginExpression(context,${literal(receipt('Joy',3,0))});face.endExpression(context,true);tick(.1)
  assert(last(a).lips_l_corner_up>0)
  tick(.1,{thinkingEntity=a.id,thinkingRequestId='next-input'});allZero(last(a));assert(face.expressions[a.id].emotion==nil)
- tick(.1);assert(last(a).lips_l_corner_up==0,'the retired reaction leaves the neutral rest')
+ tick(.1);assert(last(a).lips_l_corner_up>0,'a retired happy reaction leaves the resting smile')
  tick(.1,{listeningEntity=a.id});allZero(last(a))
 `));
 
@@ -143,10 +145,13 @@ test('negative metadata replaces a smile, rejects cross-copy/generation/sequence
  bad.entity=context.entity;bad.generation=3;assert(not face.acceptExpression(context,bad))
  bad.generation=context.generation;assert(face.acceptExpression(context,bad));assert(not face.acceptExpression(context,bad))
  tick(.1);assert(last(a).lips_l_corner_up==0 and last(a).lips_l_corner_dn>0)
- assert(last(b).lips_l_corner_up==0 and last(b).lips_l_corner_dn==0,'the other copy rests neutral')
+ assert(last(b).lips_l_corner_up>0 and last(b).lips_l_corner_dn==0,'the other copy keeps its resting smile')
  face.endExpression(context,true);for i=1,79 do tick(.1) end
  assert(last(a).lips_l_corner_up==0 and last(a).lips_l_corner_dn>0,'the frown holds for 8 s')
- for _=1,30 do tick(.1) end;assert(last(a).lips_l_corner_up==0 and last(a).lips_l_corner_dn<.01,'then the face returns to neutral')
+ for _=1,30 do tick(.1) end;assert(last(a).lips_l_corner_up==0 and last(a).lips_l_corner_dn<.01,'then a neutral face, no smile yet')
+ -- The sad turn holds the resting smile off for a minute, then it eases back.
+ for _=1,450 do tick(.1) end;assert(last(a).lips_l_corner_up==0,'still neutral after 56 s')
+ for _=1,120 do tick(.1) end;assert(last(a).lips_l_corner_up>.1,'the resting smile is back '..last(a).lips_l_corner_up)
  assert(not face.acceptExpression(context,${literal(receipt('Joy',3,2))}))
 `));
 
@@ -208,15 +213,15 @@ test('October 8: speech without any intent rests neutral, and a text cue shows a
    for i=1,12 do cursor=.2+.03*i;tick(.1) end
    local frame=last(a);speech.stop('cancelled');for _=1,12 do tick(.1) end;return frame
   end
-  -- No receipt: no smile while speaking (October 8: the resting warmth is gone).
+  -- No receipt: no smile while speaking (October 8: the idle smile releases into speech, none is added).
   local none=speak(${literal(line)},'none')
-  assert(none.lips_l_corner_up==0,none.lips_l_corner_up)
+  assert(none.lips_l_corner_up<.02,none.lips_l_corner_up)
   -- A Trust scale-2 cue: the gentle smile.
   local trust=speak(${literal(warm)},'trust')
   assert(trust.lips_l_corner_up>=.12 and trust.lips_l_corner_up<=.17,'trust '..trust.lips_l_corner_up)
   -- Interest lifts the brows only.
   local interest=speak(${literal(curious)},'interest')
-  assert(interest.eye_l_brows_raise_out>=.05 and interest.eye_l_brows_raise_out<=.11 and interest.lips_l_corner_up==0,'interest '..interest.eye_l_brows_raise_out..' '..interest.lips_l_corner_up)
+  assert(interest.eye_l_brows_raise_out>=.05 and interest.eye_l_brows_raise_out<=.11 and interest.lips_l_corner_up<.02,'interest '..interest.eye_l_brows_raise_out..' '..interest.lips_l_corner_up)
   `);
 });
 
@@ -367,12 +372,13 @@ test('face-test probe: ending or replacing a run clears the jaw and every other 
 `));
 
 // Per-character warmth and gain come from the actor rows' profile keys (Lua only).
-test('Judy and a cold character both rest neutral; Judy\'s corner gain and the squint follow a real smile', () => run(`
+test('Judy idles at about .19 with the corner gain, a cold character stays flat, and a squint follows', () => run(`
  rows[1].profileKey='judy-alvarez';rows[2].profileKey='adam-smasher'
  for _=1,40 do tick(.1) end
  local judy,cold=last(a),last(b)
- assert(judy.lips_l_corner_up==0 and judy.eye_l_oculi_squint_outer_lower==0,'judy rests neutral: '..judy.lips_l_corner_up)
+ assert(math.abs(judy.lips_l_corner_up-.192)<.005,'judy rests at .192: '..judy.lips_l_corner_up)
  assert(cold.lips_l_corner_up==0 and cold.eye_l_oculi_squint_outer_lower==0,'a cold face stays flat')
+ assert(math.abs(judy.eye_l_oculi_squint_outer_lower-.115)<.005,'the squint follows the smile: '..judy.eye_l_oculi_squint_outer_lower)
  -- Joy at scale 3 on Judy: corners x1.5 capped at .65, squint capped at .30, brows ungained.
  face.beginExpression(context,${literal(receipt('Joy',3,0))});for _=1,40 do tick(.1) end
  assert(math.abs(last(a).lips_l_corner_up-.65)<.01,'judy joy: '..last(a).lips_l_corner_up)
@@ -399,9 +405,9 @@ test('speaking with Interest or no emotion shows no smile, even for a warm chara
    local frame=copy(last(actor));speech.stop('cancelled');for _=1,6 do tick(.1) end;return frame
   end
   local warm=speak(${literal(interest)},'x',a)
-  assert(warm.lips_l_corner_up==0 and warm.eye_l_brows_raise_out>.03,'Interest = brows only '..warm.lips_l_corner_up)
+  assert(warm.lips_l_corner_up<.02 and warm.eye_l_brows_raise_out>.03,'Interest = brows only '..warm.lips_l_corner_up)
   local plain=speak(${literal(none)},'x',a)
-  assert(plain.lips_l_corner_up==0,'no emotion, no smile '..plain.lips_l_corner_up)
+  assert(plain.lips_l_corner_up<.02,'no emotion, no smile '..plain.lips_l_corner_up)
   `);
 });
 
@@ -437,6 +443,37 @@ test('track playback: the expression follows the heard audio position, blends be
  assert(sad.lips_l_corner_dn>.15 and sad.lips_l_corner_up==0 and sad.eye_l_brows_raise_in>.2,'phrase two is sad: '..sad.lips_l_corner_dn..' '..sad.eye_l_brows_raise_in)
  assert(sad.eye_l_oculi_squint_outer_lower<.02,'no squint without a smile')
 `));
+
+// October 8 (user): Judy keeps her light smile while idle, but never on a sad topic: the Evelyn conversation is
+// smile-free while she speaks and right after; the resting smile comes back once the mood has decayed (a minute
+// of no conversation, or about 15 s after a later calm turn).
+test('idle smile: present at rest, absent during and after the Evelyn reply, back after the mood decays', () => {
+  const sadPlan = selectEmotion({player: 'How are you holding up since Evelyn died?', profile: 'judy-alvarez',
+    reply: "She was beautiful, V. I loved her so much. Thanks for asking, really."});
+  const calmPlan = selectEmotion({player: 'Where should we meet?', profile: 'judy-alvarez', reply: "Lizzie's, around nine."});
+  const line = (id, plan) => attachExpressionTrack(trackLine(id, {expressionTrack: undefined}), plan);
+  const sad = line('evelyn', sadPlan), calm = line('calm', calmPlan), again = line('evelyn-2', sadPlan);
+  assert.equal(sad.expressionTrack.format, 'emotion-mix-v1');
+  run(`rows[1].profileKey='judy-alvarez';speech.target=a
+  local function idle(seconds) local peak=0;for _=1,math.floor(seconds*10+.5) do tick(.1);peak=math.max(peak,last(a).lips_l_corner_up) end;return peak end
+  local function speak(id,timeline)
+   local ctx={requestId=id,entity=a.id,generation=4}
+   assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=3.5},face=timeline}),face.error)
+   local late=0
+   for i=1,34 do cursor=.1*i;tick(.1);if i>8 then late=math.max(late,last(a).lips_l_corner_up) end end
+   speech.stop('finished');return late
+  end
+  idle(4);assert(math.abs(last(a).lips_l_corner_up-.192)<.01,'idle resting smile '..last(a).lips_l_corner_up)
+  assert(speak('evelyn',${literal(sad)})<.01,'no smile while she talks about Evelyn')
+  assert(idle(50)<.01,'no smile for the next 50 s')
+  assert(idle(20)>.15,'the resting smile is back after about a minute')
+  -- A later calm turn shortens the hold: smile back about 15 s after it, not a minute.
+  assert(speak('evelyn-2',${literal(again)})<.01);assert(idle(5)<.01)
+  speak('calm',${literal(calm)})
+  assert(idle(8)<.01,'still neutral just after the calm turn')
+  assert(idle(10)>.15,'back about 15 s after the calm turn '..last(a).lips_l_corner_up)
+  `);
+});
 
 test('track playback: closure and rounding still zero the corners and leave every speech field identical to a no-track reply', () => {
   const closing = id => ({version: 1, requestId: id, entity: 'copy-a', duration: 1, source: 'audio-envelope',

@@ -63,15 +63,26 @@ local function expressionLimit(track)
     return .55
 end
 local scaleStrength={.4,.67,1}
--- October 8: the resting face is neutral for everyone. The earlier resting warmth
--- (.07-.22, Judy about .22 after gain) smiled under every non-negative intent, so
--- Judy smiled while talking about Evelyn's death; a smile now needs a real cue from
--- bridge/emotion-selector.mjs. Corner gain stays per rig (full lips read weakly on
--- Judy's; the face-test probe showed .35-.5 needed) and scales the caps by at most
--- 1.3. Keys are profile keys from the actor rows. Mirrors restingFor() in the bridge.
-local restSmile=0
+-- Resting warmth: a light smile while IDLE only (October 8, user: keep Judy's light
+-- resting smile, just never on sad topics). While speaking, the face is exactly the
+-- bridge's context selector (bridge/emotion-selector.mjs) with no smile layered
+-- under it; after a sad, angry, scared or disgusted turn the idle face stays neutral
+-- for a minute (see moodUntil), or 10 s after a later calm turn, then eases back.
+-- Slightly below the October 7 levels: warm .18, default .12, dry .05, cold 0; Judy
+-- .12 with her corner gain 1.6 (about .19 on her rig; full lips read weakly, the
+-- face-test probe showed .35-.5 needed). The gain scales the corner caps by at most
+-- 1.3. Keys are profile keys from the actor rows. Mirrors EXPRESSION_POLICY.restSmile.
+local restSmile=.12
 local traitTable={default={warmth=restSmile,gain=1}}
-traitTable['judy-alvarez']={warmth=restSmile,gain=1.6}
+for _,key in ipairs({'panam-palmer','jackie-welles','kerry-eurodyne','misty-olszewski','mama-welles','river-ward',
+    'claire-russell','dexter-deshawn','padre-ibarra','viktor-vektor'}) do traitTable[key]={warmth=.18,gain=1} end
+traitTable['judy-alvarez']={warmth=.12,gain=1.6}
+for _,key in ipairs({'johnny-silverhand','rogue-amendiares','takemura','saul-bright','meredith-stout','solomon-reed',
+    'spider-murphy','r3n0','regina-jones'}) do traitTable[key]={warmth=.05,gain=1} end
+for _,key in ipairs({'adam-smasher','yorinobu-arasaka','hanako-arasaka','alan-noel','mr-hands'}) do traitTable[key]={warmth=0,gain=1} end
+-- Mood hold after a negative turn: seconds of neutral rest, a shorter hold once a
+-- later turn was calm, and the ease back to the resting smile.
+local moodHoldSeconds,moodCalmSeconds,moodEaseSeconds,moodThreshold=60,10,5,.2
 local function traitFor(profile) return traitTable[profile] or traitTable.default end
 local speechMouthFactor=.85
 M.expressions, M.expressionClock, M.expressionFrame = {}, 0, 0
@@ -102,7 +113,7 @@ function M.beginExpression(context,receipt)
     if not sameExpressionOwner(slot,context) or not slot.active then
         slot.requestId,slot.generation,slot.active=context.requestId,context.generation,true
         slot.emotion,slot.family,slot.sequence,slot.expiry=nil,nil,-1,nil
-        slot.holdMix=nil;slot.browExpiry=nil;slot.flick={}
+        slot.holdMix=nil;slot.browExpiry=nil;slot.flick={};slot.turnNegative=0
     end
     M.acceptExpression(context,receipt)
 end
@@ -128,6 +139,11 @@ function M.endExpression(context,finished)
     local slot=type(context)=='table' and M.expressions[context.entity]
     if not slot or not sameExpressionOwner(slot,context) then return end
     slot.active=false
+    -- A negative turn keeps the idle face neutral for a while; a calm turn shortens it.
+    if (slot.turnNegative or 0)>=moodThreshold then slot.moodUntil=M.expressionClock+moodHoldSeconds
+    elseif slot.moodUntil and slot.moodUntil>M.expressionClock then
+        slot.moodUntil=math.min(slot.moodUntil,M.expressionClock+moodCalmSeconds) end
+    slot.turnNegative=0
     if finished and (slot.emotion or slot.holdMix) then slot.expiry=M.expressionClock+(negative[slot.family] and 8 or 4)
         slot.browExpiry=M.expressionClock+1.5
     else slot.emotion,slot.family,slot.expiry=nil,nil,nil;slot.holdMix=nil;slot.pose=zeroExpression() end
@@ -209,7 +225,7 @@ local function mixTargets(weights,target,phase,warmth)
     if up>dn then up=up-.5*dn;dn=0 else dn=dn-.5*up;up=0 end
     local clash=math.min(math.max(rin,rout),low)
     rin=math.max(0,rin-.5*clash);rout=math.max(0,rout-.5*clash);low=math.max(0,low-.5*clash)
-    if (phase=='idle' or phase=='speaking') and dn==0 then up=math.max(up,warmth) end
+    if phase=='idle' and dn==0 then up=math.max(up,warmth) end
     target=target or {}
     target.lips_l_corner_up,target.lips_r_corner_up=up,up
     target.lips_l_corner_dn,target.lips_r_corner_dn=dn,dn
@@ -274,6 +290,17 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     end
     local trait=traitFor(slot.profile)
     local warmth,gain=trait.warmth,trait.gain
+    -- This turn's strongest negative feeling (track mix or reply-level label) sets the mood hold.
+    if slot.active then
+        local worst=0
+        if weights then for index=3,6 do worst=math.max(worst,weights[index] or 0) end
+        elseif negative[family] then worst=strength end
+        slot.turnNegative=math.max(slot.turnNegative or 0,worst)
+    end
+    if slot.moodUntil then
+        local since=M.expressionClock-slot.moodUntil
+        if since<0 then warmth=0 elseif since<moodEaseSeconds then warmth=warmth*since/moodEaseSeconds else slot.moodUntil=nil end
+    end
     local capScale=math.min(math.max(gain,1),1.3)
     local function limitFor(track)
         local limit=expressionLimit(track)
@@ -311,8 +338,8 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     if suppress then pair('corner_up',0) end
     if not weights and (family=='joy' or family=='trust') then pair('corner_dn',0);brows('lower',0) end
     -- Resting warmth: a floor under every non-negative intent (Interest, surprise,
-    -- neutral tone), idle and speaking. The emotion's own smile wins by max.
-    if not weights and (phase=='idle' or phase=='speaking') and not negative[family] and family~='unknown'
+    -- neutral tone) while idle only. The emotion's own smile wins by max.
+    if not weights and phase=='idle' and not negative[family] and family~='unknown'
         and not frowning and target.lips_l_corner_dn==0 then pair('corner_up',math.max(target.lips_l_corner_up,warmth)) end
     for _,track in ipairs({'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','lips_r_corner_dn'}) do target[track]=target[track]*gain end
     local squint=math.min(.35,.6*target.lips_l_corner_up)

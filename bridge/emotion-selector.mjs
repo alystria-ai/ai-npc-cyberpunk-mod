@@ -43,8 +43,9 @@ const MANNER_OF = new Map(Object.entries({
 }).flatMap(([manner, keys]) => keys.map(key => [key, manner])));
 export function mannerFor(profile) { return MANNER_OF.get(profile) ?? 'open'; }
 
-// Resting face per character for the face itself (mirrors mod/facial-playback.lua): neutral for everyone, with the
-// per-rig corner gain kept so real smiles and frowns still read on Judy's full lips.
+// The face WHILE SPEAKING per character (mirrors mod/facial-playback.lua): no resting smile under any sentence, with
+// the per-rig corner gain kept so real smiles and frowns still read on Judy's full lips. The light resting smile is
+// idle-only and lives in Lua, held off for a while after a negative turn.
 export function restingFor(profile) { return {warmth: 0, gain: profile === 'judy-alvarez' ? 1.6 : 1}; }
 
 // ---- conversation frames ------------------------------------------------------------------------------------

@@ -1,5 +1,19 @@
 # Companion expressions
 
+## October 8 (later): the light idle smile is back, held off after sad turns
+
+In game the user missed Judy's light resting smile while she is not talking; the objection was only to smiling
+on sad topics. `mod/facial-playback.lua` (mirrored in `companion-expressions.mjs`, `restSmile .12`):
+- **Idle only:** a light resting smile by manner, slightly below the October 7 levels: warm characters .18,
+  default .12, dry .05, cold 0; Judy .12 with her corner gain 1.6 (about .19 on her rig).
+- **While speaking:** no resting smile at all; the context selector below decides the whole face (the idle
+  smile releases into speech over about half a second).
+- **After a sad, angry, scared or disgusted turn** (any negative weight .2 or more in that turn's track or
+  label): the idle face stays neutral for 60 s of game time, or 10 s after a later calm turn ends, then the
+  smile eases back over 5 s. A further negative turn restarts the minute.
+- Tests: `companion-expression-playback.test.mjs` "idle smile: present at rest, absent during and after the
+  Evelyn reply, back after the mood decays" (real selector plan, real Lua writer).
+
 ## October 8: neutral rest, a context-aware emotion selector, and Convai's own label for local voices
 
 **The problem (user, in game).** Judy smiled when V asked her a sad question about Evelyn. With Expressive

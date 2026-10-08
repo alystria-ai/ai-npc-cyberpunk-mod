@@ -40,15 +40,15 @@ test('unknown provider labels preserve data distinction and never imply joy', ()
   assert.deepEqual(corners(expressionTarget({emotion: unknown})), [0, 0]);
 });
 
-test('calm idle and speech with no intent rest neutral (October 8); processing has nothing either', () => {
+test('calm idle keeps a light resting smile; speech with no intent has none (October 8); processing has nothing', () => {
   const idle = expressionTarget();
-  // The resting smile (.10-.22) made Judy smile through sad conversations; a smile now needs a real cue.
-  assert.equal(EXPRESSION_POLICY.restSmile, 0);
-  assert.deepEqual(corners(idle), [0, 0]);
+  assert.equal(EXPRESSION_POLICY.restSmile, .12);
+  assert.deepEqual(corners(idle), [.12, .12]);
+  // While speaking the bridge's selector alone decides: no resting smile under sad or neutral sentences.
   const speaking = expressionTarget({phase: 'speaking'});
   assert.deepEqual(corners(speaking), [0, 0]);
-  // A caller can still pass an explicit warmth (the floor logic is unchanged).
-  assert.ok(expressionTarget({warmth: .15}).lips_l_corner_up > 0);
+  assert.equal(mixTarget({weights: {}, phase: 'speaking'}).lips_l_corner_up, 0);
+  assert.equal(mixTarget({weights: {}, phase: 'idle'}).lips_l_corner_up, .12);
   for (const phase of ['listening', 'thinking'])
     assert.deepEqual(corners(expressionTarget({phase})), [0, 0]);
   assert.ok(Object.values(expressionTarget({blocked: true})).every(value => value === 0));
@@ -212,14 +212,15 @@ test('negative post-speech intent remains briefly but cannot leak after expiry/r
 
 test('resting warmth is a floor under every non-negative intent, with a per-character gain and a Duchenne squint', () => {
   const R = EXPRESSION_POLICY;
-  const interest = expressionTarget({emotion: {emotion: 'Interest', scale: 2}, phase: 'speaking'});
-  assert.ok(Math.abs(interest.lips_l_corner_up - R.restSmile * R.speechMouthFactor) < 1e-9, 'Interest = brows + the resting smile');
+  const interest = expressionTarget({emotion: {emotion: 'Interest', scale: 2}, phase: 'idle'});
+  assert.ok(Math.abs(interest.lips_l_corner_up - R.restSmile) < 1e-9, 'idle Interest = brows + the resting smile');
   assert.ok(interest.eye_l_brows_raise_out > .08 && interest.eye_l_brows_raise_out < .12);
+  assert.equal(expressionTarget({emotion: {emotion: 'Interest', scale: 2}, phase: 'speaking'}).lips_l_corner_up, 0, 'speaking: no floor');
   for (const label of ['Surprise', 'Neutral', 'Interest', 'Trust'])
-    assert.ok(expressionTarget({emotion: {emotion: label, scale: 1}, phase: 'speaking'}).lips_l_corner_up >= R.restSmile * R.speechMouthFactor - 1e-9, label);
+    assert.ok(expressionTarget({emotion: {emotion: label, scale: 1}, phase: 'idle'}).lips_l_corner_up >= R.restSmile - 1e-9, label);
   // Negative or unknown intent removes the floor; a stronger smile wins by max, never by sum.
   for (const label of ['Sadness', 'Anger', 'Fear', 'Disgust', 'Weird new label'])
-    assert.equal(expressionTarget({emotion: {emotion: label, scale: 1}, phase: 'speaking'}).lips_l_corner_up, 0, label);
+    assert.equal(expressionTarget({emotion: {emotion: label, scale: 1}, phase: 'idle'}).lips_l_corner_up, 0, label);
   const joy = expressionTarget({emotion: {emotion: 'Joy', scale: 3}, phase: 'idle'});
   assert.equal(joy.lips_l_corner_up, .45);
   // Warm characters rest higher, cold ones flat.
