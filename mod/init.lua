@@ -550,6 +550,19 @@ local function log(line)
     print('[CyberpunkConvai] ' .. line)
 end
 
+-- An NPC the mod addresses keeps quiet about V staring or standing close
+-- (mod/vanilla-reactions.lua). Reached through the global from beginFocus,
+-- endFocus and the lifecycle hooks; a missing module only removes the feature.
+do
+    local loaded, module = pcall(dofile, 'vanilla-reactions.lua')
+    local built, value = false, module
+    if loaded and type(module) == 'table' and type(module.new) == 'function' then
+        built, value = pcall(module.new, {round = function() return groupChat.round end, log = log})
+    end
+    if built and type(value) == 'table' then convaiVanillaReactions = value
+    else convaiVanillaReactions = nil; print('[CyberpunkConvai] vanilla-reactions.lua unavailable: ' .. tostring(value)) end
+end
+
 -- World characters asked to follow join as managed copies; party members asked
 -- to leave are dismissed after their goodbye (docs/WORLD_COMPANIONS.md). A
 -- missing module only removes the two actions.
@@ -837,15 +850,21 @@ local function endFocus(player)
         focusedCrowd = nil
     end
     if player then pcall(function() player:ConvaiEndFocus() end) end
+    if convaiVanillaReactions then pcall(convaiVanillaReactions.release) end
 end
 
 local function beginFocus(player, npc)
     endFocus(player)
     -- Owned companions arbitrate attention against locomotion themselves.
     -- The civilian path can add a second hold/turn independently of that state.
-    if companions.owns(npc) then return true end
+    local quiet = convaiVanillaReactions
+    if companions.owns(npc) then
+        if quiet then pcall(quiet.focus, npc, 'focus') end
+        return true
+    end
     local ok, focused = pcall(function() return player:ConvaiBeginFocus(npc) end)
     if not ok or not focused then return false, tostring(focused) end
+    if quiet then pcall(quiet.focus, npc, 'focus') end
     local managed = companions.owns(npc)
     log('Focus ownership: actor=' .. tostring(npc:GetEntityID().hash) .. ' managed=' .. tostring(managed))
     local probeOk, probeResult = pcall(function()
@@ -1777,6 +1796,7 @@ local function abandonSession(reason,preserveTransit)
     active, pending, focusUntil, focusMode, focusEntity = nil, nil, nil, nil, nil
     pendingKnowledgeOwner = nil
     focusedCrowd, releasedCrowd = nil, nil
+    if convaiVanillaReactions then pcall(convaiVanillaReactions.clear) end
     phoneCatalogReady = false
     resetGaze()
     manager.reset()
@@ -1798,6 +1818,10 @@ registerForEvent('onInit', function()
     if convaiGameDialogue and not convaiGameDialogue:install() then log('Game dialogue capture unavailable') end
     lootObserver.configure({captureContext = captureLootContext})
     lootObserver.install()
+    if convaiVanillaReactions then
+        local hooked, hookError = pcall(convaiVanillaReactions.install)
+        if not hooked then log('Vanilla reaction hooks failed: ' .. tostring(hookError)) end
+    end
     convaiLocomotion = dofile('companion-locomotion.lua')
     convaiLocomotion.install(function(npc, command)
         return companions.ownsTravelCommand(npc, command)
@@ -2221,6 +2245,7 @@ registerForEvent('onShutdown', function()
     if player then pcall(function() player:ConvaiCloseManager() end) end
     manager.reset()
     if liveWorld then endFocus(player) else focusedCrowd, releasedCrowd = nil, nil end
+    if convaiVanillaReactions then pcall(convaiVanillaReactions.clear) end
     focusMode = nil
     focusEntity = nil
     log('Game adapter shut down')

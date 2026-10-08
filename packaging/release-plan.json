@@ -238,6 +238,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/auto-connect.lua"
         },
         {
+          "source": "mod/vanilla-reactions.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/vanilla-reactions.lua"
+        },
+        {
           "source": "mod/manager.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/manager.lua"
         },
