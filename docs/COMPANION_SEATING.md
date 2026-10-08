@@ -34,6 +34,54 @@ when a fight starts. The **Sit with you** setting (Companion behavior) is
 - `WorkspotGameSystem.GetWorkspotInstance(entityID)` (Codeware) names V's
   workspot resource and animation; `IsActorInWorkspot(player)` is the cheap test.
 
+## First probe: V's apartment couch (October 8, seat watcher)
+
+V sat on the H10 couch with Judy nearby for about 5 s (`runtime/gesture-probe.log`
+`seat-watch`, at 602-613):
+
+- `IsActorInWorkspot(player)` true while seated; **`GetWorkspotInstance` returned
+  nil** the whole time (no path, no animation), `GetExtendedInfo` entering/exiting
+  always false, scene tier 4 while sitting down and getting up and 3 while seated,
+  `PlayerStateMachine.IsInWorkspot` 0 → 1 → 0. So V's couch sit is a scene: the
+  first build classified it `unsupported` and would have done nothing.
+- V's root never moved while seated: it is the seat root, on the floor (z 48.62,
+  rays in front hit 0.01 m). The cushion is 0.44-0.45 m above V's feet, its front
+  edge 0.0-0.2 m behind V's root; to V's left it continues to about 1.1 m, then a
+  higher armrest or side unit (0.50-0.59 m); to V's right there is only floor (an
+  L-shaped section starts 1.2 m right and 0.2-0.5 m in front, facing another way).
+- Judy stood 0.46 m left of and 1.15 m in front of V in behaviour phase
+  `obstructed` with `ws:false`. The movement trace shows why: since ~25 s after the
+  CET reload, before V sat, her move to a standing slot was refused by the motion
+  clearance sweep (a Static box 1.27 m up, i.e. furniture or a shelf between her and
+  the slot) and she waited for the geometry to change. That is the follow
+  behaviour; it does not block seating (below).
+
+Changes from it:
+
+- **Furniture classification** when the workspot has no readable name
+  (`M.classifyGeometry`, one update, about 12 rays): V's own seat surface 0.30,
+  0.15 or 0.05 m behind the root; above 0.62 m a stool, or a bar stool with a
+  counter (0.9-1.3 m) 0.4 m in front; otherwise a couch (the surface continues
+  0.5 m to a side and a backrest 0.45 m further back is 0.2 m higher), a bench
+  (continues, no backrest), a chair at a table (a 0.15-1.0 m surface in front) or
+  a chair. A named workspot that `M.classify` rejects (a car, a device) still
+  never seats anyone. Probe line `seat-classified` with `h0`, `sides`,
+  `backrest`, `front`.
+- **Settle and stand-up on the PSM**: seated once `IsInWorkspot` has been 1 for
+  0.5 s; 1 → 0 while V is still in the workspot is V getting up, so companions
+  stand together with V.
+- **Depth and height**: seat samples 0.30 m behind the root for a couch (was
+  0.15, which can miss a cushion whose front edge is 0.2 m back), 0.25 m for
+  chairs and benches, 0.05 m for stools; same-seat tolerance 0.07 m for couches
+  and benches (cushions are flat; the 0.50 m unit next to this couch is not a
+  seat). The device stays on V's root line at V's floor height, where V's own
+  workspot plays. On this couch: one seat, 0.66 m to V's left.
+- **Obstructed companions**: the seat walk is a new ticket, so the actuator's old
+  rejection is cleared. If the actuator still refuses it, or never takes it (its
+  feedback stays on another ticket for 2 s), a companion within 1.8 m of the seat
+  slides the rest; arrival distance 0.55 m. Judy, 1.2 m from the seat above, would
+  sit with a ~0.9 s slide.
+
 ## Mechanism
 
 `convai_gestures.archive` now also carries four components on the gesture
@@ -47,11 +95,14 @@ seat and nothing else.
 
 1. **Detect V sitting.** Every 0.25 s at most, one `IsActorInWorkspot(player)`
    call while V stands. When it turns true, the workspot path and animation are
-   read and classified (`M.classify`): couch, bench, chair, chair at a table, bar
-   stool at a counter, free stool. Vehicles (mounted, or a car/AV workspot), the
-   ground, kerbs, rails, beds, wheelchairs and anything not sitting are ignored.
-2. **Settle.** V must be in the workspot and past its entry for 0.9 s; V's
-   root position, forward and orientation then become the seat anchor.
+   read when the game exposes them and classified (`M.classify`): couch, bench,
+   chair, chair at a table, bar stool at a counter, free stool. Vehicles
+   (mounted, or a car/AV workspot), the ground, kerbs, rails, beds, wheelchairs
+   and other named workspots are ignored. A scene sit has no name and is
+   classified from the furniture after settling (above).
+2. **Settle.** PSM `IsInWorkspot` 1 for 0.5 s (or, where it cannot be read, in
+   the workspot and past its entry for 0.9 s); V's root position, forward and
+   orientation then become the seat anchor.
 3. **Find seats once.** Downward raycasts (Static and Dynamic) every 0.1 m
    along V's right axis from 0.45 m out to the furniture span (2.1 m for a
    couch), 0.1-0.15 m behind the root, one side per update (at most ~36 rays
@@ -78,7 +129,7 @@ seat and nothing else.
    holds the body, movement waits (the same body-owner contract as gestures).
    The companion looks at V (`side`, `full` while V talks to them; no chest
    part, as in cars).
-7. **Stand up.** When V's workspot reports exiting, V leaves the workspot, or
+7. **Stand up.** When V's PSM `IsInWorkspot` drops to 0, V's workspot reports exiting, V leaves the workspot, or
    V's root moves 1 m from the anchor: the native fast exit with default
    arguments, which plays the sit workspot's stand-up clip. Combat (V or the
    companion): the instant fast exit. Still inside after 3 s: one
@@ -117,7 +168,7 @@ Globals `convaiSeating` / `convaiSeatingOptions` let the probe hot reload it.
 ## Cost
 
 No per-frame work and no file I/O. While V stands: one native call at most four
-times a second, nothing else. Per sit: ~70 raycasts over two updates, one
+times a second, nothing else. Per sit: ~80 raycasts over three updates, one
 targeting query, a few rays per assigned seat, one device spawn per companion.
 Seated: one `IsActorInWorkspot` per companion per update (the companions loop
 runs at 10 Hz).
@@ -141,11 +192,11 @@ companions update until it errors.
 ## Tests
 
 `npm run test:gestures` includes `bridge/companion-seating.test.mjs` (Fengari):
-classification, seat finding on couches/stools/armrests, the full sit and stand
+classification by name and by furniture (the probed apartment couch), seat finding on couches/stools/armrests, the full sit and stand
 flow, V getting up, combat (instant), several companions on different seats, no
 seat, wall / occupied / table-in-front, vehicles and unsupported workspots, the
 setting, an old archive, a refused walk near and far, transport/unobserved
-release, and the standing cost (≤ 4 reads a second, no rays).
+release, a walk the actuator never takes, the PSM settle and stand-up, and the standing cost (≤ 4 reads a second, no rays). 18 tests.
 
 ## To check in game
 
@@ -155,7 +206,8 @@ Install: **game restart** for the rebuilt `archive/pc/mod/convai_gestures.archiv
 `manager.lua`, `mcm.lua` and the 15 locales. Developer mode on for the lines.
 
 1. V's apartment couch: sit with one companion standing nearby. `player-workspot`
-   names the path/anim and kind `couch`; `seats-found` count ≥ 1; the companion
+   says `unnamed: classify by the furniture`, `seat-classified` kind `couch`
+   with `h0` about 0.45; `seats-found` count 1 (0.66 m left); the companion
    walks around to the front and sits next to V, at the same depth and height
    (not floating, not inside the cushion or the backrest), facing the same way.
 2. Talk to her while seated: lip sync and expressions work; she looks at V.

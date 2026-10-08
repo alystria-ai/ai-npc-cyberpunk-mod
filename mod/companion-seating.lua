@@ -20,7 +20,9 @@ M.policy = {
     minOffset = .45,       -- seat samples along the furniture, beside V
     sampleStep = .1,
     approachTimeout = 12,
-    arriveDistance = .45,
+    arriveDistance = .55,
+    settlePsm = .5,        -- V's PSM IsInWorkspot = 1 this long: seated (it is 0 while V sits down and gets up)
+    notOursAfter = 2,      -- the actuator never took the seat walk this long: treat it as refused
     deviceTimeout = 5,
     enterTimeout = 4,
     exitPatience = 3,
@@ -42,18 +44,18 @@ M.policy = {
 -- width that must be seat surface (continuous) or the run limits (discrete);
 -- approach: walk-up side (1 = in front of the seat, -1 = behind it).
 M.kinds = {
-    couch = {component = 'couch', band = {.22, .7}, tolerance = .12, pitch = .66, width = .18, continuous = true,
-        approach = 1, back = .15, span = 2.1},
-    bench = {component = 'chair', band = {.25, .7}, tolerance = .12, pitch = .66, width = .15, continuous = true,
-        approach = 1, back = .1, span = 2.1},
-    chair = {component = 'chair', band = {.3, .75}, tolerance = .14, pitch = .7, width = .08, continuous = false,
-        approach = 1, back = .1, span = 1.8},
-    table = {component = 'chair', band = {.3, .75}, tolerance = .14, pitch = .7, width = .08, continuous = false,
-        approach = -1, back = .1, span = 1.8},
-    bar = {component = 'bar', band = {.5, 1.0}, tolerance = .15, pitch = .65, width = .06, continuous = false,
-        approach = -1, back = 0, span = 2.0},
-    stool = {component = 'stool', band = {.5, 1.0}, tolerance = .15, pitch = .65, width = .06, continuous = false,
-        approach = -1, back = 0, span = 1.6},
+    couch = {component = 'couch', band = {.22, .7}, tolerance = .07, pitch = .66, width = .18, continuous = true,
+        approach = 1, back = .3, span = 2.1},
+    bench = {component = 'chair', band = {.25, .7}, tolerance = .07, pitch = .66, width = .15, continuous = true,
+        approach = 1, back = .25, span = 2.1},
+    chair = {component = 'chair', band = {.3, .75}, tolerance = .1, pitch = .7, width = .08, continuous = false,
+        approach = 1, back = .25, span = 1.8},
+    table = {component = 'chair', band = {.3, .75}, tolerance = .1, pitch = .7, width = .08, continuous = false,
+        approach = -1, back = .25, span = 1.8},
+    bar = {component = 'bar', band = {.5, 1.0}, tolerance = .12, pitch = .65, width = .06, continuous = false,
+        approach = -1, back = .05, span = 2.0},
+    stool = {component = 'stool', band = {.5, 1.0}, tolerance = .12, pitch = .65, width = .06, continuous = false,
+        approach = -1, back = .05, span = 1.6},
 }
 
 local HOLDING = {entering = true, seated = true, exiting = true}
@@ -141,6 +143,36 @@ function M.seatPoints(anchor, forward, seat, kind, reach)
     return root, approach
 end
 
+-- What V sits on, from the furniture around V's settled root, when the
+-- workspot has no readable instance (V's apartment couch is a scene, October 8:
+-- GetWorkspotInstance nil, scene tier 3-4). surface(back, lateral) returns the
+-- highest hit above V's feet at a point behind (+) or in front (-) of V and to
+-- V's right (+). Returns the kind (or nil) and the measured values.
+function M.classifyGeometry(surface)
+    local found = {}
+    for _, back in ipairs({.3, .15, .05}) do
+        local h = surface(back, 0)
+        if h and h >= .25 and h <= 1.0 then found.h0, found.back = h, back; break end
+    end
+    local h0 = found.h0
+    if not h0 then return nil, found end
+    if h0 > .62 then
+        local front = surface(-.4, 0)
+        found.front = front
+        return (front and front >= .9 and front <= 1.3) and 'bar' or 'stool', found
+    end
+    local sides = 0
+    for _, lateral in ipairs({.5, -.5}) do
+        local h = surface(found.back, lateral)
+        if h and math.abs(h - h0) <= .07 then sides = sides + 1 end
+    end
+    local backrest, front = surface(found.back + .45, 0), surface(-.45, 0)
+    found.sides, found.backrest, found.front = sides, backrest, front
+    if sides > 0 then return (backrest and backrest >= h0 + .2) and 'couch' or 'bench', found end
+    if front and front >= h0 + .15 and front <= 1.0 then return 'table', found end
+    return 'chair', found
+end
+
 -- Native layer ---------------------------------------------------------------
 local native = {}
 M.native = native
@@ -158,6 +190,10 @@ function native.playerSeat(player, detail)
     pcall(function()
         local info = ws:GetExtendedInfo(player)
         out.entering, out.exiting = info.entering == true, info.exiting == true
+    end)
+    pcall(function()
+        local defs = Game.GetAllBlackboardDefs().PlayerStateMachine
+        out.psmWorkspot = player:GetPlayerStateMachineBlackboard():GetInt(defs.IsInWorkspot)
     end)
     if detail then
         out.orientation = player:GetWorldOrientation()
@@ -342,11 +378,17 @@ function M.new(options)
         if seat.combat then endSession('combat', true); return end
         if not seat.inside or seat.exiting then endSession(seat.inside and 'V is getting up' or 'V stood up'); return end
         if session then
+            -- PSM IsInWorkspot is 1 only while V is seated: 0 again while still
+            -- in the workspot means V is getting up.
+            if seat.psmWorkspot == 1 then session.psmSeen = true
+            elseif seat.psmWorkspot ~= nil and session.psmSeen then endSession('V is getting up'); return end
             if session.anchor and flat(seat.position, session.anchor) > policy.leaveDistance then
                 endSession('V left the seat')
-            elseif not session.anchor and not seat.entering then
-                session.stableFor = session.stableFor + policy.checkEvery
-                if session.stableFor >= policy.settleAfter then
+            elseif not session.anchor then
+                local known = seat.psmWorkspot ~= nil
+                local settled = known and seat.psmWorkspot == 1 or (not known and not seat.entering)
+                session.stableFor = settled and session.stableFor + policy.checkEvery or 0
+                if session.stableFor >= (known and policy.settlePsm or policy.settleAfter) then
                     -- The anchor is V's settled seat root: where its workspot plays.
                     local len = math.sqrt(seat.forward.x ^ 2 + seat.forward.y ^ 2)
                     if len < .1 then return end
@@ -359,17 +401,21 @@ function M.new(options)
             return
         end
         if seat.mounted then return end
+        local named = (seat.path and seat.path ~= '') or (seat.anim and seat.anim ~= '')
         local kind = M.classify(seat.path, seat.anim)
         local key = tostring(seat.path) .. '|' .. tostring(seat.anim)
         if self.lastWorkspot ~= key then
             self.lastWorkspot = key
-            note('player-workspot', {path = seat.path, anim = seat.anim, kind = kind or 'unsupported'})
+            note('player-workspot', {path = seat.path, anim = seat.anim,
+                kind = kind or (named and 'unsupported' or 'unnamed: classify by the furniture')})
         end
-        if not kind then return end
+        -- A named workspot that is not a seat (a car, a device, the ground) never
+        -- seats anyone. An unnamed one (a scene sit) is judged by the furniture.
+        if not kind and named then return end
         self.sessions = self.sessions + 1
-        session = {id = self.sessions, kind = kind, profile = M.kinds[kind], stableFor = 0, since = self.clock,
-            orientation = seat.orientation, path = seat.path, anim = seat.anim}
-        note('player-sat', {session = session.id, kind = kind, path = seat.path, anim = seat.anim})
+        session = {id = self.sessions, kind = kind, profile = kind and M.kinds[kind], basis = kind and 'workspot' or 'furniture',
+            stableFor = 0, since = self.clock, orientation = seat.orientation, path = seat.path, anim = seat.anim}
+        note('player-sat', {session = session.id, kind = kind or 'pending', basis = session.basis, path = seat.path, anim = seat.anim})
     end
 
     -- One side of the furniture per update: at most ~40 raycasts per update,
@@ -377,6 +423,22 @@ function M.new(options)
     local function searchStep(player, rows)
         local search = session and session.search
         if not search or session.seats then return end
+        if not session.profile then
+            -- One update: what V sits on, from about a dozen rays.
+            local anchor, f = session.anchor, session.forward
+            local kind, found = M.classifyGeometry(function(back, lateral)
+                local x = anchor.x - f.x * back + f.y * lateral
+                local y = anchor.y - f.y * back - f.x * lateral
+                local z = nat.surface(x, y, anchor.z + 1.4, anchor.z - .4)
+                return z and z - anchor.z or nil
+            end)
+            found.kind = kind or 'unsupported'
+            found.session = session.id
+            note('seat-classified', found)
+            if not kind then session.seats, session.search = {}, nil; return end
+            session.kind, session.profile = kind, M.kinds[kind]
+            return
+        end
         local kind, anchor, f = session.profile, session.anchor, session.forward
         local rx, ry = f.y, -f.x
         local bx, by = anchor.x - f.x * kind.back, anchor.y - f.y * kind.back
@@ -530,7 +592,8 @@ function M.new(options)
             local ours = motion.ticket == s.op.ticket
             local gap = entry.position and flat(entry.position, s.seat.approach) or math.huge
             local toSeat = entry.position and flat(entry.position, s.seat.root) or math.huge
-            if ours and (motion.failed or motion.stalled) then s.failingSince = s.failingSince or self.clock
+            if (ours and (motion.failed or motion.stalled))
+                or (not ours and self.clock - s.since >= policy.notOursAfter) then s.failingSince = s.failingSince or self.clock
             else s.failingSince = nil end
             local failing = s.failingSince and self.clock - s.failingSince or 0
             if (ours and motion.complete) or gap <= policy.arriveDistance

@@ -36,7 +36,7 @@ function native.playerSeat(player,detail)
   local out={inside=seat.inside,combat=seat.combat}
   if not seat.inside then return out end
   out.position={x=seat.x or 0,y=seat.y or 0,z=0};out.forward={x=0,y=1}
-  out.entering,out.exiting=seat.entering,seat.exiting
+  out.entering,out.exiting,out.psmWorkspot=seat.entering,seat.exiting,seat.psm
   if detail then out.orientation={quat=true};out.mounted=seat.mounted;out.path=seat.path;out.anim=seat.anim end
   return out
 end
@@ -267,7 +267,7 @@ test('a new catalog with the old archive (device without sit components) disable
 
 test('a refused walk near the seat slides the rest; far away it gives up', () => run(`
   couch(-.35,1.7)
-  party={companion(1,.9,1.2)}
+  party={companion(1,1.0,1.5)}
   sitV();step(.6)
   step(3,{walk=false,refuse=true})
   assert(count('play')==1,'slid from 1.2 m')
@@ -292,4 +292,51 @@ test('V standing costs one cheap native read at most four times a second', () =>
   assert(n>=14 and n<=18,'reads in 4 s: '..n)
   for _,call in ipairs(calls) do if call.name=='playerSeat' then assert(call.detail==true,'detail only matters once seated') end end
   assert(count('surface')==0 and count('people')==0)
+`));
+
+// V's apartment couch, as measured by the October 8 probe: V's sit is a scene
+// (no workspot instance), the cushion is 0.44-0.45 m up with its front edge
+// 0.0-0.2 m behind V's root, it ends ~1.1 m to V's left at a higher armrest or
+// side unit (0.50-0.59 m), and to V's right there is only floor.
+test('apartment couch from the probe: unnamed scene sit, classified by the furniture, one seat on the left', () => run(`
+  world.boxes={{x1=-1.1,x2=.3,y1=-.75,y2=-.15,h=.45},{x1=-1.1,x2=.3,y1=-.95,y2=-.75,h=.85},
+    {x1=-2.2,x2=-1.1,y1=-.75,y2=.6,h=.58}}
+  party={companion(1,-.46,1.15)}
+  seat.inside,seat.psm=true,0;step(.6)
+  assert(lastLog('player-sat') and lastLog('player-sat').fields.basis=='furniture','scene sit starts a furniture session')
+  assert(count('surface')==0,'no rays while V is still sitting down (PSM 0)')
+  seat.psm=1;step(2)
+  local cls=lastLog('seat-classified')
+  assert(cls and cls.fields.kind=='couch','classified as couch: '..tostring(cls and cls.fields.kind))
+  assert(math.abs(cls.fields.h0-.45)<.01)
+  local found=lastLog('seats-found');assert(found and found.fields.count==1,'one seat: '..tostring(found and found.fields.count))
+  local spawn=last('spawn');assert(spawn and math.abs(spawn.x+.66)<.01 and math.abs(spawn.y)<.01,'seat 0.66 m to the left on the root line')
+  assert(count('play')==1 and last('play').component=='convai_sit_couch')
+  seat.psm=0;step(.3)
+  assert(count('exit')==1,'PSM 1 to 0 while still in the workspot: V is getting up')
+`));
+
+test('a named workspot that is not a seat never starts a session; an unnamed one with no seat behind V does nothing', () => run(`
+  couch(-.35,1.7)
+  sitV('base\\\\workspots\\\\devices\\\\vending_machine\\\\player__use_vending.workspot','use_device')
+  step(2);assert(not lastLog('player-sat'),'device workspot ignored')
+  seat.inside=false;step(.5);world.boxes={}
+  seat.inside,seat.path,seat.anim,seat.psm=true,nil,nil,1;step(2)
+  assert(lastLog('seat-classified').fields.kind=='unsupported' and count('spawn')==0)
+`));
+
+test('a seat walk the actuator never takes counts as refused and slides when close', () => run(`
+  couch(-.35,1.7);party={companion(1,1.0,1.5)}
+  sitV();step(.6)
+  -- The actuator keeps reporting its own old ticket (a blocked motor).
+  for i=1,80 do
+    local rows={{entry=party[1],transport=false}}
+    c.tick(player,.1,rows)
+    local e=party[1]
+    if e.npc.entering then e.npc.entering=nil;e.npc.inside=true end
+    e.motor.feedback={ticket='old',failed=true}
+    c.steer(e,{combat=false,motion=e.motor.feedback})
+    c.observe(e,{combat=false})
+  end
+  assert(count('play')==1,'slid in after the walk was never taken')
 `));
