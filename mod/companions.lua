@@ -1182,7 +1182,8 @@ local function boardRiders(s)
             riders[#riders+1]={entry=entry,dx=at.x-s.rideFrom.x,dy=at.y-s.rideFrom.y,dz=at.z-s.rideFrom.z,
                 angles=ok and angles or EulerAngles.new(0,0,0)}
             entry.carVisit,entry.carWalk,entry.carSearch=s.insideSince,nil,nil
-            entry.riding=s.rideStarted
+            entry.riding,entry.rideDz,entry.carryError,entry.carryNoted=s.rideStarted,at.z-s.rideFrom.z,nil,nil
+            entry.carrySent=0
         end
     end
     M.riders=#riders>0 or nil
@@ -1192,16 +1193,65 @@ end
 function M.carry(player)
     if not riders[1] then M.riders=nil; return end
     local v=player:GetWorldPosition()
-    local facility=Game.GetTeleportationFacility()
+    local found,facility=pcall(Game.GetTeleportationFacility)
+    if not found or not facility then
+        for _,r in ipairs(riders) do r.entry.carryError=tostring(facility or 'no teleport facility') end
+        riders={}; M.riders=nil; return
+    end
     for index=#riders,1,-1 do
         local r=riders[index]
         local npc=r.entry.state=='ready' and r.entry.npc
-        local ok=npc and pcall(function()
-            facility:Teleport(npc,Vector4.new(v.x+r.dx,v.y+r.dy,v.z+r.dz,1),r.angles)
-        end)
-        if not ok then table.remove(riders,index) end
+        local ok,err=false,'not ready'
+        if npc then
+            ok,err=pcall(function()
+                facility:Teleport(npc,Vector4.new(v.x+r.dx,v.y+r.dy,v.z+r.dz,1),r.angles)
+            end)
+            if ok then r.entry.carrySent=(r.entry.carrySent or 0)+1 end
+        end
+        if not ok then r.entry.carryError=tostring(err); table.remove(riders,index) end
     end
     if not riders[1] then M.riders=nil end
+end
+-- Live test 2026-10-08 20:07:59-20:08:10Z: the per-frame transform did not
+-- move Judy at all (she stayed at z 8.3 while V rose to 49.2), which looked
+-- like sinking through the car floor. A rider the carry does not hold within
+-- 0.4 s (more than 0.35 m behind) is hidden for the rest of the ride (runtime visibility only, the
+-- same event the phantom controller and adoption use) and is placed beside V
+-- in the car at arrival, before the doors open; she is shown again once she
+-- stands on V's floor, or after 40 s at the latest.
+local function setVisible(entry,visible)
+    local ok,err=pcall(function()
+        local event=NewObject('enteventsSetVisibility')
+        event.visible=visible
+        event.source=Enum.new('entVisibilityParamSource','PhantomEntitySystem')
+        entry.npc:QueueEvent(event)
+    end)
+    if not ok then entry.visibilityError=tostring(err) end
+    return ok
+end
+local function checkRiders(s,position)
+    for _,entry in ipairs(entries) do
+        if s.riding and entry.riding==s.rideStarted and not entry.rideHidden and entry.position then
+            -- A held rider lags V by one frame at most (under 0.2 m at 10 m/s).
+            local held=math.abs(entry.position.z-(position.z+(entry.rideDz or 0)))<.35
+            if held and not entry.carryNoted and runtimeClock-s.rideStarted>=.4 then
+                entry.carryNoted=true
+                note(entry,'lift-carry',{result='held'})
+            elseif not held and runtimeClock-s.rideStarted>=.4 then
+                for index=#riders,1,-1 do if riders[index].entry==entry then table.remove(riders,index) end end
+                if not riders[1] then M.riders=nil end
+                entry.rideHidden=runtimeClock
+                local hidden=setVisible(entry,false)
+                note(entry,'lift-carry',{result='hidden',hidden=hidden,error=entry.carryError,sent=entry.carrySent,
+                    lag=rounded(position.z+(entry.rideDz or 0)-entry.position.z)})
+            end
+        elseif entry.rideHidden and not s.riding and not entry.relocation and entry.position
+            and (math.abs(entry.position.z-position.z)<1.5 or runtimeClock-entry.rideHidden>40) then
+            entry.rideHidden=nil
+            setVisible(entry,true)
+            note(entry,'lift-carry',{result='shown'})
+        end
+    end
 end
 -- V's lift state, vertical motion and recent footholds, sampled a few times a
 -- second for the whole party (companion-passage.lua).
@@ -1232,6 +1282,7 @@ local function samplePassage(player,position)
         s.position=space.copy(position)
         if s.riding and not riding then s.arrivedAt=runtimeClock; riders={}; M.riders=nil end
         if riding and runtimeClock-s.rideStarted>90 then riders={}; M.riders=nil end
+        checkRiders(s,position)
         s.riding=riding
         if previous and previous.inside and not inside then s.exitedAt=runtimeClock end
     end
@@ -1459,7 +1510,7 @@ local function liftPassage(entry,player,v,rise,flat)
         end
         -- The car left without her: back in it only while V cannot see it.
         entry.carSearch=nil
-        if not unseen(player,entry,spot) then
+        if not entry.rideHidden and not unseen(player,entry,spot) then
             note(entry,'lift-car-spot',{reason='in-view',mode=search.mode})
             return false
         end
@@ -1470,7 +1521,8 @@ local function liftPassage(entry,player,v,rise,flat)
     local visit=entry.carVisit
     if visit then
         local sameVisit=inside and visit==s.insideSince
-        if sameVisit and rise<1.5 and flat<=separation.carStay then
+        local rider=s.riding and entry.riding==s.rideStarted
+        if sameVisit and (rider or rise<1.5 and flat<=separation.carStay) then
             -- In the car with V: stand still; a moving car takes her along (M.carry).
             entry.carExit=nil
             actuator.stay(entry.motor); return true

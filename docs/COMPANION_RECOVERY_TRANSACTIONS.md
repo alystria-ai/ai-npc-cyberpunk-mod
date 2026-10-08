@@ -621,3 +621,38 @@ away. New tests: a moving car carries her with V (per-frame carry) and she
 walks out after V; the car leaving without her shows nothing in view and she
 appears out of view after V steps out; a companion touching a prop steps clear
 and follows (this one fails without `unstick`).
+
+### Third live test (2026-10-08 20:07-20:08Z): the per-frame carry did not hold
+
+With `8024797` installed and the game restarted, the walk-in worked
+(`lift-boarding` `how` `walk`, then `lift-boarded` `walked` at 20:07:56). The
+ride did not. `lift-departed` was logged with V aboard at 20:07:59, so the
+rider was registered and the ride was detected. Through the ride the movement
+trace shows Judy at exactly z 8.3 while V rose from 8.2 to 49.2. The
+transform teleport sent every frame left no trace at all: not even one
+partial step, so either `TeleportationFacility:Teleport` is ignored or
+replaced on a hold-commanded AI copy, or it errored. Seen from the car, she
+sank through the floor. At 20:08:01 the stay hold also gave way to the follow
+behaviour, because she was more than 1.5 m below V. At arrival she was placed
+beside V (`relocated` `lift-arrival` `how` `car`, 8.27 to 49.2).
+
+The fix keeps the carry and verifies it:
+
+- 0.4 s into the ride, a rider still more than 0.35 m behind V's height (a
+  held rider lags by at most one frame) is dropped from the carry. She is
+  **hidden** for the rest of the ride, with `enteventsSetVisibility` from
+  source `PhantomEntitySystem`, the same runtime visibility event that
+  adoption and the phantom controller use. `lift-carry` `result` `hidden`
+  carries `error`, `sent` (frames teleported) and `lag`.
+- While the car moves, a rider holds still whatever the height gap, so a
+  hidden copy does not wander about the old floor.
+- At arrival, a hidden rider is placed beside V in the car by the proven
+  `AITeleportCommand`, before the doors open. She is not visible, so the
+  out-of-view rule does not wait for this.
+- She is shown again (`lift-carry` `result` `shown`) once she stands on V's
+  floor with no relocation pending, or after 40 s at the latest.
+- A carry that holds logs `lift-carry` `result` `held` once.
+
+Tests: the per-frame carry that holds; a carry the engine ignores (she is
+hidden by the second update, placed in the car at arrival and shown again);
+a teleport facility that errors (hidden and reported).

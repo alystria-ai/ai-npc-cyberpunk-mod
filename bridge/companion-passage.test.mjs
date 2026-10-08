@@ -384,8 +384,10 @@ test('a moving car carries her along with V, then she walks out after V',()=>run
   local offset={x=npc.pos.x-player.pos.x,y=npc.pos.y-player.pos.y}
   lift.moving=true
   for i=1,40 do
-    player.pos=Vector4.new(0,8,i); play(1)
+    -- init.lua carries riders every frame, before the companion update.
+    player.pos=Vector4.new(0,8,i)
     if companions.riders then companions.carry(player) end
+    play(1)
   end
   assert(carried>=30,'she was not carried with V ('..carried..' moves)'..dump())
   assert(math.abs(npc.pos.z-40)<.2 and math.abs(npc.pos.x-player.pos.x-offset.x)<.05,'she did not keep her place beside V: '
@@ -399,22 +401,60 @@ test('a moving car carries her along with V, then she walks out after V',()=>run
   assert(not inCar(npc.pos.x,npc.pos.y),'she stayed in the car after V stepped out'..dump())
 `));
 
-test('the car leaves without her: never in view; she appears out of view once V steps out',()=>run(world+car+`
+test('a carry that does not hold her hides her for the ride; she is in the car at arrival',()=>run(world+car+`
+  -- Live 2026-10-08 20:07:59-20:08:10Z: the per-frame transform left Judy at
+  -- z 8.3 while V rose to 49.2; she seemed to sink through the car floor.
+  Game.GetTeleportationFacility=function() return {Teleport=function() end} end
+  local function visible()
+    local state=true
+    for event in pairs(npc.looks) do
+      if type(event)=='table' and event.kind=='enteventsSetVisibility' then state=event.visible end
+    end
+    return state
+  end
+  local events={}
+  local queue=npc.QueueEvent
+  npc.QueueEvent=function(self,event)
+    if type(event)=='table' and event.kind=='enteventsSetVisibility' then events[#events+1]=event.visible end
+    return queue(self,event)
+  end
   enterCar(); play(10)
   assert(logged('lift-boarded'),'she never boarded'..dump())
   lift.moving=true
-  for i=1,10 do player.pos=Vector4.new(0,8,i*4); play(1) end
+  for i=1,40 do
+    player.pos=Vector4.new(0,8,i)
+    if companions.riders then companions.carry(player) end
+    play(1)
+    if i==4 then assert(events[1]==false,'she was not hidden when the carry did not hold her'..dump()) end
+  end
+  assert(logged('lift-carry') and logged('lift-carry').fields.result=='hidden','no probe line for the hidden ride')
+  assert(#teleports==0,'teleported during the ride')
+  lift.moving=false; play(4)
+  assert(#teleports>=1,'she was not placed in the car at arrival'..dump())
+  local spot=teleports[1].spot
+  assert(math.abs(spot.z-40)<.5 and inCar(spot.x,spot.y),'not placed in the car on the new floor')
+  play(2)
+  assert(events[#events]==true,'she was not shown again in the car')
+`));
+
+test('a carry that fails outright (no teleport facility) also hides her and places her at arrival',()=>run(world+car+`
+  Game.GetTeleportationFacility=function() error('teleport facility unavailable') end
+  enterCar(); play(10)
+  assert(logged('lift-boarded'),'she never boarded'..dump())
+  lift.moving=true
+  for i=1,10 do
+    player.pos=Vector4.new(0,8,i*4)
+    if companions.riders then companions.carry(player) end
+    play(1)
+  end
+  local hidden=logged('lift-carry')
+  assert(hidden and hidden.fields.result=='hidden' and tostring(hidden.fields.error):find('unavailable'),
+    'the failed carry was not hidden and reported'..dump())
   assert(#teleports==0,'teleported during the ride')
   lift.moving=false; play(3)
-  assert(#teleports==0,'she popped into the car in front of V'..dump())
-  lift.inside=false
-  for i=1,4 do player.pos=Vector4.new(0,7-i,40); player.forward=Vector4.new(0,-1); play(1) end
-  play(4)
   assert(#teleports>=1,'she stayed on the old floor'..dump())
-  local item=teleports[1]
-  assert(math.abs(item.spot.z-40)<1,'not placed on the new floor')
-  local space=dofile('companion-space.lua')
-  assert(space.angle({x=0,y=-1},space.bearing(item.from,item.spot))>60,'she appeared in front of V')
+  local spot=teleports[1].spot
+  assert(math.abs(spot.z-40)<.5 and inCar(spot.x,spot.y),'not placed in the car on the new floor')
 `));
 
 test('a companion touching a prop steps clear and then follows instead of being refused forever',()=>run(world+`
