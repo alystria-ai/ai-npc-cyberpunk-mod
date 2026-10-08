@@ -388,7 +388,7 @@ test('a party of sixteen has no size limit: places extend the formation, every c
   assert(#companions.list()==16)
 `));
 
-const strandedPocket=(facing='Vector4.new(0,1)',before='')=>`${companionEngine}
+const strandedPocket=(facing='Vector4.new(0,1)',before='',until='false')=>`${companionEngine}
   local teleports,transformTeleports={},0
   -- A transform teleport on an AI-driven copy was undone in the live trace;
   -- recovery must go through the AI teleport command.
@@ -412,7 +412,7 @@ const strandedPocket=(facing='Vector4.new(0,1)',before='')=>`${companionEngine}
     SyncRaycastByCollisionGroup=function() return not sight end} end
   player.forward=${facing}
   ${before}
-  for i=1,40 do player.pos=Vector4.new(0,i,0); tick(1) end
+  for i=1,40 do player.pos=Vector4.new(0,i,0); tick(1); if ${until} then break end end
 `;
 
 test('a blocked follower far behind V and out of view is re-placed near V',()=>run(strandedPocket()+`
@@ -439,7 +439,8 @@ test('a stranded follower in plain view is not teleported',()=>run(strandedPocke
 `));
 
 test('decisions pause until the owned AI teleport has landed',()=>run(strandedPocket('Vector4.new(0,1)',
-  "local pendingTeleport; npc.ai.onSend=function(cmd) if cmd.kind=='AITeleportCommand' then pendingTeleport=cmd end end")+`
+  "local pendingTeleport; npc.ai.onSend=function(cmd) if cmd.kind=='AITeleportCommand' then pendingTeleport=cmd end end",
+  'pendingTeleport')+`
   for i=1,40 do if pendingTeleport then break end; tick(1) end
   assert(pendingTeleport,'no AI teleport command was sent')
   local sent=#npc.ai.commands

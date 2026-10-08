@@ -228,10 +228,12 @@ test('fast travel recovers only existing companions after release and never recr
   for i=1,4 do assert(world.recoveries[i]==1) end
 `));
 
-test('failed fast travel ground recovery stays bounded and retains the movement owner',()=>run(`${fixture}
+test('failed fast travel ground recovery stays bounded, then hands the copy back to walking recovery',()=>run(`${fixture}
   party(2); world.primary=nil; world.recoverBlocked=true
   transport.fastTravel(fleet); tick(200)
-  for i=1,2 do assert(world.recoveries[i]==3 and not world.resumes[i] and transport.owns(fleet,i)) end
+  -- Retaining ownership after the last attempt left the copy unplanned with
+  -- no on-foot recovery at all; walking ownership places it near V instead.
+  for i=1,2 do assert(world.recoveries[i]==3 and world.resumes[i]==1 and not transport.owns(fleet,i)) end
   assert(count('mount')==0 and #world.spawned==0)
 `));
 

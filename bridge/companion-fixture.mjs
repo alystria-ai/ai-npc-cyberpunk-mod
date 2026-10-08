@@ -2,6 +2,7 @@ import {readFileSync} from 'node:fs';
 
 const behavior = readFileSync(new URL('../mod/companion-behavior.lua', import.meta.url), 'utf8');
 const placement = readFileSync(new URL('../mod/companion-placement.lua', import.meta.url), 'utf8');
+const passage = readFileSync(new URL('../mod/companion-passage.lua', import.meta.url), 'utf8');
 const clearance = readFileSync(new URL('../mod/companion-clearance.lua', import.meta.url), 'utf8');
 const appearance = readFileSync(new URL('../mod/companion-appearance.lua', import.meta.url), 'utf8');
 const spawnRecords = readFileSync(new URL('../mod/companion-records.lua', import.meta.url), 'utf8');
@@ -35,6 +36,7 @@ export const companionModules = `
     if file=='companion-reload-cleanup.lua' then return (function() ${reloadCleanup} end)() end
     if file=='companion-behavior.lua' then return (function() ${behavior} end)() end
     if file=='companion-placement.lua' then return (function() ${placement} end)() end
+    if file=='companion-passage.lua' then return (function() ${passage} end)() end
     if file=='companion-clearance.lua' then return (function() ${clearance} end)() end
     if file=='companion-appearance.lua' then return (function() ${appearance} end)() end
     if file=='companion-records.lua' then return (function() ${spawnRecords} end)() end

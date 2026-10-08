@@ -560,6 +560,12 @@ local function log(line)
     end
     print('[CyberpunkConvai] ' .. line)
 end
+-- Doors, lifts, fast travel and stranded followers: one line per recovery
+-- decision (companions.lua note(), throttled per kind; never per frame).
+companions.recoveryLog = function(kind, fields)
+    local ok, text = pcall(json.encode, fields or {})
+    log('Companion recovery ' .. tostring(kind) .. ' ' .. (ok and text or ''))
+end
 
 -- An NPC the mod addresses keeps quiet about V staring or standing close
 -- (mod/vanilla-reactions.lua). Reached through the global from beginFocus,

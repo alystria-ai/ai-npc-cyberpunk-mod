@@ -170,8 +170,11 @@ stuck retries; the controller never teleports a convoy car through an obstacle.
 
 The pedestrian fast-travel recovery uses the existing `companion-placement`
 checks, including same-floor native navigation and separation between recovery
-destinations. On a failed placement, the actor is retained with an error. There
-is no assumption that a coordinate near V is a safe standing or driving point.
+destinations. After the third failed placement the actor is handed back to
+walking ownership (October 8), and the on-foot fast-travel arrival and catch-up
+rules place it near V with an AI teleport
+(docs/COMPANION_RECOVERY_TRANSACTIONS.md). There is no assumption that a
+coordinate near V is a safe standing or driving point.
 
 ## Integration contract
 

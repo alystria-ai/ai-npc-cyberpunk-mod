@@ -80,16 +80,28 @@ local function exitClear(points,body)
     return true
 end
 -- accept(candidate), when given, can refuse an otherwise valid spot.
-function M.find(player,preferred,occupied,body,accept)
+-- options (recovery only):
+--   origin       search around this foothold instead of V (V's trail);
+--   sourceRadius find walkable ground up to this far from the origin (V in a
+--                lift car or doorway can stand off the navmesh);
+--   near         every spot must be within this ground distance of V.
+-- Invitations pass no options and keep the exact original checks.
+function M.find(player,preferred,occupied,body,accept,options)
+    options=options or {}
     local ok,result,reason,deferred=pcall(function()
-        local nav,origin=Game.GetAINavigationSystem(),player:GetWorldPosition()
+        local nav,playerPosition=Game.GetAINavigationSystem(),player:GetWorldPosition()
         local success=Enum.new('worldNavigationRequestStatus','OK')
-        if not point(origin) or not point(preferred) then error('Invalid invitation position') end
-        local source=nav:FindPointInSphereForCharacter(origin,.7,player)
+        local origin=options.origin or playerPosition
+        if not point(origin) or not point(playerPosition) or not point(preferred) then error('Invalid invitation position') end
+        local radius=options.sourceRadius or .7
+        local source=nav:FindPointInSphereForCharacter(origin,radius,player)
         if not source or source.status~=success or not point(source.point)
-            or math.abs(source.point.z-origin.z)>.65 or distance(source.point,origin)>.8 then
+            or math.abs(source.point.z-origin.z)>(options.sourceRadius and .9 or .65)
+            or distance(source.point,origin)>radius+.1 then
             return nil,'Move onto open, walkable ground to invite a companion here.'
         end
+        -- Off-navmesh recovery searches from the walkable ground it found.
+        if options.sourceRadius then origin=source.point end
         local seen={}
         for _,desired in ipairs(candidates(origin,preferred)) do
             local found=nav:FindPointInSphereForCharacter(desired,.55,player)
@@ -98,7 +110,8 @@ function M.find(player,preferred,occupied,body,accept)
                 local signature=string.format('%.2f:%.2f:%.2f',candidate.x,candidate.y,candidate.z)
                 local clear=not seen[signature] and math.abs(candidate.z-origin.z)<=.65
                     and distance(candidate,desired)<=.65 and distance(candidate,origin)<=6
-                    and separated(candidate,origin,occupied,body)
+                    and (not options.near or ground(candidate,playerPosition)<=options.near)
+                    and separated(candidate,playerPosition,occupied,body)
                 seen[signature]=true
                 if clear then
                     local fits,why,pending=clearance.body(candidate,body)

@@ -383,3 +383,91 @@ real Static obstacles, an impossible vertical native leg, initial/ongoing latera
 projection, the advance-to-full boundary, synchronous/asynchronous cancellation
 changes, an old radial endpoint blocked by a newly parked vehicle while point
 admission is deferred, and release/replacement of pending follow admission.
+
+## October 8 doors, lifts and fast travel (`mod/companion-passage.lua`)
+
+Live case (probe.log and movement trace, 2026-10-08 07:28-07:34Z): V fast
+travelled to V's building with Judy. Fast travel itself worked: Judy was
+re-acquired and appeared about 9 m from V after the loading screen. V then
+walked through the building's automatic door, which closed behind V. Judy's
+route was rejected at the `navigation` stage 25 m back while V waited in the
+lift car. She was counted as stranded for 62 s but never moved: placement
+searched only around V, and V stood in a car with no walkable navmesh, so
+every attempt failed without a log line. After V rode up 41 m she was teleported
+only after 12 s, because the rule waited for the watched-copy timeout.
+
+Live reflection with Codeware, read-only except one door test:
+
+- `PlayerStateMachineDef.IsPlayerInsideElevator` and
+  `IsPlayerInsideMovingElevator` are Bools on V's local PlayerStateMachine
+  blackboard. Inside is true only in the car, and is read a few times a second
+  with no hook.
+- `Door.whoOpened` is V after V walks through an automatic door. Doors expose
+  `IsLocked`, `IsSealed`, `IsLiftDoor` and `IsOpen` on `DoorControllerPS`.
+- `ActionToggleOpen()` queued with `PersistencySystem:QueuePSDeviceEvent`
+  opened a closed automatic door in game, and the door closed itself again
+  later. `ActionDoorOpeningToken()` returned nil, so companions get no opening
+  tokens.
+- `LiftDevice` has a `gameMovingPlatform`. Whether an NPC standing in a moving
+  car is carried along has not been verified.
+
+The rules, checked at the companion update rate, with the lift sampled at
+4 Hz:
+
+- **Door:** after a copy is stranded for 1.5 s, the closest closed door within
+  4 m of the line to V is opened, but only when V opened it and it is unlocked,
+  unsealed and not a lift door. The door search runs at most every 2 s per copy,
+  and the same door is opened at most every 6 s. The follower then re-verifies
+  its route after 0.8 s (`actuator.replan`). A no-route follower re-verifies
+  every 4 s anyway.
+- **Blocked:** a body-check obstruction now strands a copy at 10 m (was 30 m)
+  after 8 s. It still never leaves while V is watching. No route at all keeps
+  6 m / 4 s, leaving in view after 12 s.
+- **Lift ride:** nothing is relocated while the car moves or V's height is still
+  changing. A copy standing within 2.5 m of where the car stood when it
+  departed is placed beside V as soon as the car stops, in view if needed. Any
+  other copy more than 3 m above or below V rejoins 0.75 s after the car stops
+  or V steps out, and may appear in view after 2.5 s.
+- **Waiting in the car:** if V stands in a stopped car for 2 s and a copy on the
+  same floor cannot get in, it is placed beside V inside the car, within
+  1.8 m, once per car visit.
+- **Floor change without a lift:** a copy more than 3 m above or below V that
+  has made no progress for 2.5 s rejoins. A copy still climbing toward V is
+  left to walk.
+- **Placement fallbacks:** spots around V out of view, then any spot around V
+  when the rule allows it, then walkable ground within 2.5 m of a V standing in
+  a car, then up to three of V's own footholds from the last 16 on V's floor.
+  Each plan runs on its own update so the physics budget is shared.
+- **Fast travel:** each re-acquired copy gets a 15 s arrival window. A copy more
+  than 12 m from V rejoins after 1 s, out of view, or in view after 3 s.
+  `companion-vehicles.lua` used to keep a copy owned forever after its third
+  failed fast-travel placement, which disarmed every on-foot recovery. It now
+  hands the copy back to walking ownership.
+
+Each decision writes one `Companion recovery <kind> {json}` line to
+`runtime/probe.log`, at most once per kind and reason every 8 s per copy. The
+kinds are `stranded`, `door`, `door-none`, `waiting-in-view`, `relocated`
+(with rule, placement plan, trail and watched), `relocation-failed`,
+`lift-departed`, `lift-arrived`, `fast-travel-reacquired` and
+`fast-travel-lost`.
+
+`bridge/companion-passage.test.mjs` covers these cases:
+
+- opening the door V used, and walking through it;
+- a locked door that stays closed, followed by an out-of-view rejoin;
+- a door V never used that is left alone;
+- door-search throttling;
+- no teleport during a ride, then a rejoin on arrival;
+- ride-along in view, and no teleport for a copy the car carried;
+- placement inside the car;
+- the recorded no-navmesh lift car, rescued from V's trail;
+- stairs climbed in progress, and a stalled copy on another floor;
+- fast-travel placement, and the hand-back after failed placements.
+
+Not attempted:
+
+- holding V's floor selection until the companion is inside the car;
+- verifying in game that an NPC actually rides a moving car;
+- the lobby security-scanner gate. The trace shows Static body-sweep hits at
+  (-1600.5, 358.7) while the navmesh routes through it. If the gap is narrower
+  than the 0.8 m body box, the blocked rule now rescues the copy after 8 s.

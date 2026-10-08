@@ -800,6 +800,16 @@ local function unblocked(s)
     s.clearanceWaiting,s.clearanceHolding,s.routeProbe,s.candidateIndex=nil,nil,nil,nil
     s.failed,s.error,s.issued=false,nil,false
 end
+-- Recovery changed the world (opened a door) or the native navmesh may have
+-- changed under a still V. Drop the frozen rejection so the next planning
+-- turn verifies a fresh route; the owned hold stays until a replacement is
+-- verified, and a still-blocked route simply blocks again.
+function M.replan(s)
+    if not s or not s.blockedReason or s.cancellation then return false end
+    s.nativeLegFailures=0
+    unblocked(s)
+    return true
+end
 
 local function execution(route,origin,target,following,mode)
     local points,previous={},space.copy(origin)

@@ -8,6 +8,7 @@ local space = dofile('companion-space.lua')
 local travel = dofile('companion-travel.lua')
 local actuator = dofile('companion-actuator.lua')
 local placement = dofile('companion-placement.lua')
+local passage = dofile('companion-passage.lua')
 local clearance = dofile('companion-clearance.lua')
 local appearance = dofile('companion-appearance.lua')
 local spawnRecords = dofile('companion-records.lua')
@@ -128,6 +129,28 @@ local entries, serial = {}, 0
 local elapsed, runtimeClock, commandCursor = 0, 0, 0
 local groupFrame
 local transit
+-- Doors, lifts and floors (companion-passage.lua). Sampled a few times a
+-- second; door searches only while a copy is stranded, every 2 s at most.
+local separation={sampleEvery=.25,verticalStep=.3,verticalSettle=.75,
+    verticalGap=3,verticalStall=2.5,verticalAfter=.75,verticalWatchedAfter=2.5,floorWatchedAfter=6,
+    carGap=2.5,carNear=1.8,carSource=2.5,boardAfter=2,trailReach=14,
+    doorAfter=1.5,doorRetry=2,doorOpening=.8,replanEvery=4,replanGrace=3,
+    arrivalWindow=15,arrivalGap=12,arrivalAfter=1,arrivalWatchedAfter=3}
+local passageState={trail={},doorOpened={},sampledAt=-math.huge,zMovingUntil=-math.huge}
+-- One line per recovery decision in probe.log, at most once per kind and
+-- reason every 8 s for each copy. Decisions are rare; nothing logs per frame.
+local function note(entry,kind,fields)
+    if not M.recoveryLog then return end
+    fields=fields or {}
+    local key=kind..':'..tostring(fields.rule or fields.reason or fields.result or '')
+    entry.notes=entry.notes or {}
+    if runtimeClock-(entry.notes[key] or -math.huge)<8 then return end
+    entry.notes[key]=runtimeClock
+    fields.serial,fields.name=entry.serial,entry.name
+    if entry.playerGap and not fields.gap then fields.gap=math.floor(entry.playerGap*10+.5)/10 end
+    pcall(M.recoveryLog,kind,fields)
+end
+local function rounded(value) return value and math.floor(value*10+.5)/10 or nil end
 local vehicleHooks = {
     release = function(entry)
         equipment.release(entry.equipment)
@@ -783,6 +806,10 @@ function M.abandon(preserveTransit)
     if not preserveTransit then entries={}; transit=nil end
     elapsed,runtimeClock,commandCursor=0,0,0
     groupFrame=nil
+    passageState.trail,passageState.doorOpened,passageState.lift,passageState.z={},{},nil,nil
+    passageState.position,passageState.rideFrom=nil,nil
+    passageState.sampledAt,passageState.zMovingUntil=-math.huge,-math.huge
+    passageState.rideStarted,passageState.arrivedAt,passageState.exitedAt,passageState.insideSince=nil,nil,nil,nil
     vehicles.abandon(fleet)
     if reloadCleanup then reloadCleanupModule.abandon(reloadCleanup) end
 end
@@ -899,6 +926,7 @@ function M.beginFastTravel()
     end
     transit={phase='loading',clock=0,fleet=vehicles.suspend(fleet)}
     entries=party; groupFrame=nil; elapsed=0
+    passageState.trail,passageState.lift,passageState.z={},nil,nil
     return true
 end
 
@@ -992,7 +1020,19 @@ local function recoverTransit(player,step)
     end
     if waiting then return true end
     local ready={}
-    for _,entry in ipairs(entries) do if entry.state=='ready' then ready[#ready+1]=entry end end
+    for _,entry in ipairs(entries) do
+        if entry.state=='ready' then
+            ready[#ready+1]=entry
+            -- The game normally brings a follower along. A copy it left far
+            -- away or behind a wall rejoins near V (recoverDistant).
+            entry.arrivalStart,entry.arrivalUntil=runtimeClock,runtimeClock+separation.arrivalWindow
+            local ok,gap=pcall(function() return space.distance(entry.npc:GetWorldPosition(),player:GetWorldPosition()) end)
+            entry.playerGap=ok and gap or nil
+            note(entry,'fast-travel-reacquired',{respawned=(entry.spawnAttempts or 0)>0})
+        elseif entry.state=='failed' or entry.state=='dead' then
+            note(entry,'fast-travel-lost',{reason=entry.error,state=entry.state})
+        end
+    end
     vehicles.resume(fleet,transit.fleet,ready,system)
     transit=nil
     if M.onPartyChanged then pcall(M.onPartyChanged) end
@@ -1038,7 +1078,11 @@ end
 -- A walker held by an obstruction that no detour resolves would wait there
 -- forever while V leaves. Only when it is far away and out of V's view is it
 -- re-placed near V, through the same placement checks a new invitation uses.
-local stranded={distance=30,after=6,retry=3,fieldOfView=60,
+-- A body-check obstruction used to need 30 m before this fired, so a
+-- companion held 11-25 m back at V's building door and lobby gate waited
+-- forever (live trace 2026-10-08). Blocked and not moving for 8 s, 10 m
+-- back, is enough; it still never leaves while V is watching it.
+local stranded={distance=10,after=8,retry=3,fieldOfView=60,
     -- No native route at all (V hopped a railing): a companion cannot vault,
     -- so it rejoins sooner and at short range, even if watched for long.
     unreachableDistance=6,unreachableAfter=4,watchedAfter=12}
@@ -1112,30 +1156,92 @@ local function hiddenFromPlayer(player,at)
     return not M.visibleFromCrosshair(Vector4.new(origin.x,origin.y,origin.z+1.6,1),
         Vector4.new(at.x,at.y,at.z+1.2,1))
 end
--- Returns true when teleported, nil when it should retry shortly.
-local function relocate(entry,player)
+-- V's lift state, vertical motion and recent footholds, sampled a few times a
+-- second for the whole party (companion-passage.lua).
+local function samplePassage(player,position)
+    local s=passageState
+    if runtimeClock-s.sampledAt>=separation.sampleEvery then
+        local step=runtimeClock-s.sampledAt
+        s.sampledAt=runtimeClock
+        local previous=s.lift
+        s.lift=passage.liftState(player)
+        if s.z and step<1 and math.abs(position.z-s.z)>separation.verticalStep then
+            s.zMovingUntil=runtimeClock+separation.verticalSettle
+        end
+        s.z=position.z
+        local inside,moving=s.lift and s.lift.inside,s.lift and s.lift.moving
+        if inside and not (previous and previous.inside) then s.insideSince=runtimeClock end
+        if moving and not (previous and previous.moving) then
+            -- Who stood in the car is judged where the car stood, not where
+            -- the first moving sample already finds V.
+            s.rideStarted,s.rideFrom=runtimeClock,s.position or space.copy(position)
+        end
+        s.position=space.copy(position)
+        if previous and previous.moving and not moving then s.arrivedAt=runtimeClock end
+        if previous and previous.inside and not inside then s.exitedAt=runtimeClock end
+    end
+    passage.trailPush(s.trail,position,runtimeClock,s.lift and s.lift.inside)
+end
+-- Returns true when teleported, nil when it should retry shortly, or false
+-- and a reason. Each placement plan runs on its own update so one recovery
+-- never spends the whole shared physics budget; a failed plan moves on.
+local function relocate(entry,player,rule,watched,lift)
     local forward=cameraForward(player)
-    if not forward then return false end
+    if not forward then return false,'camera-unavailable' end
     local origin=space.copy(player:GetWorldPosition())
     local lateral=slots[entry.lane] and slots[entry.lane][1] or 0
-    local preferred=copyPosition(space.offset(origin,forward,lateral,-catchUp.behind))
-    -- Never appear on screen: only spots behind the camera's view qualify.
+    -- Never appear on screen: only spots behind the camera's view qualify,
+    -- unless this rule may be seen (a lift car, a long wait in view).
     local outOfView=function(point)
         return space.angle(forward,space.bearing(origin,point))>stranded.fieldOfView
     end
-    local target,_,deferred=placement.find(player,preferred,occupiedPositions(entry),entry.clearance,outOfView)
-    if deferred then return nil end
-    if not target then return false end
+    local plans={}
+    if rule=='lift-board' then
+        -- Beside V inside the car; the car floor can stand off the navmesh.
+        local beside=copyPosition(space.offset(origin,forward,lateral>=0 and .9 or -.9,-.2))
+        plans[#plans+1]={preferred=beside,options={near=separation.carNear,sourceRadius=separation.carSource}}
+    else
+        local behind=copyPosition(space.offset(origin,forward,lateral,-catchUp.behind))
+        plans[#plans+1]={preferred=behind,accept=outOfView}
+        if watched then plans[#plans+1]={preferred=behind} end
+        -- V in a lift car: search from the walkable ground nearest V.
+        if lift and lift.inside then
+            plans[#plans+1]={preferred=behind,accept=not watched and outOfView or nil,
+                options={sourceRadius=separation.carSource}}
+        end
+        -- V's own recent footholds on this floor (a lobby, a doorway).
+        for _,point in ipairs(passage.trailPoints(passageState.trail,origin,1.5,separation.trailReach,3)) do
+            local foothold=Vector4.new(point.x,point.y,point.z,1)
+            plans[#plans+1]={preferred=foothold,accept=not watched and outOfView or nil,
+                options={origin=foothold},trail=true}
+        end
+    end
+    local index=entry.placementPlan or 1
+    if entry.placementRule~=rule or index>#plans then index=1 end
+    entry.placementRule=rule
+    local plan=plans[index]
+    local target,reason,deferred=placement.find(player,plan.preferred,occupiedPositions(entry),entry.clearance,
+        plan.accept,plan.options)
+    if deferred then entry.placementPlan=index; return nil end
+    if not target then
+        if index<#plans then entry.placementPlan=index+1; return nil end
+        entry.placementPlan=nil
+        return false,reason or 'no-spot'
+    end
+    entry.placementPlan=nil
     local angles=Quaternion.ToEulerAngles(player:GetWorldOrientation())
     local sent=actuator.teleport(entry.motor,target,angles and angles.yaw or 0)
     if sent==nil then return nil end
-    if not sent then return false end
+    if not sent then return false,'teleport-refused' end
     stopPace(entry)
     -- Planning pauses until the copy is seen at the destination; the next
     -- sample senses the new feet with zero speed.
-    entry.relocation={target=space.copy(target),at=runtimeClock}
+    entry.relocation={target=space.copy(target),at=runtimeClock,rule=rule}
+    note(entry,'relocated',{rule=rule,plan=index,trail=plan.trail==true,watched=watched==true,
+        from=space.copy(entry.position),to=space.copy(target),rise=rounded(math.abs(entry.position.z-origin.z))})
     entry.position=nil
     entry.strandedSince,entry.strandedAnchor,entry.lastBlockedAt,entry.farSince=nil,nil,nil,nil
+    entry.verticalSince,entry.progressAnchor,entry.progressAt=nil,nil,nil
     return true
 end
 local function recoverDistant(entry,player)
@@ -1146,44 +1252,147 @@ local function recoverDistant(entry,player)
             entry.relocations,entry.relocation=(entry.relocations or 0)+1,nil
         elseif runtimeClock-pending.at>2.5 then
             entry.relocationFailures,entry.relocation=(entry.relocationFailures or 0)+1,nil
+            note(entry,'relocation-failed',{rule=pending.rule,reason='teleport-not-performed'})
         else
             -- A new decision would retire the AI teleport before it runs.
             return true
         end
     end
     if equipment.holdsMovement(entry.equipment) then
-        entry.strandedSince,entry.strandedAnchor,entry.farSince=nil,nil,nil; return false
+        entry.strandedSince,entry.strandedAnchor,entry.farSince,entry.verticalSince=nil,nil,nil,nil; return false
     end
+    local s,lift=passageState,passageState.lift
+    local v=space.copy(player:GetWorldPosition())
+    local rise=math.abs(entry.position.z-v.z)
+    local flat=space.ground(entry.position,v)
+    if s.rideStarted and entry.rideSeen~=s.rideStarted then
+        -- Whoever stands in the car with V when it departs rides along; if the
+        -- engine leaves them behind, they rejoin as soon as the car arrives.
+        entry.rideSeen=s.rideStarted
+        local from=s.rideFrom or v
+        entry.rodeWithV=space.ground(entry.position,from)<separation.carGap and math.abs(entry.position.z-from.z)<1.2
+        note(entry,'lift-departed',{withV=entry.rodeWithV,flat=rounded(flat)})
+    end
+    if s.arrivedAt and entry.arrivalSeen~=s.arrivedAt then
+        entry.arrivalSeen=s.arrivedAt
+        note(entry,'lift-arrived',{rise=rounded(rise),withV=entry.rodeWithV==true})
+    end
+    -- Never relocate while V's floor is still moving (a lift ride, a fall).
+    if (lift and lift.moving) or runtimeClock<s.zMovingUntil then
+        entry.strandedSince,entry.strandedAnchor,entry.verticalSince=nil,nil,nil
+        return false
+    end
+    -- Progress: real displacement, independent of the motor's own story.
+    if not entry.progressAnchor or space.distance(entry.progressAnchor,entry.position)>1 then
+        entry.progressAnchor,entry.progressAt=space.copy(entry.position),runtimeClock
+    end
+    local stalledFor=runtimeClock-entry.progressAt
     -- V walking on re-plans a blocked follower, briefly clearing its block.
     -- Stranded means recently blocked and not actually getting anywhere.
     if entry.motor.blockedReason then entry.lastBlockedAt=runtimeClock end
     local rejection=entry.motor.lastRejection
     local unreachable=rejection and rejection.stage=='navigation'
-    local strandedReady,watchedTooLong=false,false
-    if runtimeClock-(entry.lastBlockedAt or -math.huge)>2
+    local blockedRecently=runtimeClock-(entry.lastBlockedAt or -math.huge)<=2
+        or runtimeClock-(entry.replannedAt or -math.huge)<=separation.replanGrace
+    local strandedReady,watchedTooLong,stuckFor=false,false,0
+    if not blockedRecently
         or entry.playerGap<(unreachable and stranded.unreachableDistance or stranded.distance) then
         entry.strandedSince,entry.strandedAnchor=nil,nil
     else
         if not entry.strandedAnchor or space.distance(entry.strandedAnchor,entry.position)>1 then
+            if not entry.strandedAnchor then
+                note(entry,'stranded',{reason=rejection and rejection.stage or 'blocked',rise=rounded(rise)})
+            end
             entry.strandedAnchor,entry.strandedSince=space.copy(entry.position),runtimeClock
         end
-        local stuckFor=runtimeClock-entry.strandedSince
+        stuckFor=runtimeClock-entry.strandedSince
         strandedReady=stuckFor>=(unreachable and stranded.unreachableAfter or stranded.after)
         watchedTooLong=unreachable and stuckFor>=stranded.watchedAfter
     end
+    -- A closed door V walked through: open it the way V did, then let the
+    -- follower verify a fresh route before any teleport is considered.
+    if entry.doorReplanAt and runtimeClock>=entry.doorReplanAt then
+        entry.doorReplanAt=nil
+        if actuator.replan(entry.motor) then entry.replannedAt=runtimeClock end
+    end
+    if entry.strandedSince and stuckFor>=separation.doorAfter and rise<passage.policy.doorRise
+        and runtimeClock>=(entry.doorCheckAt or 0) then
+        entry.doorCheckAt=runtimeClock+separation.doorRetry
+        local door,info=passage.findDoor(player,entry.position,v)
+        if door then
+            if runtimeClock>=(s.doorOpened[info.id] or -math.huge) then
+                s.doorOpened[info.id]=runtimeClock+passage.policy.doorReopen
+                local opened,result=passage.openDoor(player,door)
+                note(entry,'door',{result=result,door=info.id,at=info.position})
+                if opened then
+                    -- Give the door time to slide open and the walk time to start.
+                    entry.doorReplanAt=runtimeClock+separation.doorOpening
+                    entry.strandedSince=runtimeClock
+                    return false
+                end
+            end
+        else
+            note(entry,'door-none',{reason=info})
+        end
+    end
+    -- Native navigation can change under a still V (a door opened by someone
+    -- else). Reverify a no-route follower now and then; cheap and bounded.
+    if unreachable and entry.strandedSince and not entry.doorReplanAt and stuckFor>=1
+        and runtimeClock-(entry.replannedAt or -math.huge)>=separation.replanEvery then
+        if actuator.replan(entry.motor) then entry.replannedAt=runtimeClock end
+    end
+    -- A different floor: a lift ride without the companion, or stairs or a
+    -- drop the companion is making no progress on. A follower still climbing
+    -- toward V is left to walk.
+    local liftArrival=(s.arrivedAt and runtimeClock-s.arrivedAt<10) or (s.exitedAt and runtimeClock-s.exitedAt<10)
+    local vertical=rise>separation.verticalGap and (liftArrival or stalledFor>=separation.verticalStall)
+    if vertical then entry.verticalSince=entry.verticalSince or runtimeClock else entry.verticalSince=nil end
+    local verticalFor=vertical and runtimeClock-entry.verticalSince or 0
+    local verticalReady=vertical and verticalFor>=(entry.rodeWithV and 0 or separation.verticalAfter)
+    -- V waits in a stopped car while the companion cannot get in.
+    local boardReady=lift and lift.inside and not lift.moving and rise<1.5 and flat>separation.carGap
+        and s.insideSince and runtimeClock-s.insideSince>=separation.boardAfter
+        and (blockedRecently or stalledFor>=separation.boardAfter) and entry.boardedVisit~=s.insideSince
     if entry.motor.kind=='follow' and entry.playerGap>catchUp.distance then
         entry.farSince=entry.farSince or runtimeClock
     else entry.farSince=nil end
     local farReady=entry.farSince~=nil and runtimeClock-entry.farSince>=catchUp.after
         and runtimeClock>=(entry.catchUpAt or 0)
-    if not (strandedReady or farReady) or runtimeClock<(entry.strandedRetryAt or 0) then return false end
-    entry.strandedRetryAt=runtimeClock+(farReady and .5 or stranded.retry)
-    -- The destination is always out of view; only a copy stuck with no route
-    -- for a long time may leave while V is looking at it.
-    if not watchedTooLong and not hiddenFromPlayer(player,entry.position) then return false end
-    local moved=relocate(entry,player)
+    -- Just after fast travel: a copy the game left far away rejoins at once.
+    local arriving=entry.arrivalUntil and runtimeClock<entry.arrivalUntil
+    local arrivalReady=arriving and entry.playerGap>separation.arrivalGap
+        and runtimeClock-entry.arrivalStart>=separation.arrivalAfter
+    local rule,watched
+    if boardReady then rule,watched='lift-board',true
+    elseif verticalReady then
+        rule=liftArrival and 'lift-arrival' or 'floor-change'
+        watched=entry.rodeWithV==true
+            or verticalFor>=(liftArrival and separation.verticalWatchedAfter or separation.floorWatchedAfter)
+    elseif farReady then rule,watched='far',false
+    elseif arrivalReady then rule,watched='fast-travel',runtimeClock-entry.arrivalStart>=separation.arrivalWatchedAfter
+    elseif strandedReady then rule,watched=unreachable and 'no-route' or 'blocked',watchedTooLong
+    end
+    if not rule or runtimeClock<(entry.strandedRetryAt or 0) then return false end
+    local quick=rule=='far' or rule=='fast-travel' or rule:find('lift',1,true)
+    entry.strandedRetryAt=runtimeClock+(quick and .5 or stranded.retry)
+    -- The destination is always out of view where possible; only these
+    -- waits may let the copy leave while V is looking at it.
+    if not watched and not hiddenFromPlayer(player,entry.position) then
+        note(entry,'waiting-in-view',{rule=rule})
+        return false
+    end
+    local moved,reason=relocate(entry,player,rule,watched,lift)
     if moved==nil then entry.strandedRetryAt=runtimeClock+.3 end
-    if moved then entry.catchUpAt=runtimeClock+catchUp.cooldown end
+    if moved then
+        entry.catchUpAt=runtimeClock+catchUp.cooldown
+        if rule=='lift-board' then entry.boardedVisit=s.insideSince end
+        if rule=='fast-travel' then entry.arrivalUntil=nil end
+    elseif moved==false then
+        -- One attempt per car visit: a car without walkable floor keeps the
+        -- companion outside, and the arrival rule brings them up instead.
+        if rule=='lift-board' then entry.boardedVisit=s.insideSince end
+        note(entry,'relocation-failed',{rule=rule,reason=reason})
+    end
     return moved==true
 end
 
@@ -1287,6 +1496,7 @@ function M.update(player,delta,focusEntity)
     end
     travel.update(groupFrame,playerPosition,step,company)
     if #order==0 then return end
+    samplePassage(player,playerPosition)
     if lastReversal~=groupFrame.reversal then reassignReversal(order) end
     for _,entry in ipairs(order) do
         entry.maxPlayerSpeed=math.max(entry.maxPlayerSpeed or 0,groupFrame.rawSpeed)

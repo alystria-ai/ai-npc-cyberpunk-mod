@@ -446,7 +446,17 @@ local function leave(s,person,player,hooks,budget,recoveryPositions)
             person.recoverAttempts=(person.recoverAttempts or 0)+1; person.recoverAt=s.clock+2
             local done,err,deferred=safe(s.api.recover,person.entry,player,recoveryPositions)
             if deferred then person.recoverAttempts,person.recoverAt=attempts,at; return budget end
-            if not done then person.phase='recovery-failed'; person.error=err; return budget end
+            if not done then
+                person.phase='recovery-failed'; person.error=err
+                -- The last failed placement hands the copy back to walking.
+                -- Keeping it owned here left it unplanned with every on-foot
+                -- recovery (fast-travel arrival, catch-up, stranded) disarmed;
+                -- those place it near V with an AI teleport instead.
+                if person.recoverAttempts>=MAX_ATTEMPTS then
+                    person.recovered=true; emit(s,'recovery-handed-back',person); finish(s,person,hooks)
+                end
+                return budget
+            end
             -- Native exit/gaze retirement may defer finish(). The successful
             -- relocation belongs to this travel transaction and must not run
             -- again or spend the remaining placement attempts while waiting.

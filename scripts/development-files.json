@@ -266,6 +266,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-placement.lua"
     },
     {
+      "source": "mod/companion-passage.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-passage.lua"
+    },
+    {
       "source": "mod/mcm.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/mcm.lua"
     },
