@@ -78,7 +78,7 @@ function M.message(kind)
     if kind == 'starting' then return ui.t('The conversation service is starting. Try again in a few seconds.') end
     if kind == 'restarted' then return ui.t('The conversation service restarted. Please try again.') end
     if kind == 'setup' then return ui.t('The conversation service needs your Convai API key. Add it, then restart the game.') end
-    if kind == 'failed' then return ui.t('The conversation service could not start. Check bridge-service.log, then restart the game.') end
+    if kind == 'failed' then return ui.t('The conversation service could not start. Restart the game, or see Help in Settings.') end
     return ui.t('The conversation service is not running. Restart the game to start it again.')
 end
 

@@ -3302,8 +3302,16 @@ test('Natural speech applies with the voice in one Apply: the cloud voice is swi
     assert(manager.snapshot(player).settings.voiceProvider == 'pocket' and result.schemaChanged == true)
     assert(manager.snapshot(player).feedback == NOTICE, manager.snapshot(player).feedback)
     mcm.update(player, true)
-    assert(#sent == 1 and sent[1] == NOTICE, 'the notice reaches the player in gameplay: ' .. tostring(sent[1]))
+    assert(#sent == 0, 'the popup is Developer-only: the Settings status line already says it')
+    mcm.update(player, true); assert(#sent == 0)
+    -- Developer mode shows it once, in gameplay.
+    convaiNotices.configure(function() return true end)
+    assert(apply({'naturalSpeech', false}).ok and apply({'voiceProvider', CLOUD}).ok)
+    assert(apply({'naturalSpeech', true}).ok and saved.voiceProvider == 'pocket')
+    mcm.update(player, true)
+    assert(#sent == 1 and sent[1] == NOTICE, 'the notice reaches a developer in gameplay: ' .. tostring(sent[1]))
     mcm.update(player, true); assert(#sent == 1, 'announced once')
+    convaiNotices.configure(function() return false end)
     -- Natural speech off: the cloud voice is allowed again.
     assert(apply({'naturalSpeech', false}).ok and not manager.naturalSpeech())
     assert(apply({'voiceProvider', CLOUD}).ok and saved.voiceProvider == 'convai' and manager.takeNaturalSpeechNotice() == nil)
@@ -3382,6 +3390,7 @@ test('Expressive emotions needs a local voice too: the cloud voice is switched t
     os.clock = function() return clock end
     local sent = {}
     function player:ConvaiPhoneFeedback(text) sent[#sent + 1] = text end
+    convaiNotices.configure(function() return true end) -- this popup is Developer-only (docs/NOTIFICATIONS.md)
     assert(invoke('tab:settings').ok)
     local entry = row('expressiveEmotions')
     assert(entry and entry.type == 'bool' and entry.value == false and entry.defaultValue == false, 'off by default')
@@ -3554,6 +3563,7 @@ const multilingualApplyFixture = `
     os.time = function() return wall end
     local sent = {}
     function player:ConvaiPhoneFeedback(text) sent[#sent + 1] = text end
+    convaiNotices.configure(function() return true end) -- this popup is Developer-only (docs/NOTIFICATIONS.md)
     local POCKET, BALANCED, ULTRA, CLOUD
     for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do
       if choice.provider == 'pocket' then POCKET = index end

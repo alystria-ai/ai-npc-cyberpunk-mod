@@ -7,6 +7,7 @@ const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const localeSource = read('../mod/ui-locale.lua');
 const partySource = read('../mod/manager-party.lua');
 const microphoneSource = read('../mod/microphone.lua');
+const noticesSource = read('../mod/notices.lua');
 const catalog = JSON.parse(read('../localization/en.json')).strings;
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 
@@ -94,6 +95,7 @@ dofile = function(path)
     assert(path == 'locales/fr.lua', 'unexpected dependency: ' .. path)
     catalogReads = catalogReads + 1; return ${dictionary}
 end
+local notices = (function() ${noticesSource} end)()
 local party = (function() ${partySource} end)()
 local mic = (function() ${microphoneSource} end)()
 local player = {ConvaiPhoneFeedback = function(_, text) feedback[#feedback + 1] = text end}

@@ -147,6 +147,7 @@ const mcmFixture = (withSupport = true) => `
     return originalDofile(path)
   end
   manager.configure(api, profiles)
+  convaiNotices.configure(function() return manager.developerMode() end) -- as init.lua does
   local handlers, registered, loaded, activeMod = {}, nil, nil, nil
   local drafts, reloads = false, 0
   local nativeApi = {apiVersion = 2, providers = {}}

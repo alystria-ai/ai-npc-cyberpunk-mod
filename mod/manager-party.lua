@@ -13,9 +13,9 @@ end
 -- one entry, and the board turns all of them into ONE compact notice that
 -- replaces the previous one: "Preparing Judy and Johnny...", then "Judy and
 -- Johnny joined your group.". A lone invitation keeps its original wording.
--- Visibility rules: preparing, connecting, ready and joined show, the routine
--- "joining" step is Developer-mode only, and every failure shows, together
--- with the successes.
+-- Visibility rules (the classes live in notices.lua, docs/NOTIFICATIONS.md): preparing,
+-- connecting, ready and joined show, the routine "joining" step is Developer-mode
+-- only, and every failure shows, together with the successes.
 -- Calm rules, because each notice replaces the last one on screen:
 -- * "Preparing" and "Connecting" (the memory check, voice conditioning and
 --   connection start) show only once an invitation has been in flight for
@@ -38,6 +38,13 @@ local JOIN_HOLD_MS = 4000
 local SHOW_DELAY_MS = 1000
 local MAX_LISTED = 3
 local RANKS = {memory = 1, connecting = 2, ready = 3, joining = 4}
+
+-- Whether a notice of this id may be shown: everyone's class, or Developer mode's class when
+-- developer is true. A notice without a catalog entry is never shown.
+local function shown(id, developer)
+    local notices = convaiNotices
+    return notices ~= nil and notices.visible(id, developer == true)
+end
 
 -- Whole wall-clock seconds are exact but coarse; os.clock supplies the fraction.
 local function newClock()
@@ -187,7 +194,7 @@ function M.newBoard(options)
             if RANKS[entry.stage] < RANKS[lowest] then lowest = entry.stage end
             if entry.source ~= 'phone' then allPhone = false end
         end
-        if lowest == 'joining' and not developer then return nil end
+        if lowest == 'joining' and not shown('invite-joining', developer) then return nil end
         local names = uniqueNames(inflight)
         if #names <= 1 then
             local name = names[1]
@@ -334,14 +341,15 @@ function M.new(companions, readiness, options)
         return ok and enabled == true
     end
 
-    -- The in-menu feedback line always updates. A routine result (a successful
-    -- dismissal) is posted as a gameplay notice only in Developer mode.
+    -- The in-menu feedback line always updates. Whether the result is also posted as a
+    -- gameplay notice depends on the id's class (a routine result such as a successful
+    -- dismissal is posted only in Developer mode).
     -- info ({kind = 'joined' | 'failed', name}) lets the notice board merge an
     -- invitation outcome with the others; a plain notice has no info.
-    local function report(message, failed, invitationId, routine, info)
+    local function report(id, message, failed, invitationId, info)
         feedback = message
-        if routine and failed ~= true and not developerMode() then return end
-        notices[#notices + 1] = {message = message, failed = failed == true, invitationId = invitationId, info = info}
+        if not shown(id, developerMode()) then return end
+        notices[#notices + 1] = {id = id, message = message, failed = failed == true, invitationId = invitationId, info = info}
     end
 
     function Q.bind(identity)
@@ -541,8 +549,8 @@ function M.new(companions, readiness, options)
         if not ok then
             job.preparationError = job.error
             job.failureNotified = true
-            report(ui.t('{name} could not prepare: {reason}', {name = job.name, reason = reason}), true, job.id,
-                nil, {kind = 'failed', name = job.name})
+            report('party-failed', ui.t('{name} could not prepare: {reason}', {name = job.name, reason = reason}), true, job.id,
+                {kind = 'failed', name = job.name})
             return false, feedback, id
         end
         feedback = readiness and ui.t(job.profileKey and 'Preparing {name}…'
@@ -694,7 +702,7 @@ function M.new(companions, readiness, options)
         if stopIntent then
             stopIntent = false
             local called, ok, reason = pcall(companions.cancelChauffeur, 'Trip cancelled from Companion Manager.')
-            report(called and ok and ui.t('Stopping the trip. Wait for the car to stop before stepping out.')
+            report('party-stop-trip', called and ok and ui.t('Stopping the trip. Wait for the car to stop before stepping out.')
                 or ui.t(called and reason or 'The driving request could not be cancelled.'), not (called and ok))
         end
         local trip = Q.chauffeur()
@@ -727,7 +735,7 @@ function M.new(companions, readiness, options)
             -- instruction or a new generation still receives its own notice.
             if message and not tripNotices[message] then
                 tripNotices[message] = true
-                report(message, failed)
+                report(failed and 'trip-failed' or 'trip-guidance', message, failed)
             end
         end
         -- CreateEntity only accepts the request. Keep the original reservation
@@ -741,15 +749,15 @@ function M.new(companions, readiness, options)
                 attaching[serial] = nil
             elseif member and member.state == 'ready' then
                 if readiness then readiness.finish(job) end
-                report(ui.t('{name} joined your group.', {name = member.name}) .. (job.warning and (' ' .. job.warning) or ''),
-                    nil, nil, nil, {kind = 'joined', name = member.name, warning = job.warning})
+                report('party-joined', ui.t('{name} joined your group.', {name = member.name}) .. (job.warning and (' ' .. job.warning) or ''),
+                    nil, nil, {kind = 'joined', name = member.name, warning = job.warning})
                 attaching[serial] = nil
             elseif not member or member.state == 'failed' or member.state == 'missing' or member.state == 'dead' then
                 if readiness then readiness.cancel(job) end
-                report(ui.t('{name} could not join: {reason}', {name = job.name,
+                report('party-failed', ui.t('{name} could not join: {reason}', {name = job.name,
                     reason = member and ui.t(member.error) or ui.t(member and member.state == 'dead'
                         and 'The character died before joining.' or 'The character was removed before joining.')}), true,
-                    nil, nil, {kind = 'failed', name = job.name})
+                    nil, {kind = 'failed', name = job.name})
                 attaching[serial] = nil
             end
         end
@@ -762,8 +770,9 @@ function M.new(companions, readiness, options)
                 -- real slot, so the copy is listed again with the reason.
                 dismissErrors[member.serial] = not (called and ok)
                     and tostring((called and err) or (not called and ok) or ui.t('The copy could not be dismissed.')) or nil
-                report(called and ok and ui.t('{name} dismissed.', {name = member.name})
-                    or (member.name .. ': ' .. tostring(called and err or ok)), not (called and ok), nil, true)
+                report(called and ok and 'party-dismissed' or 'party-dismiss-failed',
+                    called and ok and ui.t('{name} dismissed.', {name = member.name})
+                    or (member.name .. ': ' .. tostring(called and err or ok)), not (called and ok))
             end
         end
         local remaining = {}
@@ -778,8 +787,8 @@ function M.new(companions, readiness, options)
                 -- The adopted character can no longer join: release its reservation.
                 job.error = tostring(gateReason or ui.t('The character was removed before joining.'))
                 if readiness then readiness.cancel(job) end
-                report(ui.t('{name} could not join: {reason}', {name = job.name, reason = ui.t(job.error)}), true, job.id,
-                    nil, {kind = 'failed', name = job.name})
+                report('party-failed', ui.t('{name} could not join: {reason}', {name = job.name, reason = ui.t(job.error)}), true, job.id,
+                    {kind = 'failed', name = job.name})
             elseif not job.error and gate == false then
                 remaining[#remaining + 1] = job
             elseif not job.error and (status.state == 'ready' or status.state == 'model-only') then
@@ -799,15 +808,15 @@ function M.new(companions, readiness, options)
                 else
                     job.error = tostring(called and err or serial)
                     if readiness then readiness.cancel(job) end
-                    report(ui.t('{name} could not join: {reason}', {name = job.name, reason = ui.t(job.error)}), true, job.id,
-                        nil, {kind = 'failed', name = job.name})
+                    report('party-failed', ui.t('{name} could not join: {reason}', {name = job.name, reason = ui.t(job.error)}), true, job.id,
+                        {kind = 'failed', name = job.name})
                     remaining[#remaining + 1] = job
                 end
             else
                 if status.state == 'error' and Q.claimPreparationFailure(job.id, job.revision) then
                     job.preparationError = status.error
-                    report(ui.t('{name} could not prepare: {reason}', {name = job.name, reason = tostring(status.error)}), true, job.id,
-                        nil, {kind = 'failed', name = job.name})
+                    report('party-failed', ui.t('{name} could not prepare: {reason}', {name = job.name, reason = tostring(status.error)}), true, job.id,
+                        {kind = 'failed', name = job.name})
                 end
                 remaining[#remaining + 1] = job
             end

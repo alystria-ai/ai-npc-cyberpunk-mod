@@ -3,6 +3,13 @@
 -- Developer-mode probe: count and time every hook and onUpdate (no effect otherwise).
 pcall(function() dofile('perf-probe.lua').hookRegistrations() end)
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
+-- The single gate for on-screen notices (notices.lua, docs/NOTIFICATIONS.md). If it cannot load, nothing is shown.
+local noticesLoaded, noticesModule = pcall(dofile, 'notices.lua')
+if not noticesLoaded or type(noticesModule) ~= 'table' then
+    local none = function() return false end
+    convaiNotices = convaiNotices or {send = none, sendLines = function() return 0 end, visible = none,
+        class = function() return nil end, configure = function() end, developerMode = none}
+end
 -- Optional: explains a missing or starting conversation service. The adapter
 -- keeps working unchanged if this module is absent.
 local serviceStatusLoaded, serviceStatus = pcall(dofile, 'service-status.lua')
@@ -22,6 +29,7 @@ local characterCatalog = dofile('character-catalog.lua')
 local groupChat = dofile('group-chat.lua')
 groupChat.captureReply = speech.transcript
 local manager = dofile('manager.lua')
+convaiNotices.configure(function() return manager.developerMode() end)
 local mcm = dofile('mcm.lua')
 local phoneLayout = dofile('phone-layout.lua')
 local phoneChatStyle = dofile('phone-chat-style.lua')
@@ -225,8 +233,9 @@ gameplayActions = dofile('gameplay-actions.lua').new({
     developerMode = manager.developerMode,
     feedback = function(state, reason)
         local player = Game.GetPlayer()
-        if player then player:ConvaiPhoneFeedback(ui.t(reason or (state == 'queued'
-            and 'Your companion is preparing to drive.' or 'The driving request could not be queued.'))) end
+        if player then convaiNotices.send(player, state == 'queued' and 'action-queued' or 'action-rejected',
+            ui.t(reason or (state == 'queued'
+                and 'Your companion is preparing to drive.' or 'The driving request could not be queued.'))) end
     end})
 convaiGameplayActions = gameplayActions
 microphone.captureActions = function(context)
@@ -921,7 +930,7 @@ local function targetAtCrosshair()
         why = 'nearest-to-centre'
     end
     local decision = {rows = rows, chosen = chosen, reason = why}
-    if not chosen then return nil, 'Face a nearby NPC within eight metres', decision end
+    if not chosen then return nil, 'Face a nearby character to talk.', decision end
     return chosen.npc, nil, decision
 end
 
@@ -1071,10 +1080,10 @@ local function selectConversation(player, groupMode, singleAction)
         candidates = enabled
     end
     if not npc and groupMode and candidates[1] then npc = candidates[1].npc end
-    if not npc then player:ConvaiPhoneFeedback(ui.t(reason)); return nil end
+    if not npc then convaiNotices.send(player, 'talk-no-target', ui.t(reason)); return nil end
     local key, name, bodyType, archetype = profileIdentity(npc)
     if not key or not supportedProfiles[key] then
-        player:ConvaiPhoneFeedback(ui.t('{name} does not have a conversation profile configured yet.',{name=name}))
+        convaiNotices.send(player, 'talk-no-profile', ui.t('{name} does not have a conversation profile configured yet.',{name=name}))
         log('Conversation unavailable: profile=' .. tostring(key))
         return nil
     end
@@ -1095,7 +1104,7 @@ local function selectConversation(player, groupMode, singleAction)
     local participants = groupMode and groupChat.choose(primary, candidates, supportedProfiles) or nil
     if participants and #participants < 2 then
         local shortcut = ui.boundKey(singleAction)
-        player:ConvaiPhoneFeedback(shortcut
+        convaiNotices.send(player, 'group-needs-two', shortcut
             and ui.t('Group chat needs two characters nearby. Use {key} for one person.', {key = shortcut})
             or ui.t('Group chat needs two characters nearby. Use private chat for one person.'))
         return nil
@@ -1156,7 +1165,7 @@ end
 local function conversationServiceBlocked(player)
     local message, kind = serviceCall('blockedMessage', os.time())
     if type(message) ~= 'string' then return false end
-    pcall(function() player:ConvaiPhoneFeedback(message) end)
+    convaiNotices.send(player, 'service-blocked', message)
     log('Conversation service unavailable: ' .. tostring(kind))
     return true
 end
@@ -1204,7 +1213,7 @@ local function beginText(groupMode)
         active = {generation = generation, entity = identity, name = name, bodyType = bodyType,
             profileKey = key, participants = participants, archetype = primary.archetype}
         warmConversation(participants, key, identity)
-        if connectNote then pcall(function() player:ConvaiPhoneFeedback(connectNote) end) end
+        if connectNote then convaiNotices.send(player, 'talk-connecting', connectNote) end
         pending = nil
         log('Composer opened: generation=' .. generation .. ' actor=' .. identity .. ' name=' .. name)
     end)
@@ -1221,7 +1230,7 @@ local function toggleVoice(groupMode)
             if recordingMode ~= mode then
                 local shortcut = ui.boundKey(recordingMode == 'group'
                     and 'cyberpunk_convai_group_voice' or 'cyberpunk_convai_voice')
-                player:ConvaiPhoneFeedback(shortcut
+                convaiNotices.send(player, 'mic-finish-hint', shortcut
                     and ui.t('Use {key} to finish this recording.', {key = shortcut})
                     or (recordingMode == 'group'
                         and ui.t('Press your Group voice chat shortcut to finish recording.')
@@ -1268,7 +1277,7 @@ local function toggleVoice(groupMode)
             beginFocus(player, npc)
             focusMode, focusEntity, focusUntil = 'chat', entity, os.time() + 120
             local micNote = ui.t('Connecting microphone - wait for Listening')
-            player:ConvaiPhoneFeedback(connectNote and (connectNote .. '\n' .. micNote) or micNote)
+            convaiNotices.sendLines(player, {{id = 'talk-connecting', text = connectNote}, {id = 'mic-connecting', text = micNote}})
         else
             groupChat.cancel(); warmConversation(nil, nil)
         end
@@ -1787,34 +1796,30 @@ local function processPhoneAction(player)
     local key, reason, name = companions.phoneContactKey(contactId)
     if not key then
         log('Phone request unavailable for ' .. contactId .. ': ' .. tostring(reason))
-        player:ConvaiPhoneFeedback(reason)
+        convaiNotices.send(player, 'phone-unavailable', tostring(reason))
         return
     end
     if join then
         local accepted, message, invitationId = queue.invite(key)
         log(accepted and ('Phone preparation requested for ' .. key)
             or ('Phone join failed for ' .. key .. ': ' .. tostring(message)))
-        local preparing = false
+        local tracked = false
         if accepted then
             local party = queue.list()
             for index = #party, 1, -1 do
                 if party[index].key == key and not party[index].serial then
                     local board = type(queue.board) == 'function' and queue.board() or nil
-                    if board then board.track(party[index].id, 'phone') end
-                    preparing = party[index].state == 'preparing-memory' or party[index].state == 'connecting'
+                    if board then board.track(party[index].id, 'phone'); tracked = true end
                     break
                 end
             end
         end
-        -- The "Preparing {name}…" acknowledgement repeats the
-        -- phone's own "invite queued" and the progress notice that follows, so
-        -- it is a Developer-mode popup. An invitation that is already ready
-        -- tells the player to return to the game and is always shown. A failed
-        -- preparation is queued as the single gameplay notice for that attempt,
-        -- so it is not posted again here while the phone is open.
-        if preparing and not (manager.developerMode and manager.developerMode()) then return end
+        -- The acknowledgement of an invitation the notice board follows repeats the phone's own
+        -- "invite queued" and the board's progress notice, so it is a Developer-mode popup. A refusal
+        -- is always shown, except a failed preparation: that is queued as the single gameplay notice
+        -- for the attempt, so it is not posted again here while the phone is open.
         if not accepted and invitationId then return end
-        player:ConvaiPhoneFeedback(tostring(message))
+        convaiNotices.send(player, (accepted and tracked) and 'phone-invite-ack' or 'phone-invite-reply', tostring(message))
         return
     end
     -- One copy per request: the queue picks it by the character it speaks as.
@@ -1822,13 +1827,11 @@ local function processPhoneAction(player)
     if accepted ~= nil then
         log('Phone dismissal ' .. (accepted and 'requested' or 'refused') .. ' for ' .. key)
         -- The phone already says "dismiss queued", so the confirmation is a Developer-mode popup; a refusal is shown.
-        if not accepted or (manager.developerMode and manager.developerMode()) then
-            player:ConvaiPhoneFeedback(tostring(message))
-        end
+        convaiNotices.send(player, accepted and 'phone-dismiss-ack' or 'phone-dismiss-reply', tostring(message))
         return
     end
     log('Phone dismiss: no active copy of ' .. key)
-    player:ConvaiPhoneFeedback(ui.t('{name} is not in your group.',{name=name}))
+    convaiNotices.send(player, 'phone-not-in-group', ui.t('{name} is not in your group.',{name=name}))
 end
 
 -- Phone invitations follow the same notice board as the manager's, so several
@@ -1840,7 +1843,7 @@ local function updatePhoneInvitationFeedback(player, worldReady)
     local board = queue and type(queue.board) == 'function' and queue.board() or nil
     if not board then return end
     local note = board.take(worldReady == true)
-    if note and pcall(function() player:ConvaiPhoneFeedback(note.message) end) then note.commit() end
+    if note and convaiNotices.send(player, 'invite-board', note.message) then note.commit() end
 end
 
 -- Distraction lines use the ordinary automatic-turn path: one request at a
@@ -1874,7 +1877,7 @@ end
 tacticEnv.now = function() return os.time() * 1000 end
 tacticEnv.feedback = function(message)
     local player = Game.GetPlayer()
-    if player then pcall(function() player:ConvaiPhoneFeedback(ui.t(message)) end) end
+    if player then convaiNotices.send(player, 'tactic-outcome', ui.t(message)) end
 end
 tacticEnv.log = function(line) log(line) end
 
@@ -2160,7 +2163,7 @@ registerForEvent('onUpdate', function(delta)
     if worldReady then
         -- Once per failure: a service that cannot start is reported before the player tries to talk.
         local notice = serviceCall('notice', os.time())
-        if notice then pcall(function() player:ConvaiPhoneFeedback(notice) end) end
+        if notice then convaiNotices.send(player, 'service-down', notice) end
     end
     local managerOk, managerError = pcall(manager.update, player, 0.1)
     if not managerOk then log('Manager update failed: ' .. tostring(managerError)) end
@@ -2246,7 +2249,7 @@ registerForEvent('onUpdate', function(delta)
         gameplayActions.revoke('reply-timeout', expired.requestId)
         if not expired.reaction then
             local explained = serviceLost or serviceCall('blockedMessage', os.time())
-            player:ConvaiPhoneFeedback(explained or ui.t('No reply arrived. Check that the Convai bridge is running.'))
+            convaiNotices.send(player, 'conversation-timeout', explained or ui.t('No reply arrived. The conversation service may not be running.'))
         end
         log((serviceLost and 'Conversation retired after the service exited: generation=' or 'Conversation timed out: generation=')
             .. expired.generation)
@@ -2279,7 +2282,7 @@ registerForEvent('onUpdate', function(delta)
                 local shown = pcall(function()
                     if reply.error then
                         gameplayActions.revoke('reply-error', pending.requestId)
-                        if not pending.reaction then player:ConvaiPhoneFeedback(reply.error) end
+                        if not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end
                     else speech.start(pending, reply) end
                 end)
                 if shown then

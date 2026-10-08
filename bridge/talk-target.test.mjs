@@ -163,7 +163,7 @@ test('replay: an ongoing chat with a resident survives a second pedestrian cross
   -- Nobody in front: the reason the player sees is unchanged.
   forward = {x = -1, y = 0, z = 0}; looked = nil
   local none, why = targetAtCrosshair()
-  assert(none == nil and why == 'Face a nearby NPC within eight metres')
+  assert(none == nil and why == 'Face a nearby character to talk.')
 `));
 
 test('init.lua loads the chooser, logs each talk decision and remembers the partner outside onUpdate', () => {

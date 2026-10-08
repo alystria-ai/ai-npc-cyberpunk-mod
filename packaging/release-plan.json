@@ -294,6 +294,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/init.lua"
         },
         {
+          "source": "mod/notices.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/notices.lua"
+        },
+        {
           "source": "mod/service-status.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/service-status.lua"
         },

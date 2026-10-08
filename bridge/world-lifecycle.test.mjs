@@ -574,12 +574,16 @@ local function talk()
 end
 talk(); talk(); talk()
 local posted = feedback()
-assert(#posted == 3, #posted)
-assert(posted[1] == 'Preparing connection to Judy…')
-assert(posted[2] == posted[1] and posted[3] == posted[1], 'no hint about the setting')
+-- The same wait notice is not repeated within 10 s (notices.lua), however often a conversation starts.
+assert(#posted == 1, #posted)
+assert(posted[1] == 'Preparing connection to Judy…', 'no hint about the setting')
+clock = clock + 12; talk()
+posted = feedback()
+assert(#posted == 2 and posted[2] == posted[1], 'the wait notice did not return after its window')
 -- Once the bridge reports the connection ready, nothing is said.
 files['runtime/party-connection-state.json'] = json.encode({connections = {{profile = 'judy-alvarez', scope = 'private', state = 'ready'}}})
-talk(); assert(#feedback() == 3, 'a connected character still showed the wait notice')
+clock = clock + 12
+talk(); assert(#feedback() == 2, 'a connected character still showed the wait notice')
 `));
 
 test('a copy in the party never shows the connection wait notice', () => run(`${worldCharacterFixture}

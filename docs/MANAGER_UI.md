@@ -274,13 +274,18 @@ These are Developer mode only:
   at once (an invitation that is already ready still gets its ready message);
 - the **dismissed** result (the in-menu feedback line still reports it, and a
   failed dismissal is always shown);
-- the routine driving instructions (preparing, boarding, driving, exit).
+- the routine driving instructions (preparing, boarding, driving, exit);
+- companion tactic outcomes ("called off the distraction", "could not reach the target") and the
+  popup after a Settings Apply that switched the voice (the Settings status line says it).
 
 The manager banner and the Current party list always show every stage, because
 they are not popups. Turning Developer mode on mid-invitation shows the current
-joining step once, never a backlog. The phone's own "invite queued" notice
-comes from the native phone script and is unchanged, as is its "will leave when
-you return to the game" reply to a dismissal request.
+joining step once, never a backlog. The native phone script's own "{name}: invite
+queued." / "dismiss queued." popup is no longer shown at all (2026-10-09): it only
+surfaced after the phone closed and repeated the row's "INVITE QUEUED - CLOSE PHONE";
+its "will leave when you return to the game" reply to a dismissal request is Developer
+mode only. The complete list of every notice, with its class and repeat window, is
+`docs/NOTIFICATIONS.md`; `mod/notices.lua` is the one gate.
 
 ### One merged notice for invitations made together
 

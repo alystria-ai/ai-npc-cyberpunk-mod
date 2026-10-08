@@ -50,7 +50,7 @@ const messages = {
   starting: 'The conversation service is starting. Try again in a few seconds.',
   restarted: 'The conversation service restarted. Please try again.',
   setup: 'The conversation service needs your Convai API key. Add it, then restart the game.',
-  failed: 'The conversation service could not start. Check bridge-service.log, then restart the game.',
+  failed: 'The conversation service could not start. Restart the game, or see Help in Settings.',
   stopped: 'The conversation service is not running. Restart the game to start it again.',
 };
 const lua_ = value => JSON.stringify('T:' + value);

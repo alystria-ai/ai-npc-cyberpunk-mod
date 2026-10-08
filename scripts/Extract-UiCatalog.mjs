@@ -253,7 +253,7 @@ const reviewed = {
     'Write a message...  /  Enter to send  /  Esc to stop typing',
     'Press Enter to write  /  Esc to stop typing',
   ],
-  'world.conversation': ['Player unavailable', 'Face a nearby NPC within eight metres', 'Type your message to the character.'],
+  'world.conversation': ['Player unavailable', 'Face a nearby character to talk.', 'Type your message to the character.'],
   'phone.native-feedback': [
     'INVITE QUEUED - CLOSE PHONE', 'DISMISS QUEUED - CLOSE PHONE', 'CLOSE PHONE TO CONTINUE', 'COMPANION UNAVAILABLE',
     'ENTER  Write / Send   /   ESC  Stop typing',
@@ -417,11 +417,15 @@ for (const [file, tokens] of tokenByFile) {
       const source = staticText(args[0]);
       if (source !== null) add(source, phoneTranslation ? 'phone.localized' : 'ui.localized', [`${file}:${token.line}`]);
     }
-    if (calls[token.value] && tokens[index + 1]?.value === '(') {
+    // convaiNotices.send(player, id, text) is the gate in front of ConvaiPhoneFeedback (mod/notices.lua):
+    // its text argument is catalogued exactly like the direct call it replaced.
+    const noticeSend = token.value === 'send' && tokens[index - 1]?.value === '.' && tokens[index - 2]?.value === 'convaiNotices';
+    const positions = noticeSend ? [2] : calls[token.value];
+    if (positions && tokens[index + 1]?.value === '(') {
       const args = argumentsAt(tokens, index + 1);
       const context = mcm ? `mcm.${token.value}` : file === 'mod/manager.lua' ? 'manager.feedback'
         : file.includes('Manager.reds') ? 'legacy.manager.native' : file.includes('Phone') || file.includes('phone') ? 'phone.native' : 'world.conversation';
-      for (const position of calls[token.value]) {
+      for (const position of positions) {
         const text = staticText(args[position]);
         if (text !== null) add(text, context, [`${file}:${args[position][0].line}`]);
       }

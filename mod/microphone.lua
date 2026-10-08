@@ -131,11 +131,11 @@ function M.update(player)
                 M.state = 'recording'; M.started = os.time()
                 local shortcut = ui.boundKey(M.context.group
                     and 'cyberpunk_convai_group_voice' or 'cyberpunk_convai_voice')
-                player:ConvaiPhoneFeedback(shortcut
+                convaiNotices.send(player, 'mic-listening', shortcut
                     and ui.t('Listening - press {key} again to finish', {key = shortcut})
                     or ui.t('Listening - press the same voice chat shortcut again to finish'))
             elseif value.state == 'error' then
-                player:ConvaiPhoneFeedback(ui.t('Microphone unavailable. Check your Windows input device.'))
+                convaiNotices.send(player, 'mic-error', ui.t('Microphone unavailable. Check your Windows input device.'))
                 M.cancel('microphone-error')
             end
         end
@@ -143,7 +143,7 @@ function M.update(player)
     if M.context and M.finishPending then return M.finish() end
     if M.context and M.state == 'recording' and os.time() - M.started >= 30 then return M.finish() end
     if M.context and M.state == 'starting' and os.time() - M.started >= 35 then
-        M.cancel(); player:ConvaiPhoneFeedback(ui.t('Microphone connection timed out. Please try again.'))
+        M.cancel(); convaiNotices.send(player, 'mic-timeout', ui.t('Microphone connection timed out. Please try again.'))
     end
     return nil
 end

@@ -1368,7 +1368,7 @@ function M.update(currentPlayer, worldReady)
             log(notice.message)
             -- An invitation outcome joins the merged notice; anything else is its own line.
             if board and notice.info then board.event(notice)
-            else messages[#messages + 1] = notice.message end
+            else messages[#messages + 1] = {id = notice.id, text = notice.message} end
         end
     end
     entry.update()
@@ -1384,21 +1384,22 @@ function M.update(currentPlayer, worldReady)
     if support then
         -- A finished report is announced once, in gameplay (a paused menu hides popups).
         local reportOk, reportNotice = pcall(support.update, worldReady == true)
-        if reportOk and reportNotice then messages[#messages + 1] = reportNotice end
+        if reportOk and reportNotice then messages[#messages + 1] = {id = 'support-report-saved', text = reportNotice} end
     end
     if worldReady then
         -- A voice that could not run is announced once, in gameplay.
         local voiceNotice = manager.takeVoiceFallbackNotice()
-        if voiceNotice then log(voiceNotice); messages[#messages + 1] = voiceNotice end
+        if voiceNotice then log(voiceNotice); messages[#messages + 1] = {id = 'voice-fallback', text = voiceNotice} end
         local speechNotice = manager.takeNaturalSpeechNotice()
-        if speechNotice then log(speechNotice); messages[#messages + 1] = speechNotice end
+        if speechNotice then log(speechNotice); messages[#messages + 1] = {id = 'voice-switched', text = speechNotice} end
     end
     local progress = board and board.take(worldReady == true)
-    if progress then messages[#messages + 1] = progress.message end
+    if progress then messages[#messages + 1] = {id = 'invite-board', text = progress.message} end
     if #messages > 0 and currentPlayer then
-        -- The same native neutral warning channel used by phone invitations.
+        -- The same native neutral warning channel used by phone invitations, through the one
+        -- notice gate (notices.lua): each line is shown or dropped by its class.
         -- Calls happen only here in top-level update, never inside MCM hooks.
-        local sent = pcall(function() currentPlayer:ConvaiPhoneFeedback(table.concat(messages, '\n')) end)
+        local sent = convaiNotices.sendLines(currentPlayer, messages) > 0
         if sent and progress then progress.commit() end
     end
     if now >= pollAt then pollAt = now + 1; M.install() end

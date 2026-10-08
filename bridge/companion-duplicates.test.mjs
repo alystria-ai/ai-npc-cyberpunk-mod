@@ -40,6 +40,7 @@ const partyHarness = `
   local lastPhoneInvitation=nil
   local developer=false
   local manager={developerMode=function() return developer end}
+  convaiNotices.configure(function() return developer end)
   local logs={}
   local function log(line) logs[#logs+1]=line end
   local ui=convaiUiLocale

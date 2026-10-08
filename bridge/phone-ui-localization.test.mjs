@@ -455,14 +455,23 @@ for _,source in ipairs({'INVITE QUEUED - CLOSE PHONE','DISMISS QUEUED - CLOSE PH
   'Close the phone to finish the pending companion requests.'})do
   assert(row(host,source,native)=='native result' and forwarded==translations.fr[source])
 end
-assert(queued('Judy {name}%: invite queued.')=='native result')
-assert(forwarded=='Judy {name}% : invitation en attente.')
-assert(queued('Johnny Silverhand: dismiss queued.')=='native result')
-assert(forwarded=='Johnny Silverhand : départ en attente.')
+-- The native queue's own acknowledgements repeat the row text and surface after the phone closes:
+-- they are never shown (notices.lua, class removed), in any language.
+forwarded=nil
+assert(queued('Judy {name}%: invite queued.')==nil and forwarded==nil)
+assert(queued('Johnny Silverhand: dismiss queued.')==nil and forwarded==nil)
 language='ja';generation=2;queued('ジュディ: invite queued.')
-assert(forwarded=='ジュディ：招待待機中。')
-assert(forwards==9)
+assert(forwarded==nil)
+assert(forwards==6)
 for _,key in ipairs(calls)do assert(key~='Judy {name}%' and key~='Johnny Silverhand' and key~='ジュディ')end
+-- A refusal from the same native call still shows (once per window, decided by the notice gate).
+convaiNotices={visible=function()return false end,permit=function()return true end}
+language='fr';generation=3;forwarded=nil
+assert(queued('This contact has no companion mapping yet.')=='native result')
+assert(forwarded==translations.fr['This contact has no companion mapping yet.'])
+convaiNotices={visible=function()return false end,permit=function()return false end}
+forwarded=nil
+assert(queued('This contact has no companion mapping yet.')==nil and forwarded==nil)
 `));
 
 test('phone feedback preserves unknown errors, translated messages, thought suppression and malformed suffixes', () => runLua(setup + `
@@ -666,8 +675,9 @@ local ok=pcall(function()queue({},'judy',false,function()error('native queue fai
 assert(not ok and m.feedbackQueueDepth==0)
 hud({},'Provider failed: dismiss queued.',native)
 assert(received=='Provider failed: dismiss queued.' and #calls==0)
+received=nil
 assert(queue({},'judy',false,function()
   hud({},'Judy: dismiss queued.',native);return true
 end)==true)
-assert(received=='Judy : départ en attente.' and m.feedbackQueueDepth==0)
+assert(received==nil and m.feedbackQueueDepth==0, 'the native queue acknowledgement was shown')
 `));

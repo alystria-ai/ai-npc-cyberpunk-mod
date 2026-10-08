@@ -56,6 +56,18 @@ local namedFeedback = {
     {suffix = ': dismiss queued.', source = '{name}: dismiss queued.'},
 }
 
+-- True for the native queue's acknowledgement of a request ("{name}: invite queued.").
+function M.queuedAcknowledgement(message)
+    if type(message) ~= 'string' then return false end
+    for _, entry in ipairs(namedFeedback) do
+        if message:sub(-#entry.suffix) == entry.suffix then
+            local notices = convaiNotices
+            return not (notices and notices.visible('phone-queued', true))
+        end
+    end
+    return false
+end
+
 -- The native phone emits these before the Lua invitation adapter runs. This
 -- translation path is pure Lua and cached: a nested native callback must not
 -- traverse widgets, resolve the player or query settings to localize feedback.
@@ -505,7 +517,17 @@ function M.install(live)
             return result
         end)
         Override('PlayerPuppet', 'ConvaiPhoneFeedback', function(_, message, wrapped)
-            return wrapped((M.feedbackQueueDepth or 0) > 0 and M.feedback(message) or message)
+            if (M.feedbackQueueDepth or 0) > 0 then
+                -- "{name}: invite queued." / "dismiss queued." from the native queue repeat the row's own
+                -- "INVITE QUEUED - CLOSE PHONE" and surface after the phone closes: never shown
+                -- (notices.lua, class removed). Refusals from the same call still show.
+                if M.queuedAcknowledgement(message) then return end
+                -- Refusals ("no companion mapping", "close the phone to finish...") show, once per window.
+                local notices = convaiNotices
+                if not (notices and notices.permit('phone-queue-refused', message)) then return end
+                return wrapped(M.feedback(message))
+            end
+            return wrapped(message)
         end)
         Override('PhoneContactItemVirtualController', 'ConvaiShowActionFeedback', function(_, message, wrapped)
             M.fontDirty = true
