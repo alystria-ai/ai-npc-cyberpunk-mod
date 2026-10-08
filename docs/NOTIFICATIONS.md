@@ -21,7 +21,7 @@ CLOSE PHONE"), the character's spoken reply and subtitles (`ConvaiShowReply`), a
 
 ## What a player sees with Developer mode off
 
-Invitation: "Preparing {name}…", "Connecting {name}…" (only after a second, merged for several companions), "{name} is ready to join when
+Invitation: "Preparing {name}…" (only after a second, merged for several companions), "Connecting {name}…" and "{name} is ready to join when
 you return to the game." / "{name} is ready. Close the phone to join.", "{name} joined your group." (only when a Preparing, Connecting or ready notice was shown first for that invitation, so a quick summon says nothing), "{name} could not prepare/join: {reason}".
 Talking: "Preparing connection to {name}…" (only while Auto-connect nearby characters is off and the character is not connected),
 "Connecting microphone - wait for Listening", "Listening - press {key} again to finish". Failures: the conversation service starting, missing
@@ -35,9 +35,9 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | Id | Class | English text | Fires when | Window |
 | --- | --- | --- | --- | --- |
 | `invite-board` | Player | Preparing {name}… / Preparing {names}… | An invitation (manager or phone) has been preparing memory and voice for 1 s; replaced in place, on screen at least 3 s | board |
-| `invite-board` | Player | Connecting {name}… / Connecting {names}… | The same invitation is starting its connection | board |
-| `invite-board` | Player | {name} is ready to join when you return to the game. / {names} are ready to join when you return to the game. | Ready while the menu is open (manager) | board |
-| `invite-board` | Player | {name} is ready. Close the phone to join. / {names} are ready. Close the phone to join. | Ready while the phone is open | board |
+| `invite-board` | Player | Connecting {name}… / Connecting {names}… | The invitation has stayed in its connecting step for 3 s. A player never sees it when "joined" follows sooner; developers see it at once | board |
+| `invite-board` | Player | {name} is ready to join when you return to the game. / {names} are ready to join when you return to the game. | Ready for 3 s while the menu is open (manager). Shorter than that, a player sees nothing and then "joined"; developers see it at once | board |
+| `invite-board` | Player | {name} is ready. Close the phone to join. / {names} are ready. Close the phone to join. | Ready for 3 s while the phone is open (same rule) | board |
 | `party-joined` | Player | {name} joined your group. / {names} joined your group. | The companion appeared after a wait the player saw (Preparing, Connecting or ready was shown for it). A quick summon shows nothing to a player; developers always see it, and a joined notice with a warning is never hidden. Several in a burst merge into one, shown 5 s | board |
 | `party-failed` | Player | {name} could not prepare: {reason} | Preparation failed (the player cancels and invites again) | once |
 | `party-failed` | Player | {name} could not join: {reason} | The game refused or lost the spawn | once |
@@ -97,3 +97,5 @@ Apply voice-switch popup are Developer-only; identical hints and errors are rate
 no "bridge", no "eight metres"). Earlier: 248c14c, a20c7a1, e7e9760 (calmer invitation notices) and the 2026-10-07 settings review.
 
 2026-10-09 (later, user decision): "joined" is shown to a player only after a visible wait; key-press hints stay.
+
+2026-10-09 (in-game feedback): the intermediate step and "joined" came back to back, so for a player "Connecting" and the "ready" lines now show only after the invitation has stayed in that step for 3 s (`STAGE_DELAY_MS` in `mod/manager-party.lua`). Until then the board keeps naming the step already shown (Preparing, if it was), and a step that "joined" follows sooner is skipped; the joined notice still replaces the previous toast in place, after that toast's 3 s minimum. "Preparing" keeps its one-second delay, so a genuinely long wait still shows. Developers see every step at once.

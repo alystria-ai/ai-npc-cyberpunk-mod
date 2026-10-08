@@ -31,12 +31,17 @@ end
 --   going, the "joined" line waits up to JOIN_HOLD_MS for them, so the usual
 --   result is one merged "joined" instead of a partial notice. Meanwhile the
 --   progress notice keeps naming everyone it already named.
--- * A new failure and the "ready" lines, which ask the player to act, are never
---   delayed by the show delay; only a new failure also skips the minimum time.
+-- * A new failure is never delayed; only a new failure also skips the minimum time. For a player
+--   "Connecting" and the "ready" lines show only after STAGE_DELAY_MS in that step, so a step that
+--   "joined" follows within 3 s is skipped (developers see every step at once).
 local MIN_SHOW_MS = 3000
 local FINAL_SHOW_MS = 5000
 local JOIN_HOLD_MS = 4000
 local SHOW_DELAY_MS = 1000
+-- Connecting and ready (not Preparing) are short steps right before "joined": a player sees them only
+-- once the invitation has stayed in that step this long, so a step that is followed by "joined" within
+-- this time is never shown on its own and only "joined" appears. Developers see every step at once.
+local STAGE_DELAY_MS = 3000
 local MAX_LISTED = 3
 local RANKS = {memory = 1, connecting = 2, ready = 3, joining = 4}
 
@@ -89,6 +94,8 @@ function M.newBoard(options)
     local B = {}
     local now = options.now or newClock()
     local entries, burst, sequence = {}, newBurst(), 0
+    -- Tests may shorten the player's wait before Connecting and ready lines show.
+    local stageDelay = type(options.stageDelayMs) == 'number' and options.stageDelayMs or STAGE_DELAY_MS
     local shownCore, shownGameplayCore, lastAt, lastWorld, lastHold
     -- Developer diagnosis: every posted notice (with each invitation's stage) and every
     -- ignored stage regression goes to the mod log when init.lua provides one.
@@ -138,7 +145,7 @@ function M.newBoard(options)
     -- Refresh every entry from the queue. Entries the queue no longer lists
     -- (joined, cancelled, removed) are finished; a failed one stays listed but
     -- is no longer in flight, its failure arrives as an event.
-    local function sample(worldReady)
+    local function sample(worldReady, at)
         local inflight = {}
         for index = #entries, 1, -1 do
             local entry = entries[index]
@@ -168,6 +175,7 @@ function M.newBoard(options)
                         note('Invitation ' .. tostring(entry.name) .. ' reported ' .. stage .. ' after ' .. entry.stage .. '; kept ' .. entry.stage)
                     end
                 else
+                    if entry.stage ~= stage then entry.stageAt = at end
                     entry.stage, entry.ignored = stage, nil
                 end
                 entry.sameRevision = entry.revision
@@ -177,13 +185,32 @@ function M.newBoard(options)
         return inflight
     end
 
-    -- The invitations whose progress may be named now. Preparing and connecting
-    -- wait out the show delay; ready and joining never do.
-    local function visible(inflight, at)
+    -- The invitations whose progress may be named now, each with the step it is named at
+    -- (entry.display). Preparing waits out SHOW_DELAY_MS from the start. For a player, Connecting
+    -- and the ready lines wait until the invitation has stayed in that step for the stage delay; until
+    -- then it keeps being named at the step already shown (an invitation that never showed one stays
+    -- hidden), so a step that "joined" follows within 3 s is skipped. Developers see every step at
+    -- once, and joining never waits.
+    local function visible(inflight, at, developer)
         local shown = {}
         for _, entry in ipairs(inflight) do
-            local routine = entry.stage == 'memory' or entry.stage == 'connecting'
-            if not routine or at - (entry.startedAt or at) >= SHOW_DELAY_MS then shown[#shown + 1] = entry end
+            local stage = entry.stage
+            local started = at - (entry.startedAt or at) >= SHOW_DELAY_MS
+            local want
+            if stage == 'memory' then
+                want = started and 'memory' or nil
+            elseif stage == 'connecting' then
+                if developer then want = started and 'connecting' or nil
+                elseif started and at - (entry.stageAt or entry.startedAt or at) >= stageDelay then want = 'connecting'
+                else want = entry.display end
+            elseif stage == 'ready' then
+                if developer or at - (entry.stageAt or entry.startedAt or at) >= stageDelay then want = 'ready'
+                else want = entry.display end
+            else
+                want = stage
+            end
+            entry.display = want
+            if want then shown[#shown + 1] = entry end
         end
         return shown
     end
@@ -192,7 +219,8 @@ function M.newBoard(options)
         if #inflight == 0 then return nil end
         local lowest, allPhone = 'joining', true
         for _, entry in ipairs(inflight) do
-            if RANKS[entry.stage] < RANKS[lowest] then lowest = entry.stage end
+            local step = entry.display or entry.stage
+            if RANKS[step] < RANKS[lowest] then lowest = step end
             if entry.source ~= 'phone' then allPhone = false end
         end
         if lowest == 'joining' and not shown('invite-joining', developer) then return nil end
@@ -280,8 +308,8 @@ function M.newBoard(options)
         worldReady = worldReady == true
         local developer = developerMode()
         local at = now()
-        local active = sample(worldReady)
-        local inflight = visible(active, at)
+        local active = sample(worldReady, at)
+        local inflight = visible(active, at, developer)
         local holding = holdingJoined(active, at)
         local text = compose(inflight, developer, holding)
         if text == '' then
@@ -458,7 +486,7 @@ function M.new(companions, readiness, options)
     function Q.board()
         if not noticeBoard then
             noticeBoard = M.newBoard({feedback = function(id) return Q.invitationFeedback(id) end,
-                developerMode = developerMode})
+                developerMode = developerMode, stageDelayMs = options.stageDelayMs})
         end
         return noticeBoard
     end

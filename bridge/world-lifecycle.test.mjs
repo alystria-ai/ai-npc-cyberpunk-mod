@@ -222,7 +222,7 @@ local manager = {subtitleStyle = 'game', configure = noOp, interfaceLanguage = f
     update = noOp, reset = function() note('manager-reset') end}
 local partyQueue
 local mcm = {configure = function(_, suppliedCompanions, factory, _, readiness)
-    partyQueue = factory.new(suppliedCompanions, readiness)
+    partyQueue = factory.new(suppliedCompanions, readiness, {developerMode = function() return stats.developer == true end})
 end, install = noOp, update = function(currentPlayer, worldReady)
     partyQueue.bind('fixture-player')
     if worldReady then
@@ -501,8 +501,13 @@ assert(#feedback() == 1 and has('Preparing Judy…') and not has('memory'))
 receipt('memory'); events.onUpdate(0)
 assert(#feedback() == 1)
 events.onUpdate(0); assert(#feedback() == 1)
+-- A player sees Connecting and the ready line only after 3 s in that step (a step "joined" follows sooner is skipped).
+clock = clock + 4; receipt('connecting'); events.onUpdate(0)
+assert(#feedback() == 1, 'Connecting showed at once for a player')
 clock = clock + 4; receipt('connecting'); events.onUpdate(0)
 assert(#feedback() == 2 and has('Connecting Judy…'))
+clock = clock + 4; receipt('ready'); events.onUpdate(0)
+assert(#feedback() == 2, 'the ready line showed at once for a player')
 clock = clock + 4; receipt('ready'); events.onUpdate(0)
 assert(#feedback() == 3 and has('Close the phone to join'), 'the instruction to close the phone must be shown')
 assert(partyQueue.list()[1].state == 'ready-to-join')
@@ -543,7 +548,11 @@ local function receipt(state)
         worldToken = request.worldToken, generation = request.generation, updated = clock * 1000, bridgePid = 99, invitations = rows})
 end
 clock = clock + 4; receipt('connecting'); events.onUpdate(0)
+assert(#feedback() == 2, 'Connecting showed at once for a player')
+clock = clock + 4; receipt('connecting'); events.onUpdate(0)
 assert(#feedback() == 3 and feedback()[3] == 'Connecting Judy and Johnny…')
+clock = clock + 4; receipt('ready'); events.onUpdate(0)
+assert(#feedback() == 3, 'the ready line showed at once for a player')
 clock = clock + 4; receipt('ready'); events.onUpdate(0)
 assert(#feedback() == 4 and feedback()[4] == 'Judy and Johnny are ready. Close the phone to join.')
 events.onUpdate(0); assert(#feedback() == 4)
@@ -623,9 +632,9 @@ local before = #feedback()
 assert(early == 1 and before == 2, 'the acknowledgement posts at once and the first progress line after the delay')
 assert(feedback()[1] == 'Preparing Judy…' and feedback()[2] == 'Preparing Judy…')
 clock = clock + 4; receipt('connecting'); events.onUpdate(0)
-assert(#feedback() == before + 1 and feedback()[before + 1]:find('Connecting', 1, true))
+assert(#feedback() == before + 1 and feedback()[before + 1]:find('Connecting', 1, true), table.concat(feedback(), ' | '))
 clock = clock + 4; receipt('ready'); events.onUpdate(0); events.onUpdate(0)
-assert(#feedback() == before + 2 and feedback()[before + 2]:find('Close the phone', 1, true))
+assert(#feedback() == before + 2 and feedback()[before + 2]:find('Close the phone', 1, true), table.concat(feedback(), ' | '))
 `));
 
 test('phone cancellation and save restoration reject earlier ready invitation receipts', () => run(`

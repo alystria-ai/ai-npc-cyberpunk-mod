@@ -22,10 +22,18 @@ function run(code) {
 const fixture = `
   local module = (function() ${queueSource} end)()
   local clock, developer, states = 10000, false, {}
+  -- The player's wait before Connecting and ready lines show is 3 s in the game. Most tests below are
+  -- about merging, holding and the minimum show time, so their board runs without it (stageDelayMs = 0);
+  -- the stage-delay tests build a board with the real default through realBoard().
   local board = module.newBoard({
     now = function() return clock end,
+    stageDelayMs = 0,
     developerMode = function() return developer end,
     feedback = function(id) return states[id] end})
+  local function realBoard()
+    board = module.newBoard({now = function() return clock end, developerMode = function() return developer end,
+      feedback = function(id) return states[id] end})
+  end
   local function set(id, name, state, revision)
     states[id] = {id = id, name = name, state = state, revision = revision or 1, failed = state == 'error'}
   end
@@ -429,7 +437,7 @@ test('a notice is never replaced inside 3 s: a blink is skipped, a stage regress
 test('the board logs each posted notice with the stage of every invitation, and each ignored regression', () => {
   run(`${fixture}
     local lines = {}
-    board = module.newBoard({now = function() return clock end, developerMode = function() return developer end,
+    board = module.newBoard({now = function() return clock end, developerMode = function() return developer end, stageDelayMs = 0,
       feedback = function(id) return states[id] end, log = function(line) lines[#lines + 1] = line end})
     set('a', 'Judy', 'memory'); set('b', 'Johnny', 'memory'); board.track('a'); board.track('b'); settle()
     assert(post() == 'Preparing Judy and Johnny…')
@@ -453,5 +461,90 @@ test('the board runs without _G, as CET module environments do, and still logs t
     set('a', 'Judy', 'memory'); board.track('a'); settle()
     assert(post() == 'Preparing Judy…')
     assert(#lines == 1 and lines[1]:find('Preparing Judy…', 1, true), tostring(lines[1]))
+  `);
+});
+
+test('a player does not see Connecting when joined follows within 3 s: only joined', () => {
+  run(`${fixture}
+    realBoard()
+    set('a', 'Judy', 'memory'); board.track('a', 'manager'); settle()
+    assert(post() == 'Preparing Judy…', 'a genuinely long wait keeps its Preparing notice')
+    clock = clock + 5000
+    set('a', 'Judy', 'connecting')
+    assert(post() == nil, 'Connecting showed at once')
+    clock = clock + 1000
+    assert(post() == nil)
+    states.a = nil; joined('Judy')
+    local line = post(true)
+    assert(line == 'Judy joined your group.', tostring(line))
+    assert(post(true) == nil)
+  `);
+});
+
+test('Connecting shows once the invitation has stayed in that step for 3 s, counted from the step, not the start', () => {
+  run(`${fixture}
+    realBoard()
+    set('a', 'Judy', 'memory'); board.track('a', 'manager'); settle()
+    assert(post() == 'Preparing Judy…')
+    clock = clock + 20000
+    set('a', 'Judy', 'connecting')
+    assert(post() == nil, 'the step was shown at once because the invitation was old')
+    clock = clock + 2999
+    assert(post() == nil)
+    clock = clock + 1
+    assert(post() == 'Connecting Judy…')
+    states.a = nil; joined('Judy'); dwell()
+    assert(post(true) == 'Judy joined your group.', 'joined after a visible wait must still show')
+  `);
+});
+
+test('the ready line waits 3 s for a player in the menu and in the phone; joined after a quick ready shows alone', () => {
+  run(`${fixture}
+    realBoard()
+    set('a', 'Judy', 'memory'); board.track('a', 'manager'); settle()
+    assert(post() == 'Preparing Judy…')
+    clock = clock + 5000
+    set('a', 'Judy', 'ready')
+    assert(post() == nil, 'the ready line showed at once')
+    clock = clock + 1000
+    -- V returns to the game: ready is already the routine joining step, which players never see.
+    assert(post(true) == nil)
+    states.a = nil; joined('Judy')
+    assert(post(true) == 'Judy joined your group.')
+    assert(post(true) == nil)
+    -- Staying in the menu for 3 s shows the instruction.
+    clock = clock + 5000
+    set('b', 'Johnny', 'ready'); board.track('b', 'manager')
+    assert(post() == nil)
+    clock = clock + 2999
+    assert(post() == nil)
+    clock = clock + 1
+    assert(post() == 'Johnny is ready to join when you return to the game.')
+    -- The same for the phone.
+    clock = clock + 5000
+    set('c', 'Panam', 'ready'); board.track('c', 'phone')
+    assert(post() == nil)
+    clock = clock + 3000
+    local line = post()
+    assert(line == 'Johnny and Panam are ready to join when you return to the game.', tostring(line))
+  `);
+});
+
+test('a developer sees every step at once, including Connecting, ready and joining', () => {
+  run(`${fixture}
+    realBoard()
+    developer = true
+    set('a', 'Judy', 'memory'); board.track('a', 'manager'); settle()
+    assert(post() == 'Preparing Judy…')
+    dwell()
+    set('a', 'Judy', 'connecting')
+    assert(post() == 'Connecting Judy…', 'a developer waited for Connecting')
+    dwell()
+    set('a', 'Judy', 'ready')
+    assert(post() == 'Judy is ready to join when you return to the game.', 'a developer waited for the ready line')
+    dwell()
+    assert(post(true) == 'Judy is joining your party.')
+    states.a = nil; joined('Judy'); dwell()
+    assert(post(true) == 'Judy joined your group.')
   `);
 });

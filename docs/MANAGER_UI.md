@@ -258,11 +258,13 @@ Direct phone invitations use the same rules.
 default Off). The player must see that a slow preparation is progressing, so
 these are always shown, for manager and phone invitations alike:
 
-- **Preparing {name}…** (the memory check, voice conditioning and connection start) and
-  **Connecting {name}…**, once an invitation has been in flight for a second: a quick summon shows
-  no progress and, to a player, no joined notice either;
-- **ready to join when you return to the game** (manager) and **ready, close the
-  phone to join** (phone), because each tells the player to do something;
+- **Preparing {name}…** (the memory check, voice conditioning and connection start), once an
+  invitation has been in flight for a second: a quick summon shows no progress and, to a player, no
+  joined notice either;
+- **Connecting {name}…**, **ready to join when you return to the game** (manager) and **ready, close
+  the phone to join** (phone), but only once the invitation has stayed in that step for 3 s
+  (`STAGE_DELAY_MS`): a step that "joined" follows sooner is skipped, so the two never appear back to
+  back. Developers see every step at once;
 - **joined your group**, but only for an invitation whose Preparing, Connecting or ready notice was
   shown first (the player waited; developers always see it, and a joined notice with a warning is never hidden);
 - every failure and error, including a driving failure and the reply to Stop trip.
@@ -299,8 +301,9 @@ a stream of per-character popups:
   and connecting appear only after the invitation is one second old (`SHOW_DELAY_MS`), per
   invitation: a quick summon shows nothing to a player (developers see `Judy joined your group.`),
   and a merged notice names only the invitations already shown (two made together, one quick and one
-  slow, shows only the slow one's progress and ends in `Johnny joined your group.`). Failures and the ready lines,
-  which tell the player to act, are never delayed.
+  slow, shows only the slow one's progress and ends in `Johnny joined your group.`). Connecting and the
+  ready lines show for a player only after 3 s in that step (until then the notice keeps naming the
+  step already shown). Failures are never delayed.
 - Several at once: `Preparing Judy and Johnny…`, then `Connecting Judy and Johnny…`, then (paused)
   `Judy and Johnny are ready to join when you return to the game.`, then `Judy and Johnny joined
   your group.`. The shared verb follows the slowest copy, so one character finishing first does
