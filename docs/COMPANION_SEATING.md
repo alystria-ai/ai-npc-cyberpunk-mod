@@ -168,6 +168,41 @@ worked), and nothing was left to try. Fixed:
 - **Give up only after a real effort:** up to five walks, then up to 12 s of
   closing in; `seat-abandoned` now names every release before she sat.
 
+## Live run 5 (October 8, 20:54Z): twisted legs after standing, no follow
+
+Sitting worked in one go (try 1 straight, slide 0.78 s). On standing,
+`seat-exit` and `seat-step-out` came in the same second: `IsActorInWorkspot`
+turns false as soon as the fast exit starts, so the straight step walked her
+(0.6-0.9 m/s from 20:54:30) while the stand-up clip was still playing. At
+20:54:34 the follow behaviour's normal turn toward V (`attend_turn`,
+AIRotateTo) ran on that mixed state and her shins crossed. Then every follow
+route from the spot she reached (-1602.51, 357.78) was refused: the native
+path's second leg met Static geometry 0.75 m away at 1.45 m height (stage
+`path`), detours were exhausted, and the actuator's unstick step does not react
+to `path` refusals; she stood there for minutes (movement-trace
+20:55-20:56). Her arms-crossed pose is Judy's vanilla idle, not a gesture
+stance. A read-only probe afterwards: no workspot, no workspot or slot
+animation flags, follow `blocked`.
+
+Fixed (seating only):
+
+- **Wait for full release** (phase `leaving`, body still held): no workspot,
+  no extended workspot state (active, entering, exiting, in motion) and no
+  puppet `WorkspotAnimationInProgress` / `SlotAnimationInProgress` for 0.2 s,
+  and at least 1.4 s after the exit request (0.3 s for the instant combat
+  exit); at most 5 s. Probe line `seat-left`. Only then the step out; no
+  rotation is applied by seating (the straight step keeps her facing; any turn
+  toward V afterwards is the follow behaviour's normal locomotion turn).
+- **Most open stand spot**: while she stands up, stand spots are judged two
+  per update (floor, body room, then openness: clear straight lines 1.2 m
+  long at 0.5 and 1.2 m toward V and to three sides) and the most open one
+  wins; ties keep the order arrival, walk-up, fresh points. `seat-step-out`
+  carries `open`.
+
+Still open for companion movement: from a spot where every follow route is
+refused at stage `path`, nothing moves her (detours exhausted, unstick only
+fires on `origin`/`motion`).
+
 ## Mechanism
 
 `convai_gestures.archive` now also carries four components on the gesture
@@ -288,7 +323,7 @@ companions update until it errors.
 classification by name and by furniture (the probed apartment couch), seat finding on couches/stools/armrests, the full sit and stand
 flow, V getting up, combat (instant), several companions on different seats, no
 seat, wall / occupied / table-in-front, vehicles and unsupported workspots, an old archive, a refused walk near and far, transport/unobserved
-release, a walk the actuator never takes, the PSM settle and stand-up, the live apartment run (every walk-up refused 2 m out, slide after V looks away), the bounded wait, the step out after standing (arrival spot, teleport after a stuck step, a spot without room skipped), three companions on a two-seat couch, the walk-up pre-check (no refusals), a far refusal followed directly by the next walk, the 20:47Z replay (1 good / 9 no room, every walk refused, ends seated), the close-in timeout, and the standing cost (≤ 4 reads a second, no rays). 28 tests.
+release, a walk the actuator never takes, the PSM settle and stand-up, the live apartment run (every walk-up refused 2 m out, slide after V looks away), the bounded wait, the step out after standing (arrival spot, teleport after a stuck step, a spot without room skipped), three companions on a two-seat couch, the walk-up pre-check (no refusals), a far refusal followed directly by the next walk, the 20:47Z replay (1 good / 9 no room, every walk refused, ends seated), the close-in timeout, no step while the workspot is busy, the most open stand spot, the fast combat exit, and the standing cost (≤ 4 reads a second, no rays). 31 tests.
 
 ## To check in game
 

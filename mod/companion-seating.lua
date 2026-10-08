@@ -55,6 +55,17 @@ M.policy = {
     standDeadline = 2.5,   -- the straight step out; then a teleport to the same spot
     standSettle = .8,      -- after a teleport, before the floor check
     standArrive = .3,
+    -- Live run 2026-10-08 20:54Z: IsActorInWorkspot turns false as the fast
+    -- exit starts, and the step out walked her during the stand-up clip; her
+    -- shins twisted at the next turn and every follow route from the spot she
+    -- reached was refused. Now the step waits for the workspot to be fully
+    -- released and picks the most open stand spot.
+    exitSettle = 1.4,      -- at least this long after the exit request
+    exitQuiet = .2,        -- and no workspot activity for this long
+    exitWait = 5,          -- then step out anyway
+    standEvalPerUpdate = 2,-- stand spots judged per update while she stands up
+    standEvalMax = 5,
+    openReach = 1.2,       -- openness: clear lines this long at the line heights
     failureCooldown = 30,
 }
 
@@ -77,7 +88,7 @@ M.kinds = {
         approach = -1, back = .05, span = 1.6},
 }
 
-local HOLDING = {entering = true, seated = true, exiting = true, standing = true}
+local HOLDING = {entering = true, seated = true, exiting = true, leaving = true, standing = true}
 
 local function flat(a, b) return math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2) end
 local function copy(p) return p and {x = p.x, y = p.y, z = p.z} end
@@ -395,6 +406,39 @@ function native.lineClear(from, to, heights)
     end
     return true
 end
+-- Any workspot activity left on the NPC: the workspot itself, its extended
+-- state (entering, exiting, in motion) or the puppet's workspot/slot animation.
+function native.workspotBusy(npc)
+    local busy = false
+    pcall(function() busy = Game.GetWorkspotSystem():IsActorInWorkspot(npc) == true end)
+    if busy then return true end
+    pcall(function()
+        local info = Game.GetWorkspotSystem():GetExtendedInfo(npc)
+        busy = info.isActive == true or info.exiting == true or info.entering == true or info.inMotion == true
+    end)
+    if busy then return true end
+    pcall(function()
+        local defs, board = Game.GetAllBlackboardDefs().PuppetState, npc:GetPuppetStateBlackboard()
+        busy = board:GetBool(defs.WorkspotAnimationInProgress) == true or board:GetBool(defs.SlotAnimationInProgress) == true
+    end)
+    return busy
+end
+-- How open a stand spot is: clear straight lines toward V and to three sides.
+function native.openness(spot, toward, forward, reach, heights)
+    local dirs = {}
+    local tx, ty = toward.x - spot.x, toward.y - spot.y
+    local tl = math.sqrt(tx * tx + ty * ty)
+    if tl > .05 then dirs[#dirs + 1] = {tx / tl, ty / tl} end
+    dirs[#dirs + 1] = {forward.x, forward.y}
+    dirs[#dirs + 1] = {forward.y, -forward.x}
+    dirs[#dirs + 1] = {-forward.y, forward.x}
+    local open = 0
+    for _, d in ipairs(dirs) do
+        local to = {x = spot.x + d[1] * reach, y = spot.y + d[2] * reach, z = spot.z}
+        if native.lineClear(spot, to, heights) then open = open + 1 end
+    end
+    return open
+end
 function native.inCombat(npc)
     local ok, value = pcall(function() return NPCPuppet.IsInCombat(npc) end)
     return ok and value == true
@@ -450,7 +494,9 @@ function M.new(options)
         if s.phase == 'approach' or s.phase == 'settling' or s.phase == 'blending' or s.phase == 'choosing'
             or s.phase == 'closing' then release(s, reason); return end
         if s.phase == 'entering' and not s.playedAt then release(s, reason); return end
-        if s.phase == 'standing' and (reason == 'transport' or reason == 'unobserved') then release(s, reason); return end
+        if (s.phase == 'standing' or s.phase == 'leaving') and (reason == 'transport' or reason == 'unobserved') then
+            release(s, reason); return
+        end
         if s.phase ~= 'entering' and s.phase ~= 'seated' then return end
         s.phase, s.exitAt, s.exitReason, s.escalated, s.exitInstant = 'exiting', self.clock, reason, nil, instant == true
         nat.exit(s.entry.npc, instant)
@@ -764,12 +810,45 @@ function M.new(options)
         return true
     end
     local function yawOf(f) return math.deg((math.atan2 or math.atan)(-f.x, f.y)) end
-    local function nextStand(s)
-        while s.stands and s.standIndex < #s.stands and s.standIndex < 6 do
-            s.standIndex = s.standIndex + 1
-            local point = s.stands[s.standIndex]
+    local function evaluateStands(s, count)
+        local judged = 0
+        while s.stands and s.standEval < #s.stands and judged < count and #s.standGood < policy.standEvalMax do
+            s.standEval, judged = s.standEval + 1, judged + 1
+            local point = s.stands[s.standEval]
             local ok, why = usableStand(s, point)
             if ok then
+                point.open = nat.openness and nat.openness(point, s.towardV or s.anchorCopy, s.forwardCopy,
+                    policy.openReach, policy.lineHeights) or 0
+                point.rank = #s.standGood
+                s.standGood[#s.standGood + 1] = point
+            else
+                note('seat-stand-rejected', {serial = s.serial, from = point.why, reason = why})
+            end
+        end
+    end
+    local function nextStand(s)
+        -- Judged spots first, most open first (ties keep the arrival order).
+        if #s.standGood > 0 then
+            table.sort(s.standGood, function(a, b)
+                if a.open ~= b.open then return a.open > b.open end
+                return a.rank < b.rank
+            end)
+            local point = table.remove(s.standGood, 1)
+            s.standTries = s.standTries + 1
+            if s.standTries <= 6 then
+                s.standSpot, s.standAt, s.teleported = point, self.clock, false
+                local sent = nat.stepOut(s.entry, point)
+                note('seat-step-out', {serial = s.serial, spot = point, from = point.why, open = point.open, sent = sent == true})
+                return true
+            end
+            return false
+        end
+        while s.stands and s.standEval < #s.stands and s.standTries < 6 do
+            s.standEval = s.standEval + 1
+            local point = s.stands[s.standEval]
+            local ok, why = usableStand(s, point)
+            if ok then
+                s.standTries = s.standTries + 1
                 s.standSpot, s.standAt, s.teleported = point, self.clock, false
                 local sent = nat.stepOut(s.entry, point)
                 note('seat-step-out', {serial = s.serial, spot = point, from = point.why, sent = sent == true})
@@ -779,12 +858,32 @@ function M.new(options)
         end
         return false
     end
-    -- After the exit animation: step out to floor, verify floor and room under
-    -- her, then hand back to following.
+    -- The exit request starts the stand-up clip; IsActorInWorkspot is already
+    -- false then. Wait until no workspot activity is left (and at least
+    -- exitSettle), judging stand spots meanwhile, then step out.
+    local function beginLeaving(s)
+        s.phase, s.stands, s.standEval, s.standGood, s.standTries = 'leaving', standCandidates(s), 0, {}, 0
+        s.quietSince = nil
+        local ok, at = pcall(function() local p = self.player:GetWorldPosition(); return {x = p.x, y = p.y, z = p.z} end)
+        s.towardV = ok and at or nil
+    end
     local function beginStanding(s)
-        s.phase, s.stands, s.standIndex = 'standing', standCandidates(s), 0
+        s.phase = 'standing'
         if not nextStand(s) then
             failNote('no floor to stand on beside the seat'); release(s, s.exitReason or 'stood up')
+        end
+    end
+    local function leaving(s, entry)
+        evaluateStands(s, policy.standEvalPerUpdate)
+        if nat.workspotBusy and nat.workspotBusy(entry.npc) then s.quietSince = nil
+        else s.quietSince = s.quietSince or self.clock end
+        local waited = self.clock - s.exitAt
+        local quiet = s.quietSince and self.clock - s.quietSince >= policy.exitQuiet
+        -- A fight: out of the seat at once (the instant exit has no stand-up clip).
+        local settle = s.exitInstant and .3 or policy.exitSettle
+        if (quiet and waited >= settle) or waited >= policy.exitWait then
+            note('seat-left', {serial = s.serial, after = waited, quiet = quiet == true, judged = s.standEval})
+            beginStanding(s)
         end
     end
     local function standing(s, entry)
@@ -941,11 +1040,12 @@ function M.new(options)
                 end
                 return
             end
+            if s.phase == 'leaving' then leaving(s, entry); return end
             if s.phase == 'standing' then standing(s, entry); return end
             if s.phase == 'exiting' then
                 if nat.inWorkspot(npc) == false then
                     if s.exitInstant and s.exitReason == 'transport' then release(s, s.exitReason); return end
-                    beginStanding(s); return
+                    beginLeaving(s); leaving(s, entry); return
                 end
                 local waited = self.clock - s.exitAt
                 if waited > policy.exitPatience and not s.escalated then

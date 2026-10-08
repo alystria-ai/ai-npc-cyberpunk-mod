@@ -61,7 +61,7 @@ function native.deleteDevice(id) calls[#calls+1]={name='delete'};return true end
 function native.sweep() calls[#calls+1]={name='sweep'};return true end
 function native.play(device,npc,component,slide) calls[#calls+1]={name='play',component=component,npc=npc,slide=slide};npc.entering=true;npc.seatAt=devices[device.device];return true end
 function native.inWorkspot(npc) return npc.inside end
-function native.exit(npc,instant) calls[#calls+1]={name='exit',instant=instant==true,npc=npc};npc.leaving=true;return true end
+function native.exit(npc,instant) calls[#calls+1]={name='exit',instant=instant==true,npc=npc};npc.leaving=true;exitClock[npc]=clockNow;return true end
 function native.stopInDevice(npc) calls[#calls+1]={name='stopInDevice'};return true end
 function native.look(entry,style) calls[#calls+1]={name='look',style=style};return true end
 local watching=false
@@ -76,6 +76,15 @@ function native.lineClear(from,to,heights) calls[#calls+1]={name='lineClear'}
   for i=0,20 do local x,y=from.x+(to.x-from.x)*i/20,from.y+(to.y-from.y)*i/20
     for _,b in ipairs(world.boxes) do if x>=b.x1 and x<=b.x2 and y>=b.y1 and y<=b.y2 and b.h>=heights[1] then return false end end end
   return true end
+-- The stand-up clip: workspot activity lasts busyFor seconds after the exit.
+busyFor,clockNow,exitClock=0,0,{}
+function native.workspotBusy(npc) calls[#calls+1]={name='busy'}
+  return exitClock[npc] ~= nil and clockNow-exitClock[npc] < busyFor end
+-- Openness: 4 unless the spot is listed in world.enclosed.
+world.enclosed={}
+function native.openness(spot,toward,forward,reach,heights) calls[#calls+1]={name='openness'}
+  for _,e in ipairs(world.enclosed) do if math.abs(spot.x-e.x)<.3 and math.abs(spot.y-e.y)<.3 then return 1 end end
+  return 4 end
 -- Standing up: the step out walks her there unless stepStuck; a teleport always lands.
 local stepStuck=false
 world.noRoom={}
@@ -113,6 +122,7 @@ local function step(seconds,options)
   for i=1,math.max(1,math.floor(seconds/.1+.5)) do
     local rows={}
     for _,e in ipairs(party) do rows[#rows+1]={entry=e,transport=e.transport==true} end
+    clockNow=clockNow+.1
     c.tick(player,.1,rows)
     for _,e in ipairs(party) do
       local npc=e.npc
@@ -209,7 +219,7 @@ test('V sits on a couch: the companion walks to the free seat, sits, and stands 
   assert(count('surface')==surfaces,'no further searches while seated')
   seat.inside=false;step(.5)
   assert(count('exit')==1 and not last('exit').instant,'native fast exit when V stands')
-  step(.3)
+  step(2)
   assert(held[1]==false and decisions[1]==nil,'following resumes')
   assert(count('delete')>=1,'device removed')
 `));
@@ -302,7 +312,7 @@ test('a refused walk near the seat slides the rest; far away it gives up', () =>
   step(3,{walk=false,refuse=true})
   assert(count('play')==1,'slid from 0.7 m')
   assert(last('play').slide>=.5,'short slide')
-  seat.inside=false;step(1);step(.5)
+  seat.inside=false;step(2.5);step(.5)
   party={companion(2,4,4)}
   sitV();step(.6);step(6,{walk=false,refuse=true})
   assert(count('play')==1,'no slide from far away')
@@ -407,7 +417,8 @@ test('standing up: she steps out to the spot she arrived from, on clear floor, b
   local seatX=party[1].position.x
   assert(math.abs(party[1].position.y)<.01,'root on the seat root while seated')
   seat.inside=false;step(.3)
-  assert(count('exit')==1)
+  assert(count('exit')==1 and count('stepOut')==0,'no step during the stand-up clip')
+  step(1.5)
   local out=last('stepOut');assert(out,'steps out after the exit')
   assert(out.y>.5,'to floor in front of the couch, not the seat root: '..out.y)
   step(.3)
@@ -419,9 +430,9 @@ test('standing up: she steps out to the spot she arrived from, on clear floor, b
 test('a step out that does not move her ends in a teleport to the checked spot', () => run(`
   couch(-.35,1.7);party={companion(1,1.5,1.5)}
   sitV();step(2);stepStuck=true
-  seat.inside=false;step(1.5)
+  seat.inside=false;step(3)
   assert(held[1]==true and count('teleport')==0,'still stepping')
-  step(2.5)
+  step(1.5)
   assert(count('teleport')==1,'teleport after the deadline')
   local t=last('teleport');assert(t.y>.5 and math.abs(t.yaw)<1,'in front, facing forward')
   step(1.2)
@@ -433,7 +444,7 @@ test('a stand spot without room is skipped for the next checked floor spot', () 
   sitV();step(2)
   local arrival=lastLog('seat-walk').fields.goal
   world.noRoom={{x=party[1].position.x+0,y=.75},{x=arrival.x,y=arrival.y}}
-  seat.inside=false;step(.6)
+  seat.inside=false;step(2.2)
   local rejected=lastLog('seat-stand-rejected');assert(rejected and rejected.fields.reason=='no room')
   assert(lastLog('seat-stood'),'stood elsewhere')
 `));
@@ -449,7 +460,7 @@ test('three companions on a two-seat couch: two sit on their own seats, the thir
   assert(seated==2,'two seated: '..seated)
   local none=0;for _,l in ipairs(logs) do if l.kind=='seat-none' then none=none+1 end end
   assert(none>=1,'the third has no seat and keeps standing')
-  seat.inside=false;step(1)
+  seat.inside=false;step(2.5)
   assert(count('exit')==2,'both stand up')
   local outs={};for _,call in ipairs(calls) do if call.name=='stepOut' then outs[#outs+1]=call end end
   assert(#outs==2 and math.abs(outs[1].x-outs[2].x)>.5,'each to her own spot')
@@ -525,4 +536,35 @@ test('closing in that never gets near the seat gives up only after the close tim
   assert(lastLog('seat-closing') and not lastLog('seat-abandoned'),'still trying after several seconds')
   step(12,{walk=false,refuse=true})
   assert(lastLog('seat-abandoned') and count('play')==0,'gave up after a real effort')
+`));
+
+// October 8 20:54Z: IsActorInWorkspot went false as the exit started; the step
+// walked her during the stand-up clip, her shins twisted at the next turn, and
+// following was refused from the spot she reached.
+test('stand-up: no step while the workspot is still busy; the step waits for full release', () => run(`
+  couch(-.35,1.7);party={companion(1,1.5,1.5)};busyFor=2.5
+  sitV();step(2)
+  seat.inside=false;step(2)
+  assert(count('stepOut')==0 and held[1]==true,'still standing up: no step, body held')
+  step(1.2)
+  assert(count('stepOut')==1,'steps once the workspot is released')
+  local left=lastLog('seat-left');assert(left and left.fields.quiet==true and left.fields.after>=2.5)
+  step(.5);assert(lastLog('seat-stood') and held[1]==false)
+`));
+
+test('stand-up: the most open checked spot wins over an enclosed arrival spot', () => run(`
+  couch(-.35,1.7);party={companion(1,1.5,1.5)}
+  sitV();step(2)
+  local arrival=lastLog('seat-walk').fields.goal
+  world.enclosed={{x=arrival.x,y=arrival.y}}
+  seat.inside=false;step(2.2)
+  local out=lastLog('seat-step-out');assert(out and out.fields.open==4 and out.fields.from~='arrival','open spot: '..tostring(out and out.fields.from))
+  assert(lastLog('seat-stood'))
+`));
+
+test('a fight stands her up and out of the seat at once', () => run(`
+  couch(-.35,1.7);party={companion(1,1.5,1.5)}
+  sitV();step(2)
+  combat=true;step(.6)
+  assert(count('exit')==1 and last('exit').instant and count('stepOut')==1,'out within half a second')
 `));
