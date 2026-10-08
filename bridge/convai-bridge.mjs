@@ -26,6 +26,7 @@ import {PartyConnections, parsePartyConnections} from './party-connections.mjs';
 import {NearbyWarm} from './nearby-warm.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
+import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-routing-log.mjs';
 import {NaturalSpeech, OMNI_TAGS, speechPhrases} from './natural-speech.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
 import {resolveVoiceConfigPaths} from './voice-config-paths.mjs';
@@ -315,9 +316,21 @@ function turnVoice(input) {
   return plan;
 }
 const turnUsesLocal = input => turnVoice(input).engine !== 'convai';
+// One line per spoken reply: the voice chosen, the voice that spoke and why they differ (bridge/voice-routing-log.mjs).
+// Routing facts only, no dialogue; the file append is queued off the speech path. Never allowed to affect a reply.
+function logVoiceRoute(input, profile, reply, extra = {}) {
+  try {
+    // The local voice that speaks (a variant of an ambient profile, decided once per turn); the profile key otherwise.
+    const voiceKey = ['pocket', 'omni'].includes(reply?.engine) && typeof voiceKeyFor === 'function' ? voiceKeyFor(input) : undefined;
+    routingLog.record(describeVoiceRoute({voice: localVoice, input, profile, plan: turnVoice(input), reply,
+      sources: voiceSources, voiceKey, ...extra}));
+  } catch {}
+}
 // Warm connections are prepared before any text exists: they follow the language of the last exchange.
 const warmUsesConvaiVoice = profile => localVoice.playbackEnabled !== false && planTurnVoice({enabled: multilingual.enabled,
   language: multilingual.lastLanguage ?? 'en', local: localChoice(profile)}).engine === 'convai';
+const routingLog = new VoiceRoutingLog({path: resolve(runtime, ROUTING_LOG_NAME)});
+const voiceSources = {pocket: voiceConfig, omni: omniVoiceConfigs};
 const naturalSpeechContext = input => {
   const prepared = preparedInputs.get(input);
   const phone = input.channel === 'phone' || prepared?.route?.channel === 'phone';
@@ -542,10 +555,14 @@ const dropPrefetch = () => { prefetch.invalidate(); lookahead.cancel(); };
 async function synthesizeReply(input, result, signal, current, profile = profileFor(input, roster), receiptPrepared = preparedInputs.get(input)) {
   if(localVoice.playbackEnabled===false)return{...result,audio:undefined,faces:[],captions:[]};
   const turnPlan = turnVoice(input);
-  if (turnPlan.engine === 'convai') return {...result, timing: {...result.timing, voiceProvider: 'convai'}};
+  if (turnPlan.engine === 'convai') {
+    logVoiceRoute(input, profile, {engine: 'convai', language: turnPlan.language});
+    return {...result, timing: {...result.timing, voiceProvider: 'convai'}};
+  }
   // A local turn follows its reply's language: English keeps the chosen voice, another language needs OmniVoice.
   const voice = replyVoice({plan: turnPlan, text: result.text, local: localChoice(input.profileKey)});
   if (voice.engine === 'none') {
+    logVoiceRoute(input, profile, voice);
     return {...result, audio: undefined, faces: [], captions: [], timing: {...result.timing, voiceProvider: 'none'},
       audioError: 'The selected voice speaks English only; showing the written reply.'};
   }
@@ -602,19 +619,23 @@ async function synthesizeReply(input, result, signal, current, profile = profile
       let second;
       if(phrases.length>1){second=synthesizeOmniPhrase(input.profileKey,voiced[1],{signal:lookahead.signal,steps,language});second.catch(()=>{});}
       const generated=await first;
+      logVoiceRoute(input, profile, voice, {lipText: !!generated.timing?.lipText});
       return {...result,...generated,text:result.text,timing:{...result.timing,...generated.timing},
         streamPlan:phrases.length>1?{phrases,speech:voiced,steps,language,lookahead:{promise:second,cancel:cancelLookahead},
           expressionPlan:result.expressionPlan,spans}:undefined};
     }catch(error){
       cancelLookahead();
       throwIfCancelled(signal);console.error('[CyberpunkConvai] Omni speech:',error.message);
+      logVoiceRoute(input, profile, {engine: 'none', language: voice.language}, {reason: 'OmniVoice worker error: written reply only'});
       return {...result,audio:undefined,faces:[],captions:[],audioError:'Local voice is unavailable; showing the written reply.'};
     }
   }
   if ((await readSpeechState()).continuousAvailable !== true) {
+    logVoiceRoute(input, profile, {engine: 'none', language: voice.language}, {reason: 'local streaming unavailable: written reply only'});
     return {...result, audio: undefined, faces: [], captions: [],
       audioError: 'Local streaming is unavailable; showing the written reply.'};
   }
+  logVoiceRoute(input, profile, voice);
   const speech = continuousSpeech(input, profile, current, signal, receiptPrepared, true, result.emotionMarks);
   let prefetched;
   if (ahead?.isHeld()) {
@@ -689,6 +710,7 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
 // Original remote PCM has a continuous renderer. It never enters Omni's text
 // splitter, local TTS worker or per-phrase Audioware file queue.
 async function convaiReply(input, profile, current, signal) {
+  logVoiceRoute(input, profile, {engine: 'convai', language: turnVoice(input).language});
   const state = await readSpeechState();
   // Retain the complete-file adapter until this game session advertises the
   // new Lua admission controller; installing files alone does not load them.

@@ -43,6 +43,7 @@ Everything here is committed; "installed" means copied into the game. Baseline: 
 - **Cars:** fast-travel recovery, the "drive for me" chauffeur after the latest changes, alternate owned cars, the boarding pause when V doesn't get in, overhead captions while boarding.
 - **Movement:** the spawn-pocket placement fix (exit sweep) hasn't come up in play.
 - **Relationships:** profile routing on a relevant save (`runtime/relationship-routing.json`); natural recall of quest branches.
+- **Voice routing log** (built 2026-10-08; install: bridge restart for `bridge/voice-routing-log.mjs`, `convai-bridge.mjs`, `support-report.mjs`). Every spoken reply writes one line to the bridge log (`[VoiceRouting]`) and to `runtime/voice-routing.log` (last 500 lines; also in the support report): time, profile, name, the voice chosen in Settings, the voice that spoke, the reference set and seconds, language (Multilingual), lipText yes/no (Omni), and the fallback reason when they differ. Check: talk to a generic NC resident on Pocket (expect `used="Convai cloud (...)"` with `fallback="no local reference for this profile"`), then a prepared character (expect `used="Pocket"` with a `ref=`).
 
 ### After the voice review
 The review is **complete** (2026-10-07; verdict and decisions are in the log). Done and waiting for the in-game test: the voice switch, the six-entry menu, the Omni pack detection and saved voice setups (above). The shareable report is built (`Downloads/Cyberpunk Voice Report v3.html`, one file with audio embedded) and the devslot handoff for the voice research is in `Downloads/convai voice cloning devslot/devslot handoff 2026-10-07 voice research/`. Still open:
@@ -74,6 +75,10 @@ The review is **complete** (2026-10-07; verdict and decisions are in the log). D
 - A new Pocket teacher/student run: not needed per the user (the v2 student already meets the plan criteria).
 
 ## Captain's log
+
+**2026-10-08: voice routing log**
+- Why: a generic NC resident sounded like the Convai cloud voice with Pocket selected (its `resident-male`/`resident-female` profiles have no local reference, so they fall back by design), but nothing logged which voice a reply used or why.
+- Built `bridge/voice-routing-log.mjs` (line format, fallback reasons, rolling file) and wired it into `synthesizeReply`/`convaiReply` in `bridge/convai-bridge.mjs`; `bridge/support-report.mjs` adds the file as the `voice-routing` log. Routing facts only; the file append is queued off the speech path. Tests: `bridge/voice-routing-log.test.mjs`.
 
 **2026-10-08: vanilla stare and proximity barks quieted on addressed NPCs**
 - Mechanism (game scripts `reactionComponent.script`): proximity/repeat look-at, comfort zone and bump call `TriggerFacialLookAtReaction` (voiceset 'greeting' or 'fear_foll'); a ganger comfort zone (`OnAreaEnter`) grunts then sends Provoke; looking at guards sends AskToFollowOrder. `mod/vanilla-reactions.lua` overrides those five handlers for the addressed set only; no redscript, no game restart.

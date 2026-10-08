@@ -77,6 +77,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/voice-config-paths.mjs',
   'bridge/voice-preview.mjs',
   'bridge/voice-profile-registry.mjs',
+  'bridge/voice-routing-log.mjs',
   'bridge/voice-selection.mjs',
   'bridge/world-knowledge.mjs',
   'bridge/world-session.mjs',

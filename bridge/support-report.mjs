@@ -155,6 +155,9 @@ export async function locateLogs({game, modRoot, runtime, stateDirectory}) {
   const slug = path => path.split(/[\\/]/).at(-1).replace(/\.log$/i, '').replace(/[^A-Za-z0-9-]/g, '-').toLowerCase();
   add('probe', join(runtime, 'probe.log'));
   add('mcm', join(runtime, 'mcm.log'));
+  // Which voice spoke each reply and why (bridge/voice-routing-log.mjs): routing facts only, no conversation text. Named
+  // here because the content-like filter below would otherwise drop any log with "voice" in its name.
+  add('voice-routing', join(runtime, 'voice-routing.log'));
   // Other diagnostic logs in the mod's runtime folder, except any whose name suggests
   // conversation content: those are never part of a report.
   for (const path of await newest(runtime, /^(?!probe\.log$|mcm\.log$).+\.log$/i, 12)) {
@@ -398,7 +401,8 @@ export async function collectReport(options) {
     `Created ${summary.generatedAt}  (report ${options.reportId})`, '',
     'Send this one file to the developer. It contains:',
     '  summary.json   versions, service status, settings, party, provider per companion, recent errors',
-    '  logs/*.txt     the end of each mod, service, CET, redscript and RED4ext log (last 2000 lines each)', '',
+    '  logs/*.txt     the end of each mod, service, CET, redscript and RED4ext log (last 2000 lines each);',
+    '                 voice-routing.txt lists which voice spoke each reply and why (no reply text)', '',
     'It does NOT contain API keys or tokens, microphone audio, voice references, model files',
     'or conversation text. IDs are shown as short hashes and your Windows account name is hidden.',
     'You can open the zip and read every file before you send it.', ''].join('\n');
