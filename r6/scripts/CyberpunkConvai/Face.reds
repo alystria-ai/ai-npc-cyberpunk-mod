@@ -1,11 +1,16 @@
 // A separate graph is chosen before native component initialization, for
-// dynamic entities tagged by our companion manager and for world NPCs (crowd,
-// community, vendors, named characters met in the world) the mod may voice.
-// Shared game resources are never patched, zero inputs leave the native face
-// unchanged, and this service never owns a live actor or component handle.
+// dynamic entities tagged by our companion manager, and on demand for the one
+// or two world NPCs V actually talks to (ConvaiFaceRequest). Every other NPC
+// keeps its vanilla face graph and pays nothing. Shared game resources are
+// never patched, zero inputs leave the native face unchanged, and this service
+// keeps entity IDs and appearance names only, never a live actor or component.
 public class ConvaiFaceService extends ScriptableService {
   private let m_names: array<String>;
   private let m_graphs: array<ResourceRef>;
+  // Appearance rebuilds requested for talk targets, consumed by the extraction
+  // callback; and the world NPCs whose face currently carries the layer.
+  private let m_worldPending: array<CName>;
+  private let m_worldPrepared: array<EntityID>;
 
   private cb func OnLoad() {
     this.m_names = ConvaiFaceAssets.Names();
@@ -17,10 +22,6 @@ public class ConvaiFaceService extends ScriptableService {
     GameInstance.GetCallbackSystem()
       .RegisterCallback(n"Entity/Initialize", this, n"OnCompanionInitialize")
       .AddTarget(DynamicEntityTarget.Tag(n"CyberpunkConvaiCompanion"));
-    // World NPCs: one preparation per NPC initialization, never per frame.
-    GameInstance.GetCallbackSystem()
-      .RegisterCallback(n"Entity/Initialize", this, n"OnWorldInitialize")
-      .AddTarget(EntityTarget.Type(n"NPCPuppet"));
     // DynamicEntityTarget is a lifecycle-event filter, not a builder filter.
     // The extraction callback repeats ownership using the builder request ID
     // before touching any newly extracted component instance.
@@ -30,6 +31,13 @@ public class ConvaiFaceService extends ScriptableService {
 
   private cb func OnCompanionExtract(event: ref<EntityBuilderEvent>) {
     let builder = event.GetEntityBuilder();
+    // A talk target's own requested appearance rebuild. With nothing pending,
+    // the normal case, this costs one array size check per build.
+    if ArraySize(this.m_worldPending) > 0 && IsDefined(builder) && !builder.HasEntity()
+      && builder.HasAppearance() && this.ConsumeWorldRequest(builder.GetAppearanceName()) {
+      this.PrepareWorldAppearance(builder);
+      return;
+    };
     let dynamic = GameInstance.GetDynamicEntitySystem();
     if !IsDefined(builder) || !IsDefined(dynamic)
       || !dynamic.IsTagged(builder.GetEntityID(), n"CyberpunkConvaiCompanion") { return; };
@@ -82,28 +90,77 @@ public class ConvaiFaceService extends ScriptableService {
     npc.ConvaiFacePrepared(StrBeginsWith(status, "prepared:"), status, graphPath);
   }
 
-  // Ambient and archetype NPCs are spawned by the game, not by the companion
-  // manager, so their face_rig ran the vanilla graph with no ConvaiFace input
-  // and the mod's lip sync could never reach them. They get the same additive
-  // layer here, before native component initialization; nothing is written to
-  // it until the Lua speech owner voices this exact NPC. Dynamic entities stay
-  // with their spawner: our companions use OnCompanionInitialize, and other
-  // mods' copies are not ours to change.
-  private cb func OnWorldInitialize(event: ref<EntityLifecycleEvent>) {
-    let npc = event.GetEntity() as NPCPuppet;
-    if !IsDefined(npc) { return; };
+  // On demand, once per talk target. Ambient and archetype NPCs are spawned by
+  // the game, so their running face_rig has the vanilla graph with no
+  // ConvaiFace input, and a running component's graph cannot be swapped in
+  // place. Rebuilding the NPC's CURRENT appearance re-extracts face_rig (the
+  // same seam that replaced Johnny's prepared face on October 2), and the
+  // extraction callback above prepares that one rebuild. At most two world
+  // NPCs keep the layer; a third request returns the oldest to vanilla.
+  public func RequestWorldFace(npc: ref<NPCPuppet>) -> String {
     let dynamic = GameInstance.GetDynamicEntitySystem();
-    if !IsDefined(dynamic) || dynamic.IsManaged(npc.GetEntityID()) { return; };
+    if !IsDefined(npc) || !npc.IsAttached() || !IsDefined(dynamic) { return "unavailable"; };
+    if dynamic.IsManaged(npc.GetEntityID()) { return "managed"; };
     let face = npc.FindComponentByName(n"face_rig") as AnimatedComponent;
-    if !IsDefined(face) { return; };
-    let status = this.PrepareFaceComponent(face);
-    let ready = StrBeginsWith(status, "prepared:");
-    let graphPath = "";
-    if ready { graphPath = ResRef.ToString(ResourceRef.GetPath(face.graph)); };
-    npc.ConvaiFacePrepared(ready, status, graphPath);
+    let status = this.PrepareFaceComponent(face, true);
+    if StrBeginsWith(status, "prepared:") { this.RememberWorld(npc.GetEntityID()); return status; };
+    if !StrBeginsWith(status, "supported:") { return status; };
+    let appearance = npc.GetCurrentAppearanceName();
+    if this.HasWorldRequest(appearance) { return "requested:" + NameToString(appearance); };
+    this.ReleaseOldestWorld(npc, appearance);
+    if ArraySize(this.m_worldPending) >= 4 { ArrayErase(this.m_worldPending, 0); };
+    ArrayPush(this.m_worldPending, appearance);
+    this.RememberWorld(npc.GetEntityID());
+    npc.ScheduleAppearanceChange(appearance);
+    return "requested:" + NameToString(appearance);
   }
 
-  private func PrepareFaceComponent(face: ref<AnimatedComponent>) -> String {
+  private func PrepareWorldAppearance(builder: ref<EntityBuilderWrapper>) -> Void {
+    let none: ref<NPCPuppet>;
+    this.PrepareExtractedComponents(builder.GetAppearance().GetComponents(), none);
+  }
+
+  private func HasWorldRequest(appearance: CName) -> Bool {
+    let i = 0;
+    while i < ArraySize(this.m_worldPending) {
+      if Equals(this.m_worldPending[i], appearance) { return true; };
+      i += 1;
+    };
+    return false;
+  }
+
+  private func ConsumeWorldRequest(appearance: CName) -> Bool {
+    let i = 0;
+    while i < ArraySize(this.m_worldPending) {
+      if Equals(this.m_worldPending[i], appearance) { ArrayErase(this.m_worldPending, i); return true; };
+      i += 1;
+    };
+    return false;
+  }
+
+  private func RememberWorld(id: EntityID) -> Void {
+    if !ArrayContains(this.m_worldPrepared, id) { ArrayPush(this.m_worldPrepared, id); };
+  }
+
+  // Keeps the layer on at most two world NPCs: the oldest is rebuilt with its
+  // vanilla graph (nothing pending matches it). One that shares the new
+  // appearance name is only forgotten, so it cannot consume the new request.
+  private func ReleaseOldestWorld(next: ref<NPCPuppet>, appearance: CName) -> Void {
+    while ArraySize(this.m_worldPrepared) >= 2 {
+      let id = this.m_worldPrepared[0];
+      ArrayErase(this.m_worldPrepared, 0);
+      let old = GameInstance.FindEntityByID(next.GetGame(), id) as NPCPuppet;
+      if IsDefined(old) && old.IsAttached() && !Equals(old.GetEntityID(), next.GetEntityID()) {
+        let name = old.GetCurrentAppearanceName();
+        if !Equals(name, appearance) && !this.HasWorldRequest(name) {
+          old.ConvaiFacePrepared(false, "released");
+          old.ScheduleAppearanceChange(name);
+        };
+      };
+    };
+  }
+
+  private func PrepareFaceComponent(face: ref<AnimatedComponent>, opt check: Bool) -> String {
     if !IsDefined(face) {
       return "no-face-rig";
     };
@@ -130,7 +187,10 @@ public class ConvaiFaceService extends ScriptableService {
         };
         // Initialize can follow an already prepared extraction. Do not rewrite
         // that instance or modify the loaded graph resource itself.
-        if !Equals(original, preparedPath) { face.graph = this.m_graphs[i]; };
+        // A check of a running component (check = true) never writes its graph.
+        if Equals(original, preparedPath) { return "prepared:" + this.m_names[i]; };
+        if check { return "supported:" + this.m_names[i]; };
+        face.graph = this.m_graphs[i];
         return "prepared:" + this.m_names[i];
       };
       i += 1;
@@ -162,19 +222,45 @@ public final func ConvaiFaceStatus() -> String {
 
 @addMethod(NPCPuppet)
 public final func ConvaiFaceReady() -> Bool {
-  if !this.m_convaiFacePrepared || !this.IsAttached() || this.IsDeadNoStatPool()
-    || Equals(this.m_convaiFaceGraphPath, "") { return false; };
+  if !this.IsAttached() || this.IsDeadNoStatPool() { return false; };
   let dynamic = GameInstance.GetDynamicEntitySystem();
   if !IsDefined(dynamic) { return false; };
-  // A dynamic entity must be our companion copy. A world NPC is never dynamic,
-  // and only ConvaiFaceService.OnWorldInitialize sets its prepared flag.
-  if dynamic.IsManaged(this.GetEntityID())
-    && !dynamic.IsTagged(this.GetEntityID(), n"CyberpunkConvaiCompanion") { return false; };
+  if dynamic.IsManaged(this.GetEntityID()) {
+    // A dynamic entity must be our companion copy.
+    if !dynamic.IsTagged(this.GetEntityID(), n"CyberpunkConvaiCompanion") { return false; };
+  } else {
+    if !this.m_convaiFacePrepared && !this.ConvaiFaceAdoptWorld() { return false; };
+  };
+  if !this.m_convaiFacePrepared || Equals(this.m_convaiFaceGraphPath, "") { return false; };
   // Appearance changes can replace face_rig after the first initialization.
   // A previously prepared flag never certifies the replacement component.
   let face = this.FindComponentByName(n"face_rig") as AnimatedComponent;
   return IsDefined(face) && ResourceRef.IsLoaded(face.graph) && !ResourceRef.IsFailed(face.graph)
     && Equals(ResRef.ToString(ResourceRef.GetPath(face.graph)), this.m_convaiFaceGraphPath);
+}
+
+// A world NPC is prepared only by its own requested rebuild, which leaves our
+// graph on the running face_rig; the extraction had no puppet to flag. Called
+// only for the current speaker while it is not yet prepared.
+@addMethod(NPCPuppet)
+private final func ConvaiFaceAdoptWorld() -> Bool {
+  let face = this.FindComponentByName(n"face_rig") as AnimatedComponent;
+  if !IsDefined(face) || !ResourceRef.IsLoaded(face.graph) || ResourceRef.IsFailed(face.graph) { return false; };
+  let path = ResRef.ToString(ResourceRef.GetPath(face.graph));
+  if !StrBeginsWith(path, "cyberpunk_convai\\facial\\") { return false; };
+  this.ConvaiFacePrepared(true, "prepared:world", path);
+  return true;
+}
+
+// The talk target asks for the layer (init.lua, when a conversation opens).
+// Returns a short status; repeated calls for a prepared NPC change nothing.
+@addMethod(NPCPuppet)
+public final func ConvaiFaceRequest() -> String {
+  let service = GameInstance.GetScriptableServiceContainer().GetService(n"ConvaiFaceService") as ConvaiFaceService;
+  if !IsDefined(service) { return "service-unavailable"; };
+  let status = service.RequestWorldFace(this);
+  if !this.m_convaiFacePrepared { this.m_convaiFaceStatus = status; };
+  return status;
 }
 
 @addMethod(NPCPuppet)

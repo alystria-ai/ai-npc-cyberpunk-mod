@@ -81,7 +81,8 @@ test('initialization recognizes already prepared graphs without layering or modi
   const prepare = nativeFace.slice(nativeFace.indexOf('private func PrepareFaceComponent'),
     nativeFace.indexOf('@addField(NPCPuppet)'));
   assert.match(prepare, /Equals\(original, preparedPath\)/);
-  assert.match(prepare, /if !Equals\(original, preparedPath\) \{ face\.graph = this\.m_graphs\[i\]; \}/);
+  assert.match(prepare, /if Equals\(original, preparedPath\) \{ return "prepared:" \+ this\.m_names\[i\]; \};\s*if check \{ return "supported:" \+ this\.m_names\[i\]; \};\s*face\.graph = this\.m_graphs\[i\];/,
+    'a prepared graph is never rewritten, and a check of a running component never writes');
   assert.match(prepare, /ArrayContains\(rig\.trackNames, tracks\[t\]\)/);
   assert.match(prepare, /ResourceRef\.IsLoaded\(this\.m_graphs\[i\]\)/);
   assert.match(prepare, /ResourceRef\.IsFailed\(this\.m_graphs\[i\]\)/);
@@ -94,7 +95,7 @@ test('latched preparation alone cannot pass readiness after face_rig graph repla
   assert.match(ready, /this\.m_convaiFacePrepared/);
   assert.match(ready, /this\.IsAttached\(\)/);
   assert.match(ready, /this\.IsDeadNoStatPool\(\)/);
-  assert.match(ready, /dynamic\.IsManaged\(this\.GetEntityID\(\)\)\s*&& !dynamic\.IsTagged\(this\.GetEntityID\(\), n"CyberpunkConvaiCompanion"\)/,
+  assert.match(ready, /if dynamic\.IsManaged\(this\.GetEntityID\(\)\) \{[^}]*if !dynamic\.IsTagged\(this\.GetEntityID\(\), n"CyberpunkConvaiCompanion"\) \{ return false; \};/,
     'a dynamic entity must carry the companion tag');
   assert.match(ready, /this\.FindComponentByName\(n"face_rig"\) as AnimatedComponent/);
   assert.match(ready, /ResourceRef\.IsLoaded\(face\.graph\)/);
@@ -105,20 +106,34 @@ test('latched preparation alone cannot pass readiness after face_rig graph repla
 });
 
 // October 8: a resident-male pedestrian on Pocket kept a still mouth. Crowd and
-// community NPCs are not dynamic entities, so the companion-only preparation
-// left their vanilla face graph without the ConvaiFace input. World NPCs now get
-// the same additive layer at initialization; dynamic entities stay with their spawner.
-test('world NPCs are prepared once at initialization; other dynamic entities and the apply path stay gated', () => {
-  assert.match(nativeFace, /RegisterCallback\(n"Entity\/Initialize", this, n"OnWorldInitialize"\)\s*\.AddTarget\(EntityTarget\.Type\(n"NPCPuppet"\)\)/);
-  const world = nativeFace.slice(nativeFace.indexOf('private cb func OnWorldInitialize'),
+// community NPCs are not dynamic entities, so their running face_rig has the
+// vanilla graph. FPS rules out preparing every spawned NPC: only the talk target
+// is prepared, on demand, by rebuilding its own current appearance.
+test('world NPC faces are prepared on demand for the talk target only, never at spawn', () => {
+  assert.doesNotMatch(nativeFace, /OnWorldInitialize|EntityTarget\.Type\(/, 'no per-spawn preparation of world NPCs');
+  assert.equal([...nativeFace.matchAll(/RegisterCallback\(/g)].length, 2, 'only the companion Initialize and the Extract callbacks');
+  const extract = nativeFace.slice(nativeFace.indexOf('private cb func OnCompanionExtract'),
+    nativeFace.indexOf('private func PrepareExtractedComponents'));
+  const pending = extract.indexOf('ArraySize(this.m_worldPending) > 0');
+  assert(pending >= 0 && pending < extract.indexOf('builder.HasEntity()'), 'with nothing pending a build costs one size check');
+  assert.match(extract, /!builder\.HasEntity\(\)\s*&& builder\.HasAppearance\(\) && this\.ConsumeWorldRequest\(builder\.GetAppearanceName\(\)\)/);
+  const request = nativeFace.slice(nativeFace.indexOf('public func RequestWorldFace'),
+    nativeFace.indexOf('private func PrepareWorldAppearance'));
+  assert.match(request, /if dynamic\.IsManaged\(npc\.GetEntityID\(\)\) \{ return "managed"; \};/);
+  assert.match(request, /this\.PrepareFaceComponent\(face, true\)/, 'the running component is only checked');
+  assert(request.indexOf('this.ReleaseOldestWorld(npc, appearance)') < request.indexOf('npc.ScheduleAppearanceChange(appearance)'));
+  assert.doesNotMatch(request, /face\.graph =/);
+  const release = nativeFace.slice(nativeFace.indexOf('private func ReleaseOldestWorld'),
     nativeFace.indexOf('private func PrepareFaceComponent'));
-  assert(world.length > 0);
-  const skip = world.indexOf('dynamic.IsManaged(npc.GetEntityID())');
-  assert(skip >= 0 && skip < world.indexOf('this.PrepareFaceComponent(face)'), 'dynamic entities are skipped before any change');
-  assert.match(world, /npc\.FindComponentByName\(n"face_rig"\) as AnimatedComponent/);
-  assert.match(world, /npc\.ConvaiFacePrepared\(ready, status, graphPath\)/);
-  assert.doesNotMatch(world, /GetResource\(|nodesToInit|animFeatures|GetComponents\(\)/);
+  assert.match(release, /while ArraySize\(this\.m_worldPrepared\) >= 2/, 'at most two world NPCs keep the layer');
+  const adopt = nativeFace.slice(nativeFace.indexOf('private final func ConvaiFaceAdoptWorld'),
+    nativeFace.indexOf('public final func ConvaiFaceRequest'));
+  assert(adopt.includes('StrBeginsWith(path, "cyberpunk_convai\\\\facial\\\\")'));
   const apply = nativeFace.slice(nativeFace.indexOf('public final func ConvaiFaceApply('),
     nativeFace.indexOf('public final func ConvaiFaceReset('));
   assert.match(apply, /if !this\.ConvaiFaceReady\(\) \|\| !IsDefined\(feature\) \{ return false; \};/);
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  assert.equal([...init.matchAll(/:ConvaiFaceRequest\(\)/g)].length, 3, 'composer, microphone and group speaker only');
+  const gaze = init.slice(init.indexOf('local function updateGaze'), init.indexOf('local function updateGaze') + 4000);
+  assert.doesNotMatch(gaze, /ConvaiFaceRequest/, 'a glance never rebuilds an NPC');
 });

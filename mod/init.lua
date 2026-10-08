@@ -1153,6 +1153,11 @@ local function beginText(groupMode)
         groupChat.cancel()
         subtitles.clear()
         speech.target = npc
+        -- A world NPC's face gets the speech layer on demand (Face.reds ConvaiFaceRequest).
+        local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
+        if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
+            log('Face request: actor=' .. tostring(identity) .. ' status=' .. tostring(faceStatus))
+        end
         if focusEntity ~= identity then
             local focused, reason = beginFocus(player, npc)
             if not focused then
@@ -1213,6 +1218,11 @@ local function toggleVoice(groupMode)
         warmConversation(participants, key, entity)
         speech.stop('microphone'); subtitles.clear()
         speech.target = npc
+        -- A world NPC's face gets the speech layer on demand (Face.reds ConvaiFaceRequest).
+        local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
+        if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
+            log('Face request: actor=' .. tostring(entity) .. ' status=' .. tostring(faceStatus))
+        end
         local context
         if groupMode then
             context = groupChat.startVoice('group-' .. tostring(os.time()) .. '-' .. tostring(generation), participants, generation, os.time())
@@ -1705,6 +1715,11 @@ local function updateGroup(player)
     local context, actor = groupChat.next(generation, os.time(), live)
     if not context then focusUntil = os.time() + 1; return end
     speech.target = actor
+    -- A world NPC's face gets the speech layer on demand (Face.reds ConvaiFaceRequest).
+    local faceOk, faceStatus = pcall(function() return actor:ConvaiFaceRequest() end)
+    if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
+        log('Face request: actor=' .. tostring(context.entity) .. ' status=' .. tostring(faceStatus))
+    end
     beginFocus(player, actor)
     focusMode, focusEntity = 'chat', context.entity
     if not sendRequest(context) then groupChat.cancel(); log('Group request could not be written') end
