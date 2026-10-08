@@ -590,24 +590,29 @@ test('blinks continue through a reply on every voice route: every 2-6 s, short, 
   `);
 });
 
-test('blinks also run while listening or thinking; plain idle stays native and a blocked face never blinks', () => run(`${seeded(77)}${blinkHelpers}
+// In-game follow-up (October 9): she did not blink at idle either. Every facial graph's only blinks are animations
+// streamed into its FacialMixerSlot (scenes, workspots, dialogue lipsync) and that slot's look-at blinks, played on
+// a gaze transition; an idle copy has neither, so this writer blinks for its own copies at all times.
+test('blinks run at idle, listening and thinking too: every 2-6 s idle, a little more often while listening; a blocked face never blinks', () => run(`${seeded(77)}${blinkHelpers}
+ local function gaps(times) local out={};for i=2,#times do out[#out+1]=times[i]-times[i-1] end;return out end
+ local function mean(list) local sum=0;for _,v in ipairs(list) do sum=sum+v end;return sum/#list end
+ local idle,listen={},{}
+ for _=1,2700 do tick(1/30);idle[#idle+1]=copy(last(b)) end
+ for _=1,2700 do tick(1/30,{listeningEntity=b.id});listen[#listen+1]=copy(last(b)) end
+ local idleGaps,listenGaps=gaps(onsets(idle,0,1/30)),gaps(onsets(listen,0,1/30))
+ assert(#idleGaps>=12 and #idleGaps<=40,'idle blinks in 90 s: '..(#idleGaps+1))
+ for _,g in ipairs(idleGaps) do assert(g>=1.9 and g<=6.1,'idle gap '..g) end
+ for _,g in ipairs(listenGaps) do assert(g>=1.7 and g<=5.3,'listening gap '..g) end
+ assert(mean(listenGaps)<mean(idleGaps),'listening blinks more often: '..mean(listenGaps)..' vs '..mean(idleGaps))
+ for _,f in ipairs(idle) do assert((f.eye_l_blink or 0)==(f.eye_r_blink or 0) and (f.eye_l_blink or 0)<=.96) end
  local frames={}
- for _=1,300 do tick(1/30,{listeningEntity=a.id});frames[#frames+1]=copy(last(a)) end
- assert(#onsets(frames,0,1/30)>=2,'listening blinks: '..#onsets(frames,0,1/30))
- frames={}
  for _=1,300 do tick(1/30,{thinkingEntity=a.id});frames[#frames+1]=copy(last(a)) end
  assert(#onsets(frames,0,1/30)>=2,'thinking blinks')
- -- Copy b was idle all along: its blink fields were never written (the native face owns idle blinks).
- assert(last(b).eye_l_blink==nil and last(b).eye_r_blink==nil,'idle copy untouched')
- -- Back to idle: a blink in progress finishes, then no new blink starts.
- for _=1,15 do tick(1/30) end
- frames={}
- for _=1,300 do tick(1/30);frames[#frames+1]=copy(last(a)) end
- assert(#onsets(frames,0,1/30)==0,'no blink of ours at plain idle')
- assert(last(a).eye_l_blink==0,'and the field rests at zero')
- -- Combat (or a native scene/dialogue) suppresses every optional delta, blinks included.
+ -- Idle blinks stay on the eyelids: the resting expression is the same as without them.
+ assert(last(b).lips_l_corner_up>0 and last(b).jaw_mid_open==nil,'idle expression and speech fields unchanged')
+ -- Combat (or a native scene/dialogue, which streams its own blinks) suppresses every optional delta, blinks included.
  a.combat=true
- for _=1,300 do tick(1/30,{listeningEntity=a.id});assert(last(a).eye_l_blink==0,'blocked') end
+ for _=1,300 do tick(1/30);assert(last(a).eye_l_blink==0,'blocked') end
  a.combat=false
 `));
 

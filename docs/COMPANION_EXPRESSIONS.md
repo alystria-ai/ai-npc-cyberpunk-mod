@@ -15,15 +15,27 @@ together. Our speech replaces that animation. The face graph's only other blink 
 (`attend`, a steady look-at), so no gaze shift happens and she never blinks. The same applies to every voice route
 (Pocket, Omni, Convai), because they all share one face writer.
 
-**Blinks: fix** (`mod/facial-playback.lua`). While speaking, listening or thinking, the writer adds its own blink on
-the eyelid tracks: every 2-6 s with jitter (first one 0.6-2.2 s in), now and then one at a phrase start (45 %,
+**Follow-up in game (same day):** with the fix installed she blinked a little while talking but never at idle. The
+idle assumption was wrong. The prepared graphs keep the vanilla blink machinery intact (`FacialMixerSlot` with its
+`lookAtDefinitions`, the `LookAtController`; our build only adds zero-default Add nodes just before the Sermo
+solver, and the idle writer leaves the lids at 0). But that machinery has only two blink sources in every graph,
+vanilla NPC graphs included: animations streamed into the mixer slot (scenes, workspots, dialogue lipsync; the
+story Judy is always in one) and the look-at blinks, played only on a look-at transition. A companion copy idles
+outside any scene or workspot and holds one steady look-at on V (or none), so neither ever fires. Restoring the
+vanilla source would mean re-aiming the gaze every few seconds or streaming facial animations into the slot, with
+no script input for the latter; so the writer blinks at idle too.
+
+**Blinks: fix** (`mod/facial-playback.lua`). At all times for the copies this writer owns (managed companions, and
+the current speaker while she talks), the writer adds its own blink on the eyelid tracks: every 2-6 s with jitter
+(every 1.8-5.2 s while listening; first one 0.6-2.2 s in), now and then one at a phrase start (45 %,
 from the expression track's phrase spans), same shape as the game's (smooth close over .07 s, exponential open,
 peak .62-.95). It is additive and short, so a native gaze-shift blink on top only merges (the solver clamps at
-1). Plain idle stays native; combat, scenes and native dialogue block it like every other optional delta. A
+1). Combat, scenes and native dialogue block it like every other optional delta (a scene streams its own). A
 phrase of a phrase-streamed reply (Omni) never starts a blink in its last .35 s, since the face holds its last
 frame until the next phrase plays. Cost: a few comparisons and at most one `exp` per write, no tables, no new
 hooks; phrase starts are read once per timeline. Simulated over 15 replies: 18 blinks a minute.
-`speech-state.json` → `face.blinks` counts the blinks started during replies (in-game check).
+`speech-state.json` → `face.blinks` counts the blinks started during replies, `face.restBlinks` the others
+(in-game check). Crowd NPCs never reach this writer.
 
 **Expressions: where the range collapsed** (15 replies for Judy, Panam and Johnny through the real selector, the
 aligner and the Lua writer, on mouth curves from the game-trained model over real cloned-voice audio):
@@ -68,13 +80,14 @@ Labelled sets (`scripts/Evaluate-EmotionSelector.mjs`): labels unchanged; one mo
 
 **Tests** (`companion-expression-playback.test.mjs`): blinks through a 20 s reply on each source (local-jali,
 convai-arkit61, local-phonetic, audio-envelope): 4-11 blinks, gaps .55-6.3 s, game-shaped peaks, both eyes,
-speech fields untouched; listening and thinking blink, idle copies untouched, blocked faces never blink; phrase
+speech fields untouched; idle blinks every 1.9-6.1 s and listening more often, thinking blinks, blocked faces
+never blink; phrase
 boundary blinks and the Omni phrase tail; per-feeling minimum visible deltas on Judy; a reply changes face between
 tags and the text deepens a tag; Johnny below Panam on the same words but at least 60 % of her; grief never smiles
 through the writer (with or without a tag) and still reads sad. All seven fail on the previous code.
 
 **In game** (needs a CET reload or game restart for the Lua and a bridge restart for the selector): Judy blinks
-every few seconds while she talks, listens or thinks, about as often as in a story scene, with no double or stuck
+every few seconds at all times, while she stands idle, talks, listens or thinks, about as often as in a story scene, with no double or stuck
 half-closed lids between Omni phrases; `face.blinks` in `speech-state.json` climbs during replies. Tagged
 feelings show clearly on brows and corners and change between phrases; Evelyn still never smiles; Johnny moves
 his face less than Panam on similar lines.

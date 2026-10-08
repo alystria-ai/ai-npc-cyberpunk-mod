@@ -424,24 +424,27 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
         end
     end
 end
--- Natural blinking (October 9; user: Judy never blinks while she talks). Cyberpunk's own dialogue lipsync
--- animations carry a talking face's blinks on eye_l/r_blinkLipsyncPoseOutput, the tracks this feature adds to:
--- about 19 a minute, peak about .64 (up to .95), closed within about .07 s and open again over about .2 s
--- (800 extracted game lines). Our speech replaces that animation, and the face graph's only other blink is the
--- look-at controller's, played on a gaze shift, so a companion holding eye contact while she spoke never blinked
--- on any voice route. While speaking, listening or thinking this adds the same kind of blink every 2-6 s with
--- jitter, and now and then one at a phrase boundary. Additive and short: a native gaze-shift blink on top only
--- merges (the solver clamps at 1). Plain idle is left to the native blink. Per call: a few comparisons and at
--- most one exp, no tables; the state is a few numbers on the copy's slot.
+-- Natural blinking (October 9; user: Judy never blinks, while talking or not). Every facial graph (vanilla and
+-- ours alike; our build only adds zero-default Add nodes right before the Sermo solver) has exactly two blink
+-- sources: animations streamed into its FacialMixerSlot (scene, workspot and dialogue lipsync animations; the
+-- game's lines carry about 19 blinks a minute on eye_l/r_blinkLipsyncPoseOutput, peak about .64 up to .95,
+-- closed within about .07 s, open again over about .2 s), and that slot's lookAtDefinitions, which play
+-- additive__blink_* only on a look-at transition. A companion copy idles outside any scene or workspot, so
+-- nothing streams into the slot, and she holds one steady look-at on V (or none), so no transition ever plays a
+-- blink. Our speech replaces the lipsync animation as well. This adds the game's kind of blink at all times
+-- for the copies this writer owns (managed companions, and the current speaker): every 2-6 s with jitter,
+-- every 1.8-5.2 s while listening, now and then one at a phrase boundary. Additive and short: a native
+-- gaze-shift blink on top only merges (the solver clamps at 1). Combat, scenes and native dialogue block it
+-- like every other optional delta (a scene streams its own blinks). Per call: a few comparisons and at most one
+-- exp, no tables; the state is a few numbers on the copy's slot. Crowd NPCs never reach this writer.
 local blinkClose,blinkTau,blinkLength,blinkGap=.07,.055,.32,.6
 M.blinkRandom=math.random
 local function blinkWeight(slot,phase,blocked,boundary,room)
     local clock=M.expressionClock
     if blocked then slot.blinkStart,slot.blinkNext=nil,nil;return 0 end
-    local conversing=phase=='speaking' or phase=='listening' or phase=='thinking'
-    if conversing then
+    do
         local random=M.blinkRandom
-        -- The first blink comes soon after a conversation phase starts, like the game's lines (median 1.2 s).
+        -- The first blink comes soon after the face is owned or unblocked, like the game's lines (median 1.2 s).
         if not slot.blinkNext then slot.blinkNext=clock+.6+1.6*random() end
         local since=slot.blinkStart and clock-slot.blinkStart or math.huge
         if boundary and since>1.2 and random()<.45 then slot.blinkNext=math.min(slot.blinkNext,clock+.04+.1*random()) end
@@ -449,11 +452,10 @@ local function blinkWeight(slot,phase,blocked,boundary,room)
         -- half-closed lid would show); the blink waits for the next phrase.
         if clock>=slot.blinkNext and since>=blinkGap and room~=false then
             slot.blinkStart,slot.blinkPeak=clock,.62+.33*random()^2
-            slot.blinkNext=clock+2+4*random()
-            if phase=='speaking' then M.speechBlinks=(M.speechBlinks or 0)+1 end
+            -- A listener looks at the speaker and blinks a little more often.
+            if phase=='listening' then slot.blinkNext=clock+1.8+3.4*random() else slot.blinkNext=clock+2+4*random() end
+            if phase=='speaking' then M.speechBlinks=(M.speechBlinks or 0)+1 else M.restBlinks=(M.restBlinks or 0)+1 end
         end
-    else
-        slot.blinkNext=nil
     end
     local start=slot.blinkStart
     if not start then return 0 end
@@ -880,8 +882,9 @@ function M.status()
     return {state = M.state or 'idle', source = M.source, articulation = M.articulation, position = M.position,
         applied = M.applied or 0, restored = M.restored, error = M.error,
         expressions = {clock=M.expressionClock,error=M.expressionError,lastSpeech=M.lastSpeechExpression},
-        -- Blinks this layer started while a reply played (October 9), counted since the mod loaded.
-        blinks = M.speechBlinks or 0}
+        -- Blinks this layer started while a reply played, and at other times (idle, listening, thinking),
+        -- counted since the mod loaded (October 9).
+        blinks = M.speechBlinks or 0, restBlinks = M.restBlinks or 0}
 end
 
 convaiFacialPlayback = M
