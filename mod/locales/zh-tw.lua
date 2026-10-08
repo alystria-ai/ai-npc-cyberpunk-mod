@@ -535,6 +535,8 @@ return {
     ["Subtle"] = "輕微",
     ["Strong"] = "強烈",
     ["Body gestures (experimental)"] = "肢體動作（實驗性）",
+    ["Sit with you"] = "陪你坐下",
+    ["When you sit on a couch, bench, chair or bar stool, nearby companions take a free seat beside you and stand up again when you do. They stay standing if no seat is free or a fight starts."] = "當你坐在沙發、長椅、椅子或吧檯凳上時，附近的夥伴會坐到你旁邊的空位上，並在你起身時一起站起來。如果沒有空位或開始戰鬥，他們會保持站立。",
     ["Romantic"] = "戀愛",
     ["Casual"] = "隨意",
     ["Ordinary"] = "一般",

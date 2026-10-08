@@ -36,6 +36,8 @@ return {
     ["Back to party"] = "Wróć do drużyny",
     ["Back to settings"] = "Wróć do ustawień",
     ["Body gestures (experimental)"] = "Gesty ciała (eksperymentalne)",
+    ["Sit with you"] = "Siadanie z tobą",
+    ["When you sit on a couch, bench, chair or bar stool, nearby companions take a free seat beside you and stand up again when you do. They stay standing if no seat is free or a fight starts."] = "Gdy usiądziesz na kanapie, ławce, krześle lub stołku barowym, towarzysze w pobliżu zajmą wolne miejsce obok ciebie i wstaną, gdy ty wstaniesz. Jeśli nie ma wolnego miejsca albo zaczyna się walka, zostają na stojąco.",
     ["Browse every character model in the game and invite any of them, including characters without conversation support. They join as followers and do not talk."] = "Przeglądaj wszystkie modele postaci w grze i zapraszaj dowolny z nich, także postacie bez obsługi rozmów. Dołączają jako podążający za tobą i nie rozmawiają.",
     ["Browse your characters, discover a game model, or manage your current party."] = "Przeglądaj swoje postacie, odkrywaj modele z gry lub zarządzaj obecną drużyną.",
     ["Browse {section}. {query}"] = "Przeglądaj: {section}. {query}",

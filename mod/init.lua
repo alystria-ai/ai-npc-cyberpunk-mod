@@ -726,6 +726,21 @@ do
     local loaded, controller = pcall(function() return dofile('companion-gestures.lua').new(options) end)
     if not loaded then log('Gesture controller failed to load: ' .. tostring(controller)); controller = nil end
     convaiGestures = controller
+    -- Sit with you (docs/COMPANION_SEATING.md): companions take a free seat
+    -- beside a seated V. It owns the body before gestures do.
+    convaiSeatingOptions = {
+        enabled = function() return manager.sitWithYou() end,
+        gazeSettings = function() return companions.gazeSettings and companions.gazeSettings() or nil end,
+        log = function(kind, fields)
+            if manager.developerMode() then
+                local ok, text = pcall(json.encode, fields)
+                log('Seating ' .. kind .. ' ' .. (ok and text or ''))
+            end
+        end,
+    }
+    local seatingLoaded, seating = pcall(function() return dofile('companion-seating.lua').new(convaiSeatingOptions) end)
+    if not seatingLoaded then log('Seating controller failed to load: ' .. tostring(seating)); seating = nil end
+    convaiSeating = seating
     local probe
     local probeFile = io.open('gesture-probe.lua', 'rb')
     if probeFile then
@@ -739,26 +754,38 @@ do
     -- despawns companions).
     local function current() return convaiGestures end
     local function currentProbe() return convaiGestureProbe or probe end
+    local function currentSeating() return convaiSeating end
     companions.bodyAnimation = {
         tick = function(player, step, rows)
-            local c, p = current(), currentProbe()
+            local c, p, s = current(), currentProbe(), currentSeating()
+            if s then pcall(s.tick, player, step, rows) end
             if c then pcall(c.tick, player, step, rows) end
             if p then return p.tick(player, step, rows) end
         end,
+        -- Decision override before behavior (a walk to a seat, then a hold).
+        steer = function(entry, context, step)
+            local s = currentSeating()
+            if not s then return nil end
+            local ok, decision = pcall(s.steer, entry, context, step)
+            return ok and decision or nil
+        end,
         observe = function(entry, context, step)
-            local c, p = current(), currentProbe()
+            local c, p, s = current(), currentProbe(), currentSeating()
             if p and p.observe(entry, context, step) then return true end
+            if s and s.observe(entry, context, step) then return true end
             if c then return c.observe(entry, context, step) end
             return false
         end,
         release = function(entry, reason)
-            local c, p = current(), currentProbe()
+            local c, p, s = current(), currentProbe(), currentSeating()
             if p then pcall(p.release, entry, reason) end
+            if s then pcall(s.release, entry, reason) end
             if c then return c.release(entry, reason) end
         end,
         abandon = function(reason)
-            local c, p = current(), currentProbe()
+            local c, p, s = current(), currentProbe(), currentSeating()
             if p then pcall(p.abandon, reason) end
+            if s then pcall(s.abandon, reason) end
             if c then return c.abandon(reason) end
         end,
     }

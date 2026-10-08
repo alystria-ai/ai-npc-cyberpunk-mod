@@ -82,6 +82,9 @@ does not issue movement and the equipment holster handoff sees "not idle" —
 the same gate the holster uses. A copy that transport, recovery or a tactic
 takes (so it is not observed) is stopped on the next tick. Dismissal and fast
 travel call `release`; world teardown calls `abandon` (no native calls).
+The seating controller (docs/COMPANION_SEATING.md) shares this owner: it is
+observed before gestures, so a companion seated beside V is never offered to
+the gesture controller.
 
 ## Selection policy
 

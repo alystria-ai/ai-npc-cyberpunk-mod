@@ -1553,9 +1553,13 @@ function M.update(player,delta,focusEntity)
                 nearGroup=space.nearGroup(entry.position,groupFrame,entry.lane,others,id,entry.clearance),
                 yieldTarget=peerYieldPoint(entry.position,others,id,entry.clearance),others=others,
             }
+            -- Sit with you (docs/COMPANION_SEATING.md): a walk to a seat beside a
+            -- seated V, then a hold while the sit workspot owns the body.
+            local seat=not departing and not tactic and M.bodyAnimation and M.bodyAnimation.steer
+                and M.bodyAnimation.steer(entry,context,step) or nil
             local decision=departing and M.departure.decide(entry.serial,context,step)
                 or tactic and M.tactics.decide(entry.serial,context,step)
-                or behavior.decide(entry.person,context,step)
+                or seat or behavior.decide(entry.person,context,step)
             -- Braking is already a committed stop. Never choose an alternative
             -- behind the actor if its original stop point becomes unavailable.
             if decision.phase=='approach' or decision.phase=='obstructed'

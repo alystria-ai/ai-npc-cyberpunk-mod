@@ -535,6 +535,8 @@ return {
     ["Subtle"] = "控えめ",
     ["Strong"] = "強め",
     ["Body gestures (experimental)"] = "身振り（試験的）",
+    ["Sit with you"] = "一緒に座る",
+    ["When you sit on a couch, bench, chair or bar stool, nearby companions take a free seat beside you and stand up again when you do. They stay standing if no seat is free or a fight starts."] = "ソファ、ベンチ、椅子、バースツールに座ると、近くの仲間が隣の空いている席に座り、あなたが立ち上がると一緒に立ち上がります。空いている席がない場合や戦闘が始まった場合は立ったままです。",
     ["Romantic"] = "恋愛",
     ["Casual"] = "カジュアル",
     ["Ordinary"] = "通常",

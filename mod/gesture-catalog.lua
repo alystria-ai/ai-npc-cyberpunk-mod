@@ -27547,6 +27547,12 @@ return {
     experimentalIdles = {
         "johnny_smoke",
     },
+    seatComponents = {
+        couch = "convai_sit_couch",
+        chair = "convai_sit_chair",
+        bar = "convai_sit_bar",
+        stool = "convai_sit_stool",
+    },
     characters = {
         ["Character.Judy"] = {
             key = "judy",

@@ -568,5 +568,11 @@
     "exitForced": 0.25,
     "transition": 1,
     "clipOut": 0.7
+  },
+  "seatWorkspots": {
+    "couch": "base\\workspots\\common\\couch\\generic__sit_couch__sit_around__02.workspot",
+    "chair": "base\\workspots\\common\\chair\\generic__sit_chair__sit_around__01.workspot",
+    "bar": "base\\workspots\\common\\bar_and_barstool\\generic__sit_barstool_bar_lean_front__sit_around__01.workspot",
+    "stool": "base\\workspots\\common\\barstool\\generic__sit_barstool__sit_around__01.workspot"
   }
 }

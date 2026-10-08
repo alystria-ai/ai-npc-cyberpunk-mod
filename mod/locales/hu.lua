@@ -36,6 +36,8 @@ return {
     ["Back to party"] = "Vissza a csapathoz",
     ["Back to settings"] = "Vissza a beállításokhoz",
     ["Body gestures (experimental)"] = "Testgesztusok (kísérleti)",
+    ["Sit with you"] = "Leülnek veled",
+    ["When you sit on a couch, bench, chair or bar stool, nearby companions take a free seat beside you and stand up again when you do. They stay standing if no seat is free or a fight starts."] = "Ha leülsz egy kanapéra, padra, székre vagy bárszékre, a közeli társak elfoglalnak egy szabad helyet melletted, és felállnak, amikor te is felállsz. Ha nincs szabad hely, vagy harc kezdődik, állva maradnak.",
     ["Browse every character model in the game and invite any of them, including characters without conversation support. They join as followers and do not talk."] = "Böngészd a játék összes karaktermodelljét, és hívd meg bármelyiket, a beszélgetés nélküli karaktereket is. Követőként csatlakoznak, és nem beszélnek.",
     ["Browse your characters, discover a game model, or manage your current party."] = "Böngészd a karaktereidet, fedezz fel egy játékmodellt, vagy kezeld a jelenlegi csapatodat.",
     ["Browse {section}. {query}"] = "Böngészés: {section}. {query}",

@@ -535,6 +535,8 @@ return {
     ["Subtle"] = "약하게",
     ["Strong"] = "강하게",
     ["Body gestures (experimental)"] = "몸짓(실험적)",
+    ["Sit with you"] = "함께 앉기",
+    ["When you sit on a couch, bench, chair or bar stool, nearby companions take a free seat beside you and stand up again when you do. They stay standing if no seat is free or a fight starts."] = "당신이 소파, 벤치, 의자, 바 스툴에 앉으면 근처의 동료가 옆의 빈자리에 앉고, 당신이 일어나면 함께 일어납니다. 빈자리가 없거나 전투가 시작되면 서 있습니다.",
     ["Romantic"] = "연애",
     ["Casual"] = "가벼운 관계",
     ["Ordinary"] = "일반",

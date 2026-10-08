@@ -535,6 +535,8 @@ return {
     ["Subtle"] = "Sutil",
     ["Strong"] = "Forte",
     ["Body gestures (experimental)"] = "Gestos corporais (experimental)",
+    ["Sit with you"] = "Sentar com você",
+    ["When you sit on a couch, bench, chair or bar stool, nearby companions take a free seat beside you and stand up again when you do. They stay standing if no seat is free or a fight starts."] = "Quando você se senta em um sofá, banco, cadeira ou banqueta de bar, os companheiros próximos ocupam um lugar livre ao seu lado e se levantam quando você se levanta. Eles ficam de pé se não houver lugar livre ou se começar um combate.",
     ["Romantic"] = "Romântico",
     ["Casual"] = "Casual",
     ["Ordinary"] = "Comum",

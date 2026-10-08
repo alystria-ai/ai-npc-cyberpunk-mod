@@ -550,6 +550,37 @@ COMMANDS['reload-controller'] = function()
         return list
     end)()}
 end
+-- Seating controller (docs/COMPANION_SEATING.md): snapshot, and hot reload of
+-- companion-seating.lua without a CET reload.
+COMMANDS.seating = function()
+    if not convaiSeating then return false, 'seating controller not loaded' end
+    return true, convaiSeating.snapshot()
+end
+COMMANDS['reload-seating'] = function()
+    local old = convaiSeating
+    if old and old.states then
+        for _, state in pairs(old.states) do
+            if state.phase ~= 'off' and state.entry then pcall(old.release, state.entry, 'reload') end
+        end
+    end
+    if not convaiSeatingOptions then return false, 'this init.lua predates the seating controller' end
+    local ok, controller = pcall(function() return dofile('companion-seating.lua').new(convaiSeatingOptions) end)
+    if not ok then return false, tostring(controller) end
+    convaiSeating = controller
+    return true, controller.snapshot()
+end
+-- run <name> [args...]: research probe runtime/<name>.lua (returns a function of
+-- words and this probe) without a CET reload. Names are letters, digits, - and _.
+COMMANDS.run = function(words)
+    local name = words[2] or ''
+    if not name:match('^[%w%-_]+$') then return false, 'probe name must be letters, digits, - or _' end
+    local loaded, fn = pcall(dofile, 'runtime/' .. name .. '.lua')
+    if not loaded then return false, tostring(fn) end
+    if type(fn) ~= 'function' then return false, 'probe file must return a function' end
+    local ok, result = pcall(fn, words, M)
+    if not ok then return false, tostring(result) end
+    return true, result
+end
 -- flats <record>...: entity template of character records (hash and text), to
 -- find each character's relaxed locomotion idle offline.
 COMMANDS.flats = function(words)
@@ -769,6 +800,11 @@ function M.tick(player, step, rows)
     M.clock = M.clock + (tonumber(step) or 0)
     M.tickCount = M.tickCount + 1
     M.rows = rows
+    -- Research watchers installed by `run` probes (M.watchers[name] = fn).
+    for name, watch in pairs(M.watchers or {}) do
+        local ok, err = pcall(watch, player, step, rows, log)
+        if not ok then M.watchers[name] = nil; log('watcher-error', {name = name, error = tostring(err)}) end
+    end
     local at = player and position(player)
     if at then
         local dt = tonumber(step) or 0
