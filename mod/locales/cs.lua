@@ -36,8 +36,6 @@ return {
     ["Back to party"] = "Zpět ke skupině",
     ["Back to settings"] = "Zpět do nastavení",
     ["Body gestures (experimental)"] = "Gesta těla (experimentální)",
-    ["Sit with you"] = "Sedět s tebou",
-    ["When you sit on a couch, bench, chair or bar stool, nearby companions take a free seat beside you and stand up again when you do. They stay standing if no seat is free or a fight starts."] = "Když si sedneš na gauč, lavičku, židli nebo barovou stoličku, společníci poblíž si sednou na volné místo vedle tebe a vstanou, až vstaneš ty. Pokud není žádné místo volné nebo začne boj, zůstanou stát.",
     ["Browse every character model in the game and invite any of them, including characters without conversation support. They join as followers and do not talk."] = "Procházej všechny modely postav ve hře a pozvi kteroukoli z nich, i postavy bez podpory konverzací. Přidají se jako následovníci a nemluví.",
     ["Browse your characters, discover a game model, or manage your current party."] = "Prohlížej své postavy, objev model ze hry nebo spravuj aktuální skupinu.",
     ["Browse {section}. {query}"] = "Procházet: {section}. {query}",

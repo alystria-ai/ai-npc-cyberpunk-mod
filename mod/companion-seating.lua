@@ -320,7 +320,6 @@ function M.new(options)
     options = options or {}
     local catalog = options.catalog or dofile('gesture-catalog.lua')
     local self = {states = {}, clock = 0, tickCount = 0, errors = {}, sessions = 0,
-        enabled = options.enabled or function() return true end,
         native = options.native or native, log = options.log or function() end,
         gazeSettings = options.gazeSettings or function() return nil end}
     local nat, policy = self.native, M.policy
@@ -579,7 +578,7 @@ function M.new(options)
     function self.steer(entry, context)
         local s = stateFor(entry)
         if s.phase == 'off' then
-            if not session or not session.seats or s.session == session.id or not self.enabled() then return nil end
+            if not session or not session.seats or s.session == session.id then return nil end
             if context.combat or self.clock < (s.cooldownUntil or 0) then return nil end
             if (tonumber(entry.playerGap) or math.huge) > policy.searchRadius then return nil end
             if nat.inWorkspot(entry.npc) ~= false then return nil end -- a gesture stance is still leaving
@@ -650,7 +649,6 @@ function M.new(options)
             if s.phase == 'seated' then
                 if context.combat then requestExit(s, 'combat', true); return end
                 if not session or session.id ~= s.session then requestExit(s, 'V stood up', false); return end
-                if not self.enabled() then requestExit(s, 'disabled', false); return end
                 if nat.inWorkspot(npc) == false then release(s, 'left the seat on its own'); return end
                 local style = context.selected and 'full' or 'side'
                 if s.lookStyle ~= style then
@@ -696,10 +694,6 @@ function M.new(options)
                 end
             end
         end
-        if not self.enabled() then
-            if session then endSession('disabled') end
-            return
-        end
         if not next(present) then session = nil; return end
         check = check - dt
         if check <= 0 then
@@ -736,7 +730,7 @@ function M.new(options)
             rows[#rows + 1] = {serial = serial, phase = s.phase, offset = s.seat and s.seat.offset,
                 component = s.component, session = s.session}
         end
-        return {enabled = self.enabled() == true, disabled = self.disabledReason,
+        return {disabled = self.disabledReason,
             session = session and {id = session.id, kind = session.kind, settled = session.anchor ~= nil,
                 seats = session.seats and #session.seats or nil, path = session.path, anim = session.anim} or nil,
             companions = rows, errors = self.errors}

@@ -271,7 +271,6 @@ local function sharedCharacterLines(snapshot)
     local talk = {}
     if #speech > 0 then talk[#talk + 1] = ui.t('Speech: {list}', {list = table.concat(speech, ' · ')}) end
     if settings.multilingualConversations then talk[#talk + 1] = ui.t('Multilingual: replies in your language') end
-    if settings.sitWithYou ~= false then behavior[#behavior + 1] = ui.t('Sit with you') end
     if settings.bodyGestures then behavior[#behavior + 1] = ui.t('Body gestures (experimental)') end
     if settings.battleReactions then behavior[#behavior + 1] = ui.t('React to battles') end
     if settings.lootReactions then behavior[#behavior + 1] = ui.t('React to collected loot') end
@@ -897,8 +896,6 @@ local function schema()
                 {'Eyes only', 'Subtle', 'Gentle (default)', 'Strong'}),
             setting('bodyGestures', 'Body gestures (experimental)', 'bool', snapshot.settings.bodyGestures, false,
                 'Companions gesture with their body while they speak longer replies and nod while you talk to them, using the game’s own animations in their usual stance. They stop at once when anyone moves or a fight starts.'),
-            setting('sitWithYou', 'Sit with you', 'bool', snapshot.settings.sitWithYou ~= false, true,
-                'When you sit on a couch, bench, chair or bar stool, nearby companions take a free seat beside you and stand up again when you do. They stay standing if no seat is free or a fight starts.'),
         })
         local voiceStatus = voiceStatusText(snapshot)
         -- The list: Pocket Performance (the default), OmniVoice Balanced / Quality (16 steps, short / long reference),
@@ -1042,7 +1039,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
             for _, change in ipairs(changes) do
                 local key = change.id
                 if key == 'voice' or key == 'subtitles' or key == 'developerMode'
-                    or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'sitWithYou'
+                    or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures'
                     or key == 'autoConnectNearby' or key == 'keepPreparedVoices' or key == 'naturalSpeech'
                     or key == 'gameDialogueContext'
                     or key == 'expressiveEmotions' or key == 'multilingualConversations' then values[key] = change.value

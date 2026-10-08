@@ -1834,7 +1834,7 @@ function M.update(player,delta,focusEntity)
                 nearGroup=space.nearGroup(entry.position,groupFrame,entry.lane,others,id,entry.clearance),
                 yieldTarget=peerYieldPoint(entry.position,others,id,entry.clearance),others=others,
             }
-            -- Sit with you (docs/COMPANION_SEATING.md): a walk to a seat beside a
+            -- Seating (docs/COMPANION_SEATING.md): a walk to a seat beside a
             -- seated V, then a hold while the sit workspot owns the body.
             local seat=not departing and not tactic and M.bodyAnimation and M.bodyAnimation.steer
                 and M.bodyAnimation.steer(entry,context,step) or nil

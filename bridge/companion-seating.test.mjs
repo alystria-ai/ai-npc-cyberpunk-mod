@@ -63,12 +63,11 @@ function native.inWorkspot(npc) return npc.inside end
 function native.exit(npc,instant) calls[#calls+1]={name='exit',instant=instant==true,npc=npc};npc.leaving=true;return true end
 function native.stopInDevice(npc) calls[#calls+1]={name='stopInDevice'};return true end
 function native.look(entry,style) calls[#calls+1]={name='look',style=style};return true end
-local enabled=true
 local catalog={device='dev.ent',seatComponents={couch='convai_sit_couch',chair='convai_sit_chair',bar='convai_sit_bar',stool='convai_sit_stool'}}
 local c
 local function build(options)
   options=options or {}
-  c=m.new({catalog=options.catalog or catalog,native=native,enabled=function() return enabled end,
+  c=m.new({catalog=options.catalog or catalog,native=native,
     log=function(kind,fields) logs[#logs+1]={kind=kind,fields=fields} end})
 end
 build()
@@ -233,7 +232,7 @@ test('a table in front moves the walk-up point; no floor at all rejects', () => 
   local spawn=last('spawn');assert(spawn)
 `));
 
-test('vehicles, unsupported workspots and the setting keep companions standing', () => run(`
+test('vehicles and unsupported workspots keep companions standing; a couch after them always seats', () => run(`
   couch(-.35,1.7)
   seat.mounted=true;sitV();step(2)
   assert(count('spawn')==0,'mounted V is a vehicle')
@@ -241,12 +240,9 @@ test('vehicles, unsupported workspots and the setting keep companions standing',
   sitV('base\\\\workspots\\\\player\\\\car\\\\player__sit_car_passenger_seat__sit_around__01.workspot','sit_car')
   step(2);assert(count('spawn')==0,'car workspot')
   assert(lastLog('player-workspot').fields.kind=='unsupported')
-  seat.inside=false;step(.5);enabled=false;sitV();step(2)
-  assert(count('spawn')==0,'setting off')
-  enabled=true;seat.inside=false;step(.5);sitV();step(2)
-  assert(count('play')==1,'setting on again')
-  enabled=false;step(.3)
-  assert(count('exit')==1,'turning the setting off stands them up')
+  seat.inside=false;step(.5);sitV();step(2)
+  assert(count('play')==1,'no setting: a couch after them seats her')
+  assert(c.snapshot().enabled==nil,'there is no user switch')
 `));
 
 test('an old archive without seat workspots never takes the body', () => run(`

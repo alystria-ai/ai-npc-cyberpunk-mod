@@ -2110,7 +2110,7 @@ test('the Characters sidebar shows the settings in effect for each character, no
   assert(judy == table.concat({'A braindance editor.', '', 'Voice: OmniVoice · Balanced', 'Conversation: On', 'Relationship: Romantic',
     'Speech: Natural speech · Expressive emotions', 'Multilingual: replies in your language',
     'Memory: remembers your conversations', 'In your party: 1',
-    'Behavior: Sit with you · React to battles · React to collected loot'}, '\\n'), judy)
+    'Behavior: React to battles · React to collected loot'}, '\\n'), judy)
   -- A character who is not in the party keeps the speech lines, not the party ones; with no memory there is no memory line.
   local viktor = description('viktor-vektor')
   assert(viktor:find('Speech: Natural speech · Expressive emotions', 1, true) and viktor:find('Multilingual: replies', 1, true))
@@ -2119,7 +2119,7 @@ test('the Characters sidebar shows the settings in effect for each character, no
   -- Without the optional pack, a saved OmniVoice choice that is not running says so; switching a behavior off drops its name.
   jsonFixtures['voice-runtime'] = {state = 'ready', provider = 'pocket', routedProfiles = {}, updated = memoryClock * 1000.0,
     omniPack = {installed = false, missing = {}}}
-  assert(manager.applySettings(player, {battleReactions = false, lootReactions = false, bodyGestures = true, sitWithYou = false}))
+  assert(manager.applySettings(player, {battleReactions = false, lootReactions = false, bodyGestures = true}))
   reload()
   assert(description('viktor-vektor'):find('Voice: OmniVoice · Balanced · needs Omni pack', 1, true), description('viktor-vektor'))
   local judyLines = description('judy-alvarez')
@@ -2366,6 +2366,7 @@ test('settings review wording: short voice description, experimental gestures, f
     assert(not voices.description:find('%', 1, true), 'no listening percentages in the voice description')
     assert(not voices.description:find(string.char(10), 1, true) and utf8.len(voices.description) < 600, 'the voice description stays short')
     assert(row('bodyGestures').label == 'Body gestures (experimental)' and row('bodyGestures').defaultValue == false)
+    assert(row('sitWithYou') == nil, 'companions always sit with V: there is no Sit with you setting')
     assert(row('autoConnectNearby').defaultValue == true and row('keepPreparedVoices').defaultValue == true)
     local developer = row('developerMode').description
     for _, part in ipairs({'popups', 'movement trace', 'gesture', 'support reports'}) do

@@ -347,7 +347,6 @@ local function loadSettings()
     if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = true, true end
     if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = true, true end
     if type(settings.bodyGestures) ~= 'boolean' then settings.bodyGestures, settingsNeedSave = false, true end
-    if type(settings.sitWithYou) ~= 'boolean' then settings.sitWithYou, settingsNeedSave = true, true end
     -- On by default (a missing key); an explicitly saved choice is kept.
     if type(settings.autoConnectNearby) ~= 'boolean' then settings.autoConnectNearby, settingsNeedSave = true, true end
     -- On by default: recent subtitled game dialogue is attached to the next manual turn (mod/game-dialogue.lua).
@@ -591,12 +590,6 @@ end
 function M.bodyGestures()
     loadSettings()
     return settings.bodyGestures == true
-end
-
--- Sit with you (docs/COMPANION_SEATING.md), On by default.
-function M.sitWithYou()
-    loadSettings()
-    return settings.sitWithYou ~= false
 end
 
 -- On by default, silently: the connection and local voice of a character the player looks at or walks up to
@@ -1131,7 +1124,6 @@ function M.snapshot(player)
             battleReactions = settings.battleReactions,
             lootReactions = settings.lootReactions,
             bodyGestures = settings.bodyGestures,
-            sitWithYou = settings.sitWithYou,
             autoConnectNearby = settings.autoConnectNearby,
             gameDialogueContext = settings.gameDialogueContext,
             eyeContactHeight = settings.eyeContactHeight,
@@ -1182,8 +1174,7 @@ function M.applySettings(player, values)
     for key, value in pairs(settings.relationshipModes) do nextSettings.relationshipModes[key] = value end
     for key, value in pairs(values) do
         if key == 'voice' or key == 'subtitles' or key == 'developerMode'
-            or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'sitWithYou'
-            or key == 'autoConnectNearby'
+            or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
             or key == 'gameDialogueContext'
             or key == 'keepPreparedVoices' or key == 'naturalSpeech' or key == 'expressiveEmotions'
             or key == 'multilingualConversations' then

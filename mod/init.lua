@@ -726,10 +726,9 @@ do
     local loaded, controller = pcall(function() return dofile('companion-gestures.lua').new(options) end)
     if not loaded then log('Gesture controller failed to load: ' .. tostring(controller)); controller = nil end
     convaiGestures = controller
-    -- Sit with you (docs/COMPANION_SEATING.md): companions take a free seat
-    -- beside a seated V. It owns the body before gestures do.
+    -- Seating (docs/COMPANION_SEATING.md): companions always take a free seat
+    -- beside a seated V (no setting). It owns the body before gestures do.
     convaiSeatingOptions = {
-        enabled = function() return manager.sitWithYou() end,
         gazeSettings = function() return companions.gazeSettings and companions.gazeSettings() or nil end,
         log = function(kind, fields)
             if manager.developerMode() then

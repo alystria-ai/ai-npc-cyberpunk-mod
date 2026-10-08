@@ -534,8 +534,6 @@ return {
     ["Subtle"] = "Слабо",
     ["Strong"] = "Сильно",
     ["Body gestures (experimental)"] = "Жесты (экспериментально)",
-    ["Sit with you"] = "Садиться рядом",
-    ["When you sit on a couch, bench, chair or bar stool, nearby companions take a free seat beside you and stand up again when you do. They stay standing if no seat is free or a fight starts."] = "Когда вы садитесь на диван, скамейку, стул или барный табурет, спутники поблизости занимают свободное место рядом с вами и встают вместе с вами. Если свободного места нет или начинается бой, они остаются стоять.",
     ["Romantic"] = "Романтический",
     ["Casual"] = "Непринуждённый",
     ["Ordinary"] = "Обычный",

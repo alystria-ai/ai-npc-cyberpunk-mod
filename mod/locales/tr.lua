@@ -36,8 +36,6 @@ return {
     ["Back to party"] = "Ekibe dön",
     ["Back to settings"] = "Ayarlara dön",
     ["Body gestures (experimental)"] = "Beden hareketleri (deneysel)",
-    ["Sit with you"] = "Seninle otur",
-    ["When you sit on a couch, bench, chair or bar stool, nearby companions take a free seat beside you and stand up again when you do. They stay standing if no seat is free or a fight starts."] = "Bir kanepeye, banka, sandalyeye ya da bar taburesine oturduğunda yakındaki yoldaşlar yanındaki boş bir yere oturur ve sen kalktığında onlar da kalkar. Boş yer yoksa ya da bir çatışma başlarsa ayakta kalırlar.",
     ["Browse every character model in the game and invite any of them, including characters without conversation support. They join as followers and do not talk."] = "Oyundaki tüm karakter modellerine göz at ve istediğini davet et; konuşma desteği olmayan karakterler de dahil. Takipçi olarak katılırlar ve konuşmazlar.",
     ["Browse your characters, discover a game model, or manage your current party."] = "Karakterlerine göz at, bir oyun modeli keşfet veya mevcut ekibini yönet.",
     ["Browse {section}. {query}"] = "Göz at: {section}. {query}",

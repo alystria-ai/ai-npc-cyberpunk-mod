@@ -1,11 +1,13 @@
-# Sit with you
+# Companions sit with V
 
 When V sits on a couch, bench, chair or bar stool, each nearby companion walks
 to a free seat beside V on the same furniture (or the next stool or chair along
 it) and sits with the game's own NPC sit animation for that seat type. They
 stand up with the native fast exit when V gets up or moves away, or at once
-when a fight starts. The **Sit with you** setting (Companion behavior) is
-**On by default**. `mod/companion-seating.lua` is the controller.
+when a fight starts. It is always on: there is no setting (the user's decision,
+October 8; an old saved `sitWithYou` value is ignored). The only switch is
+internal: an archive without the sit components disables it.
+`mod/companion-seating.lua` is the controller.
 
 ## What the game offers (October 8 research)
 
@@ -139,7 +141,7 @@ seat and nothing else.
 8. **Edge cases.** No free seat: the companion keeps its normal standing place
    near V. Several companions: each gets a different seat. A companion taken by
    transport, a tactic, a departure or recovery travel stands up instantly.
-   Turning the setting off stands everyone up. A failed sit (no entry, device
+   A failed sit (no entry, device
    timeout, refused route) cools that companion down for 30 s.
 
 Talking while seated is fine: lip sync and expressions are facial and keep
@@ -194,8 +196,7 @@ companions update until it errors.
 `npm run test:gestures` includes `bridge/companion-seating.test.mjs` (Fengari):
 classification by name and by furniture (the probed apartment couch), seat finding on couches/stools/armrests, the full sit and stand
 flow, V getting up, combat (instant), several companions on different seats, no
-seat, wall / occupied / table-in-front, vehicles and unsupported workspots, the
-setting, an old archive, a refused walk near and far, transport/unobserved
+seat, wall / occupied / table-in-front, vehicles and unsupported workspots, an old archive, a refused walk near and far, transport/unobserved
 release, a walk the actuator never takes, the PSM settle and stand-up, and the standing cost (≤ 4 reads a second, no rays). 18 tests.
 
 ## To check in game
@@ -224,8 +225,8 @@ Install: **game restart** for the rebuilt `archive/pc/mod/convai_gestures.archiv
 7. A seat where an NPC sits: she does not sit on them (`occupied`).
 8. Start a fight while seated (or draw and shoot): instant stand-up.
 9. Sit in a car: nothing from seating (vehicles are excluded).
-10. Settings > Companion behavior > Sit with you Off: nothing; Off while seated:
-    she stands up.
+10. Settings > Companion behavior has no Sit with you row, and the Characters
+    sidebar's Behavior line does not name it.
 11. FPS while V stands and while seated: unchanged.
 
 If she floats or sinks, the seat depth/height is off: the `seats-found` profile

@@ -36,8 +36,6 @@ return {
     ["Back to party"] = "Назад до групи",
     ["Back to settings"] = "Назад до налаштувань",
     ["Body gestures (experimental)"] = "Жести тілом (експериментально)",
-    ["Sit with you"] = "Сідати поруч",
-    ["When you sit on a couch, bench, chair or bar stool, nearby companions take a free seat beside you and stand up again when you do. They stay standing if no seat is free or a fight starts."] = "Коли ти сідаєш на диван, лавку, стілець або барний стілець, компаньйони поблизу займають вільне місце поруч із тобою і встають, коли встаєш ти. Якщо вільного місця немає або починається бій, вони залишаються стояти.",
     ["Browse every character model in the game and invite any of them, including characters without conversation support. They join as followers and do not talk."] = "Переглядай усі моделі персонажів у грі й запрошуй будь-яку з них, зокрема персонажів без підтримки розмов. Вони приєднуються як послідовники й не розмовляють.",
     ["Browse your characters, discover a game model, or manage your current party."] = "Переглядай своїх персонажів, відкривай моделі з гри або керуй поточною групою.",
     ["Browse {section}. {query}"] = "Перегляд: {section}. {query}",
