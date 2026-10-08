@@ -27,6 +27,7 @@ import {NearbyWarm} from './nearby-warm.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-routing-log.mjs';
+import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, speechPhrases} from './natural-speech.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
 import {resolveVoiceConfigPaths} from './voice-config-paths.mjs';
@@ -36,6 +37,7 @@ import {VoicePreviewLease} from './voice-preview.mjs';
 import {PhoneChat, parsePhoneState, phoneRecentConversationContext} from './phone-chat.mjs';
 import {GameLaunchIdentity, identifyGameLaunch} from './game-launch.mjs';
 import {PlayerMemory} from './player-memory.mjs';
+import {VendorMemory, vendorMemoryKey} from './vendor-memory.mjs';
 import {PlayerMemoryApi} from './player-memory-api.mjs';
 import {PlayerMemoryControl} from './player-memory-control.mjs';
 import {SupportReportControl} from './support-report.mjs';
@@ -138,6 +140,9 @@ const worldCurrent = boundary => {
   const current = currentBoundary();
   return !!current && current.worldToken === boundary.worldToken && current.generation === boundary.generation;
 };
+// Vendor memory (docs/PLAYER_MEMORY.md): a returning one-shop vendor remembers V. Local and bounded; no provider ID or call.
+const vendorMemory = await VendorMemory.open({path: resolve(stateDirectory, 'vendor-memory.json'),
+  onWarning: message => console.error('[CyberpunkConvai] Vendor memory: ' + message)});
 let playerMemory;
 const memoryProvider = new PlayerMemoryApi({key, characterIds: relationshipRoutes.providerIds, markerKeys: relationshipRoutes.markerKeys,
   historicalPairAllowed: ({profileKey, characterId}) => playerMemory?.hasContactedProviderPair(profileKey, characterId) === true});
@@ -162,9 +167,14 @@ function rememberKnowledgeTurn(prepared) {
   knowledgeTurns.set(requestId, {prepared, createdAt: Date.now()});
   for (const [id, item] of knowledgeTurns) if (Date.now() - item.createdAt > 180000 || knowledgeTurns.size > 64) knowledgeTurns.delete(id);
 }
-function stagedKnowledgeTurn(prepared) {
+// exchange: {replyText?, userText?}, what vendor memory stores once the game confirms the reply was heard.
+function noteKnowledgeTurn(prepared, exchange) {
+  const entry = prepared && knowledgeTurns.get(prepared.input.requestId || prepared.input.id);
+  if (entry?.prepared === prepared && exchange) entry.exchange = {...entry.exchange, ...Object.fromEntries(Object.entries(exchange).filter(([, value]) => value !== undefined))};
+}
+function stagedKnowledgeTurn(prepared, exchange) {
   const entry = knowledgeTurns.get(prepared.input.requestId || prepared.input.id);
-  if (entry?.prepared === prepared) entry.generated = true;
+  if (entry?.prepared === prepared) { entry.generated = true; noteKnowledgeTurn(prepared, exchange); }
 }
 async function cancelKnowledgeTurn(prepared) {
   if (!prepared) return;
@@ -326,6 +336,22 @@ function logVoiceRoute(input, profile, reply, extra = {}) {
       sources: voiceSources, voiceKey, ...extra}));
   } catch {}
 }
+// The local voice that speaks this turn: an ambient profile (unnamed NPC) may have several (bridge/voice-variants.mjs),
+// chosen from the NPC's stable identity. Decided once per turn (the same turn's phrases, look-ahead and prefetch agree)
+// and only when it is spoken; routing, readiness and the provider keep using the BASE profile key.
+const turnVoiceKeys = new Map();
+function voiceKeyFor(input) {
+  const profile = input.profileKey, id = input?.requestId || input?.id;
+  const cacheKey = id ? JSON.stringify([id, profile]) : null, provider = localVoice.provider;
+  const cached = cacheKey ? turnVoiceKeys.get(cacheKey) : undefined;
+  if (cached?.provider === provider) return cached.key;
+  const key = localVoice.voiceKeyFor?.(profile, variantSeed(input)) ?? profile;
+  if (cacheKey) {
+    turnVoiceKeys.set(cacheKey, {provider, key});
+    while (turnVoiceKeys.size > 64) turnVoiceKeys.delete(turnVoiceKeys.keys().next().value);
+  }
+  return key;
+}
 // Warm connections are prepared before any text exists: they follow the language of the last exchange.
 const warmUsesConvaiVoice = profile => localVoice.playbackEnabled !== false && planTurnVoice({enabled: multilingual.enabled,
   language: multilingual.lastLanguage ?? 'en', local: localChoice(profile)}).engine === 'convai';
@@ -345,9 +371,14 @@ const expressiveEmotionsContext = input => {
   const engine = turnVoice(input).engine;
   return expressiveEmotions.contextFor({engine, spoken: !phone && localVoice.playbackEnabled !== false});
 };
+// A returning shopkeeper's memory of V (bridge/vendor-memory.mjs): only private text/voice turns of a one-shop vendor.
+const vendorMemoryContext = prepared => {
+  const key = vendorMemoryKey(prepared);
+  return key ? vendorMemory.contextFor({memoryKey: key, profileKey: prepared.route.profileKey}) : '';
+};
 const conversationContext = input => {
   const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
-  return [intrinsicConversationContext(input), archetypeContext(input),
+  return [intrinsicConversationContext(input), archetypeContext(input), admitted ? vendorMemoryContext(prepared) : '',
     admitted ? relationshipContext(prepared.relationship, prepared.route.channel,
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : '',
@@ -567,6 +598,7 @@ async function synthesizeReply(input, result, signal, current, profile = profile
       audioError: 'The selected voice speaks English only; showing the written reply.'};
   }
   const omni = voice.engine === 'omni', language = voice.language && voice.language !== 'en' ? voice.language : undefined;
+  const voiceKey = voiceKeyFor(input);
   throwIfCancelled(signal);
   // Text-only Convai turns carry no emotion (live probe): derive a cue from
   // this reply's own text (lexicon, then tone, then the character's resting
@@ -613,15 +645,15 @@ async function synthesizeReply(input, result, signal, current, profile = profile
       const phrases=splitSpeechText(result.text),steps=localVoice.steps;
       // Voice tags (Natural speech) go to OmniVoice only, where the model wrote them; subtitles keep the clean phrase.
       const voiced=(naturalSpeech.enabled?speechPhrases(phrases,result.speechText,OMNI_TAGS):undefined)??phrases;
-      const first=synthesizeOmniPhrase(input.profileKey,voiced[0],{signal,steps,language});
+      const first=synthesizeOmniPhrase(voiceKey,voiced[0],{signal,steps,language});
       // Queue phrase 2 behind phrase 1 now: the GPU renders it while phrase 1's
       // lip analysis, storage and publication run, instead of after them.
       let second;
-      if(phrases.length>1){second=synthesizeOmniPhrase(input.profileKey,voiced[1],{signal:lookahead.signal,steps,language});second.catch(()=>{});}
+      if(phrases.length>1){second=synthesizeOmniPhrase(voiceKey,voiced[1],{signal:lookahead.signal,steps,language});second.catch(()=>{});}
       const generated=await first;
       logVoiceRoute(input, profile, voice, {lipText: !!generated.timing?.lipText});
       return {...result,...generated,text:result.text,timing:{...result.timing,...generated.timing},
-        streamPlan:phrases.length>1?{phrases,speech:voiced,steps,language,lookahead:{promise:second,cancel:cancelLookahead},
+        streamPlan:phrases.length>1?{phrases,speech:voiced,steps,language,voiceKey,lookahead:{promise:second,cancel:cancelLookahead},
           expressionPlan:result.expressionPlan,spans}:undefined};
     }catch(error){
       cancelLookahead();
@@ -642,7 +674,7 @@ async function synthesizeReply(input, result, signal, current, profile = profile
     // Synthesize now, into memory (the one renderer page may still be draining
     // the previous speaker); the whole text is still sent to Pocket once.
     // Pocket's worker is FIFO, so this runs right after the prior speaker's job.
-    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => localVoice.synthesizeStream(profile.key, result.text, {...options, onPcm})});
+    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => localVoice.synthesizeStream(voiceKey, result.text, {...options, onPcm})});
     prefetched.start().then(() => ahead.markReady(), () => {});
     try {
       await ahead.waitClaimed(signal);
@@ -650,7 +682,7 @@ async function synthesizeReply(input, result, signal, current, profile = profile
       await waitUntil(() => !realtime.localPcmBusy, {signal, timeoutMs: 3000});
     } catch (error) { prefetched.discard(); throw error; }
   }
-  return deliverPocketSpeech({input, profile, result, current, signal, voice: localVoice, host: realtime, speech,
+  return deliverPocketSpeech({input, profile, voiceKey, result, current, signal, voice: localVoice, host: realtime, speech,
     phoneAnalysis:localVoice.phoneAnalysis,jaliFace,prefetched,
     onAnalysis: timing => measure(input, {localLipAnalysis: timing})});
 }
@@ -687,7 +719,10 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     // may be prepared from that text.
     hold: () => ahead?.isHeld() === true,
     onHeld: (bufferedSeconds, textComplete) => { if (bufferedSeconds >= 0.4 && textComplete) ahead?.markReady(); },
-    onText: (text, userText) => lookahead.setSource({input, text, userText, current: current.sourceValid || current}),
+    onText: (text, userText) => {
+      if (typeof userText === 'string') noteKnowledgeTurn(receiptPrepared, {userText});
+      lookahead.setSource({input, text, userText, current: current.sourceValid || current});
+    },
     readControl: () => readFile(resolve(runtime, 'continuous-control.json'), 'utf8'),
     writeState: value => atomic(resolve(runtime, 'continuous-speech.json'), JSON.stringify(value), options),
     writeReply: value => atomic(replyPath, JSON.stringify(value), options),
@@ -699,7 +734,7 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
       // turn, shared by every channel of this conversation.
       if (!receiptPrepared || !await current()) throw Error('Conversation receipt owner changed');
       await knowledgeRouter.activity(receiptPrepared, 'generated-reply', {replyText: text});
-      stagedKnowledgeTurn(receiptPrepared);
+      stagedKnowledgeTurn(receiptPrepared, {replyText: text});
     },
   });
   // Poll the buffered turn at once when the game submits it.
@@ -770,7 +805,7 @@ async function publishResult(input, profile, result, current = async () => true,
       if(result.streamPlan){
         stream=new SpeechStream({input,...result.streamPlan,slots,readState:readSpeechState,current,signal,
           writeManifest:document=>writeStreamManifest(document,current),
-          synthesize:(text,options)=>synthesizeOmniPhrase(profile.key,text,{...options,language:result.streamPlan.language})});
+          synthesize:(text,options)=>synthesizeOmniPhrase(result.streamPlan.voiceKey??profile.key,text,{...options,language:result.streamPlan.language})});
         const first=await stream.begin(result);audio=first.audio;face=first.face;
       }else{
         const id=randomUUID();await slots.begin(id,current);audio=await slots.write(id,1,result.audio,current);
@@ -860,7 +895,7 @@ const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
         generated: speech.generated, id: speech.token}} : {})}, signal, current, profileFor(input, roster), prepared);
     if (!spoken.liveDelivery?.generated) {
       await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
-      stagedKnowledgeTurn(prepared);
+      stagedKnowledgeTurn(prepared, {replyText: result.text, userText: result.userText});
     }
     await publishResult(input, profileFor(input, roster), spoken, current, signal);
     microphoneSpeech.delete(input.requestId);
@@ -900,12 +935,15 @@ async function resetLiveRoutes({cancelTurns = true} = {}) {
   partyObserved = ''; prewarmObserved = ''; prefetchObserved = '';
 }
 
-async function quiescePlayerMemory({signal} = {}) {
+async function quiescePlayerMemory({signal, scope} = {}) {
   throwIfCancelled(signal);
   memoryQuiescing++;
   try {
     await resetLiveRoutes();
     throwIfCancelled(signal);
+    // Forget all memories also forgets what shopkeepers remember of V. PlayerMemory has already persisted the reset
+    // epoch and fenced every character, so a turn begun earlier can no longer write; a failed removal fails the clear.
+    if (scope === 'all' && (await vendorMemory.forgetAll()).ok !== true) throw Error('Vendor memory could not be cleared');
     return {quiesced: true};
   } finally { memoryQuiescing--; }
 }
@@ -1181,7 +1219,7 @@ async function processInput(request, prepared) {
     if (!await current()) return;
     if (!result.liveDelivery?.generated) {
       await knowledgeRouter.activity(knowledgeTurn, 'generated-reply', {replyText: result.text});
-      stagedKnowledgeTurn(knowledgeTurn);
+      stagedKnowledgeTurn(knowledgeTurn, {replyText: result.text});
     }
     await measure(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
     await publishResult(input, profile, result, current, controller.signal);
@@ -1303,6 +1341,19 @@ async function pollLookahead() {
 
 const deliveredReceipts = new Set();
 const pendingDeliveryReceipts = new Map();
+// After a reply is confirmed heard: a one-shop vendor remembers the exchange. Never throws into delivery bookkeeping.
+async function rememberVendorTurn(entry) {
+  if (!entry.exchange?.replyText) return;
+  try {
+    const prepared = entry.prepared, key = vendorMemoryKey(prepared);
+    if (!key) return;
+    // A microphone turn is remembered by its recognized words only, never by the "[Microphone]" placeholder.
+    const spoken = prepared.route.transport === 'microphone' || prepared.input.source === 'microphone';
+    await vendorMemory.remember({memoryKey: key, profileKey: prepared.route.profileKey,
+      playerText: spoken ? entry.exchange.userText : prepared.input.text, replyText: entry.exchange.replyText,
+      isCurrent: () => !stopped && !memoryQuiescing && knowledgeRouter.currentSync(prepared)});
+  } catch { /* Memory is a convenience; the conversation never depends on it. */ }
+}
 async function recordDelivery(receipt) {
   if (!receipt || receipt.version !== 1 || typeof receipt.requestId !== 'string') return;
   const entry = knowledgeTurns.get(receipt.requestId);
@@ -1327,6 +1378,7 @@ async function recordDelivery(receipt) {
     entry.delivered = true;
     deliveredReceipts.add(id);
     while (deliveredReceipts.size > 128) deliveredReceipts.delete(deliveredReceipts.values().next().value);
+    await rememberVendorTurn(entry);
   })();
   pendingDeliveryReceipts.set(id, task);
   try { return await task; }
@@ -1465,6 +1517,7 @@ async function shutdown() {
   await relationshipRouteSync.catch(() => {});
   await Promise.allSettled([localVoice.close(), mic.cancel(), connections.clear()]);
   await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
+  await vendorMemory.idle().catch(() => {});
   await memoryControl.close(); await playerMemory.close();
   await Promise.allSettled([metricsWriting, connectionMetricsWriting, voiceMetricsWriting]);
   await status('stopped'); process.exit(0);
