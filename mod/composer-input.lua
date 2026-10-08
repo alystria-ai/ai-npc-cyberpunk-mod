@@ -131,6 +131,30 @@ local BACKDROP = {'Shadow', 'bg1', 'fader'}
 -- idle frames never traverse native controllers.
 local BACKDROP_RECHECK = {20, 60}
 
+-- The stock layout puts the dialog 600/2160 from the top (about dead centre).
+-- Dock it as a chat bar instead: horizontally centred, its bottom edge a fixed
+-- fraction of the live root height above the bottom, so the box sits roughly
+-- 70-80% of the way down and clear of the bottom HUD and corner icons. Anchoring
+-- to the bottom makes this independent of the dialog's own height; every figure
+-- derives from the root's current size, never from fixed pixels.
+local BOTTOM_GAP = 0.14
+local REFERENCE_HEIGHT = 2160
+
+function M.placeDialog(controller)
+    local root = controller:GetRootWidget()
+    local dialog = find(root, 'notification', 1, {left = 48})
+    if not dialog or dialog == root then return false end
+    local height = REFERENCE_HEIGHT
+    local ok, y = pcall(function() return tonumber(root:GetSize().Y) end)
+    if ok and y and y >= 360 and y <= 8640 then height = y end
+    local gap = math.floor(height * BOTTOM_GAP + 0.5)
+    dialog:SetAnchor(inkEAnchor.BottomCenter)
+    dialog:SetAnchorPoint(Vector2.new({X = 0.5, Y = 1.0}))
+    dialog:SetMargin(inkMargin.new({left = 0, top = 0, right = 0, bottom = gap}))
+    M.lastPlacement = {height = height, gap = gap}
+    return true
+end
+
 function M.clearBackdrop(controller)
     local root = controller:GetRootWidget()
     local hidden = 0
@@ -159,6 +183,8 @@ function M.apply(controller)
         or data.message ~= 'Type your message to the character.' then return end
     local backdropOk, backdropErr = pcall(M.clearBackdrop, controller)
     if not backdropOk then M.lastBackdropError = tostring(backdropErr) end
+    local placeOk, placeErr = pcall(M.placeDialog, controller)
+    if not placeOk then M.lastPlacementError = tostring(placeErr) end
     -- The native layer can finish its own show sequence after OnInitialize; keep
     -- re-asserting twice from update() (see below).
     M.backdropAge = 0
@@ -251,7 +277,9 @@ function M.update()
         for _, frame in ipairs(BACKDROP_RECHECK) do
             if age == frame then
                 local ok, err = pcall(eachNotification, function(controller)
-                    if ownedData(controller) then M.clearBackdrop(controller) end
+                    if ownedData(controller) then
+                        M.clearBackdrop(controller); pcall(M.placeDialog, controller)
+                    end
                 end)
                 if not ok then M.lastBackdropError = tostring(err) end
             end

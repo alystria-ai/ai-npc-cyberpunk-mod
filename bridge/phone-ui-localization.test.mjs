@@ -278,6 +278,35 @@ shadow:SetVisible(true);m.update()
 assert(shadow.visible and scans==2)
 `));
 
+test('world composer docks the dialog as a bottom chat bar from the live root height', () => runLua(setup + `
+local m=(function()${composer}end)()
+inkEAnchor={BottomCenter='BottomCenter'}
+function Vector2.new(v)return v end
+local data={title='TALK TO Judy',message='Type your message to the character.'}
+local n,c=notification(data)
+local root=n:GetRootWidget()
+local dialog=widget('notification');dialog:Reparent(root)
+function dialog:SetAnchor(v)self.anchor=v end
+function dialog:SetAnchorPoint(v)self.anchorPoint=v end
+local inner=widget('notification');inner:Reparent(dialog)
+for _,height in ipairs({1080,1440,2160,2880})do
+  root.size={X=height*16/9,Y=height}
+  function root:GetSize()return self.size end
+  m.apply(n)
+  assert(dialog.anchor=='BottomCenter' and dialog.anchorPoint.X==.5 and dialog.anchorPoint.Y==1)
+  local gap=dialog.margin.bottom
+  assert(math.abs(gap/height-.14)<.001 and dialog.margin.top==0 and dialog.margin.left==0,gap)
+  assert(m.lastPlacement.height==height)
+end
+assert(inner.anchor==nil and inner.margin==nil,'only the dialog root is re-anchored')
+-- An ultrawide root changes width only; the vertical placement stays proportional.
+root.size={X=5120,Y=1440};m.apply(n);assert(dialog.margin.bottom==202)
+-- An unreadable size falls back to the 2160 reference instead of failing.
+function root:GetSize()error('no size')end
+m.apply(n);assert(dialog.margin.bottom==302 and m.lastPlacementError==nil,m.lastPlacementError)
+assert(c.draft=='Hey Judy, mixed Case 日本語' and not c.focusChanged)
+`));
+
 test('world composer backdrop handling skips unrelated notifications and survives a missing blur API', () => runLua(setup + `
 local m=(function()${composer}end)()
 local n=notification({title='Other mod',message='Type your message to the character.'})
