@@ -7,11 +7,19 @@
 //     (subtitles, phone chat, memory, history) and from the text of every engine that cannot render them;
 //   - a short note of what the previous reply already used is added, so the model does not repeat a device.
 // Pure functions plus one small state holder: no I/O, so it can be tested without the bridge.
+import {talkLine} from './natural-speech-talk.mjs';
 
 // The non-verbal tags OmniVoice renders in English (vendor/reference-omnivoice-training/omnivoice/models/omnivoice.py,
 // _NONVERBAL_PATTERN). The listening test found them natural; the other tags in the pattern are for other languages.
-export const OMNI_TAGS = Object.freeze(['laughter', 'sigh', 'confirmation-en', 'question-en',
+export const OMNI_TAGS = Object.freeze(['laughter', 'sigh', 'confirmation-en', 'question-en', 'question-ah', 'question-oh',
   'surprise-ah', 'surprise-oh', 'dissatisfaction-hnn']);
+// Four more OmniVoice tags are interjections of Chinese and Japanese (wa, yo, ei, yi). They are offered, and voiced, only on
+// a turn whose reply language is Chinese or Japanese (Multilingual conversations); on any other turn they are treated like
+// an unknown tag: removed from the display text and never voiced.
+export const CJK_TAGS = Object.freeze(['surprise-wa', 'surprise-yo', 'question-ei', 'question-yi']);
+export const CJK_LANGUAGES = Object.freeze(['zh', 'ja']);
+/** The tags OmniVoice may voice for a reply in `language` (ISO 639-1; undefined or 'en' is English). */
+export const omniTagsFor = language => CJK_LANGUAGES.includes(language) ? [...OMNI_TAGS, ...CJK_TAGS] : OMNI_TAGS;
 // More than this in one reply is a runaway; the rest are not voiced (they never reach the display text anyway).
 export const MAX_VOICED_TAGS = 2;
 
@@ -133,6 +141,9 @@ export function speechPhrases(phrases, raw, allowed = OMNI_TAGS, limit = MAX_VOI
   return any ? result : undefined;
 }
 
+/** True when a voice tag sits INSIDE a word ("Wel[sigh]l"): letters directly on both sides. A tag is always its own word. */
+export const splitsWord = text => typeof text === 'string' && /\p{L}\[[a-z]+(?:-[a-z]+)*\]\p{L}/iu.test(text);
+
 // ---- What a reply used, so the next one can avoid repeating it ----------------------------------------------
 
 const FILLER = /(?:^|[\s.,;:!?—-])(?:h+m+|m+h*m+|u+h+|u+m+|erm?|i mean)(?=$|[\s.,;:!?—…-])/i;
@@ -169,19 +180,48 @@ const CHOOSE = 'Choose by who you are. From your own profile and sample dialogue
 // and which one fits.
 const CHOOSE_SHORT = 'Choose by who you are: a fluent, confident speaker rarely pauses like this, a hesitant, warm or '
   + 'emotional one more. When in doubt, use none.';
-const WHERE = 'Put it where the feeling lands (after a joke, where you trail off, in the middle of a sentence) and vary '
-  + 'where; do not make it a habit to open a reply with one, only do that when the reply itself is the reaction.';
+const WHERE = 'Put it where a real person would make that sound, and vary where from reply to reply: sometimes before a '
+  + 'sentence, sometimes right after one ends, and quite often in the middle of a sentence at a natural break (after a '
+  + 'comma, between two clauses, before "but" or "and"), for example "I told him no, [laughter] and he still showed up." '
+  + 'Do not always put it between two sentences. Never split a tight phrase, such as between an adjective and its noun, '
+  + 'inside a name, or between a verb and its object. Put it where the feeling lands; do not make it a habit to open a reply '
+  + 'with one, only do that when the reply itself is the reaction. Vary what you reach for as well: not every touch is a '
+  + 'trailing "..."; a sound, a dash, a hesitation or a plain reply are all natural, and never more than one "..." in a reply.';
 
-const OMNI_TEXT = 'Natural speech is on, and this reply is a moment where ONE human touch may fit. Your voice engine is '
+// The OmniVoice block, built from parts so the per-character line and the Chinese/Japanese sounds can be added on the
+// turns they apply to (and only those): tags, [CJK tags], pauses, [how this character talks], the rules.
+// Where a sound goes is decided per offered turn by the dice, like the rate: asked only to "vary where", the model put every
+// sound between two sentences (0 of 17 in the middle of a sentence, docs/NATURAL_SPEECH_BLOCK_V3.md). The model still
+// decides whether a sound fits and which; if the chosen spot does not suit the reply it takes the nearest that does.
+export const PLACES = Object.freeze({
+  mid: 'in the middle of a sentence, at a natural break (after a comma, between two clauses, before "but" or "and")',
+  between: 'between two sentences, right after one ends',
+  end: 'right after the last sentence of the reply',
+  start: 'before the first sentence of the reply, as a reaction',
+});
+const PLACE_WEIGHTS = Object.freeze({mid: .4, between: .35, end: .15, start: .1});
+const pickPlace = random => {
+  let roll = random(), last = 'mid';
+  for (const [place, weight] of Object.entries(PLACE_WEIGHTS)) { last = place; if ((roll -= weight) < 0) return place; }
+  return last;
+};
+const placeText = place => PLACES[place] ? `For this reply, if you use a sound, place it exactly here: ${PLACES[place]}. Write the sentence so the sound sits there naturally.` : '';
+const OMNI_TAGS_TEXT = 'Natural speech is on, and this reply is a moment where ONE human touch may fit. Your voice engine is '
   + 'OmniVoice, which can voice a few non-verbal sounds written as tags: [laughter], [sigh], [confirmation-en] (a short '
-  + 'sound of agreement), [question-en] (a short questioning sound), [surprise-ah] and [surprise-oh] (short sounds of '
-  + 'surprise), and [dissatisfaction-hnn] (a displeased grunt). In plain words it can also voice a pause written as "..." '
-  + 'or " — ", and a spoken hesitation such as "hm", "uh" or "I mean" if that is how you would really talk. Use at most '
-  + 'one in this reply, only if this exact moment and this character would really produce it; if not, use none. Never '
-  + 'the same device as in your previous replies, and never on a predictable pattern. ' + WHERE + ' ' + CHOOSE
-  + ' Write a tag exactly as shown, in square brackets, as its own word. A tag is a voice sound, not a stage direction: '
-  + 'never use asterisks, parentheses or any other bracketed text, and never spell a laugh out as "haha" or "heh". Tags '
-  + 'are removed from the subtitles. Keep the same length and content you would give otherwise.';
+  + 'sound of agreement), [question-en] (a short questioning sound), [question-ah] and [question-oh] (a short, rising "ah?" '
+  + 'or "oh?" of doubt or curiosity), [surprise-ah] and [surprise-oh] (short sounds of surprise), and [dissatisfaction-hnn] '
+  + '(a displeased grunt).';
+const CJK_TAGS_TEXT = 'Because this reply is in Chinese or Japanese you also have [surprise-wa] (a "wa!" of surprise, like 哇 or わあ), '
+  + '[surprise-yo] (a "yo!" of surprise, like 哟), [question-ei] (an "ei?" of puzzlement, like 诶 or えっ) and [question-yi] '
+  + '(a "yi?" of puzzlement, like 咦). They are as natural in this language as the others, so reach for one of them when the '
+  + 'moment is a surprise or a puzzled question.';
+const OMNI_PAUSES_TEXT = 'In plain words it can also voice a pause written as "..." or " — ", and a spoken hesitation such as '
+  + '"hm", "uh" or "I mean" if that is how you would really talk.';
+const OMNI_RULES_TEXT = 'Use at most one in this reply, only if this exact moment and this character would really produce it; '
+  + 'if not, use none. Never the same device as in your previous replies, and never on a predictable pattern. ' + WHERE + ' '
+  + CHOOSE + ' Write a tag exactly as shown, in square brackets, as its own word. A tag is a voice sound, not a stage '
+  + 'direction: never use asterisks, parentheses or any other bracketed text, and never spell a laugh out as "haha" or "heh". '
+  + 'Tags are removed from the subtitles. Keep the same length and content you would give otherwise.';
 
 const POCKET_TEXT = 'Natural speech is on, and this reply is a moment where ONE natural pause may fit. Your voice engine is '
   + 'Pocket TTS, which cannot voice laughs, sighs or other sounds and would read any bracketed tag or spelled-out sound '
@@ -202,14 +242,25 @@ export const OFFER_RATE = Object.freeze({warm: .6, neutral: .5, dry: .35, cold: 
 // A warm or neutral character is offered the devices at least once in any PITY_TURNS spoken turns, so a short chat
 // always shows the effect (a dry or cold character stays rare on purpose).
 export const PITY_TURNS = 4;
+// A few characters sit away from what their trait alone gives (measured with scripts/Probe-NaturalSpeech.mjs, 40 lines each).
+// An entry here replaces the trait's rate for that profile only; the pity counter still follows the trait.
+export const OFFER_RATE_BY_PROFILE = Object.freeze({'judy-alvarez': .5, 'panam-palmer': .35, 'johnny-silverhand': .42});
+const offerRate = (trait, profile) => OFFER_RATE_BY_PROFILE[profile] ?? OFFER_RATE[trait] ?? OFFER_RATE.neutral;
 const PITY_TRAITS = Object.freeze(['warm', 'neutral']);
-const VOICED_SOUNDS = Object.freeze(OMNI_TAGS);
+const VOICED_SOUNDS = Object.freeze([...OMNI_TAGS, ...CJK_TAGS]);
 
-/** The per-turn block for the current voice engine ('omni' or 'pocket'); '' for any other engine. */
-export function naturalSpeechContext({engine, recent = []} = {}) {
-  const base = engine === 'omni' ? OMNI_TEXT : engine === 'pocket' ? POCKET_TEXT : '';
+/**
+ * The per-turn block for the current voice engine ('omni' or 'pocket'); '' for any other engine.
+ * `profile`/`name`/`trait` add the character's own "how they talk" line (OmniVoice only); `language` adds the Chinese and
+ * Japanese sounds for a reply in one of those languages. Without them the text is the plain English block.
+ */
+export function naturalSpeechContext({engine, recent = [], profile, name, trait, language, place} = {}) {
+  const cjk = engine === 'omni' && CJK_LANGUAGES.includes(language);
+  const base = engine === 'omni'
+    ? [OMNI_TAGS_TEXT, cjk ? CJK_TAGS_TEXT : '', OMNI_PAUSES_TEXT, talkLine({profile, name, trait}), OMNI_RULES_TEXT, placeText(place)].filter(Boolean).join(' ')
+    : engine === 'pocket' ? POCKET_TEXT : '';
   if (!base) return '';
-  const offered = engine === 'omni' ? [...OMNI_TAGS, 'ellipsis', 'dash', 'filler'] : ['ellipsis', 'dash'];
+  const offered = engine === 'omni' ? [...omniTagsFor(cjk ? language : undefined), 'ellipsis', 'dash', 'filler'] : ['ellipsis', 'dash'];
   const used = recent.filter(id => offered.includes(id));
   return used.length
     ? `${base} Your previous reply already used ${used.map(deviceName).join(', ')}: do not use ${used.length > 1 ? 'those' : 'it'} in this reply.`
@@ -236,10 +287,11 @@ export class NaturalSpeech {
    * (OFFER_RATE[trait]); see `offers` for what blocks an offer. The decision is made once per `turn` (the request id),
    * so a rebuilt context agrees with the one already sent. `random` is injectable for tests.
    */
-  contextFor({engine, sessionId, spoken = true, turn, trait = 'neutral', random = Math.random} = {}) {
+  contextFor({engine, sessionId, spoken = true, turn, trait = 'neutral', profile, name, language, random = Math.random} = {}) {
     if (!this.enabled || !spoken || (engine !== 'omni' && engine !== 'pocket')) return '';
-    if (!this.offers(turn, trait, sessionId, random).offered) return '';
-    return naturalSpeechContext({engine, recent: this.last.get(sessionId) ?? []});
+    const decision = this.offers(turn, trait, sessionId, random, profile);
+    if (!decision.offered) return '';
+    return naturalSpeechContext({engine, recent: this.last.get(sessionId) ?? [], profile, name, trait, language, place: decision.place});
   }
   /**
    * Whether this turn is one where the devices are offered, as {offered, reason}. The reason is 'rate' (the dice),
@@ -249,7 +301,7 @@ export class NaturalSpeech {
    * PITY_TURNS-th spoken turn without one (it outranks the sound-tag block, not the offered-turn block, which cannot
    * coincide with it).
    */
-  offers(turn, trait, sessionId, random = Math.random) {
+  offers(turn, trait, sessionId, random = Math.random, profile) {
     if (turn !== undefined && this.decisions.has(turn)) return this.decisions.get(turn);
     const state = this.offerState.get(sessionId) ?? {offeredLast: false, tagLast: false, since: 0};
     const pity = PITY_TRAITS.includes(trait) && state.since >= PITY_TURNS - 1;
@@ -257,7 +309,8 @@ export class NaturalSpeech {
     if (state.offeredLast) decision = {offered: false, reason: 'after-device'};
     else if (pity) decision = {offered: true, reason: 'pity'};
     else if (state.tagLast) decision = {offered: false, reason: 'after-device'};
-    else decision = random() < (OFFER_RATE[trait] ?? OFFER_RATE.neutral) ? {offered: true, reason: 'rate'} : {offered: false, reason: 'rate'};
+    else decision = random() < offerRate(trait, profile) ? {offered: true, reason: 'rate'} : {offered: false, reason: 'rate'};
+    if (decision.offered) decision = {...decision, place: pickPlace(random)};
     if (typeof sessionId === 'string' && sessionId) {
       this.offerState.delete(sessionId);
       this.offerState.set(sessionId, {...state, offeredLast: decision.offered, since: decision.offered ? 0 : state.since + 1});

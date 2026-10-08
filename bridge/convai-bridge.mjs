@@ -29,7 +29,7 @@ import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-routing-log.mjs';
 import {variantSeed} from './voice-variants.mjs';
-import {NaturalSpeech, OMNI_TAGS, speechPhrases} from './natural-speech.mjs';
+import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
 import {resolveVoiceConfigPaths} from './voice-config-paths.mjs';
@@ -380,7 +380,8 @@ const naturalSpeechContext = input => {
   const spoken = !phone && !input.reaction && localVoice.playbackEnabled !== false;
   const engine = turnVoice(input).engine;
   const block = naturalSpeech.contextFor({engine, spoken, sessionId: realtimeSessions.get(sessionKey(input)),
-    turn: input?.requestId || input?.id, trait: traitFor(input.profileKey)});
+    turn: input?.requestId || input?.id, trait: traitFor(input.profileKey), profile: input.profileKey,
+    name: profileFor(input, roster)?.name, language: turnVoice(input).language});
   const id = input?.requestId || input?.id;
   if (id) {
     naturalSpeechBlocks.set(id, block !== '');
@@ -732,7 +733,7 @@ async function synthesizeReply(input, result, signal, current, profile = profile
     try{
       const phrases=splitSpeechText(result.text),steps=localVoice.steps;
       // Voice tags (Natural speech) go to OmniVoice only, where the model wrote them; subtitles keep the clean phrase.
-      const voiced=(naturalSpeech.enabled?speechPhrases(phrases,result.speechText,OMNI_TAGS):undefined)??phrases;
+      const voiced=(naturalSpeech.enabled?speechPhrases(phrases,result.speechText,omniTagsFor(language)):undefined)??phrases;
       const first=synthesizeOmniPhrase(voiceKey,voiced[0],{signal,steps,language});
       // Queue phrase 2 behind phrase 1 now: the GPU renders it while phrase 1's
       // lip analysis, storage and publication run, instead of after them.

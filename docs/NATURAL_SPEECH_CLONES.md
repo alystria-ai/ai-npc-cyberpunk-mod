@@ -14,6 +14,9 @@ Two rounds:
 
 Round 2 is the current answer; round 1 follows below it as history.
 
+**Follow-up (2026-10-08):** the improved block is built and measured, see `docs/NATURAL_SPEECH_BLOCK_V3.md` (per-character "how they talk" line,
+per-turn spot for the sound, `[question-ah]`/`[question-oh]`, Chinese/Japanese sounds, per-profile rates). No clones.
+
 ## Current recommendation (after round 2)
 
 **Improve the current dynamic block; do not build clones.**

@@ -2,8 +2,9 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
 import {readFileSync} from 'node:fs';
-import {NaturalSpeech, OMNI_TAGS, OFFER_RATE, MAX_VOICED_TAGS, naturalSpeechContext, stripSpeechTags, keepSpeechTags, displayText,
+import {NaturalSpeech, OMNI_TAGS, CJK_TAGS, PLACES, omniTagsFor, splitsWord, OFFER_RATE, OFFER_RATE_BY_PROFILE, MAX_VOICED_TAGS, naturalSpeechContext, stripSpeechTags, keepSpeechTags, displayText,
   hasSpeechTags, parseTagged, speechPhrases, devicesUsed, PITY_TURNS} from './natural-speech.mjs';
+import {talkLine} from './natural-speech-talk.mjs';
 import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
 import {silentWav} from './speech-audio.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
@@ -48,6 +49,8 @@ test('the OmniVoice block lists its tags and pauses and tells the character to c
   // The model chooses: at most one, only if it fits, never a pattern, never repeated, by personality, even with no samples.
   for (const phrase of ['ONE human touch may fit', 'at most one in this reply', 'if not, use none', 'predictable pattern',
     'previous replies', 'where the feeling lands', 'do not make it a habit to open a reply with one',
+    'vary where from reply to reply', 'at a natural break',
+    'Never split a tight phrase', 'never more than one "..." in a reply',
     'who you are', 'personality', 'even if your sample dialogue contains no such sounds',
     'fluent, confident speaker rarely hesitates', 'cold, controlled or formal person rarely laughs',
     'When in doubt, use nothing', 'not a stage direction', 'removed from the subtitles']) assert.ok(text.includes(phrase), phrase);
@@ -86,7 +89,7 @@ test('contextFor gates on the setting, spoken turns and the engine, and remember
   const ask = (options = {}) => speech.contextFor({engine: 'omni', spoken: true, random: ALWAYS, ...options});
   assert.equal(speech.contextFor({engine: 'omni', spoken: false, random: ALWAYS}), '', 'phone chat, reactions and silent playback');
   assert.equal(speech.contextFor({engine: 'convai', spoken: true, random: ALWAYS}), '');
-  assert.equal(ask({sessionId: 'a'}), naturalSpeechContext({engine: 'omni'}));
+  assert.equal(ask({sessionId: 'a'}), naturalSpeechContext({engine: 'omni', place: 'mid'}));
   // Pocket (punctuation only) is offered the same way; never straight after an OFFERED turn.
   assert.equal(speech.contextFor({engine: 'pocket', spoken: true, sessionId: 'q', random: ALWAYS}), naturalSpeechContext({engine: 'pocket'}));
   assert.equal(speech.contextFor({engine: 'pocket', spoken: true, sessionId: 'q', random: ALWAYS}), '', 'straight after an offered turn');
@@ -94,9 +97,9 @@ test('contextFor gates on the setting, spoken turns and the engine, and remember
   // A voiced sound tag in the last reply blocks the next offer; so does the offer itself ('a' was just offered).
   speech.process({text: 'Heh [laughter] well... fine.', sessionID: 'a'});
   assert.equal(ask({sessionId: 'a'}), '');
-  assert.equal(ask({sessionId: 'b'}), naturalSpeechContext({engine: 'omni'}), 'another conversation is unaffected');
+  assert.equal(ask({sessionId: 'b'}), naturalSpeechContext({engine: 'omni', place: 'mid'}), 'another conversation is unaffected');
   speech.process({text: 'A plain reply.', sessionID: 'a'});
-  assert.equal(ask({sessionId: 'a'}), naturalSpeechContext({engine: 'omni'}));
+  assert.equal(ask({sessionId: 'a'}), naturalSpeechContext({engine: 'omni', place: 'mid'}));
   for (let n = 0; n < 100; n++) speech.record(`s${n}`, 'Hm.');
   assert.ok(speech.last.size <= 64, 'bounded');
   for (let n = 0; n < 100; n++) ask({sessionId: `t${n}`});
@@ -409,12 +412,13 @@ test('Pocket never receives a tag, even one that slipped through, and OmniVoice 
 
 test('the bridge wires Natural speech through the context, the reply transform, Omni synthesis and the settings poll', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(bridge, /import \{NaturalSpeech, OMNI_TAGS, speechPhrases\} from '\.\/natural-speech\.mjs'/);
+  assert.match(bridge, /import \{NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases\} from '\.\/natural-speech\.mjs'/);
   assert.match(bridge, /const cleanReply = result => expressiveEmotions\.process\(naturalSpeech\.process\(result\)\)/);
   assert.equal(bridge.match(/transformReply: cleanReply/g).length, 2, 'text hosts: conversation and phone');
   // The block is the last piece of the conversation context and is gated on the committed voice, never on Convai.
   assert.match(bridge, /naturalSpeechContext\(input\), expressiveEmotionsContext\(input\),/);
-  assert.match(bridge, /turn: input\?\.requestId \|\| input\?\.id, trait: traitFor\(input\.profileKey\)/);
+  assert.match(bridge, /turn: input\?\.requestId \|\| input\?\.id, trait: traitFor\(input\.profileKey\), profile: input\.profileKey,/);
+  assert.match(bridge, /language: turnVoice\(input\)\.language\}\);/);
   assert.match(bridge, /logNaturalSpeech\(input, result\);/);
   assert.match(bridge, /\[NaturalSpeech\] profile=\$\{input\.profileKey\} engine=\$\{turnVoice\(input\)\.engine\} setting=/);
   // The engine is the turn's planned voice (bridge/multilingual.mjs): with Multilingual conversations off it is the
@@ -422,8 +426,151 @@ test('the bridge wires Natural speech through the context, the reply transform, 
   assert.match(bridge, /const engine = turnVoice\(input\)\.engine;/);
   assert.match(bridge, /const localChoice = profile => \(\{uses: localVoice\.usesProfile\(profile\), provider: localVoice\.provider\}\)/);
   assert.match(bridge, /input\.channel === 'phone' \|\| prepared\?\.route\?\.channel === 'phone'/);
-  assert.match(bridge, /naturalSpeech\.enabled\?speechPhrases\(phrases,result\.speechText,OMNI_TAGS\)/);
+  assert.match(bridge, /naturalSpeech\.enabled\?speechPhrases\(phrases,result\.speechText,omniTagsFor\(language\)\)/);
   assert.match(bridge, /naturalSpeech\.update\(settings\), emotionsChanged/);
   const subtitles = readFileSync(new URL('../mod/subtitles.lua', import.meta.url), 'utf8');
   assert.match(subtitles, /text:gsub\('%s\*%\[%a\[%a%-\]\*%\]', ''\)/);
+});
+
+
+// ---- block v3: the character's own habits, new tags, placement wording (docs/NATURAL_SPEECH_BLOCK_V3.md) -----------------
+
+test('the OmniVoice list has the two new English question sounds, and the Chinese/Japanese ones are separate', () => {
+  assert.ok(OMNI_TAGS.includes('question-ah') && OMNI_TAGS.includes('question-oh'));
+  assert.deepEqual([...CJK_TAGS].sort(), ['question-ei', 'question-yi', 'surprise-wa', 'surprise-yo']);
+  for (const tag of CJK_TAGS) assert.ok(!OMNI_TAGS.includes(tag), `${tag} is not an English tag`);
+  assert.equal(omniTagsFor(undefined), OMNI_TAGS);
+  assert.equal(omniTagsFor('en'), OMNI_TAGS);
+  assert.equal(omniTagsFor('es'), OMNI_TAGS);
+  for (const language of ['zh', 'ja']) assert.deepEqual(omniTagsFor(language), [...OMNI_TAGS, ...CJK_TAGS]);
+});
+
+test('the block names the Chinese and Japanese sounds only on a Chinese or Japanese turn, and Pocket never gets any tag', () => {
+  for (const language of [undefined, 'en', 'es', 'ko', 'fr']) {
+    const text = naturalSpeechContext({engine: 'omni', language});
+    for (const tag of CJK_TAGS) assert.ok(!text.includes(`[${tag}]`), `${language}: ${tag}`);
+    assert.ok(text.includes('[question-ah]') && text.includes('[question-oh]'), 'the English question sounds are always described');
+  }
+  for (const language of ['zh', 'ja']) {
+    const text = naturalSpeechContext({engine: 'omni', language});
+    for (const tag of [...OMNI_TAGS, ...CJK_TAGS]) assert.ok(text.includes(`[${tag}]`), `${language}: ${tag}`);
+    // The previous reply's CJK sound is remembered on those turns only.
+    assert.match(naturalSpeechContext({engine: 'omni', language, recent: ['surprise-wa']}), /already used \[surprise-wa\]/);
+  }
+  assert.ok(!/already used/.test(naturalSpeechContext({engine: 'omni', language: 'en', recent: ['surprise-wa']})));
+  for (const language of ['zh', 'ja', undefined]) {
+    const pocket = naturalSpeechContext({engine: 'pocket', language, profile: 'judy-alvarez', trait: 'warm'});
+    assert.deepEqual([...pocket.matchAll(/\[([a-z-]+)\]/g)].map(match => match[1]), ['laughter', 'sigh']);
+    assert.ok(!pocket.includes('How Judy talks'), 'the per-character line is OmniVoice only');
+  }
+});
+
+test('a Chinese or Japanese sound is voiced only on a Chinese or Japanese reply and is otherwise treated like an unknown tag', () => {
+  const raw = 'Yeah. [surprise-wa] Okay then, [question-ei] fine. [laughter]';
+  const display = stripSpeechTags(raw), phrases = splitSpeechText(display);
+  assert.equal(display, 'Yeah. Okay then, fine.', 'every display text drops them all');
+  assert.equal(keepSpeechTags(raw, omniTagsFor('en')), 'Yeah. Okay then, fine. [laughter]');
+  assert.equal(keepSpeechTags(raw, omniTagsFor('ja')), raw);
+  const voiced = language => speechPhrases(phrases, raw, omniTagsFor(language))?.join(' ');
+  assert.ok(!/surprise-wa|question-ei/.test(voiced('en')) && voiced('en').includes('[laughter]'));
+  assert.ok(!/surprise-wa|question-ei/.test(voiced('es')));
+  assert.match(voiced('ja'), /\[surprise-wa\]/);
+  assert.match(voiced('zh'), /\[surprise-wa\]/);
+  assert.equal(voiced('zh').match(/\[[a-z-]+\]/g).length, MAX_VOICED_TAGS, 'the runaway limit still applies');
+  // They count as voiced sounds: a reply with one blocks the next offer, like any other sound.
+  const speech = new NaturalSpeech();
+  speech.update({naturalSpeech: true});
+  speech.process({text: 'Wa! [surprise-wa] Really?', sessionID: 'cjk'});
+  assert.equal(speech.contextFor({engine: 'omni', spoken: true, sessionId: 'cjk', trait: 'dry', random: ALWAYS, language: 'ja'}), '');
+});
+
+test('the placement wording lets a sound sit wherever a real person would make it, varied, but never inside a tight phrase', () => {
+  const text = naturalSpeechContext({engine: 'omni'});
+  for (const phrase of ['vary where from reply to reply', 'sometimes before a sentence, sometimes right after one ends',
+    'in the middle of a sentence at a natural break (after a comma, between two clauses, before "but" or "and")',
+    'Do not always put it between two sentences', 'Never split a tight phrase',
+    'between an adjective and its noun, inside a name, or between a verb and its object']) assert.ok(text.includes(phrase), phrase);
+  // Variety instead of a trailing "...": at most one per reply.
+  assert.ok(text.includes('not every touch is a trailing "..."') && text.includes('never more than one "..." in a reply'));
+});
+
+test('a tag is always its own word and never splits one', () => {
+  assert.equal(splitsWord('Well, [sigh] fine.'), false);
+  assert.equal(splitsWord('quit on me [laughter]. How about you?'), false);
+  assert.equal(splitsWord('Fine,[laughter] okay'), false);
+  assert.equal(splitsWord('Wel[sigh]l, fine.'), true);
+  assert.equal(splitsWord(undefined), false);
+  // However the model glued a tag to a word, the display text keeps the words on both sides whole.
+  assert.equal(stripSpeechTags('Wel[sigh]l fine.'), 'Wel l fine.');
+  assert.equal(stripSpeechTags('Well [sigh]fine.'), 'Well fine.');
+});
+
+test('each character gets a "how they talk" line on offered turns only; the setting off and un-offered turns are untouched', () => {
+  const line = (profile, trait = 'neutral', name = profile) => talkLine({profile, name, trait});
+  assert.match(line('judy-alvarez'), /^How Judy talks: soft sighs.*nervous laugh.*"uh"/);
+  assert.match(line('panam-palmer'), /^How Panam talks: a short laugh when someone says something stupid.*sigh.*almost never an "uh"/);
+  assert.match(line('johnny-silverhand'), /^How Johnny talks: .*never an "uh".*never giggly.*dry scoff/);
+  assert.match(line('npc-street-resident-female'), /^How you talk: a tired local/);
+  // Everyone else: from the trait; a named profile uses its name, an unnamed archetype the second person.
+  for (const [trait, expected] of [['warm', /warm, easy laugh/], ['neutral', /short laugh when something is funny/],
+    ['dry', /flat scoff or grunt.*never giggly/], ['cold', /almost never a sound/], ['mystery', /short laugh when something is funny/]]) {
+    assert.match(line('jackie-welles', trait, 'Jackie Welles'), /^How Jackie Welles talks: /, trait);
+    assert.match(line('jackie-welles', trait, 'Jackie Welles'), expected, trait);
+    assert.match(line('npc-maelstrom-male', trait, 'Maelstrom Ganger Male'), /^How you talk: /, trait);
+  }
+  assert.equal(talkLine({}), '');
+  assert.equal(talkLine({profile: ''}), '');
+  for (const trait of ['warm', 'neutral', 'dry', 'cold']) {
+    assert.ok(!/\b(she|he|her|his|him)\b/i.test(line('someone', trait, 'Someone')), `${trait}: generic lines fit any gender`);
+  }
+
+  const speech = new NaturalSpeech();
+  const ask = (options = {}) => speech.contextFor({engine: 'omni', spoken: true, trait: 'warm', random: ALWAYS, ...options});
+  assert.equal(ask({profile: 'judy-alvarez', name: 'Judy Alvarez', sessionId: 'a'}), '', 'setting off: nothing at all');
+  speech.update({naturalSpeech: true});
+  const offered = ask({profile: 'judy-alvarez', name: 'Judy Alvarez', sessionId: 'b'});
+  assert.ok(offered.includes(line('judy-alvarez')));
+  assert.equal(offered, naturalSpeechContext({engine: 'omni', profile: 'judy-alvarez', name: 'Judy Alvarez', trait: 'warm', place: 'mid'}));
+  // The line sits after the tags and before the rules.
+  assert.ok(offered.indexOf('How Judy talks') > offered.indexOf('[dissatisfaction-hnn]') && offered.indexOf('How Judy talks') < offered.indexOf('Use at most one'));
+  // Not offered: still nothing, whoever it is.
+  assert.equal(ask({profile: 'judy-alvarez', sessionId: 'c', random: NEVER}), '');
+  // No profile known: the plain block, no line.
+  assert.ok(!ask({sessionId: 'd'}).includes('talks:') && !ask({sessionId: 'e'}).includes('How you talk'));
+});
+
+test('a profile rate overrides its trait\'s rate only for that profile', () => {
+  const speech = new NaturalSpeech();
+  speech.update({naturalSpeech: true});
+  for (const [profile, rate] of Object.entries(OFFER_RATE_BY_PROFILE)) {
+    assert.ok(rate > 0 && rate < 1, profile);
+    assert.ok(speech.contextFor({engine: 'omni', spoken: true, trait: 'cold', profile, sessionId: 'p' + profile, random: () => rate - .01}), profile);
+    assert.equal(speech.contextFor({engine: 'omni', spoken: true, trait: 'cold', profile, sessionId: 'q' + profile, random: () => rate + .01}), '', profile);
+  }
+  assert.equal(speech.contextFor({engine: 'omni', spoken: true, trait: 'dry', profile: 'someone-else', sessionId: 'r', random: () => OFFER_RATE.dry + .01}), '');
+});
+
+test('the spot for a sound is picked per offered turn by the dice, varied, and stays the same if the context is rebuilt', () => {
+  assert.deepEqual(Object.keys(PLACES).sort(), ['between', 'end', 'mid', 'start']);
+  const speech = new NaturalSpeech();
+  speech.update({naturalSpeech: true});
+  // A seeded generator: all four spots turn up, the middle of a sentence most often, the start of the reply least often.
+  let state = 777;
+  const random = () => (state = (state * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  const seen = {};
+  for (let turn = 0; turn < 600; turn++) {
+    const text = speech.contextFor({engine: 'omni', spoken: true, sessionId: `s${turn}`, turn: `t${turn}`, trait: 'warm', random});
+    if (!text) continue;
+    const place = Object.keys(PLACES).find(key => text.includes(`place it exactly here: ${PLACES[key]}.`));
+    assert.ok(place, 'every offered block names one spot');
+    seen[place] = (seen[place] ?? 0) + 1;
+  }
+  assert.deepEqual(Object.keys(seen).sort(), ['between', 'end', 'mid', 'start']);
+  assert.ok(seen.mid > seen.between && seen.between > seen.end && seen.end > seen.start, JSON.stringify(seen));
+  // Decided once per turn.
+  const first = speech.contextFor({engine: 'omni', spoken: true, sessionId: 'same', turn: 'same-1', trait: 'warm', random: () => 0});
+  assert.equal(speech.contextFor({engine: 'omni', spoken: true, sessionId: 'same', turn: 'same-1', trait: 'warm', random: () => .99}), first);
+  assert.ok(first.includes(PLACES.mid));
+  assert.ok(!naturalSpeechContext({engine: 'omni'}).includes('place it exactly here'), 'no spot unless one was picked');
+  assert.ok(!naturalSpeechContext({engine: 'pocket', place: 'mid'}).includes('place it exactly here'), 'Pocket is punctuation only');
 });

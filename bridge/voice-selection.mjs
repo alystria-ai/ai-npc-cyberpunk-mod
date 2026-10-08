@@ -3,7 +3,7 @@ import {ResidentVoice} from './resident-voice.mjs';
 import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs';
-import {OMNI_TAGS, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs';
+import {omniTagsFor, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs';
 import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
@@ -401,7 +401,7 @@ export class VoiceSelection {
     if(!client||this.clientBackend!=='omni'||this.provider!=='omni'||!this.usesProfile(profile))
       throw Error('Voice selection changed before synthesis');
     // Only the tags OmniVoice renders reach it; any other bracketed tag is removed.
-    return client.synthesize(profile,keepSpeechTags(text,OMNI_TAGS),{...options,steps});
+    return client.synthesize(profile,keepSpeechTags(text,omniTagsFor(options.language)),{...options,steps});
   }
   async prepareProfile(profile, options = {}) {
     const remote = reason => ({provider: 'convai', ready: true, reason});
