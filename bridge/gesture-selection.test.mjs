@@ -235,3 +235,15 @@ test('arm-overhead sweeps (demonstrate, 100 cm+) never play as talk', () => run(
   end
   assert(overhead<=2,'overhead clip chosen '..overhead..' times')
 `));
+
+test('clips whose lower body does not match the stance loop never play (leg crossing)', () => run(`
+  local function legClip(name,legs) local c=clip(name,'neutral',all);c.perRig.woman_base.legs=legs;return c end
+  local pool={legClip('f__talk__neutral__07',26),legClip('f__talk__neutral__09',2),legClip('f__describe__01',1),legClip('f__what__01',3)}
+  for i=1,10 do
+    local s=m.new(lcg)
+    for t=0,30,.1 do
+      local item=m.next(s,{now=t,mode='speaking',rig='woman_base',character='judy',family='neutral',scale=2,remaining=30,total=30,clips=pool})
+      if item then assert(item.clip.name~='f__talk__neutral__07','leg-mismatched clip played') end
+    end
+  end
+`));

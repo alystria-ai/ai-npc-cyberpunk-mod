@@ -60,6 +60,9 @@ M.minimumSpeech = 5 -- seconds of reply audio before talk gestures are used at a
 local HISTORY, COOLDOWN = 4, 30
 -- Above about 90 cm the hands go overhead (cheering, stretching): not talk.
 M.maximumReach = 90
+-- A clip whose feet start or end more than this far (cm, hip space) from the
+-- stance loop's is blended at the hips and twists or crosses the legs (Oct 8).
+M.maximumLegGap = 8
 
 function M.allowed(name)
     for _, word in ipairs(M.banned) do
@@ -82,6 +85,8 @@ local function candidates(clips, rig, character, category)
         local onRig = clip.perRig and clip.perRig[rig]
         local reach = onRig and onRig.reach
         local overhead = type(reach) == 'number' and reach > M.maximumReach
+        local legs = onRig and onRig.legs
+        if type(legs) == 'number' and legs > M.maximumLegGap then overhead = true end
         if onRig and clip.category == category and M.allowed(clip.name) and not M.symbolic(clip) and not overhead
             and (clip.character == nil or clip.character == character) then
             list[#list + 1] = {clip = clip, duration = onRig.duration, reach = onRig.reach}

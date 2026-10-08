@@ -49,7 +49,9 @@ const characterOf = (name) => (name.match(/^(judy|johnny|jackie|kerry|takemura|p
 const transition = (depot) => /_transitions(__ow)?\.anims$/.test(depot);
 // Measured hand motion per clip (scripts/Measure-GestureMotion.py), optional.
 const motionFile = path.join(project, 'assets', 'gestures', 'clip-motion.json');
-const motion = fs.existsSync(motionFile) ? readJson(motionFile).animsets : {};
+const motionData = fs.existsSync(motionFile) ? readJson(motionFile) : {};
+const motion = motionData.animsets ?? {};
+const idleFeet = motionData.idles ?? {};
 // Same-named clips share choreography across rigs; an animset WolvenKit could
 // not export (man_big hands at sides) borrows the median reach of its name.
 const reachByName = new Map();
@@ -59,6 +61,34 @@ for (const clips of Object.values(motion)) {
         reachByName.get(name).push(row[0]);
     }
 }
+// Feet (hip space) at clip start/end; same-name fallback across sets.
+const feetByName = new Map();
+for (const clips of Object.values(motion)) {
+    for (const [name, row] of Object.entries(clips)) if (row[2] && !feetByName.has(name)) feetByName.set(name, [row[2], row[3]]);
+}
+const feetOf = (animset, name) => {
+    const row = motion[base(animset).replace(/\.anims$/, '')]?.[name];
+    if (row && row[2]) return [row[2], row[3]];
+    if (/_locomotion/.test(animset) && name === 'idle_stand') {
+        const idle = idleFeet[base(animset).replace(/\.anims$/, '')];
+        if (idle) return [idle, idle];
+    }
+    return feetByName.get(name);
+};
+const legDelta = (a, b) => Math.max(...a.map((value, index) => Math.abs(value - b[index])));
+// Clip-vs-loop leg gap measured inside each set that has both names (same
+// rig, same proportions); median across sets. Used when the clip's own set
+// could not be measured (man_big hands at sides).
+const legsByName = (clipName, loopName) => {
+    const values = [];
+    for (const clips of Object.values(motion)) {
+        const clip = clips[clipName]; const loop = clips[loopName];
+        if (clip?.[2] && loop?.[2]) values.push(Math.max(legDelta(clip[2], loop[2]), legDelta(clip[3], loop[2])));
+    }
+    if (!values.length) return undefined;
+    values.sort((a, b) => a - b);
+    return values[Math.floor(values.length / 2)];
+};
 const reachOf = (animset, name) => {
     const row = motion[base(animset).replace(/\.anims$/, '')]?.[name];
     if (row) return row[0];
@@ -85,7 +115,8 @@ function clipsOf(rigKey, animsets) {
             if (declared && declared.toLowerCase() !== rig.rig.toLowerCase()) fail(`${animset} targets ${declared}, not ${rig.rig}`);
             entries = root.animations.map((entry) => entry?.Data?.animation?.Data).filter((a) => a?.name?.$value).map((a) => ({
                 name: a.name.$value, duration: Number(a.duration ?? a.animBuffer?.Data?.duration ?? 0), motion: a.motionExtraction != null,
-                reach: reachOf(animset, a.name.$value) }));
+                reach: reachOf(animset, a.name.$value), feet: feetOf(animset, a.name.$value),
+                measured: Boolean(motion[base(animset).replace(/\.anims$/, '')]?.[a.name.$value]?.[2]) }));
             animsetCache.set(animset, entries);
         }
         for (const entry of entries) if (!result.has(entry.name)) result.set(entry.name, entry);
@@ -130,7 +161,15 @@ for (const [familyKey, family] of Object.entries(source.families)) {
             const category = (categories.find(([, pattern]) => pattern.test(lower)) || [])[0];
             if (!category) { skipped.uncategorised++; continue; }
             const item = byName.get(clip.name) ?? { name: clip.name, category, character: characterOf(clip.name), perRig: {} };
-            item.perRig[rigKey] = { duration: round(clip.duration), reach: clip.reach };
+            // How far the clip's lower body starts/ends from the loop's (cm). A
+            // large gap is blended at the hips and twists or crosses the legs.
+            const loop = perRigClips[rigKey].get(family.idle);
+            const loopFeet = loop?.feet?.[0];
+            let legs = clip.measured && loop?.measured && loopFeet && clip.feet
+                ? Math.max(legDelta(clip.feet[0], loopFeet), legDelta(clip.feet[1], loopFeet)) : undefined;
+            if (legs === undefined) legs = legsByName(clip.name, family.idle);
+            if (legs !== undefined) legs = Math.round(legs * 10) / 10;
+            item.perRig[rigKey] = { duration: round(clip.duration), reach: clip.reach, legs };
             byName.set(clip.name, item);
         }
     }
