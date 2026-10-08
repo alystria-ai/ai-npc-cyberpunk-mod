@@ -111,6 +111,11 @@ The review is **complete** (2026-10-07; verdict and decisions are in the log). D
 
 ## Captain's log
 
+**2026-10-09 early morning: install round and where the in-game checks stand**
+- Installed for the 04:05 launch (scripts compiled clean): all HEAD Lua, `FaceFeature.reds` + rebuilt `convai_facial.archive` (59 face controls: brow knit, upper-lid lower, nose wrinkle, chin raise), rebuilt `convai_gestures.archive` (gesture audit + 27 signature idles). Bridge on HEAD (quest premises `0048687`, Follow-up tuning `35737ff`, expressions `f95caf1`). Backups of replaced game files in the session scratchpad.
+- Confirmed in game today: lift boarding falls back out of view (`a977f09`), leave walks far and vanishes unseen, blinking idle and while talking (`7906a2e`), idle face holds until audio (`948efec`), Follow-up feels right, quest memory works and now speaks by quest content, OmniVoice tag listening test passed.
+- Still open for the morning: anger and the new face controls (capture with `face-test` after loading; see `docs/COMPANION_EXPRESSIONS.md`), gestures and idles by eye, sitting end to end after `986be99` (8 m search, seating/recovery exclusive), the couch dead-zone recovery (`be78717`), NPC lip sync on an ordinary pedestrian (look for `Conversation result ... face=`), notifications with Developer mode off.
+
 **2026-10-09 (night): Whole-face emotions, nine more rig controls, sad gaze**
 - Review: angry indistinguishable from neutral. Authored mood presets (`AnimFeature_FacialReaction`) have no consumer in Judy's graph; negative offsets are clamped at 0 (solver and captures). From the 50 controls, a held lid close reads sad/tired, widened eyes surprised, the Duchenne smile happy; anger stays stern.
 - Judy's rig (reconstructed solver): brows lateral 7.2 mm, outer-upper squint 5.5 mm, brows lower 4.4 mm, nose sneer 6 mm, chin raise 3.2 mm. Added those nine inputs to `assets/facial/controls.json`, rebuilt graphs and `FaceFeature.reds` (59 controls verified, redscript compiles), release-data archive refreshed. Recipes rebuilt; extended controls written only when the installed feature has them; sad gaze drop 15 cm via the actuator.
