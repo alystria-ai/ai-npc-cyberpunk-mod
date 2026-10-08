@@ -85,6 +85,32 @@ function M.new(options)
     end
     local function entityOf(entry) return tostring(entry.entityID and entry.entityID.hash or entry.serial) end
 
+    -- Latest phrase start (reply seconds) at or before the heard position, or
+    -- nil when the timeline carries no phrase timing. Each timeline segment
+    -- (local voices stream phrase by phrase) starts a phrase; within one, the
+    -- expression track's spans do. A cursor keeps this O(1) per tick.
+    local function phraseStart(s, speech)
+        local spans, offset = speech.phrases, tonumber(speech.offset) or 0
+        local known = speech.segmented == true or (type(spans) == 'table' and spans[1] ~= nil)
+        if not known then s.phraseSpans, s.phraseAt = nil, nil; return nil end
+        if s.phraseSpans ~= spans or s.phraseOffset ~= offset or s.phraseRequest ~= speech.requestId then
+            s.phraseSpans, s.phraseOffset, s.phraseRequest, s.phraseCursor, s.phraseAt = spans, offset, speech.requestId, 1, offset
+        end
+        local at = speech.at or 0
+        if type(spans) == 'table' then
+            local cursor = s.phraseCursor
+            while cursor <= 64 do
+                local span = spans[cursor]
+                local start = type(span) == 'table' and tonumber(span.start)
+                if not start or offset + start > at then break end
+                if offset + start > s.phraseAt then s.phraseAt = offset + start end
+                cursor = cursor + 1
+            end
+            s.phraseCursor = cursor
+        end
+        return s.phraseAt
+    end
+
     -- What this copy should be doing with its voice right now.
     local function modeFor(s)
         local entity = entityOf(s.entry)
@@ -95,8 +121,10 @@ function M.new(options)
             -- Estimate the whole reply from its text (about 2.6 words/s).
             local total = math.max(speech.knownEnd or 0, self.replyEstimate(entity, speech.requestId) or 0)
             if total >= policy.minimumSpeech then
+                local phraseAt = phraseStart(s, speech)
                 return 'speaking', {total = total, remaining = math.max(0, total - (speech.at or 0)),
-                    family = speech.family, scale = speech.scale, requestId = speech.requestId}
+                    family = speech.family, scale = speech.scale, requestId = speech.requestId,
+                    phraseAt = phraseAt, phraseAge = phraseAt and math.max(0, (speech.at or 0) - phraseAt) or nil}
             end
             return 'short', nil
         end
@@ -264,7 +292,8 @@ function M.new(options)
         if not s.clip and (mode == 'speaking' or mode == 'listening') then
             local pick = selection.next(s.sel, {now = self.clock, mode = mode, rig = s.rig, character = s.character,
                 family = info and info.family, scale = info and info.scale, remaining = info and info.remaining,
-                total = info and info.total, clips = s.family.clips})
+                total = info and info.total, reply = info and info.requestId, phraseAt = info and info.phraseAt,
+                phraseAge = info and info.phraseAge, clips = s.family.clips})
             if pick then
                 -- Instant jump (still blended by the workspot's inertialization):
                 -- a queued jump waits for the 22-25 s idle loop to end (Oct 7 capture).
@@ -307,6 +336,9 @@ function M.new(options)
         local s = stateFor(entry)
         s.observedTick = self.tickCount
         local ok, err = pcall(function()
+            -- Setting Off and nothing held: no speech lookup at all (FPS).
+            if s.phase == 'off' and not self.enabled()
+                and not (s.healthFrom and self.clock - s.healthFrom <= policy.healthWindow) then s.settledSince = nil; return end
             local mode, info = modeFor(s)
             if s.phase == 'off' then
                 health(s, context)

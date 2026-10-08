@@ -370,8 +370,10 @@
       "rig": "woman_base",
       "talk": "arms_crossed",
       "idle": "judy",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "character"
     },
     "Character.Panam": {
       "key": "panam",
@@ -380,85 +382,118 @@
       "idle": "panam",
       "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "character"
     },
     "Character.Rogue": {
       "key": "rogue",
       "rig": "woman_base",
       "talk": "on_sides",
+      "idle": "rogue",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "character workspot"
     },
     "Character.Misty": {
       "key": "misty",
       "rig": "woman_base",
       "talk": "on_sides",
       "idle": "misty",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "character"
     },
     "Character.alex": {
       "key": "alex",
       "rig": "woman_base",
       "talk": "on_sides",
+      "idle": "alex",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "character workspot"
     },
     "Character.Claire": {
       "key": "claire",
       "rig": "woman_base",
       "talk": "on_sides",
+      "idle": "generic_hips",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "generic"
     },
     "Character.Evelyn": {
       "key": "evelyn",
       "rig": "woman_base",
       "talk": "on_sides",
+      "idle": "generic_hip",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "generic"
     },
     "Character.Lizzy_Wizzy": {
       "key": "lizzy",
       "rig": "woman_base",
       "talk": "on_sides",
+      "idle": "generic_hip",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "generic"
     },
     "Character.Mama_Welles": {
       "key": "mama-welles",
       "rig": "woman_base",
       "talk": "on_sides",
+      "idle": "generic_hip",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "generic"
     },
     "Character.Stout": {
       "key": "meredith",
       "rig": "woman_base",
       "talk": "on_sides",
+      "idle": "generic_arms_crossed",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "generic"
     },
     "Character.reggie": {
       "key": "regina",
       "rig": "woman_base",
       "talk": "on_sides",
+      "idle": "generic_arms_crossed",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "generic"
     },
     "Character.songbird": {
       "key": "songbird",
       "rig": "woman_base",
       "talk": "on_sides",
+      "idle": "songbird",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "character workspot"
     },
     "Character.wakako_okada": {
       "key": "wakako",
       "rig": "woman_base",
       "talk": "on_sides",
+      "idle": "generic_back",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "generic"
     },
     "Character.Silverhand": {
       "key": "johnny",
@@ -467,7 +502,8 @@
       "idle": "johnny",
       "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "character"
     },
     "CyberpunkConvai.JohnnyCompanion": {
       "key": "johnny",
@@ -476,7 +512,8 @@
       "idle": "johnny",
       "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "character"
     },
     "Character.Kerry": {
       "key": "kerry",
@@ -485,14 +522,18 @@
       "idle": "kerry",
       "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "character"
     },
     "Character.Victor_Vector": {
       "key": "viktor",
       "rig": "man_base",
       "talk": "on_sides",
+      "idle": "generic_arms_crossed",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "generic"
     },
     "Character.Takemura": {
       "key": "takemura",
@@ -501,21 +542,28 @@
       "idle": "takemura",
       "flavour": true,
       "fallback": "takemura",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play. His own set has one leg-matched visible clip, so he talks from hands at sides, paced slower."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play. His own set has one leg-matched visible clip, so he talks from hands at sides, paced slower.",
+      "idleSource": "character"
     },
     "Character.mr_hands": {
       "key": "mr-hands",
       "rig": "man_base",
       "talk": "on_sides",
+      "idle": "generic_back",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "generic"
     },
     "Character.Padre": {
       "key": "padre",
       "rig": "man_base",
       "talk": "on_sides",
+      "idle": "generic_back",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "generic"
     },
     "Character.Jackie": {
       "key": "jackie",
@@ -524,28 +572,78 @@
       "idle": "jackie",
       "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "character"
     },
     "Character.Sobchak": {
       "key": "river",
       "rig": "man_big",
       "talk": "on_sides",
+      "idle": "river",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "character workspot"
     },
     "Character.reed": {
       "key": "reed",
       "rig": "man_big",
       "talk": "on_sides",
+      "idle": "reed",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "character"
     },
     "Character.Elcoyote_Barman": {
       "key": "pepe",
       "rig": "man_big",
       "talk": "on_sides",
+      "idle": "generic",
+      "flavour": true,
       "fallback": "on_sides",
-      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play."
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
+      "idleSource": "generic"
+    },
+    "Character.Hanako": {
+      "key": "hanako",
+      "rig": "woman_base",
+      "talk": "on_sides",
+      "idle": "hanako",
+      "flavour": true,
+      "fallback": "on_sides",
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play. Rig from the entity's animated component (Oct 9).",
+      "idleSource": "character"
+    },
+    "Character.Saul": {
+      "key": "saul",
+      "rig": "man_base",
+      "talk": "on_sides",
+      "idle": "saul",
+      "flavour": true,
+      "fallback": "on_sides",
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play. Rig from the entity's animated component (Oct 9).",
+      "idleSource": "character"
+    },
+    "Character.Placide": {
+      "key": "placide",
+      "rig": "man_big",
+      "talk": "on_sides",
+      "idle": "placide",
+      "flavour": true,
+      "fallback": "on_sides",
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play. Rig from the entity's animated component (Oct 9).",
+      "idleSource": "character"
+    },
+    "Character.Mitch": {
+      "key": "mitch",
+      "rig": "man_base",
+      "talk": "on_sides",
+      "idle": "generic_arms_crossed",
+      "flavour": true,
+      "fallback": "on_sides",
+      "note": "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play. Rig from the entity's animated component (Oct 9).",
+      "idleSource": "generic"
     }
   },
   "idleWorkspots": {
@@ -557,7 +655,20 @@
     "jackie": "base\\workspots\\main_characters\\jackie\\jackie__stand_ground__stand_around__01.workspot",
     "generic": "base\\workspots\\common\\ground\\generic__stand_ground__stand_around__01.workspot",
     "johnny_smoke": "base\\workspots\\main_characters\\johnny\\johnny__stand_ground_cigarette__idle__01.workspot",
-    "misty": "base\\workspots\\quest\\main_quests\\part1\\q101\\07b_johnny_triggers_misty\\misty__stand__stand_around__01.workspot"
+    "misty": "base\\workspots\\quest\\main_quests\\part1\\q101\\07b_johnny_triggers_misty\\misty__stand__stand_around__01.workspot",
+    "river": "base\\workspots\\quest\\main_quests\\epilogue\\q202\\q202_05_convoy\\q202__river__stand_ground__stand_around__01.workspot",
+    "rogue": "base\\workspots\\quest\\side_quests\\sq031\\sq031_01d_smack_rogue\\sq031__rogue__stand__stand_around__01.workspot",
+    "hanako": "base\\workspots\\main_characters\\hanako\\ground\\hanako__stand_ground__stand_around__01.workspot",
+    "saul": "base\\workspots\\main_characters\\saul\\saul__stand_ground__stand_around__01.workspot",
+    "reed": "ep1\\workspots\\main_characters\\reed\\ep1__reed__stand_ground__stand_around__01.workspot",
+    "placide": "base\\workspots\\main_characters\\placide\\placide__stand_ground__stand_around__01.workspot",
+    "alex": "ep1\\workspots\\quest\\main_quests\\q303\\q303_05_safehouse\\q303__alex__stand__arms_crossed_front__01.workspot",
+    "songbird": "ep1\\workspots\\quest\\main_quests\\q304\\q304_03_songbird_meeting\\q304__songbird__stand__arms_crossed_front__01.workspot",
+    "generic_arms_crossed": "base\\workspots\\common\\ground\\generic__stand_ground_arms_crossed__stand_around__02.workspot",
+    "generic_hip": "base\\workspots\\common\\ground\\generic__stand_ground__stand_around__10.workspot",
+    "generic_hips": "base\\workspots\\common\\ground\\female__stand_ground__stand_around__02.workspot",
+    "generic_hips_big": "base\\workspots\\common\\ground\\generic__stand_ground__stand_around__03.workspot",
+    "generic_back": "base\\workspots\\common\\ground\\generic__stand_ground__stand_around__05.workspot"
   },
   "experimentalIdles": [
     "johnny_smoke"
@@ -574,5 +685,159 @@
     "chair": "base\\workspots\\common\\chair\\generic__sit_chair__sit_around__01.workspot",
     "bar": "base\\workspots\\common\\bar_and_barstool\\generic__sit_barstool_bar_lean_front__sit_around__01.workspot",
     "stool": "base\\workspots\\common\\barstool\\generic__sit_barstool__sit_around__01.workspot"
+  },
+  "idleSources": {
+    "judy": [
+      "character",
+      "Judy's own workspot (main_characters/judy), hands on hips (dirtgirl set)",
+      "woman_base"
+    ],
+    "johnny": [
+      "character",
+      "Johnny's own lh_pocket set",
+      "man_base"
+    ],
+    "panam": [
+      "character",
+      "Panam's own rh_on_hip set",
+      "woman_base"
+    ],
+    "kerry": [
+      "character",
+      "Kerry's own 2h_on_hip set",
+      "man_base"
+    ],
+    "takemura": [
+      "character",
+      "Takemura's own 2h_on_sides set",
+      "man_base"
+    ],
+    "jackie": [
+      "character",
+      "Jackie's own workspot, hands at sides",
+      "man_big"
+    ],
+    "misty": [
+      "character",
+      "Misty's own 2h_hold set (q101), hands held in front",
+      "woman_base"
+    ],
+    "hanako": [
+      "character",
+      "Hanako's own 2h_front set, hands folded in front",
+      "woman_base"
+    ],
+    "saul": [
+      "character",
+      "Saul's own arms-crossed set",
+      "man_base"
+    ],
+    "reed": [
+      "character",
+      "Reed's own 2h_on_sides set",
+      "man_big"
+    ],
+    "placide": [
+      "character",
+      "Placide's own 2h_on_sides set",
+      "man_big"
+    ],
+    "river": [
+      "character workspot",
+      "River's q202 workspot, shared hands-at-sides (2h_on_sides__03) clips",
+      "man_big"
+    ],
+    "rogue": [
+      "character workspot",
+      "Rogue's sq031 workspot, shared arms-crossed (arms_crossed_front__03) clips",
+      "woman_base"
+    ],
+    "alex": [
+      "character workspot",
+      "Alex's q303 workspot, shared arms-crossed clips",
+      "woman_base"
+    ],
+    "songbird": [
+      "character workspot",
+      "Songbird's q304 workspot, shared arms-crossed clips",
+      "woman_base"
+    ],
+    "generic": [
+      "generic",
+      "relaxed, hands at sides",
+      "man_base,man_big"
+    ],
+    "generic_arms_crossed": [
+      "generic",
+      "arms crossed",
+      "woman_base,man_base"
+    ],
+    "generic_hip": [
+      "generic",
+      "one hand on hip",
+      "woman_base"
+    ],
+    "generic_hips": [
+      "generic",
+      "hands on hips",
+      "woman_base"
+    ],
+    "generic_hips_big": [
+      "generic",
+      "hands on hips",
+      "man_big"
+    ],
+    "generic_back": [
+      "generic",
+      "hands behind the back",
+      "woman_base,man_base,man_big"
+    ]
+  },
+  "conversationFit": {
+    "note": "Oct 9 audit (Judy feedback: pointing that made no sense). Each clip is classified for conversation: centred (moving hands stay in front of the body, between hips and chest), neutral, or excluded as directional (pointing, indicating a side, behind or across), turn (torso or head turned away from V) or sweep (broad or overhead arms). Name rules first, then the measured shape (assets/gestures/clip-shape.json, scripts/Measure-GestureShape.py) on every rig that has the clip; excluded clips keep their workspot sequence (the probe can still play them) but never play in conversation.",
+    "names": [
+      [
+        "point",
+        "directional",
+        "points (by name)"
+      ],
+      [
+        "describe_(left|right|back)",
+        "directional",
+        "indicates off to a side or behind (by name)"
+      ],
+      [
+        "head_flick_(left|right)",
+        "directional",
+        "flicks the head toward a side (by name)"
+      ],
+      [
+        "(over_there|wave|beckon|indicate|show_way)",
+        "directional",
+        "indicates a place (by name)"
+      ],
+      [
+        "look_(around|left|right)",
+        "turn",
+        "looks away from V (by name)"
+      ],
+      [
+        "__broad",
+        "sweep",
+        "broad arm sweep (by name)"
+      ]
+    ],
+    "shape": {
+      "point": 0.4,
+      "side": 20,
+      "cross": 12,
+      "back": 8,
+      "stretch": 0.6,
+      "yaw": 25,
+      "head": 65,
+      "high": 0,
+      "reach": 60,
+      "centred": 0.75
+    }
   }
 }

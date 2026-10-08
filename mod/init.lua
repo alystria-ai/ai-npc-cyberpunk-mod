@@ -708,8 +708,14 @@ do
         if not face or not face.active or face.entity ~= entity or not face.timeline then return nil end
         local offset = face.segment and face.segment.startSeconds or 0
         local slot = face.expressions and face.expressions[entity]
+        -- Phrase timing for gesture starts: the segment offset (local voices
+        -- stream one phrase per segment) and the expression track's spans
+        -- (timeline seconds), passed by reference, never copied.
+        local track = face.timeline.expressionTrack
         return {requestId = face.requestId, knownEnd = offset + (face.timeline.duration or 0),
-            at = offset + (face.position or 0), family = slot and slot.family, scale = slot and slot.scale}
+            at = offset + (face.position or 0), family = slot and slot.family, scale = slot and slot.scale,
+            offset = offset, segmented = face.segment ~= nil,
+            phrases = type(track) == 'table' and type(track.segments) == 'table' and track.segments or nil}
     end
     local options = {
         enabled = function() return manager.bodyGestures() end,

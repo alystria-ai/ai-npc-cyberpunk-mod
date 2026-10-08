@@ -90,6 +90,51 @@ const legsByName = (clipName, loopName) => {
     values.sort((a, b) => a - b);
     return values[Math.floor(values.length / 2)];
 };
+// Where each clip puts the hands, torso and head (scripts/Measure-GestureShape.py),
+// optional: classifies clips for conversation (centred, neutral, directional,
+// sweep, turn). Same-name fallback across sets, like reach.
+const shapeFile = path.join(project, 'assets', 'gestures', 'clip-shape.json');
+const shapeData = fs.existsSync(shapeFile) ? readJson(shapeFile) : {};
+const shapeFields = shapeData.fields ?? [];
+const shapeSets = shapeData.animsets ?? {};
+const shapeRow = (row) => Object.fromEntries(shapeFields.map((field, index) => [field, row[index]]));
+const shapeByName = new Map();
+for (const clips of Object.values(shapeSets)) {
+    for (const [name, row] of Object.entries(clips)) if (!shapeByName.has(name)) shapeByName.set(name, shapeRow(row));
+}
+const shapeOf = (animset, name) => {
+    const row = shapeSets[base(animset).replace(/\.anims$/, '')]?.[name];
+    return row ? { ...shapeRow(row), measured: true } : shapeByName.get(name);
+};
+const fitRules = source.conversationFit ?? { names: [], shape: {} };
+const nameRules = (fitRules.names ?? []).map(([pattern, fit, reason]) => [new RegExp(pattern), fit, reason]);
+// Conversation fit of one clip from its name and every measured rig: the first
+// matching name rule, else the strongest measured problem, else centred/neutral.
+function fitOf(name, shapes) {
+    const lower = name.toLowerCase();
+    for (const [pattern, fit, reason] of nameRules) if (pattern.test(lower)) return { fit, reason };
+    const t = fitRules.shape ?? {};
+    const worst = (field) => Math.max(...shapes.map((shape) => Number(shape[field] ?? 0)));
+    if (shapes.length) {
+        const checks = [
+            ['directional', worst('point') >= t.point, `points with the index finger for ${worst('point')} s`],
+            ['directional', worst('side') >= t.side, `one hand goes ${worst('side')} cm out past its shoulder (indicates a side)`],
+            ['directional', worst('cross') >= t.cross, `a hand reaches ${worst('cross')} cm past the other shoulder (indicates a side)`],
+            ['directional', worst('back') >= t.back, `a raised hand goes ${worst('back')} cm behind the chest (over the shoulder)`],
+            ['directional', worst('stretch') >= t.stretch, `one straight arm held out for ${worst('stretch')} s (reaching or indicating)`],
+            ['turn', worst('yaw') >= t.yaw, `turns the torso ${worst('yaw')} degrees away`],
+            ['turn', worst('head') >= t.head, `turns the head ${worst('head')} degrees away`],
+            ['sweep', worst('high') > t.high, `hands go ${worst('high')} cm above the head`],
+            ['sweep', worst('reach') > t.reach, `large arm sweep (${worst('reach')} cm)`],
+        ];
+        for (const [fit, hit, reason] of checks) if (hit) return { fit, reason };
+        const centre = Math.min(...shapes.map((shape) => Number(shape.centre ?? 0)));
+        return { fit: centre >= (t.centred ?? .75) ? 'centred' : 'neutral' };
+    }
+    return { fit: 'neutral' };
+}
+// Gesture kind: the move without stance, emotion or variant ("yes", "what").
+const kindOf = (name) => { const rest = (name.match(/__\d\d__(.+)$/) || [, name])[1]; return rest.split('__')[0]; };
 const reachOf = (animset, name) => {
     const row = motion[base(animset).replace(/\.anims$/, '')]?.[name];
     if (row) return row[0];
@@ -116,7 +161,7 @@ function clipsOf(rigKey, animsets) {
             if (declared && declared.toLowerCase() !== rig.rig.toLowerCase()) fail(`${animset} targets ${declared}, not ${rig.rig}`);
             entries = root.animations.map((entry) => entry?.Data?.animation?.Data).filter((a) => a?.name?.$value).map((a) => ({
                 name: a.name.$value, duration: Number(a.duration ?? a.animBuffer?.Data?.duration ?? 0), motion: a.motionExtraction != null,
-                reach: reachOf(animset, a.name.$value), feet: feetOf(animset, a.name.$value),
+                reach: reachOf(animset, a.name.$value), feet: feetOf(animset, a.name.$value), shape: shapeOf(animset, a.name.$value),
                 measured: Boolean(motion[base(animset).replace(/\.anims$/, '')]?.[a.name.$value]?.[2]) }));
             animsetCache.set(animset, entries);
         }
@@ -129,6 +174,12 @@ const template = jsonFor(source.template);
 if (!template) fail('template workspot was not extracted');
 requirePath(source.template, 'template workspot');
 for (const [key, depot] of Object.entries(source.idleWorkspots)) requirePath(depot, `${key} idle workspot`);
+for (const [record, known] of Object.entries(source.characters)) {
+    if (!known.idle) continue;
+    if (!source.idleWorkspots[known.idle]) fail(`${record}: idle ${known.idle} has no workspot`);
+    const checked = source.idleSources?.[known.idle];
+    if (!checked || !checked[2].split(',').includes(known.rig)) fail(`${record}: idle ${known.idle} is not checked on ${known.rig}`);
+}
 const seatWorkspots = source.seatWorkspots ?? {};
 for (const [key, depot] of Object.entries(seatWorkspots)) requirePath(depot, `${key} seat workspot`);
 
@@ -172,14 +223,17 @@ for (const [familyKey, family] of Object.entries(source.families)) {
                 ? Math.max(legDelta(clip.feet[0], loopFeet), legDelta(clip.feet[1], loopFeet)) : undefined;
             if (legs === undefined) legs = legsByName(clip.name, family.idle);
             if (legs !== undefined) legs = Math.round(legs * 10) / 10;
-            item.perRig[rigKey] = { duration: round(clip.duration), reach: clip.reach, legs };
+            item.perRig[rigKey] = { duration: round(clip.duration), reach: clip.reach, legs, centre: clip.shape?.centre };
+            if (clip.shape) (item.shapes ??= []).push(clip.shape);
             byName.set(clip.name, item);
         }
     }
     let nextId = 100;
     const idleId = nextId; nextId += 2;
     const clips = [...byName.values()].sort((a, b) => a.name.localeCompare(b.name)).map((clip) => {
-        const result = { ...clip, sequenceId: nextId, clipId: nextId + 1 };
+        const { shapes = [], ...rest } = clip;
+        const { fit, reason } = fitOf(clip.name, shapes);
+        const result = { ...rest, kind: kindOf(clip.name), fit, exclude: reason, sequenceId: nextId, clipId: nextId + 1 };
         nextId += 2;
         return result;
     });
@@ -240,11 +294,18 @@ for (const [familyKey, family] of Object.entries(source.families)) {
     const counts = {};
     for (const clip of clips) counts[clip.category] = (counts[clip.category] || 0) + 1;
     report.push(`${familyKey}: ${clips.length} clips ${JSON.stringify(counts)} skipped ${JSON.stringify(skipped)}`);
+    // Conversation fit per rig (talk categories only; idle breaks never play as talk).
+    for (const rigKey of rigKeys) {
+        const fits = {};
+        for (const clip of clips) if (clip.perRig[rigKey] && clip.category !== 'idlebreak') fits[clip.fit] = (fits[clip.fit] || 0) + 1;
+        report.push(`${familyKey}/${rigKey} fit ${JSON.stringify(fits)}`);
+    }
     catalogFamilies[familyKey] = {
         component: family.component, workspot: family.workspot, rigs: rigKeys, blend: source.blend,
         idle: { name: family.idle, sequenceId: idleId, clipId: idleId + 1,
             perRig: Object.fromEntries(rigKeys.map((rigKey) => [rigKey, { duration: round(perRigClips[rigKey].get(family.idle).duration) }])) },
-        clips: clips.map(({ name, category, character, sequenceId, clipId, perRig }) => ({ name, category, character, sequenceId, clipId, perRig })),
+        clips: clips.map(({ name, category, character, kind, fit, exclude, sequenceId, clipId, perRig }) =>
+            ({ name, category, character, kind, fit, exclude, sequenceId, clipId, perRig })),
     };
 }
 
@@ -300,6 +361,8 @@ const catalog = {
     device: source.device,
     families: catalogFamilies,
     idleComponents: Object.fromEntries(Object.keys(source.idleWorkspots).map((key) => [key, `convai_idle_${key}`])),
+    // Per idle: character (own clips), character workspot (shared clips) or generic, and the rigs it was checked on.
+    idleSources: Object.fromEntries(Object.entries(source.idleSources ?? {}).map(([key, [kind, what, rigs]]) => [key, { kind, what, rigs: rigs.split(',') }])),
     experimentalIdles: source.experimentalIdles ?? [],
     seatComponents: Object.fromEntries(Object.keys(seatWorkspots).map((key) => [key, `convai_sit_${key}`])),
     characters: source.characters,

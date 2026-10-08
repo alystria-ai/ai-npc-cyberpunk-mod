@@ -1,8 +1,9 @@
 # Companion body gestures
 
 Companions use the game's own conversation gestures while they speak a longer
-reply, nod while V talks to them, and (for Johnny, Panam, Kerry, Takemura and
-Jackie) now and then take their signature vanilla idle while settled. The
+reply, nod while V talks to them, and now and then take a signature idle while
+settled (their own vanilla idle where one exists, a labelled generic stance
+otherwise; see Round 4). The
 **Body gestures** setting (Companion behavior) is **Off by default** until it
 is qualified in game. `mod/companion-gestures.lua` is the controller; the
 Stage 0 probe (`mod/gesture-probe.lua`) remains a development tool.
@@ -91,25 +92,44 @@ the gesture controller.
 `mod/gesture-selection.lua` is pure (no native calls; `npm run test:gestures`).
 The controller calls `next(state, input)` every tick with the clock, mode
 (`speaking`, `listening`, `thinking`, `idle`), rig, character key, emotion
-family and scale (from `facial-playback.lua`), remaining speech seconds and
-the generated catalog; it returns a clip to start now or nil.
+family and scale (from `facial-playback.lua`), remaining speech seconds, the
+phrase timing and the generated catalog; it returns a clip to start now or nil.
+It does real work only when a clip may start (after the calm hold, at a phrase
+start), never per frame. Rules as of October 9 (Round 4):
 
-- **Speaking:** only for replies of at least 5 s of audio (user decision; short
-  replies and idle never use talk clips). First clip 0.3–0.8 s after speech starts; then clip duration
-  plus a gap of 1.5–4 s (scale 1), 1.2–3 s (2) or 0.8–2 s (3), divided by the
-  character's rate (Takemura .7, Viktor .85, Johnny 1.2, Panam/Kerry 1.15 …).
-  60 % of picks use the emotion's categories (joy → happy/emphatic, sadness →
-  sad, anger → angry, surprise → surprise/question …), the rest calm talk or a
-  shrug. A clip starts only if 70 % of it fits the remaining speech and never
-  in the last 1.2 s.
-- **Listening:** a nod 2–4 s in, then every clip + 5–10 s; nods may repeat.
-- **Thinking / idle:** no clips; idle uses the character's signature idle
-  component (`idleComponent`), else `convai_idle_generic`.
-- **Repetition:** never the previous clip; avoid the last four and anything
-  used in the last 30 s, relaxed only when nothing else fits. Character clips
-  (e.g. Takemura's own talk) weigh 3×.
+- **Short replies:** nothing below 5 s of reply audio (estimated from the
+  reply text at 2.6 words/s), with or without phrase timing; never in the last
+  1.2 s; a clip starts only if 70 % of it fits the remaining speech.
+- **Phrase starts:** when the face timeline carries phrase timing (each local
+  voice segment, and the expression track's spans), a clip starts only within
+  0.7 s of a phrase start, and each phrase start is decided once (gesture or
+  rest; 20 % rest unless the hands have rested 7 s). Without phrase timing the
+  time pacing below applies on its own.
+- **Calm hold:** after a clip the companion holds the stance loop (hands at
+  sides; Judy folded arms) for 1.6-3.2 s (intensity 1), 1.2-2.6 s (2) or
+  0.9-2.0 s (3), divided by the character's rate (Takemura and Hanako .7, Saul
+  .75, Viktor .85, Johnny 1.2 ...). The first clip comes 0.1-0.4 s in.
+- **Emotion fit:** 60 % of picks use the emotion's own category (joy: happy,
+  sadness: sad, anger: angry, surprise: surprise ...), the rest calm talk,
+  shrugs and questions. Clashing categories never colour a line (a sad line
+  never gets happy, emphatic, angry or surprise clips; joy never sad, fear,
+  angry or disgust). Each mood caps the measured hand reach: sadness 30 cm,
+  fear 34, disgust 42, trust 45, neutral 48, anticipation 54, surprise 56, joy
+  and anger 58, plus 6 cm per intensity step.
+- **Repetition:** never the previous clip (only a one-clip pool may repeat);
+  strictest first, relaxed only when nothing fits: not in the last 4 clips, not
+  the previous clip's *kind* (the move without stance, emotion or variant:
+  `yes`, `what`, `talk`, Judy's `gesture`), not used in the last 45 s, and no
+  kind twice in the last 4. Kinds used in the last 6 picks weigh less.
+  Listening nods follow the same rule except the kind (they are all nods).
+- **Weights:** measured reach (15-90 cm, larger reads better), times the
+  centre share (clips whose moving hands stay in front of the body weigh up to
+  1.65, wide ones down to 0.35); character clips weigh 1.5 (was 3).
 - **Never played:** threaten, middle finger, clap, thumbs-up, cheer, dance,
-  and anything with steps or turns.
+  steps or turns, every clip the catalog marks `exclude` (directional,
+  turning, sweeping; see Round 4), and directional names as a guard.
+- **Thinking / idle:** no clips; idle may use the character's signature idle
+  component (`idleComponent`).
 
 ## Stance families (catalog v2)
 
@@ -241,3 +261,128 @@ lines: requests, native call results, 4 Hz traces while active).
    listeners are not yet included.
 4. MCM string in 9 locales + `localization/en.json` — done. In-game
    qualification of the controller is next.
+
+
+## Round 4 (October 9): no repeats, no pointing, fit to the line, more idles
+
+User feedback after testing Judy: the same gesture several times in a row;
+pointing in directions that made no sense; good moments when her hands stayed
+centred in front of her body; signature idles for more characters.
+
+**Why it repeated.** Judy's own `judy__stand_2h_arms_crossed__01__gesture__01`
+and `__03` are 9.3 s long and weighed 3x as character clips (gesture 03 also
+2.9x for reach), so over a long reply they came back each time the 30 s
+cooldown ran out; and nothing stopped two variants of the same move (two `yes`
+nods, two `describe` hands) back to back. Listening nods could repeat the same
+clip. Both Judy clips also turn the torso 25-27 degrees and are now excluded.
+
+**Why it pointed.** The `neutral` category matched `describe_left/right/back`,
+`point_back`, `head_flick_left/right` and talk clips that open one hand out to
+the side, and `describe`/`point` were weighted as *expressive* (2.5x).
+
+**Audit** (`scripts/Measure-GestureShape.py`, output
+`assets/gestures/clip-shape.json`): forward kinematics on the WolvenKit glTF
+exports (15 frames/s, frame of the clip's first frame, facing -Z), per clip:
+one hand outside its shoulder while the other is not (`side`), past the other
+shoulder (`cross`), behind the chest (`back`), index finger out with the others
+curled while raised (`point`; these exports do carry animated finger bones),
+one straight raised arm (`stretch`), chest and head turn (`yaw`, `head`), hands
+above the head, reach, and `centre` (share of moving frames with every moving
+hand in front of the body, within 26 cm of the midline, between hips and
+chest). `assets/gestures/gestures.json` `conversationFit` holds the name rules
+and thresholds (point >= .4 s, side >= 20 cm, cross >= 12, back >= 8, stretch
+>= .6 s, torso >= 25 deg, head >= 65 deg, above the head, reach > 60 cm). The
+build writes per clip `kind`, `fit` (`centred`, `neutral`, `directional`,
+`turn`, `sweep`) and `exclude` (the reason) into `mod/gesture-catalog.lua`; a
+clip measured on several rigs takes the worst rig. The man_big hands-at-sides
+set does not export and borrows the same names. Excluded clips keep their
+workspot sequence (the probe can still play them).
+
+Conversation pool before and after (talk categories, after the existing bans,
+reach and leg checks):
+
+| Family / rig | Before | Excluded | Left | Centred / neutral left |
+|---|---|---|---|---|
+| arms_crossed / woman_base (Judy) | 123 | 36 | 87 | 75 / 12 |
+| arms_crossed / man_base | 113 | 30 | 83 | 72 / 11 |
+| arms_crossed / man_big | 115 | 31 | 84 | 73 / 11 |
+| on_sides / woman_base | 124 | 58 | 66 | 34 / 32 |
+| on_sides / man_base | 118 | 57 | 61 | 32 / 29 |
+| on_sides / man_big | 117 | 54 | 63 | 32 / 31 |
+| kerry / takemura / johnny (man_base) | 12 / 5 / 7 | 4 / 1 / 4 | 8 / 4 / 3 | |
+
+Examples: `describe_left/right/back__*`, `point_back__01`,
+`head_flick_left/right__*` (by name); `describe_up__01` (index finger out
+1.4 s), `talk__neutral__04` (one hand 39 cm out past the shoulder),
+`stop__afraid__01` (one straight arm .9 s), `talk__neutral__07` and Judy's
+`gesture__01/03` (torso turned 25-32 deg), `what_is_this__angry__02` (68 cm
+sweep), `shrug__broad__*` (by name). Every character keeps 29-31 non-excluded
+clips with 25 cm+ reach.
+
+A hands-in-front hold (`stand__2h_on_sides__01__gesture_hold__01` and its
+flicks) exists, but its feet sit 15-18 cm from the stance loop (crossed legs on
+blend), so the stance loop stays the rest pose; centred clips are preferred.
+
+**Signature idles.** Every candidate workspot was serialized from the 2.31
+archives (EP1 copies override) and its loop and idle-break clips checked in the
+animsets of the character's rig: present, no motion extraction (no walking), no
+item or effect events (no props). Rigs come from each character's entity
+animated component. The flavour idle plays now and then while settled (after
+20 s settled, first at 45-90 s, then every 60-150 s, for 18-30 s); talk still
+uses the character's talk family.
+
+| Character | Idle workspot | Kind |
+|---|---|---|
+| Judy | `judy__stand_ground__stand_around__02` (hands on hips) | character |
+| Johnny | `johnny__stand_ground__stand_around__01` (hand in pocket) | character |
+| Panam | `panam__stand__stand_around__01` (hand on hip) | character |
+| Kerry | `kerry__stand_ground_stand_around_01` (hands on hips) | character |
+| Takemura | `takemura__stand_ground__stand_around__01` | character |
+| Jackie | `jackie__stand_ground__stand_around__01` | character |
+| Misty | `misty__stand__stand_around__01` (hands held in front, q101) | character |
+| Hanako | `hanako__stand_ground__stand_around__01` (hands folded in front) | character (new to the catalog) |
+| Saul | `saul__stand_ground__stand_around__01` (arms crossed) | character (new to the catalog) |
+| Reed | `ep1__reed__stand_ground__stand_around__01` (hands at sides) | character |
+| Placide | `placide__stand_ground__stand_around__01` (hands at sides) | character (new to the catalog) |
+| River | `q202__river__stand_ground__stand_around__01` | character workspot, shared clips |
+| Rogue | `sq031__rogue__stand__stand_around__01` (arms crossed) | character workspot, shared clips |
+| Alex | `q303__alex__stand__arms_crossed_front__01` | character workspot, shared clips |
+| Songbird | `q304__songbird__stand__arms_crossed_front__01` | character workspot, shared clips |
+| Viktor, Meredith, Regina, Mitch | `generic__stand_ground_arms_crossed__stand_around__02` | generic (arms crossed) |
+| Mama Welles, Evelyn, Lizzy Wizzy | `generic__stand_ground__stand_around__10` (one hand on hip) | generic |
+| Claire | `female__stand_ground__stand_around__02` (hands on hips) | generic |
+| Wakako, Padre, Mr. Hands | `generic__stand_ground__stand_around__05` (hands behind back) | generic |
+| Pepe | `generic__stand_ground__stand_around__01` (relaxed) | generic |
+
+Rejected: Viktor `sq018__victor__stand_ground_gloves` (holds gloves), Evelyn's
+three own idles (purse), Claire `sq024__claire__stand__argue__01` (an argument),
+Mama Welles `sq018` (funeral key hold), Mitch `q202` (cigarette), Dexter (all
+cigar poses; the man_fat rig has no talk families), Songbird `ep1__q305` (no
+rig animsets), Adam Smasher (man_massive), Alt (not in the roster). The generic
+hand-on-hip set moves on man_base/man_big, and the generic arms-crossed and
+hands-front sets miss clips on man_big, so each generic is used only on the
+rigs where it checked clean (`idleSources` in gestures.json, enforced by the
+build). Hanako, Saul, Placide and Mitch are new catalog characters (talk family
+`on_sides` on their rig), so they also gesture when the setting is on.
+
+**Performance.** Selection runs only when a clip may start; phrase tracking is a
+cursor over the timeline's spans (no tables per tick); with the setting Off the
+controller no longer looks up speech each tick. No new hooks.
+
+**Install.** Game restart for the rebuilt `convai_gestures.archive` (13 new idle
+components, 42 in all) from `runtime/gestures/package/`; CET reload for
+`mod/gesture-selection.lua`, `companion-gestures.lua`, `gesture-catalog.lua`,
+`init.lua`.
+
+**In-game checks** (Body gestures On, Developer mode for `Gestures gesture`
+lines in probe.log):
+1. Judy, a long reply (15 s+): no clip twice in a row, no two nods or two
+   "what" back to back, no pointing or hand flung to a side, no turning away;
+   hands mostly in front of her; calm folded-arm holds between gestures.
+2. The same with a hands-at-sides companion (Panam, Johnny, Jackie).
+3. A sad reply: small, close gestures only; a happy or angry one may open up.
+4. A short reply (one sentence): no gesture.
+5. Gestures start with a new sentence, not mid-phrase.
+6. Settled 1-2 minutes: Judy (hands on hips), Misty, River, Rogue, Reed,
+   Hanako, Saul and Placide take their idle; a generic one for Viktor, Claire,
+   Wakako; no walk-in step, no prop, a clean return to the vanilla idle.

@@ -20,6 +20,7 @@ local function lcg() seed=(seed*1103515245+12345)%2147483648;return seed/2147483
 local function clip(name,category,durations,character)
   local perRig={}
   for rig,d in pairs(durations) do perRig[rig]={duration=d} end
+  if not name:find('__%d%d__') then name='st__01__'..name end
   return {name=name,category=category,perRig=perRig,character=character}
 end
 local all={woman_base=3,man_base=3,man_big=3}
@@ -29,7 +30,8 @@ local clips={
   clip('a__what__happy__01','happy',all),clip('a__calm_down__happy__01','happy',{woman_base=6,man_base=6,man_big=6}),
   clip('a__whatever__sad__02','sad',all),clip('a__no__angry__01','angry',all),
   clip('a__threaten__angry__01','angry',all),clip('a__yes__head__01','nod',all),
-  clip('takemura__talk__01','neutral',{man_base=3},'takemura'),
+  clip('takemura__talk__01','neutral',{man_base=3},'takemura'),clip('a__describe_down__01','neutral',all),
+  clip('a__lh_flick__01','neutral',all),clip('a__what__neutral__01','question',all),clip('a__shrug__02','shrug',all),
 }
 local function speak(s,t,extra)
   local input={now=t,mode='speaking',rig='woman_base',character='judy',family='neutral',scale=1,remaining=20,clips=clips}
@@ -75,13 +77,13 @@ test('never repeats the previous clip and spreads clips through history', () => 
   for i=2,#played do assert(played[i].name~=played[i-1].name,'immediate repeat '..played[i].name) end
 `));
 
-test('clips start only after the previous one ends plus a gap, first one shortly after speech starts', () => run(`
+test('clips start only after the previous one ends plus a calm hold, first one shortly after speech starts', () => run(`
   local s=m.new(lcg)
   local played=run(s,60)
   assert(played[1].at>=.1 and played[1].at<=.5,'first at '..played[1].at)
   for i=2,#played do
     local gap=played[i].at-(played[i-1].at+played[i-1].duration)
-    assert(gap>=.6-1e-6 and gap<=1.7,'gap '..gap..' at '..i)
+    assert(gap>=m.holds[1][1]-1e-6 and gap<=m.holds[1][2]+1.15,'calm hold '..gap..' at '..i)
   end
 `));
 
@@ -156,7 +158,8 @@ test('the generated catalog works with the policy for every rig and maps signatu
     end
   end
   assert(m.idleComponent(catalog,'johnny')=='convai_idle_johnny')
-  assert(m.idleComponent(catalog,'river')=='convai_idle_generic')
+  assert(m.idleComponent(catalog,'river')=='convai_idle_river')
+  assert(m.idleComponent(catalog,'nobody')=='convai_idle_generic')
 `));
 
 test('talk favours expressive hand gestures over head flicks and nods', () => run(`
@@ -186,7 +189,7 @@ test('a ten-second reply gets several gestures, not two', () => run(`
       if m.next(s,{now=t,mode='speaking',rig='woman_base',character='judy',family='neutral',scale=1,remaining=10-t,total=10,clips=clips}) then n=n+1 end
     end
   end
-  assert(n/10>=2.0,'average '..(n/10))
+  assert(n/10>=1.8,'average '..(n/10))
 `));
 
 test('measured hand reach drives the choice: clips under 15 cm are almost never used', () => run(`
@@ -246,4 +249,147 @@ test('clips whose lower body does not match the stance loop never play (leg cros
       if item then assert(item.clip.name~='f__talk__neutral__07','leg-mismatched clip played') end
     end
   end
+`));
+
+// Oct 9 (Judy feedback): repeats, pointing, fit to the line.
+const judy = `
+local fam=catalog.families.arms_crossed
+local function judyRun(s,seconds,extra)
+  local played={}
+  for t=0,seconds,.1 do
+    local input={now=t,mode='speaking',rig='woman_base',character='judy',family='neutral',scale=2,remaining=200,total=200,clips=fam.clips}
+    for k,v in pairs(extra or {}) do input[k]=v end
+    local item=m.next(s,input)
+    if item then played[#played+1]={at=t,name=item.clip.name,kind=m.kind(item.clip),clip=item.clip,duration=item.duration} end
+  end
+  return played
+end
+`;
+
+test('never the same clip twice in a row, speaking or listening, with the real catalog', () => run(judy + `
+  for _,family in ipairs({'neutral','joy','sadness','anger','fear','surprise','disgust','trust'}) do
+    for seedRun=1,4 do
+      local played=judyRun(m.new(lcg),180,{family=family})
+      assert(#played>=10,family..' played '..#played)
+      for i=2,#played do assert(played[i].name~=played[i-1].name,'immediate repeat '..played[i].name) end
+    end
+  end
+  local s=m.new(lcg);local previous
+  for t=0,300,.1 do
+    local item=m.next(s,{now=t,mode='listening',rig='woman_base',character='judy',clips=fam.clips})
+    if item then assert(item.clip.name~=previous,'nod repeated '..item.clip.name);previous=item.clip.name end
+  end
+`));
+
+test('no clip repeats within the last four, and no gesture kind twice running', () => run(judy + `
+  for seedRun=1,6 do
+    local played=judyRun(m.new(lcg),240)
+    for i=2,#played do
+      for back=1,math.min(4,i-1) do assert(played[i].name~=played[i-back].name,'repeat within '..back..': '..played[i].name) end
+      assert(played[i].kind~=played[i-1].kind,'same kind twice running: '..played[i].kind)
+    end
+  end
+  assert(m.kind({name='stand__arms_crossed_front__01__yes__happy__02'})=='yes')
+  assert(m.kind({name='judy__stand_2h_arms_crossed__01__gesture__03'})=='gesture')
+`));
+
+test('a tiny pool alternates instead of repeating; a one-clip pool may repeat', () => run(`
+  local pool={clip('a__yes__happy__01','neutral',all),clip('a__yes__happy__02','neutral',all)}
+  local s=m.new(lcg);local played={}
+  for t=0,90,.1 do
+    local item=m.next(s,{now=t,mode='speaking',rig='woman_base',character='judy',family='neutral',scale=1,remaining=90,total=90,clips=pool})
+    if item then played[#played+1]=item.clip.name end
+  end
+  assert(#played>=6)
+  for i=2,#played do assert(played[i]~=played[i-1],'two-clip pool repeated') end
+  local one={clip('a__talk__neutral__01','neutral',all)}
+  local s2=m.new(lcg);local n=0
+  for t=0,40,.1 do
+    if m.next(s2,{now=t,mode='speaking',rig='woman_base',character='judy',family='neutral',scale=1,remaining=40,total=40,clips=one}) then n=n+1 end
+  end
+  assert(n>=3,'one-clip pool still gestures: '..n)
+`));
+
+test('directional, pointing and turning clips are never chosen on any rig or mood', () => run(`
+  local excluded,total=0,0
+  for name,family in pairs(catalog.families) do
+    for _,clip in ipairs(family.clips) do
+      total=total+1
+      if clip.exclude then excluded=excluded+1;assert(clip.fit~='centred' and clip.fit~='neutral',clip.name) end
+    end
+  end
+  assert(excluded>0 and excluded<total,'catalog classification present: '..excluded..'/'..total)
+  for name,family in pairs(catalog.families) do
+    for _,rig in ipairs(family.rigs) do
+      for _,mood in ipairs({'neutral','joy','anger','surprise','sadness'}) do
+        local s=m.new(lcg)
+        for t=0,90,.1 do
+          local mode=(t>60) and 'listening' or 'speaking'
+          local item=m.next(s,{now=t,mode=mode,rig=rig,character='judy',family=mood,scale=3,remaining=90,total=90,clips=family.clips})
+          if item then
+            assert(not item.clip.exclude,'excluded clip chosen: '..item.clip.name..' ('..tostring(item.clip.exclude)..')')
+            for _,word in ipairs({'point','describe_left','describe_right','describe_back','head_flick_left','head_flick_right','look_around'}) do
+              assert(not item.clip.name:find(word,1,true),'directional clip chosen: '..item.clip.name)
+            end
+          end
+        end
+      end
+    end
+  end
+  assert(m.excluded({name='x__01__point_back__01'}) and m.excluded({name='x__01__talk__01',exclude='turns'}))
+  assert(not m.excluded({name='x__01__talk__neutral__01'}))
+`));
+
+test('short replies get no gesture at all, with or without phrase timing', () => run(`
+  for _,total in ipairs({1.5,3,4.9}) do
+    local s=m.new(lcg)
+    for t=0,total,.1 do
+      assert(m.next(s,{now=t,mode='speaking',rig='woman_base',character='judy',family='joy',scale=3,
+        remaining=total-t,total=total,phraseAt=0,phraseAge=t,clips=clips})==nil,'short reply of '..total..' s gestured')
+    end
+  end
+`));
+
+test('gestures land on phrase starts when phrase timing is known', () => run(`
+  local phrases={0,3.2,7.9,11.5,16.0,19.4,24.1,28.0}
+  for seedRun=1,5 do
+    local s=m.new(lcg);local starts=0
+    for t=0,30,.1 do
+      local at=0
+      for _,p in ipairs(phrases) do if p<=t+1e-9 then at=p end end
+      local item=m.next(s,{now=t,mode='speaking',rig='woman_base',character='judy',family='neutral',scale=2,
+        remaining=30-t,total=30,phraseAt=at,phraseAge=t-at,clips=clips})
+      if item then starts=starts+1;assert(t-at<=m.phraseWindow+1e-6,'gesture '..(t-at)..' s into a phrase') end
+    end
+    assert(starts>=3,'gestured at '..starts..' phrase starts')
+  end
+`));
+
+test('the mood sets the energy: sad lines never get happy, emphatic or big clips', () => run(judy + `
+  local cap=m.energy.sadness+m.energyStep
+  for seedRun=1,6 do
+    for _,p in ipairs(judyRun(m.new(lcg),120,{family='sadness',scale=2})) do
+      local row=p.clip.perRig.woman_base
+      assert(p.clip.category~='happy' and p.clip.category~='emphatic' and p.clip.category~='angry','sad got '..p.clip.category)
+      assert(type(row.reach)~='number' or row.reach<=cap,'sad got a '..row.reach..' cm clip')
+    end
+    for _,p in ipairs(judyRun(m.new(lcg),120,{family='joy',scale=2})) do
+      assert(p.clip.category~='sad' and p.clip.category~='fear','joy got '..p.clip.category)
+    end
+  end
+`));
+
+test('centred clips are preferred over clips that leave the body centre', () => run(`
+  local function shaped(name,centre) local c=clip(name,'neutral',all);c.perRig.woman_base.reach=30;c.perRig.woman_base.centre=centre;return c end
+  local pool={shaped('g__talk__neutral__01',1),shaped('g__what__neutral__01',1),shaped('g__describe_down__01',1),
+    shaped('g__lh_flick__01',.1),shaped('g__rh_flick__01',.1),shaped('g__this_or_that__01',.1)}
+  local centred,wide=0,0
+  for i=1,20 do
+    local s=m.new(lcg)
+    for t=0,60,.1 do
+      local item=m.next(s,{now=t,mode='speaking',rig='woman_base',character='judy',family='neutral',scale=2,remaining=60,total=60,clips=pool})
+      if item then if item.clip.perRig.woman_base.centre>.5 then centred=centred+1 else wide=wide+1 end end
+    end
+  end
+  assert(centred>wide*1.5,'centred '..centred..' wide '..wide)
 `));

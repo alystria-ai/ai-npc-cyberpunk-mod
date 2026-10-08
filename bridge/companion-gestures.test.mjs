@@ -169,9 +169,9 @@ test('unknown characters are left alone', () => run(`
   assert(count('play')==0)
 `));
 
-test('Johnny takes his signature idle now and then when settled, never Judy, and talks from hands at sides', () => run(`
-  step(130)
-  assert(count('play')==0,'Judy keeps her vanilla idle (no flavour)')
+test('Johnny takes his signature idle now and then when settled, and talks from hands at sides', () => run(`
+  entry.record='Character.Somebody';step(130)
+  assert(count('play')==0,'an unknown character keeps its vanilla idle')
   entry.record='Character.Silverhand';entry.serial=2;calls={};logs={}
   step(115)
   local began=lastLog('flavour-begin')
@@ -268,7 +268,8 @@ test('every tier-1 companion maps to a family on its own rig with plenty of visi
   local tier1={'Character.Judy','Character.Panam','Character.Rogue','Character.Misty','Character.alex','Character.Claire',
     'Character.Evelyn','Character.Lizzy_Wizzy','Character.Mama_Welles','Character.Stout','Character.reggie','Character.songbird',
     'Character.wakako_okada','Character.Silverhand','Character.Kerry','Character.Victor_Vector','Character.Takemura',
-    'Character.mr_hands','Character.Padre','Character.Jackie','Character.Sobchak','Character.reed','Character.Elcoyote_Barman'}
+    'Character.mr_hands','Character.Padre','Character.Jackie','Character.Sobchak','Character.reed','Character.Elcoyote_Barman',
+    'Character.Hanako','Character.Saul','Character.Placide','Character.Mitch'}
   for _,record in ipairs(tier1) do
     local known=cat.characters[record]
     assert(known,'unmapped '..record)
@@ -282,9 +283,10 @@ test('every tier-1 companion maps to a family on its own rig with plenty of visi
     local visible=0
     for _,clip in ipairs(fam.clips) do
       local row=clip.perRig[known.rig]
-      if row and clip.category~='idlebreak' and (row.reach or 0)>=25 then visible=visible+1 end
+      if row and clip.category~='idlebreak' and not clip.exclude and (row.reach or 0)>=25 then visible=visible+1 end
     end
-    assert(visible>=40,record..' has only '..visible..' clips with 25 cm+ reach')
+    -- Oct 9: directional, turning and sweeping clips no longer count (excluded from conversation).
+    assert(visible>=25,record..' has only '..visible..' conversation clips with 25 cm+ reach')
     local fallback=cat.families[known.fallback]
     assert(fallback,'missing fallback for '..record)
   end
@@ -300,11 +302,70 @@ test('every tier-1 family loop shares its lower body with the clips it plays', (
       local row=clip.perRig[known.rig]
       if row and clip.category~='idlebreak' then
         assert(row.legs~=nil or true)
-        if row.legs and row.legs<=8 and (row.reach or 0)>=25 and (row.reach or 0)<=90 then usable=usable+1 end
+        if row.legs and row.legs<=8 and not clip.exclude and (row.reach or 0)>=25 and (row.reach or 0)<=90 then usable=usable+1 end
       end
     end
     assert(usable>=8,record..' has only '..usable..' leg-matched visible clips in '..known.talk)
     checked=checked+1
   end
   assert(checked>=23)
+`));
+
+test('every character with a signature or generic idle resolves it on its own rig', () => run(`
+  local cat=load(catalogSource)()
+  local checked,own=0,0
+  for record,known in pairs(cat.characters) do
+    if known.idle then
+      local component=cat.idleComponents[known.idle]
+      assert(component=='convai_idle_'..known.idle,record..' idle component '..tostring(component))
+      local source=cat.idleSources[known.idle]
+      assert(source,record..' idle '..known.idle..' has no recorded source')
+      local onRig=false
+      for _,rig in ipairs(source.rigs) do if rig==known.rig then onRig=true end end
+      assert(onRig,record..' idle '..known.idle..' was not checked on '..known.rig)
+      assert(known.idleSource==source.kind,record..' idle label')
+      if source.kind~='generic' then own=own+1 end
+      -- The controller plays exactly that component when the copy settles.
+      local s2,localCalls,localLogs=7,{},{}
+      local npc2={inside=false}
+      local native2=setmetatable({play=function(d,n,comp) localCalls[#localCalls+1]=comp;n.entering=true;return true end},{__index=native})
+      local c2=m.new({enabled=function() return true end,speech=function() return nil end,listening=function() return nil end,
+        allowed=function() return true end,native=native2,random=function() s2=(s2*1103515245+12345)%2147483648;return s2/2147483648 end,
+        log=function(kind,fields) localLogs[#localLogs+1]={kind=kind,fields=fields} end})
+      local e2={serial=50+checked,record=record,entityID={hash='88'},npc=npc2,playerGap=1.8,motor={kind='hold',feedback={state='Executing'}}}
+      for i=1,1150 do
+        c2.tick(player,.1,{{entry=e2}})
+        if npc2.entering then npc2.entering=nil;npc2.inside=true end
+        c2.observe(e2,context,.1)
+        if localCalls[1] then break end
+      end
+      assert(localCalls[1]=='convai_idle_'..known.idle,record..' played '..tostring(localCalls[1]))
+      checked=checked+1
+    end
+  end
+  assert(checked>=27,'characters with idles: '..checked)
+  assert(own>=15,'character-specific idles: '..own)
+  for _,record in ipairs({'Character.Judy','Character.Sobchak','Character.Rogue','Character.Misty','Character.reed',
+    'Character.Hanako','Character.Saul','Character.Placide','Character.songbird','Character.alex'}) do
+    assert(cat.characters[record] and cat.characters[record].flavour and cat.idleSources[cat.characters[record].idle].kind~='generic',record)
+  end
+`));
+
+test('with phrase timing from the face timeline, gestures start on phrase starts', () => run(`
+  local cat=load(catalogSource)()
+  local idle=cat.families.arms_crossed.idle.name
+  local starts={}
+  local realJump=native.jump
+  native.jump=function(n,clip,instant)
+    if clip~=idle then starts[#starts+1]=speaking.at end
+    return realJump(n,clip,instant)
+  end
+  speaking={knownEnd=30,at=0,offset=0,phrases={{start=0},{start=4.2},{start=9.1},{start=13.4},{start=18.8},{start=23.5}}}
+  step(29)
+  assert(#starts>=3,'gestures at phrase starts: '..#starts)
+  for _,at in ipairs(starts) do
+    local latest=0
+    for _,span in ipairs(speaking.phrases) do if span.start<=at+1e-9 then latest=span.start end end
+    assert(at-latest<=.8,'gesture '..(at-latest)..' s into a phrase')
+  end
 `));
