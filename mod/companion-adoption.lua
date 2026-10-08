@@ -10,7 +10,9 @@
 --
 -- Both actions run after the reply that requested them has been heard: the
 -- copy appears once the character has answered, and a companion leaves after
--- its goodbye. The model decides that V meant it (gameplay-actions.lua); this
+-- its goodbye, walking away (toward its original's home when it has one, else
+-- away from V) and despawning only out of V's view (A.owns/A.decide are the
+-- movement owner companions.lua consults; menu Dismiss stays instant). The model decides that V meant it (gameplay-actions.lua); this
 -- module only re-checks the game state and performs it.
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 local M = {}
@@ -22,7 +24,20 @@ M.CONFIG = {
     restoreDistance = 60, -- metres: a former member's original is shown again past this ...
     restoreAngle = 70,    -- ... or once it is this many degrees away from where V is looking ...
     restoreWait = 20,     -- ... or after this many seconds
+    walkDistance = 35,    -- metres: how far a leaving companion heads
+    walkHomeMin = 8,      -- metres: an original's home closer or ...
+    walkHomeMax = 60,     -- ... farther than this is not walked to; away from V instead
+    walkGone = 25,        -- metres: out of view and this far away, the copy is removed ...
+    walkHidden = 3,       -- ... or out of view this many seconds while at least ...
+    walkHiddenGap = 8,    -- ... this far away
+    walkTimeout = 30,     -- seconds: removed regardless after this
+    walkUnowned = 3,      -- seconds without a walking decision (seated, in transit): removed
 }
+
+-- Reasons a character record cannot become a companion copy. A failed join for
+-- one of these marks that record as uncopyable for the session.
+local RECORD_FAILURES = {'crowd', 'controllable', 'AI controller', 'authored AI role', 'cannot be copied',
+    'not available in your installation', 'not a character model'}
 
 -- At most 120 bytes, never cutting a UTF-8 character (the bridge compares the
 -- offer it receives byte for byte with the lease).
@@ -118,6 +133,7 @@ function M.new(options)
     local A = {}
     local clock, sequence = 0, 0
     local records, departures, offered = {}, {}, {}
+    local walkers, uncopyable = {}, {}
 
     local function log(line) if type(options.log) == 'function' then pcall(options.log, line) end end
     local function queue() return type(options.party) == 'function' and options.party() or nil end
@@ -162,7 +178,16 @@ function M.new(options)
         end
         local ok, reason = pcall(native.refusal, npc, current)
         if not ok then return 'busy' end
-        return reason
+        if reason then return reason end
+        -- Some records cannot be copied at all (or failed before this session):
+        -- the game never offers a follow it cannot perform.
+        local recordID = guard(native.record, npc)
+        if not recordID or uncopyable[tostring(recordID)] then return 'unavailable' end
+        if type(companions.copyable) == 'function' and guard(companions.copyable, recordID) == false then
+            uncopyable[tostring(recordID)] = true
+            return 'unavailable'
+        end
+        return nil
     end
 
     local function refusalMessage(reason, name)
@@ -193,6 +218,7 @@ function M.new(options)
         for _, departure in ipairs(departures) do
             for _, serial in ipairs(departure.serials) do leaving[serial] = true end
         end
+        for serial in pairs(walkers) do leaving[serial] = true end
         local entities = {entity}
         if context.group then
             local ok, list = pcall(options.groupEntities, context)
@@ -242,7 +268,8 @@ function M.new(options)
         local modelOnly = not named(seen.profileKey)
         local record = {entity = entity, npc = npc, key = key, profileKey = seen.profileKey, name = name,
             requestId = requestId, state = 'preparing', since = clock, modelOnly = modelOnly,
-            crowd = guard(native.crowd, npc) == true, home = guard(native.position, npc)}
+            crowd = guard(native.crowd, npc) == true, home = guard(native.position, npc),
+            recordKey = tostring(recordID)}
         local adoption = {entity = entity}
         record.adoption = adoption
         local gate = function()
@@ -309,10 +336,11 @@ function M.new(options)
         record.hidden = false
     end
 
-    local function inView(record, current)
-        local at, from = guard(native.position, record.npc), guard(native.playerPosition, current)
+    -- True while a point is within range and roughly where V is looking.
+    local function visibleAt(at, current, range)
+        local from = guard(native.playerPosition, current)
         if not at or not from then return false end
-        if dist(at, from) > cfg.restoreDistance then return false end
+        if dist(at, from) > range then return false end
         local forward = guard(native.cameraForward, current)
         if not forward then return true end
         local dx, dy = at.x - from.x, at.y - from.y
@@ -321,12 +349,72 @@ function M.new(options)
         local cosine = math.max(-1, math.min(1, (dx * forward.x + dy * forward.y) / (length * fl)))
         return math.deg(math.acos(cosine)) <= cfg.restoreAngle
     end
+    local function inView(record, current)
+        return visibleAt(guard(native.position, record.npc), current, cfg.restoreDistance)
+    end
+
+    -- Movement owner for a companion walking away (companions.lua M.departure).
+    function A.owns(serial) return walkers[serial] ~= nil end
+    local TURNS = {0, 50, -50, 100, -100, 160}
+    local function walkGoal(walker, at, from)
+        local dx, dy
+        local home = walker.home
+        local toHome = home and dist(home, at)
+        if toHome and toHome > cfg.walkHomeMin and toHome < cfg.walkHomeMax then
+            dx, dy = home.x - at.x, home.y - at.y
+            if walker.attempt == 0 then return {x = home.x, y = home.y, z = home.z} end
+        else
+            dx, dy = at.x - (from and from.x or at.x), at.y - (from and from.y or at.y)
+        end
+        local length = math.sqrt(dx * dx + dy * dy)
+        if length < 0.1 then dx, dy, length = 0, 1, 1 end
+        local turn = math.rad(TURNS[walker.attempt % #TURNS + 1])
+        local ux, uy = dx / length, dy / length
+        local rx, ry = ux * math.cos(turn) - uy * math.sin(turn), ux * math.sin(turn) + uy * math.cos(turn)
+        return {x = at.x + rx * cfg.walkDistance, y = at.y + ry * cfg.walkDistance, z = at.z}
+    end
+    function A.decide(serial, context)
+        local walker = walkers[serial]
+        if not walker or type(context) ~= 'table' or not context.position then return nil end
+        walker.position, walker.gap, walker.decidedAt = context.position, context.playerGap, clock
+        local motion = context.motion or {}
+        local operation = walker.operation
+        if operation and operation.kind == 'move' and motion.ticket == operation.ticket then
+            if motion.failed and walker.attempt < #TURNS then
+                -- No route that way: try the next direction.
+                walker.attempt, walker.operation = walker.attempt + 1, nil
+            elseif motion.complete or motion.failed then
+                walker.operation = {ticket = operation.ticket .. '-rest', kind = 'hold'}
+            end
+        end
+        if not walker.operation then
+            local from = context.player and guard(native.playerPosition, context.player)
+            walker.operation = {ticket = 'depart-' .. serial .. '-' .. walker.attempt, kind = 'move',
+                goal = walkGoal(walker, context.position, from), gait = 'Walk', finish = true, face = false}
+        end
+        return {phase = 'departing', reason = 'leaving-party', operation = walker.operation, look = 'none'}
+    end
 
     function A.update(dt)
         clock = clock + (tonumber(dt) or 0)
-        if next(records) == nil and #departures == 0 then return end
+        if next(records) == nil and #departures == 0 and next(walkers) == nil then return end
+        -- After the goodbye the companion walks away; it is removed out of view.
+        for index = #departures, 1, -1 do
+            local departure = departures[index]
+            if not busy(departure.requestId, departure.groupId) or clock - departure.at >= cfg.replyWait then
+                table.remove(departures, index)
+                for _, serial in ipairs(departure.serials) do
+                    local home
+                    for _, record in pairs(records) do
+                        if record.serial == serial and record.state == 'joined' then home = record.home end
+                    end
+                    walkers[serial] = {serial = serial, since = clock, attempt = 0, home = home}
+                    log('Departure walking away: copy ' .. serial)
+                end
+            end
+        end
         local current = player()
-        local rows = next(records) ~= nil and partyRows() or {}
+        local rows = (next(records) ~= nil or next(walkers) ~= nil) and partyRows() or {}
         local party = queue()
         local pendingJobs, preparing = {}, false
         for _, record in pairs(records) do if record.state == 'preparing' then preparing = true end end
@@ -348,13 +436,23 @@ function M.new(options)
                     log('Adoption joined: ' .. record.profileKey .. ' actor=' .. entity .. ' copy=' .. tostring(row.serial))
                 elseif row and (row.state == 'failed' or row.state == 'dead' or row.state == 'missing') then
                     record.state, record.endedAt = 'ended', clock
+                    record.failure = row.error
                 elseif not row and not pendingJobs[record.key] then
                     record.state, record.endedAt = 'ended', clock
                 elseif not row and pendingJobs[record.key].state == 'failed' then
                     -- The copy could not be created (no clear spot, preparation
                     -- error). The failure was reported; free its party place.
                     record.state, record.endedAt = 'ended', clock
+                    record.failure = pendingJobs[record.key].error
                     pcall(party.dismiss, pendingJobs[record.key].id)
+                end
+                -- A record that cannot be a companion is not offered again.
+                for _, text in ipairs(RECORD_FAILURES) do
+                    if record.state == 'ended' and record.recordKey and tostring(record.failure or ''):find(text, 1, true) then
+                        uncopyable[record.recordKey] = true
+                        log('Adoption: record marked uncopyable (' .. text .. '): ' .. record.recordKey)
+                        break
+                    end
                 end
             elseif record.state == 'joined' then
                 if not row or row.state == 'failed' or row.state == 'dead' or row.state == 'missing' then
@@ -375,14 +473,29 @@ function M.new(options)
                 end
             end
         end
-        for index = #departures, 1, -1 do
-            local departure = departures[index]
-            if not busy(departure.requestId, departure.groupId) or clock - departure.at >= cfg.replyWait then
-                table.remove(departures, index)
-                for _, serial in ipairs(departure.serials) do
+        for serial, walker in pairs(walkers) do
+            local row
+            for _, item in ipairs(rows) do if item.serial == serial then row = item end end
+            if not row then
+                walkers[serial] = nil -- dismissed (here or from the menu), or gone
+            elseif not walker.dismissed then
+                local hidden = current ~= nil and walker.position ~= nil
+                    and not visibleAt(walker.position, current, math.huge)
+                if hidden then walker.hiddenSince = walker.hiddenSince or clock else walker.hiddenSince = nil end
+                local gap = walker.gap or 0
+                local reason
+                if clock - walker.since >= cfg.walkTimeout then reason = 'timeout'
+                elseif not walker.decidedAt and clock - walker.since >= cfg.walkUnowned then reason = 'not walking'
+                elseif hidden and gap >= cfg.walkGone then reason = 'out of view'
+                elseif hidden and gap >= cfg.walkHiddenGap and clock - walker.hiddenSince >= cfg.walkHidden then
+                    reason = 'out of view'
+                end
+                if reason then
                     local ok, accepted, message = false, false, nil
                     if party then ok, accepted, message = pcall(party.dismiss, 'live:' .. serial) end
-                    log('Departure ' .. ((ok and accepted) and 'sent' or 'refused') .. ' for copy ' .. serial
+                    -- A refused dismissal (a driver mid-trip) stops owning the walk.
+                    if ok and accepted then walker.dismissed = true else walkers[serial] = nil end
+                    log('Departure ' .. ((ok and accepted) and 'sent' or 'refused') .. ' for copy ' .. serial .. ' (' .. reason .. ')'
                         .. ((ok and accepted) and '' or (': ' .. tostring(message or accepted))))
                 end
             end
@@ -393,7 +506,7 @@ function M.new(options)
     -- so a load needs no native call. Fast travel keeps the party and records.
     function A.abandon(preserveTransit)
         if preserveTransit then return end
-        records, departures, offered = {}, {}, {}
+        records, departures, offered, walkers = {}, {}, {}, {}
     end
 
     function A.inspect()
@@ -402,7 +515,9 @@ function M.new(options)
             rows[#rows + 1] = {entity = entity, key = record.key, profileKey = record.profileKey, state = record.state,
                 hidden = record.hidden == true, crowd = record.crowd, serial = record.serial}
         end
-        return {adoptions = rows, departures = #departures, clock = clock}
+        local walking = 0
+        for _ in pairs(walkers) do walking = walking + 1 end
+        return {adoptions = rows, departures = #departures, walking = walking, clock = clock}
     end
 
     return A

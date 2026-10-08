@@ -334,7 +334,7 @@ const worldFixture = `
     function npc:GetWorldPosition() return self.pos end
     function npc:GetWorldOrientation() return {yaw=90} end
     function npc:GetCurrentAppearanceName() return self.flags.appearance or 'judy_default' end
-    function npc:GetRecordID() return 'Character.Judy' end
+    function npc:GetRecordID() return self.flags.record or 'Character.Judy' end
     function npc:IsCrowd() return self.flags.crowd==true end
     function npc:IsPrevention() return false end
     function npc:IsCharacterPolice() return self.flags.police==true end
@@ -354,6 +354,8 @@ const worldFixture = `
     busy=function() return busy end, named=function(key) return key~='resident-female' end,
     groupEntities=function(context) return context.entities or {} end,
     promote=function(key) promoted[#promoted+1]=key end, log=function(line) logs[#logs+1]=line end})
+  companions.departure=adoption
+  local function copyOf(row) return entities[tonumber(row.entityID)] end
   local function step(seconds)
     for i=1,math.max(1,math.floor((seconds or .5)/.5)) do
       queue.flush(); companions.update(player,0.5); adoption.update(0.5)
@@ -470,11 +472,18 @@ test('a companion told to leave says goodbye first, then leaves through Dismiss;
   assert(adoption.leaveOffer(row.entityID,{profileKey='judy-alvarez'})==nil,'already leaving')
   step(2); assert(find('judy-alvarez'),'still here during the goodbye')
   busy=false; step(1)
-  assert(find('judy-alvarez')==nil,'dismissed like Current party Dismiss')
-  -- V is looking at the spot: the original stays hidden for now ...
-  assert(judy.visible==false)
-  player.forward=Vector4.new(0,-1); step(.5)
-  assert(judy.visible==true,'... and is shown again once V looks elsewhere')
+  -- After the goodbye she walks away (home is her own spot here, too close: away from V) ...
+  local copy=copyOf(row)
+  local walk=last(copy,'AIMoveToCommand')
+  local goal=walk and walk.movementTarget and walk.movementTarget.position
+  assert(goal and goal.y>copy.pos.y+10,'walks away from V: '..tostring(goal and goal.y))
+  assert(adoption.inspect().walking==1)
+  step(5); assert(find('judy-alvarez'),'not removed while V watches her walk off')
+  -- ... and is removed once out of view and far enough away.
+  copy.pos=Vector4.new(0,30); player.forward=Vector4.new(1,0); step(1)
+  assert(find('judy-alvarez')==nil,'removed out of view through the Dismiss path')
+  -- V is looking away from the original's spot too, so she is back at once.
+  assert(judy.visible==true,'the original is shown again out of view')
   assert(not adoption.hidden(judy))
   assert(adoption.offer('900',judy,'judy-alvarez','Judy Alvarez').available,'back to normal life: she can be asked again')
 `));
@@ -489,7 +498,10 @@ test('a summoned companion can be sent away the same way, and a group round offe
   assert(adoption.leaveOffer('900',{profileKey='judy-alvarez'})==nil,'no leave offer for a world character')
   busy=false
   assert(adoption.queueLeave('all',leave,'900','request-3','round')); step(1)
-  assert(find('panam-palmer')==nil)
+  assert(find('panam-palmer'),'walking away first')
+  -- Never seen leaving view: the 30 s safety removes her anyway.
+  step(31)
+  assert(find('panam-palmer')==nil,table.concat(logs,' / '))
   assert(not adoption.queueLeave(panam.entityID,leave,'900','request-4'),'already gone')
 `));
 
@@ -524,4 +536,62 @@ test('a copy that cannot be created frees its party place and the character can 
   local long=string.rep('é',70)
   local clipped=adoption.offer('900',judy,'judy-alvarez',long).name
   assert(#clipped<=120 and #clipped%2==0,'names are clipped on a UTF-8 boundary')
+`));
+
+// A pedestrian's record is crowd-flagged, so its copy is spawned from a private
+// non-crowd clone (mod/companion-records.lua) and still wears the original look.
+const crowdWorld = `
+  local flats,clones={},{}
+  TDBID={ToStringDEBUG=function(id) return id end}
+  TweakDB={
+    GetRecord=function(_,id)
+      if id=='Character.Broken' then return {IsA=function() return true end,IsCrowd=function() return true end} end
+      if clones[id] then return {IsA=function() return true end,IsCrowd=function() return flats[id..'.isCrowd']~=false end} end
+      if tostring(id):find('^CyberpunkConvai%.') then return nil end
+      return {IsA=function() return true end,IsCrowd=function() return id=='Character.CorpoWoman' end,
+        IsLightCrowd=function() return false end}
+    end,
+    CloneRecord=function(_,name,source) if source=='Character.Broken' then return false end; clones[name]=source; return true end,
+    SetFlat=function(_,name,value) flats[name]=value; return true end,
+    GetFlat=function(_,name) return flats[name] end}
+`;
+test('a crowd pedestrian joins as a non-crowd clone of its record, keeping its appearance', () => runWorld(crowdWorld + `
+  local person=worldNpc('960',3,0,{crowd=true,record='Character.CorpoWoman',appearance='corpo_woman_07'})
+  local offer=adoption.offer('960',person,'resident-female','Corporate worker')
+  assert(offer.available,'a crowd record can be copied: '..tostring(offer.reason))
+  local created
+  local system=Game.GetDynamicEntitySystem()
+  local create=system.CreateEntity
+  system.CreateEntity=function(self,spec) created=spec; return create(self,spec) end
+  busy=false; assert(adoption.queueFollow(offer,'960','request-1')); step(1)
+  assert(created.recordID=='CyberpunkConvai.NonCrowd_CorpoWoman','spawned from the clone: '..tostring(created.recordID))
+  assert(clones['CyberpunkConvai.NonCrowd_CorpoWoman']=='Character.CorpoWoman')
+  assert(flats['CyberpunkConvai.NonCrowd_CorpoWoman.isCrowd']==false)
+  assert(created.appearanceName=='corpo_woman_07','the original look, not the clone default')
+  local row=find('resident-female'); assert(row and row.state=='ready')
+  assert(person.visible==false)
+  -- A named record that is not crowd-flagged is spawned from itself.
+  local judy=worldNpc('961',-3,0)
+  assert(adoption.queueFollow(adoption.offer('961',judy,'judy-alvarez','Judy Alvarez'),'961','request-2')); step(1)
+  assert(created.recordID=='Character.Judy')
+`));
+
+test('a record that cannot be copied is never offered, and a record that failed to join is not offered again', () => runWorld(crowdWorld + `
+  local broken=worldNpc('970',3,0,{crowd=true,record='Character.Broken'})
+  local offer=adoption.offer('970',broken,'resident-male','Pedestrian')
+  assert(offer.available==false and offer.reason=='unavailable',tostring(offer.reason))
+  -- A copy rejected at attachment (here: still a crowd member) marks its record.
+  local person=worldNpc('971',3,0,{record='Character.Odd'})
+  local system=Game.GetDynamicEntitySystem()
+  local create=system.CreateEntity
+  system.CreateEntity=function(self,spec)
+    local id=create(self,spec); local npc=system:GetEntity(id); npc.IsCrowd=function() return true end; return id
+  end
+  busy=false; assert(adoption.queueFollow(adoption.offer('971',person,'resident-male','Pedestrian'),'971','request-1'))
+  step(1); step(1)
+  local notices=queue.takeNotices(); assert(#notices>=1 and notices[1].failed and notices[1].message:find('crowd',1,true))
+  assert(person.visible==nil,'never hidden')
+  local again=worldNpc('972',-3,0,{record='Character.Odd'})
+  local refused=adoption.offer('972',again,'resident-male','Pedestrian')
+  assert(refused.available==false and refused.reason=='unavailable','learned for the session: '..tostring(refused.reason))
 `));

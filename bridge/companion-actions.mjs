@@ -48,6 +48,7 @@ export const FOLLOW_UNAVAILABLE = Object.freeze({
   vehicle: 'you are in a vehicle right now',
   busy: 'you are busy with something else right now',
   'already-here': 'it is not possible for you to come along right now',
+  unavailable: 'it is not possible for you to come along right now',
 });
 export const followActionName = offer => token(offer?.token) ? `${FOLLOW_ACTION} ${offer.token}` : null;
 // One action per offered member (the speaker's own is plain "Leave V's Party"),

@@ -622,7 +622,8 @@ do
             end,
             log = log})
     end
-    if built and type(value) == 'table' then adoption = value; convaiCompanionAdoption = value
+    -- It also owns the walk of a companion leaving the party (companions.lua M.departure).
+    if built and type(value) == 'table' then adoption = value; convaiCompanionAdoption = value; companions.departure = value
     else print('[CyberpunkConvai] companion-adoption.lua unavailable: ' .. tostring(value)) end
 end
 

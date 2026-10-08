@@ -10,7 +10,7 @@ local MAX_PACKET, MAX_LEASE_MS = 16384, 125000
 -- Why a world character cannot follow V now. Only these codes reach the bridge,
 -- which turns them into a short instruction to decline in character.
 local FOLLOW_UNAVAILABLE = {quest = true, scene = true, combat = true, police = true, hostile = true,
-    working = true, vehicle = true, busy = true, ['already-here'] = true}
+    working = true, vehicle = true, busy = true, ['already-here'] = true, unavailable = true}
 M.FOLLOW_UNAVAILABLE = FOLLOW_UNAVAILABLE
 
 local function copy(value, depth)

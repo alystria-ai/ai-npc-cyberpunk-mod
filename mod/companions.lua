@@ -308,10 +308,11 @@ local function spawnCopy(key, invitation, returning)
     local spec = NewObject('DynamicEntitySpec')
     spec.recordID = spawnRecord
     -- A copy of a world character wears the original's current appearance. A
-    -- private spawn record (Johnny) keeps its own physical appearance.
+    -- private spawn record with its own physical appearance (Johnny) keeps it;
+    -- a non-crowd clone of a pedestrian's record (companion-records.lua) does not.
     local appearance=returning and returning.appearance or (adoption and type(adoption.appearance)=='string'
         and adoption.appearance~='' and adoption.appearance) or nil
-    if appearance and spawnRecordName then appearance=nil end
+    if appearance and spawnRecordName and spawnAppearance then appearance=nil end
     if appearance then spec.appearanceName = CName.new(appearance)
     elseif spawnAppearance then spec.appearanceName = CName.new(spawnAppearance) end
     spec.position = spawnPosition
@@ -487,6 +488,13 @@ end
 
 -- The exact ready party member at this entity, for a leave offer. A driver
 -- mid-trip cannot leave (dismissal is refused until the trip has ended).
+-- True when a copy can be spawned from this character record (a crowd
+-- record needs its private non-crowd clone, companion-records.lua).
+function M.copyable(recordID)
+    local ok,record=pcall(spawnRecords.resolve,recordID)
+    return ok and record~=nil
+end
+
 function M.partyMember(entity)
     if type(entity)~='string' then return nil end
     for _,entry in ipairs(entries) do
@@ -1309,8 +1317,11 @@ function M.update(player,delta,focusEntity)
     for i=1,#order do
         local entry=order[(first+i-1)%#order+1]
         local ok,err=pcall(function()
-            local tactic=M.tactics and M.tactics.owns(entry.serial)
-            if not tactic and recoverDistant(entry,player) then return end
+            -- A companion leaving the party walks away on its own (M.departure,
+            -- companion-adoption.lua): no tactic, catch-up or teleport recovery.
+            local departing=M.departure and M.departure.owns(entry.serial)
+            local tactic=not departing and M.tactics and M.tactics.owns(entry.serial)
+            if not tactic and not departing and recoverDistant(entry,player) then return end
             local id=tostring(entry.entityID.hash)
             local lane=travel.laneFrame(groupFrame,entry.lane)
             local travelTarget=space.offset(lane.position,lane.direction,slots[entry.lane][1],0)
@@ -1332,7 +1343,8 @@ function M.update(player,delta,focusEntity)
                 nearGroup=space.nearGroup(entry.position,groupFrame,entry.lane,others,id,entry.clearance),
                 yieldTarget=peerYieldPoint(entry.position,others,id,entry.clearance),others=others,
             }
-            local decision=tactic and M.tactics.decide(entry.serial,context,step)
+            local decision=departing and M.departure.decide(entry.serial,context,step)
+                or tactic and M.tactics.decide(entry.serial,context,step)
                 or behavior.decide(entry.person,context,step)
             -- Braking is already a committed stop. Never choose an alternative
             -- behind the actor if its original stop point becomes unavailable.

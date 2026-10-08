@@ -6,7 +6,7 @@ A character V meets in the world (Judy at her place, a resident, an archetype NP
 
 The world character is not adopted. A managed copy takes its place:
 
-1. The copy is created through the normal party queue: same TweakDB record, the original's current appearance and orientation, placed at the original's spot when that spot passes the usual placement checks.
+1. The copy is created through the normal party queue: same TweakDB record, the original's current appearance and orientation, placed at the original's spot when that spot passes the usual placement checks. A pedestrian's record is crowd-flagged, and `ScriptedPuppet.IsCrowd()` reads the record, so a copy spawned from it is a crowd member and cannot follow. Such a copy is spawned instead from a private clone of the record with `isCrowd` and `isLightCrowd` off (`CyberpunkConvai.NonCrowd_<record>`, `mod/companion-records.lua`, the same mechanism as the Johnny combat clone). The clone has the same template, appearances and conversation profile, so the copy keeps the original's look and voice.
 2. The frame the copy is attached, the original is hidden with the same runtime visibility event the phantom controller uses (`enteventsSetVisibility`, source `PhantomEntitySystem`).
 3. When the copy leaves the party, the original is shown again once V is more than 60 m away, is looking more than 70° away from it, or after 20 s. It then carries on with its own routine.
 
@@ -33,6 +33,7 @@ Follow is offered only when every check reads cleanly. A signal that cannot be r
 | `IsHostile()` | `hostile` |
 | Mounted in a vehicle | `vehicle` |
 | Already a vanilla companion, has any AI role, no AI, a child | `busy` |
+| The record cannot be copied (the non-crowd clone failed), or a copy of it already failed this session | `unavailable` |
 | A named character already in the party or already being adopted | `already-here` |
 
 Generic people (residents, archetypes) may follow more than once, because each body is a different person. A named character cannot. The same checks run again when the action arrives and once more just before the copy is placed. If the original has walked more than 15 m away, or a quest has picked it up in the meantime, the reservation is released with a notice and nothing is hidden.
@@ -52,7 +53,12 @@ The prompt text tells the model what counts as a clear request ("come with me", 
 ## Timing
 
 - **Follow**: the party place is reserved and preparation starts when the action arrives. The copy is placed only after the reply that accepted has finished playing, or after 30 s at most.
-- **Leave**: the dismissal waits until the goodbye has been heard. In group chat it waits until the whole round has ended, or 30 s at most. It then goes through Current party Dismiss: the copy is deleted the same way, with no walk-away animation. Dismissing from Current party also ends an adoption.
+- **Leave**: the companion waits until its goodbye has been heard. In group chat it waits until the whole round has ended, or 30 s at most. It then walks away:
+  - **Direction**: toward its original's home when that spot is between 8 and 60 m away, otherwise 35 m directly away from V. If there is no route that way, it tries turned directions (50°, 100°, 160°).
+  - **Removal**: through the Current party Dismiss path, once it is out of V's view (more than 70° from where V is looking) and either 25 m away, or at least 8 m away and out of view for 3 s.
+  - **Safety limits**: it is removed anyway after 30 s, or after 3 s if it never starts walking (seated in a car, in transit).
+  - **While it walks**: catch-up teleports and tactics do not apply, and it can't be sent away twice.
+  - **From the menu**: Dismiss in Current party stays instant. Either way the adoption ends and the original returns.
 
 ## Ending cases
 
@@ -69,7 +75,8 @@ When an adopted character joins, `convaiAutoConnect.promote(key)` (`mod/auto-con
 
 ## Known limits
 
-- The copy is removed instantly on leave. There is no walk-away.
+- The walk-away heads home or away from V. It does not look for doors or roads. A companion that cannot reach any route stands still and is removed at the 30 s limit.
+- A copy rejected for its record ("unexpectedly joined the crowd", no AI controller, an authored AI role) marks that record as not copyable for the session, so the next character with that record is never offered Follow. Its failure notice is a menu-style notice, not a spoken line.
 - When the original's spot is blocked by its own body, the copy is placed at the nearest clear spot (up to about 1 m away), or near V when the original stood more than 6 m from V.
 - A hidden original still has collision and its own AI while it is hidden.
 - "Wait here" is not a pause: the companions have no wait-in-place behaviour, so the model treats it as leaving only when V clearly means they part ways.
@@ -81,8 +88,16 @@ Install: CET reload for `mod/companion-adoption.lua` (new), `init.lua`, `compani
 1. **Judy in the world** (not summoned; free roam, no active job): say "come with me". She answers, and only after the line does a copy appear in her place while the original vanishes. Check: no visible pop or double, same outfit, same facing, and the copy is listed in Current party with Dismiss.
 2. **Hiding**: the original really disappears (the `PhantomEntitySystem` visibility source on a non-phantom NPC is the main unknown). Also check that no invisible body blocks V, and that the talk key and the tactic marker never pick it.
 3. **Refusals**: during a quest step (a quest NPC, a scene, a dialogue choice running), an NCPD officer, a vendor, a ganger hostile to V, someone in a car, and during combat. Each declines in character and nothing spawns. Also note whether ordinary NPCs read as "busy" because of an AI role (log the reason).
-4. **Generic resident or archetype**: one follows (the copy keeps the crowd appearance). Talk to the copy afterwards: it answers as the same kind of person, in a new session. If the join fails with "Managed copy unexpectedly joined the crowd", the pedestrian's record is crowd-flagged (`ScriptedPuppet.IsCrowd()` reads the record). The failure is safe: the original was never hidden and the party place is freed. In that case, crowd pedestrians cannot be copied as companions.
-5. **Leave, private**: "you can go" or "go home" to an adopted Judy, and to a Characters-page summon. She says goodbye, then leaves. The original Judy reappears at home once V looks away or walks off.
+4. **Crowd pedestrian, resident or archetype**: one follows, spawned from the non-crowd clone (`probe.log` shows no "joined the crowd"). Check:
+   - **Look**: the same outfit and face as the original.
+   - **Talk**: the copy answers in the same voice, as the same kind of person, in a new session.
+   - **Movement**: it follows like any companion, without fleeing or wandering off in a crowd routine.
+   - **Combat**: watch how it reacts. A civilian reaction preset may make it cower.
+   - **If it still fails**: the failure is safe. The original is never hidden, the place is freed, and that record is not offered Follow again.
+5. **Leave, private**: "you can go" or "go home" to an adopted Judy, and to a Characters-page summon. Check:
+   - **The walk**: she says goodbye, then walks off (toward home, or away from V) and disappears only when V isn't looking and she is 25 m away. Turning away for 3 s at 8 m or more also works. She never vanishes in plain view before 30 s.
+   - **The original**: the original Judy reappears at home out of view.
+   - **Menu Dismiss**: Dismiss in Current party is still instant.
 6. **Casual phrases**: "leave it", "leave me alone for a sec", "let's leave this place" while companions are present. Nobody leaves.
 7. **Group chat** with two companions: "Panam, you can go home". Only Panam leaves, after the round. "Both of you, go home" makes both leave.
 8. **Partner role**: after a follow, `probe.log` shows 'partner ... joined the party', and the party connection is ready without a second warm-up.
