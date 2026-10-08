@@ -63,6 +63,8 @@ function native.inWorkspot(npc) return npc.inside end
 function native.exit(npc,instant) calls[#calls+1]={name='exit',instant=instant==true,npc=npc};npc.leaving=true;return true end
 function native.stopInDevice(npc) calls[#calls+1]={name='stopInDevice'};return true end
 function native.look(entry,style) calls[#calls+1]={name='look',style=style};return true end
+local watching=false
+function native.lookingAt(player,point,cone) calls[#calls+1]={name='lookingAt'};return watching end
 local catalog={device='dev.ent',seatComponents={couch='convai_sit_couch',chair='convai_sit_chair',bar='convai_sit_bar',stool='convai_sit_stool'}}
 local c
 local function build(options)
@@ -263,14 +265,14 @@ test('a new catalog with the old archive (device without sit components) disable
 
 test('a refused walk near the seat slides the rest; far away it gives up', () => run(`
   couch(-.35,1.7)
-  party={companion(1,1.0,1.5)}
+  party={companion(1,1.3,-.3)}
   sitV();step(.6)
   step(3,{walk=false,refuse=true})
-  assert(count('play')==1,'slid from 1.2 m')
+  assert(count('play')==1,'slid from 0.7 m')
   assert(last('play').slide>.5,'longer slide')
   seat.inside=false;step(1);step(.5)
   party={companion(2,4,4)}
-  sitV();step(.6);step(4,{walk=false,refuse=true})
+  sitV();step(.6);step(6,{walk=false,refuse=true})
   assert(count('play')==1,'no slide from far away')
   assert(lastLog('seat-abandoned') or lastLog('seat-finished'))
 `));
@@ -295,7 +297,7 @@ test('V standing costs one cheap native read at most four times a second', () =>
 // 0.0-0.2 m behind V's root, it ends ~1.1 m to V's left at a higher armrest or
 // side unit (0.50-0.59 m), and to V's right there is only floor.
 test('apartment couch from the probe: unnamed scene sit, classified by the furniture, one seat on the left', () => run(`
-  world.boxes={{x1=-1.1,x2=.3,y1=-.75,y2=-.15,h=.45},{x1=-1.1,x2=.3,y1=-.95,y2=-.75,h=.85},
+  world.boxes={{x1=-1.1,x2=.3,y1=-.75,y2=-.15,h=.45},{x1=-1.1,x2=.3,y1=-.95,y2=-.75,h=.63},
     {x1=-2.2,x2=-1.1,y1=-.75,y2=.6,h=.58}}
   party={companion(1,-.46,1.15)}
   seat.inside,seat.psm=true,0;step(.6)
@@ -335,4 +337,31 @@ test('a seat walk the actuator never takes counts as refused and slides when clo
     c.observe(e,{combat=false})
   end
   assert(count('play')==1,'slid in after the walk was never taken')
+`));
+
+// October 8 live run: the apartment couch read as a bench (backrest 0.63 over a
+// 0.44 cushion) and Judy, 2.0 m from the seat, had her one walk-up point
+// refused by the destination clearance check, so she gave up after 3 s.
+test('apartment live run: every walk-up refused 2 m from the seat; she tries other points, then slides in once V looks away', () => run(`
+  world.boxes={{x1=-1.1,x2=.3,y1=-.75,y2=-.15,h=.44},{x1=-1.1,x2=.3,y1=-.95,y2=-.75,h=.63},
+    {x1=-2.2,x2=-1.1,y1=-.75,y2=.6,h=.58}}
+  party={companion(1,-1.2,1.85)}
+  watching=true
+  seat.inside,seat.psm=true,0;step(.6);seat.psm=1;step(1.5,{walk=false,refuse=true})
+  assert(lastLog('seat-classified').fields.kind=='couch','couch, not bench')
+  step(5,{walk=false,refuse=true})
+  local walks=0;for _,l in ipairs(logs) do if l.kind=='seat-walk' then walks=walks+1 end end
+  assert(walks>=3,'several walk-up points tried: '..walks)
+  assert(count('play')==0,'no glide while V looks at her')
+  assert(count('lookingAt')>0)
+  assert(lastLog('seat-walk-refused'),'refusals logged')
+  watching=false;step(1.5,{walk=false,refuse=true})
+  assert(count('play')==1 and last('play').component=='convai_sit_couch','slid in once V looked away')
+  assert(last('play').slide>1.0 and last('play').slide<=1.4,'long slide '..last('play').slide)
+`));
+
+test('a long slide never waits more than blendWait for V to look away', () => run(`
+  couch(-.35,1.7);party={companion(1,2.2,1.6)};watching=true
+  sitV();step(.6);step(9,{walk=false,refuse=true})
+  assert(count('play')==1,'slid after the wait even while watched')
 `));

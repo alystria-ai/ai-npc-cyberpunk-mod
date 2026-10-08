@@ -22,7 +22,7 @@ M.policy = {
     approachTimeout = 12,
     arriveDistance = .55,
     settlePsm = .5,        -- V's PSM IsInWorkspot = 1 this long: seated (it is 0 while V sits down and gets up)
-    notOursAfter = 2,      -- the actuator never took the seat walk this long: treat it as refused
+    notOursAfter = 1.5,    -- the actuator never took the seat walk this long: treat it as refused
     deviceTimeout = 5,
     enterTimeout = 4,
     exitPatience = 3,
@@ -31,11 +31,17 @@ M.policy = {
     slideTime = .5,
     wallHeight = .9,       -- the line from V's seat to a neighbour seat at this height must be clear
     floorBand = {-.3, .25},-- the walk-up point must be floor (not a table or a drop)
-    approachReach = {.75, 1.05, .55}, -- walk-up distances from the seat root, first with floor wins
+    approachReach = {.75, 1.05, 1.35}, -- walk-up distances from the seat root
+    approachAngles = {0, 30, -30, 55, -55}, -- degrees off straight in front (or behind) of the seat
+    keepOut = .95,         -- the actuator refuses goals within 0.9 m of V
+    approachTries = 5,     -- walk-up points tried before sliding in
     settleTimeout = 1.2,   -- the walk's move command retires to a hold before the workspot plays
-    routeGrace = 1.0,      -- a failing walk this long within slideReach of the seat: slide the rest
-    slideReach = 1.8,
-    routeGiveUp = 2.5,
+    routeGrace = .6,       -- a walk refused this long: try the next walk-up point
+    slideNear = 1.2,       -- refused this close to the seat: slide straight in
+    slideReach = 3.0,      -- out of walk-up points this close to the seat: slide in
+    blendWait = 3,         -- a long slide waits this long for V to look away
+    lookCone = 40,         -- degrees: V looking at her
+    slideMax = 1.4,
     failureCooldown = 30,
 }
 
@@ -168,9 +174,32 @@ function M.classifyGeometry(surface)
     end
     local backrest, front = surface(found.back + .45, 0), surface(-.45, 0)
     found.sides, found.backrest, found.front = sides, backrest, front
-    if sides > 0 then return (backrest and backrest >= h0 + .2) and 'couch' or 'bench', found end
+    -- A backrest 0.12 m or more above the cushion makes it a couch (V's
+    -- apartment couch: 0.63 over 0.44, October 8); level or floor behind: a bench.
+    if sides > 0 then return (backrest and backrest >= h0 + .12) and 'couch' or 'bench', found end
     if front and front >= h0 + .15 and front <= 1.0 then return 'table', found end
     return 'chair', found
+end
+
+-- Walk-up points for a seat: around its approach side at several distances
+-- and angles, outside V's keep-out, nearest to the companion first.
+function M.approachPoints(root, forward, kind, anchor, from, policy)
+    policy = policy or M.policy
+    local list = {}
+    for _, reach in ipairs(policy.approachReach) do
+        for _, degrees in ipairs(policy.approachAngles) do
+            local a = math.rad(degrees)
+            local fx, fy = forward.x * kind.approach, forward.y * kind.approach
+            local dx, dy = fx * math.cos(a) - fy * math.sin(a), fx * math.sin(a) + fy * math.cos(a)
+            local point = {x = root.x + dx * reach, y = root.y + dy * reach, z = anchor.z}
+            if flat(point, anchor) >= policy.keepOut then
+                point.score = (from and flat(point, from) or 0) + .3 * reach + .004 * math.abs(degrees)
+                list[#list + 1] = point
+            end
+        end
+    end
+    table.sort(list, function(a, b) return a.score < b.score end)
+    return list
 end
 
 -- Native layer ---------------------------------------------------------------
@@ -304,6 +333,19 @@ end
 native.inWorkspot = workspot.inWorkspot
 native.exit = workspot.exit -- native fast exit only; never StopNpcInWorkspot
 native.stopInDevice = workspot.stopInDevice
+function native.lookingAt(player, point, cone)
+    local ok, looking = pcall(function()
+        local okView, _, view = pcall(function() return Game.GetTargetingSystem():GetCrosshairData(player) end)
+        local f = okView and view or player:GetWorldForward()
+        local at = player:GetWorldPosition()
+        local bx, by = point.x - at.x, point.y - at.y
+        local fl, bl = math.sqrt(f.x * f.x + f.y * f.y), math.sqrt(bx * bx + by * by)
+        if fl < 1e-3 or bl < 1e-3 then return true end
+        local cos = (f.x * bx + f.y * by) / (fl * bl)
+        return cos >= math.cos(math.rad(cone))
+    end)
+    return not ok or looking == true -- unknown counts as looking
+end
 function native.inCombat(npc)
     local ok, value = pcall(function() return NPCPuppet.IsInCombat(npc) end)
     return ok and value == true
@@ -356,7 +398,7 @@ function M.new(options)
         s.phase, s.seat, s.exitAt, s.lookStyle = 'off', nil, nil, nil
     end
     local function requestExit(s, reason, instant)
-        if s.phase == 'approach' or s.phase == 'settling' then release(s, reason); return end
+        if s.phase == 'approach' or s.phase == 'settling' or s.phase == 'blending' then release(s, reason); return end
         if s.phase == 'entering' and not s.playedAt then release(s, reason); return end
         if s.phase ~= 'entering' and s.phase ~= 'seated' then return end
         s.phase, s.exitAt, s.exitReason, s.escalated = 'exiting', self.clock, reason, nil
@@ -487,23 +529,12 @@ function M.new(options)
         if not reason and nat.blocked({x = anchor.x, y = anchor.y, z = anchor.z + up}, {x = root.x, y = root.y, z = root.z + up}) then
             reason = 'wall between'
         end
-        if not reason then
-            reason = 'no floor to walk up'
-            for _, reach in ipairs(policy.approachReach) do
-                local _, approach = M.seatPoints(anchor, session.forward, seat, kind, reach)
-                local z = nat.surface(approach.x, approach.y, anchor.z + 1.2, anchor.z - .6, true)
-                local h = z and z - anchor.z
-                if h and h >= policy.floorBand[1] and h <= policy.floorBand[2] then
-                    seat.approach, reason = approach, nil
-                    break
-                end
-            end
-        end
         seat.checked, seat.reason = reason == nil, reason
         if reason then note('seat-rejected', {session = session.id, offset = seat.offset, reason = reason}) end
         return seat.checked
     end
 
+    local slideOrWait
     local function nextTicket(s)
         s.tickets = s.tickets + 1
         return 'seat:' .. tostring(s.serial) .. ':' .. tostring(s.tickets)
@@ -511,6 +542,46 @@ function M.new(options)
     local function holdDecision(s, reason)
         s.holdOp = s.holdOp or {ticket = nextTicket(s), kind = 'hold'}
         return {phase = 'seated', reason = reason, operation = s.holdOp, look = 'none'}
+    end
+
+    -- The next walk-up point with floor under it (one ray each, only when tried).
+    local function nextApproach(s)
+        local anchor = session.anchor
+        while s.points and #s.points > 0 and s.tries < policy.approachTries do
+            local point = table.remove(s.points, 1)
+            local z = nat.surface(point.x, point.y, anchor.z + 1.2, anchor.z - .6, true)
+            local h = z and z - anchor.z
+            if h and h >= policy.floorBand[1] and h <= policy.floorBand[2] then
+                s.tries, s.since, s.failingSince = s.tries + 1, self.clock, nil
+                s.seat.approach = {x = point.x, y = point.y, z = anchor.z}
+                s.op = {ticket = nextTicket(s), kind = 'move', goal = copy(s.seat.approach), gait = 'Walk', finish = true, face = false}
+                note('seat-walk', {serial = s.serial, try = s.tries, goal = s.seat.approach})
+                return true
+            end
+        end
+        return false
+    end
+    local function arrive(s, toSeat, refused)
+        s.phase, s.since, s.slide = 'settling', self.clock, refused and toSeat or nil
+        note('seat-arrived', {serial = s.serial, toSeat = toSeat, refused = refused == true})
+        return holdDecision(s, 'Stop at the seat')
+    end
+    -- Out of walk-up points: slide in from up to slideReach, after V looks away
+    -- (or blendWait) when the slide is long enough to read as a glide.
+    function slideOrWait(s, entry)
+        local toSeat = entry.position and flat(entry.position, s.seat.root) or math.huge
+        if toSeat > policy.slideReach then
+            s.cooldownUntil = self.clock + policy.failureCooldown
+            release(s, 'route failed'); return nil
+        end
+        s.phase = 'blending'
+        s.blendSince = s.blendSince or self.clock
+        local long = toSeat > policy.slideNear
+        if long and self.clock - s.blendSince < policy.blendWait
+            and nat.lookingAt(self.player, entry.position, policy.lookCone) then
+            return holdDecision(s, 'Wait for V to look away')
+        end
+        return arrive(s, toSeat, true)
     end
 
     local function begin(s, entry)
@@ -532,12 +603,14 @@ function M.new(options)
         if not component then note('seat-none', {serial = s.serial, reason = 'no workspot for ' .. session.kind}); return nil end
         best.taken = s.serial
         s.seat, s.component, s.phase, s.since = best, component, 'approach', self.clock
-        s.op = {ticket = nextTicket(s), kind = 'move', goal = copy(best.approach), gait = 'Walk', finish = true, face = false}
         s.holdOp, s.playedAt, s.device, s.deviceID, s.failingSince, s.slide = nil, nil, nil, nil, nil, nil
+        s.points, s.tries, s.blendSince = M.approachPoints(best.root, session.forward, session.profile, session.anchor,
+            entry.position, policy), 0, nil
         local ok, id = nat.spawnDevice(best.root, session.orientation, template)
         if ok then s.deviceID = id else failNote('seat device: ' .. tostring(id)) end
         note('seat-assigned', {serial = s.serial, session = session.id, kind = session.kind, offset = best.offset,
-            height = best.height, component = component, approach = best.approach})
+            height = best.height, component = component, toSeat = entry.position and flat(entry.position, best.root)})
+        if not nextApproach(s) then return slideOrWait(s, entry) end
         return {phase = 'seat-approach', reason = 'Walk to a seat beside V', operation = s.op, look = 'none'}
     end
 
@@ -562,7 +635,7 @@ function M.new(options)
             failNote(self.disabledReason); note('seat-disabled', {reason = self.disabledReason})
             release(s, 'old archive'); return
         end
-        local slide = policy.slideTime + (s.slide and math.min(.8, s.slide * .35) or 0)
+        local slide = math.min(policy.slideMax, policy.slideTime + (s.slide and s.slide * .35 or 0))
         local ok, result = nat.play(device, s.entry.npc, s.component, slide)
         if not ok then
             failNote('seat play: ' .. tostring(result))
@@ -595,20 +668,23 @@ function M.new(options)
                 or (not ours and self.clock - s.since >= policy.notOursAfter) then s.failingSince = s.failingSince or self.clock
             else s.failingSince = nil end
             local failing = s.failingSince and self.clock - s.failingSince or 0
-            if (ours and motion.complete) or gap <= policy.arriveDistance
-                or (failing >= policy.routeGrace and toSeat <= policy.slideReach) then
-                -- Arrived (or close enough to slide): retire the walk to a hold
-                -- first, then the workspot takes the body.
-                s.phase, s.since, s.slide = 'settling', self.clock, failing > 0 and toSeat or nil
-                note('seat-arrived', {serial = s.serial, gap = gap, toSeat = toSeat, refused = failing > 0})
-                return holdDecision(s, 'Stop at the seat')
-            end
-            if failing >= policy.routeGiveUp or self.clock - s.since > policy.approachTimeout then
-                s.cooldownUntil = self.clock + policy.failureCooldown
-                release(s, failing > 0 and 'route failed' or 'approach timed out')
-                return nil
+            -- Arrived: retire the walk to a hold first, then the workspot takes the body.
+            if (ours and motion.complete) or gap <= policy.arriveDistance then return arrive(s, toSeat, false) end
+            if failing >= policy.routeGrace or self.clock - s.since > policy.approachTimeout then
+                note('seat-walk-refused', {serial = s.serial, try = s.tries, toSeat = toSeat,
+                    reason = motion.error or (ours and 'refused' or 'not taken')})
+                if toSeat <= policy.slideNear then return arrive(s, toSeat, true) end
+                if nextApproach(s) then
+                    return {phase = 'seat-approach', reason = 'Walk to a seat beside V', operation = s.op, look = 'none'}
+                end
+                return slideOrWait(s, entry)
             end
             return {phase = 'seat-approach', reason = 'Walk to a seat beside V', operation = s.op, look = 'none'}
+        end
+        if s.phase == 'blending' then
+            if not session or session.id ~= s.session then release(s, 'V stood up'); return nil end
+            if context.combat then release(s, 'combat'); return nil end
+            return slideOrWait(s, entry)
         end
         if s.phase == 'settling' then
             if not session or session.id ~= s.session then release(s, 'V stood up'); return nil end

@@ -64,7 +64,7 @@ Changes from it:
   (`M.classifyGeometry`, one update, about 12 rays): V's own seat surface 0.30,
   0.15 or 0.05 m behind the root; above 0.62 m a stool, or a bar stool with a
   counter (0.9-1.3 m) 0.4 m in front; otherwise a couch (the surface continues
-  0.5 m to a side and a backrest 0.45 m further back is 0.2 m higher), a bench
+  0.5 m to a side and a backrest 0.45 m further back is 0.12 m higher), a bench
   (continues, no backrest), a chair at a table (a 0.15-1.0 m surface in front) or
   a chair. A named workspot that `M.classify` rejects (a car, a device) still
   never seats anyone. Probe line `seat-classified` with `h0`, `sides`,
@@ -83,6 +83,19 @@ Changes from it:
   feedback stays on another ticket for 2 s), a companion within 1.8 m of the seat
   slides the rest; arrival distance 0.55 m. Judy, 1.2 m from the seat above, would
   sit with a ~0.9 s slide.
+
+## Live run (October 8, 20:08Z): she did not sit
+
+Archive and Lua installed, apartment couch: `seat-classified` **bench**
+(`backrest` 0.63 over `h0` 0.44, `sides` 1) so the chair workspot was chosen,
+one seat at −0.66, then `seat-abandoned` "route failed" 3 s later. The movement
+trace: Judy stood 2.0 m from the seat (2.15 m from V) and the actuator refused
+the single walk-up point at stage `destination` (the body box there overlapped
+Static geometry, the same refusal her own standing slot got just before);
+2.0 m was beyond the 1.8 m slide limit, so she gave up. Fixed: a backrest 0.12 m
+above the cushion reads as a couch; walk-up retries at other distances and
+angles, then a slide-in from up to 3 m, waiting for V to look away when the
+slide is long (step 5).
 
 ## Mechanism
 
@@ -122,9 +135,16 @@ seat and nothing else.
 5. **Walk.** A companion within 6 m takes the free seat closest to V (its own
    distance breaks ties, so two companions take opposite sides). The controller
    gives the companions loop a decision override, before `behavior.decide`: a
-   normal Walk move to the walk-up point (the actuator plans and checks it like
-   any other move). If the actuator refuses it but the companion is within
-   1.8 m of the seat, it slides the rest; farther away it gives up after 2.5 s.
+   normal Walk move to a walk-up point (the actuator plans and checks it like
+   any other move). Walk-up points lie around the seat's approach side at
+   0.75, 1.05 and 1.35 m and 0°, ±30° and ±55°, outside V's 0.95 m keep-out,
+   nearest to the companion first, each with floor under it (one ray when
+   tried). A walk refused for 0.6 s (or never taken by the actuator for
+   1.5 s): within 1.2 m of the seat she slides straight in; otherwise the next
+   point, up to five. Out of points within 3 m of the seat she slides in; a
+   slide longer than 1.2 m first waits up to 3 s for V to look away (camera
+   more than 40° off her). Farther than 3 m she gives up (`route failed`).
+   Slide time 0.5 s + 0.35 s per metre, at most 1.4 s.
 6. **Sit.** The move retires to a hold, then `PlayInDevice` with
    `PlayAtResourcePosition` and a 0.5 s slide: the workspot picks the entry for
    the companion's approach and the companion sits down. While the workspot
@@ -197,7 +217,7 @@ companions update until it errors.
 classification by name and by furniture (the probed apartment couch), seat finding on couches/stools/armrests, the full sit and stand
 flow, V getting up, combat (instant), several companions on different seats, no
 seat, wall / occupied / table-in-front, vehicles and unsupported workspots, an old archive, a refused walk near and far, transport/unobserved
-release, a walk the actuator never takes, the PSM settle and stand-up, and the standing cost (≤ 4 reads a second, no rays). 18 tests.
+release, a walk the actuator never takes, the PSM settle and stand-up, the live apartment run (every walk-up refused 2 m out, slide after V looks away), the bounded wait, and the standing cost (≤ 4 reads a second, no rays). 20 tests.
 
 ## To check in game
 
