@@ -25,7 +25,8 @@ local M = convaiFaceTest or {}
 local REQUEST, RESPONSE, LOG = 'runtime/face-test-request.txt', 'runtime/face-test-response.txt', 'runtime/face-test.log'
 local EXPRESSION = {'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','lips_r_corner_dn',
     'eye_l_brows_raise_in','eye_r_brows_raise_in','eye_l_brows_raise_out','eye_r_brows_raise_out',
-    'eye_l_brows_lower','eye_r_brows_lower','eye_l_oculi_squint_outer_lower','eye_r_oculi_squint_outer_lower'}
+    'eye_l_brows_lower','eye_r_brows_lower','eye_l_oculi_squint_outer_lower','eye_r_oculi_squint_outer_lower',
+    'eye_l_widen','eye_r_widen'}
 local policyFamily = {smile='Joy', frown='Sadness', browsup='Surprise', browsdown='Anger', all='Joy'}
 
 M.clock, M.pollAt, M.lastNonce = M.clock or 0, M.pollAt or 0, M.lastNonce

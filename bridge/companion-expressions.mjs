@@ -10,8 +10,11 @@ export const EXPRESSION_TRACKS = Object.freeze([
   'lips_l_corner_up', 'lips_r_corner_up', 'lips_l_corner_dn', 'lips_r_corner_dn',
   'eye_l_brows_raise_in', 'eye_r_brows_raise_in',
   'eye_l_brows_raise_out', 'eye_r_brows_raise_out', 'eye_l_brows_lower', 'eye_r_brows_lower',
-  // Duchenne smile: the lower-lid/outer-eye squint that makes a smile read as genuine.
+  // Duchenne smile: the lower-lid/outer-eye squint that makes a smile read as genuine (and, since October 9,
+  // the narrowed eyes of anger and disgust).
   'eye_l_oculi_squint_outer_lower', 'eye_r_oculi_squint_outer_lower',
+  // October 9: widened eyes for surprise and fear. Blink and gaze stay out of expression ownership.
+  'eye_l_widen', 'eye_r_widen',
 ]);
 export const EXPRESSION_POLICY = Object.freeze({
   // October 6 recalibration. The game's own dialogue lipsync (6938 extracted
@@ -27,7 +30,10 @@ export const EXPRESSION_POLICY = Object.freeze({
   // October 9: in a blend (mixTarget) a family weight w moves the frowns and brows by w^mixCurve of its pose, so
   // subtle and medium feelings read while speaking; full feelings and the caps are unchanged; the smile stays
   // linear. Trust (warm) smiles .35, was .25.
-  version: 6, mixCurve: .6, restSmile: .12, squintMax: .35, squintPerSmile: .6, gainCapMax: 1.3, cornerUpMax: .50, cornerDownMax: .50, browRaiseMax: .55, browLowerMax: .55,
+  // October 9 (later), in-game captures of Judy at conversation distance: every control reaches the rig, but
+  // brows read only from about .5, corners down stay subtle on her rig even at 1, the squint and widened eyes
+  // read from about .3. Frowns and brows nearly doubled, eyes added, caps raised; smiles unchanged.
+  version: 7, mixCurve: .6, restSmile: .12, squintMax: .5, widenMax: .6, squintPerSmile: .6, gainCapMax: 1.3, cornerUpMax: .80, cornerDownMax: .80, browRaiseMax: .90, browLowerMax: .90,
   speechMouthFactor: .85, attackSeconds: .18, releaseSeconds: .55,
   // Categorical scale 1..3 (Convai) -> fraction of the family's full pose.
   scaleStrength: Object.freeze([.4, .67, 1]),
@@ -49,6 +55,7 @@ export function ownedExpressionReceipt(signal, owner) {
 }
 const limits = Object.freeze(Object.fromEntries(EXPRESSION_TRACKS.map(track => [track,
   track.includes('squint') ? EXPRESSION_POLICY.squintMax
+  : track.includes('widen') ? EXPRESSION_POLICY.widenMax
   : track.includes('corner_up') ? EXPRESSION_POLICY.cornerUpMax
     : track.includes('corner_dn') ? EXPRESSION_POLICY.cornerDownMax
       : track.includes('lower') ? EXPRESSION_POLICY.browLowerMax : EXPRESSION_POLICY.browRaiseMax])));
@@ -137,6 +144,10 @@ export function emotionSuppressesSmile(value) {
 
 function pair(target, stem, value) { target[`lips_l_${stem}`] = target[`lips_r_${stem}`] = value; }
 function brows(target, stem, value) { target[`eye_l_brows_${stem}`] = target[`eye_r_brows_${stem}`] = value; }
+function eyes(target, squint, widen) {
+  target.eye_l_oculi_squint_outer_lower = target.eye_r_oculi_squint_outer_lower = squint;
+  target.eye_l_widen = target.eye_r_widen = widen;
+}
 function providerPose(frame, family) {
   if (!plain(frame) || frame.format !== 'arkit61' || !Array.isArray(frame.values)
     || frame.values.length !== 61 || !frame.values.every(finite)) return null;
@@ -174,13 +185,13 @@ export function expressionTarget({emotion = null, phase = 'idle', speechPose = {
   const parsed = normalizeConvaiEmotion(emotion), family = parsed?.family;
   const strength = parsed ? EXPRESSION_POLICY.scaleStrength[parsed.scale - 1] : 0;
   switch (family) {
-    case 'joy': pair(out, 'corner_up', .45 * strength); brows(out, 'raise_out', .20 * strength); break;
+    case 'joy': pair(out, 'corner_up', .45 * strength); brows(out, 'raise_out', .30 * strength); break;
     case 'trust': pair(out, 'corner_up', .35 * strength); break;
-    case 'sadness': pair(out, 'corner_dn', .40 * strength); brows(out, 'raise_in', .45 * strength); break;
-    case 'anger': pair(out, 'corner_dn', .25 * strength); brows(out, 'lower', .45 * strength); break;
-    case 'fear': pair(out, 'corner_dn', .15 * strength); brows(out, 'raise_in', .45 * strength); brows(out, 'raise_out', .30 * strength); break;
-    case 'disgust': pair(out, 'corner_dn', .30 * strength); brows(out, 'lower', .35 * strength); break;
-    case 'surprise': brows(out, 'raise_in', .35 * strength); brows(out, 'raise_out', .50 * strength); break;
+    case 'sadness': pair(out, 'corner_dn', .75 * strength); brows(out, 'raise_in', .85 * strength); break;
+    case 'anger': pair(out, 'corner_dn', .40 * strength); brows(out, 'lower', .85 * strength); eyes(out, .30 * strength, 0); break;
+    case 'fear': pair(out, 'corner_dn', .25 * strength); brows(out, 'raise_in', .80 * strength); brows(out, 'raise_out', .50 * strength); eyes(out, 0, .45 * strength); break;
+    case 'disgust': pair(out, 'corner_dn', .50 * strength); brows(out, 'lower', .60 * strength); eyes(out, .25 * strength, 0); break;
+    case 'surprise': brows(out, 'raise_in', .60 * strength); brows(out, 'raise_out', .90 * strength); eyes(out, 0, .55 * strength); break;
     case 'anticipation': brows(out, 'raise_out', .15 * strength); break;
     case 'unknown': break; // A new provider label must not become a happy face.
     // No intent: the resting smile shows while idle and while talking.
@@ -213,7 +224,9 @@ export function expressionTarget({emotion = null, phase = 'idle', speechPose = {
 function finishPose(out, {speechPose, phase, gain}) {
   const capScale = Math.min(Math.max(gain, 1), EXPRESSION_POLICY.gainCapMax);
   for (const track of ['lips_l_corner_up', 'lips_r_corner_up', 'lips_l_corner_dn', 'lips_r_corner_dn']) out[track] *= gain;
-  const squint = Math.min(EXPRESSION_POLICY.squintMax, EXPRESSION_POLICY.squintPerSmile * out.lips_l_corner_up);
+  // The smile's own squint (Duchenne) or the feeling's narrowed eyes, whichever is stronger.
+  const squint = Math.min(EXPRESSION_POLICY.squintMax,
+    Math.max(out.eye_l_oculi_squint_outer_lower, EXPRESSION_POLICY.squintPerSmile * out.lips_l_corner_up));
   out.eye_l_oculi_squint_outer_lower = squint; out.eye_r_oculi_squint_outer_lower = squint;
   const budget = mouthBudget(speechPose, phase);
   for (const track of EXPRESSION_TRACKS) {
@@ -226,10 +239,15 @@ function finishPose(out, {speechPose, phase, gain}) {
 // Unit poses (family weight 1) for the blended path. They equal the single-label
 // poses above at strength 1; mod/facial-playback.lua mirrors them.
 export const FAMILY_POSES = Object.freeze({
-  joy: {up: .45, out: .20}, trust: {up: .35}, sadness: {dn: .40, in: .45}, anger: {dn: .25, low: .45},
-  fear: {dn: .15, in: .45, out: .30}, disgust: {dn: .30, low: .35}, surprise: {in: .35, out: .50}, anticipation: {out: .15},
+  joy: {up: .45, out: .30}, trust: {up: .35}, sadness: {dn: .75, in: .85}, anger: {dn: .40, low: .85, sq: .30},
+  fear: {dn: .25, in: .80, out: .50, wide: .45}, disgust: {dn: .50, low: .60, sq: .25}, surprise: {in: .60, out: .90, wide: .55},
+  anticipation: {out: .15},
 });
 export const MIX_FAMILIES = Object.freeze(['joy', 'trust', 'sadness', 'anger', 'fear', 'disgust', 'surprise', 'anticipation']);
+// Smile or frown is decided on the earlier corner balance (linear), so the bigger frown poses (October 9) do
+// not tip a joyful bittersweet line into a frown; the winner then shows at its own pose. Mirrors Lua cornerVote.
+const CORNER_VOTE = Object.freeze({joy: {up: .45}, trust: {up: .35}, sadness: {dn: .40}, anger: {dn: .25}, fear: {dn: .15},
+  disgust: {dn: .30}, surprise: {}, anticipation: {}});
 const softSum = values => { const max = Math.max(0, ...values), sum = values.reduce((a, b) => a + b, 0); return max + .4 * (sum - max); };
 
 /** Blend several emotion families (weights 0..1, array in MIX_FAMILIES order or
@@ -247,12 +265,18 @@ export function mixTarget({weights, phase = 'idle', speechPose = {}, blocked = f
   const curve = (value, key) => { const weight = clamp(value || 0); return weight > 0 && key !== 'up' ? weight ** EXPRESSION_POLICY.mixCurve : weight; };
   const channel = key => softSum(MIX_FAMILIES.map(family => (FAMILY_POSES[family][key] || 0) * curve(w[family], key)));
   let up = channel('up'), dn = channel('dn'), rin = channel('in'), rout = channel('out'), low = channel('low');
-  if (up > dn) { up -= .5 * dn; dn = 0; } else { dn -= .5 * up; up = 0; }
+  let narrow = channel('sq'), wide = channel('wide');
+  if (narrow > wide) { narrow -= .5 * wide; wide = 0; } else { wide -= .5 * narrow; narrow = 0; }
+  const vote = key => softSum(MIX_FAMILIES.map(family => (CORNER_VOTE[family][key] || 0) * clamp(w[family] || 0)));
+  const upVote = vote('up'), dnVote = vote('dn');
+  if (upVote > dnVote) { up *= 1 - .5 * dnVote / upVote; dn = 0; }
+  else if (dnVote > 0) { dn *= 1 - .5 * upVote / dnVote; up = 0; } else { up = 0; dn = 0; }
   const clash = Math.min(Math.max(rin, rout), low);
   rin = Math.max(0, rin - .5 * clash); rout = Math.max(0, rout - .5 * clash); low = Math.max(0, low - .5 * clash);
   if (phase !== 'speaking' && dn === 0) up = Math.max(up, warmth);
   pair(out, 'corner_up', up); pair(out, 'corner_dn', dn);
   brows(out, 'raise_in', rin); brows(out, 'raise_out', rout); brows(out, 'lower', low);
+  eyes(out, narrow, wide);
   return finishPose(out, {speechPose, phase, gain});
 }
 

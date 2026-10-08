@@ -1,5 +1,45 @@
 # Companion expressions
 
+## October 9 (evening): in-game captures, then bigger frowns, brows and eyes
+
+User (after `6193193` with the bridge restarted): never smiles on serious topics, "but I don't really see much
+facial movement". Measured in game on Judy in V's apartment at conversation distance (about 1.5 m, a 1370 x 815
+window): the face-test probe (`custom:` writer mode) held each pose, `scripts/Capture-GameWindow.py` took
+read-only crops, no other game input.
+
+**What reaches the rig and what reads.** Every control the layer writes reaches the rig; nothing overrides it
+(no lip sync, gaze or animation-slot override was seen; her head turns slightly between captures from her idle
+and the look-at). Visibility at that distance:
+- corners up: clear from about .3 (a smile), big at .9;
+- corners down: subtle on Judy's full lips even at 1.0 (the frown reads mostly from the brows);
+- brows (inner raise, outer raise, lower): a crease and a lifted or lowered arch from about .5, modest even at
+  1.0; at the previous .3-.4 hardly visible; her right brow is under her hair;
+- eye squint (lower lid) and widen: clear from about .3;
+- upper/lower lip raise: very strong (teeth at .6), but they are lip sync controls, so not used for expression;
+  lip tighten, stretch and press: barely visible.
+- There is no nose-wrinkle or cheek-raise control in the feature (the 50 graph controls; cheek puff only).
+
+**Changes** (`mod/facial-playback.lua`, mirrored in `companion-expressions.mjs`): frowns and brows nearly
+doubled (sadness corners .75 / inner brows .85, anger brows .85 / corners .40, fear inner .80 / outer .50 /
+corners .25, disgust brows .60 / corners .50, surprise inner .60 / outer .90, joy outer brows .30); the eyes
+join in: anger (.30) and disgust (.25) narrow them, surprise (.55) and fear (.45) widen them (`eye_l/r_widen`,
+new expression controls; a blink closes over them). Caps: corners .8, brows .9, squint .5, widen .6. Smiles
+unchanged. Smile or frown is still decided on the earlier corner balance, so the bigger frowns never tip a joyful
+line into a frown and a sad line never smiles. Voice-synced brow emphasis: peak .22 (was .15), every 2.5 s at
+most. In the selector, trust is damped under a danger or conflict prior like joy (a misread "I've got a family"
+otherwise smiled through a frightened reply). Labelled sets: labels unchanged; false smiles unchanged from
+before this round (dev 1 calm soft smile, blind 2).
+
+**Written values now** (Judy, Expressive tags, through the real selector, aligner and writer, phrase p90):
+sadness subtle corners down .63 / inner brows .55 (strong .88 / .74); anger subtle brows lower .55 / corners .34 /
+squint .19 (strong .74); fear subtle inner .53 / outer .33 / widen .30 (strong .70 / .44 / .39); joy corners up
+.47 / squint .35 / outer brows .26; Panam surprise outer .90 / widen .55. Johnny stays below Panam on the same
+words (test).
+
+Captures: `runtime/face-captures/judy-{sad,angry,worried,surprised,happy}-before-after.png` (neutral, the
+`6193193` values, the new values; the before and after frames were taken at different moments, so her head
+turns slightly between them).
+
 ## October 9 (later): the idle face holds until the reply is heard
 
 User (in game): "her current emotion during idle becomes bland before the lip sync starts playing; it should go

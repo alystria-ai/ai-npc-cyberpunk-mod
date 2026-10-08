@@ -386,11 +386,11 @@ test('Judy idles at about .19 with the corner gain, a cold character stays flat,
  assert(math.abs(judy.lips_l_corner_up-.192)<.005,'judy rests at .192: '..judy.lips_l_corner_up)
  assert(cold.lips_l_corner_up==0 and cold.eye_l_oculi_squint_outer_lower==0,'a cold face stays flat')
  assert(math.abs(judy.eye_l_oculi_squint_outer_lower-.115)<.005,'the squint follows the smile: '..judy.eye_l_oculi_squint_outer_lower)
- -- Joy at scale 3 on Judy: corners x1.5 capped at .65, squint capped at .30, brows ungained.
+ -- Joy at scale 3 on Judy: corners .45 x her gain 1.6, the squint .6 of that, brows ungained (.30 since October 9).
  face.beginExpression(context,${literal(receipt('Joy',3,0))});face.expressionHeard(context);for _=1,40 do tick(.1) end
- assert(math.abs(last(a).lips_l_corner_up-.65)<.01,'judy joy: '..last(a).lips_l_corner_up)
- assert(math.abs(last(a).eye_l_oculi_squint_outer_lower-.35)<.01)
- assert(math.abs(last(a).eye_l_brows_raise_out-.20)<.01)
+ assert(math.abs(last(a).lips_l_corner_up-.72)<.01,'judy joy: '..last(a).lips_l_corner_up)
+ assert(math.abs(last(a).eye_l_oculi_squint_outer_lower-.432)<.01)
+ assert(math.abs(last(a).eye_l_brows_raise_out-.30)<.01)
  face.endExpression(context,false)
 `));
 
@@ -704,7 +704,7 @@ test('October 9: each tagged feeling moves Judy\'s brows, eyes and corners visib
     const peak = peaksWhileSpeaking('judy-alvarez', plan, `judy-${name}`);
     for (const [track, value] of Object.entries(minimum)) assert.ok((peak[track] ?? 0) >= value, `${name} ${track} ${peak[track]} < ${value}`);
     for (const track of absent) assert.ok((peak[track] ?? 0) < .02, `${name} shows ${track} ${peak[track]}`);
-    assert.ok((peak.lips_l_corner_up ?? 0) <= .65 && (peak.lips_l_corner_dn ?? 0) <= .65 && (peak.eye_l_brows_lower ?? 0) <= .55, `${name} within the caps`);
+    assert.ok((peak.lips_l_corner_up ?? 0) <= 1 && (peak.lips_l_corner_dn ?? 0) <= 1 && (peak.eye_l_brows_lower ?? 0) <= .9, `${name} within the caps`);
   }
   // A plain reply stays neutral: no feeling, no face (the voice-synced brows of the model are not in this line).
   const plain = selectEmotion({player: 'What are you working on?', reply: 'Just tweaking a braindance edit. The audio sync is off.', profile: 'judy-alvarez'});
@@ -780,7 +780,7 @@ test('the idle face holds until the reply is heard, on the phrase (Omni, Convai 
    local function heard(step)
     local previous,turned=last(a).lips_l_corner_up-(last(a).lips_l_corner_dn or 0)
     for i=1,90 do step(i);local f=last(a);local net=f.lips_l_corner_up-f.lips_l_corner_dn
-     assert(math.abs(net-previous)<.08,'smooth change '..(net-previous)..' at frame '..i);previous=net
+     assert(math.abs(net-previous)<.12,'smooth change '..(net-previous)..' at frame '..i);previous=net
      if not turned and f.lips_l_corner_dn>.15 and f.lips_l_corner_up==0 then turned=i end
     end
     assert(turned and turned<=60,'sad within a second of the first heard frame: '..tostring(turned))

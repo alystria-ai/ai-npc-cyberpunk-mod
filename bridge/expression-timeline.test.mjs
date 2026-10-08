@@ -76,7 +76,7 @@ test('the track never snaps: frame-to-frame change stays small and the mix stays
     const now = sampleTrack(track, i / 60);
     now.forEach((value, k) => { assert.ok(Math.abs(value - previous[k]) < .1, `step ${i} family ${k}`); assert.ok(value >= 0 && value <= 1); });
     const pose = mixTarget({weights: now, phase: 'speaking'});
-    assert.ok(Object.values(pose).every(value => value >= 0 && value <= .55));
+    assert.ok(Object.values(pose).every(value => value >= 0 && value <= .9));
     previous = now;
   }
   assert.ok(track.keys.length <= 160);

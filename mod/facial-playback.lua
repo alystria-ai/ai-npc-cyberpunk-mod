@@ -43,8 +43,11 @@ end
 local expressionTracks = {'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','lips_r_corner_dn',
     'eye_l_brows_raise_in','eye_r_brows_raise_in','eye_l_brows_raise_out','eye_r_brows_raise_out',
     'eye_l_brows_lower','eye_r_brows_lower',
-    -- Duchenne smile: the outer-eye / lower-lid squint that makes a smile read as genuine.
-    'eye_l_oculi_squint_outer_lower','eye_r_oculi_squint_outer_lower'}
+    -- Duchenne smile: the outer-eye / lower-lid squint that makes a smile read as genuine
+    -- (since October 9 also the narrowed eyes of anger and disgust).
+    'eye_l_oculi_squint_outer_lower','eye_r_oculi_squint_outer_lower',
+    -- October 9: widened eyes for surprise and fear (no speech or gaze writer uses them).
+    'eye_l_widen','eye_r_widen'}
 local negative = {anger=true,sadness=true,fear=true,disgust=true}
 local families = {
     joy='joy',happy='joy',happiness='joy',ecstasy='joy',serenity='joy',
@@ -65,10 +68,15 @@ local function clamp(value,maximum) return math.max(0,math.min(maximum or 1,valu
 -- .10 (39 % of lines), frown = corner down .20 + brows lower .324 (20 %).
 -- The caps follow those authored offsets with headroom for the strongest
 -- (scale 3) feelings. Mirrors EXPRESSION_POLICY in companion-expressions.mjs.
+-- October 9, in-game captures of Judy at conversation distance (writer probe): every control
+-- reaches the rig, but brows read only from about .5 (a crease, a lifted or lowered arch),
+-- corners down stay subtle on her rig even at 1, corners up read from about .3, the squint and
+-- the widened eyes from about .3. Caps raised: corners .8, brows .9, squint .5, widen .6.
 local function expressionLimit(track)
-    if track:find('squint',1,true) then return .35 end
-    if track:find('corner_',1,true) then return .50 end
-    return .55
+    if track:find('squint',1,true) then return .5 end
+    if track:find('widen',1,true) then return .6 end
+    if track:find('corner_',1,true) then return .80 end
+    return .90
 end
 local scaleStrength={.4,.67,1}
 -- Resting warmth: a light smile while not speaking (idle, and since October 9 also
@@ -237,21 +245,29 @@ end
 -- combined with a soft sum so mixed feelings (bittersweet: a slight smile with
 -- sad brows) stay inside the caps; mouth priority is applied by the caller.
 local mixFamilies={'joy','trust','sadness','anger','fear','disgust','surprise','anticipation'}
-local familyPoses={joy={up=.45,out=.20},trust={up=.35},sadness={dn=.40,['in']=.45},anger={dn=.25,low=.45},
-    fear={dn=.15,['in']=.45,out=.30},disgust={dn=.30,low=.35},surprise={['in']=.35,out=.50},anticipation={out=.15}}
+-- October 9 (in game: "I don't really see much facial movement"): frowns and brows nearly doubled, and
+-- the eyes join in (anger and disgust narrow them, surprise and fear widen them). Smiles unchanged.
+local familyPoses={joy={up=.45,out=.30},trust={up=.35},sadness={dn=.75,['in']=.85},anger={dn=.40,low=.85,sq=.30},
+    fear={dn=.25,['in']=.80,out=.50,wide=.45},disgust={dn=.50,low=.60,sq=.25},surprise={['in']=.60,out=.90,wide=.55},
+    anticipation={out=.15}}
 -- October 9 (user: "the expression barely changes, even with Expressive emotions on"): a family weight w moves
 -- the frowns and brows by w^.6 of its pose. Full feelings are unchanged (the caps hold); a subtle tag on a reserved
 -- character (.36) now shows about half its pose instead of a third, and phrases of different strength still
 -- differ. The smile (key 'up') stays linear: the selector's smile evidence gates were tuned for it, and a curved
 -- smile made weak, misread joy visible on sad or calm replies. Mirrors EXPRESSION_POLICY.mixCurve.
 local mixCurve=.6
-local function mixChannel(weights,key)
+-- Smile or frown is decided on the earlier corner balance (linear, joy .45 / trust .35 against sadness .40,
+-- anger .25, fear .15, disgust .30), so the bigger frown poses do not tip a joyful bittersweet line into a
+-- frown; the winner then shows at its own (bigger) pose. An even mix still leans sad.
+local cornerVote={joy={up=.45},trust={up=.35},sadness={dn=.40},anger={dn=.25},fear={dn=.15},disgust={dn=.30},
+    surprise={},anticipation={}}
+local function mixChannel(weights,key,poses)
     local max,sum=0,0
     for index,family in ipairs(mixFamilies) do
-        local unit=familyPoses[family][key]
+        local unit=(poses or familyPoses)[family][key]
         if unit then
             local weight=clamp(weights[index] or 0)
-            local value=(weight>0 and key~='up') and unit*weight^mixCurve or unit*weight
+            local value=(weight>0 and key~='up' and not poses) and unit*weight^mixCurve or unit*weight
             if value>max then max=value end
             sum=sum+value
         end
@@ -261,7 +277,11 @@ end
 local function mixTargets(weights,target,phase,warmth)
     local up,dn=mixChannel(weights,'up'),mixChannel(weights,'dn')
     local rin,rout,low=mixChannel(weights,'in'),mixChannel(weights,'out'),mixChannel(weights,'low')
-    if up>dn then up=up-.5*dn;dn=0 else dn=dn-.5*up;up=0 end
+    local narrow,wide=mixChannel(weights,'sq'),mixChannel(weights,'wide')
+    if narrow>wide then narrow=narrow-.5*wide;wide=0 else wide=wide-.5*narrow;narrow=0 end
+    local upVote,dnVote=mixChannel(weights,'up',cornerVote),mixChannel(weights,'dn',cornerVote)
+    if upVote>dnVote then up=up*(1-.5*dnVote/upVote);dn=0
+    elseif dnVote>0 then dn=dn*(1-.5*upVote/dnVote);up=0 else up,dn=0,0 end
     local clash=math.min(math.max(rin,rout),low)
     rin=math.max(0,rin-.5*clash);rout=math.max(0,rout-.5*clash);low=math.max(0,low-.5*clash)
     if phase~='speaking' and dn==0 then up=math.max(up,warmth) end
@@ -271,6 +291,8 @@ local function mixTargets(weights,target,phase,warmth)
     target.eye_l_brows_raise_in,target.eye_r_brows_raise_in=rin,rin
     target.eye_l_brows_raise_out,target.eye_r_brows_raise_out=rout,rout
     target.eye_l_brows_lower,target.eye_r_brows_lower=low,low
+    target.eye_l_oculi_squint_outer_lower,target.eye_r_oculi_squint_outer_lower=narrow,narrow
+    target.eye_l_widen,target.eye_r_widen=wide,wide
 end
 -- Track validation and sampling (mirrors sampleTrack() in expression-timeline.mjs).
 local function expressionTrack(timeline)
@@ -349,14 +371,18 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     end
     local function pair(stem,value) target['lips_l_'..stem]=value;target['lips_r_'..stem]=value end
     local function brows(stem,value) target['eye_l_brows_'..stem]=value;target['eye_r_brows_'..stem]=value end
+    local function eyes(squint,widen)
+        target.eye_l_oculi_squint_outer_lower,target.eye_r_oculi_squint_outer_lower=squint,squint
+        target.eye_l_widen,target.eye_r_widen=widen,widen
+    end
     if weights then mixTargets(weights,target,phase,warmth)
-    elseif family=='joy' then pair('corner_up',.45*strength);brows('raise_out',.20*strength)
+    elseif family=='joy' then pair('corner_up',.45*strength);brows('raise_out',.30*strength)
     elseif family=='trust' then pair('corner_up',.35*strength)
-    elseif family=='sadness' then pair('corner_dn',.40*strength);brows('raise_in',.45*strength)
-    elseif family=='anger' then pair('corner_dn',.25*strength);brows('lower',.45*strength)
-    elseif family=='fear' then pair('corner_dn',.15*strength);brows('raise_in',.45*strength);brows('raise_out',.30*strength)
-    elseif family=='disgust' then pair('corner_dn',.30*strength);brows('lower',.35*strength)
-    elseif family=='surprise' then brows('raise_in',.35*strength);brows('raise_out',.50*strength)
+    elseif family=='sadness' then pair('corner_dn',.75*strength);brows('raise_in',.85*strength)
+    elseif family=='anger' then pair('corner_dn',.40*strength);brows('lower',.85*strength);eyes(.30*strength,0)
+    elseif family=='fear' then pair('corner_dn',.25*strength);brows('raise_in',.80*strength);brows('raise_out',.50*strength);eyes(0,.45*strength)
+    elseif family=='disgust' then pair('corner_dn',.50*strength);brows('lower',.60*strength);eyes(.25*strength,0)
+    elseif family=='surprise' then brows('raise_in',.60*strength);brows('raise_out',.90*strength);eyes(0,.55*strength)
     elseif family=='anticipation' then brows('raise_out',.15*strength) end
     local frowning=false
     if provider then
@@ -373,6 +399,7 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     -- the longer expiry); they are never held for seconds after the voice stops.
     if slot.browExpiry and M.expressionClock>=slot.browExpiry then
         for _,name in ipairs({'raise_in','raise_out','lower'}) do brows(name,0) end
+        target.eye_l_widen,target.eye_r_widen=0,0
     end
     local suppress=not weights and (negative[family] or family=='unknown')
     if suppress then pair('corner_up',0) end
@@ -382,14 +409,15 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     if not weights and phase~='speaking' and not negative[family] and family~='unknown'
         and not frowning and target.lips_l_corner_dn==0 then pair('corner_up',math.max(target.lips_l_corner_up,warmth)) end
     for _,track in ipairs({'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','lips_r_corner_dn'}) do target[track]=target[track]*gain end
-    local squint=math.min(.35,.6*target.lips_l_corner_up)
+    -- The smile's own squint (Duchenne), or the feeling's narrowed eyes, whichever is stronger.
+    local squint=math.min(.5,math.max(target.eye_l_oculi_squint_outer_lower,.6*target.lips_l_corner_up))
     target.eye_l_oculi_squint_outer_lower,target.eye_r_oculi_squint_outer_lower=squint,squint
     local budget=mouthBudget(feature,phase)
     for _,track in ipairs(expressionTracks) do
         if not (weights and track:find('corner_',1,true)) then
             local goal=clamp(target[track],limitFor(track))
             if track:sub(1,5)=='lips_' then goal=goal*budget end
-            local prior=slot.pose[track]
+            local prior=slot.pose[track] or 0
             local seconds=goal>prior and .18 or .55
             slot.pose[track]=blocked and 0 or (prior+(goal-prior)*(1-math.exp(-(M.expressionDelta or 0)/seconds)))
         end
@@ -397,7 +425,8 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     if weights then
         -- Corners cross-fade on one signed axis (up positive, down negative), so
         -- a smile turning into a frown passes through neutral instead of snapping.
-        local goalNet=(clamp(target.lips_l_corner_up,.5*capScale)-clamp(target.lips_l_corner_dn,.5*capScale))*budget
+        local cornerCap=expressionLimit('corner_')*capScale
+        local goalNet=(clamp(target.lips_l_corner_up,cornerCap)-clamp(target.lips_l_corner_dn,cornerCap))*budget
         local priorNet=slot.pose.lips_l_corner_up-slot.pose.lips_l_corner_dn
         local seconds=math.abs(goalNet)>=math.abs(priorNet) and .18 or .55
         local net=blocked and 0 or (priorNet+(goalNet-priorNet)*(1-math.exp(-(M.expressionDelta or 0)/seconds)))
@@ -428,14 +457,14 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
         -- raises (speech mean .10) never showed; .8 keeps emphasis flashes visible.
         -- Voice-synced brows are RARE emphasis: only a strong stress counts (a dead
         -- zone removes the model's constant low-level lift), the peak is small
-        -- (.15), and after one emphasis the next is held off for 3 s, so a brow
-        -- never bobs alone on an otherwise static face. Emotion brows come from
-        -- the expression timeline, together with the mouth and eyes.
-        local raise=math.min(.15,.5*math.max(0,upper.raise-.25))*((family=='anger' or family=='disgust') and .4 or 1)
+        -- (.22; .15 before October 9, invisible at conversation distance), and after one
+        -- emphasis the next is held off for 2.5 s, so a brow never bobs alone on an
+        -- otherwise static face. Emotion brows come from the expression timeline.
+        local raise=math.min(.22,.7*math.max(0,upper.raise-.25))*((family=='anger' or family=='disgust') and .4 or 1)
         if raise>.02 then
             if not slot.voiceBrowOn then
                 if slot.voiceBrowReady and M.expressionClock<slot.voiceBrowReady then raise=0
-                else slot.voiceBrowOn=true;slot.voiceBrowReady=M.expressionClock+3 end
+                else slot.voiceBrowOn=true;slot.voiceBrowReady=M.expressionClock+2.5 end
             end
         else slot.voiceBrowOn=false end
         local lower=0*upper.lower
@@ -498,6 +527,10 @@ local function applyFeature(actor,feature,entity,phase,provider,upper,mix,bounda
     local blink=blinkWeight(slot,phase,blocked,boundary,room)
     -- A copy that never blinked through this layer keeps the fields untouched (zero, the native face).
     if blink>0 or slot.blinkWritten then feature.eye_l_blink,feature.eye_r_blink=blink,blink;slot.blinkWritten=true end
+    -- A blink closes widened eyes too (they would hold the lids apart).
+    if blink>0 and feature.eye_l_widen>0 then
+        local open=1-blink;feature.eye_l_widen,feature.eye_r_widen=feature.eye_l_widen*open,feature.eye_r_widen*open
+    end
     if faceTest then
         local ok,skip=pcall(faceTest.post,entity,feature,phase,blocked)
         if ok and skip then return end

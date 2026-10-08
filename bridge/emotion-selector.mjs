@@ -185,7 +185,7 @@ function scoreContextSegment(segment, text, context, manner) {
     scores.sadness += .6 * scores.joy + .35 * scores.trust;
     scores.joy *= laugh ? .35 : .15; scores.trust *= .4;
   }
-  if (context.prior.fear || context.prior.anger) scores.joy *= .5;
+  if (context.prior.fear || context.prior.anger) { scores.joy *= .5; scores.trust *= .7; }
   // Hype after a win swears and talks about violence; that is not anger.
   if (context.celebration && !context.grief && scores.joy > 0) scores.anger *= .3;
   return {scores, tags, laugh};
