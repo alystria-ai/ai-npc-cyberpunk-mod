@@ -54,16 +54,28 @@ function native.blocked(from,to)
 end
 function native.people(player,radius,exclude) calls[#calls+1]={name='people'};return world.people end
 local spawnOk=true
-function native.spawnDevice(position,orientation,template) calls[#calls+1]={name='spawn',x=position.x,y=position.y,template=template};return spawnOk,{hash=#calls} end
+local devices={}
+function native.spawnDevice(position,orientation,template) calls[#calls+1]={name='spawn',x=position.x,y=position.y,template=template};local id={hash=#calls};devices[id]={x=position.x,y=position.y,z=0};return spawnOk,id end
 function native.deviceEntity(id) return {device=id} end
 function native.deleteDevice(id) calls[#calls+1]={name='delete'};return true end
 function native.sweep() calls[#calls+1]={name='sweep'};return true end
-function native.play(device,npc,component,slide) calls[#calls+1]={name='play',component=component,npc=npc,slide=slide};npc.entering=true;return true end
+function native.play(device,npc,component,slide) calls[#calls+1]={name='play',component=component,npc=npc,slide=slide};npc.entering=true;npc.seatAt=devices[device.device];return true end
 function native.inWorkspot(npc) return npc.inside end
 function native.exit(npc,instant) calls[#calls+1]={name='exit',instant=instant==true,npc=npc};npc.leaving=true;return true end
 function native.stopInDevice(npc) calls[#calls+1]={name='stopInDevice'};return true end
 function native.look(entry,style) calls[#calls+1]={name='look',style=style};return true end
 local watching=false
+-- Standing up: the step out walks her there unless stepStuck; a teleport always lands.
+local stepStuck=false
+world.noRoom={}
+function native.stepOut(entry,spot) calls[#calls+1]={name='stepOut',serial=entry.serial,x=spot.x,y=spot.y}
+  if not stepStuck then entry.position={x=spot.x,y=spot.y,z=0} end;return true end
+function native.teleport(entry,spot,yaw) calls[#calls+1]={name='teleport',serial=entry.serial,x=spot.x,y=spot.y,yaw=yaw}
+  entry.position={x=spot.x,y=spot.y,z=0};return true end
+function native.bodyClear(spot,shape) calls[#calls+1]={name='bodyClear'}
+  for _,b in ipairs(world.boxes) do if spot.x>=b.x1-.3 and spot.x<=b.x2+.3 and spot.y>=b.y1-.3 and spot.y<=b.y2+.3 then return false end end
+  for _,n in ipairs(world.noRoom) do if math.abs(spot.x-n.x)<.3 and math.abs(spot.y-n.y)<.3 then return false end end
+  return true end
 function native.lookingAt(player,point,cone) calls[#calls+1]={name='lookingAt'};return watching end
 local catalog={device='dev.ent',seatComponents={couch='convai_sit_couch',chair='convai_sit_chair',bar='convai_sit_bar',stool='convai_sit_stool'}}
 local c
@@ -92,7 +104,7 @@ local function step(seconds,options)
     c.tick(player,.1,rows)
     for _,e in ipairs(party) do
       local npc=e.npc
-      if npc.entering then npc.entering=nil;npc.inside=true end
+      if npc.entering then npc.entering=nil;npc.inside=true;if npc.seatAt then e.position={x=npc.seatAt.x,y=npc.seatAt.y,z=0} end end
       if npc.leaving and not npc.stuck then npc.leaving=nil;npc.inside=false end
       if options.observe~=false then
         local d=c.steer(e,{combat=combat,motion=e.motor.feedback})
@@ -364,4 +376,63 @@ test('a long slide never waits more than blendWait for V to look away', () => ru
   couch(-.35,1.7);party={companion(1,2.2,1.6)};watching=true
   sitV();step(.6);step(9,{walk=false,refuse=true})
   assert(count('play')==1,'slid after the wait even while watched')
+`));
+
+// October 8 live run 20:24Z: after the fast exit her root stayed on the seat
+// root against the couch and every follow route was refused (Static, 'path').
+test('standing up: she steps out to the spot she arrived from, on clear floor, before following resumes', () => run(`
+  couch(-.35,1.7);party={companion(1,1.5,1.5)}
+  sitV();step(2)
+  assert(held[1]==true)
+  local seatX=party[1].position.x
+  assert(math.abs(party[1].position.y)<.01,'root on the seat root while seated')
+  seat.inside=false;step(.3)
+  assert(count('exit')==1)
+  local out=last('stepOut');assert(out,'steps out after the exit')
+  assert(out.y>.5,'to floor in front of the couch, not the seat root: '..out.y)
+  step(.3)
+  local stood=lastLog('seat-stood');assert(stood and stood.fields.from=='arrival','her own arrival spot')
+  assert(held[1]==false and decisions[1]==nil,'following resumes after the step')
+  assert(party[1].position.y>.5)
+`));
+
+test('a step out that does not move her ends in a teleport to the checked spot', () => run(`
+  couch(-.35,1.7);party={companion(1,1.5,1.5)}
+  sitV();step(2);stepStuck=true
+  seat.inside=false;step(1.5)
+  assert(held[1]==true and count('teleport')==0,'still stepping')
+  step(2.5)
+  assert(count('teleport')==1,'teleport after the deadline')
+  local t=last('teleport');assert(t.y>.5 and math.abs(t.yaw)<1,'in front, facing forward')
+  step(1.2)
+  assert(lastLog('seat-stood').fields.teleported==true and held[1]==false)
+`));
+
+test('a stand spot without room is skipped for the next checked floor spot', () => run(`
+  couch(-.35,1.7);party={companion(1,1.5,1.5)}
+  sitV();step(2)
+  local arrival=lastLog('seat-walk').fields.goal
+  world.noRoom={{x=party[1].position.x+0,y=.75},{x=arrival.x,y=arrival.y}}
+  seat.inside=false;step(.6)
+  local rejected=lastLog('seat-stand-rejected');assert(rejected and rejected.fields.reason=='no room')
+  assert(lastLog('seat-stood'),'stood elsewhere')
+`));
+
+test('three companions on a two-seat couch: two sit on their own seats, the third stands; both seated ones exit and step out cleanly', () => run(`
+  couch(-.9,1.0)
+  party={companion(1,1.4,1.3),companion(2,-1.4,1.3),companion(3,.2,2.2)}
+  sitV();step(3)
+  local spawns={}
+  for _,call in ipairs(calls) do if call.name=='spawn' then spawns[#spawns+1]=call.x end end
+  assert(#spawns==2 and math.abs(spawns[1]+spawns[2])<.01 and math.abs(spawns[1])>.6,'one seat each side of V')
+  local seated=0;for i=1,3 do if held[i] then seated=seated+1 end end
+  assert(seated==2,'two seated: '..seated)
+  local none=0;for _,l in ipairs(logs) do if l.kind=='seat-none' then none=none+1 end end
+  assert(none>=1,'the third has no seat and keeps standing')
+  seat.inside=false;step(1)
+  assert(count('exit')==2,'both stand up')
+  local outs={};for _,call in ipairs(calls) do if call.name=='stepOut' then outs[#outs+1]=call end end
+  assert(#outs==2 and math.abs(outs[1].x-outs[2].x)>.5,'each to her own spot')
+  local stood=0;for _,l in ipairs(logs) do if l.kind=='seat-stood' then stood=stood+1 end end
+  assert(stood==2 and not held[1] and not held[2] and not held[3],'all follow again')
 `));

@@ -42,6 +42,13 @@ M.policy = {
     blendWait = 3,         -- a long slide waits this long for V to look away
     lookCone = 40,         -- degrees: V looking at her
     slideMax = 1.4,
+    -- Standing up (live run 2026-10-08 20:24Z): the fast exit leaves the root
+    -- at the seat root, against the furniture, where every follow route is
+    -- refused. She steps out to floor in front before following resumes.
+    standReach = 1.6,      -- her own arrival spot is reused when this close to the seat
+    standDeadline = 2.5,   -- the straight step out; then a teleport to the same spot
+    standSettle = .8,      -- after a teleport, before the floor check
+    standArrive = .3,
     failureCooldown = 30,
 }
 
@@ -64,7 +71,7 @@ M.kinds = {
         approach = -1, back = .05, span = 1.6},
 }
 
-local HOLDING = {entering = true, seated = true, exiting = true}
+local HOLDING = {entering = true, seated = true, exiting = true, standing = true}
 
 local function flat(a, b) return math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2) end
 local function copy(p) return p and {x = p.x, y = p.y, z = p.z} end
@@ -346,6 +353,25 @@ function native.lookingAt(player, point, cone)
     end)
     return not ok or looking == true -- unknown counts as looking
 end
+-- Leaving a seat: a short straight walk (the actuator's boarding leg, no
+-- navigation) or an AI teleport, both owned by the companion's motor so the
+-- next follow decision retires them.
+function native.stepOut(entry, spot)
+    actuator = actuator or dofile('companion-actuator.lua')
+    if not entry.motor then return false end
+    return actuator.board(entry.motor, spot, {gait = 'Walk'})
+end
+function native.teleport(entry, spot, yaw)
+    actuator = actuator or dofile('companion-actuator.lua')
+    if not entry.motor then return false end
+    return actuator.teleport(entry.motor, spot, yaw)
+end
+local clearanceModule
+function native.bodyClear(spot, shape)
+    clearanceModule = clearanceModule or dofile('companion-clearance.lua')
+    local clear = clearanceModule.body(spot, shape)
+    return clear == true
+end
 function native.inCombat(npc)
     local ok, value = pcall(function() return NPCPuppet.IsInCombat(npc) end)
     return ok and value == true
@@ -400,8 +426,9 @@ function M.new(options)
     local function requestExit(s, reason, instant)
         if s.phase == 'approach' or s.phase == 'settling' or s.phase == 'blending' then release(s, reason); return end
         if s.phase == 'entering' and not s.playedAt then release(s, reason); return end
+        if s.phase == 'standing' and (reason == 'transport' or reason == 'unobserved') then release(s, reason); return end
         if s.phase ~= 'entering' and s.phase ~= 'seated' then return end
-        s.phase, s.exitAt, s.exitReason, s.escalated = 'exiting', self.clock, reason, nil
+        s.phase, s.exitAt, s.exitReason, s.escalated, s.exitInstant = 'exiting', self.clock, reason, nil, instant == true
         nat.exit(s.entry.npc, instant)
         note('seat-exit', {serial = s.serial, reason = reason, instant = instant == true})
     end
@@ -561,8 +588,9 @@ function M.new(options)
         end
         return false
     end
-    local function arrive(s, toSeat, refused)
+    local function arrive(s, toSeat, refused, entry)
         s.phase, s.since, s.slide = 'settling', self.clock, refused and toSeat or nil
+        s.arrivedAt = entry and entry.position and copy(entry.position) or nil
         note('seat-arrived', {serial = s.serial, toSeat = toSeat, refused = refused == true})
         return holdDecision(s, 'Stop at the seat')
     end
@@ -581,7 +609,7 @@ function M.new(options)
             and nat.lookingAt(self.player, entry.position, policy.lookCone) then
             return holdDecision(s, 'Wait for V to look away')
         end
-        return arrive(s, toSeat, true)
+        return arrive(s, toSeat, true, entry)
     end
 
     local function begin(s, entry)
@@ -603,6 +631,7 @@ function M.new(options)
         if not component then note('seat-none', {serial = s.serial, reason = 'no workspot for ' .. session.kind}); return nil end
         best.taken = s.serial
         s.seat, s.component, s.phase, s.since = best, component, 'approach', self.clock
+        s.anchorCopy, s.forwardCopy, s.profileCopy = copy(session.anchor), {x = session.forward.x, y = session.forward.y}, session.profile
         s.holdOp, s.playedAt, s.device, s.deviceID, s.failingSince, s.slide = nil, nil, nil, nil, nil, nil
         s.points, s.tries, s.blendSince = M.approachPoints(best.root, session.forward, session.profile, session.anchor,
             entry.position, policy), 0, nil
@@ -612,6 +641,78 @@ function M.new(options)
             height = best.height, component = component, toSeat = entry.position and flat(entry.position, best.root)})
         if not nextApproach(s) then return slideOrWait(s, entry) end
         return {phase = 'seat-approach', reason = 'Walk to a seat beside V', operation = s.op, look = 'none'}
+    end
+
+    -- Floor in front of the seat with room for her body: her own arrival spot
+    -- when close, the walk-up point she reached, then fresh walk-up points.
+    local function standCandidates(s)
+        local list, anchor, seen = {}, s.anchorCopy, {}
+        local function add(point, why)
+            if point then list[#list + 1] = {x = point.x, y = point.y, z = anchor.z, why = why} end
+        end
+        if s.arrivedAt and flat(s.arrivedAt, s.seat.root) <= policy.standReach then add(s.arrivedAt, 'arrival') end
+        if s.seat.approach and flat(s.seat.approach, s.seat.root) <= policy.standReach then add(s.seat.approach, 'walk-up') end
+        for _, point in ipairs(M.approachPoints(s.seat.root, s.forwardCopy, s.profileCopy, anchor, s.seat.root, policy)) do
+            add(point, 'front')
+        end
+        return list
+    end
+    local function usableStand(s, point)
+        local anchor = s.anchorCopy
+        local z = nat.surface(point.x, point.y, anchor.z + 1.2, anchor.z - .6, true)
+        local h = z and z - anchor.z
+        if not h or h < policy.floorBand[1] or h > policy.floorBand[2] then return false, 'no floor' end
+        point.z = z
+        if not nat.bodyClear(point, s.entry.clearance) then return false, 'no room' end
+        return true
+    end
+    local function yawOf(f) return math.deg((math.atan2 or math.atan)(-f.x, f.y)) end
+    local function nextStand(s)
+        while s.stands and s.standIndex < #s.stands and s.standIndex < 6 do
+            s.standIndex = s.standIndex + 1
+            local point = s.stands[s.standIndex]
+            local ok, why = usableStand(s, point)
+            if ok then
+                s.standSpot, s.standAt, s.teleported = point, self.clock, false
+                local sent = nat.stepOut(s.entry, point)
+                note('seat-step-out', {serial = s.serial, spot = point, from = point.why, sent = sent == true})
+                return true
+            end
+            note('seat-stand-rejected', {serial = s.serial, from = point.why, reason = why})
+        end
+        return false
+    end
+    -- After the exit animation: step out to floor, verify floor and room under
+    -- her, then hand back to following.
+    local function beginStanding(s)
+        s.phase, s.stands, s.standIndex = 'standing', standCandidates(s), 0
+        if not nextStand(s) then
+            failNote('no floor to stand on beside the seat'); release(s, s.exitReason or 'stood up')
+        end
+    end
+    local function standing(s, entry)
+        local at = entry.position
+        local spot = s.standSpot
+        if at and flat(at, spot) <= policy.standArrive and (not s.teleported or self.clock - s.standAt >= policy.standSettle) then
+            local z = nat.surface(at.x, at.y, s.anchorCopy.z + 1.2, s.anchorCopy.z - .6, true)
+            local onFloor = z and math.abs(at.z - z) < .25 and z - s.anchorCopy.z <= policy.floorBand[2]
+            if onFloor and nat.bodyClear({x = at.x, y = at.y, z = z}, entry.clearance) then
+                note('seat-stood', {serial = s.serial, spot = spot, from = spot.why, teleported = s.teleported})
+                release(s, s.exitReason or 'stood up')
+                return
+            end
+            note('seat-stand-rejected', {serial = s.serial, from = spot.why, reason = 'not on clear floor after the step'})
+            if not nextStand(s) then failNote('no clear floor after standing'); release(s, s.exitReason or 'stood up') end
+            return
+        end
+        if not s.teleported and self.clock - s.standAt >= policy.standDeadline then
+            -- The straight step did not get her out: put her on the checked spot.
+            s.teleported, s.standAt = true, self.clock
+            local sent = nat.teleport(entry, spot, yawOf(s.forwardCopy))
+            note('seat-stand-teleport', {serial = s.serial, spot = spot, sent = sent == true})
+        elseif s.teleported and self.clock - s.standAt >= policy.standDeadline then
+            if not nextStand(s) then failNote('could not leave the seat'); release(s, 'stand gave up') end
+        end
     end
 
     local function deviceReady(s)
@@ -669,11 +770,11 @@ function M.new(options)
             else s.failingSince = nil end
             local failing = s.failingSince and self.clock - s.failingSince or 0
             -- Arrived: retire the walk to a hold first, then the workspot takes the body.
-            if (ours and motion.complete) or gap <= policy.arriveDistance then return arrive(s, toSeat, false) end
+            if (ours and motion.complete) or gap <= policy.arriveDistance then return arrive(s, toSeat, false, entry) end
             if failing >= policy.routeGrace or self.clock - s.since > policy.approachTimeout then
                 note('seat-walk-refused', {serial = s.serial, try = s.tries, toSeat = toSeat,
                     reason = motion.error or (ours and 'refused' or 'not taken')})
-                if toSeat <= policy.slideNear then return arrive(s, toSeat, true) end
+                if toSeat <= policy.slideNear then return arrive(s, toSeat, true, entry) end
                 if nextApproach(s) then
                     return {phase = 'seat-approach', reason = 'Walk to a seat beside V', operation = s.op, look = 'none'}
                 end
@@ -733,8 +834,12 @@ function M.new(options)
                 end
                 return
             end
+            if s.phase == 'standing' then standing(s, entry); return end
             if s.phase == 'exiting' then
-                if nat.inWorkspot(npc) == false then release(s, s.exitReason); return end
+                if nat.inWorkspot(npc) == false then
+                    if s.exitInstant and s.exitReason == 'transport' then release(s, s.exitReason); return end
+                    beginStanding(s); return
+                end
                 local waited = self.clock - s.exitAt
                 if waited > policy.exitPatience and not s.escalated then
                     s.escalated = true; nat.stopInDevice(npc); note('seat-escalated', {serial = s.serial})

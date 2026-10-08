@@ -97,6 +97,35 @@ above the cushion reads as a couch; walk-up retries at other distances and
 angles, then a slide-in from up to 3 m, waiting for V to look away when the
 slide is long (step 5).
 
+## Live run 2 (October 8, 20:23-20:24Z): she sat, but stood up stuck
+
+`seat-classified` couch, walk-up try 1 refused, try 2 reached, `seat-play`
+slide 0.5, `seat-seated`: she sat beside V. When V stood, `seat-exit` and
+`seat-finished` came in the same update: the fast exit left her root exactly on
+the seat root (-1602.34, 356.24), at floor height but against the couch, so
+every follow route was refused (Static, stages `path` and `destination`) and
+she stayed there, "standing on the couch". The actuator's unstick step
+(`8024797`) never fired: it reacts only to `origin` or `motion` refusals at her
+feet, not `path`/`destination`. It also cannot put her on furniture: its
+targets come from the navmesh within 0.3 m height and pass a body clearance
+check.
+
+Fixed: after the exit animation she **steps out** before following resumes
+(phase `standing`, the body still held by seating). Stand spots, in order: the
+spot she stood on when she arrived (if within 1.6 m of the seat), the walk-up
+point she reached, then fresh walk-up points in front; each needs floor (one
+ray) and room for her body (one clearance check). A short straight walk
+(`actuator.board`, no navigation) takes her there; if she has not arrived
+after 2.5 s, an AI teleport puts her on the same spot facing V's way. She is
+handed back to following only when her feet are within 0.25 m of the floor
+under her and her body has room; otherwise the next spot (at most six). Probe
+lines `seat-step-out`, `seat-stand-teleport`, `seat-stand-rejected`,
+`seat-stood`. Transport or an unobserved copy is released at once as before.
+
+Several companions: each takes its own seat (a seat is taken by one companion
+for the session), a companion with no free seat keeps its normal standing
+place, and each seated one stands up and steps out to its own arrival spot.
+
 ## Mechanism
 
 `convai_gestures.archive` now also carries four components on the gesture
@@ -217,7 +246,7 @@ companions update until it errors.
 classification by name and by furniture (the probed apartment couch), seat finding on couches/stools/armrests, the full sit and stand
 flow, V getting up, combat (instant), several companions on different seats, no
 seat, wall / occupied / table-in-front, vehicles and unsupported workspots, an old archive, a refused walk near and far, transport/unobserved
-release, a walk the actuator never takes, the PSM settle and stand-up, the live apartment run (every walk-up refused 2 m out, slide after V looks away), the bounded wait, and the standing cost (≤ 4 reads a second, no rays). 20 tests.
+release, a walk the actuator never takes, the PSM settle and stand-up, the live apartment run (every walk-up refused 2 m out, slide after V looks away), the bounded wait, the step out after standing (arrival spot, teleport after a stuck step, a spot without room skipped), three companions on a two-seat couch, and the standing cost (≤ 4 reads a second, no rays). 24 tests.
 
 ## To check in game
 
