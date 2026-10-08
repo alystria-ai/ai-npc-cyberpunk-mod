@@ -49,6 +49,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/loot-context.mjs',
   'bridge/microphone-session.mjs',
   'bridge/multilingual.mjs',
+  'bridge/natural-speech-talk.mjs',
   'bridge/natural-speech.mjs',
   'bridge/nearby-warm.mjs',
   'bridge/omni-pack.mjs',
