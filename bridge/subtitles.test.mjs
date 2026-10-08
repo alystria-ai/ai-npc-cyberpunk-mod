@@ -164,7 +164,7 @@ player.vehicle='car';judy.vehicle='car'
 assert(m.show('Judy','We can talk while we drive.',judy,'201ULL'))
 assert(m.status().mode=='dialogue' and m.status().fallback=='vehicle-interior')
 assert(m.status().requestedStyle=='overhead' and style=='overhead' and settingsWrites==0)
-assert(shown()[1].type=='ownerless-regular' and shown()[1].speaker==nil)
+assert(shown()[1].type=='ownerless-regular' and shown()[1].speaker==judy,'The exact speaker owns the HUD line')
 m.clear();player.vehicle=nil
 assert(m.show('Judy','I am still in the passenger seat.',judy,'201ULL'))
 assert(m.status().mode=='dialogue','A seated speaker should not have a floating cabin caption')
@@ -302,7 +302,7 @@ for _,options in ipairs({{}, {style=function()return nil end}, {style=function()
  m.configure(options)
  m.show('Judy','Keep the original dialogue HUD.',judy,'201ULL')
  local lines=shown();local line=lines[#lines]
- assert(line.type==scnDialogLineType.OwnerlessRegular and line.speaker==nil)
+ assert(line.type==scnDialogLineType.OwnerlessRegular and line.speaker==judy)
  assert(m.status().mode=='dialogue')
 end
 m.configure(nil);m.show('Judy','No settings provider.',judy,'201ULL')
@@ -315,7 +315,7 @@ assert(settingsWrites==0)
 test('a growing timed transcript revises the current page without flashing or replaying page one', () => run(setup + `
 style='dialogue'
 local first=string.rep('A',160);local second=string.rep('B',160);local third=string.rep('C',80)
-m.beginTimed('Judy',first..second,8,judy,'201ULL');m.syncTimed(5)
+m.beginTimed('Judy',first..second,8,judy,'201ULL');m.syncTimed(5);m.update(.3)
 assert(m.page==2 and shown()[#shown()].text==second)
 local count=#shown();local old=shown()[count].id
 assert(m.reviseTimed(first..second..third,12,5))
@@ -385,9 +385,9 @@ assert(settingsWrites==0)
 
 test('native overhead preference and selected dialogue style use HUD without changing game settings', () => run(setup + `
 overheads=false;m.show('Judy','Native overheads are disabled.',judy,'201ULL')
-assert(shown()[1].type==scnDialogLineType.OwnerlessRegular and shown()[1].speaker==nil)
+assert(shown()[1].type==scnDialogLineType.OwnerlessRegular and shown()[1].speaker==judy)
 overheads=true;style='dialogue';m.show('Judy','Dialogue style is selected.',judy,'201ULL')
-assert(shown()[2].type==scnDialogLineType.OwnerlessRegular and shown()[2].speaker==nil)
+assert(shown()[2].type==scnDialogLineType.OwnerlessRegular and shown()[2].speaker==judy)
 style='overhead';m.show('Judy','Overheads can be used again.',judy,'201ULL')
 assert(shown()[3].type==scnDialogLineType.OverHead and shown()[3].speaker==judy)
 enabled=false;m.show('Judy','Muted captions.',judy,'201ULL')
@@ -466,7 +466,7 @@ assert(m.line==nil and m.actor==nil and m.entity==nil)
 
 test('native root ownership survives distinct controller and widget wrappers without affecting foreign captions', () => run(setup + `
 assert(registrations==0 and overrideRegistrations==0)
-assert(m.install());assert(m.install());assert(registrations==3 and overrideRegistrations==2)
+assert(m.install());assert(m.install());assert(registrations==4 and overrideRegistrations==2)
 assert(afterHooks["SubtitlesGameController.OnHideLineByData"] and afterHooks["SubtitlesGameController.OnHideLine"],"Native removals must be observed")
 local after=afterHooks['ChatterLineLogicController.SetLineData']
 local bubble=overrides['ChatterLineLogicController.IsBubble']
@@ -770,7 +770,7 @@ assert(m.renderUpdateError:find('unavailable') and not broken.root.visible and b
 
 test('a missing projection override API still reveals the admitted caption through the regular frame path', () => run(setup + `
 Override=nil
-assert(m.install() and registrations==3 and overrideRegistrations==0)
+assert(m.install() and registrations==4 and overrideRegistrations==0)
 local root=surface('201ULL')
 m.show('Judy','Native placement remains usable.',judy,'201ULL')
 afterHooks['ChatterLineLogicController.SetLineData'](wrapController(root),m.line)
@@ -1194,4 +1194,61 @@ local current=reloaded.line
 reloaded.syncTimed(4);reloaded.clear()
 afterHooks['SubtitlesGameController.OnHideLine'](nil,{id=current.id});reloaded.update(.05)
 assert(#shown()==3 and reloaded.line==nil)
+`));
+
+// October 8, second in-game report: the Cinematic line blinked as Judy ended
+// a sentence on the same page. One native line per page: sentence revisions
+// never repost it, a page change shows the new line before hiding the old one,
+// and the line has an owner so the HUD's removal by data cannot take it.
+const SAME_PAGE = ["Don't do that. ", "Don't start with the 'what ifs.' ", 'We did everything we could, V. ', 'We really did.'];
+const SAME_PAGE_SENTENCES = [{text: SAME_PAGE[0].trim(), voiced: [[.1, .917]]}, {text: SAME_PAGE[1].trim(), voiced: [[1.7, 3]]},
+  {text: SAME_PAGE[2].trim(), voiced: [[4.317, 5.967]]}, {text: SAME_PAGE[3].trim(), voiced: [[6.683, 7.617]]}];
+test('sentence boundaries on one page never repost or hide the HUD line', () => {
+  const text = SAME_PAGE.join('');
+  const revisions = [];
+  for (let buffered = .5; buffered < 7.76; buffered += .25)
+    revisions.push({at: Math.max(.04, buffered - .3), captions: captionCues(text, {face: mouth(SAME_PAGE_SENTENCES, buffered, 7.76), duration: buffered, complete: false})});
+  revisions.push({at: 7.7, captions: captionCues(text, {face: mouth(SAME_PAGE_SENTENCES, 7.76, 7.76), duration: 7.76, complete: true})});
+  run(setup + `
+style='dialogue'
+assert(m.install())
+local text=${lua(text)}
+local revisions=${lua(revisions)}
+assert(m.beginTimed('Judy',text,8.5,judy,'201ULL',revisions[1].captions))
+local line=m.line
+assert(line.speaker==judy and #m.pages==1)
+for index,revision in ipairs(revisions)do
+ assert(m.reviseTimed(text,index==#revisions and 7.76 or 8.5,revision.at,revision.captions))
+ m.syncTimed(revision.at);m.update(.25)
+ assert(m.line==line and #shown()==1 and #hidden()==0,'Sentence '..index..' reposted the line')
+end
+`);
+});
+
+test('a page change shows the next line first and hides the old one once it renders', () => run(setup + `
+style='dialogue'
+assert(m.install())
+local receipt=afterHooks['SubtitleLineLogicController.SetLineData']
+local captions={version=1,cues={{text=string.rep('a ',70)..'end. ',start=0,finish=4},{text=string.rep('b ',60)..'done.',start=4.5,finish=8}}}
+assert(m.beginTimed('Judy',captions.cues[1].text..captions.cues[2].text,8,judy,'201ULL',captions))
+local first=m.line
+assert(#m.pages==2)
+m.syncTimed(4.5)
+local second=m.line
+assert(second~=first and #shown()==2 and #hidden()==0,'The old page stays until the new one renders')
+assert(events[#events].kind=='show' and m.status().retiring)
+receipt(nil,{id='unrelated'});assert(#hidden()==0)
+receipt(nil,{id=second.id});assert(#hidden()==1 and hidden()[1]==first.id and not m.status().retiring)
+-- Without a receipt the old page goes after a quarter second.
+m.clear()
+assert(m.beginTimed('Judy',captions.cues[1].text..captions.cues[2].text,8,judy,'201ULL',captions))
+local a=m.line;m.syncTimed(4.6);local b=m.line
+m.update(.2);assert(not hidden()[3] or hidden()[3]~=a.id)
+local before=#hidden();m.update(.1);assert(#hidden()==before+1 and hidden()[#hidden()]==a.id)
+-- Cleanup takes both the current page and one still being replaced.
+m.clear()
+assert(m.beginTimed('Judy',captions.cues[1].text..captions.cues[2].text,8,judy,'201ULL',captions))
+local c=m.line;m.syncTimed(4.6);local d=m.line
+before=#hidden();m.clear()
+assert(#hidden()==before+2 and m.line==nil and not m.status().retiring)
 `));

@@ -178,3 +178,19 @@ so no ID repeats within a game session, and `OnHideLine` is observed as well as
 `OnHideLineByData`: any native removal of the exact current dialogue line
 re-shows the page (our own hide clears `M.line` before its delayed callback).
 Hook version 9; install by CET reload.
+
+Second in-game report: with captions timed and visible, the Cinematic line
+blinked at some sentence ends on the same page. The adapter recorded two
+native removals of our current line in two replies (`nativeRemovals` 2); each
+was re-shown with a new line, which is the blink. Sentence revisions on one
+page never reposted the line. The HUD's `RemoveLineByData` drops every line
+without an owner whenever any other line is hidden by data, and our dialogue
+line had no speaker. It now carries the exact speaker (still
+`OwnerlessRegular`, still the bottom HUD; the chatter HUD shows no main-dialogue
+line), so only that speaker's own native line can remove it. A page change now
+shows the next line before hiding the previous one, which is hidden on the new
+line's `SubtitleLineLogicController.SetLineData` receipt or after 0.25 s, so
+pages swap without an empty frame. `status()` splits removals into
+`removedByData` and `removedOnHide`. Hook version 10; install by CET reload.
+The native line duration is not a lifetime: the 2.31 scripts use it only for
+the Kiroshi text animation.

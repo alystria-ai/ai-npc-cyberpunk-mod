@@ -118,6 +118,19 @@ local function restorePlacement()
         end)
     end
 end
+local function postHide(id)
+    pcall(function()
+        board():SetVariant(Game.GetAllBlackboardDefs().UIGameData.HideDialogLine,
+            ToVariant({id}, 'array:CRUID'), true)
+    end)
+end
+-- A dialogue page being replaced stays up until its successor has rendered,
+-- so a page change swaps lines without an empty frame.
+local function retire()
+    local old = M.retiring
+    M.retiring = nil
+    if old then postHide(old.id) end
+end
 local function hideLine()
     local line = M.line
     -- HideDialogLine is a delayed blackboard callback. Restoring the native
@@ -129,12 +142,7 @@ local function hideLine()
     M.projectionReady, M.pendingProjection = nil, nil
     M.revealAfterFrame = nil
     M.rootVisibility = nil
-    if line then
-        pcall(function()
-            board():SetVariant(Game.GetAllBlackboardDefs().UIGameData.HideDialogLine,
-                ToVariant({line.id}, 'array:CRUID'), true)
-        end)
-    end
+    if line then postHide(line.id) end
 end
 
 function M.configure(options)
@@ -159,7 +167,7 @@ function M.abandon()
     M.placement = nil
     M.anchor, M.projectionReady, M.pendingProjection, M.rootVisibility = nil, nil, nil, nil
     M.revealAfterFrame = nil
-    M.lingering, M.lineLost, M.restores = nil, nil, nil
+    M.lingering, M.lineLost, M.restores, M.retiring = nil, nil, nil, nil
 end
 
 local function headAnchor(actor)
@@ -177,6 +185,7 @@ local function headAnchor(actor)
     return ok and component and {component = component, slot = 'Head'} or nil
 end
 function M.clear()
+    retire()
     hideLine()
     M.abandon()
 end
@@ -415,17 +424,25 @@ local function showPage()
             return true
         end
     end
+    -- Dialogue HUD: the replaced page is hidden once the new one renders.
+    retire()
+    local replaced = M.mode ~= 'overhead' and M.line and M.line.id or nil
+    if replaced then M.line = nil end
     hideLine()
     M.serial = M.serial + 1
     local line = scnDialogLineData.new()
     line.id = CRUID(0x436F6E760000 + M.serial)
     line.type = M.mode == 'overhead' and scnDialogLineType.OverHead or scnDialogLineType.OwnerlessRegular
-    if M.mode == 'overhead' then line.speaker = M.actor end
+    -- The exact speaker owns the HUD line too. The native HUD's removal by
+    -- data drops every line without an owner whenever any other line ends;
+    -- with an owner it drops ours only for this speaker's own native line.
+    line.speaker = M.actor
     line.speakerName, line.text, line.isPersistent = M.speaker, text, false
     line.duration = duration
     M.line, M.remaining = line, line.duration
     board():SetVariant(Game.GetAllBlackboardDefs().UIGameData.ShowDialogLine,
         ToVariant({line}, 'array:scnDialogLineData'), true)
+    if replaced then M.retiring = {id = replaced, wait = .25} end
     return true
 end
 
@@ -509,6 +526,10 @@ function M.linger(seconds)
 end
 function M.update(delta)
     M.frameSerial = (M.frameSerial or 0) + 1
+    if M.retiring then
+        M.retiring.wait = M.retiring.wait - (finite(delta) and math.max(0, delta) or 0)
+        if M.retiring.wait <= 0 then retire() end
+    end
     if not M.pages then return end
     local ok, player = pcall(function() return Game.GetPlayer() end)
     if not ok or not player or (M.playerID and identity(player) ~= M.playerID) then M.abandon(); return end
@@ -555,7 +576,7 @@ function M.update(delta)
 end
 
 function M.install()
-    if M.hooksVersion == 9 then return true end
+    if M.hooksVersion == 10 then return true end
     if type(ObserveAfter) ~= 'function' then return false end
     local guardsProjection = type(Override) == 'function'
     ObserveAfter('ChatterLineLogicController', 'SetLineData', function(controller, line)
@@ -657,14 +678,23 @@ function M.install()
     -- pending hide removes a line as it spawns. Our own hide clears M.line
     -- before the delayed callback runs, so a removal of the exact current
     -- dialogue line is never ours: update() presents the same page again.
-    local function removed(_, entry)
-        local ok, id = pcall(function() return tostring(entry.id) end)
-        if ok and M.line and M.mode ~= 'overhead' and id == tostring(M.line.id) then
-            M.nativeRemovals, M.lineLost = (M.nativeRemovals or 0) + 1, true
+    local function removal(kind)
+        return function(_, entry)
+            local ok, id = pcall(function() return tostring(entry.id) end)
+            if ok and M.line and M.mode ~= 'overhead' and id == tostring(M.line.id) then
+                M.nativeRemovals, M.lineLost = (M.nativeRemovals or 0) + 1, true
+                M[kind] = (M[kind] or 0) + 1
+            end
         end
     end
-    pcall(ObserveAfter, 'SubtitlesGameController', 'OnHideLineByData', removed)
-    pcall(ObserveAfter, 'SubtitlesGameController', 'OnHideLine', removed)
+    pcall(ObserveAfter, 'SubtitlesGameController', 'OnHideLineByData', removal('removedByData'))
+    pcall(ObserveAfter, 'SubtitlesGameController', 'OnHideLine', removal('removedOnHide'))
+    -- The new dialogue page has its text: now hide the page it replaces.
+    pcall(ObserveAfter, 'SubtitleLineLogicController', 'SetLineData', function(_, line)
+        if not M.retiring or not M.line then return end
+        local ok, id = pcall(function() return tostring(line.id) end)
+        if ok and id == tostring(M.line.id) then retire() end
+    end)
     -- Other crowd chatter can be closer to screen centre. Keep this exact
     -- owned line readable; every other controller retains the native behavior.
     if guardsProjection then
@@ -686,7 +716,7 @@ function M.install()
             return result
         end)
     end
-    M.hooksInstalled, M.hooksVersion = true, 9
+    M.hooksInstalled, M.hooksVersion = true, 10
     return true
 end
 function M.status()
@@ -695,6 +725,7 @@ function M.status()
         timed = M.timed ~= nil, position = M.timed and M.timed.position, rendered = M.rendered,
         cueTimed = M.timed ~= nil and M.timed.starts ~= nil, lingering = M.lingering == true,
         nativeRemovals = M.nativeRemovals or 0, restores = M.restores or 0,
+        removedByData = M.removedByData or 0, removedOnHide = M.removedOnHide or 0, retiring = M.retiring ~= nil,
         bubbleOverrides = M.bubbleOverrides or 0, projectionReady = M.projectionReady == true,
         projectionCallbacks = M.projectionCallbacks or 0, projectionFrames = M.projectionFrames or 0,
         textUpdates = M.textUpdates or 0, renderUpdateError = M.renderUpdateError,
