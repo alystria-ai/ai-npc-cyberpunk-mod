@@ -20,7 +20,14 @@ export function playbackControl(value) {
   const volume = value.volume ?? 1, pan = value.pan ?? 0;
   if (!Number.isFinite(volume) || volume < 0 || volume > 1
       || !Number.isFinite(pan) || pan < -1 || pan > 1) throw Error('Invalid playback volume or pan');
-  return {allow: value.allow, paused: value.paused, volume, pan};
+  // Optional dialogue-level fields (docs/DIALOGUE_LEVEL.md): makeup gain in dB
+  // behind a peak limiter, and the speaker's distance for a gentle air low-pass.
+  // Absent means the previous unity path.
+  const makeupDb = value.makeupDb ?? 0, distance = value.distance ?? null;
+  if (!Number.isFinite(makeupDb) || makeupDb < 0 || makeupDb > 12
+      || (distance !== null && (!Number.isFinite(distance) || distance < 0 || distance > 1000)))
+    throw Error('Invalid playback level');
+  return {allow: value.allow, paused: value.paused, volume, pan, makeupDb, distance};
 }
 
 // Chromium derives the worklet's currentTime from currentFrame. A live device

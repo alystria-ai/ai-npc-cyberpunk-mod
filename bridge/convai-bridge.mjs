@@ -49,6 +49,7 @@ import {RelationshipRouting, relationshipContext, retireRelationshipConnections}
 import {MultilingualConversations, multilingualTwins, planTurnVoice, replyVoice} from './multilingual.mjs';
 import {CompanionActions} from './companion-actions.mjs';
 import {RequestFileOwner, fileIdentity} from './request-ownership.mjs';
+import {updateDialogueLevel, dialogueLevel} from './dialogue-level.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -1438,6 +1439,9 @@ async function pollSettings(checkShutdown = true) {
     // A transient rename/partial settings write must not reset the selected quality.
     const raw = await readFile(resolve(runtime, 'settings.json'), 'utf8').catch(() => '');
     let settings; try { settings = JSON.parse(raw); } catch {}
+    // Dialogue level match (docs/DIALOGUE_LEVEL.md): makeup gain for every voice.
+    if (updateDialogueLevel(await readFile(resolve(runtime, 'dialogue-level.json'), 'utf8').catch(() => '')))
+      console.error(`Dialogue level: ${JSON.stringify(dialogueLevel())}`);
     const relationshipState = await readFile(resolve(runtime, 'relationship-state.json'), 'utf8').catch(() => undefined);
     if (relationshipRoutes.update(settings, relationshipState,
         {boundary: currentBoundary(), busy: voiceBoundaryBusy() || voiceRouteReservation})) {

@@ -184,13 +184,15 @@ test('real continuous publisher facial data is accepted by the actual Lua playba
 
 test('continuous playback authorizes only its exact live actor, with verified game volume and camera-relative pan',()=>run(`
 assert(begin());assert(control().allow and not control().paused and control().volumeKnown)
-assert(math.abs(control().volume-.4)<.00001 and control().pan==1 and nativeStarts==0)
+-- Pan is narrowed to 0.7 for headphones; the camera distance rides along for the bridge's low-pass.
+assert(math.abs(control().volume-.4)<.00001 and control().pan==.7 and nativeStarts==0)
+assert(type(control().distance)=='number' and control().distance>0)
 assert(state().continuousAvailable and state().continuousId==id)
 local sequence=control().sequence
 -- Unchanged permission is refreshed every 150 ms (the bridge treats 400 ms as stale).
 snapshot();tick();assert(control().sequence==sequence)
 snapshot({updated=(wall+.05)*1000});tick(.16);assert(control().sequence>sequence and control().requestId==context.requestId)
-judy.pos.x=-2;snapshot({updated=(wall+.05)*1000});tick();assert(control().pan==-1)
+judy.pos.x=-2;snapshot({updated=(wall+.05)*1000});tick();assert(control().pan==-.7)
 judy.pos.x=18;snapshot({updated=(wall+.05)*1000});tick();assert(control().volume==0)
 speech.stop('cancelled');assert(not control().allow and not speech.requestId and nativeStarts==0 and nativeStops==0)
 context.entity='Wrong-copy';assert(not begin());assert(not control().allow)

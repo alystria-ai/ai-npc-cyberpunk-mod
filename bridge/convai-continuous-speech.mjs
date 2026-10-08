@@ -7,6 +7,7 @@ import {ownedExpressionReceipt} from './companion-expressions.mjs';
 import {decodeAnalysisPcm} from './analysis-pcm.mjs';
 import {JALI_LEAD_SECONDS} from './jali-face.mjs';
 import {displayText} from './natural-speech.mjs';
+import {activeMakeupDb} from './dialogue-level.mjs';
 
 const SHARING_ERRORS = new Set(['EPERM', 'EACCES', 'EBUSY']);
 const finite = value => typeof value === 'number' && Number.isFinite(value);
@@ -109,6 +110,9 @@ export class ConvaiContinuousSpeech {
       && finite(value.pan) && Math.abs(value.pan) <= 1) {
       this.controlSequence = value.sequence; this.controlAt = now;
       this.lastControl = {allow: value.allow, paused: value.paused, volume: value.volume, pan: value.pan};
+      // Dialogue level (docs/DIALOGUE_LEVEL.md): the speaker distance the game
+      // measured for this lease, when it sent one, drives the air low-pass.
+      if (finite(value.distance) && value.distance >= 0 && value.distance <= 1000) this.lastControl.distance = value.distance;
       // An explicit stop is terminal. Distance or a later stale file cannot
       // reopen a retired actor's stream.
       if (!value.allow) this.retired = true;
@@ -116,7 +120,8 @@ export class ConvaiContinuousSpeech {
     if (this.retired) throw Error('Continuous speech was stopped by the game');
     const age = this.controlAt === undefined ? now - this.publishedAt : now - this.controlAt;
     if (age > (this.controlAt === undefined ? FIRST_LEASE_MS : LEASE_MS)) throw Error('Continuous speech game lease expired');
-    return this.lastControl && age <= 400 ? {...this.lastControl} : quiet();
+    // The bridge's makeup gain rides along; 0 (matching off) is the unity path.
+    return this.lastControl && age <= 400 ? {...this.lastControl, makeupDb: activeMakeupDb()} : quiet();
   }
 
   async frame(snapshot) {

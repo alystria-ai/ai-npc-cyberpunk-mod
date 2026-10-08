@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
+import {DIALOGUE_MAKEUP_DB as MAKEUP} from './dialogue-level.mjs';
 
 const QUIET = {allow: false, paused: true, volume: 0, pan: 0};
 const owner = {requestId: 'reply-1', entity: 'judy-copy-2', generation: 7};
@@ -79,7 +80,7 @@ test('continuous admission waits for PCM and text then publishes one descriptor 
   f.onPublished = () => f.control();
   // One validated packet (80 ms) admits the game lease; the renderer, not this
   // admission, withholds sound until its 400 ms startup prefix is buffered.
-  assert.deepEqual(await f.stream.frame(f.snapshot({receivedFrames: 1920})), {allow: true, paused: false, volume: .8, pan: .2});
+  assert.deepEqual(await f.stream.frame(f.snapshot({receivedFrames: 1920})), {allow: true, paused: false, volume: .8, pan: .2, makeupDb: MAKEUP});
   assert.deepEqual(f.events, ['state', 'reply', 'published', 'control']);
   assert.deepEqual(f.replies[0].continuous, {version: 1, id: 'continuous-1'});
   assert.equal(f.replies[0].profile, 'judy-alvarez');
@@ -166,7 +167,7 @@ test('duplicate and older control sequences cannot renew the game lease despite 
 test('a fresh matching pause and distance gain update preserves the same stream', async () => {
   const f = fixture(); f.control(); await f.stream.frame(f.snapshot());
   f.now += 300; f.control({sequence: 2, paused: true, volume: .1, pan: -1});
-  assert.deepEqual(await f.stream.frame(f.snapshot()), {allow: true, paused: true, volume: .1, pan: -1});
+  assert.deepEqual(await f.stream.frame(f.snapshot()), {allow: true, paused: true, volume: .1, pan: -1, makeupDb: MAKEUP});
   assert.equal(f.replies.length, 1);
 });
 
@@ -267,7 +268,7 @@ test('a sharing violation skips one publication instead of failing the utterance
   // After admission a skipped state keeps the current lease rather than stopping speech.
   failState = 1; f.control({sequence: 2});
   assert.deepEqual(await f.stream.frame(f.snapshot({positionSeconds: .1, state: 'playing'})),
-    {allow: true, paused: false, volume: .8, pan: .2});
+    {allow: true, paused: false, volume: .8, pan: .2, makeupDb: MAKEUP});
 });
 
 test('the final drained state is retried, and persistent or other write errors still fail', async () => {

@@ -2,11 +2,13 @@
 // atomically. Audioware reads these fixed slots on demand, never from memory.
 import {readFile, writeFile, rename, mkdir} from 'node:fs/promises';
 import {resolve} from 'node:path';
+import {activeMakeupDb, levelWav} from './dialogue-level.mjs';
 
 export const SLOT_COUNT = 8;
 
-// A read-only view for animation analysis. The original bytes are still what
-// storeSpeech writes; no normalization, filters or resampling are applied.
+// A read-only view for animation analysis. storeSpeech writes the original
+// samples, with only the dialogue-level makeup gain and peak limiter applied
+// (docs/DIALOGUE_LEVEL.md); no resampling or timing change.
 export function readPcmWav(bytes) {
   if (!Buffer.isBuffer(bytes) || bytes.length < 44 || bytes.length > 24000000
       || bytes.toString('ascii', 0, 4) !== 'RIFF' || bytes.toString('ascii', 8, 12) !== 'WAVE') {
@@ -70,11 +72,15 @@ export async function initializeAudioDepot(game) {
   return depot;
 }
 
-export async function storeSpeech(base64, depot, slot) {
+export async function storeSpeech(base64, depot, slot, {makeupDb = activeMakeupDb()} = {}) {
   if (!Number.isInteger(slot) || slot < 0 || slot >= SLOT_COUNT) throw Error('Invalid speech slot');
   if (typeof base64 !== 'string' || base64.length > 32000000 || !/^[A-Za-z0-9+/]*={0,2}$/.test(base64)) throw Error('Invalid speech audio');
-  const bytes = Buffer.from(base64, 'base64');
-  const info = inspectWav(bytes);
+  const source = Buffer.from(base64, 'base64');
+  const info = inspectWav(source);
+  // Audioware plays these slots on the game's dialogue track at unity, which is
+  // quieter than vanilla dialogue: the same calibrated makeup as the browser
+  // path. Matching turned off (0 dB) writes the original bytes unchanged.
+  const bytes = makeupDb > 0 ? levelWav(readPcmWav(source), makeupDb) : source;
   const file = resolve(depot, `reply-${slot}.wav`), temp = file + '.tmp';
   await writeFile(temp, bytes);
   await rename(temp, file);

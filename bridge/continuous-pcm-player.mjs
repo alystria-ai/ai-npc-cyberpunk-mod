@@ -1,6 +1,16 @@
 import {pcmFormat, playbackControl, PCM_LIMITS, PcmClockHistory} from './continuous-pcm-core.mjs';
 
 const WORKLET_URL = new URL('./continuous-pcm-worklet.mjs', import.meta.url);
+// DynamicsCompressorNode settings for the dialogue-level limiter. The Web Audio
+// algorithm adds its own makeup gain of 0.6 x |curve(0 dBFS)| = 0.6 x |T(1-1/R)| dB;
+// the gain stage subtracts exactly that, so levels below T are at unity plus the
+// requested makeup. The node delays audio by its fixed 6 ms look-ahead.
+export const LIMITER = Object.freeze({threshold: -4, ratio: 20, makeupDb: 0.6 * 4 * (1 - 1 / 20), delaySeconds: 0.006});
+// Air absorption stand-in: no change within 4 m, then down to about 5 kHz at 30 m.
+export function airCutoff(distance, nyquist) {
+  const t = Math.max(0, Math.min(1, (distance - 4) / 26));
+  return Math.min(nyquist, 20000 * Math.pow(5000 / 20000, t));
+}
 const empty = () => ({state: 'opening', positionSeconds: 0, playedFrames: 0, bufferedFrames: 0,
   receivedFrames: 0, underruns: 0, sampleRate: 0, channels: 0, ended: false, error: null});
 
@@ -14,7 +24,7 @@ export class ContinuousPcmPlayer {
       setTimeoutFn, clearTimeoutFn});
     this.pending = new Map(); this.commandId = 0; this.history = new PcmClockHistory();
     this.latest = empty(); this.submittedFrames = 0; this.heardFrames = 0;
-    this.admission = {allow: false, paused: false, volume: 1, pan: 0};
+    this.admission = {allow: false, paused: false, volume: 1, pan: 0, makeupDb: 0, distance: null};
     this.stopped = false; this.opened = false; this.opening = null; this.closePromise = null;
     this.standby = false; this.standbySince = 0; this.standbyMs = standbyMs;
     this.whenStopped = new Promise(resolve => { this.resolveStopped = resolve; });
@@ -57,7 +67,7 @@ export class ContinuousPcmPlayer {
       this.context.addEventListener?.('sinkchange', () => {
         if (this.opened && !this.stopped) this.fail('Audio output device changed');
       });
-      this.node.connect(this.panner); this.panner.connect(this.gain); this.gain.connect(this.context.destination);
+      this.connectGraph();
       await this.startupStep(this.context.resume());
       await this.command('ready');
       if (this.stopped) throw Error('PCM player was stopped during startup');
@@ -170,21 +180,83 @@ export class ContinuousPcmPlayer {
     } catch (error) { this.fail(error.message); return Promise.reject(error); }
   }
 
+  // worklet -> panner -> air low-pass -> gain -> [limiter] -> device.
+  // The limiter and low-pass exist only for the dialogue-level path
+  // (docs/DIALOGUE_LEVEL.md). Without them (old browser, or a construction
+  // failure) the graph is exactly the previous worklet -> panner -> gain -> device.
+  connectGraph() {
+    this.node.connect(this.panner);
+    try {
+      if (typeof this.context.createBiquadFilter !== 'function' || typeof this.context.createDynamicsCompressor !== 'function')
+        throw Error('unsupported');
+      const air = this.context.createBiquadFilter(), limiter = this.context.createDynamicsCompressor();
+      air.type = 'lowpass'; air.Q.value = 0.7071; air.frequency.value = this.context.sampleRate / 2;
+      // Fast peak limiter: everything below about -4 dBFS passes at unity (its
+      // automatic makeup is cancelled in the gain stage), peaks are held under 0 dBFS.
+      limiter.threshold.value = LIMITER.threshold; limiter.knee.value = 0; limiter.ratio.value = LIMITER.ratio;
+      limiter.attack.value = 0.001; limiter.release.value = 0.08;
+      this.panner.connect(air); air.connect(this.gain);
+      limiter.connect(this.context.destination);
+      Object.assign(this, {air, limiter});
+    } catch {
+      this.air = this.limiter = null;
+      this.panner.connect(this.gain);
+    }
+    this.gain.connect(this.context.destination); this.limited = false;
+  }
+
+  // Route the gain stage through the limiter only while makeup is active, so
+  // matching turned off is bit-for-bit the previous unity path.
+  setLimited(limited) {
+    if (!this.limiter || this.limited === limited) return;
+    try {
+      this.gain.disconnect();
+      this.gain.connect(limited ? this.limiter : this.context.destination);
+      this.limited = limited;
+    } catch { this.limiter = null; this.limited = false; try { this.gain.connect(this.context.destination); } catch {} }
+  }
+
+  setParam(param, value, first) {
+    // Lua refreshes position at 25 Hz; a short time constant removes zipper
+    // steps while V or the speaker moves. The very first value lands at once.
+    const now = this.context.currentTime;
+    if (!first && typeof param.setTargetAtTime === 'function') param.setTargetAtTime(value, now, 0.03);
+    else param.setValueAtTime(value, now);
+  }
+
   applyGain() {
     if (!this.context || !this.gain) return;
     // Admission/pausing is enforced by the source reader in the worklet. Muting
     // a separate node before that reader receives its pause would silently
     // discard a few consumed samples. Already-rendered device audio can drain.
-    const volume = this.stopped ? 0 : this.admission.volume;
+    const makeup = this.stopped ? 0 : this.admission.makeupDb || 0;
+    this.setLimited(makeup > 0);
+    const level = this.limited ? Math.pow(10, (makeup - LIMITER.makeupDb) / 20) : 1;
+    const volume = this.stopped ? 0 : this.admission.volume * level;
     if (this.appliedVolume !== volume) {
-      this.gain.gain.setValueAtTime(volume, this.context.currentTime); this.appliedVolume = volume;
+      this.setParam(this.gain.gain, volume, this.appliedVolume === undefined || this.stopped);
+      this.appliedVolume = volume;
     }
     if (this.appliedPan !== this.admission.pan) {
-      this.panner.pan.setValueAtTime(this.admission.pan, this.context.currentTime); this.appliedPan = this.admission.pan;
+      this.setParam(this.panner.pan, this.admission.pan, this.appliedPan === undefined); this.appliedPan = this.admission.pan;
+    }
+    if (this.air) {
+      const nyquist = this.context.sampleRate / 2;
+      const cutoff = this.limited && Number.isFinite(this.admission.distance) ? airCutoff(this.admission.distance, nyquist) : nyquist;
+      if (this.appliedCutoff !== cutoff) {
+        this.setParam(this.air.frequency, cutoff, this.appliedCutoff === undefined); this.appliedCutoff = cutoff;
+      }
     }
   }
 
+  // The limiter's look-ahead sits after the worklet: samples reach the device
+  // that much later, so the heard (lip-sync) cursor is held back to match.
   outputTime() {
+    const time = this.deviceTime();
+    return this.limited ? Math.max(0, time - LIMITER.delaySeconds) : time;
+  }
+
+  deviceTime() {
     const context = this.context;
     if (!context) return 0;
     const stamp = context.getOutputTimestamp?.();
@@ -255,6 +327,8 @@ export class ContinuousPcmPlayer {
     try { this.node?.disconnect(); } catch {}
     try { this.panner?.disconnect(); } catch {}
     try { this.gain?.disconnect(); } catch {}
+    try { this.air?.disconnect(); } catch {}
+    try { this.limiter?.disconnect(); } catch {}
     try { this.node?.port.close(); } catch {}
     this.closePromise = Promise.resolve().then(async () => {
       try { if (this.context && this.context.state !== 'closed') await this.context.close(); } catch {}

@@ -21,7 +21,9 @@ Once continuous audio has begun, a failure never replays a whole WAV over it.
 `convai-data-audio.mjs`. `continuous-pcm-player.mjs` owns one source-rate audio
 context, gain and pan; `continuous-pcm-worklet.mjs` feeds the bounded PCM16 ring
 implemented in `continuous-pcm-core.mjs`. Packet boundaries never become sound
-boundaries. There is no EQ, normalization, silence trimming or custom resampling.
+boundaries. There is no EQ, silence trimming or custom resampling. Since October 8
+a calibrated dialogue-level makeup gain, peak limiter and distance low-pass follow
+the panner ([dialogue level](DIALOGUE_LEVEL.md); `enabled: false` restores unity).
 The operating system/browser still performs its normal output-device mixing.
 
 `ConvaiContinuousSpeech` is the bridge-to-game boundary, separate from local

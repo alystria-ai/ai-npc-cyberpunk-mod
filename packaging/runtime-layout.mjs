@@ -23,6 +23,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/convai-bridge.mjs',
   'bridge/convai-continuous-speech.mjs',
   'bridge/conversation-style.mjs',
+  'bridge/dialogue-level.mjs',
   'bridge/distraction-context.mjs',
   'bridge/emotion-analysis.mjs',
   'bridge/emotion-lexicon.mjs',

@@ -42,13 +42,20 @@ local function same(value)
         and value.generation == owner.generation and value.entity == owner.entity
 end
 
+-- Camera-to-speaker distance from the latest spatial() call, sent with the
+-- lease for the bridge's distance low-pass (docs/DIALOGUE_LEVEL.md).
+local speakerDistance = nil
+-- Headphone-friendly pan width: a speaker at V's side is mostly, not only, in
+-- one ear (about 12 dB down on the far side, like Audioware's own emitters).
+local PAN_WIDTH = .7
+
 local function write(allow, paused, level, pan)
     if not owner then return false end
     sequence = sequence + 1
     written = {at = M.now(), allow = allow == true, paused = paused == true, level = level or 0, pan = pan or 0}
     local value = {version=1,id=owner.id,requestId=owner.requestId,generation=owner.generation,entity=owner.entity,
         updated=os.time()*1000,sequence=sequence,allow=allow==true,paused=paused==true,
-        volume=level or 0,pan=pan or 0,volumeKnown=volume ~= nil,
+        volume=level or 0,pan=pan or 0,distance=allow and speakerDistance or nil,volumeKnown=volume ~= nil,
         volumeReason=volume == nil and 'game-volume-unavailable' or nil}
     -- In place: one open instead of open+rename+remove+rename (Windows rename
     -- cannot replace a file). The bridge keeps its last good lease when it
@@ -98,14 +105,16 @@ local function spatial(player, actor)
     local distance, horizontal, direction = math.sqrt(dx*dx+dy*dy+dz*dz), math.sqrt(dx*dx+dy*dy), math.sqrt(forward.x^2+forward.y^2)
     local pan = horizontal > .001 and direction > .001 and (dx*forward.y-dy*forward.x)/(horizontal*direction) or 0
     local t = math.max(0, math.min(1, (distance-2)/16))
-    -- No voice processing: only gentle distance gain and equal-power pan in
-    -- the device renderer, with the same 2m near / 18m far range as Audioware.
-    return (volume or 0)*(1-t*t*(3-2*t)), math.max(-1, math.min(1, pan))
+    -- Gentle distance gain and equal-power pan in the device renderer, with the
+    -- same 2m near / 18m far range as Audioware. The bridge adds the dialogue
+    -- level and a distance low-pass (docs/DIALOGUE_LEVEL.md).
+    speakerDistance = math.floor(distance * 100 + .5) / 100
+    return (volume or 0)*(1-t*t*(3-2*t)), math.max(-1, math.min(1, pan)) * PAN_WIDTH
 end
 
 function M.stop()
     write(false, true, 0, 0)
-    owner, previous, lastUpdated, volume = nil, nil, nil, nil
+    owner, previous, lastUpdated, volume, speakerDistance = nil, nil, nil, nil, nil
     written, faceTimeline, faceRevision, faceReadAt = nil, nil, nil, nil
     readSequence, acceptedSequence = 0, 0
 end
