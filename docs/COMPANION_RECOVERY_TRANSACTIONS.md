@@ -656,3 +656,46 @@ The fix keeps the carry and verifies it:
 Tests: the per-frame carry that holds; a carry the engine ignores (she is
 hidden by the second update, placed in the car at arrival and shown again);
 a teleport facility that errors (hidden and reported).
+
+### Fourth live test (2026-10-08 20:26Z): a failed boarding was given up
+
+With `f12fc03` installed: `lift-boarding` `how` `door-then-walk` at 20:26:03,
+because the straight sweep from Judy at (-1599.5, 367.3) was blocked. Then
+`lift-board-walk-failed` at 20:26:05: the native walk to the doorway ended
+0.8 m short. V's doorway foothold is just off the navmesh, and the native leg
+counted as reached only under 0.8 m. The fallback then waited at most 12 s for
+V to look away. V stood in the car watching the doors (at (-1602.2, 372.1)
+from 20:26:07), so she waited 3.2 m outside, `hold/waiting`, and no other rule
+applied. The car never departed while the trace ran, which is why there was
+no `lift-departed` line. Departure is detected for every party member, boarded
+or not. The earlier stuck-on-the-couch state did not gate these rules:
+`recoverDistant` runs before the seating owner, and after the CET reload at
+20:25:36 she was re-acquired on the lobby floor (z 49.2).
+
+The fixes:
+
+- **Doorway reached:** a native leg to the doorway that ends, or stops making
+  progress, within 1.5 m of it counts as having reached it. The straight leg
+  in follows.
+- **Doorway foothold:** footholds within 1.5 m of V no longer count as the
+  doorway, because the inside flag can lag V's steps.
+- **Car spot:** the boarding spot is chosen on the side facing the doorway, a
+  straight line in.
+- **One retry:** a failed board walk is retried once by another approach. The
+  first try is a straight walk (navmesh off) to the doorway, then straight in;
+  the second is straight in from where she stands. Each is swept first.
+  `lift-boarding` then shows `how` `retry-door-then-walk` or `retry-walk`.
+- **Waiting for V to look away:** it lasts the whole car visit (was 12 s).
+- **At the latest at departure:** a companion that tried to board this visit
+  but is still outside, within 15 m on V's floor, vanishes from the landing
+  when the car departs. Its doors are shut by then. She rides hidden
+  (`lift-carry` `result` `hidden`, `reason` `not-aboard`) and counts as riding
+  with V.
+- **Arrival:** a hidden rider is placed in the car on the side behind V's view,
+  then shown.
+- **Left behind:** a companion that never tried to board still rejoins out of
+  view after V steps out on the new floor.
+
+Tests: a failed walk retried once that then walks in, with no teleport; V
+watching the doors the whole time, she vanishes at departure and is in the car
+at arrival. Both fail on `f12fc03`.

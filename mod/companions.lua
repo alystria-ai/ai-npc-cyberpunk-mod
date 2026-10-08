@@ -1167,6 +1167,7 @@ local function hiddenFromPlayer(player,at)
     return not M.visibleFromCrosshair(Vector4.new(origin.x,origin.y,origin.z+1.6,1),
         Vector4.new(at.x,at.y,at.z+1.2,1))
 end
+local setVisible
 -- Who rides: a copy standing in the car with V when it departs (boarded this
 -- visit, or within 1.6 m of where V stood). Her offset from V is kept.
 local function boardRiders(s)
@@ -1184,6 +1185,16 @@ local function boardRiders(s)
             entry.carVisit,entry.carWalk,entry.carSearch=s.insideSince,nil,nil
             entry.riding,entry.rideDz,entry.carryError,entry.carryNoted=s.rideStarted,at.z-s.rideFrom.z,nil,nil
             entry.carrySent=0
+        elseif at and entry.boardedVisit==s.insideSince and math.abs(at.z-s.rideFrom.z)<1.5
+            and space.ground(at,s.rideFrom)<=separation.carDoorReach then
+            -- She tried to board this visit but is still outside: the car's
+            -- doors are shut, so she vanishes from the landing and rides
+            -- hidden, then appears in the car at arrival.
+            entry.carWalk,entry.carSearch,entry.carRetry=nil,nil,nil
+            entry.carVisit,entry.riding,entry.rideDz=s.insideSince,s.rideStarted,0
+            entry.rideHidden=runtimeClock
+            local hidden=setVisible(entry,false)
+            note(entry,'lift-carry',{result='hidden',reason='not-aboard',hidden=hidden})
         end
     end
     M.riders=#riders>0 or nil
@@ -1219,7 +1230,7 @@ end
 -- same event the phantom controller and adoption use) and is placed beside V
 -- in the car at arrival, before the doors open; she is shown again once she
 -- stands on V's floor, or after 40 s at the latest.
-local function setVisible(entry,visible)
+function setVisible(entry,visible)
     local ok,err=pcall(function()
         local event=NewObject('enteventsSetVisibility')
         event.visible=visible
@@ -1300,7 +1311,7 @@ local function teleported(entry,target,rule,fields)
     entry.strandedSince,entry.strandedAnchor,entry.lastBlockedAt,entry.farSince=nil,nil,nil,nil
     entry.verticalSince,entry.progressAnchor,entry.progressAt=nil,nil,nil
     entry.carWalk,entry.carSearch,entry.carVisit,entry.riseBest,entry.riseAt=nil,nil,nil,nil,nil
-    entry.carExit=nil
+    entry.carExit,entry.carRetry=nil,nil
 end
 -- Returns true when teleported, nil when it should retry shortly, or false
 -- and a reason. Each placement plan runs on its own update so one recovery
@@ -1416,10 +1427,15 @@ local function liftPassage(entry,player,v,rise,flat)
     local walk=entry.carWalk
     if walk then
         local gap=space.ground(entry.position,walk.target)
-        local reached=gap<(walk.navigate and .8 or .55) and math.abs(entry.position.z-walk.target.z)<.6
+        local level=math.abs(entry.position.z-walk.target.z)<.6
+        local reached=gap<(walk.navigate and .8 or .55) and level
         if not reached and gap<walk.best-.3 then walk.best,walk.bestAt=gap,runtimeClock end
-        local stuck=runtimeClock>=walk.deadline or runtimeClock-walk.bestAt>=2.5
-            or (entry.motor.kind=='board' and entry.motor.feedback.failed)
+        local ended=entry.motor.kind=='board' and (entry.motor.feedback.failed or entry.motor.feedback.complete)
+        -- Live 2026-10-08 20:26:05Z: the native walk to the doorway ended 0.8 m
+        -- short (V's doorway foothold is just off the navmesh) and the whole
+        -- boarding was given up. Ending that close is arrival at the doorway.
+        if not reached and walk.next and level and gap<1.5 and (ended or runtimeClock-walk.bestAt>=1) then reached=true end
+        local stuck=runtimeClock>=walk.deadline or runtimeClock-walk.bestAt>=2.5 or ended and not reached
         local valid=walk.purpose~='board' or (inside and walk.visit==s.insideSince and not s.riding)
         if reached and walk.next and valid then
             -- The doorway reached on the navmesh: the straight leg into the car.
@@ -1444,21 +1460,60 @@ local function liftPassage(entry,player,v,rise,flat)
             entry.carWalk=nil
             if walk.purpose=='board' then
                 if not valid then return false end
-                -- Last resort, and never in view: wait for V to look away.
-                note(entry,'lift-board-walk-failed',{walk=rounded(gap),navigate=walk.navigate==true})
-                entry.carSearch={visit=walk.visit,mode='hidden',spot=walk.spot or walk.next or walk.target,
-                    untilAt=runtimeClock+separation.carHiddenWait}
+                local spot=walk.spot or walk.next or walk.target
+                note(entry,'lift-board-walk-failed',{walk=rounded(gap),navigate=walk.navigate==true,
+                    retry=walk.retry==true})
+                -- One retry by another approach: straight (navmesh off) to the
+                -- doorway V used, then straight in; or straight in from here.
+                if not walk.retry then
+                    local door=entry.carDoor
+                    local legs={}
+                    if door and space.ground(entry.position,door)>.6 and space.ground(entry.position,door)<=separation.carDoorReach then
+                        legs[#legs+1]={purpose='board',target=space.copy(door),next=space.copy(spot),spot=space.copy(spot),
+                            visit=walk.visit,retry=true}
+                    end
+                    legs[#legs+1]={purpose='board',target=space.copy(spot),spot=space.copy(spot),visit=walk.visit,
+                        final=true,retry=true}
+                    entry.carRetry={legs=legs,index=1,visit=walk.visit,spot=spot}
+                    return true
+                end
+                -- Last resort, and never in view: wait for V to look away, at
+                -- the latest until the car departs (then she rides hidden).
+                entry.carSearch={visit=walk.visit,mode='hidden',spot=spot}
                 return false
             end
             note(entry,'lift-exit-failed',{reason='walk-stalled',walk=rounded(gap)})
             return false
         end
     end
+    local retry=entry.carRetry
+    if retry then
+        if not (inside and retry.visit==s.insideSince and not s.riding) then entry.carRetry=nil; return false end
+        while retry.legs[retry.index] do
+            local leg=retry.legs[retry.index]
+            local clear,_,deferred=clearance.segment(entry.position,leg.target,entry.clearance)
+            if deferred then return true end
+            if clear then
+                local sent=walkLeg(entry,leg,entry.position)
+                if sent==nil then return true end
+                if sent then
+                    entry.carRetry,entry.carWalk=nil,leg
+                    note(entry,'lift-boarding',{how=leg.next and 'retry-door-then-walk' or 'retry-walk',
+                        walk=rounded(space.ground(entry.position,leg.target))})
+                    return true
+                end
+            end
+            retry.index=retry.index+1
+        end
+        entry.carRetry=nil
+        note(entry,'lift-boarding',{how='unseen-teleport',reason='no-clear-retry'})
+        entry.carSearch={visit=retry.visit,mode='hidden',spot=retry.spot}
+        return false
+    end
     local search=entry.carSearch
     if search then
         if not (inside and search.visit==s.insideSince and not s.riding) then entry.carSearch=nil; return false end
         if search.mode=='hidden' then
-            if runtimeClock>=search.untilAt then entry.carSearch=nil; return false end
             if runtimeClock<(search.checkAt or 0) then return false end
             search.checkAt=runtimeClock+.5
             if not unseen(player,entry,search.spot) then return false end
@@ -1469,7 +1524,15 @@ local function liftPassage(entry,player,v,rise,flat)
         end
         local spot,reason,pending=search.spot,nil,nil
         if not spot then
-            spot,reason,pending=passage.carSpot(search,v,entry.position,occupiedPositions(entry),entry.clearance,clearance)
+            -- Boarding: the side toward the doorway V used, a straight line in.
+            -- A hidden arrival: behind V's view, where V does not see her appear.
+            local towards=entry.position
+            if search.mode=='board' and entry.carDoor then towards=entry.carDoor
+            elseif entry.rideHidden then
+                local forward=cameraForward(player)
+                if forward then towards={x=v.x-forward.x*2,y=v.y-forward.y*2,z=v.z} end
+            end
+            spot,reason,pending=passage.carSpot(search,v,towards,occupiedPositions(entry),entry.clearance,clearance)
         end
         if pending then return true end
         if not spot then
@@ -1505,7 +1568,7 @@ local function liftPassage(entry,player,v,rise,flat)
                 end
             end
             note(entry,'lift-boarding',{how='unseen-teleport',walk=rounded(gap),swept=search.swept})
-            entry.carSearch={visit=search.visit,mode='hidden',spot=spot,untilAt=runtimeClock+separation.carHiddenWait}
+            entry.carSearch={visit=search.visit,mode='hidden',spot=spot}
             return false
         end
         -- The car left without her: back in it only while V cannot see it.
@@ -1580,7 +1643,8 @@ local function recoverDistant(entry,player)
         -- engine leaves them behind, they rejoin as soon as the car arrives.
         entry.rideSeen=s.rideStarted
         local from=s.rideFrom or v
-        entry.rodeWithV=space.ground(entry.position,from)<separation.carGap and math.abs(entry.position.z-from.z)<1.2
+        entry.rodeWithV=entry.riding==s.rideStarted
+            or space.ground(entry.position,from)<separation.carGap and math.abs(entry.position.z-from.z)<1.2
         note(entry,'lift-departed',{withV=entry.rodeWithV,flat=rounded(flat)})
     end
     if s.arrivedAt and entry.arrivalSeen~=s.arrivedAt then
@@ -1692,7 +1756,9 @@ local function recoverDistant(entry,player)
         entry.carTried=s.insideSince
         entry.carSearch={visit=s.insideSince,mode='board'}
         -- V's last foothold before the car: the doorway, on the walkable floor.
-        entry.carDoor=passage.exitPoint(s.trail,v,6)
+        -- The inside flag can lag V's steps, so footholds within 1.5 m of V
+        -- (already in the car) do not count.
+        entry.carDoor=passage.trailPoints(s.trail,v,1.5,6,1)[1]
         return liftPassage(entry,player,v,rise,flat)
     end
     local rule,watched

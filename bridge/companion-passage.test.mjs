@@ -401,6 +401,52 @@ test('a moving car carries her along with V, then she walks out after V',()=>run
   assert(not inCar(npc.pos.x,npc.pos.y),'she stayed in the car after V stepped out'..dump())
 `));
 
+test('a failed walk into the car is retried once by another approach, and she walks in',()=>run(world+car+`
+  -- Live 2026-10-08 20:26:05Z: the first walk failed and boarding was given up.
+  local plain,ignored=npc.ai.onSend,0
+  npc.ai.onSend=function(cmd)
+    if cmd.kind=='AIMoveToCommand' and cmd.ignoreNavigation and ignored==0 then ignored=1; cmd.kind='AIMoveToCommandIgnored' end
+    return plain(cmd)
+  end
+  enterCar(); play(16)
+  assert(logged('lift-board-walk-failed'),'the first walk did not fail'..dump())
+  assert(logged('lift-boarded'),'the retry did not bring her into the car'..dump())
+  assert(#teleports==0,'teleported although the retry walk worked'..dump())
+  assert(inCar(npc.pos.x,npc.pos.y))
+`));
+
+test('V keeps watching while she cannot get in: she vanishes as the car departs and is in the car at arrival',()=>run(world+car+`
+  Game.GetTeleportationFacility=function() return {Teleport=function() end} end
+  local plain=npc.ai.onSend
+  npc.ai.onSend=function(cmd)
+    if cmd.kind=='AIMoveToCommand' and cmd.ignoreNavigation then cmd.kind='AIMoveToCommandIgnored' end
+    return plain(cmd)
+  end
+  local events={}
+  local queue=npc.QueueEvent
+  npc.QueueEvent=function(self,event)
+    if type(event)=='table' and event.kind=='enteventsSetVisibility' then events[#events+1]=event.visible end
+    return queue(self,event)
+  end
+  enterCar(); play(30) -- V watches the doors the whole time
+  assert(#teleports==0,'she was teleported in while V watched'..dump())
+  assert(not inCar(npc.pos.x,npc.pos.y),'she got in anyway')
+  lift.moving=true
+  for i=1,20 do
+    player.pos=Vector4.new(0,8,i*2)
+    if companions.riders then companions.carry(player) end
+    play(1)
+  end
+  assert(events[1]==false,'she was not hidden when the car departed without her'..dump())
+  assert(logged('lift-departed') and logged('lift-departed').fields.withV==true,'the ride did not count her')
+  lift.moving=false; play(4)
+  assert(#teleports>=1,'she was not placed in the car at arrival'..dump())
+  local spot=teleports[1].spot
+  assert(math.abs(spot.z-40)<.5 and inCar(spot.x,spot.y),'not placed in the car on the new floor')
+  play(2)
+  assert(events[#events]==true,'she was not shown again')
+`));
+
 test('a carry that does not hold her hides her for the ride; she is in the car at arrival',()=>run(world+car+`
   -- Live 2026-10-08 20:07:59-20:08:10Z: the per-frame transform left Judy at
   -- z 8.3 while V rose to 49.2; she seemed to sink through the car floor.
