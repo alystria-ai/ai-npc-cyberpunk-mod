@@ -39,13 +39,10 @@ local BACK_ID = 'convai-bottom-back'
 local BAR_GAP = 20
 local backMode, currentBack = 'bottom', nil
 local statusOriginal
--- Our own status line: the first row of a settings page. It names the state of
--- unapplied changes. MCM's bottom status line carries the same text from its own
--- refusal message; once the top line can be updated in place, that is blanked.
-local HINT_ID = 'apply-hint'
-local function hintDefault() return ui.t('Changes wait until you choose Apply.') end
+-- The refusal MCM shows when a change would be applied automatically. It goes to
+-- MCM's status line, which is moved to the top of the content column.
 local function hintPending() return ui.t('Change pending. Choose Apply to use it, or Revert to discard it.') end
-local hintText, hintLive = nil, false
+local CONTENT_FONT_SIZE = 22
 -- Help page: log locations and the shareable support report. Optional: the
 -- manager works without it, and a load failure only hides the Help entry.
 local support, supportSignature
@@ -170,9 +167,6 @@ local function styleCompletedPage()
         widgets[name] = widget
     end
     presentation.voiceStatus = widgets[MOD_KEY .. ':voice-status_value']
-    local hintSurface = widgets['mcm_action_' .. MOD_KEY .. ':' .. HINT_ID]
-    presentation.hintLabel = hintSurface and findWidget(hintSurface, 'label', 2, {left = 30}) or nil
-    presentation.hintShown = hintText
     for _, row in ipairs(rows) do
         local widget, name = row.widget, row.name
         local managed = name:match('^(.*)_managed_label$')
@@ -194,6 +188,8 @@ local function styleCompletedPage()
             presentation.rows[surface] = 'readonly'
             local text = findWidget(widget, 'label', 2, {left = 30})
             alignLabel(text, 0)
+            -- MCM draws read-only labels larger (26) than its setting labels (22).
+            if text then pcall(function() text:SetFontSize(CONTENT_FONT_SIZE) end) end
             if not presentation.hovered[surface] then redLabel(text) end
         else
             local owner = widget:GetController()
@@ -384,20 +380,6 @@ local function updatePreparationBanner()
     presentation.preparationApplied = current ~= nil
 end
 
--- Keep the top status line in step with MCM's pending drafts, in place (a schema
--- reload is not possible while drafts are pending). Top-level update only.
-local function updateApplyHint()
-    if not presentation.active or not presentation.hintLabel or not api then return end
-    local ok, pending = pcall(api.hasDrafts, MOD_KEY)
-    if not ok then return end
-    local text = (pending == true and hintPending() or hintDefault())
-    if text ~= presentation.hintShown then
-        presentation.hintLabel:SetText(text)
-        presentation.hintShown = text
-    end
-    hintLive = true
-end
-
 -- Add Back to the bottom action row from top-level update, after a render (a
 -- new render clears the bar). The other buttons are found by their geometry (the
 -- bar's 46-unit-high actions on the bottom line) and shifted left, so Back takes
@@ -454,6 +436,7 @@ local function restoreStatusLine()
             local margin = original.widget:GetMargin()
             margin.left, margin.top = original.left, original.top
             original.widget:SetMargin(margin)
+            if original.width then original.widget:SetWidth(original.width) end
         end)
     end
 end
@@ -464,15 +447,21 @@ local function placeStatusLine()
     presentation.statusMoved = true
     local ok, err = pcall(function()
         local render = presentation.renderRoot
-        local subtitle = render and findWidget(render, 'subtitle', 3)
-        if not subtitle then error('the header subtitle is unavailable') end
+        local title = render and findWidget(render, 'content_title', 3)
+        if not title then error('the content title is unavailable') end
         local status = presentation.statusWidget
-        local margin, anchor = status:GetMargin(), subtitle:GetMargin()
+        local margin, anchor = status:GetMargin(), title:GetMargin()
         -- Keep the first recorded place: a widget that survives a render is already moved.
-        statusOriginal = statusOriginal or {widget = status, left = margin.left, top = margin.top}
-        margin.left, margin.top = anchor.left, anchor.top + subtitle:GetHeight() + 4
+        statusOriginal = statusOriginal or {widget = status, left = margin.left, top = margin.top, width = status:GetWidth()}
+        -- Directly under the page title, in the content column (never over the sidebar).
+        margin.left, margin.top = anchor.left, anchor.top + title:GetHeight() + 2
         status:SetMargin(margin)
-        log('Probe: status line moved to x=' .. tostring(margin.left) .. ' y=' .. tostring(margin.top))
+        local contentInner = presentation.controller:McmUiGetLayoutMetric(23)
+        if type(contentInner) == 'number' and contentInner > 0 and status:GetWidth() > contentInner then
+            status:SetWidth(contentInner)
+        end
+        log('Probe: status line moved to x=' .. tostring(margin.left) .. ' y=' .. tostring(margin.top)
+            .. ' (title ' .. tostring(anchor.left) .. ',' .. tostring(anchor.top) .. ' h=' .. tostring(title:GetHeight()) .. ')')
     end)
     if not ok then log('Status line could not be moved: ' .. tostring(err)) end
 end
@@ -876,18 +865,6 @@ local function schema()
             table.insert(categories[#categories].settings, moved)
         end
     end
-    -- The status line comes first on the pages that hold settings.
-    if (view == 'settings' or view == 'relationships' or view == 'permissions') and categories[1] then
-        local pending = false
-        if api and type(api.hasDrafts) == 'function' then
-            local ok, value = pcall(api.hasDrafts, MOD_KEY)
-            pending = ok and value == true
-        end
-        hintText = (pending and hintPending() or hintDefault())
-        table.insert(categories[1].settings, 1, readonly(HINT_ID, hintText, '', hintText, {label = true, description = true}))
-    else
-        hintText = nil
-    end
     return {name = ui.t(LABEL), description = ui.t('Your companions, character models and conversation settings.'), categories = categories}
 end
 
@@ -1044,6 +1021,9 @@ function M.install()
         title, subtitle, sidebarTitle, contentTitle, status, statusKind, transientOwner,
         showSidebarSearch, showContentSearch, listSelectionMode, wrapped)
         local own = active() and (transientOwner == MOD_KEY or contentTitle == ui.t(LABEL))
+        -- "Opened Companion Manager." on every visit is noise.
+        if own and tostring(status) == 'Opened ' .. ui.t(LABEL) .. '.' then status, statusKind = '', 0 end
+        if own and tostring(status) == 'Opened Companion Manager.' then status, statusKind = '', 0 end
         local completed = tostring(status):sub(1, 10) == 'Completed:'
         local allowed = own and statusKind ~= 2 and (completed or status == '')
         presentation = {active = false, rows = {}, beginKey = controllerKey(controller),
@@ -1062,11 +1042,6 @@ function M.install()
             status, statusKind = preparationStatus.message, preparationStatus.failed and 2 or 0
             presentation.preparationApplied = true
             presentation.preparationSignature = preparationStatus.signature
-        end
-        if own and hintLive and tostring(status):find(hintPending(), 1, true) then
-            -- The same message is on the page's top status line; keep MCM's
-            -- bottom line free of it.
-            status, statusKind = '', 0
         end
         presentation.statusText = status
         return wrapped(title, subtitle, sidebarTitle, contentTitle, status, statusKind,
@@ -1311,8 +1286,6 @@ function M.update(currentPlayer, worldReady)
     if not placed then lastError = 'Back button: ' .. tostring(placeError) end
     local movedOk, movedError = pcall(placeStatusLine)
     if not movedOk then lastError = 'Status line: ' .. tostring(movedError) end
-    local hintOk, hintError = pcall(updateApplyHint)
-    if not hintOk then lastError = 'Status line: ' .. tostring(hintError) end
     local bannerOk, bannerError = pcall(updatePreparationBanner)
     if not bannerOk then lastError = 'Preparation presentation: ' .. tostring(bannerError) end
     if searchFrames > 0 then
@@ -1370,7 +1343,7 @@ function M.inspect()
     return {available = api ~= nil, active = active(), view = view, entry = entry.state(),
         presentation = {active = presentation.active, pending = presentation.pending, title = presentation.title, rows = rowCount},
         entryDetails = entry.inspect and entry.inspect() or nil,
-        back = currentBack and {id = currentBack.id, label = currentBack.label} or nil, hintLive = hintLive, backMode = backMode,
+        back = currentBack and {id = currentBack.id, label = currentBack.label} or nil, backMode = backMode,
         party = queue.list(), feedback = queue.message(), error = lastError,
         voicePreview = voicePreview.inspect(),
         fonts = fontPresentation.inspect(),

@@ -541,12 +541,7 @@ test('manager home owns the four destinations and every inner page has one paren
       -- Back is the bottom-bar button, not a row; its callback belongs to this page.
       assert(count == 0, 'Back is still a row of the list')
       assert(mcm.inspect().back.id == back and mcm.inspect().backMode == 'bottom')
-      local first = loaded.categories[1].settings[1]
-      if expected == 'settings' or expected == 'relationships' or expected == 'permissions' then
-        assert(first.id == 'apply-hint', 'the status line must come first on a settings page')
-      else
-        assert(first.id ~= 'apply-hint')
-      end
+      assert(not row('apply-hint'), 'a status row is on the page')
       assert(not category('party-status') and not row('party-count') and not row('feedback'),
         'party status, the limit or the last action leaked onto the page')
     end
@@ -711,7 +706,7 @@ test('Back joins the bottom button row, the status line moves to the top left, a
       function w:SetText(value) self.text = value end
       return w
     end
-    local subtitle = widget('subtitle', 60, 40, 600, 24)
+    local subtitle = widget('content_title', 393, 140, 600, 40)
     local status = widget('status', 60, 1040, 900, 30)
     local revert, apply = widget('mcm_action_revert', 300, 1000, 140, 46), widget('mcm_action_apply', 460, 1000, 140, 46)
     local render = widget('MCMRenderRoot', 0, 0, 1920, 1080, {subtitle, status,
@@ -732,8 +727,8 @@ test('Back joins the bottom button row, the status line moves to the top left, a
     assert(back.id == 'convai-bottom-back' and back.label == 'Back' and back.y == 1000 and back.width == 140 and back.x == 760 and not back.active)
     assert(revert.margin.left == 300 - 160 and apply.margin.left == 460 - 160 and apply.margin.top == 1000,
       'the other buttons were not made room for')
-    -- The status line sits under the header subtitle.
-    assert(status.margin.left == 60 and status.margin.top == 40 + 24 + 4, 'status line not moved: ' .. status.margin.top)
+    -- The status line sits directly under the page title, in the content column.
+    assert(status.margin.left == 393 and status.margin.top == 140 + 40 + 2, 'status line not moved: ' .. status.margin.top)
     mcm.update(player, false); mcm.update(player, false)
     assert(#bottomActions == 1, 'Back was added again within one render')
     -- With no other buttons, Back takes the place where the last button would be.
@@ -796,38 +791,45 @@ test('the game OnBack is held while changes are pending, so the dialog is not cl
   `);
 });
 
-test('the top status line follows pending changes in place and the bottom MCM line is kept free of our message', () => {
+test('read-only rows use the setting row font size, and routine opened or completed messages are dropped', () => {
   run(`${mcmFixture}
     CName = {new = function(value) return value end}
     NameToString = function(value) return value end
     assert(invoke('tab:settings').ok)
     loaded = registered.loadMod('manager')
-    local first = loaded.categories[1].settings[1]
-    assert(first.id == 'apply-hint' and first.label == 'Changes wait until you choose Apply.')
-    local pendingText = 'Change pending. Choose Apply to use it, or Revert to discard it.'
-    local label = {text = first.label}
-    function label:SetText(value) self.text = value end
-    function label:GetName() return 'label' end
-    local surface = {GetName = function() return 'mcm_action_cyberpunk-convai:manager:apply-hint' end,
-      GetNumChildren = function() return 1 end, GetWidgetByIndex = function() return label end}
-    local content = {GetName = function() return 'mcm_content_scroll_content' end,
-      GetNumChildren = function() return 1 end, GetWidgetByIndex = function() return surface end}
-    function controller:GetRootWidget() return content end
+    assert(not row('apply-hint'), 'a status row is on the Settings page')
+    local function widget(name, left, children)
+      local w = {name = name, left = left, children = children or {}, size = 26}
+      function w:GetName() return self.name end
+      function w:GetMargin() return {left = self.left, top = 0, right = 0, bottom = 0} end
+      function w:SetMargin(m) self.left = m.left end
+      function w:GetWidth() return 300 end
+      function w:SetWidth() end
+      function w:GetNumChildren() return #self.children end
+      function w:GetWidgetByIndex(i) return self.children[i + 1] end
+      function w:SetFontSize(v) self.size = v end
+      function w:BindProperty() end
+      function w:GetController() return nil end
+      return w
+    end
+    local label = widget('label', 30)
+    local surface = widget('mcm_action_cyberpunk-convai:manager:voice-status', 20, {label})
+    local content = widget('mcm_content_scroll_content', 0, {surface})
+    local render = widget('MCMRenderRoot', 0, {content})
+    function controller:GetRootWidget() return widget('root', 0, {render}) end
     handlers.McmUiSetContentTitle(controller, 'Companion Manager')
     mcm.update(player, false)
-    assert(label.text == 'Changes wait until you choose Apply.' and mcm.inspect().hintLive)
-    drafts = true; mcm.update(player, false)
-    assert(label.text == pendingText, label.text)
-    drafts = false; mcm.update(player, false)
-    assert(label.text == 'Changes wait until you choose Apply.')
-    -- The refusal text no longer reaches the MCM bottom status once the top line is live.
+    assert(label.size == 22, 'a read-only label kept the larger size: ' .. label.size)
+    -- "Opened Companion Manager." and "Completed: <page>" never reach the status line.
     local shown
-    handlers.McmUiBegin({}, 'MCM', '', 'Mods', 'Companion Manager', 'Failed to apply settings for Companion Manager: ' .. pendingText, 2, '', true, true, 0,
-      function(_, _, _, _, status, kind) shown = {status, kind} end)
-    assert(shown[1] == '' and shown[2] == 0, 'the refusal text still went to the bottom status line')
-    handlers.McmUiBegin({}, 'MCM', '', 'Mods', 'Other Mod', 'Failed to apply settings for Other: ' .. pendingText, 2, '', true, true, 0,
-      function(_, _, _, _, status) shown = {status} end)
-    assert(shown[1]:find('Other', 1, true), 'another mod status was blanked')
+    local function begin(status)
+      handlers.McmUiBegin({}, 'MCM', '', 'Mods', 'Companion Manager', status, 0, '', true, true, 0,
+        function(_, _, _, _, text) shown = text end)
+    end
+    begin('Opened Companion Manager.'); assert(shown == '', shown)
+    begin('Completed: Characters'); assert(shown == '', shown)
+    begin('Failed to apply settings for Companion Manager: Change pending. Choose Apply to use it, or Revert to discard it.')
+    assert(shown:find('Change pending', 1, true), 'a pending message was dropped')
   `);
 });
 
