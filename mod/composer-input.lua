@@ -120,6 +120,36 @@ local function localizePresentation(controller, data)
     if message then message:SetText(text('Type your message to the character.')) end
 end
 
+-- The stock notification library draws three full-screen siblings of the dialog
+-- (a dark soft shadow, a red edge-gradient and a 0.7-opacity dark fader), and
+-- the controller may also request the modal background blur. The composer should
+-- show only its text box over the live game. The intro animation only drives
+-- opacity/translation, so visibility stays off once set.
+local BACKDROP = {'Shadow', 'bg1', 'fader'}
+-- Frames after the composer opens at which the backdrop is released once more,
+-- in case the native show sequence re-enabled it. Two bounded scans in total;
+-- idle frames never traverse native controllers.
+local BACKDROP_RECHECK = {20, 60}
+
+function M.clearBackdrop(controller)
+    local root = controller:GetRootWidget()
+    local hidden = 0
+    for _, name in ipairs(BACKDROP) do
+        -- Direct children of the notification root only; never the dialog itself.
+        local widget = find(root, name, 1, {left = 48})
+        if widget and widget ~= root then
+            if widget:IsVisible() then hidden = hidden + 1 end
+            widget:SetVisible(false)
+        end
+    end
+    -- Modal popups ask the engine to blur the world behind them. Releasing it is
+    -- harmless when this controller never requested it.
+    local ok, err = pcall(function() PopupStateUtils.SetBackgroundBlur(controller, false) end)
+    M.lastBlurRelease = ok and 'ok' or tostring(err)
+    M.backdropHidden = (M.backdropHidden or 0) + hidden
+    return hidden
+end
+
 function M.apply(controller)
     M.fontDirty = true
     M.seen = (M.seen or 0) + 1
@@ -127,6 +157,11 @@ function M.apply(controller)
     M.lastTitle = data and data.title or 'no data'
     if not data or type(data.title) ~= 'string' or data.title:sub(1, 8) ~= 'TALK TO '
         or data.message ~= 'Type your message to the character.' then return end
+    local backdropOk, backdropErr = pcall(M.clearBackdrop, controller)
+    if not backdropOk then M.lastBackdropError = tostring(backdropErr) end
+    -- The native layer can finish its own show sequence after OnInitialize; keep
+    -- re-asserting twice from update() (see below).
+    M.backdropAge = 0
     -- Codeware's generic input forces UpperCase, including the submitted text.
     -- Change only our composer; retain the native title/button typography.
     local input = controller.m_textInput
@@ -176,27 +211,29 @@ function M.applyFonts(controller)
     M.fontInput(input, fonts)
 end
 
--- Called once after the interface language changes, not every frame. Keep no
--- native controller/widget handles after the bounded current-layer scan.
+-- Bounded walk over the current ink layers. Native notification controllers can
+-- follow more than 128 stock HUD controllers; use the same allowance as the
+-- phone adapter. Keeps no native handle after the walk.
+local function eachNotification(visit)
+    local system = Game.GetInkSystem()
+    if not system then return end
+    local remaining = 512
+    for layerIndex, layer in ipairs(system:GetLayers()) do
+        if layerIndex > 24 or remaining == 0 then break end
+        for _, controller in ipairs(layer:GetGameControllers()) do
+            if remaining == 0 then break end
+            remaining = remaining - 1
+            if controller:IsA('GenericMessageNotification') then visit(controller) end
+        end
+    end
+end
+
+-- Called once after the interface language changes, not every frame.
 function M.refresh()
     if fonts and fonts.begin then fonts.begin() end
-    local ok, err = pcall(function()
-        local system = Game.GetInkSystem()
-        if not system then return end
-        -- Native notification controllers can follow more than 128 stock HUD
-        -- controllers; use the same bounded allowance as the phone adapter.
-        local remaining = 512
-        for layerIndex, layer in ipairs(system:GetLayers()) do
-            if layerIndex > 24 or remaining == 0 then break end
-            for _, controller in ipairs(layer:GetGameControllers()) do
-                if remaining == 0 then break end
-                remaining = remaining - 1
-                if controller:IsA('GenericMessageNotification') then
-                    M.apply(controller)
-                    M.applyFonts(controller)
-                end
-            end
-        end
+    local ok, err = pcall(eachNotification, function(controller)
+        M.apply(controller)
+        M.applyFonts(controller)
     end)
     if fonts and fonts.finish then fonts.finish() end
     M.fontDirty, M.fontRevision = false, revision()
@@ -207,6 +244,20 @@ end
 -- top-level onUpdate, where font traversal has its own bounded native budget.
 function M.update()
     if M.fontDirty or M.fontRevision ~= revision() then M.refresh() end
+    local age = M.backdropAge
+    if age then
+        age = age + 1
+        M.backdropAge = age
+        for _, frame in ipairs(BACKDROP_RECHECK) do
+            if age == frame then
+                local ok, err = pcall(eachNotification, function(controller)
+                    if ownedData(controller) then M.clearBackdrop(controller) end
+                end)
+                if not ok then M.lastBackdropError = tostring(err) end
+            end
+        end
+        if age >= BACKDROP_RECHECK[#BACKDROP_RECHECK] then M.backdropAge = nil end
+    end
 end
 
 function M.install()

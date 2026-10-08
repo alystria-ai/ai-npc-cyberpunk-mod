@@ -247,6 +247,49 @@ language='ja';generation=2;m.refresh();assert(title.text=='Johnny Silverhandと�
 assert(data.title=='TALK TO Johnny Silverhand' and c.draft=='Hey Judy, mixed Case 日本語')
 `));
 
+test('world composer hides the full-screen backdrop and blur but keeps the dialog and input', () => runLua(setup + `
+local m=(function()${composer}end)()
+local data={title='TALK TO Judy',message='Type your message to the character.'}
+local n,c=notification(data)
+local root=n:GetRootWidget()
+local shadow,gradient,fader,dialog=widget('Shadow'),widget('bg1'),widget('fader'),widget('notification')
+for _,w in ipairs({dialog,shadow,gradient,fader})do w:Reparent(root)end
+local nested=widget('bg1');nested:Reparent(dialog)
+local blur={}
+PopupStateUtils={SetBackgroundBlur=function(controller,on)blur[#blur+1]={controller,on}end}
+m.apply(n)
+assert(not shadow.visible and not gradient.visible and not fader.visible,'backdrop widgets stay visible')
+assert(dialog.visible and nested.visible and c:GetRootWidget().visible,'dialog widgets must not be hidden')
+assert(#blur==1 and blur[1][1]==n and blur[1][2]==false and m.lastBlurRelease=='ok')
+assert(c.draft=='Hey Judy, mixed Case 日本語' and m.lastBackdropError==nil)
+-- The native intro can show a widget again after OnInitialize; update() re-hides
+-- it for a short window only.
+local scans=0
+Game={GetInkSystem=function()scans=scans+1;return{GetLayers=function()return{{GetGameControllers=function()return{n}end}}end}end}
+m.update();scans=0;m.backdropAge=0;shadow:SetVisible(true)   -- first frame performs the queued font refresh
+for _=1,19 do m.update()end
+assert(scans==0 and shadow.visible,'idle frames must not traverse native controllers')
+m.update()
+assert(scans==1 and not shadow.visible,'update did not re-hide the backdrop')
+shadow:SetVisible(true)
+for _=1,200 do m.update()end
+assert(scans==2 and not shadow.visible and m.backdropAge==nil,'re-assertion window must end after two scans')
+shadow:SetVisible(true);m.update()
+assert(shadow.visible and scans==2)
+`));
+
+test('world composer backdrop handling skips unrelated notifications and survives a missing blur API', () => runLua(setup + `
+local m=(function()${composer}end)()
+local n=notification({title='Other mod',message='Type your message to the character.'})
+local fader=widget('fader');fader:Reparent(n:GetRootWidget())
+m.apply(n);assert(fader.visible and m.backdropAge==nil)
+local own=notification({title='TALK TO Judy',message='Type your message to the character.'})
+local ownFader=widget('fader');ownFader:Reparent(own:GetRootWidget())
+PopupStateUtils=nil
+m.apply(own)
+assert(not ownFader.visible and m.lastBlurRelease~='ok' and m.lastError==nil,m.lastError)
+`));
+
 test('phone placeholders use the selected UI language and retain cyan style and actual text', () => runLua(setup + `
 local m=(function()${phone}end)()
 local n,c,hint,label,panel=popup('judy')
