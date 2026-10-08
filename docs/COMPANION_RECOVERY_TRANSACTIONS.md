@@ -471,3 +471,82 @@ Not attempted:
 - the lobby security-scanner gate. The trace shows Static body-sweep hits at
   (-1600.5, 358.7) while the navmesh routes through it. If the gap is narrower
   than the 0.8 m body box, the blocked rule now rescues the copy after 8 s.
+
+## October 8 lift cars without navmesh, and refused moves beside a still V
+
+Live case (probe.log and movement trace, 2026-10-08 08:16-08:18Z, City
+Center): V walked into a lift car twice. The second time V stood in it for
+65 s. Judy followed to the doorway, 2.8 m from V, and stopped there: her route
+was refused at the `navigation` stage and her phase stayed `obstructed`. The
+`lift-board` rule fired once per visit, at 08:16:35 and at 08:17:30, and both
+attempts failed with "Move onto open, walkable ground". The car floor has no
+navmesh. The nearest walkable ground was the doorway, beyond the 2.5 m search
+radius around V, so the navmesh placement refused every spot in the car. V's
+height stayed at 8.2 m the whole time, and no `lift-departed` line was
+written. The car never moved, so the arrival rules never had a chance to run.
+
+In V's apartment (movement trace from 08:25:47Z), Judy's walk to a standing
+spot was refused by furniture at the `motion` stage, at her own stance. She
+then stood `obstructed` 0.6 m from a still V for 8 minutes. The behaviour
+waited for the geometry or the destination to change, and neither did.
+
+The changes:
+
+- **Car spot by physics:** `passage.carSpot` looks for a standing spot 0.95 m
+  or 1.3 m from V, trying the side facing the companion first. A spot needs
+  car floor under it at V's height (a down ray on Static, Dynamic and Terrain
+  collision), no wall between V and the spot (a waist-height ray on Static and
+  Dynamic), and room for the body (`clearance.body`). If there is no floor under
+  V's own feet, the search ends at once. Each update spends at most 24 physics
+  queries, all through the shared query budget. The search runs once per car
+  visit.
+- **Walking in:** V stands in a stopped car for 1 s (was 2 s). A copy on V's
+  floor that is blocked more than 1.8 m from V, or still more than 2.5 m away,
+  first gets the car spot. If the straight body sweep to that spot is clear and
+  the spot is within 5 m, she walks there with an `AIMoveToCommand` with
+  `ignoreNavigation=true` (`actuator.board`). If she does not arrive within
+  the walking time plus 2 s, or the sweep is blocked, she is teleported to the
+  spot. Whether the engine honours `ignoreNavigation` has not been seen live,
+  so the teleport is the fallback. If no car spot exists, the old navmesh
+  placement beside V still runs.
+- **In the car:** while V stays in the same car visit and she stands within
+  3.5 m of V and 1.5 m of V's height, she holds still (`actuator.stay`, one
+  `AIHoldPositionCommand`). The behaviour cannot walk her back out to a rest
+  point on the navmesh.
+- **Riding:** if the car carries her, nothing else happens. If it leaves
+  without her (she stood in it, but V is now more than 3 m above or below), at
+  arrival she is placed at a car spot beside V on the new floor, where V last
+  saw her. If that fails, the old `lift-arrival` rule runs.
+- **Stepping out:** when V leaves the car, she walks out with the same
+  straight walk to V's newest foothold within 6 m on her floor. The trail
+  skips points inside the car, so this is where V stepped off. If the walk
+  fails, ordinary recovery owns her again.
+- **Left behind:** a copy that never got in still rejoins out of view. The
+  placement waits until V steps out onto walkable ground.
+- **Ride detection:** a ride is the moving flag, or, until that flag has been
+  seen set once, V's height changing while V is in the car.
+- **Across floors:** a copy more than 3 m above or below V whose height gap has
+  not closed by 0.75 m in 8 s also rejoins, even if she keeps walking about.
+- **Refused moves** (`companion-behavior.lua`): while V stands still, an
+  `obstructed` copy within 2.5 m of V accepts her stance after 2 s. Farther
+  away, she retries through native navigation (`recover`, then a new side
+  point) at most every 3 s, with backoff up to 6 s. After three failures she
+  waits in place within 5.5 m. The planted-car obstacle test now allows at most
+  seven retries in 20 s, where it used to demand one ticket forever.
+
+New probe kinds: `lift-boarding`, `lift-boarded`, `lift-exited`,
+`lift-exit-failed` and `lift-car-spot`. Relocations into a car carry
+`how=car` or `how=walk-timeout`.
+
+New tests in `bridge/companion-passage.test.mjs` model a car with walls and no
+navmesh:
+
+- she walks in with no teleport, and stays beside V;
+- she rides along, then walks out after V on the new floor;
+- a walk the engine ignores ends in a teleport into the car;
+- the car leaves without her, and she is back in the car at arrival;
+- left behind, she appears out of view once V steps out;
+- the floor backstop for a follower walking about below V;
+- the apartment case of a refused move beside a still V.
+
+All but the left-behind case fail against the previous code.

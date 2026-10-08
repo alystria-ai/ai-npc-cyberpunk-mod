@@ -656,11 +656,7 @@ end
 -- (TeleportationFacility) on an AI-driven copy was largely undone by its own
 -- locomotion in the October 5 trace. The caller pauses planning until the
 -- copy is seen at the destination; a later decision retires this command.
-function M.teleport(s,destination,yaw)
-    M.resumeHold(s)
-    if not cancel(s) then return nil end
-    local lookReleased=clearLook(s)
-    if not lookReleased then return nil end
+local function retire(s)
     s.feedback={}; s.issued=false
     s.blockedReason,s.blockedHolding,s.routeCheckedAt=nil,nil,nil
     s.routeProbe,s.candidateIndex,s.clearanceWaiting,s.clearanceHolding=nil,nil,nil,nil
@@ -668,11 +664,47 @@ function M.teleport(s,destination,yaw)
     s.followRoute,s.followAdmission,s.destinationProjection,s.lastRejection=nil,nil,nil,nil
     s.nativeRetryAt,s.nativeLegFailures=nil,0
     s.recoveryTicket,s.completedEscapeTicket=nil,nil
+end
+function M.teleport(s,destination,yaw)
+    M.resumeHold(s)
+    if not cancel(s) then return nil end
+    local lookReleased=clearLook(s)
+    if not lookReleased then return nil end
+    retire(s)
     local command=NewObject('AITeleportCommand')
     command.position=vector(destination)
     command.rotation=yaw or 0
     command.doNavTest=false
     s.ticket,s.kind,s.stage,s.target='teleport','teleport','teleport',space.copy(destination)
+    return submit(s,command)
+end
+-- Lift cars (companion-passage.lua): a short straight walk onto or off a car
+-- floor the navmesh does not cover. The caller has swept the straight body
+-- path and owns the copy until it arrives or gives up; a later decision
+-- retires this command. Returns nil while a cancellation is pending.
+function M.board(s,destination)
+    M.resumeHold(s)
+    if not cancel(s) then return nil end
+    retire(s)
+    local command=NewObject('AIMoveToCommand')
+    command.movementTarget=position(destination)
+    command.rotateEntityTowardsFacingTarget=false
+    command.movementType=Enum.new('moveMovementType','Walk')
+    command.desiredDistanceFromTarget=.15
+    command.finishWhenDestinationReached=true
+    command.ignoreNavigation=true
+    command.useStart=true; command.useStop=true
+    s.ticket,s.kind,s.stage,s.target,s.gait='board','board','boarding',space.copy(destination),'Walk'
+    return submit(s,command)
+end
+-- Stand still in a lift car beside V; issued once, kept while it runs.
+function M.stay(s)
+    if s.kind=='stay' and s.command and active(currentCommandState(s) or '') then return true end
+    M.resumeHold(s)
+    if not cancel(s) then return nil end
+    retire(s)
+    local command=NewObject('AIHoldPositionCommand'); command.duration=60
+    s.ticket,s.kind,s.stage,s.target='stay','stay','holding',nil
     return submit(s,command)
 end
 local function keepBlocked(s)

@@ -3,6 +3,10 @@
 local space=dofile('companion-space.lua')
 local M={}
 local social={attend_step=true,attend_settle=true,attend_turn=true,attend=true}
+-- A refused move while V stands still: accept a stance already this close to
+-- V after `accept` seconds; otherwise retry through native navigation (a new
+-- side point after it) every `retry` seconds at most, then wait in place.
+local refused={accept=2,near=2.5,retry=3}
 local arrivals={approach=true,braking=true}
 
 function M.new(id)
@@ -137,6 +141,25 @@ function M.decide(s,c,dt)
             s.arrivalGoal=space.copy(c.travelTarget)
         end
         if s.operation.kind=='follow' then s.operation.gait=pace(c,true) end
+        -- Never wait forever for geometry that will not change. Live trace
+        -- 2026-10-08: Judy stood refused 0.6 m from a still V in V's
+        -- apartment for 8 minutes, and 2.8 m outside V's lift car for 65 s.
+        if not c.frame.moving and not motion.waiting and s.phase=='obstructed' then
+            local waited=s.clock-s.since
+            if waited>=refused.accept and c.playerGap<=refused.near then
+                s.obstructedPhase=nil
+                return accept(s,c)
+            end
+            if waited>=refused.retry and s.clock>=(s.retryAt or 0) then
+                s.obstructedPhase=nil
+                if s.failures>=3 and c.playerGap<5.5 then
+                    enter(s,'waiting','Wait in available space after refused routes')
+                    operation(s,'hold')
+                    return emit(s,glance(c))
+                end
+                return recover(s,c,'A refused move: retry through native navigation')
+            end
+        end
         return emit(s,glance(c))
     end
     if s.phase=='obstructed' then

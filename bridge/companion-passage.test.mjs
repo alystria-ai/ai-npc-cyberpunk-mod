@@ -188,7 +188,7 @@ test('a follower standing in the car with V is brought along at arrival even in 
   lift.moving=false
   player.forward=Vector4.new(0,-1)
   play(2)
-  assert(#teleports>=1,'a companion who stood in the car with V was left on the old floor')
+  assert(#teleports>=1,'a companion who stood in the car with V was left on the old floor'..dump())
   assert(math.abs(teleports[1].spot.z-40)<1)
 `));
 
@@ -259,4 +259,169 @@ test('a fast-travel placement that keeps failing hands the copy back, and it sti
   assert(#teleports>=1,'the copy stayed at the old fast-travel origin'..dump())
   local spot=teleports[1].spot
   assert(math.sqrt((spot.x-400)^2+spot.y^2)<7,'the copy did not rejoin near V')
+`));
+
+// Recorded case 2026-10-08 (CityCenter, probe.log 08:16-08:18Z): V stood in a
+// stopped lift car whose floor carries no navmesh; the nearest walkable ground
+// was the doorway 2.8 m from V. Judy's routes were refused ('navigation') and
+// the navmesh placement refused every spot in the car ("Move onto open,
+// walkable ground"), so she waited at the threshold for 65 s.
+// Car: x -1.2..1.2, y 6.8..9.2, open side at y=6.8; navmesh only at y<6.6.
+const car=`
+  local walls={{-1.2,6.8,-1.2,9.2},{1.2,6.8,1.2,9.2},{-1.2,9.2,1.2,9.2}}
+  local function inCar(x,y) return x>-1.2 and x<1.2 and y>6.8 and y<9.2 end
+  local function crosses(ax,ay,bx,by,w)
+    local function side(px,py,qx,qy,rx,ry) return (qx-px)*(ry-py)-(qy-py)*(rx-px) end
+    local d1,d2=side(w[1],w[2],w[3],w[4],ax,ay),side(w[1],w[2],w[3],w[4],bx,by)
+    local d3,d4=side(ax,ay,bx,by,w[1],w[2]),side(ax,ay,bx,by,w[3],w[4])
+    return d1*d2<0 and d3*d4<0
+  end
+  -- A wall point inside the (yaw-rotated) box footprint is a hit.
+  local function boxHits(extents,center,rotation)
+    local yaw=math.rad(rotation and rotation.yaw or 0)
+    local fx,fy=-math.sin(yaw),math.cos(yaw) -- local y (travel direction)
+    for _,w in ipairs(walls) do
+      for k=0,40 do
+        local px,py=w[1]+(w[3]-w[1])*k/40-center.x,w[2]+(w[4]-w[2])*k/40-center.y
+        local along,across=px*fx+py*fy,px*fy-py*fx
+        if math.abs(along)<extents.y and math.abs(across)<extents.x then return true end
+      end
+    end
+    return false
+  end
+  walkable=function(position) return position.y<6.6 end
+  navigation.CalculatePathForCharacter=function(self,from,to,...)
+    if not walkable(to) or not walkable(from) then return nil end
+    return calculate(self,from,to,...)
+  end
+  Game.GetSpatialQueriesSystem=function() return {
+    Overlap=function(_,extents,center,rotation) return boxHits(extents,center,rotation),{} end,
+    SyncRaycastByCollisionGroup=function(_,from,to,group)
+      if from.x==to.x and from.y==to.y then
+        -- The car floor rides with V; the lobby floors are below it.
+        local z=inCar(from.x,from.y) and player.pos.z or nil
+        if not z and from.y<6.8 then z=from.z>=player.pos.z-.6 and player.pos.z or 0 end
+        if group=='Static' and z and from.z>=z and to.z<=z then return true,{position=Vector4.new(from.x,from.y,z)} end
+        return false,{}
+      end
+      for _,w in ipairs(walls) do if crosses(from.x,from.y,to.x,to.y,w) then return true,{} end end
+      return false,{}
+    end} end
+  local function boardCommands()
+    local n=0
+    for _,cmd in ipairs(npc.ai.commands) do if cmd.kind=='AIMoveToCommand' and cmd.ignoreNavigation then n=n+1 end end
+    return n
+  end
+  -- V walks north into the car and stops at its centre.
+  local function enterCar()
+    for i=1,8 do player.pos=Vector4.new(0,i,0); play(1) end
+    player.forward=Vector4.new(0,-1) -- V turns to face the doors
+    lift.inside=true
+  end
+`;
+
+test('V in a car without navmesh: the follower walks into the car beside V, no teleport',()=>run(world+car+`
+  enterCar()
+  play(10)
+  assert(boardCommands()>=1,'the follower never walked onto the car floor'..dump())
+  assert(#teleports==0,'the follower was teleported although she could walk in'..dump())
+  assert(inCar(npc.pos.x,npc.pos.y),'the follower is not standing in the car'..dump())
+  assert(logged('lift-boarded'),'no probe line for boarding the car')
+  local gap=math.sqrt((npc.pos.x-player.pos.x)^2+(npc.pos.y-player.pos.y)^2)
+  assert(gap>.8 and gap<1.5,'she does not stand beside V: '..gap)
+  -- She stays in the car while V does, holding still.
+  local spot=Vector4.new(npc.pos.x,npc.pos.y,npc.pos.z)
+  play(8)
+  assert(inCar(npc.pos.x,npc.pos.y) and math.abs(npc.pos.y-spot.y)<.3,'she walked out of the car while V stayed'..dump())
+`));
+
+test('she rides with V, then walks out after V on the new floor',()=>run(world+car+`
+  enterCar(); play(10)
+  assert(logged('lift-boarded'),'she never boarded'..dump())
+  lift.moving=true
+  for i=1,10 do
+    player.pos=Vector4.new(0,8,i*4); npc.pos=Vector4.new(npc.pos.x,npc.pos.y,i*4); play(1)
+  end
+  lift.moving=false; play(2)
+  -- V steps out of the car on the new floor and walks on.
+  lift.inside=false
+  for i=1,5 do player.pos=Vector4.new(0,7-i*.8,40); player.forward=Vector4.new(0,-1); play(1) end
+  play(10)
+  assert(#teleports==0,'a companion who rode along was teleported'..dump())
+  assert(not inCar(npc.pos.x,npc.pos.y),'she stayed in the car after V stepped out'..dump())
+  assert(math.abs(npc.pos.z-40)<.5)
+  assert(math.sqrt((npc.pos.x-player.pos.x)^2+(npc.pos.y-player.pos.y)^2)<4,'she did not follow V out'..dump())
+`));
+
+test('a walk into the car the engine does not perform ends in a teleport into the car',()=>run(world+car+`
+  -- The walk helper ignores off-navmesh walks: she never gets in on foot.
+  local plain=npc.ai.onSend
+  npc.ai.onSend=function(cmd)
+    if cmd.kind=='AIMoveToCommand' and cmd.ignoreNavigation then cmd.kind='AIMoveToCommandIgnored' end
+    return plain(cmd)
+  end
+  enterCar()
+  play(16)
+  assert(#teleports>=1,'the follower stayed outside the car'..dump())
+  local spot=teleports[#teleports].spot
+  assert(inCar(spot.x,spot.y),'she was not placed in the car')
+  assert(logged('relocated','lift-board'),'no probe line for the teleport into the car')
+`));
+
+test('the car leaves without her: she is back beside V in the car at arrival',()=>run(world+car+`
+  enterCar(); play(10)
+  assert(logged('lift-boarded'),'she never boarded'..dump())
+  lift.moving=true
+  for i=1,10 do player.pos=Vector4.new(0,8,i*4); play(1) end
+  assert(#teleports==0,'teleported during the ride')
+  lift.moving=false; play(3)
+  assert(#teleports>=1,'she stayed on the old floor'..dump())
+  local spot=teleports[1].spot
+  assert(math.abs(spot.z-40)<.5 and inCar(spot.x,spot.y),'she was not placed in the car on the new floor')
+`));
+
+test('left behind on the old floor: she appears out of view near V once V steps out of the car',()=>run(world+car+`
+  local front=door(3,{locked=true})
+  for i=1,8 do player.pos=Vector4.new(0,i,0); play(1) end
+  lift.inside=true; play(1)
+  lift.moving=true
+  for i=1,10 do player.pos=Vector4.new(0,8,i*4); play(1) end
+  lift.moving=false; play(4)
+  assert(#teleports==0,'placed while V still stood in a car without walkable floor')
+  lift.inside=false
+  for i=1,4 do player.pos=Vector4.new(0,7-i,40); player.forward=Vector4.new(0,-1); play(1) end
+  play(4)
+  assert(#teleports>=1,'she stayed on the old floor after V stepped out'..dump())
+  local item=teleports[1]
+  assert(math.abs(item.spot.z-40)<1,'not placed on the floor of V')
+  local space=dofile('companion-space.lua')
+  local angle=space.angle({x=0,y=-1},space.bearing(item.from,item.spot))
+  assert(angle>60,'she appeared in front of V ('..angle..' degrees)')
+`));
+
+test('a follower on another floor walking about without climbing rejoins after the backstop',()=>run(world+`
+  -- V 6 m up; she keeps walking back and forth on the floor below.
+  player.pos=Vector4.new(0,10,6); player.forward=Vector4.new(0,1)
+  for i=1,24 do npc.pos=Vector4.new(i%2==0 and 2 or -2,4,0); play(1,0) end
+  assert(#teleports>=1,'a follower walking about a floor below never rejoined'..dump())
+  assert(math.abs(teleports[1].spot.z-6)<1)
+`));
+
+test('a refused move beside a still V settles instead of waiting forever',()=>run(world+`
+  -- Recorded case 2026-10-08 (V's apartment): every walk from Judy's stance
+  -- was refused by furniture and she stood 'obstructed' 0.6 m from V for 8 min.
+  play(4)
+  Game.GetSpatialQueriesSystem=function() return {Overlap=function() return true,{} end,
+    SyncRaycastByCollisionGroup=function() return false end} end
+  player.pos=Vector4.new(npc.pos.x+.6,npc.pos.y+1.4,0); play(1)
+  local phases={}
+  local before=#npc.ai.commands
+  for i=1,24 do
+    play(1,0)
+    phases[#phases+1]=companions.movementSnapshot().copies[1].brain.phase
+  end
+  assert(table.concat(phases,','):find('obstructed'),'the refused move was not reproduced: '..table.concat(phases,','))
+  local final=phases[#phases]
+  assert(final~='obstructed','she still waits obstructed after 12 s: '..table.concat(phases,','))
+  assert(#npc.ai.commands-before<12,'the refused move became a command storm')
 `));

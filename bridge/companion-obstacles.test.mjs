@@ -220,6 +220,7 @@ test('a planted car keeps the party in owned bounded waits instead of autonomous
   player.pos=Vector4.new(0,8)
   local initial=#npc.ai.commands
   local rejectedTicket
+  local tickets,ticketCount={},0
   local space=dofile('companion-space.lua')
   for i=1,200 do
     companions.update(player,0.1)
@@ -238,12 +239,15 @@ test('a planted car keeps the party in owned bounded waits instead of autonomous
     local feedback=companions.list()[1].operation
     if feedback.blocked then
       rejectedTicket=rejectedTicket or feedback.ticket
-      assert(feedback.ticket==rejectedTicket,'unchanged obstruction restarted the same recovery ticket')
+      if not tickets[feedback.ticket] then tickets[feedback.ticket]=true; ticketCount=ticketCount+1 end
       assert(feedback.rejection and feedback.rejection.group=='Vehicle')
     end
   end
   assert(#npc.ai.commands-initial<15,'blocked recovery became a command storm')
   assert(rejectedTicket,'the rejection stage was absent from the party snapshot')
+  -- A refused route never waits forever (live trace 2026-10-08), but the
+  -- retry is throttled: at most one new attempt every 3 s over these 20 s.
+  assert(ticketCount<=7,'unchanged obstruction restarted recovery '..ticketCount..' times in 20 s')
   for i=initial+1,#npc.ai.commands do
     assert(npc.ai.commands[i].kind=='AIHoldPositionCommand','movement was dispatched into the car')
   end

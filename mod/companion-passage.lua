@@ -20,6 +20,10 @@ M.policy={
     -- Trail: V's recent footholds, used when no spot around V itself works
     -- (V standing in a lift car or a doorway with no navmesh underfoot).
     trailSpacing=1.5,trailLength=16,
+    -- A lift car: standing spots this far from V, eight bearings per ring,
+    -- at most carQueries physics queries per update; the car floor must lie
+    -- within carFloor of V's feet.
+    carRings={.95,1.3},carQueries=24,carFloor=.3,
 }
 
 local function ground(a,b) return math.sqrt((a.x-b.x)^2+(a.y-b.y)^2) end
@@ -113,6 +117,108 @@ function M.openDoor(player,door)
     end)
     if not ok then return false,'unavailable' end
     return result=='opened' or result=='already-open',result
+end
+
+-- A standing spot beside V inside a lift car, by physics alone. Live trace
+-- 2026-10-08: the car floor carries no navmesh (the nearest walkable ground
+-- was the doorway 2.8 m from V), so the navmesh placement refused every spot
+-- in the car and Judy stood at the threshold for 65 s. A spot qualifies with
+-- car floor under it at V's height, no wall between V and it, and room for
+-- the body. Spots on the side facing `towards` (the companion at the door)
+-- are tried first. `state` carries the search across updates; each call
+-- spends at most carQueries physics queries, all through the shared budget. Returns spot, or nil,reason when none fits, or nil,nil,true
+-- while the search continues.
+-- Interior floors are Static or Dynamic collision (companion-seating.lua).
+local floorGroups={'Static','Dynamic','Terrain'}
+local wallGroups={'Static','Dynamic'}
+local function floorAt(spatial,clearance,x,y,top,bottom)
+    if not clearance.available(#floorGroups) then return nil,true end
+    local best
+    for _,group in ipairs(floorGroups) do
+        clearance.take(1)
+        local hit,trace=spatial:SyncRaycastByCollisionGroup(Vector4.new(x,y,top,1),Vector4.new(x,y,bottom,1),
+            CName.new(group),false,false)
+        if hit==true and trace and trace.position and (not best or trace.position.z>best) then best=trace.position.z end
+    end
+    return best
+end
+local function wallBetween(spatial,clearance,a,b)
+    if not clearance.available(#wallGroups) then return nil,true end
+    for _,group in ipairs(wallGroups) do
+        clearance.take(1)
+        -- nil is not proof of a clear line.
+        if spatial:SyncRaycastByCollisionGroup(a,b,CName.new(group),false,false)~=false then return true end
+    end
+    return false
+end
+function M.carSpot(state,v,towards,occupied,body,clearance)
+    if not state.candidates then
+        local dx,dy=towards.x-v.x,towards.y-v.y
+        local length=math.sqrt(dx*dx+dy*dy)
+        if length<.001 then dx,dy=0,1 else dx,dy=dx/length,dy/length end
+        state.candidates,state.index={},1
+        for _,radius in ipairs(M.policy.carRings) do
+            for _,step in ipairs({0,1,-1,2,-2,3,-3,4}) do
+                local co,si=math.cos(step*math.pi/4),math.sin(step*math.pi/4)
+                state.candidates[#state.candidates+1]={x=v.x+(dx*co-dy*si)*radius,
+                    y=v.y+(dy*co+dx*si)*radius,ux=dx*co-dy*si,uy=dy*co+dx*si}
+            end
+        end
+    end
+    local ok,spot,reason,pending=pcall(function()
+        local spatial=Game.GetSpatialQueriesSystem()
+        if not spatial then return nil,'physics-unavailable' end
+        local spent=0
+        if not state.floor then
+            -- No car floor seen under V's own feet: nothing beside V will do.
+            local floor,wait=floorAt(spatial,clearance,v.x,v.y,v.z+.9,v.z-.6)
+            if wait then return nil,nil,true end
+            if not floor or math.abs(floor-v.z)>M.policy.carFloor then return nil,'no-car-floor' end
+            state.floor,spent=floor,#floorGroups
+        end
+        while state.index<=#state.candidates and spent<M.policy.carQueries do
+            local c=state.candidates[state.index]
+            local free=true
+            for _,other in ipairs(occupied or {}) do
+                local at=other.position or other
+                if at and at.x and ground(c,at)<.9 then free=false; break end
+            end
+            if free then
+                spent=spent+#floorGroups
+                local floor,wait=floorAt(spatial,clearance,c.x,c.y,v.z+.9,v.z-.6)
+                if wait then return nil,nil,true end
+                if floor and math.abs(floor-v.z)<=M.policy.carFloor then
+                    -- From just outside V's own body to the spot, at waist height.
+                    spent=spent+#wallGroups
+                    local wall
+                    wall,wait=wallBetween(spatial,clearance,Vector4.new(v.x+c.ux*.35,v.y+c.uy*.35,v.z+1,1),
+                        Vector4.new(c.x,c.y,floor+1,1))
+                    if wait then return nil,nil,true end
+                    if wall==false then
+                        spent=spent+6
+                        local feet=Vector4.new(c.x,c.y,floor,1)
+                        local fits,_,deferred=clearance.body(feet,body)
+                        if deferred then return nil,nil,true end
+                        if fits then return Vector4.new(c.x,c.y,floor+.05,1) end
+                    end
+                end
+            end
+            state.index=state.index+1
+        end
+        if state.index>#state.candidates then return nil,'no-car-floor' end
+        return nil,nil,true
+    end)
+    if not ok then return nil,'physics-unavailable' end
+    return spot,reason,pending
+end
+
+-- Where V stepped out of the car: V's newest foothold on the companion's
+-- floor within `reach` of her, or nil.
+function M.exitPoint(trail,from,reach)
+    for index=#trail,1,-1 do
+        local point=trail[index]
+        if math.abs(point.z-from.z)<.8 and ground(point,from)<=reach then return copy(point) end
+    end
 end
 
 -- V's recent footholds, newest last. Points taken inside a lift car are
