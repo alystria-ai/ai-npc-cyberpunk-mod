@@ -11,31 +11,40 @@
 //     context and nothing else: no request, no timer, no delayed or second line (bridge/follow-up.test.mjs).
 //   - Off, nothing changes: contextFor returns '' and no state is kept, so the context is byte-identical to before.
 //   - Never offered on: automatic reactions and barks, battle turns, group rounds, a player who is saying goodbye,
-//     a player who gives an order or request, or right after the character's own reply ended in a question; never on
-//     two turns in a row; a warm or neutral character is offered one at least once in any PITY_TURNS turns.
+//     a player who gives an order or request, or right after the character's own reply ended in a question; seldom on
+//     two turns in a row (BACK_TO_BACK); a warm or neutral character is offered one at least once in any PITY_TURNS turns.
 // Pure functions plus one small state holder: no I/O, so it can be tested without the bridge.
 import {traitFor} from './emotion-analysis.mjs';
 
 export {traitFor};
 
-// The share of eligible turns on which the block is offered, by how expressive the character is (traitFor). The turn
-// after an offered one never offers, so the real share of offered turns is lower than these numbers.
-export const OFFER_RATE = Object.freeze({warm: .45, neutral: .35, dry: .20, cold: .15});
+// The share of eligible turns on which the block is offered, by how expressive the character is (traitFor). October 9: raised
+// (.45/.35/.20/.15) after the live test, so the character drives the conversation a little more (the user: it is an opt-in
+// setting, and the tug should need some effort from V). A turn right after an offered one is eligible with chance
+// BACK_TO_BACK, so the real share of offered turns is lower than these numbers.
+export const OFFER_RATE = Object.freeze({warm: .60, neutral: .50, dry: .30, cold: .20});
+// After an offered turn, or a reply that ended in a question, the next turn is eligible again only now and then (the dice above still apply to it), so the
+// character sometimes keeps driving for two turns, but mostly the player gets a turn to take the lead.
+export const BACK_TO_BACK = .25;
 // A warm or neutral character is offered a pull at least once in any PITY_TURNS conversation turns (when one is allowed).
 export const PITY_TURNS = 5;
 const PITY_TRAITS = Object.freeze(['warm', 'neutral']);
 
-// The block. It is a pull inside THIS reply: the answer comes first, and the pull flows out of it (a question about
-// what the player just said, a follow-up on something earlier, a small thought or story that invites a reply), in the
-// character's own manner. The reply length is not constrained (the user: longer replies are fine).
+// The block. It is a pull inside THIS reply: the answer comes first, and the pull flows out of it, in the character's own
+// manner. October 9 (live test: "somewhat her-sided is fine"): the character drives, about half the time with one plain
+// question and half with a statement that ends on a hook (a take to dispute, a tease, a story left open), and the reply
+// ends on that hook so the next move is V's. Own stories only from what the character knows of itself. Replies stay about
+// 25-35 words on average and never past about 75 (30 seconds spoken); the text asks for at most two extra sentences.
 export const FOLLOW_UP_TEXT = [
-  'For this reply only, the note above about not asking questions to keep the conversation going does not apply: show that you are interested in the player as well, the way people keep a conversation going between them.',
-  'Answer what they said first, then turn it back toward them in the same breath, or end with one short line that draws them in: ask the one thing you actually want to know about what they just said or did, pick up something from earlier in your conversation, or offer a small thought, opinion or story of your own that invites a reply.',
-  'Say it plainly, in your own voice and manner (a guarded or blunt person does it bluntly, a warm one warmly): one question at most, never a choice between two alternatives for them to pick from, never a therapist\'s question, and never a detail they did not give you.',
+  'For this reply only, the note above about not asking questions to keep the conversation going does not apply: you are not just answering, you are a person with interests of your own, and you help drive this conversation, the way people keep one going between them.',
+  'Answer what they said first, then take the lead in the same breath, with one or two extra sentences at most, never a speech.',
+  'Pull in one of two ways, about half and half: ask one short question you really want answered, about something specific they just said or did or something from earlier in your conversation; or make a statement with a hook that practically asks for an answer, such as a take they will want to dispute, a small challenge or tease, or a story you start and leave open for them to ask about.',
+  'Either way, end the reply on the hook, so that the next move is theirs and they have to put in a little effort to pull the conversation back where they want it.',
+  'Anything you say about yourself must come from what you know of yourself: never invent family members, past events or facts about your life.',
+  'Say it plainly, in your own voice and manner (a guarded or blunt person does it bluntly, a warm one warmly): ask at most one question, as a single plain question with no "or" in it, never a counsellor\'s question such as asking whether they want to talk about it, and never assume a detail about them that they did not give you.',
   'This is part of this one reply, not an extra message: it grows out of your answer and never feels tacked on, and nothing in it needs a second message from you.',
-  'Never interrogate, and never ask something generic such as "what about you?" or "anything else?"; if they asked you something, give your own answer and ask about their actual situation, not the same question handed back.',
-  'A pull does not have to be a question.',
-  'Ask nothing if the moment calls for just listening or the player seems to be wrapping up.',
+  'Never interrogate, and never ask something generic such as "what about you?" or "anything else?"; if they asked you something, give your own answer and then steer to your own point or to their actual situation, not the same question handed back.',
+  'Ask nothing and push nothing if the moment calls for just listening or the player seems to be wrapping up.',
 ].join(' ');
 
 // ---- What the player's text and the character's last reply look like ------------------------------------------
@@ -140,7 +149,7 @@ export class FollowUp {
   }
   /**
    * Whether this turn is one where a pull is offered, as {offered, reason}. Reasons when not offered: 'reaction'
-   * (an automatic reaction or bark), 'battle', 'group', 'ending', 'order', 'after-offer' (never two in a row),
+   * (an automatic reaction or bark), 'battle', 'group', 'ending', 'order', 'after-offer' (two in a row only now and then),
    * 'after-question' (her previous reply already ended in a question) and 'rate' (the dice). When offered: 'pity'
    * or 'rate'. Reactions and barks are not conversation turns: they change no state.
    */
@@ -154,8 +163,11 @@ export class FollowUp {
     else if (group) decision = {offered: false, reason: 'group'};
     else if (playerIsEnding(text)) decision = {offered: false, reason: 'ending'};
     else if (playerGivesOrder(text)) decision = {offered: false, reason: 'order'};
-    else if (state.offeredLast) decision = {offered: false, reason: 'after-offer'};
-    else if (state.endedWithQuestion) decision = {offered: false, reason: 'after-question'};
+    // One roll covers both holds: the turn after an offered one, and the turn after a reply that ended in a question (a
+    // pull is usually a question, so without this the "now and then" second pull in a row could never happen).
+    else if ((state.offeredLast || state.endedWithQuestion) && random() >= BACK_TO_BACK) {
+      decision = {offered: false, reason: state.offeredLast ? 'after-offer' : 'after-question'};
+    }
     else if (PITY_TRAITS.includes(trait) && state.since >= PITY_TURNS - 1) decision = {offered: true, reason: 'pity'};
     else decision = random() < (OFFER_RATE[trait] ?? OFFER_RATE.neutral) ? {offered: true, reason: 'rate'} : {offered: false, reason: 'rate'};
     // Only a decision tied to a turn id changes state: a context rebuilt without one must not count as a second turn.

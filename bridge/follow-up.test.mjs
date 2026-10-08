@@ -1,10 +1,12 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {FollowUp, FOLLOW_UP_TEXT, OFFER_RATE, PITY_TURNS, endsWithQuestion, playerIsEnding, playerGivesOrder} from './follow-up.mjs';
+import {FollowUp, FOLLOW_UP_TEXT, OFFER_RATE, PITY_TURNS, BACK_TO_BACK, endsWithQuestion, playerIsEnding, playerGivesOrder} from './follow-up.mjs';
 import {MultilingualConversations} from './multilingual.mjs';
 
-const ALWAYS = () => 0, NEVER = () => .999;
+// ALWAYS passes every dice roll (a second turn in a row is allowed and offered); NEVER fails every one; BLOCKED fails the
+// back-to-back roll (>= .25) and passes the rate roll of every trait except cold (< .6, .5, .3), like a usual "no second turn".
+const ALWAYS = () => 0, NEVER = () => .999, BLOCKED = () => .3;
 const on = () => { const followUp = new FollowUp(); followUp.update({followUpInterest: true}); return followUp; };
 let serial = 0;
 // One conversation turn: decide, then (as the bridge does after the reply) record whether the reply ended in a question.
@@ -61,24 +63,27 @@ test('off, the context the bridge builds is byte-identical to the one without th
 // ---- the block ----------------------------------------------------------------------------------------------
 
 test('the block asks for a pull inside this one reply, in the character\'s voice, and never for an interrogation', () => {
-  for (const phrase of ['For this reply only', 'does not apply', 'interested in the player', 'Answer what they said first',
-    'in the same breath', 'one short line', 'the one thing you actually want to know about what they just said or did',
-    'earlier in your conversation', 'story of your own that invites a reply', 'one question at most',
-    'never a choice between two alternatives', 'never a therapist', 'never a detail they did not give you',
-    'part of this one reply, not an extra message', 'never feels tacked on', 'nothing in it needs a second message from you',
-    'your own voice and manner', 'bluntly', 'warmly', 'Never interrogate', '"what about you?"', '"anything else?"',
-    'not the same question handed back', 'does not have to be a question', 'just listening', 'wrapping up']) {
+  for (const phrase of ['For this reply only', 'does not apply', 'a person with interests of your own', 'help drive this conversation',
+    'Answer what they said first', 'take the lead in the same breath', 'one or two extra sentences at most, never a speech',
+    'about half and half', 'one short question you really want answered', 'something specific they just said or did',
+    'earlier in your conversation', 'a take they will want to dispute', 'small challenge or tease', 'a story you start and leave open',
+    'end the reply on the hook', 'put in a little effort to pull the conversation back', 'never invent family members',
+    'your own voice and manner', 'bluntly', 'warmly', 'at most one question', 'no "or" in it', "never a counsellor's question",
+    'never assume a detail about them that they did not give you', 'part of this one reply, not an extra message', 'never feels tacked on',
+    'nothing in it needs a second message from you', 'Never interrogate', '"what about you?"', '"anything else?"',
+    'not the same question handed back', 'just listening', 'wrapping up']) {
     assert.ok(FOLLOW_UP_TEXT.includes(phrase), phrase);
   }
-  // No tags, no brackets, no mention of the setting, and no length limit (the user: longer replies are fine).
+  // No tags, no brackets, no mention of the setting and no numeric length limit (a speech is discouraged: at most two extra sentences).
   assert.ok(!/[\[\]{}]/.test(FOLLOW_UP_TEXT));
-  assert.ok(!/setting|words|seconds|sentences? (?:long|at most)/i.test(FOLLOW_UP_TEXT));
+  assert.ok(!/setting|seconds|minutes|[0-9]/i.test(FOLLOW_UP_TEXT), "no mention of the setting, no numbers: only the soft cap on the extra sentences");
 });
 
 // ---- the rate, never two in a row, the pity rule ---------------------------------------------------------------
 
 test('the rate follows the character\'s trait, and an offered turn is followed by an unoffered one', () => {
-  assert.deepEqual(OFFER_RATE, {warm: .45, neutral: .35, dry: .20, cold: .15});
+  assert.deepEqual(OFFER_RATE, {warm: .60, neutral: .50, dry: .30, cold: .20});
+  assert.equal(BACK_TO_BACK, .25);
   const followUp = on();
   const ask = (trait, random, n) => followUp.contextFor({sessionId: `r-${trait}-${random()}`, turn: `r${++serial}`, trait, text: 'I fixed the car.', random});
   for (const trait of Object.keys(OFFER_RATE)) {
@@ -90,14 +95,18 @@ test('the rate follows the character\'s trait, and an offered turn is followed b
     assert.ok(followUp.contextFor({sessionId: 'u' + trait, turn: 'u' + trait, trait, text: 'hi', random: () => rate - .001}));
     assert.equal(followUp.contextFor({sessionId: 'o' + trait, turn: 'o' + trait, trait, text: 'hi', random: () => rate + .001}), '');
   }
-  // Never two in a row, whatever the dice say.
-  const flags = [];
-  for (let n = 0; n < 40; n++) flags.push(turn(followUp, {random: ALWAYS, trait: 'warm'}).block !== '');
-  assert.ok(flags.every((flag, n) => !(flag && flags[n - 1])), 'never two in a row');
-  assert.ok(flags.filter(Boolean).length >= 19, 'but every other turn when the dice always say yes');
+  // Two in a row only when the extra roll allows it (below BACK_TO_BACK); otherwise the next turn is not offered.
+  const alternate = [], reasons = [];
+  for (let n = 0; n < 40; n++) { const t = turn(followUp, {random: BLOCKED, trait: 'warm', sessionId: 'alt'}); alternate.push(t.block !== ''); reasons.push(t.reason); }
+  assert.ok(alternate.every((flag, n) => !(flag && alternate[n - 1])), 'no second turn in a row while the back-to-back roll fails');
+  assert.ok(alternate.filter(Boolean).length >= 19, 'but every other turn when the rate roll passes');
+  assert.deepEqual(reasons.slice(0, 4), ['rate', 'after-offer', 'rate', 'after-offer']);
+  const every = [];
+  for (let n = 0; n < 20; n++) every.push(turn(followUp, {random: () => .2, trait: 'warm', sessionId: 'every'}).block !== '');
+  assert.ok(every.every(Boolean), 'a roll below .25 allows the second turn in a row, and the rate roll passes');
 });
 
-test('the share of offered turns over a long chat is below the dice rate (never two in a row) and above zero', () => {
+test('the share of offered turns over a long chat is below the dice rate (a second turn in a row is rare) and above zero', () => {
   let seed = 7;
   const random = () => (seed = (seed * 48271) % 2147483647) / 2147483647;
   const share = trait => {
@@ -108,8 +117,9 @@ test('the share of offered turns over a long chat is below the dice rate (never 
   };
   const shares = Object.fromEntries(Object.keys(OFFER_RATE).map(trait => [trait, share(trait)]));
   assert.ok(shares.warm > shares.neutral && shares.neutral > shares.dry && shares.dry > shares.cold, JSON.stringify(shares));
-  for (const trait of Object.keys(OFFER_RATE)) assert.ok(shares[trait] > 0 && shares[trait] < OFFER_RATE[trait] + .09, `${trait} ${shares[trait]}`);
-  assert.ok(shares.warm >= .30 && shares.warm <= .45, `a warm character pulls on roughly 30-40% of turns: ${shares.warm}`);
+  for (const trait of Object.keys(OFFER_RATE)) assert.ok(shares[trait] > 0 && shares[trait] < OFFER_RATE[trait] + .02, `${trait} ${shares[trait]}`);
+  assert.ok(shares.warm >= .36 && shares.warm <= .48, `a warm character is offered a pull on roughly 40% of turns: ${shares.warm}`);
+  assert.ok(shares.dry >= .20 && shares.dry <= .30 && shares.dry < shares.warm - .1, `a dry one on about a quarter: ${shares.dry}`);
 });
 
 test('a warm or neutral character is offered a pull at least once in any five turns; a dry or cold one is not forced', () => {
@@ -129,11 +139,11 @@ test('a warm or neutral character is offered a pull at least once in any five tu
 test('one decision per request id: a rebuilt or repeated context agrees with the one already sent and counts once', () => {
   const followUp = on();
   const ask = (id, random) => followUp.contextFor({sessionId: 's', turn: id, trait: 'warm', text: 'I fixed the car.', random});
-  assert.equal(ask('a', ALWAYS), FOLLOW_UP_TEXT);
+  assert.equal(ask('a', BLOCKED), FOLLOW_UP_TEXT);
   for (let n = 0; n < 5; n++) assert.equal(ask('a', NEVER), FOLLOW_UP_TEXT, 'the same turn, asked again');
   assert.equal(followUp.reasonFor('a'), 'rate');
   assert.equal(followUp.offeredFor('a'), true);
-  assert.equal(ask('b', ALWAYS), '', 'the next turn follows an offered one');
+  assert.equal(ask('b', BLOCKED), '', 'the next turn follows an offered one and the back-to-back roll fails');
   assert.equal(followUp.reasonFor('b'), 'after-offer');
   assert.equal(followUp.state.get('s').since, 1, 'the repeats of turn a did not count as turns');
   // A context rebuilt without a request id decides, but changes no state.
@@ -146,9 +156,9 @@ test('one decision per request id: a rebuilt or repeated context agrees with the
 
 test('state is kept per conversation and bounded', () => {
   const followUp = on();
-  followUp.contextFor({sessionId: 'a', turn: 'x1', trait: 'warm', text: 'hi', random: ALWAYS});
-  assert.equal(followUp.contextFor({sessionId: 'b', turn: 'x2', trait: 'warm', text: 'hi', random: ALWAYS}), FOLLOW_UP_TEXT, 'another conversation is unaffected');
-  assert.equal(followUp.contextFor({sessionId: 'a', turn: 'x3', trait: 'warm', text: 'hi', random: ALWAYS}), '');
+  followUp.contextFor({sessionId: 'a', turn: 'x1', trait: 'warm', text: 'hi', random: BLOCKED});
+  assert.equal(followUp.contextFor({sessionId: 'b', turn: 'x2', trait: 'warm', text: 'hi', random: BLOCKED}), FOLLOW_UP_TEXT, 'another conversation is unaffected');
+  assert.equal(followUp.contextFor({sessionId: 'a', turn: 'x3', trait: 'warm', text: 'hi', random: BLOCKED}), '');
   for (let n = 0; n < 200; n++) { followUp.contextFor({sessionId: `c${n}`, turn: `y${n}`, trait: 'warm', text: 'hi', random: ALWAYS}); followUp.record(`d${n}`, 'Why?'); }
   assert.ok(followUp.state.size <= 64 && followUp.decisions.size <= 64, 'bounded');
 });
@@ -206,16 +216,22 @@ test('never when the player gives an order or makes a request, in any of the sup
   assert.equal(playerGivesOrder(null), false);
 });
 
-test('never right after a reply that ended in a question, and the next turn after that is free again', () => {
+test('seldom right after a reply that ended in a question (the same back-to-back roll), and the next turn after that is free again', () => {
   const followUp = on();
   const first = turn(followUp, {random: NEVER, trait: 'cold', reply: 'Fine. And you, what happened to your arm?'});
   assert.equal(first.block, '');
-  const second = turn(followUp, {random: ALWAYS, trait: 'warm', reply: 'Okay.'});
+  const second = turn(followUp, {random: BLOCKED, trait: 'warm', reply: 'Okay.'});
   assert.equal(second.block, '');
   assert.equal(second.reason, 'after-question');
-  const third = turn(followUp, {random: ALWAYS, trait: 'warm', reply: 'Mm.'});
+  const third = turn(followUp, {random: BLOCKED, trait: 'warm', reply: 'Mm.'});
   assert.equal(third.block, FOLLOW_UP_TEXT);
-  // The pity rule does not override it: a due character still waits one turn.
+  // When the roll allows it (below BACK_TO_BACK) a second pull may follow her own question: the tug goes on.
+  const tug = on();
+  turn(tug, {random: NEVER, trait: 'cold', reply: 'Fine. And you, what happened to your arm?'});
+  const again = turn(tug, {random: () => .2, trait: 'warm', reply: 'Okay.'});
+  assert.equal(again.block, FOLLOW_UP_TEXT);
+  assert.equal(again.reason, 'rate');
+  // The pity rule does not override a failed roll: a due character still waits one turn.
   const due = on();
   for (let n = 0; n < 4; n++) turn(due, {random: NEVER, trait: 'warm', reply: 'Okay.'});
   turn(due, {random: NEVER, trait: 'warm', reply: 'And what about you?'});
@@ -226,7 +242,7 @@ test('never right after a reply that ended in a question, and the next turn afte
 test('the order of the checks: reaction, battle, group, ending, order, after-offer, after-question, then pity and rate', () => {
   const followUp = on();
   followUp.record('s', 'Why?');
-  const reason = (extra, id) => { followUp.contextFor({sessionId: 's', turn: id, trait: 'warm', text: 'hi', random: ALWAYS, ...extra}); return followUp.reasonFor(id); };
+  const reason = (extra, id) => { followUp.contextFor({sessionId: 's', turn: id, trait: 'warm', text: 'hi', random: BLOCKED, ...extra}); return followUp.reasonFor(id); };
   assert.equal(reason({reaction: true, battle: {status: 'fighting'}, text: 'bye'}, 'k1'), 'reaction');
   assert.equal(reason({battle: {status: 'fighting'}, group: true, text: 'bye'}, 'k2'), 'battle');
   assert.equal(reason({group: true, text: 'bye'}, 'k3'), 'group');
