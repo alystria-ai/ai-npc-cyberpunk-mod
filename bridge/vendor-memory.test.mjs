@@ -540,7 +540,7 @@ test('wiring: if the vendor store cannot be cleared the Forget all fails instead
 
 test('the bridge passes the clear scope to its quiesce callback and flushes before shutdown', () => {
   assert.match(source, /async function quiescePlayerMemory\(\{signal, scope\} = \{\}\)/);
-  assert.match(source, /await vendorMemory\.idle\(\)\.catch\(\(\) => \{\}\);\n\s+await memoryControl\.close\(\)/);
+  assert.match(source, /await vendorMemory\.idle\(\)\.catch\(\(\) => \{\}\);\r?\n\s+await memoryControl\.close\(\)/);
   assert.match(source, /VendorMemory\.open\(\{path: resolve\(stateDirectory, 'vendor-memory\.json'\)/);
   for (const site of ['{replyText: text}', '{replyText: result.text}', '{replyText: result.text, userText: result.userText}']) {
     assert.ok(source.includes(`stagedKnowledgeTurn(`) && source.includes(site), site);
