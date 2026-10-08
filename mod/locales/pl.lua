@@ -196,7 +196,6 @@ return {
     ["Interface"] = "Interfejs",
     ["Interface language"] = "Język interfejsu",
     ["Invalid conversation settings."] = "Nieprawidłowe ustawienia rozmów.",
-    ["Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay."] = "Zaproszenia tworzą osobne kopie towarzyszy, także postaci spoza kontaktów w telefonie. Przygotowanie pamięci i połączenia zaczyna się od razu; kopia dołącza, gdy będzie gotowa, po powrocie do gry.",
     ["Invite"] = "Zaproś",
     ["Invite characters, manage your group, browse game models and configure conversations."] = "Zapraszaj postacie, zarządzaj grupą, przeglądaj modele z gry i konfiguruj rozmowy.",
     ["Invite someone from Characters or Model browser."] = "Zaproś kogoś z sekcji Postacie lub Przeglądarka modeli.",
@@ -575,4 +574,10 @@ return {
     ["Lip sync delay (Bluetooth)"] = "Opóźnienie synchronizacji ust (Bluetooth)",
     ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "Słuchawki Bluetooth odtwarzają dźwięk nieco później niż obraz, więc usta i napisy mogą lekko wyprzedzać głos. To ustawienie je opóźnia, aby pasowały, dla wszystkich głosów. Automatycznie: 150 ms, gdy Windows odtwarza przez urządzenie Bluetooth, w przeciwnym razie brak; wybierz wartość, jeśli twoje słuchawki są szybsze lub wolniejsze. Dialogi samej gry mają takie samo opóźnienie Bluetooth i gra go nie koryguje.",
     ["Choose one of the listed lip sync delays."] = "Wybierz jedno z podanych opóźnień synchronizacji ust.",
+    ["Behavior: {list}"] = "Zachowanie: {list}",
+    ["In your party: {count}"] = "W twojej drużynie: {count}",
+    ["Memory: remembers your conversations"] = "Pamięć: pamięta twoje rozmowy",
+    ["Multilingual: replies in your language"] = "Wielojęzycznie: odpowiada w twoim języku",
+    ["Relationship: {mode}"] = "Relacja: {mode}",
+    ["Speech: {list}"] = "Mowa: {list}",
 }

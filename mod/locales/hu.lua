@@ -196,7 +196,6 @@ return {
     ["Interface"] = "Felület",
     ["Interface language"] = "Felület nyelve",
     ["Invalid conversation settings."] = "Érvénytelen beszélgetési beállítások.",
-    ["Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay."] = "A meghívások külön társmásolatokat hoznak létre, a telefonos névjegyeiden kívüli karaktereket is. Az emlékek és a kapcsolat előkészítése azonnal elindul; a másolat akkor csatlakozik, ha elkészült, miután visszatértél a játékba.",
     ["Invite"] = "Meghívás",
     ["Invite characters, manage your group, browse game models and configure conversations."] = "Hívj meg karaktereket, kezeld a csoportodat, böngészd a játékmodelleket, és állítsd be a beszélgetéseket.",
     ["Invite someone from Characters or Model browser."] = "Hívj meg valakit a Karakterek vagy a Modellböngésző oldalról.",
@@ -575,4 +574,10 @@ return {
     ["Lip sync delay (Bluetooth)"] = "Szájszinkron késleltetés (Bluetooth)",
     ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "A Bluetooth fül- és fejhallgatók a hangot kicsit később játsszák le, mint a képet, ezért az ajkak és a feliratok enyhén megelőzhetik a hangot. Ez visszatartja őket, hogy egyezzenek, minden hangnál. Az automatikus mód 150 ms-ot használ, amíg a Windows Bluetooth eszközön játszik le, különben semmit; válassz értéket, ha a fejhallgatód gyorsabb vagy lassabb. A játék saját párbeszédeinek ugyanilyen a Bluetooth késése, és a játék nem javítja.",
     ["Choose one of the listed lip sync delays."] = "Válassz egyet a felsorolt szájszinkron késleltetések közül.",
+    ["Behavior: {list}"] = "Viselkedés: {list}",
+    ["In your party: {count}"] = "A csapatodban: {count}",
+    ["Memory: remembers your conversations"] = "Emlékek: emlékszik a beszélgetéseitekre",
+    ["Multilingual: replies in your language"] = "Többnyelvű: a te nyelveden válaszol",
+    ["Relationship: {mode}"] = "Kapcsolat: {mode}",
+    ["Speech: {list}"] = "Beszéd: {list}",
 }

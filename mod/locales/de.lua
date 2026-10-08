@@ -132,7 +132,6 @@ return {
     ["Installed character models"] = "Installierte Charaktermodelle",
     ["Interface language"] = "Oberflächensprache",
     ["Invalid conversation settings."] = "Ungültige Gesprächseinstellungen.",
-    ["Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay."] = "Einladungen erstellen separate Begleiterkopien, auch von Charakteren außerhalb deiner Telefonkontakte. Erinnerung und Verbindung werden sofort vorbereitet; die Kopie tritt bei deiner Rückkehr ins Spiel bei, sobald sie bereit ist.",
     ["Invite"] = "Einladen",
     ["Invite characters, manage your group, browse game models and configure conversations."] = "Lade Charaktere ein, verwalte deine Gruppe, durchsuche Spielmodelle und richte Gespräche ein.",
     ["Invite someone from Characters or Model browser."] = "Lade jemanden über Charaktere oder Modellkatalog ein.",
@@ -575,4 +574,10 @@ return {
     ["Lip sync delay (Bluetooth)"] = "Lippensynchron-Verzögerung (Bluetooth)",
     ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "Bluetooth-Kopfhörer geben den Ton etwas später wieder als das Bild, sodass Lippen und Untertitel der Stimme leicht vorauslaufen können. Dies hält sie passend zurück, für alle Stimmen. Automatisch nutzt 150 ms, solange Windows über ein Bluetooth-Gerät wiedergibt, sonst keine; wähle einen Wert, wenn dein Kopfhörer schneller oder langsamer ist. Die eigenen Dialoge des Spiels haben dieselbe Bluetooth-Verzögerung, und das Spiel gleicht sie nicht aus.",
     ["Choose one of the listed lip sync delays."] = "Wähle eine der angebotenen Lippensynchron-Verzögerungen.",
+    ["Behavior: {list}"] = "Verhalten: {list}",
+    ["In your party: {count}"] = "In deiner Gruppe: {count}",
+    ["Memory: remembers your conversations"] = "Erinnerungen: erinnert sich an eure Gespräche",
+    ["Multilingual: replies in your language"] = "Mehrsprachig: antwortet in deiner Sprache",
+    ["Relationship: {mode}"] = "Beziehung: {mode}",
+    ["Speech: {list}"] = "Sprechweise: {list}",
 }

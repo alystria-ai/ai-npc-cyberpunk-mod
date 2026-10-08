@@ -151,7 +151,6 @@ const reviewed = {
   'mcm.party': [
     'Invite', 'Profile only', 'Dismiss', 'Cancel invitation',
     'Remove only this copy from your group.',
-    'Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay.',
   ],
   'mcm.models': [
     'Reading installed models…',

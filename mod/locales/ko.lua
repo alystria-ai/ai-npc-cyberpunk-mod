@@ -132,7 +132,6 @@ return {
   ["Installed character models"] = "설치된 캐릭터 모델",
   ["Interface language"] = "인터페이스 언어",
   ["Invalid conversation settings."] = "대화 설정이 올바르지 않습니다.",
-  ["Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay."] = "초대하면 전화 연락처에 없는 캐릭터도 별도의 복제 동료로 생성합니다. 기억과 연결 준비는 즉시 시작되며, 게임으로 돌아간 뒤 준비가 끝나면 합류합니다.",
   ["Invite"] = "초대",
   ["Invite characters, manage your group, browse game models and configure conversations."] = "캐릭터를 초대하고, 그룹을 관리하고, 게임 모델을 둘러보며 대화를 설정합니다.",
   ["Invite someone from Characters or Model browser."] = "'캐릭터' 또는 '모델 탐색기'에서 초대하세요.",
@@ -575,4 +574,10 @@ return {
     ["Lip sync delay (Bluetooth)"] = "립싱크 지연 (Bluetooth)",
     ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "블루투스 이어폰과 헤드폰은 화면보다 소리가 조금 늦게 나오므로 입 모양과 자막이 목소리보다 약간 앞설 수 있습니다. 이 설정은 모든 음성에서 이를 늦춰 맞춥니다. 자동은 Windows가 블루투스 기기로 재생할 때 150 ms, 그 외에는 지연 없음입니다. 헤드셋이 더 빠르거나 느리면 값을 선택하세요. 게임 자체 대화도 같은 블루투스 지연이 있으며 게임은 이를 보정하지 않습니다.",
     ["Choose one of the listed lip sync delays."] = "목록에 있는 립싱크 지연 중 하나를 선택하세요.",
+    ["Behavior: {list}"] = "행동: {list}",
+    ["In your party: {count}"] = "파티 내: {count}",
+    ["Memory: remembers your conversations"] = "기억: 대화를 기억함",
+    ["Multilingual: replies in your language"] = "다국어: 내 언어로 답함",
+    ["Relationship: {mode}"] = "관계: {mode}",
+    ["Speech: {list}"] = "말투: {list}",
 }

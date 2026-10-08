@@ -196,7 +196,6 @@ return {
     ["Interface"] = "Rozhraní",
     ["Interface language"] = "Jazyk rozhraní",
     ["Invalid conversation settings."] = "Neplatná nastavení konverzací.",
-    ["Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay."] = "Pozvánky vytvářejí samostatné kopie společníků, i postav mimo kontakty v telefonu. Příprava paměti a připojení začne okamžitě; kopie se přidá, až bude připravena, po návratu do hry.",
     ["Invite"] = "Pozvat",
     ["Invite characters, manage your group, browse game models and configure conversations."] = "Zvi postavy, spravuj skupinu, procházej modely ze hry a nastavuj konverzace.",
     ["Invite someone from Characters or Model browser."] = "Pozvi někoho z Postav nebo z Prohlížeče modelů.",
@@ -575,4 +574,10 @@ return {
     ["Lip sync delay (Bluetooth)"] = "Zpoždění synchronizace rtů (Bluetooth)",
     ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "Bluetooth sluchátka přehrávají zvuk o něco později než obraz, takže rty a titulky mohou mírně předbíhat hlas. Tato volba je pozdrží, aby seděly, u všech hlasů. Automaticky použije 150 ms, když Windows přehrává přes zařízení Bluetooth, jinak nic; pokud jsou tvoje sluchátka rychlejší nebo pomalejší, vyber hodnotu. Vlastní dialogy hry mají stejné zpoždění Bluetooth a hra ho neopravuje.",
     ["Choose one of the listed lip sync delays."] = "Vyber jedno z nabízených zpoždění synchronizace rtů.",
+    ["Behavior: {list}"] = "Chování: {list}",
+    ["In your party: {count}"] = "Ve vaší skupině: {count}",
+    ["Memory: remembers your conversations"] = "Paměť: pamatuje si vaše rozhovory",
+    ["Multilingual: replies in your language"] = "Vícejazyčně: odpovídá ve vašem jazyce",
+    ["Relationship: {mode}"] = "Vztah: {mode}",
+    ["Speech: {list}"] = "Řeč: {list}",
 }

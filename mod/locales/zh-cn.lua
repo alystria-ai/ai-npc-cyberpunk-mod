@@ -132,7 +132,6 @@ return {
     ["Installed character models"] = "已安装的角色模型",
     ["Interface language"] = "界面语言",
     ["Invalid conversation settings."] = "对话设置无效。",
-    ["Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay."] = "邀请会创建独立的伙伴分身，也适用于手机联系人以外的角色。记忆和连接会立即开始准备；返回游戏后，准备就绪的分身才会加入。",
     ["Invite"] = "邀请",
     ["Invite characters, manage your group, browse game models and configure conversations."] = "邀请角色、管理队伍、浏览游戏模型，并设置对话。",
     ["Invite someone from Characters or Model browser."] = "从角色列表或模型浏览器邀请一位伙伴。",
@@ -575,4 +574,10 @@ return {
     ["Lip sync delay (Bluetooth)"] = "口型同步延迟（蓝牙）",
     ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "蓝牙耳机播放声音会比画面稍晚，因此嘴型和字幕可能略早于声音。此设置会为所有语音将其推迟以对齐。自动：Windows 通过蓝牙设备播放时使用 150 ms，否则不延迟；如果你的耳机更快或更慢，请选择一个数值。游戏自身的对话也有同样的蓝牙延迟，游戏不会校正。",
     ["Choose one of the listed lip sync delays."] = "请选择列出的口型同步延迟之一。",
+    ["Behavior: {list}"] = "行为：{list}",
+    ["In your party: {count}"] = "队伍中：{count}",
+    ["Memory: remembers your conversations"] = "记忆：记得你们的对话",
+    ["Multilingual: replies in your language"] = "多语言：用你的语言回复",
+    ["Relationship: {mode}"] = "关系：{mode}",
+    ["Speech: {list}"] = "说话：{list}",
 }

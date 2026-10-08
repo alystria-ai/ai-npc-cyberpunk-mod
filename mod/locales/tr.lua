@@ -196,7 +196,6 @@ return {
     ["Interface"] = "Arayüz",
     ["Interface language"] = "Arayüz dili",
     ["Invalid conversation settings."] = "Geçersiz konuşma ayarları.",
-    ["Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay."] = "Davetler, telefon kişilerinin dışındaki karakterler de dahil olmak üzere ayrı yoldaş kopyaları oluşturur. Hafıza ve bağlantı hazırlığı hemen başlar; kopya, oyuna döndükten sonra hazır olunca katılır.",
     ["Invite"] = "Davet et",
     ["Invite characters, manage your group, browse game models and configure conversations."] = "Karakterleri davet et, grubunu yönet, oyun modellerine göz at ve konuşmaları yapılandır.",
     ["Invite someone from Characters or Model browser."] = "Karakterler veya Model tarayıcı bölümünden birini davet et.",
@@ -575,4 +574,10 @@ return {
     ["Lip sync delay (Bluetooth)"] = "Dudak senkronu gecikmesi (Bluetooth)",
     ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "Bluetooth kulaklıklar sesi görüntüden biraz sonra çalar, bu yüzden dudaklar ve altyazılar sesin biraz önünde gidebilir. Bu ayar tüm sesler için onları geciktirerek eşleştirir. Otomatik, Windows bir Bluetooth cihazından çalarken 150 ms, aksi halde hiç gecikme kullanmaz; kulaklığın daha hızlı ya da yavaşsa bir değer seç. Oyunun kendi diyaloglarında da aynı Bluetooth gecikmesi vardır ve oyun bunu düzeltmez.",
     ["Choose one of the listed lip sync delays."] = "Listelenen dudak senkronu gecikmelerinden birini seç.",
+    ["Behavior: {list}"] = "Davranış: {list}",
+    ["In your party: {count}"] = "Ekibinde: {count}",
+    ["Memory: remembers your conversations"] = "Hafıza: konuşmalarını hatırlıyor",
+    ["Multilingual: replies in your language"] = "Çok dilli: senin dilinde yanıtlar",
+    ["Relationship: {mode}"] = "İlişki: {mode}",
+    ["Speech: {list}"] = "Konuşma tarzı: {list}",
 }

@@ -134,7 +134,6 @@ return {
     ["Interface"] = "Interfaz",
     ["Interface language"] = "Idioma de la interfaz",
     ["Invalid conversation settings."] = "Ajustes de conversación no válidos.",
-    ["Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay."] = "Las invitaciones crean copias independientes de compañeros, incluidos personajes que no están en tus contactos. La preparación de la memoria y la conexión comienza al instante; la copia se une cuando está lista, después de volver al juego.",
     ["Invite"] = "Invitar",
     ["Invite characters, manage your group, browse game models and configure conversations."] = "Invita personajes, gestiona tu grupo, explora modelos del juego y configura las conversaciones.",
     ["Invite someone from Characters or Model browser."] = "Invita a alguien desde Personajes o el Explorador de modelos.",
@@ -575,4 +574,10 @@ return {
     ["Lip sync delay (Bluetooth)"] = "Retraso de sincronía labial (Bluetooth)",
     ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "Los auriculares Bluetooth reproducen el sonido un poco después que la imagen, así que los labios y los subtítulos pueden adelantarse ligeramente a la voz. Esto los retrasa para que coincidan, con todas las voces. Auto usa 150 ms mientras Windows reproduce por un dispositivo Bluetooth y nada en otro caso; elige un valor si tus auriculares son más rápidos o más lentos. Los diálogos del propio juego tienen el mismo retraso Bluetooth y el juego no lo corrige.",
     ["Choose one of the listed lip sync delays."] = "Elige uno de los retrasos de sincronía labial de la lista.",
+    ["Behavior: {list}"] = "Comportamiento: {list}",
+    ["In your party: {count}"] = "En tu grupo: {count}",
+    ["Memory: remembers your conversations"] = "Memoria: recuerda tus conversaciones",
+    ["Multilingual: replies in your language"] = "Multilingüe: responde en tu idioma",
+    ["Relationship: {mode}"] = "Relación: {mode}",
+    ["Speech: {list}"] = "Habla: {list}",
 }

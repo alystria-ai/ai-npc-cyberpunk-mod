@@ -132,7 +132,6 @@ return {
     ["Installed character models"] = "Установленные модели персонажей",
     ["Interface language"] = "Язык интерфейса",
     ["Invalid conversation settings."] = "Некорректные настройки беседы.",
-    ["Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay."] = "Приглашения создают отдельные копии напарников, в том числе персонажей вне списка контактов телефона. Подготовка памяти и подключения начинается сразу. Готовая копия присоединится после вашего возвращения в игру.",
     ["Invite"] = "Пригласить",
     ["Invite characters, manage your group, browse game models and configure conversations."] = "Приглашайте персонажей, управляйте группой, просматривайте игровые модели и настраивайте беседы.",
     ["Invite someone from Characters or Model browser."] = "Пригласите кого-нибудь из раздела «Персонажи» или «Каталог моделей».",
@@ -575,4 +574,10 @@ return {
     ["Lip sync delay (Bluetooth)"] = "Задержка синхронизации губ (Bluetooth)",
     ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "Bluetooth-наушники воспроизводят звук немного позже картинки, поэтому губы и субтитры могут слегка опережать голос. Этот параметр задерживает их, чтобы совпадало, для всех голосов. Авто использует 150 мс, пока Windows воспроизводит через Bluetooth-устройство, иначе без задержки; выберите значение, если ваша гарнитура быстрее или медленнее. У собственных диалогов игры та же задержка Bluetooth, и игра её не исправляет.",
     ["Choose one of the listed lip sync delays."] = "Выберите одну из перечисленных задержек синхронизации губ.",
+    ["Behavior: {list}"] = "Поведение: {list}",
+    ["In your party: {count}"] = "В вашей группе: {count}",
+    ["Memory: remembers your conversations"] = "Память: помнит ваши беседы",
+    ["Multilingual: replies in your language"] = "Многоязычие: отвечает на вашем языке",
+    ["Relationship: {mode}"] = "Отношения: {mode}",
+    ["Speech: {list}"] = "Речь: {list}",
 }

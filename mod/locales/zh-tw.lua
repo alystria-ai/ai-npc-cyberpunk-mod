@@ -132,7 +132,6 @@ return {
     ["Installed character models"] = "已安裝的角色模型",
     ["Interface language"] = "介面語言",
     ["Invalid conversation settings."] = "對話設定無效。",
-    ["Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay."] = "邀請會建立獨立的夥伴分身，也適用於手機聯絡人以外的角色。記憶和連線會立即開始準備；返回遊戲後，準備就緒的分身才會加入。",
     ["Invite"] = "邀請",
     ["Invite characters, manage your group, browse game models and configure conversations."] = "邀請角色、管理隊伍、瀏覽遊戲模型，並設定對話。",
     ["Invite someone from Characters or Model browser."] = "從角色清單或模型瀏覽器邀請一位夥伴。",
@@ -575,4 +574,10 @@ return {
     ["Lip sync delay (Bluetooth)"] = "口型同步延遲（藍牙）",
     ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "藍牙耳機播放聲音會比畫面稍晚，因此嘴型和字幕可能略早於聲音。此設定會為所有語音將其延後以對齊。自動：Windows 透過藍牙裝置播放時使用 150 ms，否則不延遲；如果你的耳機更快或更慢，請選擇一個數值。遊戲本身的對話也有同樣的藍牙延遲，遊戲不會校正。",
     ["Choose one of the listed lip sync delays."] = "請選擇列出的口型同步延遲之一。",
+    ["Behavior: {list}"] = "行為：{list}",
+    ["In your party: {count}"] = "隊伍中：{count}",
+    ["Memory: remembers your conversations"] = "記憶：記得你們的對話",
+    ["Multilingual: replies in your language"] = "多語言：用你的語言回覆",
+    ["Relationship: {mode}"] = "關係：{mode}",
+    ["Speech: {list}"] = "說話：{list}",
 }

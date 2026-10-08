@@ -132,7 +132,6 @@ return {
     ["Installed character models"] = "Modèles de personnages installés",
     ["Interface language"] = "Langue de l'interface",
     ["Invalid conversation settings."] = "Paramètres de conversation invalides.",
-    ["Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay."] = "Les invitations créent des copies distinctes de compagnons, y compris pour les personnages absents de vos contacts. La préparation de la mémoire et de la connexion commence immédiatement ; la copie vous rejoint une fois prête à votre retour en jeu.",
     ["Invite"] = "Inviter",
     ["Invite characters, manage your group, browse game models and configure conversations."] = "Invitez des personnages, gérez votre groupe, parcourez les modèles du jeu et configurez les conversations.",
     ["Invite someone from Characters or Model browser."] = "Invitez quelqu'un depuis Personnages ou Catalogue de modèles.",
@@ -575,4 +574,10 @@ return {
     ["Lip sync delay (Bluetooth)"] = "Délai de synchro labiale (Bluetooth)",
     ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "Les écouteurs et casques Bluetooth jouent le son un peu après l’image, si bien que les lèvres et les sous-titres peuvent légèrement devancer la voix. Ce réglage les retarde pour qu’ils correspondent, pour toutes les voix. Auto utilise 150 ms quand Windows joue sur un appareil Bluetooth, et rien sinon ; choisissez une valeur si votre casque est plus rapide ou plus lent. Les dialogues du jeu ont le même délai Bluetooth, que le jeu ne corrige pas.",
     ["Choose one of the listed lip sync delays."] = "Choisissez un des délais de synchro labiale proposés.",
+    ["Behavior: {list}"] = "Comportement : {list}",
+    ["In your party: {count}"] = "Dans votre groupe : {count}",
+    ["Memory: remembers your conversations"] = "Souvenirs : se souvient de vos conversations",
+    ["Multilingual: replies in your language"] = "Multilingue : répond dans votre langue",
+    ["Relationship: {mode}"] = "Relation : {mode}",
+    ["Speech: {list}"] = "Parole : {list}",
 }

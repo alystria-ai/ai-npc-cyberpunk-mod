@@ -261,22 +261,66 @@ local function countKey(party, key)
     return count
 end
 
-local function profileDescription(profile, snapshot)
+-- The saved settings that apply to every character, as the short lines the Characters sidebar shows under the
+-- description. Built once per page build (the page rebuilds only when it opens or something changes), from the values
+-- the snapshot already holds: no file is read and nothing runs per frame. Only what is switched on is named.
+local function sharedCharacterLines(snapshot)
+    local settings, speech, behavior = snapshot.settings, {}, {}
+    if settings.naturalSpeech then speech[#speech + 1] = ui.t('Natural speech') end
+    if settings.expressiveEmotions then speech[#speech + 1] = ui.t('Expressive emotions') end
+    local talk = {}
+    if #speech > 0 then talk[#talk + 1] = ui.t('Speech: {list}', {list = table.concat(speech, ' · ')}) end
+    if settings.multilingualConversations then talk[#talk + 1] = ui.t('Multilingual: replies in your language') end
+    if settings.sitWithYou ~= false then behavior[#behavior + 1] = ui.t('Sit with you') end
+    if settings.bodyGestures then behavior[#behavior + 1] = ui.t('Body gestures (experimental)') end
+    if settings.battleReactions then behavior[#behavior + 1] = ui.t('React to battles') end
+    if settings.lootReactions then behavior[#behavior + 1] = ui.t('React to collected loot') end
+    return {talk = talk,
+        behavior = #behavior > 0 and ui.t('Behavior: {list}', {list = table.concat(behavior, ' · ')}) or nil,
+        pack = manager.omniPack()}
+end
+
+-- The Characters sidebar text of one character: its description, then the settings in effect for it. `count` is the
+-- number of copies in the party and `shared` comes from sharedCharacterLines.
+local function profileDescription(profile, snapshot, shared, count)
+    local settings = snapshot.settings
     local voice = profile.voiceName or ui.t('Convai voice')
     -- The label names the voice actually in use, which differs from the choice
     -- while a fallback is active.
-    local active = snapshot.localVoice.provider
+    local active, routed = snapshot.localVoice.provider, false
     if active == 'pocket' or active == 'omni' then
         for _, key in ipairs(snapshot.localVoice.routedProfiles or {}) do
             if key == profile.key then
                 voice = manager.voiceLabel(active, snapshot.localVoice.omniSteps, snapshot.localVoice.omniReference)
+                routed = true
                 break
             end
         end
     end
-    return (profile.summary or profile.name) .. '\n\n' .. ui.t('Voice: {voice}',{voice=voice})
-        .. '\n' .. ui.t('Conversation: {state}',{state=ui.t(snapshot.settings.enabledByKey[profile.key] ~= false and 'On' or 'Off')})
-        .. '\n' .. ui.t('Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay.')
+    -- An OmniVoice choice cannot run without its pack: say so instead of naming a voice that will not be heard.
+    if not routed and settings.voiceProvider == 'omni' and shared.pack.known and not shared.pack.installed then
+        voice = ui.t('{voice} · needs Omni pack',
+            {voice = manager.voiceLabel('omni', settings.omniSteps, settings.omniReference)})
+    end
+    local conversing = settings.enabledByKey[profile.key] ~= false
+    local lines = {(profile.summary or profile.name) .. '\n', ui.t('Voice: {voice}',{voice=voice}),
+        ui.t('Conversation: {state}',{state=ui.t(conversing and 'On' or 'Off')})}
+    if conversing then
+        local mode = settings.relationshipModes and settings.relationshipModes[profile.key]
+        if mode then
+            lines[#lines + 1] = ui.t('Relationship: {mode}', {mode = mode == 'on'
+                and ui.t(profile.key == 'meredith-stout' and 'Casual' or 'Romantic')
+                or ui.t(mode == 'off' and 'Ordinary' or 'Auto')})
+        end
+        for _, line in ipairs(shared.talk) do lines[#lines + 1] = line end
+        local remembered = snapshot.memory and snapshot.memory.characters
+        if remembered and remembered[profile.key] then lines[#lines + 1] = ui.t('Memory: remembers your conversations') end
+    end
+    if count > 0 then
+        lines[#lines + 1] = ui.t('In your party: {count}', {count = count})
+        if shared.behavior then lines[#lines + 1] = shared.behavior end
+    end
+    return table.concat(lines, '\n')
 end
 
 local function voiceServiceLabel(state)
@@ -595,13 +639,14 @@ local function schema()
         -- single space; an empty name would fall back to the category id).
         categories[#categories + 1] = category('navigation', ' ', rows)
     elseif view == 'characters' then
+        local shared = sharedCharacterLines(snapshot)
         for _, profile in ipairs(snapshot.profiles) do
             local key = profile.key
             local count = countKey(party, key)
             local available = manager.definition(key) ~= nil
             rows[#rows + 1] = action('invite:' .. key, profile.name,
                 available and (count > 0 and ui.t('Add copy ({count})',{count=count}) or 'Invite') or 'Profile only',
-                profileDescription(profile, snapshot), function() return queue.invite(key) end, canInvite and available)
+                profileDescription(profile, snapshot, shared, count), function() return queue.invite(key) end, canInvite and available)
         end
         categories[#categories + 1] = category('characters', 'Characters', rows,
             'Search a character by name. Each invitation reserves a place and starts preparation immediately.')

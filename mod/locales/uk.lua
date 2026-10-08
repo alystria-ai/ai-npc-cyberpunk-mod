@@ -196,7 +196,6 @@ return {
     ["Interface"] = "Інтерфейс",
     ["Interface language"] = "Мова інтерфейсу",
     ["Invalid conversation settings."] = "Недійсні налаштування розмови.",
-    ["Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay."] = "Запрошення створюють окремі копії компаньйонів, зокрема персонажів поза контактами твого телефона. Підготовка пам’яті й підключення починається одразу; копія приєднується, коли буде готова, після повернення до гри.",
     ["Invite"] = "Запросити",
     ["Invite characters, manage your group, browse game models and configure conversations."] = "Запрошуй персонажів, керуй групою, переглядай моделі з гри та налаштовуй розмови.",
     ["Invite someone from Characters or Model browser."] = "Запроси когось у розділі «Персонажі» або «Огляд моделей».",
@@ -575,4 +574,10 @@ return {
     ["Lip sync delay (Bluetooth)"] = "Затримка синхронізації губ (Bluetooth)",
     ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "Bluetooth-навушники відтворюють звук трохи пізніше за картинку, тож губи й субтитри можуть трохи випереджати голос. Цей параметр затримує їх, щоб збігалося, для всіх голосів. Авто використовує 150 мс, поки Windows відтворює через Bluetooth-пристрій, інакше без затримки; вибери значення, якщо твоя гарнітура швидша чи повільніша. Власні діалоги гри мають таку саму затримку Bluetooth, і гра її не виправляє.",
     ["Choose one of the listed lip sync delays."] = "Вибери одну з наведених затримок синхронізації губ.",
+    ["Behavior: {list}"] = "Поведінка: {list}",
+    ["In your party: {count}"] = "У вашій групі: {count}",
+    ["Memory: remembers your conversations"] = "Пам’ять: пам’ятає ваші розмови",
+    ["Multilingual: replies in your language"] = "Багатомовність: відповідає вашою мовою",
+    ["Relationship: {mode}"] = "Стосунки: {mode}",
+    ["Speech: {list}"] = "Мовлення: {list}",
 }

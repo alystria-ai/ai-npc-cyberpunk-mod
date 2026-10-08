@@ -196,7 +196,6 @@ return {
     ["Interface"] = "Interfaccia",
     ["Interface language"] = "Lingua dell’interfaccia",
     ["Invalid conversation settings."] = "Impostazioni di conversazione non valide.",
-    ["Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay."] = "Gli inviti creano copie separate dei compagni, anche per personaggi che non sono nei contatti del telefono. La preparazione di memoria e connessione inizia subito; la copia si unisce quando è pronta, dopo il ritorno al gioco.",
     ["Invite"] = "Invita",
     ["Invite characters, manage your group, browse game models and configure conversations."] = "Invita personaggi, gestisci il tuo gruppo, sfoglia i modelli del gioco e configura le conversazioni.",
     ["Invite someone from Characters or Model browser."] = "Invita qualcuno da Personaggi o dal Browser modelli.",
@@ -575,4 +574,10 @@ return {
     ["Lip sync delay (Bluetooth)"] = "Ritardo sincronia labiale (Bluetooth)",
     ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "Auricolari e cuffie Bluetooth riproducono il suono un po’ dopo l’immagine, quindi labbra e sottotitoli possono anticipare leggermente la voce. Questa opzione li ritarda per farli coincidere, per tutte le voci. Auto usa 150 ms mentre Windows riproduce tramite un dispositivo Bluetooth e nulla altrimenti; scegli un valore se le tue cuffie sono più veloci o più lente. I dialoghi del gioco hanno lo stesso ritardo Bluetooth e il gioco non lo corregge.",
     ["Choose one of the listed lip sync delays."] = "Scegli uno dei ritardi di sincronia labiale elencati.",
+    ["Behavior: {list}"] = "Comportamento: {list}",
+    ["In your party: {count}"] = "Nel tuo gruppo: {count}",
+    ["Memory: remembers your conversations"] = "Memoria: ricorda le tue conversazioni",
+    ["Multilingual: replies in your language"] = "Multilingue: risponde nella tua lingua",
+    ["Relationship: {mode}"] = "Relazione: {mode}",
+    ["Speech: {list}"] = "Parlata: {list}",
 }

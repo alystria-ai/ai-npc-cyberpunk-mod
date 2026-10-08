@@ -2083,6 +2083,67 @@ test('Relationships use their own MCM page and only applied selections reach sav
   assert(invoke('relationships:back').ok and row('relationships') and not row('disappearingMessages'))
 `));
 
+test('the Characters sidebar shows the settings in effect for each character, not invitation advice', () => run(`${mcmFixture}${memoryFixture}
+  local list = {{key = 'judy-alvarez', name = 'Judy Alvarez', records = {'Character.Judy'}, summary = 'A braindance editor.', voiceName = 'Julia'},
+    {key = 'viktor-vektor', name = 'Viktor Vektor', records = {'Character.Victor_Vector'}, summary = 'A ripperdoc.'}}
+  for index = 1, 40 do list[#list + 1] = {key = 'extra-' .. index, name = string.format('Extra %02d', index), records = {'Character.Extra_' .. index}} end
+  manager.configure(api, list)
+  local function description(key) return assert(row('invite:' .. key), key).description end
+  local function reload() loaded = registered.loadMod('manager') end
+  assert(invoke('tab:characters').ok)
+  reload()
+  -- Nothing is on and nobody is in the party: the description, the voice and the conversation, and no advice text.
+  local plain = description('viktor-vektor')
+  assert(plain == 'A ripperdoc.\\n\\nVoice: Convai voice\\nConversation: On', plain)
+  assert(not plain:find('Invitations create', 1, true) and not plain:find('phone contacts', 1, true) and not plain:find('Memory and connection', 1, true))
+  assert(description('judy-alvarez'):find('Relationship: Auto', 1, true), 'Judy has a relationship line')
+  -- Judy in the party on OmniVoice, with the speech settings, Multilingual and a memory of the player.
+  assert(manager.applySettings(player, {voiceProvider = 'omni', omniSteps = 16, omniReference = 'short', naturalSpeech = true,
+    expressiveEmotions = true, multilingualConversations = true, relationshipModes = {['judy-alvarez'] = 'on'}}))
+  jsonFixtures['voice-runtime'] = {state = 'ready', provider = 'omni', omniSteps = 16, omniReference = 'short',
+    routedProfiles = {'judy-alvarez'}, updated = memoryClock * 1000.0}
+  files['runtime/local-voice-state.json'] = 'voice-runtime'
+  publishMemory(1, {{profileKey = 'judy-alvarez'}})
+  api.spawn('judy-alvarez'); members[1].state = 'ready'
+  reload()
+  local judy = description('judy-alvarez')
+  assert(judy == table.concat({'A braindance editor.', '', 'Voice: OmniVoice · Balanced', 'Conversation: On', 'Relationship: Romantic',
+    'Speech: Natural speech · Expressive emotions', 'Multilingual: replies in your language',
+    'Memory: remembers your conversations', 'In your party: 1',
+    'Behavior: Sit with you · React to battles · React to collected loot'}, '\\n'), judy)
+  -- A character who is not in the party keeps the speech lines, not the party ones; with no memory there is no memory line.
+  local viktor = description('viktor-vektor')
+  assert(viktor:find('Speech: Natural speech · Expressive emotions', 1, true) and viktor:find('Multilingual: replies', 1, true))
+  assert(not viktor:find('Memory:', 1, true) and not viktor:find('In your party', 1, true) and not viktor:find('Behavior', 1, true)
+    and not viktor:find('Relationship', 1, true), viktor)
+  -- Without the optional pack, a saved OmniVoice choice that is not running says so; switching a behavior off drops its name.
+  jsonFixtures['voice-runtime'] = {state = 'ready', provider = 'pocket', routedProfiles = {}, updated = memoryClock * 1000.0,
+    omniPack = {installed = false, missing = {}}}
+  assert(manager.applySettings(player, {battleReactions = false, lootReactions = false, bodyGestures = true, sitWithYou = false}))
+  reload()
+  assert(description('viktor-vektor'):find('Voice: OmniVoice · Balanced · needs Omni pack', 1, true), description('viktor-vektor'))
+  local judyLines = description('judy-alvarez')
+  assert(judyLines:sub(-#'\\nBehavior: Body gestures (experimental)') == '\\nBehavior: Body gestures (experimental)', judyLines)
+  -- A character with conversations switched off shows only that, and Auto / Ordinary read as such for the others.
+  assert(manager.applySettings(player, {enabledByKey = {['judy-alvarez'] = false}}))
+  reload()
+  local off = description('judy-alvarez')
+  assert(off:find('Conversation: Off', 1, true) and not off:find('Speech', 1, true) and not off:find('Relationship', 1, true)
+    and not off:find('Memory:', 1, true) and off:find('In your party: 1', 1, true), off)
+  assert(manager.applySettings(player, {enabledByKey = {['judy-alvarez'] = true}, relationshipModes = {['judy-alvarez'] = 'off', ['panam-palmer'] = 'auto'}}))
+  reload()
+  assert(description('judy-alvarez'):find('Relationship: Ordinary', 1, true))
+  -- Building the sidebar reads no file per character: the same reads with 42 characters as with 2.
+  local reads = 0
+  local rawOpen = io.open
+  io.open = function(path, mode) if mode == 'rb' then reads = reads + 1 end; return rawOpen(path, mode) end
+  reload(); local withMany = reads
+  reads = 0
+  manager.configure(api, {list[1], list[2]}); reload(); reads = 0; reload()
+  assert(withMany == reads, 'sidebar text read files per character: ' .. withMany .. ' vs ' .. reads)
+  io.open = rawOpen
+`));
+
 test('memory completion requires exact ID, scope, profile and a current result; old success cannot complete a later request', () => {
   run(`${mcmFixture}${memoryFixture}
     publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})

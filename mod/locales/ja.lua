@@ -132,7 +132,6 @@ return {
   ["Installed character models"] = "インストール済みキャラクターモデル",
   ["Interface language"] = "表示言語",
   ["Invalid conversation settings."] = "会話設定が無効です。",
-  ["Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay."] = "招待すると、電話の連絡先にいないキャラクターも独立したコンパニオンのコピーとして作成します。記憶と接続の準備はすぐに始まり、ゲームに戻った後、準備が整い次第合流します。",
   ["Invite"] = "招待",
   ["Invite characters, manage your group, browse game models and configure conversations."] = "キャラクターの招待、グループの管理、ゲーム内モデルの閲覧、会話の設定ができます。",
   ["Invite someone from Characters or Model browser."] = "「キャラクター」または「モデル一覧」から招待してください。",
@@ -575,4 +574,10 @@ return {
     ["Lip sync delay (Bluetooth)"] = "口パクの遅延（Bluetooth）",
     ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "Bluetoothのイヤホンやヘッドホンは映像より少し遅れて音が出るため、口の動きや字幕が声よりわずかに先行することがあります。この設定はすべての声でそれらを遅らせて合わせます。自動では、WindowsがBluetooth機器で再生しているときは150 ms、それ以外は遅延なしです。ヘッドホンが速い・遅い場合は値を選んでください。ゲーム本来の会話にも同じBluetoothの遅延があり、ゲームは補正しません。",
     ["Choose one of the listed lip sync delays."] = "一覧にある口パクの遅延から選んでください。",
+    ["Behavior: {list}"] = "行動：{list}",
+    ["In your party: {count}"] = "パーティー内：{count}",
+    ["Memory: remembers your conversations"] = "記憶：会話を覚えている",
+    ["Multilingual: replies in your language"] = "多言語：あなたの言語で返答",
+    ["Relationship: {mode}"] = "関係：{mode}",
+    ["Speech: {list}"] = "話し方：{list}",
 }

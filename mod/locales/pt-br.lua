@@ -134,7 +134,6 @@ return {
     ["Interface"] = "Interface",
     ["Interface language"] = "Idioma da interface",
     ["Invalid conversation settings."] = "Configurações de conversa inválidas.",
-    ["Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay."] = "Os convites criam cópias independentes dos companheiros, incluindo personagens fora dos seus contatos. A preparação da memória e da conexão começa imediatamente; a cópia entra no grupo quando está pronta, depois que você volta ao jogo.",
     ["Invite"] = "Convidar",
     ["Invite characters, manage your group, browse game models and configure conversations."] = "Convide personagens, gerencie seu grupo, explore modelos do jogo e configure as conversas.",
     ["Invite someone from Characters or Model browser."] = "Convide alguém em Personagens ou no Navegador de modelos.",
@@ -575,4 +574,10 @@ return {
     ["Lip sync delay (Bluetooth)"] = "Atraso da sincronia labial (Bluetooth)",
     ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "Fones Bluetooth tocam o som um pouco depois da imagem, então os lábios e as legendas podem ficar levemente adiantados em relação à voz. Isto os atrasa para coincidir, em todas as vozes. Automático usa 150 ms enquanto o Windows toca por um dispositivo Bluetooth e nada caso contrário; escolha um valor se o seu fone for mais rápido ou mais lento. Os diálogos do próprio jogo têm o mesmo atraso do Bluetooth e o jogo não o corrige.",
     ["Choose one of the listed lip sync delays."] = "Escolha um dos atrasos de sincronia labial da lista.",
+    ["Behavior: {list}"] = "Comportamento: {list}",
+    ["In your party: {count}"] = "No seu grupo: {count}",
+    ["Memory: remembers your conversations"] = "Memória: lembra das suas conversas",
+    ["Multilingual: replies in your language"] = "Multilíngue: responde no seu idioma",
+    ["Relationship: {mode}"] = "Relacionamento: {mode}",
+    ["Speech: {list}"] = "Fala: {list}",
 }
