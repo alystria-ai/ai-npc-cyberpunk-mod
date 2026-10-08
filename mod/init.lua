@@ -1,5 +1,7 @@
 -- Cyberpunk Convai game adapter. It never renders an ImGui text field.
 -- Owns native composers, targeted turns, party connections and live diagnostics.
+-- Developer-mode probe: count and time every hook and onUpdate (no effect otherwise).
+pcall(function() dofile('perf-probe.lua').hookRegistrations() end)
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 -- Optional: explains a missing or starting conversation service. The adapter
 -- keeps working unchanged if this module is absent.

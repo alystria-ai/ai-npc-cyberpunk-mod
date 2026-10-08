@@ -3,16 +3,36 @@
 -- This module can also be installed into an existing CET session once.
 local M = convaiPhoneInput or {blocked = 0}
 
-local function phoneOpen()
+-- The menu controller's OnAction and OnHandleMenuInput see every input event,
+-- several per frame (mouse and movement axes). The two native phone queries are
+-- answered once per STATE_SECONDS, not once per event.
+local STATE_SECONDS = .02
+local stateAt, stateTyping, stateOpen = nil, false, false
+local function queryTyping(player) return player:ConvaiPhoneChatTyping() end
+local function queryOpen(player) return player:ConvaiPhoneIsOpen() end
+local function phoneState()
+    local now = os.clock()
+    if stateAt and now >= stateAt and now - stateAt < STATE_SECONDS then return stateTyping, stateOpen end
     local player = Game.GetPlayer()
-    return player and player:ConvaiPhoneIsOpen() or false
+    local okTyping, typing, okOpen, open = false, false, false, false
+    if player then
+        okTyping, typing = pcall(queryTyping, player)
+        okOpen, open = pcall(queryOpen, player)
+    end
+    stateAt, stateTyping, stateOpen = now, okTyping and typing == true, okOpen and open == true
+    return stateTyping, stateOpen
+end
+M.phoneState = phoneState
+
+local function phoneOpen()
+    local _, open = phoneState()
+    return open
 end
 
 function M.blocksMenuAction(action)
-    local player = Game.GetPlayer()
-    local okTyping, typing = pcall(function() return player and player:ConvaiPhoneChatTyping() end)
-    if okTyping and typing then return true end
-    if not phoneOpen() then return false end
+    local typing, open = phoneState()
+    if typing then return true end
+    if not open then return false end
     -- The standard journal binding is J. GetKey also covers menu actions the
     -- player has rebound to either of our phone keys.
     if ListenerAction.IsAction(action, 'OpenJournalMenu') then return true end
@@ -37,9 +57,8 @@ function M.install()
         return wrapped(action, consumer)
     end)
     Override('gameuiInGameMenuGameController', 'OnHandleMenuInput', function(self, event, wrapped)
-        local player = Game.GetPlayer()
-        local ok, typing = pcall(function() return player and player:ConvaiPhoneChatTyping() end)
-        if (ok and typing) or (phoneOpen() and event:IsAction('toggle_journal')) then
+        local typing, open = phoneState()
+        if typing or (open and event:IsAction('toggle_journal')) then
             M.blocked = M.blocked + 1
             event:Handle()
             event:Consume()

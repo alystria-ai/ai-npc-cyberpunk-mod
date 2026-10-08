@@ -53,3 +53,30 @@ assert(row.over25ms==0 and row.frameMaxMs<17.1)
 developer=false;t=t+2;frame(true);assert(not P.enabled())
 P.uninstall();assert(convaiSpeech.update==speechUpdate and io.open~=nil)
 `));
+
+test('hook registrations and onUpdate are counted and timed only in Developer mode', () => run(`
+local registered={}
+Override=function(class,method,handler) registered[class..'.'..method]=handler end
+ObserveAfter=Override
+local events={}
+registerForEvent=function(name,handler) events[name]=handler end
+assert(P.hookRegistrations() and not P.hookRegistrations())
+local calls=0
+Override('ReactionManagerComponent','OnEventReceived',function(self,event,wrapped) calls=calls+1;t=t+.001;return wrapped(event) end)
+ObserveAfter('AIMoveToCommandHandler','UpdateCommand',function() t=t+.002 end)
+registerForEvent('onUpdate',function() t=t+.003 end)
+registerForEvent('onInit',function() end)
+local hook=registered['ReactionManagerComponent.OnEventReceived']
+assert(hook('self','event',function(e) return e=='event' end)==true and calls==1)
+developer=true;t=t+2
+for _=1,240 do
+ frame(false);events.onUpdate(.016)
+ for _=1,10 do hook('self','event',function() return true end) end
+ registered['AIMoveToCommandHandler.UpdateCommand']()
+end
+local row=written.history[#written.history]
+local stim=row.sections['hook:ReactionManagerComponent.OnEventReceived']
+assert(stim and stim.calls>=10*row.fps*row.span-20,'hook calls '..tostring(stim and stim.calls))
+assert(math.abs(stim.maxMs-1)<.001 and row.sections['hook:AIMoveToCommandHandler.UpdateCommand'].maxMs-2<.001)
+assert(math.abs(row.sections['event:onUpdate'].maxMs-3)<.001)
+`));

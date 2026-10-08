@@ -346,6 +346,7 @@ local function spawnCopy(key, invitation, returning)
     if returning then
         for index,prior in ipairs(entries) do if prior==returning then entries[index]=entry; break end end
     else entries[#entries + 1] = entry end
+    if convaiLocomotion then convaiLocomotion.active=true end
     -- Transfer the invitation's prepared connection to the attaching copy.
     if M.onPartyChanged then pcall(M.onPartyChanged) end
     return entry.serial
@@ -1172,6 +1173,8 @@ end
 
 function M.update(player,delta,focusEntity)
     if not externalSpatialFrame then spatialFrame() end
+    -- The MoveTo observer (companion-locomotion.lua) skips all work without a managed copy.
+    if convaiLocomotion then convaiLocomotion.active=#entries>0 end
     if not player then return end
     local dt=tonumber(delta) or 0
     if reloadCleanup then reloadCleanupModule.update(reloadCleanup,player,dt,true) end

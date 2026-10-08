@@ -148,6 +148,42 @@ local function tick(developer)
     if now - windowAt >= WINDOW then pcall(publish, now) end
 end
 
+-- Called first in init.lua, before any hook or event is registered: every
+-- Override/Observe handler and the onUpdate callback are wrapped so Developer
+-- mode reports how often each fires and its Lua time ('hook:Class.Method',
+-- 'event:onUpdate'). An Override's time includes the native method it wraps.
+-- Disabled, each wrapper adds one Lua call and a flag check.
+local function timedHandler(label, handler)
+    return function(...)
+        if not enabled then return handler(...) end
+        return finish(label, clock(), handler(...))
+    end
+end
+function M.hookRegistrations()
+    if M.registrationsWrapped then return false end
+    M.registrationsWrapped = true
+    local function wrapRegister(register)
+        if type(register) ~= 'function' then return register end
+        return function(class, method, handler, ...)
+            if type(handler) == 'function' then
+                handler = timedHandler('hook:' .. tostring(class) .. '.' .. tostring(method), handler)
+            end
+            return register(class, method, handler, ...)
+        end
+    end
+    -- Plain globals: the CET sandbox shares them across this mod's files.
+    Override, ObserveAfter = wrapRegister(Override), wrapRegister(ObserveAfter)
+    ObserveBefore, Observe = wrapRegister(ObserveBefore), wrapRegister(Observe)
+    local registerEvent = registerForEvent
+    if type(registerEvent) == 'function' then
+        registerForEvent = function(event, handler, ...)
+            if event == 'onUpdate' and type(handler) == 'function' then handler = timedHandler('event:onUpdate', handler) end
+            return registerEvent(event, handler, ...)
+        end
+    end
+    return true
+end
+
 -- developer(): returns true while the manager's Developer mode is on.
 function M.install(companions, developer)
     if M.installed or type(companions) ~= 'table' or type(companions.beginSpatialFrame) ~= 'function'

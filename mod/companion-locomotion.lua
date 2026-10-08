@@ -28,13 +28,16 @@ end
 function M.install(ownsCommand)
     M.ownsCommand = ownsCommand
     if M.installed then return end
+    -- UpdateCommand runs every frame for every NPC walking on a MoveTo command.
+    -- Without a travelling companion (M.active, kept by the caller) return
+    -- before any native call; otherwise no closure is allocated per call.
+    local function check(handler, context, command)
+        local owner = ScriptExecutionContext.GetOwner(context)
+        if M.ownsCommand and M.ownsCommand(owner, command) then M.apply(handler, context, command) end
+    end
     ObserveAfter('AIMoveToCommandHandler', 'UpdateCommand', function(handler, context, command)
-        local ok, err = pcall(function()
-            local owner = ScriptExecutionContext.GetOwner(context)
-            if M.ownsCommand and M.ownsCommand(owner, command) then
-                M.apply(handler, context, command)
-            end
-        end)
+        if M.active == false then return end
+        local ok, err = pcall(check, handler, context, command)
         if not ok then M.error = tostring(err) end
     end)
     M.installed = true
