@@ -27,6 +27,8 @@ const EMOTION = new RegExp(`\\{(${EMOTION_NAMES.join('|')})(?::(strong|subtle))?
 const EMOTION_PRESENT = new RegExp(EMOTION.source, 'i');
 const MARK = '\u0001';
 const PUNCTUATION_ONLY = /^[,.;:!?…]+$/;
+const CLAUSE_END = /[,.;:!?…]$/;
+const DASH_ONLY = /^(?:—|–|--?)$/;
 
 export const hasSpeechTags = text => typeof text === 'string' && (TAG_PRESENT.test(text) || EMOTION_PRESENT.test(text));
 export const hasEmotionTags = text => typeof text === 'string' && EMOTION_PRESENT.test(text);
@@ -49,8 +51,18 @@ export function parseTagged(text) {
       if (kind === 'v') pending.push(name); else pendingEmotions.push({name, strength: strength || 'subtle'});
       continue;
     }
-    // "[sigh]." leaves a stray full stop: it belongs to the word before the tag.
-    if ((pending.length || pendingEmotions.length) && words.length && PUNCTUATION_ONLY.test(token)) { words.at(-1).text += token; continue; }
+    // Punctuation the model wrote right after a tag. "Sure [laughter]." leaves a stray full stop: it belongs to the
+    // word before the tag. When that word already ends a clause ("Well... [sigh].", "No. [laughter]!"), or there is no
+    // word before ("[sigh], fine."), the stray mark is dropped; so is a second dash ("Okay — [laughter] — sure."), so
+    // Pocket and the subtitles never get "Well....", ", fine", "No.!" or "— —".
+    if (pending.length || pendingEmotions.length) {
+      const before = words.at(-1)?.text;
+      if (PUNCTUATION_ONLY.test(token)) {
+        if (before !== undefined && !CLAUSE_END.test(before)) words.at(-1).text += token;
+        continue;
+      }
+      if (DASH_ONLY.test(token) && (before === undefined || DASH_ONLY.test(before))) continue;
+    }
     words.push({text: token, before: pending, emotions: pendingEmotions}); pending = []; pendingEmotions = [];
   }
   const marks = [];

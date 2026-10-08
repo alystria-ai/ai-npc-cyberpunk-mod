@@ -93,6 +93,8 @@ The review is **complete** (2026-10-07; verdict and decisions are in the log). D
 
 ## Captain's log
 
+**2026-10-08: Natural speech full-tune clones (round 2)**: the four prototypes, rebuilt in place with a how-they-talk backstory paragraph, natural-speech rules and varied device samples, put a device in 80-100% of lines even after one iteration, against 18-38% for the current block at HEAD, which has 5-8 kinds of device. Recommendation: improve the block (per-character talk lines on offered turns, a tighter placement rule), no clones. OmniVoice has 13 tags, the bridge allows 7; question-ah and question-oh are worth a listen. Pocket strip edge cases fixed with tests. `docs/NATURAL_SPEECH_CLONES.md`.
+
 **2026-10-08: Natural speech by character clones, phase 1 (prototype and measurement)**: four prototype clones (Judy, Panam, Johnny, street local; nothing routes to them) measured over about 900 Convai probe requests. With 4 device lines out of 16 in the samples they reach 23-35% of lines with a device, against 15-43% for the current block: better placed, but less varied (only [laughter] and [sigh], plus an "echo + [laughter]" habit), and they split memory. Recommendation: no rollout yet; an in-game A/B for Judy first, then 84 named clones if the clone wins. `docs/NATURAL_SPEECH_CLONES.md`.
 
 **2026-10-08: Judy walked to her goal and stopped in view**

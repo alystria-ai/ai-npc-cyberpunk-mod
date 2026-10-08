@@ -7,6 +7,222 @@ Why: in game with Judy on OmniVoice the user heard "a little laugh I guess but n
 speech on, and asked whether the sample dialogues control too much, and whether a clone of each character with a direct,
 character-level approach would beat the per-turn dynamic block, without touching the off setting.
 
+Two rounds:
+- **Round 1:** a light clone (v2): rewritten samples, one short paragraph.
+- **Round 2, "full tune":** a how-they-talk paragraph in the backstory, natural-speech speaking rules in place of "No
+  stage directions or markdown", and samples with every kind of device. It was iterated once.
+
+Round 2 is the current answer; round 1 follows below it as history.
+
+## Current recommendation (after round 2)
+
+**Improve the current dynamic block; do not build clones.**
+
+- **The full-tune clones overshoot badly**, even after one iteration that asked for "about two replies in three plain"
+  and "never more than one": a device in 80-98% of lines, a sound tag in 75-90%. They are lively, varied, mostly well
+  placed and in character, but almost every line has something. Johnny laughs in half his lines.
+- **Rate can't be set inside the profile.** Once the profile itself describes and lists the sounds, the model uses them on
+  nearly every turn, whatever the wording. The only character-level setup that landed near the 30-45% target was the
+  minimal round-1 clone (v2): no backstory paragraph, two sounds named, 4 device lines. It used only [laughter] and
+  [sigh] and picked up an "echo + [laughter]" habit. So a clone can be varied or on-rate, not both.
+- **The current block already does both**, because the bridge decides how often (the offer dice) and the model decides
+  what. Measured again at HEAD (`40d16dc` rates): 18-38% of lines, 5-8 distinct kinds, and the model takes half to four fifths of the offers (Judy 11 of 14, the local 11 of 16, Panam 7 of 15, Johnny 6 of 12). Its
+  weaknesses are fixable in its own text:
+  - some sounds land mid-sentence, e.g. "deciding to quit on me [laughter]. How about you?" and Johnny's "Still a ghost in
+    the machine, [dissatisfaction-hnn] same as yesterday";
+  - Judy's offered turns over-use "..." (10 in 40 lines);
+  - Panam and Johnny land at the low end (18%, 23%).
+- **Clones also bring costs the block doesn't:**
+  - **Memory:** each clone is a separate Convai character with its own long-term memory and session history. Switching
+    Natural speech on would give Judy a Judy who remembers nothing of the original's conversations, and with
+    Multilingual it spreads over four characters.
+  - **Count:** 84 to 316 extra characters, on top of the 582 the account lists.
+  - **Upkeep:** every profile rebuild has to be re-synced to its clone.
+
+Suggested block changes, for a separate task, each measured with this probe:
+1. Add each character's own "how X talks" line, the backstory paragraphs written here, to the block on offered turns
+   only. That gives character-level direction with no clone and no memory split.
+2. Tighten the placement rule: a sound goes before or after a whole sentence, never between words.
+3. Raise warm and neutral offer rates a little if the user still finds it too subtle after 1 and 2.
+
+The round-2 sections below have the numbers. The rollout plan stays valid if clones are ever wanted, with one change:
+**one clone per profile serves both engines**, because the bridge strips the tags for Pocket and keeps the fillers and pauses
+(see "Pocket"). So no extra Pocket clones.
+
+## Round 2: full-tune clones
+
+### OmniVoice's non-verbal tags
+
+The vendored OmniVoice source (`_NONVERBAL_PATTERN` in
+`vendor/reference-omnivoice-training/omnivoice/models/omnivoice.py`, and the list in that package's README) has **13**
+tags.
+
+The bridge allows 7 (`OMNI_TAGS`), all usable in English, and the clones and the block use only these:
+- `[laughter]`, `[sigh]`
+- `[confirmation-en]` (an agreeing "mm") and `[question-en]` (a questioning sound), both marked English
+- `[surprise-ah]`, `[surprise-oh]`
+- `[dissatisfaction-hnn]` (a displeased grunt)
+
+Six more the bridge does not allow:
+- `[question-ah]`, `[question-oh]`: probably usable in English (a rising "ah?" or "oh?"), but never rendered or heard.
+  Recommendation: render both with Judy's and Johnny's references in a listening test before adding them to `OMNI_TAGS`.
+- `[question-ei]`, `[question-yi]`, `[surprise-wa]`, `[surprise-yo]`: Chinese and Japanese interjection sounds (ei, yi,
+  wa, yo). Recommendation: not for English lines. They could be offered on Multilingual turns in those languages only,
+  after a listen.
+
+Today a tag outside the 7 is never voiced: OmniVoice gets only the 7 (`keepSpeechTags`) and every display text drops all
+of them. No probe reply used an off-list OmniVoice tag. Johnny's first full-tune clone invented `[pause]` 10 times, which
+is likewise dropped.
+
+### What the full tune changed (same four clones, same IDs, updated in place)
+
+`scripts/Create-NaturalSpeechPrototype.mjs` now takes `backstoryInsert` as well. It checks that removing the inserted
+paragraph gives back the original backstory exactly (with the clone's marker), so the story stays identical.
+
+- **Backstory:** a "HOW JUDY TALKS" (Panam, Johnny; "HOW YOU TALK" for the local) paragraph before "ESTABLISHED
+  BACKGROUND". Judy: soft sighs when worn down, a short nervous laugh after something embarrassing, a grunt at corporate
+  talk, "uh" when it turns personal. Panam: full sentences, rarely hesitates, a surprised "oh", a laugh after a tease, an
+  impatient sigh, "well..." before a dry admission, almost never "uh". Johnny: fluent, no "uh", rare and blunt dry
+  scoffs, grunts, a beat before turning serious. The local: a sigh about rent, a laugh at her own bad luck, a guarded
+  "well...". Each ends "these are moments, not habits".
+- **Speaking rules** (in place of "No stage directions or markdown.", the same for all four): all seven sounds with what
+  each one is, fillers ("uh", "well...") and pauses where a real person would, only where the feeling lands, never
+  between words, never the same twice in a row, no "haha" or other bracketed words.
+- **Samples:** devices of different kinds in different places, with the content unchanged.
+  - v3 (first full tune): Judy 6 of 16 (a grunt and an agreeing "mm" opening, a laugh at the end, "Uh..." after a pause, a
+    dash, a sigh between sentences); Panam 6 ([surprise-oh] and [sigh] opening, a dash, "Well...", a grunt after a pause, a
+    laugh at the end); Johnny 3 (a laugh at the end, a grunt opening, a beat); the local 3 of 9. The rules said a sound
+    may open a reply that is itself a reaction.
+  - v4 (the iteration): one sample in all opens with a sound (Judy's grunt), with fewer device lines (Judy and Panam 5,
+    Johnny 2, the local 2 of 9). The rules say "about two in three replies have none, never more than one, do not start
+    replies with a sound out of habit", and the backstory paragraphs stress rarity (Judy's "agreeing mm while she listens"
+    removed).
+  - The spec files in `characters/natural-speech/` hold v4.
+
+### Results (40 lines per condition, OmniVoice, the same 40 prompts; about 650 requests)
+
+"Kinds" = distinct device types (each tag counts separately, plus "...", dash and filler, with "well..." counted as a
+filler). "Tag kinds" = distinct sound tags. "Opens" = replies starting with a sound. "Repeat" = replies sharing a device
+with the reply before.
+
+| Character | Condition | Any device | Sound tag | Filler | Kinds | Tag kinds | Opens | Repeat |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Judy | (a) original, off | 5% | 0% | 0% | 2 | 0 | 0 | 0 |
+| | (b) original + block (HEAD) | **38%** | 18% | 0% | 7 | 5 | 0 | 1 |
+| | (c) full-tune clone v3 | 100% | 100% | 18% | 10 | 7 | 37 | 20 |
+| | (c) full-tune clone v4 | 98% | 90% | 13% | 10 | 7 | 15 | 5 |
+| Panam | (a) off | 5% | 0% | 3% | 2 | 0 | 0 | 0 |
+| | (b) block | 18% | 15% | 3% | 7 | 5 | 1 | 0 |
+| | (c) clone v3 | 88% | 85% | 15% | 8 | 6 | 23 | 5 |
+| | (c) clone v4 | 90% | 88% | 8% | 8 | 6 | 11 | 6 |
+| Johnny | (a) off | 0% | 0% | 0% | 0 | 0 | 0 | 0 |
+| | (b) block | 23% | 15% | 0% | 5 | 3 | 0 | 0 |
+| | (c) clone v3 | 95% | 90% | 0% | 8 | 5 | 37 | 13 |
+| | (c) clone v4 | 80% | 80% | 0% | 5 | 4 | 26 | 9 |
+| Street local | (a) off | 0% | 0% | 0% | 0 | 0 | 0 | 0 |
+| | (b) block | 28% | 28% | 0% | 8 | 7 | 3 | 0 |
+| | (c) clone v3 | 100% | 93% | 18% | 8 | 6 | 35 | 11 |
+| | (c) clone v4 | 85% | 75% | 20% | 9 | 7 | 16 | 2 |
+
+Which sounds (v4 clone, counts in 40 lines):
+- Judy: laughter 16, sigh 9, confirmation 5, grunt 3, surprise-oh 2, surprise-ah 1, question 1, plus 7 "...", 5 fillers, 2 dashes.
+- Panam: confirmation 13, laughter 11, sigh 5, grunt 3, surprise-oh 2, question 1.
+- Johnny: laughter 19, confirmation 8, sigh 6, grunt 1.
+- Local: laughter 10, sigh 8, confirmation 5, grunt 2, question 2, surprise-oh 2, surprise-ah 1.
+
+The block at HEAD, for comparison:
+- Judy: laughter 3, sigh, grunt, confirmation, surprise-oh, 10 "...", 1 dash.
+- Local: every one of the 7 tags.
+
+Noise: about ±8 points per cell.
+
+### Judgement per character
+
+- **Judy.**
+  - Block: on target (38%). Mostly good moments ("Again? [surprise-oh] You've gotta start putting a heavier lock on
+    that thing"), but two sounds glued to the end of a clause ("quit on me [laughter]. How about you?", "sell me something
+    [sigh]. I'm fine.") and a heavy "..." habit.
+  - v4 clone: well placed and very Judy ("Sometimes. [sigh] But the idea of doing this for some corporate studio...",
+    "I'm sorry. Uh... just take it slow."), with a wide range. But nearly every line has something, so it no longer reads
+    as moments.
+  - v3 clone: opened 37 of 40 replies with a tag and stacked several per reply ("[surprise-ah] One bullet. [laughter]
+    Glad...").
+- **Panam.**
+  - Block: low (18%) but good: a laugh after a tease, a question sound after "I did not hear anything."
+  - v4 clone: in character (full sentences, no "uh"), but a new habit: `[confirmation-en]` after the first sentence (13
+    times: "It is better to be scared than to be arrogant. [confirmation-en] Fear keeps you sharp.").
+- **Johnny.**
+  - Block: 23% and the most in character of the three. Grunts and laughs read as dry scoffs ("A plush cat. [laughter]
+    Great.").
+  - v4 clone: laughs in 19 of 40 lines, opens 26 with a sound ("[laughter] Leave? And let the suits think they actually
+    won?"). Out of character for a dry speaker; the "rare and blunt" backstory did not hold.
+  - v3 clone: also invented `[pause]`.
+- **Street local.**
+  - Block: 28%, uses all 7 tags, the best spread in the test.
+  - v4 clone: placement is good ("Just thinking about the bills. [sigh] It's a long day."), but 85% of lines.
+- **In character overall:** yes for all clones in content and word choice. The clones' replies stay close to the
+  originals' with sounds added. Only the rate and Johnny's laughing are off-character.
+- **New habits:**
+  - v3: opening every reply with a sound.
+  - v4: Panam's mid-reply `[confirmation-en]`, Johnny's opening `[laughter]`.
+  - Still there at a low level: the round-1 "echo + [laughter]" pattern, in 1-3 lines in 40 by a rough count, about as
+    often as in round 1. Laughs at the end of a line are now common, as the samples show.
+
+### Sample lines (the prompt number in brackets)
+
+Judy:
+- (a) [1] Hanging in there. Just trying to get through a few edits without the hardware deciding to take a nap on me. How about you? / [6] I'm sorry. Sometimes the noise in your head just won't quiet down, no matter how hard you try to push it away. / [7] Now that's a level of desperation I can actually respect. Did the machine win, or did he actually manage to talk it into a discount? / [11] I've thought about it. Honestly? I think I'd finally be able to hear myself think without the city screaming in my ear every five seconds. / [40] Again? You've either got the most stealable bike in the city or you're just too trusting with where you park it.
+- (b) [1] Doing alright. Just trying to get through a few edits without the hardware deciding to quit on me [laughter]. How about you? / [5] ...having a voice in your head that you can't just mute... [dissatisfaction-hnn] sounds like a nightmare. / [15] ...using a ten-thousand eddy piece of tech to look through garbage... [laughter] I couldn't help it. / [33] Six hours? [confirmation-en] That's the real way to do it. / [40] Again? [surprise-oh] You've gotta start putting a heavier lock on that thing, or just park it somewhere that doesn't look like an invitation.
+- (c v4) [2] [surprise-oh] Now I'm curious. What happened? / [3] Well... depends on what you mean by badly. You want to talk about it, or just vent? / [6] I'm sorry. Uh... just take it slow. Sometimes the only way through it is just to let yourself feel it for a while. / [9] Sometimes. [sigh] But the idea of doing this for some corporate studio just to make a paycheck... that sounds way more exhausting. / [11] Honestly? I think I'd breathe for the first time in years. [laughter] Though I'd probably spend the first week wondering where I was gonna find a decent workbench.
+
+Panam:
+- (a) [1] I am doing fine. Just trying to keep my head straight in this city. How about you? / [6] I am sorry. Some things you just cannot shake, no matter how hard you try. If you need to talk about it, I am listening. / [7] I can imagine. Some people in this city have spent too much time around chrome and forgotten how the real world works. / [11] I would probably breathe for the first time in weeks. The open road is the only place where you can actually see what is coming at you. / [40] Again? You are either the unluckiest person in Night City or you are leaving your keys in the ignition.
+- (b) [1] I am doing fine. Just trying to keep my head clear and my eyes open [sigh] — this city has a way of making everything feel cluttered. / [7] [laughter] Some people really have too much time on their hands. I hope the machine won. / [16] A terrible plush cat? [surprise-oh] Well, at least you are honest about it. / [28] I did not hear anything. [question-en] Are you sure it was not just your cyberware acting up? / [32] I told you it looked suspicious. [laughter] Next time, let me pick the place.
+- (c v4) [6] I am sorry. [sigh] Some things do not just go away because time passes. / [9] Sometimes. [sigh] The constant noise and the feeling that someone is always trying to cheat you... it gets old. / [11] I would be in my truck before you finished the sentence. [laughter] There is nothing here for me but headaches and corporate lies. / [13] It is better to be scared than to be arrogant. [confirmation-en] Fear keeps you sharp. / [14] I have no idea. [dissatisfaction-hnn] I deal with engines and optics, not the inside of a chip.
+
+Johnny:
+- (a) [1] Still a ghost in the machine, V. Not exactly a walk in the park, but I've had worse days. / [6] That's the part they don't tell you about the chrome and the neon. The ghosts stay with you long after the body's gone. / [7] Probably the most honest conversation that machine's had all day. / [11] I'd probably spend the first week wondering where the nearest target was. Then I'd realize the suits own the road out, too. / [40] Go find them. And this time, make sure they regret the decision before you take it back.
+- (b) [1] Still a ghost in the machine, [dissatisfaction-hnn] same as yesterday. / [9] Tired? [sigh] I'm a digital echo of a dead man. I don't get tired, I just get bored of the same cycle. / [16] A plush cat. [laughter] Great. Now I've got a digital ghost and a stuffed toy. / [22] Enlisted in a corporate army. Thought I was doing something that mattered, [dissatisfaction-hnn] turns out I was just a line item on a balance sheet. / [32] Told you. In this city, if the food looks like neon sludge, it probably is. [dissatisfaction-hnn] Next time, trust your gut.
+- (c v4) [1] [laughter] Holding up. I'm a ghost in a chip, V. / [3] [dissatisfaction-hnn] Join the club. Just tell me if you're talking about a bad deal or if you've got a hit squad on your tail. / [6] [sigh] I know that loop. It doesn't stop, it just... changes shape. / [10] [confirmation-en] One bullet. Just enough to make a point, or just enough to realize you're out of luck. / [11] [laughter] Leave? And let the suits think they actually won? No thanks.
+
+Street local:
+- (a) [1] Same as always. Just trying to make it to the end of the week without the rent going up again. / [6] Sorry to hear that. This city has a way of taking people, and it doesn't usually give them back. / [7] Some gonks really think the world owes them a discount. Probably ended up getting a shock for his trouble. / [11] I'd probably be terrified. I don't know how to survive anywhere that doesn't have a neon sign and a noodle stand on every corner. / [40] Tough luck. Around here, if it isn't bolted to the floor, it belongs to whoever wants it more.
+- (b) [1] Same as always. [sigh] Just trying to make sure the rent's paid before the landlord starts knocking. / [11] I'd probably be terrified. [surprise-oh] I don't even know what's left out there that isn't owned by a corp. / [28] [question-en] I didn't hear anything. You might be hearing things, or maybe it's just the building settling. / [34] A few people. [sigh] But in a place like this, it's easier to forget than to keep missing them. / [40] [surprise-ah] Again? You've gotta start chaining it to something heavier.
+- (c v4) [1] Same as always. Just trying to make it to the end of the week without the ceiling leaking on me. [sigh] / [2] Well... I don't usually go to places like that. Too much chrome and too many egos for me. / [9] Every single day. But uh... not like there's anywhere else to go. / [11] Go where? [laughter] I'd probably just find a different city with the same rain and a different landlord. / [12] Just thinking about the bills. [sigh] It's a long day.
+
+### Pocket: one clone for both engines
+
+- **The code path:** Pocket never sees a tag.
+  1. A reply's display text is cleaned where it leaves Convai (`NaturalSpeech.process`). That cleaned text is what
+     Pocket, subtitles, memory and phone chat get; the tagged original travels separately as `speechText`, for OmniVoice
+     only.
+  2. `VoiceSelection.synthesizeStream` strips again as a last line of defence.
+  3. Fillers, "..." and dashes are kept.
+- **New unit tests:**
+  - `bridge/natural-speech.test.mjs` "Pocket view": 16 cases, among them "Well. [sigh] Fine." to "Well. Fine.",
+    "Uh... [laughter] okay — fine." to "Uh... okay — fine.", and an off-list `[surprise-wa]`. Each output is checked for
+    brackets, double spaces, leading punctuation, four dots, "No.!"-style marks and doubled dashes.
+  - `bridge/voice-selection.test.mjs`: the Pocket worker receives "Uh... okay — fine." for
+    "Uh... [laughter] okay — [sigh] fine. [surprise-oh]".
+- **Fixed:** the strip left odd marks in four hand-made edge cases: "Well... [sigh]." became "Well....", "[sigh], fine."
+  became ", fine.", "No. [laughter]!" became "No.!", and "— [laughter] —" became "— —". `parseTagged` now drops such a
+  stray mark (it affects subtitles too). None of the 426 tagged replies in this study's probes hit one of those cases,
+  with or without the fix. The fix takes effect at the next bridge restart; no restart was done.
+- **The Pocket view of Judy's v4 clone** (the same 40 replies, tags stripped):
+  - 23% still have a pause or filler, against 5% for the original with no instructions and 25% under the Pocket block (round 1).
+  - No stripped line has odd punctuation, and they read like ordinary speech: "Well... depends on what you mean by
+    badly.", "I'm sorry. Uh... just take it slow.", "Sometimes. But the idea of doing this for some corporate studio just
+    to make a paycheck... that sounds way more exhausting.", "Doing alright. Just trying to get through a few edits
+    without the hardware deciding to quit on me."
+  - One caveat: the October 6 listening verdict was that fillers ("uh", "hm") sound bad on Pocket, and a clone keeps
+    them for Pocket. With one clone for both engines, the per-turn Pocket rule from round 1 ("no uh, hm, heh, haha;
+    punctuation pauses only") would still be needed on Pocket turns; round 1 measured it at 0 fillers and 0 tags in 40
+    lines.
+
+## Round 1 (history): light clones
+
+Round 1's summary, as written then (superseded by the recommendation at the top):
+
 **Short answer.** The clones work: they keep each character's voice, put the sound where the moment calls for it, and
 leave the off setting alone. But over 40 lines they are **not more expressive than the current dynamic block** (Judy 28-33%
 of lines with a device against 43% with the block; all four characters land in the same 15-43% band either way). They also
@@ -34,7 +250,7 @@ dashes and ellipses an LLM writes anyway, and never a sound. The dynamic block o
 a third), and on the other turns the replies are nearly word for word what the plain character says (in the 20-line
 pilot, lines 1, 2, 4, 6, 10 and 19 of runs (a) and (b) are near copies).
 
-## The prototype clones
+## The prototype clones (round 1, v2; now v4, see round 2)
 
 Made by `scripts/Create-NaturalSpeechPrototype.mjs` from `characters/natural-speech/<key>.json` (mapping in
 `runtime/natural-speech-profiles.json`, ignored by Git). A clone is the original with three differences:
@@ -230,7 +446,10 @@ profiles (Judy, Panam, River, Kerry, Meredith), 74 generic archetypes (`npc-*`, 
 each with a verified Multilingual twin (158 twins; `docs/MULTILINGUAL_PROFILES.md` still says 44 archetypes and 128 twins).
 The account lists 582 characters today.
 
-A clone is needed for each variant the router can choose while Natural speech is on:
+A clone is needed for each variant the router can choose while Natural speech is on. **One clone per profile serves both
+engines:** OmniVoice voices its tags, and for Pocket the bridge strips them and keeps the fillers, "..." and dashes (round 2,
+"Pocket"), so there are no Pocket clones. Pocket turns still need the short per-turn Pocket rule if fillers are unwanted
+on Pocket.
 
 | Option | What gets a clone | New characters | With Natural speech + Multilingual |
 | --- | --- | --- | --- |
@@ -286,7 +505,16 @@ is on, and the context path for off is the same code as today.
   Step 2 above makes a stale clone fall back safely rather than drift.
 - **Account size.** 84 to 316 more characters on top of 582.
 
-### Lessons for the samples (for any v3)
+### Lessons for the samples
+
+Round 2 (the full tune):
+- Describing the sounds in the backstory and listing them in the speaking style is what drives the rate: with both, 80-100%
+  of lines whatever the frequency wording and whatever the number of device samples (2 to 6).
+- A sample that opens with a sound, plus a rule allowing it, teaches "open every reply with a sound" (37 of 40 in v3).
+- Naming all seven sounds does produce variety (6-7 tag kinds), but the one described as an agreeing "mm" becomes a
+  tic between sentences (Panam 13 in 40).
+
+Round 1:
 
 - The share of device lines is the dial. 7 of 16 gave 100%, 4 of 16 gave 28-40%, and 3 of 16 gave 23-35% (Johnny, the
   local). Frequency wording in the style is ignored.
@@ -297,7 +525,7 @@ is on, and the context path for off is the same code as today.
   a sample has one ("uh"), and they should stay out of fluent speakers' samples (Johnny, Panam).
 - Dry characters need fewer device lines than warm ones (Johnny's 3 of 16 still gave him 35%; 1-2 would match his trait).
 
-## Recommendation
+## Round 1 recommendation (superseded by round 2, see the top)
 
 1. **No clone rollout yet.** On the numbers, clones match the block's rate (not exceed it), are less varied, and bring
    a memory split and 84-316 characters to maintain. Their real advantage, the sound landing on the right moment, is

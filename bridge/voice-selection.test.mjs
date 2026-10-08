@@ -97,6 +97,15 @@ test('saved Convai selection starts without loading a model; hybrid warms one sh
   await h.voice.close(); assert.equal(h.live(), 0);
 });
 
+test('Pocket never receives a voice tag: fillers, ellipses and dashes reach it, the tags do not', async () => {
+  const h = fixture();
+  h.voice.request({voiceProvider: 'pocket'}); h.voice.applyWhenIdle(false);
+  await h.voice.start();
+  await h.voice.synthesizeStream('judy-alvarez', 'Uh... [laughter] okay — [sigh] fine. [surprise-oh]');
+  assert.equal(h.workers[0].calls[0].text, 'Uh... okay — fine.');
+  await h.voice.close();
+});
+
 test('wider registry routes additional prepared characters locally and incomplete profiles remotely', async () => {
   const h = fixture({extraProfiles: {alex: {reference: 'runtime/voice-references/alex.wav',
     sha256: 'b'.repeat(64), transcript: 'Hello.'}, 'blue-moon': {status: 'unprepared'}}});

@@ -232,6 +232,41 @@ test('stripSpeechTags removes tags from display text and leaves text without a t
   assert.equal(stripSpeechTags(undefined), undefined);
 });
 
+test('Pocket view: tags go, fillers, ellipses and dashes stay, and no stray punctuation or double space is left', () => {
+  // One clone serves both engines; Pocket (and the subtitles) get this text (docs/NATURAL_SPEECH_CLONES.md).
+  const cases = {
+    'Well. [sigh] Fine.': 'Well. Fine.',
+    'Uh... [laughter] okay — fine.': 'Uh... okay — fine.',
+    'Hold on — [dissatisfaction-hnn] that was not the deal.': 'Hold on — that was not the deal.',
+    'Yeah... [sigh]': 'Yeah...',
+    'Sure [laughter] .': 'Sure.',
+    '  Well,  [sigh]  fine.': 'Well, fine.',
+    'Well... [sigh]. Fine.': 'Well... Fine.',
+    'No. [laughter]!': 'No.',
+    '[sigh], fine.': 'fine.',
+    '[sigh]... fine.': 'fine.',
+    '[sigh] — and then.': 'and then.',
+    'Okay — [laughter] — sure.': 'Okay — sure.',
+    'Right [sigh]... okay.': 'Right... okay.',
+    'Hm... [confirmation-en] yeah.': 'Hm... yeah.',
+    // A tag OmniVoice knows but the bridge does not voice is still never read out.
+    'Fine [question-oh]?': 'Fine?',
+    'I mean, [surprise-wa] wow.': 'I mean, wow.',
+  };
+  for (const [raw, pocket] of Object.entries(cases)) {
+    const out = stripSpeechTags(raw);
+    assert.equal(out, pocket, raw);
+    const odd = [/[[\]]/, /\s{2}/, /^[\s,.;:!?—–-]/, /\.{4}/, /[.!?…][,;:!?]/, /\.!|!\./, /[—–] [—–]/].find(pattern => pattern.test(out));
+    assert.equal(odd, undefined, `odd punctuation in ${JSON.stringify(out)}`);
+  }
+  // The display text a reply leaves the transport with is the same text; the tagged original stays for OmniVoice.
+  const speech = new NaturalSpeech();
+  speech.update({naturalSpeech: true});
+  const reply = speech.process({text: 'Well... [sigh] fine. [laughter]', sessionID: 'pocket-view'});
+  assert.equal(reply.text, 'Well... fine.');
+  assert.equal(reply.speechText, 'Well... [sigh] fine. [laughter]');
+});
+
 test('streaming subtitles never show a half-written tag', () => {
   assert.equal(displayText('Yeah, [laugh', false), 'Yeah,');
   assert.equal(displayText('Yeah, [laughter] okay [si', false), 'Yeah, okay');

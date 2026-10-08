@@ -2,12 +2,14 @@
 // character-level approach against the per-turn dynamic block (docs/NATURAL_SPEECH_CLONES.md). Phase 1 only:
 // nothing in the bridge routes to it; scripts/Probe-NaturalSpeech.mjs --natural-clone talks to it directly.
 //
-// The clone is the original with three differences, all from characters/natural-speech/<key>.json:
+// The clone is the original with these differences, all from characters/natural-speech/<key>.json:
 //   - name "<name> Natural speech prototype";
 //   - ownership marker "[CyberpunkConvai profile v2:<key>:natural-prototype]" in place of the original's marker;
-//   - the speaking style description gains one paragraph (styleReplace) and the sample dialogues are the rewritten
-//     ones (same lines, a share of them with a vocal device). Each rewritten sample must equal an original sample
-//     once the devices are removed, so the content cannot drift.
+//   - optional backstoryInsert {before, text}: one paragraph on how the character talks, inserted before the line
+//     `before`; every other backstory line stays the original's (checked);
+//   - the speaking style description gets styleReplace and the sample dialogues are the rewritten ones (same lines, a
+//     share of them with a vocal device). Each rewritten sample must equal an original sample once the devices are
+//     removed, so the content cannot drift.
 // Same voice (the original Kokoro voice), model, memory, state of mind and verbosity; any other compared field that
 // differs is listed under notCloned. The original is only read (list/get), never written.
 //
@@ -32,7 +34,7 @@ export const PROTOTYPE_SUFFIX = ' Natural speech prototype';
 // A sample with its vocal devices removed, for comparing content with the original line.
 export const withoutDevices = text => text
   .replace(/\[[a-z]+(?:-[a-z]+)*\]/giu, ' ')
-  .replace(/(^|[\s.,;:!?—-])(?:uh|um|hm+|i mean)(?=$|[\s.,;:!?—…-])/giu, '$1 ')
+  .replace(/(^|[\s.,;:!?—-])(?:uh|um|hm+|i mean|well)(?=$|[\s.,;:!?—…-])/giu, '$1 ')
   .toLocaleLowerCase('en-US').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 
 export function prototypePayload({key, source, model, spec}) {
@@ -48,10 +50,24 @@ export function prototypePayload({key, source, model, spec}) {
   for (const sample of spec.samples) if (!plain.has(withoutDevices(sample))) throw Error('A rewritten sample changes the content of the original lines: ' + sample);
   const samples = spec.samples.join('\n\n');
   assertPlainSampleDialogues(samples, {key, name: source.character_name});
+  const eol = source.backstory.includes('\r\n') ? '\r\n' : '\n';
+  const swapped = lines.map(line => line === marker ? prototypeMarker(key) : line);
+  let backstory = swapped.join(eol);
+  if (spec.backstoryInsert) {
+    const {before, text} = spec.backstoryInsert;
+    if (!before || !text?.trim() || swapped.filter(line => line === before).length !== 1) throw Error('backstoryInsert.before must be exactly one backstory line: ' + key);
+    const at = swapped.indexOf(before);
+    const added = [...text.trim().split(/\r?\n/u), ''];
+    backstory = [...swapped.slice(0, at), ...added, ...swapped.slice(at)].join(eol);
+    // The story stays the original's: removing the inserted paragraph gives it back exactly.
+    const back = backstory.split(eol);
+    back.splice(at, added.length);
+    if (back.join(eol) !== swapped.join(eol)) throw Error('backstoryInsert changed other backstory content: ' + key);
+  }
   return {
     charName: apiCharacterName({name: source.character_name.trim() + PROTOTYPE_SUFFIX}),
     voiceType: source.voice_type,
-    backstory: lines.map(line => line === marker ? prototypeMarker(key) : line).join(source.backstory.includes('\r\n') ? '\r\n' : '\n'),
+    backstory,
     speaking_style_description: description.replace(from, to),
     speaking_style_sample_dialogues: samples,
     model_group_name: model,
@@ -91,7 +107,8 @@ async function main() {
   const entry = mapping.characters[key] ??= {};
   if (!apply) {
     console.log(JSON.stringify({mode: 'plan', writes: 'none', key, originalId, mapped: entry.prototypeCharacterId ?? null,
-      samples: spec.samples.length, withDevice: spec.samples.filter(line => devicesUsed(line).length).length}, null, 2));
+      samples: spec.samples.length, withDevice: spec.samples.filter(line => devicesUsed(line).length).length,
+      kinds: [...new Set(spec.samples.flatMap(devicesUsed))], specVersion: spec.version}, null, 2));
     return;
   }
   const keyText = (await readFile(resolve(runtime, 'convai-key.txt'), 'utf8')).trim();
@@ -157,7 +174,7 @@ async function main() {
   const model = final.characters?.find(row => row.character_id === id)?.personalised_prompt_config?.MODEL;
   verifyPrototype({id, source, actual, payload, model});
   Object.assign(entry, {phase: 'verified', verified: true, verifiedAt: new Date().toISOString(), key, name: payload.charName,
-    originalCharacterId: originalId, prototypeCharacterId: id, voiceType: payload.voiceType, model, notCloned: notCloned(source, actual)});
+    originalCharacterId: originalId, prototypeCharacterId: id, voiceType: payload.voiceType, model, specVersion: spec.version, notCloned: notCloned(source, actual)});
   await atomic(mapping);
   console.log(JSON.stringify({key, id, name: payload.charName, created, updated: Object.keys(updates), notCloned: entry.notCloned, convaiRequests: requests}, null, 2));
 }
