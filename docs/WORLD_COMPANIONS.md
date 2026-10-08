@@ -56,7 +56,7 @@ The prompt text tells the model what counts as a clear request ("come with me", 
 - **Leave**: the companion waits until its goodbye has been heard. In group chat it waits until the whole round has ended, or 30 s at most. It then walks away:
   - **Direction**: toward its original's home when that spot is between 8 and 60 m away, otherwise away from V. The goal is never a blind point: while no goal is held (a few candidates per update, so no frame pays for the whole search) each candidate must have walkable ground within 3 m on her floor, end at least 12 m from V, and have a native route that is no detour (at most 4 m longer than the straight line), stays on one floor and fits the actuator's clearance proof (about 2 m per box, at most 64). Order: home, then 24, 17 and 29 m, each fanned out at 0°, ±40°, ±80° and ±120° from straight away (never back toward V). A goal the movement actuator still refuses, or that gets her 1.5 m nowhere within 4 s, is dropped for the next candidate; the list is tried twice.
   - **Removal**: through the Current party Dismiss path, once it is out of V's view (more than 70° from where V is looking) and either 25 m away, or at least 8 m away and out of view for 3 s.
-  - **Safety limits**: a companion who makes no headway (1.5 m) for 6 s is removed as soon as she has been out of V's view for 1 s, and anyway after 15 s without headway, in view or not. Otherwise she is removed after 30 s, or after 3 s if it never starts walking (seated in a car, in transit). She never stands there for good.
+  - **Safety limits**: she is never removed while V is looking at her and within 40 m. A companion who makes no headway (1.5 m) for 6 s stands and keeps trying other goals every 2 s (another bearing or distance; from the second round also 11 and 7 m hops), and goes once V has not seen her for 1 s. V more than 40 m away removes her seen or not. After 180 s she goes as soon as V cannot see her, and after 300 s regardless. A companion that never starts walking (seated in a car, in transit) is removed after 3 s.
   - **While it walks**: catch-up teleports and tactics do not apply, and it can't be sent away twice.
   - **From the menu**: Dismiss in Current party stays instant. Either way the adoption ends and the original returns.
 
@@ -75,7 +75,8 @@ When an adopted character joins, `convaiAutoConnect.promote(key)` (`mod/auto-con
 
 ## Known limits
 
-- The walk-away heads home or away from V. It does not look for doors or roads. A companion with no reachable goal stands still and is removed once V cannot see her, or after 15 s.
+- The walk-away heads home or away from V. It does not look for doors or roads. A companion with no reachable goal stands where she is, keeps retrying, and is removed once V has not seen her for a second or is 40 m away.
+- Second in-game result (2026-10-08, 14:23): she walked about 2 m, then every route was refused with `origin` rejections (`Static`: her own spot touches a prop, so no route out of it can be proved); the 38 candidates were used up in six seconds and the 15 s rule removed her in view. Fixed: candidates are paced and retried indefinitely, and nothing removes her in view.
 - First in-game result (2026-10-08): the leave reached Lua and was accepted, but all six blind 35 m goals of the old search (straight away, then 50°, 100°, 160° turns) were refused within three seconds ("navigation" and "destination" rejections), so Judy stood until V had walked far enough for the out-of-view removal. Fixed by the reachable-goal search above.
 - A copy rejected for its record ("unexpectedly joined the crowd", no AI controller, an authored AI role) marks that record as not copyable for the session, so the next character with that record is never offered Follow. Its failure notice is a menu-style notice, not a spoken line.
 - When the original's spot is blocked by its own body, the copy is placed at the nearest clear spot (up to about 1 m away), or near V when the original stood more than 6 m from V.
@@ -96,7 +97,7 @@ Install: CET reload for `mod/companion-adoption.lua` (new), `init.lua`, `compani
    - **Combat**: watch how it reacts. A civilian reaction preset may make it cower.
    - **If it still fails**: the failure is safe. The original is never hidden, the place is freed, and that record is not offered Follow again.
 5. **Leave, private**: "you can go" or "go home" to an adopted Judy, and to a Characters-page summon. Check:
-   - **The walk**: she says goodbye, then walks off (toward home, or away from V) and disappears only when V isn't looking and she is 25 m away. Turning away for 3 s at 8 m or more also works. She never vanishes in plain view before 30 s.
+   - **The walk**: she says goodbye, then walks off (toward home, or away from V) and disappears only when V isn't looking (or V is 40 m away). If she gets stuck she stands and tries other directions; she never vanishes while V watches her.
    - **The original**: the original Judy reappears at home out of view.
    - **Menu Dismiss**: Dismiss in Current party is still instant.
 6. **Casual phrases**: "leave it", "leave me alone for a sec", "let's leave this place" while companions are present. Nobody leaves.

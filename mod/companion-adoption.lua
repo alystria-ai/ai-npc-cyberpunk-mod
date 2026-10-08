@@ -34,20 +34,24 @@ M.CONFIG = {
     walkDistances = {24, 17, 29}, -- metres: how far a leaving companion heads (15 to 30), tried in this order
     walkBearings = {0, 40, -40, 80, -80, 120, -120}, -- degrees off straight away from V; never back toward V
     walkProbes = 2,       -- candidate goals checked per update while none is held
-    walkPasses = 2,       -- times the whole candidate list is retried before she is declared stuck
+    walkRetry = 0.4,      -- seconds before the next candidate while she is walking
+    walkRetryStuck = 2,   -- ... and while she has made no headway: tries stay slow, they never stop
+    walkShort = {11, 7},  -- metres: closer goals added from the second round on (a short hop past a blocker)
+    walkShortGap = 5,     -- ... which only have to end this far from V
     walkSnap = 3,         -- metres: how far from a candidate the nearest walkable ground may be
     walkRouteSlack = 4,   -- metres: a route longer than the straight line by more than this is a detour
     walkMinGap = 12,      -- metres: a goal must end at least this far from V
     walkGoalWait = 4,     -- seconds a goal may go without headway before the next one is tried
-    walkStuck = 6,        -- seconds without 1.5 m of headway: she is stuck and goes as soon as V cannot see her ...
-    walkStuckHidden = 1,  -- ... out of view this long ...
-    walkStuckForce = 15,  -- ... or removed anyway after this long without headway, seen or not
+    walkStuck = 6,        -- seconds without 1.5 m of headway: she is stuck; she stands and keeps trying, and goes ...
+    walkStuckHidden = 1,  -- ... only once V has not seen her for this long ...
+    walkFar = 40,         -- ... or V is this far away (metres), seen or not
     walkHomeMin = 8,      -- metres: an original's home closer or ...
     walkHomeMax = 60,     -- ... farther than this is not walked to; away from V instead
     walkGone = 25,        -- metres: out of view and this far away, the copy is removed ...
     walkHidden = 3,       -- ... or out of view this many seconds while at least ...
     walkHiddenGap = 8,    -- ... this far away
-    walkTimeout = 30,     -- seconds: removed regardless after this
+    walkTimeout = 180,    -- seconds: after this she goes as soon as V cannot see her ...
+    walkTimeoutHard = 300, -- ... and never later than this, seen or not
     walkUnowned = 3,      -- seconds without a walking decision (seated, in transit): removed
 }
 local HEADWAY = 1.5       -- metres that count as walking
@@ -419,7 +423,13 @@ function M.new(options)
         local length = math.sqrt(dx * dx + dy * dy)
         if length < 0.1 then dx, dy, length = 0, 1, 1 end
         local ux, uy = dx / length, dy / length
-        for _, distance in ipairs(cfg.walkDistances) do
+        local distances = cfg.walkDistances
+        if (walker.pass or 1) > 1 then
+            distances = {}
+            for _, distance in ipairs(cfg.walkDistances) do distances[#distances + 1] = distance end
+            for _, distance in ipairs(cfg.walkShort) do distances[#distances + 1] = distance end
+        end
+        for _, distance in ipairs(distances) do
             for _, degrees in ipairs(cfg.walkBearings) do
                 local turn = math.rad(degrees)
                 local rx, ry = ux * math.cos(turn) - uy * math.sin(turn), ux * math.sin(turn) + uy * math.cos(turn)
@@ -433,11 +443,11 @@ function M.new(options)
     -- near it on this floor, ending far enough from V, by a route that is not a
     -- detour, stays on one floor and is short enough for the actuator's
     -- clearance proof (about two metres per verified box, at most 64).
-    local function reachable(desired, at, from, who)
+    local function reachable(desired, at, from, who, minGap)
         local point = guard(native.walkable, who, desired, cfg.walkSnap)
         if not point or math.abs(point.z - at.z) > 1.2 then return nil end
         local direct = ground(at, point)
-        if direct < cfg.walkMinGap or (from and ground(point, from) < cfg.walkMinGap) then return nil end
+        if direct < minGap or (from and ground(point, from) < minGap) then return nil end
         local route = guard(native.route, who, at, point)
         if not route or route.length < direct - 0.5 or route.length > direct + cfg.walkRouteSlack then return nil end
         if dist(route.points[#route.points], point) >= 0.65 then return nil end
@@ -452,8 +462,9 @@ function M.new(options)
     end
 
     -- Examine at most cfg.walkProbes candidates; returns a goal, or nil to keep
-    -- looking next update. Every candidate refused for cfg.walkPasses rounds
-    -- sets walker.noRoute (the stuck rule in update then removes her).
+    -- looking next update. When the list is spent the next round starts after a
+    -- pause (refusals are forgotten: V, cars and crowds have moved) and also
+    -- offers short hops. She keeps trying for as long as she is here.
     local function chooseGoal(walker, context, from)
         local at = context.position
         walker.candidates = walker.candidates or candidateList(walker, at, from)
@@ -463,12 +474,12 @@ function M.new(options)
             local desired = walker.candidates[walker.cursor]
             if not desired then
                 walker.pass, walker.cursor, walker.candidates = walker.pass + 1, nil, nil
-                if walker.pass > cfg.walkPasses then walker.noRoute = true end
+                walker.refused, walker.nextTryAt = {}, clock + 2 * cfg.walkRetryStuck
                 return nil
             end
             walker.cursor = walker.cursor + 1
             if not walker.refused[keyOf(desired)] then
-                local point = reachable(desired, at, from, who)
+                local point = reachable(desired, at, from, who, walker.pass > 1 and cfg.walkShortGap or cfg.walkMinGap)
                 if point then return point end
             end
         end
@@ -493,11 +504,13 @@ function M.new(options)
                 -- got her moving (a long detour search): the next one.
                 walker.refused[keyOf(operation.goal)] = true
                 walker.attempt, walker.operation = walker.attempt + 1, nil
+                local stuck = clock - walker.progressAt >= cfg.walkStuck
+                walker.nextTryAt = clock + (stuck and cfg.walkRetryStuck or cfg.walkRetry)
             elseif motion.complete then
                 walker.operation = {ticket = operation.ticket .. '-rest', kind = 'hold'}
             end
         end
-        if not walker.operation and not walker.noRoute then
+        if not walker.operation and clock >= (walker.nextTryAt or 0) then
             local from = context.player and guard(native.playerPosition, context.player)
             local goal = chooseGoal(walker, context, from)
             if goal then
@@ -506,7 +519,7 @@ function M.new(options)
                 walker.goalAt = clock
             end
         end
-        -- Searching (or out of candidates): stand still, never wander.
+        -- Searching, or waiting to try again: she stands where she is.
         local held = walker.operation or {ticket = 'depart-' .. serial .. '-look-' .. walker.attempt, kind = 'hold'}
         return {phase = 'departing', reason = 'leaving-party', operation = held, look = 'none'}
     end
@@ -600,12 +613,15 @@ function M.new(options)
                 if hidden then walker.hiddenSince = walker.hiddenSince or clock else walker.hiddenSince = nil end
                 local gap = walker.gap or 0
                 local reason
-                -- No headway for a while (no route, refused, boxed in): she must
-                -- not stand there. Gone the moment V cannot see her, else soon.
+                -- She is never removed while V is looking at her and close by. No
+                -- headway for a while (no route, refused, boxed in): she stands
+                -- and keeps trying other goals, and goes the moment V has not
+                -- seen her for a second, or V is far away.
                 local stuckFor = walker.decidedAt and clock - (walker.progressAt or walker.since) or 0
-                if clock - walker.since >= cfg.walkTimeout then reason = 'timeout'
+                if clock - walker.since >= cfg.walkTimeoutHard then reason = 'timeout'
                 elseif not walker.decidedAt and clock - walker.since >= cfg.walkUnowned then reason = 'not walking'
-                elseif stuckFor >= cfg.walkStuckForce then reason = 'stuck'
+                elseif gap >= cfg.walkFar then reason = 'far away'
+                elseif hidden and clock - walker.since >= cfg.walkTimeout then reason = 'timeout, out of view'
                 elseif hidden and stuckFor >= cfg.walkStuck and clock - walker.hiddenSince >= cfg.walkStuckHidden then
                     reason = 'stuck, out of view'
                 elseif hidden and gap >= cfg.walkGone then reason = 'out of view'

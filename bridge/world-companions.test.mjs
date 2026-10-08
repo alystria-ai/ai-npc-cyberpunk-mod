@@ -557,12 +557,37 @@ test('a companion who cannot find or make headway is removed as soon as V cannot
   assert(table.concat(logs,' / '):find('stuck, out of view',1,true))
 `));
 
-test('a stuck companion V is still watching is removed after a bounded wait, not at the 30 s safety', () => runWorld(leaveSetup + `
+test('a stuck companion V is looking at is never removed in view; she goes the moment V looks away', () => runWorld(leaveSetup + `
   navigation(function() return false end)
   player.forward=Vector4.new(0,1) -- V looks right at her
   assert(adoption.queueLeave(row.entityID,leave,row.entityID,'request-2')); step(1)
-  step(10); assert(find('judy-alvarez'),'visible and stuck: still given time')
-  step(7); assert(find('judy-alvarez')==nil,'bounded: '..table.concat(logs,' / '))
+  step(120); assert(find('judy-alvarez'),'visible and stuck: still here after two minutes '..table.concat(logs,' / '))
+  player.forward=Vector4.new(1,0); step(0.5)
+  assert(find('judy-alvarez'),'not on the first look away')
+  step(2); assert(find('judy-alvarez')==nil,'V has not seen her for a second: '..table.concat(logs,' / '))
+`));
+
+test('a stuck companion keeps trying other goals, including short hops, while V watches', () => runWorld(leaveSetup + `
+  navigation(function() return true end)
+  player.forward=Vector4.new(0,1)
+  assert(adoption.queueLeave(row.entityID,leave,row.entityID,'request-2')); step(1)
+  local seen,count={},0
+  for i=1,120 do
+    step(0.5)
+    local g=goal()
+    if g then local key=string.format('%.1f:%.1f',g.x,g.y); if not seen[key] then seen[key]=true; count=count+1 end end
+  end
+  assert(count>=6,'many different goals tried: '..count)
+  assert(find('judy-alvarez'),'still here')
+`));
+
+test('V far away removes a stuck companion even in view', () => runWorld(leaveSetup + `
+  navigation(function() return false end)
+  player.forward=Vector4.new(0,1)
+  assert(adoption.queueLeave(row.entityID,leave,row.entityID,'request-2')); step(3)
+  assert(find('judy-alvarez'))
+  player.pos=Vector4.new(0,-45); step(2)
+  assert(find('judy-alvarez')==nil,'V is 45 m away: '..table.concat(logs,' / '))
 `));
 
 test('headway keeps a walking companion from being called stuck', () => runWorld(leaveSetup + `
@@ -584,10 +609,14 @@ test('a summoned companion can be sent away the same way, and a group round offe
   assert(#leave.members==1 and leave.members[1].id==panam.entityID,'the world speaker is not a party member')
   assert(adoption.leaveOffer('900',{profileKey='judy-alvarez'})==nil,'no leave offer for a world character')
   busy=false
+  local at=copyOf(panam).pos
+  player.forward=Vector4.new(at.x-player.pos.x,at.y-player.pos.y) -- V watches her
   assert(adoption.queueLeave('all',leave,'900','request-3','round')); step(1)
   assert(find('panam-palmer'),'walking away first')
-  -- Never seen leaving view: the 30 s safety removes her anyway.
+  -- Never seen leaving view while V watches: she is not removed in plain sight.
   step(31)
+  assert(find('panam-palmer'),'still here, V is looking at her')
+  player.forward=Vector4.new(player.pos.x-at.x,player.pos.y-at.y); step(3) -- V turns away
   assert(find('panam-palmer')==nil,table.concat(logs,' / '))
   assert(not adoption.queueLeave(panam.entityID,leave,'900','request-4'),'already gone')
 `));
