@@ -215,13 +215,26 @@ lift's out-of-view placement:
   point nearest the seat (else a room-check fallback, else a fresh point with
   floor).
 - **Placed out of view:** at 2 Hz, only while waiting, the lift's check: V's
-  camera more than 60° off both her and the spot, or a blocked line from V's
-  eyes (1.6 m) to her chest (1.2 m). Then an AI teleport onto the spot, facing
+  camera off her (50°, see live run 7), or a blocked line from V's eyes
+  (1.6 m) to her chest (1.2 m). Then an AI teleport onto the spot, facing
   the seat; after 0.8 s the usual stop, slide and sit. Probe lines
   `seat-placing`, `seat-placed`.
 - **V keeps looking:** after 10 s, the short slide from where she stands when
   within 3 m (`seat-placing-slide`); farther away she keeps waiting.
 - **Never gives up while V stays seated** (the close-in timeout is gone).
+
+## Live run 7 (October 8, 21:09Z): placement never cleared
+
+`seat-closing`, `seat-placing` (toSeat 4.32), then nothing: the rule "camera
+more than 60° off her and the spot" could not be met because the walk-up spots
+are beside V, inside V's seated view. Now:
+
+- she is placed **only while she herself is out of view** (camera more than
+  50° off her, or V's line of sight to her blocked);
+- among up to four walk-up spots (nearest to the seat first) a spot V cannot
+  see either is preferred; after 3 s of placement waiting the nearest spot is
+  used even if V can see it (`seat-placed` carries `spotUnseen`);
+- the 10 s slide from within 3 m and "never give up while V is seated" stay.
 
 ## Mechanism
 
@@ -343,7 +356,7 @@ companions update until it errors.
 classification by name and by furniture (the probed apartment couch), seat finding on couches/stools/armrests, the full sit and stand
 flow, V getting up, combat (instant), several companions on different seats, no
 seat, wall / occupied / table-in-front, vehicles and unsupported workspots, an old archive, a refused walk near and far, transport/unobserved
-release, a walk the actuator never takes, the PSM settle and stand-up, the live apartment run (every walk-up refused 2 m out, slide after V looks away), the bounded wait, the step out after standing (arrival spot, teleport after a stuck step, a spot without room skipped), three companions on a two-seat couch, the walk-up pre-check (no refusals), a far refusal followed directly by the next walk, the 20:47Z replay (1 good / 9 no room, every walk refused, ends seated), the close-in timeout, no step while the workspot is busy, the most open stand spot, the fast combat exit, the 21:02Z replay (refusals, no progress closing in, placed out of view, seated), the never-give-up wait, the 10 s slide, and the standing cost (≤ 4 reads a second, no rays). 33 tests.
+release, a walk the actuator never takes, the PSM settle and stand-up, the live apartment run (every walk-up refused 2 m out, slide after V looks away), the bounded wait, the step out after standing (arrival spot, teleport after a stuck step, a spot without room skipped), three companions on a two-seat couch, the walk-up pre-check (no refusals), a far refusal followed directly by the next walk, the 20:47Z replay (1 good / 9 no room, every walk refused, ends seated), the close-in timeout, no step while the workspot is busy, the most open stand spot, the fast combat exit, the 21:02Z replay (refusals, no progress closing in, placed out of view, seated), the never-give-up wait, the 10 s slide, the 21:09Z replay (V looking ahead, Judy 4.3 m to the side), no placement while she is in view and the unseen-spot preference, and the standing cost (≤ 4 reads a second, no rays). 35 tests.
 
 ## To check in game
 

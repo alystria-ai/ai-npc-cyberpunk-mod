@@ -98,7 +98,14 @@ function native.bodyClear(spot,shape) calls[#calls+1]={name='bodyClear'}
   for _,n in ipairs(world.noRoom) do if math.abs(spot.x-n.x)<.3 and math.abs(spot.y-n.y)<.3 then return false end end
   return true end
 function native.lookingAt(player,point,cone) calls[#calls+1]={name='lookingAt'};return watching end
-function native.hiddenFrom(player,point,cone) calls[#calls+1]={name='hiddenFrom'};return not watching end
+-- V's camera (V at the origin): cameraDir, a cone; watching=true means V looks
+-- straight at her whatever the angle.
+cameraDir={x=0,y=1}
+function native.hiddenFrom(player,point,cone) calls[#calls+1]={name='hiddenFrom'}
+  if watching then return false end
+  local l=math.sqrt(point.x^2+point.y^2); if l<1e-3 then return false end
+  local cos=(point.x*cameraDir.x+point.y*cameraDir.y)/l
+  return cos<math.cos(math.rad(cone)) end
 local catalog={device='dev.ent',seatComponents={couch='convai_sit_couch',chair='convai_sit_chair',bar='convai_sit_bar',stool='convai_sit_stool'}}
 local c
 local function build(options)
@@ -584,7 +591,7 @@ test('replay 21:02Z: 4.37 m, three refusals, no progress closing in; placed once
   local refused=0;for _,l in ipairs(logs) do if l.kind=='seat-walk-refused' then refused=refused+1 end end
   assert(refused>=1 and lastLog('seat-closing') and lastLog('seat-placing'),'refusals, closing, then placement')
   assert(count('teleport')==0,'not while V looks')
-  watching=false;step(.6,{walk=false,refuse=true})
+  watching=false;cameraDir={x=-1,y=0};step(3,{walk=false,refuse=true})
   local placed=lastLog('seat-placed');assert(placed,'placed once out of view')
   local t=last('teleport');assert(t and math.sqrt((t.x+.66)^2+t.y^2)<1.5,'on a walk-up point by the seat')
   step(2.5,{walk=false,refuse=true})
@@ -597,4 +604,31 @@ test('placement waited 10 s while V looked: the short slide from within 3 m', ()
   sitV();step(1.5,{walk=false,refuse=true})
   step(18,{walk=false,refuse=true})
   assert(count('teleport')==0 and count('play')==1 and lastLog('seat-placing-slide'),'slid after the long wait')
+`));
+
+// October 8 21:09Z: V seated looking forward, Judy 4.3 m away to the side; the
+// walk-up spots are beside V, in V's view, so placement never happened.
+test('replay 21:09Z: V looks ahead, Judy 4.3 m to the side, walk-up spots near V: placed within seconds while she is out of view', () => run(`
+  world.boxes={{x1=-1.1,x2=.3,y1=-.75,y2=-.15,h=.44},{x1=-1.1,x2=.3,y1=-.95,y2=-.75,h=.63},
+    {x1=-2.2,x2=-1.1,y1=-.75,y2=.6,h=.58}}
+  party={companion(1,3.4,-.5)}
+  local d0=math.sqrt((3.4+.66)^2+.5^2);assert(d0>4.0 and d0<4.5,d0)
+  seat.inside,seat.psm=true,0;step(.6);seat.psm=1
+  step(8,{walk=false,refuse=true})
+  assert(lastLog('seat-placing'),'placement starts after closing in stalls')
+  local startAt=#logs
+  step(4.5,{walk=false,refuse=true})
+  local placed=lastLog('seat-placed');assert(placed,'placed within a few seconds while she is out of view')
+  step(2.5,{walk=false,refuse=true})
+  assert(count('play')==1 and held[1]==true,'seated')
+`));
+
+test('placement never happens while V looks at her, and prefers a spot V cannot see', () => run(`
+  couch(-.35,1.7);party={companion(1,-3.4,2.6)}
+  cameraDir={x=-.8,y=.6}
+  sitV();step(12,{walk=false,refuse=true})
+  assert(count('teleport')==0,'she is in view (straight ahead of the camera): no placement')
+  cameraDir={x=.6,y=-.8}
+  step(1,{walk=false,refuse=true})
+  local placed=lastLog('seat-placed');assert(placed and placed.fields.spotUnseen==true,'the spot is out of view too')
 `));

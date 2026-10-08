@@ -50,7 +50,14 @@ M.policy = {
     closeStall = 3,        -- closing in without closeProgress for this long: place her
     closeProgress = .3,
     lookEvery = .5,        -- the "is V looking" check, only while placement waits
-    viewCone = 60,         -- degrees off the camera (the lift's field of view)
+    viewCone = 50,         -- degrees off the camera: she is out of view
+    -- Live run 21:09Z: the walk-up spot beside V is almost always inside V's
+    -- seated view, so "her and the spot out of view" never cleared. She is
+    -- placed only while she herself is out of view; a walk-up spot that is out
+    -- of view too is preferred, and after placeBothFor seconds the nearest
+    -- spot is used even if V can see it.
+    placeBothFor = 3,
+    placeCandidates = 4,
     placeLongWait = 10,    -- V looking this long: the short slide when within slideReach
     lineHeights = {.5, 1.2}, -- a straight line from her to the walk-up point at these heights
     slideReach = 3.0,      -- out of walk-up points this close to the seat: slide in
@@ -782,12 +789,13 @@ function M.new(options)
             end
         end
         table.sort(list, function(a, b) return flat(a, s.seat.root) < flat(b, s.seat.root) end)
-        return list[1]
+        while #list > policy.placeCandidates do table.remove(list) end
+        return list
     end
     function beginPlacing(s, entry)
         s.phase, s.placingSince, s.lookCheckAt, s.placedAt = 'placing', self.clock, 0, nil
-        s.placeSpotPoint = placeSpot(s, entry)
-        note('seat-placing', {serial = s.serial, spot = s.placeSpotPoint,
+        s.placeSpots = placeSpot(s, entry)
+        note('seat-placing', {serial = s.serial, spots = #s.placeSpots,
             toSeat = entry.position and flat(entry.position, s.seat.root)})
         return holdDecision(s, 'Wait for V to look away')
     end
@@ -805,12 +813,19 @@ function M.new(options)
         end
         if self.clock < s.lookCheckAt then return holdDecision(s, 'Wait for V to look away') end
         s.lookCheckAt = self.clock + policy.lookEvery
-        local spot = s.placeSpotPoint
-        if spot and entry.position and nat.hiddenFrom(self.player, entry.position, policy.viewCone)
-            and nat.hiddenFrom(self.player, spot, policy.viewCone) then
+        -- Only while she herself is out of view. A spot V cannot see either is
+        -- preferred; after placeBothFor the nearest spot will do.
+        local spot, unseen
+        if entry.position and #s.placeSpots > 0 and nat.hiddenFrom(self.player, entry.position, policy.viewCone) then
+            for _, candidate in ipairs(s.placeSpots) do
+                if nat.hiddenFrom(self.player, candidate, policy.viewCone) then spot, unseen = candidate, true; break end
+            end
+            if not spot and waited >= policy.placeBothFor then spot = s.placeSpots[1] end
+        end
+        if spot then
             local sent = nat.teleport(entry, spot, yawToward(spot, s.seat.root))
             s.placedAt, s.seat.approach = self.clock, {x = spot.x, y = spot.y, z = spot.z}
-            note('seat-placed', {serial = s.serial, spot = spot, sent = sent == true, waited = waited})
+            note('seat-placed', {serial = s.serial, spot = spot, sent = sent == true, waited = waited, spotUnseen = unseen == true})
         end
         return holdDecision(s, 'Wait for V to look away')
     end
