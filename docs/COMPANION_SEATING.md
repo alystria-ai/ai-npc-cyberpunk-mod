@@ -126,6 +126,30 @@ Several companions: each takes its own seat (a seat is taken by one companion
 for the session), a companion with no free seat keeps its normal standing
 place, and each seated one stands up and steps out to its own arrival spot.
 
+## Live run 3 (October 8, 20:33Z): stop-start on the way
+
+She sat and stood up cleanly, but stopped a couple of times on the way:
+walk-up tries 1-4 were refused one after another ("No clear local walking
+route", the actuator's navmesh projection and destination body check), each a
+stop and a new walk, and try 5 (1.35 m out) worked; she then slid 0.5 s over
+about a metre. Fixed:
+
+- **Pre-check before moving** (phase `choosing`, she keeps her normal stance):
+  each walk-up point needs floor (one ray), a navmesh point within 0.8 m (the
+  same `FindPointInSphereForCharacter` the actuator uses), V's 0.95 m
+  keep-out, no other companion's walk-up within 0.8 m, and room for her body
+  (`companion-clearance` body check). A straight clear line from her (rays at
+  0.5 and 1.2 m) ranks first and ends the check at once (a straight route is
+  one smooth walk, no waypoint legs); shorter reaches rank before longer ones.
+  Three points per update, six updates at most. Probe line `seat-walk-checked`
+  (good, rejected, straight, last reason).
+- **One refusal within 2.5 m of the seat goes to the slide** (waiting up to
+  3 s for V to look away when it is longer than 1.2 m) instead of more walks.
+  Farther away, the next pre-checked point is issued as the next decision,
+  with no hold in between (unjudged points are checked then, a few at most).
+- **Slide speed by distance** for every arrival: 0.5 s + 0.35 s per metre
+  beyond 0.75 m, at most 1.4 s.
+
 ## Mechanism
 
 `convai_gestures.archive` now also carries four components on the gesture
@@ -246,7 +270,7 @@ companions update until it errors.
 classification by name and by furniture (the probed apartment couch), seat finding on couches/stools/armrests, the full sit and stand
 flow, V getting up, combat (instant), several companions on different seats, no
 seat, wall / occupied / table-in-front, vehicles and unsupported workspots, an old archive, a refused walk near and far, transport/unobserved
-release, a walk the actuator never takes, the PSM settle and stand-up, the live apartment run (every walk-up refused 2 m out, slide after V looks away), the bounded wait, the step out after standing (arrival spot, teleport after a stuck step, a spot without room skipped), three companions on a two-seat couch, and the standing cost (≤ 4 reads a second, no rays). 24 tests.
+release, a walk the actuator never takes, the PSM settle and stand-up, the live apartment run (every walk-up refused 2 m out, slide after V looks away), the bounded wait, the step out after standing (arrival spot, teleport after a stuck step, a spot without room skipped), three companions on a two-seat couch, the walk-up pre-check (no refusals), a far refusal followed directly by the next walk, and the standing cost (≤ 4 reads a second, no rays). 26 tests.
 
 ## To check in game
 

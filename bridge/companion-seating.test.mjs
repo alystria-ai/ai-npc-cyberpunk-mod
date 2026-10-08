@@ -65,6 +65,16 @@ function native.exit(npc,instant) calls[#calls+1]={name='exit',instant=instant==
 function native.stopInDevice(npc) calls[#calls+1]={name='stopInDevice'};return true end
 function native.look(entry,style) calls[#calls+1]={name='look',style=style};return true end
 local watching=false
+-- Walk-up pre-check: the navmesh covers the floor except world.noNav spots; a
+-- straight line is blocked by any box at least as tall as the ray height.
+world.noNav={}
+function native.navPoint(point,npc) calls[#calls+1]={name='navPoint'}
+  for _,n in ipairs(world.noNav) do if math.abs(point.x-n.x)<.3 and math.abs(point.y-n.y)<.3 then return nil end end
+  return {x=point.x,y=point.y,z=point.z} end
+function native.lineClear(from,to,heights) calls[#calls+1]={name='lineClear'}
+  for i=0,20 do local x,y=from.x+(to.x-from.x)*i/20,from.y+(to.y-from.y)*i/20
+    for _,b in ipairs(world.boxes) do if x>=b.x1 and x<=b.x2 and y>=b.y1 and y<=b.y2 and b.h>=heights[1] then return false end end end
+  return true end
 -- Standing up: the step out walks her there unless stepStuck; a teleport always lands.
 local stepStuck=false
 world.noRoom={}
@@ -281,7 +291,7 @@ test('a refused walk near the seat slides the rest; far away it gives up', () =>
   sitV();step(.6)
   step(3,{walk=false,refuse=true})
   assert(count('play')==1,'slid from 0.7 m')
-  assert(last('play').slide>.5,'longer slide')
+  assert(last('play').slide>=.5,'short slide')
   seat.inside=false;step(1);step(.5)
   party={companion(2,4,4)}
   sitV();step(.6);step(6,{walk=false,refuse=true})
@@ -354,22 +364,22 @@ test('a seat walk the actuator never takes counts as refused and slides when clo
 // October 8 live run: the apartment couch read as a bench (backrest 0.63 over a
 // 0.44 cushion) and Judy, 2.0 m from the seat, had her one walk-up point
 // refused by the destination clearance check, so she gave up after 3 s.
-test('apartment live run: every walk-up refused 2 m from the seat; she tries other points, then slides in once V looks away', () => run(`
+test('apartment live run: the walk-up refused 2 m from the seat; one refusal within 2.5 m goes to the slide, after V looks away', () => run(`
   world.boxes={{x1=-1.1,x2=.3,y1=-.75,y2=-.15,h=.44},{x1=-1.1,x2=.3,y1=-.95,y2=-.75,h=.63},
     {x1=-2.2,x2=-1.1,y1=-.75,y2=.6,h=.58}}
   party={companion(1,-1.2,1.85)}
   watching=true
   seat.inside,seat.psm=true,0;step(.6);seat.psm=1;step(1.5,{walk=false,refuse=true})
   assert(lastLog('seat-classified').fields.kind=='couch','couch, not bench')
-  step(5,{walk=false,refuse=true})
+  step(2.5,{walk=false,refuse=true})
   local walks=0;for _,l in ipairs(logs) do if l.kind=='seat-walk' then walks=walks+1 end end
-  assert(walks>=3,'several walk-up points tried: '..walks)
+  assert(walks==1,'no stop-start retries within 2.5 m: '..walks)
   assert(count('play')==0,'no glide while V looks at her')
   assert(count('lookingAt')>0)
   assert(lastLog('seat-walk-refused'),'refusals logged')
   watching=false;step(1.5,{walk=false,refuse=true})
   assert(count('play')==1 and last('play').component=='convai_sit_couch','slid in once V looked away')
-  assert(last('play').slide>1.0 and last('play').slide<=1.4,'long slide '..last('play').slide)
+  assert(last('play').slide>.8 and last('play').slide<=1.4,'long slide '..last('play').slide)
 `));
 
 test('a long slide never waits more than blendWait for V to look away', () => run(`
@@ -435,4 +445,38 @@ test('three companions on a two-seat couch: two sit on their own seats, the thir
   assert(#outs==2 and math.abs(outs[1].x-outs[2].x)>.5,'each to her own spot')
   local stood=0;for _,l in ipairs(logs) do if l.kind=='seat-stood' then stood=stood+1 end end
   assert(stood==2 and not held[1] and not held[2] and not held[3],'all follow again')
+`));
+
+// October 8 20:33Z: four walk-up points refused ("No clear local walking
+// route") before the fifth worked: a stop and a new walk each time.
+test('walk-up points are pre-checked before she moves: she starts on one that has room, with no refusals', () => run(`
+  couch(-.35,1.7)
+  world.boxes[#world.boxes+1]={x1=-.2,x2=1.3,y1=.55,y2=.95,h=.45} -- a coffee table in front
+  party={companion(1,2.6,1.6)}
+  sitV();step(2.5)
+  local checked=lastLog('seat-walk-checked');assert(checked and checked.fields.good>=1 and checked.fields.rejected>=1,'some points rejected before walking')
+  local walk=lastLog('seat-walk');assert(walk.fields.try==1,'first walk is the one taken')
+  local g=walk.fields.goal
+  assert(not (g.x>=-.5 and g.x<=1.6 and g.y>=.25 and g.y<=1.25),'not beside the table')
+  assert(not lastLog('seat-walk-refused') and count('play')==1,'no refusal, she sits')
+  assert(count('navPoint')>0 and count('bodyClear')>0)
+`));
+
+test('a refused walk far from the seat switches straight to the next walk-up point, with no hold in between', () => run(`
+  couch(-.35,1.7);party={companion(1,3.4,2.8)}
+  sitV();step(1.5,{observe=false})
+  local e=party[1]
+  local refusedTicket,next
+  for i=1,40 do
+    c.tick(player,.1,{{entry=e,transport=false}})
+    local d=c.steer(e,{combat=false,motion=e.motor.feedback})
+    if d and d.operation then
+      if not refusedTicket and d.operation.kind=='move' then refusedTicket=d.operation.ticket end
+      if refusedTicket and d.operation.ticket~=refusedTicket then next=d.operation; break end
+      e.motor.ticket,e.motor.kind=d.operation.ticket,d.operation.kind
+      e.motor.feedback={ticket=d.operation.ticket,failed=d.operation.ticket==refusedTicket}
+    end
+    c.observe(e,{combat=false})
+  end
+  assert(next and next.kind=='move','the next walk-up goal follows the refusal directly: '..tostring(next and next.kind))
 `));

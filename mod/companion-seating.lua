@@ -37,7 +37,11 @@ M.policy = {
     approachTries = 5,     -- walk-up points tried before sliding in
     settleTimeout = 1.2,   -- the walk's move command retires to a hold before the workspot plays
     routeGrace = .6,       -- a walk refused this long: try the next walk-up point
-    slideNear = 1.2,       -- refused this close to the seat: slide straight in
+    slideNear = 1.2,       -- slides longer than this wait for V to look away
+    refusedSlide = 2.5,    -- a refused walk this close to the seat: the short slide, no more walks
+    precheckPerUpdate = 3, -- walk-up points checked per update before she starts walking
+    precheckUpdates = 6,
+    lineHeights = {.5, 1.2}, -- a straight line from her to the walk-up point at these heights
     slideReach = 3.0,      -- out of walk-up points this close to the seat: slide in
     blendWait = 3,         -- a long slide waits this long for V to look away
     lookCone = 40,         -- degrees: V looking at her
@@ -200,7 +204,7 @@ function M.approachPoints(root, forward, kind, anchor, from, policy)
             local dx, dy = fx * math.cos(a) - fy * math.sin(a), fx * math.sin(a) + fy * math.cos(a)
             local point = {x = root.x + dx * reach, y = root.y + dy * reach, z = anchor.z}
             if flat(point, anchor) >= policy.keepOut then
-                point.score = (from and flat(point, from) or 0) + .3 * reach + .004 * math.abs(degrees)
+                point.score = (from and flat(point, from) or 0) + reach + .004 * math.abs(degrees)
                 list[#list + 1] = point
             end
         end
@@ -372,6 +376,23 @@ function native.bodyClear(spot, shape)
     local clear = clearanceModule.body(spot, shape)
     return clear == true
 end
+-- The actuator projects every move goal onto the navmesh this way and refuses
+-- one that moves more than 0.8 m or 1.2 m in height (companion-actuator.lua).
+function native.navPoint(point, npc)
+    local ok, found = pcall(function()
+        return Game.GetAINavigationSystem():FindPointInSphereForCharacter(Vector4.new(point.x, point.y, point.z, 1), .55, npc)
+    end)
+    if not ok or not found or found.status ~= Enum.new('worldNavigationRequestStatus', 'OK') then return nil end
+    local p = found.point
+    if math.sqrt((p.x - point.x) ^ 2 + (p.y - point.y) ^ 2) >= .8 or math.abs(p.z - point.z) >= 1.2 then return nil end
+    return {x = p.x, y = p.y, z = p.z}
+end
+function native.lineClear(from, to, heights)
+    for _, h in ipairs(heights) do
+        if native.blocked({x = from.x, y = from.y, z = from.z + h}, {x = to.x, y = to.y, z = to.z + h}) then return false end
+    end
+    return true
+end
 function native.inCombat(npc)
     local ok, value = pcall(function() return NPCPuppet.IsInCombat(npc) end)
     return ok and value == true
@@ -424,7 +445,7 @@ function M.new(options)
         s.phase, s.seat, s.exitAt, s.lookStyle = 'off', nil, nil, nil
     end
     local function requestExit(s, reason, instant)
-        if s.phase == 'approach' or s.phase == 'settling' or s.phase == 'blending' then release(s, reason); return end
+        if s.phase == 'approach' or s.phase == 'settling' or s.phase == 'blending' or s.phase == 'choosing' then release(s, reason); return end
         if s.phase == 'entering' and not s.playedAt then release(s, reason); return end
         if s.phase == 'standing' and (reason == 'transport' or reason == 'unobserved') then release(s, reason); return end
         if s.phase ~= 'entering' and s.phase ~= 'seated' then return end
@@ -561,7 +582,7 @@ function M.new(options)
         return seat.checked
     end
 
-    local slideOrWait
+    local slideOrWait, startWalk
     local function nextTicket(s)
         s.tickets = s.tickets + 1
         return 'seat:' .. tostring(s.serial) .. ':' .. tostring(s.tickets)
@@ -571,25 +592,62 @@ function M.new(options)
         return {phase = 'seated', reason = reason, operation = s.holdOp, look = 'none'}
     end
 
-    -- The next walk-up point with floor under it (one ray each, only when tried).
-    local function nextApproach(s)
-        local anchor = session.anchor
-        while s.points and #s.points > 0 and s.tries < policy.approachTries do
-            local point = table.remove(s.points, 1)
-            local z = nat.surface(point.x, point.y, anchor.z + 1.2, anchor.z - .6, true)
-            local h = z and z - anchor.z
-            if h and h >= policy.floorBand[1] and h <= policy.floorBand[2] then
-                s.tries, s.since, s.failingSince = s.tries + 1, self.clock, nil
-                s.seat.approach = {x = point.x, y = point.y, z = anchor.z}
-                s.op = {ticket = nextTicket(s), kind = 'move', goal = copy(s.seat.approach), gait = 'Walk', finish = true, face = false}
-                note('seat-walk', {serial = s.serial, try = s.tries, goal = s.seat.approach})
-                return true
-            end
+    local function precheck(s, point, from, entry)
+        local anchor = s.anchorCopy
+        local z = nat.surface(point.x, point.y, anchor.z + 1.2, anchor.z - .6, true)
+        local h = z and z - anchor.z
+        if not h or h < policy.floorBand[1] or h > policy.floorBand[2] then return nil, 'no floor' end
+        local nav = nat.navPoint({x = point.x, y = point.y, z = z}, entry.npc)
+        if not nav then return nil, 'off the navmesh' end
+        if flat(nav, anchor) < policy.keepOut then return nil, 'too close to V' end
+        for _, other in pairs(self.states) do
+            if other ~= s and other.seat and other.seat.approach and flat(other.seat.approach, nav) < .8 then return nil, 'another companion' end
         end
-        return false
+        if not nat.bodyClear(nav, entry.clearance) then return nil, 'no room' end
+        nav.straight = from and nat.lineClear(from, nav, policy.lineHeights) or false
+        nav.score = point.score - (nav.straight and 10 or 0)
+        return nav
+    end
+    -- Judge a few walk-up points this update; true once the choice is made.
+    local function choose(s, entry)
+        local checked = 0
+        while s.points and #s.points > 0 and checked < policy.precheckPerUpdate do
+            local point = table.remove(s.points, 1)
+            checked = checked + 1
+            local good, why = precheck(s, point, entry.position, entry)
+            if good then
+                s.good[#s.good + 1] = good
+                if good.straight then s.stopChecking = true; break end -- the best kind: walk now
+            else s.rejectedPoints = (s.rejectedPoints or 0) + 1; s.lastReject = why end
+        end
+        s.chooseUpdates = s.chooseUpdates + 1
+        if not s.stopChecking and #s.points > 0 and s.chooseUpdates < policy.precheckUpdates then return false end
+        table.sort(s.good, function(a, b) return a.score < b.score end)
+        note('seat-walk-checked', {serial = s.serial, good = #s.good, rejected = s.rejectedPoints or 0,
+            straight = s.good[1] and s.good[1].straight or false, last = s.lastReject})
+        return true
+    end
+    -- The next pre-checked walk-up point; the move replaces the current one
+    -- directly (no hold in between).
+    local function nextApproach(s, entry)
+        -- Points not judged yet (the pre-check stopped at a straight one) are
+        -- judged now, a few at most, so a retry still starts on a checked point.
+        local extra = 0
+        while #s.good == 0 and s.points and #s.points > 0 and extra < policy.precheckPerUpdate and entry do
+            local good = precheck(s, table.remove(s.points, 1), entry.position, entry)
+            if good then s.good[1] = good end
+            extra = extra + 1
+        end
+        local point = table.remove(s.good, 1)
+        if not point or s.tries >= policy.approachTries then return false end
+        s.tries, s.since, s.failingSince = s.tries + 1, self.clock, nil
+        s.seat.approach = {x = point.x, y = point.y, z = point.z}
+        s.op = {ticket = nextTicket(s), kind = 'move', goal = copy(s.seat.approach), gait = 'Walk', finish = true, face = false}
+        note('seat-walk', {serial = s.serial, try = s.tries, goal = s.seat.approach, straight = point.straight == true})
+        return true
     end
     local function arrive(s, toSeat, refused, entry)
-        s.phase, s.since, s.slide = 'settling', self.clock, refused and toSeat or nil
+        s.phase, s.since, s.slide = 'settling', self.clock, toSeat
         s.arrivedAt = entry and entry.position and copy(entry.position) or nil
         note('seat-arrived', {serial = s.serial, toSeat = toSeat, refused = refused == true})
         return holdDecision(s, 'Stop at the seat')
@@ -612,6 +670,15 @@ function M.new(options)
         return arrive(s, toSeat, true, entry)
     end
 
+    -- After (or during) the pre-check: walk to the best point, or slide in when
+    -- no point is usable and she is close.
+    function startWalk(s, entry)
+        if not choose(s, entry) then return nil end
+        s.phase = 'approach'
+        if not nextApproach(s, entry) then return slideOrWait(s, entry) end
+        return {phase = 'seat-approach', reason = 'Walk to a seat beside V', operation = s.op, look = 'none'}
+    end
+
     local function begin(s, entry)
         s.session = session.id
         if self.disabledReason then return nil end
@@ -630,17 +697,17 @@ function M.new(options)
         local component = components[session.profile.component]
         if not component then note('seat-none', {serial = s.serial, reason = 'no workspot for ' .. session.kind}); return nil end
         best.taken = s.serial
-        s.seat, s.component, s.phase, s.since = best, component, 'approach', self.clock
+        s.seat, s.component, s.phase, s.since = best, component, 'choosing', self.clock
         s.anchorCopy, s.forwardCopy, s.profileCopy = copy(session.anchor), {x = session.forward.x, y = session.forward.y}, session.profile
         s.holdOp, s.playedAt, s.device, s.deviceID, s.failingSince, s.slide = nil, nil, nil, nil, nil, nil
         s.points, s.tries, s.blendSince = M.approachPoints(best.root, session.forward, session.profile, session.anchor,
             entry.position, policy), 0, nil
+        s.good, s.chooseUpdates, s.rejectedPoints, s.lastReject, s.stopChecking = {}, 0, 0, nil, nil
         local ok, id = nat.spawnDevice(best.root, session.orientation, template)
         if ok then s.deviceID = id else failNote('seat device: ' .. tostring(id)) end
         note('seat-assigned', {serial = s.serial, session = session.id, kind = session.kind, offset = best.offset,
             height = best.height, component = component, toSeat = entry.position and flat(entry.position, best.root)})
-        if not nextApproach(s) then return slideOrWait(s, entry) end
-        return {phase = 'seat-approach', reason = 'Walk to a seat beside V', operation = s.op, look = 'none'}
+        return startWalk(s, entry)
     end
 
     -- Floor in front of the seat with room for her body: her own arrival spot
@@ -736,7 +803,7 @@ function M.new(options)
             failNote(self.disabledReason); note('seat-disabled', {reason = self.disabledReason})
             release(s, 'old archive'); return
         end
-        local slide = math.min(policy.slideMax, policy.slideTime + (s.slide and s.slide * .35 or 0))
+        local slide = math.min(policy.slideMax, policy.slideTime + (s.slide and math.max(0, s.slide - .75) * .35 or 0))
         local ok, result = nat.play(device, s.entry.npc, s.component, slide)
         if not ok then
             failNote('seat play: ' .. tostring(result))
@@ -758,6 +825,11 @@ function M.new(options)
             if nat.inWorkspot(entry.npc) ~= false then return nil end -- a gesture stance is still leaving
             return begin(s, entry)
         end
+        if s.phase == 'choosing' then
+            if not session or session.id ~= s.session then release(s, 'V stood up'); return nil end
+            if context.combat then release(s, 'combat'); return nil end
+            return startWalk(s, entry)
+        end
         if s.phase == 'approach' then
             if not session or session.id ~= s.session then release(s, 'V stood up'); return nil end
             if context.combat then release(s, 'combat'); return nil end
@@ -774,8 +846,8 @@ function M.new(options)
             if failing >= policy.routeGrace or self.clock - s.since > policy.approachTimeout then
                 note('seat-walk-refused', {serial = s.serial, try = s.tries, toSeat = toSeat,
                     reason = motion.error or (ours and 'refused' or 'not taken')})
-                if toSeat <= policy.slideNear then return arrive(s, toSeat, true, entry) end
-                if nextApproach(s) then
+                if toSeat <= policy.refusedSlide then return slideOrWait(s, entry) end
+                if nextApproach(s, entry) then
                     return {phase = 'seat-approach', reason = 'Walk to a seat beside V', operation = s.op, look = 'none'}
                 end
                 return slideOrWait(s, entry)
