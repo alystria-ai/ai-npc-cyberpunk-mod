@@ -50,9 +50,10 @@ export function validateCatalog(catalog) {
     if (!text(row.name) || /[^\p{L}\p{N} ]/u.test(row.name)) errors.push(`${where}: name must be letters, digits and spaces (Core API label)`);
     if (!/^convai-kokoro-[0-9a-f]{16}$/.test(row.voice ?? '') || !text(row.voiceName)) errors.push(`${where}: Kokoro voice required`);
     if (!list(row.voiceFamilies, 1)) errors.push(`${where}: voiceFamilies required`);
+    if (row.voiceCount !== undefined && !(Number.isInteger(row.voiceCount) && row.voiceCount >= 1 && row.voiceCount <= 4)) errors.push(`${where}: voiceCount must be 1 to 4`);
   }
   for (const [base, value] of Object.entries(catalog.bases)) {
-    if (!['gang', 'police', 'corpo-security', 'vendor', 'resident'].includes(value.category)) errors.push(`${base}: unknown category`);
+    if (!['gang', 'police', 'corpo-security', 'faction', 'vendor', 'resident'].includes(value.category)) errors.push(`${base}: unknown category`);
     if (!text(value.title) || !value.match || typeof value.match !== 'object') errors.push(`${base}: title and match required`);
     if (!catalog.archetypes.some(row => row.base === base)) errors.push(`${base}: no archetype variant`);
   }
@@ -109,7 +110,7 @@ export const LUA_BEGIN = '-- BEGIN GENERATED ARCHETYPES (node scripts/Build-Arch
 export const LUA_END = '-- END GENERATED ARCHETYPES';
 const luaString = value => `'${String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
 const luaList = values => `{${values.map(luaString).join(', ')}}`;
-export function luaArchetypeBlock(catalog, recordGenders = {}) {
+export function luaArchetypeBlock(catalog, recordGenders = {}, vendorRecords = []) {
   const fields = ['affiliations', 'police', 'crowd', 'vendorTypes', 'records', 'recordTokens', 'recordPrefixes', 'excludeRecordPrefixes'];
   const bases = Object.keys(catalog.bases).sort().map(name => {
     const base = catalog.bases[name], parts = [`category = ${luaString(base.category)}`, `title = ${luaString(base.title)}`];
@@ -125,8 +126,11 @@ export function luaArchetypeBlock(catalog, recordGenders = {}) {
   // Vendor record genders for the Model browser (scripts/Extract-ArchetypeRecordGenders.mjs).
   const genders = Object.keys(recordGenders).sort().map(record =>
     `        [${luaString(record)}] = ${luaString(recordGenders[record])},`);
+  // Shops with a record of their own (one physical vendor each): the only vendors whose conversations are remembered.
+  const shops = [...vendorRecords].sort().map(record => `        [${luaString(record)}] = true,`);
   return [LUA_BEGIN, 'M.ARCHETYPES = {', '    version = 1,', '    bases = {', ...bases, '    },',
-    '    variants = {', ...variants, '    },', '    recordGenders = {', ...genders, '    },', '}', LUA_END].join('\n');
+    '    variants = {', ...variants, '    },', '    recordGenders = {', ...genders, '    },',
+    '    vendorRecords = {', ...shops, '    },', '}', LUA_END].join('\n');
 }
 export function replaceLuaBlock(source, block) {
   const start = source.indexOf(LUA_BEGIN), end = source.indexOf(LUA_END);
@@ -153,7 +157,7 @@ export async function buildArchetypes() {
     if (error.code === 'ENOENT') return {records: {}};
     throw error;
   });
-  return {errors, profiles, lua: luaArchetypeBlock(catalog, genders.records ?? {})};
+  return {errors, profiles, lua: luaArchetypeBlock(catalog, genders.records ?? {}, genders.uniqueVendors ?? [])};
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

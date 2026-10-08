@@ -68,7 +68,8 @@ export function isAmbientProfile(key) {
 }
 
 // The archetype facts the adapter sends: fixed vocabulary only (TweakDB enum names, the catalog base and title).
-const ARCHETYPE_FIELDS = ['base', 'category', 'title', 'affiliation', 'vendorType', 'district', 'area'];
+// memoryKey: the record of a one-shop vendor ("wat_kab_ripperdoc_01"), the identity its conversations are remembered under.
+const ARCHETYPE_FIELDS = ['base', 'category', 'title', 'affiliation', 'vendorType', 'district', 'area', 'memoryKey'];
 const ARCHETYPE_VALUE = /^[A-Za-z0-9][A-Za-z0-9 _.'-]{0,63}$/;
 export function parseArchetype(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -84,7 +85,8 @@ const AFFILIATION_NAMES = {TygerClaws: 'Tyger Claws', SixthStreet: '6th Street',
   SixthStreetAndroid: '6th Street', WraithsAndroid: 'Wraiths', UnaffiliatedCorpo: 'a private security firm'};
 const VENDOR_NAMES = {RipperDoc: 'a ripperdoc clinic', Gunsmith: 'a weapons shop', Food: 'a food and drink counter',
   GrilledFood: 'a street grill', PackedFood: 'a packaged food stall', Drinks: 'a drinks stand', Kiosk: 'a kiosk',
-  Market: 'a market stall', Clothing: 'a clothing shop', Clothes: 'a clothes stall', Armorsmith: 'an armored clothing shop'};
+  Market: 'a market stall', Clothing: 'a clothing shop', Clothes: 'a clothes stall', Armorsmith: 'an armored clothing shop',
+  Medical: 'a medic shop', Junk: 'a junk shop', TechJunk: 'a tech junk stall', SkillTrainer: 'a specialist shop'};
 // "SantoDomingo" -> "Santo Domingo", "Badlands_RockyRidge" -> "Rocky Ridge".
 export function placeName(value) {
   if (typeof value !== 'string' || !value) return null;

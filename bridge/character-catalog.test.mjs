@@ -68,7 +68,7 @@ test('archetype classification follows vendor, police, corporate security, gang,
     index.records['ToTweakDBID{ hash = 0x1, length = 21 }']='homeless'
     assert(key({crowd=true,recordId='ToTweakDBID{ hash = 0x1, length = 21 }',bodyType='WomanAverage'})=='npc-homeless-female')
     assert(key({crowd=false,recordName='Character.CorpoMan',bodyType='ManAverage'})==nil, 'a non-crowd actor is not a pedestrian')
-    assert(key({crowd=true,recordName='Character.Waitress',bodyType='WomanAverage'})==nil)
+    assert(key({crowd=true,recordName='Character.Mallrat',bodyType='WomanAverage'})==nil)
     -- Never children, machines or a body without a gender.
     assert(key({crowd=true,children=true,recordName='Character.CorpoMan',bodyType='ManAverage'})==nil)
     assert(key({affiliation='Maelstrom',human=false,bodyType='ManAverage'})==nil)
@@ -89,7 +89,7 @@ test('resolve keeps named and managed identities first, then archetypes, then th
     local key,name,info=api.resolve(catalog,{name='Ripperdoc',bodyType='ManAverage',facts=ripper})
     assert(key=='npc-ripperdoc-male' and name=='Ripperdoc' and info.base=='ripperdoc')
     assert(api.resolve(catalog,{name='Pedestrian',bodyType='WomanAverage',crowd=true,
-      facts={crowd=true,recordName='Character.Waitress',bodyType='WomanAverage'}})=='resident-female')
+      facts={crowd=true,recordName='Character.Mallrat',bodyType='WomanAverage'}})=='resident-female')
     assert(api.resolve(catalog,{name='Ganger',bodyType='ManAverage',crowd=false,
       facts={affiliation='Valentinos',quest='MainQuest',bodyType='ManAverage'}})==nil)
     -- Without facts (the setting is off) the previous behaviour is unchanged.
@@ -101,8 +101,8 @@ test('the generated archetype block matches characters/archetypes.json and every
   const {luaArchetypeBlock,LUA_BEGIN,LUA_END}=await import('../scripts/Build-ArchetypeProfiles.mjs');
   const catalog=JSON.parse(readFileSync(new URL('../characters/archetypes.json',import.meta.url),'utf8'));
   const source=readFileSync(new URL('../mod/character-catalog.lua',import.meta.url),'utf8').replace(/\r\n/g,'\n');
-  const genders=JSON.parse(readFileSync(new URL('../characters/archetype-record-genders.json',import.meta.url),'utf8')).records;
-  assert.equal(source.slice(source.indexOf(LUA_BEGIN),source.indexOf(LUA_END)+LUA_END.length),luaArchetypeBlock(catalog,genders));
+  const table=JSON.parse(readFileSync(new URL('../characters/archetype-record-genders.json',import.meta.url),'utf8'));
+  assert.equal(source.slice(source.indexOf(LUA_BEGIN),source.indexOf(LUA_END)+LUA_END.length),luaArchetypeBlock(catalog,table.records,table.uniqueVendors));
   const roster=JSON.parse(readFileSync(new URL('../characters/archetype-roster.json',import.meta.url),'utf8'));
   assert.deepEqual(roster.map(p=>p.key),catalog.archetypes.map(a=>a.key));
   for(const base of Object.keys(catalog.bases))for(const gender of ['male','female'])
@@ -147,4 +147,113 @@ test('Model browser records classify from TweakDB facts alone; record-name gende
     assert(api.archetypeLabel(index,'npc-mox-female')=='Mox member' and api.archetypeLabel(index,'npc-ripperdoc-male')=='Ripperdoc')
     assert(api.archetypeLabel(index,'judy-alvarez')==nil)
   `);
+});
+
+// Second batch (docs/NPC_ARCHETYPES.md): more vendor kinds, factions and resident kinds, one-shop vendor memory keys.
+test('second batch: vendor kinds, factions and resident kinds classify with the documented precedence',()=>{
+  runLua(`
+    local index=api.buildArchetypes(api.ARCHETYPES)
+    local function key(facts) return (api.classify(index,facts)) end
+    local M,F='ManAverage','WomanAverage'
+    -- Vendors by type; skill-trainer vendors split on the record name; plain trainers stay unprofiled.
+    assert(key({vendor=true,vendorType='Medical',recordName='Character.wat_kab_medicstore_01',bodyType=M})=='npc-medic-vendor-male')
+    assert(key({vendor=true,vendorType='Medical',bodyType=F})=='npc-medic-vendor-female')
+    assert(key({vendor=true,vendorType='Junk',bodyType=M})=='npc-junk-dealer-male')
+    assert(key({vendor=true,vendorType='TechJunk',recordName='Character.Tech_Junk',bodyType=F})=='npc-junk-dealer-female')
+    assert(key({vendor=true,vendorType='SkillTrainer',recordName='Character.wat_lch_melee_01',bodyType=M})=='npc-melee-vendor-male')
+    assert(key({vendor=true,vendorType='SkillTrainer',recordName='Character.wbr_jpn_netrun_01',bodyType=M})=='npc-netrunner-vendor-male')
+    assert(key({vendor=true,vendorType='SkillTrainer',recordName='Character.std_arr_techstore_01',bodyType=F})=='npc-netrunner-vendor-female')
+    assert(key({vendor=true,vendorType='SkillTrainer',recordName='Character.some_trainer_01',bodyType=M})==nil)
+    assert(key({vendor=true,vendorType='Kiosk',bodyType=M})=='npc-market-stall-male')
+    assert(key({vendor=true,vendorType='Market',bodyType=F})=='npc-market-stall-female')
+    assert(key({vendor=true,vendorType='DropPoint',bodyType=M})==nil and key({vendor=true,vendorType='VendingMachine',bodyType=M})==nil)
+    assert(key({vendor=true,vendorType='PackedFood',bodyType=M})=='npc-food-vendor-male', 'stalls that sell food stay food vendors')
+    assert(key({vendor=true,vendorType='Medical',affiliation='Maelstrom',bodyType=M})=='npc-medic-vendor-male', 'a vendor beats a gang record')
+    -- Factions: Militech and Kang Tao are no longer corporate security; Arasaka and security_ records still are.
+    assert(key({affiliation='Militech',bodyType=M})=='npc-militech-male')
+    assert(key({affiliation='KangTao',bodyType=F})=='npc-kang-tao-female')
+    assert(key({affiliation='Arasaka',bodyType=M})=='npc-corpo-security-male')
+    assert(key({affiliation='Militech',recordName='Character.security_guard1_ranged1_saratoga_ma',bodyType=M})=='npc-corpo-security-male')
+    assert(key({affiliation='NetWatch',bodyType=M})=='npc-netwatch-male')
+    assert(key({affiliation='TraumaTeam',bodyType=F})=='npc-trauma-team-female')
+    assert(key({affiliation='Unaffiliated',recordName='Character.kab_trauma_soldier_ranged2_dian_ma',bodyType=M})=='npc-trauma-team-male')
+    assert(key({affiliation='Biotechnica',bodyType=F})=='npc-biotechnica-female')
+    assert(key({affiliation='AfterlifeMercs',bodyType=M})=='npc-merc-male')
+    assert(key({affiliation='UnaffiliatedCorpo',recordName='Character.generic_merc_ranged2_ajax_wa',bodyType=F})=='npc-merc-female')
+    assert(key({affiliation='UnaffiliatedCorpo',recordName='Character.street_goon_medium_range_m_easy',bodyType=M})=='npc-street-goon-male')
+    assert(key({affiliation='UnaffiliatedCorpo',recordName='Character.generic_grunt_ranged1_pulsar_wa',bodyType=F})=='npc-street-goon-female')
+    assert(key({affiliation='Unaffiliated',bodyType=M})==nil, 'Unaffiliated alone is not a goon')
+    assert(key({affiliation='Militech',quest='SideQuest',bodyType=M})==nil, 'story actors stay unprofiled')
+    assert(key({affiliation='Militech',human=false,recordName='Character.militech_drone_wyvern_hard'})==nil)
+    -- A gang affiliation still routes to its gang; police still beat factions.
+    assert(key({affiliation='Maelstrom',bodyType=M})=='npc-maelstrom-male')
+    assert(key({police=true,affiliation='NCPD',bodyType=M})=='npc-ncpd-male')
+    -- Residents: nightlife, workers, Dogtown; the other Dogtown kinds keep their own.
+    assert(key({crowd=true,recordName='Character.NightlifeWoman',bodyType=F})=='npc-nightlife-resident-female')
+    assert(key({crowd=true,recordName='Character.NonBinaryMaleBodyNightlife',bodyType=M})=='npc-nightlife-resident-male')
+    assert(key({crowd=true,recordName='Character.WorkerSpecialistMale',bodyType=M})=='npc-worker-resident-male')
+    assert(key({crowd=true,recordName='Character.Waitress',bodyType=F})=='npc-worker-resident-female')
+    assert(key({crowd=true,recordName='Character.ep1_combat_zone_citizen_stacks_wa',bodyType=F})=='npc-dogtown-resident-female')
+    assert(key({crowd=true,recordName='Character.ep1_combat_zone_citizen_pacific_mb',bodyType=M})=='npc-dogtown-resident-male')
+    assert(key({crowd=true,recordName='Character.ep1_combat_zone_citizen_business_ma',bodyType=M})=='npc-corpo-resident-male')
+    assert(key({crowd=true,recordName='Character.ep1_combat_zone_citizen_outcast_wa',bodyType=F})=='npc-homeless-female')
+    assert(key({crowd=true,recordName='Character.Mallrat',bodyType=F})==nil, 'unlisted crowd kinds keep the resident fallback')
+    -- Every base the data declares has both variants.
+    for name,base in pairs(index.bases) do
+      assert(index.byBase[name] and index.byBase[name].MALE and index.byBase[name].FEMALE, name)
+    end
+  `);
+});
+test('only one-shop vendors get a memory key; crowd, goons and shared stall records stay session-only',()=>{
+  runLua(`
+    local index=api.buildArchetypes(api.ARCHETYPES)
+    local ripper={vendor=true,vendorType='RipperDoc',recordName='Character.wat_kab_ripperdoc_01',bodyType='ManAverage'}
+    local key=api.classify(index,ripper)
+    assert(key=='npc-ripperdoc-male')
+    assert(api.describe(index,key,ripper).memoryKey=='wat_kab_ripperdoc_01')
+    assert(api.memoryKey(index,ripper)=='wat_kab_ripperdoc_01')
+    local bar={vendor=true,vendorType='Food',recordName='Character.lizzies_barman',bodyType='ManAverage'}
+    assert(api.describe(index,api.classify(index,bar),bar).memoryKey=='lizzies_barman')
+    local medic={vendor=true,vendorType='Medical',recordName='Character.cct_dtn_medic_01',bodyType='WomanAverage'}
+    assert(api.describe(index,api.classify(index,medic),medic).memoryKey=='cct_dtn_medic_01')
+    -- The shared street-stall records stand at many stalls, so they are not one shopkeeper.
+    local stall={vendor=true,vendorType='Kiosk',recordName='Character.Kiosk',bodyType='ManAverage'}
+    assert(api.describe(index,api.classify(index,stall),stall).memoryKey==nil)
+    local grill={vendor=true,vendorType='GrilledFood',recordName='Character.Grilled_Food',bodyType='ManAverage'}
+    assert(api.describe(index,api.classify(index,grill),grill).memoryKey==nil)
+    -- No record name, a main-quest vendor, a gang member and a pedestrian have none.
+    local anon={vendor=true,vendorType='RipperDoc',bodyType='ManAverage'}
+    assert(api.describe(index,api.classify(index,anon),anon).memoryKey==nil)
+    assert(api.memoryKey(index,{vendor=true,quest='MainQuest',recordName='Character.wat_kab_ripperdoc_01'})==nil)
+    local gang={affiliation='Maelstrom',recordName='Character.wat_kab_ripperdoc_01',bodyType='ManAverage'}
+    assert(api.describe(index,api.classify(index,gang),gang).memoryKey==nil)
+    local walker={crowd=true,recordName='Character.CorpoMan',bodyType='ManAverage'}
+    assert(api.describe(index,api.classify(index,walker),walker).memoryKey==nil)
+  `);
+});
+test('Model browser records of the new kinds classify from TweakDB facts (vendor genders from the shipped sources)',()=>{
+  runLua(`
+    local index=api.buildArchetypes(api.ARCHETYPES)
+    local function key(facts) return (api.classifyRecord(index,facts)) end
+    assert(key({recordName='Character.wat_kab_medicstore_01',vendor=true,vendorType='Medical'})=='npc-medic-vendor-male')
+    assert(key({recordName='Character.cct_dtn_medic_01',vendor=true,vendorType='Medical'})=='npc-medic-vendor-female')
+    assert(key({recordName='Character.wat_kab_junkshop_01',vendor=true,vendorType='Junk'})=='npc-junk-dealer-male')
+    assert(key({recordName='Character.wat_lch_melee_01',vendor=true,vendorType='SkillTrainer'})=='npc-melee-vendor-male')
+    assert(key({recordName='Character.wat_kab_netrunner_01',vendor=true,vendorType='SkillTrainer'})=='npc-netrunner-vendor-female')
+    assert(key({recordName='Character.militech_ranger1_ranged1_saratoga_ma',affiliation='Militech'})=='npc-militech-male')
+    assert(key({recordName='Character.afterlife_merc_generic_medium_range_w_easy',affiliation='AfterlifeMercs'})=='npc-merc-female')
+    assert(key({recordName='Character.street_goon_medium_range_w_hard',affiliation='UnaffiliatedCorpo'})=='npc-street-goon-female')
+    assert(key({recordName='Character.NightlifeWoman',crowd=true})=='npc-nightlife-resident-female')
+    assert(key({recordName='Character.ep1_combat_zone_citizen_stacks_ma',crowd=true})=='npc-dogtown-resident-male')
+    assert(key({recordName='Character.q113_militech_guard_ma',affiliation='Militech'})==nil, 'quest records stay silent')
+  `);
+});
+test('the one-shop vendor list is generated from the shipped sources and holds no shared stall record',()=>{
+  const table=JSON.parse(readFileSync(new URL('../characters/archetype-record-genders.json',import.meta.url),'utf8'));
+  assert(table.uniqueVendors.length>100);
+  for(const shared of ['Character.Kiosk','Character.Market','Character.Drinks','Character.Grilled_Food','Character.Packed_Food','Character.Clothes','Character.Tech_Junk','Character.Chinese_Food'])
+    assert(!table.uniqueVendors.includes(shared),shared);
+  for(const shop of ['Character.wat_kab_ripperdoc_01','Character.lizzies_barman','Character.cz_stadium_gunsmith_01','Character.wbr_jpn_netrun_01'])
+    assert(table.uniqueVendors.includes(shop),shop);
+  assert.deepEqual([...table.uniqueVendors],[...table.uniqueVendors].sort());
 });

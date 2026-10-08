@@ -1521,6 +1521,1338 @@
       "languageBoxField": "language_hardening_mode",
       "languageBoxOff": true,
       "notCloned": []
+    },
+    "npc-maelstrom-male": {
+      "phase": "verified",
+      "originalCharacterId": "43a4a67c-c28f-11f1-b0a1-42010a7be02f",
+      "startedAt": "2026-10-07T21:21:08.509Z",
+      "key": "npc-maelstrom-male",
+      "name": "Maelstrom Ganger Male Multilingual",
+      "multilingualCharacterId": "0486d0b8-c295-11f1-9c75-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:27:18.466Z",
+      "voiceType": "AZURE-MULTILINGUAL-b56af7ad45",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-maelstrom-female": {
+      "phase": "verified",
+      "originalCharacterId": "46511612-c28f-11f1-b057-42010a7be02f",
+      "startedAt": "2026-10-07T21:21:29.186Z",
+      "key": "npc-maelstrom-female",
+      "name": "Maelstrom Ganger Female Multilingual",
+      "multilingualCharacterId": "117b50dc-c295-11f1-9c8e-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:27:25.430Z",
+      "voiceType": "AZURE-MULTILINGUAL-c49149301e",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-tyger-claws-male": {
+      "phase": "verified",
+      "originalCharacterId": "48c49360-c28f-11f1-97ca-42010a7be02f",
+      "startedAt": "2026-10-07T21:21:37.925Z",
+      "key": "npc-tyger-claws-male",
+      "name": "Tyger Claws Ganger Male Multilingual",
+      "multilingualCharacterId": "163ac058-c295-11f1-9399-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:27:30.349Z",
+      "voiceType": "AZURE-MULTILINGUAL-61873ce320",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-tyger-claws-female": {
+      "phase": "verified",
+      "originalCharacterId": "4a7fe95c-c28f-11f1-a7c4-42010a7be02f",
+      "startedAt": "2026-10-07T21:21:45.852Z",
+      "key": "npc-tyger-claws-female",
+      "name": "Tyger Claws Ganger Female Multilingual",
+      "multilingualCharacterId": "1b611a28-c295-11f1-a520-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:27:34.333Z",
+      "voiceType": "AZURE-MULTILINGUAL-ad3499ac3d",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-valentinos-male": {
+      "phase": "verified",
+      "originalCharacterId": "4d166e34-c28f-11f1-a7c4-42010a7be02f",
+      "startedAt": "2026-10-07T21:21:53.168Z",
+      "key": "npc-valentinos-male",
+      "name": "Valentinos Ganger Male Multilingual",
+      "multilingualCharacterId": "1fdd13e0-c295-11f1-9c70-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:27:40.562Z",
+      "voiceType": "AZURE-MULTILINGUAL-92203654f0",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-valentinos-female": {
+      "phase": "verified",
+      "originalCharacterId": "4e97d248-c28f-11f1-8c56-42010a7be02f",
+      "startedAt": "2026-10-07T21:22:02.096Z",
+      "key": "npc-valentinos-female",
+      "name": "Valentinos Ganger Female Multilingual",
+      "multilingualCharacterId": "2519432e-c295-11f1-8bc1-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:27:46.686Z",
+      "voiceType": "AZURE-MULTILINGUAL-552d02efd8",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-sixth-street-male": {
+      "phase": "verified",
+      "originalCharacterId": "4ff68026-c28f-11f1-9221-42010a7be02f",
+      "startedAt": "2026-10-07T21:22:08.750Z",
+      "key": "npc-sixth-street-male",
+      "name": "Sixth Street Member Male Multilingual",
+      "multilingualCharacterId": "291ee3ca-c295-11f1-9c8e-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:27:51.639Z",
+      "voiceType": "AZURE-MULTILINGUAL-de811bb34d",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-sixth-street-female": {
+      "phase": "verified",
+      "originalCharacterId": "51554b6e-c28f-11f1-b554-42010a7be02f",
+      "startedAt": "2026-10-07T21:22:18.930Z",
+      "key": "npc-sixth-street-female",
+      "name": "Sixth Street Member Female Multilingual",
+      "multilingualCharacterId": "2ea6f940-c295-11f1-af2e-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:27:55.618Z",
+      "voiceType": "AZURE-MULTILINGUAL-ad8798063c",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-animals-male": {
+      "phase": "verified",
+      "originalCharacterId": "5319d05a-c28f-11f1-a771-42010a7be02f",
+      "startedAt": "2026-10-07T21:22:25.184Z",
+      "key": "npc-animals-male",
+      "name": "Animals Ganger Male Multilingual",
+      "multilingualCharacterId": "327c95e8-c295-11f1-96af-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:28:00.373Z",
+      "voiceType": "AZURE-MULTILINGUAL-3e4638872a",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-animals-female": {
+      "phase": "verified",
+      "originalCharacterId": "55435f18-c28f-11f1-aec4-42010a7be02f",
+      "startedAt": "2026-10-07T21:22:36.625Z",
+      "key": "npc-animals-female",
+      "name": "Animals Ganger Female Multilingual",
+      "multilingualCharacterId": "39b42bdc-c295-11f1-a193-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:28:05.343Z",
+      "voiceType": "AZURE-MULTILINGUAL-c49149301e",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-voodoo-boys-male": {
+      "phase": "verified",
+      "originalCharacterId": "68ddd59e-c28f-11f1-8daf-42010a7be02f",
+      "startedAt": "2026-10-07T21:22:45.446Z",
+      "key": "npc-voodoo-boys-male",
+      "name": "Voodoo Boys Member Male Multilingual",
+      "multilingualCharacterId": "3e8ad99e-c295-11f1-a067-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:28:11.458Z",
+      "voiceType": "AZURE-MULTILINGUAL-4ef14f6865",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-voodoo-boys-female": {
+      "phase": "verified",
+      "originalCharacterId": "6aa0f050-c28f-11f1-8797-42010a7be02f",
+      "startedAt": "2026-10-07T21:22:55.445Z",
+      "key": "npc-voodoo-boys-female",
+      "name": "Voodoo Boys Member Female Multilingual",
+      "multilingualCharacterId": "443c41b6-c295-11f1-b683-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:28:16.964Z",
+      "voiceType": "AZURE-MULTILINGUAL-b439921109",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-scavengers-male": {
+      "phase": "verified",
+      "originalCharacterId": "6bf3efb6-c28f-11f1-994b-42010a7be02f",
+      "startedAt": "2026-10-07T21:23:01.667Z",
+      "key": "npc-scavengers-male",
+      "name": "Scavenger Male Multilingual",
+      "multilingualCharacterId": "48a610f6-c295-11f1-b053-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:28:21.087Z",
+      "voiceType": "AZURE-MULTILINGUAL-3cff3776e9",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-scavengers-female": {
+      "phase": "verified",
+      "originalCharacterId": "6d4d3476-c28f-11f1-9c75-42010a7be02f",
+      "startedAt": "2026-10-07T21:23:09.131Z",
+      "key": "npc-scavengers-female",
+      "name": "Scavenger Female Multilingual",
+      "multilingualCharacterId": "4d38bdc6-c295-11f1-8b52-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:28:27.185Z",
+      "voiceType": "AZURE-MULTILINGUAL-ad8798063c",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-wraiths-male": {
+      "phase": "verified",
+      "originalCharacterId": "6efab320-c28f-11f1-9d78-42010a7be02f",
+      "startedAt": "2026-10-07T21:23:16.234Z",
+      "key": "npc-wraiths-male",
+      "name": "Wraith Raider Male Multilingual",
+      "multilingualCharacterId": "5125ca5a-c295-11f1-a520-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:28:32.491Z",
+      "voiceType": "AZURE-MULTILINGUAL-83464fdaf7",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-wraiths-female": {
+      "phase": "verified",
+      "originalCharacterId": "711be3ea-c28f-11f1-ae80-42010a7be02f",
+      "startedAt": "2026-10-07T21:23:22.863Z",
+      "key": "npc-wraiths-female",
+      "name": "Wraith Raider Female Multilingual",
+      "multilingualCharacterId": "54e5f304-c295-11f1-8f43-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:28:37.509Z",
+      "voiceType": "AZURE-MULTILINGUAL-94e17e5330",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-mox-male": {
+      "phase": "verified",
+      "originalCharacterId": "727232bc-c28f-11f1-b398-42010a7be02f",
+      "startedAt": "2026-10-07T21:23:29.297Z",
+      "key": "npc-mox-male",
+      "name": "Mox Member Male Multilingual",
+      "multilingualCharacterId": "58bdfc9c-c295-11f1-84e1-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:28:45.487Z",
+      "voiceType": "AZURE-MULTILINGUAL-8087ad87b4",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-mox-female": {
+      "phase": "verified",
+      "originalCharacterId": "74e4d482-c28f-11f1-b37e-42010a7be02f",
+      "startedAt": "2026-10-07T21:23:36.243Z",
+      "key": "npc-mox-female",
+      "name": "Mox Member Female Multilingual",
+      "multilingualCharacterId": "5cdc02ba-c295-11f1-b678-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:28:51.580Z",
+      "voiceType": "AZURE-MULTILINGUAL-8fb9b03aef",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-aldecaldos-male": {
+      "phase": "verified",
+      "originalCharacterId": "781d6ff6-c28f-11f1-a67c-42010a7be02f",
+      "startedAt": "2026-10-07T21:23:45.230Z",
+      "key": "npc-aldecaldos-male",
+      "name": "Aldecaldos Nomad Male Multilingual",
+      "multilingualCharacterId": "62238e82-c295-11f1-aedf-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:28:56.378Z",
+      "voiceType": "AZURE-MULTILINGUAL-a2e2d3c386",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-aldecaldos-female": {
+      "phase": "verified",
+      "originalCharacterId": "7ac8683c-c28f-11f1-9221-42010a7be02f",
+      "startedAt": "2026-10-07T21:23:55.303Z",
+      "key": "npc-aldecaldos-female",
+      "name": "Aldecaldos Nomad Female Multilingual",
+      "multilingualCharacterId": "681b35a6-c295-11f1-8ae2-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:29:01.871Z",
+      "voiceType": "AZURE-MULTILINGUAL-a0810a758f",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-barghest-male": {
+      "phase": "verified",
+      "originalCharacterId": "8e55a9aa-c28f-11f1-9b0d-42010a7be02f",
+      "startedAt": "2026-10-07T21:24:01.875Z",
+      "key": "npc-barghest-male",
+      "name": "Barghest Soldier Male Multilingual",
+      "multilingualCharacterId": "6bed6d16-c295-11f1-9b0d-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:29:05.915Z",
+      "voiceType": "AZURE-MULTILINGUAL-99b13147b2",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-barghest-female": {
+      "phase": "verified",
+      "originalCharacterId": "92bb3d2a-c28f-11f1-8fa3-42010a7be02f",
+      "startedAt": "2026-10-07T21:24:10.401Z",
+      "key": "npc-barghest-female",
+      "name": "Barghest Soldier Female Multilingual",
+      "multilingualCharacterId": "712dd9fa-c295-11f1-aec4-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:29:10.817Z",
+      "voiceType": "AZURE-MULTILINGUAL-c54bd099e4",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-ncpd-male": {
+      "phase": "verified",
+      "originalCharacterId": "9483ae6c-c28f-11f1-9bc3-42010a7be02f",
+      "startedAt": "2026-10-07T21:24:16.864Z",
+      "key": "npc-ncpd-male",
+      "name": "NCPD Officer Male Multilingual",
+      "multilingualCharacterId": "750c9520-c295-11f1-b86d-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:29:15.496Z",
+      "voiceType": "AZURE-MULTILINGUAL-df94d676e2",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-ncpd-female": {
+      "phase": "verified",
+      "originalCharacterId": "96c7cf82-c28f-11f1-bea8-42010a7be02f",
+      "startedAt": "2026-10-07T21:24:23.627Z",
+      "key": "npc-ncpd-female",
+      "name": "NCPD Officer Female Multilingual",
+      "multilingualCharacterId": "7965cbf0-c295-11f1-ac2f-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:29:20.428Z",
+      "voiceType": "AZURE-MULTILINGUAL-9a90389ca0",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-corpo-security-male": {
+      "phase": "verified",
+      "originalCharacterId": "98bff468-c28f-11f1-bcc5-42010a7be02f",
+      "startedAt": "2026-10-07T21:24:30.266Z",
+      "key": "npc-corpo-security-male",
+      "name": "Corporate Security Male Multilingual",
+      "multilingualCharacterId": "7db7c88e-c295-11f1-8259-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:29:25.391Z",
+      "voiceType": "AZURE-MULTILINGUAL-7c29b4eda9",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-corpo-security-female": {
+      "phase": "verified",
+      "originalCharacterId": "9b0665ea-c28f-11f1-9bcb-42010a7be02f",
+      "startedAt": "2026-10-07T21:24:38.076Z",
+      "key": "npc-corpo-security-female",
+      "name": "Corporate Security Female Multilingual",
+      "multilingualCharacterId": "81bb324a-c295-11f1-8fc3-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:29:30.223Z",
+      "voiceType": "AZURE-MULTILINGUAL-a274d6d359",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-ripperdoc-male": {
+      "phase": "verified",
+      "originalCharacterId": "9c8be750-c28f-11f1-8f43-42010a7be02f",
+      "startedAt": "2026-10-07T21:24:44.615Z",
+      "key": "npc-ripperdoc-male",
+      "name": "Ripperdoc Male Multilingual",
+      "multilingualCharacterId": "85d688f2-c295-11f1-888a-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:29:37.833Z",
+      "voiceType": "AZURE-MULTILINGUAL-713bbb4510",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-ripperdoc-female": {
+      "phase": "verified",
+      "originalCharacterId": "9ee1be1c-c28f-11f1-ae36-42010a7be02f",
+      "startedAt": "2026-10-07T21:24:53.211Z",
+      "key": "npc-ripperdoc-female",
+      "name": "Ripperdoc Female Multilingual",
+      "multilingualCharacterId": "8aade3d4-c295-11f1-a2be-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:29:44.695Z",
+      "voiceType": "AZURE-MULTILINGUAL-eb15982107",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-weapons-dealer-male": {
+      "phase": "verified",
+      "originalCharacterId": "a0af2414-c28f-11f1-81cc-42010a7be02f",
+      "startedAt": "2026-10-07T21:25:02.454Z",
+      "key": "npc-weapons-dealer-male",
+      "name": "Weapons Dealer Male Multilingual",
+      "multilingualCharacterId": "8fdd64f6-c295-11f1-8b52-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:29:48.654Z",
+      "voiceType": "AZURE-MULTILINGUAL-742a42448d",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-weapons-dealer-female": {
+      "phase": "verified",
+      "originalCharacterId": "a31d1a4e-c28f-11f1-b057-42010a7be02f",
+      "startedAt": "2026-10-07T21:25:08.098Z",
+      "key": "npc-weapons-dealer-female",
+      "name": "Weapons Dealer Female Multilingual",
+      "multilingualCharacterId": "93b3af18-c295-11f1-bc8c-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:29:57.547Z",
+      "voiceType": "AZURE-MULTILINGUAL-ea3de26c8e",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-food-vendor-male": {
+      "phase": "verified",
+      "originalCharacterId": "b79aff22-c28f-11f1-bef1-42010a7be02f",
+      "startedAt": "2026-10-07T21:25:14.648Z",
+      "key": "npc-food-vendor-male",
+      "name": "Food Vendor Male Multilingual",
+      "multilingualCharacterId": "97937e9c-c295-11f1-8bc1-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:30:01.653Z",
+      "voiceType": "AZURE-MULTILINGUAL-99eda63017",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-food-vendor-female": {
+      "phase": "verified",
+      "originalCharacterId": "b96eea16-c28f-11f1-853b-42010a7be02f",
+      "startedAt": "2026-10-07T21:25:21.049Z",
+      "key": "npc-food-vendor-female",
+      "name": "Food Vendor Female Multilingual",
+      "multilingualCharacterId": "9b4bdc1e-c295-11f1-a6d9-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:30:06.511Z",
+      "voiceType": "AZURE-MULTILINGUAL-c1eb570bf7",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-bartender-male": {
+      "phase": "verified",
+      "originalCharacterId": "baf792a2-c28f-11f1-bef1-42010a7be02f",
+      "startedAt": "2026-10-07T21:25:28.043Z",
+      "key": "npc-bartender-male",
+      "name": "Bartender Male Multilingual",
+      "multilingualCharacterId": "9fe0ab38-c295-11f1-9b17-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:30:11.151Z",
+      "voiceType": "AZURE-MULTILINGUAL-c387a0c635",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-bartender-female": {
+      "phase": "verified",
+      "originalCharacterId": "bc80fcc6-c28f-11f1-9b0d-42010a7be02f",
+      "startedAt": "2026-10-07T21:25:36.720Z",
+      "key": "npc-bartender-female",
+      "name": "Bartender Female Multilingual",
+      "multilingualCharacterId": "a58dd6c8-c295-11f1-bdae-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:30:15.840Z",
+      "voiceType": "AZURE-MULTILINGUAL-fa9bf5ee42",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-clothing-vendor-male": {
+      "phase": "verified",
+      "originalCharacterId": "be977ad0-c28f-11f1-9391-42010a7be02f",
+      "startedAt": "2026-10-07T21:25:46.508Z",
+      "key": "npc-clothing-vendor-male",
+      "name": "Clothing Vendor Male Multilingual",
+      "multilingualCharacterId": "aae882b2-c295-11f1-9c77-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:30:20.643Z",
+      "voiceType": "AZURE-MULTILINGUAL-3ff4a9681c",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-clothing-vendor-female": {
+      "phase": "verified",
+      "originalCharacterId": "c073dd12-c28f-11f1-bb5f-42010a7be02f",
+      "startedAt": "2026-10-07T21:25:53.891Z",
+      "key": "npc-clothing-vendor-female",
+      "name": "Clothing Vendor Female Multilingual",
+      "multilingualCharacterId": "af864368-c295-11f1-8a08-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:30:27.023Z",
+      "voiceType": "AZURE-MULTILINGUAL-8fb9b03aef",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-corpo-resident-male": {
+      "phase": "verified",
+      "originalCharacterId": "c2e3fbcc-c28f-11f1-9d78-42010a7be02f",
+      "startedAt": "2026-10-07T21:26:02.829Z",
+      "key": "npc-corpo-resident-male",
+      "name": "Corporate Worker Male Multilingual",
+      "multilingualCharacterId": "b4ac0440-c295-11f1-b84f-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:30:31.275Z",
+      "voiceType": "AZURE-MULTILINGUAL-f1ebefb495",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-corpo-resident-female": {
+      "phase": "verified",
+      "originalCharacterId": "c4da71f4-c28f-11f1-a055-42010a7be02f",
+      "startedAt": "2026-10-07T21:26:12.835Z",
+      "key": "npc-corpo-resident-female",
+      "name": "Corporate Worker Female Multilingual",
+      "multilingualCharacterId": "baa85556-c295-11f1-a2e4-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:30:36.462Z",
+      "voiceType": "AZURE-MULTILINGUAL-ea3de26c8e",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-street-resident-male": {
+      "phase": "verified",
+      "originalCharacterId": "c7fa8c84-c28f-11f1-a17c-42010a7be02f",
+      "startedAt": "2026-10-07T21:26:19.919Z",
+      "key": "npc-street-resident-male",
+      "name": "Street Local Male Multilingual",
+      "multilingualCharacterId": "be6af4a0-c295-11f1-8fa3-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:30:40.800Z",
+      "voiceType": "RyanMultilingualNeural",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-street-resident-female": {
+      "phase": "verified",
+      "originalCharacterId": "ca6eac7a-c28f-11f1-a42b-42010a7be02f",
+      "startedAt": "2026-10-07T21:26:26.340Z",
+      "key": "npc-street-resident-female",
+      "name": "Street Local Female Multilingual",
+      "multilingualCharacterId": "c23bfb42-c295-11f1-8f43-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:30:45.603Z",
+      "voiceType": "JennyMultilingualV2Neural",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-nomad-resident-male": {
+      "phase": "verified",
+      "originalCharacterId": "de74ee50-c28f-11f1-bea8-42010a7be02f",
+      "startedAt": "2026-10-07T21:26:32.964Z",
+      "key": "npc-nomad-resident-male",
+      "name": "Nomad Male Multilingual",
+      "multilingualCharacterId": "c62064e6-c295-11f1-bc38-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:30:50.505Z",
+      "voiceType": "AZURE-MULTILINGUAL-6d586af64a",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-nomad-resident-female": {
+      "phase": "verified",
+      "originalCharacterId": "e032f944-c28f-11f1-9b0d-42010a7be02f",
+      "startedAt": "2026-10-07T21:26:42.882Z",
+      "key": "npc-nomad-resident-female",
+      "name": "Nomad Female Multilingual",
+      "multilingualCharacterId": "cb963086-c295-11f1-b538-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:30:55.131Z",
+      "voiceType": "AZURE-MULTILINGUAL-a0810a758f",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-homeless-male": {
+      "phase": "verified",
+      "originalCharacterId": "e2db5434-c28f-11f1-b630-42010a7be02f",
+      "startedAt": "2026-10-07T21:26:48.301Z",
+      "key": "npc-homeless-male",
+      "name": "Homeless Man Multilingual",
+      "multilingualCharacterId": "cf48709a-c295-11f1-a586-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:31:00.729Z",
+      "voiceType": "AZURE-MULTILINGUAL-19f6a69dbc",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-homeless-female": {
+      "phase": "verified",
+      "originalCharacterId": "e628a3bc-c28f-11f1-8b52-42010a7be02f",
+      "startedAt": "2026-10-07T21:26:56.925Z",
+      "key": "npc-homeless-female",
+      "name": "Homeless Woman Multilingual",
+      "multilingualCharacterId": "d4922a28-c295-11f1-b84f-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-07T21:31:04.972Z",
+      "voiceType": "AZURE-MULTILINGUAL-eb15982107",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": true,
+      "notCloned": []
+    },
+    "npc-medic-vendor-male": {
+      "phase": "verified",
+      "originalCharacterId": "13518a56-c2dc-11f1-9eaf-42010a7be02f",
+      "startedAt": "2026-10-08T05:52:40.609Z",
+      "key": "npc-medic-vendor-male",
+      "name": "Medic Shop Vendor Male Multilingual",
+      "multilingualCharacterId": "8dfb79ec-c2dc-11f1-937d-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:53:18.083Z",
+      "voiceType": "AZURE-MULTILINGUAL-c387a0c635",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-medic-vendor-female": {
+      "phase": "verified",
+      "originalCharacterId": "14dd42fc-c2dc-11f1-97ca-42010a7be02f",
+      "startedAt": "2026-10-08T05:53:18.434Z",
+      "key": "npc-medic-vendor-female",
+      "name": "Medic Shop Vendor Female Multilingual",
+      "multilingualCharacterId": "91ee7964-c2dc-11f1-91f3-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:53:29.333Z",
+      "voiceType": "AZURE-MULTILINGUAL-c1eb570bf7",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-junk-dealer-male": {
+      "phase": "verified",
+      "originalCharacterId": "166beb96-c2dc-11f1-8797-42010a7be02f",
+      "startedAt": "2026-10-08T05:53:29.704Z",
+      "key": "npc-junk-dealer-male",
+      "name": "Junk Dealer Male Multilingual",
+      "multilingualCharacterId": "99124eb4-c2dc-11f1-9959-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:53:37.065Z",
+      "voiceType": "AZURE-MULTILINGUAL-19f6a69dbc",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-junk-dealer-female": {
+      "phase": "verified",
+      "originalCharacterId": "18313148-c2dc-11f1-9c70-42010a7be02f",
+      "startedAt": "2026-10-08T05:53:37.423Z",
+      "key": "npc-junk-dealer-female",
+      "name": "Junk Dealer Female Multilingual",
+      "multilingualCharacterId": "9ce6fae4-c2dc-11f1-a3c2-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:53:46.442Z",
+      "voiceType": "AZURE-MULTILINGUAL-ad8798063c",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-melee-vendor-male": {
+      "phase": "verified",
+      "originalCharacterId": "1c6f3bc4-c2dc-11f1-a2e4-42010a7be02f",
+      "startedAt": "2026-10-08T05:53:47.337Z",
+      "key": "npc-melee-vendor-male",
+      "name": "Melee Dealer Male Multilingual",
+      "multilingualCharacterId": "a2f1b7f8-c2dc-11f1-a055-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:53:53.416Z",
+      "voiceType": "AZURE-MULTILINGUAL-de811bb34d",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-melee-vendor-female": {
+      "phase": "verified",
+      "originalCharacterId": "1e2c83ea-c2dc-11f1-ae72-42010a7be02f",
+      "startedAt": "2026-10-08T05:53:53.777Z",
+      "key": "npc-melee-vendor-female",
+      "name": "Melee Dealer Female Multilingual",
+      "multilingualCharacterId": "a70c4fa6-c2dc-11f1-8d9f-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:54:00.369Z",
+      "voiceType": "AZURE-MULTILINGUAL-94e17e5330",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-netrunner-vendor-male": {
+      "phase": "verified",
+      "originalCharacterId": "1ff8a0dc-c2dc-11f1-a0ce-42010a7be02f",
+      "startedAt": "2026-10-08T05:54:00.879Z",
+      "key": "npc-netrunner-vendor-male",
+      "name": "Netrunner Vendor Male Multilingual",
+      "multilingualCharacterId": "aad71170-c2dc-11f1-a7e9-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:54:06.831Z",
+      "voiceType": "AZURE-MULTILINGUAL-3cff3776e9",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-netrunner-vendor-female": {
+      "phase": "verified",
+      "originalCharacterId": "219beafc-c2dc-11f1-ab6e-42010a7be02f",
+      "startedAt": "2026-10-08T05:54:07.354Z",
+      "key": "npc-netrunner-vendor-female",
+      "name": "Netrunner Vendor Female Multilingual",
+      "multilingualCharacterId": "af981e8e-c2dc-11f1-ac3f-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:54:17.602Z",
+      "voiceType": "AZURE-MULTILINGUAL-a274d6d359",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-market-stall-male": {
+      "phase": "verified",
+      "originalCharacterId": "231f1192-c2dc-11f1-99bc-42010a7be02f",
+      "startedAt": "2026-10-08T05:54:17.944Z",
+      "key": "npc-market-stall-male",
+      "name": "Market Stall Vendor Male Multilingual",
+      "multilingualCharacterId": "b54d651e-c2dc-11f1-adfe-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:54:24.734Z",
+      "voiceType": "AZURE-MULTILINGUAL-6d586af64a",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-market-stall-female": {
+      "phase": "verified",
+      "originalCharacterId": "24f00760-c2dc-11f1-a959-42010a7be02f",
+      "startedAt": "2026-10-08T05:54:25.091Z",
+      "key": "npc-market-stall-female",
+      "name": "Market Stall Vendor Female Multilingual",
+      "multilingualCharacterId": "b954519a-c2dc-11f1-a6d9-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:54:31.670Z",
+      "voiceType": "AZURE-MULTILINGUAL-8fb9b03aef",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-militech-male": {
+      "phase": "verified",
+      "originalCharacterId": "38b082fc-c2dc-11f1-8fa3-42010a7be02f",
+      "startedAt": "2026-10-08T05:54:32.208Z",
+      "key": "npc-militech-male",
+      "name": "Militech Soldier Male Multilingual",
+      "multilingualCharacterId": "bd76e350-c2dc-11f1-ac2f-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:54:39.975Z",
+      "voiceType": "AZURE-MULTILINGUAL-99b13147b2",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-militech-female": {
+      "phase": "verified",
+      "originalCharacterId": "3a06c026-c2dc-11f1-9399-42010a7be02f",
+      "startedAt": "2026-10-08T05:54:41.122Z",
+      "key": "npc-militech-female",
+      "name": "Militech Soldier Female Multilingual",
+      "multilingualCharacterId": "c3aacfa2-c2dc-11f1-a1e8-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:54:47.587Z",
+      "voiceType": "AZURE-MULTILINGUAL-9a90389ca0",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-kang-tao-male": {
+      "phase": "verified",
+      "originalCharacterId": "3da32a80-c2dc-11f1-b364-42010a7be02f",
+      "startedAt": "2026-10-08T05:54:48.632Z",
+      "key": "npc-kang-tao-male",
+      "name": "Kang Tao Soldier Male Multilingual",
+      "multilingualCharacterId": "c75ff744-c2dc-11f1-b678-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:54:53.794Z",
+      "voiceType": "AZURE-MULTILINGUAL-83464fdaf7",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-kang-tao-female": {
+      "phase": "verified",
+      "originalCharacterId": "3f1f4826-c2dc-11f1-a586-42010a7be02f",
+      "startedAt": "2026-10-08T05:54:55.217Z",
+      "key": "npc-kang-tao-female",
+      "name": "Kang Tao Soldier Female Multilingual",
+      "multilingualCharacterId": "cb3975a2-c2dc-11f1-b86d-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:55:00.257Z",
+      "voiceType": "AZURE-MULTILINGUAL-ad3499ac3d",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-netwatch-male": {
+      "phase": "verified",
+      "originalCharacterId": "4075ae2c-c2dc-11f1-9c5e-42010a7be02f",
+      "startedAt": "2026-10-08T05:55:01.498Z",
+      "key": "npc-netwatch-male",
+      "name": "NetWatch Agent Male Multilingual",
+      "multilingualCharacterId": "cf404dba-c2dc-11f1-adfe-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:55:08.957Z",
+      "voiceType": "AZURE-MULTILINGUAL-7c29b4eda9",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-netwatch-female": {
+      "phase": "verified",
+      "originalCharacterId": "41fee47a-c2dc-11f1-bb49-42010a7be02f",
+      "startedAt": "2026-10-08T05:55:10.194Z",
+      "key": "npc-netwatch-female",
+      "name": "NetWatch Agent Female Multilingual",
+      "multilingualCharacterId": "d421250c-c2dc-11f1-9c99-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:55:16.756Z",
+      "voiceType": "AZURE-MULTILINGUAL-b439921109",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-trauma-team-male": {
+      "phase": "verified",
+      "originalCharacterId": "43794386-c2dc-11f1-8fa3-42010a7be02f",
+      "startedAt": "2026-10-08T05:55:17.112Z",
+      "key": "npc-trauma-team-male",
+      "name": "Trauma Team Responder Male Multilingual",
+      "multilingualCharacterId": "d85411b6-c2dc-11f1-8f43-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:55:22.449Z",
+      "voiceType": "AZURE-MULTILINGUAL-df94d676e2",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-trauma-team-female": {
+      "phase": "verified",
+      "originalCharacterId": "44c8b032-c2dc-11f1-a586-42010a7be02f",
+      "startedAt": "2026-10-08T05:55:23.732Z",
+      "key": "npc-trauma-team-female",
+      "name": "Trauma Team Responder Female Multilingual",
+      "multilingualCharacterId": "dc2edf0a-c2dc-11f1-ae72-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:55:29.822Z",
+      "voiceType": "AZURE-MULTILINGUAL-fa9bf5ee42",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-biotechnica-male": {
+      "phase": "verified",
+      "originalCharacterId": "46846b78-c2dc-11f1-ae36-42010a7be02f",
+      "startedAt": "2026-10-08T05:55:30.347Z",
+      "key": "npc-biotechnica-male",
+      "name": "Biotechnica Employee Male Multilingual",
+      "multilingualCharacterId": "e097b42c-c2dc-11f1-94a2-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:55:36.599Z",
+      "voiceType": "AZURE-MULTILINGUAL-f1ebefb495",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-biotechnica-female": {
+      "phase": "verified",
+      "originalCharacterId": "49c5d1d2-c2dc-11f1-99bc-42010a7be02f",
+      "startedAt": "2026-10-08T05:55:37.569Z",
+      "key": "npc-biotechnica-female",
+      "name": "Biotechnica Employee Female Multilingual",
+      "multilingualCharacterId": "e4906a2e-c2dc-11f1-aedf-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:55:43.766Z",
+      "voiceType": "AZURE-MULTILINGUAL-a0810a758f",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-merc-male": {
+      "phase": "verified",
+      "originalCharacterId": "5d869986-c2dc-11f1-b554-42010a7be02f",
+      "startedAt": "2026-10-08T05:55:44.134Z",
+      "key": "npc-merc-male",
+      "name": "Mercenary Male Multilingual",
+      "multilingualCharacterId": "e868f5ee-c2dc-11f1-8bc1-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:55:49.549Z",
+      "voiceType": "AZURE-MULTILINGUAL-b56af7ad45",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-merc-female": {
+      "phase": "verified",
+      "originalCharacterId": "5ecca394-c2dc-11f1-b1fb-42010a7be02f",
+      "startedAt": "2026-10-08T05:55:50.528Z",
+      "key": "npc-merc-female",
+      "name": "Mercenary Female Multilingual",
+      "multilingualCharacterId": "ec76e290-c2dc-11f1-bef1-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:55:55.828Z",
+      "voiceType": "AZURE-MULTILINGUAL-c49149301e",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-street-goon-male": {
+      "phase": "verified",
+      "originalCharacterId": "602abe10-c2dc-11f1-a3be-42010a7be02f",
+      "startedAt": "2026-10-08T05:56:00.067Z",
+      "key": "npc-street-goon-male",
+      "name": "Street Goon Male Multilingual",
+      "multilingualCharacterId": "f13bc5de-c2dc-11f1-994b-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:56:04.192Z",
+      "voiceType": "AZURE-MULTILINGUAL-3e4638872a",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-street-goon-female": {
+      "phase": "verified",
+      "originalCharacterId": "621b0ed2-c2dc-11f1-9f9b-42010a7be02f",
+      "startedAt": "2026-10-08T05:56:05.252Z",
+      "key": "npc-street-goon-female",
+      "name": "Street Goon Female Multilingual",
+      "multilingualCharacterId": "f50e43da-c2dc-11f1-994b-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:56:11.906Z",
+      "voiceType": "AZURE-MULTILINGUAL-c54bd099e4",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-nightlife-resident-male": {
+      "phase": "verified",
+      "originalCharacterId": "661fd8e6-c2dc-11f1-a055-42010a7be02f",
+      "startedAt": "2026-10-08T05:56:12.267Z",
+      "key": "npc-nightlife-resident-male",
+      "name": "Club Goer Male Multilingual",
+      "multilingualCharacterId": "f9c15e30-c2dc-11f1-af5a-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:56:20.281Z",
+      "voiceType": "AZURE-MULTILINGUAL-8087ad87b4",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-nightlife-resident-female": {
+      "phase": "verified",
+      "originalCharacterId": "68037a5a-c2dc-11f1-b057-42010a7be02f",
+      "startedAt": "2026-10-08T05:56:20.808Z",
+      "key": "npc-nightlife-resident-female",
+      "name": "Club Goer Female Multilingual",
+      "multilingualCharacterId": "febec08a-c2dc-11f1-8b52-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:56:27.530Z",
+      "voiceType": "AZURE-MULTILINGUAL-552d02efd8",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-worker-resident-male": {
+      "phase": "verified",
+      "originalCharacterId": "69b3fdac-c2dc-11f1-a055-42010a7be02f",
+      "startedAt": "2026-10-08T05:56:28.049Z",
+      "key": "npc-worker-resident-male",
+      "name": "City Worker Male Multilingual",
+      "multilingualCharacterId": "028c8c92-c2dd-11f1-a3ec-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:56:33.983Z",
+      "voiceType": "RyanMultilingualNeural",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-worker-resident-female": {
+      "phase": "verified",
+      "originalCharacterId": "6b5fee04-c2dc-11f1-a055-42010a7be02f",
+      "startedAt": "2026-10-08T05:56:34.341Z",
+      "key": "npc-worker-resident-female",
+      "name": "City Worker Female Multilingual",
+      "multilingualCharacterId": "069670a0-c2dd-11f1-ac2f-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:56:42.536Z",
+      "voiceType": "JennyMultilingualV2Neural",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-dogtown-resident-male": {
+      "phase": "verified",
+      "originalCharacterId": "6d38d9e8-c2dc-11f1-9061-42010a7be02f",
+      "startedAt": "2026-10-08T05:56:43.842Z",
+      "key": "npc-dogtown-resident-male",
+      "name": "Dogtown Resident Male Multilingual",
+      "multilingualCharacterId": "0bf1a466-c2dd-11f1-a3be-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:56:48.886Z",
+      "voiceType": "AZURE-MULTILINGUAL-a2e2d3c386",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "npc-dogtown-resident-female": {
+      "phase": "verified",
+      "originalCharacterId": "6ee963b6-c2dc-11f1-8336-42010a7be02f",
+      "startedAt": "2026-10-08T05:56:50.086Z",
+      "key": "npc-dogtown-resident-female",
+      "name": "Dogtown Resident Female Multilingual",
+      "multilingualCharacterId": "102f8700-c2dd-11f1-8621-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-08T05:56:56.323Z",
+      "voiceType": "AZURE-MULTILINGUAL-eb15982107",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
     }
   }
 }

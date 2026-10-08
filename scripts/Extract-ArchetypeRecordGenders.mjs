@@ -16,12 +16,13 @@ const SOURCES = [
   'tools/redmod/tweaks/base/gameplay/static_data/database/characters/npcs/records/quest/vendors/vendors.tweak',
   'tools/redmod/tweaks/base/gameplay/static_data/database/characters/npcs/records/quest/main_characters/tertiarycharacters.tweak',
   'tools/redmod/tweaks/ep1/gameplay/static_data/database/characters/npcs/records/openworld/ep1_vendors.tweak',
+  'tools/redmod/tweaks/ep1/gameplay/static_data/database/characters/npcs/records/openworld/ep1_vendors_additional.tweak',
 ];
 
 // Gender from a record name or template path alone: "_wa", "_wb", "Woman", "Female" ... (women first: "woman" has "man").
 // The same rule is mod/character-catalog.lua M.nameGender (bridge/character-catalog.test.mjs compares them).
-const FEMALE_TOKENS = new Set(['woman', 'women', 'female', 'girl', 'wa', 'wb', 'wc', 'waf', 'wbf', 'wah', 'wf']);
-const MALE_TOKENS = new Set(['man', 'men', 'male', 'boy', 'ma', 'mb', 'mc', 'maf', 'mbf', 'mah', 'mbh', 'mf']);
+const FEMALE_TOKENS = new Set(['woman', 'women', 'female', 'girl', 'w', 'wa', 'wb', 'wc', 'waf', 'wbf', 'wah', 'wf']);
+const MALE_TOKENS = new Set(['man', 'men', 'male', 'boy', 'm', 'ma', 'mb', 'mc', 'maf', 'mbf', 'mah', 'mbh', 'mf']);
 export function nameGender(value) {
   if (typeof value !== 'string' || !value) return null;
   const tokens = value.replace(/^Character\./, '').replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
@@ -43,6 +44,26 @@ export function parseRecords(text) {
     records.set(match[1], {parent: match[2].replace(/^Character\./, ''), template, vendorID: /vendorID\s*=/.test(body)});
   }
   return records;
+}
+
+// Vendor records that are one shop each (their own Vendor ID), as opposed to the shared street-stall records
+// (Character.Kiosk, Drinks, Grilled_Food, ... all inherit Fluff_Vendor_NPC_Base and stand at many stalls). Only a
+// one-shop record is a stable identity for remembering V (docs/NPC_ARCHETYPES.md, "Vendor memory").
+export function uniqueVendorRecords(records) {
+  const vendor = (name, depth = 0) => {
+    const row = records.get(name);
+    if (!row || depth > 8) return false;
+    return row.vendorID || /(?:^|_)(?:Fluff_)?Vendor_NPC_Base$|^(?:Foodshop|Bartender|Medical|Gun|Ripperdoc|Clothing|Junkshop|Melee|Cyberware|Techstore)_NPC_Base(?:_Female)?$/
+      .test(row.parent) || vendor(row.parent, depth + 1);
+  };
+  const fluff = (name, depth = 0) => {
+    const row = records.get(name);
+    if (!row || depth > 8) return false;
+    return /^Fluff_Vendor_NPC_Base(?:_Female)?$/.test(row.parent) || fluff(row.parent, depth + 1);
+  };
+  return [...records.keys()].sort()
+    .filter(name => !/_NPC_Base(?:_Female)?$/.test(name) && vendor(name) && !fluff(name) && !/^(?:Quest)_NPC_Base$/.test(records.get(name).parent))
+    .map(name => 'Character.' + name);
 }
 
 export function resolveGenders(records) {
@@ -82,6 +103,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const genders = resolveGenders(records);
   const target = resolve(root, 'characters/archetype-record-genders.json');
   await writeFile(target, JSON.stringify({version: 1, source: 'REDmod tweak sources: ' + SOURCES.map(path => path.split('/').pop()).join(', '),
-    records: genders}, null, 2) + '\n');
-  console.log(`Wrote ${Object.keys(genders).length} record genders to characters/archetype-record-genders.json.`);
+    records: genders, uniqueVendors: uniqueVendorRecords(records)}, null, 2) + '\n');
+  console.log(`Wrote ${Object.keys(genders).length} record genders and ${uniqueVendorRecords(records).length} one-shop vendor records to characters/archetype-record-genders.json.`);
 }

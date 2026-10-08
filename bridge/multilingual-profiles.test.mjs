@@ -178,7 +178,7 @@ test('voice map describes every voice it assigns, with the right gender, and cov
 });
 
 test('every archetype has a gender-matched Azure voice that is not a main-cast voice, with a one-line reason', () => {
-  assert.equal(archetypeRows.length, 44);
+  assert.equal(archetypeRows.length, 74);
   const mainVoices = new Set(MAIN_CAST.map(key => voiceMap.assignments[key].voice));
   const used = new Set();
   for (const row of archetypeRows) {
@@ -190,7 +190,7 @@ test('every archetype has a gender-matched Azure voice that is not a main-cast v
     assert.ok(entry.reason.length > 10 && !entry.reason.includes('\n'), row.key);
     used.add(entry.voice);
   }
-  // Voices are spread: 22 per gender over the 16 female / 22 male non-main-cast voices on offer.
+  // Voices are spread over the 16 female / 22 male non-main-cast voices on offer (reused between kinds that do not meet).
   assert.ok(used.size >= 30, 'archetype voices should be spread');
   // The gang the user singled out, the Haitian-French gang and the corporate guard.
   const voiceName = key => voiceMap.voices[voiceMap.assignments[key].voice].name;
@@ -205,13 +205,13 @@ test('rosters: named, archetypes or both; every archetype with an ID becomes one
   const relationships = {characters: Object.fromEntries(ROMANCE_BASE_KEYS.map(key => [key, {romanticCharacterId: 'romantic-' + key}]))};
   const common = {ids, genderOfVoice: new Map(), relationships, voiceMap};
   const archetypes = buildRows({...common, rosters: [archetypeRows], withRomance: false});
-  assert.equal(archetypes.rows.length, 44);
+  assert.equal(archetypes.rows.length, 74);
   assert.ok(archetypes.rows.every(row => row.key.startsWith('npc-') && row.originalId === 'id-' + row.key && !row.baseKey));
   assert.deepEqual(archetypes.voiceFallbacks, [], 'every archetype has a mapped voice');
-  assert.equal(archetypes.genderFallbacks.length, 44, 'with no Kokoro table the roster gender is used');
+  assert.equal(archetypes.genderFallbacks.length, 74, 'with no Kokoro table the roster gender is used');
   assert.equal(archetypes.rows.find(row => row.key === 'npc-ncpd-female').gender, 'FEMALE');
   const all = buildRows({...common, rosters: [rosterRows, archetypeRows]});
-  assert.equal(all.rows.length, rosterRows.length + 44 + ROMANCE_BASE_KEYS.length);
+  assert.equal(all.rows.length, rosterRows.length + 74 + ROMANCE_BASE_KEYS.length);
   assert.deepEqual(all.rows.filter(row => row.baseKey).map(row => row.key), ROMANCE_BASE_KEYS.map(romanceKey));
   assert.deepEqual(buildRows({...common, rosters: [archetypeRows], only: new Set(['npc-homeless-male'])}).rows.map(row => row.key), ['npc-homeless-male']);
   // A profile of the other roster is refused rather than silently skipped.
@@ -219,7 +219,7 @@ test('rosters: named, archetypes or both; every archetype with an ID becomes one
   assert.throws(() => buildRows({...common, rosters: [archetypeRows, archetypeRows]}), /two rosters/);
   // An archetype without an ID in runtime/characters.json is not twinned.
   const missing = {...ids}; delete missing['npc-homeless-male'];
-  assert.equal(buildRows({...common, ids: missing, rosters: [archetypeRows], withRomance: false}).rows.length, 43);
+  assert.equal(buildRows({...common, ids: missing, rosters: [archetypeRows], withRomance: false}).rows.length, 73);
 });
 
 test('an archetype twin is a faithful clone with memory off, en-US only and its own marker; readback is verified and a re-run adopts it', async () => {

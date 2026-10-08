@@ -212,7 +212,7 @@ test('archetype profiles build with markers, knowledge boundaries and plain samp
   const build = await import('../scripts/Build-ArchetypeProfiles.mjs');
   const {errors, profiles} = await build.buildArchetypes();
   assert.deepEqual(errors, []);
-  assert.equal(profiles.length, 44);
+  assert.equal(profiles.length, 74);
   for (const row of profiles) {
     assert.match(row.key, build.ARCHETYPE_KEY);
     assert(row.backstory.endsWith(build.ownershipMarker(row.key)), row.key);

@@ -882,6 +882,156 @@
    "voice": "AZURE-MULTILINGUAL-eb15982107",
    "voiceName": "Ximena",
    "reason": "Gentle, warm female voice for a tired, wary but kind woman living rough (shared with the ripperdoc)."
+  },
+  "npc-medic-vendor-male": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew",
+   "reason": "Warm, steady mid male voice for a practical street pharmacist who reassures people while keeping a dry humor."
+  },
+  "npc-medic-vendor-female": {
+   "voice": "AZURE-MULTILINGUAL-c1eb570bf7",
+   "voiceName": "Amanda",
+   "reason": "Gentle, friendly female voice for a tired but caring medic-counter clerk (shared with the food vendor, who does not work the same counter)."
+  },
+  "npc-junk-dealer-male": {
+   "voice": "AZURE-MULTILINGUAL-19f6a69dbc",
+   "voiceName": "Derek",
+   "reason": "Easygoing, mid-low male voice for a salvage dealer who has seen everything get thrown away (shared with the man living rough)."
+  },
+  "npc-junk-dealer-female": {
+   "voice": "AZURE-MULTILINGUAL-ad8798063c",
+   "voiceName": "Seraphina",
+   "reason": "Dry, lower female voice for a no-nonsense scrap trader who weighs everything by its worth."
+  },
+  "npc-melee-vendor-male": {
+   "voice": "AZURE-MULTILINGUAL-de811bb34d",
+   "voiceName": "Samuel",
+   "reason": "Level, deliberate male voice for a blade-and-blunt dealer with a martial-arts calm."
+  },
+  "npc-melee-vendor-female": {
+   "voice": "AZURE-MULTILINGUAL-94e17e5330",
+   "voiceName": "Xiaoyu",
+   "reason": "Clear, controlled East Asian-native female voice for a trainer who sells blades and discipline."
+  },
+  "npc-netrunner-vendor-male": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian",
+   "reason": "Cool, precise male voice for a quickhack and cyberdeck seller who talks in netrunner jargon."
+  },
+  "npc-netrunner-vendor-female": {
+   "voice": "AZURE-MULTILINGUAL-a274d6d359",
+   "voiceName": "Ada",
+   "reason": "Crisp, quick female voice for a tech-store netrunner (shared with the corporate security woman, who never meet)."
+  },
+  "npc-market-stall-male": {
+   "voice": "AZURE-MULTILINGUAL-6d586af64a",
+   "voiceName": "Macerio",
+   "reason": "Warm, cheerful haggler voice for a market-stall man selling small goods."
+  },
+  "npc-market-stall-female": {
+   "voice": "AZURE-MULTILINGUAL-8fb9b03aef",
+   "voiceName": "Phoebe",
+   "reason": "Bright, chatty female voice for a kiosk seller (shared with the Mox and the clothing vendor)."
+  },
+  "npc-militech-male": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon",
+   "reason": "Firm, clipped male voice for a disciplined Militech soldier."
+  },
+  "npc-militech-female": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena",
+   "reason": "Even, no-nonsense female voice for a Militech soldier (shared with the NCPD woman)."
+  },
+  "npc-kang-tao-male": {
+   "voice": "AZURE-MULTILINGUAL-83464fdaf7",
+   "voiceName": "Yunxiao",
+   "reason": "Formal East Asian-native male voice for a proud, cold Kang Tao soldier."
+  },
+  "npc-kang-tao-female": {
+   "voice": "AZURE-MULTILINGUAL-ad3499ac3d",
+   "voiceName": "Xiaoxiao",
+   "reason": "Precise, composed East Asian-native female voice for a Kang Tao soldier."
+  },
+  "npc-netwatch-male": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan",
+   "reason": "Crisp, formal, faintly lecturing male voice for an officious NetWatch agent (shared with the corporate guard)."
+  },
+  "npc-netwatch-female": {
+   "voice": "AZURE-MULTILINGUAL-b439921109",
+   "voiceName": "Vivienne",
+   "reason": "Cool, controlled female voice with a measured edge for a NetWatch agent."
+  },
+  "npc-trauma-team-male": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian",
+   "reason": "Calm, brisk male voice for a Trauma Team paramedic (shared with the NCPD man)."
+  },
+  "npc-trauma-team-female": {
+   "voice": "AZURE-MULTILINGUAL-fa9bf5ee42",
+   "voiceName": "Thalita",
+   "reason": "Clear, composed female voice for a Trauma Team responder (shared with the bartender)."
+  },
+  "npc-biotechnica-male": {
+   "voice": "AZURE-MULTILINGUAL-f1ebefb495",
+   "voiceName": "AlloyTurbo",
+   "reason": "Smooth, upbeat corporate male voice for a clean-lab Biotechnica employee."
+  },
+  "npc-biotechnica-female": {
+   "voice": "AZURE-MULTILINGUAL-a0810a758f",
+   "voiceName": "Emma",
+   "reason": "Pleasant, composed female voice for a Biotechnica employee (shared with the nomads, who meet her only at the Flats)."
+  },
+  "npc-merc-male": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo",
+   "reason": "Lowest, roughest male register for a jaded freelance merc (shared with the Maelstrom man)."
+  },
+  "npc-merc-female": {
+   "voice": "AZURE-MULTILINGUAL-c49149301e",
+   "voiceName": "Arabella",
+   "reason": "Low, worn female voice for a veteran merc (shared with the Maelstrom and Animals women)."
+  },
+  "npc-street-goon-male": {
+   "voice": "AZURE-MULTILINGUAL-3e4638872a",
+   "voiceName": "Lucien",
+   "reason": "Blunt, heavy male voice for hired muscle (shared with the Animals man)."
+  },
+  "npc-street-goon-female": {
+   "voice": "AZURE-MULTILINGUAL-c54bd099e4",
+   "voiceName": "Xiaochen",
+   "reason": "Flat, intimidating female voice for hired muscle (shared with the Barghest woman)."
+  },
+  "npc-nightlife-resident-male": {
+   "voice": "AZURE-MULTILINGUAL-8087ad87b4",
+   "voiceName": "EchoTurbo",
+   "reason": "Light, lively young male voice for a club-goer (shared with the Mox man)."
+  },
+  "npc-nightlife-resident-female": {
+   "voice": "AZURE-MULTILINGUAL-552d02efd8",
+   "voiceName": "Isidora",
+   "reason": "Warm, animated female voice for a night out (shared with the Valentinos woman)."
+  },
+  "npc-worker-resident-male": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual",
+   "reason": "Plain, tired American male voice for an ordinary working man (shared with the street local)."
+  },
+  "npc-worker-resident-female": {
+   "voice": "JennyMultilingualV2Neural",
+   "voiceName": "JennyMultilingualV2",
+   "reason": "Plain, friendly American female voice for an ordinary working woman (shared with the street local)."
+  },
+  "npc-dogtown-resident-male": {
+   "voice": "AZURE-MULTILINGUAL-a2e2d3c386",
+   "voiceName": "Marcello",
+   "reason": "Wary, low male voice for a guarded Dogtown local (shared with the Aldecaldos man)."
+  },
+  "npc-dogtown-resident-female": {
+   "voice": "AZURE-MULTILINGUAL-eb15982107",
+   "voiceName": "Ximena",
+   "reason": "Guarded, warm female voice for a Dogtown local (shared with the ripperdoc and the woman living rough)."
   }
  }
 }
