@@ -16,7 +16,7 @@ The user rejected the first overhead presentation on September 30: it sat too hi
 
 ## Timing and lifecycle
 
-Voiced text appears only once the actual audio cursor advances. Page timing is estimated by character length within the caption timeline passed by playback: the continuous Convai utterance, or the current Omni audio phrase. This is not forced word alignment. Pausing audio freezes page progression; streaming gaps never advance captions to text that is not playing. Improving an audio-duration estimate updates local timing without redisplaying unchanged text in either subtitle mode.
+Voiced text appears only once the actual (heard) audio cursor advances, the same clock the face uses. Continuous speech (Pocket, Convai) pages from audio-aligned sentence cues (see October 8 below): a page changes only when the next page's first sentence is heard. Omni phrases and older producers keep the character-share estimate within the phrase's own audio. Pausing audio or a stalled stream freezes page progression; streaming gaps never advance captions to text that is not playing. A timing revision updates local timing without redisplaying unchanged text in either subtitle mode.
 
 Text-only replies use bounded reading times. Every voice-off/error/partial-stream fallback retains the exact speaker identity. Per-copy dismissal clears that copy's presentation before deletion. Detachment/death/load abandonment releases references without calling the old HUD. Manual interruption, completion and group speaker changes clear the prior owned line. Cleanup immediately conceals the exact owned root before restoring its original projection: `HideDialogLine` is delayed, so restoring while the root is visible would raise the caption for a frame before it disappears.
 
@@ -117,3 +117,50 @@ They were inspected without rerunning the suite or adding production code.
 This confirms the correction is present on disk, not that the currently loaded
 Lua or native presentation has been observed during another trip. Fresh native
 boarding acceptance remains open; review and installation are complete.
+
+### October 8: captions timed by the heard audio
+
+The user saw a Cinematic subtitle disappear while Judy (Pocket) was still
+saying it. Cause: dialogue HUD pages were cut at 160 characters regardless of
+sentences (a sentence could start on one page and end on the next), and the
+page change came from that page's character share of a duration estimate
+(words / 2.5, then the final buffered duration), not from the audio. Real TTS
+puts 0.4-1.4 s pauses between sentences and speaks phrases at different rates,
+so the change landed seconds away from the words, early or late. Secondary:
+the caption was removed at the very last sample, Omni removed each phrase's
+caption at its end and showed nothing until the next phrase played, and the
+native HUD's `HideDialogLineByData` removes every ownerless line (ours has no
+speaker in dialogue mode) when the game ends some other line by data.
+
+Fix:
+- `bridge/caption-cues.mjs` splits the displayed text into sentences (very
+  long ones at a clause) and aligns each to the audio using the silences in
+  the continuous mouth timeline (`speechActivity`/`findPauses` from
+  `expression-timeline.mjs`), with a speech-rate model that excludes pauses.
+  It errs late: a boundary snaps only to a silence near where the rate puts it
+  and never inside the first part of the previous sentence; while streaming,
+  a boundary with no silence yet is `null` until the analysed voiced audio is
+  0.6 s past its estimate. The cues ride in `runtime/continuous-speech.json`
+  as `captions` `{version 1, cues [{text, start, finish}], complete, revision}`.
+- `mod/subtitles.lua` merges whole sentences into pages within the layout
+  budget (160 HUD, 120 overhead) and shows the page whose first sentence has
+  started at the heard position; an unknown boundary keeps the current page.
+  A sentence longer than a page is split and timed within its own audio span.
+  Without cues it keeps the previous estimate.
+- `M.linger`: finished speech keeps its last page 0.6 s, an Omni phrase up to
+  3 s until the next phrase is heard. A held caption owns nothing, so group
+  turns, reactions and the next speaker are not delayed and replace it at once.
+- A `SubtitlesGameController.OnHideLineByData` observer notes when the native
+  HUD removed our exact dialogue line and presents the same page again (at most
+  20 times per reply). `status()` reports `cueTimed`, `lingering`,
+  `nativeRemovals` and `restores`. Hook version 8: install by CET reload.
+
+Tests (`bridge/subtitles.test.mjs`): cue alignment against a mouth timeline
+with the live October 8 pause pattern (complete, and growing 50 ms at a time:
+no boundary is ever published early), sentence pages through simulated
+playback, a slow stream with an unknown boundary, a 10 s stall, a sentence
+longer than a page, overhead on one root, the reading hold, native removal,
+and an end-to-end run of the real bridge cue builder through `speech.lua` and
+`subtitles.lua` (a 3 s buffer lead, a 50 ms lead, and a 2 s stall) asserting
+that every audible sentence is on screen. The old Lua fails it: at 7.85 s the
+HUD still showed the first page, which ended mid-sentence at "on your".

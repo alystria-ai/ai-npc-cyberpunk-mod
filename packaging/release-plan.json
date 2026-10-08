@@ -479,6 +479,7 @@
           "sourceFiles": [
             "bridge/analysis-pcm.mjs",
             "bridge/battle-context.mjs",
+            "bridge/caption-cues.mjs",
             "bridge/chat-memory-resets.mjs",
             "bridge/companion-actions.mjs",
             "bridge/companion-expressions.mjs",

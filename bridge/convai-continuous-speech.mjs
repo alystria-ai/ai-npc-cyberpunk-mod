@@ -7,6 +7,7 @@ import {ownedExpressionReceipt} from './companion-expressions.mjs';
 import {decodeAnalysisPcm} from './analysis-pcm.mjs';
 import {JALI_LEAD_SECONDS} from './jali-face.mjs';
 import {displayText} from './natural-speech.mjs';
+import {captionCues, cueSignature} from './caption-cues.mjs';
 import {activeMakeupDb} from './dialogue-level.mjs';
 
 const SHARING_ERRORS = new Set(['EPERM', 'EACCES', 'EBUSY']);
@@ -223,6 +224,9 @@ export class ConvaiContinuousSpeech {
       state: snapshot.state, position: this.position, bufferedDuration: duration,
       text: snapshot.text, textComplete: snapshot.textComplete, complete: snapshot.sourceComplete,
       ended: snapshot.ended, underruns: snapshot.underruns, ...faceField};
+    // Subtitle timing: cue spans aligned to this same audio (bridge/caption-cues.mjs).
+    const captions = this.captionsFor(snapshot, duration);
+    if (captions) document.captions = captions;
     const expression = ownedExpressionReceipt(snapshot.expressionSignal, this.input);
     if (expression) document.expression = expression;
     const stateCommitted = await this.commit(this.writeState, document, snapshot.ended);
@@ -254,6 +258,23 @@ export class ConvaiContinuousSpeech {
     if (snapshot.ended) { this.ended = true; this.model?.close(); return quiet(); }
     if (!await this.valid()) throw Error('Continuous speech owner changed');
     return this.control();
+  }
+
+  // Audio-aligned subtitle cues for the published text. Recomputed when the
+  // text, audio or mouth timeline changes; the revision grows only when the
+  // cues themselves change, so the game re-paginates only then.
+  captionsFor(snapshot, duration) {
+    const key = `${this.faceRevision}:${duration}:${snapshot.sourceComplete}:${snapshot.textComplete}:${snapshot.text}`;
+    if (key === this.captionKey) return this.captions;
+    this.captionKey = key;
+    let next;
+    try {
+      next = captionCues(snapshot.text, {face: this.face, duration, complete: snapshot.sourceComplete && snapshot.textComplete});
+    } catch { next = undefined; }
+    const signature = cueSignature(next);
+    if (signature !== this.captionSignature) { this.captionSignature = signature; this.captionRevision = (this.captionRevision || 0) + 1; }
+    this.captions = next ? {...next, revision: this.captionRevision} : undefined;
+    return this.captions;
   }
 
   // The game reads these files on its own cadence. On Windows a read in progress

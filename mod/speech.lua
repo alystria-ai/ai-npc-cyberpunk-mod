@@ -19,6 +19,9 @@ end
 local function finite(value)
     return type(value) == 'number' and value == value and math.abs(value) < math.huge
 end
+-- Reading hold after the last heard sample, and the longest an Omni phrase stays
+-- up while the next phrase is still rendering (its start replaces it at once).
+local CAPTION_HOLD, PHRASE_HOLD = .6, 3
 local function null(value)
     return value == nil or (json.null ~= nil and value == json.null)
 end
@@ -104,7 +107,12 @@ function M.stop(reason)
     if face.endExpression then face.endExpression(M.context,reason=='finished') end
     face.stop(M.actor, reason)
     if M.player and not M.continuous then pcall(function() M.player:ConvaiSpeechStop() end) end
-    if M.requestId then captions.clear() end
+    if M.requestId then
+        -- Heard to the end: hold the last page briefly (it owns nothing, so the
+        -- next speaker replaces it at once). Any other stop removes it now.
+        if reason == 'finished' and type(captions.linger) == 'function' then captions.linger(CAPTION_HOLD)
+        else captions.clear() end
+    end
     M.streamReceipt = receipt()
     M.stream, M.context, M.nativeCompleted = nil, nil, nil
     M.continuous, M.continuousEnded, M.continuousId, M.continuousCaptions = nil, nil, nil, nil
@@ -313,7 +321,11 @@ local function syncUtterance(position)
     local s = M.stream or M.continuousCaptions
     s.position = math.max(s.position or 0, position)
     if not captions.enabled() then return end
-    local changed = s.captionText ~= s.text or s.captionFinal ~= s.final
+    -- Continuous speech carries audio-aligned cues (bridge/caption-cues.mjs);
+    -- a new cue revision re-times the pages without redisplaying them.
+    local cues = M.continuousCaptions == s and s.cues or nil
+    local revision = type(cues) == 'table' and cues.revision or nil
+    local changed = s.captionText ~= s.text or s.captionFinal ~= s.final or s.captionRevision ~= revision
     if changed or not captions.timed then
         local words, chars = 0, 0
         for _ in s.text:gmatch('%S+') do words = words + 1 end
@@ -323,11 +335,11 @@ local function syncUtterance(position)
         local duration = s.final and s.bufferedDuration
             or math.min(120, math.max(s.bufferedDuration, words / 2.5, chars / 14) + .5)
         local revised = captions.timed and type(captions.reviseTimed) == 'function'
-            and captions.reviseTimed(s.text, duration, s.position)
+            and captions.reviseTimed(s.text, duration, s.position, cues)
         if not revised then
-            captions.beginTimed(M.speaker, s.text, duration, M.actor, M.context.entity)
+            captions.beginTimed(M.speaker, s.text, duration, M.actor, M.context.entity, cues)
         end
-        s.captionText, s.captionFinal = s.text, s.final
+        s.captionText, s.captionFinal, s.captionRevision = s.text, s.final, revision
     end
     captions.syncTimed(s.position)
 end
@@ -359,6 +371,7 @@ local function updateContinuous(delta, player, paused)
         if face.acceptExpression then face.acceptExpression(M.context,state.expression) end
         local caption = M.continuousCaptions
         caption.text, caption.bufferedDuration, caption.final = state.text, state.bufferedDuration, state.complete
+        caption.cues = type(state.captions) == 'table' and state.captions or nil
         if type(state.face) == 'table' and state.bufferedDuration > 0 and type(face.updateContinuous) == 'function' then
             -- A separately published timeline (faceDuration) may trail the buffered audio by one refresh.
             face.updateContinuous(M.context, state.face, M.actor, state.faceDuration or state.bufferedDuration)
@@ -393,7 +406,7 @@ end
 local function updateSpeech(delta)
     local player = Game.GetPlayer()
     M.heartbeat = M.heartbeat + delta
-    if M.heartbeat >= 1 then
+    if M.heartbeat >= 2 then -- speech-state.json lease: the bridge keeps it 5 s
         M.heartbeat = 0
         continuousAdapter()
         if not M.continuous then M.available = player ~= nil and pcall(function() player:ConvaiSpeechPosition() end) end
@@ -470,7 +483,10 @@ local function updateSpeech(delta)
         if s.version == 2 and type(face.hold) == 'function' then face.hold(M.actor, M.requestId)
         else face.stop(M.actor, 'chunk-finished') end
         M.player:ConvaiSpeechStop()
-        if not s or s.version ~= 2 then captions.clear() end
+        -- One Omni phrase is over: keep it up until the next phrase is heard.
+        if not s or s.version ~= 2 then
+            if type(captions.linger) == 'function' then captions.linger(PHRASE_HOLD) else captions.clear() end
+        end
         if nativeCompleted then s.nativeCompleted = (s.nativeCompleted or 0) + 1 end
         s.completed, s.wait, s.gap = s.index, 0, 0
         M.state, M.slot, M.position = 'buffering', nil, 0

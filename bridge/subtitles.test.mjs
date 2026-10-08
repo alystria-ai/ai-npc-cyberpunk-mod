@@ -466,7 +466,8 @@ assert(m.line==nil and m.actor==nil and m.entity==nil)
 
 test('native root ownership survives distinct controller and widget wrappers without affecting foreign captions', () => run(setup + `
 assert(registrations==0 and overrideRegistrations==0)
-assert(m.install());assert(m.install());assert(registrations==1 and overrideRegistrations==2)
+assert(m.install());assert(m.install());assert(registrations==2 and overrideRegistrations==2)
+assert(afterHooks["SubtitlesGameController.OnHideLineByData"],"Native removal by data must be observed")
 local after=afterHooks['ChatterLineLogicController.SetLineData']
 local bubble=overrides['ChatterLineLogicController.IsBubble']
 assert(after and bubble)
@@ -769,7 +770,7 @@ assert(m.renderUpdateError:find('unavailable') and not broken.root.visible and b
 
 test('a missing projection override API still reveals the admitted caption through the regular frame path', () => run(setup + `
 Override=nil
-assert(m.install() and registrations==1 and overrideRegistrations==0)
+assert(m.install() and registrations==2 and overrideRegistrations==0)
 local root=surface('201ULL')
 m.show('Judy','Native placement remains usable.',judy,'201ULL')
 afterHooks['ChatterLineLogicController.SetLineData'](wrapController(root),m.line)
@@ -898,4 +899,270 @@ test('installed 2.31 native sources support animated head projection and owned p
   for (const method of ['GetSlotComponentName', 'SetSlotComponentName', 'GetSlotName', 'SetSlotName', 'GetSlotFallbackName', 'SetSlotFallbackName']) {
     assert.match(projection, new RegExp(`function ${method}\\(`));
   }
+});
+
+// ---- Audio-timed captions (October 8): cues aligned to the heard audio ----
+// The user saw a cinematic subtitle vanish while Judy (Pocket) was still saying
+// it. Pages were split at 160 characters regardless of sentences and advanced
+// by character share of a duration estimate. Cues from bridge/caption-cues.mjs
+// carry the audio second each sentence starts; pages change only there.
+import {captionCues, cueSignature} from './caption-cues.mjs';
+import {displayText} from './natural-speech.mjs';
+
+const speechSource = readFileSync(new URL('../mod/speech.lua', import.meta.url), 'utf8');
+// Five sentences as Pocket Judy spoke them on October 8 (live mouth-timeline
+// pauses), with clause pauses inside sentences two, three and five.
+const SENTENCES = [
+  {text: 'I just like them.', voiced: [[.2, 1]]},
+  {text: "They're a way of marking who I am, you know?", voiced: [[2.18, 3.3], [3.45, 4.02]]},
+  {text: 'Plus, in a city where everything is synthetic and corporate,', voiced: [[4.43, 4.75], [4.95, 7.4]]},
+  {text: 'having something permanent on your own skin feels...', voiced: [[7.85, 10.33]]},
+  {text: "I don't know, real.", voiced: [[11.7, 12.37], [12.67, 12.98]]},
+];
+const TOTAL = 13.12;
+const TEXT = SENTENCES.map(sentence => sentence.text).join(' ');
+function mouth(sentences, until, total = TOTAL) {
+  const frames = [];
+  for (let i = 0; i * .01 <= Math.min(until, total) + 1e-9; i++) {
+    const t = Math.round(i * 1000) / 100000;
+    const voiced = sentences.some(sentence => sentence.voiced.some(([a, b]) => t >= a && t <= b));
+    frames.push([t, voiced ? .3 : 0]);
+  }
+  return {version: 1, tracks: ['jaw_mid_open'], frames, duration: Math.min(until, total), complete: until >= total};
+}
+function lua(value) {
+  if (value === null || value === undefined) return 'nil';
+  if (typeof value === 'string') return JSON.stringify(value);
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) return '{' + value.map(lua).join(',') + '}';
+  return '{' + Object.entries(value).filter(([, item]) => item !== undefined && item !== null)
+    .map(([key, item]) => `[${JSON.stringify(key)}]=${lua(item)}`).join(',') + '}';
+}
+
+test('caption cues follow the audio: real pauses, not text share, and nothing before it is heard', () => {
+  const complete = captionCues(TEXT, {face: mouth(SENTENCES, TOTAL), duration: TOTAL, complete: true});
+  assert.equal(complete.cues.map(cue => cue.text).join(''), TEXT, 'Cue texts reassemble the displayed reply');
+  assert.deepEqual(complete.cues.map(cue => cue.start), [0, 2.18, 4.43, 7.85, 11.7]);
+  // A cue ends at its last voiced frame (within one 10 ms mouth frame).
+  [1, 4.02, 7.4, 10.33, 12.98].forEach((end, i) => assert.ok(Math.abs(complete.cues[i].finish - end) <= .0101, `cue ${i} end`));
+  assert.ok(complete.cues.every(cue => cue.anchored));
+  // Streaming: the mouth timeline grows with the buffered audio. A boundary is
+  // published only once speech has resumed after its pause, and never early.
+  for (let buffered = .05; buffered < TOTAL; buffered += .05) {
+    const partial = captionCues(TEXT, {face: mouth(SENTENCES, buffered), duration: buffered, complete: false});
+    partial.cues.forEach((cue, index) => {
+      if (cue.start === null) {
+        assert.ok(partial.cues.slice(index).every(later => later.start === null), 'Unknown boundaries stay ordered');
+        return;
+      }
+      assert.ok(cue.start >= complete.cues[index].start - 1e-6, `cue ${index} published early at ${buffered.toFixed(2)} s`);
+      assert.ok(Math.abs(cue.start - complete.cues[index].start) < 1e-6, `cue ${index} misplaced at ${buffered.toFixed(2)} s`);
+    });
+    for (const [index, sentence] of SENTENCES.entries())
+      if (buffered >= sentence.voiced[0][0] + .02) assert.notEqual(partial.cues[index].start, null, `cue ${index} known by ${buffered.toFixed(2)} s`);
+  }
+  // A pause still in progress at the end of the analysed audio is not evidence that no pause is coming.
+  const midPause = captionCues(TEXT, {face: mouth(SENTENCES, 9.9 + 1.5), duration: 11.4, complete: false});
+  assert.equal(midPause.cues[4].start, null);
+  // Without a mouth timeline the final duration still yields monotonic estimates.
+  const estimated = captionCues(TEXT, {duration: TOTAL, complete: true});
+  assert.ok(estimated.cues.every((cue, i) => i === 0 || cue.start > estimated.cues[i - 1].start));
+  assert.equal(captionCues(TEXT, {duration: 1.2, complete: false}).cues[1].start, null, 'No estimate before the buffered audio passes it');
+  // Natural-speech tags never reach a cue and leave no gap.
+  const tagged = displayText('Hey [laughter] V. {joy} Good to see you.');
+  const cues = captionCues(tagged, {duration: 3, complete: true}).cues;
+  assert.equal(cues.map(cue => cue.text).join(''), tagged);
+  assert.ok(!cues.some(cue => /\[|\{/.test(cue.text)));
+  assert.equal(cueSignature(complete), cueSignature(captionCues(TEXT, {face: mouth(SENTENCES, TOTAL), duration: TOTAL, complete: true})));
+});
+
+test('cue pages keep whole sentences and change only when the next sentence is heard', () => run(setup + `
+style='dialogue'
+local captions=${lua(captionCues(TEXT, {face: mouth(SENTENCES, TOTAL), duration: TOTAL, complete: true}))}
+local text=${lua(TEXT)}
+assert(m.beginTimed('Judy',text,${TOTAL},judy,'201ULL',captions))
+assert(m.status().cueTimed and #m.pages==2)
+assert(m.pages[1]=="I just like them. They're a way of marking who I am, you know? Plus, in a city where everything is synthetic and corporate,")
+assert(m.pages[2]=="having something permanent on your own skin feels... I don't know, real.")
+local t=0
+while t<=${TOTAL} do
+ m.syncTimed(t);m.update(.05)
+ assert(m.line and m.page==(t>=7.85 and 2 or 1),'page '..tostring(m.page)..' at '..t)
+ t=t+.05
+end
+assert(#shown()==2 and #hidden()==1,'Each page is presented once')
+-- Audio finished: a short reading hold that owns nothing.
+assert(m.linger(.6) and m.line and not m.ownsUtterance())
+m.update(.5);assert(m.line~=nil)
+m.update(.2);assert(m.line==nil and #hidden()==2)
+`));
+
+test('a slow stream and a stall hold the heard page; a late boundary advances without replaying', () => run(setup + `
+style='dialogue'
+local text=${lua(TEXT)}
+local early=${lua(captionCues(TEXT, {face: mouth(SENTENCES, 7.6), duration: 7.6, complete: false}))}
+local later=${lua(captionCues(TEXT, {face: mouth(SENTENCES, 8.4), duration: 8.4, complete: false}))}
+local final=${lua(captionCues(TEXT, {face: mouth(SENTENCES, TOTAL), duration: TOTAL, complete: true}))}
+assert(early.cues[4].start==nil and later.cues[4].start==7.85)
+assert(m.beginTimed('Judy',text,14.1,judy,'201ULL',early))
+-- The old estimate put page two at 12.2 s of a 14.1 s guess, the final 13.12 s
+-- at 11.4 s: neither is where the voice is. An unknown boundary waits.
+for _,t in ipairs({1,4,7.6,8.4,9.5})do m.syncTimed(t);assert(m.page==1)end
+-- Stalled renderer: the cursor stops, wall time passes, nothing advances or clears.
+for _=1,40 do m.syncTimed(9.5);m.update(.25)end
+assert(m.line and m.page==1 and #shown()==1 and #hidden()==0)
+assert(m.reviseTimed(text,14.1,9.5,later))
+assert(m.page==2 and #shown()==2,'The resolved boundary shows the page being heard')
+local count=#shown()
+assert(m.reviseTimed(text,${TOTAL},10,final) and #shown()==count,'Timing-only revisions do not redisplay')
+m.syncTimed(12.9);assert(m.page==2 and #shown()==count)
+`));
+
+test('a sentence longer than a page splits within its own audio span, and tags never show', () => run(setup + `
+style='dialogue'
+local long=string.rep('word ',49)..'end of a very long sentence without any break at all.'
+local captions={version=1,cues={{text='Hey [laughter] V. ',start=0,finish=.8},{text=long,start=1,finish=16}}}
+assert(m.beginTimed('Judy','Hey [laughter] V. '..long,16,judy,'201ULL',captions))
+assert(m.pages[1]=='Hey V.' and #m.pages>=3)
+for _,page in ipairs(m.pages)do assert(countChars(page)<=160 and not page:find('%['))end
+local chars=countChars(m.cues(captions)[2].text:match('^%s*(.-)%s*$'))
+local second=m.pageRanges[3].start-m.pageRanges[2].start
+local at=1+15*second/chars
+m.syncTimed(.9);assert(m.page==1)
+m.syncTimed(1);assert(m.page==2)
+m.syncTimed(at-.05);assert(m.page==2,'The second part waits for its share of the sentence audio')
+m.syncTimed(at+.01);assert(m.page==3)
+-- Unknown end and no later cue: a slow reading rate, never a guess ahead.
+m.clear()
+local open={version=1,cues={{text=long,start=0}}}
+assert(m.beginTimed('Judy',long,30,judy,'201ULL',open))
+local part=(m.pageRanges[2].start-1)/15
+m.syncTimed(part-.05);assert(m.page==1)
+m.syncTimed(part+.05);assert(m.page==2)
+-- Malformed cues fall back to the duration share.
+m.clear()
+assert(m.beginTimed('Judy',long,16,judy,'201ULL',{version=1,cues={{text='a',start=0},{text='b',start=5},{text='c',start=2}}}))
+assert(not m.status().cueTimed)
+`));
+
+test('overhead captions follow cues on one projected root', () => run(setup + `
+style='overhead'
+local captions=${lua(captionCues(TEXT, {face: mouth(SENTENCES, TOTAL), duration: TOTAL, complete: true}))}
+assert(m.beginTimed('Judy',${lua(TEXT)},${TOTAL},judy,'201ULL',captions))
+assert(m.status().mode=='overhead' and m.status().cueTimed)
+for _,page in ipairs(m.pages)do assert(countChars(page)<=120)end
+local first=m.line.id
+local t,pages=0,{}
+while t<=${TOTAL} do
+ m.syncTimed(t);pages[m.page]=pages[m.page] or t;t=t+.05
+end
+assert(#shown()==1 and m.line.id==first,'Overhead pages update one owned line')
+for page=2,#m.pages do
+ local at=m.timed.starts[page]
+ assert(at==2.18 or at==4.43 or at==7.85 or at==11.7,'Overhead pages also change only at heard sentence starts')
+ assert(pages[page]>=at-1e-9)
+end
+`));
+
+test('a reading hold never blocks the next speaker or phrase, and expires on its own', () => run(setup + `
+style='dialogue'
+assert(m.beginTimed('Judy','First phrase.',1.5,judy,'201ULL'))
+m.syncTimed(1.5);assert(m.linger(3))
+local held=m.line.id
+m.update(1);assert(m.line and m.line.id==held and not m.ownsUtterance())
+-- Next Omni phrase (or group speaker) is heard: it replaces the held line at once.
+assert(m.beginTimed('Panam','Second voice now.',2,judyCopy,'202ULL'))
+assert(hidden()[#hidden()]==held and m.line.text=='Second voice now.' and m.entity=='202ULL')
+assert(m.ownsUtterance())
+m.syncTimed(2);assert(m.linger(.6))
+menu=true;m.update(5);assert(m.line~=nil,'A menu pauses the hold');menu=false
+m.update(.7);assert(m.line==nil and not m.ownsUtterance())
+assert(not m.linger(.6),'Nothing to hold')
+`));
+
+test('native removal by data presents the heard dialogue page again', () => run(setup + `
+style='dialogue'
+assert(m.install())
+local removed=afterHooks['SubtitlesGameController.OnHideLineByData']
+assert(m.beginTimed('Judy','Still talking here.',4,judy,'201ULL'))
+local first=m.line
+removed(nil,{id='someone-else'});m.update(.05);assert(#shown()==1)
+removed(nil,{id=first.id});m.update(.05)
+assert(#shown()==2 and shown()[2].text==first.text and shown()[2].id~=first.id)
+assert(m.status().restores==1 and m.status().nativeRemovals==1)
+m.syncTimed(3);assert(m.page==1 and #shown()==2)
+m.clear()
+style='overhead'
+assert(m.beginTimed('Judy','Overhead is not affected.',4,judy,'201ULL'))
+removed(nil,{id=m.line.id});m.update(.05);assert(#shown()==3 and m.status().restores==0)
+`));
+
+// End to end: the real bridge cue builder feeds speech.lua and subtitles.lua
+// through simulated heard playback. Whenever a sentence is audible, the HUD
+// shows the page containing it: never replaced early, never left blank.
+function playback({lead, stall}) {
+  const states = [];
+  let heard = 0, wall = 0, revision = 0, signature = '';
+  while (heard < TOTAL - 1e-9) {
+    wall += .05;
+    const stalled = stall && wall >= stall[0] && wall < stall[1];
+    if (!stalled) heard = Math.min(TOTAL, heard + .05);
+    const buffered = Math.min(TOTAL, heard + lead), complete = buffered >= TOTAL;
+    const captions = captionCues(TEXT, {face: mouth(SENTENCES, buffered), duration: buffered, complete});
+    if (cueSignature(captions) !== signature) { signature = cueSignature(captions); revision++; }
+    states.push({position: Math.round(heard * 1000) / 1000, bufferedDuration: buffered, complete, textComplete: true,
+      text: TEXT, state: stalled ? 'buffering' : 'playing', ended: false, captions: {...captions, revision}});
+  }
+  states.push({...states.at(-1), state: 'ended', ended: true});
+  return states;
+}
+const speechHarness = states => `
+style='dialogue'
+player.ConvaiManagerVoice=function()return true end
+json={encode=function()return '' end}
+io={open=function()return {write=function()return true end,read=function()return nil end,close=function()return true end}end}
+local adapter={version=1,available=true,current=nil}
+function adapter.start()return true end
+function adapter.update()return adapter.current end
+function adapter.stop()end
+function adapter.pause()return true end
+function adapter.status()return {}end
+local face=setmetatable({},{__index=function()return function()end end})
+dofile=function(path)
+ if path=='subtitles.lua' then return m end
+ if path=='facial-playback.lua' then return face end
+ if path=='continuous-speech.lua' then return adapter end
+ error('Unexpected module '..path)
+end
+local speech=(function()${speechSource}
+end)()
+local sentences=${lua(SENTENCES)}
+local states=${lua(states)}
+speech.target=judy
+assert(speech.start({requestId='r1',entity='201ULL',generation=1,name='Judy'},{text=states[1].text,continuous={version=1,id='c1'}}))
+local reported={}
+for index,state in ipairs(states)do
+ adapter.current=state
+ speech.update(.05);m.update(.05)
+ if state.ended then break end
+ for number,sentence in ipairs(sentences)do
+  for _,span in ipairs(sentence.voiced)do
+   if state.position>=span[1] and state.position<=span[2] then
+    local line=m.line and m.line.text or ''
+    if not line:find(sentence.text,1,true) and not reported[number] then
+     reported[number]=true
+     error('Sentence '..number..' audible at '..state.position..' s but the HUD shows: '..line)
+    end
+   end
+  end
+ end
+end
+assert(m.line and not m.ownsUtterance(),'Finished speech holds its last page briefly')
+m.update(.7);assert(m.line==nil)
+`;
+
+test('heard playback keeps each audible sentence on screen through a slow stream and a stall', () => {
+  run(setup + speechHarness(playback({lead: 3})));
+  run(setup + speechHarness(playback({lead: .05})));
+  run(setup + speechHarness(playback({lead: .05, stall: [8.4, 10.4]})));
 });

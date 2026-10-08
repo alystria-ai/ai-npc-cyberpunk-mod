@@ -153,6 +153,7 @@ function M.abandon()
     M.placement = nil
     M.anchor, M.projectionReady, M.pendingProjection, M.rootVisibility = nil, nil, nil, nil
     M.revealAfterFrame = nil
+    M.lingering, M.lineLost, M.restores = nil, nil, nil
 end
 
 local function headAnchor(actor)
@@ -180,14 +181,16 @@ end
 function M.ownsUtterance()
     -- A retired widget can be waiting for an unread page or streamed text.
     -- Ownership ends on clear/abandon, not when its current root is hidden.
+    -- A reading hold after the audio has finished owns nothing: the next
+    -- speaker, turn or reaction replaces it at once.
+    if M.lingering then return false end
     return M.pages ~= nil or M.timed ~= nil or M.line ~= nil
 end
 
 -- Keep normal sentences together. Only wrap when a line actually exceeds the
 -- native layout budget; short sentences and commas do not force a new page.
 -- Preserve UTF-8 even in CJK text without spaces or unusually long words.
-function M.split(text, style)
-    if type(text) ~= 'string' then return {}, {} end
+local function clean(text)
     -- Natural speech: a voice tag such as [laughter] is for the voice engine, never for the reader. The bridge
     -- already removes them; this keeps one that slipped through off the screen.
     text = text:gsub('%s*%[%a[%a%-]*%]', '')
@@ -195,7 +198,16 @@ function M.split(text, style)
     for _, name in ipairs(EMOTION_TAGS) do
         text = text:gsub('%s*{' .. name .. '}', ''):gsub('%s*{' .. name .. ':%a+}', '')
     end
-    text = text:gsub('%s+', ' '):match('^%s*(.-)%s*$')
+    return (text:gsub('%s+', ' '):match('^%s*(.-)%s*$'))
+end
+local function length(text)
+    local count = 0
+    for _ in text:gmatch(UTF8) do count = count + 1 end
+    return count
+end
+function M.split(text, style)
+    if type(text) ~= 'string' then return {}, {} end
+    text = clean(text)
     local chars, pages, ranges = {}, {}, {}
     for char in text:gmatch(UTF8) do chars[#chars + 1] = char end
     local overhead = style == 'overhead'
@@ -229,6 +241,103 @@ function M.split(text, style)
         while chars[start] == ' ' do start = start + 1 end
     end
     return pages, ranges
+end
+
+-- Audio-aligned cues (bridge/caption-cues.mjs): one sentence each, with the
+-- audio second its speech begins (nil until the bridge knows) and, when known,
+-- ends. Whole sentences share a page within the style's layout budget, so a
+-- page changes only where speech pauses between sentences. A sentence longer
+-- than a page is split by M.split; its parts are timed by character share of
+-- that sentence's own audio span (an unknown end assumes 15 characters/s).
+local CUE_CHARS_PER_SECOND = 15
+function M.cues(captions)
+    if type(captions) ~= 'table' or captions.version ~= 1 or type(captions.cues) ~= 'table' then return nil end
+    local list, previous, unknown = {}, 0, false
+    for index, cue in ipairs(captions.cues) do
+        if index > 64 or type(cue) ~= 'table' or type(cue.text) ~= 'string' or #cue.text > 12000 then return nil end
+        local start = finite(cue.start) and cue.start or nil
+        if index == 1 then start = 0 end
+        if start and (start < previous or start > 120) then return nil end
+        -- Boundaries are ordered: one that is not yet known hides every later one.
+        if unknown or not start then start, unknown = nil, true end
+        local finish = finite(cue.finish) and start and cue.finish >= start and cue.finish <= 120 and cue.finish or nil
+        list[index] = {text = cue.text, start = start, finish = finish}
+        previous = start or previous
+    end
+    return #list > 0 and list or nil
+end
+local function cuePages(cues, style)
+    local budget = style == 'overhead' and 120 or 160
+    local pages, ranges, starts, open, offset = {}, {}, {}, nil, 0
+    local function add(text, from, to, start)
+        local index = #pages + 1
+        pages[index], ranges[index], starts[index] = text, {start = from, finish = to}, start
+    end
+    local function flush()
+        if open then add(open.text, open.from, open.to, open.start); open = nil end
+    end
+    for index, cue in ipairs(cues) do
+        local text = clean(cue.text)
+        local chars = length(text)
+        if chars > 0 then
+            -- Ranges index the cue texts joined by single spaces.
+            local from = offset + 1
+            if open and open.chars + 1 + chars <= budget then
+                open.text, open.chars, open.to = open.text .. ' ' .. text, open.chars + 1 + chars, from + chars - 1
+            elseif chars <= budget then
+                flush()
+                open = {text = text, chars = chars, from = from, to = from + chars - 1, start = cue.start}
+            else
+                flush()
+                local parts, partRanges = M.split(text, style)
+                local finish = cue.finish or (cues[index + 1] and cues[index + 1].start)
+                for part, value in ipairs(parts) do
+                    local range, at = partRanges[part], nil
+                    if cue.start then
+                        local before = range.start - 1
+                        if part == 1 then at = cue.start
+                        elseif finish and finish > cue.start then at = cue.start + (finish - cue.start) * before / chars
+                        else at = cue.start + before / CUE_CHARS_PER_SECOND end
+                    end
+                    add(value, from + range.start - 1, from + range.finish - 1, at)
+                end
+            end
+            offset = offset + chars + 1
+        end
+    end
+    flush()
+    return pages, ranges, starts
+end
+-- Page boundaries for one timed utterance: from cues when the bridge sends
+-- them, else by character share of the playback duration (Omni phrases and
+-- older producers).
+local function layout(text, duration, cues, style)
+    if cues then
+        local pages, ranges, starts = cuePages(cues, style)
+        if #pages > 0 then return pages, ranges, {duration = duration, starts = starts, position = 0} end
+    end
+    local pages, ranges = M.split(text, style)
+    local weights, total = {}, 0
+    for index, page in ipairs(pages) do
+        total = total + length(page)
+        weights[index] = total
+    end
+    return pages, ranges, {duration = duration, weights = weights, total = total, position = 0}
+end
+-- The page whose audio has started at this heard position. Cue pages wait at
+-- an unknown boundary rather than guess ahead of the voice.
+local function targetPage(timed, position, count)
+    local target = 1
+    if timed.starts then
+        while target < count do
+            local at = timed.starts[target + 1]
+            if not at or position < at then break end
+            target = target + 1
+        end
+        return target
+    end
+    while target < count and position >= timed.duration * timed.weights[target] / timed.total do target = target + 1 end
+    return target
 end
 
 local function pageDuration(text)
@@ -343,20 +452,16 @@ function M.show(speaker, text, actor, expected)
     if prepare(speaker, text, actor, expected) then return showPage() end
     return false
 end
-function M.beginTimed(speaker, text, duration, actor, expected)
+function M.beginTimed(speaker, text, duration, actor, expected, captions)
     if not finite(duration) or duration <= 0 or duration > 120 then return M.show(speaker, text, actor, expected) end
     if not prepare(speaker, text, actor, expected) then return false end
-    local weights, total = {}, 0
-    for index, page in ipairs(M.pages) do
-        for _ in page:gmatch(UTF8) do total = total + 1 end
-        weights[index] = total
-    end
-    -- Page boundaries are estimated within each audio chunk, not forced word
-    -- alignment. Only the native playback cursor advances them, including pause.
-    M.timed = {duration = duration, weights = weights, total = total, position = 0}
+    -- Only the heard playback cursor advances pages, so a pause or a stalled
+    -- stream holds the current page. Cue pages change where the audio does;
+    -- otherwise boundaries are estimated within this audio's duration.
+    M.pages, M.pageRanges, M.timed = layout(text, duration, M.cues(captions), M.paginationStyle)
     return showPage()
 end
-function M.reviseTimed(text, duration, position)
+function M.reviseTimed(text, duration, position, captions)
     -- A growing realtime transcript belongs to the same utterance. Updating
     -- its text or final duration must not briefly render the first page again.
     if not M.timed or not finite(duration) or duration <= 0 or duration > 120
@@ -365,21 +470,15 @@ function M.reviseTimed(text, duration, position)
     if not M.enabled() or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return false end
     -- Switching an ongoing utterance from overhead to the cabin HUD must not
     -- change page boundaries on the next streamed transcript revision.
-    local pages, ranges = M.split(text, M.paginationStyle or M.mode)
+    local pages, ranges, timed = layout(text, duration, M.cues(captions), M.paginationStyle or M.mode)
     if #pages == 0 then return false end
     local oldText, oldPage = M.pages[M.page], M.page
-    local weights, total = {}, 0
-    for index, page in ipairs(pages) do
-        for _ in page:gmatch(UTF8) do total = total + 1 end
-        weights[index] = total
-    end
-    local target = 1
-    while target < #pages and position >= duration * weights[target] / total do target = target + 1 end
+    local target = targetPage(timed, position, #pages)
     -- A duration estimate becoming more accurate is not a reason to replay a
     -- page which the player has already read.
     M.page = math.max(math.min(oldPage, #pages), target)
-    M.pages, M.pageRanges, M.timed = pages, ranges, {duration = duration, weights = weights, total = total,
-        position = math.min(position, duration), pageFloor = M.page}
+    timed.position, timed.pageFloor = math.min(position, duration), M.page
+    M.pages, M.pageRanges, M.timed = pages, ranges, timed
     if not M.line or pages[M.page] ~= oldText or M.page ~= oldPage then return showPage() end
     -- A PCM duration estimate is not a new caption. Its local timing changes,
     -- but its text/widget/anchor remain untouched while the voice continues.
@@ -390,10 +489,17 @@ function M.syncTimed(position)
     if not M.timed or not finite(position) or position < 0 then return end
     if M.actor and not validActor(M.actor, M.entity) then M.clear(); return end
     M.timed.position = math.min(position, M.timed.duration)
-    local target = 1
-    while target < #M.pages and position >= M.timed.duration * M.timed.weights[target] / M.timed.total do target = target + 1 end
+    local target = targetPage(M.timed, position, #M.pages)
     if M.timed.pageFloor then target = math.max(target, M.timed.pageFloor); M.timed.pageFloor = target end
     if target ~= M.page then M.page = target; showPage() end
+end
+-- The audio has finished (or one Omni phrase has, while the next renders).
+-- Keep the heard page up for a short reading hold instead of removing it at
+-- the last sample. It owns nothing: any new caption replaces it immediately.
+function M.linger(seconds)
+    if not M.line or not M.pages or not finite(seconds) or seconds <= 0 then M.clear(); return false end
+    M.timed, M.lingering, M.remaining = nil, true, math.min(seconds, 5)
+    return true
 end
 function M.update(delta)
     M.frameSerial = (M.frameSerial or 0) + 1
@@ -416,10 +522,26 @@ function M.update(delta)
         M.projectionFrames = (M.projectionFrames or 0) + 1
         settleProjection(M.controller, projectionVisible(M.controller))
     end
+    if M.lineLost then
+        -- The native HUD's HideDialogLineByData removes every ownerless line,
+        -- including ours, whenever the game ends some other line by data. The
+        -- reply is still being heard: present the same page again.
+        M.lineLost = nil
+        if M.line and M.mode ~= 'overhead' and (M.restores or 0) < 20 then
+            local remaining = M.remaining
+            M.restores = (M.restores or 0) + 1
+            showPage()
+            M.remaining = remaining
+        end
+    end
     if M.timed then return end
     local defs = Game.GetAllBlackboardDefs()
     if Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu) then return end
     M.remaining = M.remaining - (finite(delta) and math.max(0, delta) or 0)
+    if M.lingering then
+        if M.remaining <= 0 then M.clear() end
+        return
+    end
     if M.remaining > 0 then return end
     if M.page >= #M.pages then M.clear(); return end
     M.page = M.page + 1
@@ -427,7 +549,7 @@ function M.update(delta)
 end
 
 function M.install()
-    if M.hooksVersion == 7 then return true end
+    if M.hooksVersion == 8 then return true end
     if type(ObserveAfter) ~= 'function' then return false end
     local guardsProjection = type(Override) == 'function'
     ObserveAfter('ChatterLineLogicController', 'SetLineData', function(controller, line)
@@ -525,6 +647,14 @@ function M.install()
             if line.text ~= M.line.text then updateOwnedText(controller, M.line.text) end
         end
     end)
+    -- Native removal by data clears every ownerless HUD line. Note only our
+    -- exact current dialogue line; update() presents it again.
+    pcall(ObserveAfter, 'SubtitlesGameController', 'OnHideLineByData', function(_, entry)
+        local ok, id = pcall(function() return tostring(entry.id) end)
+        if ok and M.line and M.mode ~= 'overhead' and id == tostring(M.line.id) then
+            M.nativeRemovals, M.lineLost = (M.nativeRemovals or 0) + 1, true
+        end
+    end)
     -- Other crowd chatter can be closer to screen centre. Keep this exact
     -- owned line readable; every other controller retains the native behavior.
     if guardsProjection then
@@ -546,13 +676,15 @@ function M.install()
             return result
         end)
     end
-    M.hooksInstalled, M.hooksVersion = true, 7
+    M.hooksInstalled, M.hooksVersion = true, 8
     return true
 end
 function M.status()
     return {active = M.line ~= nil, serial = M.serial, page = M.page, pages = M.pages and #M.pages or 0,
         mode = M.mode, requestedStyle = M.requestedStyle, fallback = M.fallback, entity = M.entity,
         timed = M.timed ~= nil, position = M.timed and M.timed.position, rendered = M.rendered,
+        cueTimed = M.timed ~= nil and M.timed.starts ~= nil, lingering = M.lingering == true,
+        nativeRemovals = M.nativeRemovals or 0, restores = M.restores or 0,
         bubbleOverrides = M.bubbleOverrides or 0, projectionReady = M.projectionReady == true,
         projectionCallbacks = M.projectionCallbacks or 0, projectionFrames = M.projectionFrames or 0,
         textUpdates = M.textUpdates or 0, renderUpdateError = M.renderUpdateError,

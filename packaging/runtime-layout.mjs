@@ -16,6 +16,7 @@ export const CLIENT_ASSETS = Object.freeze([
 export const BRIDGE_MODULES = Object.freeze([
   'bridge/analysis-pcm.mjs',
   'bridge/battle-context.mjs',
+  'bridge/caption-cues.mjs',
   'bridge/chat-memory-resets.mjs',
   'bridge/companion-actions.mjs',
   'bridge/companion-expressions.mjs',
