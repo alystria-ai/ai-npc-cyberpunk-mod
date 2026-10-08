@@ -203,7 +203,7 @@ return {
     ["Talk to ordinary NPCs"] = "与普通 NPC 对话",
     ["Conversation: {name} (archetype)"] = "对话：{name}（原型）",
     ["{count} of them can talk."] = "其中 {count} 个可以对话。",
-    ["Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save. Named characters are not affected. On by default."] = "可以与游戏中没有剧情角色的无名人物对话：帮派成员、NCPD 警察、公司保安、义体医生、店主、酒保和路人。每个人都会以自己身份的口吻回答，不了解你的故事，读取存档后也不会记得你。不影响有名字的角色。默认开启。",
+    ["Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save, except shopkeepers you come back to. Named characters are not affected. On by default."] = "可以与游戏中没有剧情角色的无名人物对话：帮派成员、NCPD 警察、公司保安、义体医生、店主、酒保和路人。每个人都会以自己身份的口吻回答，不了解你的故事，读取存档后也不会记得你（你常光顾的店主除外）。不影响有名字的角色。默认开启。",
     ["Releasing local voice memory"] = "正在释放本地语音模型内存",
     ["Remove only this copy from your group."] = "仅将此分身移出队伍。",
     ["Reopen the manager; that action is no longer available."] = "该操作已不可用，请重新打开管理器。",

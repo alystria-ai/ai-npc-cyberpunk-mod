@@ -563,7 +563,7 @@ async function main() {
   for (const item of Object.values(report.packages).flatMap(entry => entry.archives)) {
     for (const entry of await listZip(resolve(out, 'packages', item.file))) {
       if (/^misc\//.test(entry.name)) throw Error(`${item.file} contains developer-only material: ${entry.name}`);
-      if (/(?:^|\/)(?:convai-key\.txt|kaggle-access-token\.txt|huggingface-[^/]*\.txt|\.env|player-memory[^/]*\.(?:json|bak|tmp)|phone-sessions\.json|characters-verified\.json)$/i.test(entry.name)) {
+      if (/(?:^|\/)(?:convai-key\.txt|kaggle-access-token\.txt|huggingface-[^/]*\.txt|\.env|(?:player|vendor)-memory[^/]*\.(?:json|bak|tmp|corrupt)|phone-sessions\.json|characters-verified\.json)$/i.test(entry.name)) {
         throw Error(`${item.file} contains a forbidden file: ${entry.name}`);
       }
     }

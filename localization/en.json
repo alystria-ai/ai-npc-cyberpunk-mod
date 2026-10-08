@@ -255,7 +255,7 @@
     "Launcher log": "Launcher log",
     "Let companions speak the way a real person with their personality would: now and then a pause, a hesitation, a laugh or a sigh. Each character decides when it fits, and it stays rare; a fluent, confident speaker will hardly use it. OmniVoice can voice laughs and sighs; Pocket TTS uses only pauses in the sentence. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. Off by default.": "Let companions speak the way a real person with their personality would: now and then a pause, a hesitation, a laugh or a sigh. Each character decides when it fits, and it stays rare; a fluent, confident speaker will hardly use it. OmniVoice can voice laughs and sighs; Pocket TTS uses only pauses in the sentence. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. Off by default.",
     "Let each character mark its own feelings as it speaks, so the face changes when that part is spoken instead of being guessed from the words. Subtle by default, chosen by personality, and only where the feeling really shifts. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. A reply without marks uses the usual text-based expression. Off by default.": "Let each character mark its own feelings as it speaks, so the face changes when that part is spoken instead of being guessed from the words. Subtle by default, chosen by personality, and only where the feeling really shifts. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. A reply without marks uses the usual text-based expression. Off by default.",
-    "Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save. Named characters are not affected. On by default.": "Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save. Named characters are not affected. On by default.",
+    "Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save, except shopkeepers you come back to. Named characters are not affected. On by default.": "Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save, except shopkeepers you come back to. Named characters are not affected. On by default.",
     "Listening - press the same voice chat shortcut again to finish": "Listening - press the same voice chat shortcut again to finish",
     "Listening - press {key} again to finish": "Listening - press {key} again to finish",
     "Load a save before inviting a companion.": "Load a save before inviting a companion.",
@@ -1018,7 +1018,7 @@
       "Keep prepared voices",
       "Let companions speak the way a real person with their personality would: now and then a pause, a hesitation, a laugh or a sigh. Each character decides when it fits, and it stays rare; a fluent, confident speaker will hardly use it. OmniVoice can voice laughs and sighs; Pocket TTS uses only pauses in the sentence. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. Off by default.",
       "Let each character mark its own feelings as it speaks, so the face changes when that part is spoken instead of being guessed from the words. Subtle by default, chosen by personality, and only where the feeling really shifts. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. A reply without marks uses the usual text-based expression. Off by default.",
-      "Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save. Named characters are not affected. On by default.",
+      "Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save, except shopkeepers you come back to. Named characters are not affected. On by default.",
       "Multilingual conversations",
       "Natural speech",
       "Play voiced replies from your companions.",
@@ -2296,7 +2296,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1139"
+        "mod/init.lua:1158"
       ]
     },
     "Connecting {names}…": {
@@ -2582,7 +2582,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1752"
+        "mod/init.lua:1771"
       ]
     },
     "Cyberpunk Convai: group text chat": {
@@ -2590,7 +2590,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1749"
+        "mod/init.lua:1768"
       ]
     },
     "Cyberpunk Convai: group voice chat": {
@@ -2598,7 +2598,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1751"
+        "mod/init.lua:1770"
       ]
     },
     "Cyberpunk Convai: talk by text": {
@@ -2606,7 +2606,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1748"
+        "mod/init.lua:1767"
       ]
     },
     "Cyberpunk Convai: talk by voice": {
@@ -2614,7 +2614,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1750"
+        "mod/init.lua:1769"
       ]
     },
     "DETAILS  {page} / {pages}": {
@@ -2785,7 +2785,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:823"
+        "mod/init.lua:836"
       ]
     },
     "Fast travel cancelled the companion trip.": {
@@ -2908,7 +2908,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:981"
+        "mod/init.lua:1000"
       ]
     },
     "Group chat needs two characters nearby. Use {key} for one person.": {
@@ -2917,7 +2917,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:980"
+        "mod/init.lua:999"
       ]
     },
     "Head tracking strength": {
@@ -3127,7 +3127,7 @@
         "mod/mcm.lua:855"
       ]
     },
-    "Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save. Named characters are not affected. On by default.": {
+    "Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save, except shopkeepers you come back to. Named characters are not affected. On by default.": {
       "contexts": [
         "mcm.setting"
       ],
@@ -3468,7 +3468,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2103"
+        "mod/init.lua:2127"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -3708,7 +3708,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:728"
+        "mod/init.lua:741"
       ]
     },
     "Please wait for the current requests to finish.": {
@@ -3817,7 +3817,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1101"
+        "mod/init.lua:1120"
       ]
     },
     "Press your Talk by voice shortcut to finish recording.": {
@@ -3825,7 +3825,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1102"
+        "mod/init.lua:1121"
       ]
     },
     "Previous": {
@@ -5273,7 +5273,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/init.lua:1099"
+        "mod/init.lua:1118"
       ]
     },
     "V changed seats or vehicles.": {
@@ -5902,7 +5902,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:958"
+        "mod/init.lua:977"
       ]
     },
     "{name} is already with you.": {
@@ -5963,7 +5963,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:1695"
+        "mod/init.lua:1714"
       ]
     },
     "{name} is ready to join when you return to the game.": {
@@ -6334,7 +6334,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:980"
+        "mod/init.lua:999"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6569,7 +6569,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/init.lua:1099"
+        "mod/init.lua:1118"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6683,7 +6683,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:958"
+        "mod/init.lua:977"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6721,7 +6721,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1695"
+        "mod/init.lua:1714"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
