@@ -314,6 +314,34 @@ opt-out. FP8 remains an isolated candidate, not the installed voice precision.
   that silently rewrites the answer. Switching to Convai and back can recreate
   a failed local worker; restarting the conversation bridge also recovers it.
 
+## Several voices per profile
+
+An ambient profile (an unnamed-NPC archetype such as `npc-maelstrom-male`, or `resident-male` / `resident-female`) can
+have several local voices, so two pedestrians of one kind do not sound alike. Code: `bridge/voice-variants.mjs`.
+
+- **Naming.** Variant 1 is the profile key itself. Further voices are registered in the same voice configurations
+  (`pocket-voices.autobest.json`, `local-voices.autobest-short.json`, `-long.json`) as `<profileKey>-v2`, `-v3` and `-v4`
+  (for example `npc-maelstrom-male`, `npc-maelstrom-male-v2`). A variant key is a voice-registry entry only: it is not a
+  profile, has no Convai character and never appears as a conversation profile, a route or warm key, or in the
+  `configuredProfiles` / `routedProfiles` lists of `local-voice-state.json`. The registries and workers do load them.
+- **Which voice speaks.** The pick is deterministic and made once per reply. The seed is the NPC's stable identity: the
+  vendor's shop record (`archetype.memoryKey`, set for one-shop vendors) when there is one, otherwise the actor entity
+  (for example `123456ULL`). The voice is the SHA-256 of `<profileKey>|<seed>` taken modulo the number of variants the
+  current backend can actually speak (Pocket, or the Omni reference set in use), so the same pedestrian keeps the same
+  voice across lines and restarts, and different pedestrians spread over the variants. Every phrase, look-ahead and
+  prefetch of one reply uses that one voice.
+- **Routing stays on the base profile.** Whether a profile is spoken locally, by which provider, whether it is ready,
+  the Convai fallback and multilingual planning all ask about the base key; only the voice that is synthesized uses the
+  variant key. Named characters have no variants and are unaffected, and the Convai cloud voice stays one voice per
+  character.
+- **Fallback.** A variant the current backend cannot speak (missing, unavailable or an unprepared reference) is left out of
+  the draw. With no usable variant, or no seed, the base key speaks. A variant never falls back to another character.
+- **Preparation.** Variants are prepared lazily on first use like any other non-startup profile (startup warms only
+  Johnny, Judy and Panam on Omni and nothing on Pocket). The in-memory conditioning cache still holds at most eight
+  voices (`maxCachedProfiles`); with Keep prepared voices on, Pocket's saved setups make a returning voice quick.
+- **Limit.** A voice configuration may hold up to **1024** voices (profiles plus variants); it was 256. The same limit is
+  in the Node registry (`VOICE_PROFILE_LIMITS.profiles`) and both Python workers.
+
 ## Local setup and operation
 
 ### Full-cast reference activation — October 1

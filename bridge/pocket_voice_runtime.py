@@ -25,6 +25,7 @@ ASSETS = {"model.safetensors": "sha256", "inference.yaml": "configSha256",
 MAX_TEXT = 12_000
 MAX_AUDIO_SECONDS = 120
 MAX_CACHED_PROFILES = 8
+MAX_PROFILES = 1024
 MAX_COMMAND_BYTES = 65_536
 MAX_REFERENCE_BYTES = 24_000_000
 
@@ -239,7 +240,7 @@ def validate_config(raw, *, yaml_load=None, source_hasher=digest_source):
         raise ValueError("Pocket student requires one sampler step and a valid temperature")
     inference = inspect_student_export(paths["exportDirectory"], raw.get("model"), yaml_load=yaml_load)
     voices = raw.get("voices", {})
-    if not isinstance(voices, dict) or len(voices) > 256:
+    if not isinstance(voices, dict) or len(voices) > MAX_PROFILES:
         raise ValueError("Invalid Pocket voice registry")
     refs, unavailable, descriptors = {}, {}, {}
     for key, descriptor in voices.items():

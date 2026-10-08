@@ -4,7 +4,7 @@
 export const LEGACY_LOCAL_VOICE_KEYS = Object.freeze([
   'johnny-silverhand', 'judy-alvarez', 'panam-palmer',
 ]);
-export const VOICE_PROFILE_LIMITS = Object.freeze({profiles: 256, transcript: 12_000,
+export const VOICE_PROFILE_LIMITS = Object.freeze({profiles: 1024, transcript: 12_000,
   path: 512, startupProfiles: 3, cachedProfiles: 8});
 
 const object = value => value && typeof value === 'object' && !Array.isArray(value);

@@ -1,9 +1,14 @@
 """Build lightweight local-voice references (OmniVoice short/long, Pocket TTS) for the generic NPC archetype profiles.
 
-    python scripts/archetype-voices/build_archetype_voices.py [--only npc-a,npc-b] [--plan-only] [--no-bulk-unbundle]
+    python scripts/archetype-voices/build_archetype_voices.py [--only KEY,KEY] [--plan-only] [--rebuild KEY,KEY] [--no-bulk-unbundle]
 
-For every archetype of characters/archetypes.json this picks ONE generic NPC voiceset actor (e.g. gang_mls_m_09_enus_40) from the game's
-own voice archives, decodes a few of its calm, conversational lines and joins whole clips into three references in the project's
+For every archetype of characters/archetypes.json (and its `residentVoices`) this picks one generic NPC voiceset actor (e.g.
+gang_mls_m_09_enus_40) per voice from the game's own voice archives.  `voiceCount` (1..4) is the number of distinct actors wanted per key:
+voice 1 is the key itself, voices 2..4 are the keys `<key>-v2`, `<key>-v3`, `<key>-v4`.  No actor is ever used twice (not across variants,
+not across archetypes).  Pass 1 gives every key its primary actor in catalogue order, pass 2 hands out the extra voices (all v2, then all
+v3, then all v4, each in catalogue order) from the actors that remain.  A key that is already "ready" in the manifest is reused as it is
+(its actor is reserved, its files are never rewritten) unless listed in --rebuild.  Fewer usable actors than `voiceCount` -> as many as
+possible are built (at least the primary) and the shortfall is logged and written to the receipt.  Each actor's calm, conversational lines are decoded and whole clips are joined into three references in the project's
 reference format (24 kHz mono 16-bit PCM, clips joined with 0.4 s of silence, no EQ / denoise / gain / trim):
 
     omni-short  <= 10 s     omni-long  <= 18 s     pocket  <= 20 s
@@ -13,8 +18,8 @@ Reuses scripts/reference-pool (paths, WolvenKit/vgmstream helpers, text cleaning
 
 Outputs
   runtime/voice-references/archetypes/<engine>/<key>.wav      the references          (git-ignored)
-  runtime/voice-references/archetypes/manifest.json           clips, transcripts, hashes (git-ignored, holds game dialogue)
-  characters/archetype-voices.json                            tracked receipt, NO dialogue text
+  runtime/voice-references/archetypes/manifest.json           clips, transcripts, hashes (git-ignored, holds game dialogue); MERGED, never rewritten
+  characters/archetype-voices.json                            tracked receipt, NO dialogue text; MERGED (existing entries kept)
   E:/CyberpunkConvai-offload/work/archetype-voices/           unbundled .wem, decoded .wav (large intermediates)
 register_archetype_voices.mjs then writes the entries into the live voice configs.
 """
@@ -57,6 +62,7 @@ LINES_PER_BATCH, MAX_BATCHES = 40, 3
 MAX_WORDS = 28                          # longer lines are almost always > 9 s
 MAX_VOICESETS_TRIED = 8
 MIN_PREFILTERED = 3
+MAX_VOICES = 4
 
 TAG_RE = re.compile(r"^([a-z][a-z0-9]*(?:_[a-z0-9]+)*?)_(\d{1,3})_([a-z]+)_(\d{2})(?=_|$)")
 BARK_RE = re.compile(r"_vs_|vs_vset|_vset")
@@ -140,7 +146,36 @@ def text_reason(line: dict, subtitles: dict, flagged: set[str]) -> str | None:
     return None
 
 
-# ---------------------------------------------------------------- voiceset choice
+# ---------------------------------------------------------------- catalogue and voiceset choice
+def variant_key(base: str, level: int) -> str:
+    return base if level == 1 else f"{base}-v{level}"
+
+
+def load_catalogue() -> list[dict]:
+    """Archetype rows then the generic resident rows, each with 'voiceCount' clamped to 1..MAX_VOICES."""
+    data = read_json(ROOT / "characters/archetypes.json")
+    rows, seen = [], set()
+    for row in list(data["archetypes"]) + list(data.get("residentVoices", [])):
+        if row["key"] in seen:
+            sys.exit(f"duplicate key {row['key']} in archetypes.json")
+        seen.add(row["key"])
+        rows.append({**row, "voiceCount": max(1, min(int(row.get("voiceCount", 1)), MAX_VOICES))})
+    return rows
+
+
+def ordered_steps(rows: list[dict]) -> list[tuple[dict, int]]:
+    """Pass 1: every key's primary in catalogue order; pass 2: all v2, then all v3, then all v4 in catalogue order."""
+    steps = [(row, 1) for row in rows]
+    for level in range(2, MAX_VOICES + 1):
+        steps += [(row, level) for row in rows if row["voiceCount"] >= level]
+    return steps
+
+
+def step_row(row: dict, level: int) -> dict:
+    """The row a (row, level) step builds: same families / preferVoicesets, key = variant key."""
+    return {**row, "key": variant_key(row["key"], level), "baseKey": row["key"], "level": level}
+
+
 def candidates_for(archetype: dict, good: dict[str, list[dict]], taken: set[str]) -> list[str]:
     """Ordered voiceset tags to try: preferVoicesets first, then the rest by (lines desc, words desc, tag)."""
     fams = [f + "_" for f in archetype["voiceFamilies"]]
@@ -300,13 +335,16 @@ def try_voiceset(tag: str, key: str, good: dict, cache: dict) -> tuple[list[dict
     return refs, drops, ""
 
 
-def build_archetype(archetype: dict, good: dict, taken: set[str], cache: dict) -> dict:
+def build_archetype(archetype: dict, good: dict, taken: set[str], rejected: set[str], cache: dict, protected: set[str]) -> dict:
     key = archetype["key"]
+    if key in protected:
+        raise RuntimeError(f"refusing to rebuild {key}: it is ready in the manifest (use --rebuild)")
     tried = []
-    for tag in candidates_for(archetype, good, taken)[:MAX_VOICESETS_TRIED]:
+    for tag in candidates_for(archetype, good, taken | rejected)[:MAX_VOICESETS_TRIED]:
         refs, drops, why = try_voiceset(tag, key, good, cache)
         if refs is None:
             tried.append(f"{tag}: {why}")
+            rejected.add(tag)               # the verdict depends on the actor only, so no other key retries it
             log(f"  {key}: {tag} rejected ({why}); drops {drops}")
             continue
         taken.add(tag)
@@ -317,6 +355,8 @@ def build_archetype(archetype: dict, good: dict, taken: set[str], cache: dict) -
         result = {"status": "ready", "voiceset": tag, "drops": drops, "tried": tried,
                   "clips": [{"sid": c["sid"], "wem": c["wem"], "archive": c["archive"], "seconds": c["d"], "gatedDb": c["lv"], "text": c["text"]} for c in used.values()],
                   "references": {}}
+        if archetype.get("level", 1) > 1:
+            result["variantOf"], result["variant"] = archetype["baseKey"], archetype["level"]
         for engine, clips in refs.items():
             path = OUT_DIR / engine / f"{key}.wav"
             info = write_reference(clips, path)
@@ -328,20 +368,55 @@ def build_archetype(archetype: dict, good: dict, taken: set[str], cache: dict) -
             "tried": tried}
 
 
+def atomic_json(path: Path, data) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def receipt_entry(r: dict) -> dict:
+    if r["status"] == "ready":
+        entry = {"status": "ready", "voiceset": r["voiceset"], "clips": [c["sid"] for c in r["clips"]],
+                 "seconds": {RECEIPT_NAME[e]: r["references"][e]["seconds"] for e in CAPS}}
+        if r.get("variantOf"):
+            entry["variantOf"] = r["variantOf"]
+        return entry
+    return {"status": "unprepared", "voiceset": None, "clips": [], "seconds": {}, "reason": r["reason"]}
+
+
+def write_receipt(manifest: dict, rows: list[dict], shortfalls: dict, rebuilt: set[str], built: str) -> None:
+    """Merge into the tracked receipt: existing entries stay as they are, new / rebuilt keys are added or replaced."""
+    receipt = read_json(RECEIPT) if RECEIPT.exists() else {"version": 1, "builtAt": built, "rules": {}, "voices": {}}
+    receipt["updatedAt"] = built
+    receipt["rules"].update({"oneVoicesetPerArchetype": True, "noVoicesetSharedBetweenKeys": True, "variantKeys": "<key>-v2 .. <key>-v4 (voiceCount)"})
+    voices = receipt["voices"]
+    for key, r in manifest["voices"].items():
+        if key not in voices or key in rebuilt:
+            voices[key] = receipt_entry(r)
+    wanted = {row["key"]: row["voiceCount"] for row in rows}
+    built_count = {key: 1 + sum(1 for n in range(2, MAX_VOICES + 1) if manifest["voices"].get(variant_key(key, n), {}).get("status") == "ready")
+                   for key in wanted if manifest["voices"].get(key, {}).get("status") == "ready"}
+    receipt["shortfalls"] = {key: {"wanted": wanted[key], "built": built_count.get(key, 0), **({"reason": shortfalls[key]} if key in shortfalls else {})}
+                             for key in wanted if built_count.get(key, 0) < wanted[key]}
+    atomic_json(RECEIPT, receipt)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--only", help="comma-separated archetype keys (testing; the receipt/manifest are not rewritten)")
-    parser.add_argument("--plan-only", action="store_true", help="choose voicesets from the text prefilter and stop")
+    parser.add_argument("--only", help="comma-separated keys (incl. -vN variants) to build; the others are left alone (manifest / receipt are merged either way)")
+    parser.add_argument("--plan-only", action="store_true", help="choose voiceset per key (variants included) from the text prefilter and stop")
+    parser.add_argument("--rebuild", help="comma-separated keys that are ready in the manifest but must be derived again (their files ARE rewritten)")
     parser.add_argument("--no-bulk-unbundle", action="store_true")
     args = parser.parse_args()
     pool_extract.set_low_priority()
     started = time.time()
-    archetypes = read_json(ROOT / "characters/archetypes.json")["archetypes"]
+    rows = load_catalogue()
     if not pool_extract.VGM.exists():
         sys.exit(f"vgmstream-cli not found at {pool_extract.VGM}")
     subtitles = read_json(SRC / "subtitles.json")
     flagged = known_flagged_sids()
-    wanted = {f + "_" for a in archetypes for f in a["voiceFamilies"]}
+    wanted = {f + "_" for a in rows for f in a["voiceFamilies"]}
     log("reading listings")
     by_tag = {tag: lines for tag, lines in load_lines().items() if any(tag.startswith(f) for f in wanted)}
     log(f"{len(by_tag)} candidate voicesets; text prefilter (loads the combat scene index, ~1 min)")
@@ -358,70 +433,97 @@ def main() -> int:
             good[tag] = keep
     log(f"prefilter dropped {dropped}; {len(good)} voicesets have lines")
 
-    # Plan (assumes every first choice works) so all .wem files can be unbundled in a few big batches.
-    sim_taken: set[str] = set()
-    plan = {}
-    for archetype in archetypes:
-        cand = candidates_for(archetype, good, sim_taken)
-        plan[archetype["key"]] = cand[0] if cand else None
+    manifest = read_json(MANIFEST) if MANIFEST.exists() else {"version": 1, "builtAt": None, "note": "contains game dialogue; git-ignored", "voices": {}}
+    rebuild = set(filter(None, (args.rebuild or "").split(",")))
+    only = set(filter(None, (args.only or "").split(","))) or None
+    steps = [(step_row(row, level), level) for row, level in ordered_steps(rows)]
+    known = {row["key"] for row, _ in steps}
+    for key in (rebuild | (only or set())) - known:
+        sys.exit(f"unknown key {key}")
+    # Keys that are ready in the manifest keep their actor and files (the live bridge uses them) unless --rebuild names them.
+    protected = {k for k, v in manifest["voices"].items() if v.get("status") == "ready" and k not in rebuild}
+    reserved = {manifest["voices"][k]["voiceset"] for k in protected}
+    owners: dict[str, str] = {}
+    for key in sorted(protected):
+        tag = manifest["voices"][key]["voiceset"]
+        if tag in owners:
+            log(f"WARNING: {tag} is used by both {owners[tag]} and {key} in the existing manifest")
+        owners[tag] = key
+
+    # Plan (assumes every first choice works): used for --plan-only and so the .wem files can be unbundled in a few big batches.
+    sim_taken = set(reserved)
+    plan: dict[str, str | None] = {}
+    for row, level in steps:
+        key = row["key"]
+        if key in protected:
+            plan[key] = manifest["voices"][key]["voiceset"]
+            continue
+        cand = candidates_for(row, good, sim_taken)
+        plan[key] = cand[0] if cand else None
         if cand:
             sim_taken.add(cand[0])
-    for key, tag in plan.items():
-        log(f"plan {key:26} -> {tag} ({len(good[tag]) if tag else 0} lines)")
+    for row, level in steps:
+        key, tag = row["key"], plan[row["key"]]
+        state = "kept " if key in protected else ("NEW  " if tag else "NONE ")
+        extra = f"({len(good[tag])} lines)" if tag and key not in protected else ""
+        log(f"plan {state}{key:34} -> {tag or '-'} {extra}")
+    for r in rows:
+        have = sum(1 for n in range(1, r["voiceCount"] + 1) if plan.get(variant_key(r["key"], n)))
+        if have < r["voiceCount"]:
+            log(f"plan SHORT {r['key']}: {have} of {r['voiceCount']} voices have an actor")
     if args.plan_only:
         return 0
-    only = set(args.only.split(",")) if args.only else None
     if not args.no_bulk_unbundle:
-        todo = [l for a in archetypes if plan[a["key"]] and (not only or a["key"] in only) for l in pick_lines(good[plan[a["key"]]], 0)]
+        todo, seen = [], set()
+        for row, level in steps:
+            key, tag = row["key"], plan[row["key"]]
+            if tag and key not in protected and (not only or key in only):
+                for line in pick_lines(good[tag], 0):
+                    if line["wem"] not in seen:
+                        seen.add(line["wem"]); todo.append(line)
         log(f"bulk unbundle of {len(todo)} files")
         unbundle(todo)
 
     cache_path = AWORK / "decode-cache.json"
     cache = read_json(cache_path) if cache_path.exists() else {}
-    taken: set[str] = set()
-    results = {}
-    for archetype in archetypes:
-        key = archetype["key"]
-        if only and key not in only:
+    taken, rejected = set(reserved), set()
+    results, shortfalls, blocked = {}, {}, set()
+    built = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    manifest["builtAt"] = manifest.get("builtAt") or built
+    manifest["updatedAt"] = built
+    for row, level in steps:
+        key, base = row["key"], row["baseKey"]
+        if key in protected:
             continue
-        results[key] = build_archetype(archetype, good, taken, cache)
+        if only and key not in only:
+            if plan.get(key):
+                taken.add(plan[key])        # keep later picks of this run consistent with the full plan
+            continue
+        if base in blocked:
+            shortfalls[key] = "an earlier voice of this key could not be built"
+            log(f"{key:34} skipped: {shortfalls[key]}")
+            continue
+        r = build_archetype(row, good, taken, rejected, cache, protected)
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         cache_path.write_text(json.dumps(cache), encoding="utf-8")
-        r = results[key]
         if r["status"] == "ready":
+            results[key] = manifest["voices"][key] = r
+            atomic_json(MANIFEST, manifest)     # checkpoint: a later failure never loses finished keys
             secs = {e: r["references"][e]["seconds"] for e in CAPS}
             counts = {e: len(r["references"][e]["clips"]) for e in CAPS}
-            log(f"{key:26} {r['voiceset']:28} clips {counts} seconds {secs}")
+            log(f"{key:34} {r['voiceset']:28} clips {counts} seconds {secs}")
+        elif level == 1:
+            results[key] = manifest["voices"][key] = r      # primary stays "unprepared": the bridge then uses the Convai voice
+            blocked.add(base)
+            log(f"{key:34} UNPREPARED: {r['reason']}")
         else:
-            log(f"{key:26} UNPREPARED: {r['reason']}")
-    if only:
-        log("--only run: manifest and receipt not rewritten")
-        return 0
-
-    built = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    manifest = {"version": 1, "builtAt": built, "note": "contains game dialogue; git-ignored", "voices": results}
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    tmp = MANIFEST.with_name("manifest.json.tmp")
-    tmp.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    os.replace(tmp, MANIFEST)
-    voices = {}
-    for key, r in results.items():
-        if r["status"] == "ready":
-            voices[key] = {"status": "ready", "voiceset": r["voiceset"], "clips": [c["sid"] for c in r["clips"]],
-                           "seconds": {RECEIPT_NAME[e]: r["references"][e]["seconds"] for e in CAPS}}
-        else:
-            voices[key] = {"status": "unprepared", "voiceset": None, "clips": [], "seconds": {}, "reason": r["reason"]}
-    receipt = {"version": 1, "builtAt": built,
-               "rules": {"engineCapsSeconds": CAPS, "gapSeconds": GAP, "clipSeconds": [MIN_CLIP, MAX_CLIP], "maxPeak": 0.99,
-                         "loudnessWindowDb": {"above": LOUD_HIGH, "below": LOUD_LOW}, "minWords": 4, "maxWords": MAX_WORDS, "linesPerBatch": LINES_PER_BATCH,
-                         "oneVoicesetPerArchetype": True, "format": "24 kHz mono 16-bit PCM, whole clips, no EQ/denoise/gain/trim",
-                         "source": "generic NPC voicesets of the English voice archives; no dialogue text is stored here"},
-               "voices": voices}
-    tmp = RECEIPT.with_name("archetype-voices.json.tmp")
-    tmp.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    os.replace(tmp, RECEIPT)
+            shortfalls[key] = r["reason"]
+            blocked.add(base)
+            log(f"{key:34} SHORT (voice {level} of {row['voiceCount']} not built): {r['reason']}")
+    atomic_json(MANIFEST, manifest)
+    write_receipt(manifest, rows, shortfalls, set(rebuild), built)
     ready = sum(1 for r in results.values() if r["status"] == "ready")
-    log(f"done: {ready} ready, {len(results) - ready} unprepared in {time.time() - started:.0f} s")
+    log(f"done: {ready} built, {len(results) - ready} unprepared, {len(shortfalls)} variant(s) short, {len(protected)} kept in {time.time() - started:.0f} s")
     return 0
 
 

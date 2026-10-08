@@ -4,6 +4,7 @@ import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs';
 import {OMNI_TAGS, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs';
+import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
 // can begin from a settings draft while that routing remains unchanged.
@@ -61,9 +62,10 @@ export class VoiceSelection {
     // 16 steps is the default; the saved setting replaces it on the first poll.
     this.omniSteps=this.requestedOmniSteps=16;
     this.playbackEnabled=true;
-    this.routeKeys=[...new Set([...Object.keys(this.configs.pocket.voices),
+    // Voice variants ("<profile>-v2") are registry entries, not profiles: never a route key.
+    this.routeKeys=withoutVariants(new Set([...Object.keys(this.configs.pocket.voices),
       ...OMNI_REFERENCES.flatMap(reference=>Object.keys(this.omniVariants[reference].snapshot.voices)),
-      ...(options.profileKeys||[])])].sort();
+      ...(options.profileKeys||[])])).sort();
     this.retiring = Promise.resolve(); this.releasing = false;
     this.state = this.configured ? 'stopped' : 'disabled'; this.details = {};
     // The default choice is Pocket TTS, the voice that ships with the mod.
@@ -139,9 +141,17 @@ export class VoiceSelection {
   get configured(){return !!this.configuredByBackend[this.provider];}
   get availability(){return this.availabilities[this.provider];}
   get steps(){return this.provider==='omni'?this.omniSteps:undefined;}
-  get profileKeys() { return [...new Set([...this.registries.pocket.keys,...this.registries.omni.keys])].sort(); }
+  // Profiles only: the extra voices of a profile (bridge/voice-variants.mjs) stay in the registries and the workers.
+  get profileKeys() { return withoutVariants(new Set([...this.registries.pocket.keys,...this.registries.omni.keys])).sort(); }
   hasProfile(key) { return this.registry.has(key) && this.availability.has(key); }
   usesProfile(key) { return local(this.provider) && this.configured && this.hasProfile(key); }
+  // The voice that speaks one NPC of a local profile: the profile's own key, or one of its variants chosen from the
+  // NPC's stable identity among the variants the current backend can speak. The caller decides once per turn and keeps
+  // routing (usesProfile, profileReady, provider) on the BASE key. Anything not spoken locally keeps its key.
+  voiceKeyFor(profile, seed) {
+    if (!this.usesProfile(profile)) return profile;
+    return pickVoiceKey(profile, seed, [...this.availability].filter(key => this.registry.has(key)));
+  }
   profileReady(key) { return !this.closed&&this.usesProfile(key)&&this.clientBackend===this.provider
     &&!this.client?.failure&&!this.client?.closing&&this.client?.profileReady(key)===true; }
   request(settings) {
@@ -263,7 +273,7 @@ export class VoiceSelection {
       configured: this.configured, bridgePid: process.pid,
       configuredProfiles: this.profileKeys,
       availabilityPending: this.availabilityPending, routeRevision: this.routeRevision,
-      routedProfiles: local(this.provider)?[...this.availability].sort():[],
+      routedProfiles: local(this.provider)?withoutVariants(this.availability).sort():[],
       previewActive: !!this.preview, previewProvider: this.preview?.provider,
       previewOmniSteps:this.preview?.omniSteps,
       preparationOnly:this.wantsLocal&&this.targetBackend!==this.provider,

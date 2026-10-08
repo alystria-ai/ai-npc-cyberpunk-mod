@@ -109,6 +109,19 @@ class PortableVoicePaths(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Linked'):
                 worker.resolve_worker_paths(self.app, self.environment())
 
+    def test_a_configuration_may_hold_1024_voices_and_variants_wait_for_first_use(self):
+        paths = worker.resolve_worker_paths(self.app, self.environment())
+        voices = {f'npc-kind-{index}': {'status': 'unprepared'} for index in range(1022)}
+        voices['johnny-silverhand'] = self.config['voices']['johnny-silverhand']
+        voices['johnny-silverhand-v2'] = self.config['voices']['johnny-silverhand']
+        self.assertEqual(len(voices), 1024)
+        registry = worker.validate_config({**self.config, 'voices': voices}, self.app, paths=paths)
+        self.assertIn('johnny-silverhand-v2', registry['refs'])
+        self.assertEqual(registry['startupProfiles'], ['johnny-silverhand'], 'only the legacy cast is prepared at startup')
+        voices['npc-one-too-many'] = {'status': 'unprepared'}
+        with self.assertRaisesRegex(ValueError, 'Invalid local voice registry'):
+            worker.validate_config({**self.config, 'voices': voices}, self.app, paths=paths)
+
     def test_model_and_reference_identity_remain_strict_in_a_package(self):
         paths = worker.resolve_worker_paths(self.app, self.environment())
         with self.assertRaisesRegex(ValueError, 'pinned'):

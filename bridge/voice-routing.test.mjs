@@ -5,6 +5,7 @@ import {resolve as absolutePath} from 'node:path';
 import {runInNewContext} from 'node:vm';
 import {silentWav} from './speech-audio.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
+import {variantSeed} from './voice-variants.mjs';
 import {SpeechStream,splitSpeechText} from './speech-stream.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {BufferedPcm, waitUntil} from './group-lookahead.mjs';
@@ -30,7 +31,7 @@ function fixture({local = false, available = true, audioFailure = false, continu
     facesFormat: 'arkit61', facesTimebase: 'audio-seconds', timing: {audioRoute: 'convai-data-only'}};
   const selectedVoice = voiceSelection ?? {provider:'pocket',usesProfile: () => local};
   const sandbox = {remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json',
-    localVoice: selectedVoice, multilingual, planTurnVoice, replyVoice,
+    localVoice: selectedVoice, multilingual, planTurnVoice, replyVoice, variantSeed,
     ownedPocketFace:()=>{},lipsync:{analyse:async()=>{calls.push('rhubarb');return{mouthCues:[],mouthCuesFormat:'rhubarb-phonetic-v1'};}},
     jaliFace,textExpressionSignal,analyseReply,planSignal,createPlanner,phraseOffsets,baselineFromSignal,
     splitSpeechText,naturalSpeech:new NaturalSpeech(),OMNI_TAGS,speechPhrases,streaming:0,writeStreamManifest:async value=>calls.push(['omni-manifest',value]),
@@ -680,4 +681,66 @@ test('Multilingual safety net: an English message answered in Spanish on Pocket 
   assert.ok(!pocketUsed(f));
   await f.api.publishResult(f.input,f.profile,result,async()=>true);
   assert.equal(f.publications.find(([path])=>path==='reply.json')[1].text,SPANISH_REPLY);
+});
+
+// Several voices per ambient profile (bridge/voice-variants.mjs): the voice is picked once per turn from the NPC's
+// identity; routing keeps asking about the base profile, and a voice without variants behaves exactly as before.
+const ambientTurn = (extra = {}) => ({requestId: 'amb-1', generation: 1, entity: '4242ULL', profileKey: 'npc-fixer-male',
+  name: 'Fixer', bodyType: 'male', text: 'Hello', ...extra});
+const variantVoice = (picks = []) => {
+  const asked = [];
+  return {provider: 'pocket', steps: 16, asked, usesProfile: profile => profile === 'npc-fixer-male',
+    voiceKeyFor(profile, seed) { asked.push([profile, seed]); return picks.length ? picks.shift() : profile; }};
+};
+
+test('a Pocket turn is spoken by the picked variant while routing keeps the base profile', async () => {
+  const voice = variantVoice(['npc-fixer-male-v3']), delivered = [];
+  const f = fixture({voiceSelection: voice, continuous: true});
+  f.input = ambientTurn({archetype: {memoryKey: 'wat_kab_ripperdoc_01'}}); f.profile = {key: 'npc-fixer-male', name: 'Fixer'};
+  const sandbox = {...f, deliverPocketSpeech: async value => { delivered.push(value); return {...value.result, continuous: true}; }};
+  runInNewContext(code + ';globalThis.run=synthesizeReply;', sandbox);
+  await sandbox.run(f.input, {...f.remote, audio: undefined}, undefined, async () => true, f.profile);
+  assert.equal(delivered[0].voiceKey, 'npc-fixer-male-v3'); assert.equal(delivered[0].profile.key, 'npc-fixer-male');
+  assert.deepEqual(voice.asked, [['npc-fixer-male', 'wat_kab_ripperdoc_01']], 'a vendor is identified by its shop record');
+});
+
+test('a held Pocket turn prefetches with the same variant its delivery uses, decided once for the turn', async () => {
+  const voice = variantVoice(['npc-fixer-male-v2', 'npc-fixer-male-v4']);
+  const f = fixture({voiceSelection: voice, continuous: true}), ahead = heldTurn(), delivered = [], synthesized = [];
+  f.input = ambientTurn(); f.profile = {key: 'npc-fixer-male', name: 'Fixer'};
+  const current = async () => true; current.ahead = ahead;
+  const localVoice = {...voice, async synthesizeStream(key, text, {onPcm}) { synthesized.push(key); await onPcm(packet(1, 0)); return {frames: 4}; }};
+  const sandbox = {...f, localVoice, BufferedPcm, waitUntil, realtime: {...f.realtime, localPcmBusy: false},
+    deliverPocketSpeech: async value => { delivered.push(value); return {...value.result, continuous: true}; }};
+  runInNewContext(code + ';globalThis.run=synthesizeReply;', sandbox);
+  const running = sandbox.run(f.input, {...f.remote, audio: undefined}, undefined, current, f.profile);
+  await turn(); await turn(); ahead.claim(); await running;
+  assert.deepEqual(synthesized, ['npc-fixer-male-v2']);
+  assert.equal(delivered[0].voiceKey, 'npc-fixer-male-v2');
+  assert.equal(voice.asked.length, 1, 'one pick per turn');
+});
+
+test('every Omni phrase of a turn, including the stream the publication renders, uses the one picked variant', async () => {
+  const generated = [], voice = variantVoice(['npc-fixer-male-v2', 'npc-fixer-male-v4', 'npc-fixer-male-v3']);
+  voice.synthesize = async (key, text, options) => { generated.push(key);
+    return {audio: silentWav().toString('base64'), faces: [], captions: [], timing: {voiceProvider: 'omnivoice'}}; };
+  voice.provider = 'omni';
+  const f = fixture({voiceSelection: voice, continuous: true}), current = async () => true;
+  f.input = ambientTurn(); f.profile = {key: 'npc-fixer-male', name: 'Fixer'};
+  f.remote.text = 'We have a long enough original sentence to produce the first local phrase. Then we have another long enough sentence for the following phrase.';
+  const result = await f.api.respond(f.input, f.profile, {current});
+  assert.equal(result.streamPlan.voiceKey, 'npc-fixer-male-v2');
+  await f.api.publishResult(f.input, f.profile, result, current);
+  assert.ok(generated.length >= 2); assert.ok(generated.every(key => key === 'npc-fixer-male-v2'), generated.join());
+  assert.equal(voice.asked.length, 1);
+  assert.equal(f.publications.find(([path]) => path === 'reply.json')[1].profile, 'npc-fixer-male', 'the reply still names the profile');
+});
+
+test('a voice without variants keeps the profile key for every call', async () => {
+  const generated = [], voice = {provider: 'omni', steps: 16, usesProfile: () => true, voiceKeyFor: profile => profile,
+    async synthesize(key) { generated.push(key); return {audio: silentWav().toString('base64'), faces: [], captions: [], timing: {}}; }};
+  const f = fixture({voiceSelection: voice, continuous: true});
+  f.input = ambientTurn(); f.profile = {key: 'npc-fixer-male', name: 'Fixer'};
+  await f.api.respond(f.input, f.profile, {current: async () => true});
+  assert.ok(generated.length && generated.every(key => key === 'npc-fixer-male'));
 });

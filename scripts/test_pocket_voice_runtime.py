@@ -81,6 +81,19 @@ class Assets(unittest.TestCase):
         self.assertEqual({name:(self.export/name).read_bytes() for name in runtime.ASSETS},before)
         self.assertFalse(self.work.exists(),'verification does not create a work directory or load a model')
 
+    def test_a_registry_may_hold_1024_voices_with_variant_keys_prepared_only_on_first_use(self):
+        many=copy.deepcopy(self.config)
+        many['voices'].update({f'npc-kind-{index}':{'status':'unprepared'} for index in range(1021)})
+        many['voices'].update({'judy-alvarez-v2':self.voices['judy-alvarez']})
+        self.assertEqual(len(many['voices']),1025)
+        with self.assertRaisesRegex(ValueError,'Invalid Pocket voice registry'):
+            self.validate(many)
+        del many['voices']['npc-kind-0']
+        registry=self.validate(many)
+        self.assertEqual(len(many['voices']),1024)
+        self.assertIn('judy-alvarez-v2',registry['refs'])
+        self.assertEqual(registry['startup'],[],'variants and the rest of the cast are prepared on first use, never at startup')
+
     def test_modified_weight_config_tokenizer_or_receipt_is_rejected(self):
         for name in runtime.ASSETS:
             with self.subTest(name=name):

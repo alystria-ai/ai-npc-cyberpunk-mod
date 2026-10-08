@@ -113,3 +113,14 @@ test('a prefetched Pocket turn replays its buffered PCM in order into the render
     jaliFace:null,phoneAnalysis:undefined});
   assert.equal(calls,1);assert.deepEqual(emitted,[1,2]);assert.equal(reply.continuous,true);void pushed;
 });
+
+test('the picked voice variant speaks while the profile stays the character; without one the profile key speaks',async()=>{
+  for(const [voiceKey,expected] of [[undefined,profile.key],['johnny-silverhand-v3','johnny-silverhand-v3']]){
+    const keys=[];
+    const host={async playLocalPcm(config,produce){await produce(async()=>{},{signal:new AbortController().signal});return{timing:{voiceProvider:'pocket'}};}};
+    const speech={token:'t',published:true,ended:true,generated:true,frame(){},async fail(){}};
+    const voice={async synthesizeStream(key,text,{onPcm}){keys.push(key);await onPcm(packet(1,0));return{frames:9600};}};
+    const reply=await deliverPocketSpeech({input,profile,...(voiceKey?{voiceKey}:{}),result,current:async()=>true,voice,host,speech});
+    assert.deepEqual(keys,[expected]);assert.equal(reply.continuous,true);
+  }
+});

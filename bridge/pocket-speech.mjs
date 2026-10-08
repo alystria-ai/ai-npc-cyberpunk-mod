@@ -6,14 +6,15 @@ import {throwIfCancelled} from './transport-pool.mjs';
 // the prefix and owns the one device clock for face and subtitles.
 // prefetched: optional BufferedPcm already synthesizing this exact text while the
 // previous speaker was audible; its buffered packets are replayed in order first.
-export async function deliverPocketSpeech({input,profile,result,current,signal,voice,host,speech,lipsync,phoneAnalysis,jaliFace,onAnalysis,prefetched}) {
+// voiceKey: the voice that speaks (a variant of an ambient profile, bridge/voice-variants.mjs); defaults to the profile's own.
+export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,result,current,signal,voice,host,speech,lipsync,phoneAnalysis,jaliFace,onAnalysis,prefetched}) {
   const facial=new PocketFacialStream({input,lipsync,phoneAnalysis,jaliFace,signal,expressionSignal:result.expressionSignal,text:result.text,onAnalysis});
   try {
     const generated=await host.playLocalPcm({token:speech.token,text:result.text,
       expressionSignal:result.expressionSignal,userText:result.userText},async(emit,{signal:localSignal})=>{
       const feed=packet=>{facial.push(packet);return emit(packet);};
       const response=prefetched?await prefetched.drain(feed,{signal:localSignal})
-        :await voice.synthesizeStream(profile.key,result.text,{signal:localSignal,onPcm:feed});
+        :await voice.synthesizeStream(voiceKey,result.text,{signal:localSignal,onPcm:feed});
       facial.finish();return response;
     },{signal,current,onFrame:snapshot=>speech.frame(snapshot),
       getFace:snapshot=>facial.snapshot(snapshot.receivedFrames,snapshot.sourceComplete,snapshot.positionSeconds)});

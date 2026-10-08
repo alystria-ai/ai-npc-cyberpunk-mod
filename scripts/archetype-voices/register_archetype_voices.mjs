@@ -1,13 +1,16 @@
 // Register the archetype voice references (build_archetype_voices.py) in the live voice configs.
 //
-//   node scripts/archetype-voices/register_archetype_voices.mjs [--dry-run] [--no-python]
+//   node scripts/archetype-voices/register_archetype_voices.mjs [--dry-run] [--no-python] [--replace KEY,KEY]
 //
-// Adds / replaces ONLY the `npc-*` entries of
+// ADDS the entries of keys that are not registered yet to
 //   runtime/pocket-voices.json                     <- pocket reference
 //   runtime/local-voices.json                      <- omni-long reference
 //   every config listed in runtime/voice-configs.json (pocket, omni.short -> omni-short, omni.long -> omni-long)
-// from runtime/voice-references/archetypes/manifest.json.  Unprepared archetypes get {"status":"unprepared"} (the bridge then uses the
-// Convai cloud voice).  Other keys are kept as they are; the file is re-serialised with the same 2-space JSON and the same line endings
+// from runtime/voice-references/archetypes/manifest.json.  The keys are the archetypes of characters/archetypes.json, the generic residents
+// (`residentVoices`: resident-male / resident-female) and their extra voices `<key>-v2` .. `-v4` that are ready in the manifest.
+// Unprepared base keys get {"status":"unprepared"} (the bridge then uses the Convai cloud voice); an unbuilt variant is simply not registered.
+// A key that is already registered is left exactly as it is (byte for byte, `pick.keptAt` included), except an "unprepared" entry whose
+// key is now ready, and the keys named with --replace (a rebuilt reference).  Every other key is kept as it is; the file is re-serialised with the same 2-space JSON and the same line endings
 // (it refuses to write if re-serialising the untouched file would not reproduce it byte for byte).  Originals are copied to
 // runtime/backups/archetype-voices-<timestamp>/ first, files are replaced atomically, and the result is checked with the bridge's own
 // loaders (createVoiceProfileRegistry / validatePocketConfig, plus validate_config of resident-voice-worker.py and pocket_voice_runtime.py
@@ -21,8 +24,11 @@ import {createVoiceProfileRegistry} from '../../bridge/voice-profile-registry.mj
 import {validatePocketConfig} from '../../bridge/pocket-voice.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const args = new Set(process.argv.slice(2));
+const argv = process.argv.slice(2);
+const args = new Set(argv);
 const dryRun = args.has('--dry-run'), skipPython = args.has('--no-python');
+const replaceAt = argv.indexOf('--replace');
+const replaceKeys = new Set(replaceAt >= 0 ? (argv[replaceAt + 1] ?? '').split(',').filter(Boolean) : []);
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 
 const readJson = async path => {
@@ -38,9 +44,18 @@ const serialise = (json, {bom, crlf}) => {
 };
 
 const manifest = JSON.parse((await readFile(resolve(project, 'runtime/voice-references/archetypes/manifest.json'), 'utf8')).replace(/^﻿/, ''));
-const archetypes = JSON.parse(await readFile(resolve(project, 'characters/archetypes.json'), 'utf8')).archetypes.map(item => item.key);
-const missing = archetypes.filter(key => !manifest.voices[key]);
+const catalogue = JSON.parse(await readFile(resolve(project, 'characters/archetypes.json'), 'utf8'));
+const baseKeys = [...catalogue.archetypes, ...(catalogue.residentVoices ?? [])].map(item => item.key);
+const missing = baseKeys.filter(key => !manifest.voices[key]);
 if (missing.length) throw Error(`manifest.json lacks ${missing.join(', ')}`);
+// extra voices: `<base>-v2` .. `-v4`, only when the base itself is ready and the variant was built
+const variants = [];
+for (let level = 2; level <= 4; level++) for (const base of baseKeys) {
+  const key = `${base}-v${level}`;
+  if (manifest.voices[base].status === 'ready' && manifest.voices[key]?.status === 'ready') variants.push(key);
+}
+const archetypes = [...baseKeys, ...variants];
+for (const key of replaceKeys) if (!archetypes.includes(key)) throw Error(`--replace ${key}: not a registrable key`);
 
 // engine of a config file: which reference it takes
 const configs = JSON.parse(await readFile(resolve(project, 'runtime/voice-configs.json'), 'utf8').then(text => text.replace(/^﻿/, '')));
@@ -67,19 +82,25 @@ const plans = [];
 for (const target of targets) {
   const path = resolve(project, target.file), current = await readJson(path);
   if (serialise(current.json, current) !== current.text) throw Error(`${target.file}: re-serialising does not reproduce the file; refusing to touch it`);
-  const voices = Object.fromEntries(Object.entries(current.json.voices).filter(([key]) => !key.startsWith('npc-')));
-  for (const key of archetypes) voices[key] = entryFor(key, target.engine);
+  const voices = {...current.json.voices};
+  const added = [], replaced = [], kept = [];
+  for (const key of archetypes) {
+    const existing = voices[key], entry = entryFor(key, target.engine);
+    if (!existing) { voices[key] = entry; added.push(key); }
+    else if (replaceKeys.has(key) || (existing.status === 'unprepared' && entry.status === 'ready')) { voices[key] = entry; replaced.push(key); }
+    else kept.push(key);
+  }
   const json = {...current.json, voices};
   plans.push({...target, path, text: current.text, next: serialise(json, current), json, count: Object.keys(voices).length,
-    before: Object.keys(current.json.voices).length});
+    before: Object.keys(current.json.voices).length, added, replaced, kept});
 }
 // Node loaders on the new content before anything is written.
 for (const plan of plans) {
   if (plan.kind === 'pocket') validatePocketConfig(plan.json); else createVoiceProfileRegistry(plan.json);
   const startup = plan.json.preparation?.startupProfiles ?? [];
-  if (startup.some(key => key.startsWith('npc-'))) throw Error(`${plan.file}: archetypes must not be startup profiles`);
+  if (startup.some(key => archetypes.includes(key))) throw Error(`${plan.file}: archetypes must not be startup profiles`);
 }
-for (const plan of plans) console.log(`${plan.file}: ${plan.before} -> ${plan.count} profiles (${plan.engine})`);
+for (const plan of plans) console.log(`${plan.file}: ${plan.before} -> ${plan.count} profiles (${plan.engine}); +${plan.added.length} added, ${plan.replaced.length} replaced (${plan.replaced.join(', ') || '-'}), ${plan.kept.length} already registered, left as they are`);
 if (dryRun) { console.log('dry run: nothing written'); process.exit(0); }
 
 const stamp = keptAt.replace(/[:.]/g, '-');

@@ -95,3 +95,14 @@ test('new cast uses explicit version 2 and wider registries stay lazy even when 
   assert.equal(registry.preparation.mode, 'lazy');
   assert.deepEqual(registry.preparation.startupProfiles, LEGACY_LOCAL_VOICE_KEYS);
 });
+
+test('a registry holds up to 1024 voices (profiles plus their -v2..-v4 variants), not one more', () => {
+  assert.equal(VOICE_PROFILE_LIMITS.profiles, 1024);
+  const many = count => ({...config(LEGACY_LOCAL_VOICE_KEYS), voices: Object.fromEntries(Array.from({length: count}, (_, i) => [`npc-kind-${i}`, reference(`npc-kind-${i}`)]))});
+  const registry = createVoiceProfileRegistry(many(1024));
+  assert.equal(registry.keys.length, 1024); assert.equal(registry.preparation.mode, 'lazy');
+  assert.deepEqual(registry.preparation.startupProfiles, [], 'extra voices are prepared on first use, never at startup');
+  assert.throws(() => createVoiceProfileRegistry(many(1025)), /Invalid local voice registry/);
+  const variants = createVoiceProfileRegistry({...config(LEGACY_LOCAL_VOICE_KEYS), voices: {...many(2).voices, 'npc-kind-0-v2': reference('v2'), 'npc-kind-0-v4': reference('v4')}});
+  assert.equal(variants.has('npc-kind-0-v2'), true);
+});
