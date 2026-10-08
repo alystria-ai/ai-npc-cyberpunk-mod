@@ -385,7 +385,8 @@ os.rename=function(a,b) files[b]=files[a]; files[a]=nil; return true end
 NewObject=function() return {} end
 local function put(path,v) files[path]=json.encode(v) end
 put('phone-contacts.json', {{contact='judy',key='judy-alvarez'},{contact='panam',key='panam-palmer'}})
-local function newModule() return (function() ${adapter} end)() end
+-- Read the reset journal on every phone tick unless a test exercises the 500 ms production cadence.
+local function newModule() local value=(function() ${adapter} end)(); value.resetPeriod=0; return value end
 local m=newModule()
 local disappearing=false
 local saveBinding={version=1,status='available',authoritative=true,confidence='native-live',localUserId='user-1',
@@ -880,4 +881,21 @@ files['runtime/phone-history.json']='unparseable-history-bytes'
 m=newModule();configure();update()
 local stored=json.decode(files['runtime/phone-history.json'])
 assert(stored.legacy[1].unparsed=='unparseable-history-bytes' and not m.history.judy)
+`));
+
+test('the reset journal is read every 500 ms in production, and freshly before a submission is judged', () => runLua(setup + `
+local opens, open = 0, io.open
+io.open=function(path,mode) if path=='runtime/memory-chat-resets.json' then opens=opens+1 end; return open(path,mode) end
+resetJournal({},{},{},false)
+m=newModule();m.resetPeriod=nil;configure()
+for _=1,60 do m.update(player,1/60) end
+assert(opens>=2 and opens<=4,'reset journal reads in one second: '..opens)
+local before=opens
+for _=1,6 do m.update(player,1/60) end
+assert(opens<=before+1)
+resetJournal({},{},{},true);before=opens
+submission={contact='judy',text='Are you there?'}
+for _=1,6 do m.update(player,1/60) end
+assert(opens==before+1,'submission did not read the journal once: '..(opens-before))
+assert(m.errors.judy=='Memory clearing is in progress. Your draft has been kept.',tostring(m.errors.judy))
 `));

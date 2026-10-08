@@ -59,6 +59,8 @@ function device:GetClassName() return {value='gameObject'} end
 Game={GetWorkspotSystem=function()return ws end,GetDynamicEntitySystem=function()return system end,
   FindEntityByID=function()return device end,GetPlayer=function()return player end}
 local m=(function()${probe}end)()
+-- These cases step 0.1 s; production polls the mailbox once a second.
+m.pollPeriod=.25
 local cat=load(catalogSource)()
 local fam=cat.families and cat.families[(cat.characters['Character.Judy'] or {}).talk or 'on_sides']
   or {component=cat.component,idle=cat.idle,clips=cat.clips}

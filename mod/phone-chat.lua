@@ -68,13 +68,19 @@ local function write(path, value)
     if not ok or not written or not closed then
         pcall(function() f:close() end); os.remove(path .. '.tmp'); return false
     end
-    if os.rename(path .. '.tmp', path) then return true end
-    -- Windows cannot always replace an existing file with rename. Keep the old
-    -- complete document until its replacement has actually been moved in.
+    -- Windows rename cannot replace an existing file, so once this session has
+    -- written the file, skip the plain rename that is known to fail.
+    M.replaced = M.replaced or {}
+    if not M.replaced[path] and os.rename(path .. '.tmp', path) then M.replaced[path] = true; return true end
+    -- Keep the old complete document until its replacement has actually been moved in.
     local previous = path .. '.previous'
     os.remove(previous)
-    if not os.rename(path, previous) then return false end
-    if os.rename(path .. '.tmp', path) then os.remove(previous); return true end
+    if not os.rename(path, previous) then
+        -- The file was absent after all (for example removed by a reset).
+        if os.rename(path .. '.tmp', path) then return true end
+        return false
+    end
+    if os.rename(path .. '.tmp', path) then M.replaced[path] = true; os.remove(previous); return true end
     os.rename(previous, path); return false
 end
 local function save()
@@ -406,8 +412,17 @@ function M.update(player, delta)
     -- Menus can stop game time; frames still arrive. Do not wait for a nonzero delta.
     M.tick = M.tick + math.max(tonumber(delta) or 0, 1 / 60)
     if M.tick < 0.10 then return end
+    local elapsed = M.tick
     M.tick = 0
-    if not changed then historyReady = refreshMemoryResets() end
+    -- The reset journal changes only on Forget. Each CET io.open costs 1-2 ms of
+    -- the game's main thread, so it is read every resetPeriod (and at once
+    -- before a submission is judged), not on every 10 Hz phone tick.
+    local resetRead = changed
+    M.resetWait = (M.resetWait or 0) + elapsed
+    if not changed and (M.resetWait >= (M.resetPeriod or 0.5) or M.resetHealthy == nil) then
+        M.resetWait, resetRead = 0, true
+        historyReady = refreshMemoryResets()
+    end
     local supported, contact = pcall(function() return player:ConvaiPhoneChatContact() end)
     if not supported then return end -- staged Lua remains safe before native install
     player:ConvaiPhoneChatTick()
@@ -425,6 +440,10 @@ function M.update(player, delta)
     end
     if contact ~= M.contact then M.contact = contact; M.dirty = true end
     local submission = player:ConvaiPhoneChatTakeSubmission()
+    if submission and not M.justBound and not resetRead then
+        M.resetWait = 0
+        historyReady = refreshMemoryResets()
+    end
     if submission and not M.justBound then
         local key = M.catalog[submission.contact]
         local text = tostring(submission.text or ''):match('^%s*(.-)%s*$')
@@ -515,7 +534,8 @@ function M.update(player, delta)
             end
         end
     end
-    if os.time() ~= M.lastHeartbeat then
+    -- Lease heartbeat: the bridge keeps phone-chat-input.json 15 s; refresh it every 3 s.
+    if not M.lastHeartbeat or os.time() - M.lastHeartbeat >= 3 or os.time() < M.lastHeartbeat then
         M.lastHeartbeat = os.time(); publish(true)
         if M.saveDraft then save(); M.saveDraft = false end
     end

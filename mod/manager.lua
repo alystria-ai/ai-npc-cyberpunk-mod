@@ -1282,7 +1282,12 @@ function M.update(player, delta)
         savedFeedback('Playback settings updated.')
     end
     partyClock = partyClock + math.max(0, tonumber(delta) or 0)
-    if partyClock >= 0.5 then partyClock = 0; updateParty(); updateLocalVoice() end
+    if partyClock >= 0.5 then
+        partyClock = 0; updateParty()
+        -- The bridge refreshes local-voice-state.json every 5 s; read it every 2 s, not every 0.5 s.
+        M.voiceClock = (M.voiceClock or 2) + 0.5
+        if M.voiceClock >= 2 then M.voiceClock = 0; updateLocalVoice() end
+    end
     if open then
         if tab == 'models' then beginModels(); scanModels() end
         if dirty then

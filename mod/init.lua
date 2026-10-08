@@ -90,12 +90,15 @@ local function publishWorldSession(frame, ready, force)
     local value = {version = 1, token = frame and frame.worldToken or (knowledgeLaunch .. '-' .. (knowledgeEpoch + 1)),
         generation = frame and frame.generation or (knowledgeEpoch + 1), ready = ready == true, updated = now * 1000}
     local signature = value.token .. ':' .. tostring(value.ready)
-    if not force and signature == worldSessionSignature and worldSessionAt == now then return end
+    -- Lease heartbeat: the bridge keeps world-session.json 5 s; refresh it every 2 s or on change.
+    if not force and signature == worldSessionSignature and worldSessionAt and now >= worldSessionAt
+        and now - worldSessionAt < 2 then return end
     local encoded, raw = pcall(json.encode, value); if not encoded then return end
     local path = 'runtime/world-session.json'
     local file = io.open(path .. '.tmp', 'wb'); if not file then return end
     local written, closed = file:write(raw), file:close(); if not written or not closed then return end
-    if not os.rename(path .. '.tmp', path) then os.remove(path); if not os.rename(path .. '.tmp', path) then return end end
+    -- Windows rename cannot replace a file: remove first (one file operation fewer each second).
+    os.remove(path); if not os.rename(path .. '.tmp', path) then return end
     worldSessionSignature, worldSessionAt = signature, now
 end
 
@@ -2065,7 +2068,7 @@ registerForEvent('onUpdate', function(delta)
         subtitles.clear()
     end
     diagnosticPoll = diagnosticPoll + (tonumber(delta) or 0)
-    if diagnosticPoll >= 0.5 then
+    if diagnosticPoll >= 1 then -- developer mailbox; each CET io.open costs 1-2 ms
         diagnosticPoll = 0
         local request = io.open('runtime/diagnostic-request.txt', 'rb')
         if request then
@@ -2306,6 +2309,7 @@ registerForEvent('onShutdown', function()
     manager.reset()
     if liveWorld then endFocus(player) else focusedCrowd, releasedCrowd = nil, nil end
     if convaiVanillaReactions then pcall(convaiVanillaReactions.clear) end
+    pcall(movementLog.flush) -- buffered Developer movement trace
     focusMode = nil
     focusEntity = nil
     log('Game adapter shut down')

@@ -6,7 +6,11 @@ local PREVIOUS = 'runtime/movement-trace.previous.ndjson'
 local FILE_LIMIT = 2 * 1024 * 1024
 local LINE_LIMIT = 64 * 1024
 local SAMPLE_SECONDS = 0.5
-local since
+-- Samples are buffered and appended every FLUSH_SECONDS (or FLUSH_BYTES), and
+-- when tracing stops: each CET file operation costs 1-2 ms of the game thread,
+-- and the old per-sample size checks and append cost four of them twice a second.
+local FLUSH_SECONDS, FLUSH_BYTES = 5, 256 * 1024
+local since, pending, pendingBytes, flushWait, sizes = nil, {}, 0, 0, nil
 
 local function size(path)
     local file = io.open(path, 'rb')
@@ -16,34 +20,57 @@ local function size(path)
     return length
 end
 
-local function discardOversize(path)
+-- The file's size, or nil when absent. An externally enlarged or older
+-- unbounded trace cannot enter this two-file budget and is removed (false when
+-- that fails). Normal CET reloads preserve both valid files.
+local function boundedSize(path)
     local length = size(path)
-    if not length then return true end
-    if length <= FILE_LIMIT then return true end
-    -- An externally enlarged or older unbounded trace cannot enter this
-    -- two-file budget. Normal CET reloads preserve both valid files.
-    return os.remove(path) and true or false
+    if not length or length <= FILE_LIMIT then return length end
+    return os.remove(path) and nil or false
 end
 
-local function append(line)
-    if not discardOversize(ACTIVE) or not discardOversize(PREVIOUS) then return false end
-    local current = size(ACTIVE) or 0
-    if current + #line > FILE_LIMIT then
+local function append(chunk)
+    -- File sizes are read once, then tracked; this module is the only writer.
+    if not sizes then
+        local active, previous = boundedSize(ACTIVE), boundedSize(PREVIOUS)
+        if active == false or previous == false then return false end
+        sizes = {active = active or 0, previous = previous ~= nil}
+    end
+    if sizes.active + #chunk > FILE_LIMIT then
         -- Retire the oldest file first. Rename of the closed active file is
         -- atomic; a failed rename leaves it intact for the next update/reload.
-        if size(PREVIOUS) ~= nil and not os.remove(PREVIOUS) then return false end
-        if current > 0 and not os.rename(ACTIVE, PREVIOUS) then return false end
+        if sizes.previous and not os.remove(PREVIOUS) then return false end
+        if sizes.active > 0 and not os.rename(ACTIVE, PREVIOUS) then return false end
+        sizes.previous, sizes.active = sizes.active > 0, 0
     end
     local file = io.open(ACTIVE, 'ab')
     if not file then return false end
-    local wrote = file:write(line)
+    local wrote = file:write(chunk)
     local closed = file:close()
-    return wrote ~= nil and closed ~= nil
+    if wrote ~= nil and closed ~= nil then sizes.active = sizes.active + #chunk; return true end
+    return false
+end
+
+-- Appends the buffered samples. Also called on shutdown. A failed write drops
+-- them (the trace is best effort) and re-reads the file sizes next time.
+function M.flush()
+    flushWait = 0
+    if #pending == 0 then return true end
+    local chunk = table.concat(pending)
+    pending, pendingBytes = {}, 0
+    local ok, written = pcall(append, chunk)
+    if not ok or not written then sizes = nil; return false end
+    return true
 end
 
 function M.update(enabled, dt, snapshotProvider)
-    if enabled ~= true then since = nil; return false end
+    if enabled ~= true then
+        if #pending > 0 then M.flush() end
+        since = nil; return false
+    end
     local step = type(dt) == 'number' and dt == dt and dt > 0 and dt or 0
+    flushWait = flushWait + step
+    if flushWait >= FLUSH_SECONDS and #pending > 0 then M.flush() end
     if since ~= nil then
         since = since + step
         if since < SAMPLE_SECONDS then return false end
@@ -56,7 +83,9 @@ function M.update(enabled, dt, snapshotProvider)
         if type(snapshot) ~= 'table' then return false end
         local line = json.encode({version = 1, at = os.time() * 1000, movement = snapshot}) .. '\n'
         if #line > LINE_LIMIT or #line > FILE_LIMIT then return false end
-        return append(line)
+        pending[#pending + 1], pendingBytes = line, pendingBytes + #line
+        if pendingBytes >= FLUSH_BYTES then return M.flush() end
+        return true
     end)
     return ok and result == true
 end

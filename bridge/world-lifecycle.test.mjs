@@ -677,9 +677,11 @@ local publications = #stats.publications
 events.onUpdate(0)
 assert(#stats.publications == publications, 'same-second frame repeated the same heartbeat')
 clock = clock + 1; events.onUpdate(0)
+assert(#stats.publications == publications, 'the 2 s heartbeat republished after one second')
+clock = clock + 1; events.onUpdate(0)
 local heartbeat = published()
 assert(heartbeat.ready and heartbeat.token == first.token and heartbeat.generation == first.generation)
-assert(heartbeat.updated == first.updated + 1000 and worldCollector.configurations == 1)
+assert(heartbeat.updated == first.updated + 2000 and worldCollector.configurations == 1)
 `));
 
 test('actual restored callback retires the old lease before cleanup, rotates on admission and rejects an old pending reply', () => run(`

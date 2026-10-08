@@ -312,6 +312,8 @@ function runProbe(body) {
     const status = lauxlib.luaL_dostring(vm, to_luastring(patched + `
  rows={{entity=a.id,npc=a,profileKey='judy-alvarez',name='Judy'},{entity=b.id,npc=b,profileKey='johnny-silverhand',name='Johnny'}}
  local function request(text) files['runtime/face-test-request.txt']=text end
+ -- These cases step 0.1-0.3 s; production polls the mailbox once a second.
+ if face.faceTest then face.faceTest.pollPeriod=.25 end
  ` + body));
     assert.equal(status, lua.LUA_OK, status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1)));
   } finally { lua.lua_close(vm); }

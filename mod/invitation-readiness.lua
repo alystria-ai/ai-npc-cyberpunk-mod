@@ -42,10 +42,11 @@ local function writeFile(path, raw)
         pcall(os.remove, temporary)
         return false, 'Cannot finish writing the invitation request.'
     end
+    -- Windows rename does not replace an existing destination: remove it first
+    -- (one file operation fewer than rename, fail, remove, rename).
+    pcall(os.remove, path)
     local moved, renamed = pcall(os.rename, temporary, path)
     if not moved or not renamed then
-        -- Windows rename does not replace an existing destination.
-        pcall(os.remove, path)
         moved, renamed = pcall(os.rename, temporary, path)
     end
     if not moved or not renamed then
@@ -271,7 +272,10 @@ function M.new(options)
         local stamp = clock()
         if owner == nil or not boundary or not stamp then receipt, readAt = nil, nil; return end
         local wall = tick()
-        if readInterval <= 0 or not readAt or wall - readAt >= readInterval or wall < readAt then
+        -- With no reservation in flight there is nothing for a receipt to admit.
+        if #order == 0 then
+            receipt, readAt = nil, nil
+        elseif readInterval <= 0 or not readAt or wall - readAt >= readInterval or wall < readAt then
             readAt = wall
             local called, raw = pcall(read, receiptPath)
             receipt = nil
@@ -280,7 +284,8 @@ function M.new(options)
                 if decoded and type(value) == 'table' then receipt = value end
             end
         end
-        if lastPublished == nil or stamp - lastPublished >= 1000 then publish(boundary, stamp) end
+        -- Lease heartbeat: the bridge keeps a publication 6.5 s; refresh it every 2 s.
+        if lastPublished == nil or stamp - lastPublished >= 2000 or stamp < lastPublished then publish(boundary, stamp) end
     end
 
     return R

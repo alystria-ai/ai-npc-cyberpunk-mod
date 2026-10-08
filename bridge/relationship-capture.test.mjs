@@ -43,9 +43,11 @@ test('relationship capture exports positive receipts and leaves native zero expl
   assert(s.facts.sq031_rogue_lover==nil)
 `));
 
-test('capture stays fresh while menu frames have no simulation progress and throttles within one second', () => run(`
+test('capture stays fresh while menu frames have no simulation progress and throttles within two seconds', () => run(`
   collector:update(frame);now=now+500;collector:update(frame)
   assert(reads==11 and #writes==1)
+  now=now+1000;collector:update(frame)
+  assert(reads==11 and #writes==1,'republished within the 2 s heartbeat')
   now=now+500;collector:update(frame)
   assert(reads==22 and #writes==2 and writes[2].capturedAt==now)
 `));

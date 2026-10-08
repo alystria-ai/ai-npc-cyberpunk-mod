@@ -36,10 +36,9 @@ local function write(value)
     if not file then return false end
     local written, closed = file:write(raw), file:close()
     if not written or not closed then return false end
-    if not os.rename(path .. '.tmp', path) then
-        os.remove(path)
-        if not os.rename(path .. '.tmp', path) then return false end
-    end
+    -- Windows rename cannot replace a file: remove first (one operation fewer).
+    os.remove(path)
+    if not os.rename(path .. '.tmp', path) then return false end
     return true
 end
 
@@ -60,7 +59,8 @@ function M.new(options)
     function collector:update(frame)
         if not same(frame, currentWorld()) then return self:reset('world-unavailable') end
         local now = clock()
-        if last and same(last, frame) and now >= last.capturedAt and now - last.capturedAt < 1000 then return true end
+        -- The bridge keeps a capture 5 s; recapture and republish every 2 s.
+        if last and same(last, frame) and now >= last.capturedAt and now - last.capturedAt < 2000 then return true end
         local versionOk, version = pcall(readVersion)
         if not versionOk or version ~= '2.31' then return self:reset('unsupported-game-version') end
         local candidate = {version = 1, status = 'ready', gameVersion = version,
