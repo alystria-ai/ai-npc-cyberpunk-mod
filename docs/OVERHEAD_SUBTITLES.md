@@ -164,3 +164,17 @@ and an end-to-end run of the real bridge cue builder through `speech.lua` and
 `subtitles.lua` (a 3 s buffer lead, a 50 ms lead, and a 2 s stall) asserting
 that every audible sentence is on screen. The old Lua fails it: at 7.85 s the
 HUD still showed the first page, which ended mid-sentence at "on your".
+
+Regression after the first install (same day): no voiced Cinematic caption
+appeared after the CET reload, while a `subtitles-preview:dialogue` line
+rendered (`SubtitleLineLogicController.SetLineData` receipt, serial 4) and the
+bridge published correct cues. The three replies had used CRUIDs 1-3, because
+every CET reload restarted the serial at 0. When the HUD removes one of our
+lines by data, that ID stays in its pending-hide list after our own hide, and
+the next line spawned with the same ID is removed as it appears; the earlier
+sessions' by-data removals (the original vanishing captions) had left IDs 1-3
+in that state. The serial now starts from the load clock (100 IDs per second),
+so no ID repeats within a game session, and `OnHideLine` is observed as well as
+`OnHideLineByData`: any native removal of the exact current dialogue line
+re-shows the page (our own hide clears `M.line` before its delayed callback).
+Hook version 9; install by CET reload.

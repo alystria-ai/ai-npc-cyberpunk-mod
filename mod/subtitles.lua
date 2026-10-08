@@ -1,6 +1,12 @@
 -- Native subtitles, owned by one reply and one exact world speaker at a time.
 -- Overhead projection/layout stays in the game. We only advance owned lines.
-local M = convaiSubtitles or {serial = 0}
+-- Native line IDs (CRUID(0x436F6E760000 + serial)) must never repeat in one
+-- game session. When the HUD removes a line by data, its ID stays in the HUD's
+-- pending-hide list after our own hide, and the next line spawned with that ID
+-- is removed the moment it appears. Starting every CET reload at 1 reused those
+-- IDs, so each reload's first replies never showed. The clock-based start
+-- (100 IDs per second of wall time) is past every earlier load's IDs.
+local M = convaiSubtitles or {serial = math.floor(os.time() % 1000000000) * 100}
 local EMOTION_TAGS = {'joy', 'warm', 'interest', 'surprise', 'sadness', 'fear', 'anger', 'disgust', 'calm'}
 local UTF8 = '[%z\1-\127\194-\244][\128-\191]*'
 
@@ -549,7 +555,7 @@ function M.update(delta)
 end
 
 function M.install()
-    if M.hooksVersion == 8 then return true end
+    if M.hooksVersion == 9 then return true end
     if type(ObserveAfter) ~= 'function' then return false end
     local guardsProjection = type(Override) == 'function'
     ObserveAfter('ChatterLineLogicController', 'SetLineData', function(controller, line)
@@ -647,14 +653,18 @@ function M.install()
             if line.text ~= M.line.text then updateOwnedText(controller, M.line.text) end
         end
     end)
-    -- Native removal by data clears every ownerless HUD line. Note only our
-    -- exact current dialogue line; update() presents it again.
-    pcall(ObserveAfter, 'SubtitlesGameController', 'OnHideLineByData', function(_, entry)
+    -- Native removal by data clears every ownerless HUD line, and a stale
+    -- pending hide removes a line as it spawns. Our own hide clears M.line
+    -- before the delayed callback runs, so a removal of the exact current
+    -- dialogue line is never ours: update() presents the same page again.
+    local function removed(_, entry)
         local ok, id = pcall(function() return tostring(entry.id) end)
         if ok and M.line and M.mode ~= 'overhead' and id == tostring(M.line.id) then
             M.nativeRemovals, M.lineLost = (M.nativeRemovals or 0) + 1, true
         end
-    end)
+    end
+    pcall(ObserveAfter, 'SubtitlesGameController', 'OnHideLineByData', removed)
+    pcall(ObserveAfter, 'SubtitlesGameController', 'OnHideLine', removed)
     -- Other crowd chatter can be closer to screen centre. Keep this exact
     -- owned line readable; every other controller retains the native behavior.
     if guardsProjection then
@@ -676,7 +686,7 @@ function M.install()
             return result
         end)
     end
-    M.hooksInstalled, M.hooksVersion = true, 8
+    M.hooksInstalled, M.hooksVersion = true, 9
     return true
 end
 function M.status()

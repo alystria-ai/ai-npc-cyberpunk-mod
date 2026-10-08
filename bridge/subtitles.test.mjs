@@ -466,8 +466,8 @@ assert(m.line==nil and m.actor==nil and m.entity==nil)
 
 test('native root ownership survives distinct controller and widget wrappers without affecting foreign captions', () => run(setup + `
 assert(registrations==0 and overrideRegistrations==0)
-assert(m.install());assert(m.install());assert(registrations==2 and overrideRegistrations==2)
-assert(afterHooks["SubtitlesGameController.OnHideLineByData"],"Native removal by data must be observed")
+assert(m.install());assert(m.install());assert(registrations==3 and overrideRegistrations==2)
+assert(afterHooks["SubtitlesGameController.OnHideLineByData"] and afterHooks["SubtitlesGameController.OnHideLine"],"Native removals must be observed")
 local after=afterHooks['ChatterLineLogicController.SetLineData']
 local bubble=overrides['ChatterLineLogicController.IsBubble']
 assert(after and bubble)
@@ -770,7 +770,7 @@ assert(m.renderUpdateError:find('unavailable') and not broken.root.visible and b
 
 test('a missing projection override API still reveals the admitted caption through the regular frame path', () => run(setup + `
 Override=nil
-assert(m.install() and registrations==2 and overrideRegistrations==0)
+assert(m.install() and registrations==3 and overrideRegistrations==0)
 local root=surface('201ULL')
 m.show('Judy','Native placement remains usable.',judy,'201ULL')
 afterHooks['ChatterLineLogicController.SetLineData'](wrapController(root),m.line)
@@ -1166,3 +1166,32 @@ test('heard playback keeps each audible sentence on screen through a slow stream
   run(setup + speechHarness(playback({lead: .05})));
   run(setup + speechHarness(playback({lead: .05, stall: [8.4, 10.4]})));
 });
+
+// October 8 regression: after a CET reload no voiced caption appeared. Each
+// load restarted CRUIDs at 1; an ID the HUD once removed by data stays in its
+// pending-hide list, so the next line spawned with that ID vanished at once.
+test('caption IDs never repeat across CET reloads, and a native removal on spawn is re-shown', () => run(setup + `
+style='dialogue'
+local firstLoad=m.serial
+assert(firstLoad>=100000,'IDs start from the load clock, not 1')
+assert(m.show('Judy','First load.',judy,'201ULL'))
+local used=m.serial
+m.clear()
+clock=clock+1
+local reloaded=(function()convaiSubtitles=nil;return (function()${source}end)()end)()
+assert(reloaded~=m and reloaded.serial>used,'A reload must not reuse an earlier load ID')
+reloaded.configure({style=function()return style end})
+assert(reloaded.install())
+assert(reloaded.beginTimed('Judy','Second load, still talking.',4,judy,'201ULL'))
+local line=reloaded.line
+assert(line.id~=shown()[1].id)
+-- The HUD removes the freshly spawned line (stale pending hide, or by data).
+afterHooks['SubtitlesGameController.OnHideLine'](nil,{id=line.id});reloaded.update(.05)
+assert(#shown()==3 and shown()[3].text==line.text and shown()[3].id~=line.id)
+assert(reloaded.status().restores==1)
+-- Our own hide arrives after M.line has moved on: never mistaken for a removal.
+local current=reloaded.line
+reloaded.syncTimed(4);reloaded.clear()
+afterHooks['SubtitlesGameController.OnHideLine'](nil,{id=current.id});reloaded.update(.05)
+assert(#shown()==3 and reloaded.line==nil)
+`));
