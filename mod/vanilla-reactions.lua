@@ -143,6 +143,7 @@ function M.new(options)
     function R.focus(target, reason)
         local hash = hashOf(target)
         if not hash then return false end
+        R.ensureHooks()
         holds[hash] = {pinned = true, since = clock(), reason = reason or 'focus'}
         return true
     end
@@ -151,6 +152,7 @@ function M.new(options)
     function R.hold(target, seconds, reason)
         local hash = hashOf(target)
         if not hash then return false end
+        R.ensureHooks()
         local now = clock()
         local untilAt = now + (tonumber(seconds) or cfg.grace)
         local hold = holds[hash]
@@ -219,8 +221,13 @@ function M.new(options)
     end
 
     -- Registers the CET overrides (once per onInit; a CET reload registers again).
-    function R.install(override)
-        override = override or Override
+    -- ReactionManagerComponent.OnEventReceived runs for every stimulus sent to
+    -- every NPC; even an early-returning CET Override costs main-thread time on
+    -- each call. In the game (no override passed) the hooks are registered only
+    -- when an NPC is first addressed (focus/hold), so a session without a
+    -- conversation never pays for them. An explicit override installs at once.
+    local deferred
+    local function installNow(override)
         installed = {}
         if type(override) ~= 'function' then return false end
         -- A failing check never blocks the vanilla handler.
@@ -255,6 +262,19 @@ function M.new(options)
         end)
         log('Vanilla reaction hooks: ' .. table.concat(installed, ', '))
         return #installed > 0
+    end
+    function R.install(override)
+        if override ~= nil then deferred = nil; return installNow(override) end
+        if type(Override) ~= 'function' then return false end
+        deferred = Override
+        return true
+    end
+    -- Registers deferred hooks once; called when the mod first addresses an NPC.
+    function R.ensureHooks()
+        if not deferred then return #installed > 0 end
+        local override = deferred
+        deferred = nil
+        return installNow(override)
     end
 
     return R

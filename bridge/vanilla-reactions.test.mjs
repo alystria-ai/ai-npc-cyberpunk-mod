@@ -220,6 +220,17 @@ test('a failing check or native read never blocks the vanilla handler', () => {
   `);
 });
 
+test('in the game the hooks are registered only when an NPC is first addressed', () => {
+  run(`${fixture}
+    Override = override
+    local lazy = make()
+    assert(lazy.install() == true and #registered == 0, 'hooks registered before any NPC was addressed')
+    assert(lazy.focus('e1') and #registered == 5)
+    assert(lazy.hold('e2', 3) and #registered == 5, 'hooks registered twice')
+    assert(not fire('TriggerFacialLookAtReaction', 'e1'), 'the focused NPC still reacts')
+  `);
+});
+
 // The adapter wiring: the focus that precedes and carries a conversation pins
 // the NPC, ending it starts the grace, and lifecycle teardown clears it. The
 // global keeps beginFocus/endFocus and onUpdate free of new upvalues.
