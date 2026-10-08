@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {parseWorldSnapshot, resolveKnowledge, validateKnowledgePack, warmKnowledgePack} from './world-knowledge.mjs';
 import {parseJournal, withConversationKnowledge} from './quest-context.mjs';
 import {isAmbientProfile} from './protocol.mjs';
+import {questPathsFromPack} from './quest-overview.mjs';
 
 const PROFILE = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const TOKEN = /^[A-Za-z0-9_:-][A-Za-z0-9._:/@+#-]{0,159}$/;
@@ -83,6 +84,7 @@ export class PlayerKnowledge {
     this.playerMemory = playerMemory; this.pack = freeze(clone(pack));
     // The frozen copy is immutable; prepare it once here rather than per turn.
     warmKnowledgePack(this.pack);
+    this.questPaths = questPathsFromPack(this.pack);
     this.questCatalog = freeze(clone(questCatalog)); this.now = now;
     this.isWorldCurrent = isWorldCurrent; this.getBoundary = getBoundary; this.selectProfile = selectProfile;
   }
@@ -223,20 +225,21 @@ export class PlayerKnowledge {
     const configuration = this.#configuration(route, binding, memory, frozen.entity, live, selected.relationship);
     const capturedAt = this.now();
     const captureCurrent = configuration.sendAllowed && freshSnapshot(snapshot, binding, route, capturedAt);
-    let knowledgeContext = '';
+    let knowledgeContext = '', sharedEvents;
     if (captureCurrent) {
       // Old native identity fields never qualify archive events. Only the
       // resolver's current-context string is consumed by this coordinator.
       const projection = resolveKnowledge({pack: this.pack, snapshot: {...snapshot, identity: {status: 'unknown'}},
         profileKey: route.profileKey, query: frozen.text, maxChars: 8000});
-      if (projection.diagnostics.status === 'ready') knowledgeContext = projection.context;
+      if (projection.diagnostics.status === 'ready') { knowledgeContext = projection.context; sharedEvents = projection.shared; }
     }
     // The tracked journal is bounded request data captured by Lua at admission;
     // parent raw-input ownership and this world guard establish its provenance.
     // Broader facts/history have their own publication leases and audience gate.
     const attached = withConversationKnowledge(frozen, {knowledgeContext,
       generation: captureCurrent ? binding.generation : undefined,
-      worldToken: captureCurrent ? binding.worldToken : undefined, questCatalog: this.questCatalog, now: capturedAt});
+      worldToken: captureCurrent ? binding.worldToken : undefined, questCatalog: this.questCatalog, now: capturedAt,
+      sharedEvents, questPaths: this.questPaths});
     const prepared = freeze({...configuration, input: attached});
     this.#prepared.set(prepared, {binding, guard: memory.guard ?? null,
       admitted: configuration.sendAllowed, cancelled: false, submitted: false});

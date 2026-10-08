@@ -8,7 +8,11 @@
 // "FZLC" chunk table, each chunk "4ZLX" + size + LZ4 block (or stored raw).
 // The first FactsTable holds named quest facts as FNV-1a32(name) -> int32.
 // JournalManager stores 15-byte entries: uint32 Murmur3_32(path, 0x5EEDBA5E),
-// uint32 state (1 inactive, 2 active, 3 succeeded, 4 failed), 7 more bytes.
+// uint32 state (1 inactive, 2 active, 3 succeeded, 4 failed), uint32 game
+// seconds of the entry's last state change (GetEntryTimestamp), uint16 change
+// sequence within that second, 1 flag byte. TimeSystem holds the current game
+// seconds as a uint32 at node offset 12. Both verified on six 2.31 autosaves:
+// the clock advances with play and sequential objectives order as played.
 // A live 2.31 capture and this reader agreed on all 527 observations.
 import {readFileSync, createReadStream} from 'node:fs';
 import {createInterface} from 'node:readline';
@@ -105,15 +109,21 @@ export function saveState(path) {
     for (let i = 0; i < count; i++, p += 4) hashes.push(save.data.readUInt32LE(p));
     for (let i = 0; i < count; i++, p += 4) facts.set(hashes[i], save.data.readInt32LE(p));
   }
-  const journal = new Map();
+  const journal = new Map(), journalTimes = new Map();
   {
     let p = at(journalNode.offset) + 4;
     const count = save.data.readUInt32LE(p); p += 4;
-    for (let i = 0; i < count; i++, p += 15) journal.set(save.data.readUInt32LE(p), save.data.readUInt32LE(p + 4));
+    for (let i = 0; i < count; i++, p += 15) {
+      const hash = save.data.readUInt32LE(p);
+      journal.set(hash, save.data.readUInt32LE(p + 4));
+      journalTimes.set(hash, {seconds: save.data.readUInt32LE(p + 8), sequence: save.data.readUInt16LE(p + 12)});
+    }
   }
+  const timeNode = save.nodes.find(n => n.name === 'TimeSystem');
+  const gameTimeSeconds = timeNode && timeNode.size >= 16 ? save.data.readUInt32LE(at(timeNode.offset) + 12) : undefined;
   let metadata = null;
   try { metadata = JSON.parse(readFileSync(join(dirname(path), 'metadata.9.json'), 'utf8')).Data.metadata; } catch {}
-  return {facts, journal, metadata};
+  return {facts, journal, journalTimes, gameTimeSeconds, metadata};
 }
 
 const research = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -133,8 +143,10 @@ const journalValue = (state, path) => STATES[state.journal.get(murmur3(path))];
 // quest (quest entries) or contact (phone entries).
 export function journalObservation(state, selector, types) {
   const path = selector.nativePath, value = journalValue(state, path), parts = path.split('/');
+  const seconds = state.journalTimes?.get(murmur3(path))?.seconds;
   const known = () => ({status: 'known', value, revealed: true, questKey: selector.questKey,
-    sourceId: 'offline-save-journal', evidenceRefs: ['offline-save:journal']});
+    sourceId: 'offline-save-journal', evidenceRefs: ['offline-save:journal'],
+    ...(Number.isSafeInteger(seconds) ? {gameTimeSeconds: seconds} : {})});
   if (!revealed(value)) return {status: 'unknown', reason: 'journal-not-revealed'};
   if (selector.nativeClass === 'gameJournalPhoneChoiceEntry' || selector.nativeClass === 'gameJournalPhoneMessage') {
     if (selector.nativeClass === 'gameJournalPhoneChoiceEntry' && value !== 'succeeded') return {status: 'unknown', reason: 'phone-choice-not-sent'};
@@ -171,5 +183,6 @@ export function snapshotFromSave(state, pack, types, {profileKeys, channel = 'pr
   return {version: 1, status: 'ready', gameVersion: pack.gameVersions[0], generation: 1, worldToken: 'offline-save',
     capturedAt: new Date().toISOString(), identity: {status: 'unknown'}, audience: {channel, profileKeys},
     facts, journal, ...(active.length ? {activeQuestKeys: active} : {}),
+    ...(Number.isSafeInteger(state.gameTimeSeconds) ? {gameTimeSeconds: state.gameTimeSeconds} : {}),
     lifepath: lifepath ? {status: 'known', value: lifepath, sourceId: 'offline-save-metadata', evidenceRefs: ['offline-save:metadata']} : {status: 'unknown'}};
 }

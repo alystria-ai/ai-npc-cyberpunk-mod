@@ -256,3 +256,41 @@ test('untracked and unknown are distinct; partial inventory cannot claim all job
   assert.match(output.context, /"status":"untracked"/); assert.match(output.context, /"status":"partial"/);
   assert.match(output.context, /never infer failure or completion from absence/);
 });
+
+test('native adapter records the game quest type once per quest and its last state-change time', () => {
+  const typed = nativeFixture.replace('now=function() return 1000 end', 'now=function() return clock end').replace('local m=module.new(', `
+local typeReads,stampReads,clock=0,0,1000
+EnumInt=function(v) return ({MainQuest=0,SideQuest=1,MinorQuest=2})[v] end
+function journal:GetQuestType(entry) typeReads=typeReads+1; return 'MinorQuest' end
+function journal:GetEntryTimestamp(entry) stampReads=stampReads+1; return {seconds=entry.id*1000} end
+GameTime={GetSeconds=function(t) return t.seconds end}
+local m=module.new(`);
+  const actual = run(typed + `local first=stampReads
+clock=1040; for i=1,100 do m:update(context) end
+local out=m:capture(context); out.typeReads,out.rescanned=typeReads,stampReads>first; return out`);
+  assert.equal(actual.rescanned, true, 'the test really scanned the history lane twice');
+  assert.equal(actual.typeReads, 1, 'cooked quest types are cached per session, not re-read every scan');
+  const parsed = parseJournalHistory(actual);
+  assert.equal(parsed.quests[0].questType, 'MinorQuest');
+  assert.equal(parsed.quests[0].gameTimeSeconds, 1000);
+  // A collector without these APIs still publishes the inventory, unannotated.
+  const plain = parseJournalHistory(run(nativeFixture + 'return m:capture(context)'));
+  assert.equal(plain.quests[0].questType, undefined); assert.equal(plain.quests[0].gameTimeSeconds, undefined);
+});
+
+test('quest annotations are optional and malformed ones are dropped rather than trusted', () => {
+  const annotated = structuredClone(snapshot);
+  annotated.quests[0].questType = 'MainQuest'; annotated.quests[0].gameTimeSeconds = 8745392;
+  annotated.quests[1].questType = 'Spoiler<b>'; annotated.quests[1].gameTimeSeconds = -5;
+  const parsed = parseJournalHistory(annotated);
+  assert.equal(parsed.status, 'ready');
+  assert.equal(parsed.quests[0].questType, 'MainQuest'); assert.equal(parsed.quests[0].gameTimeSeconds, 8745392);
+  assert.equal(parsed.quests[1].questType, undefined); assert.equal(parsed.quests[1].gameTimeSeconds, undefined);
+});
+
+test('temporal words in "what did we do last?" do not pull in a job titled "Last Login"', () => {
+  const titled = structuredClone(snapshot); titled.quests[2].title = 'Gig: Last Login';
+  const output = selectJournalHistory({snapshot: titled, generation: 1, worldToken: 'world-a', now: 1000000,
+    profileKey: 'judy-alvarez', query: 'what did we do last? what next?'});
+  assert.doesNotMatch(output.context, /Last Login/);
+});

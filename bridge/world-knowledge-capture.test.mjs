@@ -318,3 +318,40 @@ end
 options.batchSize=128; local m=configured(); finish(m)
 assert(m:capture(context).reason=='snapshot-byte-limit')
 `));
+
+test('journal timestamps are read only when an entry changes state, and the capture carries the game clock', () => {
+  const actual = run(nativeFixture + `
+local stampReads, clock = 0, 8745392
+function manager:GetEntryTimestamp(entry) stampReads=stampReads+1; return {seconds=6000+stampReads} end
+GameTime={GetSeconds=function(t) return t.seconds end}
+Game.GetTimeSystem=function() return {GetGameTime=function() return {seconds=clock} end} end
+local m=module.new(options); assert(m:configure(pack,{gameVersion='2.31'}))
+m:update(context); local first=m:capture(context)
+assert(first.journal['-1'].gameTimeSeconds==6001 and first.gameTimeSeconds==8745392 and stampReads==1)
+for _=1,5 do m:update(context) end
+local steady=m:capture(context)
+assert(stampReads==1 and steady.journal['-1'].gameTimeSeconds==6001, 'a steady entry is timed once')
+objective.state='Failed'; m:update(context)
+local changed=m:capture(context)
+assert(stampReads==2 and changed.journal['-1'].value=='failed' and changed.journal['-1'].gameTimeSeconds==6002)
+m:reset(1,'world-reset'); m:update(context)
+assert(stampReads==3, 'a world reset forgets every timestamp')
+return changed
+`);
+  const parsed = parseWorldSnapshot(actual);
+  assert.equal(parsed.journal['-1'].gameTimeSeconds, 6002);
+  assert.equal(parsed.gameTimeSeconds, 8745392);
+});
+
+test('a GameTime whose two readings disagree, or a failing clock, yields no time rather than a wrong order', () => run(nativeFixture + `
+function manager:GetEntryTimestamp(entry) return {seconds=7000} end
+GameTime={GetSeconds=function(t) return 59 end}
+Game.GetTimeSystem=function() error('clock unavailable') end
+local out=capture()
+assert(out.status=='ready' and out.journal['-1'].value=='succeeded')
+assert(out.journal['-1'].gameTimeSeconds==nil and out.gameTimeSeconds==nil)
+GameTime={GetSeconds=function(t) error('no static') end}
+assert(capture().journal['-1'].gameTimeSeconds==7000, 'the struct field alone is accepted')
+function manager:GetEntryTimestamp(entry) error('no timestamp api') end
+assert(capture().journal['-1'].value=='succeeded', 'a timestamp failure never hides the state')
+`));

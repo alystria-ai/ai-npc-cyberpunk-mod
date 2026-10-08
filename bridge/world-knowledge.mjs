@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 const LIMIT = Object.freeze({snapshotBytes: 256 * 1024, packBytes: 16 * 1024 * 1024,
   profiles: 256, sources: 2048, evidence: 4096, inventory: 4096, rules: 2048,
   observations: 1024, activeQuests: 32, disclosures: 128, nodes: 128, depth: 8,
-  children: 16, exclusiveGroups: 8, events: 64, errors: 64, traces: 128, context: 12000});
+  children: 16, exclusiveGroups: 8, events: 64, errors: 64, traces: 128, context: 12000, shared: 256});
 const EXECUTABLE = new Set(['source-verified', 'live-verified']);
 const STATUSES = new Set(['unmapped', 'candidate', ...EXECUTABLE, 'disabled']);
 const PERSPECTIVES = new Set(['public', 'shared-journal', 'participant', 'witnessed', 'told-by-v', 'private']);
@@ -62,7 +62,11 @@ function observation(row, type) {
   if (type === 'journal') {
     if (row.revealed !== true || row.value === 'inactive') return unknown('journal-not-revealed');
     if (!JOURNAL_STATES.has(row.value) || !identifier(row.questKey)) return null;
-    return {...base, revealed: true, questKey: row.questKey};
+    // Optional game seconds of the entry's last state change. It orders events
+    // only; a malformed value is dropped rather than trusted or fatal.
+    const time = Number.isSafeInteger(row.gameTimeSeconds) && row.gameTimeSeconds >= 0 && row.gameTimeSeconds <= 4294967295
+      ? {gameTimeSeconds: row.gameTimeSeconds} : {};
+    return {...base, revealed: true, questKey: row.questKey, ...time};
   }
   return LIFEPATHS.has(row.value) ? base : null;
 }
@@ -382,6 +386,7 @@ function permitted(rule, snapshot, profileKey, prepared) {
   return true;
 }
 
+const SHARED_PERSPECTIVES = new Set(['participant', 'witnessed', 'private']);
 const ORIGIN = Object.freeze({public: 'public knowledge', 'shared-journal': 'V shared the current-save journal; not witnessed',
   participant: 'verified participant in this event', witnessed: 'verified witness of this event',
   'told-by-v': 'V explicitly told this character', private: 'private knowledge; only the declared recipients may hear it'});
@@ -500,6 +505,20 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
     candidates.push({...row, score: rank(row.rule, current, profileKey, queryTerms)});
   }
   candidates.sort((a, b) => b.score - a.score || (a.rule.id < b.rule.id ? -1 : a.rule.id > b.rule.id ? 1 : 0));
+  // Events this character took part in (or privately shares with V), for the
+  // recency section. Same audience gate as the facts; not budget-limited here.
+  const shared = [], sharedTopics = new Set();
+  for (const row of candidates) {
+    const rule = row.rule, coWitness = coWitnessFor(rule, prepared, profileKey);
+    if (!SHARED_PERSPECTIVES.has(rule.audience.perspective) || sharedTopics.has(rule.topic) || shared.length >= LIMIT.shared) continue;
+    if (!coWitness && (rule.audience.speakers === 'all' || !rule.audience.speakers.includes(profileKey))) continue;
+    const times = row.evaluation.evidence.filter(item => item.type === 'journal')
+      .map(item => current.journal[item.key]?.gameTimeSeconds).filter(Number.isSafeInteger);
+    sharedTopics.add(rule.topic);
+    shared.push({ruleId: rule.id, questKey: rule.questKey, topic: rule.topic, outcome: rule.outcome, text: rule.statement,
+      knowledgeOrigin: coWitness?.origin ?? ORIGIN[rule.audience.perspective],
+      ...(times.length ? {gameTimeSeconds: Math.max(...times)} : {})});
+  }
   const data = {version: 1, status: 'ready', speaker: profileKey, facts: []};
   let context = render(data);
   if (context.length > budget) return invalid('budget-too-small');
@@ -518,5 +537,5 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
   const events = eligible.slice(0, LIMIT.events).map(row => eventFor(row, current, prepared, profileKey));
   diagnostics.memory = {identity: current.identity.status, candidates: events.length,
     omitted: Math.max(0, eligible.length - LIMIT.events)};
-  return {context, events, diagnostics};
+  return {context, events, diagnostics, shared};
 }

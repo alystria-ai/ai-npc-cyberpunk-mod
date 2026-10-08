@@ -4,7 +4,8 @@ import {followUpContext} from './conversation-style.mjs';
 import {battleContext} from './battle-context.mjs';
 import {lootContext} from './loot-context.mjs';
 import {parseWorldSnapshot} from './world-knowledge.mjs';
-import {parseJournalHistory, selectJournalHistory} from './journal-history.mjs';
+import {currentJournalHistory, parseJournalHistory, selectJournalHistory} from './journal-history.mjs';
+import {availableQuestsContext, recentSharedContext} from './quest-overview.mjs';
 import {gameDialogueContext} from './game-dialogue.mjs';
 
 const unavailable = () => ({version: 1, status: 'unavailable'});
@@ -93,7 +94,7 @@ function sameAudience(input, snapshot) {
  * Parent retains and rechecks the original service guard across awaited work.
  */
 export function withConversationKnowledge(input, {knowledgeContext = '', generation, worldToken,
-  questCatalog = [], now = Date.now()} = {}) {
+  questCatalog = [], now = Date.now(), sharedEvents, questPaths} = {}) {
   const result = {...input};
   delete result.knowledgeContext; delete result.historyContext; delete result.journalHistoryContext;
   if (input.worldKnowledge !== undefined) result.worldKnowledge = parseWorldSnapshot(input.worldKnowledge);
@@ -107,9 +108,18 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
   const trackedHash = trackedJournal?.status === 'active' ? Number(trackedJournal.quest.id) : NaN;
   const trackedQuestId = Number.isInteger(trackedHash) && trackedHash >= -2147483648 && trackedHash <= 4294967295
     ? String(trackedHash < 0 ? trackedHash + 4294967296 : trackedHash) : undefined;
-  const history = result.journalHistory === undefined ? '' : selectJournalHistory({snapshot: result.journalHistory,
+  const bound = result.journalHistory === undefined ? null
+    : currentJournalHistory({snapshot: result.journalHistory, generation, worldToken, now});
+  const history = bound === null ? '' : selectJournalHistory({snapshot: result.journalHistory, bound,
     generation, worldToken, profileKey: result.profileKey, query: result.text, questCatalog, now, trackedQuestId}).context;
-  result[TRUSTED_KNOWLEDGE] = Object.freeze({identity: contextIdentity(result), knowledgeContext: projected, historyContext: history});
+  const inventory = bound?.status === 'ready' ? bound.history : undefined;
+  // Shared events come from the resolver run on this same current snapshot.
+  const recency = current && Array.isArray(sharedEvents) ? recentSharedContext({shared: sharedEvents,
+    worldSeconds: snapshot.gameTimeSeconds, history: inventory, questPaths, questCatalog}) : '';
+  const jobs = inventory ? availableQuestsContext({history: inventory, age: bound.age, now,
+    profileKey: result.profileKey, questCatalog, trackedQuestId, shared: current ? sharedEvents : []}) : '';
+  result[TRUSTED_KNOWLEDGE] = Object.freeze({identity: contextIdentity(result), knowledgeContext: projected, historyContext: history,
+    recencyContext: recency, jobsContext: jobs});
   return result;
 }
 
@@ -118,7 +128,8 @@ export function conversationContext(input) {
   const trusted = attached?.identity && attached.identity === contextIdentity(input) ? attached : null;
   const knowledge = trusted?.knowledgeContext || (input.worldKnowledge !== undefined ? WORLD_UNAVAILABLE : '');
   const history = trusted?.historyContext || (input.journalHistory !== undefined ? HISTORY_UNAVAILABLE : '');
-  return [groupContext(input), knowledge, history, journalContext(input.journal), gameDialogueContext(input),
+  return [groupContext(input), knowledge, trusted?.recencyContext, history, trusted?.jobsContext,
+    journalContext(input.journal), gameDialogueContext(input),
     battleContext(input), lootContext(input),
     knowledge || history ? CURRENT_AUTHORITY : '', SPOKEN_OUTPUT, followUpContext(input)].filter(Boolean).join('\n\n');
 }

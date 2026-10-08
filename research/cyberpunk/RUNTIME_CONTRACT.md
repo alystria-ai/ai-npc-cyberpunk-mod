@@ -10,7 +10,7 @@ network calls, persistence or model calls.
 parseWorldSnapshot(value) // normalized snapshot; malformed -> unavailable
 validateKnowledgePack(pack) // { ok, errors }; errors are bounded plain data
 resolveKnowledge({ pack, snapshot, profileKey, query, maxChars })
-// -> { context: string, events: [], diagnostics: {} }
+// -> { context: string, events: [], diagnostics: {}, shared: [] }
 ```
 
 `snapshot` accepts an object or JSON string. `query` is optional and changes
@@ -76,6 +76,8 @@ require nonempty `sourceId` and `evidenceRefs`. Those fields identify the captur
 producer and exact captured observation respectively; they are not bibliographic
 citations. Unknown observations are `{ "status": "unknown" }` and may include
 a bounded `reason`. Facts are signed 32-bit integers, not booleans or strings.
+
+A journal observation may carry `gameTimeSeconds`, the game time of the entry's last state change (`GetEntryTimestamp`). It orders events only; a malformed value is dropped. `shared` lists the true, permitted participant, witnessed or private rules the speaker took part in, each with the latest journal time its condition rests on, for the recency section. It is never a memory event.
 
 Journal states are `active`, `succeeded`, or `failed`. Only revealed entries are
 admitted; missing, hidden and inactive entries cannot establish a negative fact.

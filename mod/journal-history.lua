@@ -30,6 +30,36 @@ local function array(first,second)
     assert(type(values)=='table','Native journal array unavailable'); return values
 end
 local function localized(value,limit) return text(GetLocalizedText(value),limit) end
+-- The game's own quest category (gameJournalQuestType). A quest's type is
+-- cooked data, so each hash is resolved once per session; the enum lookup table
+-- is built once. Unknown names simply do not resolve.
+local QUEST_TYPES={'MainQuest','SideQuest','MinorQuest','StreetStory','Contract','VehicleQuest',
+    'CyberPsycho','CourierQuest','CourierSideQuest','ApartmentQuest'}
+local questTypeNames,questTypeCache=nil,{}
+local function questType(journal,entry,id)
+    local cached=questTypeCache[id]; if cached~=nil then return cached or nil end
+    if not questTypeNames then
+        questTypeNames={}
+        for _,name in ipairs(QUEST_TYPES) do
+            local ok,value=pcall(function() return tonumber(EnumInt(Enum.new('gameJournalQuestType',name))) end)
+            if ok and value then questTypeNames[value]=name end
+        end
+    end
+    local ok,value=pcall(function() return tonumber(EnumInt(journal:GetQuestType(entry))) end)
+    local name=ok and value and questTypeNames[value] or nil
+    questTypeCache[id]=name or false; return name
+end
+-- Game seconds of the entry's last state change; nil unless both readings agree.
+local function gameSeconds(journal,entry)
+    local ok,stamp=pcall(function() return journal:GetEntryTimestamp(entry) end)
+    if not ok or stamp==nil then return nil end
+    local function valid(v) v=tonumber(v); return integer(v,0,4294967295) and v or nil end
+    local okField,field=pcall(function() return valid(stamp.seconds) end)
+    local okTotal,total=pcall(function() return valid(GameTime.GetSeconds(stamp)) end)
+    field,total=okField and field or nil,okTotal and total or nil
+    if field and total and field~=total then return nil end
+    return field or total
+end
 local function path(journal,entry)
     local ids,seen={},{}
     for _=1,16 do
@@ -51,6 +81,8 @@ local function descriptor(journal,entry)
         out.kind='quest'; out.title=localized(entry:GetTitle(journal),320)
         out.nativePath=path(journal,entry)
         if not out.title then return nil end
+        -- One quest root per page row: two extra native reads per quest per scan.
+        out.questType=questType(journal,entry,id); out.gameTimeSeconds=gameSeconds(journal,entry)
     elseif entry:IsA('gameJournalQuestObjectiveBase') then
         out.kind='objective'; out.text=localized(entry:GetDescription(),1200)
         if not out.text then return nil end
@@ -191,6 +223,8 @@ function Collector:step(lane,now)
                 else
                     local q={id=row.id,nativeId=row.nativeId,title=row.title,state=row.state,
                         observedAtMs=now*1000,objectives={},objectivesComplete=true,lane=lane}
+                    if type(row.questType)=='string' and #row.questType<=32 and row.questType:match('^%a+$') then q.questType=row.questType end
+                    if integer(row.gameTimeSeconds,0,4294967295) then q.gameTimeSeconds=row.gameTimeSeconds end
                     if text(row.nativePath,1024) then q.nativePath=row.nativePath end
                     job.quests[row.id]=q; job.rootCount=job.rootCount+1; job.bytes=job.bytes+cost
                     job.queue[#job.queue+1]={id=row.id,quest=row.id,cursor=1,depth=0,path={row.nativeId}}

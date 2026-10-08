@@ -9,6 +9,11 @@ const finite = (value, maximum) => Number.isFinite(value) && value >= 0 && value
 const id = value => typeof value === 'string' && /^(0|[1-9]\d{0,9})$/.test(value) && Number(value) <= 4294967295;
 const identifier = value => typeof value === 'string' && /^[A-Za-z0-9_:-][A-Za-z0-9._:/@+#-]{0,159}$/.test(value);
 const states = new Set(['active', 'succeeded', 'failed']);
+// gameJournalQuestType names the native collector may report.
+export const QUEST_TYPES = Object.freeze(['MainQuest', 'SideQuest', 'MinorQuest', 'StreetStory', 'Contract',
+  'VehicleQuest', 'CyberPsycho', 'CourierQuest', 'CourierSideQuest', 'ApartmentQuest']);
+const questTypes = new Set(QUEST_TYPES);
+const gameSeconds = value => Number.isSafeInteger(value) && value >= 0 && value <= 4294967295;
 const unknown = reason => ({version: 1, status: 'unavailable', reason});
 const array = (value, maximum) => Array.isArray(value) && value.length <= maximum ? value
   : plain(value) && Object.keys(value).length === 0 ? [] : null;
@@ -56,6 +61,9 @@ export function parseJournalHistory(input) {
     if (row.nativePath !== undefined) {
       const nativePath = label(row.nativePath, 1024); if (!nativePath) return unknown('invalid-path'); parsed.nativePath = nativePath;
     }
+    // Optional annotations from newer collectors; a malformed one is dropped, not trusted.
+    if (questTypes.has(row.questType)) parsed.questType = row.questType;
+    if (gameSeconds(row.gameTimeSeconds)) parsed.gameTimeSeconds = row.gameTimeSeconds;
     const objectiveIds = new Set();
     for (const objective of objectives) {
       if (++count > LIMIT.objectives) return unknown('objective-limit');
@@ -84,7 +92,10 @@ export function parseJournalHistory(input) {
     coverage: {active, history}, quests};
 }
 
-const STOP = new Set(['what', 'where', 'when', 'which', 'have', 'been', 'with', 'about', 'that', 'this', 'there', 'they', 'your', 'our', 'the', 'and', 'for', 'how', 'are', 'you', 'can', 'did', 'does', 'quest', 'quests', 'job', 'jobs', 'objective', 'objectives']);
+// Temporal words ("what did we do last?", "what next?") would otherwise match
+// titles such as "Gig: Last Login"; the recency and job sections answer those.
+const STOP = new Set(['what', 'where', 'when', 'which', 'have', 'been', 'with', 'about', 'that', 'this', 'there', 'they', 'your', 'our', 'the', 'and', 'for', 'how', 'are', 'you', 'can', 'did', 'does', 'quest', 'quests', 'job', 'jobs', 'objective', 'objectives',
+  'last', 'next', 'latest', 'recent', 'recently', 'should', 'take', 'together']);
 const words = value => [...new Set((String(value ?? '').toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).filter(word => word.length > 2 && !STOP.has(word)))].slice(0, 32);
 // Journal titles/objectives rarely change between turns. Their word sets are
 // pure functions of the text, so a bounded cache avoids re-tokenizing thousands
@@ -100,7 +111,7 @@ const bagFor = value => {
   return bag;
 };
 const matching = (value, query) => { const bag = bagFor(value); return query.filter(word => bag.has(word)).length; };
-function related(row, profileKey, catalog) {
+export function related(row, profileKey, catalog) {
   if (!identifier(profileKey) || !Array.isArray(catalog)) return false;
   return catalog.slice(0, 4096).some(item => item && Array.isArray(item.characters) && item.characters.includes(profileKey)
     && ((Array.isArray(item.nativeIds) && item.nativeIds.some(native => typeof native === 'string'
@@ -113,24 +124,37 @@ const FRAMING = "The following bounded observations are from V's revealed game j
   + 'An objective records its wording and displayed status, not independent confirmation of every claim in that wording. Missing entries and omitted objectives are unknown; never infer failure or completion from absence. '
   + 'This replaces earlier assumptions about the journal. Capture is a bounded observation window, not an atomic snapshot or long-term memory.\n';
 
+/** The parsed inventory only when it is bound to this world and freshly published. */
+export function currentJournalHistory({snapshot, generation, worldToken, now = Date.now()} = {}) {
+  const current = parseJournalHistory(snapshot);
+  if (current.status !== 'ready') return {status: 'unavailable', reason: current.reason};
+  if (!integer(generation, Number.MAX_SAFE_INTEGER) || generation !== current.generation
+    || ((worldToken !== undefined || current.worldToken !== undefined)
+      && (!identifier(worldToken) || worldToken !== current.worldToken))) return {status: 'unavailable', reason: 'stale-world'};
+  if (!finite(now, 1e15) || now < current.capturedAtMs - 1000 || now - current.capturedAtMs > 10000) return {status: 'unavailable', reason: 'stale-publication'};
+  return {status: 'ready', history: current, age: Math.max(0, (now - current.capturedAtMs) / 1000)};
+}
+
+/** A quest row is usable while its lane observation is within the lane's age limit. */
+export function freshQuest(history, row, age, now) {
+  const lane = history.coverage[row.lane]; const maximum = row.lane === 'active' || row.state === 'active' ? 15 : 300;
+  return !(lane.ageSeconds + age > maximum || now - row.observedAtMs > maximum * 1000);
+}
+
 /** Filtered context only. No durable-memory events are produced by this layer. */
 export function selectJournalHistory({snapshot, generation, worldToken, profileKey, query = '', questCatalog = [],
-  maxChars = 6000, now = Date.now(), trackedQuestId} = {}) {
-  const current = parseJournalHistory(snapshot);
+  maxChars = 6000, now = Date.now(), trackedQuestId, bound: given} = {}) {
   const limit = Number.isSafeInteger(maxChars) ? Math.max(0, Math.min(maxChars, LIMIT.output)) : 6000;
   const diagnostics = {status: 'unavailable', selected: [], omitted: 0};
   const unavailable = reason => ({context: '', events: [], diagnostics: {...diagnostics, reason}});
-  if (current.status !== 'ready') return unavailable(current.reason);
-  if (!integer(generation, Number.MAX_SAFE_INTEGER) || generation !== current.generation
-    || ((worldToken !== undefined || current.worldToken !== undefined)
-      && (!identifier(worldToken) || worldToken !== current.worldToken))) return unavailable('stale-world');
-  if (!finite(now, 1e15) || now < current.capturedAtMs - 1000 || now - current.capturedAtMs > 10000) return unavailable('stale-publication');
-  const age = Math.max(0, (now - current.capturedAtMs) / 1000);
+  // A caller that already bound this snapshot (same generation, token and clock) may pass the result.
+  const bound = given ?? currentJournalHistory({snapshot, generation, worldToken, now});
+  if (bound.status !== 'ready') return unavailable(bound.reason);
+  const current = bound.history, age = bound.age;
   query = typeof query === 'string' ? query.slice(0, 4096) : '';
   const tokens = words(query); const historyQuestion = /\b(completed|finished|failed|past|history|previous)\b/iu.test(query);
   const ranked = current.quests.map(row => {
-    const lane = current.coverage[row.lane]; const maximum = row.lane === 'active' || row.state === 'active' ? 15 : 300;
-    if (lane.ageSeconds + age > maximum || now - row.observedAtMs > maximum * 1000) return null;
+    if (!freshQuest(current, row, age, now)) return null;
     const titleHits = matching(row.title, tokens);
     const objectiveHits = row.objectives.reduce((sum, objective) => sum + Math.min(2, matching(objective.text, tokens)), 0);
     const isTracked = current.tracked.status === 'known' && current.tracked.questId === row.id;

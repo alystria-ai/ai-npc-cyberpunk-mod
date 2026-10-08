@@ -9,7 +9,8 @@ records the earlier eight-character pass. Tracked objectives and reviewed branch
 knowledge are separate inputs.
 
 Companions receive the tracked quest and its active, revealed objectives when V
-starts a conversation. This is read-only: no journal entries are activated,
+starts a conversation. Since October 9 they also get their most recent shared
+events with V and V's open jobs by journal category (see below). This is read-only: no journal entries are activated,
 tracked, visited or completed by this feature.
 
 ## Ownership and scope
@@ -41,6 +42,86 @@ tracked, visited or completed by this feature.
   treating tracking as completion. They request relevant discussion without
   hidden outcomes or fabricated progress. Model adherence still needs live checks;
   filtering input cannot guarantee every generated sentence is spoiler-free.
+
+## Recent shared events and open jobs — October 9
+
+**Why Judy forgot.** World facts were an unordered set. On the user's save Judy
+had 15 true facts, including the apartment date, but nothing said which came
+last. The journal-history block made it worse: "what did we do last?" matched
+the word *last* in **Gig: Last Login** and offered that gig instead.
+
+**Ordering signal.** `JournalManager.GetEntryTimestamp` returns the game time of
+an entry's last state change. The save stores the same value per entry (uint32
+game seconds, then a uint16 sequence within that second). On six autosaves the
+game clock (TimeSystem) advanced with play, and Pyramid Song's objectives
+ordered exactly as played. The intra-second sequence exists only in the save,
+so live ties are marked `sameMomentAsPrevious` rather than guessed.
+
+**Capture (Lua, inside the existing throttled cycles).**
+- `world-knowledge.lua` adds `gameTimeSeconds` to each revealed journal
+  observation. It reads the timestamp only when that entry's state differs
+  from the last timed state, so a steady journal costs no extra native call.
+  One game-clock read is made per capture, on demand.
+- `journal-history.lua` adds each quest root's `questType` (`GetQuestType`,
+  cached per hash for the session) and `gameTimeSeconds`.
+- GameTime is read both as the `seconds` field and through
+  `GameTime.GetSeconds`. If the two disagree, no time is used. Any failure
+  leaves the field absent and the state unchanged.
+
+**Recent shared events** (`bridge/quest-overview.mjs`).
+- Up to 3 events, newest first, at most 2 per quest.
+- Only true, audience-permitted *participant*, *witnessed* or *private*
+  rules where the character is a declared speaker (or Johnny's co-witness
+  policy). Shared-journal and public facts are excluded.
+- Each event is timed by the latest journal entry its condition rests on. A
+  fact-only rule falls back to its finished quest's completion time, labelled
+  as the latest possible time. Untimed events are left out.
+- `"recently"` means within 2 in-game days, otherwise `"a while ago"`, plus
+  `inGameDaysAgo`.
+- With no timed event the section says the order is unknown. With no shared
+  event it says not to invent one.
+
+**Open jobs.**
+- Active journal quests from the fresh active lane, grouped by the game's own
+  type. The headings are the game's labels: MainQuests "Main Jobs";
+  SideQuests and MinorQuests "Side Jobs"; StreetStories "Gigs"; Contracts
+  "NCPD Scanner Hustles". Other types are only counted.
+- The native type is preferred. `bridge/journal-quest-types.mjs`, generated
+  from the cooked journal by `build_journal_quest_types.mjs`, is the
+  fallback.
+- Caps: main 6, side 8, gigs 5, NCPD 3, and a total of 1800 characters.
+- The tracked job is flagged and its objectives are not repeated.
+- A job counts as the speaker's own only when its researched cast is at most
+  5 and either names them alone or they have a verified event in it on this
+  save. Own jobs show at most 2 active objectives as `stillToDo`, marked as
+  not yet happened. Other jobs are title and category only. Unrevealed and
+  finished objectives never appear.
+- Temporal words such as *last*, *next* and *take* no longer drive
+  journal-history matching.
+
+**Verification on the user's save (AutoSave-8, game day 101).**
+`node research/cyberpunk/scripts/save_overview.mjs "<save>" --who judy-alvarez`
+rebuilds both captures read-only and prints the sections:
+
+1. Judy's apartment date (*I Really Want to Stay at Your House*, 27 in-game
+   days ago, timed by its journal entry).
+2. Pyramid Song: continuing the relationship.
+3. Pyramid Song: the Laguna Bend dive (34 days ago, by quest completion).
+
+The open jobs were 2 main jobs, 8 side jobs (*One Way or Another* tracked; the
+apartment quest with "Meet Judy at your Glen apartment." still to do) and 1
+NCPD hustle. River, who shares that quest's cast, gets its title only.
+
+A text probe with a throwaway identity, its memories cleared, compared the old
+and new context:
+- **Before:** "what did we do last?" got "I don't know what you mean", and
+  "what jobs should I take next?" got a deflection.
+- **After:** Judy said the last time was when she came over to V's place, a
+  while ago. For jobs she named the tracked job and the main jobs.
+
+Residual risk: she often adds "in the Glen", taken from the still-to-do
+objective. The date's apartment is not recorded. Without the job list she said
+only "your place".
 
 This supplies context when V speaks. [Battle awareness](BATTLE_REACTIONS.md) uses
 the same conversation routing; loot and exploration reactions remain backlog items.

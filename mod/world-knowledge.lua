@@ -96,6 +96,31 @@ end
 local function nativeFact(name)
     return Game.GetQuestsSystem():GetFactStr(name)
 end
+-- GameTime is a struct holding whole game seconds since the playthrough began.
+-- Read it two ways when both work and refuse a disagreement, so an API mismatch
+-- yields no time rather than a wrong order. Callers keep this off the hot path.
+local MAX_GAME_SECONDS = 4294967295
+local function gameSeconds(stamp)
+    if stamp == nil then return nil end
+    local function valid(value)
+        value = tonumber(value)
+        return integer(value, 0, MAX_GAME_SECONDS) and value or nil
+    end
+    local okField, field = pcall(function() return valid(stamp.seconds) end)
+    local okTotal, total = pcall(function() return valid(GameTime.GetSeconds(stamp)) end)
+    field, total = okField and field or nil, okTotal and total or nil
+    if field and total and field ~= total then return nil end
+    return field or total
+end
+M.gameSeconds = gameSeconds
+local function nativeGameTime()
+    local system = Game.GetTimeSystem()
+    if not system then return nil end
+    local seconds = gameSeconds(system:GetGameTime())
+    if seconds then return seconds end
+    local stamp = tonumber(system:GetGameTimeStamp())
+    return stamp and stamp == stamp and stamp >= 0 and stamp <= MAX_GAME_SECONDS and math.floor(stamp) or nil
+end
 local function journalState(journal, entry)
     local state = journal:GetEntryState(entry)
     for native, normalized in pairs(STATES) do
@@ -103,7 +128,18 @@ local function journalState(journal, entry)
     end
     return nil
 end
-local function nativeJournal(key, selector, depthLimit)
+local function entrySeconds(journal, entry) return gameSeconds(journal:GetEntryTimestamp(entry)) end
+local function timed(journal, entry, value, knownValue, row)
+    if value ~= knownValue then
+        local ok, seconds = pcall(entrySeconds, journal, entry)
+        row.timeRead, row.gameTimeSeconds = true, ok and seconds or nil
+    end
+    return row
+end
+-- knownValue is the state this collector last timed for the key. The entry's
+-- game timestamp (time of its last state change) is read only when the state
+-- differs, so a steady journal costs no extra native call per cycle.
+local function nativeJournal(key, selector, depthLimit, knownValue)
     local journal = Game.GetJournalManager()
     local entry
     if selector.nativePath then
@@ -134,7 +170,7 @@ local function nativeJournal(key, selector, depthLimit)
             seen[id] = true
             if cursor:IsA('gameJournalContact') then
                 if not cursor:IsKnown(journal) then return nil, 'phone-contact-unknown' end
-                return {value = value, revealed = true, isQuest = false, nativeHash = string.format('%.0f', actualHash)}
+                return timed(journal, entry, value, knownValue, {value = value, revealed = true, isQuest = false, nativeHash = string.format('%.0f', actualHash)})
             end
             if cursor ~= entry and not cursor:IsA('gameJournalPhoneConversation') and not cursor:IsA('gameJournalPhoneChoiceGroup') then
                 return nil, 'phone-parent-invalid'
@@ -155,7 +191,7 @@ local function nativeJournal(key, selector, depthLimit)
         if not journalState(journal, cursor) then return nil, 'journal-parent-unrevealed' end
         if cursor:IsA('gameJournalQuest') then
             if selector.questHash and hash ~= unsignedHash(selector.questHash) then return nil, 'journal-quest-mismatch' end
-            return {value = value, revealed = true, isQuest = isQuest, nativeHash = string.format('%.0f', actualHash)}
+            return timed(journal, entry, value, knownValue, {value = value, revealed = true, isQuest = isQuest, nativeHash = string.format('%.0f', actualHash)})
         end
         cursor = journal:GetParentEntry(cursor)
         if not cursor then return nil, 'journal-parent-missing' end
@@ -233,7 +269,8 @@ function M.new(options)
         isReady = adapter.isReady or nativeReady,
         readFact = adapter.readFact or nativeFact,
         readJournal = adapter.readJournal or nativeJournal,
-        readLifepath = adapter.readLifepath or nativeLifepath},
+        readLifepath = adapter.readLifepath or nativeLifepath,
+        readGameTime = adapter.readGameTime or nativeGameTime},
         currentGeneration = options.currentGeneration, currentWorldToken = options.currentWorldToken,
         now = options.now or os.time, cpuNow = options.cpuNow or os.clock,
         utcNow = options.utcNow or function() return os.date('!%Y-%m-%dT%H:%M:%SZ') end,
@@ -247,13 +284,15 @@ function M.new(options)
         maxAgeSeconds = bounded(options.maxAgeSeconds, 5, 0.25, 5),
         refreshSeconds = bounded(options.refreshSeconds, 0.25, 0, 2),
         journalDepth = math.floor(bounded(options.journalDepth, 12, 1, 16)),
-        serial = 0, reason = 'not-configured'}, Collector)
+        serial = 0, stamps = {}, reason = 'not-configured'}, Collector)
 end
 
 function Collector:reset(generation, reason, worldToken)
     self.generation = integer(generation, 0, MAX_SAFE) and generation or nil
     self.worldToken = identifier(worldToken) and worldToken or nil
     self.cache, self.job, self.lastNow, self.nextRefresh = nil, nil, nil, nil
+    -- Journal timestamps belong to this world only; key -> {value, seconds}.
+    self.stamps = {}
     self.reason = reason or 'world-reset'
 end
 
@@ -357,13 +396,21 @@ function Collector:update(context)
             job.facts[key] = ok and factObservation(value, proof, key, job, index) or unknown('fact-read-failed')
         elseif index <= #self.config.facts + #self.config.journal then
             local row = self.config.journal[index - #self.config.facts]
-            local ok, observation = pcall(self.adapter.readJournal, row.key, clone(row), self.journalDepth)
+            local stamp = self.stamps[row.key]
+            local ok, observation = pcall(self.adapter.readJournal, row.key, clone(row), self.journalDepth, stamp and stamp.value)
             if ok and plain(observation) and observation.revealed == true
                 and (observation.value == 'active' or observation.value == 'succeeded' or observation.value == 'failed') then
                 local refs = evidence(job, 'journal', index - #self.config.facts)
                 if unsignedHash(observation.nativeHash) then refs[#refs + 1] = 'journal-hash:' .. string.format('%.0f', unsignedHash(observation.nativeHash)) end
+                if observation.timeRead == true then
+                    -- A failed read is remembered too: it is retried only after a state change.
+                    stamp = {value = observation.value,
+                        seconds = integer(observation.gameTimeSeconds, 0, MAX_GAME_SECONDS) and observation.gameTimeSeconds or nil}
+                    self.stamps[row.key] = stamp
+                end
                 job.journal[row.key] = {status = 'known', value = observation.value, revealed = true, questKey = row.questKey,
-                    sourceId = 'native-journal-manager', evidenceRefs = refs}
+                    sourceId = 'native-journal-manager', evidenceRefs = refs,
+                    gameTimeSeconds = stamp and stamp.value == observation.value and stamp.seconds or nil}
                 if observation.isQuest == true and observation.value == 'active' then job.active[row.questKey] = true end
             else
                 job.journal[row.key] = unknown(ok and 'journal-not-revealed' or 'journal-read-failed')
@@ -417,6 +464,10 @@ function Collector:capture(context)
     -- Preserve the exact capture binding for the bridge. It must check this
     -- before attaching a now-verified identity to a formerly anonymous capture.
     if self.worldToken then result.worldToken = self.worldToken end
+    -- Current game time, read once per capture (on demand), dates the journal
+    -- timestamps above. Absent when the native clock cannot be read.
+    local timeOk, seconds = pcall(self.adapter.readGameTime)
+    if timeOk and integer(seconds, 0, MAX_GAME_SECONDS) then result.gameTimeSeconds = seconds end
     -- Omit an empty list: CET's JSON codec can serialize an empty Lua table as
     -- {}, whereas the bridge correctly requires arrays when the field exists.
     if #self.cache.activeQuestKeys > 0 then result.activeQuestKeys = clone(self.cache.activeQuestKeys) end
@@ -430,5 +481,6 @@ function Collector:begin(pack, context)
     return self:update(context)
 end
 
-M.nativeAdapter = {isReady = nativeReady, readFact = nativeFact, readJournal = nativeJournal, readLifepath = nativeLifepath}
+M.nativeAdapter = {isReady = nativeReady, readFact = nativeFact, readJournal = nativeJournal, readLifepath = nativeLifepath,
+    readGameTime = nativeGameTime}
 return M
