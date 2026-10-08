@@ -524,6 +524,8 @@ return {
     ["Expressive emotions"] = "감정 표현",
     ["Let each character mark its own feelings as it speaks, so the face changes when that part is spoken instead of being guessed from the words. Subtle by default, chosen by personality, and only where the feeling really shifts. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. A reply without marks uses the usual text-based expression. Off by default."] = "각 캐릭터가 말하면서 자신의 감정을 직접 표시하게 하여, 말에서 추측하는 대신 해당 부분을 말할 때 얼굴이 바뀌도록 합니다. 기본적으로 은은하며 성격에 따라 정해지고 감정이 실제로 바뀔 때만 사용됩니다. 로컬 음성이 필요하므로 Convai 클라우드 음성이 선택된 상태에서 적용하면 동료 음성이 Pocket TTS로 바뀝니다. 표시가 없는 답변에는 기존의 텍스트 기반 표정이 사용됩니다. 기본값은 꺼짐입니다.",
     ["Expressive emotions need a local voice, so {setting} was switched to {voice}."] = "감정 표현에는 로컬 음성이 필요하므로 {setting}을(를) {voice}(으)로 변경했습니다.",
+    ["Follow-up questions"] = "후속 질문",
+    ["Characters sometimes show interest in you and keep the conversation going: they ask about something you just said, pick up something from earlier or share a thought that invites an answer. It happens now and then, never on every reply, and never while you are leaving, giving an order or fighting. Works with any voice. Off by default."] = "캐릭터가 가끔 당신에게 관심을 보이며 대화를 이어 갑니다. 방금 한 말에 대해 묻거나, 앞선 이야기를 다시 꺼내거나, 대답을 이끄는 생각을 들려줍니다. 가끔만 일어나며 모든 답변에 나오지 않고, 작별 인사나 명령, 전투 중에는 나오지 않습니다. 어떤 음성에서도 작동합니다. 기본값은 꺼짐입니다.",
     ["Pocket · Performance"] = "Pocket · 성능",
     ["OmniVoice · Balanced"] = "OmniVoice · 균형",
     ["OmniVoice · Quality"] = "OmniVoice · 품질",

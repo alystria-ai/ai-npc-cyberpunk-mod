@@ -524,6 +524,8 @@ return {
     ["Expressive emotions"] = "感情表現",
     ["Let each character mark its own feelings as it speaks, so the face changes when that part is spoken instead of being guessed from the words. Subtle by default, chosen by personality, and only where the feeling really shifts. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. A reply without marks uses the usual text-based expression. Off by default."] = "各キャラクターが話しながら自分の感情を示し、言葉から推測するのではなく、その部分が発話されたときに表情が変わるようにします。標準では控えめで、性格に応じて選ばれ、感情が本当に変わる場面だけに使われます。ローカル音声が必要なため、Convaiクラウド音声を選んだ状態で適用すると、コンパニオンの音声はPocket TTSに切り替わります。マークのない返答には通常のテキストベースの表情が使われます。初期設定はオフです。",
     ["Expressive emotions need a local voice, so {setting} was switched to {voice}."] = "感情表現にはローカル音声が必要なため、{setting}を{voice}に切り替えました。",
+    ["Follow-up questions"] = "フォローアップの質問",
+    ["Characters sometimes show interest in you and keep the conversation going: they ask about something you just said, pick up something from earlier or share a thought that invites an answer. It happens now and then, never on every reply, and never while you are leaving, giving an order or fighting. Works with any voice. Off by default."] = "キャラクターがときどきあなたに関心を示し、会話を続けます。あなたが今言ったことについて尋ねたり、以前の話題に触れたり、返事を誘う考えを話したりします。毎回ではなく時々で、別れの挨拶、命令、戦闘中には起こりません。どの音声でも使えます。初期設定ではオフです。",
     ["Pocket · Performance"] = "Pocket · パフォーマンス",
     ["OmniVoice · Balanced"] = "OmniVoice · バランス",
     ["OmniVoice · Quality"] = "OmniVoice · 品質重視",

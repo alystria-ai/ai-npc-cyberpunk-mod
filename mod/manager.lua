@@ -372,6 +372,9 @@ local function loadSettings()
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
     -- Expressive emotions (the character marks its own feelings; off by default) needs a local voice for the same reason.
     if type(settings.expressiveEmotions) ~= 'boolean' then settings.expressiveEmotions, settingsNeedSave = false, true end
+    -- Follow-up questions (off by default, key followUpInterest: the retired followUpQuestions key above is a different, dropped
+    -- setting): characters sometimes show interest in the player. Works with any voice.
+    if type(settings.followUpInterest) ~= 'boolean' then settings.followUpInterest, settingsNeedSave = false, true end
     -- Multilingual conversations (off by default): conversations go to each character's multilingual twin. Pocket TTS
     -- speaks only English, so a saved pairing with it cannot stand (Apply never makes one): the voice moves to the cloud
     -- voice, which every installation can run. With the cloud voice, Multilingual wins over the two tag settings.
@@ -501,6 +504,13 @@ end
 function M.expressiveEmotions()
     loadSettings()
     return settings.expressiveEmotions == true
+end
+
+-- Off by default. On, the conversation service sometimes asks each character to show interest in you inside the reply it
+-- is already giving (a question about what you said, a follow-up, a thought that invites an answer). Any voice works.
+function M.followUpInterest()
+    loadSettings()
+    return settings.followUpInterest == true
 end
 
 -- Off by default. On, conversations go to each character's multilingual twin, which answers in the player's language.
@@ -1135,6 +1145,7 @@ function M.snapshot(player)
             keepPreparedVoices = settings.keepPreparedVoices,
             naturalSpeech = settings.naturalSpeech,
             expressiveEmotions = settings.expressiveEmotions,
+            followUpInterest = settings.followUpInterest,
             multilingualConversations = settings.multilingualConversations,
             archetypeConversations = settings.archetypeConversations,
             uiLanguage = settings.uiLanguage,
@@ -1177,7 +1188,7 @@ function M.applySettings(player, values)
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
             or key == 'gameDialogueContext'
             or key == 'keepPreparedVoices' or key == 'naturalSpeech' or key == 'expressiveEmotions'
-            or key == 'multilingualConversations' then
+            or key == 'followUpInterest' or key == 'multilingualConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'relationshipModes' then

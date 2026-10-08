@@ -164,6 +164,8 @@ return {
     ["Every character model found in the game, including characters without conversation support. Those join as followers and do not talk."] = "A játékban talált összes karaktermodell, a beszélgetés nélküli karaktereket is beleértve. Ők követőként csatlakoznak, és nem beszélnek.",
     ["Expressive emotions"] = "Kifejező érzelmek",
     ["Expressive emotions need a local voice, so {setting} was switched to {voice}."] = "A kifejező érzelmekhez helyi hang kell, ezért a beállítás ({setting}) erre váltott: {voice}.",
+    ["Follow-up questions"] = "Követő kérdések",
+    ["Characters sometimes show interest in you and keep the conversation going: they ask about something you just said, pick up something from earlier or share a thought that invites an answer. It happens now and then, never on every reply, and never while you are leaving, giving an order or fighting. Works with any voice. Off by default."] = "A szereplők néha érdeklődést mutatnak irántad, és életben tartják a beszélgetést: rákérdeznek arra, amit az imént mondtál, visszatérnek valamire korábbról, vagy megosztanak egy gondolatot, amely választ vár. Ez időnként fordul elő, soha nem minden válaszban, és soha nem akkor, amikor elköszönsz, parancsot adsz vagy harcolsz. Bármelyik hanggal működik. Alapértelmezés szerint ki van kapcsolva.",
     ["Eye contact height"] = "Szemkontaktus magassága",
     ["Eyes only"] = "Csak szem",
     ["Face a nearby NPC within eight metres"] = "Szembefordulás egy közeli NPC-vel nyolc méteren belül",

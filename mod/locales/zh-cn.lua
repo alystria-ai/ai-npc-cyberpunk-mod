@@ -524,6 +524,8 @@ return {
     ["Expressive emotions"] = "情绪表达",
     ["Let each character mark its own feelings as it speaks, so the face changes when that part is spoken instead of being guessed from the words. Subtle by default, chosen by personality, and only where the feeling really shifts. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. A reply without marks uses the usual text-based expression. Off by default."] = "让每个角色在说话时自己标记情绪，使面部在说到那一部分时才发生变化，而不是根据文字猜测。默认较为含蓄，按性格选择，且只在情绪真正转变时使用。此功能需要本地语音，因此在已选择 Convai 云端语音时应用，伙伴语音会切换为 Pocket TTS。没有标记的回复使用常规的文本表情。默认关闭。",
     ["Expressive emotions need a local voice, so {setting} was switched to {voice}."] = "情绪表达需要本地语音，因此{setting}已切换为{voice}。",
+    ["Follow-up questions"] = "后续提问",
+    ["Characters sometimes show interest in you and keep the conversation going: they ask about something you just said, pick up something from earlier or share a thought that invites an answer. It happens now and then, never on every reply, and never while you are leaving, giving an order or fighting. Works with any voice. Off by default."] = "角色有时会对你表现出兴趣，并让对话继续下去：询问你刚说的某件事，接上之前聊过的话题，或分享一个引你回应的想法。这只是偶尔发生，不会每次回复都出现，在你道别、下达命令或战斗时也不会出现。适用于任何语音。默认关闭。",
     ["Pocket · Performance"] = "Pocket · 性能",
     ["OmniVoice · Balanced"] = "OmniVoice · 均衡",
     ["OmniVoice · Quality"] = "OmniVoice · 品质",

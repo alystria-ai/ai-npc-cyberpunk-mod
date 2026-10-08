@@ -164,6 +164,8 @@ return {
     ["Every character model found in the game, including characters without conversation support. Those join as followers and do not talk."] = "Oyunda bulunan her karakter modeli, konuşma desteği olmayan karakterler dahil. Bunlar takipçi olarak katılır ve konuşmaz.",
     ["Expressive emotions"] = "İfadeli duygular",
     ["Expressive emotions need a local voice, so {setting} was switched to {voice}."] = "İfadeli duygular yerel bir ses gerektirir, bu yüzden {setting} ayarı {voice} olarak değiştirildi.",
+    ["Follow-up questions"] = "Takip soruları",
+    ["Characters sometimes show interest in you and keep the conversation going: they ask about something you just said, pick up something from earlier or share a thought that invites an answer. It happens now and then, never on every reply, and never while you are leaving, giving an order or fighting. Works with any voice. Off by default."] = "Karakterler ara sıra size ilgi gösterir ve sohbeti sürdürür: az önce söylediğiniz bir şeyi sorar, daha önce konuşulan bir şeye döner ya da cevap isteyen bir düşünce paylaşır. Ara sıra olur, her yanıtta değil; vedalaşırken, emir verirken veya çatışırken asla. Her sesle çalışır. Varsayılan olarak kapalı.",
     ["Eye contact height"] = "Göz teması yüksekliği",
     ["Eyes only"] = "Yalnızca gözler",
     ["Face a nearby NPC within eight metres"] = "Sekiz metre içindeki yakın bir NPC'ye dön",

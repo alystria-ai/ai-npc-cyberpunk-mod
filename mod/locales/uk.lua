@@ -164,6 +164,8 @@ return {
     ["Every character model found in the game, including characters without conversation support. Those join as followers and do not talk."] = "Усі моделі персонажів, знайдені в грі, зокрема персонажі без підтримки розмов. Вони приєднуються як послідовники й не розмовляють.",
     ["Expressive emotions"] = "Виразні емоції",
     ["Expressive emotions need a local voice, so {setting} was switched to {voice}."] = "Виразним емоціям потрібен локальний голос, тому «{setting}» переключено на «{voice}».",
+    ["Follow-up questions"] = "Уточнювальні запитання",
+    ["Characters sometimes show interest in you and keep the conversation going: they ask about something you just said, pick up something from earlier or share a thought that invites an answer. It happens now and then, never on every reply, and never while you are leaving, giving an order or fighting. Works with any voice. Off by default."] = "Персонажі іноді виявляють до вас цікавість і підтримують розмову: питають про те, що ви щойно сказали, повертаються до сказаного раніше або діляться думкою, яка запрошує до відповіді. Це трапляється час від часу, не в кожній репліці і ніколи, коли ви прощаєтеся, віддаєте наказ або б’єтеся. Працює з будь-яким голосом. За замовчуванням вимкнено.",
     ["Eye contact height"] = "Висота зорового контакту",
     ["Eyes only"] = "Лише очі",
     ["Face a nearby NPC within eight metres"] = "Звернутися обличчям до NPC поблизу в межах восьми метрів",

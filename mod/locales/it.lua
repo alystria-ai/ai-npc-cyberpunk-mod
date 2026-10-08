@@ -164,6 +164,8 @@ return {
     ["Every character model found in the game, including characters without conversation support. Those join as followers and do not talk."] = "Ogni modello di personaggio presente nel gioco, anche i personaggi senza supporto per le conversazioni. Si uniscono come seguaci e non parlano.",
     ["Expressive emotions"] = "Emozioni espressive",
     ["Expressive emotions need a local voice, so {setting} was switched to {voice}."] = "Le emozioni espressive richiedono una voce locale, quindi {setting} è stato impostato su {voice}.",
+    ["Follow-up questions"] = "Domande di approfondimento",
+    ["Characters sometimes show interest in you and keep the conversation going: they ask about something you just said, pick up something from earlier or share a thought that invites an answer. It happens now and then, never on every reply, and never while you are leaving, giving an order or fighting. Works with any voice. Off by default."] = "I personaggi a volte mostrano interesse per te e tengono viva la conversazione: chiedono qualcosa su ciò che hai appena detto, riprendono un tema di prima o condividono un pensiero che invita a rispondere. Succede ogni tanto, mai a ogni risposta e mai mentre ti congedi, dai un ordine o combatti. Funziona con qualsiasi voce. Disattivato per impostazione predefinita.",
     ["Eye contact height"] = "Altezza del contatto visivo",
     ["Eyes only"] = "Solo occhi",
     ["Face a nearby NPC within eight metres"] = "Girati verso un PNG vicino entro otto metri",

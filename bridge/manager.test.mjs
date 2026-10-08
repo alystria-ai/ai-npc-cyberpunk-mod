@@ -2099,7 +2099,7 @@ test('the Characters sidebar shows the settings in effect for each character, no
   assert(description('judy-alvarez'):find('Relationship: Auto', 1, true), 'Judy has a relationship line')
   -- Judy in the party on OmniVoice, with the speech settings, Multilingual and a memory of the player.
   assert(manager.applySettings(player, {voiceProvider = 'omni', omniSteps = 16, omniReference = 'short', naturalSpeech = true,
-    expressiveEmotions = true, multilingualConversations = true, relationshipModes = {['judy-alvarez'] = 'on'}}))
+    expressiveEmotions = true, followUpInterest = true, multilingualConversations = true, relationshipModes = {['judy-alvarez'] = 'on'}}))
   jsonFixtures['voice-runtime'] = {state = 'ready', provider = 'omni', omniSteps = 16, omniReference = 'short',
     routedProfiles = {'judy-alvarez'}, updated = memoryClock * 1000.0}
   files['runtime/local-voice-state.json'] = 'voice-runtime'
@@ -2108,12 +2108,12 @@ test('the Characters sidebar shows the settings in effect for each character, no
   reload()
   local judy = description('judy-alvarez')
   assert(judy == table.concat({'A braindance editor.', '', 'Voice: OmniVoice · Balanced', 'Conversation: On', 'Relationship: Romantic',
-    'Speech: Natural speech · Expressive emotions', 'Multilingual: replies in your language',
+    'Speech: Natural speech · Expressive emotions · Follow-up questions', 'Multilingual: replies in your language',
     'Memory: remembers your conversations', 'In your party: 1',
     'Behavior: React to battles · React to collected loot'}, '\\n'), judy)
   -- A character who is not in the party keeps the speech lines, not the party ones; with no memory there is no memory line.
   local viktor = description('viktor-vektor')
-  assert(viktor:find('Speech: Natural speech · Expressive emotions', 1, true) and viktor:find('Multilingual: replies', 1, true))
+  assert(viktor:find('Speech: Natural speech · Expressive emotions · Follow-up questions', 1, true) and viktor:find('Multilingual: replies', 1, true))
   assert(not viktor:find('Memory:', 1, true) and not viktor:find('In your party', 1, true) and not viktor:find('Behavior', 1, true)
     and not viktor:find('Relationship', 1, true), viktor)
   -- Without the optional pack, a saved OmniVoice choice that is not running says so; switching a behavior off drops its name.
@@ -3464,6 +3464,69 @@ test('Auto Apply cannot commit Expressive emotions before the person chooses App
     assert(not manager.expressiveEmotions() and saved.expressiveEmotions == false)
     clock = clock + 2
     assert(registered.applyBatch('manager', {{id = 'expressiveEmotions', value = true}}).ok and manager.expressiveEmotions())
+  `);
+});
+
+test('Follow-up questions is off by default, works with any voice and is independent of the retired followUpQuestions key', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(saved.followUpInterest == false and manager.followUpInterest() == false)
+    assert(manager.snapshot(player).settings.followUpInterest == false)
+    assert(manager.followUpQuestions == nil, 'the retired setting has no accessor')
+    for _, case in ipairs({{'missing', 'convai'}, {true, 'convai'}, {true, 'pocket'}, {true, 'omni'}, {false, 'convai'}, {'yes', 'pocket'}}) do
+      seed = {version = 2, voiceProvider = case[2], enabledByKey = {}, future = {keep = 'unchanged'}}
+      if case[1] ~= 'missing' then seed.followUpInterest = case[1] end
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      local on = case[1] == true
+      assert(manager.followUpInterest() == on and saved.followUpInterest == on, tostring(case[1]))
+      -- Unlike Natural speech it needs no local voice: the saved voice is never moved because of it.
+      assert(saved.voiceProvider == case[2] and manager.snapshot(player).settings.voiceProvider == case[2])
+      assert(saved.future.keep == 'unchanged')
+    end
+    -- A saved value of the retired setting neither turns the new one on nor survives.
+    seed = {version = 2, voiceProvider = 'pocket', followUpQuestions = true, enabledByKey = {}}
+    files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(manager.followUpInterest() == false and saved.followUpQuestions == nil and saved.followUpInterest == false)
+    -- Apply keeps the choice, rejects anything but a boolean, and leaves the voice alone.
+    assert(manager.applySettings(player, {followUpInterest = true}) and manager.followUpInterest() and saved.followUpInterest == true)
+    assert(saved.voiceProvider == 'pocket')
+    assert(manager.applySettings(player, {followUpInterest = 'yes'}) == false and manager.followUpInterest())
+    assert(manager.applySettings(player, {followUpInterest = false}) and not manager.followUpInterest())
+  `);
+});
+
+test('Follow-up questions sits in the Voices category after Expressive emotions, applies on its own, and joins the Speech line', () => {
+  run(`${mcmFixture}
+    assert(invoke('tab:settings').ok)
+    local owner, order = nil, {}
+    for _, category in ipairs(loaded.categories) do
+      for _, item in ipairs(category.settings) do
+        if category.id == 'voices' then order[#order + 1] = item.id end
+        if item.id == 'followUpInterest' then owner = category end
+      end
+    end
+    assert(owner and owner.id == 'voices' and row('followUpInterest').label == 'Follow-up questions')
+    assert(row('followUpInterest').description:find('Off by default', 1, true) and row('followUpInterest').description:find('now and then', 1, true))
+    local at = {}
+    for index, id in ipairs(order) do at[id] = index end
+    assert(at.naturalSpeech < at.expressiveEmotions and at.expressiveEmotions < at.followUpInterest, 'next to the other two speech settings')
+    local clock = 5000
+    os.clock = function() return clock end
+    local listeners = {}
+    nativeApi.subscribe = function(name, callback) listeners[#listeners + 1] = callback; return #listeners end
+    nativeApi.unsubscribe = function() return true end
+    mcm.shutdown(); mcm.install()
+    for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = 1}) end
+    local refused = registered.applyBatch('manager', {{id = 'followUpInterest', value = true}})
+    assert(refused.ok == false and refused.error:find('Change pending', 1, true))
+    assert(not manager.followUpInterest() and saved.followUpInterest == false)
+    clock = clock + 2
+    local voiceBefore = manager.snapshot(player).settings.voiceProvider
+    assert(registered.applyBatch('manager', {{id = 'followUpInterest', value = true}}).ok and manager.followUpInterest())
+    assert(manager.snapshot(player).settings.voiceProvider == voiceBefore, 'no voice switch, no notice')
+    assert(manager.takeNaturalSpeechNotice() == nil)
   `);
 });
 

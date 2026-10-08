@@ -164,6 +164,8 @@ return {
     ["Every character model found in the game, including characters without conversation support. Those join as followers and do not talk."] = "Všechny modely postav nalezené ve hře, včetně postav bez podpory konverzací. Ty se přidají jako následovníci a nemluví.",
     ["Expressive emotions"] = "Výrazné emoce",
     ["Expressive emotions need a local voice, so {setting} was switched to {voice}."] = "Výrazné emoce vyžadují místní hlas, proto byla volba {setting} přepnuta na {voice}.",
+    ["Follow-up questions"] = "Doplňující otázky",
+    ["Characters sometimes show interest in you and keep the conversation going: they ask about something you just said, pick up something from earlier or share a thought that invites an answer. It happens now and then, never on every reply, and never while you are leaving, giving an order or fighting. Works with any voice. Off by default."] = "Postavy se občas zajímají o vás a udržují rozhovor v chodu: zeptají se na něco, co jste právě řekli, vrátí se k něčemu z dřívějška nebo se podělí o myšlenku, která zve k odpovědi. Děje se to občas, nikdy ne v každé odpovědi a nikdy, když odcházíte, dáváte rozkaz nebo bojujete. Funguje s libovolným hlasem. Ve výchozím stavu vypnuto.",
     ["Eye contact height"] = "Výška očního kontaktu",
     ["Eyes only"] = "Jen oči",
     ["Face a nearby NPC within eight metres"] = "Otočit se k NPC do osmi metrů",

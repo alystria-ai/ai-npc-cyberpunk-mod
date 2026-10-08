@@ -30,6 +30,7 @@ import {VoiceSelection} from './voice-selection.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-routing-log.mjs';
 import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, speechPhrases} from './natural-speech.mjs';
+import {FollowUp} from './follow-up.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
 import {resolveVoiceConfigPaths} from './voice-config-paths.mjs';
 import {detectOmniPack} from './omni-pack.mjs';
@@ -160,6 +161,8 @@ const phoneKnowledge = new PlayerPhoneKnowledge({router: knowledgeRouter, getBou
 const naturalSpeech = new NaturalSpeech();
 // "Expressive emotions": the character marks its own feelings inline; the marks drive the face (bridge/expressive-emotions.mjs).
 const expressiveEmotions = new ExpressiveEmotions();
+// "Follow-up questions": the character sometimes shows interest in the player inside the reply it is already giving (bridge/follow-up.mjs).
+const followUp = new FollowUp();
 // Facial emotion selection (bridge/emotion-selector.mjs): player message + reply + character manner + Convai's own
 // label; `emotionSelector: "legacy"` in settings.json returns to the reply-only planner.
 const emotionSelection = new EmotionSelection();
@@ -404,6 +407,25 @@ const expressiveEmotionsContext = input => {
   const engine = turnVoice(input).engine;
   return expressiveEmotions.contextFor({engine, spoken: !phone && localVoice.playbackEnabled !== false});
 };
+// Follow-up questions: a short paragraph on the share of turns the bridge decides (bridge/follow-up.mjs). It only shapes the
+// reply already being generated for this turn: no extra request, timer or turn. Off, nothing is read and nothing is added.
+const followUpContext = input => {
+  if (!followUp.enabled) return '';
+  return followUp.contextFor({sessionId: sessionKey(input), turn: input?.requestId || input?.id, trait: traitFor(input.profileKey),
+    text: input.text, reaction: !!input.reaction, battle: input.battle, group: !!input.group});
+};
+// One line per reply while the setting is on: whether a pull was offered and why, and whether the reply ended in a question
+// (so the effect can be checked without the game). The reply's ending is also remembered: no pull right after a question.
+// Routing facts only, no dialogue.
+function logFollowUp(input, result) {
+  try {
+    const turn = input?.requestId || input?.id;
+    if (!followUp.enabled && followUp.reasonFor(turn) === undefined) return;
+    const asked = followUp.record(sessionKey(input), result?.text);
+    console.error(`[FollowUp] profile=${input.profileKey} setting=${followUp.enabled ? 'on' : 'off'} offered=${followUp.offeredFor(turn) ? 'yes' : 'no'} `
+      + `reason=${followUp.reasonFor(turn) ?? 'not-spoken'} ended-with-question=${asked ? 'yes' : 'no'}`);
+  } catch { /* a log line never affects a reply */ }
+}
 // A returning shopkeeper's memory of V (bridge/vendor-memory.mjs): only private text/voice turns of a one-shop vendor.
 const vendorMemoryContext = prepared => {
   const key = vendorMemoryKey(prepared);
@@ -416,7 +438,9 @@ const conversationContext = input => {
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : '',
     admitted && prepared.route.channel === 'phone' ? phoneRecentConversationContext(prepared.input) : '',
-    naturalSpeechContext(input), expressiveEmotionsContext(input),
+    // Follow-up questions go before the voice notes: after "keep the same length and content" they lost most of their effect
+    // (scripts/Probe-FollowUp.mjs: a pull in 16 of 26 offered turns here, against 13 of 41 after them).
+    followUpContext(input), naturalSpeechContext(input), expressiveEmotionsContext(input),
     // Multilingual conversations: the reply language, last so it outweighs the English notes above.
     multilingual.contextFor(input.reaction ? '' : input.text)]
     .filter(Boolean).join('\n\n');
@@ -858,6 +882,7 @@ async function publishResult(input, profile, result, current = async () => true,
   if (!input.reaction) multilingual.observe(input.text);
   multilingual.observe(result.text);
   logNaturalSpeech(input, result);
+  logFollowUp(input, result);
   if (result.continuous) {
     if (!result.liveDelivery?.published || !result.liveDelivery.ended) throw Error('Continuous speech did not finish');
     // The game already received admission, live text and the consumed-sample
@@ -1559,12 +1584,14 @@ async function pollSettings(checkShutdown = true) {
     }
     // A prepared reply was written under the previous Natural speech instructions.
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
+    const followUpChanged = followUp.update(settings);
+    if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
     if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);
     if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
     // Multilingual conversations changes which voice a turn uses (and so its instructions).
     // (The voice selection reads the same setting: while it is on, a fallback never lands on Pocket.)
     const multilingualChanged = multilingual.update(settings);
-    if (speechChanged || emotionsChanged || multilingualChanged) { dropPrefetch(); prefetchObserved = ''; }
+    if (speechChanged || emotionsChanged || multilingualChanged || followUpChanged) { dropPrefetch(); prefetchObserved = ''; }
     refreshWarmVoices();
     await syncRelationshipRoutes(); await syncVoiceRoutes();
     publishRelationshipRoutes();
