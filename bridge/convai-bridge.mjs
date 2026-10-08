@@ -391,9 +391,9 @@ const naturalSpeechContext = input => {
 function logNaturalSpeech(input, result) {
   try {
     if (!naturalSpeech.enabled && !naturalSpeechBlocks.get(input?.requestId || input?.id)) return;
-    const devices = result.naturalDevices ?? [];
+    const devices = result.naturalDevices ?? [], blockSent = naturalSpeechBlocks.get(input?.requestId || input?.id);
     console.error(`[NaturalSpeech] profile=${input.profileKey} engine=${turnVoice(input).engine} setting=${naturalSpeech.enabled ? 'on' : 'off'} `
-      + `block=${naturalSpeechBlocks.get(input?.requestId || input?.id) ? 'sent' : 'none'} devices=${devices.length ? devices.join(',') : '-'}`
+      + `block=${blockSent ? 'sent' : 'none'} offered=${blockSent ? 'yes' : 'no'} reason=${naturalSpeech.reasonFor(input?.requestId || input?.id) ?? 'not-spoken'} devices=${devices.length ? devices.join(',') : '-'}`
       + `${result.speechText ? ' voiced-tags=yes' : ''}${input.reaction ? ' reaction=yes' : ''}`);
   } catch { /* a log line never affects a reply */ }
 }

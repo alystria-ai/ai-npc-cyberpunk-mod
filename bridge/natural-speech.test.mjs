@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
 import {readFileSync} from 'node:fs';
 import {NaturalSpeech, OMNI_TAGS, OFFER_RATE, MAX_VOICED_TAGS, naturalSpeechContext, stripSpeechTags, keepSpeechTags, displayText,
-  hasSpeechTags, parseTagged, speechPhrases, devicesUsed} from './natural-speech.mjs';
+  hasSpeechTags, parseTagged, speechPhrases, devicesUsed, PITY_TURNS} from './natural-speech.mjs';
 import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
 import {silentWav} from './speech-audio.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
@@ -87,12 +87,11 @@ test('contextFor gates on the setting, spoken turns and the engine, and remember
   assert.equal(speech.contextFor({engine: 'omni', spoken: false, random: ALWAYS}), '', 'phone chat, reactions and silent playback');
   assert.equal(speech.contextFor({engine: 'convai', spoken: true, random: ALWAYS}), '');
   assert.equal(ask({sessionId: 'a'}), naturalSpeechContext({engine: 'omni'}));
-  // Pocket (punctuation only) is offered the same way; never straight after a reply that used a pause.
-  speech.process({text: 'Well... fine.', sessionID: 'p'});
-  assert.equal(speech.contextFor({engine: 'pocket', spoken: true, sessionId: 'p', random: ALWAYS}), '');
+  // Pocket (punctuation only) is offered the same way; never straight after an OFFERED turn.
   assert.equal(speech.contextFor({engine: 'pocket', spoken: true, sessionId: 'q', random: ALWAYS}), naturalSpeechContext({engine: 'pocket'}));
+  assert.equal(speech.contextFor({engine: 'pocket', spoken: true, sessionId: 'q', random: ALWAYS}), '', 'straight after an offered turn');
   assert.equal(speech.contextFor({engine: 'pocket', spoken: true, sessionId: 'q', random: NEVER}), '');
-  // OmniVoice's devices are never offered straight after a reply that used one.
+  // A voiced sound tag in the last reply blocks the next offer; so does the offer itself ('a' was just offered).
   speech.process({text: 'Heh [laughter] well... fine.', sessionID: 'a'});
   assert.equal(ask({sessionId: 'a'}), '');
   assert.equal(ask({sessionId: 'b'}), naturalSpeechContext({engine: 'omni'}), 'another conversation is unaffected');
@@ -100,24 +99,90 @@ test('contextFor gates on the setting, spoken turns and the engine, and remember
   assert.equal(ask({sessionId: 'a'}), naturalSpeechContext({engine: 'omni'}));
   for (let n = 0; n < 100; n++) speech.record(`s${n}`, 'Hm.');
   assert.ok(speech.last.size <= 64, 'bounded');
+  for (let n = 0; n < 100; n++) ask({sessionId: `t${n}`});
+  assert.ok(speech.offerState.size <= 64, 'bounded');
+});
+
+test('only an offered turn or a voiced sound tag blocks the next offer: ordinary fillers, ellipses and dashes do not', () => {
+  const speech = new NaturalSpeech();
+  speech.update({naturalSpeech: true});
+  let count = 0;
+  const turn = (sessionId, random, trait = 'warm') => speech.contextFor({engine: 'omni', spoken: true, sessionId, trait, random, turn: `${sessionId}-${++count}`});
+  for (const reply of ['Hm, okay.', 'Well... maybe.', 'It is blocked — both are watched.', 'Hm... well — I mean, yes.']) {
+    const id = 'plain-' + reply;
+    assert.ok(turn(id, ALWAYS), 'offered');
+    speech.process({text: 'No device.', sessionID: id});
+    assert.equal(turn(id, ALWAYS), '', 'straight after an offered turn');
+    speech.process({text: reply, sessionID: id});    // an un-offered turn whose reply has its own filler / pause
+    assert.ok(turn(id, ALWAYS), `not blocked by: ${reply}`);
+  }
+  // A voiced sound tag in the last reply does block (no sound tag twice in a row), whatever the dice say.
+  speech.process({text: 'Hey [sigh] okay.', sessionID: 'tag'});
+  assert.equal(turn('tag', ALWAYS), '');
+  speech.process({text: 'Fine.', sessionID: 'tag'});
+  assert.ok(turn('tag', ALWAYS));
+  // Reasons are kept for the log line.
+  speech.contextFor({engine: 'omni', spoken: true, sessionId: 'why', turn: 'w1', random: ALWAYS});
+  speech.contextFor({engine: 'omni', spoken: true, sessionId: 'why', turn: 'w2', random: ALWAYS});
+  speech.process({text: 'Plain.', sessionID: 'why'});
+  speech.contextFor({engine: 'omni', spoken: true, sessionId: 'why', turn: 'w3', random: NEVER});
+  assert.deepEqual(['w1', 'w2', 'w3'].map(id => speech.reasonFor(id)), ['rate', 'after-device', 'rate']);
+  assert.equal(speech.reasonFor('never-asked'), undefined);
+});
+
+test('a warm or neutral character is offered the devices at least once in any four spoken turns; a dry or cold one is not forced', () => {
+  assert.equal(PITY_TURNS, 4);
+  const speech = new NaturalSpeech();
+  speech.update({naturalSpeech: true});
+  const run = (trait, count = 60) => {
+    const flags = [];
+    for (let n = 0; n < count; n++) {
+      flags.push(speech.contextFor({engine: 'omni', spoken: true, sessionId: trait, trait, random: NEVER, turn: `${trait}-${n}`}) !== '');
+      speech.process({text: 'A plain reply.', sessionID: trait});
+    }
+    return flags;
+  };
+  for (const trait of ['warm', 'neutral']) {
+    const flags = run(trait);
+    for (let n = 0; n + 4 <= flags.length; n++) assert.ok(flags.slice(n, n + 4).includes(true), `${trait} window at ${n}`);
+    for (let n = 1; n < flags.length; n++) assert.ok(!(flags[n] && flags[n - 1]), 'never two offered turns in a row');
+    assert.equal(speech.reasonFor(`${trait}-3`), 'pity', 'forced by the pity counter, not the dice');
+  }
+  for (const trait of ['dry', 'cold']) assert.ok(!run(trait).includes(true), `${trait} depends on the dice alone`);
+  // Even when a sound tag was the last thing said, the pity counter still gets its offer.
+  speech.process({text: 'Oh [laughter] fine.', sessionID: 'late'});
+  let last;
+  for (let n = 0; n < 4; n++) {
+    last = speech.contextFor({engine: 'omni', spoken: true, sessionId: 'late', trait: 'warm', random: NEVER, turn: `late-${n}`});
+    speech.process({text: 'Plain.', sessionID: 'late'});
+  }
+  assert.ok(last, 'pity outranks the tag block');
 });
 
 test('The devices are offered on a share of turns that follows how expressive the character is, decided once per turn', () => {
   assert.ok(OFFER_RATE.warm > OFFER_RATE.neutral && OFFER_RATE.neutral > OFFER_RATE.dry && OFFER_RATE.dry > OFFER_RATE.cold);
-  assert.ok(OFFER_RATE.warm <= .4 && OFFER_RATE.cold <= .1, 'a few replies in ten, not most');
+  assert.ok(OFFER_RATE.warm >= .55 && OFFER_RATE.cold <= .2, 'clearly audible for warm characters, still rare for cold ones');
   const speech = new NaturalSpeech();
   speech.update({naturalSpeech: true});
-  // A seeded generator: the share offered follows each trait's rate.
+  // A seeded generator and a conversation of ordinary replies: the turn after an offered one never offers, so the share of
+  // offered turns is rate / (1 + rate) from the dice alone (the pity counter raises it a little for warm and neutral).
   let state = 12345;
   const random = () => (state = (state * 1664525 + 1013904223) % 4294967296) / 4294967296;
   const share = trait => {
     let offered = 0;
     for (let turn = 0; turn < 2000; turn++) {
-      if (speech.contextFor({engine: 'omni', spoken: true, turn: `${trait}-${turn}`, trait, random})) offered++;
+      if (speech.contextFor({engine: 'omni', spoken: true, sessionId: trait, turn: `${trait}-${turn}`, trait, random})) offered++;
+      speech.process({text: 'Well... hm, a plain reply — yes.', sessionID: trait});   // its own pauses and fillers block nothing
     }
     return offered / 2000;
   };
-  for (const trait of Object.keys(OFFER_RATE)) assert.ok(Math.abs(share(trait) - OFFER_RATE[trait]) < .04, trait);
+  const expected = {warm: .6 / 1.6, neutral: .5 / 1.5, dry: .35 / 1.35, cold: .15 / 1.15};
+  const shares = {};
+  for (const trait of Object.keys(OFFER_RATE)) {
+    shares[trait] = share(trait);
+    assert.ok(Math.abs(shares[trait] - expected[trait]) < .05, `${trait} ${shares[trait]}`);
+  }
+  assert.ok(shares.warm > .33 && shares.neutral > .3 && shares.cold < .16, JSON.stringify(shares));
   // One decision per turn: a context rebuilt for the same request agrees with the one already sent.
   const first = speech.contextFor({engine: 'omni', spoken: true, turn: 'same', trait: 'warm', random: ALWAYS});
   assert.ok(first);

@@ -198,3 +198,25 @@ Before and after (replies with any device, which includes the dashes and ellipse
 No device repeated in consecutive replies in any tuned run; sound tags opened the reply in 4 of the 7 replies that had one, each a reaction ("[dissatisfaction-hnn] Define badly."). With 8 to 20 replies per cell the percentages carry several points of noise.
 
 A log line per spoken reply now makes this checkable in game (`runtime/bridge.stderr.log`): `[NaturalSpeech] profile=judy-alvarez engine=omni setting=on block=sent devices=sigh voiced-tags=yes`, plus `[NaturalSpeech] setting is now on` when the setting changes.
+
+### Offer rates raised, natural fillers no longer block (2026-10-08, later)
+
+In game the user chatted six lines with Judy (OmniVoice) and heard nothing: `runtime/bridge.stderr.log` showed `block=none` on all six. Two causes: the rates above were too low to notice in a short chat, and `offers()` only allowed an offer when the previous reply had used no device at all, so an ordinary filler, ellipsis or dash in a reply nobody had offered anything for blocked the next offer.
+
+- What blocks an offer now: the previous turn was itself offered (never two offered turns in a row), or the previous reply had a voiced sound tag (`[laughter]`, `[sigh]`, ...; no sound tag twice in a row). Natural fillers, ellipses and dashes block nothing.
+- Rates (the chance on a turn that may offer): warm .6, neutral .5, dry .35, cold .15. Because the turn after an offer never offers, the share of offered turns is rate / (1 + rate): about 37% warm, 33% neutral, 26% dry, 13% cold.
+- Pity counter: a warm or neutral character is offered the devices at least once in any 4 consecutive spoken turns (`PITY_TURNS`), so a short chat always shows the effect. It outranks the sound-tag block. Dry and cold characters are not forced. The first turn of a conversation has no session id yet, so counting starts at the second turn.
+- Pocket: unchanged (punctuation pauses only), same blocking rule.
+- Log line: `[NaturalSpeech] profile=... engine=omni setting=on block=none offered=no reason=rate devices=-`; `reason` is `rate` (the dice), `pity`, or `after-device`; `not-spoken` when no decision was made (phone chat, reaction, cloud voice).
+- Probe (`scripts/Probe-NaturalSpeech.mjs`, 60 requests, OmniVoice unless noted; "any device" includes the dashes and ellipses an ordinary reply has; the model used an offer in 4 of 7 offers for Judy over 20 lines, 4 of 4 for Panam, lower than the 90% measured earlier):
+
+| Character | Lines | Offered | Reply with any device | With a sound tag |
+| --- | --- | --- | --- | --- |
+| Judy (10 lines) | 10 | 2 | 4 | 1 |
+| Judy (20 lines, fresh chat) | 20 | 7 | 7 | 3 |
+| Johnny | 10 | 3 | 2 | 2 |
+| Panam | 10 | 4 | 4 | 4 |
+| Judy, Pocket | 10 | 4 | 4 | 0 |
+
+  Judy over 30 Omni lines: 11 with a device (37%). Counts are small; they confirm the order of magnitude, not exact shares.
+

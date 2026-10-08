@@ -182,10 +182,16 @@ const POCKET_TEXT = 'Natural speech is on, and this reply is a moment where ONE 
   + 'would give otherwise.';
 
 // The share of turns on which the devices are offered, by how expressive the character is (bridge/emotion-analysis.mjs
-// traitFor). The model uses an offer in about 90% of cases with OmniVoice's tags and about half with Pocket's punctuation,
-// so the replies that carry a device come out near 30% / 25% / 15% / 5% (OmniVoice), a little less for Pocket, on top of
-// the pauses an ordinary reply has anyway (about 15% of replies).
-export const OFFER_RATE = Object.freeze({warm: .36, neutral: .3, dry: .22, cold: .08});
+// traitFor). This is the chance on a turn that is allowed to offer at all: the turn right after an offered one never
+// offers, so the share of offered turns comes out lower (about 37% warm, 33% neutral, 26% dry, 13% cold). The model uses
+// an offer in about 90% of cases with OmniVoice's tags and about half with Pocket's punctuation. The first tuning
+// (.36/.30/.22/.08, October 8) was too quiet: a player chatting for six lines heard nothing.
+export const OFFER_RATE = Object.freeze({warm: .6, neutral: .5, dry: .35, cold: .15});
+// A warm or neutral character is offered the devices at least once in any PITY_TURNS spoken turns, so a short chat
+// always shows the effect (a dry or cold character stays rare on purpose).
+export const PITY_TURNS = 4;
+const PITY_TRAITS = Object.freeze(['warm', 'neutral']);
+const VOICED_SOUNDS = Object.freeze(OMNI_TAGS);
 
 /** The per-turn block for the current voice engine ('omni' or 'pocket'); '' for any other engine. */
 export function naturalSpeechContext({engine, recent = []} = {}) {
@@ -203,43 +209,68 @@ export function naturalSpeechContext({engine, recent = []} = {}) {
  * unreadable file leaves it as it was). `process` is applied to every reply that leaves the Convai transport.
  */
 export class NaturalSpeech {
-  constructor() { this.enabled = false; this.last = new Map(); this.decisions = new Map(); }
+  constructor() { this.enabled = false; this.last = new Map(); this.decisions = new Map(); this.offerState = new Map(); }
   update(settings) {
     if (!settings || typeof settings !== 'object') return false;
     const next = settings.naturalSpeech === true;
     const changed = next !== this.enabled;
     this.enabled = next;
-    if (!next) { this.last.clear(); this.decisions.clear(); }
+    if (!next) { this.last.clear(); this.decisions.clear(); this.offerState.clear(); }
     return changed;
   }
   /**
    * The context block for one turn. `engine` is the voice that will speak it ('omni', 'pocket' or 'convai'); text-only
    * turns (phone chat, silent playback) and automatic reactions get none. The devices are OFFERED on a share of turns
-   * (OFFER_RATE[trait]), never straight after a reply that used one, and the decision is made once per `turn` (the
-   * request id), so a rebuilt context agrees with the one already sent. `random` is injectable for tests.
+   * (OFFER_RATE[trait]); see `offers` for what blocks an offer. The decision is made once per `turn` (the request id),
+   * so a rebuilt context agrees with the one already sent. `random` is injectable for tests.
    */
   contextFor({engine, sessionId, spoken = true, turn, trait = 'neutral', random = Math.random} = {}) {
-    if (!this.enabled || !spoken) return '';
-    const recent = this.last.get(sessionId) ?? [];
-    if (!this.offers(turn, trait, recent, random)) return '';
-    return naturalSpeechContext({engine, recent});
+    if (!this.enabled || !spoken || (engine !== 'omni' && engine !== 'pocket')) return '';
+    if (!this.offers(turn, trait, sessionId, random).offered) return '';
+    return naturalSpeechContext({engine, recent: this.last.get(sessionId) ?? []});
   }
-  /** Whether this turn is one where the devices are offered. */
-  offers(turn, trait, recent, random) {
+  /**
+   * Whether this turn is one where the devices are offered, as {offered, reason}. The reason is 'rate' (the dice),
+   * 'pity' (a warm or neutral character is due), or, when not offered, 'rate' or 'after-device'.
+   * Only an OFFERED turn blocks the next offer (never two in a row), or a voiced sound tag in the last reply. The
+   * pauses and fillers an ordinary reply has on its own do not block anything. The pity counter forces an offer on the
+   * PITY_TURNS-th spoken turn without one (it outranks the sound-tag block, not the offered-turn block, which cannot
+   * coincide with it).
+   */
+  offers(turn, trait, sessionId, random = Math.random) {
     if (turn !== undefined && this.decisions.has(turn)) return this.decisions.get(turn);
-    const offered = recent.length === 0 && random() < (OFFER_RATE[trait] ?? OFFER_RATE.neutral);
+    const state = this.offerState.get(sessionId) ?? {offeredLast: false, tagLast: false, since: 0};
+    const pity = PITY_TRAITS.includes(trait) && state.since >= PITY_TURNS - 1;
+    let decision;
+    if (state.offeredLast) decision = {offered: false, reason: 'after-device'};
+    else if (pity) decision = {offered: true, reason: 'pity'};
+    else if (state.tagLast) decision = {offered: false, reason: 'after-device'};
+    else decision = random() < (OFFER_RATE[trait] ?? OFFER_RATE.neutral) ? {offered: true, reason: 'rate'} : {offered: false, reason: 'rate'};
+    if (typeof sessionId === 'string' && sessionId) {
+      this.offerState.delete(sessionId);
+      this.offerState.set(sessionId, {...state, offeredLast: decision.offered, since: decision.offered ? 0 : state.since + 1});
+      while (this.offerState.size > 64) this.offerState.delete(this.offerState.keys().next().value);
+    }
     if (turn !== undefined) {
-      this.decisions.set(turn, offered);
+      this.decisions.set(turn, decision);
       while (this.decisions.size > 64) this.decisions.delete(this.decisions.keys().next().value);
     }
-    return offered;
+    return decision;
   }
+  /** The reason the devices were or were not offered on a turn already decided ('rate', 'pity', 'after-device'). */
+  reasonFor(turn) { return turn === undefined ? undefined : this.decisions.get(turn)?.reason; }
   /** Remembers the devices of a finished reply for its conversation (bounded). */
   record(sessionId, raw) {
     if (!this.enabled || typeof sessionId !== 'string' || !sessionId) return;
+    const devices = devicesUsed(raw);
     this.last.delete(sessionId);
-    this.last.set(sessionId, devicesUsed(raw));
+    this.last.set(sessionId, devices);
     while (this.last.size > 64) this.last.delete(this.last.keys().next().value);
+    // A voiced sound tag blocks the next offer (no sound tag twice in a row).
+    const tagLast = devices.some(id => VOICED_SOUNDS.includes(id));
+    const state = this.offerState.get(sessionId);
+    if (state) state.tagLast = tagLast;
+    else if (tagLast) this.offerState.set(sessionId, {offeredLast: false, tagLast, since: 0});
   }
   /**
    * A reply as it comes back from Convai: its display text never carries a tag (subtitles, phone chat, memory,
