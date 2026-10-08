@@ -123,6 +123,37 @@ Residual risk: she often adds "in the Glen", taken from the still-to-do
 objective. The date's apartment is not recorded. Without the job list she said
 only "your place".
 
+**Plain descriptions instead of titles (October 9, after the install).** The
+user wants Judy to talk about what a quest is, not say "Pyramid Song".
+
+- **Source:** `research/cyberpunk/quest-premises.json` holds reviewed,
+  hook-only premises for 272 of 290 main, side and gig quests. Each premise
+  says what V knows when the job first appears: who asks, what is asked,
+  where. It is written from the earliest revealed journal description and
+  the first objectives; the catalog synopsis is used only to identify the
+  hook. There are no outcomes, twists, deaths, choices or later stages.
+- **Exclusions:** endings, epilogues and meta quests have no premise, and NCPD
+  hustles and quests without a premise fall back to their journal title
+  (`job`).
+- **Build:** `build_journal_quest_types.mjs` validates the premises (known
+  path, at most 100 characters, plain text) and emits them as
+  `JOURNAL_QUEST_PREMISES`.
+- **Output:** events and jobs carry `about` instead of the title. Both
+  framings tell her to refer to jobs by what they are about or what is asked,
+  never by journal title, including the tracked job. Budgets are now 1900
+  (events) and 2200 (jobs) characters.
+
+On the save, the open main jobs read "Reed's offer of an experimental surgery
+that might save V's life" and "a final meeting with Hanako at Embers, looking
+for a way to save V's life". The tracked job reads "a meeting with Nele
+Springer in Dogtown".
+
+Probe after this change: for "what did we do last?" Judy said "the last time
+was when I came over to your place". For jobs she said "you've got that thing
+with Nele Springer in Dogtown on your mind ... some heavy stuff with Reed and
+Hanako that sounds way more important". Across three runs she used no journal
+titles and did not mention the Glen.
+
 This supplies context when V speaks. [Battle awareness](BATTLE_REACTIONS.md) uses
 the same conversation routing; loot and exploration reactions remain backlog items.
 

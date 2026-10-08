@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {parseWorldSnapshot, resolveKnowledge} from './world-knowledge.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
 import {conversationContext, withConversationKnowledge} from './quest-context.mjs';
-import {availableQuestsContext, categoryOf, questPathsFromPack, questTypeOf, recentSharedContext,
+import {availableQuestsContext, categoryOf, premiseOf, questPathsFromPack, questTypeOf, recentSharedContext,
   recentSharedEvents} from './quest-overview.mjs';
 import {JOURNAL_QUEST_TYPES} from './journal-quest-types.mjs';
 
@@ -103,7 +103,13 @@ test('recent shared events are newest first with an honest timing source and a r
   assert.deepEqual(result.events.map(event => event.timedBy), ['journal entry', 'quest completion (latest possible time)', 'journal entry']);
   assert.deepEqual(result.events.map(event => event.inGameDaysAgo), [28, 34, 35]);
   assert.ok(result.events.every(event => event.when === 'a while ago'));
-  assert.equal(result.events[0].quest, 'I Really Want to Stay at Your House');
+  // Events name the job by its reviewed plain description, not its journal title.
+  assert.equal(result.events[0].about, premiseOf('quests/minor_quest/mq055_romance_apartment'));
+  assert.equal(result.events[0].job, undefined);
+  assert.equal(result.events[2].about, premiseOf('quests/side_quest/sq030_judy_romance'));
+  const untitled = recentSharedEvents({shared: [{ruleId: 'r', questKey: 'unmapped-quest', text: 'x', gameTimeSeconds: 10}],
+    worldSeconds: NOW, questCatalog: {quests: [{key: 'unmapped-quest', title: 'Some Title', characters: []}]}});
+  assert.deepEqual([untitled.events[0].job, untitled.events[0].about], ['Some Title', undefined], 'the title is only a fallback');
   const recent = recentSharedEvents({shared: [{ruleId: 'r', questKey: 'pyramid-song', text: 'Recent.', gameTimeSeconds: NOW - 3600}],
     worldSeconds: NOW});
   assert.equal(recent.events[0].when, 'recently'); assert.equal(recent.events[0].inGameDaysAgo, 0);
@@ -128,13 +134,23 @@ test('without a proven order the section says so; with no shared event it forbid
   assert.match(recentSharedContext({shared: []}), /do not invent one/);
   assert.equal(recentSharedContext({}), '');
   const text = recentSharedContext({shared: shared(), worldSeconds: NOW, history: parsedHistory(),
-    questPaths: questPathsFromPack(pack(RULES)), questCatalog: CATALOG}, 800);
-  assert.ok(text.length <= 800 && /newest first/.test(text));
+    questPaths: questPathsFromPack(pack(RULES)), questCatalog: CATALOG}, 1050);
+  assert.ok(text.length <= 1050 && /newest first/.test(text));
   assert.equal(JSON.parse(text.slice(text.indexOf('\n') + 1)).events.length, 1, 'whole events only within the budget');
   // The game clock is optional: order survives, the recency marker does not.
   const untimedClock = recentSharedEvents({shared: shared(), history: parsedHistory(), questCatalog: CATALOG,
     questPaths: questPathsFromPack(pack(RULES))});
   assert.equal(untimedClock.events[0].when, undefined); assert.equal(untimedClock.events.length, 3);
+});
+
+test('reviewed premises are short, hook-only plain text for known quest paths', () => {
+  for (const path of ['quests/meta/02_sickness', 'ep1/quests/minor_quest/wst_ep1_09', 'quests/side_quest/sq030_judy_romance']) {
+    const premise = premiseOf(path);
+    assert.ok(typeof premise === 'string' && premise.length <= 100 && !/[<>]/.test(premise), path);
+  }
+  assert.equal(premiseOf('quests/main_quest/epilogues/q204_reborn'), undefined, 'endings have no premise');
+  assert.equal(premiseOf('__proto__'), undefined); assert.equal(premiseOf(undefined), undefined);
+  assert.doesNotMatch(premiseOf('ep1/quests/minor_quest/wst_ep1_09'), /ambush/i, 'no later twist');
 });
 
 test('quest categories are the game\'s own journal types, natively read or from the cooked journal', () => {
@@ -152,13 +168,15 @@ test('the open-job list splits main, side, gig and NCPD jobs, flags tracking, an
   const text = availableQuestsContext({history: parsedHistory(), now: 1_000_000, profileKey: 'judy-alvarez',
     questCatalog: CATALOG, shared: shared()});
   const data = JSON.parse(text.slice(text.indexOf('\n') + 1));
-  assert.deepEqual(data.mainJobs, [{title: 'Nocturne Op55N1'}], 'an ensemble main job is named, not detailed');
-  assert.deepEqual(data.sideJobs, [{title: 'One Way or Another', tracked: true},
-    {title: 'I Really Want to Stay at Your House', involvesYou: true, stillToDo: ['Meet Judy at your Glen apartment.']}]);
-  assert.deepEqual(data.gigs, [{title: 'Gig: Family Heirloom'}]);
-  assert.deepEqual(data.ncpdScannerHustles, [{title: 'Reported Crime: Table Scraps'}]);
+  assert.deepEqual(data.mainJobs, [{about: premiseOf('quests/meta/02_sickness')}], 'an ensemble main job is described, not detailed');
+  assert.deepEqual(data.sideJobs, [{about: premiseOf('ep1/quests/minor_quest/wst_ep1_09'), tracked: true},
+    {about: premiseOf('quests/minor_quest/mq055_romance_apartment'), involvesYou: true, stillToDo: ['Meet Judy at your Glen apartment.']}]);
+  assert.deepEqual(data.gigs, [{job: 'Gig: Family Heirloom'}], 'no reviewed premise: the title is the fallback');
+  assert.deepEqual(data.ncpdScannerHustles, [{job: 'Reported Crime: Table Scraps'}]);
+  assert.doesNotMatch(text, /One Way or Another|Nocturne Op55N1|I Really Want/, 'described jobs carry no journal title');
+  assert.match(text, /never by its journal title, including the tracked job/);
   assert.equal(data.otherOpenJobs, 1);
-  assert.doesNotMatch(text, /Pyramid Song|Read and reply|Hidden branch|Nele Springer|Hanako/,
+  assert.doesNotMatch(text, /Pyramid Song|Read and reply|Hidden branch|Read the message from Nele|Meet Hanako at Embers/,
     'finished jobs, done or failed objectives, the tracked block and other jobs\' steps stay out');
   assert.match(text, /Main jobs carry V's central story and matter most/);
 });
@@ -197,7 +215,7 @@ test('conversation context carries both sections only for a current world, besid
   const recent = context.indexOf('Your most recent shared events'), jobs = context.indexOf("V's open jobs"),
     tracked = context.indexOf("V's verified current-save journal"), facts = context.indexOf('Current-save knowledge');
   assert.ok(facts >= 0 && facts < recent && recent < jobs && jobs < tracked);
-  assert.match(context, /"quest":"I Really Want to Stay at Your House","when":"a while ago"/);
+  assert.match(context, /"about":"[^"]+","when":"a while ago"/);
   // A stale world binding drops the shared events; the job list is bound to the journal inventory's own lease.
   const stale = conversationContext(withConversationKnowledge(input, {...options, worldToken: 'world-b'}));
   assert.doesNotMatch(stale, /Your most recent shared events|V's open jobs/);
