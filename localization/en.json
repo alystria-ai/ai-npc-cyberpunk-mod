@@ -1384,7 +1384,7 @@
         "mcm.options"
       ],
       "references": [
-        "mod/mcm.lua:833"
+        "mod/mcm.lua:842"
       ]
     },
     "10 cm lower": {
@@ -1392,7 +1392,7 @@
         "mcm.options"
       ],
       "references": [
-        "mod/mcm.lua:833"
+        "mod/mcm.lua:842"
       ]
     },
     "5 cm higher": {
@@ -1400,7 +1400,7 @@
         "mcm.options"
       ],
       "references": [
-        "mod/mcm.lua:833"
+        "mod/mcm.lua:842"
       ]
     },
     "5 cm lower": {
@@ -1408,7 +1408,7 @@
         "mcm.options"
       ],
       "references": [
-        "mod/mcm.lua:833"
+        "mod/mcm.lua:842"
       ]
     },
     "<  PREVIOUS": {
@@ -1440,7 +1440,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:869"
+        "mod/mcm.lua:878"
       ]
     },
     "A new vehicle summon interrupted the trip.": {
@@ -1481,7 +1481,7 @@
         "mcm.options"
       ],
       "references": [
-        "mod/mcm.lua:865"
+        "mod/mcm.lua:874"
       ]
     },
     "Add a copy": {
@@ -1507,7 +1507,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:594"
+        "mod/mcm.lua:603"
       ]
     },
     "Allow {name} in private and group conversations. Existing copies can still follow you when this is off.": {
@@ -1517,7 +1517,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:744"
+        "mod/mcm.lua:753"
       ]
     },
     "An AutoDrive journey is already active.": {
@@ -1550,7 +1550,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:610"
+        "mod/mcm.lua:619"
       ]
     },
     "Auto": {
@@ -1558,7 +1558,7 @@
         "mcm.relationships"
       ],
       "references": [
-        "mod/mcm.lua:734"
+        "mod/mcm.lua:743"
       ]
     },
     "Auto follows the completed encounter in this save. Casual uses the casual profile; Ordinary uses the ordinary profile. This does not imply an ongoing relationship.": {
@@ -1566,7 +1566,7 @@
         "mcm.relationships"
       ],
       "references": [
-        "mod/mcm.lua:730"
+        "mod/mcm.lua:739"
       ]
     },
     "Auto follows the relationship in this save. Romantic uses the romantic profile; Ordinary uses the ordinary profile. This changes conversations without changing game choices.": {
@@ -1574,7 +1574,7 @@
         "mcm.relationships"
       ],
       "references": [
-        "mod/mcm.lua:731"
+        "mod/mcm.lua:740"
       ]
     },
     "Auto-connect nearby characters": {
@@ -1582,7 +1582,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:821"
+        "mod/mcm.lua:830"
       ]
     },
     "Automatic (game interface language)": {
@@ -1597,7 +1597,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:867"
+        "mod/mcm.lua:876"
       ]
     },
     "Back": {
@@ -1607,12 +1607,12 @@
       ],
       "references": [
         "mod/mcm.lua:417",
-        "mod/mcm.lua:680",
-        "mod/mcm.lua:694",
-        "mod/mcm.lua:723",
-        "mod/mcm.lua:739",
-        "mod/mcm.lua:764",
-        "mod/mcm.lua:886"
+        "mod/mcm.lua:689",
+        "mod/mcm.lua:703",
+        "mod/mcm.lua:732",
+        "mod/mcm.lua:748",
+        "mod/mcm.lua:773",
+        "mod/mcm.lua:895"
       ]
     },
     "Back to Companion Manager": {
@@ -1620,7 +1620,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:886"
+        "mod/mcm.lua:895"
       ]
     },
     "Back to memory": {
@@ -1628,7 +1628,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:694"
+        "mod/mcm.lua:703"
       ]
     },
     "Back to party": {
@@ -1644,10 +1644,10 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:680",
-        "mod/mcm.lua:723",
-        "mod/mcm.lua:739",
-        "mod/mcm.lua:764"
+        "mod/mcm.lua:689",
+        "mod/mcm.lua:732",
+        "mod/mcm.lua:748",
+        "mod/mcm.lua:773"
       ]
     },
     "Body gestures (experimental)": {
@@ -1655,7 +1655,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:837"
+        "mod/mcm.lua:846"
       ]
     },
     "Browse every character model in the game and invite any of them, including characters without conversation support. They join as followers and do not talk.": {
@@ -1663,7 +1663,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:580"
+        "mod/mcm.lua:589"
       ]
     },
     "Browse your characters, discover a game model, or manage your current party.": {
@@ -1680,7 +1680,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:581"
+        "mod/mcm.lua:590"
       ]
     },
     "CHARACTERS": {
@@ -1734,7 +1734,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:546"
+        "mod/mcm.lua:555"
       ]
     },
     "Cancel invitation": {
@@ -1742,7 +1742,7 @@
         "mcm.party"
       ],
       "references": [
-        "mod/mcm.lua:629"
+        "mod/mcm.lua:638"
       ]
     },
     "Cancel this request before anything is sent.": {
@@ -1750,7 +1750,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:547"
+        "mod/mcm.lua:556"
       ]
     },
     "Casual": {
@@ -1758,7 +1758,7 @@
         "mcm.relationships"
       ],
       "references": [
-        "mod/mcm.lua:734"
+        "mod/mcm.lua:743"
       ]
     },
     "Change pending. Choose Apply to use it, or Revert to discard it.": {
@@ -1774,7 +1774,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:860"
+        "mod/mcm.lua:869"
       ]
     },
     "Changes wait until you choose Apply; Revert discards them. No game restart is needed.": {
@@ -1782,7 +1782,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:859"
+        "mod/mcm.lua:868"
       ]
     },
     "Changing after the current reply": {
@@ -1799,7 +1799,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:721"
+        "mod/mcm.lua:730"
       ]
     },
     "Character picker closed. Your selection is unchanged. Closing it deleted nothing.": {
@@ -1817,8 +1817,8 @@
       ],
       "references": [
         "mod/manager.lua:933",
-        "mod/mcm.lua:576",
-        "mod/mcm.lua:597"
+        "mod/mcm.lua:585",
+        "mod/mcm.lua:606"
       ]
     },
     "Characters build memories through your conversations and keep them across saves.": {
@@ -1826,7 +1826,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:683"
+        "mod/mcm.lua:692"
       ]
     },
     "Characters you have talked to": {
@@ -1834,7 +1834,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:527"
+        "mod/mcm.lua:536"
       ]
     },
     "Chat": {
@@ -1852,7 +1852,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:559"
+        "mod/mcm.lua:568"
       ]
     },
     "Chat off": {
@@ -1885,7 +1885,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:756"
+        "mod/mcm.lua:765"
       ]
     },
     "Choose a character": {
@@ -1895,8 +1895,8 @@
       ],
       "references": [
         "mod/mcm.lua:223",
-        "mod/mcm.lua:531",
-        "mod/mcm.lua:699",
+        "mod/mcm.lua:540",
+        "mod/mcm.lua:708",
         "r6/scripts/CyberpunkConvai/Manager.reds:780"
       ]
     },
@@ -1905,7 +1905,7 @@
         "mcm.memory"
       ],
       "references": [
-        "mod/mcm.lua:551"
+        "mod/mcm.lua:560"
       ]
     },
     "Choose a character from the catalogue first.": {
@@ -1929,7 +1929,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:812"
+        "mod/mcm.lua:821"
       ]
     },
     "Choose a conversation profile from the list.": {
@@ -2004,7 +2004,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:1004"
+        "mod/mcm.lua:1013"
       ]
     },
     "Choose an eye-contact height from the available settings.": {
@@ -2022,7 +2022,7 @@
       ],
       "references": [
         "mod/manager.lua:1189",
-        "mod/mcm.lua:984"
+        "mod/mcm.lua:993"
       ]
     },
     "Choose any character from the catalogue. They do not need to be in your current party.": {
@@ -2030,7 +2030,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:532"
+        "mod/mcm.lua:541"
       ]
     },
     "Choose how much companions turn their heads during eye contact. Eyes only relies on eye movement.": {
@@ -2038,7 +2038,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:835"
+        "mod/mcm.lua:844"
       ]
     },
     "Choose one of the listed companion voices.": {
@@ -2049,7 +2049,7 @@
       ],
       "references": [
         "mod/manager.lua:1194",
-        "mod/mcm.lua:990"
+        "mod/mcm.lua:999"
       ]
     },
     "Choose one of the listed relationship options.": {
@@ -2060,7 +2060,7 @@
       "references": [
         "mod/manager.lua:1175",
         "mod/manager.lua:1178",
-        "mod/mcm.lua:1009"
+        "mod/mcm.lua:1018"
       ]
     },
     "Choose one of the listed subtitle displays.": {
@@ -2071,7 +2071,7 @@
       ],
       "references": [
         "mod/manager.lua:1186",
-        "mod/mcm.lua:978"
+        "mod/mcm.lua:987"
       ]
     },
     "Choose ordinary or romantic conversations for supported characters.": {
@@ -2080,8 +2080,8 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:737",
-        "mod/mcm.lua:815"
+        "mod/mcm.lua:746",
+        "mod/mcm.lua:824"
       ]
     },
     "Choose profile": {
@@ -2098,7 +2098,7 @@
         "settings.language"
       ],
       "references": [
-        "mod/mcm.lua:804"
+        "mod/mcm.lua:813"
       ]
     },
     "Choose the personality this copy should use in conversations. Its model stays the same.": {
@@ -2114,7 +2114,7 @@
         "mcm.options"
       ],
       "references": [
-        "mod/mcm.lua:865"
+        "mod/mcm.lua:874"
       ]
     },
     "Cinematic subtitles use the game’s regular dialogue display; Above the speaker places them over the speaking companion. The Subtitles switch controls both.": {
@@ -2122,7 +2122,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:864"
+        "mod/mcm.lua:873"
       ]
     },
     "Clear memories about you for all {count} characters you have talked to?": {
@@ -2131,7 +2131,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:539"
+        "mod/mcm.lua:548"
       ]
     },
     "Clear memories about you for every character you have talked to. Your player identity is retained. Review an inline confirmation first.": {
@@ -2139,7 +2139,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:555"
+        "mod/mcm.lua:564"
       ]
     },
     "Clear profile": {
@@ -2156,7 +2156,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:550"
+        "mod/mcm.lua:559"
       ]
     },
     "Clear {name}’s memories about conversations with you?": {
@@ -2165,7 +2165,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:540"
+        "mod/mcm.lua:549"
       ]
     },
     "Clearing memories for {target}…": {
@@ -2192,7 +2192,7 @@
       ],
       "references": [
         "mod/mcm.lua:5",
-        "mod/mcm.lua:903"
+        "mod/mcm.lua:912"
       ]
     },
     "Companion behavior": {
@@ -2200,7 +2200,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:830"
+        "mod/mcm.lua:839"
       ]
     },
     "Companion driver": {
@@ -2209,8 +2209,8 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:608",
-        "mod/mcm.lua:611"
+        "mod/mcm.lua:617",
+        "mod/mcm.lua:620"
       ]
     },
     "Companion ownership changed; waiting for the companion owner to resolve it.": {
@@ -2256,7 +2256,7 @@
       "references": [
         "mod/manager.lua:1248",
         "mod/manager.lua:526",
-        "mod/mcm.lua:847"
+        "mod/mcm.lua:856"
       ]
     },
     "Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. After a fight, pickups collected by then are folded into one end-of-fight comment; later pickups get their own comment.": {
@@ -2264,7 +2264,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:871"
+        "mod/mcm.lua:880"
       ]
     },
     "Companions gesture with their body while they speak longer replies and nod while you talk to them, using the game’s own animations in their usual stance. They stop at once when anyone moves or a fight starts.": {
@@ -2272,7 +2272,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:838"
+        "mod/mcm.lua:847"
       ]
     },
     "Confirm": {
@@ -2280,7 +2280,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:543"
+        "mod/mcm.lua:552"
       ]
     },
     "Confirm memory clear": {
@@ -2288,7 +2288,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:542"
+        "mod/mcm.lua:551"
       ]
     },
     "Connecting microphone - wait for Listening": {
@@ -2322,7 +2322,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:823"
+        "mod/mcm.lua:832"
       ]
     },
     "Convai voice": {
@@ -2407,7 +2407,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:768"
+        "mod/mcm.lua:777"
       ]
     },
     "Conversation service logs": {
@@ -2415,7 +2415,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:783"
+        "mod/mcm.lua:792"
       ]
     },
     "Conversation: {name} (archetype)": {
@@ -2423,7 +2423,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:668"
+        "mod/mcm.lua:677"
       ]
     },
     "Conversation: {state}": {
@@ -2433,7 +2433,7 @@
       ],
       "references": [
         "mod/mcm.lua:278",
-        "mod/mcm.lua:669"
+        "mod/mcm.lua:678"
       ]
     },
     "Conversations": {
@@ -2441,7 +2441,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:807"
+        "mod/mcm.lua:816"
       ]
     },
     "Conversations are disabled for this contact.": {
@@ -2475,7 +2475,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:776"
+        "mod/mcm.lua:785"
       ]
     },
     "Copy report path": {
@@ -2483,7 +2483,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:776"
+        "mod/mcm.lua:785"
       ]
     },
     "Copy the report path to the clipboard so you can paste it into a message.": {
@@ -2491,7 +2491,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:754"
+        "mod/mcm.lua:763"
       ]
     },
     "Create": {
@@ -2499,7 +2499,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:772"
+        "mod/mcm.lua:781"
       ]
     },
     "Create a report": {
@@ -2507,7 +2507,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:766"
+        "mod/mcm.lua:775"
       ]
     },
     "Create a report first, then copy its path.": {
@@ -2515,7 +2515,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:755"
+        "mod/mcm.lua:764"
       ]
     },
     "Create a report first.": {
@@ -2548,8 +2548,8 @@
         "mcm.navigation"
       ],
       "references": [
-        "mod/mcm.lua:576",
-        "mod/mcm.lua:639"
+        "mod/mcm.lua:585",
+        "mod/mcm.lua:648"
       ]
     },
     "Currently {state}.": {
@@ -2565,7 +2565,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:787"
+        "mod/mcm.lua:796"
       ]
     },
     "Cyber Engine Tweaks writes cyber_engine_tweaks.log and scripting.log in {path}": {
@@ -2574,7 +2574,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:788"
+        "mod/mcm.lua:797"
       ]
     },
     "Cyberpunk Convai: companion manager": {
@@ -2639,7 +2639,7 @@
         "mcm.options"
       ],
       "references": [
-        "mod/mcm.lua:833"
+        "mod/mcm.lua:842"
       ]
     },
     "Destination reached. Step out when ready.": {
@@ -2655,7 +2655,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:874"
+        "mod/mcm.lua:883"
       ]
     },
     "Development": {
@@ -2663,7 +2663,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:873"
+        "mod/mcm.lua:882"
       ]
     },
     "Discovering installed character models. Results appear as they are read.": {
@@ -2679,7 +2679,7 @@
         "mcm.party"
       ],
       "references": [
-        "mod/mcm.lua:629"
+        "mod/mcm.lua:638"
       ]
     },
     "Dismiss copy": {
@@ -2695,7 +2695,7 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/mcm.lua:603"
+        "mod/mcm.lua:612"
       ]
     },
     "Driver leaving the car": {
@@ -2703,7 +2703,7 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/mcm.lua:607"
+        "mod/mcm.lua:616"
       ]
     },
     "Driving": {
@@ -2712,7 +2712,7 @@
       ],
       "references": [
         "mod/companions.lua:182",
-        "mod/mcm.lua:605"
+        "mod/mcm.lua:614"
       ]
     },
     "ENTER  Write / Send   /   ESC  Stop typing": {
@@ -2736,7 +2736,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:809"
+        "mod/mcm.lua:818"
       ]
     },
     "Every character model found in the game, including characters without conversation support. Those join as followers and do not talk.": {
@@ -2744,7 +2744,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:677"
+        "mod/mcm.lua:686"
       ]
     },
     "Expressive emotions": {
@@ -2752,7 +2752,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:854"
+        "mod/mcm.lua:863"
       ]
     },
     "Expressive emotions need a local voice, so {setting} was switched to {voice}.": {
@@ -2769,7 +2769,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:831"
+        "mod/mcm.lua:840"
       ]
     },
     "Eyes only": {
@@ -2777,7 +2777,7 @@
         "mcm.options"
       ],
       "references": [
-        "mod/mcm.lua:836"
+        "mod/mcm.lua:845"
       ]
     },
     "Face a nearby NPC within eight metres": {
@@ -2802,7 +2802,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:880"
+        "mod/mcm.lua:889"
       ]
     },
     "Finish combat before asking for a ride.": {
@@ -2818,7 +2818,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:875"
+        "mod/mcm.lua:884"
       ]
     },
     "Forget": {
@@ -2826,7 +2826,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:549"
+        "mod/mcm.lua:558"
       ]
     },
     "Forget ({count} characters)": {
@@ -2835,7 +2835,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:554"
+        "mod/mcm.lua:563"
       ]
     },
     "Forget all memories": {
@@ -2843,7 +2843,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:553"
+        "mod/mcm.lua:562"
       ]
     },
     "Forget all memories applies to these characters. Visiting the catalogue or inviting a companion does not add anyone to this count.": {
@@ -2851,7 +2851,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:530"
+        "mod/mcm.lua:539"
       ]
     },
     "Forget memories": {
@@ -2859,7 +2859,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:543"
+        "mod/mcm.lua:552"
       ]
     },
     "Forget selected character": {
@@ -2867,7 +2867,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:549"
+        "mod/mcm.lua:558"
       ]
     },
     "GAME MODELS": {
@@ -2883,7 +2883,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:772"
+        "mod/mcm.lua:781"
       ]
     },
     "Generated reports are saved in {path}. The five newest are kept.": {
@@ -2892,7 +2892,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:794"
+        "mod/mcm.lua:803"
       ]
     },
     "Gentle (default)": {
@@ -2900,7 +2900,7 @@
         "mcm.options"
       ],
       "references": [
-        "mod/mcm.lua:836"
+        "mod/mcm.lua:845"
       ]
     },
     "Group chat needs two characters nearby. Use private chat for one person.": {
@@ -2925,7 +2925,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:834"
+        "mod/mcm.lua:843"
       ]
     },
     "Help": {
@@ -2933,7 +2933,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:878"
+        "mod/mcm.lua:887"
       ]
     },
     "Help and support": {
@@ -2941,7 +2941,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:879"
+        "mod/mcm.lua:888"
       ]
     },
     "INVITE QUEUED - CLOSE PHONE": {
@@ -2958,7 +2958,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:767"
+        "mod/mcm.lua:776"
       ]
     },
     "If something goes wrong": {
@@ -2966,7 +2966,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:770"
+        "mod/mcm.lua:779"
       ]
     },
     "Installed": {
@@ -2974,7 +2974,7 @@
         "mcm.voice-status"
       ],
       "references": [
-        "mod/mcm.lua:856"
+        "mod/mcm.lua:865"
       ]
     },
     "Installed character models": {
@@ -2982,7 +2982,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:676"
+        "mod/mcm.lua:685"
       ]
     },
     "Interface": {
@@ -2991,7 +2991,7 @@
         "settings.language"
       ],
       "references": [
-        "mod/mcm.lua:802"
+        "mod/mcm.lua:811"
       ]
     },
     "Interface language": {
@@ -3000,7 +3000,7 @@
         "settings.language"
       ],
       "references": [
-        "mod/mcm.lua:803"
+        "mod/mcm.lua:812"
       ]
     },
     "Invalid conversation settings.": {
@@ -3026,8 +3026,8 @@
         "mcm.party"
       ],
       "references": [
-        "mod/mcm.lua:594",
-        "mod/mcm.lua:671"
+        "mod/mcm.lua:603",
+        "mod/mcm.lua:680"
       ]
     },
     "Invite characters, manage your group, browse game models and configure conversations.": {
@@ -3036,7 +3036,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:924"
+        "mod/mcm.lua:933"
       ]
     },
     "Invite someone from Characters or Model browser.": {
@@ -3044,7 +3044,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:638"
+        "mod/mcm.lua:647"
       ]
     },
     "Invited characters are prepared immediately. Natural memories are created when you actually talk to them. One player identity is shared across all saves and stays the same after forgetting. Current game context describes the world you have loaded.": {
@@ -3052,7 +3052,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:523"
+        "mod/mcm.lua:532"
       ]
     },
     "Joining...": {
@@ -3068,7 +3068,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:546"
+        "mod/mcm.lua:555"
       ]
     },
     "Keep prepared voices": {
@@ -3076,7 +3076,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:850"
+        "mod/mcm.lua:859"
       ]
     },
     "Keep this copy without a conversation identity": {
@@ -3092,7 +3092,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:558"
+        "mod/mcm.lua:567"
       ]
     },
     "Last report": {
@@ -3100,7 +3100,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:775"
+        "mod/mcm.lua:784"
       ]
     },
     "Launcher log": {
@@ -3108,7 +3108,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:785"
+        "mod/mcm.lua:794"
       ]
     },
     "Let companions speak the way a real person with their personality would: now and then a pause, a hesitation, a laugh or a sigh. Each character decides when it fits, and it stays rare; a fluent, confident speaker will hardly use it. OmniVoice can voice laughs and sighs; Pocket TTS uses only pauses in the sentence. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. Off by default.": {
@@ -3116,7 +3116,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:853"
+        "mod/mcm.lua:862"
       ]
     },
     "Let each character mark its own feelings as it speaks, so the face changes when that part is spoken instead of being guessed from the words. Subtle by default, chosen by personality, and only where the feeling really shifts. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. A reply without marks uses the usual text-based expression. Off by default.": {
@@ -3124,7 +3124,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:855"
+        "mod/mcm.lua:864"
       ]
     },
     "Lets you talk to unnamed people the game does not give a story role: gang members, NCPD officers, corporate guards, ripperdocs, shopkeepers, bartenders and passers-by. Each answers as their kind of person, does not know your story and does not remember you after you load a save, except shopkeepers you come back to. Named characters are not affected. On by default.": {
@@ -3132,7 +3132,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:818"
+        "mod/mcm.lua:827"
       ]
     },
     "Listening - press the same voice chat shortcut again to finish": {
@@ -3181,9 +3181,9 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:808",
-        "mod/mcm.lua:811",
-        "mod/mcm.lua:814"
+        "mod/mcm.lua:817",
+        "mod/mcm.lua:820",
+        "mod/mcm.lua:823"
       ]
     },
     "Memories can be managed here.": {
@@ -3191,7 +3191,7 @@
         "mcm.memory"
       ],
       "references": [
-        "mod/mcm.lua:525"
+        "mod/mcm.lua:534"
       ]
     },
     "Memory": {
@@ -3200,8 +3200,8 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:682",
-        "mod/mcm.lua:811"
+        "mod/mcm.lua:691",
+        "mod/mcm.lua:820"
       ]
     },
     "Memory clear cancelled. Nothing was deleted.": {
@@ -3245,7 +3245,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:535"
+        "mod/mcm.lua:544"
       ]
     },
     "Memory service": {
@@ -3253,7 +3253,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:524"
+        "mod/mcm.lua:533"
       ]
     },
     "Message sent. Waiting for reply.": {
@@ -3288,7 +3288,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:781"
+        "mod/mcm.lua:790"
       ]
     },
     "Mod logs such as probe.log and mcm.log are in {path}": {
@@ -3297,7 +3297,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:782"
+        "mod/mcm.lua:791"
       ]
     },
     "Model browser": {
@@ -3305,7 +3305,7 @@
         "mcm.navigation"
       ],
       "references": [
-        "mod/mcm.lua:577"
+        "mod/mcm.lua:586"
       ]
     },
     "Models": {
@@ -3321,7 +3321,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:706"
+        "mod/mcm.lua:715"
       ]
     },
     "More models": {
@@ -3329,7 +3329,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:661"
+        "mod/mcm.lua:670"
       ]
     },
     "More than one owned car is nearby. Select or summon the car you want to use.": {
@@ -3353,7 +3353,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:819"
+        "mod/mcm.lua:828"
       ]
     },
     "Multilingual conversations needs a voice that speaks every language, so {setting} was switched to {voice}.": {
@@ -3385,7 +3385,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:852"
+        "mod/mcm.lua:861"
       ]
     },
     "Natural speech and Expressive emotions need the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read their tags aloud.": {
@@ -3418,8 +3418,8 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:661",
-        "mod/mcm.lua:706"
+        "mod/mcm.lua:670",
+        "mod/mcm.lua:715"
       ]
     },
     "No clear, reachable companion space on this floor. Move to a wider spot and try again.": {
@@ -3436,7 +3436,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:670"
+        "mod/mcm.lua:679"
       ]
     },
     "No entries are available.": {
@@ -3493,7 +3493,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:756"
+        "mod/mcm.lua:765"
       ]
     },
     "Not configured": {
@@ -3509,7 +3509,7 @@
         "mcm.voice-status"
       ],
       "references": [
-        "mod/mcm.lua:856"
+        "mod/mcm.lua:865"
       ]
     },
     "Not running": {
@@ -3534,7 +3534,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:857"
+        "mod/mcm.lua:866"
       ]
     },
     "OmniVoice pack": {
@@ -3542,7 +3542,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:856"
+        "mod/mcm.lua:865"
       ]
     },
     "OmniVoice · Balanced": {
@@ -3591,7 +3591,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:779"
+        "mod/mcm.lua:788"
       ]
     },
     "Open": {
@@ -3600,8 +3600,8 @@
         "mcm.navigation"
       ],
       "references": [
-        "mod/mcm.lua:582",
-        "mod/mcm.lua:879"
+        "mod/mcm.lua:591",
+        "mod/mcm.lua:888"
       ]
     },
     "Opening chat. Waiting for the conversation service.": {
@@ -3617,7 +3617,7 @@
         "mcm.relationships"
       ],
       "references": [
-        "mod/mcm.lua:734"
+        "mod/mcm.lua:743"
       ]
     },
     "Page {page} / {pages}": {
@@ -3627,8 +3627,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:652",
-        "mod/mcm.lua:699"
+        "mod/mcm.lua:661",
+        "mod/mcm.lua:708"
       ]
     },
     "Page {page} of {pages}  |  {count} results": {
@@ -3668,7 +3668,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:558"
+        "mod/mcm.lua:567"
       ]
     },
     "Play spoken replies through the supported voice output. This does not change microphone capture.": {
@@ -3684,7 +3684,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:846"
+        "mod/mcm.lua:855"
       ]
     },
     "Playback settings updated.": {
@@ -3700,7 +3700,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:522"
+        "mod/mcm.lua:531"
       ]
     },
     "Player unavailable": {
@@ -3732,7 +3732,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:848"
+        "mod/mcm.lua:857"
       ]
     },
     "Pocket · Performance": {
@@ -3748,7 +3748,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:822"
+        "mod/mcm.lua:831"
       ]
     },
     "Preparing a reply": {
@@ -3772,7 +3772,7 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/mcm.lua:603"
+        "mod/mcm.lua:612"
       ]
     },
     "Preparing voices": {
@@ -3833,8 +3833,8 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:657",
-        "mod/mcm.lua:702"
+        "mod/mcm.lua:666",
+        "mod/mcm.lua:711"
       ]
     },
     "Previous characters": {
@@ -3842,7 +3842,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:702"
+        "mod/mcm.lua:711"
       ]
     },
     "Previous models": {
@@ -3850,7 +3850,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:657"
+        "mod/mcm.lua:666"
       ]
     },
     "Profile only": {
@@ -3858,7 +3858,7 @@
         "mcm.party"
       ],
       "references": [
-        "mod/mcm.lua:594"
+        "mod/mcm.lua:603"
       ]
     },
     "RED4ext logs": {
@@ -3866,7 +3866,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:791"
+        "mod/mcm.lua:800"
       ]
     },
     "RED4ext writes its logs in {path}": {
@@ -3875,7 +3875,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:792"
+        "mod/mcm.lua:801"
       ]
     },
     "Raise or lower where companions look when they make eye contact with you.": {
@@ -3883,7 +3883,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:832"
+        "mod/mcm.lua:841"
       ]
     },
     "React to battles": {
@@ -3891,7 +3891,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:868"
+        "mod/mcm.lua:877"
       ]
     },
     "React to collected loot": {
@@ -3899,7 +3899,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:870"
+        "mod/mcm.lua:879"
       ]
     },
     "Reading installed models…": {
@@ -3907,7 +3907,7 @@
         "mcm.models"
       ],
       "references": [
-        "mod/mcm.lua:651"
+        "mod/mcm.lua:660"
       ]
     },
     "Reading models {read}/{total}": {
@@ -3924,7 +3924,7 @@
       ],
       "references": [
         "mod/mcm.lua:283",
-        "mod/mcm.lua:524"
+        "mod/mcm.lua:533"
       ]
     },
     "Ready · Unsaved selection": {
@@ -3941,7 +3941,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:789"
+        "mod/mcm.lua:798"
       ]
     },
     "Relationships": {
@@ -3950,8 +3950,8 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:736",
-        "mod/mcm.lua:814"
+        "mod/mcm.lua:745",
+        "mod/mcm.lua:823"
       ]
     },
     "Releasing local voice memory": {
@@ -3967,7 +3967,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:851"
+        "mod/mcm.lua:860"
       ]
     },
     "Remove only this copy from your group.": {
@@ -3977,7 +3977,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:630"
+        "mod/mcm.lua:639"
       ]
     },
     "Reopen the manager; that action is no longer available.": {
@@ -3986,7 +3986,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:939"
+        "mod/mcm.lua:948"
       ]
     },
     "Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.": {
@@ -3994,7 +3994,7 @@
         "mcm.memory"
       ],
       "references": [
-        "mod/mcm.lua:526"
+        "mod/mcm.lua:535"
       ]
     },
     "Report for the developer": {
@@ -4002,7 +4002,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:771"
+        "mod/mcm.lua:780"
       ]
     },
     "Report path copied to the clipboard.": {
@@ -4036,7 +4036,7 @@
       ],
       "references": [
         "mod/manager.lua:32",
-        "mod/mcm.lua:995"
+        "mod/mcm.lua:1004"
       ]
     },
     "Return to Companion Manager.": {
@@ -4044,7 +4044,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:887"
+        "mod/mcm.lua:896"
       ]
     },
     "Return to conversation settings.": {
@@ -4052,10 +4052,10 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:681",
-        "mod/mcm.lua:724",
-        "mod/mcm.lua:740",
-        "mod/mcm.lua:764"
+        "mod/mcm.lua:690",
+        "mod/mcm.lua:733",
+        "mod/mcm.lua:749",
+        "mod/mcm.lua:773"
       ]
     },
     "Return to the memory controls.": {
@@ -4063,7 +4063,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:695"
+        "mod/mcm.lua:704"
       ]
     },
     "Review the memory clear below, then choose Confirm or Cancel.": {
@@ -4080,7 +4080,7 @@
         "mcm.relationships"
       ],
       "references": [
-        "mod/mcm.lua:734"
+        "mod/mcm.lua:743"
       ]
     },
     "Running": {
@@ -4112,7 +4112,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:773"
+        "mod/mcm.lua:782"
       ]
     },
     "Saved Chat cleanup could not be verified. Please wait for the memory service.": {
@@ -4130,7 +4130,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:759"
+        "mod/mcm.lua:768"
       ]
     },
     "Saved reports": {
@@ -4138,7 +4138,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:793"
+        "mod/mcm.lua:802"
       ]
     },
     "Scenery or a vehicle is blocking the companion position.": {
@@ -4154,7 +4154,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:598"
+        "mod/mcm.lua:607"
       ]
     },
     "Search by character name or model record using Search settings. {query}": {
@@ -4164,7 +4164,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:653"
+        "mod/mcm.lua:662"
       ]
     },
     "Search by character name using Search settings. {query}\nThe character can be outside your current party.": {
@@ -4174,7 +4174,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:700"
+        "mod/mcm.lua:709"
       ]
     },
     "Search names, models or settings...": {
@@ -4200,7 +4200,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:714"
+        "mod/mcm.lua:723"
       ]
     },
     "Selected": {
@@ -4208,7 +4208,7 @@
         "mcm.navigation"
       ],
       "references": [
-        "mod/mcm.lua:713",
+        "mod/mcm.lua:722",
         "mod/phone-chat-style.lua:115"
       ]
     },
@@ -4217,7 +4217,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:531"
+        "mod/mcm.lua:540"
       ]
     },
     "Send the generated report rather than raw log files. Open these locations only if the developer asks for a specific file.": {
@@ -4225,7 +4225,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:795"
+        "mod/mcm.lua:804"
       ]
     },
     "Settings": {
@@ -4234,7 +4234,7 @@
       ],
       "references": [
         "mod/manager.lua:933",
-        "mod/mcm.lua:577"
+        "mod/mcm.lua:586"
       ]
     },
     "Settings are active, but could not be saved for next time.": {
@@ -4258,7 +4258,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:522"
+        "mod/mcm.lua:531"
       ]
     },
     "Short report saved because the conversation service could not build the full report: {path}": {
@@ -4290,7 +4290,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:862"
+        "mod/mcm.lua:871"
       ]
     },
     "Show companion reply subtitles during conversations.": {
@@ -4307,7 +4307,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:673"
+        "mod/mcm.lua:682"
       ]
     },
     "Some model records could not be read.": {
@@ -4347,7 +4347,7 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/mcm.lua:605"
+        "mod/mcm.lua:614"
       ]
     },
     "State: {state}": {
@@ -4396,7 +4396,7 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/mcm.lua:609"
+        "mod/mcm.lua:618"
       ]
     },
     "Stop the trip after returning to gameplay. Wait for the car to stop, then step out before dismissing the driver.": {
@@ -4404,7 +4404,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:612"
+        "mod/mcm.lua:621"
       ]
     },
     "Stop the trip and step out before dismissing your driver.": {
@@ -4421,7 +4421,7 @@
         "mcm.action"
       ],
       "references": [
-        "mod/mcm.lua:611"
+        "mod/mcm.lua:620"
       ]
     },
     "Stopped": {
@@ -4438,7 +4438,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/mcm.lua:606"
+        "mod/mcm.lua:615"
       ]
     },
     "Stopping the trip. Wait for the car to stop before stepping out.": {
@@ -4454,7 +4454,7 @@
         "mcm.options"
       ],
       "references": [
-        "mod/mcm.lua:836"
+        "mod/mcm.lua:845"
       ]
     },
     "Subtitle display": {
@@ -4462,7 +4462,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:863"
+        "mod/mcm.lua:872"
       ]
     },
     "Subtitles": {
@@ -4471,8 +4471,8 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:861",
-        "mod/mcm.lua:862"
+        "mod/mcm.lua:870",
+        "mod/mcm.lua:871"
       ]
     },
     "Subtle": {
@@ -4480,7 +4480,7 @@
         "mcm.options"
       ],
       "references": [
-        "mod/mcm.lua:836"
+        "mod/mcm.lua:845"
       ]
     },
     "Support report saved: {path}": {
@@ -4514,7 +4514,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:820"
+        "mod/mcm.lua:829"
       ]
     },
     "Talk to ordinary NPCs": {
@@ -4522,7 +4522,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:817"
+        "mod/mcm.lua:826"
       ]
     },
     "That action is not available.": {
@@ -4611,7 +4611,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:1014"
+        "mod/mcm.lua:1023"
       ]
     },
     "The action could not finish: {reason}": {
@@ -4766,7 +4766,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:769"
+        "mod/mcm.lua:778"
       ]
     },
     "The conversation service writes bridge.stderr.log, bridge.stdout.log and bridge-service.log in {path}": {
@@ -4775,7 +4775,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:784"
+        "mod/mcm.lua:793"
       ]
     },
     "The copy could not be dismissed.": {
@@ -4951,7 +4951,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:790"
+        "mod/mcm.lua:799"
       ]
     },
     "The report could not be created. Check that the mod folder can be written to, then try again.": {
@@ -4993,7 +4993,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:786"
+        "mod/mcm.lua:795"
       ]
     },
     "The settings could not be saved. Your changes are still pending.": {
@@ -5073,7 +5073,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:761"
+        "mod/mcm.lua:770"
       ]
     },
     "This managed companion is unavailable.": {
@@ -5195,8 +5195,8 @@
       ],
       "references": [
         "mod/mcm.lua:284",
-        "mod/mcm.lua:524",
-        "mod/mcm.lua:529"
+        "mod/mcm.lua:533",
+        "mod/mcm.lua:538"
       ]
     },
     "Unknown": {
@@ -5212,8 +5212,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:934",
-        "mod/mcm.lua:963"
+        "mod/mcm.lua:943",
+        "mod/mcm.lua:972"
       ]
     },
     "Unknown setting: {setting}": {
@@ -5232,7 +5232,7 @@
       ],
       "references": [
         "mod/manager.lua:819",
-        "mod/mcm.lua:667"
+        "mod/mcm.lua:676"
       ]
     },
     "Updating selection": {
@@ -5329,7 +5329,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:846"
+        "mod/mcm.lua:855"
       ]
     },
     "Voice status": {
@@ -5337,7 +5337,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:858"
+        "mod/mcm.lua:867"
       ]
     },
     "Voice: {voice}": {
@@ -5354,7 +5354,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:845"
+        "mod/mcm.lua:854"
       ]
     },
     "Wait for the current vehicle activity to finish.": {
@@ -5404,7 +5404,7 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/mcm.lua:604"
+        "mod/mcm.lua:613"
       ]
     },
     "Waiting for the companion to release the driver seat.": {
@@ -5491,7 +5491,7 @@
         "mod/mcm.lua:288",
         "mod/mcm.lua:296",
         "mod/mcm.lua:308",
-        "mod/mcm.lua:856"
+        "mod/mcm.lua:865"
       ]
     },
     "Waiting for walking ownership to resume.": {
@@ -5507,7 +5507,7 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/mcm.lua:604"
+        "mod/mcm.lua:613"
       ]
     },
     "Waiting for you to step out": {
@@ -5515,7 +5515,7 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/mcm.lua:606"
+        "mod/mcm.lua:615"
       ]
     },
     "Waiting for your companion to settle before boarding.": {
@@ -5556,7 +5556,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:766"
+        "mod/mcm.lua:775"
       ]
     },
     "When you talk to a character right after the game’s own dialogue with them, they know the last few lines that were just said, including your chosen replies and phone calls with them, so their answer follows on naturally. Only lines from the last few minutes that involved that character are used, and they are not added to the character’s memory. On by default.": {
@@ -5564,7 +5564,7 @@
         "mcm.setting"
       ],
       "references": [
-        "mod/mcm.lua:824"
+        "mod/mcm.lua:833"
       ]
     },
     "Where the logs are": {
@@ -5572,7 +5572,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:780"
+        "mod/mcm.lua:789"
       ]
     },
     "Who can talk": {
@@ -5581,8 +5581,8 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:746",
-        "mod/mcm.lua:808"
+        "mod/mcm.lua:755",
+        "mod/mcm.lua:817"
       ]
     },
     "Write a message...": {
@@ -5681,7 +5681,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:907"
+        "mod/mcm.lua:916"
       ]
     },
     "Your group": {
@@ -5689,7 +5689,7 @@
         "mcm.category"
       ],
       "references": [
-        "mod/mcm.lua:615"
+        "mod/mcm.lua:624"
       ]
     },
     "Your party": {
@@ -5705,7 +5705,7 @@
         "mcm.readonly"
       ],
       "references": [
-        "mod/mcm.lua:638"
+        "mod/mcm.lua:647"
       ]
     },
     "Your party is empty. Add a character or model to create a companion copy.": {
@@ -5722,7 +5722,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:541"
+        "mod/mcm.lua:550"
       ]
     },
     "all characters you have talked to": {
@@ -5765,7 +5765,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:651"
+        "mod/mcm.lua:660"
       ]
     },
     "{count} more companions also failed.": {
@@ -5781,7 +5781,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:654"
+        "mod/mcm.lua:663"
       ]
     },
     "{count} · Last reported": {
@@ -5790,7 +5790,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:529"
+        "mod/mcm.lua:538"
       ]
     },
     "{first} and {second}": {
@@ -6045,7 +6045,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm.lua:626"
+        "mod/mcm.lua:635"
       ]
     },
     "{name}: chat {state}.": {
@@ -6150,7 +6150,7 @@
         "mcm.party"
       ],
       "references": [
-        "mod/mcm.lua:594"
+        "mod/mcm.lua:603"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6162,7 +6162,7 @@
         "mcm.permissions"
       ],
       "references": [
-        "mod/mcm.lua:744"
+        "mod/mcm.lua:753"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6175,7 +6175,7 @@
         "mcm.navigation"
       ],
       "references": [
-        "mod/mcm.lua:581"
+        "mod/mcm.lua:590"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6187,7 +6187,7 @@
         "mcm.memory"
       ],
       "references": [
-        "mod/mcm.lua:539"
+        "mod/mcm.lua:548"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6199,7 +6199,7 @@
         "mcm.memory"
       ],
       "references": [
-        "mod/mcm.lua:550"
+        "mod/mcm.lua:559"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6211,7 +6211,7 @@
         "mcm.memory"
       ],
       "references": [
-        "mod/mcm.lua:540"
+        "mod/mcm.lua:549"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6261,7 +6261,7 @@
       ],
       "references": [
         "mod/mcm.lua:278",
-        "mod/mcm.lua:669"
+        "mod/mcm.lua:678"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6322,7 +6322,7 @@
         "mcm.memory"
       ],
       "references": [
-        "mod/mcm.lua:554"
+        "mod/mcm.lua:563"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6371,8 +6371,8 @@
         "mcm.models"
       ],
       "references": [
-        "mod/mcm.lua:652",
-        "mod/mcm.lua:699"
+        "mod/mcm.lua:661",
+        "mod/mcm.lua:708"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6437,7 +6437,7 @@
         "mcm.models"
       ],
       "references": [
-        "mod/mcm.lua:653"
+        "mod/mcm.lua:662"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6449,7 +6449,7 @@
         "mcm.memory"
       ],
       "references": [
-        "mod/mcm.lua:700"
+        "mod/mcm.lua:709"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6461,7 +6461,7 @@
         "mcm.memory"
       ],
       "references": [
-        "mod/mcm.lua:714"
+        "mod/mcm.lua:723"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6605,7 +6605,7 @@
         "mcm.models"
       ],
       "references": [
-        "mod/mcm.lua:651"
+        "mod/mcm.lua:660"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6617,7 +6617,7 @@
         "mcm.memory"
       ],
       "references": [
-        "mod/mcm.lua:529"
+        "mod/mcm.lua:538"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6831,7 +6831,7 @@
         "mcm.party"
       ],
       "references": [
-        "mod/mcm.lua:626"
+        "mod/mcm.lua:635"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

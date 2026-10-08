@@ -705,6 +705,8 @@ test('Back joins the bottom button row, the status line moves to the top left, a
       function w:GetWidgetByIndex(index) return self.children[index + 1] end
       function w:SetText(value) self.text = value end
       function w:SetHeight(v) self.height = v end
+      function w:SetVerticalAlignment(v) self.valign = v end
+      function w:GetFontSize() return self.fontSize or 23 end
       function w:SetWidth(v) self.width = v end
       function w:SetWrapping(on, at) self.wrap = {on, at} end
       function w:GetParentWidget() return self.parent end
@@ -720,6 +722,7 @@ test('Back joins the bottom button row, the status line moves to the top left, a
     local scroller = widget('sidebar_scroll', 40, 200, 340, 700, {list})
     list.parent = scroller
     textWrappingPolicy = {Default = 0}
+    textVerticalAlignment = {Top = 'top'}
     local subtitle = widget('content_title', 393, 140, 600, 40)
     local status = widget('status', 60, 1040, 900, 30)
     local revert, apply = widget('mcm_action_revert', 300, 1000, 140, 46), widget('mcm_action_apply', 460, 1000, 140, 46)
@@ -746,6 +749,7 @@ test('Back joins the bottom button row, the status line moves to the top left, a
     -- The status line sits in the sidebar, below the last mod entry, wrapped to the list width.
     assert(status.parent == list and status.margin.left == 20 and status.margin.top == 126 + 14,
       'status line not placed just below the last entry: ' .. status.margin.left .. ',' .. status.margin.top)
+    assert(status.valign == 'top' and status.height < 120, 'the status text is not anchored to the top of a small box: ' .. tostring(status.height))
     assert(status.width == 320 and status.wrap and status.wrap[1] == true and status.wrap[2] == 320, 'status line not wrapped to the column')
     mcm.update(player, false); mcm.update(player, false)
     assert(#bottomActions == 1, 'Back was added again within one render')
@@ -816,6 +820,67 @@ test('Esc on a sub-page goes back to its parent, Esc on Home closes, and Home ha
     assert(invoke('tab:settings').ok); drafts = true; clock = clock + 5
     local before = closed
     assert(esc() == true and mcm.inspect().view == 'settings' and closed == before, 'pending changes were ignored')
+  `);
+});
+
+test('placement is computed from the live layout, so it holds at every resolution and aspect ratio', () => {
+  run(`${mcmFixture}
+    CName = {new = function(value) return value end}
+    NameToString = function(value) return value end
+    IsDefined = function(value) return value ~= nil end
+    textWrappingPolicy = {Default = 0}; textVerticalAlignment = {Top = 'top'}
+    local function widget(name, left, top, width, height, children)
+      local w = {name = name, margin = {left = left, top = top, right = 0, bottom = 0}, width = width, height = height, children = children or {}, fontSize = 22}
+      function w:GetName() return self.name end
+      function w:GetMargin() return {left = self.margin.left, top = self.margin.top, right = 0, bottom = 0} end
+      function w:SetMargin(v) self.margin = {left = v.left, top = v.top, right = 0, bottom = 0} end
+      function w:GetWidth() return self.width end
+      function w:GetHeight() return self.height end
+      function w:SetWidth(v) self.width = v end
+      function w:SetHeight(v) self.height = v end
+      function w:GetNumChildren() return #self.children end
+      function w:GetWidgetByIndex(i) return self.children[i + 1] end
+      function w:SetText() end
+      function w:SetWrapping() end
+      function w:SetVerticalAlignment(v) self.valign = v end
+      function w:GetFontSize() return self.fontSize end
+      function w:SetFontSize(v) self.fontSize = v end
+      function w:BindProperty() end
+      function w:GetController() return nil end
+      function w:GetParentWidget() return self.parent end
+      function w:Reparent(parent) self.parent = parent; parent.children[#parent.children + 1] = self end
+      return w
+    end
+    assert(invoke('tab:settings').ok)
+    -- 1080p 16:9, 1440p 16:9, 4K 16:9 and 21:9 ultrawide: the canvas scale and sizes differ.
+    for _, layout in ipairs({{1920, 1080, 1.0}, {2560, 1440, 1.333}, {3840, 2160, 2.0}, {3440, 1440, 1.333}}) do
+      local scale = layout[3]
+      local entry = widget('mcm_action_a', 20 * scale, 0, 340 * scale, 42 * scale)
+      local list = widget('mcm_sidebar_scroll_content', 0, 0, 360 * scale, 42 * scale, {entry})
+      local status = widget('status', 60 * scale, 1000 * scale, 900 * scale, 30 * scale)
+      local readonlyLabel = widget('label', 30, 0, 300, 42); readonlyLabel.fontSize = 26
+      local surface = widget('mcm_action_cyberpunk-convai:manager:voice-pack', 20, 0, 300, 42, {readonlyLabel})
+      local revert = widget('mcm_action_revert', 700 * scale, 960 * scale, 160 * scale, 46)
+      local render = widget('MCMRenderRoot', 0, 0, layout[1], layout[2], {status, list, widget('mcm_content_scroll_content', 0, 0, 800, 600, {surface}), revert})
+      list.parent, status.parent, revert.parent = render, render, render
+      local added
+      function controller:GetRootWidget() return widget('root', 0, 0, layout[1], layout[2], {render}) end
+      controller.McmUiGetLayoutMetric = function(_, metric)
+        return ({[13] = 340 * scale, [20] = 100 * scale, [23] = 800 * scale, [27] = 960 * scale, [28] = 1700 * scale})[metric] or -1
+      end
+      controller.McmUiAddBottomActionAt = function(_, id, label, x, y, width) added = {x = x, y = y, width = width} ; render.children[#render.children + 1] = widget('mcm_action_' .. id, x, y, width, 46) end
+      handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+      mcm.update(player, false)
+      -- Status: in the list column, 14 below the entry, wrapped to the live column width, never a fixed pixel.
+      assert(status.parent == list and status.margin.left == 20 * scale and status.margin.top == 42 * scale + 14,
+        layout[1] .. ': status misplaced ' .. status.margin.left .. ',' .. status.margin.top)
+      assert(status.width <= 340 * scale and status.valign == 'top', layout[1] .. ': status width or alignment')
+      -- Back: at the live bar line and right edge, with the existing button moved left by its own width.
+      assert(added and added.y == 960 * scale and added.x + added.width == 1700 * scale, layout[1] .. ': Back not on the live bar')
+      assert(revert.margin.left == 700 * scale - (160 * scale + 20), layout[1] .. ': buttons not shifted by the live width')
+      -- Fonts: read-only labels take the setting size whatever the layout scale.
+      assert(readonlyLabel.fontSize == 22, layout[1] .. ': read-only label font')
+    end
   `);
 });
 

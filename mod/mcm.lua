@@ -493,7 +493,16 @@ local function placeStatusLine()
         end
         status:SetMargin(margin)
         status:SetWidth(math.max(120, width))
-        status:SetHeight(160)
+        -- The label is centred vertically in its box, so a tall box pushes the text
+        -- far below the entry. Anchor the text to the top and size the box to the
+        -- wrapped text (line height scales with the live font size, not pixels).
+        local okAlign = pcall(function() status:SetVerticalAlignment(textVerticalAlignment.Top) end)
+        local sized, current = pcall(function() return status:GetFontSize() end)
+        local fontSize = sized and tonumber(current) or 23
+        local chars = #tostring(presentation.statusText or '')
+        local lines = math.max(1, math.ceil(chars * fontSize * 0.55 / math.max(120, width)))
+        status:SetHeight(math.ceil(lines * fontSize * 1.4) + 4)
+        if not okAlign then log('Probe: status line could not be top-aligned') end
         -- Wrap inside the column and let the text grow downward.
         local wrapped = pcall(function() status:SetWrapping(true, math.max(120, width), textWrappingPolicy.Default) end)
         if not wrapped then pcall(function() status.wrapping, status.wrappingAtPosition = true, math.max(120, width) end) end
