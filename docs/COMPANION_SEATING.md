@@ -236,6 +236,29 @@ are beside V, inside V's seated view. Now:
   used even if V can see it (`seat-placed` carries `spotUnseen`);
 - the 10 s slide from within 3 m and "never give up while V is seated" stay.
 
+## Live run 8 (October 8, 21:14Z): no seat assigned; "she jumps up and down"
+
+After a CET reload Judy stood at (-1608.38, 358.67, z 49.5), 7.1 m from V,
+`obstructed` with every follow refused, the whole time V sat (21:14:56 to
+21:17:40). Seating only took companions within 6 m, so there was no
+`seat-assigned` and no seating line after `seats-found`. The movement trace
+shows her entity did not move at all in that time (position and height the
+same to the centimetre, no teleport, no `relocated` or `unstuck` line), so the
+"jumping" when V looked away and back was not a placement or recovery
+teleport; she stood 0.3 m above the 49.2 m floor there (a step edge), and the
+bob is most likely the engine re-settling an off-screen NPC on that edge.
+
+Changes:
+
+- **Search radius 8 m** (was 6); beyond it a `seat-too-far` line once per sit.
+- **Seating and recovery are exclusive.** While seating owns her (choosing,
+  walking to the seat, settling, sliding, placing, sitting, seated, standing
+  up), `companions.lua` skips its distant/stranded recovery for her (the lift,
+  far, fast-travel, blocked, no-route and stance rejoins), through
+  `companions.bodyAnimation.owns(entry)`; while seating holds the body the
+  actuator (and its unstuck step) is not applied at all. Closing in is
+  ordinary following, so recovery may still help her then.
+
 ## Mechanism
 
 `convai_gestures.archive` now also carries four components on the gesture
@@ -356,7 +379,7 @@ companions update until it errors.
 classification by name and by furniture (the probed apartment couch), seat finding on couches/stools/armrests, the full sit and stand
 flow, V getting up, combat (instant), several companions on different seats, no
 seat, wall / occupied / table-in-front, vehicles and unsupported workspots, an old archive, a refused walk near and far, transport/unobserved
-release, a walk the actuator never takes, the PSM settle and stand-up, the live apartment run (every walk-up refused 2 m out, slide after V looks away), the bounded wait, the step out after standing (arrival spot, teleport after a stuck step, a spot without room skipped), three companions on a two-seat couch, the walk-up pre-check (no refusals), a far refusal followed directly by the next walk, the 20:47Z replay (1 good / 9 no room, every walk refused, ends seated), the close-in timeout, no step while the workspot is busy, the most open stand spot, the fast combat exit, the 21:02Z replay (refusals, no progress closing in, placed out of view, seated), the never-give-up wait, the 10 s slide, the 21:09Z replay (V looking ahead, Judy 4.3 m to the side), no placement while she is in view and the unseen-spot preference, and the standing cost (≤ 4 reads a second, no rays). 35 tests.
+release, a walk the actuator never takes, the PSM settle and stand-up, the live apartment run (every walk-up refused 2 m out, slide after V looks away), the bounded wait, the step out after standing (arrival spot, teleport after a stuck step, a spot without room skipped), three companions on a two-seat couch, the walk-up pre-check (no refusals), a far refusal followed directly by the next walk, the 20:47Z replay (1 good / 9 no room, every walk refused, ends seated), the close-in timeout, no step while the workspot is busy, the most open stand spot, the fast combat exit, the 21:02Z replay (refusals, no progress closing in, placed out of view, seated), the never-give-up wait, the 10 s slide, the 21:09Z replay (V looking ahead, Judy 4.3 m to the side), no placement while she is in view and the unseen-spot preference, the 8 m radius, recovery exclusivity, and the standing cost (≤ 4 reads a second, no rays). 37 tests.
 
 ## To check in game
 

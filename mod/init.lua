@@ -776,6 +776,13 @@ do
             if c then pcall(c.tick, player, step, rows) end
             if p then return p.tick(player, step, rows) end
         end,
+        -- Seating owns the copy: companions.lua skips its distant/stranded recovery.
+        owns = function(entry)
+            local s = currentSeating()
+            if not s or not s.owns then return false end
+            local ok, owned = pcall(s.owns, entry)
+            return ok and owned == true
+        end,
         -- Decision override before behavior (a walk to a seat, then a hold).
         steer = function(entry, context, step)
             local s = currentSeating()

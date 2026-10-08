@@ -2007,7 +2007,10 @@ function M.update(player,delta,focusEntity)
             -- companion-adoption.lua): no tactic, catch-up or teleport recovery.
             local departing=M.departure and M.departure.owns(entry.serial)
             local tactic=not departing and M.tactics and M.tactics.owns(entry.serial)
-            if not tactic and not departing and recoverDistant(entry,player) then return end
+            -- Seating owns its copy from the walk to the seat until she stands
+            -- clear again (docs/COMPANION_SEATING.md): no recovery teleport then.
+            local seated=M.bodyAnimation and M.bodyAnimation.owns and M.bodyAnimation.owns(entry)
+            if not tactic and not departing and not seated and recoverDistant(entry,player) then return end
             local id=tostring(entry.entityID.hash)
             local lane=travel.laneFrame(groupFrame,entry.lane)
             local travelTarget=space.offset(lane.position,lane.direction,slots[entry.lane][1],0)

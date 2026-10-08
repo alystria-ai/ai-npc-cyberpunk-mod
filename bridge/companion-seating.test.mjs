@@ -632,3 +632,31 @@ test('placement never happens while V looks at her, and prefers a spot V cannot 
   step(1,{walk=false,refuse=true})
   local placed=lastLog('seat-placed');assert(placed and placed.fields.spotUnseen==true,'the spot is out of view too')
 `));
+
+// October 8 21:14Z: Judy stood stuck 7.1 m from V (follow blocked since the
+// CET reload), beyond the old 6 m search radius: no seat was assigned.
+test('a companion 7.1 m away is seated; one beyond 8 m is logged once and keeps following', () => run(`
+  couch(-.35,1.7);party={companion(1,-4.6,5.4),companion(2,6.5,5.5)}
+  sitV();step(2.5)
+  local assigned={};for _,l in ipairs(logs) do if l.kind=='seat-assigned' then assigned[l.fields.serial]=true end end
+  assert(assigned[1] and not assigned[2],'7.1 m seated, 8.5 m not')
+  local far=0;for _,l in ipairs(logs) do if l.kind=='seat-too-far' then far=far+1 end end
+  assert(far==1,'logged once: '..far)
+`));
+
+test('seating owns her for recovery from the walk to the seat until she stands clear; not while closing in', () => run(`
+  couch(-.35,1.7);party={companion(1,1.5,1.5)}
+  assert(not c.owns(party[1]),'no session: not owned')
+  sitV();step(1.3)
+  local seen={}
+  for i=1,40 do
+    step(.1)
+    local st=c.snapshot().companions[1]
+    if st then seen[st.phase]=c.owns(party[1]) end
+  end
+  assert(seen.seated==true,'owned while seated')
+  seat.inside=false
+  for i=1,30 do step(.1);local st=c.snapshot().companions[1];if st then seen[st.phase]=c.owns(party[1]) end end
+  assert(seen.leaving==true or seen.standing==true,'owned while standing up')
+  step(1);assert(not c.owns(party[1]),'released after she stood clear')
+`));

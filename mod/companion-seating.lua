@@ -15,7 +15,7 @@ M.TAG = 'CyberpunkConvaiSeatDevice'
 M.policy = {
     checkEvery = .25,      -- V's workspot state, at most 4 Hz
     settleAfter = .9,      -- V seated this long (entry animation done) before a search
-    searchRadius = 6,      -- companions farther from V when it sits stay standing
+    searchRadius = 8,      -- companions farther from V stay standing (live run 21:14Z: Judy stuck 7.1 m away)
     leaveDistance = 1.0,   -- V's root this far from the seat anchor: V left the seat
     minOffset = .45,       -- seat samples along the furniture, beside V
     sampleStep = .1,
@@ -1035,7 +1035,13 @@ function M.new(options)
         if s.phase == 'off' then
             if not session or not session.seats or s.session == session.id then return nil end
             if context.combat or self.clock < (s.cooldownUntil or 0) then return nil end
-            if (tonumber(entry.playerGap) or math.huge) > policy.searchRadius then return nil end
+            if (tonumber(entry.playerGap) or math.huge) > policy.searchRadius then
+                if s.farSession ~= session.id then
+                    s.farSession = session.id
+                    note('seat-too-far', {serial = s.serial, session = session.id, gap = entry.playerGap})
+                end
+                return nil
+            end
             if nat.inWorkspot(entry.npc) ~= false then return nil end -- a gesture stance is still leaving
             return begin(s, entry)
         end
@@ -1195,6 +1201,13 @@ function M.new(options)
     function self.abandon()
         -- World teardown: devices are not persistent; no native calls here.
         self.states, session, self.swept = {}, nil, false
+    end
+
+    -- While seating owns her (walking to the seat, placing, seated, standing
+    -- up), recovery must not relocate her. Closing in is ordinary following.
+    function self.owns(entry)
+        local s = self.states[entry.serial]
+        return s ~= nil and s.phase ~= 'off' and s.phase ~= 'closing'
     end
 
     function self.holds(entry)
