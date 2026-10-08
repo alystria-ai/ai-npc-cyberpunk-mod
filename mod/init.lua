@@ -563,6 +563,17 @@ do
     else convaiVanillaReactions = nil; print('[CyberpunkConvai] vanilla-reactions.lua unavailable: ' .. tostring(value)) end
 end
 
+-- Talk-key target decisions (mod/talk-target.lua), reached through the global
+-- from targetAtCrosshair and selectConversation; a missing module keeps the
+-- original nearest-to-centre ranking.
+do
+    local loaded, module = pcall(dofile, 'talk-target.lua')
+    local built, value = false, module
+    if loaded and type(module) == 'table' and type(module.new) == 'function' then built, value = pcall(module.new) end
+    if built and type(value) == 'table' then convaiTalkTarget = value
+    else convaiTalkTarget = nil; print('[CyberpunkConvai] talk-target.lua unavailable: ' .. tostring(value)) end
+end
+
 -- World characters asked to follow join as managed copies; party members asked
 -- to leave are dismissed after their goodbye (docs/WORLD_COMPANIONS.md). A
 -- missing module only removes the two actions.
@@ -780,12 +791,18 @@ local function targetAtCrosshair()
     end
     local playerPos, forward = targeting:GetCrosshairData(player)
     local forwardLength = math.sqrt(forward.x^2 + forward.y^2 + forward.z^2)
-    local best, bestScore = nil, math.huge
+    -- Measure every candidate once: its best aim point (torso, or the actual
+    -- Head slot for a close face-to-face talk), the angle to the crosshair and
+    -- the distance. mod/talk-target.lua then decides between them (an ongoing
+    -- conversation keeps its partner; a centred party member beats ambient NPCs).
+    local rows, measured = {}, {}
     for _, npc in ipairs(candidates) do
-        local valid, score = pcall(function()
+        local valid, row = pcall(function()
             if not npc:IsNPC() or not npc:IsAttached() or npc:IsDeadNoStatPool() then return nil end
             if adoption and adoption.hidden(npc) then return nil end
             local id = tostring(npc:GetEntityID().hash)
+            if measured[id] then return nil end
+            measured[id] = true
             local pos = npc:GetWorldPosition()
             local points = {{x = pos.x, y = pos.y, z = pos.z + 1.3}}
             if seated[id] then
@@ -798,7 +815,7 @@ local function targetAtCrosshair()
                 if not found or not transform then return nil end
                 pos = WorldPosition.ToVector4(WorldTransform.GetWorldPosition(transform))
                 points = {pos}
-            elseif onFoot[id] then
+            else
                 -- Keep torso aim usable. The actual Head slot is a second aim
                 -- point for close face-to-face conversations, when available.
                 local headOk, head = pcall(function()
@@ -813,7 +830,8 @@ local function targetAtCrosshair()
                 end)
                 if headOk and head then points[#points + 1] = head end
             end
-            local pointScore = math.huge
+            local isLooked = not onFoot[id] and lookedOk and looked and npc == looked or false
+            local measures = {}
             for _, point in ipairs(points) do
                 local dx, dy, dz = point.x - playerPos.x, point.y - playerPos.y, point.z - playerPos.z
                 local distance = math.sqrt(dx^2 + dy^2 + dz^2)
@@ -821,20 +839,40 @@ local function targetAtCrosshair()
                     local cosine = (dx * forward.x + dy * forward.y + dz * forward.z) / (distance * forwardLength)
                     cosine = math.max(-1.0, math.min(1.0, cosine))
                     local angle = math.deg(math.acos(cosine))
-                    if not onFoot[id] and lookedOk and looked and npc == looked then angle = 0.0 end
-                    local value = angle / 32.0 + distance / 8.0
-                    if angle <= 32.0 and value < pointScore and value < bestScore
-                        and (not onFoot[id] or companions.visibleFromCrosshair(playerPos, point)) then
-                        pointScore = value
+                    if isLooked or angle <= 32.0 then
+                        measures[#measures + 1] = {point = point, angle = angle, distance = distance}
                     end
                 end
             end
-            return pointScore < math.huge and pointScore or nil
+            table.sort(measures, function(a, b) return a.angle < b.angle end)
+            for _, m in ipairs(measures) do
+                if not onFoot[id] or companions.visibleFromCrosshair(playerPos, m.point) then
+                    return {id = id, npc = npc, angle = m.angle, distance = m.distance, looked = isLooked,
+                        party = type(companions.owns) == 'function' and companions.owns(npc) == true}
+                end
+            end
+            return nil
         end)
-        if valid and score and score < bestScore then best, bestScore = npc, score end
+        if valid and row then rows[#rows + 1] = row end
     end
-    if not best then return nil, 'Face a nearby NPC within eight metres' end
-    return best, nil
+    local chooser = convaiTalkTarget
+    local chosen, why
+    if chooser and type(chooser.choose) == 'function' then
+        local ok, row, reason = pcall(chooser.choose, rows)
+        if ok then chosen, why = row, reason end
+    end
+    if not chosen and why == nil then
+        -- No chooser loaded: the original ranking.
+        local bestScore = math.huge
+        for _, row in ipairs(rows) do
+            local value = (row.looked and 0 or row.angle) / 32.0 + row.distance / 8.0
+            if value < bestScore then chosen, bestScore = row, value end
+        end
+        why = 'nearest-to-centre'
+    end
+    local decision = {rows = rows, chosen = chosen, reason = why}
+    if not chosen then return nil, 'Face a nearby NPC within eight metres', decision end
+    return chosen.npc, nil, decision
 end
 
 local function resetGaze()
@@ -960,8 +998,20 @@ local function updateGaze(player, elapsed)
     resetGaze()
 end
 
+-- One probe-log line per talk-key target decision (mod/talk-target.lua).
+local function logTalkTarget(decision)
+    local chooser = convaiTalkTarget
+    if not decision or not chooser or type(chooser.describe) ~= 'function' then return end
+    local ok, line = pcall(chooser.describe, decision.rows, decision.chosen, decision.reason, function(row)
+        local key = profileIdentity(row.npc)
+        return key or 'unprofiled'
+    end)
+    if ok then log(line) end
+end
+
 local function selectConversation(player, groupMode, singleAction)
-    local npc, reason = targetAtCrosshair()
+    local npc, reason, decision = targetAtCrosshair()
+    logTalkTarget(decision)
     local candidates = groupMode and companions.conversationCandidates(player, 8) or {}
     if groupMode then
         local enabled = {}
@@ -1000,6 +1050,8 @@ local function selectConversation(player, groupMode, singleAction)
             or ui.t('Group chat needs two characters nearby. Use private chat for one person.'))
         return nil
     end
+    -- The ongoing conversation keeps this partner on the next talk key press.
+    if convaiTalkTarget then pcall(convaiTalkTarget.remember, primary.entity) end
     return primary, participants
 end
 
