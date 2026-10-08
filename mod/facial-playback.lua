@@ -71,7 +71,8 @@ local function expressionLimit(track)
     return .55
 end
 local scaleStrength={.4,.67,1}
--- Resting warmth: a light smile while IDLE only (October 8, user: keep Judy's light
+-- Resting warmth: a light smile while not speaking (idle, and since October 9 also
+-- listening and thinking, until the reply is heard) (October 8, user: keep Judy's light
 -- resting smile, just never on sad topics). While speaking, the face is exactly the
 -- bridge's context selector (bridge/emotion-selector.mjs) with no smile layered
 -- under it; after a sad, angry, scared or disgusted turn the idle face stays neutral
@@ -120,10 +121,25 @@ function M.beginExpression(context,receipt)
     local slot=expressionSlot(context.entity)
     if not sameExpressionOwner(slot,context) or not slot.active then
         slot.requestId,slot.generation,slot.active=context.requestId,context.generation,true
-        slot.emotion,slot.family,slot.sequence,slot.expiry=nil,nil,-1,nil
-        slot.holdMix=nil;slot.browExpiry=nil;slot.flick={};slot.turnNegative=0
+        -- October 9 (user: her idle mood went bland before the lip sync started): the face keeps what it shows
+        -- (the resting smile, a lingering reaction) until this reply is HEARD. The reset and the reply's own cue
+        -- wait for its first speaking frame (startHeard), where the usual smoothing carries the change.
+        slot.sequence,slot.awaitingAudio,slot.turnNegative=-1,true,0
+        slot.cueEmotion,slot.cueFamily,slot.cueScale=nil,nil,nil
     end
     M.acceptExpression(context,receipt)
+end
+-- The reply's first audible frame: retire what the face showed before and take the reply's cue.
+local function startHeard(slot)
+    slot.awaitingAudio=false
+    slot.emotion,slot.family,slot.scale,slot.expiry=slot.cueEmotion,slot.cueFamily,slot.cueScale,nil
+    slot.cueEmotion,slot.cueFamily,slot.cueScale=nil,nil,nil
+    slot.holdMix=nil;slot.browExpiry=nil;slot.flick={};slot.turnNegative=0
+end
+-- The reply is audible (the first speaking frame does this itself; callers without a speech timeline use it).
+function M.expressionHeard(context)
+    local slot=type(context)=='table' and M.expressions[context.entity]
+    if slot and slot.active and slot.awaitingAudio and sameExpressionOwner(slot,context) then startHeard(slot) end
 end
 function M.acceptExpression(context,receipt)
     if type(context)~='table' or type(receipt)~='table' then return false end
@@ -140,13 +156,19 @@ function M.acceptExpression(context,receipt)
         or not finite(receipt.scale) or receipt.scale<1 or receipt.scale>3 or receipt.scale%1~=0 then return false end
     local label=receipt.emotion:match('^%s*(.-)%s*$')
     if label=='' then return false end
-    slot.emotion,slot.family,slot.scale,slot.sequence=label,families[label:lower()] or 'unknown',receipt.scale,receipt.sequence
+    if slot.awaitingAudio then
+        slot.cueEmotion,slot.cueFamily,slot.cueScale,slot.sequence=label,families[label:lower()] or 'unknown',receipt.scale,receipt.sequence
+    else
+        slot.emotion,slot.family,slot.scale,slot.sequence=label,families[label:lower()] or 'unknown',receipt.scale,receipt.sequence
+    end
     return true
 end
 function M.endExpression(context,finished)
     local slot=type(context)=='table' and M.expressions[context.entity]
     if not slot or not sameExpressionOwner(slot,context) then return end
     slot.active=false
+    -- Never heard (cancelled, failed or replaced before its audio): the face simply keeps what it showed.
+    if slot.awaitingAudio then slot.awaitingAudio=false;slot.cueEmotion,slot.cueFamily,slot.cueScale=nil,nil,nil;return end
     -- A negative turn keeps the idle face neutral for a while; a calm turn shortens it.
     if (slot.turnNegative or 0)>=moodThreshold then slot.moodUntil=M.expressionClock+moodHoldSeconds
     elseif slot.moodUntil and slot.moodUntil>M.expressionClock then
@@ -169,14 +191,16 @@ function M.beginExpressionFrame(delta,context)
     local thinking=type(context)=='table' and context.thinkingEntity or nil
     local listening=type(context)=='table' and context.listeningEntity or nil
     local thinkingRequest=type(context)=='table' and context.thinkingRequestId or nil
-    -- A new player input retires an earlier reaction before another reply is
-    -- audible. Thinking/listening never infer mood from the text or voice.
+    -- A new player input ends an earlier reply's ownership that was never heard. The face itself keeps its
+    -- idle expression (the resting smile, a lingering reaction, a mood hold) through listening and thinking;
+    -- only the next reply's first audible frame changes it (October 9; before, the input zeroed it at once).
+    -- Thinking/listening never infer mood from the text or voice.
     for _,entity in ipairs({thinking or false,listening or false}) do
         if entity and not (M.active and M.entity==entity) and
             ((entity==thinking and (thinking~=M.thinkingEntity or thinkingRequest~=M.expressionThinkingRequest))
                 or (entity==listening and listening~=M.listeningEntity)) then
             local slot=M.expressions[entity]
-            if slot then slot.emotion,slot.family,slot.expiry,slot.active=nil,nil,nil,false;slot.holdMix=nil;slot.pose=zeroExpression() end
+            if slot and slot.awaitingAudio then slot.active,slot.awaitingAudio=false,false;slot.cueEmotion,slot.cueFamily,slot.cueScale=nil,nil,nil end
         end
     end
     M.thinkingEntity,M.listeningEntity,M.expressionThinkingRequest=thinking,listening,thinkingRequest
@@ -240,7 +264,7 @@ local function mixTargets(weights,target,phase,warmth)
     if up>dn then up=up-.5*dn;dn=0 else dn=dn-.5*up;up=0 end
     local clash=math.min(math.max(rin,rout),low)
     rin=math.max(0,rin-.5*clash);rout=math.max(0,rout-.5*clash);low=math.max(0,low-.5*clash)
-    if phase=='idle' and dn==0 then up=math.max(up,warmth) end
+    if phase~='speaking' and dn==0 then up=math.max(up,warmth) end
     target=target or {}
     target.lips_l_corner_up,target.lips_r_corner_up=up,up
     target.lips_l_corner_dn,target.lips_r_corner_dn=dn,dn
@@ -276,6 +300,7 @@ local function sampleTrack(keys,t)
     return out
 end
 local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
+    if phase=='speaking' and slot.awaitingAudio then startHeard(slot) end
     local target=zeroExpression()
     if slot.expiry and M.expressionClock>=slot.expiry then slot.emotion,slot.family,slot.expiry=nil,nil,nil;slot.holdMix=nil end
     -- A turn with an expression track holds its last sampled mix between phrases
@@ -306,7 +331,7 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     local trait=traitFor(slot.profile)
     local warmth,gain=trait.warmth,trait.gain
     -- This turn's strongest negative feeling (track mix or reply-level label) sets the mood hold.
-    if slot.active then
+    if slot.active and not slot.awaitingAudio then
         local worst=0
         if weights then for index=3,6 do worst=math.max(worst,weights[index] or 0) end
         elseif negative[family] then worst=strength end
@@ -354,7 +379,7 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     if not weights and (family=='joy' or family=='trust') then pair('corner_dn',0);brows('lower',0) end
     -- Resting warmth: a floor under every non-negative intent (Interest, surprise,
     -- neutral tone) while idle only. The emotion's own smile wins by max.
-    if not weights and phase=='idle' and not negative[family] and family~='unknown'
+    if not weights and phase~='speaking' and not negative[family] and family~='unknown'
         and not frowning and target.lips_l_corner_dn==0 then pair('corner_up',math.max(target.lips_l_corner_up,warmth)) end
     for _,track in ipairs({'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','lips_r_corner_dn'}) do target[track]=target[track]*gain end
     local squint=math.min(.35,.6*target.lips_l_corner_up)
@@ -524,7 +549,9 @@ function M.updateExpressions(context)
                 if not owns(actor,entity) then M.expressions[entity]=nil;return end
                 local slot=expressionSlot(entity)
                 slot.profile=row.profileKey
-                if slot.written==M.expressionFrame or (M.active and M.entity==entity) then return end
+                -- Speech owns the face from its first HEARD frame. Before that (a reply prepared, a stream
+                -- buffering, an Omni phrase loading) this idle writer keeps her idle face (October 9).
+                if slot.written==M.expressionFrame or (M.active and M.entity==entity and M.heardRequest==M.requestId) then return end
                 slot.feature=slot.feature or NewObject('ConvaiFaceFeature')
                 assert(slot.feature,'Native facial feature is unavailable')
                 local phase=(slot.active and 'thinking') or (M.thinkingEntity==entity and 'thinking')
@@ -612,7 +639,8 @@ function M.abandon(reason)
 end
 
 function M.stop(actor, reason)
-    if M.active then reset(actor) end
+    -- A reply that was never heard never wrote the face: nothing to reset (the idle writer still owns it).
+    if M.active and M.heardRequest==M.requestId then reset(actor) elseif M.active then M.restored=true end
     clear()
     M.state = reason or 'idle'
 end
@@ -790,6 +818,9 @@ end
 
 function M.pause(actor)
     if not M.active or M.state == 'paused' then return end
+    -- Waiting for the first audio (a buffering stream or a loading phrase) is not a pause of a written face:
+    -- resetting here blanked her idle face before the lip sync started (October 9).
+    if M.heardRequest~=M.requestId then return end
     reset(actor)
     M.localPose, M.localPosePosition = nil, nil
     M.state, M.lastPosition = 'paused', nil
@@ -860,6 +891,7 @@ function M.sync(actor, position, requestId)
         while boundaries and boundaries[cursor] and boundaries[cursor]<=position do cursor=cursor+1;boundary=true end
         M.blinkBoundaryIndex=cursor
         local room=M.continuous or M.timeline.duration-position>.35
+        M.heardRequest=M.requestId
         applyFeature(actor,M.feature,M.entity,'speaking',provider,upper,mix,boundary,room)
         M.position, M.lastPosition = M.continuous and heardPosition or position, M.continuous and heardPosition or position
         M.timelineChanged = nil

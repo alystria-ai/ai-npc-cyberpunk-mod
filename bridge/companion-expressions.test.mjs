@@ -40,7 +40,7 @@ test('unknown provider labels preserve data distinction and never imply joy', ()
   assert.deepEqual(corners(expressionTarget({emotion: unknown})), [0, 0]);
 });
 
-test('calm idle keeps a light resting smile; speech with no intent has none (October 8); processing has nothing', () => {
+test('calm idle keeps a light resting smile, also while listening or thinking (October 9); speech with no intent has none (October 8)', () => {
   const idle = expressionTarget();
   assert.equal(EXPRESSION_POLICY.restSmile, .12);
   assert.deepEqual(corners(idle), [.12, .12]);
@@ -49,8 +49,11 @@ test('calm idle keeps a light resting smile; speech with no intent has none (Oct
   assert.deepEqual(corners(speaking), [0, 0]);
   assert.equal(mixTarget({weights: {}, phase: 'speaking'}).lips_l_corner_up, 0);
   assert.equal(mixTarget({weights: {}, phase: 'idle'}).lips_l_corner_up, .12);
-  for (const phase of ['listening', 'thinking'])
-    assert.deepEqual(corners(expressionTarget({phase})), [0, 0]);
+  // The idle face holds until the reply is heard: listening and thinking keep the resting smile.
+  for (const phase of ['listening', 'thinking']) {
+    assert.deepEqual(corners(expressionTarget({phase})), [.12, .12]);
+    assert.equal(mixTarget({weights: {}, phase}).lips_l_corner_up, .12);
+  }
   assert.ok(Object.values(expressionTarget({blocked: true})).every(value => value === 0));
 });
 

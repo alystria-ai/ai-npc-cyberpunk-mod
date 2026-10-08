@@ -1,5 +1,25 @@
 # Companion expressions
 
+## October 9 (later): the idle face holds until the reply is heard
+
+User (in game): "her current emotion during idle becomes bland before the lip sync starts playing; it should go
+bland once the lip sync starts". Four things blanked it early, all in `mod/facial-playback.lua`:
+- V's input (thinking) or the microphone (listening) retired her current reaction and zeroed the pose at once.
+- The resting smile was idle-only, so thinking and listening eased it away.
+- `beginExpression` (when the reply was handed to speech, before any audio) cleared her reaction and applied the
+  reply's own cue, and the active-but-silent reply counted as "thinking".
+- While a stream buffered or an Omni phrase loaded, the speech owner held the face and `pause` reset it to zero.
+
+Now: thinking and listening keep the idle face (resting smile with its mood hold, a lingering reaction until its
+usual expiry; mirrored in `companion-expressions.mjs`). A new reply's reset and cue wait for its first heard frame
+(`startHeard`, or `expressionHeard` for callers without a timeline); until then the idle writer keeps writing her
+face (and blinks), and `pause`/`stop` of a never-heard reply reset nothing. The first heard frame starts the
+speaking plan with the same smoothing as before. Routes: phrase replies (Omni, Convai WAV) are heard when the
+native cursor moves; stream replies (Pocket, Convai) when the device reports heard audio. No added per-frame
+work. Tests: idle smile held through thinking, a prepared phrase with the cursor at 0, an opened and buffering
+stream, and a cancel before audio; the sad face then eases in within a second; a lingering reaction holds through
+thinking and listening. Both fail on the previous code.
+
 ## October 9: blinking while speaking, and expressions that read during a reply
 
 User report (recording Judy for the lip sync video): she never blinks while she talks, and her face barely changes

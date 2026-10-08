@@ -201,7 +201,8 @@ export function expressionTarget({emotion = null, phase = 'idle', speechPose = {
   // Resting warmth is a floor under every non-negative intent (Interest, surprise,
   // neutral tone), while idle and while speaking; the emotion's own smile wins by max.
   // Idle only (October 8): while speaking the bridge's selector alone decides; Lua also holds it off after a sad turn.
-  if (phase === 'idle' && !negative.has(family) && family !== 'unknown' && !frowning
+  // October 9: listening and thinking keep the idle face too; only the audible reply changes it.
+  if (phase !== 'speaking' && !negative.has(family) && family !== 'unknown' && !frowning
     && out.lips_l_corner_dn === 0)
     pair(out, 'corner_up', Math.max(out.lips_l_corner_up, warmth));
   return finishPose(out, {speechPose, phase, gain});
@@ -249,7 +250,7 @@ export function mixTarget({weights, phase = 'idle', speechPose = {}, blocked = f
   if (up > dn) { up -= .5 * dn; dn = 0; } else { dn -= .5 * up; up = 0; }
   const clash = Math.min(Math.max(rin, rout), low);
   rin = Math.max(0, rin - .5 * clash); rout = Math.max(0, rout - .5 * clash); low = Math.max(0, low - .5 * clash);
-  if (phase === 'idle' && dn === 0) up = Math.max(up, warmth);
+  if (phase !== 'speaking' && dn === 0) up = Math.max(up, warmth);
   pair(out, 'corner_up', up); pair(out, 'corner_dn', dn);
   brows(out, 'raise_in', rin); brows(out, 'raise_out', rout); brows(out, 'lower', low);
   return finishPose(out, {speechPose, phase, gain});

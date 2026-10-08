@@ -91,18 +91,25 @@ test('Lua expression policy matches the pure policy and stops its clock while pa
   paused=false;tick(.1);assert(face.expressionClock>clock and #a.frames==2)`);
 });
 
-test('new thinking or listening input retires a previous reaction before another reply',()=>run(`
- face.beginExpression(context,${literal(receipt('Joy',3,0))});face.endExpression(context,true);tick(.1)
- assert(last(a).lips_l_corner_up>0)
- tick(.1,{thinkingEntity=a.id,thinkingRequestId='next-input'});allZero(last(a));assert(face.expressions[a.id].emotion==nil)
- tick(.1);assert(last(a).lips_l_corner_up>0,'a retired happy reaction leaves the resting smile')
- tick(.1,{listeningEntity=a.id});allZero(last(a))
+// October 9 (user): "her current emotion during idle becomes bland before the lip sync starts playing". Listening
+// and thinking keep the idle face (resting smile, a lingering reaction); only the next reply's audio changes it.
+test('new thinking or listening input keeps the idle face and a lingering reaction until the next reply is heard',()=>run(`
+ face.beginExpression(context,${literal(receipt('Joy',3,0))});face.expressionHeard(context);face.endExpression(context,true);for _=1,15 do tick(.1) end
+ local joy=last(a).lips_l_corner_up;assert(joy>.3,'the happy reaction lingers: '..joy)
+ tick(.1,{thinkingEntity=a.id,thinkingRequestId='next-input'})
+ assert(math.abs(last(a).lips_l_corner_up-joy)<.02 and face.expressions[a.id].emotion=='Joy','thinking keeps it')
+ tick(.1,{listeningEntity=a.id});assert(math.abs(last(a).lips_l_corner_up-joy)<.02,'listening keeps it')
+ -- After the reaction expires the resting smile shows while listening or thinking, as at idle.
+ for _=1,60 do tick(.1,{listeningEntity=a.id}) end
+ assert(math.abs(last(a).lips_l_corner_up-.12)<.01,'resting smile while listening: '..last(a).lips_l_corner_up)
+ for _=1,10 do tick(.1,{thinkingEntity=a.id,thinkingRequestId='later'}) end
+ assert(math.abs(last(a).lips_l_corner_up-.12)<.01,'resting smile while thinking')
 `));
 
 test('combat, injury, native dialogue and lost autonomy immediately suppress all optional expression deltas',()=>run(`
  local joys={${[1, 2, 3, 4].map(i => literal(receipt('Joy', 3, i))).join(',')}}
  for i,flag in ipairs({'combat','injured','dialogue','scene'}) do
-  face.beginExpression(context,joys[i]);a[flag]=false;tick(.1);assert(last(a).lips_l_corner_up>0,flag)
+  face.beginExpression(context,joys[i]);face.expressionHeard(context);a[flag]=false;tick(.1);assert(last(a).lips_l_corner_up>0,flag)
   a[flag]=true;tick(.1);allZero(last(a));a[flag]=false
  end
  a.autonomous=false;tick(.1);allZero(last(a));a.autonomous=true
@@ -128,7 +135,7 @@ test('speaking composes one feature with unchanged accepted Omni contact/tongue 
 });
 
 test('the final native writer suppresses a held smile on rounded phonemes without touching speech fields',()=>run(`
- face.beginExpression(context,${literal(receipt('Joy',3,0))});tick(.1)
+ face.beginExpression(context,${literal(receipt('Joy',3,0))});face.expressionHeard(context);tick(.1)
  assert(last(a).lips_l_corner_up>0)
  local timeline={version=1,requestId=context.requestId,entity=a.id,duration=1,source='audio-envelope',
   tracks={'jaw_mid_open','lips_l_funnel','lips_r_funnel','lips_suck_up'},
@@ -139,7 +146,7 @@ test('the final native writer suppresses a held smile on rounded phonemes withou
 `));
 
 test('negative metadata replaces a smile, rejects cross-copy/generation/sequence receipts and expires after speech',()=>run(`
- face.beginExpression(context,${literal(receipt('Joy',3,0))});tick(.1)
+ face.beginExpression(context,${literal(receipt('Joy',3,0))});face.expressionHeard(context);tick(.1)
  assert(last(a).lips_l_corner_up>0)
  local bad=${literal(receipt('Grief',3,1))};bad.entity='copy-b';assert(not face.acceptExpression(context,bad))
  bad.entity=context.entity;bad.generation=3;assert(not face.acceptExpression(context,bad))
@@ -380,7 +387,7 @@ test('Judy idles at about .19 with the corner gain, a cold character stays flat,
  assert(cold.lips_l_corner_up==0 and cold.eye_l_oculi_squint_outer_lower==0,'a cold face stays flat')
  assert(math.abs(judy.eye_l_oculi_squint_outer_lower-.115)<.005,'the squint follows the smile: '..judy.eye_l_oculi_squint_outer_lower)
  -- Joy at scale 3 on Judy: corners x1.5 capped at .65, squint capped at .30, brows ungained.
- face.beginExpression(context,${literal(receipt('Joy',3,0))});for _=1,40 do tick(.1) end
+ face.beginExpression(context,${literal(receipt('Joy',3,0))});face.expressionHeard(context);for _=1,40 do tick(.1) end
  assert(math.abs(last(a).lips_l_corner_up-.65)<.01,'judy joy: '..last(a).lips_l_corner_up)
  assert(math.abs(last(a).eye_l_oculi_squint_outer_lower-.35)<.01)
  assert(math.abs(last(a).eye_l_brows_raise_out-.20)<.01)
@@ -529,7 +536,7 @@ test('track playback: an invalid or misaligned track is ignored and speech conti
 test('the post-speech hold: a held mix releases its brows within about 1.5 s while the corners keep the longer expiry', () => run(`
  speech.target=a
  rows[1].profileKey='some-fixer'
- face.beginExpression(context,${literal(receipt('Sadness', 3, 0))})
+ face.beginExpression(context,${literal(receipt('Sadness', 3, 0))});face.expressionHeard(context)
  face.expressions[a.id].holdMix={0,0,1,0,0,0,0,0}
  face.endExpression(context,true)
  for _=1,5 do tick(.1) end
@@ -748,4 +755,54 @@ test('October 9: grief still never smiles through the writer, with or without a 
     assert.ok((peak.eye_l_oculi_squint_outer_lower ?? 0) < .02, 'no smiling eyes either');
     assert.ok(peak.lips_l_corner_dn >= .15 && peak.eye_l_brows_raise_in >= .2, `grief reads sad ${peak.lips_l_corner_dn} ${peak.eye_l_brows_raise_in}`);
   }
+});
+
+// October 9 (user): "her current emotion during idle becomes bland before the lip sync starts playing; it should go
+// bland once the lip sync starts". Her idle face (here Judy's resting smile) holds through V's message, her
+// thinking, a reply being prepared, a stream buffering and an Omni phrase loading, on every route; the reply's sad
+// face begins with its first heard frame and eases in with the usual smoothing.
+test('the idle face holds until the reply is heard, on the phrase (Omni, Convai WAV) and stream (Pocket, Convai) routes', () => {
+  const sadKeys = [[0, 0, 0, 1, 0, 0, 0, 0, 0], [3, 0, 0, 1, 0, 0, 0, 0, 0]];
+  const track = {version: 1, format: 'emotion-mix-v1', families: ['joy', 'trust', 'sadness', 'anger', 'fear', 'disgust', 'surprise', 'anticipation'], keys: sadKeys};
+  const sad = receipt('Sadness', 3, 0);
+  const phrase = flatLine(owner.requestId, 'local-jali', 3, {expressionTrack: track, expression: sad});
+  const stream = {...flatLine(owner.requestId, 'convai-arkit61', 3, {expressionTrack: track, expression: sad}), generation: owner.generation, continuous: true, complete: true};
+  const prelude = `rows[1].profileKey='judy-alvarez';speech.target=a
+   local rest
+   local function holds(label,seconds,options)
+    for _=1,math.floor(seconds*10+.5) do
+     local count=#a.frames;tick(.1,options);assert(#a.frames==count+1,label..': the idle writer keeps writing')
+     assert(math.abs(last(a).lips_l_corner_up-rest)<.01 and (last(a).lips_l_corner_dn or 0)==0,label..': '..last(a).lips_l_corner_up)
+    end
+   end
+   for _=1,40 do tick(.1) end;rest=last(a).lips_l_corner_up;assert(math.abs(rest-.192)<.005,'idle smile '..rest)
+   holds('V sends, she thinks',2.5,{thinkingEntity=a.id,thinkingRequestId=context.requestId})
+   local function heard(step)
+    local previous,turned=last(a).lips_l_corner_up-(last(a).lips_l_corner_dn or 0)
+    for i=1,90 do step(i);local f=last(a);local net=f.lips_l_corner_up-f.lips_l_corner_dn
+     assert(math.abs(net-previous)<.08,'smooth change '..(net-previous)..' at frame '..i);previous=net
+     if not turned and f.lips_l_corner_dn>.15 and f.lips_l_corner_up==0 then turned=i end
+    end
+    assert(turned and turned<=60,'sad within a second of the first heard frame: '..tostring(turned))
+   end`;
+  // Phrase route: the reply's first WAV is handed to native audio, which takes a while to start (an Omni first
+  // phrase, an Audioware start); the cursor stays at 0 until then.
+  run(`${prelude}
+   assert(speech.start(context,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=3},face=${literal(phrase)}}),face.error)
+   cursor=0;holds('phrase prepared, audio not started',2)
+   heard(function(i) cursor=i/60;tick(1/60) end)
+   speech.stop('finished')`);
+  // Stream route: the speech owner begins the expression as the stream opens; the face timeline arrives and the
+  // player pauses the face while the device has not reported heard audio yet.
+  run(`${prelude}
+   face.beginExpression(context,${literal(sad)})
+   holds('stream opened, nothing buffered',1,{thinkingEntity=a.id,thinkingRequestId=context.requestId})
+   assert(face.updateContinuous(context,${literal(stream)},a,3),face.error)
+   for _=1,15 do face.pause(a);holds('stream buffering',.1) end
+   heard(function(i) tick(1/60);face.sync(a,i/60,context.requestId) end)
+   face.stop(a,'finished')`);
+  // A reply cancelled before it was heard leaves the idle face as it was (no reset, no reaction).
+  run(`${prelude}
+   assert(speech.start(context,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=3},face=${literal(phrase)}}),face.error)
+   cursor=0;holds('prepared',.5);speech.stop('cancelled');holds('cancelled before audio',1)`);
 });
