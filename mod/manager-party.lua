@@ -19,7 +19,8 @@ end
 -- Calm rules, because each notice replaces the last one on screen:
 -- * "Preparing" and "Connecting" (the memory check, voice conditioning and
 --   connection start) show only once an invitation has been in flight for
---   SHOW_DELAY_MS, so a quick summon goes straight to "joined". The delay is
+--   SHOW_DELAY_MS, so a quick summon shows nothing to a player ("joined" closes a visible
+--   wait only; developers always see it). The delay is
 --   per invitation: a merged notice names only the ones already shown.
 -- * A posted notice stays up for at least MIN_SHOW_MS (FINAL_SHOW_MS after a
 --   final outcome, so a "joined" is never cut short): a change arriving sooner
@@ -241,15 +242,25 @@ function M.newBoard(options)
     local function compose(inflight, developer, holding)
         local lines = {}
         if #burst.joined > 0 and not holding then
-            local names = uniqueNames(burst.joined)
-            local line = #names <= 1 and burst.joined[1].message
-                or ui.t('{names} joined your group.', {names = listNames(names)})
-            if #names > 1 then
-                for _, item in ipairs(burst.joined) do
-                    if item.warning then line = line .. ' ' .. item.warning; break end
-                end
+            -- "Joined" closes a wait the player saw. After a quick summon (no Preparing, Connecting or
+            -- ready notice was shown for that invitation) players are not told; developers always are,
+            -- and a joined notice that carries a warning is never hidden.
+            local reported = {}
+            for _, item in ipairs(burst.joined) do
+                local gone = burst.gone[item.name]
+                if developer or item.warning or (gone and gone.shown) then reported[#reported + 1] = item end
             end
-            lines[#lines + 1] = line
+            if #reported > 0 then
+                local names = uniqueNames(reported)
+                local line = #names <= 1 and reported[1].message
+                    or ui.t('{names} joined your group.', {names = listNames(names)})
+                if #names > 1 then
+                    for _, item in ipairs(reported) do
+                        if item.warning then line = line .. ' ' .. item.warning; break end
+                    end
+                end
+                lines[#lines + 1] = line
+            end
         end
         for index, failure in ipairs(burst.failures) do
             if index > 2 then

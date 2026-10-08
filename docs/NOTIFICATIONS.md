@@ -22,7 +22,7 @@ CLOSE PHONE"), the character's spoken reply and subtitles (`ConvaiShowReply`), a
 ## What a player sees with Developer mode off
 
 Invitation: "Preparing {name}…", "Connecting {name}…" (only after a second, merged for several companions), "{name} is ready to join when
-you return to the game." / "{name} is ready. Close the phone to join.", "{name} joined your group.", "{name} could not prepare/join: {reason}".
+you return to the game." / "{name} is ready. Close the phone to join.", "{name} joined your group." (only when a Preparing, Connecting or ready notice was shown first for that invitation, so a quick summon says nothing), "{name} could not prepare/join: {reason}".
 Talking: "Preparing connection to {name}…" (only while Auto-connect nearby characters is off and the character is not connected),
 "Connecting microphone - wait for Listening", "Listening - press {key} again to finish". Failures: the conversation service starting, missing
 its key, stopped or failed; no reply; the microphone unavailable or timed out; a companion action that was refused; a voice engine that fell
@@ -38,7 +38,7 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `invite-board` | Player | Connecting {name}… / Connecting {names}… | The same invitation is starting its connection | board |
 | `invite-board` | Player | {name} is ready to join when you return to the game. / {names} are ready to join when you return to the game. | Ready while the menu is open (manager) | board |
 | `invite-board` | Player | {name} is ready. Close the phone to join. / {names} are ready. Close the phone to join. | Ready while the phone is open | board |
-| `party-joined` | Player | {name} joined your group. / {names} joined your group. | The companion appeared; several in a burst merge into one, shown 5 s | board |
+| `party-joined` | Player | {name} joined your group. / {names} joined your group. | The companion appeared after a wait the player saw (Preparing, Connecting or ready was shown for it). A quick summon shows nothing to a player; developers always see it, and a joined notice with a warning is never hidden. Several in a burst merge into one, shown 5 s | board |
 | `party-failed` | Player | {name} could not prepare: {reason} | Preparation failed (the player cancels and invites again) | once |
 | `party-failed` | Player | {name} could not join: {reason} | The game refused or lost the spawn | once |
 | `party-failed` | Player | {count} more companions also failed. | More than two failures in one burst | once |
@@ -95,3 +95,5 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 (redscript, after the phone closed) is removed; the phone's acknowledgement of an invitation the board follows, tactic outcomes and the
 Apply voice-switch popup are Developer-only; identical hints and errors are rate-limited; three wordings were shortened (no log file names,
 no "bridge", no "eight metres"). Earlier: 248c14c, a20c7a1, e7e9760 (calmer invitation notices) and the 2026-10-07 settings review.
+
+2026-10-09 (later, user decision): "joined" is shown to a player only after a visible wait; key-press hints stay.

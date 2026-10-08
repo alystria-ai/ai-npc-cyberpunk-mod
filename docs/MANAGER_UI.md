@@ -260,10 +260,11 @@ these are always shown, for manager and phone invitations alike:
 
 - **Preparing {name}…** (the memory check, voice conditioning and connection start) and
   **Connecting {name}…**, once an invitation has been in flight for a second: a quick summon shows
-  no progress, only its joined notice;
+  no progress and, to a player, no joined notice either;
 - **ready to join when you return to the game** (manager) and **ready, close the
   phone to join** (phone), because each tells the player to do something;
-- **joined your group**;
+- **joined your group**, but only for an invitation whose Preparing, Connecting or ready notice was
+  shown first (the player waited; developers always see it, and a joined notice with a warning is never hidden);
 - every failure and error, including a driving failure and the reply to Stop trip.
 
 These are Developer mode only:
@@ -296,9 +297,9 @@ a stream of per-character popups:
 
 - One invitation reads `Preparing Judy…`, `Connecting Judy…`, `Judy joined your group.`. Preparing
   and connecting appear only after the invitation is one second old (`SHOW_DELAY_MS`), per
-  invitation: a quick summon goes straight to `Judy joined your group.`, and a merged notice names
-  only the invitations already shown (two made together, one quick and one slow, shows only the
-  slow one's progress and still ends in one merged joined notice). Failures and the ready lines,
+  invitation: a quick summon shows nothing to a player (developers see `Judy joined your group.`),
+  and a merged notice names only the invitations already shown (two made together, one quick and one
+  slow, shows only the slow one's progress and ends in `Johnny joined your group.`). Failures and the ready lines,
   which tell the player to act, are never delayed.
 - Several at once: `Preparing Judy and Johnny…`, then `Connecting Judy and Johnny…`, then (paused)
   `Judy and Johnny are ready to join when you return to the game.`, then `Judy and Johnny joined
@@ -342,7 +343,7 @@ banner, and the notice is posted once when gameplay resumes. An immediate
 failure posts its detailed notice at the same moment, and the phone no longer
 posts a second copy while it is open.
 A ticket already spawning reports **joining** (Developer mode only), and
-completed attachment uses the existing **joined your group** notice (always shown). Cancelled,
+completed attachment uses the existing **joined your group** notice (shown after a visible wait, and always to developers). Cancelled,
 removed and reset tickets cannot replay preparation messages. Native calls run
 only from top-level update, never inside a native callback; same-frame
 failure/progress notices for one ticket are combined without duplicates.

@@ -223,7 +223,7 @@ test('phone invitations use the phone wording and mix with manager ones in neutr
   `);
 });
 
-test('a quick invitation shows no progress at all, only the joined outcome', () => {
+test('a quick invitation shows nothing to a player: no progress and no joined notice; a developer still sees joined', () => {
   run(`${fixture}
     set('a', 'Judy', 'memory'); board.track('a', 'manager')
     assert(post() == nil)
@@ -235,8 +235,19 @@ test('a quick invitation shows no progress at all, only the joined outcome', () 
     -- Gameplay: ready is already the routine joining step, which is Developer-only.
     assert(post(true) == nil, 'the joining step showed with Developer mode off')
     states.a = nil; joined('Judy')
-    assert(post(true) == 'Judy joined your group.', 'the quick summon did not announce that it joined')
+    assert(post(true) == nil, 'a player was told about a summon they never waited for')
     assert(post(true) == nil and #board.inspect().entries == 0 and board.inspect().joined == 0)
+    -- A developer still sees it.
+    developer = true; clock = clock + 5000
+    set('d', 'River', 'memory'); board.track('d', 'manager')
+    states.d = nil; joined('River')
+    assert(post(true) == 'River joined your group.', 'a developer did not see the joined notice')
+    -- A joined notice that carries a warning is never hidden.
+    developer = false; clock = clock + 5000
+    set('w', 'Rogue', 'memory'); board.track('w', 'manager')
+    states.w = nil; joined('Rogue', 'Her profile could not be set.')
+    assert(post(true) == 'Rogue joined your group. Her profile could not be set.', 'a warning was hidden')
+    clock = clock + 5000
     -- Just under a second still hides progress; a second shows it.
     clock = clock + 5000
     set('b', 'Panam', 'memory'); board.track('b', 'manager')
@@ -258,7 +269,7 @@ test('the show delay hides only routine progress: ready lines and the Developer 
   `);
 });
 
-test('one quick and one slow invitation made together: the slow one alone is named, the outcome is one merged notice', () => {
+test('one quick and one slow invitation made together: only the slow one is named, progress and outcome', () => {
   run(`${fixture}
     set('a', 'Judy', 'memory'); set('b', 'Johnny', 'memory')
     board.track('a', 'manager'); board.track('b', 'manager')
@@ -272,19 +283,18 @@ test('one quick and one slow invitation made together: the slow one alone is nam
     assert(line == 'Preparing Johnny…', line)
     clock = clock + 1500
     assert(post(true) == nil)
-    -- Johnny is still going after the hold: the partial notice shows, once.
+    -- Johnny is still going after the hold. Judy joined without a visible wait, so she is never named.
     clock = clock + 2500
-    line = post(true)
-    assert(line == 'Judy joined your group.\\nPreparing Johnny…', line)
+    assert(post(true) == nil, 'the quick one was named beside the slow one')
     set('b', 'Johnny', 'connecting'); dwell()
-    assert(post(true) == 'Judy joined your group.\\nConnecting Johnny…')
+    assert(post(true) == 'Connecting Johnny…')
     states.b = nil; joined('Johnny'); dwell()
-    assert(post(true) == 'Judy and Johnny joined your group.', 'the final outcome was not one merged notice')
+    assert(post(true) == 'Johnny joined your group.', 'only the companion the player waited for is announced')
     assert(post(true) == nil and board.inspect().joined == 0)
   `);
 });
 
-test('two quick invitations announce one merged joined notice and no progress', () => {
+test('two quick invitations announce nothing to a player', () => {
   run(`${fixture}
     set('a', 'Judy', 'memory'); set('b', 'Johnny', 'memory')
     board.track('a', 'manager'); board.track('b', 'manager')
@@ -293,7 +303,10 @@ test('two quick invitations announce one merged joined notice and no progress', 
     assert(post(true) == nil, 'the first joined was posted alone')
     clock = clock + 100
     states.b = nil; joined('Johnny')
-    assert(post(true) == 'Judy and Johnny joined your group.')
+    assert(post(true) == nil, 'players were told about summons they never waited for')
+    developer = true; dwell()
+    set('c', 'Panam', 'memory'); board.track('c', 'manager'); states.c = nil; joined('Panam')
+    assert(post(true) == 'Panam joined your group.', 'a developer sees the joined notice')
     assert(post(true) == nil)
   `);
 });
