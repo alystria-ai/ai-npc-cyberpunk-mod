@@ -15,6 +15,10 @@ export const EXPRESSION_TRACKS = Object.freeze([
   'eye_l_oculi_squint_outer_lower', 'eye_r_oculi_squint_outer_lower',
   // October 9: widened eyes for surprise and fear. Blink and gaze stay out of expression ownership.
   'eye_l_widen', 'eye_r_widen',
+  // October 9 (evening): native rig controls added to the graph layer: brows pulled together, upper-lid lowering,
+  // inner squint, nose wrinkle, chin raise. Lua writes them only when the installed feature has them.
+  'eye_l_brows_lateral', 'eye_r_brows_lateral', 'eye_l_oculi_squint_outer_upper', 'eye_r_oculi_squint_outer_upper',
+  'eye_l_oculi_squint_inner', 'eye_r_oculi_squint_inner', 'nose_l_snear', 'nose_r_snear', 'lips_chin_raise',
 ]);
 export const EXPRESSION_POLICY = Object.freeze({
   // October 6 recalibration. The game's own dialogue lipsync (6938 extracted
@@ -56,6 +60,7 @@ export function ownedExpressionReceipt(signal, owner) {
 const limits = Object.freeze(Object.fromEntries(EXPRESSION_TRACKS.map(track => [track,
   track.includes('squint') ? EXPRESSION_POLICY.squintMax
   : track.includes('widen') ? EXPRESSION_POLICY.widenMax
+  : track.includes('snear') ? .6 : track === 'lips_chin_raise' ? .5
   : track.includes('corner_up') ? EXPRESSION_POLICY.cornerUpMax
     : track.includes('corner_dn') ? EXPRESSION_POLICY.cornerDownMax
       : track.includes('lower') ? EXPRESSION_POLICY.browLowerMax : EXPRESSION_POLICY.browRaiseMax])));
@@ -144,10 +149,15 @@ export function emotionSuppressesSmile(value) {
 
 function pair(target, stem, value) { target[`lips_l_${stem}`] = target[`lips_r_${stem}`] = value; }
 function brows(target, stem, value) { target[`eye_l_brows_${stem}`] = target[`eye_r_brows_${stem}`] = value; }
-function eyes(target, squint, widen) {
-  target.eye_l_oculi_squint_outer_lower = target.eye_r_oculi_squint_outer_lower = squint;
-  target.eye_l_widen = target.eye_r_widen = widen;
-}
+// Unit-pose channels and the tracks they write (mirrors channelTracks in mod/facial-playback.lua; droop, the held
+// lid close on the blink control, is Lua-only).
+const CHANNEL_TRACKS = Object.freeze({up: ['lips_l_corner_up', 'lips_r_corner_up'], dn: ['lips_l_corner_dn', 'lips_r_corner_dn'],
+  in: ['eye_l_brows_raise_in', 'eye_r_brows_raise_in'], out: ['eye_l_brows_raise_out', 'eye_r_brows_raise_out'],
+  low: ['eye_l_brows_lower', 'eye_r_brows_lower'], sq: ['eye_l_oculi_squint_outer_lower', 'eye_r_oculi_squint_outer_lower'],
+  wide: ['eye_l_widen', 'eye_r_widen'], lat: ['eye_l_brows_lateral', 'eye_r_brows_lateral'],
+  lid: ['eye_l_oculi_squint_outer_upper', 'eye_r_oculi_squint_outer_upper'], sqi: ['eye_l_oculi_squint_inner', 'eye_r_oculi_squint_inner'],
+  snear: ['nose_l_snear', 'nose_r_snear'], chin: ['lips_chin_raise'], droop: []});
+function channel(target, key, value) { for (const track of CHANNEL_TRACKS[key]) target[track] = value; }
 function providerPose(frame, family) {
   if (!plain(frame) || frame.format !== 'arkit61' || !Array.isArray(frame.values)
     || frame.values.length !== 61 || !frame.values.every(finite)) return null;
@@ -187,11 +197,9 @@ export function expressionTarget({emotion = null, phase = 'idle', speechPose = {
   switch (family) {
     case 'joy': pair(out, 'corner_up', .45 * strength); brows(out, 'raise_out', .30 * strength); break;
     case 'trust': pair(out, 'corner_up', .35 * strength); break;
-    case 'sadness': pair(out, 'corner_dn', .75 * strength); brows(out, 'raise_in', .85 * strength); break;
-    case 'anger': pair(out, 'corner_dn', .40 * strength); brows(out, 'lower', .85 * strength); eyes(out, .30 * strength, 0); break;
-    case 'fear': pair(out, 'corner_dn', .25 * strength); brows(out, 'raise_in', .80 * strength); brows(out, 'raise_out', .50 * strength); eyes(out, 0, .45 * strength); break;
-    case 'disgust': pair(out, 'corner_dn', .50 * strength); brows(out, 'lower', .60 * strength); eyes(out, .25 * strength, 0); break;
-    case 'surprise': brows(out, 'raise_in', .60 * strength); brows(out, 'raise_out', .90 * strength); eyes(out, 0, .55 * strength); break;
+    case 'sadness': case 'anger': case 'fear': case 'disgust': case 'surprise':
+      for (const [key, value] of Object.entries(FAMILY_POSES[family])) channel(out, key, value * strength);
+      break;
     case 'anticipation': brows(out, 'raise_out', .15 * strength); break;
     case 'unknown': break; // A new provider label must not become a happy face.
     // No intent: the resting smile shows while idle and while talking.
@@ -239,9 +247,11 @@ function finishPose(out, {speechPose, phase, gain}) {
 // Unit poses (family weight 1) for the blended path. They equal the single-label
 // poses above at strength 1; mod/facial-playback.lua mirrors them.
 export const FAMILY_POSES = Object.freeze({
-  joy: {up: .45, out: .30}, trust: {up: .35}, sadness: {dn: .75, in: .85}, anger: {dn: .40, low: .85, sq: .30},
-  fear: {dn: .25, in: .80, out: .50, wide: .45}, disgust: {dn: .50, low: .60, sq: .25}, surprise: {in: .60, out: .90, wide: .55},
-  anticipation: {out: .15},
+  joy: {up: .45, out: .30}, trust: {up: .35},
+  sadness: {dn: .75, in: .85, lat: .35, droop: .30, chin: .35},
+  anger: {dn: .40, low: .80, lat: .70, lid: .50, sq: .40, sqi: .40, snear: .15, chin: .25, droop: .25},
+  fear: {dn: .25, in: .80, out: .50, lat: .50, wide: .45}, disgust: {dn: .50, low: .60, snear: .60, sq: .25, chin: .20},
+  surprise: {in: .60, out: .90, wide: .55}, anticipation: {out: .15},
 });
 export const MIX_FAMILIES = Object.freeze(['joy', 'trust', 'sadness', 'anger', 'fear', 'disgust', 'surprise', 'anticipation']);
 // Smile or frown is decided on the earlier corner balance (linear), so the bigger frown poses (October 9) do
@@ -263,9 +273,9 @@ export function mixTarget({weights, phase = 'idle', speechPose = {}, blocked = f
   // Frowns and brows show a weight w as w^mixCurve of the pose; the smile stays linear (its evidence gates were
   // tuned for that, and a curved smile turned weak, misread joy into visible smiles on sad or calm replies).
   const curve = (value, key) => { const weight = clamp(value || 0); return weight > 0 && key !== 'up' ? weight ** EXPRESSION_POLICY.mixCurve : weight; };
-  const channel = key => softSum(MIX_FAMILIES.map(family => (FAMILY_POSES[family][key] || 0) * curve(w[family], key)));
-  let up = channel('up'), dn = channel('dn'), rin = channel('in'), rout = channel('out'), low = channel('low');
-  let narrow = channel('sq'), wide = channel('wide');
+  const channel_ = key => softSum(MIX_FAMILIES.map(family => (FAMILY_POSES[family][key] || 0) * curve(w[family], key)));
+  let up = channel_('up'), dn = channel_('dn'), rin = channel_('in'), rout = channel_('out'), low = channel_('low');
+  let narrow = channel_('sq'), wide = channel_('wide');
   if (narrow > wide) { narrow -= .5 * wide; wide = 0; } else { wide -= .5 * narrow; narrow = 0; }
   const vote = key => softSum(MIX_FAMILIES.map(family => (CORNER_VOTE[family][key] || 0) * clamp(w[family] || 0)));
   const upVote = vote('up'), dnVote = vote('dn');
@@ -276,7 +286,8 @@ export function mixTarget({weights, phase = 'idle', speechPose = {}, blocked = f
   if (phase !== 'speaking' && dn === 0) up = Math.max(up, warmth);
   pair(out, 'corner_up', up); pair(out, 'corner_dn', dn);
   brows(out, 'raise_in', rin); brows(out, 'raise_out', rout); brows(out, 'lower', low);
-  eyes(out, narrow, wide);
+  channel(out, 'sq', narrow); channel(out, 'wide', wide);
+  for (const key of ['lat', 'lid', 'sqi', 'snear', 'chin']) channel(out, key, channel_(key));
   return finishPose(out, {speechPose, phase, gain});
 }
 

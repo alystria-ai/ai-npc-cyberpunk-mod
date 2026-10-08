@@ -18,7 +18,7 @@ test('expression ownership is disjoint from accepted speech and native blink/gaz
     assert.ok(!SPEECH_TRACKS.includes(track), `${track} must not replace accepted articulation`);
     // The outer-eye squint and (October 9) the widened eyes are expression; blink and gaze stay native.
     assert.doesNotMatch(track, /blink|tongue|jaw|look|rotate|yaw|pitch|roll/iu);
-    if (/squint/.test(track)) assert.match(track, /^eye_[lr]_oculi_squint_outer_lower$/);
+    if (/squint/.test(track)) assert.match(track, /^eye_[lr]_oculi_squint_(outer_lower|outer_upper|inner)$/);
     if (/widen/.test(track)) assert.match(track, /^eye_[lr]_widen$/);
   }
 });
@@ -82,8 +82,11 @@ test('emotions are visible: peaks follow the live face-test (smile reads at .35-
   // October 9 (later): frowns and brows nearly doubled after in-game captures (brows read from about .5),
   // with narrowed eyes for anger and widened eyes for surprise.
   near(peak('Sadness', 3).lips_l_corner_dn, .75); near(peak('Sadness', 3).eye_l_brows_raise_in, .85);
-  near(peak('Anger', 3).eye_l_brows_lower, .85); near(peak('Anger', 3).lips_l_corner_dn, .40);
-  near(peak('Anger', 3).eye_l_oculi_squint_outer_lower, .30);
+  near(peak('Anger', 3).eye_l_brows_lower, .80); near(peak('Anger', 3).lips_l_corner_dn, .40);
+  near(peak('Anger', 3).eye_l_oculi_squint_outer_lower, .40);
+  // October 9 (evening): anger knits the brows, lowers the upper lids and wrinkles the nose (extended controls).
+  near(peak('Anger', 3).eye_l_brows_lateral, .70); near(peak('Anger', 3).eye_l_oculi_squint_outer_upper, .50);
+  near(peak('Anger', 3).nose_l_snear, .15); near(peak('Disgust', 3).nose_l_snear, .60);
   near(peak('Surprise', 3).eye_l_brows_raise_out, .90); near(peak('Surprise', 3).eye_l_widen, .55);
   assert.ok(peak('Interest', 2).eye_l_brows_raise_out >= .09 && peak('Interest', 2).eye_l_brows_raise_out <= .11, 'Interest is a brief flick, not a raise');
   // Caps: corners .8, brows .9, squint .5, widen .6; nothing exceeds them, and no pose is a grin (1.0).
@@ -245,7 +248,7 @@ test('resting warmth is a floor under every non-negative intent, with a per-char
   assert.equal(smile.eye_r_oculi_squint_outer_lower, R.squintPerSmile * .45);
   assert.equal(gained.eye_l_oculi_squint_outer_lower, Math.min(R.squintMax, R.squintPerSmile * gained.lips_l_corner_up), 'the squint follows, capped');
   // October 9: anger narrows the eyes on its own (no smile involved); sadness leaves them alone.
-  assert.equal(expressionTarget({emotion: {emotion: 'Anger', scale: 3}}).eye_l_oculi_squint_outer_lower, .3);
+  assert.equal(expressionTarget({emotion: {emotion: 'Anger', scale: 3}}).eye_l_oculi_squint_outer_lower, .4);
   assert.equal(expressionTarget({emotion: {emotion: 'Sadness', scale: 3}}).eye_l_oculi_squint_outer_lower, 0);
   // Mouth priority: closed lips remove the mouth corners, never the jaw/closure data.
   const closed = expressionTarget({emotion: {emotion: 'Joy', scale: 3}, phase: 'speaking', speechPose: {lips_together_up: .85, lips_together_dn: .85}});

@@ -1,5 +1,51 @@
 # Companion expressions
 
+## October 9 (night): the whole upper face, nine more rig controls, and a sad gaze
+
+Review of the evening captures (user and coordinator): angry was indistinguishable from neutral, sad and worried
+only faintly different; Judy's resting brows already sit high. Target: each feeling nameable from a still frame.
+
+**What was tried, and what worked.**
+- *The game's authored mood presets* (`AnimFeature_FacialReaction`): not usable for Judy. Her graph
+  (`player_woman_photomode_sermo`) has no consumer for that feature (only the crowd graphs `man/woman_average_sermo`
+  do), and the presets drive base mouth tracks under the lip sync. Not adopted.
+- *Negative offsets against her raised resting brows*: none. The solver clamps the pose inputs at 0 (reconstructed
+  solver on her rig: `brows_raise_out -1` moves nothing; captures agree).
+- *More of the face from the 50 existing controls* (captures r5-r7): a held partial lid close (the blink control)
+  reads as sad or tired and as a glare with lowered brows; widened eyes plus raised brows read as surprised; the
+  smile with the lower-lid squint reads as happy. Anger stays only "stern": the base set cannot pull the brows
+  together or bring them down onto the lids.
+- *The native rig has 141 pose inputs; our graph exposed 50.* Measured on Judy's rig with the reconstructed solver
+  (bone displacement at full weight): brows pulled together (`brows_lateral`) 7.2 mm, upper-lid lowering
+  (`oculi_squint_outer_upper`, which also brings the brow down) 5.5 mm, brows lower 4.4 mm, raise in 5.9 mm, raise
+  out 3.8 mm, nose wrinkle (`nose_snear`) 6.0 mm, chin raise 3.2 mm, corners down 5.7 mm against 10 mm for corners
+  up at .5. These nine controls were added to `assets/facial/controls.json` (brows lateral, outer-upper and inner
+  squint, nose sneer, all L/R, and chin raise); the graphs and `FaceFeature.reds` were rebuilt
+  (`scripts/Build-FacialAssets.ps1`: 9 graphs, 59 connected controls each, archive entries verified; redscript
+  compiles). All 800 extracted game lines (men and women) carry the same 414 rig tracks, so the rig check in
+  `Face.reds` still passes. The predicted anger brow motion is 7.9 mm against 1.7 mm for the `6193193` values.
+- *Head and gaze*: a sad face lowers its eye-contact target by 15 cm (`facial-playback.lua` `gazeDrop`, hysteresis
+  on the smoothed pose; `companion-actuator.lua` adds it to the user's height setting, so the look request changes
+  once per mood change). Anger keeps the held stare; worry's head tilt and eye darts were not added.
+
+**Recipes now** (unit poses; `mod/facial-playback.lua`, mirrored in `companion-expressions.mjs`):
+- anger: brows lower .80, pulled together .70, upper lids .50, lower-lid squint .40, inner squint .40, nose .15,
+  chin .25, corners down .40, a held lid droop .25;
+- sadness: inner brows up .85, pulled together .35, lid droop .30, chin .35, corners down .75;
+- fear/worry: inner .80, outer .50, pulled together .50, widened eyes .45, corners down .25;
+- disgust: brows lower .60, nose .60, squint .25, chin .20, corners down .50;
+- surprise: inner .60, outer .90, widened eyes .55; joy: corners up .45, outer brows .30, Duchenne squint.
+- Judy's lowering controls get a quarter more (`browDown 1.25`, her raised resting brows).
+- The extended controls are written only after the first write proves the installed feature has them; an older
+  install keeps the base recipe. The held lid droop rides under the blink rhythm (max of the two).
+- Guards unchanged: smile or frown on the earlier corner balance, grief never smiles, Johnny below Panam on the
+  same words.
+
+**Captures** (`runtime/face-captures/judy-final-*.png`, `judy-final-sheet.png`; Judy, the base controls only, since
+the extended ones need the game restart): happy, surprised and sad read; worried reads as alarmed; angry is still
+only stern. The next check after installing (game restart) is the anger frame with the knit and the lowered lids,
+for example `face-test judy custom:eye_l_brows_lower=.8,eye_r_brows_lower=.8,eye_l_brows_lateral=.7,eye_r_brows_lateral=.7,eye_l_oculi_squint_outer_upper=.5,eye_r_oculi_squint_outer_upper=.5,eye_l_oculi_squint_outer_lower=.4,eye_r_oculi_squint_outer_lower=.4 6 writer`.
+
 ## October 9 (evening): in-game captures, then bigger frowns, brows and eyes
 
 User (after `6193193` with the bridge restarted): never smiles on serious topics, "but I don't really see much

@@ -806,3 +806,36 @@ test('the idle face holds until the reply is heard, on the phrase (Omni, Convai 
    assert(speech.start(context,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=3},face=${literal(phrase)}}),face.error)
    cursor=0;holds('prepared',.5);speech.stop('cancelled');holds('cancelled before audio',1)`);
 });
+
+// October 9 (evening): nine more native controls (brows pulled together, upper-lid lowering, inner squint, nose
+// wrinkle, chin raise) need the new FaceFeature.reds; an install whose feature lacks them keeps the base controls.
+test('extended controls are used when the feature has them, and an older feature keeps working without them', () => {
+  run(`face.beginExpression(context,${literal(receipt('Anger',3,0))});face.expressionHeard(context)
+   for _=1,30 do tick(.1) end
+   local f=last(a);assert(face.extendedFace==true,'detected')
+   assert(f.eye_l_brows_lateral>.6 and f.eye_l_oculi_squint_outer_upper>.4 and f.nose_l_snear>.1 and f.lips_chin_raise>.1,'anger uses the whole upper face')
+   assert(f.eye_l_brows_lower>.6 and f.eye_l_oculi_squint_outer_lower>.3 and f.lips_l_corner_up==0)
+   assert((f.eye_l_blink or 0)>=.2,'a held lid droop under the blink rhythm: '..tostring(f.eye_l_blink))`);
+  run(`local unknown={lateral=true,snear=true,chin=true,outer_upper=true,squint_inner=true}
+   NewObject=function() return setmetatable({},{__newindex=function(t,k,v)
+     for part in pairs(unknown) do if k:find(part,1,true) then error('no such property '..k) end end
+     rawset(t,k,v) end}) end
+   face.beginExpression(context,${literal(receipt('Anger',3,0))});face.expressionHeard(context)
+   for _=1,30 do tick(.1) end
+   local f=last(a);assert(face.extendedFace==false,'not detected')
+   assert(f.eye_l_brows_lower>.6 and f.eye_l_oculi_squint_outer_lower>.3 and rawget(f,'eye_l_brows_lateral')==nil,'base controls only')
+   assert(face.expressionError==nil,tostring(face.expressionError))`);
+});
+
+test('a sad face drops its gaze a little below V, with hysteresis; other feelings keep eye contact', () => run(`
+ assert(face.gazeDrop(a.id)==0)
+ face.beginExpression(context,${literal(receipt('Sadness',3,0))});face.expressionHeard(context)
+ for _=1,20 do tick(.1) end
+ assert(face.gazeDrop(a.id)==-0.15,'sad looks down')
+ face.endExpression(context,false);for _=1,20 do tick(.1) end
+ assert(face.gazeDrop(a.id)==0,'back to eye contact')
+ local ctx={requestId='angry',entity=a.id,generation=4}
+ face.beginExpression(ctx,{version=1,entity=a.id,requestId='angry',generation=4,sequence=0,emotion='Anger',scale=3})
+ face.expressionHeard(ctx);for _=1,20 do tick(.1) end
+ assert(face.gazeDrop(a.id)==0,'anger holds the stare')
+`));

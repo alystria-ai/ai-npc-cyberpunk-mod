@@ -27,6 +27,8 @@
     "eye_l_blink", "eye_r_blink", "eye_l_widen", "eye_r_widen",
     "eye_l_brows_raise_in", "eye_r_brows_raise_in", "eye_l_brows_raise_out", "eye_r_brows_raise_out",
     "eye_l_brows_lower", "eye_r_brows_lower", "eye_l_oculi_squint_outer_lower", "eye_r_oculi_squint_outer_lower",
-    "tongue_mid_fwd", "tongue_mid_tip_up"
+    "tongue_mid_fwd", "tongue_mid_tip_up",
+    "eye_l_brows_lateral", "eye_r_brows_lateral", "eye_l_oculi_squint_outer_upper", "eye_r_oculi_squint_outer_upper",
+    "eye_l_oculi_squint_inner", "eye_r_oculi_squint_inner", "nose_l_snear", "nose_r_snear", "lips_chin_raise"
   ]
 }

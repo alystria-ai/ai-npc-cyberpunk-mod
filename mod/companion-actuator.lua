@@ -242,9 +242,21 @@ end
 local function bounded(value,low,high,fallback)
     return type(value)=='number' and value==value and value>=low and value<=high and value or fallback
 end
+-- October 9: a sad face drops its gaze a little below V's eyes (mod/facial-playback.lua gazeDrop, with
+-- hysteresis there, so the request changes at most once per mood change; no per-tick native call).
+local function moodDrop(s)
+    local face=convaiFacialPlayback
+    if not face or type(face.gazeDrop)~='function' then return 0 end
+    if s.entityKey==nil then
+        local ok,key=pcall(function() return tostring(s.npc:GetEntityID().hash) end)
+        s.entityKey=ok and key or false
+    end
+    local ok,drop=pcall(face.gazeDrop,s.entityKey)
+    return ok and type(drop)=='number' and drop==drop and math.max(-0.2,math.min(0,drop)) or 0
+end
 local function look(s,style,player,settings,seated)
     seated=seated==true
-    local height=bounded(settings and settings.eyeContactHeight,-0.10,0.10,0)
+    local height=bounded(settings and settings.eyeContactHeight,-0.10,0.10,0)+moodDrop(s)
     local strength=bounded(settings and settings.headFollowStrength,0,1.5,1)
     if style=='none' and not s.look then return end
     if style~='none' and s.look and s.lookStyle==style and s.lookHeight==height

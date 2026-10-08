@@ -26,7 +26,10 @@ local REQUEST, RESPONSE, LOG = 'runtime/face-test-request.txt', 'runtime/face-te
 local EXPRESSION = {'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','lips_r_corner_dn',
     'eye_l_brows_raise_in','eye_r_brows_raise_in','eye_l_brows_raise_out','eye_r_brows_raise_out',
     'eye_l_brows_lower','eye_r_brows_lower','eye_l_oculi_squint_outer_lower','eye_r_oculi_squint_outer_lower',
-    'eye_l_widen','eye_r_widen'}
+    'eye_l_widen','eye_r_widen',
+    -- Extended controls (present only with the new FaceFeature.reds; every access below is guarded).
+    'eye_l_brows_lateral','eye_r_brows_lateral','eye_l_oculi_squint_outer_upper','eye_r_oculi_squint_outer_upper',
+    'eye_l_oculi_squint_inner','eye_r_oculi_squint_inner','nose_l_snear','nose_r_snear','lips_chin_raise'}
 local policyFamily = {smile='Joy', frown='Sadness', browsup='Surprise', browsdown='Anger', all='Joy'}
 
 M.clock, M.pollAt, M.lastNonce = M.clock or 0, M.pollAt or 0, M.lastNonce
@@ -186,8 +189,8 @@ end
 local function snapshot(feature, run, tracks)
     local written = {}
     for _, name in ipairs(EXPRESSION) do
-        local value = feature[name]
-        if type(value) == 'number' and value ~= 0 then written[name] = math.floor(value * 1000) / 1000 end
+        local ok, value = pcall(function() return feature[name] end)
+        if ok and type(value) == 'number' and value ~= 0 then written[name] = math.floor(value * 1000) / 1000 end
     end
     for name in pairs(tracks or {}) do
         local ok, value = pcall(function() return feature[name] end)
@@ -229,7 +232,7 @@ function M.post(entity, feature, phase, blocked)
     local current = step(run)
     run.frames = run.frames + 1
     if run.mode == 'writer' then
-        for _, name in ipairs(EXPRESSION) do feature[name] = current.tracks[name] or 0 end
+        for _, name in ipairs(EXPRESSION) do pcall(function() feature[name] = current.tracks[name] or 0 end) end
         -- Extra tracks of a custom pose (for example jaw_mid_open as a control).
         local touched = M.touched[entity] or {}
         M.touched[entity] = touched

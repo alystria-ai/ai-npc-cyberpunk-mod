@@ -258,3 +258,23 @@ test('unavailable seated head geometry cannot invent a fallback aim point or cha
   seats={}; parts={{}}; origin.z=1.3
   assert(targetAtCrosshair()==npc,'Standing selection was changed by the seated path')
 `));
+
+// October 9: a sad face (mod/facial-playback.lua gazeDrop) lowers the eye-contact target; the request is replaced
+// only when the drop changes, and the user's height setting still adds to it.
+test('a sad face lowers the owned look by its gaze drop and restores eye contact when the mood passes', () => run(`${fixture}
+  local drop=0
+  convaiFacialPlayback={gazeDrop=function(entity) assert(type(entity)=='string');return drop end}
+  apply(); local first=motor.look
+  assert(first.targetPositionProvider.worldOffset==nil)
+  drop=-0.15; apply()
+  local sad=motor.look
+  assert(sad~=first and not npc.looks[first] and math.abs(sad.targetPositionProvider.worldOffset.z+0.15)<1e-6)
+  for i=1,20 do apply() end
+  assert(motor.look==sad and countLooks()==1,'no re-issue while the mood holds')
+  context.gazeSettings={eyeContactHeight=0.05,headFollowStrength=1}; apply()
+  assert(math.abs(motor.look.targetPositionProvider.worldOffset.z+0.10)<1e-6,'the user height adds')
+  drop=0; context.gazeSettings=nil; apply()
+  assert(motor.look.targetPositionProvider.worldOffset==nil and countLooks()==1,'eye contact again')
+  convaiFacialPlayback={gazeDrop=function() error('broken') end}; apply()
+  assert(countLooks()==1 and motor.look.targetPositionProvider.worldOffset==nil,'a failing face never moves the gaze')
+`));

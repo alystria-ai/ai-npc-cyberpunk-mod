@@ -48,6 +48,20 @@ local expressionTracks = {'lips_l_corner_up','lips_r_corner_up','lips_l_corner_d
     'eye_l_oculi_squint_outer_lower','eye_r_oculi_squint_outer_lower',
     -- October 9: widened eyes for surprise and fear (no speech or gaze writer uses them).
     'eye_l_widen','eye_r_widen'}
+-- October 9 (evening, user: "I can't tell the difference in angry"): nine more native rig controls joined the
+-- graph layer (assets/facial/controls.json). On Judy's rig (reconstructed solver) the brows' lateral pull moves the
+-- brows 7.2 mm at 1, the upper-lid squint 5.5 mm, against 4.4 mm for brows lower; the nose sneer 6 mm; the chin
+-- raise 3.2 mm. They exist only with the new FaceFeature.reds and archive (a game restart), so they are appended
+-- after the first write proves the feature has them; an older install keeps the base controls.
+local extendedTracks = {'eye_l_brows_lateral','eye_r_brows_lateral','eye_l_oculi_squint_outer_upper','eye_r_oculi_squint_outer_upper',
+    'eye_l_oculi_squint_inner','eye_r_oculi_squint_inner','nose_l_snear','nose_r_snear','lips_chin_raise'}
+local extendedFace
+local function detectExtended(feature)
+    if extendedFace~=nil then return end
+    extendedFace=pcall(function() local value=feature.eye_l_brows_lateral;feature.eye_l_brows_lateral=type(value)=='number' and value or 0 end)
+    M.extendedFace=extendedFace
+    if extendedFace then for _,track in ipairs(extendedTracks) do expressionTracks[#expressionTracks+1]=track end end
+end
 local negative = {anger=true,sadness=true,fear=true,disgust=true}
 local families = {
     joy='joy',happy='joy',happiness='joy',ecstasy='joy',serenity='joy',
@@ -75,6 +89,8 @@ local function clamp(value,maximum) return math.max(0,math.min(maximum or 1,valu
 local function expressionLimit(track)
     if track:find('squint',1,true) then return .5 end
     if track:find('widen',1,true) then return .6 end
+    if track:find('snear',1,true) then return .6 end
+    if track=='lips_chin_raise' then return .5 end
     if track:find('corner_',1,true) then return .80 end
     return .90
 end
@@ -93,7 +109,8 @@ local restSmile=.12
 local traitTable={default={warmth=restSmile,gain=1}}
 for _,key in ipairs({'panam-palmer','jackie-welles','kerry-eurodyne','misty-olszewski','mama-welles','river-ward',
     'claire-russell','dexter-deshawn','padre-ibarra','viktor-vektor'}) do traitTable[key]={warmth=.18,gain=1} end
-traitTable['judy-alvarez']={warmth=.12,gain=1.6}
+-- Judy's brows rest high (her idle arch): the lowering controls get a quarter more (browDown).
+traitTable['judy-alvarez']={warmth=.12,gain=1.6,browDown=1.25}
 for _,key in ipairs({'johnny-silverhand','rogue-amendiares','takemura','saul-bright','meredith-stout','solomon-reed',
     'spider-murphy','r3n0','regina-jones'}) do traitTable[key]={warmth=.05,gain=1} end
 for _,key in ipairs({'adam-smasher','yorinobu-arasaka','hanako-arasaka','alan-noel','mr-hands'}) do traitTable[key]={warmth=0,gain=1} end
@@ -247,9 +264,14 @@ end
 local mixFamilies={'joy','trust','sadness','anger','fear','disgust','surprise','anticipation'}
 -- October 9 (in game: "I don't really see much facial movement"): frowns and brows nearly doubled, and
 -- the eyes join in (anger and disgust narrow them, surprise and fear widen them). Smiles unchanged.
-local familyPoses={joy={up=.45,out=.30},trust={up=.35},sadness={dn=.75,['in']=.85},anger={dn=.40,low=.85,sq=.30},
-    fear={dn=.25,['in']=.80,out=.50,wide=.45},disgust={dn=.50,low=.60,sq=.25},surprise={['in']=.60,out=.90,wide=.55},
-    anticipation={out=.15}}
+-- Evening: each feeling now uses the whole upper face (captures and rig measurements, docs/COMPANION_EXPRESSIONS.md):
+-- lat = brows pulled together, lid = upper-lid lowering (outer upper squint), sqi = inner squint, snear = nose
+-- wrinkle, chin = chin raise (extended controls), droop = a held partial lid close (the blink control, base rig).
+local familyPoses={joy={up=.45,out=.30},trust={up=.35},
+    sadness={dn=.75,['in']=.85,lat=.35,droop=.30,chin=.35},
+    anger={dn=.40,low=.80,lat=.70,lid=.50,sq=.40,sqi=.40,snear=.15,chin=.25,droop=.25},
+    fear={dn=.25,['in']=.80,out=.50,lat=.50,wide=.45},disgust={dn=.50,low=.60,snear=.60,sq=.25,chin=.20},
+    surprise={['in']=.60,out=.90,wide=.55},anticipation={out=.15}}
 -- October 9 (user: "the expression barely changes, even with Expressive emotions on"): a family weight w moves
 -- the frowns and brows by w^.6 of its pose. Full feelings are unchanged (the caps hold); a subtle tag on a reserved
 -- character (.36) now shows about half its pose instead of a third, and phrases of different strength still
@@ -293,6 +315,13 @@ local function mixTargets(weights,target,phase,warmth)
     target.eye_l_brows_lower,target.eye_r_brows_lower=low,low
     target.eye_l_oculi_squint_outer_lower,target.eye_r_oculi_squint_outer_lower=narrow,narrow
     target.eye_l_widen,target.eye_r_widen=wide,wide
+    local lat,lid,inner=mixChannel(weights,'lat'),mixChannel(weights,'lid'),mixChannel(weights,'sqi')
+    target.eye_l_brows_lateral,target.eye_r_brows_lateral=lat,lat
+    target.eye_l_oculi_squint_outer_upper,target.eye_r_oculi_squint_outer_upper=lid,lid
+    target.eye_l_oculi_squint_inner,target.eye_r_oculi_squint_inner=inner,inner
+    local snear=mixChannel(weights,'snear');target.nose_l_snear,target.nose_r_snear=snear,snear
+    target.lips_chin_raise=mixChannel(weights,'chin')
+    target.droop=mixChannel(weights,'droop')
 end
 -- Track validation and sampling (mirrors sampleTrack() in expression-timeline.mjs).
 local function expressionTrack(timeline)
@@ -320,6 +349,16 @@ local function sampleTrack(keys,t)
     local f=math.max(0,math.min(1,(t-a[1])/(b[1]-a[1])));f=f*f*(3-2*f)
     for i=1,#mixFamilies do out[i]=a[i+1]+(b[i+1]-a[i+1])*f end
     return out
+end
+-- Writes one unit-pose channel into a target (the single-label path; the blended path is mixTargets).
+local channelTracks={up={'lips_l_corner_up','lips_r_corner_up'},dn={'lips_l_corner_dn','lips_r_corner_dn'},
+    ['in']={'eye_l_brows_raise_in','eye_r_brows_raise_in'},out={'eye_l_brows_raise_out','eye_r_brows_raise_out'},
+    low={'eye_l_brows_lower','eye_r_brows_lower'},sq={'eye_l_oculi_squint_outer_lower','eye_r_oculi_squint_outer_lower'},
+    wide={'eye_l_widen','eye_r_widen'},lat={'eye_l_brows_lateral','eye_r_brows_lateral'},
+    lid={'eye_l_oculi_squint_outer_upper','eye_r_oculi_squint_outer_upper'},sqi={'eye_l_oculi_squint_inner','eye_r_oculi_squint_inner'},
+    snear={'nose_l_snear','nose_r_snear'},chin={'lips_chin_raise'},droop={'droop'}}
+local function singleChannel(target,key,value)
+    for _,track in ipairs(channelTracks[key]) do target[track]=value end
 end
 local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     if phase=='speaking' and slot.awaitingAudio then startHeard(slot) end
@@ -371,19 +410,13 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     end
     local function pair(stem,value) target['lips_l_'..stem]=value;target['lips_r_'..stem]=value end
     local function brows(stem,value) target['eye_l_brows_'..stem]=value;target['eye_r_brows_'..stem]=value end
-    local function eyes(squint,widen)
-        target.eye_l_oculi_squint_outer_lower,target.eye_r_oculi_squint_outer_lower=squint,squint
-        target.eye_l_widen,target.eye_r_widen=widen,widen
-    end
     if weights then mixTargets(weights,target,phase,warmth)
     elseif family=='joy' then pair('corner_up',.45*strength);brows('raise_out',.30*strength)
     elseif family=='trust' then pair('corner_up',.35*strength)
-    elseif family=='sadness' then pair('corner_dn',.75*strength);brows('raise_in',.85*strength)
-    elseif family=='anger' then pair('corner_dn',.40*strength);brows('lower',.85*strength);eyes(.30*strength,0)
-    elseif family=='fear' then pair('corner_dn',.25*strength);brows('raise_in',.80*strength);brows('raise_out',.50*strength);eyes(0,.45*strength)
-    elseif family=='disgust' then pair('corner_dn',.50*strength);brows('lower',.60*strength);eyes(.25*strength,0)
-    elseif family=='surprise' then brows('raise_in',.60*strength);brows('raise_out',.90*strength);eyes(0,.55*strength)
-    elseif family=='anticipation' then brows('raise_out',.15*strength) end
+    elseif familyPoses[family] then
+        -- One reply-level label: the family's unit pose at the label's strength (linear, as before).
+        for key,value in pairs(familyPoses[family]) do singleChannel(target,key,value*strength) end
+    end
     local frowning=false
     if provider then
         local source={eye_l_brows_lower=.55*provider[5],eye_r_brows_lower=.55*provider[6],
@@ -398,8 +431,10 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     -- After speech the emotion's brows release within about 1.5 s (corners keep
     -- the longer expiry); they are never held for seconds after the voice stops.
     if slot.browExpiry and M.expressionClock>=slot.browExpiry then
-        for _,name in ipairs({'raise_in','raise_out','lower'}) do brows(name,0) end
+        for _,name in ipairs({'raise_in','raise_out','lower','lateral'}) do brows(name,0) end
         target.eye_l_widen,target.eye_r_widen=0,0
+        target.eye_l_oculi_squint_outer_upper,target.eye_r_oculi_squint_outer_upper=0,0
+        target.droop=0
     end
     local suppress=not weights and (negative[family] or family=='unknown')
     if suppress then pair('corner_up',0) end
@@ -409,19 +444,28 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     if not weights and phase~='speaking' and not negative[family] and family~='unknown'
         and not frowning and target.lips_l_corner_dn==0 then pair('corner_up',math.max(target.lips_l_corner_up,warmth)) end
     for _,track in ipairs({'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','lips_r_corner_dn'}) do target[track]=target[track]*gain end
+    local browDown=trait.browDown or 1
+    if browDown~=1 then
+        for _,track in ipairs({'eye_l_brows_lower','eye_r_brows_lower','eye_l_brows_lateral','eye_r_brows_lateral',
+            'eye_l_oculi_squint_outer_upper','eye_r_oculi_squint_outer_upper'}) do target[track]=(target[track] or 0)*browDown end
+    end
     -- The smile's own squint (Duchenne), or the feeling's narrowed eyes, whichever is stronger.
     local squint=math.min(.5,math.max(target.eye_l_oculi_squint_outer_lower,.6*target.lips_l_corner_up))
     target.eye_l_oculi_squint_outer_lower,target.eye_r_oculi_squint_outer_lower=squint,squint
     local budget=mouthBudget(feature,phase)
     for _,track in ipairs(expressionTracks) do
         if not (weights and track:find('corner_',1,true)) then
-            local goal=clamp(target[track],limitFor(track))
+            local goal=clamp(target[track] or 0,limitFor(track))
             if track:sub(1,5)=='lips_' then goal=goal*budget end
             local prior=slot.pose[track] or 0
             local seconds=goal>prior and .18 or .55
             slot.pose[track]=blocked and 0 or (prior+(goal-prior)*(1-math.exp(-(M.expressionDelta or 0)/seconds)))
         end
     end
+    -- The held lid droop (sadness, anger) eases like the brows; applyFeature merges it with the blink.
+    local droopGoal=blocked and 0 or clamp(target.droop or 0,.45)
+    local droopPrior=slot.droop or 0
+    slot.droop=droopPrior+(droopGoal-droopPrior)*(1-math.exp(-(M.expressionDelta or 0)/(droopGoal>droopPrior and .25 or .55)))
     if weights then
         -- Corners cross-fade on one signed axis (up positive, down negative), so
         -- a smile turning into a frown passes through neutral instead of snapping.
@@ -519,12 +563,13 @@ local function blinkWeight(slot,phase,blocked,boundary,room)
     return slot.blinkPeak*math.exp(-(age-blinkClose)/blinkTau)
 end
 local function applyFeature(actor,feature,entity,phase,provider,upper,mix,boundary,room)
+    detectExtended(feature)
     local slot=expressionSlot(entity)
     local blocked=M.expressionBlocked or M.expressionPaused or not safeExpressionActor(actor)
     if blocked then slot.emotion,slot.family,slot.expiry=nil,nil,nil;slot.holdMix=nil end
     if faceTest then pcall(faceTest.pre,entity,slot,M.expressionClock) end
     expressionPose(slot,phase,feature,provider,blocked,upper,mix)
-    local blink=blinkWeight(slot,phase,blocked,boundary,room)
+    local blink=math.max(blinkWeight(slot,phase,blocked,boundary,room),blocked and 0 or (slot.droop or 0))
     -- A copy that never blinked through this layer keeps the fields untouched (zero, the native face).
     if blink>0 or slot.blinkWritten then feature.eye_l_blink,feature.eye_r_blink=blink,blink;slot.blinkWritten=true end
     -- A blink closes widened eyes too (they would hold the lids apart).
@@ -557,9 +602,21 @@ local function applyFeature(actor,feature,entity,phase,provider,upper,mix,bounda
             end
         end
         for _,track in ipairs(expressionTracks) do
-            if feature[track]>turn.peak[track] then turn.peak[track]=feature[track] end
+            if feature[track]>(turn.peak[track] or 0) then turn.peak[track]=feature[track] end
         end
     end
+end
+-- Gaze drop for the companion actuator's eye contact (metres below V's eyes): a sad face looks a little down.
+-- Hysteresis on the smoothed pose (on above inner brows .35 with corners down .15, off below .2), so the native
+-- look request changes once per mood change, not per frame.
+function M.gazeDrop(entity)
+    local slot=type(entity)=='string' and M.expressions[entity]
+    if not slot or not slot.pose then return 0 end
+    local inner,down=slot.pose.eye_l_brows_raise_in or 0,slot.pose.lips_l_corner_dn or 0
+    if slot.gazeDown then
+        if inner<.2 or slot.blocked then slot.gazeDown=false end
+    elseif inner>.35 and down>.15 and not slot.blocked then slot.gazeDown=true end
+    return slot.gazeDown and -0.15 or 0
 end
 -- Cached diagnostics for a parent-owned live probe. No native reads, actor
 -- handles, speech weights, remote owners or dialogue appear in this snapshot.
