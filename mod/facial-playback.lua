@@ -213,14 +213,21 @@ end
 -- combined with a soft sum so mixed feelings (bittersweet: a slight smile with
 -- sad brows) stay inside the caps; mouth priority is applied by the caller.
 local mixFamilies={'joy','trust','sadness','anger','fear','disgust','surprise','anticipation'}
-local familyPoses={joy={up=.45,out=.20},trust={up=.25},sadness={dn=.40,['in']=.45},anger={dn=.25,low=.45},
+local familyPoses={joy={up=.45,out=.20},trust={up=.35},sadness={dn=.40,['in']=.45},anger={dn=.25,low=.45},
     fear={dn=.15,['in']=.45,out=.30},disgust={dn=.30,low=.35},surprise={['in']=.35,out=.50},anticipation={out=.15}}
+-- October 9 (user: "the expression barely changes, even with Expressive emotions on"): a family weight w moves
+-- the frowns and brows by w^.6 of its pose. Full feelings are unchanged (the caps hold); a subtle tag on a reserved
+-- character (.36) now shows about half its pose instead of a third, and phrases of different strength still
+-- differ. The smile (key 'up') stays linear: the selector's smile evidence gates were tuned for it, and a curved
+-- smile made weak, misread joy visible on sad or calm replies. Mirrors EXPRESSION_POLICY.mixCurve.
+local mixCurve=.6
 local function mixChannel(weights,key)
     local max,sum=0,0
     for index,family in ipairs(mixFamilies) do
         local unit=familyPoses[family][key]
         if unit then
-            local value=unit*clamp(weights[index] or 0)
+            local weight=clamp(weights[index] or 0)
+            local value=(weight>0 and key~='up') and unit*weight^mixCurve or unit*weight
             if value>max then max=value end
             sum=sum+value
         end
@@ -319,7 +326,7 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     local function brows(stem,value) target['eye_l_brows_'..stem]=value;target['eye_r_brows_'..stem]=value end
     if weights then mixTargets(weights,target,phase,warmth)
     elseif family=='joy' then pair('corner_up',.45*strength);brows('raise_out',.20*strength)
-    elseif family=='trust' then pair('corner_up',.25*strength)
+    elseif family=='trust' then pair('corner_up',.35*strength)
     elseif family=='sadness' then pair('corner_dn',.40*strength);brows('raise_in',.45*strength)
     elseif family=='anger' then pair('corner_dn',.25*strength);brows('lower',.45*strength)
     elseif family=='fear' then pair('corner_dn',.15*strength);brows('raise_in',.45*strength);brows('raise_out',.30*strength)
@@ -417,12 +424,53 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
         end
     end
 end
-local function applyFeature(actor,feature,entity,phase,provider,upper,mix)
+-- Natural blinking (October 9; user: Judy never blinks while she talks). Cyberpunk's own dialogue lipsync
+-- animations carry a talking face's blinks on eye_l/r_blinkLipsyncPoseOutput, the tracks this feature adds to:
+-- about 19 a minute, peak about .64 (up to .95), closed within about .07 s and open again over about .2 s
+-- (800 extracted game lines). Our speech replaces that animation, and the face graph's only other blink is the
+-- look-at controller's, played on a gaze shift, so a companion holding eye contact while she spoke never blinked
+-- on any voice route. While speaking, listening or thinking this adds the same kind of blink every 2-6 s with
+-- jitter, and now and then one at a phrase boundary. Additive and short: a native gaze-shift blink on top only
+-- merges (the solver clamps at 1). Plain idle is left to the native blink. Per call: a few comparisons and at
+-- most one exp, no tables; the state is a few numbers on the copy's slot.
+local blinkClose,blinkTau,blinkLength,blinkGap=.07,.055,.32,.6
+M.blinkRandom=math.random
+local function blinkWeight(slot,phase,blocked,boundary,room)
+    local clock=M.expressionClock
+    if blocked then slot.blinkStart,slot.blinkNext=nil,nil;return 0 end
+    local conversing=phase=='speaking' or phase=='listening' or phase=='thinking'
+    if conversing then
+        local random=M.blinkRandom
+        -- The first blink comes soon after a conversation phase starts, like the game's lines (median 1.2 s).
+        if not slot.blinkNext then slot.blinkNext=clock+.6+1.6*random() end
+        local since=slot.blinkStart and clock-slot.blinkStart or math.huge
+        if boundary and since>1.2 and random()<.45 then slot.blinkNext=math.min(slot.blinkNext,clock+.04+.1*random()) end
+        -- room=false: a phrase's last moments, where the next phrase's audio may not have started yet (a held,
+        -- half-closed lid would show); the blink waits for the next phrase.
+        if clock>=slot.blinkNext and since>=blinkGap and room~=false then
+            slot.blinkStart,slot.blinkPeak=clock,.62+.33*random()^2
+            slot.blinkNext=clock+2+4*random()
+            if phase=='speaking' then M.speechBlinks=(M.speechBlinks or 0)+1 end
+        end
+    else
+        slot.blinkNext=nil
+    end
+    local start=slot.blinkStart
+    if not start then return 0 end
+    local age=clock-start
+    if age<0 or age>=blinkLength then return 0 end
+    if age<blinkClose then local f=age/blinkClose;return slot.blinkPeak*f*f*(3-2*f) end
+    return slot.blinkPeak*math.exp(-(age-blinkClose)/blinkTau)
+end
+local function applyFeature(actor,feature,entity,phase,provider,upper,mix,boundary,room)
     local slot=expressionSlot(entity)
     local blocked=M.expressionBlocked or M.expressionPaused or not safeExpressionActor(actor)
     if blocked then slot.emotion,slot.family,slot.expiry=nil,nil,nil;slot.holdMix=nil end
     if faceTest then pcall(faceTest.pre,entity,slot,M.expressionClock) end
     expressionPose(slot,phase,feature,provider,blocked,upper,mix)
+    local blink=blinkWeight(slot,phase,blocked,boundary,room)
+    -- A copy that never blinked through this layer keeps the fields untouched (zero, the native face).
+    if blink>0 or slot.blinkWritten then feature.eye_l_blink,feature.eye_r_blink=blink,blink;slot.blinkWritten=true end
     if faceTest then
         local ok,skip=pcall(faceTest.post,entity,feature,phase,blocked)
         if ok and skip then return end
@@ -513,6 +561,27 @@ local function modelExpressions(timeline)
     end
     return value.frames
 end
+-- Phrase starts of this timeline (audio seconds) from its expression track, for the occasional boundary blink.
+-- Built once per timeline or continuous update, never per frame. The reply's own first phrase is not a boundary.
+local function blinkBoundaries(timeline)
+    local track=timeline.expressionTrack
+    local spans=type(track)=='table' and track.segments
+    if type(spans)~='table' then return nil end
+    local out,opening=nil,timeline.segment==nil or timeline.segment.first==true
+    for index,span in ipairs(spans) do
+        if index>64 then break end
+        local at=type(span)=='table' and span.start
+        if finite(at) and at>0 and at<=timeline.duration and not (index==1 and opening) then
+            out=out or {};out[#out+1]=at
+        end
+    end
+    return out
+end
+local function blinkCursor(boundaries,position)
+    local index=1
+    while boundaries and boundaries[index] and boundaries[index]<=position do index=index+1 end
+    return index
+end
 local function reset(actor)
     local ok, done = pcall(function()
         return speaker(actor) and actor:ConvaiFaceReset()
@@ -531,6 +600,7 @@ local function clear()
     M.providerExpressions=nil
     M.modelExpressions=nil
     M.expressionTrackKeys=nil
+    M.blinkBoundaries,M.blinkBoundaryIndex=nil,nil
 end
 
 function M.abandon(reason)
@@ -611,6 +681,8 @@ function M.start(context, timeline, actor, duration, expectedSegment)
     M.providerExpressions=providerExpressions(timeline)
     M.modelExpressions=modelExpressions(timeline)
     M.expressionTrackKeys=expressionTrack(timeline)
+    M.blinkBoundaries=blinkBoundaries(timeline)
+    M.blinkBoundaryIndex=1
     M.beginExpression(context,timeline.expression)
     return true
 end
@@ -695,6 +767,8 @@ function M.updateContinuous(context, timeline, actor, duration)
     M.providerExpressions=providerExpressions(timeline)
     M.modelExpressions=modelExpressions(timeline)
     M.expressionTrackKeys=expressionTrack(timeline)
+    M.blinkBoundaries=blinkBoundaries(timeline)
+    M.blinkBoundaryIndex=blinkCursor(M.blinkBoundaries,M.position or 0)
     M.beginExpression(context,timeline.expression)
     M.error, M.timelineChanged = nil, true
     -- A live tail can be re-interpolated or compacted. Keep the playback index
@@ -777,7 +851,14 @@ function M.sync(actor, position, requestId)
         end
         local mix
         if M.expressionTrackKeys then mix=sampleTrack(M.expressionTrackKeys,position) end
-        applyFeature(actor,M.feature,M.entity,'speaking',provider,upper,mix)
+        -- A phrase start just heard (an occasional boundary blink); a separate phrase's last .35 s holds no new
+        -- blink, since the face holds its last frame until the next phrase's audio starts.
+        local boundary=false
+        local boundaries,cursor=M.blinkBoundaries,M.blinkBoundaryIndex or 1
+        while boundaries and boundaries[cursor] and boundaries[cursor]<=position do cursor=cursor+1;boundary=true end
+        M.blinkBoundaryIndex=cursor
+        local room=M.continuous or M.timeline.duration-position>.35
+        applyFeature(actor,M.feature,M.entity,'speaking',provider,upper,mix,boundary,room)
         M.position, M.lastPosition = M.continuous and heardPosition or position, M.continuous and heardPosition or position
         M.timelineChanged = nil
         M.state = position >= M.timeline.duration and 'holding-boundary' or 'playing'
@@ -798,7 +879,9 @@ end
 function M.status()
     return {state = M.state or 'idle', source = M.source, articulation = M.articulation, position = M.position,
         applied = M.applied or 0, restored = M.restored, error = M.error,
-        expressions = {clock=M.expressionClock,error=M.expressionError,lastSpeech=M.lastSpeechExpression}}
+        expressions = {clock=M.expressionClock,error=M.expressionError,lastSpeech=M.lastSpeechExpression},
+        -- Blinks this layer started while a reply played (October 9), counted since the mod loaded.
+        blinks = M.speechBlinks or 0}
 end
 
 convaiFacialPlayback = M

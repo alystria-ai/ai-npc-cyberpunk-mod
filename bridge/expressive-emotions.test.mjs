@@ -67,7 +67,7 @@ test('every tag maps onto one of the mod\'s own emotion families, and calm onto 
   }
   assert.equal(EMOTION_FAMILY.interest, 'anticipation');
   assert.equal(EMOTION_FAMILY.warm, 'trust');
-  assert.ok(MARK_WEIGHT.subtle < MARK_WEIGHT.strong && MARK_WEIGHT.subtle <= .5);
+  assert.ok(MARK_WEIGHT.subtle < MARK_WEIGHT.strong && MARK_WEIGHT.subtle <= .6 && MARK_WEIGHT.strong <= 1);
 });
 
 // ---- parsing and stripping --------------------------------------------------------------------------------------
@@ -162,7 +162,7 @@ test('the plan\'s segments start exactly at the marks and carry the marked feeli
   assert.equal(at(0).dominant, 'anticipation');
   assert.equal(at(PARSED.marks[1].at).dominant, 'sadness');
   assert.ok(at(PARSED.marks[1].at).weights.sadness > at(0).weights.anticipation, 'strong shows more than subtle');
-  assert.ok(at(0).weights.anticipation <= .6, 'a plain tag is a slight expression');
+  assert.ok(at(0).weights.anticipation <= .7, 'a plain tag is a slight expression');
   assert.equal(at(PARSED.marks[2].at).dominant, null, 'calm is the resting face');
   assert.equal(at(PARSED.marks[3].at).dominant, 'joy');
   for (const segment of plan.segments) assert.ok(segment.tags.includes('llm-emotion'));

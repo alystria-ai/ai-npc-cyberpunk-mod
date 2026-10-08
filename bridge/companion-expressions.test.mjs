@@ -74,7 +74,7 @@ test('emotions are visible: peaks follow the live face-test (smile reads at .35-
   const near = (value, wanted) => assert.ok(Math.abs(value - wanted) < .01, value + ' vs ' + wanted);
   near(peak('Joy', 3).lips_l_corner_up, .45); near(peak('Joy', 2).lips_l_corner_up, .30);
   assert.ok(peak('Joy', 1).lips_l_corner_up < peak('Joy', 2).lips_l_corner_up);
-  near(peak('Trust', 3).lips_l_corner_up, .25);
+  near(peak('Trust', 3).lips_l_corner_up, .35);
   near(peak('Sadness', 3).lips_l_corner_dn, .40); near(peak('Sadness', 3).eye_l_brows_raise_in, .45);
   near(peak('Anger', 3).eye_l_brows_lower, .45); near(peak('Anger', 3).lips_l_corner_dn, .25);
   near(peak('Surprise', 3).eye_l_brows_raise_out, .50);
@@ -84,9 +84,9 @@ test('emotions are visible: peaks follow the live face-test (smile reads at .35-
     for (const [track, value] of Object.entries(peak(name, 3)))
       assert.ok(value <= (track.startsWith('lips_') ? .50 : .55), name + ' ' + track);
   assert.equal(EXPRESSION_POLICY.cornerUpMax, .5); assert.equal(EXPRESSION_POLICY.browRaiseMax, .55);
-  // Warm default (Trust scale 2) is about .15-.17 and survives speech at 85 %.
+  // Warm default (Trust scale 2) is about .23 and survives speech at 85 % (October 9: Trust .35, was .25).
   const warm = expressionTarget({emotion: {emotion: 'Trust', scale: 2}, phase: 'speaking'}).lips_l_corner_up;
-  assert.ok(warm >= .13 && warm <= .17, String(warm));
+  assert.ok(warm >= .18 && warm <= .21, String(warm));
 });
 
 test('positive intensity progresses gently without opening the jaw', () => {
@@ -244,8 +244,11 @@ test('resting warmth is a floor under every non-negative intent, with a per-char
 });
 
 test('blended mixes honour warmth, gain and the same mouth priority', () => {
-  const bittersweet = mixTarget({weights: {joy: .5, sadness: .5}});
+  const bittersweet = mixTarget({weights: {joy: .6, sadness: .3}});
   assert.ok(bittersweet.lips_l_corner_up > .1 && bittersweet.eye_l_brows_raise_in > .2, 'a slight smile with sad brows');
+  // October 9: frowns and brows follow w^.6 while the smile stays linear, so an even mix leans sad: no smile.
+  const even = mixTarget({weights: {joy: .5, sadness: .5}, phase: 'speaking'});
+  assert.ok(even.lips_l_corner_up === 0 && even.lips_l_corner_dn > .05 && even.eye_l_brows_raise_in > .25, 'an even mix is sad');
   assert.equal(mixTarget({weights: {anticipation: .7}, phase: 'speaking'}).lips_l_corner_up, 0, 'Interest has no smile at the neutral rest');
   assert.equal(mixTarget({weights: {sadness: .8}, phase: 'speaking'}).lips_l_corner_up, 0);
   assert.equal(mixTarget({weights: {}, phase: 'speaking', warmth: 0}).lips_l_corner_up, 0);

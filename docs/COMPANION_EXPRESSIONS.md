@@ -1,5 +1,84 @@
 # Companion expressions
 
+## October 9: blinking while speaking, and expressions that read during a reply
+
+User report (recording Judy for the lip sync video): she never blinks while she talks, and her face barely changes
+across a reply, even with Expressive emotions on.
+
+**Blinks: root cause.** Our layer never wrote the eyelids, so nothing of ours froze them. The cause is where the
+game's blinks come from. Cyberpunk's own dialogue lipsync animations carry a talking face's blinks on
+`eye_l/r_blinkLipsyncPoseOutput`, the same tracks our ConvaiFace feature adds to: 800 extracted lines show about
+19 blinks a minute, peak about .64 (up to .95), closed within about .07 s, open again over about .2 s, both eyes
+together. Our speech replaces that animation. The face graph's only other blink source is the look-at controller
+(`animLookAtAnimationDefinition` playing `additive__blink_fast/half/slow` on a gaze shift; Judy's
+`player_woman_photomode_sermo` has no idle facial animation at all). While she talks she holds eye contact with V
+(`attend`, a steady look-at), so no gaze shift happens and she never blinks. The same applies to every voice route
+(Pocket, Omni, Convai), because they all share one face writer.
+
+**Blinks: fix** (`mod/facial-playback.lua`). While speaking, listening or thinking, the writer adds its own blink on
+the eyelid tracks: every 2-6 s with jitter (first one 0.6-2.2 s in), now and then one at a phrase start (45 %,
+from the expression track's phrase spans), same shape as the game's (smooth close over .07 s, exponential open,
+peak .62-.95). It is additive and short, so a native gaze-shift blink on top only merges (the solver clamps at
+1). Plain idle stays native; combat, scenes and native dialogue block it like every other optional delta. A
+phrase of a phrase-streamed reply (Omni) never starts a blink in its last .35 s, since the face holds its last
+frame until the next phrase plays. Cost: a few comparisons and at most one `exp` per write, no tables, no new
+hooks; phrase starts are read once per timeline. Simulated over 15 replies: 18 blinks a minute.
+`speech-state.json` → `face.blinks` counts the blinks started during replies (in-game check).
+
+**Expressions: where the range collapsed** (15 replies for Judy, Panam and Johnny through the real selector, the
+aligner and the Lua writer, on mouth curves from the game-trained model over real cloned-voice audio):
+- *Expressive tags were a third of a pose and flat.* A subtle tag (.45) times a reserved manner (.8, Judy and
+  Johnny) is .36, and poses were linear in the weight, so Judy's `{fear}` raised the brows .16. A tag also replaced
+  the phrase's own text reading, so a reply with one tag sat at one level throughout ("Too late now" no sadder
+  than "Every day").
+- *Weak units.* Warm (Trust) smiled .25 × weight: .09-.12 on a tagged warm line, below the .15 a smile needs.
+- *Mouth budget.* Speech keeps 85 % of the corners and closures/rounding cut them further: corners average
+  about .7 of their target while talking. Kept (it is what stops a smile on "oo" and lip closures).
+- Not the cause: the lip sync model writes none of these controls; the .18/.55 s smoothing is far shorter than a
+  phrase; the neutral-while-speaking rule only affects phrases with no feeling (kept, it guards grief).
+
+**Expressions: changes.**
+- Frowns and brows follow w^.6 of their pose in a blend (`mixCurve`, Lua and `companion-expressions.mjs`); full
+  feelings and the caps are unchanged. The smile stays linear: a curved smile made weak, misread joy visible on
+  sad and calm replies in the labelled sets (it added two false smiles on negative replies).
+- Trust (warm) smiles .35, was .25.
+- Expressive tags: subtle .6, strong 1 (were .45/.8), and the phrase's own text can raise the tagged feeling.
+- A reserved or cold manner also caps a phrase at .8/.6, so strong text no longer saturates Johnny to Panam's
+  level.
+- Kept: the idle light smile and its mood hold, the Evelyn grief rules, the mouth budget, the caps.
+
+**Before → after**, peak (p90 within a phrase) of the main controls, written values after the mouth budget,
+Expressive emotions on (one or two subtle/strong tags per reply):
+
+| Feeling | Judy (reserved, corner gain 1.6) | Panam (expressive) | Johnny (reserved) |
+| --- | --- | --- | --- |
+| joy | corners up .39→.48, squint .28→.35 | up .35→.38, squint .25→.27 | up .14→.30, squint .10→.22 |
+| warm | up .09→.15, squint .11→.17 | up .11→.20, squint .08→.14 | |
+| sadness | corners down .35→.47, inner brows .29→.39 | down .18→.27, inner .23→.36 | down .12→.21, inner .16→.39 |
+| anger | brows lower .29→.39, down .21→.29 | lower .41→.45, down .19→.21 | lower .29→.39, down .13→.18 |
+| fear | inner brows .16→.39, outer .11→.26 | | |
+| disgust | | | lower .13→.23, down .09→.16 |
+| surprise | | outer brows .46→.50, inner .32→.35 | |
+| neutral | 0 → 0 | | 0 → 0 |
+
+Text only (no tags): sadness and anger rise by .03-.09 (Judy sadness down .22→.31), smiles are unchanged, and the
+strongest phrases of reserved characters are capped (Johnny joy .33→.27, Judy's strongest fear brows .45→.39).
+Labelled sets (`scripts/Evaluate-EmotionSelector.mjs`): labels unchanged; one more calm reply shows a soft smile
+(dev d038, a misread warm phrase at .18); no new false smile on a negative reply.
+
+**Tests** (`companion-expression-playback.test.mjs`): blinks through a 20 s reply on each source (local-jali,
+convai-arkit61, local-phonetic, audio-envelope): 4-11 blinks, gaps .55-6.3 s, game-shaped peaks, both eyes,
+speech fields untouched; listening and thinking blink, idle copies untouched, blocked faces never blink; phrase
+boundary blinks and the Omni phrase tail; per-feeling minimum visible deltas on Judy; a reply changes face between
+tags and the text deepens a tag; Johnny below Panam on the same words but at least 60 % of her; grief never smiles
+through the writer (with or without a tag) and still reads sad. All seven fail on the previous code.
+
+**In game** (needs a CET reload or game restart for the Lua and a bridge restart for the selector): Judy blinks
+every few seconds while she talks, listens or thinks, about as often as in a story scene, with no double or stuck
+half-closed lids between Omni phrases; `face.blinks` in `speech-state.json` climbs during replies. Tagged
+feelings show clearly on brows and corners and change between phrases; Evelyn still never smiles; Johnny moves
+his face less than Panam on similar lines.
+
 ## October 8 (later): the light idle smile is back, held off after sad turns
 
 In game the user missed Judy's light resting smile while she is not talking; the objection was only to smiling

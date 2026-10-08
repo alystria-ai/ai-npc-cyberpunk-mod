@@ -216,9 +216,9 @@ test('October 8: speech without any intent rests neutral, and a text cue shows a
   -- No receipt: no smile while speaking (October 8: the idle smile releases into speech, none is added).
   local none=speak(${literal(line)},'none')
   assert(none.lips_l_corner_up<.02,none.lips_l_corner_up)
-  -- A Trust scale-2 cue: the gentle smile.
+  -- A Trust scale-2 cue: the gentle smile (October 9: Trust .35, was .25; .35 x .67 x speech .85 = .20).
   local trust=speak(${literal(warm)},'trust')
-  assert(trust.lips_l_corner_up>=.12 and trust.lips_l_corner_up<=.17,'trust '..trust.lips_l_corner_up)
+  assert(trust.lips_l_corner_up>=.17 and trust.lips_l_corner_up<=.22,'trust '..trust.lips_l_corner_up)
   -- Interest lifts the brows only.
   local interest=speak(${literal(curious)},'interest')
   assert(interest.eye_l_brows_raise_out>=.05 and interest.eye_l_brows_raise_out<=.11 and interest.lips_l_corner_up<.02,'interest '..interest.eye_l_brows_raise_out..' '..interest.lips_l_corner_up)
@@ -549,3 +549,198 @@ test('face-test probe: policy mode leaves no injected feeling or active flag beh
  for _=1,60 do tick(.1) end
  assert(last(a).eye_l_brows_raise_in<.001 and last(a).eye_l_brows_raise_out<.001,'brows are neutral at idle after the probe')
 `));
+
+// ---- October 9: natural blinking through speech --------------------------------------------------------------
+// The game's own dialogue lipsync carries a talking face's blinks on eye_l/r_blinkLipsyncPoseOutput (about 19 a
+// minute in 800 extracted lines); our speech replaces that animation and the face graph's only other blink is the
+// look-at controller's (on a gaze shift), so a companion holding eye contact never blinked while she spoke.
+const seeded = value => `do local seed=${value}.0;face.blinkRandom=function() seed=(seed*16807.0)%2147483647.0;return seed/2147483647.0 end end`;
+const flatLine = (id, source, duration, extra = {}) => ({version: 1, requestId: id, entity: 'copy-a', duration, source,
+  ...(source === 'local-jali' ? {articulation: 'jali-audio-v1'} : {}),
+  tracks: ['jaw_mid_open', 'lips_together_up', 'lips_together_dn', 'lips_l_funnel', 'lips_r_funnel', 'lips_l_purse', 'lips_r_purse'],
+  frames: [[0, .3, 0, 0, 0, 0, 0, 0], [duration, .3, 0, 0, 0, 0, 0, 0]], ...extra});
+const blinkHelpers = `
+ local function onsets(frames,from,step)
+  local out,previous={},0
+  for i,f in ipairs(frames) do local v=f.eye_l_blink or 0;if v>.3 and previous<=.3 then out[#out+1]=from+(i-1)*step end;previous=v end
+  return out
+ end
+`;
+
+test('blinks continue through a reply on every voice route: every 2-6 s, short, symmetric, game-shaped', () => {
+  for (const source of ['local-jali', 'convai-arkit61', 'local-phonetic', 'audio-envelope']) run(`${seeded(4242)}${blinkHelpers}
+   speech.target=a
+   local ctx={requestId='blink-${source}',entity=a.id,generation=4}
+   assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=20},face=${literal(flatLine(`blink-${source}`, source, 20))}}),face.error)
+   local frames={}
+   for i=1,594 do cursor=i/30;tick(1/30);frames[#frames+1]=copy(last(a)) end
+   local times=onsets(frames,1/30,1/30)
+   assert(#times>=4 and #times<=11,'${source}: '..#times..' blinks in 20 s')
+   assert(times[1]<2.6,'the first blink comes soon: '..times[1])
+   for i=2,#times do local gap=times[i]-times[i-1];assert(gap>=.55 and gap<=6.3,'${source} gap '..gap) end
+   local open,peak=0,0
+   for _,f in ipairs(frames) do
+    assert(f.eye_l_blink==f.eye_r_blink,'both eyes together')
+    local v=f.eye_l_blink or 0;peak=math.max(peak,v);if v<.02 then open=open+1 end
+    assert(f.jaw_mid_open==.3,'speech fields untouched')
+   end
+   assert(peak>=.6 and peak<=.96,'peak like the game (.62-.95): '..peak)
+   assert(open/#frames>.85,'eyes open most of the time: '..open/#frames)
+   speech.stop('finished')
+  `);
+});
+
+test('blinks also run while listening or thinking; plain idle stays native and a blocked face never blinks', () => run(`${seeded(77)}${blinkHelpers}
+ local frames={}
+ for _=1,300 do tick(1/30,{listeningEntity=a.id});frames[#frames+1]=copy(last(a)) end
+ assert(#onsets(frames,0,1/30)>=2,'listening blinks: '..#onsets(frames,0,1/30))
+ frames={}
+ for _=1,300 do tick(1/30,{thinkingEntity=a.id});frames[#frames+1]=copy(last(a)) end
+ assert(#onsets(frames,0,1/30)>=2,'thinking blinks')
+ -- Copy b was idle all along: its blink fields were never written (the native face owns idle blinks).
+ assert(last(b).eye_l_blink==nil and last(b).eye_r_blink==nil,'idle copy untouched')
+ -- Back to idle: a blink in progress finishes, then no new blink starts.
+ for _=1,15 do tick(1/30) end
+ frames={}
+ for _=1,300 do tick(1/30);frames[#frames+1]=copy(last(a)) end
+ assert(#onsets(frames,0,1/30)==0,'no blink of ours at plain idle')
+ assert(last(a).eye_l_blink==0,'and the field rests at zero')
+ -- Combat (or a native scene/dialogue) suppresses every optional delta, blinks included.
+ a.combat=true
+ for _=1,300 do tick(1/30,{listeningEntity=a.id});assert(last(a).eye_l_blink==0,'blocked') end
+ a.combat=false
+`));
+
+test('a phrase boundary now and then brings a blink, and a separate phrase never ends on a half-closed lid', () => {
+  const spans = [0.3, 2, 4, 6].map((start, i, all) => ({start, end: all[i + 1] ?? 8, from: 0, to: 1, dominant: null, tags: [], top: [], anchored: true}));
+  const track = {version: 1, format: 'emotion-mix-v1', families: ['joy', 'trust', 'sadness', 'anger', 'fear', 'disgust', 'surprise', 'anticipation'],
+    keys: [[0, 0, 0, 0, 0, 0, 0, 0, 0], [8, 0, 0, 0, 0, 0, 0, 0, 0]], segments: spans};
+  run(`${blinkHelpers}
+   face.blinkRandom=function() return .1 end   -- every boundary is taken; rhythm 2.4 s
+   speech.target=a
+   local ctx={requestId='phrases',entity=a.id,generation=4}
+   assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=8},face=${literal(flatLine('phrases', 'local-jali', 8, {expressionTrack: track}))}}),face.error)
+   local frames={}
+   for i=1,470 do cursor=i/60;tick(1/60);frames[#frames+1]=copy(last(a)) end
+   local times=onsets(frames,1/60,1/60)
+   -- The first blink comes from the rhythm (.6 + .16 s), then one just after each later phrase start (2, 4, 6 s).
+   local function near(t) for _,x in ipairs(times) do if x>=t and x<=t+.15 then return true end end return false end
+   assert(near(2) and near(4) and near(6),'boundary blinks: '..table.concat(times,','))
+   assert(times[1]<1,'rhythm blink first: '..times[1])
+   speech.stop('finished')
+  `);
+  // A phrase of a phrase-streamed reply (Omni) holds its last frame until the next phrase plays: a blink due in its
+  // last .35 s waits and starts with the next phrase instead.
+  run(`
+   face.blinkRandom=function() return .1 end   -- the first blink is due .76 s after speech starts
+   local ctx={requestId='omni',entity=a.id,generation=4}
+   local first=${literal({...flatLine('omni', 'local-jali', 1), segment: {version: 1, index: 1, startSeconds: 0, first: true, last: false}})}
+   local second=${literal({...flatLine('omni', 'local-jali', 1), segment: {version: 1, index: 2, startSeconds: 1, first: false, last: true}})}
+   face.beginExpressionFrame(0,{actors=rows})
+   assert(face.start(ctx,first,a,1,{index=1,startSeconds=0}),face.error)
+   local peak=0
+   for i=1,60 do face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,i/60,'omni');peak=math.max(peak,last(a).eye_l_blink or 0) end
+   assert(peak==0,'no blink starts in the phrase tail: '..peak)
+   for _=1,12 do face.beginExpressionFrame(1/60,{actors=rows});face.hold(a,'omni') end
+   assert(face.start(ctx,second,a,1,{index=2,startSeconds=1}),face.error)
+   local started
+   for i=1,30 do face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,i/60,'omni');if not started and (last(a).eye_l_blink or 0)>0 then started=i/60 end end
+   assert(started and started<=.05,'the waiting blink starts with the next phrase: '..tostring(started))
+   face.stop(a,'finished')
+  `);
+});
+
+// ---- October 9: expressions visible while speaking -----------------------------------------------------------
+// The real selector plan, aligned to a mouth timeline (open jaw, no closures: the mouth budget is speech's 85 %),
+// played through the real Lua writer; returns the peak of every written control while she speaks.
+function peaksWhileSpeaking(profile, plan, id = 'range') {
+  const line = attachExpressionTrack(flatLine(id, 'local-jali', 6), plan, {complete: true, decay: true});
+  const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
+  try {
+    const status = lauxlib.luaL_dostring(vm, to_luastring(setup + `
+     rows[1].profileKey=${JSON.stringify(profile)};speech.target=a
+     local ctx={requestId=${JSON.stringify(id)},entity=a.id,generation=4}
+     assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=6},face=${literal(line)}}),face.error)
+     local peak={}
+     for i=1,174 do cursor=i/30;tick(1/30);for k,v in pairs(last(a)) do if type(v)=='number' and v>(peak[k] or 0) then peak[k]=v end end end
+     speech.stop('finished')
+     local parts={};for k,v in pairs(peak) do parts[#parts+1]=string.format('%q:%.5f',k,v) end
+     RESULT='{'..table.concat(parts,',')..'}'`));
+    assert.equal(status, lua.LUA_OK, status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1)));
+    lua.lua_getglobal(vm, to_luastring('RESULT'));
+    return JSON.parse(to_jsstring(lua.lua_tostring(vm, -1)));
+  } finally { lua.lua_close(vm); }
+}
+const tagged = (reply, ...tags) => tags.map(([word, name, strength]) => ({at: reply.indexOf(word), name, strength: strength ?? 'subtle'}));
+
+// Minimum visible deltas per emotion with Expressive emotions on (one subtle tag) for Judy, a reserved manner with
+// her corner gain: the Judy face-test calibration (a smile reads from about .15, clearly at .35-.5) and the game's
+// own authored frown (corners .20 + brows .32). Before October 9 a subtle tag on Judy gave corners .07-.16 and
+// brows .11-.16.
+test('October 9: each tagged feeling moves Judy\'s brows, eyes and corners visibly while she speaks', () => {
+  const cases = [
+    ['sadness', "Every day. I keep thinking about that call.", {lips_l_corner_dn: .2, eye_l_brows_raise_in: .25}, ['lips_l_corner_up']],
+    ['anger', "That greedy little rat. I'll make her pay.", {eye_l_brows_lower: .25, lips_l_corner_dn: .12}, ['lips_l_corner_up']],
+    ['fear', "Are you okay? Stay close to me tonight.", {eye_l_brows_raise_in: .25, eye_l_brows_raise_out: .15}, ['lips_l_corner_up']],
+    ['joy', "You're such a dork, V. Okay, okay, I'll admit it.", {lips_l_corner_up: .25, eye_l_oculi_squint_outer_lower: .15, eye_l_brows_raise_out: .1}, ['lips_l_corner_dn']],
+    ['warm', "Anytime. Whatever you need, I'm here.", {lips_l_corner_up: .18, eye_l_oculi_squint_outer_lower: .1}, ['lips_l_corner_dn']],
+    ['surprise', "Wait, you found her? After all this time?", {eye_l_brows_raise_out: .3, eye_l_brows_raise_in: .2}, []],
+    ['disgust', "Corpo errands for a sleazy fixer. Real classy.", {eye_l_brows_lower: .18, lips_l_corner_dn: .12}, ['lips_l_corner_up']],
+  ];
+  for (const [name, reply, minimum, absent] of cases) {
+    const plan = selectEmotion({player: 'Hey.', reply, profile: 'judy-alvarez', marks: tagged(reply, [reply.split(' ')[0], name])});
+    const peak = peaksWhileSpeaking('judy-alvarez', plan, `judy-${name}`);
+    for (const [track, value] of Object.entries(minimum)) assert.ok((peak[track] ?? 0) >= value, `${name} ${track} ${peak[track]} < ${value}`);
+    for (const track of absent) assert.ok((peak[track] ?? 0) < .02, `${name} shows ${track} ${peak[track]}`);
+    assert.ok((peak.lips_l_corner_up ?? 0) <= .65 && (peak.lips_l_corner_dn ?? 0) <= .65 && (peak.eye_l_brows_lower ?? 0) <= .55, `${name} within the caps`);
+  }
+  // A plain reply stays neutral: no feeling, no face (the voice-synced brows of the model are not in this line).
+  const plain = selectEmotion({player: 'What are you working on?', reply: 'Just tweaking a braindance edit. The audio sync is off.', profile: 'judy-alvarez'});
+  const rest = peaksWhileSpeaking('judy-alvarez', plain, 'judy-plain');
+  for (const track of ['lips_l_corner_up', 'lips_l_corner_dn', 'eye_l_brows_raise_in', 'eye_l_brows_raise_out', 'eye_l_brows_lower'])
+    assert.ok((rest[track] ?? 0) < .02, `plain reply ${track} ${rest[track]}`);
+});
+
+test('October 9: the face changes within a reply, the text can deepen a tagged feeling, and text cues read without tags', () => {
+  // Two tags: a smile, then sadness. The corners cross from up to down within the reply.
+  const reply = "Haha, you remembered. But she never got to see this place.";
+  const turn = selectEmotion({player: 'I brought the photos.', reply, profile: 'judy-alvarez',
+    marks: tagged(reply, ['Haha', 'joy'], ['But', 'sadness'])});
+  assert.ok(turn.segments[0].weights.joy > .4 && turn.segments.at(-1).weights.sadness > .4);
+  assert.ok(!turn.segments.at(-1).weights.joy, 'the sad phrase has no smile under it');
+  // One subtle {sadness} tag over a reply whose last phrase is the saddest: that phrase is stronger.
+  const regret = "Every damn day. I walked out on her. Too late now.";
+  const held = selectEmotion({player: 'Do you regret what happened with Alt?', reply: regret, profile: 'johnny-silverhand',
+    marks: tagged(regret, ['Every', 'sadness'])});
+  const weights = held.segments.map(segment => segment.weights.sadness ?? 0);
+  assert.ok(Math.max(...weights) > Math.min(...weights) + .15, `the text deepens the tag: ${weights}`);
+  // Without tags, the text alone: a strong phrase on Judy clears the visible minimum.
+  const angry = selectEmotion({player: 'Maiko sold us out.', reply: "That greedy little rat. I swear, I'll make her pay for this.", profile: 'judy-alvarez'});
+  const peak = peaksWhileSpeaking('judy-alvarez', angry, 'judy-angry-text');
+  assert.ok(peak.eye_l_brows_lower >= .3 && peak.lips_l_corner_dn >= .15, `text anger ${peak.eye_l_brows_lower} ${peak.lips_l_corner_dn}`);
+});
+
+test('October 9: Johnny stays more reserved than Panam on the same words, but is not frozen', () => {
+  for (const [name, reply, track] of [['anger', "Those bastards. I'll find them and make them pay.", 'eye_l_brows_lower'],
+    ['sadness', "Yeah. Every single day. I wish he could see this.", 'eye_l_brows_raise_in'],
+    ['joy', "Hell yeah! That's preem news, choom.", 'lips_l_corner_up']]) {
+    for (const strength of ['subtle', 'strong']) {
+      const marks = tagged(reply, [reply.split(' ')[0], name, strength]);
+      const johnny = peaksWhileSpeaking('johnny-silverhand', selectEmotion({reply, profile: 'johnny-silverhand', marks}), 'johnny');
+      const panam = peaksWhileSpeaking('panam-palmer', selectEmotion({reply, profile: 'panam-palmer', marks}), 'panam');
+      assert.ok(johnny[track] < panam[track], `${name}/${strength}: Johnny ${johnny[track]} vs Panam ${panam[track]}`);
+      assert.ok(johnny[track] >= .6 * panam[track] && johnny[track] >= .15, `${name}/${strength}: Johnny is not frozen ${johnny[track]}`);
+    }
+  }
+});
+
+test('October 9: grief still never smiles through the writer, with or without a tag, and still looks sad', () => {
+  const player = 'How are you holding up since Evelyn died?';
+  const reply = "She was beautiful, V. I loved her so much. Thanks for asking, really, I'm glad you're here.";
+  for (const marks of [undefined, tagged(reply, ['She', 'sadness'])]) {
+    const peak = peaksWhileSpeaking('judy-alvarez', selectEmotion({player, reply, profile: 'judy-alvarez', marks}), 'evelyn-range');
+    assert.ok((peak.lips_l_corner_up ?? 0) < .02, `grief smiles ${peak.lips_l_corner_up}`);
+    assert.ok((peak.eye_l_oculi_squint_outer_lower ?? 0) < .02, 'no smiling eyes either');
+    assert.ok(peak.lips_l_corner_dn >= .15 && peak.eye_l_brows_raise_in >= .2, `grief reads sad ${peak.lips_l_corner_dn} ${peak.eye_l_brows_raise_in}`);
+  }
+});

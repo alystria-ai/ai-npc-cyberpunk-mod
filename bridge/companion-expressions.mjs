@@ -24,7 +24,10 @@ export const EXPRESSION_POLICY = Object.freeze({
   // clearly at .35-.5 and 1.0 is an exaggerated grin; the first recalibration
   // (peaks <= .20, rest .06) was still invisible. Peaks below are the visible,
   // natural range: smile .45, frown .40, brows ~.45-.5.
-  version: 5, restSmile: .12, squintMax: .35, squintPerSmile: .6, gainCapMax: 1.3, cornerUpMax: .50, cornerDownMax: .50, browRaiseMax: .55, browLowerMax: .55,
+  // October 9: in a blend (mixTarget) a family weight w moves the frowns and brows by w^mixCurve of its pose, so
+  // subtle and medium feelings read while speaking; full feelings and the caps are unchanged; the smile stays
+  // linear. Trust (warm) smiles .35, was .25.
+  version: 6, mixCurve: .6, restSmile: .12, squintMax: .35, squintPerSmile: .6, gainCapMax: 1.3, cornerUpMax: .50, cornerDownMax: .50, browRaiseMax: .55, browLowerMax: .55,
   speechMouthFactor: .85, attackSeconds: .18, releaseSeconds: .55,
   // Categorical scale 1..3 (Convai) -> fraction of the family's full pose.
   scaleStrength: Object.freeze([.4, .67, 1]),
@@ -172,7 +175,7 @@ export function expressionTarget({emotion = null, phase = 'idle', speechPose = {
   const strength = parsed ? EXPRESSION_POLICY.scaleStrength[parsed.scale - 1] : 0;
   switch (family) {
     case 'joy': pair(out, 'corner_up', .45 * strength); brows(out, 'raise_out', .20 * strength); break;
-    case 'trust': pair(out, 'corner_up', .25 * strength); break;
+    case 'trust': pair(out, 'corner_up', .35 * strength); break;
     case 'sadness': pair(out, 'corner_dn', .40 * strength); brows(out, 'raise_in', .45 * strength); break;
     case 'anger': pair(out, 'corner_dn', .25 * strength); brows(out, 'lower', .45 * strength); break;
     case 'fear': pair(out, 'corner_dn', .15 * strength); brows(out, 'raise_in', .45 * strength); brows(out, 'raise_out', .30 * strength); break;
@@ -222,7 +225,7 @@ function finishPose(out, {speechPose, phase, gain}) {
 // Unit poses (family weight 1) for the blended path. They equal the single-label
 // poses above at strength 1; mod/facial-playback.lua mirrors them.
 export const FAMILY_POSES = Object.freeze({
-  joy: {up: .45, out: .20}, trust: {up: .25}, sadness: {dn: .40, in: .45}, anger: {dn: .25, low: .45},
+  joy: {up: .45, out: .20}, trust: {up: .35}, sadness: {dn: .40, in: .45}, anger: {dn: .25, low: .45},
   fear: {dn: .15, in: .45, out: .30}, disgust: {dn: .30, low: .35}, surprise: {in: .35, out: .50}, anticipation: {out: .15},
 });
 export const MIX_FAMILIES = Object.freeze(['joy', 'trust', 'sadness', 'anger', 'fear', 'disgust', 'surprise', 'anticipation']);
@@ -238,7 +241,10 @@ export function mixTarget({weights, phase = 'idle', speechPose = {}, blocked = f
   const out = zero();
   if (blocked) return out;
   const w = Array.isArray(weights) ? Object.fromEntries(MIX_FAMILIES.map((family, i) => [family, weights[i] || 0])) : (weights || {});
-  const channel = key => softSum(MIX_FAMILIES.map(family => (FAMILY_POSES[family][key] || 0) * clamp(w[family] || 0)));
+  // Frowns and brows show a weight w as w^mixCurve of the pose; the smile stays linear (its evidence gates were
+  // tuned for that, and a curved smile turned weak, misread joy into visible smiles on sad or calm replies).
+  const curve = (value, key) => { const weight = clamp(value || 0); return weight > 0 && key !== 'up' ? weight ** EXPRESSION_POLICY.mixCurve : weight; };
+  const channel = key => softSum(MIX_FAMILIES.map(family => (FAMILY_POSES[family][key] || 0) * curve(w[family], key)));
   let up = channel('up'), dn = channel('dn'), rin = channel('in'), rout = channel('out'), low = channel('low');
   if (up > dn) { up -= .5 * dn; dn = 0; } else { dn -= .5 * up; up = 0; }
   const clash = Math.min(Math.max(rin, rout), low);

@@ -20,7 +20,9 @@ import {EMOTION_NAMES} from './natural-speech.mjs';
 export const EMOTION_FAMILY = Object.freeze({joy: 'joy', warm: 'trust', interest: 'anticipation', surprise: 'surprise',
   sadness: 'sadness', fear: 'fear', anger: 'anger', disgust: 'disgust', calm: null});
 // How strongly the family's full pose is shown. Subtle is the default; ":strong" is for a real outburst.
-export const MARK_WEIGHT = Object.freeze({subtle: .45, strong: .8});
+// October 9: .45/.8 were too timid in game (a subtle tag on Judy or Johnny, x .8 for a reserved manner, showed a
+// third of the pose); the selector also lets the phrase's own text raise the tagged feeling.
+export const MARK_WEIGHT = Object.freeze({subtle: .6, strong: 1});
 
 /** Emotion marks (from parseTagged) as `{at, family, weight}`, sorted, within [0, length), one per offset. */
 export function plannedMarks(marks, length = Infinity) {

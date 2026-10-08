@@ -228,11 +228,18 @@ export function selectEmotion({player = '', reply, profile, previous, convai, ma
     if (segment.contrast) { emphasis *= 1.18; tags.add('contrast'); }
     let feelings = {};
     for (const family of FAMILIES) {
-      const weight = clamp01(scores[family] * .85 * emphasis * manner.range);
+      // A reserved or cold manner also caps the strongest phrase (.8, .6), so strong text cannot saturate Johnny
+      // to Panam's level (both used to clamp at 1).
+      const weight = Math.min(clamp01(scores[family] * .85 * emphasis * manner.range), manner.range);
       if (weight >= .2) feelings[family] = weight;
     }
     const mark = placed.findLast(candidate => candidate.at <= segment.start);
-    if (mark) { feelings = mark.family ? {[mark.family]: clamp01(mark.weight * manner.range)} : {}; tags.add('llm-emotion'); }
+    // The tag picks the feeling; the phrase's own text can still make that same feeling stronger (October 9: one
+    // subtle tag used to hold a whole reply at one flat level, "Too late now" no sadder than "Every day").
+    if (mark) {
+      feelings = mark.family ? {[mark.family]: Math.max(clamp01(mark.weight * manner.range), feelings[mark.family] || 0)} : {};
+      tags.add('llm-emotion');
+    }
     // The reply's mood fills phrases with no feeling of their own and stays under weaker ones.
     const own = Math.max(0, ...Object.values(feelings));
     const weights = {};
