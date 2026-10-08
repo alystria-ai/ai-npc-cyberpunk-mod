@@ -63,7 +63,9 @@ function run(body) {
       encode=function(value) encodedSequence=encodedSequence+1; local key='encoded-'..encodedSequence; encoded[key]=clone(value); return key end}
     local allowedRead={['runtime/speech-fixture.json']=true,['runtime/last-input.json']=true,
       ['runtime/reply.json']=true,['runtime/microphone-command.json']=true,['runtime/microphone-state.json']=true,
-      ['face-test.lua']=true}
+      ['face-test.lua']=true,
+      -- speech.start reads the bridge's Lip sync delay once per utterance (bounded, read only).
+      ['runtime/audio-delay.json']=true}
     local allowedWrite={['runtime/speech-fixture-result.json']=true,['runtime/speech-state.json']=true}
     io.open=function(path,mode)
       access[#access+1]={path=path,mode=mode}
