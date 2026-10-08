@@ -203,6 +203,26 @@ Still open for companion movement: from a spot where every follow route is
 refused at stage `path`, nothing moves her (detours exhausted, unstick only
 fires on `origin`/`motion`).
 
+## Live run 6 (October 8, 21:02Z): she gave up in the dead zone
+
+4.37 m out, walk tries 1-3 refused, `seat-closing` at 21:02:35, but in the
+movement dead zone by the couch every follow route is refused too, so closing
+in made no progress and `seat-abandoned` came at 21:02:47. Fixed with the
+lift's out-of-view placement:
+
+- **Closing in that stalls** (no 0.3 m of progress toward the seat in 3 s)
+  goes to phase `placing` (body held): the target is the pre-checked walk-up
+  point nearest the seat (else a room-check fallback, else a fresh point with
+  floor).
+- **Placed out of view:** at 2 Hz, only while waiting, the lift's check: V's
+  camera more than 60° off both her and the spot, or a blocked line from V's
+  eyes (1.6 m) to her chest (1.2 m). Then an AI teleport onto the spot, facing
+  the seat; after 0.8 s the usual stop, slide and sit. Probe lines
+  `seat-placing`, `seat-placed`.
+- **V keeps looking:** after 10 s, the short slide from where she stands when
+  within 3 m (`seat-placing-slide`); farther away she keeps waiting.
+- **Never gives up while V stays seated** (the close-in timeout is gone).
+
 ## Mechanism
 
 `convai_gestures.archive` now also carries four components on the gesture
@@ -323,7 +343,7 @@ companions update until it errors.
 classification by name and by furniture (the probed apartment couch), seat finding on couches/stools/armrests, the full sit and stand
 flow, V getting up, combat (instant), several companions on different seats, no
 seat, wall / occupied / table-in-front, vehicles and unsupported workspots, an old archive, a refused walk near and far, transport/unobserved
-release, a walk the actuator never takes, the PSM settle and stand-up, the live apartment run (every walk-up refused 2 m out, slide after V looks away), the bounded wait, the step out after standing (arrival spot, teleport after a stuck step, a spot without room skipped), three companions on a two-seat couch, the walk-up pre-check (no refusals), a far refusal followed directly by the next walk, the 20:47Z replay (1 good / 9 no room, every walk refused, ends seated), the close-in timeout, no step while the workspot is busy, the most open stand spot, the fast combat exit, and the standing cost (≤ 4 reads a second, no rays). 31 tests.
+release, a walk the actuator never takes, the PSM settle and stand-up, the live apartment run (every walk-up refused 2 m out, slide after V looks away), the bounded wait, the step out after standing (arrival spot, teleport after a stuck step, a spot without room skipped), three companions on a two-seat couch, the walk-up pre-check (no refusals), a far refusal followed directly by the next walk, the 20:47Z replay (1 good / 9 no room, every walk refused, ends seated), the close-in timeout, no step while the workspot is busy, the most open stand spot, the fast combat exit, the 21:02Z replay (refusals, no progress closing in, placed out of view, seated), the never-give-up wait, the 10 s slide, and the standing cost (≤ 4 reads a second, no rays). 33 tests.
 
 ## To check in game
 

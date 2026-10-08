@@ -98,6 +98,7 @@ function native.bodyClear(spot,shape) calls[#calls+1]={name='bodyClear'}
   for _,n in ipairs(world.noRoom) do if math.abs(spot.x-n.x)<.3 and math.abs(spot.y-n.y)<.3 then return false end end
   return true end
 function native.lookingAt(player,point,cone) calls[#calls+1]={name='lookingAt'};return watching end
+function native.hiddenFrom(player,point,cone) calls[#calls+1]={name='hiddenFrom'};return not watching end
 local catalog={device='dev.ent',seatComponents={couch='convai_sit_couch',chair='convai_sit_chair',bar='convai_sit_bar',stool='convai_sit_stool'}}
 local c
 local function build(options)
@@ -529,13 +530,14 @@ test('replay 20:47Z: 3.9 m out, 1 good / 9 no room, every walk refused: fallback
   assert(not lastLog('seat-abandoned'))
 `));
 
-test('closing in that never gets near the seat gives up only after the close timeout', () => run(`
-  couch(-.35,1.7);party={companion(1,3.8,3.8)}
+test('closing in that makes no progress places her out of view; with V seated she never gives up', () => run(`
+  couch(-.35,1.7);party={companion(1,3.8,3.8)};watching=true
   sitV();step(1.5,{walk=false,refuse=true})
-  step(6,{walk=false,refuse=true})
-  assert(lastLog('seat-closing') and not lastLog('seat-abandoned'),'still trying after several seconds')
-  step(12,{walk=false,refuse=true})
-  assert(lastLog('seat-abandoned') and count('play')==0,'gave up after a real effort')
+  step(8,{walk=false,refuse=true})
+  assert(lastLog('seat-closing') and lastLog('seat-placing'),'stall goes to placement')
+  step(20,{walk=false,refuse=true})
+  assert(not lastLog('seat-abandoned') and count('play')==0 and count('teleport')==0,'4.9 m out and watched: keeps waiting, no slide, no give-up')
+  assert(count('hiddenFrom')<=2*33+4,'the look check runs at 2 Hz at most: '..count('hiddenFrom'))
 `));
 
 // October 8 20:54Z: IsActorInWorkspot went false as the exit started; the step
@@ -567,4 +569,32 @@ test('a fight stands her up and out of the seat at once', () => run(`
   sitV();step(2)
   combat=true;step(.6)
   assert(count('exit')==1 and last('exit').instant and count('stepOut')==1,'out within half a second')
+`));
+
+// October 8 21:02Z: 4.37 m out, walk tries 1-3 refused, closing in (from
+// 21:02:35) made no progress in the dead zone, seat-abandoned at 21:02:47.
+test('replay 21:02Z: 4.37 m, three refusals, no progress closing in; placed once V looks away, then seated', () => run(`
+  world.boxes={{x1=-1.1,x2=.3,y1=-.75,y2=-.15,h=.44},{x1=-1.1,x2=.3,y1=-.95,y2=-.75,h=.63},
+    {x1=-2.2,x2=-1.1,y1=-.75,y2=.6,h=.58}}
+  party={companion(1,1.82,3.6)}
+  local d0=math.sqrt((1.82+.66)^2+3.6^2);assert(math.abs(d0-4.37)<.05,d0)
+  watching=true
+  seat.inside,seat.psm=true,0;step(.6);seat.psm=1
+  step(9,{walk=false,refuse=true})
+  local refused=0;for _,l in ipairs(logs) do if l.kind=='seat-walk-refused' then refused=refused+1 end end
+  assert(refused>=1 and lastLog('seat-closing') and lastLog('seat-placing'),'refusals, closing, then placement')
+  assert(count('teleport')==0,'not while V looks')
+  watching=false;step(.6,{walk=false,refuse=true})
+  local placed=lastLog('seat-placed');assert(placed,'placed once out of view')
+  local t=last('teleport');assert(t and math.sqrt((t.x+.66)^2+t.y^2)<1.5,'on a walk-up point by the seat')
+  step(2.5,{walk=false,refuse=true})
+  assert(count('play')==1 and held[1]==true and last('play').component=='convai_sit_couch','seated')
+  assert(not lastLog('seat-abandoned'))
+`));
+
+test('placement waited 10 s while V looked: the short slide from within 3 m', () => run(`
+  couch(-.35,1.7);party={companion(1,1.9,2.3)};watching=true
+  sitV();step(1.5,{walk=false,refuse=true})
+  step(18,{walk=false,refuse=true})
+  assert(count('teleport')==0 and count('play')==1 and lastLog('seat-placing-slide'),'slid after the long wait')
 `));

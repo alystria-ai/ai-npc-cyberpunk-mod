@@ -42,7 +42,16 @@ M.policy = {
     precheckPerUpdate = 3, -- walk-up points checked per update before she starts walking
     precheckUpdates = 6,
     fallbackBelow = 3,     -- fewer good points than this: walk-up points that only failed the room check join as fallbacks
-    closeTimeout = 12,     -- out of walk-ups: follow V normally this long to come within refusedSlide of the seat
+    closeTimeout = 12,     -- (kept for the half-way slide reach below)
+    -- Live run 2026-10-08 21:02Z: in the movement dead zone by the couch every
+    -- walk and every follow route was refused, and she gave up. Placement out
+    -- of view (the lift's pattern): when closing in stalls, she is put on the
+    -- best walk-up point the moment V's camera is off her and the spot.
+    closeStall = 3,        -- closing in without closeProgress for this long: place her
+    closeProgress = .3,
+    lookEvery = .5,        -- the "is V looking" check, only while placement waits
+    viewCone = 60,         -- degrees off the camera (the lift's field of view)
+    placeLongWait = 10,    -- V looking this long: the short slide when within slideReach
     lineHeights = {.5, 1.2}, -- a straight line from her to the walk-up point at these heights
     slideReach = 3.0,      -- out of walk-up points this close to the seat: slide in
     blendWait = 3,         -- a long slide waits this long for V to look away
@@ -88,7 +97,7 @@ M.kinds = {
         approach = -1, back = .05, span = 1.6},
 }
 
-local HOLDING = {entering = true, seated = true, exiting = true, leaving = true, standing = true}
+local HOLDING = {entering = true, seated = true, exiting = true, leaving = true, standing = true, placing = true}
 
 local function flat(a, b) return math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2) end
 local function copy(p) return p and {x = p.x, y = p.y, z = p.z} end
@@ -439,6 +448,19 @@ function native.openness(spot, toward, forward, reach, heights)
     end
     return open
 end
+function native.hiddenFrom(player, point, cone)
+    local ok, hidden = pcall(function()
+        local okView, _, view = pcall(function() return Game.GetTargetingSystem():GetCrosshairData(player) end)
+        local f = okView and view or player:GetWorldForward()
+        local at = player:GetWorldPosition()
+        local bx, by = point.x - at.x, point.y - at.y
+        local fl, bl = math.sqrt(f.x * f.x + f.y * f.y), math.sqrt(bx * bx + by * by)
+        if fl > 1e-3 and bl > 1e-3 and (f.x * bx + f.y * by) / (fl * bl) < math.cos(math.rad(cone)) then return true end
+        -- In the cone: hidden only behind geometry (V's eyes to her chest).
+        return native.blocked({x = at.x, y = at.y, z = at.z + 1.6}, {x = point.x, y = point.y, z = point.z + 1.2})
+    end)
+    return ok and hidden == true -- unknown is not hidden
+end
 function native.inCombat(npc)
     local ok, value = pcall(function() return NPCPuppet.IsInCombat(npc) end)
     return ok and value == true
@@ -492,7 +514,7 @@ function M.new(options)
     end
     local function requestExit(s, reason, instant)
         if s.phase == 'approach' or s.phase == 'settling' or s.phase == 'blending' or s.phase == 'choosing'
-            or s.phase == 'closing' then release(s, reason); return end
+            or s.phase == 'closing' or s.phase == 'placing' then release(s, reason); return end
         if s.phase == 'entering' and not s.playedAt then release(s, reason); return end
         if (s.phase == 'standing' or s.phase == 'leaving') and (reason == 'transport' or reason == 'unobserved') then
             release(s, reason); return
@@ -631,7 +653,7 @@ function M.new(options)
         return seat.checked
     end
 
-    local slideOrWait, startWalk
+    local slideOrWait, startWalk, beginPlacing
     local function nextTicket(s)
         s.tickets = s.tickets + 1
         return 'seat:' .. tostring(s.serial) .. ':' .. tostring(s.tickets)
@@ -724,15 +746,14 @@ function M.new(options)
         local reach = s.closingSince and self.clock - s.closingSince > policy.closeTimeout / 2
             and policy.slideReach or policy.refusedSlide
         if toSeat > reach and s.phase ~= 'blending' then
-            if s.closingSince and self.clock - s.closingSince > policy.closeTimeout then
-                s.cooldownUntil = self.clock + policy.failureCooldown
-                release(s, 'route failed'); return nil
-            end
             -- Her normal following brings her near V; no decision of ours.
             if s.phase ~= 'closing' then
                 s.phase, s.closingSince = 'closing', s.closingSince or self.clock
+                s.closeBest, s.closeBestAt = toSeat, self.clock
                 note('seat-closing', {serial = s.serial, toSeat = toSeat, tries = s.tries})
             end
+            if toSeat < s.closeBest - policy.closeProgress then s.closeBest, s.closeBestAt = toSeat, self.clock end
+            if self.clock - s.closeBestAt >= policy.closeStall then return beginPlacing(s, entry) end
             return nil
         end
         s.phase = 'blending'
@@ -743,6 +764,55 @@ function M.new(options)
             return holdDecision(s, 'Wait for V to look away')
         end
         return arrive(s, toSeat, true, entry)
+    end
+
+    -- Where to place her: a pre-checked walk-up point (navmesh and room), else
+    -- one that failed only the room check, else fresh points with floor;
+    -- nearest to the seat first.
+    local function placeSpot(s, entry)
+        local list = {}
+        for _, p in ipairs(s.good or {}) do list[#list + 1] = p end
+        for _, p in ipairs(s.fallback or {}) do list[#list + 1] = p end
+        if #list == 0 then
+            for _, p in ipairs(M.approachPoints(s.seat.root, s.forwardCopy, s.profileCopy, s.anchorCopy, s.seat.root, policy)) do
+                local z = nat.surface(p.x, p.y, s.anchorCopy.z + 1.2, s.anchorCopy.z - .6, true)
+                local h = z and z - s.anchorCopy.z
+                if h and h >= policy.floorBand[1] and h <= policy.floorBand[2] then list[#list + 1] = {x = p.x, y = p.y, z = z} end
+                if #list >= 4 then break end
+            end
+        end
+        table.sort(list, function(a, b) return flat(a, s.seat.root) < flat(b, s.seat.root) end)
+        return list[1]
+    end
+    function beginPlacing(s, entry)
+        s.phase, s.placingSince, s.lookCheckAt, s.placedAt = 'placing', self.clock, 0, nil
+        s.placeSpotPoint = placeSpot(s, entry)
+        note('seat-placing', {serial = s.serial, spot = s.placeSpotPoint,
+            toSeat = entry.position and flat(entry.position, s.seat.root)})
+        return holdDecision(s, 'Wait for V to look away')
+    end
+    local function yawToward(from, to) return math.deg((math.atan2 or math.atan)(-(to.x - from.x), to.y - from.y)) end
+    local function placing(s, entry)
+        local toSeat = entry.position and flat(entry.position, s.seat.root) or math.huge
+        if s.placedAt then
+            if self.clock - s.placedAt >= policy.standSettle then return arrive(s, toSeat, false, entry) end
+            return holdDecision(s, 'Placed at the seat')
+        end
+        local waited = self.clock - s.placingSince
+        if waited >= policy.placeLongWait and toSeat <= policy.slideReach then
+            note('seat-placing-slide', {serial = s.serial, toSeat = toSeat})
+            return arrive(s, toSeat, true, entry)
+        end
+        if self.clock < s.lookCheckAt then return holdDecision(s, 'Wait for V to look away') end
+        s.lookCheckAt = self.clock + policy.lookEvery
+        local spot = s.placeSpotPoint
+        if spot and entry.position and nat.hiddenFrom(self.player, entry.position, policy.viewCone)
+            and nat.hiddenFrom(self.player, spot, policy.viewCone) then
+            local sent = nat.teleport(entry, spot, yawToward(spot, s.seat.root))
+            s.placedAt, s.seat.approach = self.clock, {x = spot.x, y = spot.y, z = spot.z}
+            note('seat-placed', {serial = s.serial, spot = spot, sent = sent == true, waited = waited})
+        end
+        return holdDecision(s, 'Wait for V to look away')
     end
 
     -- After (or during) the pre-check: walk to the best point, or slide in when
@@ -982,6 +1052,11 @@ function M.new(options)
                 return slideOrWait(s, entry)
             end
             return {phase = 'seat-approach', reason = 'Walk to a seat beside V', operation = s.op, look = 'none'}
+        end
+        if s.phase == 'placing' then
+            if not session or session.id ~= s.session then release(s, 'V stood up'); return nil end
+            if context.combat then release(s, 'combat'); return nil end
+            return placing(s, entry)
         end
         if s.phase == 'closing' then
             if not session or session.id ~= s.session then release(s, 'V stood up'); return nil end
