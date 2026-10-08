@@ -708,6 +708,11 @@ test('Back joins the bottom button row, the status line moves to the top left, a
       function w:SetWidth(v) self.width = v end
       function w:SetWrapping(on, at) self.wrap = {on, at} end
       function w:GetParentWidget() return self.parent end
+      function w:Reparent(parent)
+        local old = self.parent
+        if old then for i, c in ipairs(old.children) do if c == self then table.remove(old.children, i) break end end end
+        self.parent = parent; parent.children[#parent.children + 1] = self
+      end
       return w
     end
     local entries = {widget('mcm_action_a', 20, 0, 300, 42), widget('mcm_action_b', 20, 42, 300, 42), widget('mcm_action_c', 20, 84, 300, 42)}
@@ -721,6 +726,7 @@ test('Back joins the bottom button row, the status line moves to the top left, a
     local render = widget('MCMRenderRoot', 0, 0, 1920, 1080, {subtitle, status, scroller,
       widget('mcm_content_scroll_content', 100, 200, 800, 700), revert, apply})
     scroller.parent = render
+    status.parent = render
     local root = widget('root', 0, 0, 1920, 1080, {render})
     function controller:GetRootWidget() return root end
     controller.McmUiGetLayoutMetric = function(_, metric) return ({[13] = 320, [20] = 100, [23] = 800, [27] = 1000, [28] = 900})[metric] or -1 end
@@ -738,7 +744,8 @@ test('Back joins the bottom button row, the status line moves to the top left, a
     assert(revert.margin.left == 300 - 160 and apply.margin.left == 460 - 160 and apply.margin.top == 1000,
       'the other buttons were not made room for')
     -- The status line sits in the sidebar, below the last mod entry, wrapped to the list width.
-    assert(status.margin.left == 40 + 0 + 20 and status.margin.top == 200 + 0 + 126 + 12, 'status line not placed: ' .. status.margin.left .. ',' .. status.margin.top)
+    assert(status.parent == list and status.margin.left == 20 and status.margin.top == 126 + 14,
+      'status line not placed just below the last entry: ' .. status.margin.left .. ',' .. status.margin.top)
     assert(status.width == 320 and status.wrap and status.wrap[1] == true and status.wrap[2] == 320, 'status line not wrapped to the column')
     mcm.update(player, false); mcm.update(player, false)
     assert(#bottomActions == 1, 'Back was added again within one render')
@@ -757,7 +764,8 @@ test('Back joins the bottom button row, the status line moves to the top left, a
     -- Leaving our page restores a status widget that survives.
     status.margin.left, status.margin.top = 60, 68
     handlers.McmUiSetContentTitle(controller, 'Other Mod'); mcm.update(player, false)
-    assert(status.margin.top == 1040 and status.height == 30 and status.width == 900, 'the status line was left in the sidebar')
+    assert(status.parent == render and status.margin.top == 1040 and status.height == 30 and status.width == 900,
+      'the status line was left in the sidebar')
     -- If the row cannot take the button, Back is the last row of the page instead.
     assert(invoke('tab:party').ok)
     controller.McmUiAddBottomActionAt = function() error('no bottom row') end
@@ -767,6 +775,47 @@ test('Back joins the bottom button row, the status line moves to the top left, a
     loaded = registered.loadMod('manager')
     local last = loaded.categories[#loaded.categories].settings
     assert(last[#last].id == 'party:back' and last[#last].value == 'Back', 'no Back row at the end of the page')
+  `);
+});
+
+test('Esc on a sub-page goes back to its parent, Esc on Home closes, and Home has no duplicate section header', () => {
+  run(`${mcmFixture}
+    CName = {new = function(value) return value end}
+    IsDefined = function(value) return value ~= nil end
+    local clock, closed = 900, 0
+    os.clock = function() return clock end
+    controller.McmUiEmitClosing = function() end
+    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+    local function esc() return handlers.OnBack(controller, function() closed = closed + 1; return false end) end
+    -- Home: the section header is blank, the page title already names the manager.
+    loaded = registered.loadMod('manager')
+    assert(loaded.categories[1].name == ' ' and #loaded.categories == 1, 'Home still repeats the manager name')
+    assert(esc() == false and closed == 1, 'Esc on Home must close Settings')
+    for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do
+      assert(invoke('tab:' .. name).ok)
+      clock = clock + 1
+      assert(esc() == true and closed == 1, name .. ': Esc closed Settings instead of going back')
+      assert(mcm.inspect().view == 'home', name .. ': Esc did not return to Home')
+      loaded = registered.loadMod('manager')
+    end
+    -- A second page level: Esc returns to the parent, not to Home.
+    assert(invoke('tab:settings').ok and invoke('memory').ok)
+    clock = clock + 1; assert(esc() == true and mcm.inspect().view == 'settings')
+    loaded = registered.loadMod('manager')
+    clock = clock + 1; assert(esc() == true and mcm.inspect().view == 'home')
+    loaded = registered.loadMod('manager')
+    -- A repeated event for the same key does not go back twice, nor close from Home.
+    assert(invoke('tab:party').ok); clock = clock + 1
+    assert(esc() == true and mcm.inspect().view == 'home')
+    loaded = registered.loadMod('manager')
+    assert(esc() == true and closed == 1, 'a repeated event closed Settings')
+    clock = clock + 1
+    assert(esc() == false and closed == 2, 'Esc on Home no longer closes')
+    -- Unapplied changes keep the dialog instead of going back.
+    clock = clock + 5; loaded = registered.loadMod('manager')
+    assert(invoke('tab:settings').ok); drafts = true; clock = clock + 5
+    local before = closed
+    assert(esc() == true and mcm.inspect().view == 'settings' and closed == before, 'pending changes were ignored')
   `);
 });
 

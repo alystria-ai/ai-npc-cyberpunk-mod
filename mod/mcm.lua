@@ -24,6 +24,7 @@ local localeRevision = -1
 -- prompt when leaving, and the close guard. A person's Apply comes much later.
 local AUTO_APPLY_WINDOW = 0.25
 local lastDraftEventAt = -1000
+local lastBackAt = -1000
 -- The Companion voices list (menu order) lives with the draft preview: Pocket TTS, OmniVoice 16/32 steps with a
 -- short or long reference, Convai cloud voice.
 local voicePreviewModule = dofile('voice-preview.lua')
@@ -436,6 +437,7 @@ local function restoreStatusLine()
             local margin = original.widget:GetMargin()
             margin.left, margin.top = original.left, original.top
             original.widget:SetMargin(margin)
+            if original.parent then pcall(function() original.widget:Reparent(original.parent, -1) end) end
             if original.width then original.widget:SetWidth(original.width) end
             if original.height then original.widget:SetHeight(original.height) end
         end)
@@ -462,31 +464,40 @@ local function placeStatusLine()
             entryLeft = entryLeft or margin.left
             bottom = math.max(bottom, margin.top + entry:GetHeight())
         end
-        local node, depth = list, 0
-        while node and node ~= render and depth < 10 do
-            local margin = node:GetMargin()
-            left, top = left + margin.left, top + margin.top
-            local parent = node:GetParentWidget()
-            if not parent then break end
-            node, depth = parent, depth + 1
-        end
-        left = left + (entryLeft or 0)
+        local status = presentation.statusWidget
         local width = list:GetWidth() - (entryLeft or 0)
         local inner = presentation.controller:McmUiGetLayoutMetric(13)
         if type(inner) == 'number' and inner > 0 then width = math.min(width, inner) end
-        local status = presentation.statusWidget
         local margin = status:GetMargin()
         -- Keep the first recorded place: a widget that survives a render is already moved.
         statusOriginal = statusOriginal or {widget = status, left = margin.left, top = margin.top,
-            width = status:GetWidth(), height = status:GetHeight()}
-        margin.left, margin.top = left, top + bottom + 12
+            width = status:GetWidth(), height = status:GetHeight(), parent = status:GetParentWidget()}
+        -- Placing it inside the list itself needs no container offsets: its place is
+        -- the list's own coordinates, just below the last entry.
+        local mode = 'list'
+        local moved = pcall(function() status:Reparent(list, -1) end)
+        if moved then
+            margin.left, margin.top = entryLeft or 0, bottom + 14
+        else
+            -- Fall back to render coordinates: add the offsets of the list's containers.
+            mode = 'render'
+            local left, top, node, depth = 0, 0, list, 0
+            while node and node ~= render and depth < 10 do
+                local nodeMargin = node:GetMargin()
+                left, top = left + nodeMargin.left, top + nodeMargin.top
+                local parent = node:GetParentWidget()
+                if not parent then break end
+                node, depth = parent, depth + 1
+            end
+            margin.left, margin.top = left + (entryLeft or 0), top + bottom + 14
+        end
         status:SetMargin(margin)
         status:SetWidth(math.max(120, width))
         status:SetHeight(160)
         -- Wrap inside the column and let the text grow downward.
         local wrapped = pcall(function() status:SetWrapping(true, math.max(120, width), textWrappingPolicy.Default) end)
         if not wrapped then pcall(function() status.wrapping, status.wrappingAtPosition = true, math.max(120, width) end) end
-        log('Probe: status line moved to x=' .. tostring(margin.left) .. ' y=' .. tostring(margin.top)
+        log('Probe: status line moved (' .. mode .. ') to x=' .. tostring(margin.left) .. ' y=' .. tostring(margin.top)
             .. ' width=' .. tostring(width) .. ' (list bottom ' .. tostring(bottom) .. ', ' .. count .. ' entries)')
     end)
     if not ok then log('Status line could not be moved: ' .. tostring(err)) end
@@ -571,7 +582,9 @@ local function schema()
             rows[#rows + 1] = action('tab:' .. tab[1], tab[2], 'Open', description,
                 function(context) return navigate(tab[1], context) end)
         end
-        categories[#categories + 1] = category('navigation', 'Companion Manager', rows)
+        -- The page title already says Companion Manager: the section header is blank (a
+        -- single space; an empty name would fall back to the category id).
+        categories[#categories + 1] = category('navigation', ' ', rows)
     elseif view == 'characters' then
         for _, profile in ipairs(snapshot.profiles) do
             local key = profile.key
@@ -1228,6 +1241,20 @@ function M.install()
             probe('OnBack held (drafts pending)')
             if now - ask.at > 2 and not modalOpen(controller) then askBeforeLeaving(controller, 'OnBack') end
             return true
+        end
+        -- On a sub-page, Esc goes back to its parent; on Home it closes Settings. A
+        -- repeated event for the same key, right after going back, is swallowed so it
+        -- cannot go on to close Settings from Home.
+        if presentation.active and ownsPresentation(controller) and not modalOpen(controller) then
+            local now = os.clock()
+            if now - lastBackAt <= 0.4 then return true end
+            if view ~= 'home' and currentBack then
+                lastBackAt = now
+                probe('OnBack: back to the parent page from ' .. tostring(view))
+                currentBack.callback({interaction = {controller = controller}})
+                refreshQueued = true
+                return true
+            end
         end
         return original(table.unpack(args, 1, args.n - 1))
     end)
