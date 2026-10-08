@@ -550,3 +550,74 @@ navmesh:
 - the apartment case of a refused move beside a still V.
 
 All but the left-behind case fail against the previous code.
+
+### Second live test (2026-10-08 08:50-08:52Z): walk in, ride, walk out
+
+With `88f3eeb` installed, the user saw her teleport instead of walking in, and
+again at the exit. Here is what the probe.log and movement trace showed:
+
+- **Boarding:** V walked straight into the car and stopped. One second later
+  Judy was still 6-7 m back at (-1600.4, 366.0), her follow refused at
+  `projection`. That was beyond the 5 m straight-walk limit, so the code
+  teleported her into the car at once, in view (`relocated`, rule `lift-board`,
+  `how` `car`, gap 7, at 08:50:32 and 08:51:04). No walk was ever tried.
+- **First exit:** V stepped out at 08:50:38. While V passed the doorway, the
+  lift flag still read "inside", so V's trail had no point there, and no
+  exit walk was found. She stood blocked in the car until the 12 s no-route
+  rule teleported her out, in view (08:50:52).
+- **Ride:** at 08:51:39 the car departed with her beside V. V went from
+  49.2 m to 8.2 m in 11 s, at up to about 10 m/s. **The car does not carry an
+  NPC:** she stayed at z 49.2 (`lift-arrived` rise 41). At arrival she was
+  teleported beside V into the car, in view.
+- **Second exit:** the straight walk with `ignoreNavigation` **works in the
+  engine**. From 08:51:52 she walked 2.5 m out of the car (`board/boarding`),
+  then followed V normally.
+- **Leave agent's trace (14:23Z):** a companion touching a prop had 38 goals
+  refused in about 6 s at the `origin` stage. Her navmesh projection lies
+  0.35-0.65 m above her feet, so every route starts inside the prop. The
+  apartment `motion` refusal at her own feet is the same pattern.
+
+The fixes:
+
+- **Walking in:** the straight walk now runs from up to 10 m away, at Run gait
+  beyond 3 m. If the straight sweep is blocked, she first walks on the navmesh
+  to the doorway V used (V's last foothold before the car, within 15 m), then
+  takes the straight leg in. A leg that gains no 0.3 m in 2.5 s, or runs past
+  its time, has failed.
+- **Never in view:** a failed walk waits up to 12 s for both her position and
+  the car spot to be out of V's view, checked twice a second, and only then
+  teleports (`how` `unseen`). The navmesh `lift-board` placement accepts
+  out-of-view spots only. A lift arrival may place her in view only after 12 s
+  (was immediately for a copy that had stood in the car).
+- **Riding:** whoever stands in the car with V when it departs is a rider: she
+  boarded this visit, is on the straight leg near the spot, or stands within
+  1.6 m of where V stood. Her offset from V is kept. `companions.carry` moves
+  each rider with V every frame through `TeleportationFacility:Teleport`. It
+  runs only while the car moves, and is capped at 90 s. `init.lua` calls it
+  only while `companions.riders` is set, so outside a ride it costs one field
+  check per frame. If the transform does not hold, the arrival places her back
+  in the car only when V cannot see it. Otherwise she appears out of view
+  after V steps out.
+- **Walking out:** she leaves once V has stepped out, or once V stands more
+  than 3.5 m from her while still "inside". The straight legs tried, in order,
+  are V's newest foothold within 8 m on her floor, the doorway V used, then up
+  to 3 m toward V. Each leg is swept first.
+- **Touching a prop** (`companion-actuator.lua`, `unstick`): two stance
+  refusals within 4 s, or one that has held her blocked for 1.5 s, start a
+  search. A stance refusal is an `origin` refusal, or a `motion` refusal whose
+  first box is within 0.7 m of her feet. The search covers 16 spots 0.35 or
+  0.6 m away, starting away from the touching box. A spot qualifies with
+  walkable ground within 0.3 m at her height and room for her body. At most
+  3 spots are checked per update, through the shared budget. She takes a short
+  straight step there, and the next decision plans afresh. This is never a
+  teleport, at most every 4 s and three times in 30 s.
+
+New probe kinds: `lift-board-walk-failed` and `lift-exit-failed`
+(`no-clear-exit`, `walk-stalled`). `lift-boarding` now carries `how`
+(`walk`, `door-then-walk` or `unseen-teleport`) and `swept`.
+
+The tests changed: in-car placement and the failed walk now wait until V looks
+away. New tests: a moving car carries her with V (per-frame carry) and she
+walks out after V; the car leaving without her shows nothing in view and she
+appears out of view after V steps out; a companion touching a prop steps clear
+and follows (this one fails without `unstick`).

@@ -179,7 +179,7 @@ test('no teleport happens during a lift ride; the left-behind follower rejoins a
   assert(logged('relocated','lift-arrival'),'the relocation was not logged as a lift arrival')
 `));
 
-test('a follower standing in the car with V is brought along at arrival even in view',()=>run(world+`
+test('a follower standing in the car with V is brought along at arrival',()=>run(world+`
   for i=1,6 do player.pos=Vector4.new(0,i,0); play(1) end
   lift.inside=true; npc.pos=Vector4.new(.8,6,0); play(2)
   lift.moving=true
@@ -201,12 +201,15 @@ test('a follower the car carried along is not teleported',()=>run(world+`
   assert(#teleports==0,'a companion who rode along was teleported')
 `));
 
-test('V waiting in a stopped car pulls a blocked follower into the car',()=>run(world+`
+test('V waiting in a stopped car pulls a blocked follower into the car, never in view',()=>run(world+`
   local front=door(3,{locked=true})
   for i=1,10 do player.pos=Vector4.new(0,i,0); play(1) end
   lift.inside=true
-  player.forward=Vector4.new(0,-1) -- V faces the car doors, back toward her
+  player.forward=Vector4.new(0,-1) -- V faces the car doors, toward her
   play(8)
+  assert(#teleports==0,'she was teleported into the car in front of V'..dump())
+  player.forward=Vector4.new(0,1) -- V turns to the back wall
+  play(4)
   assert(#teleports>=1,'V waited in the car while the follower stayed outside'..dump())
   local item=teleports[1]
   assert(math.sqrt((item.spot.x-player.pos.x)^2+(item.spot.y-player.pos.y)^2)<=1.9,'she was not placed in the car beside V')
@@ -362,22 +365,93 @@ test('a walk into the car the engine does not perform ends in a teleport into th
   end
   enterCar()
   play(16)
+  assert(logged('lift-board-walk-failed'),'the refused walk was not noticed'..dump())
+  assert(#teleports==0,'she was teleported into the car while V watched the doors'..dump())
+  player.forward=Vector4.new(0,1) -- V turns away
+  play(4)
   assert(#teleports>=1,'the follower stayed outside the car'..dump())
   local spot=teleports[#teleports].spot
   assert(inCar(spot.x,spot.y),'she was not placed in the car')
   assert(logged('relocated','lift-board'),'no probe line for the teleport into the car')
 `));
 
-test('the car leaves without her: she is back beside V in the car at arrival',()=>run(world+car+`
+test('a moving car carries her along with V, then she walks out after V',()=>run(world+car+`
+  -- Live 2026-10-08 08:51Z: the car does not carry an NPC; M.carry moves her.
+  local carried=0
+  Game.GetTeleportationFacility=function() return {Teleport=function(_,who,at) carried=carried+1; who.pos=at end} end
+  enterCar(); play(10)
+  assert(logged('lift-boarded'),'she never boarded'..dump())
+  local offset={x=npc.pos.x-player.pos.x,y=npc.pos.y-player.pos.y}
+  lift.moving=true
+  for i=1,40 do
+    player.pos=Vector4.new(0,8,i); play(1)
+    if companions.riders then companions.carry(player) end
+  end
+  assert(carried>=30,'she was not carried with V ('..carried..' moves)'..dump())
+  assert(math.abs(npc.pos.z-40)<.2 and math.abs(npc.pos.x-player.pos.x-offset.x)<.05,'she did not keep her place beside V: '
+    ..npc.pos.x..','..npc.pos.y..','..npc.pos.z..' offset '..offset.x..','..offset.y)
+  lift.moving=false; play(2)
+  assert(not companions.riders,'still carried after the car stopped')
+  lift.inside=false
+  for i=1,5 do player.pos=Vector4.new(0,7-i*.8,40); player.forward=Vector4.new(0,-1); play(1) end
+  play(10)
+  assert(#teleports==0,'an AI teleport was used during the ride'..dump())
+  assert(not inCar(npc.pos.x,npc.pos.y),'she stayed in the car after V stepped out'..dump())
+`));
+
+test('the car leaves without her: never in view; she appears out of view once V steps out',()=>run(world+car+`
   enterCar(); play(10)
   assert(logged('lift-boarded'),'she never boarded'..dump())
   lift.moving=true
   for i=1,10 do player.pos=Vector4.new(0,8,i*4); play(1) end
   assert(#teleports==0,'teleported during the ride')
   lift.moving=false; play(3)
+  assert(#teleports==0,'she popped into the car in front of V'..dump())
+  lift.inside=false
+  for i=1,4 do player.pos=Vector4.new(0,7-i,40); player.forward=Vector4.new(0,-1); play(1) end
+  play(4)
   assert(#teleports>=1,'she stayed on the old floor'..dump())
-  local spot=teleports[1].spot
-  assert(math.abs(spot.z-40)<.5 and inCar(spot.x,spot.y),'she was not placed in the car on the new floor')
+  local item=teleports[1]
+  assert(math.abs(item.spot.z-40)<1,'not placed on the new floor')
+  local space=dofile('companion-space.lua')
+  assert(space.angle({x=0,y=-1},space.bearing(item.from,item.spot))>60,'she appeared in front of V')
+`));
+
+test('a companion touching a prop steps clear and then follows instead of being refused forever',()=>run(world+`
+  -- Live 2026-10-08 14:23Z: 38 goals refused in 6 s at the 'origin' stage.
+  play(2)
+  local prop=Vector4.new(npc.pos.x+.15,npc.pos.y,npc.pos.z)
+  local start=Vector4.new(npc.pos.x,npc.pos.y,npc.pos.z)
+  Game.GetSpatialQueriesSystem=function() return {
+    Overlap=function(_,extents,center,rotation)
+      -- The prop is solid where it stands: a box over that point is a hit.
+      local yaw=math.rad(rotation and rotation.yaw or 0)
+      local fx,fy=-math.sin(yaw),math.cos(yaw)
+      local px,py=prop.x-center.x,prop.y-center.y
+      return math.abs(px*fx+py*fy)<extents.y and math.abs(px*fy-py*fx)<extents.x,{}
+    end,
+    SyncRaycastByCollisionGroup=function() return false end} end
+  -- She stands a little below the navmesh there: every route starts with the
+  -- native origin projection straight up through the prop.
+  navigation.CalculatePathForCharacter=function(self,from,to,...)
+    if math.sqrt((from.x-start.x)^2+(from.y-start.y)^2)<.1 then
+      return {path={Vector4.new(from.x,from.y,from.z+.5),to},CalculateLength=function()
+        return math.sqrt((to.x-from.x)^2+(to.y-from.y)^2)+.5 end}
+    end
+    return calculate(self,from,to,...)
+  end
+  player.pos=Vector4.new(start.x-1,start.y+6,0); play(2)
+  player.pos=Vector4.new(start.x-1,start.y+7,0); play(16)
+  local stepped
+  for _,cmd in ipairs(npc.ai.commands) do
+    if cmd.kind=='AIMoveToCommand' and cmd.ignoreNavigation then
+      local at=cmd.movementTarget.position
+      if math.sqrt((at.x-start.x)^2+(at.y-start.y)^2)<.7 then stepped=true end
+    end
+  end
+  assert(stepped,'she never stepped clear of the prop'..dump())
+  assert(#teleports==0,'a teleport was used to unstick her')
+  assert(math.sqrt((npc.pos.x-player.pos.x)^2+(npc.pos.y-player.pos.y)^2)<4,'she did not follow V after stepping clear'..dump())
 `));
 
 test('left behind on the old floor: she appears out of view near V once V steps out of the car',()=>run(world+car+`

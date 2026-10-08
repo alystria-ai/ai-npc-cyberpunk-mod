@@ -679,22 +679,26 @@ function M.teleport(s,destination,yaw)
     return submit(s,command)
 end
 -- Lift cars (companion-passage.lua): a short straight walk onto or off a car
--- floor the navmesh does not cover. The caller has swept the straight body
--- path and owns the copy until it arrives or gives up; a later decision
--- retires this command. Returns nil while a cancellation is pending.
-function M.board(s,destination)
+-- floor the navmesh does not cover (seen working live 2026-10-08 08:51:52Z),
+-- or with options.navigate a native walk to the car's doorway. The caller has
+-- swept the straight body path and owns the copy until it arrives or gives
+-- up; a later decision retires this command. Returns nil while a
+-- cancellation is pending.
+function M.board(s,destination,options)
+    options=options or {}
     M.resumeHold(s)
     if not cancel(s) then return nil end
     retire(s)
     local command=NewObject('AIMoveToCommand')
     command.movementTarget=position(destination)
     command.rotateEntityTowardsFacingTarget=false
-    command.movementType=Enum.new('moveMovementType','Walk')
+    local gait=options.gait or 'Walk'
+    command.movementType=Enum.new('moveMovementType',gait)
     command.desiredDistanceFromTarget=.15
     command.finishWhenDestinationReached=true
-    command.ignoreNavigation=true
+    command.ignoreNavigation=options.navigate~=true
     command.useStart=true; command.useStop=true
-    s.ticket,s.kind,s.stage,s.target,s.gait='board','board','boarding',space.copy(destination),'Walk'
+    s.ticket,s.kind,s.stage,s.target,s.gait='board','board','boarding',space.copy(destination),gait
     return submit(s,command)
 end
 -- Stand still in a lift car beside V; issued once, kept while it runs.
@@ -1611,6 +1615,103 @@ local function execute(s,intent,c,canPlan)
     return commitWaypoint(s,plan,intent,c,chooseWaypoint(plan,c,plan.index),plan.index)
 end
 
+-- A stance touching scenery. Live traces 2026-10-08: a companion touching a
+-- prop had every new goal refused at the 'origin' stage (38 goals in 6 s,
+-- 14:23:08-14:23:20), and in V's apartment one 'motion' refusal at her own
+-- feet left her blocked for 8 minutes. Every route starts inside that
+-- overlap, so no new goal can pass. She steps 0.35-0.6 m to a spot with
+-- walkable ground and room for her body (physics checks through the shared
+-- budget, at most 3 candidates per update), then plans again. The step is a
+-- short straight walk, never a teleport. At most every 4 s, three per 30 s.
+local unstickPolicy={rings={.35,.6},perUpdate=3,retry=4,window=30,limit=3,deadline=2}
+local function stanceRefusal(r,c)
+    if not r then return false end
+    if r.stage=='origin' then return true end
+    return r.stage=='motion' and (r.box==nil or r.box==1) and type(r.center)=='table'
+        and clearance.isPoint(r.center) and space.ground(r.center,c.position)<.7
+end
+local function unstick(s,c)
+    local u=s.unstick
+    if u and u.target then
+        local gap=space.ground(c.position,u.target)
+        local own=s.kind=='unstick'
+        if gap<.2 or s.clock>=u.deadline or (own and (s.feedback.complete or s.feedback.failed)) or not own then
+            s.unstick,s.unstickRetryAt=nil,s.clock+unstickPolicy.retry
+            s.lastRejection,s.seenRejection,s.stanceRefused=nil,nil,nil
+            -- The next decision plans afresh from the new stance.
+            s.ticket=nil
+            record(s,'unstuck')
+            return false
+        end
+        return true
+    end
+    local r=s.lastRejection
+    if r~=s.seenRejection then
+        s.seenRejection=r
+        if stanceRefusal(r,c) then
+            local seen=s.stanceRefused
+            if not seen or s.clock-seen.first>4 then seen={first=s.clock,count=0}; s.stanceRefused=seen end
+            seen.count=seen.count+1
+        end
+    end
+    local seen=s.stanceRefused
+    if not u then
+        if not seen or s.clock<(s.unstickRetryAt or 0) or not stanceRefusal(r,c) then return false end
+        if seen.count<2 and not (s.blockedReason and s.clock-seen.first>=1.5) then return false end
+        s.unsticks=s.unsticks or {}
+        while s.unsticks[1] and s.clock-s.unsticks[1]>unstickPolicy.window do table.remove(s.unsticks,1) end
+        if #s.unsticks>=unstickPolicy.limit then return false end
+        -- Away from what the body touches first, otherwise toward the goal.
+        local away=r.center and clearance.isPoint(r.center) and space.ground(r.center,c.position)>.05
+            and space.bearing(r.center,c.position)
+            or s.target and space.ground(c.position,s.target)>.05 and space.bearing(c.position,s.target)
+            or c.direction or {x=0,y=1}
+        local list={}
+        for _,radius in ipairs(unstickPolicy.rings) do
+            for _,step in ipairs({0,1,-1,2,-2,3,-3,4}) do
+                local co,si=math.cos(step*math.pi/4),math.sin(step*math.pi/4)
+                list[#list+1]={x=c.position.x+(away.x*co-away.y*si)*radius,
+                    y=c.position.y+(away.y*co+away.x*si)*radius,z=c.position.z}
+            end
+        end
+        u={list=list,index=1}
+        s.unstick=u
+    end
+    local checked=0
+    local success=Enum.new('worldNavigationRequestStatus','OK')
+    while u.list[u.index] and checked<unstickPolicy.perUpdate do
+        local candidate=u.list[u.index]
+        local ok,found=pcall(function()
+            return Game.GetAINavigationSystem():FindPointInSphereForCharacter(vector(candidate),.3,s.npc)
+        end)
+        local point=ok and found and found.status==success and clearance.isPoint(found.point) and found.point
+        if point and math.abs(point.z-c.position.z)<.3 and space.ground(point,c.position)>=.25 then
+            local clear,_,deferred=clearance.body(point,s.clearance)
+            if deferred then return true end
+            if clear then
+                if not cancel(s) then return true end
+                retire(s)
+                local command=NewObject('AIMoveToCommand')
+                command.movementTarget=position(point)
+                command.rotateEntityTowardsFacingTarget=false
+                command.movementType=Enum.new('moveMovementType','Walk')
+                command.desiredDistanceFromTarget=.1
+                command.finishWhenDestinationReached=true
+                command.ignoreNavigation=true
+                command.useStart=true; command.useStop=true
+                s.ticket,s.kind,s.stage,s.target,s.gait='unstick','unstick','unsticking',space.copy(point),'Walk'
+                submit(s,command)
+                u.target,u.deadline=space.copy(point),s.clock+unstickPolicy.deadline
+                s.unsticks[#s.unsticks+1]=s.clock
+                return true
+            end
+        end
+        u.index,checked=u.index+1,checked+1
+    end
+    if u.list[u.index] then return true end
+    s.unstick,s.unstickRetryAt=nil,s.clock+unstickPolicy.retry*1.5
+    return false
+end
 function M.apply(s,decision,c,canPlan)
     if s.suspendedHold then return false end
     local intent=decision.operation
@@ -1619,10 +1720,12 @@ function M.apply(s,decision,c,canPlan)
     local style=decision.look or 'none'
     M.applyLook(s,style,c.player,c.gazeSettings)
     if intent.kind=='release' then
+        s.unstick=nil
         if M.release(s) then s.ticket=intent.ticket; s.kind='release' end
         return false
     end
     if s.cancellation and not cancel(s) then return false end
+    if (intent.kind=='move' or intent.kind=='follow' or s.unstick) and unstick(s,c) then return false end
     local changed=s.ticket~=intent.ticket
     if changed and intent.kind=='move' and not canPlan then
         -- Keep the last owned stance while this member waits its turn in the

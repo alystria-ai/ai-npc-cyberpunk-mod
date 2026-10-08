@@ -2074,6 +2074,9 @@ registerForEvent('onUpdate', function(delta)
     -- Menu updates can have zero simulation delta. Cancel recording/group work
     -- here, before the slower gameplay poll, so pause cannot submit a late turn.
     if not worldReady then gameplayActions.revoke('menu'); cancelVoice('menu') end
+    -- A companion riding a lift car with V moves with V every frame, only
+    -- while the car moves (companions.lua M.carry); otherwise one field check.
+    if worldReady and companions.riders then pcall(companions.carry, menuPlayer) end
     -- CET still calls onUpdate while native menus pause the simulation. The
     -- menu adapter needs these frames even when delta is zero; followers don't.
     ui.configure(manager.interfaceLanguage())
