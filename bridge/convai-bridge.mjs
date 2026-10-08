@@ -51,6 +51,7 @@ import {MultilingualConversations, multilingualTwins, planTurnVoice, replyVoice}
 import {CompanionActions} from './companion-actions.mjs';
 import {RequestFileOwner, fileIdentity} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel} from './dialogue-level.mjs';
+import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, settingDelay} from './audio-delay.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -1485,6 +1486,22 @@ const controlPath = resolve(stateDirectory, 'bridge-control.json');
 let controlsObserved = await readFile(controlPath, 'utf8').catch(() => '');
 let settingsPolling = false, lastVoiceHeartbeat = 0;
 const voicePreview = new VoicePreviewLease();
+// Lip sync delay (Bluetooth), bridge/audio-delay.mjs. The resolved value goes to
+// every browser renderer through its control and to the game (Omni/Audioware
+// path) through runtime/audio-delay.json, read once per utterance.
+let audioDelaySetting = 'auto', audioOutput = null, audioDelayPublished = '';
+const audioWatch = new AudioOutputWatch({onChange: output => { audioOutput = output; void applyAudioDelay(); }});
+async function applyAudioDelay() {
+  // The probe starts with the first conversation turn, not at idle startup.
+  if (audioDelaySetting === 'auto' && active) audioWatch.start();
+  const delayMs = resolveDelayMs(audioDelaySetting, audioOutput);
+  if (setAudioDelayMs(delayMs)) console.error(`Lip sync delay: ${delayMs} ms (${audioDelaySetting}${audioOutput ? `, ${audioOutput.bluetooth ? 'Bluetooth' : 'not Bluetooth'}: ${audioOutput.name}` : ''})`);
+  const document = JSON.stringify({version: 1, delayMs: audioDelayMs(), setting: audioDelaySetting,
+    bluetooth: audioOutput?.bluetooth ?? null});
+  if (document === audioDelayPublished) return;
+  audioDelayPublished = document;
+  await atomic(resolve(runtime, 'audio-delay.json'), document).catch(() => { audioDelayPublished = ''; });
+}
 async function pollSettings(checkShutdown = true) {
   if (settingsPolling || stopped) return;
   settingsPolling = true;
@@ -1496,6 +1513,7 @@ async function pollSettings(checkShutdown = true) {
     // A transient rename/partial settings write must not reset the selected quality.
     const raw = await readFile(resolve(runtime, 'settings.json'), 'utf8').catch(() => '');
     let settings; try { settings = JSON.parse(raw); } catch {}
+    if (settings) { audioDelaySetting = settingDelay(settings); await applyAudioDelay(); }
     // Dialogue level match (docs/DIALOGUE_LEVEL.md): makeup gain for every voice.
     if (updateDialogueLevel(await readFile(resolve(runtime, 'dialogue-level.json'), 'utf8').catch(() => '')))
       console.error(`Dialogue level: ${JSON.stringify(dialogueLevel())}`);
@@ -1568,7 +1586,7 @@ const supportTimer = setInterval(() => { void supportReport.poll().catch(error =
 async function shutdown() {
   if (stopped) return;
   await companionActions.revoke();
-  stopped = true; active?.controller.abort(); dropPrefetch();
+  stopped = true; active?.controller.abort(); dropPrefetch(); audioWatch.stop();
   settleVoiceRouteWaiters(Error('Voice service is closed'));
   phone.close(); clearInterval(phoneTimer);
   phoneKnowledge.clear();

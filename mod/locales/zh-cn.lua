@@ -570,4 +570,7 @@ return {
     ["Play"] = "播放",
     ["Plays one of this character’s own lines from the game, through the game’s normal dialogue audio, so you can compare their companion voice with it. You hear it when you return to gameplay; each press tries another line, and a character may have no line for some of them."] = "通过游戏的正常对话音频播放该角色自己的一句游戏台词，便于和其同伴语音对比。返回游戏后即可听到；每按一次会尝试另一句，有些情况下角色可能没有台词。",
     ["{name} will say one of their game lines when you return to the game."] = "{name} 将在你返回游戏后说一句游戏台词。",
+    ["Lip sync delay (Bluetooth)"] = "口型同步延迟（蓝牙）",
+    ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "蓝牙耳机播放声音会比画面稍晚，因此嘴型和字幕可能略早于声音。此设置会为所有语音将其推迟以对齐。自动：Windows 通过蓝牙设备播放时使用 150 ms，否则不延迟；如果你的耳机更快或更慢，请选择一个数值。游戏自身的对话也有同样的蓝牙延迟，游戏不会校正。",
+    ["Choose one of the listed lip sync delays."] = "请选择列出的口型同步延迟之一。",
 }

@@ -24,7 +24,7 @@ export class ContinuousPcmPlayer {
       setTimeoutFn, clearTimeoutFn});
     this.pending = new Map(); this.commandId = 0; this.history = new PcmClockHistory();
     this.latest = empty(); this.submittedFrames = 0; this.heardFrames = 0;
-    this.admission = {allow: false, paused: false, volume: 1, pan: 0, makeupDb: 0, distance: null};
+    this.admission = {allow: false, paused: false, volume: 1, pan: 0, makeupDb: 0, distance: null, delayMs: 0};
     this.stopped = false; this.opened = false; this.opening = null; this.closePromise = null;
     this.standby = false; this.standbySince = 0; this.standbyMs = standbyMs;
     this.whenStopped = new Promise(resolve => { this.resolveStopped = resolve; });
@@ -251,9 +251,11 @@ export class ContinuousPcmPlayer {
 
   // The limiter's look-ahead sits after the worklet: samples reach the device
   // that much later, so the heard (lip-sync) cursor is held back to match.
+  // The Lip sync delay setting (Bluetooth) holds it back further: that audio
+  // reaches the ear after the Windows mix by a delay no API reports.
   outputTime() {
-    const time = this.deviceTime();
-    return this.limited ? Math.max(0, time - LIMITER.delaySeconds) : time;
+    const time = this.deviceTime() - (this.admission.delayMs || 0) / 1000;
+    return Math.max(0, this.limited ? time - LIMITER.delaySeconds : time);
   }
 
   deviceTime() {

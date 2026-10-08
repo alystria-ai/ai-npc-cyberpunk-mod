@@ -570,4 +570,7 @@ return {
     ["Play"] = "재생",
     ["Plays one of this character’s own lines from the game, through the game’s normal dialogue audio, so you can compare their companion voice with it. You hear it when you return to gameplay; each press tries another line, and a character may have no line for some of them."] = "이 캐릭터의 게임 속 대사 하나를 게임의 일반 대화 음성으로 재생해 동료 음성과 비교할 수 있게 합니다. 게임으로 돌아가면 들립니다. 누를 때마다 다른 대사를 시도하며, 대사가 없는 경우도 있습니다.",
     ["{name} will say one of their game lines when you return to the game."] = "{name}은(는) 게임으로 돌아가면 게임 속 대사 하나를 말합니다.",
+    ["Lip sync delay (Bluetooth)"] = "립싱크 지연 (Bluetooth)",
+    ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "블루투스 이어폰과 헤드폰은 화면보다 소리가 조금 늦게 나오므로 입 모양과 자막이 목소리보다 약간 앞설 수 있습니다. 이 설정은 모든 음성에서 이를 늦춰 맞춥니다. 자동은 Windows가 블루투스 기기로 재생할 때 150 ms, 그 외에는 지연 없음입니다. 헤드셋이 더 빠르거나 느리면 값을 선택하세요. 게임 자체 대화도 같은 블루투스 지연이 있으며 게임은 이를 보정하지 않습니다.",
+    ["Choose one of the listed lip sync delays."] = "목록에 있는 립싱크 지연 중 하나를 선택하세요.",
 }

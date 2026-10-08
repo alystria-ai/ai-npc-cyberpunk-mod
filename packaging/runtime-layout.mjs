@@ -15,6 +15,7 @@ export const CLIENT_ASSETS = Object.freeze([
 // newly imported module cannot silently become a missing package component.
 export const BRIDGE_MODULES = Object.freeze([
   'bridge/analysis-pcm.mjs',
+  'bridge/audio-delay.mjs',
   'bridge/battle-context.mjs',
   'bridge/caption-cues.mjs',
   'bridge/chat-memory-resets.mjs',
@@ -101,6 +102,7 @@ export const BRIDGE_AUXILIARY_FILES = Object.freeze([
   'bridge/pocket-voice-worker.py',
   'bridge/pocket_voice_runtime.py',
   'bridge/phone-analysis-worker.py',
+  'bridge/audio-output-probe.ps1', // Lip sync delay Auto: default output device
 ]);
 // These are the pinned external package entry points, not a replacement for the
 // full reviewed Playwright distributions and their transitive source/notices.

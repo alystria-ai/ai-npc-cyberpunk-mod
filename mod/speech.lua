@@ -162,8 +162,25 @@ local function beginChunk(audio, text, timeline, startSeconds)
     return true
 end
 
+-- Lip sync delay (Bluetooth), resolved by the bridge (bridge/audio-delay.mjs):
+-- audio heard after the Windows mix. The browser voices apply it in their own
+-- clock; the native Omni phrases subtract it here from the Audioware cursor
+-- for the face and subtitles. Read once per utterance, never per frame.
+local function readOutputDelay()
+    local ok, value = pcall(function()
+        local file = io.open('runtime/audio-delay.json', 'rb')
+        if not file then return 0 end
+        local raw = file:read(512); file:close()
+        local doc = json.decode(raw)
+        local delay = type(doc) == 'table' and tonumber(doc.delayMs) or 0
+        return delay == delay and math.max(0, math.min(500, delay)) / 1000 or 0
+    end)
+    return ok and value or 0
+end
+
 function M.start(context, reply)
     M.stop()
+    M.outputDelay = readOutputDelay()
     M.streamReceipt = nil
     if reply.continuous ~= nil then
         local controller, player, actor = continuousAdapter(), Game.GetPlayer(), M.target
@@ -464,12 +481,14 @@ local function updateSpeech(delta)
     local previous = M.position
     M.position = pos
     if M.state == 'playing' and pos >= 0 then
-        if s and s.version == 2 then syncUtterance(s.chunkStart + pos)
+        -- The face and subtitles follow the heard cursor (Lip sync delay setting).
+        local heard = math.max(0, pos - (M.outputDelay or 0))
+        if s and s.version == 2 then syncUtterance(s.chunkStart + heard)
         else
             if captions.enabled() and not captions.timed then captions.beginTimed(M.speaker, M.chunkText, M.duration, M.actor, M.context.entity) end
-            captions.syncTimed(pos)
+            captions.syncTimed(heard)
         end
-        face.sync(M.actor, pos, M.requestId)
+        face.sync(M.actor, heard, M.requestId)
     end
     local ended = pos >= M.duration - .005
         or (pos < 0 and previous and previous >= M.duration - .1)

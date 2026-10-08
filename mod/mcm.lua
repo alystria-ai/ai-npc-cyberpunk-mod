@@ -857,12 +857,21 @@ local function schema()
         -- The list: Pocket Performance (the default), OmniVoice Balanced / Quality (16 steps, short / long reference),
         -- High Quality / Ultra Quality (32 steps, short / long reference), Convai Cloud voice.
         local voiceIndex = savedVoiceIndex(snapshot.settings)
+        -- Lip sync delay (Bluetooth): Auto, Off, then milliseconds (bridge/audio-delay.mjs).
+        local delays, delayLabels, delayIndex = manager.audioDelayChoices(), {}, 1
+        for index, value in ipairs(delays) do
+            delayLabels[index] = value == 'auto' and ui.t('Auto') or value == 0 and ui.t('Off') or (tostring(value) .. ' ms')
+            if snapshot.settings.audioDelay == value then delayIndex = index end
+        end
         local pack = manager.omniPack()
         categories[#categories + 1] = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
             setting('voiceProvider', 'Companion voices', 'select', voiceIndex, 1,
                 'Pocket is light and fast on your CPU and starts speaking in about 0.2 s. OmniVoice sounds better, especially on harder voices, but needs a capable GPU and the optional OmniVoice pack (without it those entries are marked and cannot be applied), and the higher tiers take longer to start speaking, about 1 to 2.5 s. Convai uses the cloud; if a choice cannot run, a simpler voice takes over and you are told once.',
                 voiceMenuLabels(pack), {elements = true}),
+            setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
+                'Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it.',
+                delayLabels, {elements = true}),
             setting('keepPreparedVoices', 'Keep prepared voices', 'bool', snapshot.settings.keepPreparedVoices, true,
                 'Remember each companion’s prepared voice so summoning them again is quicker. Pocket TTS saves one small file per character (about 5 to 15 MB) in the mod’s runtime folder; OmniVoice does a short hidden warm-up at your chosen quality while a companion joins. Turn this off to save nothing on disk. The change applies without a restart.'),
             setting('naturalSpeech', 'Natural speech', 'bool', snapshot.settings.naturalSpeech, false,
@@ -990,6 +999,12 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     or key == 'autoConnectNearby' or key == 'keepPreparedVoices' or key == 'naturalSpeech'
                     or key == 'gameDialogueContext'
                     or key == 'expressiveEmotions' or key == 'multilingualConversations' then values[key] = change.value
+                elseif key == 'audioDelay' then
+                    local delays = manager.audioDelayChoices()
+                    if type(change.value) ~= 'number' or change.value ~= math.floor(change.value) or not delays[change.value] then
+                        return {ok = false, error = ui.t('Choose one of the listed lip sync delays.')}
+                    end
+                    values.audioDelay = delays[change.value]
                 elseif key == 'subtitleStyle' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose one of the listed subtitle displays.')} end
                     -- Order: 1 Cinematic subtitles (stored 'dialogue'), 2 Above the speaker (stored 'overhead').

@@ -23,11 +23,14 @@ export function playbackControl(value) {
   // Optional dialogue-level fields (docs/DIALOGUE_LEVEL.md): makeup gain in dB
   // behind a peak limiter, and the speaker's distance for a gentle air low-pass.
   // Absent means the previous unity path.
-  const makeupDb = value.makeupDb ?? 0, distance = value.distance ?? null;
+  // delayMs: the Lip sync delay setting (bridge/audio-delay.mjs), audio heard
+  // after the Windows mix (Bluetooth). It holds the heard cursor back.
+  const makeupDb = value.makeupDb ?? 0, distance = value.distance ?? null, delayMs = value.delayMs ?? 0;
   if (!Number.isFinite(makeupDb) || makeupDb < 0 || makeupDb > 12
+      || !Number.isFinite(delayMs) || delayMs < 0 || delayMs > 500
       || (distance !== null && (!Number.isFinite(distance) || distance < 0 || distance > 1000)))
     throw Error('Invalid playback level');
-  return {allow: value.allow, paused: value.paused, volume, pan, makeupDb, distance};
+  return {allow: value.allow, paused: value.paused, volume, pan, makeupDb, distance, delayMs};
 }
 
 // Chromium derives the worklet's currentTime from currentFrame. A live device

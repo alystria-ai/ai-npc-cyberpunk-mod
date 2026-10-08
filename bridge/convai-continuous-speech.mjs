@@ -9,6 +9,7 @@ import {JALI_LEAD_SECONDS} from './jali-face.mjs';
 import {displayText} from './natural-speech.mjs';
 import {captionCues, cueSignature} from './caption-cues.mjs';
 import {activeMakeupDb} from './dialogue-level.mjs';
+import {audioDelayMs} from './audio-delay.mjs';
 
 const SHARING_ERRORS = new Set(['EPERM', 'EACCES', 'EBUSY']);
 const finite = value => typeof value === 'number' && Number.isFinite(value);
@@ -122,7 +123,9 @@ export class ConvaiContinuousSpeech {
     const age = this.controlAt === undefined ? now - this.publishedAt : now - this.controlAt;
     if (age > (this.controlAt === undefined ? FIRST_LEASE_MS : LEASE_MS)) throw Error('Continuous speech game lease expired');
     // The bridge's makeup gain rides along; 0 (matching off) is the unity path.
-    return this.lastControl && age <= 400 ? {...this.lastControl, makeupDb: activeMakeupDb()} : quiet();
+    // The Lip sync delay (Bluetooth) rides along only when set, as delayMs.
+    const delayMs = audioDelayMs();
+    return this.lastControl && age <= 400 ? {...this.lastControl, makeupDb: activeMakeupDb(), ...(delayMs ? {delayMs} : {})} : quiet();
   }
 
   async frame(snapshot) {

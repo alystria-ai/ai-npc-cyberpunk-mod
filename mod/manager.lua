@@ -35,6 +35,9 @@ local voiceFallbackSeen, voiceFallbackNotice = {}, nil
 -- Pocket TTS" notice, once, after an Apply that had to change the voice.
 local naturalSpeechNotice = nil
 local eyeContactHeights = {-0.10, -0.05, 0, 0.05, 0.10}
+-- Lip sync delay (Bluetooth), in ms; 'auto' lets the bridge detect a Bluetooth
+-- output device (bridge/audio-delay.mjs). The bridge reads it from settings.json.
+local audioDelays = {'auto', 0, 50, 100, 150, 200, 250}
 local headFollowStrengths = {0, 0.5, 1, 1.5}
 local relationshipProfiles = {
     {key = 'judy-alvarez', name = 'Judy Alvarez'},
@@ -323,6 +326,9 @@ local function loadSettings()
     if settings.subtitleStyle ~= 'overhead' and settings.subtitleStyle ~= 'dialogue' then
         settings.subtitleStyle, settingsNeedSave = 'dialogue', true
     end
+    if not isChoice(settings.audioDelay, audioDelays) then
+        settings.audioDelay, settingsNeedSave = 'auto', settingsNeedSave or settings.audioDelay ~= nil
+    end
     if settings.disappearingMessages ~= nil then
         settings.disappearingMessages, settingsNeedSave = nil, true
     end
@@ -607,6 +613,8 @@ function M.gazeSettings()
     loadSettings()
     return {eyeContactHeight = settings.eyeContactHeight, headFollowStrength = settings.headFollowStrength}
 end
+
+function M.audioDelayChoices() return audioDelays end
 
 function M.gazeChoices()
     local heights, strengths = {}, {}
@@ -1120,6 +1128,7 @@ function M.snapshot(player)
             gameDialogueContext = settings.gameDialogueContext,
             eyeContactHeight = settings.eyeContactHeight,
             headFollowStrength = settings.headFollowStrength,
+            audioDelay = settings.audioDelay,
             voiceProvider = settings.voiceProvider,
             omniSteps = settings.omniSteps,
             omniReference = settings.omniReference,
@@ -1182,6 +1191,9 @@ function M.applySettings(player, values)
         elseif key == 'archetypeConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.archetypeConversations = value
+        elseif key == 'audioDelay' then
+            if not isChoice(value, audioDelays) then return false, 'Choose one of the listed lip sync delays.' end
+            nextSettings.audioDelay = value
         elseif key == 'subtitleStyle' then
             if value ~= 'overhead' and value ~= 'dialogue' then return false, 'Choose one of the listed subtitle displays.' end
             nextSettings.subtitleStyle = value

@@ -181,3 +181,31 @@ the Windows mix (the device buffer, and a Bluetooth headset's link, often
 100 ms or more) is not visible to software and is not compensated; the game's
 own dialogue has the same delay. Omni plays through Audioware, whose
 `Position()` clock is unchanged.
+
+## Lip sync delay (Bluetooth)
+
+After the clock fix the user still saw the lips slightly ahead: they listen
+through Bluetooth earbuds, whose link delay comes after the Windows mix where
+no API reports it. **Settings > Voices > Lip sync delay (Bluetooth)**: Auto,
+Off, 50, 100, 150, 200, 250 ms (`audioDelay` in `runtime/settings.json`:
+`'auto'` or the number; Off is 0). It holds back the clock the face,
+expressions and subtitles follow, for every voice:
+
+- Pocket and Convai: the bridge sends `delayMs` with each control; the player
+  subtracts it from its heard cursor (`bridge/continuous-pcm-player.mjs`).
+  The reply is also reported finished that much later, so group turns wait
+  until the speaker is actually heard to the end.
+- Omni (Audioware): the bridge writes `runtime/audio-delay.json`; `mod/speech.lua`
+  reads it once per utterance and subtracts it from the Audioware cursor for
+  the face and subtitles. The phrase itself still ends at its native end, so
+  the last moment of mouth movement of each phrase is cut by that delay.
+
+Auto uses 150 ms while the default Windows output device is Bluetooth, and 0
+otherwise. Detection: `bridge/audio-output-probe.ps1`, one hidden below-normal
+PowerShell process started with the first conversation turn (not at idle
+startup), printing the default device every 60 s and exiting with the bridge.
+A device counts as Bluetooth if its enumerator is BTHENUM/BTHLE or any text
+property names BTHENUM, BTHLE or "Bluetooth": the user's realme Buds Air7 run
+through Intel Smart Sound Bluetooth offload, enumerate as INTELAUDIO, and are
+recognised by those properties. The game's own dialogue has the same Bluetooth
+delay and the game does not correct it.

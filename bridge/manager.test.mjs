@@ -2449,6 +2449,23 @@ test('native MCM shows invitation preparation and keeps reserved copies editable
   `);
 });
 
+test('Lip sync delay (Bluetooth) is a Voices select: Auto by default, Off and milliseconds saved for the bridge', () => {
+  run(`${mcmFixture}
+    assert(manager.snapshot(player).settings.audioDelay == 'auto')
+    assert(invoke('tab:settings').ok)
+    local item = assert(row('audioDelay'))
+    assert(item.type == 'select' and item.value == 1 and #item.elements == 7)
+    assert(item.elements[3] == '50 ms' and item.elements[7] == '250 ms')
+    assert(registered.applyBatch('manager', {{id = 'audioDelay', value = 5}}).ok)
+    assert(manager.snapshot(player).settings.audioDelay == 150)
+    assert(registered.applyBatch('manager', {{id = 'audioDelay', value = 2}}).ok)
+    assert(manager.snapshot(player).settings.audioDelay == 0, 'Off saves 0')
+    assert(not registered.applyBatch('manager', {{id = 'audioDelay', value = 8}}).ok)
+    assert(not manager.applySettings(player, {audioDelay = 75}))
+    assert(manager.snapshot(player).settings.audioDelay == 0)
+  `);
+});
+
 test('Developer mode adds a game voice row per ready copy that queues one vanilla VO line for gameplay', () => {
   run(`${mcmFixture}
     api.spawn('johnny-silverhand')

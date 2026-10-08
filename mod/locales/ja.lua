@@ -570,4 +570,7 @@ return {
     ["Play"] = "再生",
     ["Plays one of this character’s own lines from the game, through the game’s normal dialogue audio, so you can compare their companion voice with it. You hear it when you return to gameplay; each press tries another line, and a character may have no line for some of them."] = "このキャラクター自身のゲーム内の台詞を、ゲームの通常の会話音声で再生します。仲間としての声と比べられます。ゲームに戻ると聞こえます。押すたびに別の台詞を試します。台詞がない場合もあります。",
     ["{name} will say one of their game lines when you return to the game."] = "{name}はゲームに戻るとゲーム内の台詞を一つ話します。",
+    ["Lip sync delay (Bluetooth)"] = "口パクの遅延（Bluetooth）",
+    ["Bluetooth earbuds and headphones play sound a little later than the picture, so lips and subtitles can run slightly ahead of the voice. This holds them back to match, for every voice. Auto uses 150 ms while Windows plays through a Bluetooth device and none otherwise; choose a value if your headset is faster or slower. The game’s own dialogue has the same Bluetooth delay and does not correct it."] = "Bluetoothのイヤホンやヘッドホンは映像より少し遅れて音が出るため、口の動きや字幕が声よりわずかに先行することがあります。この設定はすべての声でそれらを遅らせて合わせます。自動では、WindowsがBluetooth機器で再生しているときは150 ms、それ以外は遅延なしです。ヘッドホンが速い・遅い場合は値を選んでください。ゲーム本来の会話にも同じBluetoothの遅延があり、ゲームは補正しません。",
+    ["Choose one of the listed lip sync delays."] = "一覧にある口パクの遅延から選んでください。",
 }
