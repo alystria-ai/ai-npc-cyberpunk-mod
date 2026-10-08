@@ -5,6 +5,13 @@
 local M = {}
 local slots = {'AttachmentSlots.WeaponRight', 'AttachmentSlots.WeaponLeft'}
 local quietSeconds, commandSeconds, maxAttempts = 2.5, 6, 2
+-- After combat the holster must not wait for V to stand still. Once calm has
+-- lasted holsterDelay with a weapon still drawn, the movement owner is asked
+-- (M.wantsStop) to hold the companion in place; the holster then needs the feet
+-- stopped for settleSeconds. A stop that does not reach the holster inside
+-- stopLimit is abandoned and not asked again for stopCooldown. A companion the
+-- engine still calls Alerted is treated as relaxed after alertedCalm of calm.
+local holsterDelay, settleSeconds, stopLimit, stopCooldown, alertedCalm = 3, 1, 8, 20, 6
 
 local function copy(value)
     if type(value) ~= 'table' then return value end
@@ -140,8 +147,10 @@ local function tick(s, player, idle, acquireHold)
         if s.releaseRequested then s.phase,s.reason='released','Managed copy dismissed'; return end
         if s.cancelFailed then s.reason='Native holster ended after cancellation failed'; return end
     end
+    s.stopWanted = false -- re-established below once every guard has passed
     if not player or not flag(player:IsAttached(), 'Player attachment')
         or flag(player:IsDeadNoStatPool(), 'Player life') then
+        s.calmSince = nil
         wait(s, 'Player unavailable'); return
     end
     local combat = {player = flag(player:IsInCombat(), 'Player combat'),
@@ -152,7 +161,7 @@ local function tick(s, player, idle, acquireHold)
             s.episode, s.attempts, s.armed = s.episode + 1, {}, true
             s.retryAt,s.cancelFailed = nil,nil
         end
-        s.wasCombat = true
+        s.wasCombat, s.calmSince, s.stopSince = true, nil, nil
         wait(s, 'Native combat owns equipment'); return
     end
     s.wasCombat = false
@@ -166,7 +175,19 @@ local function tick(s, player, idle, acquireHold)
     guard.npcThreat = flag(TargetTrackingExtension.HasHostileThreat(npc), 'NPC threats')
     guard.autonomous = flag(npc:IsOnAutonomousAI(), 'NPC autonomy')
     guard.relaxed = npc:GetHighLevelStateFromBlackboard() == Enum.new('gamedataNPCHighLevelState', 'Relaxed')
-    if guard.playerThreat or guard.npcThreat then wait(s, 'Hostile threat remains'); return end
+    if guard.playerThreat or guard.npcThreat then
+        s.calmSince, s.stopSince = nil, nil
+        wait(s, 'Hostile threat remains'); return
+    end
+    -- Calm: out of combat with no hostile entity. Time spent walking counts.
+    s.calmSince = s.calmSince or s.clock
+    local calm = s.clock - s.calmSince
+    if not guard.relaxed and guard.autonomous and calm >= alertedCalm then
+        local ok, alerted = pcall(function()
+            return npc:GetHighLevelStateFromBlackboard() == Enum.new('gamedataNPCHighLevelState', 'Alerted')
+        end)
+        guard.relaxed = ok and alerted == true
+    end
     if not guard.autonomous or not guard.relaxed then wait(s, 'NPC is not relaxed autonomous AI'); return end
     local scene = Game.GetSceneSystem():GetScriptInterface()
     guard.tier = PlayerPuppet.GetSceneTier(player)
@@ -177,8 +198,26 @@ local function tick(s, player, idle, acquireHold)
         wait(s, 'Native scene or dialogue owns equipment'); return
     end
     guard.idle = idle == true
-    if not guard.idle then wait(s, 'Wait until settled'); return end
     s.hands = hands(npc)
+    local drawn
+    for _, name in ipairs(slots) do
+        if s.hands[name].present and not s.hands[name].fists then drawn = name; break end
+    end
+    -- A weapon is still drawn after a calm holsterDelay (or the holster is under
+    -- way): ask the movement owner to hold her still, for a bounded time.
+    local want = (drawn ~= nil and calm >= holsterDelay) or s.command ~= nil or s.handoff == true
+    if want and s.clock < (s.stopCooldownUntil or 0) then want = false end
+    if want then
+        s.stopSince = s.stopSince or s.clock
+        if s.command == nil and s.clock - s.stopSince > stopLimit then
+            want, s.stopSince, s.stopCooldownUntil = false, nil, s.clock + stopCooldown
+            wait(s, 'Holster stop limit reached'); return
+        end
+    else
+        s.stopSince = nil
+    end
+    s.stopWanted = want
+    if not guard.idle then wait(s, 'Wait until settled'); return end
 
     if s.command then
         local ai = npc:GetAIControllerComponent()
@@ -221,7 +260,7 @@ local function tick(s, player, idle, acquireHold)
     if s.retryAt and s.clock < s.retryAt then return end
     s.readySince = s.readySince or s.clock
     s.phase, s.reason = 'waiting', 'Confirming a calm settled stance'
-    if s.clock - s.readySince < quietSeconds then return end
+    if s.clock - s.calmSince < quietSeconds or s.clock - s.readySince < math.min(settleSeconds, quietSeconds) then return end
     -- Newly spawned equipment may attach after the actor. Empty hands on the
     -- first sample are not a settled baseline until this same calm interval.
     if not slot then
@@ -258,6 +297,7 @@ local function tick(s, player, idle, acquireHold)
     command.slotId = TweakDBID.new(slot)
     -- Preserve the native duration/animation default; do not snap-remove items.
     s.command, s.issuedAt, s.finishedAt, s.commandState = command, s.clock, nil, nil
+    s.stopSince = s.clock -- the stop reached its holster; the command has its own time limit
     local accepted = npc:GetAIControllerComponent():SendCommand(command)
     if accepted == false then
         s.command = nil; failAttempt(s, 'Native holster request refused'); return
@@ -286,13 +326,20 @@ function M.holdsMovement(s)
     return s~=nil and s.handoff==true
 end
 
+-- True while the movement owner should keep this companion standing so a drawn
+-- weapon can be holstered although V keeps moving (see holsterDelay).
+function M.wantsStop(s)
+    return s~=nil and s.stopWanted==true and s.armed==true
+end
+
 function M.snapshot(s)
     if not s then return {phase = 'uninitialized'} end
     return {phase = s.phase, reason = s.reason, error = s.error, armed = s.armed,
         episode = s.episode, attempts = copy(s.attempts), commands = s.commands,
         commandID = s.commandID, commandState = s.commandState, active = s.command ~= nil,
         movementSuspended = s.handoff == true, holdReleased = s.handoffReady == true,
-        slot = s.slot, guard = copy(s.guard), hands = copy(s.hands),
+        slot = s.slot, guard = copy(s.guard), hands = copy(s.hands), stopWanted = s.stopWanted == true,
+        calm = s.calmSince and math.max(0, s.clock - s.calmSince) or nil,
         age = s.issuedAt and math.max(0, s.clock - s.issuedAt), cancellationFailed = s.cancelFailed == true}
 end
 

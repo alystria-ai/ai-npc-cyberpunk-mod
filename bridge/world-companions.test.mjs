@@ -488,6 +488,93 @@ test('a companion told to leave says goodbye first, then leaves through Dismiss;
   assert(adoption.offer('900',judy,'judy-alvarez','Judy Alvarez').available,'back to normal life: she can be asked again')
 `));
 
+// The walk away must work in a real street: most directions end in a wall, off
+// the mesh, or in clearance the movement actuator refuses (2026-10-08: all six
+// blind 35 m goals were refused within three seconds and Judy just stood).
+const leaveSetup = `
+  local judy=worldNpc('900',0,3)
+  local offer=adoption.offer('900',judy,'judy-alvarez','Judy Alvarez')
+  busy=false; assert(adoption.queueFollow(offer,'900','request-1')); step(1)
+  local row=find('judy-alvarez'); assert(row.state=='ready')
+  local copy=copyOf(row)
+  local leave=adoption.leaveOffer(row.entityID,{profileKey='judy-alvarez'})
+  local function navigation(accept)
+    Game.GetAINavigationSystem=function() return {
+      FindPointInSphereForCharacter=function(_,p,radius)
+        if accept(p,radius) then return {status='OK',point=p} end
+        return {status='Failed'}
+      end,
+      CalculatePathForCharacter=function(_,a,b)
+        return {path={a,b},CalculateLength=function() return math.sqrt((a.x-b.x)^2+(a.y-b.y)^2+(a.z-b.z)^2) end}
+      end} end
+  end
+  local function goal()
+    local walk=last(copy,'AIMoveToCommand')
+    return walk and walk.movementTarget and walk.movementTarget.position
+  end
+`;
+
+test('a leaving companion walks to a point the mesh proves reachable, not blindly 35 m from V', () => runWorld(leaveSetup + `
+  -- Only an east strip is walkable: straight away from V (north) is a wall.
+  navigation(function(p) return p.x>=8 end)
+  assert(adoption.queueLeave(row.entityID,leave,row.entityID,'request-2')); step(3)
+  local g=goal(); assert(g,'she must walk: '..table.concat(logs,' / '))
+  assert(g.x>=8,'goal is on the mesh: '..g.x..','..g.y)
+  local gap=math.sqrt((g.x-copy.pos.x)^2+(g.y-copy.pos.y)^2)
+  assert(gap>=15 and gap<=30,'walks 15 to 30 m: '..gap)
+  assert(math.sqrt(g.x^2+g.y^2)>=12,'ends well away from V')
+`));
+
+test('a goal the movement actuator refuses is dropped for the next direction, and she keeps trying', () => runWorld(leaveSetup + `
+  -- The leaving search accepts anything (wide radius); the actuator's exact
+  -- check (0.55 m) only accepts the east strip: three refused goals first.
+  navigation(function(p,radius) return radius>1 or p.x>=8 end)
+  assert(adoption.queueLeave(row.entityID,leave,row.entityID,'request-2')); step(6)
+  local g=goal(); assert(g and g.x>=8,'finally a goal the actuator accepts: '..tostring(g and g.x))
+  local tries=0
+  for _,cmd in ipairs(copy.ai.commands) do if cmd.kind=='AIMoveToCommand' then tries=tries+1 end end
+  assert(tries>=1)
+  assert(find('judy-alvarez'),'still walking, not removed while V watches')
+`));
+
+test('a goal that gets her nowhere is replaced after a few seconds by a different direction', () => runWorld(leaveSetup + `
+  navigation(function() return true end)
+  player.forward=Vector4.new(0,1)
+  assert(adoption.queueLeave(row.entityID,leave,row.entityID,'request-2')); step(3)
+  local first=goal(); assert(first)
+  step(6) -- the copy never moves: the first goal is given up
+  local second=goal()
+  assert(second and (second.x~=first.x or second.y~=first.y),'a different goal: '..first.x..','..first.y)
+`));
+
+test('a companion who cannot find or make headway is removed as soon as V cannot see her, never left standing', () => runWorld(leaveSetup + `
+  navigation(function() return false end) -- no walkable ground anywhere
+  player.forward=Vector4.new(1,0) -- V looks away from her
+  assert(adoption.queueLeave(row.entityID,leave,row.entityID,'request-2')); step(1)
+  assert(not goal(),'nowhere to walk')
+  step(3); assert(find('judy-alvarez'),'given a moment first')
+  step(4); assert(find('judy-alvarez')==nil,'removed out of view well before the 30 s safety: '..table.concat(logs,' / '))
+  assert(table.concat(logs,' / '):find('stuck, out of view',1,true))
+`));
+
+test('a stuck companion V is still watching is removed after a bounded wait, not at the 30 s safety', () => runWorld(leaveSetup + `
+  navigation(function() return false end)
+  player.forward=Vector4.new(0,1) -- V looks right at her
+  assert(adoption.queueLeave(row.entityID,leave,row.entityID,'request-2')); step(1)
+  step(10); assert(find('judy-alvarez'),'visible and stuck: still given time')
+  step(7); assert(find('judy-alvarez')==nil,'bounded: '..table.concat(logs,' / '))
+`));
+
+test('headway keeps a walking companion from being called stuck', () => runWorld(leaveSetup + `
+  navigation(function() return true end)
+  player.forward=Vector4.new(0,1)
+  assert(adoption.queueLeave(row.entityID,leave,row.entityID,'request-2')); step(1)
+  assert(goal())
+  -- She keeps walking (moves 2 m every half second) for twelve seconds in view.
+  for i=1,24 do copy.pos=Vector4.new(copy.pos.x,copy.pos.y+0.75); step(0.5) end
+  assert(find('judy-alvarez'),'a walker making headway is not removed: '..table.concat(logs,' / '))
+`));
+
 test('a summoned companion can be sent away the same way, and a group round offers only its party members', () => runWorld(`
   companions.registerDefinition('panam',{id='Character.Panam',name='Panam Palmer',profileKey='panam-palmer'})
   assert(queue.invite('panam')); step(1)

@@ -705,6 +705,8 @@ function M.movementSnapshot()
             strandedFor=entry.strandedSince and movementNumber(runtimeClock-entry.strandedSince) or nil,
             relocations=movementNumber(entry.relocations),
             relocationFailures=movementNumber(entry.relocationFailures),
+            holster=entry.equipment and {phase=movementText(entry.equipment.phase),reason=movementText(entry.equipment.reason),
+                stop=entry.equipment.stopWanted==true,armed=entry.equipment.armed==true} or nil,
             pace=movementNumber(entry.pace),
             recentEvents=recentEvents,
             actor={position=movementPoint(entry.position),speed=movementNumber(entry.speed),
@@ -1543,7 +1545,7 @@ function M.update(player,delta,focusEntity)
             entry.targetGap=space.distance(entry.position,groupFrame.moving and travelTarget or restTarget)
             local fightingOk,fighting=pcall(function() return NPCPuppet.IsInCombat(entry.npc) end)
             local context={
-                id=id,slot=entry.lane,frame=groupFrame,player=player,clearance=entry.clearance,
+                id=id,slot=entry.lane,frame=groupFrame,player=player,npc=entry.npc,clearance=entry.clearance,
                 position=entry.position,direction=entry.direction,speed=entry.speed,
                 playerGap=entry.playerGap,targetGap=entry.targetGap,facingError=entry.facingError,
                 selected=id==focusEntity,combat=fightingOk and fighting==true,
@@ -1560,6 +1562,15 @@ function M.update(player,delta,focusEntity)
             local decision=departing and M.departure.decide(entry.serial,context,step)
                 or tactic and M.tactics.decide(entry.serial,context,step)
                 or seat or behavior.decide(entry.person,context,step)
+            -- A drawn weapon after combat is holstered although V keeps moving:
+            -- the equipment owner asks for a brief stand-still (bounded there).
+            -- Only the ordinary follow behaviour yields; a departure, a tactic
+            -- or a body animation keeps its own say.
+            local holsterStop=not departing and not tactic and not seat and equipment.wantsStop(entry.equipment)
+            if holsterStop then
+                decision={phase='holster',reason='Stand still so the drawn weapon can be holstered',
+                    operation={ticket='holster:'..id..':'..tostring(entry.equipment.episode),kind='hold'},look='none'}
+            end
             -- Braking is already a committed stop. Never choose an alternative
             -- behind the actor if its original stop point becomes unavailable.
             if decision.phase=='approach' or decision.phase=='obstructed'
@@ -1567,9 +1578,9 @@ function M.update(player,delta,focusEntity)
             -- Admission requires stopped feet. Once admitted, a small native
             -- holster root motion is allowed; player departure or a new walking
             -- decision still ends the handoff immediately.
+            local stopped=decision.operation and decision.operation.kind=='hold' and entry.motor.kind=='hold'
             local idle=(entry.speed<0.18 or equipment.holdsMovement(entry.equipment))
-                and not groupFrame.moving and (groupFrame.rawSpeed or 0)<0.28
-                and decision.operation and decision.operation.kind=='hold' and entry.motor.kind=='hold'
+                and not groupFrame.moving and (groupFrame.rawSpeed or 0)<0.28 and stopped
             -- Optional body-animation owner (docs/COMPANION_GESTURES.md). It sees
             -- the same settled-stance predicate and, while it holds the body,
             -- movement waits exactly as it does for the native holster handoff.
@@ -1587,7 +1598,10 @@ function M.update(player,delta,focusEntity)
                 bodyHolds=observed and holds==true
                 if not observed then entry.bodyError=tostring(holds) end
             end
-            equipment.update(entry.equipment,player,step,idle and not bodyHolds,function() return actuator.suspendHold(entry.motor) end)
+            -- Holstering needs her own feet still, not V's: a requested stand-still
+            -- counts although V is walking on.
+            local holsterIdle=holsterStop and stopped and entry.speed<0.18 and not bodyHolds
+            equipment.update(entry.equipment,player,step,(idle and not bodyHolds) or holsterIdle,function() return actuator.suspendHold(entry.motor) end)
             if not equipment.holdsMovement(entry.equipment) and not bodyHolds then
                 actuator.resumeHold(entry.motor)
                 if actuator.apply(entry.motor,decision,context,budget>0) then budget=budget-1 end

@@ -14,6 +14,13 @@
 -- away from V) and despawning only out of V's view (A.owns/A.decide are the
 -- movement owner companions.lua consults; menu Dismiss stays instant). The model decides that V meant it (gameplay-actions.lua); this
 -- module only re-checks the game state and performs it.
+--
+-- The walk goes only to a point the navigation mesh proves reachable (a snapped
+-- walkable point, a route that is not a detour, one floor), found a few
+-- candidates per update and only while no goal is held. A goal the movement
+-- actuator still refuses is dropped for the next candidate. A companion who
+-- still makes no headway is removed as soon as V cannot see her, or after a
+-- bounded wait: she never stands there for good.
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 local M = {}
 
@@ -24,7 +31,17 @@ M.CONFIG = {
     restoreDistance = 60, -- metres: a former member's original is shown again past this ...
     restoreAngle = 70,    -- ... or once it is this many degrees away from where V is looking ...
     restoreWait = 20,     -- ... or after this many seconds
-    walkDistance = 35,    -- metres: how far a leaving companion heads
+    walkDistances = {24, 17, 29}, -- metres: how far a leaving companion heads (15 to 30), tried in this order
+    walkBearings = {0, 40, -40, 80, -80, 120, -120}, -- degrees off straight away from V; never back toward V
+    walkProbes = 2,       -- candidate goals checked per update while none is held
+    walkPasses = 2,       -- times the whole candidate list is retried before she is declared stuck
+    walkSnap = 3,         -- metres: how far from a candidate the nearest walkable ground may be
+    walkRouteSlack = 4,   -- metres: a route longer than the straight line by more than this is a detour
+    walkMinGap = 12,      -- metres: a goal must end at least this far from V
+    walkGoalWait = 4,     -- seconds a goal may go without headway before the next one is tried
+    walkStuck = 6,        -- seconds without 1.5 m of headway: she is stuck and goes as soon as V cannot see her ...
+    walkStuckHidden = 1,  -- ... out of view this long ...
+    walkStuckForce = 15,  -- ... or removed anyway after this long without headway, seen or not
     walkHomeMin = 8,      -- metres: an original's home closer or ...
     walkHomeMax = 60,     -- ... farther than this is not walked to; away from V instead
     walkGone = 25,        -- metres: out of view and this far away, the copy is removed ...
@@ -33,6 +50,7 @@ M.CONFIG = {
     walkTimeout = 30,     -- seconds: removed regardless after this
     walkUnowned = 3,      -- seconds without a walking decision (seated, in transit): removed
 }
+local HEADWAY = 1.5       -- metres that count as walking
 
 -- Reasons a character record cannot become a companion copy. A failed join for
 -- one of these marks that record as uncopyable for the session.
@@ -72,6 +90,36 @@ function M.nativeAdapter()
     function N.cameraForward(player)
         local _, forward = Game.GetTargetingSystem():GetCrosshairData(player)
         return forward and {x = forward.x, y = forward.y, z = forward.z} or nil
+    end
+    -- The nearest walkable ground to a point (within radius), as plain
+    -- numbers, or nil when the mesh has none there. character: the actor whose
+    -- navigation agent asks. Called only while a leaving companion picks a goal.
+    local function finite(value)
+        return type(value) == 'number' and value == value and value ~= math.huge and value ~= -math.huge
+    end
+    function N.walkable(character, desired, radius)
+        local found = Game.GetAINavigationSystem():FindPointInSphereForCharacter(
+            Vector4.new(desired.x, desired.y, desired.z, 1), radius, character)
+        if not found or found.status ~= Enum.new('worldNavigationRequestStatus', 'OK') then return nil end
+        local p = found.point
+        if not p or not finite(p.x) or not finite(p.y) or not finite(p.z) then return nil end
+        return {x = p.x, y = p.y, z = p.z}
+    end
+    -- The native walking route between two walkable points: its length and its
+    -- points as plain numbers, or nil when there is none.
+    function N.route(character, from, to)
+        local route = Game.GetAINavigationSystem():CalculatePathForCharacter(
+            Vector4.new(from.x, from.y, from.z, 1), Vector4.new(to.x, to.y, to.z, 1), 0.3, character)
+        local points = route and route.path
+        if not points or #points == 0 or #points > 128 then return nil end
+        local list = {}
+        for index, p in ipairs(points) do
+            if not finite(p.x) or not finite(p.y) or not finite(p.z) then return nil end
+            list[index] = {x = p.x, y = p.y, z = p.z}
+        end
+        local length = route:CalculateLength()
+        if not finite(length) or length < 0 then return nil end
+        return {length = length, points = list}
     end
     function N.setVisible(npc, visible)
         -- The same event the phantom controller uses to hide or show a whole
@@ -355,44 +403,112 @@ function M.new(options)
 
     -- Movement owner for a companion walking away (companions.lua M.departure).
     function A.owns(serial) return walkers[serial] ~= nil end
-    local TURNS = {0, 50, -50, 100, -100, 160}
-    local function walkGoal(walker, at, from)
-        local dx, dy
-        local home = walker.home
+    local function ground(a, b) return math.sqrt((a.x - b.x)^2 + (a.y - b.y)^2) end
+    local function keyOf(p) return string.format('%.1f:%.1f', p.x, p.y) end
+
+    -- Desired goals in the order they are tried: the original's home when it
+    -- is a real walk away, then each distance in cfg.walkDistances fanned out
+    -- around straight away from V (never back toward V).
+    local function candidateList(walker, at, from)
+        local list, home = {}, walker.home
         local toHome = home and dist(home, at)
         if toHome and toHome > cfg.walkHomeMin and toHome < cfg.walkHomeMax then
-            dx, dy = home.x - at.x, home.y - at.y
-            if walker.attempt == 0 then return {x = home.x, y = home.y, z = home.z} end
-        else
-            dx, dy = at.x - (from and from.x or at.x), at.y - (from and from.y or at.y)
+            list[#list + 1] = {x = home.x, y = home.y, z = home.z}
         end
+        local dx, dy = at.x - (from and from.x or at.x), at.y - (from and from.y or at.y)
         local length = math.sqrt(dx * dx + dy * dy)
         if length < 0.1 then dx, dy, length = 0, 1, 1 end
-        local turn = math.rad(TURNS[walker.attempt % #TURNS + 1])
         local ux, uy = dx / length, dy / length
-        local rx, ry = ux * math.cos(turn) - uy * math.sin(turn), ux * math.sin(turn) + uy * math.cos(turn)
-        return {x = at.x + rx * cfg.walkDistance, y = at.y + ry * cfg.walkDistance, z = at.z}
+        for _, distance in ipairs(cfg.walkDistances) do
+            for _, degrees in ipairs(cfg.walkBearings) do
+                local turn = math.rad(degrees)
+                local rx, ry = ux * math.cos(turn) - uy * math.sin(turn), ux * math.sin(turn) + uy * math.cos(turn)
+                list[#list + 1] = {x = at.x + rx * distance, y = at.y + ry * distance, z = at.z}
+            end
+        end
+        return list
     end
+
+    -- A reachable ground point for one desired goal, or nil: walkable ground
+    -- near it on this floor, ending far enough from V, by a route that is not a
+    -- detour, stays on one floor and is short enough for the actuator's
+    -- clearance proof (about two metres per verified box, at most 64).
+    local function reachable(desired, at, from, who)
+        local point = guard(native.walkable, who, desired, cfg.walkSnap)
+        if not point or math.abs(point.z - at.z) > 1.2 then return nil end
+        local direct = ground(at, point)
+        if direct < cfg.walkMinGap or (from and ground(point, from) < cfg.walkMinGap) then return nil end
+        local route = guard(native.route, who, at, point)
+        if not route or route.length < direct - 0.5 or route.length > direct + cfg.walkRouteSlack then return nil end
+        if dist(route.points[#route.points], point) >= 0.65 then return nil end
+        local boxes, previous = 1, at
+        for _, p in ipairs(route.points) do
+            if math.abs(p.z - at.z) > 1.3 then return nil end
+            boxes = boxes + math.max(1, math.ceil(ground(previous, p) / 2))
+            previous = p
+        end
+        if boxes > 60 then return nil end
+        return point
+    end
+
+    -- Examine at most cfg.walkProbes candidates; returns a goal, or nil to keep
+    -- looking next update. Every candidate refused for cfg.walkPasses rounds
+    -- sets walker.noRoute (the stuck rule in update then removes her).
+    local function chooseGoal(walker, context, from)
+        local at = context.position
+        walker.candidates = walker.candidates or candidateList(walker, at, from)
+        walker.cursor = walker.cursor or 1
+        local who = context.npc or context.player
+        for _ = 1, cfg.walkProbes do
+            local desired = walker.candidates[walker.cursor]
+            if not desired then
+                walker.pass, walker.cursor, walker.candidates = walker.pass + 1, nil, nil
+                if walker.pass > cfg.walkPasses then walker.noRoute = true end
+                return nil
+            end
+            walker.cursor = walker.cursor + 1
+            if not walker.refused[keyOf(desired)] then
+                local point = reachable(desired, at, from, who)
+                if point then return point end
+            end
+        end
+        return nil
+    end
+
     function A.decide(serial, context)
         local walker = walkers[serial]
         if not walker or type(context) ~= 'table' or not context.position then return nil end
         walker.position, walker.gap, walker.decidedAt = context.position, context.playerGap, clock
+        -- Headway: 1.5 m from the last checkpoint resets the stuck clock.
+        if not walker.checkpoint or dist(walker.checkpoint, context.position) >= HEADWAY then
+            walker.checkpoint = {x = context.position.x, y = context.position.y, z = context.position.z}
+            walker.progressAt = clock
+        end
         local motion = context.motion or {}
         local operation = walker.operation
         if operation and operation.kind == 'move' and motion.ticket == operation.ticket then
-            if motion.failed and walker.attempt < #TURNS then
-                -- No route that way: try the next direction.
+            if motion.failed or (not motion.complete and clock - walker.goalAt >= cfg.walkGoalWait
+                and walker.progressAt <= walker.goalAt) then
+                -- The actuator refused this goal (route, clearance), or it has not
+                -- got her moving (a long detour search): the next one.
+                walker.refused[keyOf(operation.goal)] = true
                 walker.attempt, walker.operation = walker.attempt + 1, nil
-            elseif motion.complete or motion.failed then
+            elseif motion.complete then
                 walker.operation = {ticket = operation.ticket .. '-rest', kind = 'hold'}
             end
         end
-        if not walker.operation then
+        if not walker.operation and not walker.noRoute then
             local from = context.player and guard(native.playerPosition, context.player)
-            walker.operation = {ticket = 'depart-' .. serial .. '-' .. walker.attempt, kind = 'move',
-                goal = walkGoal(walker, context.position, from), gait = 'Walk', finish = true, face = false}
+            local goal = chooseGoal(walker, context, from)
+            if goal then
+                walker.operation = {ticket = 'depart-' .. serial .. '-' .. walker.attempt, kind = 'move',
+                    goal = goal, gait = 'Walk', finish = true, face = false}
+                walker.goalAt = clock
+            end
         end
-        return {phase = 'departing', reason = 'leaving-party', operation = walker.operation, look = 'none'}
+        -- Searching (or out of candidates): stand still, never wander.
+        local held = walker.operation or {ticket = 'depart-' .. serial .. '-look-' .. walker.attempt, kind = 'hold'}
+        return {phase = 'departing', reason = 'leaving-party', operation = held, look = 'none'}
     end
 
     function A.update(dt)
@@ -408,7 +524,7 @@ function M.new(options)
                     for _, record in pairs(records) do
                         if record.serial == serial and record.state == 'joined' then home = record.home end
                     end
-                    walkers[serial] = {serial = serial, since = clock, attempt = 0, home = home}
+                    walkers[serial] = {serial = serial, since = clock, attempt = 0, home = home, refused = {}, pass = 1}
                     log('Departure walking away: copy ' .. serial)
                 end
             end
@@ -484,8 +600,14 @@ function M.new(options)
                 if hidden then walker.hiddenSince = walker.hiddenSince or clock else walker.hiddenSince = nil end
                 local gap = walker.gap or 0
                 local reason
+                -- No headway for a while (no route, refused, boxed in): she must
+                -- not stand there. Gone the moment V cannot see her, else soon.
+                local stuckFor = walker.decidedAt and clock - (walker.progressAt or walker.since) or 0
                 if clock - walker.since >= cfg.walkTimeout then reason = 'timeout'
                 elseif not walker.decidedAt and clock - walker.since >= cfg.walkUnowned then reason = 'not walking'
+                elseif stuckFor >= cfg.walkStuckForce then reason = 'stuck'
+                elseif hidden and stuckFor >= cfg.walkStuck and clock - walker.hiddenSince >= cfg.walkStuckHidden then
+                    reason = 'stuck, out of view'
                 elseif hidden and gap >= cfg.walkGone then reason = 'out of view'
                 elseif hidden and gap >= cfg.walkHiddenGap and clock - walker.hiddenSince >= cfg.walkHidden then
                     reason = 'out of view'

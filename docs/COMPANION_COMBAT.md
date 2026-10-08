@@ -70,6 +70,20 @@ implementation because the production path had now been verified.
 Use `party-weapon-state:<nonce>` for read-only hand attachments, combat/scene
 gates, movement state and equipment ownership.
 
+## Holster while V keeps moving — October 8
+
+The user saw Judy keep her weapon drawn for a long time after a fight, until she finally holstered it. The movement trace of that session shows why. The fight ended at 13:47:17 and V kept walking; Judy's follow behaviour was `catch_up`, `alongside` or `approach` almost the whole time, and her first stretch of calm standing was 13:49:13. The holster handoff needs `idle`, which was "V is standing still and she has a settled hold" (`not groupFrame.moving`), so it waited (`Wait until settled`) for as long as V walked, about two minutes.
+
+Fix, still through the native `AIUnequipCommand`:
+
+- `mod/companion-equipment.lua` keeps a calm clock (no combat, no hostile entity). With a weapon still drawn after 3 s of calm it raises `wantsStop`. That is a bounded request: at most 8 s to reach the holster, then 20 s before it asks again. The holster command keeps its own 6 s limit. Any combat, threat, scene or dismissal withdraws it. The check is the existing 4 Hz equipment tick, only for an armed copy; nothing new runs per frame.
+- `mod/companions.lua` turns `wantsStop` into a hold decision for that copy (a departing companion, a tactic or a body animation keep their own say) and counts a stopped copy as idle for holstering even though V walks on. The copy follows again the moment the weapon is away or the stop is abandoned.
+- Her own feet must be still for 1 s (instead of 2.5 s of V standing), so she holsters about 5 s after combat ends while V walks, and about 2.75 s when V is standing.
+- An engine that still reports the calm companion as Alerted is treated as relaxed after 6 s of calm. Any other state keeps blocking.
+- The movement trace (`runtime/movement-trace.ndjson`) now carries `holster` per copy (`phase`, `reason`, `stop`, `armed`), so a drawn weapon can be explained from the log.
+
+Tests: `bridge/companion-equipment.test.mjs` (stop request timing, withdrawal, bound and cooldown, Alerted, and a real companions/actuator run where V keeps walking and she stands, holsters and follows again; that run fails on the old code with `waiting/Wait until settled`).
+
 ## Johnny fleeing — September 29
 
 The user observed Johnny running away while Judy fought. Source inspection found

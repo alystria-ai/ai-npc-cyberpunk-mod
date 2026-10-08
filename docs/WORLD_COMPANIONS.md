@@ -54,9 +54,9 @@ The prompt text tells the model what counts as a clear request ("come with me", 
 
 - **Follow**: the party place is reserved and preparation starts when the action arrives. The copy is placed only after the reply that accepted has finished playing, or after 30 s at most.
 - **Leave**: the companion waits until its goodbye has been heard. In group chat it waits until the whole round has ended, or 30 s at most. It then walks away:
-  - **Direction**: toward its original's home when that spot is between 8 and 60 m away, otherwise 35 m directly away from V. If there is no route that way, it tries turned directions (50°, 100°, 160°).
+  - **Direction**: toward its original's home when that spot is between 8 and 60 m away, otherwise away from V. The goal is never a blind point: while no goal is held (a few candidates per update, so no frame pays for the whole search) each candidate must have walkable ground within 3 m on her floor, end at least 12 m from V, and have a native route that is no detour (at most 4 m longer than the straight line), stays on one floor and fits the actuator's clearance proof (about 2 m per box, at most 64). Order: home, then 24, 17 and 29 m, each fanned out at 0°, ±40°, ±80° and ±120° from straight away (never back toward V). A goal the movement actuator still refuses, or that gets her 1.5 m nowhere within 4 s, is dropped for the next candidate; the list is tried twice.
   - **Removal**: through the Current party Dismiss path, once it is out of V's view (more than 70° from where V is looking) and either 25 m away, or at least 8 m away and out of view for 3 s.
-  - **Safety limits**: it is removed anyway after 30 s, or after 3 s if it never starts walking (seated in a car, in transit).
+  - **Safety limits**: a companion who makes no headway (1.5 m) for 6 s is removed as soon as she has been out of V's view for 1 s, and anyway after 15 s without headway, in view or not. Otherwise she is removed after 30 s, or after 3 s if it never starts walking (seated in a car, in transit). She never stands there for good.
   - **While it walks**: catch-up teleports and tactics do not apply, and it can't be sent away twice.
   - **From the menu**: Dismiss in Current party stays instant. Either way the adoption ends and the original returns.
 
@@ -75,7 +75,8 @@ When an adopted character joins, `convaiAutoConnect.promote(key)` (`mod/auto-con
 
 ## Known limits
 
-- The walk-away heads home or away from V. It does not look for doors or roads. A companion that cannot reach any route stands still and is removed at the 30 s limit.
+- The walk-away heads home or away from V. It does not look for doors or roads. A companion with no reachable goal stands still and is removed once V cannot see her, or after 15 s.
+- First in-game result (2026-10-08): the leave reached Lua and was accepted, but all six blind 35 m goals of the old search (straight away, then 50°, 100°, 160° turns) were refused within three seconds ("navigation" and "destination" rejections), so Judy stood until V had walked far enough for the out-of-view removal. Fixed by the reachable-goal search above.
 - A copy rejected for its record ("unexpectedly joined the crowd", no AI controller, an authored AI role) marks that record as not copyable for the session, so the next character with that record is never offered Follow. Its failure notice is a menu-style notice, not a spoken line.
 - When the original's spot is blocked by its own body, the copy is placed at the nearest clear spot (up to about 1 m away), or near V when the original stood more than 6 m from V.
 - A hidden original still has collision and its own AI while it is hidden.

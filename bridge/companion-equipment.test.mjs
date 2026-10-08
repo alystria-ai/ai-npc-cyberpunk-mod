@@ -91,12 +91,47 @@ test('delayed spawn equipment is checked before accepting an empty-hand baseline
 test('player/NPC combat, threats, story control and unknown reads cannot admit a holster', () => {
   for (const block of [
     'player.combat=true', 'npc.combat=true', 'player.threat=true', 'npc.threat=true',
-    'npc.autonomous=false', "npc.level='Alerted'", 'npc.scene=true', 'npc.dialogue=true',
+    'npc.autonomous=false', "npc.level='Combat'", 'npc.scene=true', 'npc.dialogue=true',
     'player.dialogue=true', 'player.tier=3', "npc.upper='Reload'", 'npc.threat=nil',
     'Game.GetSceneSystem=function()error("unavailable")end',
   ]) run(`${block};tick(12);assert(#ai.commands==0,'unsafe holster: ${block.replaceAll("'", '')}')`);
   run('tick(10,false);assert(#ai.commands==0)');
 });
+
+test('an engine that still calls the calm companion Alerted holsters only after a longer calm', () => run(`
+ npc.level='Alerted';tick(5.75);assert(#ai.commands==0,'alerted must wait out the longer calm')
+ tick(1.5);assert(#ai.commands==1,'alerted after six calm seconds is treated as relaxed')
+`));
+
+test('a drawn weapon asks the mover to stand still after a calm delay, not at once, and not while others own her', () => run(`
+ tick(2.5,false);assert(not m.wantsStop(s),'must not stop her the moment combat ends')
+ tick(.75,false);assert(m.wantsStop(s) and #ai.commands==0)
+ assert(m.snapshot(s).stopWanted and m.snapshot(s).phase=='waiting')
+ player.threat=true;tick(.25,false);assert(not m.wantsStop(s),'a hostile entity withdraws the request')
+ player.threat=false;tick(2.5,false);assert(not m.wantsStop(s),'calm starts over after a threat')
+ tick(.75,false);assert(m.wantsStop(s))
+ npc.hands[right]=nil;tick(.5,false);assert(not m.wantsStop(s),'nothing drawn: nothing to stop for')
+ npc.hands[right]=gun('again');tick(.5,false);assert(m.wantsStop(s),'a redrawn weapon asks again')
+`));
+
+test('after combat the holster follows the stand-still although V keeps moving', () => run(`
+ player.combat=true;tick(.5,false);assert(not m.wantsStop(s))
+ player.combat=false;tick(3.25,false);assert(m.wantsStop(s) and #ai.commands==0)
+ -- Her own feet are still (the mover obeyed) while V walks on: idle is her own.
+ tick(.75);assert(#ai.commands==0,'the feet need a second to settle')
+ tick(.5);assert(#ai.commands==1 and s.command.slotId==right and m.wantsStop(s))
+ npc.hands[right]=nil;s.command.state='Success';tick(.5)
+ assert(m.snapshot(s).phase=='complete' and not m.wantsStop(s))
+`));
+
+test('a stand-still that never reaches the holster is abandoned, then asked again after a cooldown', () => run(`
+ tick(3.25,false);assert(m.wantsStop(s))
+ tick(7.75,false);assert(m.wantsStop(s),'still within the stop limit')
+ tick(.5,false);assert(not m.wantsStop(s),'a stop is bounded')
+ tick(15,false);assert(not m.wantsStop(s),'cooling down')
+ tick(6,false);assert(m.wantsStop(s),'asked again once the cooldown ends')
+ assert(#ai.commands==0)
+`));
 
 test('new combat rearms cleanup only after a second stable calm interval', () => run(`
  npc.hands[right]=nil;tick(3);assert(m.snapshot(s).phase=='complete')
@@ -321,6 +356,26 @@ test('idle hold hands off to holster, then resumes at actual stance without repl
  assert(row().equipment.phase=='complete' and row().operation.ticket==originalTicket,
   'cleanup='..row().equipment.phase..' ticket='..tostring(row().operation.ticket))
  assert(row().behavior=='settled' and #active(npc,'AIMoveToCommand')==0,'handoff caused a reposition')
+`));
+
+test('V walking on after a fight: she stands still, holsters, then follows again', () => runLua(integration + `
+ -- Standing calm is not what is under test: V is walking when the fight ends.
+ local function walk(seconds)
+  for i=1,math.ceil(seconds/.1)do player.pos.y=player.pos.y+.35;companions.update(player,.1)end
+  assert(not row().error,row().error)
+ end
+ player.combat=true;walk(.6);player.combat=false
+ walk(1.5);assert(not last(npc,'AIUnequipCommand'),'no stop before the calm delay')
+ walk(2.5)
+ assert(row().equipment.stopWanted,'equipment='..tostring(row().equipment.phase)..'/'..tostring(row().equipment.reason))
+ assert(last(npc,'AIHoldPositionCommand').state=='Executing' or last(npc,'AIUnequipCommand'),'she stood still')
+ walk(3)
+ local unequip=last(npc,'AIUnequipCommand')
+ assert(unequip,'holster not sent while V kept walking: '..tostring(row().equipment.phase)..'/'..tostring(row().equipment.reason))
+ npc.weapon=nil;unequip.state='Success';walk(1)
+ assert(row().equipment.phase=='complete' and not row().equipment.stopWanted)
+ walk(1)
+ assert(not row().equipment.stopWanted,'she follows again once the weapon is away')
 `));
 
 test('player departure cancels holster before applying the current movement decision', () => runLua(integration + `
