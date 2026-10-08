@@ -72,6 +72,7 @@ function native.navPoint(point,npc) calls[#calls+1]={name='navPoint'}
   for _,n in ipairs(world.noNav) do if math.abs(point.x-n.x)<.3 and math.abs(point.y-n.y)<.3 then return nil end end
   return {x=point.x,y=point.y,z=point.z} end
 function native.lineClear(from,to,heights) calls[#calls+1]={name='lineClear'}
+  if world.noLine then return false end
   for i=0,20 do local x,y=from.x+(to.x-from.x)*i/20,from.y+(to.y-from.y)*i/20
     for _,b in ipairs(world.boxes) do if x>=b.x1 and x<=b.x2 and y>=b.y1 and y<=b.y2 and b.h>=heights[1] then return false end end end
   return true end
@@ -83,6 +84,7 @@ function native.stepOut(entry,spot) calls[#calls+1]={name='stepOut',serial=entry
 function native.teleport(entry,spot,yaw) calls[#calls+1]={name='teleport',serial=entry.serial,x=spot.x,y=spot.y,yaw=yaw}
   entry.position={x=spot.x,y=spot.y,z=0};return true end
 function native.bodyClear(spot,shape) calls[#calls+1]={name='bodyClear'}
+  if world.roomFilter then return world.roomFilter(spot) end
   for _,b in ipairs(world.boxes) do if spot.x>=b.x1-.3 and spot.x<=b.x2+.3 and spot.y>=b.y1-.3 and spot.y<=b.y2+.3 then return false end end
   for _,n in ipairs(world.noRoom) do if math.abs(spot.x-n.x)<.3 and math.abs(spot.y-n.y)<.3 then return false end end
   return true end
@@ -119,6 +121,14 @@ local function step(seconds,options)
       if options.observe~=false then
         local d=c.steer(e,{combat=combat,motion=e.motor.feedback})
         decisions[e.serial]=d
+        -- Her normal following (behavior.decide) when seating has no decision:
+        -- 0.4 m a step toward her place 1.2 m in front of V.
+        if not d and options.follow and not held[e.serial] then
+          local tx,ty=options.follow.x,options.follow.y
+          local dx,dy=tx-e.position.x,ty-e.position.y
+          local len=math.sqrt(dx*dx+dy*dy)
+          if len>.05 then local k=math.min(1,.4/len);e.position={x=e.position.x+dx*k,y=e.position.y+dy*k,z=0} end
+        end
         if d and d.operation then
           -- The actuator: walks a move to its goal in one update, holds a hold.
           local op=d.operation
@@ -479,4 +489,40 @@ test('a refused walk far from the seat switches straight to the next walk-up poi
     c.observe(e,{combat=false})
   end
   assert(next and next.kind=='move','the next walk-up goal follows the refusal directly: '..tostring(next and next.kind))
+`));
+
+// October 8 20:47Z regression: 3.94 m out, the pre-check left 1 good point and
+// 9 'no room', the movement code refused the one walk and she gave up.
+test('replay 20:47Z: 3.9 m out, 1 good / 9 no room, every walk refused: fallbacks, then she follows in and slides, and sits', () => run(`
+  world.boxes={{x1=-1.1,x2=.3,y1=-.75,y2=-.15,h=.44},{x1=-1.1,x2=.3,y1=-.95,y2=-.75,h=.63},
+    {x1=-2.2,x2=-1.1,y1=-.75,y2=.6,h=.58}}
+  local granted=false
+  world.roomFilter=function(spot) if granted then return false end; granted=true; return true end
+  world.noLine=true -- live: straight=false
+  party={companion(1,1.34,3.4)}
+  local seatRoot={x=-.66,y=0}
+  local d0=math.sqrt((1.34+.66)^2+3.4^2);assert(math.abs(d0-3.94)<.01)
+  seat.inside,seat.psm=true,0;step(.6);seat.psm=1
+  -- Live: she stood still while the walks were refused.
+  step(5,{walk=false,refuse=true})
+  local checked=lastLog('seat-walk-checked')
+  assert(checked and checked.fields.good>=3 and checked.fields.fallbacks>=2,'rejected-for-room points kept as fallbacks: good='..tostring(checked and checked.fields.good))
+  local walks=0;for _,l in ipairs(logs) do if l.kind=='seat-walk' then walks=walks+1 end end
+  assert(walks>=2,'the fallback walk-ups were tried too: '..walks)
+  assert(not lastLog('seat-abandoned'),'never gave up')
+  assert(lastLog('seat-closing'),'out of walk-ups 3.9 m out: close in by following V')
+  -- Her normal following brings her toward V.
+  step(8,{walk=false,refuse=true,follow={x=.4,y=1.6}})
+  world.roomFilter=nil
+  assert(count('play')==1 and held[1]==true,'seated in the end')
+  assert(not lastLog('seat-abandoned'))
+`));
+
+test('closing in that never gets near the seat gives up only after the close timeout', () => run(`
+  couch(-.35,1.7);party={companion(1,3.8,3.8)}
+  sitV();step(1.5,{walk=false,refuse=true})
+  step(6,{walk=false,refuse=true})
+  assert(lastLog('seat-closing') and not lastLog('seat-abandoned'),'still trying after several seconds')
+  step(12,{walk=false,refuse=true})
+  assert(lastLog('seat-abandoned') and count('play')==0,'gave up after a real effort')
 `));

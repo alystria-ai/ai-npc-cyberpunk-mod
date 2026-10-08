@@ -150,6 +150,24 @@ about a metre. Fixed:
 - **Slide speed by distance** for every arrival: 0.5 s + 0.35 s per metre
   beyond 0.75 m, at most 1.4 s.
 
+## Live run 4 (October 8, 20:47Z): she stood still
+
+With the pre-check, 3.94 m out: `seat-walk-checked` good 1, rejected 9 (last
+"no room"), the one walk refused, `seat-abandoned` route failed. The room check
+is stricter than the real walk (the old build's fifth, unchecked point had
+worked), and nothing was left to try. Fixed:
+
+- **Fallbacks:** points that failed only the room check (floor and navmesh
+  fine) are kept; with fewer than 3 good points they join the list after the
+  good ones (`fallbacks` in `seat-walk-checked`, `fallback` in `seat-walk`).
+- **Close in by following:** out of walk-up points farther than 2.5 m from the
+  seat, seating gives no decision (phase `closing`), so her normal following
+  brings her toward V, which works; within 2.5 m she slides in (a slide longer
+  than 1.2 m waits up to 3 s for V to look away). After 6 s of closing in, a
+  slide from up to 3 m is allowed. Probe line `seat-closing`.
+- **Give up only after a real effort:** up to five walks, then up to 12 s of
+  closing in; `seat-abandoned` now names every release before she sat.
+
 ## Mechanism
 
 `convai_gestures.archive` now also carries four components on the gesture
@@ -270,7 +288,7 @@ companions update until it errors.
 classification by name and by furniture (the probed apartment couch), seat finding on couches/stools/armrests, the full sit and stand
 flow, V getting up, combat (instant), several companions on different seats, no
 seat, wall / occupied / table-in-front, vehicles and unsupported workspots, an old archive, a refused walk near and far, transport/unobserved
-release, a walk the actuator never takes, the PSM settle and stand-up, the live apartment run (every walk-up refused 2 m out, slide after V looks away), the bounded wait, the step out after standing (arrival spot, teleport after a stuck step, a spot without room skipped), three companions on a two-seat couch, the walk-up pre-check (no refusals), a far refusal followed directly by the next walk, and the standing cost (≤ 4 reads a second, no rays). 26 tests.
+release, a walk the actuator never takes, the PSM settle and stand-up, the live apartment run (every walk-up refused 2 m out, slide after V looks away), the bounded wait, the step out after standing (arrival spot, teleport after a stuck step, a spot without room skipped), three companions on a two-seat couch, the walk-up pre-check (no refusals), a far refusal followed directly by the next walk, the 20:47Z replay (1 good / 9 no room, every walk refused, ends seated), the close-in timeout, and the standing cost (≤ 4 reads a second, no rays). 28 tests.
 
 ## To check in game
 

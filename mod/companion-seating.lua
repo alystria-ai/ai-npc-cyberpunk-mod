@@ -41,6 +41,8 @@ M.policy = {
     refusedSlide = 2.5,    -- a refused walk this close to the seat: the short slide, no more walks
     precheckPerUpdate = 3, -- walk-up points checked per update before she starts walking
     precheckUpdates = 6,
+    fallbackBelow = 3,     -- fewer good points than this: walk-up points that only failed the room check join as fallbacks
+    closeTimeout = 12,     -- out of walk-ups: follow V normally this long to come within refusedSlide of the seat
     lineHeights = {.5, 1.2}, -- a straight line from her to the walk-up point at these heights
     slideReach = 3.0,      -- out of walk-up points this close to the seat: slide in
     blendWait = 3,         -- a long slide waits this long for V to look away
@@ -441,11 +443,12 @@ function M.new(options)
     local function release(s, reason)
         if s.seat then s.seat.taken = nil end
         dropDevice(s)
-        note('seat-' .. (s.phase == 'approach' and 'abandoned' or 'finished'), {serial = s.serial, reason = reason})
+        note('seat-' .. (HOLDING[s.phase] and 'finished' or 'abandoned'), {serial = s.serial, reason = reason})
         s.phase, s.seat, s.exitAt, s.lookStyle = 'off', nil, nil, nil
     end
     local function requestExit(s, reason, instant)
-        if s.phase == 'approach' or s.phase == 'settling' or s.phase == 'blending' or s.phase == 'choosing' then release(s, reason); return end
+        if s.phase == 'approach' or s.phase == 'settling' or s.phase == 'blending' or s.phase == 'choosing'
+            or s.phase == 'closing' then release(s, reason); return end
         if s.phase == 'entering' and not s.playedAt then release(s, reason); return end
         if s.phase == 'standing' and (reason == 'transport' or reason == 'unobserved') then release(s, reason); return end
         if s.phase ~= 'entering' and s.phase ~= 'seated' then return end
@@ -603,7 +606,11 @@ function M.new(options)
         for _, other in pairs(self.states) do
             if other ~= s and other.seat and other.seat.approach and flat(other.seat.approach, nav) < .8 then return nil, 'another companion' end
         end
-        if not nat.bodyClear(nav, entry.clearance) then return nil, 'no room' end
+        if not nat.bodyClear(nav, entry.clearance) then
+            nav.score, nav.fallback = point.score + 5, true
+            s.fallback[#s.fallback + 1] = nav
+            return nil, 'no room'
+        end
         nav.straight = from and nat.lineClear(from, nav, policy.lineHeights) or false
         nav.score = point.score - (nav.straight and 10 or 0)
         return nav
@@ -623,7 +630,13 @@ function M.new(options)
         s.chooseUpdates = s.chooseUpdates + 1
         if not s.stopChecking and #s.points > 0 and s.chooseUpdates < policy.precheckUpdates then return false end
         table.sort(s.good, function(a, b) return a.score < b.score end)
+        if #s.good < policy.fallbackBelow then
+            table.sort(s.fallback, function(a, b) return a.score < b.score end)
+            for _, point in ipairs(s.fallback) do s.good[#s.good + 1] = point end
+            s.fallback = {}
+        end
         note('seat-walk-checked', {serial = s.serial, good = #s.good, rejected = s.rejectedPoints or 0,
+            fallbacks = (function() local n = 0; for _, p in ipairs(s.good) do if p.fallback then n = n + 1 end end; return n end)(),
             straight = s.good[1] and s.good[1].straight or false, last = s.lastReject})
         return true
     end
@@ -638,12 +651,17 @@ function M.new(options)
             if good then s.good[1] = good end
             extra = extra + 1
         end
+        if #s.good == 0 and #(s.fallback or {}) > 0 then
+            table.sort(s.fallback, function(a, b) return a.score < b.score end)
+            s.good, s.fallback = s.fallback, {}
+        end
         local point = table.remove(s.good, 1)
         if not point or s.tries >= policy.approachTries then return false end
         s.tries, s.since, s.failingSince = s.tries + 1, self.clock, nil
         s.seat.approach = {x = point.x, y = point.y, z = point.z}
         s.op = {ticket = nextTicket(s), kind = 'move', goal = copy(s.seat.approach), gait = 'Walk', finish = true, face = false}
-        note('seat-walk', {serial = s.serial, try = s.tries, goal = s.seat.approach, straight = point.straight == true})
+        note('seat-walk', {serial = s.serial, try = s.tries, goal = s.seat.approach, straight = point.straight == true,
+            fallback = point.fallback == true})
         return true
     end
     local function arrive(s, toSeat, refused, entry)
@@ -656,9 +674,20 @@ function M.new(options)
     -- (or blendWait) when the slide is long enough to read as a glide.
     function slideOrWait(s, entry)
         local toSeat = entry.position and flat(entry.position, s.seat.root) or math.huge
-        if toSeat > policy.slideReach then
-            s.cooldownUntil = self.clock + policy.failureCooldown
-            release(s, 'route failed'); return nil
+        -- Half way through closing in, a slide from up to slideReach is allowed.
+        local reach = s.closingSince and self.clock - s.closingSince > policy.closeTimeout / 2
+            and policy.slideReach or policy.refusedSlide
+        if toSeat > reach and s.phase ~= 'blending' then
+            if s.closingSince and self.clock - s.closingSince > policy.closeTimeout then
+                s.cooldownUntil = self.clock + policy.failureCooldown
+                release(s, 'route failed'); return nil
+            end
+            -- Her normal following brings her near V; no decision of ours.
+            if s.phase ~= 'closing' then
+                s.phase, s.closingSince = 'closing', s.closingSince or self.clock
+                note('seat-closing', {serial = s.serial, toSeat = toSeat, tries = s.tries})
+            end
+            return nil
         end
         s.phase = 'blending'
         s.blendSince = s.blendSince or self.clock
@@ -703,6 +732,7 @@ function M.new(options)
         s.points, s.tries, s.blendSince = M.approachPoints(best.root, session.forward, session.profile, session.anchor,
             entry.position, policy), 0, nil
         s.good, s.chooseUpdates, s.rejectedPoints, s.lastReject, s.stopChecking = {}, 0, 0, nil, nil
+        s.fallback, s.closingSince = {}, nil
         local ok, id = nat.spawnDevice(best.root, session.orientation, template)
         if ok then s.deviceID = id else failNote('seat device: ' .. tostring(id)) end
         note('seat-assigned', {serial = s.serial, session = session.id, kind = session.kind, offset = best.offset,
@@ -853,6 +883,11 @@ function M.new(options)
                 return slideOrWait(s, entry)
             end
             return {phase = 'seat-approach', reason = 'Walk to a seat beside V', operation = s.op, look = 'none'}
+        end
+        if s.phase == 'closing' then
+            if not session or session.id ~= s.session then release(s, 'V stood up'); return nil end
+            if context.combat then release(s, 'combat'); return nil end
+            return slideOrWait(s, entry)
         end
         if s.phase == 'blending' then
             if not session or session.id ~= s.session then release(s, 'V stood up'); return nil end
