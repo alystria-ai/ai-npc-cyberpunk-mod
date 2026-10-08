@@ -1098,7 +1098,10 @@ end
 local stranded={distance=10,after=8,retry=3,fieldOfView=60,
     -- No native route at all (V hopped a railing): a companion cannot vault,
     -- so it rejoins sooner and at short range, even if watched for long.
-    unreachableDistance=6,unreachableAfter=4,watchedAfter=12}
+    unreachableDistance=6,unreachableAfter=4,watchedAfter=12,
+    -- A stance the actuator's short step could not free (furniture right
+    -- beside her): rejoin after 6 s from 2.5 m, still only out of view.
+    stanceDistance=2.5,stanceAfter=6}
 -- NPC sprint speed is capped by its animation (~5.4 m/s against V's ~8), so a
 -- long sprint leaves followers behind. Like vanilla followers, a follower more
 -- than 25 m back rejoins out of view, placed behind V.
@@ -1733,8 +1736,9 @@ local function recoverDistant(entry,player)
     local blockedRecently=runtimeClock-(entry.lastBlockedAt or -math.huge)<=2
         or runtimeClock-(entry.replannedAt or -math.huge)<=separation.replanGrace
     local strandedReady,watchedTooLong,stuckFor=false,false,0
-    if not blockedRecently
-        or entry.playerGap<(unreachable and stranded.unreachableDistance or stranded.distance) then
+    local stanceStuck=not unreachable and actuator.unstuckRecently(entry.motor,20)
+    if not blockedRecently or entry.playerGap<(unreachable and stranded.unreachableDistance
+        or stanceStuck and stranded.stanceDistance or stranded.distance) then
         entry.strandedSince,entry.strandedAnchor=nil,nil
     else
         if not entry.strandedAnchor or space.distance(entry.strandedAnchor,entry.position)>1 then
@@ -1744,7 +1748,8 @@ local function recoverDistant(entry,player)
             entry.strandedAnchor,entry.strandedSince=space.copy(entry.position),runtimeClock
         end
         stuckFor=runtimeClock-entry.strandedSince
-        strandedReady=stuckFor>=(unreachable and stranded.unreachableAfter or stranded.after)
+        strandedReady=stuckFor>=(unreachable and stranded.unreachableAfter
+            or stanceStuck and stranded.stanceAfter or stranded.after)
         watchedTooLong=unreachable and stuckFor>=stranded.watchedAfter
     end
     -- A closed door V walked through: open it the way V did, then let the
@@ -1840,7 +1845,8 @@ local function recoverDistant(entry,player)
         watched=verticalFor>=(liftArrival and stranded.watchedAfter or separation.floorWatchedAfter)
     elseif farReady then rule,watched='far',false
     elseif arrivalReady then rule,watched='fast-travel',runtimeClock-entry.arrivalStart>=separation.arrivalWatchedAfter
-    elseif strandedReady then rule,watched=unreachable and 'no-route' or 'blocked',watchedTooLong
+    elseif strandedReady then
+        rule,watched=unreachable and 'no-route' or stanceStuck and 'stance' or 'blocked',watchedTooLong
     end
     if not rule or runtimeClock<(entry.strandedRetryAt or 0) then return false end
     local quick=rule=='far' or rule=='fast-travel' or rule:find('lift',1,true)

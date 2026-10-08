@@ -750,3 +750,35 @@ New test: the inside flag flickers as V steps to the doors after the failed
 walk; she is placed only once V looks away. It fails on `ca6face`. The
 left-behind test now keeps her 20 m back behind a locked door, because a
 companion close to the car is now taken along.
+
+### Refused routes beside her (2026-10-08 20:55Z, V's apartment)
+
+The lift fallback from `a977f09` worked in game: at 20:45:58 she was placed
+in the car out of view (`how` `unseen`) and walked out after V.
+
+A new case. Judy stood at (-1602.51, 357.78) near the couch. Every follow was
+refused at the `path` stage on its second leg: the box hit Static furniture
+centred 0.75 m from her and 1.45 m up. The detour search ran out every ~5 s
+(`detours-exhausted`), and the behaviour went `obstructed`, then `recover`,
+then `obstructed` again for minutes. She was 9.3 m from V, under the 10 m
+stranded distance, so no recovery fired. The actuator's short step only
+reacted to `origin` and `motion` refusals.
+
+The fixes:
+
+- **Short step:** a `path` or `destination` refusal now also counts as a
+  stance refusal when all three hold:
+  - its box is centred within 1.2 m of her feet;
+  - it is on the route's first two legs;
+  - every detour was tried within the last 6 s.
+
+  The same short step follows: 0.35-0.6 m to a spot that passes physics
+  checks, away from the box, then a fresh plan. Before the detours run out,
+  the detour search still owns the copy.
+- **Rejoin:** if the copy is still stuck within 20 s of a step, or after a
+  search that found no spot, recovery uses the `stance` rule. It is stranded
+  from 2.5 m (was 10) after 6 s (was 8), and is placed near V out of view.
+
+Test: a U of furniture 0.75 m around her, open away from V. She takes the
+short step, then rejoins near V by the `stance` rule. This fails on
+`a977f09`.

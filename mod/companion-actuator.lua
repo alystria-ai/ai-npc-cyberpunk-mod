@@ -999,6 +999,7 @@ local function blockedRoute(s,intent,c,canPlan)
         if search.index>#search.candidates then
             s.detourSearch,s.clearanceWaiting=nil,nil
             s.lastRejection=held.rejection
+            s.detoursExhaustedAt=s.clock
             record(s,'detours-exhausted')
         end
     end
@@ -1615,7 +1616,8 @@ local function execute(s,intent,c,canPlan)
     return commitWaypoint(s,plan,intent,c,chooseWaypoint(plan,c,plan.index),plan.index)
 end
 
--- A stance touching scenery. Live traces 2026-10-08: a companion touching a
+-- A stance touching scenery (or a route refused right beside her, below).
+-- Live traces 2026-10-08: a companion touching a
 -- prop had every new goal refused at the 'origin' stage (38 goals in 6 s,
 -- 14:23:08-14:23:20), and in V's apartment one 'motion' refusal at her own
 -- feet left her blocked for 8 minutes. Every route starts inside that
@@ -1624,11 +1626,26 @@ end
 -- budget, at most 3 candidates per update), then plans again. The step is a
 -- short straight walk, never a teleport. At most every 4 s, three per 30 s.
 local unstickPolicy={rings={.35,.6},perUpdate=3,retry=4,window=30,limit=3,deadline=2}
-local function stanceRefusal(r,c)
+local function stanceRefusal(s,r,c)
     if not r then return false end
     if r.stage=='origin' then return true end
-    return r.stage=='motion' and (r.box==nil or r.box==1) and type(r.center)=='table'
-        and clearance.isPoint(r.center) and space.ground(r.center,c.position)<.7
+    local near=type(r.center)=='table' and clearance.isPoint(r.center) and space.ground(r.center,c.position)
+    if r.stage=='motion' then return (r.box==nil or r.box==1) and near and near<.7 end
+    -- A route refused right beside her: live 2026-10-08 20:55Z, V's apartment,
+    -- every follow refused at 'path' on its second leg by furniture 0.75 m
+    -- away and 1.45 m up, detours exhausted, stranded for minutes 9.3 m from V.
+    -- Only once every detour was tried: until then the detour search owns it.
+    if r.stage=='path' or r.stage=='destination' then
+        return near and near<1.2 and (r.leg==nil or r.leg<=2)
+            and s.detoursExhaustedAt~=nil and s.clock-s.detoursExhaustedAt<=6 or false
+    end
+    return false
+end
+-- Whether the short step was tried (or found no spot) within `window` s:
+-- recovery then relocates a still-stuck copy sooner and closer to V.
+function M.unstuckRecently(s,window)
+    local last=s.unsticks and s.unsticks[#s.unsticks]
+    return (last and s.clock-last<=window) or (s.unstickExhaustedAt and s.clock-s.unstickExhaustedAt<=window) or false
 end
 local function unstick(s,c)
     local u=s.unstick
@@ -1648,7 +1665,7 @@ local function unstick(s,c)
     local r=s.lastRejection
     if r~=s.seenRejection then
         s.seenRejection=r
-        if stanceRefusal(r,c) then
+        if stanceRefusal(s,r,c) then
             local seen=s.stanceRefused
             if not seen or s.clock-seen.first>4 then seen={first=s.clock,count=0}; s.stanceRefused=seen end
             seen.count=seen.count+1
@@ -1656,7 +1673,7 @@ local function unstick(s,c)
     end
     local seen=s.stanceRefused
     if not u then
-        if not seen or s.clock<(s.unstickRetryAt or 0) or not stanceRefusal(r,c) then return false end
+        if not seen or s.clock<(s.unstickRetryAt or 0) or not stanceRefusal(s,r,c) then return false end
         if seen.count<2 and not (s.blockedReason and s.clock-seen.first>=1.5) then return false end
         s.unsticks=s.unsticks or {}
         while s.unsticks[1] and s.clock-s.unsticks[1]>unstickPolicy.window do table.remove(s.unsticks,1) end
@@ -1709,7 +1726,7 @@ local function unstick(s,c)
         u.index,checked=u.index+1,checked+1
     end
     if u.list[u.index] then return true end
-    s.unstick,s.unstickRetryAt=nil,s.clock+unstickPolicy.retry*1.5
+    s.unstick,s.unstickRetryAt,s.unstickExhaustedAt=nil,s.clock+unstickPolicy.retry*1.5,s.clock
     return false
 end
 function M.apply(s,decision,c,canPlan)

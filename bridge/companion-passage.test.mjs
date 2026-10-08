@@ -609,3 +609,43 @@ test('a refused move beside a still V settles instead of waiting forever',()=>ru
   assert(final~='obstructed','she still waits obstructed after 12 s: '..table.concat(phases,','))
   assert(#npc.ai.commands-before<12,'the refused move became a command storm')
 `));
+
+test('furniture refusing every route beside her: a short step, then an out-of-view rejoin near V',()=>run(world+`
+  -- Live 2026-10-08 20:55Z (V's apartment): every follow refused at 'path'
+  -- on its second leg by furniture 0.75 m away; detours exhausted; she
+  -- stood 9.3 m from V for minutes, under the 10 m stranded distance.
+  play(2)
+  local o=Vector4.new(npc.pos.x,npc.pos.y,npc.pos.z)
+  -- A U of furniture 0.75 m around her, open behind her (away from V).
+  local walls={{o.x-.75,o.y-.3,o.x-.75,o.y+.75},{o.x-.75,o.y+.75,o.x+.75,o.y+.75},{o.x+.75,o.y+.75,o.x+.75,o.y-.3}}
+  Game.GetSpatialQueriesSystem=function() return {
+    Overlap=function(_,extents,center,rotation)
+      local yaw=math.rad(rotation and rotation.yaw or 0)
+      local fx,fy=-math.sin(yaw),math.cos(yaw)
+      for _,w in ipairs(walls) do
+        for k=0,30 do
+          local px,py=w[1]+(w[3]-w[1])*k/30-center.x,w[2]+(w[4]-w[2])*k/30-center.y
+          if math.abs(px*fx+py*fy)<extents.y and math.abs(px*fy-py*fx)<extents.x then return true,{} end
+        end
+      end
+      return false,{}
+    end,
+    SyncRaycastByCollisionGroup=function() return false end} end
+  -- V walks 6 m ahead (through the furniture's open side for V) and stops,
+  -- looking further ahead: she is out of V's view.
+  player.forward=Vector4.new(0,1)
+  for i=1,4 do player.pos=Vector4.new(o.x,o.y+1.5*i,0); play(1) end
+  play(44)
+  local stepped
+  for _,cmd in ipairs(npc.ai.commands) do
+    if cmd.kind=='AIMoveToCommand' and cmd.ignoreNavigation then
+      local at=cmd.movementTarget.position
+      if math.sqrt((at.x-o.x)^2+(at.y-o.y)^2)<.7 then stepped=true end
+    end
+  end
+  assert(stepped,'she never took the short step clear'..dump())
+  assert(#teleports>=1,'she stayed stranded behind the furniture'..dump())
+  assert(logged('relocated','stance'),'the rejoin was not the stance rule'..dump())
+  local spot=teleports[1].spot
+  assert(math.sqrt((spot.x-player.pos.x)^2+(spot.y-player.pos.y)^2)<6,'not placed near V')
+`));
