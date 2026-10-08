@@ -150,6 +150,7 @@ local function note(entry,kind,fields)
     if not M.recoveryLog then return end
     fields=fields or {}
     local key=kind..':'..tostring(fields.rule or fields.reason or fields.result or '')
+        ..':'..tostring(fields.how or '')..':'..tostring(fields.retry or '')
     entry.notes=entry.notes or {}
     if runtimeClock-(entry.notes[key] or -math.huge)<8 then return end
     entry.notes[key]=runtimeClock
@@ -819,7 +820,8 @@ function M.abandon(preserveTransit)
     passageState.position,passageState.rideFrom=nil,nil
     passageState.sampledAt,passageState.zMovingUntil=-math.huge,-math.huge
     passageState.rideStarted,passageState.arrivedAt,passageState.exitedAt,passageState.insideSince=nil,nil,nil,nil
-    passageState.riding=nil
+    passageState.riding,passageState.inCar,passageState.outSince,passageState.visitEnded=nil,nil,nil,nil
+    passageState.carAnchor=nil
     riders={}; M.riders=nil
     vehicles.abandon(fleet)
     if reloadCleanup then reloadCleanupModule.abandon(reloadCleanup) end
@@ -1170,23 +1172,29 @@ end
 local setVisible
 -- Who rides: a copy standing in the car with V when it departs (boarded this
 -- visit, or within 1.6 m of where V stood). Her offset from V is kept.
-local function boardRiders(s)
+local function boardRiders(s,now)
     riders={}
     for _,entry in ipairs(entries) do
         local at=entry.state=='ready' and entry.npc and entry.position
+        -- Where V stood when the car left, or where V is now when the engine
+        -- already moved her with the car (the first moving sample).
+        local base=s.rideFrom
+        if at and math.abs(at.z-now.z)<math.abs(at.z-base.z) then base=now end
         local walk=entry.carWalk
-        local aboard=at and math.abs(at.z-s.rideFrom.z)<1 and (entry.carVisit==s.insideSince
+        local aboard=at and math.abs(at.z-base.z)<1 and (entry.carVisit==s.insideSince
             or walk and walk.purpose=='board' and walk.final and space.ground(at,walk.target)<1.2
-            or space.ground(at,s.rideFrom)<1.6)
+            or space.ground(at,base)<1.6)
         if aboard then
             local ok,angles=pcall(function() return Quaternion.ToEulerAngles(entry.npc:GetWorldOrientation()) end)
-            riders[#riders+1]={entry=entry,dx=at.x-s.rideFrom.x,dy=at.y-s.rideFrom.y,dz=at.z-s.rideFrom.z,
+            -- The offset is kept from V's current position, which the carry follows.
+            riders[#riders+1]={entry=entry,dx=at.x-now.x,dy=at.y-now.y,dz=at.z-base.z,
                 angles=ok and angles or EulerAngles.new(0,0,0)}
             entry.carVisit,entry.carWalk,entry.carSearch=s.insideSince,nil,nil
-            entry.riding,entry.rideDz,entry.carryError,entry.carryNoted=s.rideStarted,at.z-s.rideFrom.z,nil,nil
+            entry.riding,entry.rideDz,entry.carryError,entry.carryNoted=s.rideStarted,at.z-base.z,nil,nil
             entry.carrySent=0
-        elseif at and entry.boardedVisit==s.insideSince and math.abs(at.z-s.rideFrom.z)<1.5
-            and space.ground(at,s.rideFrom)<=separation.carDoorReach then
+        elseif at and math.abs(at.z-s.rideFrom.z)<1.5 and space.ground(at,s.rideFrom)<=separation.carDoorReach
+            and not (M.departure and M.departure.owns(entry.serial))
+            and not (M.tactics and M.tactics.owns(entry.serial)) then
             -- She tried to board this visit but is still outside: the car's
             -- doors are shut, so she vanishes from the landing and rides
             -- hidden, then appears in the car at arrival.
@@ -1277,8 +1285,27 @@ local function samplePassage(player,position)
             s.zMovingUntil=runtimeClock+separation.verticalSettle
         end
         s.z=position.z
-        local inside,moving=s.lift and s.lift.inside,s.lift and s.lift.moving
-        if inside and not (previous and previous.inside) then s.insideSince=runtimeClock end
+        local rawInside,moving=s.lift and s.lift.inside,s.lift and s.lift.moving
+        -- One car visit survives a flicker of the inside flag. Live trace
+        -- 2026-10-08 20:37:12Z: V stepped toward the doors inside the car and
+        -- every boarding fallback, tied to the visit, was dropped silently.
+        if rawInside then
+            s.outSince=nil
+            if not s.inCar then
+                if not (s.visitEnded and runtimeClock-s.visitEnded<3 and s.carAnchor
+                    and space.ground(position,s.carAnchor)<3 and math.abs(position.z-s.carAnchor.z)<1) then
+                    s.insideSince,s.carAnchor=runtimeClock,space.copy(position)
+                end
+                s.inCar=true
+            end
+        elseif s.inCar then
+            s.outSince=s.outSince or runtimeClock
+            if runtimeClock-s.outSince>=1.5 then
+                s.inCar,s.visitEnded,s.exitedAt=false,runtimeClock,runtimeClock
+                s.carAnchor=space.copy(position)
+            end
+        end
+        local inside=s.inCar
         -- A ride: the car's moving flag, or, until that flag has been seen
         -- set once (it is reflected, not yet seen live), V's height changing
         -- while V is in the car.
@@ -1288,14 +1315,13 @@ local function samplePassage(player,position)
             -- Who stood in the car is judged where the car stood, not where
             -- the first moving sample already finds V.
             s.rideStarted,s.rideFrom=runtimeClock,s.position or space.copy(position)
-            boardRiders(s)
+            boardRiders(s,position)
         end
         s.position=space.copy(position)
         if s.riding and not riding then s.arrivedAt=runtimeClock; riders={}; M.riders=nil end
         if riding and runtimeClock-s.rideStarted>90 then riders={}; M.riders=nil end
         checkRiders(s,position)
         s.riding=riding
-        if previous and previous.inside and not inside then s.exitedAt=runtimeClock end
     end
     passage.trailPush(s.trail,position,runtimeClock,s.lift and s.lift.inside)
 end
@@ -1337,7 +1363,7 @@ local function relocate(entry,player,rule,watched,lift)
         plans[#plans+1]={preferred=behind,accept=outOfView}
         if watched then plans[#plans+1]={preferred=behind} end
         -- V in a lift car: search from the walkable ground nearest V.
-        if lift and lift.inside then
+        if passageState.inCar then
             plans[#plans+1]={preferred=behind,accept=not watched and outOfView or nil,
                 options={sourceRadius=separation.carSource}}
         end
@@ -1421,9 +1447,23 @@ local function exitCandidates(entry,v)
     end
     return list
 end
+-- Already standing in the car: right beside V, or close to V with no
+-- navmesh under her feet (the car floor carries none; the landing does).
+local function carAboard(entry,flat)
+    if flat<=1.3 then return true end
+    if flat>2.2 then return false end
+    local ok,found=pcall(function()
+        return Game.GetAINavigationSystem():FindPointInSphereForCharacter(
+            Vector4.new(entry.position.x,entry.position.y,entry.position.z,1),.3,entry.npc)
+    end)
+    if not ok then return false end
+    local onNavmesh=found and found.status==Enum.new('worldNavigationRequestStatus','OK') and found.point
+        and space.distance(found.point,entry.position)<=.35
+    return not onNavmesh
+end
 local function liftPassage(entry,player,v,rise,flat)
-    local s,lift=passageState,passageState.lift
-    local inside=lift and lift.inside
+    local s=passageState
+    local inside=s.inCar
     local walk=entry.carWalk
     if walk then
         local gap=space.ground(entry.position,walk.target)
@@ -1513,9 +1553,21 @@ local function liftPassage(entry,player,v,rise,flat)
     local search=entry.carSearch
     if search then
         if not (inside and search.visit==s.insideSince and not s.riding) then entry.carSearch=nil; return false end
+        if search.mode=='hidden' and not search.spot then
+            local towards=entry.carDoor or entry.position
+            local spot,reason,pending=passage.carSpot(search,v,towards,occupiedPositions(entry),entry.clearance,clearance)
+            if pending then return false end
+            if not spot then
+                entry.carSearch,entry.carNoFloor=nil,search.visit
+                note(entry,'lift-car-spot',{reason=reason,mode='hidden'})
+                return false -- the navmesh placement beside V, out of view
+            end
+            search.spot=spot
+        end
         if search.mode=='hidden' then
+            -- Placed the moment V's view leaves her and the spot.
             if runtimeClock<(search.checkAt or 0) then return false end
-            search.checkAt=runtimeClock+.5
+            search.checkAt=runtimeClock+.25
             if not unseen(player,entry,search.spot) then return false end
             local moved=carTeleport(entry,player,search.spot,search.visit,'lift-board','unseen')
             if moved==nil then return true end
@@ -1571,14 +1623,18 @@ local function liftPassage(entry,player,v,rise,flat)
             entry.carSearch={visit=search.visit,mode='hidden',spot=spot}
             return false
         end
-        -- The car left without her: back in it only while V cannot see it.
-        entry.carSearch=nil
-        if not entry.rideHidden and not unseen(player,entry,spot) then
+        -- The car left without her: back in it only out of V's view. A
+        -- hidden rider's own position is not seen; only the spot matters.
+        if runtimeClock<(search.checkAt or 0) then return false end
+        search.checkAt=runtimeClock+.25
+        local clear=entry.rideHidden and hiddenFromPlayer(player,spot)==true or unseen(player,entry,spot)
+        if not clear then
             note(entry,'lift-car-spot',{reason='in-view',mode=search.mode})
             return false
         end
         local moved=carTeleport(entry,player,spot,search.visit,'lift-arrival','car')
-        if moved==nil then entry.carSearch=search; return true end
+        if moved==nil then return true end
+        entry.carSearch=nil
         return moved
     end
     local visit=entry.carVisit
@@ -1652,7 +1708,7 @@ local function recoverDistant(entry,player)
         note(entry,'lift-arrived',{rise=rounded(rise),withV=entry.rodeWithV==true})
         -- She stood in the car but the car left without her: back beside V in
         -- the car, where V last saw her, before V steps out.
-        if entry.rodeWithV and lift and lift.inside and not s.riding and rise>separation.verticalGap
+        if entry.rodeWithV and s.inCar and not s.riding and rise>separation.verticalGap
             and not entry.carSearch and not entry.carWalk then
             entry.carSearch={visit=s.insideSince,mode='arrival'}
         end
@@ -1737,11 +1793,13 @@ local function recoverDistant(entry,player)
     if vertical then entry.verticalSince=entry.verticalSince or runtimeClock else entry.verticalSince=nil end
     local verticalFor=vertical and runtimeClock-entry.verticalSince or 0
     local verticalReady=vertical and verticalFor>=(entry.rodeWithV and 0 or separation.verticalAfter)
-    -- V waits in a stopped car while the companion cannot get in.
-    local boardReady=lift and lift.inside and not s.riding and rise<1.5
-        and s.insideSince and runtimeClock-s.insideSince>=separation.boardAfter
-        and ((blockedRecently and flat>separation.carNear) or (stalledFor>=separation.boardAfter and flat>separation.carGap))
-        and entry.boardedVisit~=s.insideSince and not entry.carVisit
+    -- V waits in a stopped car: every party member near it gets in. Not only
+    -- a blocked one (live 20:37Z: V by the doors, she 1.6 m away outside).
+    local carStop=s.inCar and not s.riding and s.insideSince and runtimeClock-s.insideSince>=separation.boardAfter
+    local presence=carStop and rise<1.5 and flat<=separation.carDoorReach and entry.carVisit~=s.insideSince
+        and not entry.carWalk and not entry.carSearch and not entry.carRetry
+    -- No car floor found by physics: the navmesh placement beside V, out of view.
+    local boardReady=presence and entry.carNoFloor==s.insideSince and entry.boardedVisit~=s.insideSince
     if entry.motor.kind=='follow' and entry.playerGap>catchUp.distance then
         entry.farSince=entry.farSince or runtimeClock
     else entry.farSince=nil end
@@ -1751,14 +1809,27 @@ local function recoverDistant(entry,player)
     local arriving=entry.arrivalUntil and runtimeClock<entry.arrivalUntil
     local arrivalReady=arriving and entry.playerGap>separation.arrivalGap
         and runtimeClock-entry.arrivalStart>=separation.arrivalAfter
-    if boardReady and entry.carTried~=s.insideSince then
-        -- First the car floor itself (physics), then the navmesh beside V.
-        entry.carTried=s.insideSince
-        entry.carSearch={visit=s.insideSince,mode='board'}
-        -- V's last foothold before the car: the doorway, on the walkable floor.
-        -- The inside flag can lag V's steps, so footholds within 1.5 m of V
-        -- (already in the car) do not count.
-        entry.carDoor=passage.trailPoints(s.trail,v,1.5,6,1)[1]
+    if presence and entry.carNoFloor~=s.insideSince and runtimeClock>=(entry.carCheckAt or 0) then
+        entry.carCheckAt=runtimeClock+.5
+        if carAboard(entry,flat) then
+            entry.carVisit=s.insideSince
+            note(entry,'lift-boarded',{how='aboard'})
+            return liftPassage(entry,player,v,rise,flat)
+        end
+        if entry.carTried~=s.insideSince then
+            -- First a walk in onto the car floor found by physics.
+            entry.carTried=s.insideSince
+            entry.carSearch={visit=s.insideSince,mode='board'}
+            -- V's last foothold before the car: the doorway, on the walkable floor.
+            -- The inside flag can lag V's steps, so footholds within 1.5 m of V
+            -- (already in the car) do not count.
+            entry.carDoor=passage.trailPoints(s.trail,v,1.5,6,1)[1]
+        else
+            -- The walks of this visit are spent: placed once V looks away, at
+            -- the latest hidden from the landing as the car departs.
+            entry.carSearch={visit=s.insideSince,mode='hidden'}
+            note(entry,'lift-boarding',{how='unseen-teleport',reason='not-aboard'})
+        end
         return liftPassage(entry,player,v,rise,flat)
     end
     local rule,watched

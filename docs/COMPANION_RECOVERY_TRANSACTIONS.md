@@ -699,3 +699,54 @@ The fixes:
 Tests: a failed walk retried once that then walks in, with no teleport; V
 watching the doors the whole time, she vanishes at departure and is in the car
 at arrival. Both fail on `f12fc03`.
+
+### Fifth live test (2026-10-08 20:37Z): no fallback after the failed walk
+
+With `ca6face` installed: `lift-boarding` `how` `door-then-walk` at 20:37:10
+(the straight sweep was blocked), then `lift-board-walk-failed` at 20:37:12
+(`walk` 0.8, `retry` false). After that there were no lines at all. The
+movement trace shows why:
+
+- **The fallback was dropped.** At 20:37:12 V stepped from the back of the car
+  (373.0) toward the doors (371.1). The lift's inside flag follows the car's
+  trigger volume, so it flickers off as V nears the doors. Every boarding state
+  (the retry, the wait for V to look away) was tied to "inside and the same
+  visit". A flicker ends the visit, so the next update dropped them silently.
+  Some lines that did run were also swallowed: the note throttle keyed
+  `lift-boarding` and `lift-board-walk-failed` only on rule, reason or result,
+  so a retry's line within 8 s of the first was dropped.
+- **Nothing else applied.** After that V stood at the doors 1.6 m from her, so
+  the old trigger (blocked and more than 1.8 m away) never fired again. She
+  settled outside the car (`hold/attend`).
+- **"walk 0.8":** the native walk to V's doorway foothold stops where the
+  navmesh ends, about 0.8 m short. That foothold sits just past the navmesh
+  edge, at the car threshold. Since `ca6face` that already counts as reaching
+  the doorway. The straight leg in was then refused by the body sweep, at the
+  door frame.
+
+The fixes (`mod/companions.lua`):
+
+- **Car visit:** a visit now survives a flicker of the inside flag. It ends
+  only after 1.5 s outside. A visit that restarts within 3 s and 3 m of where
+  it ended is the same visit.
+- **Probe lines:** the note throttle key includes `how` and `retry`, so each
+  boarding decision gets its own line.
+- **Presence rule:** once V has stood in a stopped car for 1 s, every party
+  member within 15 m on V's floor who is not aboard gets in. She first walks
+  in (with one retry). After that she is placed the moment V's view leaves her
+  and the spot (checked 4 times a second, for the whole visit). Aboard means
+  within 1.3 m of V, or within 2.2 m with no navmesh under her feet (the car
+  floor has none).
+- **At departure:** every party member within 15 m on V's floor that is not
+  aboard vanishes from the landing and rides hidden. Departing and tactic-owned
+  copies are excluded.
+- **Arrival:** the hidden placement goes behind V's view, and waits while the
+  spot is in view.
+- **Rider check:** rider detection compares her height with V's current height
+  too, because the first moving sample can find a carried rider already risen
+  with V.
+
+New test: the inside flag flickers as V steps to the doors after the failed
+walk; she is placed only once V looks away. It fails on `ca6face`. The
+left-behind test now keeps her 20 m back behind a locked door, because a
+companion close to the car is now taken along.

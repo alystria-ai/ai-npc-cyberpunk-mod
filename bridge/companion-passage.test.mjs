@@ -198,7 +198,7 @@ test('a follower the car carried along is not teleported',()=>run(world+`
   lift.moving=true
   for i=1,10 do player.pos=Vector4.new(0,6,i*4); npc.pos=Vector4.new(.8,6,i*4); play(1) end
   lift.moving=false; play(2); lift.inside=false; play(6)
-  assert(#teleports==0,'a companion who rode along was teleported')
+  assert(#teleports==0,'a companion who rode along was teleported'..dump())
 `));
 
 test('V waiting in a stopped car pulls a blocked follower into the car, never in view',()=>run(world+`
@@ -307,6 +307,8 @@ const car=`
         if group=='Static' and z and from.z>=z and to.z<=z then return true,{position=Vector4.new(from.x,from.y,z)} end
         return false,{}
       end
+      -- Floors lie between storeys.
+      if math.abs(from.z-to.z)>3 then return true,{} end
       for _,w in ipairs(walls) do if crosses(from.x,from.y,to.x,to.y,w) then return true,{} end end
       return false,{}
     end} end
@@ -447,6 +449,26 @@ test('V keeps watching while she cannot get in: she vanishes as the car departs 
   assert(events[#events]==true,'she was not shown again')
 `));
 
+test('the inside flag flickering as V steps to the doors keeps the fallback; she is placed the moment V looks away',()=>run(world+car+`
+  -- Live 2026-10-08 20:37:12Z: V stepped toward the doors inside the car,
+  -- and after the failed walk no fallback ran at all.
+  local plain=npc.ai.onSend
+  npc.ai.onSend=function(cmd)
+    if cmd.kind=='AIMoveToCommand' and cmd.ignoreNavigation then cmd.kind='AIMoveToCommandIgnored' end
+    return plain(cmd)
+  end
+  enterCar(); play(6)
+  player.pos=Vector4.new(0,7.3,0); lift.inside=false; play(1) -- V by the doors
+  lift.inside=true; play(10)
+  assert(logged('lift-board-walk-failed'),'the walk did not fail'..dump())
+  assert(#teleports==0,'placed while V watched'..dump())
+  player.forward=Vector4.new(0,1) -- V looks away
+  play(2)
+  assert(#teleports>=1,'she was not placed when V looked away'..dump())
+  local spot=teleports[1].spot
+  assert(inCar(spot.x,spot.y),'not placed in the car')
+`));
+
 test('a carry that does not hold her hides her for the ride; she is in the car at arrival',()=>run(world+car+`
   -- Live 2026-10-08 20:07:59-20:08:10Z: the per-frame transform left Judy at
   -- z 8.3 while V rose to 49.2; she seemed to sink through the car floor.
@@ -541,7 +563,9 @@ test('a companion touching a prop steps clear and then follows instead of being 
 `));
 
 test('left behind on the old floor: she appears out of view near V once V steps out of the car',()=>run(world+car+`
-  local front=door(3,{locked=true})
+  -- She is held 20 m back behind a locked door: too far to be taken along.
+  local front=door(-9,{locked=true})
+  npc.pos=Vector4.new(0,-12,0); play(2)
   for i=1,8 do player.pos=Vector4.new(0,i,0); play(1) end
   lift.inside=true; play(1)
   lift.moving=true
