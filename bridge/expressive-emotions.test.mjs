@@ -284,7 +284,7 @@ test('the bridge cleans every reply, adds the block after Natural speech, and ha
   assert.match(bridge, /import \{ExpressiveEmotions\} from '\.\/expressive-emotions\.mjs'/);
   assert.match(bridge, /const cleanReply = result => expressiveEmotions\.process\(naturalSpeech\.process\(result\)\)/);
   assert.equal(bridge.match(/transformReply: cleanReply/g).length, 2, 'conversation and phone hosts');
-  assert.match(bridge, /naturalSpeechContext\(input\), expressiveEmotionsContext\(input\)\]\s*\.filter\(Boolean\)/);
+  assert.match(bridge, /naturalSpeechContext\(input\), expressiveEmotionsContext\(input\),/);
   assert.match(bridge, /expressiveEmotions\.contextFor\(\{engine, spoken: !phone && localVoice\.playbackEnabled !== false\}\)/);
   // One plan function serves Omni and Pocket's first plan (bridge/emotion-selector.mjs); Pocket's stream planner gets the marks too.
   assert.equal(bridge.match(/marks: result\.emotionMarks/g).length, 1, 'the reply plan');

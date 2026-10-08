@@ -8,7 +8,7 @@ import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
 import {PhoneticLipsync} from './phonetic-lipsync.mjs';
 import {JaliFace} from './jali-face.mjs';
 import {textExpressionSignal} from './text-emotion.mjs';
-import {planSignal, phraseOffsets} from './emotion-analysis.mjs';
+import {planSignal, phraseOffsets, traitFor} from './emotion-analysis.mjs';
 import {EmotionSelection, waitLateEmotion} from './emotion-selector.mjs';
 import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
 import {deliverPocketSpeech} from './pocket-speech.mjs';
@@ -363,13 +363,34 @@ const warmUsesConvaiVoice = profile => localVoice.playbackEnabled !== false && p
   language: multilingual.lastLanguage ?? 'en', local: localChoice(profile)}).engine === 'convai';
 const routingLog = new VoiceRoutingLog({path: resolve(runtime, ROUTING_LOG_NAME)});
 const voiceSources = {pocket: voiceConfig, omni: omniVoiceConfigs};
+// Whether the Natural speech block went into the latest context built for each turn (for the log line below).
+const naturalSpeechBlocks = new Map();
 const naturalSpeechContext = input => {
   const prepared = preparedInputs.get(input);
   const phone = input.channel === 'phone' || prepared?.route?.channel === 'phone';
   const spoken = !phone && !input.reaction && localVoice.playbackEnabled !== false;
   const engine = turnVoice(input).engine;
-  return naturalSpeech.contextFor({engine, spoken, sessionId: realtimeSessions.get(sessionKey(input))});
+  const block = naturalSpeech.contextFor({engine, spoken, sessionId: realtimeSessions.get(sessionKey(input)),
+    turn: input?.requestId || input?.id, trait: traitFor(input.profileKey)});
+  const id = input?.requestId || input?.id;
+  if (id) {
+    naturalSpeechBlocks.set(id, block !== '');
+    while (naturalSpeechBlocks.size > 64) naturalSpeechBlocks.delete(naturalSpeechBlocks.keys().next().value);
+  }
+  return block;
 };
+// One line per spoken reply, so Natural speech can be verified without the game: the setting, the engine that speaks,
+// whether the instructions went into this turn's context, and which devices (tags, pauses, fillers) the reply used.
+// Routing facts only, no dialogue.
+function logNaturalSpeech(input, result) {
+  try {
+    if (!naturalSpeech.enabled && !naturalSpeechBlocks.get(input?.requestId || input?.id)) return;
+    const devices = result.naturalDevices ?? [];
+    console.error(`[NaturalSpeech] profile=${input.profileKey} engine=${turnVoice(input).engine} setting=${naturalSpeech.enabled ? 'on' : 'off'} `
+      + `block=${naturalSpeechBlocks.get(input?.requestId || input?.id) ? 'sent' : 'none'} devices=${devices.length ? devices.join(',') : '-'}`
+      + `${result.speechText ? ' voiced-tags=yes' : ''}${input.reaction ? ' reaction=yes' : ''}`);
+  } catch { /* a log line never affects a reply */ }
+}
 // Expressive emotions: spoken turns on a local voice, battle and loot barks included (they have a face). Not phone chat.
 const expressiveEmotionsContext = input => {
   const prepared = preparedInputs.get(input);
@@ -828,6 +849,7 @@ async function publishResult(input, profile, result, current = async () => true,
   // The language of this exchange predicts the next turn without text (reactions, warm connections).
   if (!input.reaction) multilingual.observe(input.text);
   multilingual.observe(result.text);
+  logNaturalSpeech(input, result);
   if (result.continuous) {
     if (!result.liveDelivery?.published || !result.liveDelivery.ended) throw Error('Continuous speech did not finish');
     // The game already received admission, live text and the consumed-sample
@@ -1529,6 +1551,7 @@ async function pollSettings(checkShutdown = true) {
     }
     // A prepared reply was written under the previous Natural speech instructions.
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
+    if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);
     if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
     // Multilingual conversations changes which voice a turn uses (and so its instructions).
     // (The voice selection reads the same setting: while it is on, a fallback never lands on Pocket.)

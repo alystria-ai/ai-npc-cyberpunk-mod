@@ -148,28 +148,44 @@ const CHOOSE = 'Choose by who you are. From your own profile and sample dialogue
   + 'this personality would actually do when talking, even if your sample dialogue contains no such sounds. '
   + 'A fluent, confident speaker rarely hesitates; a cold, controlled or formal person rarely laughs or sighs; '
   + 'a nervous, warm or thoughtful person may hesitate, trail off or laugh more. When in doubt, use nothing.';
-const SPARING = 'These are optional seasoning, never a requirement: most replies should use none. Use one only when this '
-  + 'exact moment and this character would really produce it, rarely, and never on a predictable pattern: not in '
-  + 'every reply, not at the start or at any fixed position, and never the same device as in your previous replies.';
+// How often and where was measured against the real characters (scripts/Probe-NaturalSpeech.mjs, 20 varied prompts each,
+// one Convai session per character). A text that only asks for rarity does not control the rate: with OmniVoice's tag
+// list the model answered Judy with a device in 85-95% of replies whatever the wording (about half of them as the
+// first word), and Johnny in 45-60%; with the first Pocket wording ("rarely, when in doubt speak plainly") it
+// suppressed even the pauses an ordinary reply has (5% against 15% with no instructions). So the FREQUENCY is decided
+// by the bridge, which offers the devices on only some turns (OFFER_RATE, below); the model still decides whether
+// and which one fits.
+const CHOOSE_SHORT = 'Choose by who you are: a fluent, confident speaker rarely pauses like this, a hesitant, warm or '
+  + 'emotional one more. When in doubt, use none.';
+const WHERE = 'Put it where the feeling lands (after a joke, where you trail off, in the middle of a sentence) and vary '
+  + 'where; do not make it a habit to open a reply with one, only do that when the reply itself is the reaction.';
 
-const OMNI_TEXT = 'Natural speech is on. Your voice engine is OmniVoice, which can voice a few non-verbal sounds written '
-  + 'as tags: [laughter], [sigh], [confirmation-en] (a short sound of agreement), [question-en] (a short questioning '
-  + 'sound), [surprise-ah] and [surprise-oh] (short sounds of surprise), and [dissatisfaction-hnn] (a displeased grunt). '
-  + 'In plain words it can also '
-  + 'voice a pause written as "..." or " — ", and a spoken hesitation such as "hm", "uh" or "I mean" if that is how you '
-  + 'would really talk. ' + SPARING + ' ' + CHOOSE + ' Write a tag exactly as shown, in square brackets, as its own '
-  + 'word. A tag is a voice sound, not a stage direction: never use asterisks, parentheses or any other bracketed text, '
-  + 'and never spell a laugh out as "haha" or "heh". Tags are removed from the subtitles. Keep the same length and '
-  + 'content you would give otherwise.';
+const OMNI_TEXT = 'Natural speech is on, and this reply is a moment where ONE human touch may fit. Your voice engine is '
+  + 'OmniVoice, which can voice a few non-verbal sounds written as tags: [laughter], [sigh], [confirmation-en] (a short '
+  + 'sound of agreement), [question-en] (a short questioning sound), [surprise-ah] and [surprise-oh] (short sounds of '
+  + 'surprise), and [dissatisfaction-hnn] (a displeased grunt). In plain words it can also voice a pause written as "..." '
+  + 'or " — ", and a spoken hesitation such as "hm", "uh" or "I mean" if that is how you would really talk. Use at most '
+  + 'one in this reply, only if this exact moment and this character would really produce it; if not, use none. Never '
+  + 'the same device as in your previous replies, and never on a predictable pattern. ' + WHERE + ' ' + CHOOSE
+  + ' Write a tag exactly as shown, in square brackets, as its own word. A tag is a voice sound, not a stage direction: '
+  + 'never use asterisks, parentheses or any other bracketed text, and never spell a laugh out as "haha" or "heh". Tags '
+  + 'are removed from the subtitles. Keep the same length and content you would give otherwise.';
 
-const POCKET_TEXT = 'Natural speech is on. Your voice engine is Pocket TTS, which cannot voice laughs, sighs or other '
-  + 'sounds and would read any bracketed tag or spelled-out sound aloud as a word. So never write tags such as '
-  + '[laughter] or [sigh], and no "heh", "haha", "hmm" or "uh". The only devices you have are ordinary punctuation: a '
-  + 'dash ("—") or an ellipsis ("...") where a real person with your personality would break off a thought or trail '
-  + 'off. Use them rarely, only when the moment fits, never on a predictable pattern, not in every reply and never '
-  + 'in the same place as in your previous replies. A fluent, confident speaker rarely does this; a hesitant, '
-  + 'thoughtful or emotional one more. When in doubt, speak plainly. Keep the same length and content you would '
-  + 'give otherwise.';
+const POCKET_TEXT = 'Natural speech is on, and this reply is a moment where ONE natural pause may fit. Your voice engine is '
+  + 'Pocket TTS, which cannot voice laughs, sighs or other sounds and would read any bracketed tag or spelled-out sound '
+  + 'aloud as a word. So never write tags such as [laughter] or [sigh], and no "heh", "haha", "hmm" or "uh". The only '
+  + 'device you have is ordinary punctuation: a dash ("—") or an ellipsis ("...") where a real person with your '
+  + 'personality would break off a thought, pause to find the words, or trail off; your voice turns it into a real pause. '
+  + 'Use at most one in this reply, only if it truly fits this moment and this character; if not, speak plainly. Never '
+  + 'the same device as in your previous replies, never on a predictable pattern, and in the middle of a thought where a '
+  + 'person would really pause, not as a habit at the start. ' + CHOOSE_SHORT + ' Keep the same length and content you '
+  + 'would give otherwise.';
+
+// The share of turns on which the devices are offered, by how expressive the character is (bridge/emotion-analysis.mjs
+// traitFor). The model uses an offer in about 90% of cases with OmniVoice's tags and about half with Pocket's punctuation,
+// so the replies that carry a device come out near 30% / 25% / 15% / 5% (OmniVoice), a little less for Pocket, on top of
+// the pauses an ordinary reply has anyway (about 15% of replies).
+export const OFFER_RATE = Object.freeze({warm: .36, neutral: .3, dry: .22, cold: .08});
 
 /** The per-turn block for the current voice engine ('omni' or 'pocket'); '' for any other engine. */
 export function naturalSpeechContext({engine, recent = []} = {}) {
@@ -187,22 +203,36 @@ export function naturalSpeechContext({engine, recent = []} = {}) {
  * unreadable file leaves it as it was). `process` is applied to every reply that leaves the Convai transport.
  */
 export class NaturalSpeech {
-  constructor() { this.enabled = false; this.last = new Map(); }
+  constructor() { this.enabled = false; this.last = new Map(); this.decisions = new Map(); }
   update(settings) {
     if (!settings || typeof settings !== 'object') return false;
     const next = settings.naturalSpeech === true;
     const changed = next !== this.enabled;
     this.enabled = next;
-    if (!next) this.last.clear();
+    if (!next) { this.last.clear(); this.decisions.clear(); }
     return changed;
   }
   /**
    * The context block for one turn. `engine` is the voice that will speak it ('omni', 'pocket' or 'convai'); text-only
-   * turns (phone chat, silent playback) and automatic reactions get none.
+   * turns (phone chat, silent playback) and automatic reactions get none. The devices are OFFERED on a share of turns
+   * (OFFER_RATE[trait]), never straight after a reply that used one, and the decision is made once per `turn` (the
+   * request id), so a rebuilt context agrees with the one already sent. `random` is injectable for tests.
    */
-  contextFor({engine, sessionId, spoken = true} = {}) {
+  contextFor({engine, sessionId, spoken = true, turn, trait = 'neutral', random = Math.random} = {}) {
     if (!this.enabled || !spoken) return '';
-    return naturalSpeechContext({engine, recent: this.last.get(sessionId) ?? []});
+    const recent = this.last.get(sessionId) ?? [];
+    if (!this.offers(turn, trait, recent, random)) return '';
+    return naturalSpeechContext({engine, recent});
+  }
+  /** Whether this turn is one where the devices are offered. */
+  offers(turn, trait, recent, random) {
+    if (turn !== undefined && this.decisions.has(turn)) return this.decisions.get(turn);
+    const offered = recent.length === 0 && random() < (OFFER_RATE[trait] ?? OFFER_RATE.neutral);
+    if (turn !== undefined) {
+      this.decisions.set(turn, offered);
+      while (this.decisions.size > 64) this.decisions.delete(this.decisions.keys().next().value);
+    }
+    return offered;
   }
   /** Remembers the devices of a finished reply for its conversation (bounded). */
   record(sessionId, raw) {
@@ -219,6 +249,8 @@ export class NaturalSpeech {
   process(result) {
     if (typeof result?.text !== 'string') return result;
     this.record(result.sessionID, result.text);
+    // While the setting is on, the devices the reply used travel with it (for the per-turn log line only).
+    if (this.enabled) result = {...result, naturalDevices: devicesUsed(result.text)};
     if (!hasSpeechTags(result.text)) return result;
     const parsed = parseTagged(result.text), display = parsed.display;
     // A reply that is only a tag has no text to show; leave it whole rather than send an empty reply on.

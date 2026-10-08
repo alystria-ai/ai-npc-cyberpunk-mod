@@ -172,3 +172,29 @@ Off by default (Settings > Voices > Expressive emotions). The character marks it
 - Stripped like the voice tags: where the reply leaves Convai (`RealtimeHost` `transformReply`), so subtitles, `reply.json`, the stream manifest, memory, group rows, phone chat and every engine's input see clean text; the Lua subtitle splitter and the Convai continuous snapshot also drop them. Only the character offsets of the tags survive, as `emotionMarks`.
 - Sync to the voice: a mark's offset in the clean text becomes a forced boundary of the emotion plan (the same mechanism as an Omni phrase edge), and `expression-timeline.mjs` places each segment in the real audio. Omni renders one audio file per phrase, so a mark at a phrase start is exact (`planRange` rebases the plan to that file); inside a phrase, and for Pocket's single stream, the k-th boundary is snapped to the matching silence in the mouth timeline, else placed by a syllable-count estimate rescaled to the audio duration heard so far. The face begins to change 0.2 s ahead of the word. A mark in the middle of a sentence with no pause is an estimate (about 0.2 s); sentence and phrase starts are anchored.
 - Convai cloud voice: it would read the tags aloud and has no marks to follow, so, as for Natural speech, the staged Apply judges the settings together and ends on Pocket TTS with a notice. A saved pairing is repaired at load. Off: Convai's own emotion channel plus our text cue, unchanged.
+
+### Tuning against the real characters (2026-10-08)
+
+In game the user saw no difference. Measured without the game by `scripts/Probe-NaturalSpeech.mjs`: the same context assembly as the bridge (quest context, archetype context, the Natural speech block, every reply through `NaturalSpeech.process`), one Convai session per character so the history builds up as in a chat, a throwaway test identity, text only, 20 varied prompts (casual, emotional, funny, sad, technical). `--twin` uses the Multilingual twin the game routes to, `--heavy` adds a 9 KB stand-in for the save knowledge, `--warmup N` switches the setting on mid-chat. About 400 Convai requests in all.
+
+What it showed:
+- The block reaches the model and works with OmniVoice, in every condition: Judy had a device in 85% of replies (a sound tag in 55%), Johnny in 60%, with a heavy context 80%, switched on after 8 plain turns 75%, on the Multilingual twin 70%. So nothing was dropped, capped or truncated; the model was far too eager (about half the tags were the first word of the reply), the opposite of timid.
+- On Pocket the first wording ("rarely, when in doubt speak plainly") was a no-op or worse: 5% of Judy's replies had a dash or ellipsis against 15% with no instructions at all. That, plus the settings file showing the last Apply at 13:26:11 (one Omni turn after it), is what the user saw: nothing on Pocket, at most one Omni turn.
+- Wording does not control the rate: asking for "one reply in four" gave Judy 95%. So the bridge now decides how OFTEN the devices are offered (`OFFER_RATE` by the character's trait from `emotion-analysis.mjs traitFor`: warm .36, neutral .30, dry .22, cold .08, never straight after a reply that used one, one decision per request id) and the model decides whether one fits and which. A turn that is not offered gets no block. This is still "the model chooses; the bridge never inserts": it only withholds the offer on some turns.
+
+Before and after (replies with any device, which includes the dashes and ellipses ordinary replies have; sound tags in brackets):
+
+| Character / engine | No instructions | First wording | Tuned |
+| --- | --- | --- | --- |
+| Judy, OmniVoice | 15% | 85% (55%) | 33% (8%) in 12 replies; 40% (15%) in 20 on the intermediate wording |
+| Johnny, OmniVoice | not run | 60% (55%) | 8% in 12 |
+| Panam, OmniVoice | not run | not run | 33% (25%) in 12 |
+| Judy, Pocket | 15% | 5% | 25% in 12 |
+| Johnny, Pocket | not run | not run | 17% in 12 |
+| Panam, Pocket | not run | not run | 17% in 12 |
+| Resident female / Tyger Claws ganger, OmniVoice | not run | not run | 13% / 13% in 8 |
+| Resident female / Tyger Claws ganger, Pocket | not run | not run | 0% / 0% in 8 |
+
+No device repeated in consecutive replies in any tuned run; sound tags opened the reply in 4 of the 7 replies that had one, each a reaction ("[dissatisfaction-hnn] Define badly."). With 8 to 20 replies per cell the percentages carry several points of noise.
+
+A log line per spoken reply now makes this checkable in game (`runtime/bridge.stderr.log`): `[NaturalSpeech] profile=judy-alvarez engine=omni setting=on block=sent devices=sigh voiced-tags=yes`, plus `[NaturalSpeech] setting is now on` when the setting changes.

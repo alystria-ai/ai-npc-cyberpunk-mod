@@ -36,7 +36,7 @@ function fixture({local = false, available = true, audioFailure = false, continu
     ownedPocketFace:()=>{},lipsync:{analyse:async()=>{calls.push('rhubarb');return{mouthCues:[],mouthCuesFormat:'rhubarb-phonetic-v1'};}},
     jaliFace,textExpressionSignal,analyseReply,planSignal,createPlanner,phraseOffsets,baselineFromSignal,
     emotionSelection:new EmotionSelection(),waitLateEmotion,
-    splitSpeechText,naturalSpeech:new NaturalSpeech(),OMNI_TAGS,speechPhrases,streaming:0,writeStreamManifest:async value=>calls.push(['omni-manifest',value]),
+    splitSpeechText,naturalSpeech:new NaturalSpeech(),OMNI_TAGS,speechPhrases,logNaturalSpeech:()=>{},streaming:0,writeStreamManifest:async value=>calls.push(['omni-manifest',value]),
     deliverPocketSpeech: async ({result,profile,speech}) => {
       calls.push(['pocket-stream',profile.key,result.text]);
       return {...result,continuous:true,timing:{...result.timing,voiceProvider:'pocket'},

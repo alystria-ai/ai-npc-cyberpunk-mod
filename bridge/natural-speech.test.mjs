@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
 import {readFileSync} from 'node:fs';
-import {NaturalSpeech, OMNI_TAGS, MAX_VOICED_TAGS, naturalSpeechContext, stripSpeechTags, keepSpeechTags, displayText,
+import {NaturalSpeech, OMNI_TAGS, OFFER_RATE, MAX_VOICED_TAGS, naturalSpeechContext, stripSpeechTags, keepSpeechTags, displayText,
   hasSpeechTags, parseTagged, speechPhrases, devicesUsed} from './natural-speech.mjs';
 import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
 import {silentWav} from './speech-audio.mjs';
@@ -41,13 +41,14 @@ test('the setting follows runtime/settings.json and a change is reported once', 
 
 // ---- the dynamic context per engine ------------------------------------------------------------------------
 
-test('the OmniVoice block lists its tags and pauses and tells the character to choose by personality, rarely and without a pattern', () => {
+test('the OmniVoice block lists its tags and pauses and tells the character to choose by personality, once at most, without a pattern', () => {
   const text = naturalSpeechContext({engine: 'omni'});
   for (const tag of OMNI_TAGS) assert.ok(text.includes(`[${tag}]`), `[${tag}] is offered`);
   for (const phrase of ['"..."', '" — "', 'hm', 'uh', 'I mean']) assert.ok(text.includes(phrase), phrase);
-  // The model chooses: optional, rare, no pattern, never repeated, by personality, even with no such samples.
-  for (const phrase of ['optional', 'most replies should use none', 'rarely', 'predictable pattern', 'fixed position',
-    'previous replies', 'who you are', 'personality', 'even if your sample dialogue contains no such sounds',
+  // The model chooses: at most one, only if it fits, never a pattern, never repeated, by personality, even with no samples.
+  for (const phrase of ['ONE human touch may fit', 'at most one in this reply', 'if not, use none', 'predictable pattern',
+    'previous replies', 'where the feeling lands', 'do not make it a habit to open a reply with one',
+    'who you are', 'personality', 'even if your sample dialogue contains no such sounds',
     'fluent, confident speaker rarely hesitates', 'cold, controlled or formal person rarely laughs',
     'When in doubt, use nothing', 'not a stage direction', 'removed from the subtitles']) assert.ok(text.includes(phrase), phrase);
   assert.ok(!text.includes('Pocket'));
@@ -58,9 +59,10 @@ test('the Pocket block offers punctuation only: no tags, no spelled sounds, and 
   for (const tag of OMNI_TAGS) assert.ok(!text.includes(`[${tag}]`) || /never write tags such as \[laughter\] or \[sigh\]/.test(text), tag);
   // The only bracketed names are the two in the prohibition.
   assert.deepEqual([...text.matchAll(/\[([a-z-]+)\]/g)].map(match => match[1]), ['laughter', 'sigh']);
-  for (const phrase of ['Pocket TTS', 'never write tags', 'would read any bracketed tag', 'ordinary punctuation', '("—")', '("...")',
-    'rarely', 'predictable pattern', 'previous replies', 'personality', 'fluent, confident speaker rarely does this',
-    'When in doubt, speak plainly']) assert.ok(text.includes(phrase), phrase);
+  for (const phrase of ['ONE natural pause may fit', 'Pocket TTS', 'never write tags', 'would read any bracketed tag',
+    'ordinary punctuation', '("—")', '("...")', 'real pause', 'at most one in this reply', 'if not, speak plainly',
+    'previous replies', 'predictable pattern', 'personality', 'not as a habit at the start', 'Choose by who you are',
+    'When in doubt, use none']) assert.ok(text.includes(phrase), phrase);
   assert.ok(!text.includes('OmniVoice') && !text.includes('confirmation-en'));
 });
 
@@ -76,20 +78,66 @@ test('no block for the Convai cloud voice or an unknown engine, and the previous
   assert.equal(naturalSpeechContext({engine: 'pocket', recent: ['laughter']}), naturalSpeechContext({engine: 'pocket'}));
 });
 
+const ALWAYS = () => 0, NEVER = () => .999;
+
 test('contextFor gates on the setting, spoken turns and the engine, and remembers each conversation\'s last reply', () => {
   const speech = new NaturalSpeech();
   speech.update({naturalSpeech: true});
-  assert.equal(speech.contextFor({engine: 'omni', spoken: false}), '', 'phone chat, reactions and silent playback');
-  assert.equal(speech.contextFor({engine: 'convai', spoken: true}), '');
-  assert.equal(speech.contextFor({engine: 'omni', spoken: true, sessionId: 'a'}), naturalSpeechContext({engine: 'omni'}));
+  const ask = (options = {}) => speech.contextFor({engine: 'omni', spoken: true, random: ALWAYS, ...options});
+  assert.equal(speech.contextFor({engine: 'omni', spoken: false, random: ALWAYS}), '', 'phone chat, reactions and silent playback');
+  assert.equal(speech.contextFor({engine: 'convai', spoken: true, random: ALWAYS}), '');
+  assert.equal(ask({sessionId: 'a'}), naturalSpeechContext({engine: 'omni'}));
+  // Pocket (punctuation only) is offered the same way; never straight after a reply that used a pause.
+  speech.process({text: 'Well... fine.', sessionID: 'p'});
+  assert.equal(speech.contextFor({engine: 'pocket', spoken: true, sessionId: 'p', random: ALWAYS}), '');
+  assert.equal(speech.contextFor({engine: 'pocket', spoken: true, sessionId: 'q', random: ALWAYS}), naturalSpeechContext({engine: 'pocket'}));
+  assert.equal(speech.contextFor({engine: 'pocket', spoken: true, sessionId: 'q', random: NEVER}), '');
+  // OmniVoice's devices are never offered straight after a reply that used one.
   speech.process({text: 'Heh [laughter] well... fine.', sessionID: 'a'});
-  assert.match(speech.contextFor({engine: 'omni', spoken: true, sessionId: 'a'}), /already used \[laughter\], an ellipsis/);
-  assert.equal(speech.contextFor({engine: 'omni', spoken: true, sessionId: 'b'}), naturalSpeechContext({engine: 'omni'}),
-    'another conversation is unaffected');
+  assert.equal(ask({sessionId: 'a'}), '');
+  assert.equal(ask({sessionId: 'b'}), naturalSpeechContext({engine: 'omni'}), 'another conversation is unaffected');
   speech.process({text: 'A plain reply.', sessionID: 'a'});
-  assert.equal(speech.contextFor({engine: 'omni', spoken: true, sessionId: 'a'}), naturalSpeechContext({engine: 'omni'}));
+  assert.equal(ask({sessionId: 'a'}), naturalSpeechContext({engine: 'omni'}));
   for (let n = 0; n < 100; n++) speech.record(`s${n}`, 'Hm.');
   assert.ok(speech.last.size <= 64, 'bounded');
+});
+
+test('The devices are offered on a share of turns that follows how expressive the character is, decided once per turn', () => {
+  assert.ok(OFFER_RATE.warm > OFFER_RATE.neutral && OFFER_RATE.neutral > OFFER_RATE.dry && OFFER_RATE.dry > OFFER_RATE.cold);
+  assert.ok(OFFER_RATE.warm <= .4 && OFFER_RATE.cold <= .1, 'a few replies in ten, not most');
+  const speech = new NaturalSpeech();
+  speech.update({naturalSpeech: true});
+  // A seeded generator: the share offered follows each trait's rate.
+  let state = 12345;
+  const random = () => (state = (state * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  const share = trait => {
+    let offered = 0;
+    for (let turn = 0; turn < 2000; turn++) {
+      if (speech.contextFor({engine: 'omni', spoken: true, turn: `${trait}-${turn}`, trait, random})) offered++;
+    }
+    return offered / 2000;
+  };
+  for (const trait of Object.keys(OFFER_RATE)) assert.ok(Math.abs(share(trait) - OFFER_RATE[trait]) < .04, trait);
+  // One decision per turn: a context rebuilt for the same request agrees with the one already sent.
+  const first = speech.contextFor({engine: 'omni', spoken: true, turn: 'same', trait: 'warm', random: ALWAYS});
+  assert.ok(first);
+  assert.equal(speech.contextFor({engine: 'omni', spoken: true, turn: 'same', trait: 'warm', random: NEVER}), first);
+  assert.equal(speech.contextFor({engine: 'omni', spoken: true, turn: 'other', trait: 'warm', random: NEVER}), '');
+  // An unknown trait is treated as neutral; Pocket follows the same shares.
+  assert.ok(speech.contextFor({engine: 'omni', spoken: true, trait: 'mystery', random: () => OFFER_RATE.neutral - .01}));
+  assert.equal(speech.contextFor({engine: 'omni', spoken: true, trait: 'mystery', random: () => OFFER_RATE.neutral + .01}), '');
+  assert.ok(speech.contextFor({engine: 'pocket', spoken: true, trait: 'warm', random: () => OFFER_RATE.warm - .01}));
+  assert.equal(speech.contextFor({engine: 'pocket', spoken: true, trait: 'cold', random: () => OFFER_RATE.cold + .01}), '');
+  assert.equal(speech.decisions.size <= 64, true, 'bounded');
+});
+
+test('a reply carries the devices it used for the per-turn log line, only while the setting is on', () => {
+  const speech = new NaturalSpeech();
+  assert.equal(speech.process({text: 'Well... [sigh] fine.', sessionID: 'x'}).naturalDevices, undefined);
+  speech.update({naturalSpeech: true});
+  assert.deepEqual(speech.process({text: 'Well... [sigh] fine.', sessionID: 'x'}).naturalDevices.sort(), ['ellipsis', 'sigh']);
+  assert.deepEqual(speech.process({text: 'A plain reply.', sessionID: 'x'}).naturalDevices, []);
+  assert.deepEqual(speech.process({text: '{joy} Hello. [laughter]', sessionID: 'x'}).naturalDevices, ['laughter']);
 });
 
 test('devicesUsed names the tags, pauses and fillers a reply contained', () => {
@@ -265,7 +313,10 @@ test('the bridge wires Natural speech through the context, the reply transform, 
   assert.match(bridge, /const cleanReply = result => expressiveEmotions\.process\(naturalSpeech\.process\(result\)\)/);
   assert.equal(bridge.match(/transformReply: cleanReply/g).length, 2, 'text hosts: conversation and phone');
   // The block is the last piece of the conversation context and is gated on the committed voice, never on Convai.
-  assert.match(bridge, /naturalSpeechContext\(input\), expressiveEmotionsContext\(input\)\]\s*\.filter\(Boolean\)/);
+  assert.match(bridge, /naturalSpeechContext\(input\), expressiveEmotionsContext\(input\),/);
+  assert.match(bridge, /turn: input\?\.requestId \|\| input\?\.id, trait: traitFor\(input\.profileKey\)/);
+  assert.match(bridge, /logNaturalSpeech\(input, result\);/);
+  assert.match(bridge, /\[NaturalSpeech\] profile=\$\{input\.profileKey\} engine=\$\{turnVoice\(input\)\.engine\} setting=/);
   // The engine is the turn's planned voice (bridge/multilingual.mjs): with Multilingual conversations off it is the
   // committed choice (local provider, else Convai); a turn the cloud voice speaks never gets the block.
   assert.match(bridge, /const engine = turnVoice\(input\)\.engine;/);
