@@ -437,6 +437,7 @@ local function restoreStatusLine()
             margin.left, margin.top = original.left, original.top
             original.widget:SetMargin(margin)
             if original.width then original.widget:SetWidth(original.width) end
+            if original.height then original.widget:SetHeight(original.height) end
         end)
     end
 end
@@ -447,21 +448,46 @@ local function placeStatusLine()
     presentation.statusMoved = true
     local ok, err = pcall(function()
         local render = presentation.renderRoot
-        local title = render and findWidget(render, 'content_title', 3)
-        if not title then error('the content title is unavailable') end
-        local status = presentation.statusWidget
-        local margin, anchor = status:GetMargin(), title:GetMargin()
-        -- Keep the first recorded place: a widget that survives a render is already moved.
-        statusOriginal = statusOriginal or {widget = status, left = margin.left, top = margin.top, width = status:GetWidth()}
-        -- Directly under the page title, in the content column (never over the sidebar).
-        margin.left, margin.top = anchor.left, anchor.top + title:GetHeight() + 2
-        status:SetMargin(margin)
-        local contentInner = presentation.controller:McmUiGetLayoutMetric(23)
-        if type(contentInner) == 'number' and contentInner > 0 and status:GetWidth() > contentInner then
-            status:SetWidth(contentInner)
+        local list = render and findWidget(render, 'mcm_sidebar_scroll_content', 8)
+        if not list then error('the mod list is unavailable') end
+        local count = math.min(list:GetNumChildren(), 600)
+        if count < 1 then error('the mod list is empty') end
+        -- Below the last entry of the mod list, in the list's own column. The list
+        -- keeps its place inside a clipped scroll area, so add the offsets of its
+        -- containers up to the render root.
+        local left, top, bottom, entryLeft = 0, 0, 0, nil
+        for index = 0, count - 1 do
+            local entry = list:GetWidgetByIndex(index)
+            local margin = entry:GetMargin()
+            entryLeft = entryLeft or margin.left
+            bottom = math.max(bottom, margin.top + entry:GetHeight())
         end
+        local node, depth = list, 0
+        while node and node ~= render and depth < 10 do
+            local margin = node:GetMargin()
+            left, top = left + margin.left, top + margin.top
+            local parent = node:GetParentWidget()
+            if not parent then break end
+            node, depth = parent, depth + 1
+        end
+        left = left + (entryLeft or 0)
+        local width = list:GetWidth() - (entryLeft or 0)
+        local inner = presentation.controller:McmUiGetLayoutMetric(13)
+        if type(inner) == 'number' and inner > 0 then width = math.min(width, inner) end
+        local status = presentation.statusWidget
+        local margin = status:GetMargin()
+        -- Keep the first recorded place: a widget that survives a render is already moved.
+        statusOriginal = statusOriginal or {widget = status, left = margin.left, top = margin.top,
+            width = status:GetWidth(), height = status:GetHeight()}
+        margin.left, margin.top = left, top + bottom + 12
+        status:SetMargin(margin)
+        status:SetWidth(math.max(120, width))
+        status:SetHeight(160)
+        -- Wrap inside the column and let the text grow downward.
+        local wrapped = pcall(function() status:SetWrapping(true, math.max(120, width), textWrappingPolicy.Default) end)
+        if not wrapped then pcall(function() status.wrapping, status.wrappingAtPosition = true, math.max(120, width) end) end
         log('Probe: status line moved to x=' .. tostring(margin.left) .. ' y=' .. tostring(margin.top)
-            .. ' (title ' .. tostring(anchor.left) .. ',' .. tostring(anchor.top) .. ' h=' .. tostring(title:GetHeight()) .. ')')
+            .. ' width=' .. tostring(width) .. ' (list bottom ' .. tostring(bottom) .. ', ' .. count .. ' entries)')
     end)
     if not ok then log('Status line could not be moved: ' .. tostring(err)) end
 end

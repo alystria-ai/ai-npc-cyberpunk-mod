@@ -704,16 +704,26 @@ test('Back joins the bottom button row, the status line moves to the top left, a
       function w:GetNumChildren() return #self.children end
       function w:GetWidgetByIndex(index) return self.children[index + 1] end
       function w:SetText(value) self.text = value end
+      function w:SetHeight(v) self.height = v end
+      function w:SetWidth(v) self.width = v end
+      function w:SetWrapping(on, at) self.wrap = {on, at} end
+      function w:GetParentWidget() return self.parent end
       return w
     end
+    local entries = {widget('mcm_action_a', 20, 0, 300, 42), widget('mcm_action_b', 20, 42, 300, 42), widget('mcm_action_c', 20, 84, 300, 42)}
+    local list = widget('mcm_sidebar_scroll_content', 0, 0, 340, 126, entries)
+    local scroller = widget('sidebar_scroll', 40, 200, 340, 700, {list})
+    list.parent = scroller
+    textWrappingPolicy = {Default = 0}
     local subtitle = widget('content_title', 393, 140, 600, 40)
     local status = widget('status', 60, 1040, 900, 30)
     local revert, apply = widget('mcm_action_revert', 300, 1000, 140, 46), widget('mcm_action_apply', 460, 1000, 140, 46)
-    local render = widget('MCMRenderRoot', 0, 0, 1920, 1080, {subtitle, status,
+    local render = widget('MCMRenderRoot', 0, 0, 1920, 1080, {subtitle, status, scroller,
       widget('mcm_content_scroll_content', 100, 200, 800, 700), revert, apply})
+    scroller.parent = render
     local root = widget('root', 0, 0, 1920, 1080, {render})
     function controller:GetRootWidget() return root end
-    controller.McmUiGetLayoutMetric = function(_, metric) return ({[20] = 100, [23] = 800, [27] = 1000, [28] = 900})[metric] or -1 end
+    controller.McmUiGetLayoutMetric = function(_, metric) return ({[13] = 320, [20] = 100, [23] = 800, [27] = 1000, [28] = 900})[metric] or -1 end
     controller.McmUiAddBottomActionAt = function(_, id, label, x, y, width, active)
       bottomActions[#bottomActions + 1] = {id = id, label = label, x = x, y = y, width = width, active = active}
       render.children[#render.children + 1] = widget('mcm_action_' .. id, x, y, width, 46)
@@ -727,8 +737,9 @@ test('Back joins the bottom button row, the status line moves to the top left, a
     assert(back.id == 'convai-bottom-back' and back.label == 'Back' and back.y == 1000 and back.width == 140 and back.x == 760 and not back.active)
     assert(revert.margin.left == 300 - 160 and apply.margin.left == 460 - 160 and apply.margin.top == 1000,
       'the other buttons were not made room for')
-    -- The status line sits directly under the page title, in the content column.
-    assert(status.margin.left == 393 and status.margin.top == 140 + 40 + 2, 'status line not moved: ' .. status.margin.top)
+    -- The status line sits in the sidebar, below the last mod entry, wrapped to the list width.
+    assert(status.margin.left == 40 + 0 + 20 and status.margin.top == 200 + 0 + 126 + 12, 'status line not placed: ' .. status.margin.left .. ',' .. status.margin.top)
+    assert(status.width == 320 and status.wrap and status.wrap[1] == true and status.wrap[2] == 320, 'status line not wrapped to the column')
     mcm.update(player, false); mcm.update(player, false)
     assert(#bottomActions == 1, 'Back was added again within one render')
     -- With no other buttons, Back takes the place where the last button would be.
@@ -746,7 +757,7 @@ test('Back joins the bottom button row, the status line moves to the top left, a
     -- Leaving our page restores a status widget that survives.
     status.margin.left, status.margin.top = 60, 68
     handlers.McmUiSetContentTitle(controller, 'Other Mod'); mcm.update(player, false)
-    assert(status.margin.top == 1040, 'the status line was left at the top')
+    assert(status.margin.top == 1040 and status.height == 30 and status.width == 900, 'the status line was left in the sidebar')
     -- If the row cannot take the button, Back is the last row of the page instead.
     assert(invoke('tab:party').ok)
     controller.McmUiAddBottomActionAt = function() error('no bottom row') end
