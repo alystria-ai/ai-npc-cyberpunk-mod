@@ -306,6 +306,8 @@ function M.pre(entity, slot, clock)
         slot.emotion, slot.scale, slot.expiry = label, 3, nil
         slot.family = label:lower() == 'joy' and 'joy' or label:lower() == 'sadness' and 'sadness'
             or label:lower() == 'surprise' and 'surprise' or 'anger'
+        -- Surprise is a 1 s flick by design (gone by 2 s); a still capture needs its peak, so the probe keeps it fresh.
+        if slot.family == 'surprise' and slot.flick then slot.flick.surprise = 0 end
     end
 end
 
