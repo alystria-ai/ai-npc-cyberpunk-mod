@@ -154,8 +154,24 @@ local function setQuiet(stage, on)
     end
     stage.quiet = on == true
 end
+-- Body still, face live (development only): the vanilla idle sways the head by 20 cm and fidgets, which ruins a face
+-- capture. A strong individual time dilation on the staged copy slows her body to a near stop while the facial
+-- AnimFeature keeps updating (checked live: smile and brow poses still appear). It is finite (30 s) and refreshed by the
+-- stage tick every 15 s, so a CET reload or a crash lets it run out on its own; it is removed on thaw, stage end and dismiss.
+local FREEZE_REASON, FREEZE_VALUE, FREEZE_SECONDS, FREEZE_REFRESH = 'ConvaiFaceStage', .02, 30, 15
+local function thaw(stage)
+    if not stage then return end
+    stage.freeze, stage.frozenAt = false, nil
+    if stage.frozen and stage.npc then
+        pcall(function()
+            if stage.npc:HasIndividualTimeDilation(CName.new(FREEZE_REASON)) then stage.npc:UnsetIndividualTimeDilation(CName.new('')) end
+        end)
+    end
+    stage.frozen = false
+end
 local function endStage(stage, state)
     if not stage then return end
+    thaw(stage)
     setQuiet(stage, false)
     if state then stage.state = state end
 end
@@ -276,6 +292,11 @@ local function stageTick(context)
     target = freeSpot(context, target, current)
     if not target then stage.error = 'every spot in front of V is taken'; return end
     stage.error = nil
+    stage.npc = current.npc
+    if stage.freeze and M.clock >= (stage.frozenAt or 0) + FREEZE_REFRESH then
+        stage.frozenAt = M.clock
+        stage.frozen = pcall(function() current.npc:SetIndividualTimeDilation(CName.new(FREEZE_REASON), FREEZE_VALUE, FREEZE_SECONDS, CName.new(''), CName.new('')) end)
+    end
     -- A transform teleport is undone by the copy's own locomotion (seen live: she stayed beside V), so the placement is
     -- an AITeleportCommand through her AI controller, the actuator's own mechanism. It is sent only when she is not
     -- already there (more than .08 m or 6 degrees off), at most every .25 s; once placed she simply stays.
@@ -312,7 +333,7 @@ end
 
 commands['face-stage'] = function(rest, context)
     local word, tail = rest:match('^(%S+)%s*(.*)$')
-    if not word then return false, 'usage: face-stage <key> [hold-seconds] | status | off | dismiss' end
+    if not word then return false, 'usage: face-stage <key> [hold-seconds] | status | check | freeze | thaw | off | dismiss' end
     if word == 'status' then
         local stage = M.stage
         if not stage then return true, {state = 'none', leaving = pendingLeaving(context)} end
@@ -345,13 +366,20 @@ commands['face-stage'] = function(rest, context)
         end)
         if not ok then return false, tostring(err) end
         out.silenced = stage.quiet == true
+        out.frozen = stage.frozen == true
         out.steady = out.quiet >= 3 and out.off < .25 and out.turn < 12
         out.inFrame = out.headX ~= nil and math.abs(out.headX) < .6 and math.abs(out.headY) < .75
         return true, out
+    elseif word == 'freeze' or word == 'thaw' then
+        local stage = M.stage
+        if not stage or stage.state ~= 'staged' then return false, 'no staged character' end
+        if word == 'freeze' then stage.freeze, stage.frozenAt = true, nil else thaw(stage) end
+        return true, word == 'freeze' and 'freezing' or 'thawed'
     elseif word == 'off' then
         endStage(M.stage, 'released')
         return true, 'released'
     elseif word == 'dismiss' then
+        thaw(M.stage)
         -- Only characters this probe invited (their key was absent at the time): through the party queue's own
         -- dismissal, which removes the copy (or cancels a still pending invitation) at the next gameplay flush.
         local done = dismissSpawned()
