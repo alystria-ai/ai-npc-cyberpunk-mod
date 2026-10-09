@@ -11,8 +11,8 @@ and `mixTarget`): it scales only the EMOTION's smile, never the resting smile, f
 Judy .7: joy .504 written (was .72), trust .39, warm tagged lines about .16 (was .19); her resting smile is
 unchanged (.192) and her cheek squint stays at .43 (it follows the unscaled smile). Everyone else 1.3: joy .585
 (was .45), trust .455 (was .35); their resting smile is unchanged. Tests changed accordingly (Judy joy .504, default
-trust .22-.29, Judy tagged joy at least .18, warm at least .14). Not yet verified in game: it needs a CET reload and
-the capture pair on Judy and Evelyn (see the face-stage probe below).
+trust .22-.29, Judy tagged joy at least .18, warm at least .14). Verified in game (CET reloaded):
+the capture pair on Judy and Evelyn; verified live in the stage round below.
 
 **Evelyn.** She is a managed companion copy (the probes find her in the owned rows) with status
 `prepared:woman_average_sermo`, so the layer applies to her; the quest/scene skip (`547904e`, `RequestWorldFace`) only
@@ -43,7 +43,7 @@ woman) just needs a bigger smile than Judy's.
   never one in a scene or dialogue or a quest-bound record).
 - Male heads are covered by the archive (`man_average`, `man_big`, `man_fat`, same 59 controls); all 800 extracted
   game lines carry the same 414 rig tracks, so the rig check passes for men too. A live male capture is pending the
-  stage probe (CET reload).
+  stage probe, see the live stage round below (Jackie: all poses work).
 
 **Face-stage probe** (`mod/face-test.lua`, `scripts/Send-FaceStage.ps1`; development only: `face-test.lua` is in
 `scripts/development-files.json` and in no player package, and the writer loads it only when the file exists).
@@ -55,13 +55,34 @@ python scripts/Capture-GameWindow.py --hwnd ... --crop ...        # the face is 
 .\scripts\Send-FaceStage.ps1 -Action off | -Action dismiss | -Action status
 ```
 `face-stage <key> [hold]` through the same request file as `face-test`: a present copy of that key is reused,
-otherwise one is created with the normal `convaiCompanions.spawn(key)` path and waited for (30 s); then every .1 s,
-for the hold (default 60 s, at most 300), one `TeleportationFacility:Teleport` puts her 1.1 m along V's camera
-direction (horizontal) on V's floor, rotated to face the camera (her own gaze on V is untouched). `off` releases her
-to her own movement, `dismiss` dismisses only the copies the probe created, `status` returns
-`spawning|staged|released|lost|failed`. One transform per .1 s only while a stage is active, nothing per frame
-otherwise, no new hooks. A CET reload is needed to load it. Test: `face-stage probe` in
-`companion-expression-playback.test.mjs` (geometry, reuse, spawn, off, dismiss of only its own copies).
+otherwise it is invited through the real party queue (`convaiManager.party().invite`; a raw `convaiCompanions.spawn`
+is refused by `canSpawn`) and waited for (30 s). Then, for the hold (default 60 s, at most 300), it is checked every
+.1 s and, only when she is more than .08 m or 6 degrees off the spot and at most every .25 s, an `AITeleportCommand`
+through her AI controller puts her .85 m along V's camera direction (horizontal, V's floor) rotated to face the
+camera. A plain transform teleport does not work: an AI-driven companion's locomotion undoes it within a tick (Evelyn
+stayed beside V). Her own gaze on V is untouched. `off` releases her to her own movement, `dismiss` dismisses (queue
+`dismiss`) only the copies the probe invited, `status` returns `spawning|staged|released|lost|failed`. Nothing per frame,
+no new hooks, and a failure inside the tick is caught and reported as `failed`. The probe was hot-reloaded without a
+CET reload: copy the committed `face-test.lua` into the mod folder and run `Send-GestureProbe.ps1 "run <name>"` with a
+runtime file doing `dofile('face-test.lua')`. Limits: only companion definition keys can be invited; archetype
+profile keys (`npc-street-resident-female`) answer "That character model is unavailable", so an archetype head cannot
+be staged this way. Test: `face-stage probe` in `companion-expression-playback.test.mjs` (geometry, reuse, invite,
+AI teleport and put-back, off, dismiss of only its own copies).
+
+**Live stage round (probe worked on Evelyn, Judy, Jackie and Panam; sheet `runtime/face-captures/stage-round-sheet.png`,
+frames `live59/st-*.png`).**
+- Judy happy, before (writer corners .72) against after (.504): before is a slightly stretched wide smile, after a
+  soft natural one. The change is right; her other poses (anger, sad, worried, surprise) read well.
+- Evelyn joy after the change (.585): a modest closed-lip smile. Reads as pleased, not broad; her stern rest face limits
+  contrast, as above. Anger scowls, sad is strong, worried and surprise read. No change made (one head, one sample;
+  a default smile of .65 would be the next step).
+- Jackie (`man_big`): the full pose set moves the male head with no distortion or broken region. Anger is a bit mild
+  (stern, annoyed); the Judy browDown gain written by hand was not clearly better, so no change. Sad, worried read;
+  joy is modest and surprise weak but visible.
+- Panam (`woman_average`, second female head): all poses work. Joy at .585 is modest; written corners .85 read as a
+  clear natural smile, .65 was similar to the current one. Her head drifts a little between frames (idle animation),
+  so use a larger crop than Judy's.
+- Nothing was clearly broken; every probe-created copy was dismissed afterwards.
 
 ## October 9 (morning): live run of the 59-control face on Judy, and a stronger anger
 
