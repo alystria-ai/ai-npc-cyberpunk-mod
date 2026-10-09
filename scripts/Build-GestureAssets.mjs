@@ -102,9 +102,26 @@ const shapeByName = new Map();
 for (const clips of Object.values(shapeSets)) {
     for (const [name, row] of Object.entries(clips)) if (!shapeByName.has(name)) shapeByName.set(name, shapeRow(row));
 }
+// How violently a clip moves the spine, neck, head and hips (scripts/Measure-GestureBody.py):
+// the body twitch a viewer sees while a gesture plays. Optional; same-name fallback across sets.
+const bodyFile = path.join(project, 'assets', 'gestures', 'clip-body.json');
+const bodyData = fs.existsSync(bodyFile) ? readJson(bodyFile) : {};
+const bodyFields = bodyData.fields ?? [];
+const bodySets = bodyData.animsets ?? {};
+const bodyRow = (row) => Object.fromEntries(bodyFields.map((field, index) => [field, row[index]]));
+const bodyByName = new Map();
+for (const clips of Object.values(bodySets)) {
+    for (const [name, row] of Object.entries(clips)) if (name !== '__loopDrift' && !bodyByName.has(name)) bodyByName.set(name, bodyRow(row));
+}
+const bodyOf = (animset, name) => {
+    const row = bodySets[base(animset).replace(/\.anims$/, '')]?.[name];
+    return row && name !== '__loopDrift' ? bodyRow(row) : bodyByName.get(name);
+};
 const shapeOf = (animset, name) => {
     const row = shapeSets[base(animset).replace(/\.anims$/, '')]?.[name];
-    return row ? { ...shapeRow(row), measured: true } : shapeByName.get(name);
+    const body = bodyOf(animset, name);
+    const shape = row ? { ...shapeRow(row), measured: true } : shapeByName.get(name);
+    return shape || body ? { ...(shape ?? {}), ...(body ?? {}) } : undefined;
 };
 const fitRules = source.conversationFit ?? { names: [], shape: {} };
 const nameRules = (fitRules.names ?? []).map(([pattern, fit, reason]) => [new RegExp(pattern), fit, reason]);
@@ -126,8 +143,13 @@ function fitOf(name, shapes) {
             ['turn', worst('head') >= t.head, `turns the head ${worst('head')} degrees away`],
             ['sweep', worst('high') > t.high, `hands go ${worst('high')} cm above the head`],
             ['sweep', worst('reach') > t.reach, `large arm sweep (${worst('reach')} cm)`],
+            ['body', t.bodySway && worst('bodySway') > t.bodySway, `hips travel ${worst('bodySway')} cm (a stance shift or step)`],
+            ['body', t.spineJerk && worst('spineJerk') > t.spineJerk, `spine whips at ${worst('spineJerk')} deg/s (reads as a twitch)`],
+            ['body', t.bodyJerk && worst('bodyJerk') > t.bodyJerk, `spine, neck or head whips at ${worst('bodyJerk')} deg/s (reads as a twitch)`],
         ];
         for (const [fit, hit, reason] of checks) if (hit) return { fit, reason };
+        // One hand held out to a side by 20-30 cm (a shrug, a "what", a flick) is ordinary talk, played less often.
+        if (worst('side') >= (t.openSide ?? Infinity)) return { fit: 'open' };
         const centre = Math.min(...shapes.map((shape) => Number(shape.centre ?? 0)));
         return { fit: centre >= (t.centred ?? .75) ? 'centred' : 'neutral' };
     }
@@ -183,6 +205,58 @@ for (const [record, known] of Object.entries(source.characters)) {
 const seatWorkspots = source.seatWorkspots ?? {};
 for (const [key, depot] of Object.entries(seatWorkspots)) requirePath(depot, `${key} seat workspot`);
 
+// Facial idle of a workspot (docs/COMPANION_GESTURES.md, "Face override").
+// While any workspot runs, the NPC face graph swaps its own facial idle for the
+// one named on the workspot's hub node, at full animation weight; the mod's
+// speech layer adds only LipsyncPoseOutput deltas and never fades that idle
+// (AnimOverrideWeight stays 1). The 'interested' idle and its 'attentive' or
+// 'focused' key pose carry lips_together at 0.66-1.0 plus purse, chin raise and
+// suck, which kept the lips sealed under an opening jaw. Every workspot the
+// mod plays therefore uses the plain neutral idle (the one ambient NPCs and
+// the vanilla judy/panam/johnny idles use) and no key pose.
+const hubsOf = (workspot) => {
+    const hubs = [];
+    (function walk(node) {
+        if (Array.isArray(node)) { node.forEach(walk); return; }
+        if (!node || typeof node !== 'object') return;
+        if (node.$type === 'animAnimNode_WorkspotHub') hubs.push(node);
+        Object.values(node).forEach(walk);
+    })(workspot.Data.RootChunk.nodesToInit);
+    return hubs;
+};
+const neutralFace = (workspot, what) => {
+    const hubs = hubsOf(workspot);
+    if (hubs.length === 0) fail(`${what}: no workspot hub node to set the facial idle on`);
+    for (const hub of hubs) {
+        hub.facialIdleMaleAnimation = cname('idle__neutral__male');
+        hub.facialIdleFemaleAnimation = cname('idle__neutral__female');
+        hub.facialIdleKey_MaleAnimation = cname('None');
+        hub.facialIdleKey_FemaleAnimation = cname('None');
+        hub.facialKeyWeight = 1;
+    }
+};
+const faceNeutral = (workspot) => hubsOf(workspot).every((hub) =>
+    hub.facialIdleMaleAnimation?.$value === 'idle__neutral__male' && hub.facialIdleFemaleAnimation?.$value === 'idle__neutral__female'
+    && hub.facialIdleKey_MaleAnimation?.$value === 'None' && hub.facialIdleKey_FemaleAnimation?.$value === 'None');
+// Vanilla idle and sit workspots whose facial idle is not plain neutral are
+// copied under the mod's own path (vanilla files are never overridden), so
+// ambient NPCs keep theirs.
+const outputs = [];
+const faceCopies = new Map();
+for (const [what, depot] of [...Object.entries(source.idleWorkspots).map(([key, d]) => [`${key} idle`, d]),
+    ...Object.entries(seatWorkspots).map(([key, d]) => [`${key} seat`, d])]) {
+    const json = jsonFor(depot);
+    if (!json) fail(`${what} workspot was not extracted: ${depot}`);
+    if (faceNeutral(json)) continue;
+    const copy = clone(json);
+    neutralFace(copy, what);
+    const target = `cyberpunk_convai\\gestures\\convai_face_${base(depot)}`;
+    copy.Header.ArchiveFileName = target;
+    outputs.push([`convai_face_${base(depot)}.json`, copy]);
+    faceCopies.set(depot, target);
+}
+const playable = (depot) => faceCopies.get(depot) ?? depot;
+
 function collectHandles(node, into) {
     if (Array.isArray(node)) { node.forEach((item) => collectHandles(item, into)); return; }
     if (!node || typeof node !== 'object') return;
@@ -190,7 +264,6 @@ function collectHandles(node, into) {
     Object.values(node).forEach((value) => collectHandles(value, into));
 }
 
-const outputs = [];
 const catalogFamilies = {};
 const report = [];
 for (const [familyKey, family] of Object.entries(source.families)) {
@@ -240,6 +313,7 @@ for (const [familyKey, family] of Object.entries(source.families)) {
     if (clips.length === 0) fail(`${familyKey}: no clips`);
 
     const workspot = clone(template);
+    neutralFace(workspot, `${familyKey} workspot`);
     workspot.Header.ArchiveFileName = family.workspot;
     const tree = workspot.Data.RootChunk.workspotTree.Data;
     const templateSets = tree.finalAnimsets;
@@ -325,8 +399,8 @@ function cruid(name) {
 }
 const componentList = [
     ...Object.values(source.families).map((family) => [family.component, family.workspot]),
-    ...Object.entries(source.idleWorkspots).map(([key, depot]) => [`convai_idle_${key}`, depot]),
-    ...Object.entries(seatWorkspots).map(([key, depot]) => [`convai_sit_${key}`, depot])];
+    ...Object.entries(source.idleWorkspots).map(([key, depot]) => [`convai_idle_${key}`, playable(depot)]),
+    ...Object.entries(seatWorkspots).map(([key, depot]) => [`convai_sit_${key}`, playable(depot)])];
 const components = componentList.map(([name, depot]) => {
     const component = clone(componentShape);
     component.id = cruid(name);
@@ -368,5 +442,6 @@ const catalog = {
     characters: source.characters,
 };
 fs.writeFileSync(catalogOut, `-- Generated by scripts/Build-GestureAssets.mjs from assets/gestures/gestures.json\n-- and the game's extracted animsets. Do not edit by hand.\nreturn ${lua(catalog)}\n`);
+for (const [depot, target] of faceCopies) report.push(`face: ${base(depot)} copied to ${target} with a neutral facial idle`);
 for (const line of report) console.log(`gesture build: ${line}`);
 console.log(`gesture build: ${Object.keys(catalogFamilies).length} families, ${components.length} workspot components`);

@@ -50,6 +50,18 @@ const entity = summarizeEntity(read(roundtrip, entityFile));
 check(entity.type === 'gameObject', 'device root entity must be a gameObject');
 check(entity.components.every((c) => c.startsWith('workWorkspotResourceComponent:')), 'device must contain workspot components only');
 check(entity.compiled[0] === 'gameObject' && entity.compiled.length === entity.components.length + 1, 'compiled data does not match components');
+// Every workspot the mod ships plays the plain neutral facial idle, no key pose
+// (a different one kept the lips sealed under the speech layer).
+for (const name of workspots) {
+    const hubs = [];
+    walk(read(roundtrip, name).Data.RootChunk.nodesToInit, (node) => { if (node.$type === 'animAnimNode_WorkspotHub') hubs.push(node); });
+    check(hubs.length > 0, `${name} has no workspot hub`);
+    for (const hub of hubs) {
+        check(hub.facialIdleMaleAnimation?.$value === 'idle__neutral__male' && hub.facialIdleFemaleAnimation?.$value === 'idle__neutral__female'
+            && hub.facialIdleKey_MaleAnimation?.$value === 'None' && hub.facialIdleKey_FemaleAnimation?.$value === 'None',
+            `${name} must use the neutral facial idle with no key pose`);
+    }
+}
 let clipTotal = 0;
 for (const name of workspots) {
     const workspot = summarizeWorkspot(read(roundtrip, name));

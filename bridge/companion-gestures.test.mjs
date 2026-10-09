@@ -351,6 +351,21 @@ test('every character with a signature or generic idle resolves it on its own ri
   end
 `));
 
+test('every tier-1 character has an idle of their own: no two characters share one', () => run(`
+  local cat=load(catalogSource)()
+  local owner={}
+  for record,known in pairs(cat.characters) do
+    local key=known.key
+    if known.idle then
+      local previous=owner[known.idle]
+      assert(previous==nil or previous==key,known.idle..' is shared by '..tostring(previous)..' and '..key)
+      owner[known.idle]=key
+    end
+  end
+  -- Alt Cunningham is tier 1 with her own q116 workspot, on the woman rig
+  assert(cat.characters['Character.Alt'] and cat.characters['Character.Alt'].idle=='alt' and cat.characters['Character.Alt'].rig=='woman_base')
+`));
+
 test('with phrase timing from the face timeline, gestures start on phrase starts', () => run(`
   local cat=load(catalogSource)()
   local idle=cat.families.arms_crossed.idle.name

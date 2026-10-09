@@ -57,6 +57,16 @@ try {
     # The EP1 copy of a workspot overrides the base one when Phantom Liberty is installed.
     $templateArchive = if (Test-Path -LiteralPath (Join-Path $ep1 'ep1_1_nightcity.archive')) { Join-Path $ep1 'ep1_1_nightcity.archive' } else { Join-Path $content 'memoryresident_1_general.archive' }
     Invoke-GestureTool 'extract-template.log' @('unbundle', $templateArchive, '--outpath', (Join-Path $work 'original'), '--regex', ('^' + (Escape $source.template) + '$'))
+    # Vanilla idle and sit workspots: copied with a neutral facial idle when theirs is not (see the mjs).
+    $played = @($source.idleWorkspots.PSObject.Properties | ForEach-Object { $_.Value }) + @($source.seatWorkspots.PSObject.Properties | ForEach-Object { $_.Value })
+    $playedRegex = '^(' + (($played | ForEach-Object { Escape $_ }) -join '|') + ')$'
+    $playedArchives = @((Join-Path $content 'memoryresident_1_general.archive'), (Join-Path $ep1 'ep1_1_nightcity.archive'), (Join-Path $ep1 'ep1_2_gamedata.archive')) |
+        Where-Object { Test-Path -LiteralPath $_ }
+    $playedIndex = 0
+    foreach ($playedArchive in $playedArchives) {
+        $playedIndex++
+        Invoke-GestureTool "extract-workspots-$playedIndex.log" @('unbundle', $playedArchive, '--outpath', (Join-Path $work 'original'), '--regex', $playedRegex)
+    }
     Invoke-GestureTool 'extract-trunk.log' @('unbundle', (Join-Path $content 'basegame_4_appearance.archive'), '--outpath', (Join-Path $work 'original'), '--regex', 'vehicle_trunk_disposal_workspots\.ent$')
     Invoke-GestureTool 'extract-dummy.log' @('unbundle', (Join-Path $content 'basegame_3_nightcity.archive'), '--outpath', (Join-Path $work 'original'), '--regex', 'sq029_ent_interaction_dummy\.ent$')
     Invoke-GestureTool 'serialize.log' @('convert', 'serialize', (Join-Path $work 'original'), '--outpath', (Join-Path $work 'json'))
