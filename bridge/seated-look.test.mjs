@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
 
-// Free look while V sits (docs/COMPANION_SEATING.md): a fake TweakDB holding the
-// vanilla camera parameter sets, driven through the module's one apply() call.
+// Free look while V sits (docs/COMPANION_SEATING.md): the controller driven with
+// a fake native layer, plus the real seat classifier of the companion seating.
 const source = readFileSync(new URL('../mod/seated-look.lua', import.meta.url), 'utf8');
+const seating = readFileSync(new URL('../mod/companion-seating.lua', import.meta.url), 'utf8');
 function run(code) {
   const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
   const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
@@ -15,97 +16,96 @@ function run(code) {
 }
 const fixture = `
 local look=(load([==[${source}]==]))()
--- Vanilla values read from the installed tweakdb.bin (game 2.3, Phantom Liberty identical).
-local function vanilla()
-  return {
-    ['fppCameraParamSets.Workspot.yawMaxLeft']=15,['fppCameraParamSets.Workspot.yawMaxRight']=-15,
-    ['fppCameraParamSets.Workspot.pitchMin']=-15,['fppCameraParamSets.Workspot.pitchMax']=0,
-    ['fppCameraParamSets.WorkspotUnlocked.yawMaxLeft']=15,['fppCameraParamSets.WorkspotUnlocked.yawMaxRight']=-15,
-    ['fppCameraParamSets.WorkspotUnlocked.pitchMin']=-15,['fppCameraParamSets.WorkspotUnlocked.pitchMax']=15,
-    ['fppCameraParamSets.WorkspotLocked.yawMaxLeft']=0,['fppCameraParamSets.WorkspotLocked.yawMaxRight']=0,
-    ['fppCameraParamSets.WorkspotLocked.pitchMin']=0,['fppCameraParamSets.WorkspotLocked.pitchMax']=0,
-    ['fppCameraParamSets.WorkspotUnlockedCameraVerySmall.yawMaxLeft']=.01,
-    ['fppCameraParamSets.Tier3Scene.yawMaxLeft']=90,['fppCameraParamSets.Default.yawMaxLeft']=180,
-  }
+local seatingModule=(function()
+  local saved=dofile
+  dofile=function(path) if path=='gesture-workspot.lua' then return {} end error('unexpected dofile '..path) end
+  local m=(load([==[${seating}]==]))()
+  dofile=saved
+  return m
+end)()
+local function fake(path,anim)
+  local n={calls={},path=path,anim=anim,logs={},nextId=0}
+  function n.seat() n.calls[#n.calls+1]='seat';return n.path,n.anim end
+  function n.classify(p,a) return seatingModule.classify(p,a) end
+  function n.queue(limits) n.calls[#n.calls+1]='queue';n.queued=limits end
+  function n.delay(limits,seconds) n.calls[#n.calls+1]='delay';n.delayed={limits=limits,seconds=seconds};n.nextId=n.nextId+1;return n.nextId end
+  function n.cancel(id) n.calls[#n.calls+1]='cancel';n.cancelled=id end
+  function n.log(kind,fields) n.logs[#n.logs+1]={kind=kind,fields=fields} end
+  return n
 end
-local function fake(flats)
-  local db={flats=flats,writes={},updates={}}
-  function db:GetFlat(path) return self.flats[path] end
-  function db:SetFlat(path,value) self.writes[#self.writes+1]=path;if not self.refuse then self.flats[path]=value end;return true end
-  function db:Update(record) self.updates[#self.updates+1]=record;return true end
-  return db
-end
+local BENCH='base\\\\workspots\\\\player\\\\bench\\\\player__sit_bench_lean_back_r_hand_on_back__talk__01.workspot'
+local COUCH='base\\\\workspots\\\\player\\\\couch\\\\player__sit_couch_lean_back__sit_around__01.workspot'
 `;
 
-test('both free-look workspot sets widen to the seated limits, once, with their records refreshed', () => run(`
-local db=fake(vanilla())
-local report=look.apply(db)
-assert(report.changed==8 and #report.failed==0,'eight flats changed, got '..report.changed)
-for _,set in ipairs({'Workspot','WorkspotUnlocked'}) do
-  local p='fppCameraParamSets.'..set..'.'
-  assert(db.flats[p..'yawMaxLeft']==90 and db.flats[p..'yawMaxRight']==-90,set..' yaw')
-  assert(db.flats[p..'pitchMin']==-50 and db.flats[p..'pitchMax']==45,set..' pitch')
-end
-assert(#db.updates==2,'each record is refreshed once')
-`));
-
-test('the locked, very small, scene and default sets are never written', () => run(`
-local before=vanilla()
-local db=fake(vanilla())
-look.apply(db)
-for path,value in pairs(before) do
-  if not path:find('%.Workspot%.') and not path:find('%.WorkspotUnlocked%.') then
-    assert(db.flats[path]==value,path..' was changed')
-  end
-end
-for _,path in ipairs(db.writes) do
-  assert(path:find('^fppCameraParamSets%.Workspot%.') or path:find('^fppCameraParamSets%.WorkspotUnlocked%.'),'wrote '..path)
+test('entering a bench or couch workspot sends the wide limits at once and again after the settle delay', () => run(`
+for _,path in ipairs({BENCH,COUCH,'base\\\\workspots\\\\player\\\\chair\\\\player__sit_chair__sit_around__01.workspot',
+  'base\\\\workspots\\\\player\\\\barstool\\\\player__sit_barstool__sit_around__01.workspot',
+  'base\\\\workspots\\\\player\\\\bar\\\\player__sit_barstool_bar_lean_front__sit_around__01.workspot'}) do
+  local n=fake(path,'sit_around')
+  local c=look.new(n)
+  assert(c.entered()==true,path)
+  local l=n.queued
+  assert(l.yawMaxLeft==90 and l.yawMaxRight==-90 and l.pitchMax==45 and l.pitchMin==-50,'limits '..path)
+  assert(l.sensitivityMultX==1 and l.sensitivityMultY==1,'sensitivity must stay 1')
+  assert(n.delayed.seconds==.4 and n.delayed.limits==l,'second copy')
+  assert(n.logs[#n.logs].kind=='seated-look')
 end
 `));
 
-test('running again changes nothing: limits only ever widen', () => run(`
-local db=fake(vanilla())
-look.apply(db)
-local writes=#db.writes
-local again=look.apply(db)
-assert(again.changed==0 and #db.writes==writes,'second run wrote again')
-assert(#db.updates==2,'no refresh without a change')
+test('only seats are widened: cars, beds, the ground, an unknown or missing workspot are left alone', () => run(`
+for _,path in ipairs({
+  'base\\\\workspots\\\\player\\\\car\\\\player__sit_car_passenger_seat__sit_around__01.workspot',
+  'base\\\\workspots\\\\player\\\\bed\\\\player__sit_bed__idle__01.workspot',
+  'base\\\\workspots\\\\player\\\\ground\\\\player__sit_ground_lean_back__idle__01.workspot',
+  'base\\\\workspots\\\\player\\\\bike\\\\player__sit_bike__sit_around__01.workspot',
+  'base\\\\workspots\\\\player\\\\netrunners_chair\\\\sit_ripper_chair_lean180__2h_on_sides__01.workspot',
+  'base\\\\workspots\\\\takedown\\\\player__takedown__01.workspot'}) do
+  local n=fake(path,'x');local c=look.new(n)
+  assert(c.entered()==false,path)
+  assert(n.queued==nil and n.delayed==nil,'sent for '..path)
+end
+local n=fake(nil,nil);local c=look.new(n)
+assert(c.entered()==false and n.queued==nil,'no instance (the apartment scene) sends nothing')
+assert(n.logs[#n.logs].kind=='seated-look-skip')
 `));
 
-test('a flat that is already wider is kept, and a missing flat is skipped without error', () => run(`
-local flats=vanilla()
-flats['fppCameraParamSets.Workspot.yawMaxLeft']=120
-flats['fppCameraParamSets.Workspot.pitchMax']=nil
-local db=fake(flats)
-local report=look.apply(db)
-assert(db.flats['fppCameraParamSets.Workspot.yawMaxLeft']==120,'wider value was narrowed')
-assert(#report.skipped==1 and report.skipped[1]=='fppCameraParamSets.Workspot.pitchMax','missing flat not reported')
-assert(db.flats['fppCameraParamSets.Workspot.yawMaxRight']==-90,'other fields still widen')
+test('leaving the state cancels the pending second copy, and only once', () => run(`
+local n=fake(BENCH,'x');local c=look.new(n)
+c.entered();c.left()
+assert(n.cancelled==1,'cancel the delayed event')
+c.left()
+local cancels=0;for _,x in ipairs(n.calls) do if x=='cancel' then cancels=cancels+1 end end
+assert(cancels==1,'a second exit does not cancel again, got '..cancels)
+local m=fake(BENCH,'x');local d=look.new(m);d.left();assert(m.cancelled==nil,'exit without an enter cancels nothing')
 `));
 
-test('a write the game refuses is reported and does not throw', () => run(`
-local db=fake(vanilla());db.refuse=true
-local report=look.apply(db)
-assert(report.changed==0 and #report.failed==8,'refused writes counted, got '..#report.failed)
-assert(#db.updates==0,'nothing refreshed')
-local none=look.apply(nil)
-assert(none.changed==0 and #none.failed==1,'no TweakDB reports one failure')
-local throwing=look.apply({GetFlat=function() error('boom') end})
-assert(throwing.changed==0 and #throwing.failed==0,'a throwing read is skipped')
+test('native failures never throw out of the hook', () => run(`
+local n=fake(BENCH,'x');function n.seat() error('boom') end
+local c=look.new(n);assert(c.entered()==false)
+local m=fake(BENCH,'x');function m.queue() error('no event') end;function m.delay() error('no delay') end
+local d=look.new(m);assert(d.entered()==false,'both sends failing reports false')
+local k=fake(BENCH,'x');function k.cancel() error('late') end
+local e=look.new(k);e.entered();e.left()
+local j=fake(BENCH,'x');function j.queue() error('no event') end
+local f=look.new(j);assert(f.entered()==true,'the delayed copy alone still counts')
 `));
 
-test('the limits are wide enough to look at a companion on the same bench and not unbounded', () => run(`
+test('the limits reach a neighbour on the same bench and stay bounded', () => run(`
 local l=look.limits
-assert(l.yawMaxLeft>=90 and l.yawMaxRight<=-90,'a neighbour 90 degrees to the side must be reachable')
-assert(l.yawMaxLeft<=120 and l.yawMaxRight>=-120,'not a full turn')
-assert(l.pitchMin<0 and l.pitchMax>0 and l.pitchMin>=-80 and l.pitchMax<=80,'pitch inside the default +-80')
+assert(l.yawMaxLeft>=90 and l.yawMaxRight<=-90 and l.yawMaxLeft<=120 and l.yawMaxRight>=-120)
+assert(l.pitchMin<0 and l.pitchMax>0 and l.pitchMin>=-80 and l.pitchMax<=80)
+assert(look.baseSet=='WorkspotUnlocked')
 `));
 
-test('init.lua calls it once from onInit and no frame handler does', () => {
+test('init.lua installs it once from onInit with the seating classifier, and nothing runs per frame', () => {
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
   assert.equal((init.match(/seated-look\.lua/g) || []).length, 1);
   const call = init.indexOf("dofile('seated-look.lua')");
   const onInit = init.indexOf("registerForEvent('onInit'");
   const onUpdate = init.indexOf("registerForEvent('onUpdate'");
   assert(onInit < call && call < onUpdate, 'the call lives in onInit');
+  assert(init.includes("classify = dofile('companion-seating.lua').classify"));
+  const body = readFileSync(new URL('../mod/seated-look.lua', import.meta.url), 'utf8');
+  assert(!/onUpdate|registerForEvent|SetFlat/.test(body.replace(/--.*$/gm, '')), 'no frame handler, no TweakDB write');
+  assert.equal((body.match(/ObserveAfter\(/g) || []).length, 3, 'enter, exit, forced exit');
 });

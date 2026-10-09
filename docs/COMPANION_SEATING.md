@@ -380,25 +380,50 @@ not stored in the workspot file, so it cannot be changed per seat from data.
 V's apartment couch is a scene (see the seat watcher above, scene tier 3/4),
 so it already uses the +-90 scene sets and is not changed by this.
 
-**The change** (`mod/seated-look.lua`, called once from `onInit` in
-`init.lua`): `TweakDB:SetFlat` widens `Workspot` and `WorkspotUnlocked` to
-yaw +-90 (a neighbour on the same bench is about 90 degrees off V's forward,
-and the scene sets already allow +-90) and pitch -50 .. 45, then
-`TweakDB:Update` on both records. Limits only ever widen (a wider value is
-kept, running twice changes nothing) and a flat missing from the build is
-skipped. `WorkspotLocked`, `WorkspotUnlockedCameraVerySmall` and the scene
-sets are never written, so scripted workspots that freeze the camera (takedowns,
-trunk body disposal) stay frozen. TweakDB cannot tell a seat from another free
-look workspot, but the two widened sets are the ones the game already marks as
-free look, and in practice those are the seats (the player workspots are chairs,
-couches, benches, bar stools, beds and similar), so the effect is a camera
-comfort fix and not a gameplay change. Because of that, and because a setting
-would touch the manager, the MCM and 15 locales for a pure comfort fix, there is
-no setting (same decision as "Sit with you"); the numbers are constants at the
-top of the module.
+**First attempt failed (live, October 10).** The first version wrote the
+two sets once from `onInit` with `TweakDB:SetFlat`. In the installed game
+(CET 1.37.1) every TweakDB write from Lua throws "stack index -1, expected
+userdata, received nil" (SetFlat, SetFlats, CloneRecord, CreateRecord, even a
+bool on a known flat), so nothing was written and the log said "Seated free
+look incomplete". TweakXL's `TweakDBManager.StartBatch()` plus
+`batch:SetFlat(TweakDBID.new(path), ToVariant(90.0, 'Float'))` does write (the
+flat reads back), but the camera ignores it: after widening `Workspot` to
+90/-90/-50/45 a `SetCameraParamsEvent` for `Workspot` still put 15/-15/-15/0
+into V's `FPPCameraComponent`, and a rewritten `Default.yawMaxLeft` (100)
+still gave 180. The sets are cached natively when the game loads, so a runtime
+flat write cannot widen them; only a TweakXL tweak file that runs during the
+TweakDB load might (not tried: it needs a game restart).
 
-Cost: about eight flat writes at startup. Nothing per frame, no new native
-call. Not read at all while V is not in a workspot.
+**What works** (verified on the running game, V standing): V's
+`FPPCameraComponent` exposes the live limits (`yawMaxLeft`, `yawMaxRight`,
+`pitchMin`, `pitchMax`, 180/-180/-80/80 while walking), `SetCameraParamsEvent`
+with `paramsName` "Workspot" changes them to the vanilla 15/-15/-15/0, and
+`SetCameraParamsWithOverridesEvent` (paramsName plus explicit yawMaxLeft,
+yawMaxRight, pitchMax, pitchMin, sensitivityMultX/Y) sets any limits at once
+(90/-90/-50/45 read back; sensitivities must be set to 1, the event defaults to
+0). `DelaySystem:DelayEvent(player, event, seconds, false)` delivers it later
+and `CancelDelay(id)` stops it. Resetting with a `SetCameraParamsEvent` for
+"Default" restores walking limits.
+
+**The change** (`mod/seated-look.lua`, installed from `onInit` in
+`init.lua`): `ObserveAfter('WorkspotEvents', 'OnEnter')`, the player state
+machine entering its Workspot state, once per sit. If V's workspot instance
+classifies as a seat with the same `classify` the companion seating uses
+(couch, bench, chair, table chair, bar, stool), it queues a
+`SetCameraParamsWithOverridesEvent` (base set `WorkspotUnlocked`, yaw +-90,
+pitch -50..45, sensitivities 1) and a second copy 0.4 s later in case the native
+parameters land after the script hook. `OnExit` and `OnForcedExit` cancel the
+delayed copy so it cannot land on a standing V. Cars, beds, the ground, bikes,
+the ripperdoc chair, takedowns and every locked workspot are not classified as
+seats and keep the game's limits, and V's apartment couch (a scene, no
+workspot instance) is left to the scene sets that already allow +-90. So the
+change is limited to sitting workspots. No setting (same decision as "Sit with
+you": a pure comfort fix, and a setting would touch the manager, the MCM and 15
+locales); the numbers are constants at the top of the module.
+
+Cost: nothing per frame. Three Observe hooks that run only when the state
+machine enters or leaves Workspot, and a handful of native calls per sit
+(workspot instance read, two event sends, one cancel).
 
 Community prior art (web search October 10, little found): none of the "sit
 anywhere" or first-person camera mods found documents seated yaw limits. Sit
@@ -406,18 +431,16 @@ Anywhere (NexusGuy999) only adds sit interactions; Immersive First Person
 (Bonaniki) has its own FreeLook camera, which it only offers outside combat and
 which needs CET (see its Nexus page); True First Person Camera 2.0
 (DigitalVixen, nexusmods.com/cyberpunk2077/mods/5593) adds a free look mode
-while walking. TweakXL (installed with this mod) applies the same kind of
-`fppCameraParamSets` flat edits from a YAML tweak, which is the established
-route for TweakDB-only changes. No source was found for the
-`fppCameraParamSets` names; they come from the local files above, so the live
-check below is the proof.
+while walking. No source was found for the `fppCameraParamSets` names or the
+overrides event; they come from the local `tweakdb.bin`, `final.redscripts`
+and the live reads above.
 
-Unknowns that only a live test can settle: whether the camera reads the flats
-on every entry (expected) or caches the set once, in which case the new limits
-show up only after a game restart or reload of the save; whether yaw 90 shows
-the FPP body or arms in an awkward way on some seats; the pitch sign (positive
-is expected to be up); whether another seat type (for example the bar stool)
-uses a different set.
+Unknowns that only a real sit can settle: that `WorkspotEvents.OnEnter` fires
+once per sit and the instance path is readable there (the log line
+`seated-look` or `seated-look-skip` with the path says so, developer mode on);
+that the later copy wins over the native parameters; whether a vanilla dialogue
+while seated (scene tier) re-applies the narrow set afterwards; body or arm
+clipping at yaw 90; the pitch sign (positive is expected to be up).
 
 ## Cost
 
@@ -427,7 +450,7 @@ targeting query, a few rays per assigned seat, one device spawn per companion.
 Seated: one `IsActorInWorkspot` per companion per update (the companions loop
 runs at 10 Hz).
 
-Free look while seated (see above) is a one-time TweakDB write at startup.
+Free look while seated (see above): three Observe hooks that run only when V's player state machine enters or leaves Workspot, a few native calls per sit.
 
 ## Probe lines
 
@@ -485,12 +508,11 @@ Install: **game restart** for the rebuilt `archive/pc/mod/convai_gestures.archiv
 12. Free look: sit on a street bench (a workspot, not the apartment couch). Turn
     the camera left and right as far as it goes: it should reach roughly 90
     degrees (before: about 15), and up and down about 45. Seat a companion
-    beside V and look at her face. Repeat on a chair and a bar stool, once with
-    a fresh sit after a CET reload and once after a game restart if the first
-    does not widen. Check that a takedown or other locked workspot still holds
-    the camera still, and that nothing about standing up or the camera reset
-    changed. Developer mode off: `cyber_engine_tweaks.log` has no 'Seated free
-    look' line when it works.
+    beside V and look at her face. Repeat on a chair and a bar stool. Stand up
+    and check you can look all the way around again. Check that a takedown or
+    other locked workspot still holds the camera still. Developer mode on: one
+    `Seating seated-look {...}` line per sit (or `seated-look-skip` with the
+    reason). Needs a CET reload only.
 
 If she floats or sinks, the seat depth/height is off: the `seats-found` profile
 and `h0` say where the cushion is relative to V's root; the per-kind `back`
