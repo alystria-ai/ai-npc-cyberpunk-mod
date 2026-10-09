@@ -33,6 +33,17 @@ local EXPRESSION = {'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','li
 local policyFamily = {smile='Joy', frown='Sadness', browsup='Surprise', browsdown='Anger', all='Joy'}
 
 M.clock, M.pollAt, M.lastNonce = M.clock or 0, M.pollAt or 0, M.lastNonce
+-- A freshly loaded module (a CET reload, a save load) never runs the request file's old content: the nonce already in
+-- the file is taken as seen, and only a request that arrives afterwards counts (a stale `face-stage` used to restart
+-- on every reload).
+if not M.primed then
+    M.primed = true
+    local seen = io.open(REQUEST, 'rb')
+    if seen then
+        local raw = seen:read('*a'); seen:close()
+        M.lastNonce = tostring(raw):match('^([^\r\n]+)') or M.lastNonce
+    end
+end
 -- Non-expression fields (jaw, ...) ever written into a writer feature, per
 -- entity. The writer keeps its idle feature between frames, so these must be
 -- zeroed when a step or run ends or they stay on the face (the jaw .5 bug).
@@ -135,7 +146,12 @@ end
 -- invited earlier and waits until each is really gone ('clearing'), so two characters never share a spot; the spot is
 -- also moved sideways when another owned companion stands on it, and nobody is ever placed on V (.85 m away).
 local STAGE_DISTANCE, STAGE_DEFAULT_HOLD, STAGE_MAX_HOLD, STAGE_SPAWN_WAIT, STAGE_PERIOD, STAGE_RESEND = .85, 60, 300, 75, .1, .25
--- `face-stage distance <metres>` moves the spot closer for mouth captures (.45 to 1.2; .85 by default, reset by a reload).
+-- `face-stage distance <metres>` sets how far in front of V the spot is (.85 to 2; .85 by default, reset by a reload). A
+-- spot closer than the two bodies' capsules put V under the character's collision: a big body (jackie, pepe) pushed V,
+-- the old live-camera hold followed V's new position, and both drifted until V fell through the floor (October 9).
+-- So the spot is fixed ONCE at stage time (anchor) and never re-derived; big bodies (man_big, man_fat graphs, or an
+-- unreadable graph) are never closer than STAGE_BIG_DISTANCE; and the stage aborts when V moves more than STAGE_MOVE_LIMIT.
+local STAGE_MIN_DISTANCE, STAGE_BIG_DISTANCE, STAGE_MOVE_LIMIT, STAGE_LIFT_LIMIT = .85, 1.3, .3, .5
 M.stageDistance = M.stageDistance or STAGE_DISTANCE
 M.spawned = M.spawned or {}
 M.leaving = M.leaving or {}
@@ -210,7 +226,8 @@ local function endStage(stage, state)
     if state then stage.state = state end
 end
 
-local function stageTarget()
+local function stageTarget(distance)
+    distance = distance or M.stageDistance
     local player = Game.GetPlayer()
     if not player then return nil, 'no player' end
     local ok, _, forward = pcall(function() return Game.GetTargetingSystem():GetCrosshairData(player) end)
@@ -222,7 +239,7 @@ local function stageTarget()
     -- Yaw convention: forward = (-sin yaw, cos yaw), so the camera's yaw is atan2(-fx, fy); she turns the other way.
     local atan2 = math.atan2 or math.atan -- LuaJIT (the game) has atan2; Lua 5.3 takes two arguments in atan
     local yaw = math.deg(atan2(-fx, fy)) + 180
-    return {x = at.x + fx * M.stageDistance, y = at.y + fy * M.stageDistance, z = at.z, yaw = yaw, rx = -fy, ry = fx}
+    return {x = at.x + fx * distance, y = at.y + fy * distance, z = at.z, yaw = yaw, rx = -fy, ry = fx, vx = at.x, vy = at.y, vz = at.z}
 end
 
 -- Probe-invited keys that were dismissed but still have a copy standing: the next stage waits for them to be gone.
@@ -243,7 +260,7 @@ local function dismissSpawned(except)
         local ok, rows = pcall(function() return queue.list() end)
         for _, member in ipairs(ok and rows or {}) do
             if member.key == key and key ~= except then
-                local called, accepted, message = pcall(queue.dismiss, member.id)
+                local called, accepted, message = pcall(queue.dismiss, member.id, true) -- quiet: no 'dismissed' notice
                 done[#done + 1] = {key = key, id = member.id, ok = called and accepted == true, result = called and message or tostring(accepted)}
             end
         end
@@ -267,6 +284,28 @@ local function freeSpot(context, target, current)
     end
 end
 
+-- A big body's capsule overlaps V's at the usual .85 m. The graph name (ConvaiFaceStatus, 'prepared:man_big_sermo') tells
+-- the build; an unreadable graph counts as big, the safe side.
+local function bigBody(npc)
+    local ok, status = pcall(function() return tostring(npc:ConvaiFaceStatus()) end)
+    if not ok or not status or status == '' then return true end
+    return status:find('man_big', 1, true) ~= nil or status:find('man_fat', 1, true) ~= nil
+end
+-- Fixes the spot ONCE: a world position and yaw from V's camera at this moment, plus V's own position to detect that V
+-- moved (pushed by a collision, walking, a teleport). Nothing later re-derives it from the live camera.
+local function anchorStage(stage, row, context)
+    local distance = math.max(M.stageDistance, STAGE_MIN_DISTANCE)
+    if bigBody(row.npc) then distance = math.max(distance, STAGE_BIG_DISTANCE) end
+    local target, why = stageTarget(distance)
+    if not target then return nil, why end
+    local spot = freeSpot(context, target, row)
+    if not spot then return nil, 'every spot in front of V is taken' end
+    stage.anchor = {x = spot.x, y = spot.y, z = spot.z, yaw = spot.yaw}
+    stage.origin = {x = target.vx, y = target.vy, z = target.vz}
+    stage.distance = distance
+    return true
+end
+
 -- Reuses a present copy of the character, otherwise invites one through the party queue. Returns ok, error.
 local function beginStage(stage, context)
     stage.state, stage.deadline = 'spawning', M.clock + STAGE_SPAWN_WAIT
@@ -280,7 +319,7 @@ local function beginStage(stage, context)
         -- The real invitation path (manager-party queue): preparation, then the spawn on the next gameplay flush.
         local queue = convaiManager and convaiManager.party and convaiManager.party()
         if not queue then return false, 'the party queue is not available' end
-        local called, accepted, message = pcall(queue.invite, stage.who)
+        local called, accepted, message = pcall(queue.invite, stage.who, {quiet = true}) -- no 'joined' notice for a probe copy
         if not called or not accepted then return false, 'invitation refused: ' .. tostring(called and message or accepted) end
         M.spawned[#M.spawned + 1] = stage.who
         stage.spawnedHere = true
@@ -312,6 +351,8 @@ local function stageTick(context)
                     if tostring(entry.profileKey or entry.key) == tostring(row.profileKey or stage.who) then stage.serial = entry.serial end
                 end
             end
+            local anchored, why = anchorStage(stage, row, context or {})
+            if not anchored then stage.state, stage.error = 'failed', why; log('stage-failed', {who = stage.who, why = why}); return end
             setQuiet(stage, true)
         elseif M.clock > stage.deadline then stage.state, stage.error = 'failed', 'the copy did not become ready in time'; return
         else return end
@@ -321,10 +362,17 @@ local function stageTick(context)
     if row and row.entity == stage.entity then current = row
     else for _, other in ipairs(context and context.actors or {}) do if other.entity == stage.entity then current = other end end end
     if not current then endStage(stage, 'lost'); log('stage-lost', {who = stage.who}); return end
-    local target, why = stageTarget()
-    if not target then endStage(stage, 'failed'); stage.error = why; return end
-    target = freeSpot(context, target, current)
-    if not target then stage.error = 'every spot in front of V is taken'; return end
+    -- V moved (a collision pushed V, V walked or was teleported): stop instead of following V's new position.
+    local player = Game.GetPlayer()
+    local pat = player and player:GetWorldPosition()
+    if not pat then endStage(stage, 'failed'); stage.error = 'no player'; return end
+    local origin = stage.origin
+    if math.sqrt((pat.x - origin.x) ^ 2 + (pat.y - origin.y) ^ 2) > STAGE_MOVE_LIMIT or math.abs(pat.z - origin.z) > STAGE_LIFT_LIMIT then
+        endStage(stage, 'failed'); stage.error = 'V moved during the stage'
+        log('stage-aborted', {who = stage.who, moved = math.sqrt((pat.x - origin.x) ^ 2 + (pat.y - origin.y) ^ 2), lift = pat.z - origin.z})
+        return
+    end
+    local target = stage.anchor
     stage.error = nil
     stage.npc = current.npc
     if stage.freeze and M.clock >= (stage.frozenAt or 0) + FREEZE_REFRESH then
@@ -381,9 +429,9 @@ commands['face-stage'] = function(rest, context)
         local stage = M.stage
         local row = stage and rowFor(context, stage.who)
         if not stage or not row or stage.state ~= 'staged' then return false, 'no staged character (' .. tostring(stage and stage.state) .. ')' end
-        local target = stageTarget()
-        if not target then return false, 'no camera direction' end
-        local out = {name = row.name, quiet = M.clock - (stage.lastSend or stage.startedAt or M.clock)}
+        local target = stage.anchor
+        if not target then return false, 'the stage has no anchor yet' end
+        local out = {distance = stage.distance, name = row.name, quiet = M.clock - (stage.lastSend or stage.startedAt or M.clock)}
         local ok, err = pcall(function()
             local at = row.npc:GetWorldPosition()
             out.off = math.sqrt((at.x - target.x) ^ 2 + (at.y - target.y) ^ 2)
@@ -423,7 +471,7 @@ commands['face-stage'] = function(rest, context)
     elseif word == 'distance' then
         local metres = tonumber(tail)
         if not metres then return true, {distance = M.stageDistance} end
-        M.stageDistance = math.max(.45, math.min(1.2, metres))
+        M.stageDistance = math.max(STAGE_MIN_DISTANCE, math.min(2, metres))
         return true, {distance = M.stageDistance}
     elseif word == 'look' or word == 'unlook' then
         local stage = M.stage

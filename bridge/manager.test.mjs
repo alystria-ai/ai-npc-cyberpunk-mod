@@ -410,6 +410,29 @@ test('subtitle style accepts only exact public values and rejects the whole sett
   `);
 });
 
+test('a quiet invitation or dismissal (the development probes) posts no joined or dismissed notice, an ordinary one still does', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles)
+    local queue = (function() ${queueSource} end)().new(api)
+    queue.bind('player-1')
+    queue.invite('johnny-silverhand', {quiet = true}); queue.flush()
+    members[1].state = 'ready'; queue.flush()
+    assert(#queue.takeNotices() == 0, 'a probe copy joins without a notice')
+    queue.invite('person-1'); queue.flush()
+    members[2].state = 'ready'; queue.flush()
+    local joined = queue.takeNotices()
+    assert(#joined == 1 and joined[1].message:find('joined your group', 1, true), 'an ordinary invitation still reports')
+    local function dismissed(id, quiet)
+      assert(queue.dismiss(id, quiet)); queue.flush()
+      local count = 0
+      for _, notice in ipairs(queue.takeNotices()) do if notice.message:find('dismissed', 1, true) then count = count + 1 end end
+      return count
+    end
+    local list = queue.list()
+    assert(dismissed(list[1].id, true) == 0, 'a quiet dismissal posts nothing')
+  `);
+});
+
 test('MCM waits for NPC attachment, reports late failures once and discards notices on save change', () => {
   run(`${managerFixture}
     manager.configure(api, profiles)

@@ -364,6 +364,8 @@ function M.new(companions, readiness, options)
     local Q = {}
     local owner, sequence, joins, leaves = nil, 0, {}, {}
     local attaching, notices = {}, {}
+    -- Development probes (mod/face-test.lua) invite and dismiss with quiet=true: no 'joined' or 'dismissed' notice for their copies.
+    local quietLeaves = {}
     -- A dismissal that the game refused. The copy stays in the party, so its
     -- row returns with this reason beside it until the next attempt.
     local dismissErrors = {}
@@ -395,6 +397,7 @@ function M.new(companions, readiness, options)
         local changed = readiness and readiness.bind(identity) == true
         if identity ~= owner or changed then
             owner, joins, leaves, feedback = identity, {}, {}, ''
+            quietLeaves = {}
             attaching, notices, dismissErrors = {}, {}, {}
             stopIntent, tripFeedback, gameVoice = false, nil, nil
             tripGeneration, tripNotices = nil, {}
@@ -572,7 +575,8 @@ function M.new(companions, readiness, options)
             record = definition.id, profileKey = definition.profileKey,
             profileName = definition.profileName or definition.name,
             adoption = type(extra) == 'table' and type(extra.adoption) == 'table' and extra.adoption or nil,
-            gate = type(extra) == 'table' and type(extra.gate) == 'function' and extra.gate or nil}
+            gate = type(extra) == 'table' and type(extra.gate) == 'function' and extra.gate or nil,
+            quiet = type(extra) == 'table' and extra.quiet == true or nil}
         -- A generic person (no memory of its own to prepare) joins as a model
         -- and receives its conversation profile once attached.
         if type(extra) == 'table' and extra.modelOnly == true then job.profileKey, job.profileName = nil, nil end
@@ -598,7 +602,7 @@ function M.new(companions, readiness, options)
         return true, feedback, id
     end
 
-    function Q.dismiss(id)
+    function Q.dismiss(id, quiet)
         local member = find(id)
         if not member then return false, ui.t('That copy is no longer in your party.') end
         if member.serial then
@@ -607,6 +611,7 @@ function M.new(companions, readiness, options)
                 return false, ui.t('Stop the trip and step out before dismissing your driver.')
             end
             leaves[member.serial], dismissErrors[member.serial] = true, nil
+            quietLeaves[member.serial] = quiet == true or nil
             if attaching[member.serial] and readiness then readiness.cancel(attaching[member.serial]) end
             feedback = ui.t('{name} will leave when you return to the game.', {name = member.name})
         else
@@ -788,8 +793,10 @@ function M.new(companions, readiness, options)
                 attaching[serial] = nil
             elseif member and member.state == 'ready' then
                 if readiness then readiness.finish(job) end
-                report('party-joined', ui.t('{name} joined your group.', {name = member.name}) .. (job.warning and (' ' .. job.warning) or ''),
-                    nil, nil, {kind = 'joined', name = member.name, warning = job.warning})
+                if not job.quiet or job.warning then
+                    report('party-joined', ui.t('{name} joined your group.', {name = member.name}) .. (job.warning and (' ' .. job.warning) or ''),
+                        nil, nil, {kind = 'joined', name = member.name, warning = job.warning})
+                end
                 attaching[serial] = nil
             elseif not member or member.state == 'failed' or member.state == 'missing' or member.state == 'dead' then
                 if readiness then readiness.cancel(job) end
@@ -809,9 +816,12 @@ function M.new(companions, readiness, options)
                 -- real slot, so the copy is listed again with the reason.
                 dismissErrors[member.serial] = not (called and ok)
                     and tostring((called and err) or (not called and ok) or ui.t('The copy could not be dismissed.')) or nil
-                report(called and ok and 'party-dismissed' or 'party-dismiss-failed',
-                    called and ok and ui.t('{name} dismissed.', {name = member.name})
-                    or (member.name .. ': ' .. tostring(called and err or ok)), not (called and ok))
+                if not (quietLeaves[member.serial] and called and ok) then
+                    report(called and ok and 'party-dismissed' or 'party-dismiss-failed',
+                        called and ok and ui.t('{name} dismissed.', {name = member.name})
+                        or (member.name .. ': ' .. tostring(called and err or ok)), not (called and ok))
+                end
+                quietLeaves[member.serial] = nil
             end
         end
         local remaining = {}

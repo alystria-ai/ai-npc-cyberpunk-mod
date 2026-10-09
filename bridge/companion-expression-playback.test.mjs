@@ -318,6 +318,7 @@ function runProbe(body) {
    end
    json={encode=function(v) local function enc(x) if type(x)=='table' then local o={};for k,y in pairs(x) do o[#o+1]=tostring(k)..'='..enc(y) end;table.sort(o);return '{'..table.concat(o,',')..'}' end;return tostring(x) end;return enc(v) end}
    dofile=function(path) if path=='face-test.lua' then return (function() ${probeSource} end)() end;return nil end
+   probeLoad=function() return (function() ${probeSource} end)() end
   `;
   const patched = setup.replace('io.open=function() return nil end', () => fakeIo);
   const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
@@ -352,8 +353,9 @@ test('face-stage probe: reuses a present copy, invites a missing one, places it 
  NewObject=function(name) if name=='AITeleportCommand' or name=='AIHoldPositionCommand' then return {} end;return plain(name) end
  local holds=0
  -- A copy answers its AI controller: a teleport command moves it exactly to the commanded spot and yaw.
- local function body(npc,x,y,z,yaw)
+ local function body(npc,x,y,z,yaw,graph)
   npc.where={x=x,y=y,z=z};npc.yaw=yaw
+  function npc:ConvaiFaceStatus() return graph or 'prepared:woman_average_sermo' end
   function npc:GetWorldPosition() return self.where end
   function npc:GetWorldYaw() return self.yaw end
   function npc:GetAIControllerComponent() return {SendCommand=function(_,command)
@@ -365,12 +367,12 @@ test('face-stage probe: reuses a present copy, invites a missing one, places it 
  Vector4={new=function(x,y,z,w) return {x=x,y=y,z=z,w=w} end}
  Game.GetTargetingSystem=function() return {GetCrosshairData=function() return {x=10,y=20,z=6.7},{x=0,y=1,z=-.1} end} end
  function player:GetWorldPosition() return {x=10,y=20,z=5} end
- local spawned,dismissed,live
+ local spawned,dismissed,live,inviteExtra,dismissQuiet
  convaiCompanions.list=function() return {} end
  convaiManager={party=function() return {
-  invite=function(key) spawned=key;live={{id='live:7',key=key}};return true,'preparing','queued:1' end,
+  invite=function(key,extra) spawned=key;inviteExtra=extra;live={{id='live:7',key=key}};return true,'preparing','queued:1' end,
   list=function() return live or {} end,
-  dismiss=function(id) dismissed=id;return true,'leaving' end} end}
+  dismiss=function(id,quiet) dismissed=id;dismissQuiet=quiet;return true,'leaving' end} end}
  a.serial=7;if rows[1] then rows[1].serial=7 end
  -- A present copy is reused: no invitation, placed in front of the camera, facing it.
  request('s1\\nface-stage judy 10');tick(.3)
@@ -400,6 +402,7 @@ test('face-stage probe: reuses a present copy, invites a missing one, places it 
  assert(moves[#moves].npc==c,'the new copy is staged')
  request('s4\\nface-stage dismiss');tick(.3)
  assert(dismissed=='live:7','dismisses what the probe invited')
+ assert(dismissQuiet==true and inviteExtra and inviteExtra.quiet==true,'probe invitations and dismissals are quiet (no player notices)')
  -- The next character waits until the dismissed copy is really gone (never two on one spot), then is placed.
  count=#moves
  request('s4b\\nface-stage judy 10');tick(.3);for _=1,10 do tick(.1) end
@@ -415,6 +418,105 @@ test('face-stage probe: reuses a present copy, invites a missing one, places it 
  table.remove(rows)
  request('s5\\nface-stage judy 10');tick(.3);dismissed=nil;request('s6\\nface-stage dismiss');tick(.3)
  assert(dismissed==nil,'never a character that was already there')
+`));
+
+// October 9 incident: a big body staged .55 m in front of V pushed V, the hold re-derived the spot from V's live camera,
+// and both drifted until V fell through the floor. The spot is now fixed once (anchor), big bodies keep their distance,
+// the stage aborts when V moves, and a stale request in the file is never run by a freshly loaded probe.
+const stageBody = `
+ local moves={}
+ local plain=NewObject
+ NewObject=function(name) if name=='AITeleportCommand' or name=='AIHoldPositionCommand' then return {} end;return plain(name) end
+ local function body(npc,x,y,z,yaw,graph)
+  npc.where={x=x,y=y,z=z};npc.yaw=yaw
+  function npc:ConvaiFaceStatus() if graph=='throw' then error('no status') end;return graph or 'prepared:woman_average_sermo' end
+  function npc:GetWorldPosition() return self.where end
+  function npc:GetWorldYaw() return self.yaw end
+  function npc:GetAIControllerComponent() return {SendCommand=function(_,command)
+   if not command.position then return true end
+   moves[#moves+1]={npc=npc,position=command.position,yaw=command.rotation}
+   npc.where={x=command.position.x,y=command.position.y,z=command.position.z};npc.yaw=command.rotation;return true end} end
+ end
+ Vector4={new=function(x,y,z,w) return {x=x,y=y,z=z,w=w} end}
+ local forward={x=0,y=1,z=-.1}
+ Game.GetTargetingSystem=function() return {GetCrosshairData=function() return {x=10,y=20,z=6.7},forward end} end
+ local playerAt={x=10,y=20,z=5}
+ function player:GetWorldPosition() return playerAt end
+ convaiCompanions.list=function() return {} end
+ convaiManager={party=function() return {invite=function() return false,'no' end,list=function() return {} end,dismiss=function() return true end} end}
+ a.serial=7;rows[1].serial=7
+`;
+test('face-stage probe: the spot is anchored once; a later camera turn or a push on V never moves it', () => runProbe(stageBody + `
+ body(a,12,19,5,-30)
+ request('a1\\nface-stage judy 10');tick(.3);for _=1,10 do tick(.1) end
+ local first=moves[#moves];assert(first and math.abs(first.position.y-20.85)<1e-6,'placed .85 m ahead')
+ -- V turns the camera (and is pushed .2 m, below the abort limit): the held spot does not follow.
+ forward={x=1,y=0,z=0};playerAt={x=10,y=19.8,z=5}
+ a.where={x=12,y=22,z=5};for _=1,6 do tick(.1) end
+ local last=moves[#moves];assert(#moves>=2)
+ assert(math.abs(last.position.x-10)<1e-6 and math.abs(last.position.y-20.85)<1e-6 and math.abs(last.yaw-180)<1e-6,
+  'put back on the ORIGINAL spot, not one derived from the new camera: '..last.position.x..','..last.position.y)
+`));
+
+test('face-stage probe: the stage aborts when V moves, with no further placement and the kill switch off', () => runProbe(stageBody + `
+ body(a,12,19,5,-30)
+ request('b1\\nface-stage judy 30');tick(.3);for _=1,10 do tick(.1) end
+ assert(convaiCompanions.devQuiet and convaiCompanions.devQuiet[7])
+ local before=#moves
+ playerAt={x=10.2,y=20.2,z=5} -- .28 m: still inside the limit
+ a.where={x=12,y=22,z=5};for _=1,6 do tick(.1) end
+ assert(#moves>before,'a small push on V keeps the hold')
+ playerAt={x=10.4,y=20.4,z=5} -- .57 m: V is being moved
+ for _=1,3 do tick(.1) end
+ local count=#moves
+ a.where={x=12,y=22,z=5};for _=1,20 do tick(.1) end
+ assert(#moves==count,'no placement after the abort: '..#moves..' vs '..count)
+ assert(convaiCompanions.devQuiet==nil,'the abort gives the copy back to the companion update')
+ request('b2\\nface-stage status');tick(.3)
+ local response=files['runtime/face-test-response.txt']
+ assert(response:find('state=failed',1,true) and response:find('V moved',1,true),response)
+ -- Falling or being lifted counts too.
+ request('b3\\nface-stage judy 30');tick(.3);playerAt={x=10,y=20,z=5};for _=1,6 do tick(.1) end
+ playerAt={x=10,y=20,z=4.2};for _=1,3 do tick(.1) end
+ request('b4\\nface-stage status');tick(.3)
+ assert(files['runtime/face-test-response.txt']:find('state=failed',1,true),files['runtime/face-test-response.txt'])
+`));
+
+test('face-stage probe: a big or unreadable body is never closer than 1.3 m, an ordinary one stays at .85 m, distance cannot go closer', () => runProbe(stageBody + `
+ body(a,12,19,5,-30,'prepared:man_big_sermo')
+ request('c1\\nface-stage judy 10');tick(.3);for _=1,10 do tick(.1) end
+ assert(math.abs(moves[#moves].position.y-21.3)<1e-6,'man_big stands 1.3 m ahead: '..moves[#moves].position.y)
+ request('c2\\nface-stage off');tick(.3)
+ body(a,12,19,5,-30,'prepared:man_fat_sermo');moves={}
+ request('c3\\nface-stage judy 10');tick(.3);for _=1,10 do tick(.1) end
+ assert(math.abs(moves[#moves].position.y-21.3)<1e-6,'man_fat too')
+ request('c4\\nface-stage off');tick(.3)
+ body(a,12,19,5,-30,'throw');moves={}
+ request('c5\\nface-stage judy 10');tick(.3);for _=1,10 do tick(.1) end
+ assert(math.abs(moves[#moves].position.y-21.3)<1e-6,'an unreadable graph counts as big')
+ request('c6\\nface-stage off');tick(.3)
+ body(a,12,19,5,-30);moves={}
+ request('c7\\nface-stage distance .4');tick(.3)
+ assert(files['runtime/face-test-response.txt']:find('distance=.85',1,true) or files['runtime/face-test-response.txt']:find('distance=0.85',1,true),files['runtime/face-test-response.txt'])
+ request('c8\\nface-stage judy 10');tick(.3);for _=1,10 do tick(.1) end
+ assert(math.abs(moves[#moves].position.y-20.85)<1e-6,'an ordinary body at .85 m: '..moves[#moves].position.y)
+ request('c9\\nface-stage off');tick(.3)
+ request('c10\\nface-stage distance 1.1');tick(.3)
+ request('c11\\nface-stage judy 10');tick(.3);for _=1,10 do tick(.1) end
+ assert(math.abs(moves[#moves].position.y-21.1)<1e-6,'a chosen larger distance is kept: '..moves[#moves].position.y)
+`));
+
+test('face-stage probe: a freshly loaded probe never runs the stale request left in the file', () => runProbe(stageBody + `
+ body(a,12,19,5,-30)
+ -- A request from before a reload sits in the file; the probe module is loaded again (CET reload, save load).
+ files['runtime/face-test-request.txt']='old-1\\nface-stage judy 30'
+ convaiFaceTest.primed=nil;convaiFaceTest.lastNonce=nil;convaiFaceTest.stage=nil
+ probeLoad()
+ local before=#moves
+ for _=1,20 do tick(.1) end
+ assert(#moves==before and not convaiFaceTest.stage,'the old request was not run')
+ request('old-2\\nface-stage judy 30');tick(.3);for _=1,10 do tick(.1) end
+ assert(#moves>before and convaiFaceTest.stage,'a new request after the reload still runs')
 `));
 
 test('face-test probe: direct mode bypasses the writer with its own feature and logs the apply result', () => runProbe(`
