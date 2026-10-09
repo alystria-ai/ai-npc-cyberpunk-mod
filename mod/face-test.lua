@@ -125,14 +125,18 @@ end
 --   face-stage <key> [hold-seconds]   key = a companion definition / profile key (evelyn-parker, panam-palmer, an
 --                                     archetype key). An already present copy is reused; otherwise one is invited
 --                                     through the party queue (the phone / manager path) and waited for.
---   face-stage status                 {state, name, placed, ...}: spawning | staged | released | lost | failed
+--   face-stage status                 {state, name, placed, ...}: clearing | spawning | staged | released | lost | failed
 --   face-stage off                    stop holding (her own movement takes over again)
 --   face-stage dismiss                dismiss the characters this probe invited (never one that was already there)
 -- Dev only (this file is not in a player package). One position check every .1 s for at most the hold (default 60 s,
 -- limit 300 s), only while a stage is active, and an AI teleport command only when she is off the spot; nothing
--- otherwise. A visible placement is fine for a probe.
+-- otherwise. A visible placement is fine for a probe. Only the CURRENT stage is held (a new stage replaces the old
+-- one, and its hold-position command lasts 8 s at most). Starting a stage first dismisses every character this probe
+-- invited earlier and waits until each is really gone ('clearing'), so two characters never share a spot; the spot is
+-- also moved sideways when another owned companion stands on it, and nobody is ever placed on V (.85 m away).
 local STAGE_DISTANCE, STAGE_DEFAULT_HOLD, STAGE_MAX_HOLD, STAGE_SPAWN_WAIT, STAGE_PERIOD, STAGE_RESEND = .85, 60, 300, 30, .1, .25
 M.spawned = M.spawned or {}
+M.leaving = M.leaving or {}
 
 local function stageTarget()
     local player = Game.GetPlayer()
@@ -146,7 +150,70 @@ local function stageTarget()
     -- Yaw convention: forward = (-sin yaw, cos yaw), so the camera's yaw is atan2(-fx, fy); she turns the other way.
     local atan2 = math.atan2 or math.atan -- LuaJIT (the game) has atan2; Lua 5.3 takes two arguments in atan
     local yaw = math.deg(atan2(-fx, fy)) + 180
-    return {x = at.x + fx * STAGE_DISTANCE, y = at.y + fy * STAGE_DISTANCE, z = at.z, yaw = yaw}
+    return {x = at.x + fx * STAGE_DISTANCE, y = at.y + fy * STAGE_DISTANCE, z = at.z, yaw = yaw, rx = -fy, ry = fx}
+end
+
+-- Probe-invited keys that were dismissed but still have a copy standing: the next stage waits for them to be gone.
+local function pendingLeaving(context)
+    local pending = 0
+    for index = #M.leaving, 1, -1 do
+        if rowFor(context, M.leaving[index]) then pending = pending + 1 else table.remove(M.leaving, index) end
+    end
+    return pending
+end
+
+-- Dismisses what this probe invited (through the party queue; the copy goes at the next gameplay flush).
+local function dismissSpawned(except)
+    local done = {}
+    local queue = convaiManager and convaiManager.party and convaiManager.party()
+    for index = #M.spawned, 1, -1 do
+        local key = M.spawned[index]
+        local ok, rows = pcall(function() return queue.list() end)
+        for _, member in ipairs(ok and rows or {}) do
+            if member.key == key and key ~= except then
+                local called, accepted, message = pcall(queue.dismiss, member.id)
+                done[#done + 1] = {key = key, id = member.id, ok = called and accepted == true, result = called and message or tostring(accepted)}
+            end
+        end
+        if key ~= except then M.leaving[#M.leaving + 1] = key; table.remove(M.spawned, index) end
+    end
+    return done
+end
+
+-- The first of the straight-ahead spot and two sidesteps that no other owned companion occupies (within .6 m).
+local function freeSpot(context, target, current)
+    for _, side in ipairs({0, .8, -.8}) do
+        local x, y = target.x + target.rx * side, target.y + target.ry * side
+        local free = true
+        for _, other in ipairs(context and context.actors or {}) do
+            if other.entity ~= current.entity and other.npc then
+                local ok, at = pcall(function() return other.npc:GetWorldPosition() end)
+                if ok and at and math.sqrt((at.x - x) ^ 2 + (at.y - y) ^ 2) < .6 then free = false; break end
+            end
+        end
+        if free then return {x = x, y = y, z = target.z, yaw = target.yaw} end
+    end
+end
+
+-- Reuses a present copy of the character, otherwise invites one through the party queue. Returns ok, error.
+local function beginStage(stage, context)
+    stage.state, stage.deadline = 'spawning', M.clock + STAGE_SPAWN_WAIT
+    if rowFor(context, stage.who) then return true end -- picked up on the next tick; no new copy
+    local listed = {}
+    local ok, rows = pcall(convaiCompanions.list)
+    for _, row in ipairs(ok and rows or {}) do
+        if row.key == stage.who or tostring(row.profileKey or '') == stage.who then listed[#listed + 1] = row end
+    end
+    if #listed == 0 then
+        -- The real invitation path (manager-party queue): preparation, then the spawn on the next gameplay flush.
+        local queue = convaiManager and convaiManager.party and convaiManager.party()
+        if not queue then return false, 'the party queue is not available' end
+        local called, accepted, message = pcall(queue.invite, stage.who)
+        if not called or not accepted then return false, 'invitation refused: ' .. tostring(called and message or accepted) end
+        M.spawned[#M.spawned + 1] = stage.who
+        stage.spawnedHere = true
+    end
+    return true
 end
 
 local function stageTick(context)
@@ -154,6 +221,13 @@ local function stageTick(context)
     if not stage or stage.state == 'released' or stage.state == 'lost' or stage.state == 'failed' then return end
     if M.clock < stage.nextAt then return end
     stage.nextAt = M.clock + STAGE_PERIOD
+    if stage.state == 'clearing' then
+        if pendingLeaving(context or {}) == 0 then
+            local ok, err = beginStage(stage, context or {})
+            if not ok then stage.state, stage.error = 'failed', err end
+        elseif M.clock > stage.deadline then stage.state, stage.error = 'failed', 'the previous copy did not leave in time' end
+        return
+    end
     local row = context and rowFor(context, stage.who)
     if stage.state == 'spawning' then
         if row then stage.state, stage.entity, stage.name, stage.until_ = 'staged', row.entity, row.name, M.clock + stage.hold
@@ -167,6 +241,9 @@ local function stageTick(context)
     if not current then stage.state = 'lost'; log('stage-lost', {who = stage.who}); return end
     local target, why = stageTarget()
     if not target then stage.state, stage.error = 'failed', why; return end
+    target = freeSpot(context, target, current)
+    if not target then stage.error = 'every spot in front of V is taken'; return end
+    stage.error = nil
     -- A transform teleport is undone by the copy's own locomotion (seen live: she stayed beside V), so the placement is
     -- an AITeleportCommand through her AI controller, the actuator's own mechanism. It is sent only when she is not
     -- already there (more than .08 m or 6 degrees off), at most every .25 s; once placed she simply stays.
@@ -182,14 +259,14 @@ local function stageTick(context)
             current.npc:GetAIControllerComponent():SendCommand(command)
             stage.placed, stage.sendAt = stage.placed + 1, M.clock + STAGE_RESEND
         end
-        -- A walking companion keeps leaving the spot, so she is also told to hold position (re-sent every 5 s; the
+        -- A walking companion keeps leaving the spot, so she is also told to hold position (8 s long, re-sent every 4 s so it ends soon after the stage; the
         -- command class is optional: if the game lacks it the stage still works, only less steadily).
         if M.clock >= (stage.holdAt or 0) then
-            stage.holdAt = M.clock + 5
+            stage.holdAt = M.clock + 4
             pcall(function()
                 local hold = NewObject('AIHoldPositionCommand')
                 if hold then
-                    hold.duration = math.max(1, stage.until_ - M.clock) + 1
+                    hold.duration = 8 -- never longer than the next re-send plus a margin, so it ends with the stage
                     hold.ignoreInCombat = false
                     hold.removeAfterCommandCompletion = true
                     current.npc:GetAIControllerComponent():SendCommand(hold)
@@ -205,51 +282,27 @@ commands['face-stage'] = function(rest, context)
     if not word then return false, 'usage: face-stage <key> [hold-seconds] | status | off | dismiss' end
     if word == 'status' then
         local stage = M.stage
-        if not stage then return true, {state = 'none'} end
+        if not stage then return true, {state = 'none', leaving = pendingLeaving(context)} end
         return true, {state = stage.state, who = stage.who, name = stage.name, placed = stage.placed, error = stage.error,
-            spawnedHere = stage.spawnedHere, hold = stage.hold}
+            spawnedHere = stage.spawnedHere, hold = stage.hold, leaving = pendingLeaving(context)}
     elseif word == 'off' then
         if M.stage then M.stage.state = 'released' end
         return true, 'released'
     elseif word == 'dismiss' then
         -- Only characters this probe invited (their key was absent at the time): through the party queue's own
         -- dismissal, which removes the copy (or cancels a still pending invitation) at the next gameplay flush.
-        local done = {}
-        local queue = convaiManager and convaiManager.party and convaiManager.party()
-        for index = #M.spawned, 1, -1 do
-            local key = M.spawned[index]
-            local ok, rows = pcall(function() return queue.list() end)
-            for _, member in ipairs(ok and rows or {}) do
-                if member.key == key then
-                    local called, accepted, message = pcall(queue.dismiss, member.id)
-                    done[#done + 1] = {key = key, id = member.id, ok = called and accepted == true, result = called and message or tostring(accepted)}
-                end
-            end
-            table.remove(M.spawned, index)
-        end
+        local done = dismissSpawned()
         if M.stage then M.stage.state = 'released' end
-        return true, {dismissed = done}
+        return true, {dismissed = done, leaving = pendingLeaving(context)}
     end
     local hold = math.max(5, math.min(STAGE_MAX_HOLD, tonumber(tail) or STAGE_DEFAULT_HOLD))
     if not convaiCompanions then return false, 'companion runtime not loaded' end
-    local stage = {who = word, hold = hold, state = 'spawning', placed = 0, nextAt = 0, deadline = M.clock + STAGE_SPAWN_WAIT}
-    if rowFor(context, word) then
-        stage.state = 'spawning' -- picked up on the next tick; no new copy
-    else
-        local listed = {}
-        local ok, rows = pcall(convaiCompanions.list)
-        for _, row in ipairs(ok and rows or {}) do
-            if row.key == word or tostring(row.profileKey or '') == word then listed[#listed + 1] = row end
-        end
-        if #listed == 0 then
-            -- The real invitation path (manager-party queue): preparation, then the spawn on the next gameplay flush.
-            local queue = convaiManager and convaiManager.party and convaiManager.party()
-            if not queue then return false, 'the party queue is not available' end
-            local called, accepted, message = pcall(queue.invite, word)
-            if not called or not accepted then return false, 'invitation refused: ' .. tostring(called and message or accepted) end
-            M.spawned[#M.spawned + 1] = word
-            stage.spawnedHere = true
-        end
+    -- Earlier probe copies go first, and the new character waits until they are really gone ('clearing').
+    local stage = {who = word, hold = hold, state = 'clearing', placed = 0, nextAt = 0, deadline = M.clock + 20}
+    dismissSpawned(word)
+    if pendingLeaving(context) == 0 then
+        local ok, err = beginStage(stage, context)
+        if not ok then return false, err end
     end
     M.stage = stage
     log('stage', {who = word, hold = hold, spawned = stage.spawnedHere == true})

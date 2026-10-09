@@ -397,6 +397,19 @@ test('face-stage probe: reuses a present copy, invites a missing one, places it 
  assert(moves[#moves].npc==c,'the new copy is staged')
  request('s4\\nface-stage dismiss');tick(.3)
  assert(dismissed=='live:7','dismisses what the probe invited')
+ -- The next character waits until the dismissed copy is really gone (never two on one spot), then is placed.
+ count=#moves
+ request('s4b\\nface-stage judy 10');tick(.3);for _=1,10 do tick(.1) end
+ assert(#moves==count,'nothing is placed while the dismissed copy still stands: '..#moves)
+ a.where={x=12,y=22,z=5};table.remove(rows)
+ for _=1,10 do tick(.1) end
+ assert(moves[#moves].npc==a and #moves>count,'once it is gone the next character is staged')
+ -- Another owned companion on the spot: she is placed to the side instead, never on it.
+ local other=actor('other');body(other,10,20.85,5,0);rows[#rows+1]={entity=other.id,npc=other,profileKey='someone-else',name='Someone'}
+ request('s4c\\nface-stage judy 10');tick(.3);for _=1,10 do tick(.1) end
+ local sidestep=moves[#moves].position
+ assert(math.abs(sidestep.x-9.2)<1e-6 and math.abs(sidestep.y-20.85)<1e-6,'placed beside the occupied spot: '..sidestep.x..','..sidestep.y)
+ table.remove(rows)
  request('s5\\nface-stage judy 10');tick(.3);dismissed=nil;request('s6\\nface-stage dismiss');tick(.3)
  assert(dismissed==nil,'never a character that was already there')
 `));

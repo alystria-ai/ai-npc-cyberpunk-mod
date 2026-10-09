@@ -14,7 +14,7 @@ param(
 #   .\Send-FaceStage.ps1 -Character panam-palmer -Hold 120
 #   .\Send-FaceStage.ps1 -Action status
 #   .\Send-FaceStage.ps1 -Action off                         # stop holding
-#   .\Send-FaceStage.ps1 -Action dismiss                     # dismiss the copies this probe created
+#   .\Send-FaceStage.ps1 -Action dismiss                     # dismiss the copies this probe created, wait until gone
 # A capture batch: stage, then Send-FaceTest.ps1 poses + Capture-GameWindow.py, then the next character.
 $ErrorActionPreference = 'Stop'
 $runtime = Join-Path $ModDirectory 'runtime'
@@ -45,9 +45,17 @@ switch ($Action) {
         do {
             Start-Sleep -Milliseconds 1200
             $status = (Send-Command 'face-stage status').result
-        } while ($status.state -eq 'spawning' -and (Get-Date) -lt $deadline)
+        } while (($status.state -eq 'spawning' -or $status.state -eq 'clearing') -and (Get-Date) -lt $deadline)
         $status | ConvertTo-Json -Depth 6
         if ($status.state -ne 'staged') { exit 1 }
+    }
+    'dismiss' {
+        $done = (Send-Command 'face-stage dismiss').result
+        # Wait until every dismissed copy is really gone, so the next character never stands on the same spot.
+        $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+        $left = $done.leaving
+        while ($left -gt 0 -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 1200; $left = (Send-Command 'face-stage status').result.leaving }
+        $done | Add-Member -NotePropertyName stillThere -NotePropertyValue $left -Force -PassThru | ConvertTo-Json -Depth 6
     }
     default { (Send-Command "face-stage $(if ($Action -eq 'status') { 'status' } else { $Action })").result | ConvertTo-Json -Depth 6 }
 }
