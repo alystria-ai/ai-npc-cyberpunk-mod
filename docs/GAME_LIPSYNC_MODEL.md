@@ -406,3 +406,48 @@ turns). Exchanges (2026-10-09, local clock of the run): Evelyn Parker 12:24:27 a
 12:43:29; Lizzy Wizzy 12:45:11; Kerry Eurodyne 12:46:31; Solomon Reed 12:47:45; Judy Alvarez 12:49:16; Mama Welles 12:50:42 (request ids in
 the saved `reply.json` files of the run). To drop all of them: restart the bridge (end the process in `runtimeridge-service.json`
 `bridgePid`; the supervisor starts a new one with a new session scope). Nothing was deleted.
+
+### Sixth round: Pocket streaming (user: "mouth did not open towards the end", "half open while the next line loads", "snapping", then "did not open even once")
+
+All of it was on Pocket (OmniVoice timed out at startup), the continuous path: the bridge publishes a growing face
+timeline (`PocketFacialStream`, real `jali-audio-v1` model rows) and `mod/speech.lua` chases the device-reported heard
+cursor. Replayed offline: a saved Pocket reply's face timeline through the real `mod/facial-playback.lua`
+(fengari harness, 60 fps), plus the real bridge pipeline (real Evelyn WAV pushed into `PocketFacialStream` at 1.2x to 2x
+real time with the real model worker and text path, snapshots published every .2 s, fed to the Lua as published).
+
+**Snapping (found, fixed).** The speech-mouth factors were instantaneous: the closure/rounding budget that caps the
+mouth emotion, and the chin / corner-depressor ducks for the jaw. A smile corner went .35 to 0 in three frames at every
+rounded vowel (14 steps over .05 in one reply, largest .238 per 60 Hz frame), a sad frown 27 steps (largest .246), pumping
+with the syllables. They now move with an attack and a release (`budgetFall/Rise` .07/.18 s, `duckFall/Rise` .07/.18 s,
+landing on the goal within 1 %), so a held closure or rounding still removes the mouth emotion entirely, but over a few
+frames: smile steps 14 to 2 (largest .064), sad frown 27 to 8 (.077), anger 12 to 2, disgust 18 to 3, chin raise steps
+under .06. The jaw itself and the model's closures are untouched (largest jaw step .129 per frame, no faster than speech).
+Trace: `runtime/face-captures/pocket-traces-before-after.png`.
+
+**Held half-open mouth (found, fixed).** (a) A heard cursor that stops while the file still says `playing` (an underrun
+not yet reported, a state read that keeps failing) wrote nothing more, so the last jaw stayed on the face for as long as
+the stall lasted (replay: jaw .21 held for the whole stall). After .20 s without a new cursor the written speech tracks now
+ease to zero over .12 s and the face goes to the idle writer; the audio moving again brings the mouth straight back.
+(b) A pause of a heard reply (the stream running dry, `face.pause`) closed the mouth in ONE frame (.22 to 0); it now eases
+shut over .12 s then hands over as before (managed copies only; a world NPC, a menu pause and a closed mouth keep the plain
+reset). Cost: one compare per frame on the early-return path, nothing while playing.
+
+**Last line / no mouth (not reproduced).** With the same real model and the real bridge pipeline the written jaw is
+open on 92 to 97 % of voiced frames of a 10 s Evelyn line (misses: word onsets and quiet tails where the model's own
+jaw is under .02 while the audio is voiced, 3.5 to 7 % of voiced frames, the ones the user notices at the last words).
+Slower generation (1.2x real time) and CPU load do not change the rows the Lua sees at the audible cursor. For the reply
+the user saw with no mouth at all (19:29:24 UTC, request ...-6-...) the saved face is complete (model started at 0 s,
+jaw to .37, 10.24 s), replaying it writes an open mouth (398 of 676 frames at or above .16, peak .54), the bridge, CET
+and probe logs hold no face, worker or lipText warning, and `speech-state.json` shows 231 writes and a normal finish. What
+sets that reply apart is a body-gesture workspot that started in the same second as the speech (also on the reply before
+it); nothing in the Lua writer explains a closed mouth, so the next occurrence needs one number: `speech-state.json`
+`face.expressions.lastSpeech` now carries `jawPeak`, `openFrames` (frames written at .16 or more) and `jawLift` (the lift
+curve in use, `false` for none). If those are high and the mouth was still shut, the writer was fine and something on the rig
+overrode it (the gesture workspot is the first suspect: try the same line with gestures off); if they are zero, the writer
+never opened it.
+
+Tests (`bridge/companion-expression-playback.test.mjs`): smile and frown step per frame under .09 at syllable rate; a
+stalled cursor holds briefly then closes in about a third of a second, never in one frame, and resumes; the turn record's
+jaw peak, open frames and lift; the underrun test now checks the eased close; the closure and rounding tests hold the
+closure long enough to settle (a held closure still leaves no corner pull). Needs a CET reload or a hot reload of
+`mod/facial-playback.lua`; no bridge restart.

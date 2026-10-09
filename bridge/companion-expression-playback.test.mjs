@@ -123,11 +123,14 @@ test('speaking composes one feature with unchanged accepted Omni contact/tongue 
   // Compare the composed feature with the authored frame itself: the separate
   // local easing (motion) is covered by facial-playback tests.
   delete line.motion;
-  const at=line.frames.find(frame=>frame[0]===.25);
+  const at=line.frames.find(frame=>Math.abs(frame[0]-.45)<1e-9);
   const expected=Object.fromEntries(SPEECH_TRACKS.map((track,i)=>[track,at[i+1]]));
   run(`tick(.1);speech.target=a
   assert(speech.start(context,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=1},face=${literal(line)}}))
-  local count=#a.frames;cursor=.25;tick(.1);assert(#a.frames==count+1 and #b.frames==2)
+  -- The closure holds for a while (the A cue, .45 s of it): the smile has had its release time by cursor .45.
+  local count,bcount=#a.frames,#b.frames;cursor=.05;tick(.1)
+  for i=1,24 do cursor=i==24 and .45 or .05+i/60;tick(1/60) end
+  assert(#a.frames-count==#b.frames-bcount,'one write per tick on each copy')
   local expected=${literal(expected)};for key,value in pairs(expected) do assert(last(a)[key]==value,key) end
   assert(last(a).lips_l_corner_up==0 and last(a).lips_together_up==.85)
   assert(last(a).eye_l_brows_raise_out>0)
@@ -138,10 +141,15 @@ test('speaking composes one feature with unchanged accepted Omni contact/tongue 
 test('the final native writer suppresses a held smile on rounded phonemes without touching speech fields',()=>run(`
  face.beginExpression(context,${literal(receipt('Joy',3,0))});face.expressionHeard(context);tick(.1)
  assert(last(a).lips_l_corner_up>0)
+ local before=last(a).lips_l_corner_up
  local timeline={version=1,requestId=context.requestId,entity=a.id,duration=1,source='audio-envelope',
   tracks={'jaw_mid_open','lips_l_funnel','lips_r_funnel','lips_suck_up'},
   frames={{0,.27123,.32,.32,.05342},{1,.27123,.32,.32,.05342}}}
  assert(face.start(context,timeline,a,1));face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.3,context.requestId)
+ -- Rounded lips take the smile away over a few frames (a held rounding leaves none), never in one jump.
+ local first=last(a).lips_l_corner_up
+ for i=1,25 do face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,.3+i/60,context.requestId) end
+ assert(first>0 and first<before,'the first rounded frame starts taking it away, not all at once: '..first..' of '..before)
  assert(last(a).lips_l_corner_up==0 and last(a).lips_r_corner_up==0)
  assert(last(a).jaw_mid_open==.27123 and last(a).lips_l_funnel==.32 and last(a).lips_suck_up==.05342)
 `));
@@ -257,25 +265,30 @@ test('lip closure, rounding and jaw frames are identical with or without an acti
   const emotions = [['Joy', 3], ['Trust', 3], ['Sadness', 3], ['Anger', 3], ['Fear', 3], ['Disgust', 3], ['Surprise', 3]];
   const speechTracks = ['jaw_mid_open', 'lips_together_up', 'lips_together_dn', 'lips_l_funnel', 'lips_r_funnel',
     'lips_l_purse', 'lips_r_purse', 'lips_suck_up'];
-  const timelineFor = id => ({version: 1, requestId: id, entity: 'copy-a', duration: 1, source: 'audio-envelope',
+  // The closure and the rounding are held long enough (.5 s and .9 s) for the mouth factors to have settled: they take
+  // the mouth emotion away over a few frames (no snap), and a held closure or rounding leaves none.
+  const timelineFor = id => ({version: 1, requestId: id, entity: 'copy-a', duration: 2, source: 'audio-envelope',
     tracks: speechTracks, frames: [
       [0, .30, 0, 0, 0, 0, 0, 0, 0], [.5, .30, 0, 0, 0, 0, 0, 0, 0],
-      [.55, .10, .85, .85, 0, 0, 0, 0, 0], [.8, .10, .85, .85, 0, 0, 0, 0, 0],
-      [.85, .20, 0, 0, .32, .32, .28, .28, .05], [1, .20, 0, 0, .32, .32, .28, .28, .05]]});
+      [.55, .10, .85, .85, 0, 0, 0, 0, 0], [1, .10, .85, .85, 0, 0, 0, 0, 0],
+      [1.05, .20, 0, 0, .32, .32, .28, .28, .05], [2, .20, 0, 0, .32, .32, .28, .28, .05]]});
   const scenarios = [[null, 0], ...emotions].map(([label, scale], index) => ({id: `mouth-${index}`, label: label ?? 'none',
     receipt: label ? ownedExpressionReceipt(signal(label, scale, 0), {...owner, requestId: `mouth-${index}`}) : undefined}));
   run(`
    local function play(id,receipt,timeline)
     local ctx={requestId=id,entity=a.id,generation=4}
     if receipt then face.beginExpression(ctx,receipt) end
-    assert(face.start(ctx,timeline,a,1),face.error)
+    assert(face.start(ctx,timeline,a,2),face.error)
     local out={}
     -- Saturate the smoothed expression on open-mouth speech, then hit the
     -- contact and rounding frames with it fully present.
     for i=1,14 do face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.2+i*.01,id) end
     out.open=copy(last(a))
-    face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.65,id);out.closure=copy(last(a))
-    face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.95,id);out.round=copy(last(a))
+    face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.6,id);out.first=copy(last(a))
+    for i=1,24 do face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,.6+i/60,id) end
+    out.closure=copy(last(a))
+    for i=1,54 do face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,1.06+i/60,id) end
+    out.round=copy(last(a))
     face.stop(a,'cancelled');if receipt then face.endExpression(ctx,false) end
     return out
    end
@@ -677,6 +690,83 @@ test('corner depressors give way to an opening jaw while a lifted head speaks, t
   run(dnBody('Joy', 'prepared:woman_average_sermo', .3, "assert(rest.up>.1 and f.lips_l_corner_up>.5*rest.up,'the smile keeps its corner pull: '..f.lips_l_corner_up..' of '..rest.up)"));
 });
 
+// October 10 (user: "a bit of snapping when she speaks", "her mouth stays half open while the next line loads"). A saved
+// Pocket reply replayed through the writer showed the smile corner dropping .35 to 0 in three frames at every rounded
+// vowel, the frown pumping with the jaw, a one-frame close on a stream pause, and a stalled cursor holding the last jaw.
+const pumpLine = (id, seconds = 4) => {
+  const frames = [];
+  for (let i = 0; i <= seconds * 60; i++) {
+    const t = i / 60, jaw = .22 + .12 * Math.sin(t * 2 * Math.PI * 4), round = Math.max(0, Math.sin(t * 2 * Math.PI * 3)) > .5 ? .32 : 0;
+    frames.push([t, Math.max(0, jaw), 0, 0, round, round]);
+  }
+  return {version: 1, requestId: id, entity: 'copy-a', generation: owner.generation, continuous: true, complete: false,
+    duration: seconds, source: 'local-jali', articulation: 'jali-audio-v1',
+    tracks: ['jaw_mid_open', 'lips_together_up', 'lips_together_dn', 'lips_l_funnel', 'lips_r_funnel'], frames};
+};
+const pumpBody = (emotion, scale, check) => `
+ function a:ConvaiFaceStatus() return 'prepared:woman_average_sermo' end
+ rows[1].profileKey='evelyn-parker'
+ face.beginExpression(context,${literal(receipt(emotion, scale, 0))});face.expressionHeard(context)
+ for _=1,60 do tick(1/60) end
+ local line=${literal(pumpLine(owner.requestId))}
+ assert(face.updateContinuous(context,line,a,line.duration),face.error)
+ local rest,prior,worst,sum,count=last(a),nil,0,0,0
+ for i=1,180 do
+  face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,i/60,context.requestId);face.updateExpressions({actors=rows})
+  local f=last(a);local value=${check.track}
+  if prior and i>40 then worst=math.max(worst,math.abs(value-prior));sum=sum+value;count=count+1 end
+  prior=value
+ end
+ local mean=sum/count
+ ${check.assert}`;
+
+test('the smile and the frown follow the mouth with an attack and a release: no corner step over .09 per frame at syllable rate', () => {
+  run(pumpBody('Joy', 3, {track: 'f.lips_l_corner_up',
+    assert: "assert(worst<.09,'smile corner step per frame: '..worst);assert(mean>.05,'the smile is still there on average: '..mean)"}));
+  run(pumpBody('Sadness', 3, {track: 'f.lips_l_corner_dn',
+    assert: "assert(worst<.09,'frown corner step per frame: '..worst)"}));
+});
+
+test('a stream whose heard cursor stops while it still reports playing closes the mouth in about a third of a second instead of holding it', () => run(`
+ function a:ConvaiFaceStatus() return 'prepared:woman_average_sermo' end
+ local line=${literal(pumpLine(owner.requestId))}
+ face.beginExpression(context,${literal(receipt('Anger', 3, 0))})
+ for _=1,10 do tick(1/60) end
+ assert(face.updateContinuous(context,line,a,line.duration),face.error)
+ for i=1,60 do face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,i/60,context.requestId);face.updateExpressions({actors=rows}) end
+ local open=last(a).jaw_mid_open;assert(open>.1,'open mouth '..open)
+ local held=last(a).eye_l_brows_lower
+ -- The cursor stays at 1.0 s: first the mouth holds (a late report), then it eases shut and the idle writer takes over.
+ local at={}
+ for i=1,60 do
+  face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,1,context.requestId);face.updateExpressions({actors=rows})
+  at[i]=last(a).jaw_mid_open or 0
+ end
+ assert(at[8]==open,'a short stall holds the mouth: '..at[8])
+ local easing=false
+ for i=9,30 do if at[i]>0 and at[i]<open then easing=true end end
+ assert(easing,'the mouth eases shut, it does not jump')
+ assert(at[30]==0 and at[60]==0,'the mouth is shut: '..at[30]..' '..at[60])
+ for i=2,60 do assert(math.abs(at[i]-at[i-1])<=open*.15+1e-6,'no one-frame close at '..i) end
+ assert(a.resets==0 and math.abs(last(a).eye_l_brows_lower-held)<.03,'the expression carries on: '..last(a).eye_l_brows_lower)
+ assert(face.active,'the reply is still owned')
+ -- Audio moves again: the mouth is back at once.
+ face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,1+1/60,context.requestId)
+ assert(last(a).jaw_mid_open>0,'speaking again')
+ face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,1+2/60,context.requestId);face.updateExpressions({actors=rows})
+ assert(last(a).jaw_mid_open>0)
+`));
+
+test('the speech-state turn record shows the peak written jaw, the open frames and the jaw lift in use', () => run(`
+ function a:ConvaiFaceStatus() return 'prepared:woman_average_sermo' end
+ local line=${literal(pumpLine(owner.requestId, 2))}
+ face.beginExpression(context,${literal(receipt('Joy', 3, 0))})
+ assert(face.updateContinuous(context,line,a,line.duration),face.error)
+ for i=1,60 do face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,i/60,context.requestId);face.updateExpressions({actors=rows}) end
+ local turn=face.status().expressions.lastSpeech
+ assert(turn.jawPeak>.3 and turn.openFrames>20 and turn.jawLift==2,turn.jawPeak..' '..turn.openFrames..' '..tostring(turn.jawLift))
+`));
+
 test('face-test probe: direct mode bypasses the writer with its own feature and logs the apply result', () => runProbe(`
  request('n2\\nface-test judy frown 2 direct');tick(.3)
  local count=#a.frames;tick(.1);assert(#a.frames==count+1,'one direct write per frame, writer skipped')
@@ -685,15 +775,17 @@ test('face-test probe: direct mode bypasses the writer with its own feature and 
 `));
 
 test('face-test probe: policy mode shows a real scale-3 smile WHILE speaking, yielding to lip closure', () => {
-  const timeline = {version: 1, requestId: 'expression-turn', entity: 'copy-a', duration: 1, source: 'audio-envelope',
-    tracks: ['jaw_mid_open', 'lips_together_up', 'lips_together_dn'], frames: [[0, .3, 0, 0], [.5, .3, 0, 0], [.55, .1, .85, .85], [1, .1, .85, .85]]};
+  const timeline = {version: 1, requestId: 'expression-turn', entity: 'copy-a', duration: 2, source: 'audio-envelope',
+    tracks: ['jaw_mid_open', 'lips_together_up', 'lips_together_dn'], frames: [[0, .3, 0, 0], [.5, .3, 0, 0], [.55, .1, .85, .85], [2, .1, .85, .85]]};
   runProbe(`
  request('n3\\nface-test judy smile 8 policy');tick(.3)
- assert(face.start(context,${literal(timeline)},a,1),face.error)
+ assert(face.start(context,${literal(timeline)},a,2),face.error)
  for i=1,14 do face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.2+i*.01,context.requestId) end
  local open=copy(last(a));assert(open.lips_l_corner_up>.3 and open.lips_l_corner_up<=.65,open.lips_l_corner_up)
  face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.7,context.requestId)
- assert(last(a).lips_together_up==.85 and last(a).lips_l_corner_up==0,'closure wins over the smile')
+ assert(last(a).lips_l_corner_up<open.lips_l_corner_up,'the smile starts giving way to the closure')
+ for i=1,25 do face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,.7+i/60,context.requestId) end
+ assert(last(a).lips_together_up==.85 and last(a).lips_l_corner_up==0,'a held closure wins over the smile')
  face.stop(a,'cancelled')
 `);
 });
@@ -824,23 +916,26 @@ test('idle smile: present at rest, absent during and after the Evelyn reply, bac
 });
 
 test('track playback: closure and rounding still zero the corners and leave every speech field identical to a no-track reply', () => {
-  const closing = id => ({version: 1, requestId: id, entity: 'copy-a', duration: 1, source: 'audio-envelope',
+  const closing = id => ({version: 1, requestId: id, entity: 'copy-a', duration: 2, source: 'audio-envelope',
     tracks: ['jaw_mid_open', 'lips_together_up', 'lips_together_dn', 'lips_l_funnel', 'lips_r_funnel', 'lips_l_purse', 'lips_r_purse', 'lips_suck_up'],
-    frames: [[0, .3, 0, 0, 0, 0, 0, 0, 0], [.5, .3, 0, 0, 0, 0, 0, 0, 0], [.55, .1, .85, .85, 0, 0, 0, 0, 0], [.8, .1, .85, .85, 0, 0, 0, 0, 0],
-      [.85, .2, 0, 0, .32, .32, .28, .28, .05], [1, .2, 0, 0, .32, .32, .28, .28, .05]]});
+    frames: [[0, .3, 0, 0, 0, 0, 0, 0, 0], [.5, .3, 0, 0, 0, 0, 0, 0, 0], [.55, .1, .85, .85, 0, 0, 0, 0, 0], [1, .1, .85, .85, 0, 0, 0, 0, 0],
+      [1.05, .2, 0, 0, .32, .32, .28, .28, .05], [2, .2, 0, 0, .32, .32, .28, .28, .05]]});
   const withTrack = {...closing('trk-mouth'), expressionTrack: {version: 1, format: 'emotion-mix-v1',
     families: ['joy', 'trust', 'sadness', 'anger', 'fear', 'disgust', 'surprise', 'anticipation'],
-    keys: [[0, .6, .4, .3, 0, 0, 0, 0, 0], [1, .6, .4, .3, 0, 0, 0, 0, 0]]}};
+    keys: [[0, .6, .4, .3, 0, 0, 0, 0, 0], [2, .6, .4, .3, 0, 0, 0, 0, 0]]}};
   run(`
    speech.target=a
    local function play(timeline)
     local ctx={requestId=timeline.requestId,entity=a.id,generation=4}
-    assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=1},face=timeline}),face.error)
+    assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=2},face=timeline}),face.error)
     local out={}
     for i=1,14 do cursor=.2+i*.01;tick(.1) end
     out.open=copy(last(a))
-    cursor=.65;tick(.1);out.closure=copy(last(a))
-    cursor=.95;tick(.1);out.round=copy(last(a))
+    cursor=.6;tick(.1)
+    for i=1,24 do cursor=.6+i/60;tick(1/60) end
+    out.closure=copy(last(a))
+    for i=1,54 do cursor=1.06+i/60;tick(1/60) end
+    out.round=copy(last(a))
     speech.stop('cancelled');for _=1,10 do tick(.1) end
     return out
    end
@@ -1289,10 +1384,18 @@ test('October 9: a continuous stream underrun (face.pause) keeps the held expres
  assert(face.updateContinuous(context,line,a,3),face.error)
  for i=1,90 do face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,i/60,context.requestId);face.updateExpressions({actors=rows}) end
  local held=last(a).eye_l_brows_lower;assert(held>.4,'angry brows '..held)
+ local jaw=last(a).jaw_mid_open or 0
+ local opened=jaw
+ assert(jaw>.05,'the mouth was open when the stream ran dry: '..jaw)
  for i=1,60 do
   face.beginExpressionFrame(1/60,{actors=rows});face.pause(a);face.updateExpressions({actors=rows})
   assert(a.resets==0,'no native reset on an underrun')
-  assert(math.abs(last(a).eye_l_brows_lower-held)<.03 and (last(a).jaw_mid_open or 0)==0,'brows held, mouth closed: '..last(a).eye_l_brows_lower)
+  local now=last(a).jaw_mid_open or 0
+  -- The mouth eases shut over about .12 s (no one-frame close), then stays shut.
+  assert(math.abs(now-jaw)<=opened*.15+1e-6,'the jaw falls by at most 15 % of its open value per frame: '..jaw..' to '..now)
+  if i>=9 then assert(now==0,'mouth closed after the release: '..now) end
+  jaw=now
+  assert(math.abs(last(a).eye_l_brows_lower-held)<.03,'brows held: '..last(a).eye_l_brows_lower)
  end
  -- The game's menu pause is different: the clock stops and the plain reset applies.
  face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,95/60,context.requestId);assert(face.state=='playing',face.state)

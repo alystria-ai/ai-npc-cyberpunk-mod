@@ -131,6 +131,18 @@ local function traitFor(profile) return traitTable[profile] or traitTable.defaul
 local speechMouthFactor=.85
 -- The jaw weight (as written) from which a speaking, jaw-lifted head carries no chin raise / no corner depressors.
 local chinDuckJaw,cornerDuckJaw=.10,.20
+-- October 10 (user: "a bit of snapping when she speaks", "her mouth stays half open while the next line loads"):
+-- the speech-mouth factors (the closure/rounding budget and the two ducks above) used to jump from one frame to the
+-- next, so a smile or a frown pumped on and off at syllable rate (measured on a saved Pocket reply: the smile corner
+-- dropped .35 to 0 in three frames at every rounded vowel). They now move with an attack and a release, fast enough
+-- that a closing or rounding mouth never fights a corner pull, slow enough to read as a mouth, not a flicker.
+local budgetFall,budgetRise=.07,.18
+local duckFall,duckRise=.07,.18
+-- A continuous (streamed) reply whose heard cursor stops while the renderer still says "playing" (an underrun the file
+-- has not reported yet, a state read that keeps failing) used to hold the last written jaw, half open. After
+-- stallSeconds without a new cursor, and on every pause of a heard reply, the speech tracks ease to zero over
+-- releaseSeconds and the face is handed to the idle writer (the old pause closed the mouth in one frame).
+local stallSeconds,releaseSeconds=.20,.12
 -- October 9 (user: Evelyn and Johnny, with wider, thinner lips than Judy, "don't open the mouth on some words"):
 -- every speech source is calibrated on Judy's rig, where a jaw weight of .06 already parts her lips. Measured in game
 -- on 23 characters (docs/COMPANION_EXPRESSIONS.md, lip sync round): the shared woman_average heads (Evelyn, Alex, Claire,
@@ -422,6 +434,15 @@ local channelTracks={up={'lips_l_corner_up','lips_r_corner_up'},dn={'lips_l_corn
 local function singleChannel(target,key,value)
     for _,track in ipairs(channelTracks[key]) do target[track]=value end
 end
+-- Exponential approach with a separate time constant for falling and rising; one exp only while the value is moving.
+local function ease(prior,goal,fall,rise)
+    if prior==nil or prior==goal then return goal end
+    local seconds=M.expressionDelta or 0
+    if seconds<=0 then return prior end
+    -- Within 1 % of the goal it lands on it (a held closure removes the mouth emotion entirely, not asymptotically).
+    if math.abs(goal-prior)<.01 then return goal end
+    return prior+(goal-prior)*(1-math.exp(-seconds/(goal<prior and fall or rise)))
+end
 local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     if phase=='speaking' and slot.awaitingAudio then startHeard(slot) end
     local target=zeroExpression()
@@ -516,7 +537,8 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     if (target.smileRaw or 0)>0 and target.lips_l_corner_up>0 then squintSmile=target.smileRaw*gain end
     local squint=math.min(.5,math.max(target.eye_l_oculi_squint_outer_lower,.6*squintSmile))
     target.eye_l_oculi_squint_outer_lower,target.eye_r_oculi_squint_outer_lower=squint,squint
-    local budget=mouthBudget(feature,phase)
+    local budget=ease(slot.mouthBudget,mouthBudget(feature,phase),budgetFall,budgetRise)
+    slot.mouthBudget=budget
     for _,track in ipairs(expressionTracks) do
         if not (weights and track:find('corner_',1,true)) then
             local goal=clamp(target[track] or 0,limitFor(track))
@@ -561,6 +583,8 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
         local jaw=finite(feature.jaw_mid_open) and feature.jaw_mid_open or 0
         chinDuck,cornerDuck=1-clamp(jaw/chinDuckJaw),1-clamp(jaw/cornerDuckJaw)
     end
+    chinDuck,cornerDuck=ease(slot.chinDuck,chinDuck,duckFall,duckRise),ease(slot.cornerDuck,cornerDuck,duckFall,duckRise)
+    slot.chinDuck,slot.cornerDuck=chinDuck,cornerDuck
     for _,track in ipairs(expressionTracks) do
         -- Hard closure/rounding suppression happens after smoothing, too.
         feature[track]=math.min(slot.pose[track],limitFor(track)*(track:sub(1,5)=='lips_' and budget or 1))
@@ -667,11 +691,20 @@ local function applyFeature(actor,feature,entity,phase,provider,upper,mix,bounda
         -- in-game reply shows the emotion label, scale and written values.
         local turn=M.lastSpeechExpression
         if not turn or turn.requestId~=slot.requestId or turn.entity~=entity then
-            turn={entity=entity,requestId=slot.requestId,frames=0,peak=zeroExpression()}
+            turn={entity=entity,requestId=slot.requestId,frames=0,jawPeak=0,openFrames=0,peak=zeroExpression()}
             M.lastSpeechExpression=turn
         end
         turn.emotion,turn.family,turn.scale,turn.blocked=slot.emotion,slot.family,slot.scale,blocked
         turn.frames=turn.frames+1
+        -- What the writer actually gave the mouth this turn (October 10, "her mouth did not open even once"): the peak
+        -- written jaw, the frames at or above .16 (Evelyn's lips part from there) and the jaw-lift curve in use, so a
+        -- reply seen with no mouth shows at once whether the writer wrote an open jaw or never did.
+        local jaw=feature.jaw_mid_open
+        if finite(jaw) then
+            if jaw>(turn.jawPeak or 0) then turn.jawPeak=math.floor(jaw*1000)/1000 end
+            if jaw>=.16 then turn.openFrames=(turn.openFrames or 0)+1 end
+        end
+        turn.jawLift=M.jawLift and M.jawLift.q or false
         if mix then
             turn.mix,turn.mixPeak=turn.mix or {},turn.mixPeak or {}
             for index,family in ipairs(mixFamilies) do
@@ -724,7 +757,7 @@ function M.updateExpressions(context)
                 slot.profile=row.profileKey
                 -- Speech owns the face from its first HEARD frame. Before that (a reply prepared, a stream
                 -- buffering, an Omni phrase loading) this idle writer keeps her idle face (October 9).
-                if slot.written==M.expressionFrame or (M.active and M.entity==entity and M.heardRequest==M.requestId and M.state~='paused') then return end
+                if slot.written==M.expressionFrame or (M.active and M.entity==entity and M.heardRequest==M.requestId and M.state~='paused' and M.state~='releasing') then return end
                 slot.feature=slot.feature or NewObject('ConvaiFaceFeature')
                 assert(slot.feature,'Native facial feature is unavailable')
                 applyFeature(actor,slot.feature,entity,idlePhase(slot,entity))
@@ -819,6 +852,7 @@ local function clear()
     M.expressionTrackKeys=nil
     M.blinkBoundaries,M.blinkBoundaryIndex=nil,nil
     M.jawLift=nil
+    M.release,M.stall,M.stalledAt=nil,nil,nil
 end
 
 function M.abandon(reason)
@@ -1007,11 +1041,49 @@ function M.updateContinuous(context, timeline, actor, duration)
     return true
 end
 
+-- Hands the face to the idle writer after a pause or a stalled cursor: the written speech tracks ease to zero over
+-- releaseSeconds first (the first call snapshots them), then the usual reset hands over. True once it has handed over.
+local function releaseSpeech(actor)
+    local feature,dt=M.feature,M.expressionDelta or 0
+    local release=M.release
+    if not release then
+        release={level=1,base={}}
+        for _,track in ipairs(M.timeline.tracks) do
+            local value=feature[track]
+            release.base[track]=finite(value) and value or 0
+        end
+        M.release=release
+    end
+    release.level=release.level-dt/releaseSeconds
+    if release.level<=0 then
+        M.release, M.stall = nil, 0
+        reset(actor)
+        M.localPose, M.localPosePosition = nil, nil
+        M.state, M.lastPosition = 'paused', nil
+        return true
+    end
+    for track,value in pairs(release.base) do feature[track]=value*release.level end
+    applyFeature(actor,feature,M.entity,'speaking')
+    M.state='releasing'
+    return false
+end
+-- True while the written mouth is open enough that a one-frame close would show as a snap.
+local function mouthOpen()
+    local jaw=M.feature and M.feature.jaw_mid_open
+    return finite(jaw) and jaw>.02
+end
+
 function M.pause(actor)
     if not M.active or M.state == 'paused' then return end
     -- Waiting for the first audio (a buffering stream or a loading phrase) is not a pause of a written face:
     -- resetting here blanked her idle face before the lip sync started (October 9).
     if M.heardRequest~=M.requestId then return end
+    -- A menu pause freezes the clock (no delta to ease with), a closed mouth has nothing to ease, and a speaker without the
+    -- expression layer (a world NPC) has no idle writer to hand over to: plain reset.
+    if M.release or (M.feature and M.expressionManaged and not M.expressionPaused and (M.expressionDelta or 0)>0 and mouthOpen()) then
+        if pcall(releaseSpeech,actor) then return end
+        M.release=nil
+    end
     reset(actor)
     M.localPose, M.localPosePosition = nil, nil
     M.state, M.lastPosition = 'paused', nil
@@ -1024,12 +1096,28 @@ function M.sync(actor, position, requestId)
         assert(finite(position) and position >= 0, 'Invalid audio cursor')
         local continuousEnd = M.continuous and position >= M.timeline.duration
         if continuousEnd and M.timeline.complete then M.stop(actor, 'finished'); return end
+        -- A stalled cursor already handed the face to the idle writer: stay out until the audio moves again.
+        if M.stalledAt then
+            if math.abs(position - M.stalledAt) < 1 / 60 - 1e-6 then return end
+            M.stalledAt = nil
+        end
         -- An exact 60 Hz step can subtract to a few ULPs below 1/60.
         -- A republished/growing continuous timeline is not a new audio tick.
         -- Native phrase handoffs retain their existing replacement semantics.
         if (M.continuous or not M.timelineChanged) and M.lastPosition
             and math.abs(position - M.lastPosition) < 1 / 60 - 1e-6
-            and not (position >= M.timeline.duration and M.lastPosition < M.timeline.duration) then return end
+            and not (position >= M.timeline.duration and M.lastPosition < M.timeline.duration) then
+            -- The same cursor again and again while playing: after stallSeconds the mouth must not stay where it was.
+            if M.continuous then
+                M.stall = (M.stall or 0) + (M.expressionDelta or 0)
+                if M.stall >= stallSeconds and M.expressionManaged and not M.expressionPaused and (M.release or mouthOpen()) then
+                    local released, done = pcall(releaseSpeech, actor)
+                    if not released then M.release = nil elseif done then M.stalledAt = position end
+                end
+            end
+            return
+        end
+        M.stall, M.release = 0, nil
         local frames, tracks = M.timeline.frames, M.timeline.tracks
         if position >= M.timeline.duration and not M.continuous
             and not (M.segment and not M.segment.last) then M.stop(actor, 'finished'); return end
