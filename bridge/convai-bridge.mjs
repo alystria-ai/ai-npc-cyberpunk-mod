@@ -55,6 +55,8 @@ import {CompanionActions} from './companion-actions.mjs';
 import {RequestFileOwner, fileIdentity} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel} from './dialogue-level.mjs';
 import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, settingDelay} from './audio-delay.mjs';
+import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE} from './convai-key.mjs';
+import {QuotaWatch} from './convai-quota.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -127,6 +129,14 @@ const keyLine = (await readFile(keyFile, 'utf8')).trim();
 const key = /^api-key\s*=\s*(\S+)\s*$/i.exec(keyLine)?.[1];
 if (!key) throw Error('Local Convai key file must contain api-key=...');
 await mkdir(runtime, {recursive: true});
+// The key conversations use: the one this installation provides, or the player's own (docs/OWN_CONVAI_KEY.md). It changes
+// only at an idle boundary (applyKeyChoice). `quota` remembers a used-up plan for the settings page and the in-game notice.
+const keys = await new ConvaiKeys({sharedKey: key, playerKeyPath: resolve(stateDirectory, PLAYER_KEY_FILE)}).load();
+const quota = new QuotaWatch({keys});
+const currentKey = () => keys.current();
+// A player's key is a free plan with one conversation connection at a time: no look-ahead, no pre-opened connections.
+const singleSession = () => keys.singleSession;
+const keyFailure = error => { const errorCode = quota.codeFor(error); return errorCode ? {errorCode} : {}; };
 
 const knowledgePack = JSON.parse(await readFile(resolve(project, 'characters/world-knowledge.json'), 'utf8'));
 const questCatalog = JSON.parse(await readFile(resolve(project, 'research/cyberpunk/generated/quest-catalog.json'), 'utf8'));
@@ -167,7 +177,9 @@ const emotionSelection = new EmotionSelection();
 const cleanReply = result => expressiveEmotions.process(naturalSpeech.process(result));
 // "Multilingual conversations": the setting and the language the conversation was last in (bridge/multilingual.mjs).
 const multilingual = new MultilingualConversations();
-const phoneRealtime = new RealtimeHost({transformReply: cleanReply});
+const keyHostOptions = peers => ({exclusive: {enabled: singleSession, peers, retryMs: 1500},
+  onFailure: error => quota.observe(error), onSuccess: () => quota.succeeded()});
+const phoneRealtime = new RealtimeHost({transformReply: cleanReply, ...keyHostOptions(() => [realtime])});
 const knowledgeTurns = new Map();
 function rememberKnowledgeTurn(prepared) {
   const requestId = prepared.input.requestId || prepared.input.id;
@@ -238,7 +250,7 @@ const phone = new PhoneChat({
     if (!await knowledgeRouter.current(prepared)) throw Error('Phone world changed');
     rememberKnowledgeTurn(prepared);
     void companionActions.revoke();
-    const result = await phoneRealtime.reply({key, characterId: options.characterId,
+    const result = await phoneRealtime.reply({key: currentKey(), characterId: options.characterId,
       sessionId: admitted.reconnectRequired ? undefined : options.sessionId,
       scope: prepared.scope, ...remote,
       context: conversationContext(prepared.input),
@@ -297,7 +309,7 @@ function writeStreamManifest(document,current){
 const companionActions = new CompanionActions({createToken: () => 'drive-' + randomUUID(),
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options)});
 const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet),
-  transformReply: cleanReply});
+  transformReply: cleanReply, ...keyHostOptions(() => [phoneRealtime])});
 let observed = '', observedIdentity = null;
 let lastAcceptedIdentity = '';
 let polling = false, active = null, stopped = false;
@@ -452,7 +464,7 @@ const routeFor = input => preparedInputs.get(input)
 const sessionKey = input => routeFor(input)?.sessionKey || JSON.stringify(['unavailable', input.profileKey, input.requestId]);
 const completeContext = input => JSON.stringify([conversationContext(input), routeFor(input)?.guard?.characterId, realtimeSessions.get(sessionKey(input)) || null,
   turnUsesLocal(input) ? 'local' : 'convai']);
-const realtimeConfig = input => ({key, characterId: routeFor(input)?.guard?.characterId, sessionId: realtimeSessions.get(sessionKey(input)),
+const realtimeConfig = input => ({key: currentKey(), characterId: routeFor(input)?.guard?.characterId, sessionId: realtimeSessions.get(sessionKey(input)),
   scope: routeFor(input)?.scope || conversationScope(input), ...(routeFor(input)?.remoteConfig || {}),
   context: conversationContext(input), text: battleTrigger(input), reaction: input.reaction,
   companionAction: companionActions.configFor(input),
@@ -465,16 +477,17 @@ const warmRoute = (profile, scope) => memoryQuiescing ? null : knowledgeRouter.c
 const ambientWarmConfig = (profile, entity) => {
   if (memoryQuiescing || !isAmbientProfile(profile) || typeof entity !== 'string') return null;
   const route = knowledgeRouter.configFor(profile, 'private', {entity, worldToken: worldSession?.token, generation: worldSession?.generation});
-  return route ? {key, characterId: route.guard.characterId, scope: route.scope, ...(route.remoteConfig || {}),
+  return route ? {key: currentKey(), characterId: route.guard.characterId, scope: route.scope, ...(route.remoteConfig || {}),
     sessionId: realtimeSessions.get(route.sessionKey), ttsEnabled: warmUsesConvaiVoice(profile)} : null;
 };
 const connections = new PartyConnections({host: realtime,
-  canWarm: () => !stopped && !memoryQuiescing && !active && !mic.current && !micPolling && !lookahead.busy,
+  canWarm: () => !stopped && !memoryQuiescing && !active && !mic.current && !micPolling && !lookahead.busy && !singleSession(),
+  deferWarm: singleSession,
   isKnown: profile => Object.hasOwn(ids, profile) && !!warmRoute(profile, 'private'),
   configFor: (profile, scope) => {
     const route = warmRoute(profile, scope);
     if (!route) throw Error('No current world for conversation warmup');
-    return {key, characterId: route.guard.characterId, scope: route.scope, ...(route.remoteConfig || {}),
+    return {key: currentKey(), characterId: route.guard.characterId, scope: route.scope, ...(route.remoteConfig || {}),
       sessionId: realtimeSessions.get(route.sessionKey), ttsEnabled: warmUsesConvaiVoice(profile)};
   },
   onState: state => {
@@ -641,6 +654,7 @@ const prefetch = new GroupPrefetch({prepare: async (input, {signal}) => {
   // The SDK has no session fork/rollback. Existing sessions are warm-only so
   // cancelled predictions cannot alter memory or erase conversation history.
   if (realtimeConfig(input).endUserId || realtimeSessions.has(sessionKey(input))) throw Error('Identified or existing character session is warm-only');
+  if (singleSession()) throw Error('A single-session plan cannot run a speculative turn');
   // Local speech belongs to the submitted turn's game admission, never a
   // predicted future turn. The cached result remains text until respond().
   return {...await realtime.prepare(realtimeConfig(input), {signal}), transport: 'realtime'};
@@ -1022,7 +1036,7 @@ const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
     if (!await current()) return;
     await atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state: 'error', requestId: input.requestId, updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
-      entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.'}), {isCurrent: current, isCurrentSync: current.sync});
+      entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...keyFailure(error)}), {isCurrent: current, isCurrentSync: current.sync});
   },
 });
 
@@ -1357,7 +1371,7 @@ async function processInput(request, prepared) {
     await status('error', error.message).catch(() => {});
     if (input) await atomic(replyPath, JSON.stringify({requestId: input.requestId,
       generation: input.generation, entity: input.entity,
-      error: 'The conversation service could not reply. Please try again.'}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
+      error: 'The conversation service could not reply. Please try again.', ...keyFailure(error)}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
     console.error('[CyberpunkConvai] Bridge request failed:', error.message);
   } finally {
     if (knowledgeTurn && (controller.signal.aborted || !await current())) await cancelKnowledgeTurn(knowledgeTurn);
@@ -1434,7 +1448,7 @@ async function pollPrefetch() {
 // game, so the speaker change no longer pays a whole provider request.
 let lookaheadPolling = false, lookaheadWaiting = {raw: '', at: 0}, lookaheadHandled = '';
 async function pollLookahead() {
-  if (lookaheadPolling || stopped || memoryQuiescing || voiceRouteReservation || relationshipRouteReservation) return;
+  if (lookaheadPolling || stopped || memoryQuiescing || voiceRouteReservation || relationshipRouteReservation || singleSession()) return;
   lookaheadPolling = true;
   try {
     lookahead.prune();
@@ -1568,6 +1582,25 @@ async function applyAudioDelay() {
   audioDelayPublished = document;
   await atomic(resolve(runtime, 'audio-delay.json'), document).catch(() => { audioDelayPublished = ''; });
 }
+// The key in use changes here, and only when no turn, microphone, preparation or route change is running: connections
+// and conversation sessions belong to the account of the key that opened them, so all of them are retired together.
+let keySwitching = false;
+async function applyKeyChoice() {
+  if (keySwitching || stopped || !keys.pending || voiceBoundaryBusy() || voiceRouteReservation) return;
+  keySwitching = true;
+  try {
+    const own = keys.requested.source === 'player';
+    keys.apply();
+    memoryProvider.use({key: keys.current(), own});
+    quota.clear();
+    dropPrefetch(); prefetchObserved = '';
+    await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
+    sessions.clear(); realtimeSessions.clear();
+    await phone.forgetSessions().catch(() => {});
+    console.error(`[CyberpunkConvai] Conversation key: ${own ? "the player's own" : "the installation's"}`);
+    await ownKeyControl.publishStatus().catch(() => {});
+  } finally { keySwitching = false; }
+}
 async function pollSettings(checkShutdown = true) {
   if (settingsPolling || stopped) return;
   settingsPolling = true;
@@ -1579,6 +1612,14 @@ async function pollSettings(checkShutdown = true) {
     // A transient rename/partial settings write must not reset the selected quality.
     const raw = await readFile(resolve(runtime, 'settings.json'), 'utf8').catch(() => '');
     let settings; try { settings = JSON.parse(raw); } catch {}
+    // Own Convai key: the setting and the settings page's commands, then the switch itself once nothing is running.
+    if (settings) {
+      if (keys.setPreference(settings.useOwnConvaiKey === true)) await ownKeyControl.publishStatus().catch(() => {});
+      await ownKeyControl.poll().catch(() => {});
+      await applyKeyChoice();
+      // Convai's free plans carry no multilingual support: conversations use the original characters, not the twins.
+      if (keys.singleSession) settings = {...settings, multilingualConversations: false};
+    }
     if (settings) { audioDelaySetting = settingDelay(settings); await applyAudioDelay(); }
     // Dialogue level match (docs/DIALOGUE_LEVEL.md): makeup gain for every voice.
     if (updateDialogueLevel(await readFile(resolve(runtime, 'dialogue-level.json'), 'utf8').catch(() => '')))
@@ -1625,6 +1666,9 @@ async function pollSettings(checkShutdown = true) {
     }
   } finally { settingsPolling = false; }
 }
+const ownKeyControl = await new OwnKeyControl({keys, quota, commandPath: resolve(runtime, 'own-key-command.json'),
+  publish: value => atomic(resolve(runtime, 'own-key-state.json'), JSON.stringify(value))}).open();
+quota.onChange = () => { void ownKeyControl.publishStatus().catch(() => {}); };
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   commandPath: resolve(runtime, 'memory-command.json'),
   chatResetPath: resolve(runtime, 'memory-chat-resets.json'),
@@ -1633,7 +1677,7 @@ const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
 // Help > Generate report: a redacted zip of versions, status and log tails.
 // The key and provider IDs are passed only so they can be scrubbed from it.
 const supportReport = await SupportReportControl.open({game, runtime, stateDirectory, project,
-  secrets: () => [key], knownIds: () => Object.values(relationshipRoutes.providerIds ?? ids),
+  secrets: () => keys.secrets(), knownIds: () => Object.values(relationshipRoutes.providerIds ?? ids),
   bridge: () => ({busy: !!active, microphoneActive: !!mic.current})});
 await companionActions.revoke();
 await status('waiting');

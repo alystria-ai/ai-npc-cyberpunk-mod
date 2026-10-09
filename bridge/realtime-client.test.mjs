@@ -1587,3 +1587,20 @@ test('a private follow offer arms the world character and a group-flagged offer 
   assert.deepEqual(events.filter(row => row[0] === 'publish').at(-1)[1].data.action_config.actions, []);
   finalText(client, 'Next.', 'reply-2'); await second; await api.close();
 });
+
+test('a usage-limit-reached message fails the turn with a quota marker, and a configuration fault does not', async () => {
+  for (const [quota, kind] of [['interaction', 'interaction'], ['tts', 'tts'], ['other', 'plan'], [undefined, 'plan']]) {
+    const {api, clients} = fixture();
+    await api.warm({...config, ttsEnabled: false});
+    const reply = api.reply({...config, ttsEnabled: false}); await flush();
+    clients[0].data(wire({type: 'usage-limit-reached', quota_type: quota, message: 'Plan limit'}));
+    await assert.rejects(reply, error => error.message === `Convai usage limit reached [convai-quota:${kind}]`);
+    await api.close();
+  }
+  const {api, clients} = fixture();
+  await api.warm({...config, ttsEnabled: false});
+  const reply = api.reply({...config, ttsEnabled: false}); await flush();
+  clients[0].data(wire({type: 'usage-limit-reached', quota_type: 'error', message: 'Service fault'}));
+  finalText(clients[0]); assert.equal((await reply).text, 'Hello V.');
+  await api.close();
+});

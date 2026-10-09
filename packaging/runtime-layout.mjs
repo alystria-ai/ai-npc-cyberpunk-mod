@@ -24,6 +24,8 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/companion-invitations.mjs',
   'bridge/convai-bridge.mjs',
   'bridge/convai-continuous-speech.mjs',
+  'bridge/convai-key.mjs',
+  'bridge/convai-quota.mjs',
   'bridge/conversation-style.mjs',
   'bridge/dialogue-level.mjs',
   'bridge/distraction-context.mjs',

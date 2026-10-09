@@ -899,3 +899,18 @@ for _=1,6 do m.update(player,1/60) end
 assert(opens==before+1,'submission did not read the journal once: '..(opens-before))
 assert(m.errors.judy=='Memory clearing is in progress. Your draft has been kept.',tostring(m.errors.judy))
 `));
+
+test('forgetting sessions starts every thread afresh, saves the empty store and keeps the shown transcript', async () => {
+  let saved;
+  const {chat, calls, output} = fixture(async () => ({text: 'Scoped reply', sessionID: `session-${calls.length}`}),
+    {saveSessions: async value => { saved = structuredClone(value); }});
+  await finish(chat, state());
+  await finish(chat, state({request: {id: 'world-1-2', contact: 'judy', text: 'Again'}}));
+  assert.deepEqual(calls.map(call => call.sessionId), ['-1', 'session-1']);
+  const replies = output.filter(value => value.state === 'reply').length;
+  await chat.forgetSessions();
+  assert.deepEqual(saved, {version: 2, scoped: {}, legacy: null});
+  await finish(chat, state({request: {id: 'world-1-3', contact: 'judy', text: 'New key'}}));
+  assert.equal(calls[2].sessionId, '-1');
+  assert.equal(output.filter(value => value.state === 'reply').length, replies + 1);
+});

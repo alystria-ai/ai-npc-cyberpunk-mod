@@ -74,7 +74,7 @@ async function boundedJson(response, maxBytes, signal) {
 }
 
 export class PlayerMemoryApi {
-  #key; #ids; #fetch; #timeout; #maxBytes; #polls; #interval; #historicalPairAllowed; #markers;
+  #key; #own = false; #ids; #fetch; #timeout; #maxBytes; #polls; #interval; #historicalPairAllowed; #markers;
   // markerKeys: provider key -> the key written in its ownership marker, for the
   // provider keys whose marker differs (a multilingual twin "<key>-multilingual"
   // carries "[CyberpunkConvai profile v2:<key>:multilingual]"). Exact match only.
@@ -96,6 +96,14 @@ export class PlayerMemoryApi {
     this.#polls = maxClearPolls; this.#interval = pollIntervalMs;
     this.#historicalPairAllowed = historicalPairAllowed;
   }
+  // Switches the key used for provider calls. With a player's own Convai key the characters belong to the developer's
+  // account, so ownership and marker checks cannot pass and nothing here may edit them: enabling memory is skipped
+  // (these characters are shipped with long-term memory on) and clearing or inspecting is unavailable.
+  use({key, own = false} = {}) {
+    if (typeof key !== 'string' || !key.trim()) fail('INVALID_CONFIGURATION');
+    this.#key = key.trim(); this.#own = own === true;
+  }
+  get ownKey() { return this.#own; }
   #marker(profileKey) { return `[CyberpunkConvai profile v2:${this.#markers.get(profileKey) ?? profileKey}]`; }
   #pair({profileKey, characterId, endUserId} = {}, {historical = false} = {}) {
     if (!this.#key) fail('DISABLED');
@@ -176,6 +184,7 @@ export class PlayerMemoryApi {
   }
   enableMemory(options = {}) {
     this.#pair(options);
+    if (this.#own) return Promise.resolve({enabled: true, changed: false});
     const {profileKey, characterId, signal} = options;
     return this.#run(async (combined, writeState) => {
       const before = await this.#owned(profileKey, characterId, combined);
@@ -210,6 +219,7 @@ export class PlayerMemoryApi {
     return value.total_count === 0 && value.memories.length === 0 && value.has_more === false;
   }
   clearMemory(options = {}) {
+    if (this.#own) fail('DISABLED');
     const identity = Object.freeze({profileKey: options.profileKey, characterId: options.characterId, endUserId: options.endUserId});
     const pair = this.#pair(identity, {historical: true}), {profileKey, characterId} = identity, {signal} = options;
     return this.#run(async (combined, writeState) => {
@@ -234,6 +244,7 @@ export class PlayerMemoryApi {
     }, signal);
   }
   inspectMemory(options = {}) {
+    if (this.#own) fail('DISABLED');
     const identity = Object.freeze({profileKey: options.profileKey, characterId: options.characterId, endUserId: options.endUserId});
     const pair = this.#pair(identity, {historical: true}), {profileKey, characterId} = identity, {signal} = options;
     return this.#run(async combined => {

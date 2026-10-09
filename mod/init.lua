@@ -1694,6 +1694,19 @@ local function updateBattles(player, elapsed, worldReady)
     else cancelAutomatic('request-write-failed') end
 end
 
+-- The bridge adds errorCode to a failed reply when Convai refused it for the plan or the key (bridge/convai-quota.mjs). The
+-- text says what to do; it never names where the shared key comes from.
+local function keyNoticeText(code)
+    if code == 'quota-shared' then
+        return ui.t('The conversation limit has been reached. Get a free API key at convai.com, then add it in Settings > Development.')
+    elseif code == 'quota-own' then
+        return ui.t('Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development.')
+    elseif code == 'key-rejected' then
+        return ui.t('Convai did not accept your API key. Check it in Settings > Development.')
+    end
+    return nil
+end
+
 local function reactionCanDeliver(context, player)
     if not context.reaction then return true end
     if context.reaction.kind == 'distraction' then return tactics ~= nil and tactics.canDeliver(context) end
@@ -2334,7 +2347,9 @@ registerForEvent('onUpdate', function(delta)
                 local shown = pcall(function()
                     if reply.error then
                         gameplayActions.revoke('reply-error', pending.requestId)
-                        if not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end
+                        local keyText = keyNoticeText(reply.errorCode)
+                        if keyText then convaiNotices.send(player, 'quota-exhausted', keyText)
+                        elseif not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end
                     else speech.start(pending, reply) end
                 end)
                 if shown then

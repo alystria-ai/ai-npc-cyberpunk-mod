@@ -277,4 +277,11 @@ export class PhoneChat {
     })().catch(() => {}); // file errors are recovered by the adapter's timeout
   }
   close() { this.active?.controller.abort(); this.active = null; }
+  // Saved conversation sessions belong to the Convai account that made them. A new key starts every thread afresh;
+  // the transcript the phone shows is not touched.
+  async forgetSessions() {
+    this.store = {version: 2, scoped: {}, legacy: null}; this.transientSessions.clear();
+    this.sessionWrites = this.sessionWrites.catch(() => {}).then(() => this.saveSessions(clone(this.store)));
+    await this.sessionWrites.catch(() => {});
+  }
 }

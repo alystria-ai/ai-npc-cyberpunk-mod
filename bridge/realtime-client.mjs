@@ -65,6 +65,16 @@ function microphoneTranscript(messages) {
   return text.slice(0, USER_TRANSCRIPT_LIMIT).replace(/[\ud800-\udbff]$/, '').trim() || undefined;
 }
 
+// Convai ends a session whose plan quota is used up with one server message just before it closes the room
+// (usage-limit-reached; quota_type interaction or tts). 'error' is a service configuration fault, not a used-up plan.
+// The returned kind travels in the failure text so the bridge can tell this from an ordinary disconnect.
+function usageLimitKind(message) {
+  if (!message || (message.label !== undefined && message.label !== 'rtvi-ai')) return null;
+  const data = message.type === 'server-message' ? message.data : message;
+  if (data?.type !== 'usage-limit-reached' || data.quota_type === 'error') return null;
+  return data.quota_type === 'tts' ? 'tts' : data.quota_type === 'interaction' ? 'interaction' : 'plan';
+}
+
 function currentParticipant(connection, participant) {
   return !!participant && typeof participant.identity === 'string'
     && connection.room.remoteParticipants.get(participant.identity) === participant;
@@ -237,6 +247,12 @@ async function connect(config) {
       return;
     }
     observed.validJson++;
+    const limitKind = usageLimitKind(message);
+    if (limitKind) {
+      observed.errorCode = 'usage-limit';
+      rejectTransport(`Convai usage limit reached [convai-quota:${limitKind}]`);
+      return;
+    }
     if (message?.label !== undefined) observed.labelPresent++;
     if (message?.label === 'rtvi-ai') observed.matchingLabel++;
     countDiagnosticType(observed.outerTypes, message?.type);

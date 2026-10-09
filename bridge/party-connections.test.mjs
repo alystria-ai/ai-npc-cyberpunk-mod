@@ -9,7 +9,7 @@ const profiles = ['alex', 'judy', 'panam', 'kerry', 'viktor', 'misty', 'river', 
 // Characters beyond the eight warm private connections (the party has no size limit).
 const extraProfiles = ['evelyn', 'claire', 'wakako', 'rogue', 'takemura', 'saul', 'goro', 'hanako'];
 const everyone = [...profiles, ...extraProfiles];
-function fixture({canWarm = () => true} = {}) {
+function fixture({canWarm = () => true, deferWarm} = {}) {
   let time = 100000;
   const live = new Map(), calls = [], reports = [], pending = [], refreshes = [];
   const host = {fail: false, defer: false,
@@ -40,7 +40,7 @@ function fixture({canWarm = () => true} = {}) {
       live.delete(identity); return true;
     },
   };
-  const connections = new PartyConnections({host, now: () => time, canWarm,
+  const connections = new PartyConnections({host, now: () => time, canWarm, ...(deferWarm ? {deferWarm} : {}),
     isKnown: profile => [...everyone, 'nearby'].includes(profile),
     configFor: (profile, scope) => ({key: 'secret-key', characterId: profile, scope, sessionId: 'secret-session'}),
     onState: state => reports.push(state),
@@ -476,4 +476,17 @@ test('ambient nearby characters and partners warm through their entity route wit
   const entry = f.connections.entries.get(connectionKey('resident-male', 'private'));
   assert.equal(entry.role, 'target'); assert.equal(entry.config.scope, 'private:world:q');
   assert.throws(() => f.connections.setNearby(['resident-male'], {'resident-male': {key: 'k'}}), /Invalid submitted connection route/);
+});
+
+test('with a single-session plan an invited companion counts as ready without a pre-opened connection', async () => {
+  let single = true;
+  const f = fixture({canWarm: () => !single, deferWarm: () => single});
+  f.heartbeat(['alex']); await f.step(0); await f.step(500);
+  assert.equal(f.calls.length, 0, 'nothing is pre-opened');
+  assert.deepEqual(await f.connections.invitationReadiness('alex'), {present: true, ready: true, busy: false, deferred: true});
+  assert.deepEqual(await f.connections.invitationReadiness('judy'), {present: false, ready: false, busy: false}, 'an unknown companion is still not ready');
+  single = false; await f.step(500);
+  assert.ok(f.calls.length >= 1, 'connections are pre-opened again on the shared key');
+  assert.notEqual((await f.connections.invitationReadiness('alex')).deferred, true);
+  await f.connections.clear();
 });

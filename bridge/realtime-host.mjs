@@ -94,7 +94,11 @@ export async function installCompanionActionBinding(page, {isCurrent, onAction})
 
 export class RealtimeHost {
   // transformReply: optional, applied to every finished reply (Natural speech removes voice tags from the display text).
-  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply,
+  // exclusive: {enabled(), peers(), retryMs}. While enabled the plan allows one conversation connection at a time (a
+  // player's own free Convai key), so a request first closes every other idle connection, here and in the peer hosts,
+  // and a "Concurrency limit reached" answer is retried once after retryMs while the old session is released.
+  // onFailure(error) / onSuccess(): observers of a finished request (the bridge reads plan-limit failures from them).
+  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess,
     browserExecutable = process.env.CYBERPUNK_CONVAI_BROWSER,
     clientAssetsDirectory = process.env.CYBERPUNK_CONVAI_CLIENT_ASSETS,
     launchBrowser = options => chromium.launch(options)} = {}) {
@@ -105,6 +109,24 @@ export class RealtimeHost {
     this.disconnects = new WeakMap(); this.disconnectTimeoutMs = disconnectTimeoutMs;
     this.onCompanionAction = onCompanionAction;
     this.transformReply = typeof transformReply === 'function' ? transformReply : result => result;
+    this.exclusive = exclusive; this.onFailure = onFailure; this.onSuccess = onSuccess;
+  }
+  // Single-session plans: close the idle connections of this host (except `key`) and of its peers.
+  async yieldOtherSessions(key) {
+    if (!this.exclusive?.enabled?.()) return;
+    for (const host of [this, ...(this.exclusive.peers?.() ?? [])]) {
+      const pool = host?.pool;
+      if (!pool) continue;
+      for (const entry of [...pool.entries.values()]) {
+        if (host === this && entry.key === key) continue;
+        await pool.discardIdle(entry.key).catch(() => {});
+      }
+    }
+  }
+  // A finished reply proves the key works; opening a connection or a microphone does not (a used-up plan can still connect).
+  observe(promise, completesReply = true) {
+    return promise.then(value => { try { if (completesReply) this.onSuccess?.(); } catch { /* an observer never fails a reply */ } return value; },
+      error => { try { this.onFailure?.(error); } catch { /* an observer never fails a reply */ } throw error; });
   }
   disconnectPage(page) {
     if (!page || page.isClosed?.()) return Promise.resolve();
@@ -268,7 +290,18 @@ export class RealtimeHost {
       void pump.catch(() => {}); void request.catch(() => {});
     }
   }
-  async run(config, method, {signal, discard = false, onAudioChunk, liveSpeech} = {}) {
+  run(config, method, options = {}) {
+    const attempt = async () => {
+      try { return await this.runOnce(config, method, options); }
+      catch (error) {
+        if (!this.exclusive?.enabled?.() || !/concurrency limit/i.test(String(error?.message)) || options.signal?.aborted) throw error;
+        await abortable(new Promise(resolve => setTimeout(resolve, this.exclusive.retryMs ?? 1500)), options.signal);
+        return this.runOnce(config, method, options);
+      }
+    };
+    return this.observe(attempt(), method !== 'warm');
+  }
+  async runOnce(config, method, {signal, discard = false, onAudioChunk, liveSpeech} = {}) {
     throwIfCancelled(signal);
     config = {...config}; // Keep queued work bound to the identity admitted now.
     // Retire the old per-file chunk capability. Only an explicit liveSpeech
@@ -282,6 +315,8 @@ export class RealtimeHost {
     await this.start({signal});
     throwIfCancelled(signal);
     const startupMs = performance.now() - started, epoch = this.epoch;
+    await this.yieldOtherSessions(key);
+    throwIfCancelled(signal);
     const waiting = performance.now(), lease = await this.pool.acquire(key, {signal});
     const poolWaitMs = performance.now() - waiting;
     const cancel = () => { this.connectOwners.delete(lease.value); void lease.release({discard: true}).catch(() => {}); };
@@ -357,7 +392,8 @@ export class RealtimeHost {
       finishVoice: (config, options) => this.finishVoice(owner, config, {...options, signal: controller.signal}),
       close: async () => { controller.abort(); await this.cancelVoice(owner); }};
   }
-  async beginVoice(config, {signal, owner = this} = {}) {
+  beginVoice(config, options = {}) { return this.observe(this.beginVoiceOnce(config, options), false); }
+  async beginVoiceOnce(config, {signal, owner = this} = {}) {
     throwIfCancelled(signal);
     config = {...config};
     delete config.audioStreamToken;
@@ -367,6 +403,8 @@ export class RealtimeHost {
     if (this.voiceLease) throw Error('Microphone connection is already running');
     await this.start({signal});
     const epoch = this.epoch;
+    await this.yieldOtherSessions(key);
+    throwIfCancelled(signal);
     const lease = await this.pool.acquire(key, {signal});
     try {
       throwIfCancelled(signal);
@@ -390,7 +428,8 @@ export class RealtimeHost {
       throw error;
     }
   }
-  async finishVoice(owner = this, config, {signal, liveSpeech} = {}) {
+  finishVoice(owner = this, config, options = {}) { return this.observe(this.finishVoiceOnce(owner, config, options)); }
+  async finishVoiceOnce(owner = this, config, {signal, liveSpeech} = {}) {
     const lease = this.voiceLease;
     if (!lease || lease.owner !== owner) throw Error('Microphone connection is not running');
     let failed = true;

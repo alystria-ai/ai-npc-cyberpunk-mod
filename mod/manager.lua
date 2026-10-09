@@ -237,11 +237,10 @@ local function memorySessionUUID()
     return uuid
 end
 
-local function writeMemoryCommand(value)
+local function writeCommandFile(target, value)
     local encoded, payload = pcall(json.encode, value)
     if not encoded then return false end
-    local target, temporary, backup = 'runtime/memory-command.json', 'runtime/memory-command.json.tmp',
-        'runtime/memory-command.json.previous'
+    local temporary, backup = target .. '.tmp', target .. '.previous'
     local file = io.open(temporary, 'wb')
     if not file then return false end
     local written = file:write(payload)
@@ -259,6 +258,58 @@ local function writeMemoryCommand(value)
     end
     os.remove(backup)
     return true
+end
+
+local function writeMemoryCommand(value) return writeCommandFile('runtime/memory-command.json', value) end
+
+-- The player's own Convai API key (docs/OWN_CONVAI_KEY.md). The bridge reads the key from the clipboard on request and
+-- keeps it in its own folder; this file only sends two commands and reads the status the bridge publishes. Nothing here
+-- ever holds the key. The status file is read on demand (the settings page asks about once a second while it is open).
+local ownKeyState, ownKeyReadAt, ownKeyCommand, ownKeySequence = {}, nil, nil, 0
+
+local function updateOwnKey(force)
+    local clock = os.clock()
+    if not force and ownKeyReadAt and clock - ownKeyReadAt < 1.5 then return end
+    ownKeyReadAt = clock
+    local value = readJSON('runtime/own-key-state.json')
+    ownKeyState = type(value) == 'table' and value or {}
+end
+
+local function sendOwnKeyCommand(action)
+    memorySession = memorySession or memorySessionUUID()
+    ownKeySequence = ownKeySequence + 1
+    local command = {version = 1, id = memorySession .. ':key:' .. ownKeySequence, action = action,
+        issuedAt = os.time() * 1000.0}
+    if not writeCommandFile('runtime/own-key-command.json', command) then
+        return false, 'The request could not be sent. Try again.'
+    end
+    ownKeyCommand = command.id
+    ownKeyReadAt = nil
+    return true
+end
+
+function M.pasteOwnKey()
+    local ok, reason = sendOwnKeyCommand('paste')
+    if not ok then return false, reason end
+    return true, 'Checking…'
+end
+
+function M.removeOwnKey()
+    local ok, reason = sendOwnKeyCommand('clear')
+    if not ok then return false, reason end
+    return true, 'Your key was removed.'
+end
+
+-- What the settings page shows. `result` is the outcome of the player's latest Paste or Remove, and only that one.
+function M.ownKey()
+    updateOwnKey()
+    local state = ownKeyState
+    local result = type(state.result) == 'table' and state.result.id == ownKeyCommand and state.result.state or nil
+    local limit = type(state.limit) == 'table' and state.limit or nil
+    return {saved = state.saved == true, tail = type(state.tail) == 'string' and state.tail or nil,
+        active = state.active == 'player' and 'player' or 'shared', pending = state.pending == true,
+        result = type(result) == 'string' and result or nil,
+        limit = limit and limit.state or nil, limitOwn = limit and limit.own == true or false}
 end
 
 function M.confirmMemoryClear(token)
@@ -344,6 +395,8 @@ local function loadSettings()
     -- The retired Follow-up questions setting: an old saved key is dropped (nothing reads it).
     if settings.followUpQuestions ~= nil then settings.followUpQuestions, settingsNeedSave = nil, true end
     if type(settings.developerMode) ~= 'boolean' then settings.developerMode, settingsNeedSave = false, true end
+    -- Off by default: conversations use the shared plan until the player turns their own Convai key on (bridge/convai-key.mjs).
+    if type(settings.useOwnConvaiKey) ~= 'boolean' then settings.useOwnConvaiKey, settingsNeedSave = false, true end
     if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = true, true end
     if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = true, true end
     if type(settings.bodyGestures) ~= 'boolean' then settings.bodyGestures, settingsNeedSave = false, true end
@@ -1137,6 +1190,7 @@ function M.snapshot(player)
         profiles = profiles, models = models, party = party, feedback = feedback,
         settings = {voice = settings.voice, subtitles = settings.subtitles, subtitleStyle = settings.subtitleStyle,
             developerMode = settings.developerMode,
+            useOwnConvaiKey = settings.useOwnConvaiKey,
             relationshipModes = relationshipModes,
             battleReactions = settings.battleReactions,
             lootReactions = settings.lootReactions,
@@ -1157,6 +1211,7 @@ function M.snapshot(player)
             archetypeConversations = settings.archetypeConversations,
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
+        ownKey = M.ownKey(),
         localVoice = localVoiceState,
         memory = memorySnapshot(),
         scan = {started = scanStarted, finished = scanFinished, error = scanError,
@@ -1191,7 +1246,7 @@ function M.applySettings(player, values)
     nextSettings.relationshipModes = {}
     for key, value in pairs(settings.relationshipModes) do nextSettings.relationshipModes[key] = value end
     for key, value in pairs(values) do
-        if key == 'voice' or key == 'subtitles' or key == 'developerMode'
+        if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
             or key == 'gameDialogueContext'
             or key == 'keepPreparedVoices' or key == 'naturalSpeech' or key == 'expressiveEmotions'

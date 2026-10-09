@@ -223,3 +223,20 @@ test('explicit inspection is ownership-verified list-only and never invents dele
   assert.deepEqual(await api.inspectMemory(pair), {providerEmptyObserved: true});
   assert.deepEqual(calls.map(row => row.endpoint), ['/character/list', '/character/get', '/memory/list']);
 });
+
+test('with the own Convai key of a player memory is not edited, cleared or inspected, and the shared key is restored by use()', async () => {
+  const {api, calls} = fake(standard);
+  assert.equal(api.ownKey, false);
+  api.use({key: 'player-own-credential', own: true});
+  assert.equal(api.ownKey, true);
+  assert.deepEqual(await api.enableMemory(pair), {enabled: true, changed: false});
+  assert.throws(() => api.enableMemory({...pair, characterId: 'not-a-mod-character'}), {code: 'CHARACTER_MISMATCH'});
+  assert.throws(() => api.clearMemory(pair), {code: 'DISABLED'});
+  assert.throws(() => api.inspectMemory(pair), {code: 'DISABLED'});
+  assert.equal(calls.length, 0, 'no provider call is made under a key that does not own the characters');
+  api.use({key: 'credential-secret', own: false});
+  assert.equal(api.ownKey, false);
+  await api.enableMemory(pair);
+  assert.ok(calls.length > 0 && calls.every(call => call.headers['CONVAI-API-KEY'] === 'credential-secret'));
+  assert.throws(() => api.use({key: ''}), {code: 'INVALID_CONFIGURATION'});
+});

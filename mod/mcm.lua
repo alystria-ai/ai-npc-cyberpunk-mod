@@ -616,6 +616,42 @@ local function memorySettings(snapshot)
     return rows
 end
 
+-- Development > Convai API key (docs/OWN_CONVAI_KEY.md). The text shown here is the status of the player's own key, never
+-- the key: only its last four characters, which the bridge publishes, are ever displayed.
+local function ownKeyRows(snapshot)
+    local own = snapshot.ownKey
+    local status, result = nil, own.result
+    if result == 'checking' then status = ui.t('Checking…')
+    elseif result == 'empty' then status = ui.t('The clipboard is empty. Copy your key first.')
+    elseif result == 'not-a-key' then status = ui.t('The clipboard does not hold a Convai API key.')
+    elseif result == 'invalid' then status = ui.t('Convai did not accept that key.')
+    elseif result == 'clipboard' then status = ui.t('The clipboard could not be read.')
+    elseif result == 'failed' then status = ui.t('The key could not be saved.')
+    elseif own.saved and own.tail then status = ui.t('Added (ends in {tail})', {tail = own.tail})
+    elseif own.saved then status = ui.t('Added')
+    else status = ui.t('Not added') end
+    local using
+    if own.limit == 'used-up' and own.limitOwn then using = ui.t('Your key: plan limit reached')
+    elseif own.limit == 'used-up' then using = ui.t('Shared plan: limit used up')
+    elseif own.limit == 'rejected' then using = ui.t('Your key: not accepted')
+    elseif own.active == 'player' then using = ui.t('Your own key')
+    else using = ui.t('The shared plan') end
+    return {
+        setting('useOwnConvaiKey', 'Use my own Convai API key', 'bool', snapshot.settings.useOwnConvaiKey, false,
+            'Use your own free Convai API key instead of the shared plan. Get a free key at convai.com (it includes a small monthly allowance), copy it, choose Paste Convai API key below, then choose Apply. With your own key conversations open one at a time, companions are not pre-connected, and Multilingual conversations and memory management are unavailable. The change waits until no conversation is running.'),
+        readonly('own-key-status', 'Convai API key', status,
+            'Saved on this computer only. Only the last four characters are ever shown.', {value = true}),
+        action('own-key:paste', 'Paste Convai API key', 'Paste from clipboard',
+            'Copy your key on convai.com first. It is read from the clipboard once, checked with Convai and saved on this computer.',
+            function() return manager.pasteOwnKey() end),
+        action('own-key:remove', 'Remove my Convai API key', 'Remove',
+            'Deletes the saved key. Conversations go back to the shared plan.',
+            function() return manager.removeOwnKey() end, own.saved),
+        readonly('own-key-using', 'Conversations use', using,
+            'Which Convai plan pays for conversations right now. Changes wait until no conversation is running.', {value = true}),
+    }
+end
+
 local function schema()
     local currentPlayer = player()
     owner = identity(currentPlayer)
@@ -948,6 +984,7 @@ local function schema()
         categories[#categories + 1] = category('development', 'Development', {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
                 'For testing and bug reports; leave it off for normal play. It shows routine companion popups (the joining step, dismissal confirmations, driving instructions such as boarding and exit, results of companion actions, and a notice when a support report is ready), writes a movement trace file in the mod’s runtime folder, logs body gesture decisions, and adds this setting to support reports. Preparation progress, joined notices, failures and replies to Stop trip remain visible when off.'),
+            table.unpack(ownKeyRows(snapshot)),
         })
         if support then
             categories[#categories + 1] = category('help', 'Help', {
@@ -1044,7 +1081,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
             local values, applied = {enabledByKey = {}, relationshipModes = {}}, {}
             for _, change in ipairs(changes) do
                 local key = change.id
-                if key == 'voice' or key == 'subtitles' or key == 'developerMode'
+                if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
                     or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures'
                     or key == 'autoConnectNearby' or key == 'keepPreparedVoices' or key == 'naturalSpeech'
                     or key == 'gameDialogueContext'
@@ -1461,6 +1498,12 @@ function M.update(currentPlayer, worldReady)
                 actionFeedback = support.banner() or actionFeedback
             end
             signature[#signature + 1] = 'help:' .. reportSignature .. '|' .. support.serviceState()
+        end
+        if view == 'settings' then
+            -- The key status page changes when the bridge answers a Paste or Remove, or reports a used-up plan.
+            local own = snapshot.ownKey
+            signature[#signature + 1] = table.concat({'key', tostring(own.saved), own.tail or '', own.active, tostring(own.pending),
+                own.result or '', own.limit or '', tostring(own.limitOwn)}, '|')
         end
         signature = table.concat(signature, '\n')
         if signature ~= lastSignature then lastSignature, refreshQueued = signature, true end

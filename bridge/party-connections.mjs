@@ -44,8 +44,11 @@ export function parsePartyConnections(value, now = Date.now()) {
 // three group connections, but can never evict a present companion's private
 // connection. Setup follows Dawnwalker's two-at-once, staggered lifecycle.
 export class PartyConnections {
-  constructor({host, configFor, isKnown, onState = () => {}, now = Date.now, staleMs = 6500, canWarm = () => true}) {
-    Object.assign(this, {host, configFor, isKnown, onState, now, staleMs, canWarm});
+  // deferWarm(): true while the plan allows only one conversation connection at a time (a player's own free Convai
+  // key). Nothing is pre-opened then; an invitation counts as ready and its first conversation connects on demand.
+  constructor({host, configFor, isKnown, onState = () => {}, now = Date.now, staleMs = 6500, canWarm = () => true,
+    deferWarm = () => false}) {
+    Object.assign(this, {host, configFor, isKnown, onState, now, staleMs, canWarm, deferWarm});
     this.profiles = []; this.updated = null; this.stale = true;
     this.invitations = []; this.retiring = new Map(); this.retirementDebt = new Map();
     this.entries = new Map(); this.composer = this.request = null; this.nearby = []; this.partners = [];
@@ -275,6 +278,7 @@ export class PartyConnections {
     if (this.retiring.has(profile) || this.needsRetirement(profile)) return {present: false, ready: false, retiring: true};
     const entry = this.entries.get(connectionKey(profile, 'private'));
     if (!entry) return {present: false, ready: false, busy: false};
+    if (this.deferWarm()) return {present: true, ready: true, busy: false, deferred: true};
     return this.host.readiness(this.configuration(entry), {keepAlive: true});
   }
   async warmInvitation(profile, {signal} = {}) {

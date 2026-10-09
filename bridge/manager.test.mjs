@@ -3831,3 +3831,51 @@ test('Model browser maps generic records to archetypes, shows it in the row, cou
     assert(members[2].profileKey == 'johnny-silverhand', 'named records keep their prepared profile')
   `);
 });
+
+test('Development offers the own Convai key: off by default, free-key wording, two commands, and a status that never shows the key', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    assert(invoke('tab:settings').ok)
+    local use = row('useOwnConvaiKey')
+    assert(use and use.type == 'bool' and use.value == false and use.defaultValue == false)
+    assert(use.description:find('free', 1, true) and use.description:find('convai.com', 1, true))
+    assert(not use.description:find('embedded', 1, true) and not use.description:find('shipped', 1, true))
+    assert(row('own-key-status').value == 'Not added' and row('own-key-using').value == 'The shared plan')
+    assert(row('own-key:remove').disabled == true, 'there is nothing to remove yet')
+    assert(row('own-key:paste').disabled ~= true)
+    local first = invoke('own-key:paste')
+    assert(first.ok)
+    local command = jsonFixtures[files['runtime/own-key-command.json']]
+    assert(command.version == 1 and command.action == 'paste' and command.id:find(':key:1', 1, true))
+    assert(files['runtime/memory-command.json'] == nil, 'a key command must not use the memory channel')
+    local function answer(id, state)
+      local token = 'own-state-' .. id
+      jsonFixtures[token] = state
+      files['runtime/own-key-state.json'] = token
+    end
+    local idOf = function(number) return (command.id:gsub(':1$', ':' .. number)) end
+    answer(idOf(2), {saved = true, tail = 'wxyz', active = 'player', result = {id = idOf(2), state = 'saved'}})
+    assert(invoke('own-key:paste').ok)
+    assert(row('own-key-status').value == 'Added (ends in wxyz)' and row('own-key-using').value == 'Your own key')
+    assert(row('own-key:remove').disabled ~= true)
+    answer(idOf(3), {saved = true, tail = 'wxyz', active = 'player', result = {id = idOf(3), state = 'invalid'}})
+    assert(invoke('own-key:paste').ok)
+    assert(row('own-key-status').value == 'Convai did not accept that key.')
+    answer(idOf(4), {saved = false, active = 'shared', limit = {state = 'used-up', own = false}, result = {id = idOf(4), state = 'cleared'}})
+    assert(invoke('own-key:remove').ok and jsonFixtures[files['runtime/own-key-command.json']].action == 'clear')
+    assert(row('own-key-status').value == 'Not added' and row('own-key-using').value == 'Shared plan: limit used up')
+    answer(idOf(5), {saved = true, tail = 'wxyz', active = 'player', limit = {state = 'used-up', own = true}})
+    assert(invoke('own-key:paste').ok)
+    assert(row('own-key-using').value == 'Your key: plan limit reached')
+    -- A result belonging to an older command is not shown again.
+    answer('someone-else', {saved = false, active = 'shared', result = {id = 'old:key:9', state = 'invalid'}})
+    assert(invoke('own-key:paste').ok)
+    assert(row('own-key-status').value == 'Not added')
+    -- The switch is an ordinary saved setting.
+    assert(manager.snapshot(player).settings.useOwnConvaiKey == false)
+    clock = clock + 2
+    assert(registered.applyBatch('manager', {{id = 'useOwnConvaiKey', value = true}}).ok)
+    assert(manager.snapshot(player).settings.useOwnConvaiKey == true and saved.useOwnConvaiKey == true)
+    assert(not manager.applySettings({useOwnConvaiKey = 'yes'}))
+  `);
+});

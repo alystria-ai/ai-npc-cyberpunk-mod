@@ -62,6 +62,9 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `reply-error` | Player | Voice conversation failed. Check your microphone and try again. | The bridge reports a failed voice turn | 15 |
 | `reply-error` | Player | The conversation service could not reply. Please try again. | The bridge failed to produce a reply | 15 |
 | `reply-error` | Player | {name} does not have a conversation profile configured yet. | The bridge has no profile for the speaker | 15 |
+| `quota-exhausted` | Player | The conversation limit has been reached. Get a free API key at convai.com, then add it in Settings > Development. | Convai refused a turn because the plan the conversations use is used up (also shown for an automatic reaction). Once per game session | 86400 |
+| `quota-exhausted` | Player | Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development. | The same refusal while Use my own Convai API key is on | 86400 |
+| `quota-exhausted` | Player | Convai did not accept your API key. Check it in Settings > Development. | Convai refused the player's own key | 86400 |
 | `talk-no-target` | Player | Face a nearby character to talk. | The talk key is pressed with no one in range | 20 |
 | `talk-no-profile` | Player | {name} does not have a conversation profile configured yet. | The talk key is pressed at a character without a profile | 20 |
 | `group-needs-two` | Player | Group chat needs two characters nearby. Use {key} for one person. | The group key is pressed with fewer than two characters | 20 |
