@@ -310,3 +310,67 @@ is pushed to the facial worker in 1 s slices at once, so the real-time guard in 
 250 ms) drops the text-conditioned mouth for any phrase longer than about 1.5 s. Re-run offline with the text path
 kept, the jaw differs by under .03 for this phrase, so it is not the cause here, but phrase mode never really uses the
 text model.
+
+### Fourth round and overnight scripted talk (user: "the mouth still misses, on the last line")
+
+Reply at 11:58:26 (Omni, 3 phrases, `[joy .49] [anticipation .25] [anticipation .68]`): the user again saw Evelyn's mouth
+not open, again on the last phrase. The last phrase, the end-of-reply `reset()`/`face.stop`, the stream ending early,
+a late or dropped face track and `lipText` were all checked first: every phrase of the saved reply carries a complete
+`local-jali` face (`lipText active, lost false`), the stream completes (`completedChunks 3/3`, face `applied 222`, position
+6.61 of 6.76), and replaying the reply through the real `speech.start` path on a staged Evelyn writes the jaw exactly as
+the lift and floor predict to the last frame (jaw about 92 % of voiced frames at .17 or more; the rest are word-final
+tails where the model itself closes). So on that reply the Lua path is not losing the opening, and the remaining
+suspect is not in the writer's jaw.
+
+**Real end-to-end test, no keyboard.** The dev-only `say <who> <text>` face-test command (`mod/init.lua`
+`speech.devSay`, developer mode only) submits a line as V's private text exactly as the composer does, but it needs a CET
+reload to load `init.lua`. Until then, the same test is run through the real bridge: a composer-shaped
+`runtime/last-input.json` (a saved real request with the entity, request id, generation and text replaced) is written for
+the staged character, the bridge generates the real Convai reply, Omni voice and `local-jali` face, and the probe then hands
+`runtime/reply.json` to `speech.start` as the update handler does. The written jaw, `lips_together` and the other mouth
+tracks are recorded per frame by `face-trace` (a preallocated ring of 3600 frames in `mod/face-test.lua`, dumped to one
+file on request, no per-frame IO), and mid-word frames are captured with `scripts/Capture-GameWindow.py` and aligned to the
+trace through the position the speech state publishes.
+
+**What was found: the chin raise.** On Evelyn's replies with a sad tone (`Sadness`, scale 2) the jaw is written at .3 to .5
+and the lips still barely part. The cause is the expression layer: sadness, anger and disgust carry a chin raise
+(`lips_chin_raise`, `familyPoses`), which lifts the lower lip into the upper, and on a wide-lipped head it cancels the jaw
+(measured on Evelyn with the writer probe: jaw .35 alone is clearly open, jaw .35 with chin .3 reads as closed; jaw .2
+with chin .15 is closed; a smile of .38 narrows the gap by about a third and .6 nearly closes it). The speech mouth budget
+only handles closure and rounding, so the chin raise stayed on while the jaw opened.
+
+Fix (`mod/facial-playback.lua`, `expressionPose`): while a jaw-lifted head speaks, the written `lips_chin_raise` is
+multiplied by `1 - clamp(jaw / .10)`, so it is gone once the jaw is .10 or more and returns between words (frowns and
+sad faces still read at rest, in silences and on closed sounds). Judy (`jawLift=false`) and unknown heads are untouched. One
+multiply per written frame on a field already in the loop; no native read. Test:
+`chin raise gives way to an opening jaw while a lifted head speaks, and not for Judy or an unknown head`.
+Before and after on the same saved sad reply (last phrase, same audio):
+`runtime/face-captures/lipsync-last-line-chin-before-after.png`. Not changed: smiles. A joy or serenity smile also narrows
+the opening a little (the user's own 11:58 reply was Serenity, corners up .38), but ducking it would pump the smile with every
+syllable and belongs to the expression design; left for a decision.
+
+**Scripted talk results** (live bridge, staged copy, V unmoved, written jaw per frame, 12 fps crop at the mouth; voiced = the
+phrase WAV is above rms .02; open = jaw at least .17 (Judy .06, her own parting point) or `lips_together` at least .5):
+
+| Character | Head graph | Dist. | Phrases | Last phrase voiced frames | Open | Missed | Notes |
+|---|---|---|---|---|---|---|---|
+| Evelyn Parker | woman_average | .85 m | 3 and 2 | 141 and 193 | 91 % and 87 % | 9 % and 13 % | sad reply: lips barely parted before the fix, open after (before/after sheet) |
+| Johnny Silverhand | man_average | 1.25 m | 3 and 4 | 182 and 130 | 91 % and 83 % | 9 % and 17 % | beard and 3/4 view hide the mouth; traces only |
+| Lizzy Wizzy | woman_average | 1.25 m | 2 | 223 | 87 % | 13 % | chrome face: the dark mouth gap is visible on the frames and closes at the end |
+| Kerry Eurodyne | man_average | 1.25 m | 2 | 175 | 90 % | 10 % | dark scene, beard; traces |
+| Solomon Reed | man_big | 1.3 m | 3 | 123 | 90 % | 10 % | dark scene; traces |
+| Mama Welles | woman_average | 1.25 m | 4 | 69 | 96 % | 4 % | grief reply |
+| Judy Alvarez (reference) | player_woman_photomode | 1.25 m | 4 | 118 | 93 % at .06 | 7 % | unchanged values: no lift, no chin duck |
+
+The missed frames are quiet onsets and tails (rms .02 to .07 against a speech median of .09 to .12), plosive bursts and
+word-final tails where the model's own mouth is closed. No frame written a jaw above .3 more than .2 s away from voiced
+audio (no gaping on any reply), `lips_together` reaches .85 to 1.0 on the closing sounds, and every phrase's trace runs to
+its last .05 s (the last phrase is not truncated). The stage could not use the straight-ahead spot (Evelyn, a real party
+member, stands on it), so the other characters stood on the side sidestep at 1.25 m, which is why the frames are smaller and
+off-centre; the sidestep and the distance are the probe's own choices, not game behaviour.
+
+**What the user still needs to do:** a CET reload (loads `speech.devSay` in `mod/init.lua`; `mod/facial-playback.lua` with the
+chin duck was hot-reloaded into the running game and is live). No bridge restart or game restart is needed. The user's
+11:58 miss is not reproduced on any path tested; if it recurs on a Serenity or Joy line, the smile narrowing above is the
+only measured mouth-closing influence left, and a trace with `say` plus `face-trace` after the CET reload will show the
+exact written frames.
