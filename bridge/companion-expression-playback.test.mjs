@@ -377,8 +377,8 @@ test('face-stage probe: reuses a present copy, invites a missing one, places it 
  local m=moves[#moves]
  assert(m.npc==a and math.abs(m.position.x-10)<1e-6 and math.abs(m.position.y-20.85)<1e-6 and m.position.z==5,'in front, on V s floor')
  assert(math.abs(m.yaw-180)<1e-6,'facing the camera: '..m.yaw)
- -- Her own movement drags her off: she is put back, at most every .5 s.
- a.where={x=12,y=22,z=5};for _=1,6 do tick(.1) end
+ -- Her own movement drags her off: she is put back, at most every .25 s.
+ a.where={x=12,y=22,z=5};for _=1,4 do tick(.1) end
  assert(#moves==2,'put back once she is off the spot: '..#moves)
  -- off stops the hold.
  request('s2\\nface-stage off');tick(.3);local count=#moves

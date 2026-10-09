@@ -128,10 +128,10 @@ end
 --   face-stage status                 {state, name, placed, ...}: spawning | staged | released | lost | failed
 --   face-stage off                    stop holding (her own movement takes over again)
 --   face-stage dismiss                dismiss the characters this probe invited (never one that was already there)
--- Dev only (this file is not in a player package). One position check every .2 s for at most the hold (default 60 s,
+-- Dev only (this file is not in a player package). One position check every .1 s for at most the hold (default 60 s,
 -- limit 300 s), only while a stage is active, and an AI teleport command only when she is off the spot; nothing
 -- otherwise. A visible placement is fine for a probe.
-local STAGE_DISTANCE, STAGE_DEFAULT_HOLD, STAGE_MAX_HOLD, STAGE_SPAWN_WAIT, STAGE_PERIOD, STAGE_RESEND = .85, 60, 300, 30, .2, .5
+local STAGE_DISTANCE, STAGE_DEFAULT_HOLD, STAGE_MAX_HOLD, STAGE_SPAWN_WAIT, STAGE_PERIOD, STAGE_RESEND = .85, 60, 300, 30, .1, .25
 M.spawned = M.spawned or {}
 
 local function stageTarget()
@@ -169,12 +169,12 @@ local function stageTick(context)
     if not target then stage.state, stage.error = 'failed', why; return end
     -- A transform teleport is undone by the copy's own locomotion (seen live: she stayed beside V), so the placement is
     -- an AITeleportCommand through her AI controller, the actuator's own mechanism. It is sent only when she is not
-    -- already there (more than .15 m or 8 degrees off), at most every .5 s; once placed she simply stays.
+    -- already there (more than .08 m or 6 degrees off), at most every .25 s; once placed she simply stays.
     local ok, err = pcall(function()
         local at = current.npc:GetWorldPosition()
         local off = math.sqrt((at.x - target.x) ^ 2 + (at.y - target.y) ^ 2 + (at.z - target.z) ^ 2)
         local turn = math.abs((current.npc:GetWorldYaw() - target.yaw + 180) % 360 - 180)
-        if (off > .15 or turn > 8) and M.clock >= (stage.sendAt or 0) then
+        if (off > .08 or turn > 6) and M.clock >= (stage.sendAt or 0) then
             local command = NewObject('AITeleportCommand')
             command.position = Vector4.new(target.x, target.y, target.z, 1)
             command.rotation = target.yaw
