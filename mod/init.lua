@@ -1864,12 +1864,12 @@ local function processPhoneAction(player)
                 end
             end
         end
-        -- An accepted invitation is acknowledged in Developer mode only: its text is a progress line
-        -- ("Preparing ...", "... ready"), and a player is told only when the companion joins. A refusal
-        -- is always shown, except a failed preparation: that is queued as the single gameplay notice for
-        -- the attempt, so it is not posted again here while the phone is open.
-        if not accepted and invitationId then return end
-        convaiNotices.send(player, accepted and 'phone-invite-ack' or 'phone-invite-reply', tostring(message))
+        -- An accepted invitation is not acknowledged: the notice board posts "joined" when the companion
+        -- arrives, and no progress text is shown in any mode (manager-party.lua). A refusal is always
+        -- shown, except a failed preparation: that is queued as the single gameplay notice for the
+        -- attempt, so it is not posted again here while the phone is open.
+        if accepted or invitationId then return end
+        convaiNotices.send(player, 'phone-invite-reply', tostring(message))
         return
     end
     -- One copy per request: the queue picks it by the character it speaks as.

@@ -2,7 +2,7 @@
 --
 -- Every popup the mod shows (the game's neutral warning line, PlayerPuppet:ConvaiPhoneFeedback)
 -- belongs to a catalog entry with a class:
---   player     shown to everyone: an intuitive wait (an invitation preparing, the microphone
+--   player     shown to everyone: an intuitive wait (the microphone
 --              connecting) or a real failure the player has to act on. Short, friendly, and not
 --              repeated: an identical notice inside its repeat window is dropped while Developer
 --              mode is off.
@@ -21,7 +21,7 @@ local PLAYER, DEVELOPER, REMOVED = 'player', 'developer', 'removed'
 -- repeatS: seconds in which an identical text of this id is not shown again (Developer mode off).
 M.catalog = {
     -- Invitations
-    ['invite-board'] = {class = PLAYER},               -- joined / failed, one merged notice; progress (Preparing / Connecting / ready) is Developer mode only
+    ['invite-board'] = {class = PLAYER},               -- joined / failed, one merged notice; no progress text in any mode
     ['party-joined'] = {class = PLAYER},               -- a joined outcome, merged into the board
     ['party-failed'] = {class = PLAYER},               -- could not prepare / could not join
     ['party-dismiss-failed'] = {class = PLAYER},
@@ -53,8 +53,6 @@ M.catalog = {
     ['trip-failed'] = {class = PLAYER, repeatS = 15},
 
     -- Developer mode only
-    ['invite-joining'] = {class = DEVELOPER},
-    ['phone-invite-ack'] = {class = DEVELOPER},
     ['phone-dismiss-ack'] = {class = DEVELOPER},
     ['party-dismissed'] = {class = DEVELOPER},
     ['trip-guidance'] = {class = DEVELOPER},

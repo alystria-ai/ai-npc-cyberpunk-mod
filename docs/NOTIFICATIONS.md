@@ -9,8 +9,8 @@ something really failed and they have to act. Everything routine is for develope
 
 | Class | Shown | Meaning |
 | --- | --- | --- |
-| **Player** | always | An intuitive wait (an invitation preparing or connecting, the microphone connecting), its outcome, or a real failure the player must act on. Short wording. An identical notice is not repeated inside its window (the "Window" column) while Developer mode is off. |
-| **Developer** | Developer mode only | Routine status: joins in progress, dismissals, driving steps, acknowledgements, tactic outcomes, diagnostics. |
+| **Player** | always | An intuitive wait (a conversation starting, the microphone connecting), its outcome, or a real failure the player must act on. Short wording. An identical notice is not repeated inside its window (the "Window" column) while Developer mode is off. |
+| **Developer** | Developer mode only | Routine status: dismissals, driving steps, acknowledgements, tactic outcomes, diagnostics. |
 | **Removed** | never | Noise even for developers (it repeats something already on screen). |
 
 Settings > Development > Developer mode is off by default and read with a cheap boolean when a notice is about to be shown; nothing here runs
@@ -22,7 +22,7 @@ CLOSE PHONE"), the character's spoken reply and subtitles (`ConvaiShowReply`), a
 ## What a player sees with Developer mode off
 
 Invitation: "{name} joined your group." when the companion arrives (every time, quick or slow), and "{name} could not prepare/join: {reason}" on a failure.
-Progress lines ("Preparing {name}…", "Connecting {name}…", "{name} is ready to join when you return to the game.", "{name} is ready. Close the phone to join.", "{name} is joining your party.") are Developer mode only, at any wait length, for manager, phone and party invitations alike: a player is never told about a wait.
+Companion invitations (manager, phone and party) show no progress in any mode: no "Preparing", "Connecting", ready or "joining" text, to a player or a developer. The party list shows each copy's stage, and the mod log keeps every stage. A player sees "joined" and failures, and so does a developer.
 Talking: "Preparing connection to {name}…" (only while Auto-connect nearby characters is off and the character is not connected),
 "Connecting microphone - wait for Listening", "Listening - press {key} again to finish". Failures: the conversation service starting, missing
 its key, stopped or failed; no reply; the microphone unavailable or timed out; a companion action that was refused; a voice engine that fell
@@ -34,17 +34,12 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 
 | Id | Class | English text | Fires when | Window |
 | --- | --- | --- | --- | --- |
-| `invite-board` | Player | Preparing {name}… / Preparing {names}… | Developer mode only: an invitation (manager or phone) still preparing memory and voice after 1 s; replaced in place, on screen at least 3 s. A player never sees it | board |
-| `invite-board` | Player | Connecting {name}… / Connecting {names}… | Developer mode only: the invitation is connecting, after 1 s. A player never sees it | board |
-| `invite-board` | Player | {name} is ready to join when you return to the game. / {names} are ready to join when you return to the game. | Developer mode only: ready while the menu is open (manager), at once. A player never sees it | board |
-| `invite-board` | Player | {name} is ready. Close the phone to join. / {names} are ready. Close the phone to join. | Developer mode only: ready while the phone is open, at once. A player never sees it | board |
+| `invite-board` | Player | {name} joined your group. / {names} joined your group. (merged with failures on one line) | The invitation board: only the joined and failure lines. A joined line waits up to 4 s for the other invitations of its burst; each notice stays up at least 3 s (5 s after a final outcome). Developers see the same notices | board |
 | `party-joined` | Player | {name} joined your group. / {names} joined your group. | The companion appeared. Every joined notice shows to a player (quick or slow), and developers see it too. Several in a burst merge into one, shown 5 s | board |
 | `party-failed` | Player | {name} could not prepare: {reason} | Preparation failed (the player cancels and invites again) | once |
 | `party-failed` | Player | {name} could not join: {reason} | The game refused or lost the spawn | once |
 | `party-failed` | Player | {count} more companions also failed. | More than two failures in one burst | once |
 | `party-dismiss-failed` | Player | {name}: {error} | The game refused a dismissal | once |
-| `invite-joining` | Developer | {name} is joining your party. / {names} are joining your party. | The spawn step after ready, in gameplay | board |
-| `phone-invite-ack` | Developer | Preparing {name}… / {name} is ready to join when you return to the game. / {name} will join when you return to the game. | The phone's invite was accepted and the board follows it | none |
 | `phone-invite-reply` | Player | The queue's refusal reason (for example Load a save before inviting a companion.) | The phone's invite was refused | 20 |
 | `phone-dismiss-ack` | Developer | {name} will leave when you return to the game. | The phone's dismissal was accepted | none |
 | `phone-dismiss-reply` | Player | The refusal reason (for example That copy is no longer in your party.) | The phone's dismissal was refused | 20 |
@@ -109,3 +104,5 @@ no "bridge", no "eight metres"). Earlier: 248c14c, a20c7a1, e7e9760 (calmer invi
 2026-10-10 (voice startup): a slow OmniVoice start no longer ends the session on Pocket. The fixed 180 s startup limit is replaced by a progress-based one (`docs/LOCAL_VOICES.md`, "Startup limit, background retry and switch back"), and a failed or timed-out OmniVoice is retried in the background. While that is pending the fallback notice reads "{requested} is not ready yet. Companions are using {voice} for now." (once, same 600 s window); the return to OmniVoice is deliberately silent because nothing is being waited on. The permanent "is unavailable" text remains for a voice that cannot run at all. The Settings status line says "not ready yet" instead of "unavailable" for the temporary case.
 
 2026-10-10 (follow-up): a join that was still pending after 10 s (a voice model loading after a bridge restart) still showed "Preparing", "Connecting" or the ready line to a player. All progress now shows in Developer mode only, at any wait length; the phone acknowledgement of an accepted invitation is Developer-only even when the board does not follow it. A player sees only "joined" and failures. `LONG_WAIT_MS` is removed.
+
+2026-10-10 (no progress text): companion invitations post no progress in any mode, Developer mode included: no "Preparing", "Connecting", ready or "joining" line on the board, in the manager status line, the MCM banner or the phone. The phone acknowledgement of an accepted invitation is removed, and `invite-joining` and `phone-invite-ack` leave `mod/notices.lua`. A player and a developer see "{name} joined your group." and failures only.

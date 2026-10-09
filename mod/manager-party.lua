@@ -10,28 +10,25 @@ function M.ambientProfile(key)
 end
 
 -- The invitation notice board. Every invitation in flight (manager or phone) is
--- one entry, and the board turns all of them into ONE compact notice that
--- replaces the previous one: "Preparing Judy and Johnny...", then "Judy and
--- Johnny joined your group.". A lone invitation keeps its original wording.
--- Visibility rules (the classes live in notices.lua, docs/NOTIFICATIONS.md): a player sees only
--- "joined" and failures. The progress steps (preparing, connecting, ready) and the routine "joining"
--- step are Developer-mode only, at any wait length.
+-- one entry, and the board turns the outcomes of all of them into ONE compact
+-- notice that replaces the previous one: "Judy and Johnny joined your group.".
+-- A lone invitation keeps its original wording.
+-- Visibility rules (the classes live in notices.lua, docs/NOTIFICATIONS.md): a player sees
+-- "joined" and failures, and so does a developer. No progress text (preparing, connecting, ready,
+-- joining) is posted in any mode: the party list shows the stage, and the mod log keeps every stage.
 -- Calm rules, because each notice replaces the last one on screen:
 -- * A posted notice stays up for at least MIN_SHOW_MS (FINAL_SHOW_MS after a
 --   final outcome, so a "joined" is never cut short): a change arriving sooner
 --   is held, and whatever is true when the time is up is posted instead
 --   (intermediate texts are skipped, a text that reverted meanwhile is never
---   shown). Near-simultaneous stages of several invitations merge the same way.
+--   shown).
 -- * When one companion has joined and the others of the same burst are still
 --   going, the "joined" line waits up to JOIN_HOLD_MS for them, so the usual
---   result is one merged "joined" instead of a partial notice. Meanwhile the
---   progress notice keeps naming everyone it already named.
+--   result is one merged "joined" instead of a partial notice.
 -- * A new failure is never delayed; only a new failure also skips the minimum time.
 local MIN_SHOW_MS = 3000
 local FINAL_SHOW_MS = 5000
 local JOIN_HOLD_MS = 4000
--- Developers see a progress step once the invitation has been in flight this long (ready at once).
-local SHOW_DELAY_MS = 1000
 local MAX_LISTED = 3
 local RANKS = {memory = 1, connecting = 2, ready = 3, joining = 4}
 
@@ -75,8 +72,7 @@ local function listNames(names)
 end
 
 local function newBurst()
-    -- gone: invitations that finished, by name, so a held "joined" can still be named in the progress line.
-    return {joined = {}, failures = {}, fresh = false, gone = {}}
+    return {joined = {}, failures = {}, fresh = false}
 end
 
 function M.newBoard(options)
@@ -95,12 +91,6 @@ function M.newBoard(options)
             sink = ok and global or nil
         end
         if type(sink) == 'function' then pcall(sink, line) end
-    end
-
-    local function developerMode()
-        if type(options.developerMode) ~= 'function' then return false end
-        local ok, enabled = pcall(options.developerMode)
-        return ok and enabled == true
     end
 
     function B.reset()
@@ -140,10 +130,6 @@ function M.newBoard(options)
             local ok, current = pcall(options.feedback, entry.id)
             if not ok or type(current) ~= 'table' then
                 table.remove(entries, index)
-                if entry.name then
-                    burst.gone[entry.name] = {seq = entry.seq, source = entry.source, name = entry.name,
-                        shown = entry.announced ~= nil and entry.announced == entry.revision}
-                end
             else
                 entry.name, entry.revision = current.name, current.revision
                 entry.failed = current.failed == true or current.state == 'error'
@@ -172,77 +158,12 @@ function M.newBoard(options)
         return inflight
     end
 
-    -- The invitations whose progress may be named now, each with the step it is named at
-    -- (entry.display). Only Developer mode names progress: a player is never told about a wait, at
-    -- any length, so the only invitation notices a player gets are "joined" and failures. Developers
-    -- see a step after SHOW_DELAY_MS, the ready line and the joining step at once.
-    local function visible(inflight, at, developer)
-        local shown = {}
-        for _, entry in ipairs(inflight) do
-            local want
-            if developer then
-                local waited = at - (entry.startedAt or at)
-                if entry.stage == 'ready' or entry.stage == 'joining' or waited >= SHOW_DELAY_MS then want = entry.stage end
-            end
-            entry.display = want
-            if want then shown[#shown + 1] = entry end
-        end
-        return shown
-    end
-
-    local function progress(inflight, developer)
-        if #inflight == 0 then return nil end
-        local lowest, allPhone = 'joining', true
-        for _, entry in ipairs(inflight) do
-            local step = entry.display or entry.stage
-            if RANKS[step] < RANKS[lowest] then lowest = step end
-            if entry.source ~= 'phone' then allPhone = false end
-        end
-        if lowest == 'joining' and not shown('invite-joining', developer) then return nil end
-        local names = uniqueNames(inflight)
-        if #names <= 1 then
-            local name = names[1]
-            if lowest == 'memory' then return ui.t('Preparing {name}…', {name = name}) end
-            if lowest == 'connecting' then return ui.t('Connecting {name}…', {name = name}) end
-            if lowest == 'ready' then
-                return allPhone and ui.t('{name} is ready. Close the phone to join.', {name = name})
-                    or ui.t('{name} is ready to join when you return to the game.', {name = name})
-            end
-            return ui.t('{name} is joining your party.', {name = name})
-        end
-        local list = listNames(names)
-        if lowest == 'memory' then return ui.t('Preparing {names}…', {names = list}) end
-        if lowest == 'connecting' then return ui.t('Connecting {names}…', {names = list}) end
-        if lowest == 'ready' then
-            return allPhone and ui.t('{names} are ready. Close the phone to join.', {names = list})
-                or ui.t('{names} are ready to join when you return to the game.', {names = list})
-        end
-        return ui.t('{names} are joining your party.', {names = list})
-    end
-
     -- True while a companion that joined waits for the others of its burst.
     local function holdingJoined(active, at)
         return #burst.joined > 0 and #active > 0 and burst.joinedAt ~= nil and at - burst.joinedAt < JOIN_HOLD_MS
     end
 
-    -- The progress line keeps naming a held companion that the previous notice
-    -- already named, in invitation order, so the text does not change.
-    local function withHeld(inflight)
-        if #inflight == 0 then return inflight end
-        local listed, seen = {}, {}
-        for _, entry in ipairs(inflight) do listed[#listed + 1] = entry; seen[entry.name] = true end
-        for _, item in ipairs(burst.joined) do
-            local gone = burst.gone[item.name]
-            if gone and gone.shown and not seen[item.name] then
-                seen[item.name] = true
-                listed[#listed + 1] = {name = item.name, stage = 'joining', source = gone.source, seq = gone.seq}
-            end
-        end
-        table.sort(listed, function(a, b) return (a.seq or 0) < (b.seq or 0) end)
-        return listed
-    end
-
-    local function compose(inflight, developer, holding)
+    local function compose(holding)
         local lines = {}
         if #burst.joined > 0 and not holding then
             -- "Joined" is the one notice a normal invitation gives, so it is always shown.
@@ -263,8 +184,6 @@ function M.newBoard(options)
             end
             lines[#lines + 1] = failure.message
         end
-        local line = progress(holding and withHeld(inflight) or inflight, developer)
-        if line then lines[#lines + 1] = line end
         return table.concat(lines, '\n')
     end
 
@@ -272,21 +191,17 @@ function M.newBoard(options)
     -- commit() only after the message was really posted.
     function B.take(worldReady)
         worldReady = worldReady == true
-        local developer = developerMode()
         local at = now()
         local active = sample(worldReady)
-        local inflight = visible(active, at, developer)
         local holding = holdingJoined(active, at)
-        local text = compose(inflight, developer, holding)
+        local text = compose(holding)
         if text == '' then
             if #active == 0 then burst = newBurst() end
             return nil
         end
-        local core = table.concat({text, tostring(ui.revision()), developer and 'developer' or 'normal'}, '|')
-        -- A copy not announced yet, or one whose profile was chosen again (a new
-        -- revision), is announced even when its text equals the previous notice.
+        local core = table.concat({text, tostring(ui.revision())}, '|')
+        -- A new outcome is announced even when its text equals the previous notice (two copies of one character).
         local fresh = burst.fresh and not (holding and #burst.failures == 0)
-        for _, entry in ipairs(inflight) do if entry.announced ~= entry.revision then fresh = true end end
         if not fresh and core == shownCore and (not worldReady or core == shownGameplayCore) then
             if #active == 0 then burst = newBurst() end
             return nil
@@ -307,7 +222,6 @@ function M.newBoard(options)
             lastHold = (#active == 0 and (#burst.joined > 0 or #burst.failures > 0)) and FINAL_SHOW_MS or MIN_SHOW_MS
             for _, failure in ipairs(burst.failures) do failure.announced = true end
             if worldReady then shownGameplayCore = core end
-            for _, entry in ipairs(inflight) do entry.announced = entry.revision end
             burst.fresh = false
             if #active == 0 then burst = newBurst() end
         end}
@@ -415,15 +329,14 @@ function M.new(companions, readiness, options)
         for _, job in ipairs(joins) do
             if job.id == (id or preparationId) then
                 local status = preparation(job)
-                local text = 'Preparing {name}…'
-                if status.state == 'connecting' then text = 'Connecting {name}…'
-                elseif status.state == 'ready' or status.state == 'model-only' then
-                    text = '{name} is ready to join when you return to the game.'
-                elseif status.state == 'error' then
-                    text = '{name}: preparation failed. Cancel and invite again.'
+                -- Progress (preparing, connecting, ready) has no text: the board and the
+                -- MCM banner read the state. Only a failure carries a message.
+                local message = ''
+                if status.state == 'error' then
+                    message = ui.t('{name}: preparation failed. Cancel and invite again.', {name = job.name})
                 end
                 return {id = job.id, revision = job.revision, name = job.name, state = status.state,
-                    message = ui.t(text, {name = job.name}), failed = status.state == 'error',
+                    message = message, failed = status.state == 'error',
                     signature = table.concat({job.id, tostring(job.revision), status.state}, '|')}
             end
         end
@@ -435,14 +348,14 @@ function M.new(companions, readiness, options)
         local pending = Q.preparationFeedback(id)
         if pending then return pending end
         -- A ready invitation can spawn on the first gameplay frame. Report its
-        -- current joining stage instead of replaying paused preparation text.
-        -- Attachment completion/failure is delivered by the existing notices.
+        -- joining stage for the board's log (no text); attachment completion/failure
+        -- is delivered by the existing notices.
         for serial, job in pairs(attaching) do
             if job.id == id and not leaves[serial] then
                 for _, member in ipairs(companions.list()) do
                     if member.serial == serial and member.state == 'spawning' then
                         return {id = job.id, revision = job.revision, name = job.name, state = 'joining',
-                            message = ui.t('{name} is joining your party.', {name = job.name}), failed = false,
+                            message = '', failed = false,
                             signature = table.concat({job.id, tostring(job.revision), 'joining'}, '|')}
                     end
                 end
@@ -454,8 +367,7 @@ function M.new(companions, readiness, options)
     -- The shared notice board for manager and phone invitations (see M.newBoard).
     function Q.board()
         if not noticeBoard then
-            noticeBoard = M.newBoard({feedback = function(id) return Q.invitationFeedback(id) end,
-                developerMode = developerMode})
+            noticeBoard = M.newBoard({feedback = function(id) return Q.invitationFeedback(id) end})
         end
         return noticeBoard
     end
@@ -562,9 +474,8 @@ function M.new(companions, readiness, options)
                 {kind = 'failed', name = job.name})
             return false, feedback, id
         end
-        feedback = readiness and ui.t(job.profileKey and 'Preparing {name}…'
-            or '{name} is ready to join when you return to the game.', {name = job.name})
-            or ui.t('{name} will join when you return to the game.', {name = job.name})
+        -- Progress is not shown in any mode (the party list shows the stage; "joined" comes later).
+        feedback = ''
         return true, feedback, id
     end
 
@@ -818,8 +729,8 @@ function M.new(companions, readiness, options)
                     job.warning = not assigned and tostring(assignmentError) or nil
                     attaching[serial] = job
                     if readiness then readiness.spawned(job, serial) end
-                    feedback = assigned and ui.t('{name} is joining your party.', {name = job.name})
-                        or (job.name .. ': ' .. tostring(assignmentError))
+                    -- A joining copy shows no text: the board posts "joined" when it arrives.
+                    feedback = assigned and '' or (job.name .. ': ' .. tostring(assignmentError))
                 else
                     job.error = tostring(called and err or serial)
                     if readiness then readiness.cancel(job) end

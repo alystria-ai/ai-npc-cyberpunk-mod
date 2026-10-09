@@ -225,16 +225,19 @@ test('an identical notice is not repeated inside its window for a player, a deve
 test('sendLines shows the permitted lines as one notice and nothing when none is permitted', () => {
   run(`
     local count = notices.sendLines(player, {
-      {id = 'invite-board', text = 'Preparing Judy…'}, {id = 'party-dismissed', text = 'Panam dismissed.'},
+      {id = 'invite-board', text = 'Judy joined your group.'}, {id = 'party-dismissed', text = 'Panam dismissed.'},
       {id = 'party-failed', text = 'Johnny could not join: x'}, {id = 'phone-queued', text = 'Judy: invite queued.'}})
     assert(count == 2 and #shown == 1)
-    assert(shown[1] == 'Preparing Judy…\\nJohnny could not join: x', shown[1])
+    assert(shown[1] == 'Judy joined your group.\\nJohnny could not join: x', shown[1])
     shown = {}
     assert(notices.sendLines(player, {{id = 'party-dismissed', text = 'x'}, {id = 'tactic-outcome', text = 'y'}}) == 0)
     assert(#shown == 0 and notices.sendLines(player, {}) == 0)
     developer = true
-    assert(notices.sendLines(player, {{id = 'party-dismissed', text = 'Panam dismissed.'}, {id = 'invite-joining', text = 'Judy is joining your party.'}}) == 2)
-    assert(shown[1] == 'Panam dismissed.\\nJudy is joining your party.')
+    assert(notices.sendLines(player, {{id = 'party-dismissed', text = 'Panam dismissed.'}, {id = 'invite-board', text = 'Judy joined your group.'}}) == 2)
+    assert(shown[1] == 'Panam dismissed.\\nJudy joined your group.')
+    -- The progress notices were removed from the catalog: an unknown id is never shown, even to a developer.
+    assert(notices.send(player, 'invite-joining', 'Judy is joining your party.') == false)
+    assert(notices.send(player, 'phone-invite-ack', 'Preparing Judy…') == false)
     -- A game error while posting is swallowed and not counted as shown.
     local broken = {ConvaiPhoneFeedback = function() error('native') end}
     assert(notices.sendLines(broken, {{id = 'service-down', text = 'x'}}) == 0)
@@ -253,7 +256,7 @@ test('permit applies the class and the repeat window without posting', () => {
   `);
 });
 
-test('the notice board hides the joining step from players and the invitation queue tags every notice with a catalogued id', () => {
+test('the notice board posts no progress, to a player or a developer, and only the joined line at the end', () => {
   const partySource = read('../mod/manager-party.lua');
   const localeSource = read('../mod/ui-locale.lua');
   const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
@@ -264,15 +267,18 @@ test('the notice board hides the joining step from players and the invitation qu
       local party = (function() ${partySource} end)()
       local developer = false
       local clock, states = 10000, {}
-      local board = party.newBoard({now = function() return clock end, developerMode = function() return developer end,
-        feedback = function(id) return states[id] end})
+      local board = party.newBoard({now = function() return clock end, feedback = function(id) return states[id] end})
       states.a = {id = 'a', name = 'Judy', state = 'ready', revision = 1}
       board.track('a', 'manager')
-      -- In gameplay a ready invitation is the routine joining step: players see nothing, developers see it.
+      -- In gameplay a ready invitation is the joining step: no one sees a line for it, a developer included.
       assert(board.take(true) == nil, 'a player saw the joining step')
       developer = true
+      clock = clock + 60000
+      assert(board.take(true) == nil, 'a developer saw the joining step')
+      states.a = nil
+      board.event({message = 'Judy joined your group.', info = {kind = 'joined', name = 'Judy'}})
       local note = board.take(true)
-      assert(note and note.message == 'Judy is joining your party.', tostring(note and note.message))
+      assert(note and note.message == 'Judy joined your group.', tostring(note and note.message))
     `;
     const status = lauxlib.luaL_dostring(state, to_luastring(program));
     assert.equal(status, lua.LUA_OK, status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1)));

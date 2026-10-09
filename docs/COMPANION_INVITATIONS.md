@@ -144,13 +144,12 @@ failure first observed while the pause menu, phone or manager is open does not
 take it; those only update the in-menu banner or list, and the notice is posted
 once when gameplay resumes. A failure found while the invitation is created is
 queued for gameplay in the same way, and the phone does not also post it while
-it is open. Preparing memory, connecting, the ready-to-join instruction and
-joined are posted as popups in every mode, so a slow preparation is not mistaken
-for a failure. Only the joining step, the phone's preparing acknowledgement and
-the dismissed notice need Developer mode; the manager banner and Current party
-list show every stage either way.
+it is open. Only joined and failures are posted as popups, in every mode. No preparing,
+connecting, ready-to-join or joining text is posted at all, so a slow preparation
+is never mistaken for a failure. The Current party list shows every stage, and the
+dismissed notice needs Developer mode.
 
-Invitations made together share one merged notice (`Preparing Judy and Johnny…`, `Judy and Johnny joined
+Invitations made together share one merged notice (`Judy and Johnny joined
 your group.`, failures beside the successes). The claim rules above are unchanged: the notice board
 (`queue.board()`, see `docs/MANAGER_UI.md`, "One merged notice for invitations made together") never takes
 the failure claim; failures arrive as the queue's own gameplay outcome notices and are merged there.

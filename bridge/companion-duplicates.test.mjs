@@ -67,7 +67,7 @@ const partyHarness = `
   end
 `;
 
-test('a phone invitation that fails to start is reported once, in gameplay, and an accepted one has a Developer-only preparing acknowledgement', () => run(`${partyHarness}
+test('a phone invitation that fails to start is reported once, in gameplay, and an accepted one shows no preparing text in any mode', () => run(`${partyHarness}
   local calls,stage=0,'memory'
   local readiness={bind=function() end, newId=function(n) return 'invite:'..n end, cancel=function() end,
     prepare=function() calls=calls+1; if calls==1 then return false,'Bridge unavailable' end; return true end,
@@ -82,7 +82,7 @@ test('a phone invitation that fails to start is reported once, in gameplay, and 
   press('+judy')
   assert(#phone.feedback==0,'an accepted invitation posted routine preparation text with Developer mode off')
   developer=true; press('+judy')
-  assert(#phone.feedback==1 and phone.feedback[1]:find('Preparing',1,true),phone.feedback[1])
+  assert(#phone.feedback==0,'an accepted invitation posted preparation text with Developer mode on: '..tostring(phone.feedback[1]))
 `));
 
 test('phone dismissal of a duplicated character removes only the most recent copy', () => run(`${partyHarness}

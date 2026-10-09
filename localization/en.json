@@ -42,8 +42,8 @@
     ]
   },
   "counts": {
-    "strings": 613,
-    "dynamicTemplates": 64,
+    "strings": 602,
+    "dynamicTemplates": 58,
     "contexts": 35
   },
   "strings": {
@@ -162,8 +162,6 @@
     "Confirm": "Confirm",
     "Confirm memory clear": "Confirm memory clear",
     "Connecting microphone - wait for Listening": "Connecting microphone - wait for Listening",
-    "Connecting {names}…": "Connecting {names}…",
-    "Connecting {name}…": "Connecting {name}…",
     "Continue from game dialogue": "Continue from game dialogue",
     "Convai API key": "Convai API key",
     "Convai did not accept that key.": "Convai did not accept that key.",
@@ -356,8 +354,6 @@
     "Preparing connection to {name}…": "Preparing connection to {name}…",
     "Preparing to drive": "Preparing to drive",
     "Preparing voices": "Preparing voices",
-    "Preparing {names}…": "Preparing {names}…",
-    "Preparing {name}…": "Preparing {name}…",
     "Press Enter to write  /  Esc to stop typing": "Press Enter to write  /  Esc to stop typing",
     "Press your Group voice chat shortcut to finish recording.": "Press your Group voice chat shortcut to finish recording.",
     "Press your Talk by voice shortcut to finish recording.": "Press your Talk by voice shortcut to finish recording.",
@@ -620,9 +616,6 @@
     "{first}, {second} and {count} others": "{first}, {second} and {count} others",
     "{first}, {second} and {third}": "{first}, {second} and {third}",
     "{message} The change is active, but could not be saved for next time.": "{message} The change is active, but could not be saved for next time.",
-    "{names} are joining your party.": "{names} are joining your party.",
-    "{names} are ready to join when you return to the game.": "{names} are ready to join when you return to the game.",
-    "{names} are ready. Close the phone to join.": "{names} are ready. Close the phone to join.",
     "{names} joined your group.": "{names} joined your group.",
     "{name} can't come along right now.": "{name} can't come along right now.",
     "{name} could not join: {reason}": "{name} could not join: {reason}",
@@ -631,17 +624,13 @@
     "{name} does not have a conversation profile configured yet.": "{name} does not have a conversation profile configured yet.",
     "{name} is already with you.": "{name} is already with you.",
     "{name} is coming with you.": "{name} is coming with you.",
-    "{name} is joining your party.": "{name} is joining your party.",
     "{name} is leaving your party.": "{name} is leaving your party.",
     "{name} is no longer attached to the world. Dismiss this copy to free its place.": "{name} is no longer attached to the world. Dismiss this copy to free its place.",
     "{name} is no longer nearby.": "{name} is no longer nearby.",
     "{name} is not in your group.": "{name} is not in your group.",
-    "{name} is ready to join when you return to the game.": "{name} is ready to join when you return to the game.",
-    "{name} is ready. Close the phone to join.": "{name} is ready. Close the phone to join.",
     "{name} joined your group.": "{name} joined your group.",
     "{name} joined your party.": "{name} joined your party.",
     "{name} selected for memory controls.": "{name} selected for memory controls.",
-    "{name} will join when you return to the game.": "{name} will join when you return to the game.",
     "{name} will leave when you return to the game.": "{name} will leave when you return to the game.",
     "{name} will say one of their game lines when you return to the game.": "{name} will say one of their game lines when you return to the game.",
     "{name} will stay in the party.": "{name} will stay in the party.",
@@ -1159,7 +1148,6 @@
     "party.feedback": [
       "Companion preparation is unavailable.",
       "Companion preparation returned an invalid state.",
-      "Preparing {name}…",
       "Some model records could not be read.",
       "The character died before joining.",
       "The character was removed before joining.",
@@ -1168,12 +1156,9 @@
       "{name} could not join: {reason}",
       "{name} could not prepare: {reason}",
       "{name} dismissed.",
-      "{name} is joining your party.",
       "{name} is no longer attached to the world. Dismiss this copy to free its place.",
-      "{name} is ready to join when you return to the game.",
       "{name} joined your group.",
       "{name} joined your party.",
-      "{name} will join when you return to the game.",
       "{name} will leave when you return to the game.",
       "{name} will stay in the party.",
       "{name}: conversation profile cleared.",
@@ -1217,9 +1202,7 @@
       "Write a message...  /  Enter to send  /  Esc to stop typing"
     ],
     "phone.feedback": [
-      "Connecting {name}…",
       "{name} is not in your group.",
-      "{name} is ready. Close the phone to join.",
       "{name}: preparation failed. Cancel and invite again."
     ],
     "phone.localized": [
@@ -1291,8 +1274,6 @@
       "Companion preparation returned an invalid state.",
       "Companion voices",
       "Connecting microphone - wait for Listening",
-      "Connecting {names}…",
-      "Connecting {name}…",
       "Convai did not accept that key.",
       "Convai did not accept your API key. Check it in Settings > Development.",
       "Convai voice",
@@ -1339,8 +1320,6 @@
       "Pocket · Performance",
       "Preparing connection to {name}…",
       "Preparing voices",
-      "Preparing {names}…",
-      "Preparing {name}…",
       "Press your Group voice chat shortcut to finish recording.",
       "Press your Talk by voice shortcut to finish recording.",
       "RED4ext writes its logs in {path}",
@@ -1423,9 +1402,6 @@
       "{first} and {second}",
       "{first}, {second} and {count} others",
       "{first}, {second} and {third}",
-      "{names} are joining your party.",
-      "{names} are ready to join when you return to the game.",
-      "{names} are ready. Close the phone to join.",
       "{names} joined your group.",
       "{name} can't come along right now.",
       "{name} could not join: {reason}",
@@ -1434,15 +1410,11 @@
       "{name} does not have a conversation profile configured yet.",
       "{name} is already with you.",
       "{name} is coming with you.",
-      "{name} is joining your party.",
       "{name} is leaving your party.",
       "{name} is no longer nearby.",
       "{name} is not in your group.",
-      "{name} is ready to join when you return to the game.",
-      "{name} is ready. Close the phone to join.",
       "{name} joined your group.",
       "{name} selected for memory controls.",
-      "{name} will join when you return to the game.",
       "{name} will leave when you return to the game.",
       "{name} will say one of their game lines when you return to the game.",
       "{name} will stay in the party.",
@@ -1451,6 +1423,7 @@
       "{name}: conversation profile cleared.",
       "{name}: conversation set to {profile}.",
       "{name}: invitation cancelled.",
+      "{name}: preparation failed. Cancel and invite again.",
       "{requested} is not ready yet. Companions are using {voice} for now.",
       "{requested} is unavailable. Companions are using {voice} instead.",
       "{status} · After current reply",
@@ -2155,7 +2128,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:675"
+        "mod/manager-party.lua:586"
       ]
     },
     "Choose an eye contact option.": {
@@ -2396,7 +2369,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:407"
+        "mod/manager-party.lua:321"
       ]
     },
     "Companion preparation is unavailable.": {
@@ -2406,7 +2379,7 @@
       ],
       "references": [
         "mod/companions.lua:295",
-        "mod/manager-party.lua:401"
+        "mod/manager-party.lua:315"
       ]
     },
     "Companion preparation returned an invalid state.": {
@@ -2415,7 +2388,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:405"
+        "mod/manager-party.lua:319"
       ]
     },
     "Companion voices": {
@@ -2467,24 +2440,6 @@
       ],
       "references": [
         "mod/init.lua:1286"
-      ]
-    },
-    "Connecting {names}…": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/manager-party.lua:215"
-      ]
-    },
-    "Connecting {name}…": {
-      "contexts": [
-        "phone.feedback",
-        "ui.localized"
-      ],
-      "references": [
-        "mod/manager-party.lua:206",
-        "mod/manager-party.lua:419"
       ]
     },
     "Continue from game dialogue": {
@@ -3394,7 +3349,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:531"
+        "mod/manager-party.lua:443"
       ]
     },
     "Loading": {
@@ -4083,25 +4038,6 @@
         "mod/mcm.lua:353"
       ]
     },
-    "Preparing {names}…": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/manager-party.lua:214"
-      ]
-    },
-    "Preparing {name}…": {
-      "contexts": [
-        "party.feedback",
-        "ui.localized"
-      ],
-      "references": [
-        "mod/manager-party.lua:205",
-        "mod/manager-party.lua:418",
-        "mod/manager-party.lua:565"
-      ]
-    },
     "Press Enter to write  /  Esc to stop typing": {
       "contexts": [
         "phone.chat"
@@ -4763,7 +4699,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:577"
+        "mod/manager-party.lua:488"
       ]
     },
     "Stop trip": {
@@ -4797,7 +4733,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:715"
+        "mod/manager-party.lua:626"
       ]
     },
     "Strong": {
@@ -4891,7 +4827,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:533"
+        "mod/manager-party.lua:445"
       ]
     },
     "That companion is no longer in your party.": {
@@ -4935,8 +4871,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:573",
-        "mod/manager-party.lua:604",
+        "mod/manager-party.lua:484",
+        "mod/manager-party.lua:515",
         "mod/manager.lua:1120",
         "mod/manager.lua:1142"
       ]
@@ -4946,7 +4882,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:666"
+        "mod/manager-party.lua:577"
       ]
     },
     "That model is no longer available.": {
@@ -4996,7 +4932,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:736"
+        "mod/manager-party.lua:647"
       ]
     },
     "The car is now in use. The companion trip was cancelled.": {
@@ -5020,7 +4956,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:771"
+        "mod/manager-party.lua:682"
       ]
     },
     "The character was removed before joining.": {
@@ -5029,8 +4965,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:771",
-        "mod/manager-party.lua:803"
+        "mod/manager-party.lua:682",
+        "mod/manager-party.lua:714"
       ]
     },
     "The clipboard could not be read.": {
@@ -5168,7 +5104,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:784",
+        "mod/manager-party.lua:695",
         "mod/manager.lua:1122"
       ]
     },
@@ -5193,7 +5129,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:716"
+        "mod/manager-party.lua:627"
       ]
     },
     "The driving request could not be queued.": {
@@ -5433,7 +5369,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:511"
+        "mod/manager-party.lua:423"
       ]
     },
     "There is no companion trip to cancel.": {
@@ -5441,7 +5377,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:509"
+        "mod/manager-party.lua:421"
       ]
     },
     "This contact has no companion mapping yet.": {
@@ -5514,7 +5450,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:714"
+        "mod/manager-party.lua:625"
       ]
     },
     "Trip cancelled.": {
@@ -6087,7 +6023,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:732"
+        "mod/manager-party.lua:643"
       ]
     },
     "Your companion is preparing to drive.": {
@@ -6104,7 +6040,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:734"
+        "mod/manager-party.lua:645"
       ]
     },
     "Your companion must step out before taking the driver seat.": {
@@ -6245,7 +6181,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:261"
+        "mod/manager-party.lua:182"
       ]
     },
     "{count} of them can talk.": {
@@ -6270,7 +6206,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:70"
+        "mod/manager-party.lua:67"
       ]
     },
     "{first}, {second} and {count} others": {
@@ -6278,7 +6214,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:74"
+        "mod/manager-party.lua:71"
       ]
     },
     "{first}, {second} and {third}": {
@@ -6286,7 +6222,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:72"
+        "mod/manager-party.lua:69"
       ]
     },
     "{message} The change is active, but could not be saved for next time.": {
@@ -6297,36 +6233,12 @@
         "mod/manager.lua:696"
       ]
     },
-    "{names} are joining your party.": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/manager-party.lua:220"
-      ]
-    },
-    "{names} are ready to join when you return to the game.": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/manager-party.lua:218"
-      ]
-    },
-    "{names} are ready. Close the phone to join.": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/manager-party.lua:217"
-      ]
-    },
     "{names} joined your group.": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:251"
+        "mod/manager-party.lua:172"
       ]
     },
     "{name} can't come along right now.": {
@@ -6343,9 +6255,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:769",
-        "mod/manager-party.lua:805",
-        "mod/manager-party.lua:826"
+        "mod/manager-party.lua:680",
+        "mod/manager-party.lua:716",
+        "mod/manager-party.lua:737"
       ]
     },
     "{name} could not prepare: {reason}": {
@@ -6354,9 +6266,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:561",
-        "mod/manager-party.lua:696",
-        "mod/manager-party.lua:833"
+        "mod/manager-party.lua:473",
+        "mod/manager-party.lua:607",
+        "mod/manager-party.lua:744"
       ]
     },
     "{name} dismissed.": {
@@ -6365,7 +6277,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:787"
+        "mod/manager-party.lua:698"
       ]
     },
     "{name} does not have a conversation profile configured yet.": {
@@ -6391,17 +6303,6 @@
       ],
       "references": [
         "mod/companion-adoption.lua:353"
-      ]
-    },
-    "{name} is joining your party.": {
-      "contexts": [
-        "party.feedback",
-        "ui.localized"
-      ],
-      "references": [
-        "mod/manager-party.lua:211",
-        "mod/manager-party.lua:445",
-        "mod/manager-party.lua:821"
       ]
     },
     "{name} is leaving your party.": {
@@ -6438,33 +6339,13 @@
         "mod/init.lua:1884"
       ]
     },
-    "{name} is ready to join when you return to the game.": {
-      "contexts": [
-        "party.feedback",
-        "ui.localized"
-      ],
-      "references": [
-        "mod/manager-party.lua:209",
-        "mod/manager-party.lua:421",
-        "mod/manager-party.lua:566"
-      ]
-    },
-    "{name} is ready. Close the phone to join.": {
-      "contexts": [
-        "phone.feedback",
-        "ui.localized"
-      ],
-      "references": [
-        "mod/manager-party.lua:208"
-      ]
-    },
     "{name} joined your group.": {
       "contexts": [
         "party.feedback",
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:763"
+        "mod/manager-party.lua:674"
       ]
     },
     "{name} joined your party.": {
@@ -6484,22 +6365,13 @@
         "mod/manager.lua:192"
       ]
     },
-    "{name} will join when you return to the game.": {
-      "contexts": [
-        "party.feedback",
-        "ui.localized"
-      ],
-      "references": [
-        "mod/manager-party.lua:567"
-      ]
-    },
     "{name} will leave when you return to the game.": {
       "contexts": [
         "party.feedback",
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:582"
+        "mod/manager-party.lua:493"
       ]
     },
     "{name} will say one of their game lines when you return to the game.": {
@@ -6507,7 +6379,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:608"
+        "mod/manager-party.lua:519"
       ]
     },
     "{name} will stay in the party.": {
@@ -6516,7 +6388,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:669"
+        "mod/manager-party.lua:580"
       ]
     },
     "{name} · game voice": {
@@ -6551,7 +6423,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:704"
+        "mod/manager-party.lua:615"
       ]
     },
     "{name}: conversation set to {profile}.": {
@@ -6560,7 +6432,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:703"
+        "mod/manager-party.lua:614"
       ]
     },
     "{name}: dismiss queued.": {
@@ -6577,7 +6449,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:591"
+        "mod/manager-party.lua:502"
       ]
     },
     "{name}: invite queued.": {
@@ -6590,10 +6462,11 @@
     },
     "{name}: preparation failed. Cancel and invite again.": {
       "contexts": [
-        "phone.feedback"
+        "phone.feedback",
+        "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:423"
+        "mod/manager-party.lua:336"
       ]
     },
     "{requested} is not ready yet. Companions are using {voice} for now.": {
@@ -6730,19 +6603,6 @@
       ],
       "references": [
         "mod/manager.lua:174"
-      ],
-      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
-    },
-    "Connecting {name}…": {
-      "tokens": [
-        "name"
-      ],
-      "contexts": [
-        "phone.feedback"
-      ],
-      "references": [
-        "mod/manager-party.lua:206",
-        "mod/manager-party.lua:419"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -6905,20 +6765,6 @@
       ],
       "references": [
         "mod/manager.lua:1084"
-      ],
-      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
-    },
-    "Preparing {name}…": {
-      "tokens": [
-        "name"
-      ],
-      "contexts": [
-        "party.feedback"
-      ],
-      "references": [
-        "mod/manager-party.lua:205",
-        "mod/manager-party.lua:418",
-        "mod/manager-party.lua:565"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -7148,9 +6994,9 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:769",
-        "mod/manager-party.lua:805",
-        "mod/manager-party.lua:826"
+        "mod/manager-party.lua:680",
+        "mod/manager-party.lua:716",
+        "mod/manager-party.lua:737"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -7163,9 +7009,9 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:561",
-        "mod/manager-party.lua:696",
-        "mod/manager-party.lua:833"
+        "mod/manager-party.lua:473",
+        "mod/manager-party.lua:607",
+        "mod/manager-party.lua:744"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -7177,7 +7023,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:787"
+        "mod/manager-party.lua:698"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -7190,20 +7036,6 @@
       ],
       "references": [
         "mod/init.lua:1093"
-      ],
-      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
-    },
-    "{name} is joining your party.": {
-      "tokens": [
-        "name"
-      ],
-      "contexts": [
-        "party.feedback"
-      ],
-      "references": [
-        "mod/manager-party.lua:211",
-        "mod/manager-party.lua:445",
-        "mod/manager-party.lua:821"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -7231,32 +7063,6 @@
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
-    "{name} is ready to join when you return to the game.": {
-      "tokens": [
-        "name"
-      ],
-      "contexts": [
-        "party.feedback"
-      ],
-      "references": [
-        "mod/manager-party.lua:209",
-        "mod/manager-party.lua:421",
-        "mod/manager-party.lua:566"
-      ],
-      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
-    },
-    "{name} is ready. Close the phone to join.": {
-      "tokens": [
-        "name"
-      ],
-      "contexts": [
-        "phone.feedback"
-      ],
-      "references": [
-        "mod/manager-party.lua:208"
-      ],
-      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
-    },
     "{name} joined your group.": {
       "tokens": [
         "name"
@@ -7265,7 +7071,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:763"
+        "mod/manager-party.lua:674"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -7293,18 +7099,6 @@
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
-    "{name} will join when you return to the game.": {
-      "tokens": [
-        "name"
-      ],
-      "contexts": [
-        "party.feedback"
-      ],
-      "references": [
-        "mod/manager-party.lua:567"
-      ],
-      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
-    },
     "{name} will leave when you return to the game.": {
       "tokens": [
         "name"
@@ -7313,7 +7107,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:582"
+        "mod/manager-party.lua:493"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -7325,7 +7119,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:669"
+        "mod/manager-party.lua:580"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -7362,7 +7156,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:704"
+        "mod/manager-party.lua:615"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -7375,7 +7169,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:703"
+        "mod/manager-party.lua:614"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -7399,7 +7193,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:591"
+        "mod/manager-party.lua:502"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -7423,7 +7217,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:423"
+        "mod/manager-party.lua:336"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

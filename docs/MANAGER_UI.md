@@ -229,13 +229,7 @@ dismissal actions describe their queued work instead of the stock "Completed"
 text. Other providers and failure messages retain MCM's ordinary rendering.
 No MCM source or saved preferences are modified.
 
-While an invitation prepares with the manager open, that same status banner
-updates through **Preparing {name}…**, **Connecting {name}…**, **ready to join** or a
-preparation failure. It tracks the latest requested pending copy and revision;
-cancelling that copy, spawning it or resetting the world clears its progress.
-It does not restore an older copy's banner after cancellation. Navigation keeps
-progress visible, while memory, dismissal and trip results keep priority over
-invitation progress. **Your group** remains exclusive to Current party.
+While an invitation prepares with the manager open, the status banner shows nothing for it: the progress lines (**Preparing**, **Connecting**, **ready to join**) are removed in every mode. A preparation failure still shows there (**{name}: preparation failed. Cancel and invite again.**). The banner tracks the latest requested pending copy and revision; cancelling that copy, spawning it or resetting the world clears it, and it does not restore an older copy's banner after cancellation. Memory, dismissal and trip results keep priority over the banner.
 
 `manager-party.lua` exposes this as a read-only preparation snapshot, separate
 from notices delivered after gameplay resumes. MCM samples it from top-level
@@ -254,31 +248,20 @@ the manager does not create a new HUD widget. These popups track the latest
 manager-requested copy independently of the footer and other manager actions.
 Direct phone invitations use the same rules.
 
-**Which notices need Developer mode** (Settings → Development → Developer mode,
-default Off). A player is told only that a companion joined, and about failures. The progress
-lines are Developer mode only, at any wait length, for manager and phone invitations alike:
+**Which notices a player sees** (the same in every mode, Developer mode included). A player is told only that a companion joined, and about failures. Companion invitations post no progress lines at all, for manager and phone invitations alike: no **Preparing**, **Connecting**, **ready to join** or **is joining your party** text. The Current party list shows each copy's stage (preparing, connecting, ready, joining) as its row state, and the mod log keeps every stage.
 
-- **Preparing {name}…** (the memory check, voice conditioning and connection start),
-  **Connecting {name}…**, and **ready to join when you return to the game** (manager) or **ready,
-  close the phone to join** (phone). Developers see the first two after 1 s and the ready line at once;
 - **joined your group**, for every companion that arrives, quick or slow (developers see it too);
 - every failure and error, including a driving failure and the reply to Stop trip.
 
 These are Developer mode only:
 
-- **is joining your party**, which asks nothing of the player;
-- the phone's acknowledgement **Preparing {name}…**, which
-  repeats the native **invite queued** notice and the progress line that follows
-  at once (an invitation that is already ready still gets its ready message);
 - the **dismissed** result (the in-menu feedback line still reports it, and a
   failed dismissal is always shown);
 - the routine driving instructions (preparing, boarding, driving, exit);
 - companion tactic outcomes ("called off the distraction", "could not reach the target") and the
   popup after a Settings Apply that switched the voice (the Settings status line says it).
 
-The manager banner and the Current party list always show every stage, because
-they are not popups. Turning Developer mode on mid-invitation shows the current
-joining step once, never a backlog. The native phone script's own "{name}: invite
+Turning Developer mode on changes nothing for invitations. The native phone script's own "{name}: invite
 queued." / "dismiss queued." popup is no longer shown at all (2026-10-09): it only
 surfaced after the phone closed and repeated the row's "INVITE QUEUED - CLOSE PHONE";
 its "will leave when you return to the game" reply to a dismissal request is Developer
@@ -292,45 +275,32 @@ Manager and phone invitations share one **notice board** (`M.newBoard` in
 the board turns all of them into ONE compact notice that replaces the previous one instead of
 a stream of per-character popups:
 
-- One invitation reads `Preparing Judy…`, `Connecting Judy…`, `Judy joined your group.`. Preparing
-  and connecting appear only after the invitation is one second old (`SHOW_DELAY_MS`), per
-  invitation: a quick summon shows nothing to a player (developers see `Judy joined your group.`),
-  and a merged notice names only the invitations already shown (two made together, one quick and one
-  slow, shows only the slow one's progress and ends in `Johnny joined your group.`). Connecting and the
-  ready lines show for a player only after 3 s in that step (until then the notice keeps naming the
-  step already shown). Failures are never delayed.
-- Several at once: `Preparing Judy and Johnny…`, then `Connecting Judy and Johnny…`, then (paused)
-  `Judy and Johnny are ready to join when you return to the game.`, then `Judy and Johnny joined
-  your group.`. The shared verb follows the slowest copy, so one character finishing first does
-  not change the text. Up to three names are listed; more are summarised (`Judy, Johnny and 3 others
-  joined your group.`). Phone-only batches say `Close the phone to join.` instead.
+- One invitation reads `Judy joined your group.`: no progress line appears before it, quick or slow.
+- Several at once end in one notice: `Judy and Johnny joined your group.`. Up to three names are listed;
+  more are summarised (`Judy, Johnny and 3 others joined your group.`).
 - A failure is mentioned beside the successes in the same notice (`Johnny joined your group.` /
   `Judy could not join: ...`); more than two failures end with `N more companions also failed.`
 - A posted notice stays up for at least 3 s (`MIN_SHOW_MS`), and 5 s after a final outcome
   (`FINAL_SHOW_MS`, so a joined notice is never cut short): a change arriving sooner is held, and
-  whatever is true when the time is up is posted instead, so intermediate texts are skipped and a
-  text that reverted meanwhile is never shown. Near-simultaneous stages merge the same way. Only a
-  new failure is exempt.
+  whatever is true when the time is up is posted instead. Only a new failure is exempt.
 - When one companion has joined and the others of the same burst are still going, the joined line
-  waits up to 4 s (`JOIN_HOLD_MS`) for them, and the progress notice on screen keeps naming
-  everyone it already named, so the usual result is one merged `Judy and Johnny joined your
-  group.`; only if the others are still going after that does the partial `Judy joined your
-  group.` / `Connecting Johnny…` show. The game's own notice length (`SetWarningMessage`) could
-  not be read from the installed files, so the 3 s and 5 s are estimates of how long the default
+  waits up to 4 s (`JOIN_HOLD_MS`) for them, so the usual result is one merged `Judy and Johnny joined
+  your group.`; if the others are still going after that, `Judy joined your group.` shows, and the burst
+  ends with a merged line once the rest have arrived. The game's own notice length (`SetWarningMessage`)
+  could not be read from the installed files, so the 3 s and 5 s are estimates of how long the default
   notice stays up (unverified). A stage never moves backwards within one attempt (a stale or missing
   receipt reads as `memory` for a moment; the board ignores it and logs it). Every posted notice
-  is logged to `runtime/mcm.log` with each invitation's stage. The paused-menu rules below still
-  apply: a stage hidden by the menu is shown once more in gameplay, and nothing is replayed after
-  cancellation or a world change (`queue.bind` resets the board).
-- The visibility rules are unchanged: preparing, connecting, ready and joined always show; the
-  joining step and the phone acknowledgement stay Developer-only; every failure always shows.
+  is logged to `runtime/mcm.log` with each invitation's stage. A joined or failed outcome that the
+  paused menu hides is shown once more in gameplay, and nothing is replayed after cancellation or a
+  world change (`queue.bind` resets the board).
+- Visibility: joined and every failure show in every mode; no progress is posted in any mode.
 - `mod/mcm.lua` posts the board's note from its top-level update (and commits it only after the
   native call succeeded); `mod/init.lua` (`updatePhoneInvitationFeedback`) asks the same board for
   phone invitations, so whichever runs first posts and the other finds nothing new.
 
-Each ticket, profile revision and preparation stage is posted once while paused.
-Because the menu may hide native notifications, the first gameplay frame samples
-the current state again and presents it once there. It retains no stage backlog.
+Each joined notice and failure is posted once while paused. Because the menu may hide native
+notifications, the first gameplay frame samples the current state again and presents it once there. It
+retains no backlog.
 
 A preparation failure is the exception and is never gated: each failed attempt
 posts exactly one gameplay notice in total, shared by the manager, the phone and
@@ -340,16 +310,15 @@ consume that notice: a failure first seen while paused is only shown in the
 banner, and the notice is posted once when gameplay resumes. An immediate
 failure posts its detailed notice at the same moment, and the phone no longer
 posts a second copy while it is open.
-A ticket already spawning reports **joining** (Developer mode only), and
-completed attachment uses the existing **joined your group** notice (shown to every player when the companion arrives, quick or slow). Cancelled,
-removed and reset tickets cannot replay preparation messages. Native calls run
-only from top-level update, never inside a native callback; same-frame
-failure/progress notices for one ticket are combined without duplicates.
-The popup tests cover menu return within the same clock second, copy/revision
-deduplication, Developer mode on and off (including the dismissed and joining steps), immediate and asynchronous failure
-notices (including one first seen while paused), cancellation, phone ownership
-and already joined tickets. A world spawn deferred by the shared query budget
-keeps the same joining notification when admission later succeeds.
+A ticket already spawning reports no text (the party list shows its stage), and completed attachment
+uses the existing **joined your group** notice (shown to every player when the companion arrives, quick or
+slow). Cancelled, removed and reset tickets cannot replay preparation messages. Native calls run only from
+top-level update, never inside a native callback; same-frame failure notices for one ticket are combined
+without duplicates.
+The popup tests cover menu return within the same clock second, copy/revision deduplication, Developer mode
+on and off (no progress in either), immediate and asynchronous failure notices (including one first seen
+while paused), cancellation, phone ownership and already joined tickets. A world spawn deferred by the shared
+query budget keeps the same joined notification when admission later succeeds.
 Their visibility in the running game remains the live acceptance gate.
 
 ## Auto-connect nearby characters

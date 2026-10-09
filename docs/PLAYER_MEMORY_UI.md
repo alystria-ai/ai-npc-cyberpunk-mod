@@ -60,8 +60,8 @@ messages setting has been removed.
 
 Inviting a character reserves a place in the party (which has no size limit) and starts preparation
 while the menu is open. The companion count includes those reservations.
-The manager banner shows **Preparing {name}…**, **Connecting {name}…**, then **ready to
-join**. **Current party** lists each pending copy as a single row with **Cancel
+The manager banner shows no progress text while an invitation prepares; a failed
+preparation does appear there. **Current party** lists each pending copy as a single row with **Cancel
 invitation**; it shows no per-copy status text. A failed preparation puts its
 error in that row's description and a line beneath it.
 

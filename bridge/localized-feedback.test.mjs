@@ -23,15 +23,11 @@ const translations = {
   'Companion preparation returned an invalid state.': 'État de préparation invalide.',
   'The character died before joining.': 'Le personnage est mort avant son arrivée.',
   'The character was removed before joining.': 'Le personnage a disparu avant son arrivée.',
-  'Preparing {name}…': 'Préparation de {name}…',
-  '{name} is ready to join when you return to the game.': '{name} est prêt à vous rejoindre en jeu.',
-  '{name} will join when you return to the game.': '{name} vous rejoindra en jeu.',
   '{name} will leave when you return to the game.': '{name} partira à votre retour en jeu.',
   '{name} will stay in the party.': '{name} restera dans le groupe.',
   '{name}: invitation cancelled.': 'Invitation annulée : {name}.',
   '{name}: conversation set to {profile}.': 'Profil {profile} choisi pour {name}.',
   '{name}: conversation profile cleared.': 'Profil de conversation effacé pour {name}.',
-  '{name} is joining your party.': '{name} rejoint votre groupe.',
   '{name} joined your group.': '{name} a rejoint votre groupe.',
   '{name} dismissed.': '{name} renvoyé.',
   '{name} could not prepare: {reason}': 'Préparation impossible pour {name} : {reason}',
@@ -155,7 +151,7 @@ test('English invitations, assignments and deferred dismissals retain their exac
   q.bind('world'); ok, message = q.invite('missing')
   assert(not ok and message == 'That character model is unavailable.')
   ok, message = q.invite('known')
-  assert(ok and message == actorName .. ' will join when you return to the game.')
+  assert(ok and message == '', 'an invitation shows no progress text')
   ok, message = q.assign('queued:1', 'panam', profileName)
   assert(ok and message == actorName .. ': conversation set to ' .. profileName .. '.')
   ok, message = q.assign('queued:1', nil)
@@ -163,7 +159,7 @@ test('English invitations, assignments and deferred dismissals retain their exac
   ok, message = q.dismiss('queued:1')
   assert(ok and message == actorName .. ': invitation cancelled.')
   assert(q.invite('known')); q.flush()
-  assert(q.message() == actorName .. ' is joining your party.')
+  assert(q.message() == '', 'a joining copy shows no progress text')
   assert(#q.takeNotices() == 0)
   env.members[1].state = 'ready'; q.flush()
   local notices = q.takeNotices()
@@ -201,9 +197,9 @@ test('a successful dismissal posts its gameplay notice only in Developer mode; i
 test('English readiness, failures and microphone notices preserve original wording', () => run(`
   local env = makeParty(true); local q = env.queue
   local ok, message = q.invite('known')
-  assert(ok and message == 'Preparing ' .. actorName .. '…')
+  assert(ok and message == '', 'an invitation shows no progress text')
   ok, message = q.invite('model')
-  assert(ok and message == actorName .. ' is ready to join when you return to the game.')
+  assert(ok and message == '', 'the ready line showed')
   q.flush(); env.members[1].state = 'dead'; table.remove(env.members, 2); q.flush()
   local notices = q.takeNotices()
   assert(#notices == 2)
@@ -236,7 +232,7 @@ test('English readiness, failures and microphone notices preserve original wordi
 test('French party events translate templates while preserving names, profile names and queue identity', () => run(`
   local env = makeParty(true); local q = env.queue
   local ok, message = q.invite('known')
-  assert(ok and message == 'Préparation de ' .. actorName .. '…')
+  assert(ok and message == '')
   assert(q.list()[1].name == actorName and q.list()[1].id == 'queued:1')
   ok, message = q.assign('queued:1', 'panam', profileName)
   assert(ok and message == 'Profil ' .. profileName .. ' choisi pour ' .. actorName .. '.')
@@ -246,8 +242,8 @@ test('French party events translate templates while preserving names, profile na
   ok, message = q.dismiss('queued:1')
   assert(ok and message == 'Invitation annulée : ' .. actorName .. '.')
   ok, message = q.invite('model')
-  assert(ok and message == actorName .. ' est prêt à vous rejoindre en jeu.')
-  q.flush(); assert(q.message() == actorName .. ' rejoint votre groupe.')
+  assert(ok and message == '')
+  q.flush(); assert(q.message() == '', 'a joining copy shows no progress text')
   env.members[1].state = 'ready'; q.flush()
   assert(q.takeNotices()[1].message == actorName .. ' a rejoint votre groupe.')
   ok, message = q.dismiss('live:1')
@@ -258,7 +254,7 @@ test('French party events translate templates while preserving names, profile na
   assert(q.takeNotices()[1].message == actorName .. ' renvoyé.')
   local legacy = makeParty(false)
   ok, message = legacy.queue.invite('known')
-  assert(ok and message == actorName .. ' vous rejoindra en jeu.')
+  assert(ok and message == '')
 `, 'fr'));
 
 test('French local validation errors remain separate from opaque provider errors', () => run(`

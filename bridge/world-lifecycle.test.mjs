@@ -457,7 +457,7 @@ local function feedback()
 end
 player.phoneOpen, player.phoneRequest = true, '+judy'
 events.onUpdate(0)
--- Routine progress waits one second (a quick summon shows none), so let it pass.
+-- Let a second pass: a quick summon shows nothing, and neither does a slow one (no progress is posted).
 local early = #feedback()
 clock = clock + 4; events.onUpdate(0)
 local request = json.decode(assert(files['runtime/companion-invitations.json']))
@@ -615,15 +615,13 @@ events.onUpdate(0.1)
 assert(#published().profiles == 0)
 `));
 
-test('phone invitation acknowledgement also posts with Developer mode on', () => run(`${phoneNoticeFixture}
+test('a phone invitation shows no acknowledgement or progress with Developer mode on either', () => run(`${phoneNoticeFixture}
 `.replace('events.onInit();', 'stats.developer = true; events.onInit();') + `
-local before = #feedback()
-assert(early == 1 and before == 2, 'the acknowledgement posts at once and the first progress line after the delay')
-assert(feedback()[1] == 'Preparing Judy…' and feedback()[2] == 'Preparing Judy…')
+assert(early == 0 and #feedback() == 0, 'the acknowledgement or a progress line showed with Developer mode on: ' .. table.concat(feedback(), ' | '))
 clock = clock + 4; receipt('connecting'); events.onUpdate(0)
-assert(#feedback() == before + 1 and feedback()[before + 1]:find('Connecting', 1, true), table.concat(feedback(), ' | '))
+assert(#feedback() == 0, 'Connecting showed to a developer: ' .. table.concat(feedback(), ' | '))
 clock = clock + 4; receipt('ready'); events.onUpdate(0); events.onUpdate(0)
-assert(#feedback() == before + 2 and feedback()[before + 2]:find('Close the phone', 1, true), table.concat(feedback(), ' | '))
+assert(#feedback() == 0, 'the ready line showed to a developer: ' .. table.concat(feedback(), ' | '))
 `));
 
 test('phone cancellation and save restoration reject earlier ready invitation receipts', () => run(`
