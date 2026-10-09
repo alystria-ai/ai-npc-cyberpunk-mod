@@ -169,9 +169,41 @@ local function thaw(stage)
     end
     stage.frozen = false
 end
+-- A strong look-at on V's eyes for the staged copy (development only): the vanilla idle looks around and down, which
+-- turns the face away from the camera. Removed with the stage; a CET reload leaves it on the probe's own copy only,
+-- which the next dismissal removes.
+local function lookAtV(stage, on)
+    if not stage or not stage.npc then return false end
+    if on then
+        if stage.lookEvent then return true end
+        local ok = pcall(function()
+            local event = LookAtAddEvent.new()
+            event:SetEntityTarget(Game.GetPlayer(), CName.new('pla_default_tgt'), Vector4.new(0, 0, 0, 0))
+            event:SetStyle(Enum.new('animLookAtStyle', 'Normal'))
+            event.bodyPart = CName.new('Eyes')
+            event.request.limits.softLimitDegrees = 90
+            event.request.limits.hardLimitDegrees = 140
+            event.request.limits.backLimitDegrees = 140
+            event.request.limits.hardLimitDistance = 5
+            local head = LookAtPartRequest.new()
+            head.partName, head.weight, head.suppress, head.mode = CName.new('Head'), 1, 1, 0
+            event:SetAdditionalPartsArray({head})
+            stage.lookEvent = event
+            stage.npc:QueueEvent(event)
+        end)
+        if not ok then stage.lookEvent = nil end
+        return ok
+    elseif stage.lookEvent then
+        local event = stage.lookEvent
+        stage.lookEvent = nil
+        pcall(function() LookAtRemoveEvent.QueueRemoveLookatEvent(stage.npc, event) end)
+    end
+    return true
+end
 local function endStage(stage, state)
     if not stage then return end
     thaw(stage)
+    lookAtV(stage, false)
     setQuiet(stage, false)
     if state then stage.state = state end
 end
@@ -357,6 +389,20 @@ commands['face-stage'] = function(rest, context)
             local head = at
             local sok, _, t = pcall(function() local o, tr = row.npc:GetSlotComponent():GetSlotTransform(CName.new('Head')); return o, tr end)
             if sok and t then local pok, v = pcall(function() return t.Position:ToVector4() end); if pok and v then head = v end end
+            -- How each local axis of the head bone points against the camera's view direction (dot product, 1 = straight at
+            -- the camera): the axis that is near 1 for a frontal head is the face direction, so a head tilted down or turned
+            -- aside shows as a low value there.
+            if sok and t then
+                pcall(function()
+                    local q, f = t.Orientation, Game.GetCameraSystem():GetActiveCameraForward()
+                    local function rot(x, y, z)
+                        local tx, ty, tz = 2 * (q.j * z - q.k * y), 2 * (q.k * x - q.i * z), 2 * (q.i * y - q.j * x)
+                        return x + q.r * tx + (q.j * tz - q.k * ty), y + q.r * ty + (q.k * tx - q.i * tz), z + q.r * tz + (q.i * ty - q.j * tx)
+                    end
+                    local ax, ay, az = rot(1, 0, 0); local bx, by, bz = rot(0, 1, 0); local cx, cy, cz = rot(0, 0, 1)
+                    out.faceDot = {-(ax * f.x + ay * f.y + az * f.z), -(bx * f.x + by * f.y + bz * f.z), -(cx * f.x + cy * f.y + cz * f.z)}
+                end)
+            end
             -- Identity as the game sees it: the record and the appearance this copy wears.
             pcall(function() out.record = tostring(TDBID.ToStringDEBUG(row.npc:GetRecordID())) end)
             pcall(function() out.appearance = NameToString(row.npc:GetCurrentAppearanceName()) end)
@@ -367,9 +413,14 @@ commands['face-stage'] = function(rest, context)
         if not ok then return false, tostring(err) end
         out.silenced = stage.quiet == true
         out.frozen = stage.frozen == true
+        out.looking = stage.lookEvent ~= nil
         out.steady = out.quiet >= 3 and out.off < .25 and out.turn < 12
         out.inFrame = out.headX ~= nil and math.abs(out.headX) < .6 and math.abs(out.headY) < .75
         return true, out
+    elseif word == 'look' or word == 'unlook' then
+        local stage = M.stage
+        if not stage or stage.state ~= 'staged' then return false, 'no staged character' end
+        return lookAtV(stage, word == 'look'), word
     elseif word == 'freeze' or word == 'thaw' then
         local stage = M.stage
         if not stage or stage.state ~= 'staged' then return false, 'no staged character' end
@@ -380,6 +431,7 @@ commands['face-stage'] = function(rest, context)
         return true, 'released'
     elseif word == 'dismiss' then
         thaw(M.stage)
+        lookAtV(M.stage, false)
         -- Only characters this probe invited (their key was absent at the time): through the party queue's own
         -- dismissal, which removes the copy (or cancels a still pending invitation) at the next gameplay flush.
         local done = dismissSpawned()
