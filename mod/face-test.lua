@@ -254,7 +254,14 @@ local function stageTick(context)
     if stage.state == 'spawning' then
         if row then
             stage.state, stage.entity, stage.name, stage.until_, stage.startedAt = 'staged', row.entity, row.name, M.clock + stage.hold, M.clock
+            -- The probe context rows carry no serial; the companion list does (matched by the profile key, one copy per stage).
             stage.serial = row.serial
+            if not stage.serial then
+                local lok, listed = pcall(convaiCompanions.list)
+                for _, entry in ipairs(lok and listed or {}) do
+                    if tostring(entry.profileKey or entry.key) == tostring(row.profileKey or stage.who) then stage.serial = entry.serial end
+                end
+            end
             setQuiet(stage, true)
         elseif M.clock > stage.deadline then stage.state, stage.error = 'failed', 'the copy did not become ready in time'; return
         else return end
