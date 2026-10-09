@@ -243,8 +243,7 @@ const faceNeutral = (workspot) => hubsOf(workspot).every((hub) =>
 // ambient NPCs keep theirs.
 const outputs = [];
 const faceCopies = new Map();
-for (const [what, depot] of [...Object.entries(source.idleWorkspots).map(([key, d]) => [`${key} idle`, d]),
-    ...Object.entries(seatWorkspots).map(([key, d]) => [`${key} seat`, d])]) {
+for (const [what, depot] of Object.entries(source.idleWorkspots).map(([key, d]) => [`${key} idle`, d])) {
     const json = jsonFor(depot);
     if (!json) fail(`${what} workspot was not extracted: ${depot}`);
     if (faceNeutral(json)) continue;
@@ -256,6 +255,50 @@ for (const [what, depot] of [...Object.entries(source.idleWorkspots).map(([key, 
     faceCopies.set(depot, target);
 }
 const playable = (depot) => faceCopies.get(depot) ?? depot;
+
+// Sit workspots that never end by themselves (docs/COMPANION_SEATING.md, "The
+// seat that ended on its own"). A vanilla NPC sit workspot plays one random
+// list of 4-9 idle fidgets with a pause between them (couch 6-9 clips 3 s
+// apart, counter stool 5-8 at 2 s, chair 4-7 at 6 s, stool 4-6 at 4 s) and then
+// leaves through its exit: live, every seat ended 60-105 s after she sat while
+// V still sat. Each seat workspot is copied under the mod's own path with the
+// list set to a clip count that is never reached and the main sequence set to
+// repeat; her exits, fast exit, entries and fidgets are untouched, so she
+// still stands up the moment V does. Neutral facial idle as for every
+// workspot the mod plays.
+const ENDLESS_CLIPS = 127; // the clip counts are signed bytes (255 does not convert)
+const endless = (workspot, what) => {
+    let lists = 0;
+    let loops = 0;
+    (function walk(node, parent) {
+        if (Array.isArray(node)) { node.forEach((item) => walk(item, parent)); return; }
+        if (!node || typeof node !== 'object') return;
+        if (node.$type === 'workRandomList') {
+            node.minClips = ENDLESS_CLIPS;
+            node.maxClips = ENDLESS_CLIPS;
+            lists++;
+            if (parent && parent.$type === 'workSequence') { parent.loopInfinitely = 1; loops++; }
+        }
+        const next = typeof node.$type === 'string' && node.$type.startsWith('work') ? node : parent;
+        Object.values(node).forEach((value) => walk(value, next));
+    })(workspot.Data.RootChunk.workspotTree, null);
+    if (lists === 0 || loops !== lists) fail(`${what}: found ${lists} random lists and ${loops} sequences to repeat, expected at least one of each and equal counts`);
+    return lists;
+};
+const seatCopies = new Map();
+for (const [key, depot] of Object.entries(seatWorkspots)) {
+    const json = jsonFor(depot);
+    if (!json) fail(`${key} seat workspot was not extracted: ${depot}`);
+    const copy = clone(json);
+    if (!faceNeutral(copy)) neutralFace(copy, `${key} seat`);
+    const lists = endless(copy, `${key} seat`);
+    const target = `cyberpunk_convai\\gestures\\convai_seat_${base(depot)}`;
+    copy.Header.ArchiveFileName = target;
+    outputs.push([`convai_seat_${base(depot)}.json`, copy]);
+    seatCopies.set(depot, target);
+    console.log(`gesture build: ${key} seat copied to ${target} with ${lists} endless fidget list(s)`);
+}
+const seatPlayable = (depot) => seatCopies.get(depot) ?? fail(`no endless copy of ${depot}`);
 
 function collectHandles(node, into) {
     if (Array.isArray(node)) { node.forEach((item) => collectHandles(item, into)); return; }
@@ -400,7 +443,7 @@ function cruid(name) {
 const componentList = [
     ...Object.values(source.families).map((family) => [family.component, family.workspot]),
     ...Object.entries(source.idleWorkspots).map(([key, depot]) => [`convai_idle_${key}`, playable(depot)]),
-    ...Object.entries(seatWorkspots).map(([key, depot]) => [`convai_sit_${key}`, playable(depot)])];
+    ...Object.entries(seatWorkspots).map(([key, depot]) => [`convai_sit_${key}`, seatPlayable(depot)])];
 const components = componentList.map(([name, depot]) => {
     const component = clone(componentShape);
     component.id = cruid(name);

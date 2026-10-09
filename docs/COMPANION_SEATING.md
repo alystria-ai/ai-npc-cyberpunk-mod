@@ -349,6 +349,32 @@ kept) and clip jumps while seated, behind the Body gestures setting.
 
 Globals `convaiSeating` / `convaiSeatingOptions` let the probe hot reload it.
 
+## The seat that ended on its own (October 10)
+
+Live runs 20:53Z, 21:12Z and 21:19Z: with V still seated she stood up by herself
+60, 95 and 105 s after sitting (`seat-left-on-own`). Cause, read from the
+extracted vanilla sit workspots: each plays ONE `workRandomList` of idle fidgets
+(couch 6-9 clips, 3 s pauses; counter stool 5-8, 2 s; chair 4-7, 6 s; stool 4-6,
+4 s), the sequence holding it has `loopInfinitely` 0, so when the list is done
+the tree ends and she leaves through its exit (the 21:19Z bar sit: 5-8 clips
+at about 12 s each = 60 s minimum).
+
+The fix is in the gesture archive, not in Lua. `scripts/Build-GestureAssets.mjs`
+copies every `seatWorkspots` entry of `assets/gestures/gestures.json` under the
+mod's own path (`cyberpunk_convai\gestures\convai_seat_<vanilla name>`), sets
+every random list to 127 clips (`minClips`/`maxClips` are signed bytes: 255 and
+9999 do not convert) and the sequence holding it to `loopInfinitely` 1, and
+gives it the neutral facial idle. Entries, exits, the fast exit and the fidgets
+are untouched, so she still stands up with V. The `convai_sit_*` components now
+play these copies (component names unchanged, so no Lua change).
+`scripts/Verify-GestureAssets.mjs` fails the build if a seat workspot's list
+can run out, its sequence does not repeat, or a sit component plays a vanilla
+workspot; `bridge/gesture-seat-endless.test.mjs` covers that check.
+Needs a game restart to take effect (archive). Not yet seen live: check she
+stays seated for 5 minutes with V seated, and still fidgets. The Lua
+fallback stays: if the workspot ever ends by itself while V sits, `seat-left-on-own`
+then `seat-reseat` sit her again (companion-seating.lua, `reseatAfter`).
+
 ## Looking at her: free look while V sits (October 10)
 
 User report: "I can't turn my head while sitting to see her." On a bench or
