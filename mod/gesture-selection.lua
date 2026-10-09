@@ -77,7 +77,9 @@ function M.motionWeight(item)
     local reach = item.reach
     if type(reach) ~= 'number' then return M.expressiveness(item.clip.name) end
     if reach < M.minimumReach or reach > M.maximumReach then return .02 end
-    return math.min(4, reach / 15)
+    -- Square root (Oct 10): a 45 cm clip no longer weighs three times an 18 cm one,
+    -- so the few biggest clips do not take most of the picks.
+    return math.min(2.2, math.sqrt(reach / 15))
 end
 function M.expressiveness(name)
     for _, word in ipairs(subtle) do if name:find(word, 1, true) then return .2 end end
@@ -93,10 +95,15 @@ function M.centreWeight(item)
     return .35 + 1.3 * centre
 end
 M.minimumSpeech = 5 -- seconds of reply audio before talk gestures are used at all
--- Repetition window: never the previous clip; avoid the last HISTORY clips,
--- the previous clip's kind, and anything used in the last COOLDOWN seconds,
--- relaxing step by step only when nothing else fits.
-M.history, M.cooldown = 4, 45
+-- Repetition window (Oct 10: "she did the same gesture twice"). The memory
+-- belongs to the companion, not to a reply, so it carries across replies:
+-- avoid the last HISTORY clips, the last two look-alike groups, the previous
+-- clip's kind and anything used in the last COOLDOWN seconds, relaxing step by
+-- step only when nothing else fits (and widening the mood's reach cap a little
+-- before the last two steps, so a small emotional pool never forces a repeat).
+M.history, M.cooldown, M.memory = 12, 75, 24
+M.widen = 12 -- cm of extra reach allowed when the strict levels find nothing
+M.openWeight = .6 -- clips that hold one hand out to a side (fit "open") weigh less
 -- Above about 90 cm the hands go overhead (cheering, stretching): not talk.
 M.maximumReach = 90
 -- A clip whose feet start or end more than this far (cm, hip space) from the
@@ -129,9 +136,34 @@ function M.kind(clip)
     clip.kind = kind
     return kind
 end
+-- Look-alike groups: moves that read as the same gesture from a few metres
+-- (a right-hand flick, a describe-down and a describe-circle are all "one hand
+-- sketches something small"). Recent groups weigh less and are skipped first.
+local groups = {
+    ['2h_flick'] = 'flick', rh_flick = 'flick', lh_flick = 'flick', describe_down = 'describe', describe_up = 'describe',
+    describe_circle = 'describe', describe_front = 'describe', talk = 'talk', gesture = 'talk', gesture_hold = 'talk',
+    what = 'what', what_is_this = 'what', cant_hear_you = 'what', shrug = 'shrug', whatever = 'shrug', yes = 'yes',
+    nod = 'yes', head_flick_up = 'head', head_flick_down = 'head', calm_down = 'calm', stop = 'calm', me = 'self',
+    this_or_that = 'weigh',
+}
+function M.group(clip)
+    if clip.group then return clip.group end
+    local kind = M.kind(clip)
+    local group = groups[kind] or kind
+    clip.group = group
+    return group
+end
+-- Which hand a clip uses, from its name (rh_ / lh_ / 2h_), else nil.
+function M.hand(clip)
+    local name = clip.name
+    if name:find('__rh_', 1, true) then return 'r' end
+    if name:find('__lh_', 1, true) then return 'l' end
+    if name:find('__2h_', 1, true) then return 'b' end
+    return nil
+end
 
 function M.new(random)
-    return {random = random or math.random, history = {}, kinds = {}, used = {}, mode = nil, nextAt = 0}
+    return {random = random or math.random, history = {}, kinds = {}, groups = {}, hands = {}, used = {}, mode = nil, nextAt = 0}
 end
 
 local function between(s, low, high) return low + (high - low) * s.random() end
@@ -151,7 +183,8 @@ local function candidates(clips, rig, character, category, energy, into)
             local tooBig = energy and type(reach) == 'number' and reach > energy
             if not overhead and not tooBig and M.allowed(clip.name) and not M.symbolic(clip) and not M.excluded(clip)
                 and (clip.character == nil or clip.character == character) then
-                list[#list + 1] = {clip = clip, duration = onRig.duration, reach = reach, centre = onRig.centre}
+                list[#list + 1] = {clip = clip, duration = onRig.duration, reach = reach, centre = onRig.centre,
+                    open = clip.fit == 'open'}
             end
         end
     end
@@ -163,42 +196,57 @@ local function inHistory(s, name, depth)
     for i = count, math.max(1, count - depth + 1), -1 do if s.history[i] == name then return true end end
     return false
 end
-local function kindCount(s, kind, depth)
-    local n, count = 0, #s.kinds
-    for i = count, math.max(1, count - depth + 1), -1 do if s.kinds[i] == kind then n = n + 1 end end
+local function countIn(list, value, depth)
+    local n, count = 0, #list
+    for i = count, math.max(1, count - depth + 1), -1 do if list[i] == value then n = n + 1 end end
     return n
 end
 
--- Weighted pick with repetition control. Levels, strictest first:
---   3: not in the last HISTORY clips, not the previous kind, not used within
---      COOLDOWN s, and the kind not used twice in the last HISTORY picks;
---   2: not in the last HISTORY clips, not the previous kind;
+-- Weighted pick with repetition control, over a list whose items may carry a
+-- boost (emotion-coloured clips). Levels, strictest first:
+--   4: not in the last HISTORY clips, group not in the last two picks, not the
+--      previous kind, not used within COOLDOWN s;
+--   3: not in the last 8 clips, not the previous group or kind, kind not twice
+--      in the last 4;
+--   2: not in the last 4 clips, not the previous kind;
 --   1: not in the last 2 clips, not the previous kind;
 --   0: not the previous clip (only a one-clip pool may repeat it).
--- Kinds used recently weigh less (variety).
-local function pick(s, list, now, remaining, sameKind)
+-- Kinds and groups used recently, and the previous hand, weigh less (variety).
+-- Returns the item and the level it was found at.
+local function pick(s, list, now, remaining, sameKind, floor)
     local previous, previousKind = s.history[#s.history], s.kinds[#s.kinds]
+    local previousGroup, previousHand = s.groups[#s.groups], s.hands[#s.hands]
     local function eligible(item, level)
         if remaining and item.duration * .7 > remaining then return false end
-        local name, kind = item.clip.name, M.kind(item.clip)
+        local clip = item.clip
+        local name, kind = clip.name, M.kind(clip)
         if name == previous and #list > 1 then return false end
         if level >= 1 and not sameKind and kind == previousKind then return false end
         if level == 1 and inHistory(s, name, 2) then return false end
-        if level >= 2 and inHistory(s, name, M.history) then return false end
-        if level >= 3 then
+        if level == 2 and inHistory(s, name, 4) then return false end
+        if level == 3 and inHistory(s, name, 8) then return false end
+        if level >= 4 and inHistory(s, name, M.history) then return false end
+        if level >= 3 and not sameKind then
+            if M.group(clip) == previousGroup then return false end
+            if level == 3 and countIn(s.kinds, kind, 4) >= 2 then return false end
+        end
+        if level >= 4 then
             if now - (s.used[name] or -math.huge) < M.cooldown then return false end
-            if not sameKind and kindCount(s, kind, M.history) >= 2 then return false end
+            if not sameKind and countIn(s.groups, M.group(clip), 2) > 0 then return false end
         end
         return true
     end
-    for level = 3, 0, -1 do
+    for level = 4, floor or 0, -1 do
         local total, pool = 0, {}
         for _, item in ipairs(list) do
             if eligible(item, level) then
-                local weight = (item.clip.character and 1.5 or 1)
+                local weight = (item.clip.character and 1.5 or 1) * (item.boost or 1)
                 if not sameKind then
                     weight = weight * M.motionWeight(item) * M.centreWeight(item)
-                        / (1 + kindCount(s, M.kind(item.clip), 6))
+                        / (1 + countIn(s.kinds, M.kind(item.clip), 6) + .5 * countIn(s.groups, M.group(item.clip), 4))
+                    if item.open then weight = weight * M.openWeight end
+                    local hand = M.hand(item.clip)
+                    if hand and hand == previousHand then weight = weight * .5 end
                 end
                 total = total + weight
                 pool[#pool + 1] = {item = item, weight = weight}
@@ -208,20 +256,50 @@ local function pick(s, list, now, remaining, sameKind)
             local roll = s.random() * total
             for _, entry in ipairs(pool) do
                 roll = roll - entry.weight
-                if roll <= 0 then return entry.item end
+                if roll <= 0 then return entry.item, level end
             end
-            return pool[#pool].item
+            return pool[#pool].item, level
         end
     end
-    return nil
+    return nil, -1
 end
 
 local function remember(s, item, now)
-    s.history[#s.history + 1] = item.clip.name
-    s.kinds[#s.kinds + 1] = M.kind(item.clip)
-    while #s.history > 8 do table.remove(s.history, 1) end
+    local clip = item.clip
+    s.history[#s.history + 1] = clip.name
+    s.kinds[#s.kinds + 1] = M.kind(clip)
+    s.groups[#s.groups + 1] = M.group(clip)
+    s.hands[#s.hands + 1] = M.hand(clip) or false
+    while #s.history > M.memory do table.remove(s.history, 1) end
     while #s.kinds > 8 do table.remove(s.kinds, 1) end
-    s.used[item.clip.name] = now
+    while #s.groups > 8 do table.remove(s.groups, 1) end
+    while #s.hands > 4 do table.remove(s.hands, 1) end
+    s.used[clip.name] = now
+end
+
+-- One speaking pool at one energy. Emotion-coloured clips (when this pick is
+-- coloured) are boosted inside the calm pool instead of replacing it, so a
+-- mood with two or three clips of its own is exhausted into calm talk, not
+-- repeated (Oct 10).
+local function speakingPool(input, order, clash, energy, colour)
+    local pool = {}
+    for _, category in ipairs(M.filler) do
+        if not clash[category] then candidates(input.clips, input.rig, input.character, category, energy, pool) end
+    end
+    if colour then
+        local seen = {}
+        for _, item in ipairs(pool) do seen[item.clip.name] = true end
+        local own = {}
+        for _, item in ipairs(candidates(input.clips, input.rig, input.character, order[1], energy)) do
+            if not seen[item.clip.name] then own[#own + 1] = item end
+        end
+        if #own > 0 then
+            -- Aim for about 60 % of fresh picks to be the emotion's own clips.
+            local boost = math.max(1, math.min(8, 1.5 * #pool / #own))
+            for _, item in ipairs(own) do item.boost = boost; pool[#pool + 1] = item end
+        end
+    end
+    return pool
 end
 
 -- Speaking: emotion-weighted clips within the mood's energy, fitted to the speech.
@@ -229,24 +307,20 @@ local function speaking(s, input)
     local family = M.families[input.family or 'neutral'] and input.family or 'unknown'
     local order, clash = M.families[family], M.clash[family] or {}
     local energy = (M.energy[family] or M.energy.neutral) + (clampScale(input.scale) - 1) * M.energyStep
-    local useEmotion = family ~= 'neutral' and family ~= 'unknown' and s.random() < .6
-    if useEmotion then
-        local item = pick(s, candidates(input.clips, input.rig, input.character, order[1], energy), input.now, input.remaining)
-        if item then return item end
-    end
-    -- Calm talk: one weighted pool across the filler categories, so shrugs,
-    -- questions and emphatic hands mix with ordinary talking gestures.
-    local pool = {}
-    for _, category in ipairs(M.filler) do
-        if not clash[category] then candidates(input.clips, input.rig, input.character, category, energy, pool) end
-    end
-    local item = pick(s, pool, input.now, input.remaining)
+    local colour = family ~= 'neutral' and family ~= 'unknown' and s.random() < .6
+    local item = pick(s, speakingPool(input, order, clash, energy, colour), input.now, input.remaining, false, 2)
     if item then return item end
-    -- Emotion clips did not fit or were exhausted: fall back across the
-    -- emotion's own categories, still within its energy.
+    -- Nothing fresh within the mood's reach: allow a little more arm before
+    -- relaxing the repetition rules any further.
+    item = pick(s, speakingPool(input, order, clash, energy + M.widen, colour), input.now, input.remaining, false, 2)
+    if item then return item end
+    item = pick(s, speakingPool(input, order, clash, energy, colour), input.now, input.remaining, false, 0)
+    if item then return item end
+    -- Calm and emotional pools did not fit or were exhausted: fall back across
+    -- the emotion's own categories, still within its energy.
     for _, category in ipairs(order) do
         if not clash[category] then
-            item = pick(s, candidates(input.clips, input.rig, input.character, category, energy), input.now, input.remaining)
+            item = pick(s, candidates(input.clips, input.rig, input.character, category, energy), input.now, input.remaining, false, 0)
             if item then return item end
         end
     end
@@ -285,7 +359,7 @@ function M.next(s, input)
         item = speaking(s, input)
     elseif input.mode == 'listening' then
         -- Nods: the same kind by nature, but never the same clip twice running.
-        item = pick(s, candidates(input.clips, input.rig, input.character, 'nod'), now, nil, true)
+        item = (pick(s, candidates(input.clips, input.rig, input.character, 'nod'), now, nil, true))
     else
         return nil
     end

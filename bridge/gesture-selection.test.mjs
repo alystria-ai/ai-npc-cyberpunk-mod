@@ -393,3 +393,78 @@ test('centred clips are preferred over clips that leave the body centre', () => 
   end
   assert(centred>wide*1.5,'centred '..centred..' wide '..wide)
 `));
+
+test('look-alike moves (flicks, describes, talk) do not run back to back, and memory carries across replies', () => run(`
+  assert(m.group({name='st__01__rh_flick__02'})=='flick' and m.group({name='st__01__describe_down__01'})=='describe')
+  assert(m.group({name='st__01__talk__neutral__03'})=='talk' and m.group({name='st__01__what__neutral__01'})=='what')
+  assert(m.hand({name='st__01__rh_flick__02'})=='r' and m.hand({name='st__01__2h_flick__01'})=='b')
+  local pool={}
+  for i=1,3 do pool[#pool+1]=clip('rh_flick__0'..i,'neutral',all);pool[#pool+1]=clip('describe_down__0'..i,'neutral',all) end
+  for i=1,3 do pool[#pool+1]=clip('talk__neutral__0'..i,'neutral',all) end
+  pool[#pool+1]=clip('what__neutral__01','question',all);pool[#pool+1]=clip('shrug__01','shrug',all)
+  local sameGroup,total=0,0
+  for run=1,12 do
+    local s=m.new(lcg);local last
+    -- twelve separate replies on one companion: the state is kept between them
+    for reply=1,12 do
+      for t=0,16,.1 do
+        local item=m.next(s,{now=reply*100+t,mode='speaking',rig='woman_base',character='judy',family='neutral',scale=2,remaining=16-t,total=16,
+          reply=reply,clips=pool})
+        if item then
+          assert(item.clip.name~=last,'repeat across replies '..item.clip.name)
+          local group=m.group(item.clip)
+          if last and group==m.group({name=last}) then sameGroup=sameGroup+1 end
+          total=total+1;last=item.clip.name
+        end
+      end
+    end
+  end
+  assert(total>100)
+  assert(sameGroup<total*.25,'look-alike back to back '..sameGroup..'/'..total)
+`));
+
+test('a mood with two clips of its own is mixed into calm talk and never repeats one of them straight away', () => run(`
+  local pool={clip('what__happy__01','happy',all),clip('calm_down__happy__01','happy',all)}
+  for i=1,6 do pool[#pool+1]=clip('talk__neutral__0'..i,'neutral',all) end
+  local own,calm=0,0
+  for run=1,12 do
+    local s=m.new(lcg);local last
+    for reply=1,10 do
+      for t=0,16,.1 do
+        local item=m.next(s,{now=reply*100+t,mode='speaking',rig='woman_base',character='judy',family='joy',scale=3,remaining=16-t,total=16,reply=reply,clips=pool})
+        if item then
+          assert(item.clip.name~=last,'repeat '..item.clip.name);last=item.clip.name
+          if item.clip.category=='happy' then own=own+1 else calm=calm+1 end
+        end
+      end
+    end
+  end
+  assert(own>0 and calm>own*.3,'own '..own..' calm '..calm)
+  assert(own<(own+calm)*.8,'colour swamps the calm talk: own '..own..' calm '..calm)
+`));
+
+test('clips that hold a hand out to the side (fit open) are used, but less often than centred ones', () => run(`
+  local function shaped(name,fit) local c=clip(name,'neutral',all);c.fit=fit;c.perRig.woman_base.reach=30;c.perRig.woman_base.centre=.8;return c end
+  local pool={shaped('talk__neutral__01'),shaped('what__neutral__01'),shaped('shrug__01'),shaped('lh_flick__01'),
+    shaped('talk__neutral__02','open'),shaped('what__neutral__02','open'),shaped('shrug__02','open'),shaped('rh_flick__02','open')}
+  local open,plain=0,0
+  for run=1,30 do
+    local s=m.new(lcg)
+    for t=0,60,.1 do
+      local item=m.next(s,{now=t,mode='speaking',rig='woman_base',character='judy',family='neutral',scale=2,remaining=60,total=60,clips=pool})
+      if item then if item.clip.fit=='open' then open=open+1 else plain=plain+1 end end
+    end
+  end
+  assert(open>0,'open clips never used')
+  assert(open<plain,'open '..open..' plain '..plain)
+`));
+
+test('the first clip waits for busyUntil (the enter blend into the stance), then lands on the next phrase start', () => run(`
+  local s=m.new(lcg)
+  local first
+  for t=0,30,.1 do
+    local item=m.next(s,{now=t,mode='speaking',rig='woman_base',character='judy',family='neutral',scale=2,remaining=30-t,total=30,clips=clips,busyUntil=1.65})
+    if item then first=t;break end
+  end
+  assert(first and first>=1.65,'first clip at '..tostring(first))
+`));

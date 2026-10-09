@@ -9,7 +9,7 @@ local workspot = dofile('gesture-workspot.lua')
 local selection = dofile('gesture-selection.lua')
 local M = {}
 local HOLDING = {spawning = true, starting = true, active = true, exiting = true, recovering = true}
-M.policy = {linger = 2.5, patience = 3, giveUp = 6, unsettled = .8, playerMoved = .75, playerRunning = 2.5,
+M.policy = {firstClipMargin = .15, linger = 2.5, patience = 3, giveUp = 6, unsettled = .8, playerMoved = .75, playerRunning = 2.5,
     nearStart = 4.0, nearKeep = 4.5, socialPhases = {settled = true, attend = true},
     wedgeAfter = 1.5, healthWindow = 10, recoveryHold = .9, recoveryLimit = 2, failureCooldown = 30, minimumSpeech = 5,
     -- Signature idle flavour (characters marked flavour in the catalog only):
@@ -202,6 +202,10 @@ function M.new(options)
         note(s, 'exit', {reason = reason, instant = instant == true})
     end
 
+    -- The first clip waits until the enter blend into the stance is over: a
+    -- gesture landing 0.1-0.4 s into the blend read as a body twitch (Oct 10).
+    local function enterBlend(s) return (s.family and s.family.blend and tonumber(s.family.blend.enter)) or 1.1 end
+
     local function clipDuration(clip, rig) return clip.perRig and clip.perRig[rig] and clip.perRig[rig].duration or 3 end
 
     local function advance(s, context, mode, info)
@@ -293,7 +297,8 @@ function M.new(options)
             local pick = selection.next(s.sel, {now = self.clock, mode = mode, rig = s.rig, character = s.character,
                 family = info and info.family, scale = info and info.scale, remaining = info and info.remaining,
                 total = info and info.total, reply = info and info.requestId, phraseAt = info and info.phraseAt,
-                phraseAge = info and info.phraseAge, clips = s.family.clips})
+                phraseAge = info and info.phraseAge, clips = s.family.clips,
+                busyUntil = (s.activeAt or 0) + enterBlend(s) + policy.firstClipMargin})
             if pick then
                 -- Instant jump (still blended by the workspot's inertialization):
                 -- a queued jump waits for the 22-25 s idle loop to end (Oct 7 capture).
