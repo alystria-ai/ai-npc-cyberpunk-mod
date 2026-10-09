@@ -22,12 +22,12 @@ function run(code) {
 const fixture = `
   local module = (function() ${queueSource} end)()
   local clock, developer, states = 10000, false, {}
-  -- The player's wait before Connecting and ready lines show is 3 s in the game. Most tests below are
-  -- about merging, holding and the minimum show time, so their board runs without it (stageDelayMs = 0);
-  -- the stage-delay tests build a board with the real default through realBoard().
+  -- The player's long wait before a progress line shows is 10 s in the game. Most tests below are
+  -- about merging, holding and the minimum show time, so their board uses a 1 s wait (longWaitMs = 1000);
+  -- the long-wait tests build a board with the real default through realBoard().
   local board = module.newBoard({
     now = function() return clock end,
-    stageDelayMs = 0,
+    longWaitMs = 1000,
     developerMode = function() return developer end,
     feedback = function(id) return states[id] end})
   local function realBoard()
@@ -221,6 +221,7 @@ test('a world change discards every entry and pending outcome', () => {
 test('phone invitations use the phone wording and mix with manager ones in neutral words', () => {
   run(`${fixture}
     set('a', 'Judy', 'ready'); board.track('a', 'phone')
+    settle()
     assert(post() == 'Judy is ready. Close the phone to join.')
     set('b', 'Johnny', 'ready'); board.track('b', 'phone')
     clock = clock + 5000
@@ -231,19 +232,19 @@ test('phone invitations use the phone wording and mix with manager ones in neutr
   `);
 });
 
-test('a quick invitation shows nothing to a player: no progress and no joined notice; a developer still sees joined', () => {
+test('a quick invitation shows only its joined line to a player; a developer sees the steps', () => {
   run(`${fixture}
     set('a', 'Judy', 'memory'); board.track('a', 'manager')
     assert(post() == nil)
     clock = clock + 400
     set('a', 'Judy', 'connecting')
-    assert(post() == nil, 'connecting showed inside the delay')
+    assert(post() == nil, 'connecting showed inside the long wait')
     clock = clock + 400
     set('a', 'Judy', 'ready')
     -- Gameplay: ready is already the routine joining step, which is Developer-only.
     assert(post(true) == nil, 'the joining step showed with Developer mode off')
     states.a = nil; joined('Judy')
-    assert(post(true) == nil, 'a player was told about a summon they never waited for')
+    assert(post(true) == 'Judy joined your group.', 'a player was not told the companion arrived')
     assert(post(true) == nil and #board.inspect().entries == 0 and board.inspect().joined == 0)
     -- A developer still sees it.
     developer = true; clock = clock + 5000
@@ -255,7 +256,6 @@ test('a quick invitation shows nothing to a player: no progress and no joined no
     set('w', 'Rogue', 'memory'); board.track('w', 'manager')
     states.w = nil; joined('Rogue', 'Her profile could not be set.')
     assert(post(true) == 'Rogue joined your group. Her profile could not be set.', 'a warning was hidden')
-    clock = clock + 5000
     -- Just under a second still hides progress; a second shows it.
     clock = clock + 5000
     set('b', 'Panam', 'memory'); board.track('b', 'manager')
@@ -266,10 +266,12 @@ test('a quick invitation shows nothing to a player: no progress and no joined no
   `);
 });
 
-test('the show delay hides only routine progress: ready lines and the Developer joining step are immediate', () => {
+test('a player waits for the long wait even for the ready line; a developer sees the joining step at once', () => {
   run(`${fixture}
     set('a', 'Judy', 'ready'); board.track('a', 'phone')
-    assert(post() == 'Judy is ready. Close the phone to join.', 'the instruction to close the phone was delayed')
+    assert(post() == nil, 'the ready line showed before the long wait')
+    settle()
+    assert(post() == 'Judy is ready. Close the phone to join.', 'the instruction to close the phone did not show after the wait')
     board.reset(); states.a = nil
     developer = true
     set('c', 'River', 'ready'); board.track('c', 'manager')
@@ -277,32 +279,31 @@ test('the show delay hides only routine progress: ready lines and the Developer 
   `);
 });
 
-test('one quick and one slow invitation made together: only the slow one is named, progress and outcome', () => {
+test('one quick and one slow invitation: the quick joined line waits for the slow one, which shows no progress until its long wait', () => {
   run(`${fixture}
     set('a', 'Judy', 'memory'); set('b', 'Johnny', 'memory')
     board.track('a', 'manager'); board.track('b', 'manager')
     assert(post() == nil)
     clock = clock + 300
-    -- Judy is quick: she joins before anything was shown. Her joined line waits for Johnny.
+    -- Judy is quick: she joins while Johnny is still preparing. Her joined line waits for the hold to end.
     states.a = nil; joined('Judy')
     assert(post(true) == nil, 'the quick one was announced beside a hidden, still-preparing one')
     clock = clock + 700
-    local line = post(true)
-    assert(line == 'Preparing Johnny…', line)
+    assert(post(true) == 'Preparing Johnny…')
     clock = clock + 1500
     assert(post(true) == nil)
-    -- Johnny is still going after the hold. Judy joined without a visible wait, so she is never named.
+    -- The hold has ended: Judy's joined line shows with Johnny's progress, which is still named.
     clock = clock + 2500
-    assert(post(true) == nil, 'the quick one was named beside the slow one')
+    assert(post(true) == 'Judy joined your group.\\nPreparing Johnny…', 'the joined line was held for good')
     set('b', 'Johnny', 'connecting'); dwell()
-    assert(post(true) == 'Connecting Johnny…')
+    assert(post(true) == 'Judy joined your group.\\nConnecting Johnny…')
     states.b = nil; joined('Johnny'); dwell()
-    assert(post(true) == 'Johnny joined your group.', 'only the companion the player waited for is announced')
+    assert(post(true) == 'Judy and Johnny joined your group.', 'the burst was not summarised')
     assert(post(true) == nil and board.inspect().joined == 0)
   `);
 });
 
-test('two quick invitations announce nothing to a player', () => {
+test('two quick invitations: their joined lines merge once the burst is complete, and a developer sees joined too', () => {
   run(`${fixture}
     set('a', 'Judy', 'memory'); set('b', 'Johnny', 'memory')
     board.track('a', 'manager'); board.track('b', 'manager')
@@ -311,8 +312,9 @@ test('two quick invitations announce nothing to a player', () => {
     assert(post(true) == nil, 'the first joined was posted alone')
     clock = clock + 100
     states.b = nil; joined('Johnny')
-    assert(post(true) == nil, 'players were told about summons they never waited for')
-    developer = true; dwell()
+    assert(post(true) == 'Judy and Johnny joined your group.', 'the two joined lines were not merged')
+    assert(post(true) == nil)
+    developer = true; clock = clock + 5000
     set('c', 'Panam', 'memory'); board.track('c', 'manager'); states.c = nil; joined('Panam')
     assert(post(true) == 'Panam joined your group.', 'a developer sees the joined notice')
     assert(post(true) == nil)
@@ -437,7 +439,7 @@ test('a notice is never replaced inside 3 s: a blink is skipped, a stage regress
 test('the board logs each posted notice with the stage of every invitation, and each ignored regression', () => {
   run(`${fixture}
     local lines = {}
-    board = module.newBoard({now = function() return clock end, developerMode = function() return developer end, stageDelayMs = 0,
+    board = module.newBoard({now = function() return clock end, developerMode = function() return developer end, longWaitMs = 1000,
       feedback = function(id) return states[id] end, log = function(line) lines[#lines + 1] = line end})
     set('a', 'Judy', 'memory'); set('b', 'Johnny', 'memory'); board.track('a'); board.track('b'); settle()
     assert(post() == 'Preparing Judy and Johnny…')
@@ -464,69 +466,58 @@ test('the board runs without _G, as CET module environments do, and still logs t
   `);
 });
 
-test('a player does not see Connecting when joined follows within 3 s: only joined', () => {
+test('a normal invitation shows only joined: progress waits for the long wait, and nothing shows when joined follows within it', () => {
   run(`${fixture}
     realBoard()
-    set('a', 'Judy', 'memory'); board.track('a', 'manager'); settle()
-    assert(post() == 'Preparing Judy…', 'a genuinely long wait keeps its Preparing notice')
-    clock = clock + 5000
+    set('a', 'Judy', 'memory'); board.track('a', 'manager')
+    clock = clock + 4000
+    assert(post() == nil, 'Preparing showed before the long wait')
     set('a', 'Judy', 'connecting')
-    assert(post() == nil, 'Connecting showed at once')
-    clock = clock + 1000
-    assert(post() == nil)
-    states.a = nil; joined('Judy')
-    local line = post(true)
-    assert(line == 'Judy joined your group.', tostring(line))
-    assert(post(true) == nil)
-  `);
-});
-
-test('Connecting shows once the invitation has stayed in that step for 3 s, counted from the step, not the start', () => {
-  run(`${fixture}
-    realBoard()
-    set('a', 'Judy', 'memory'); board.track('a', 'manager'); settle()
-    assert(post() == 'Preparing Judy…')
-    clock = clock + 20000
-    set('a', 'Judy', 'connecting')
-    assert(post() == nil, 'the step was shown at once because the invitation was old')
-    clock = clock + 2999
-    assert(post() == nil)
-    clock = clock + 1
-    assert(post() == 'Connecting Judy…')
-    states.a = nil; joined('Judy'); dwell()
-    assert(post(true) == 'Judy joined your group.', 'joined after a visible wait must still show')
-  `);
-});
-
-test('the ready line waits 3 s for a player in the menu and in the phone; joined after a quick ready shows alone', () => {
-  run(`${fixture}
-    realBoard()
-    set('a', 'Judy', 'memory'); board.track('a', 'manager'); settle()
-    assert(post() == 'Preparing Judy…')
-    clock = clock + 5000
+    clock = clock + 4000
+    assert(post() == nil, 'Connecting showed before the long wait')
     set('a', 'Judy', 'ready')
-    assert(post() == nil, 'the ready line showed at once')
     clock = clock + 1000
-    -- V returns to the game: ready is already the routine joining step, which players never see.
-    assert(post(true) == nil)
+    assert(post(true) == nil, 'the joining step showed')
     states.a = nil; joined('Judy')
-    assert(post(true) == 'Judy joined your group.')
+    assert(post(true) == 'Judy joined your group.', 'joined did not show')
     assert(post(true) == nil)
-    -- Staying in the menu for 3 s shows the instruction.
-    clock = clock + 5000
+  `);
+});
+
+test('after the long wait a player sees the step the invitation is in, and joined still closes it', () => {
+  run(`${fixture}
+    realBoard()
+    set('a', 'Judy', 'memory'); board.track('a', 'manager')
+    clock = clock + 9999
+    assert(post() == nil, 'Preparing showed just before the long wait')
+    clock = clock + 1
+    assert(post() == 'Preparing Judy…', 'the long wait did not show Preparing')
+    set('a', 'Judy', 'connecting')
+    dwell()
+    assert(post() == 'Connecting Judy…', 'the step after the long wait was not shown')
+    states.a = nil; joined('Judy'); dwell()
+    assert(post(true) == 'Judy joined your group.', 'joined after a long wait must still show')
+  `);
+});
+
+test('the ready line waits the long wait for a player in the menu, and the phone says to close it after the same wait', () => {
+  run(`${fixture}
+    realBoard()
     set('b', 'Johnny', 'ready'); board.track('b', 'manager')
-    assert(post() == nil)
-    clock = clock + 2999
-    assert(post() == nil)
+    clock = clock + 9999
+    assert(post() == nil, 'the ready line showed before the long wait')
     clock = clock + 1
     assert(post() == 'Johnny is ready to join when you return to the game.')
-    -- The same for the phone.
-    clock = clock + 5000
+  `);
+});
+test('the phone ready line waits the long wait too, and asks the player to close the phone', () => {
+  run(`${fixture}
+    realBoard()
     set('c', 'Panam', 'ready'); board.track('c', 'phone')
-    assert(post() == nil)
-    clock = clock + 3000
-    local line = post()
-    assert(line == 'Johnny and Panam are ready to join when you return to the game.', tostring(line))
+    clock = clock + 9999
+    assert(post() == nil, 'the ready line showed before the long wait')
+    clock = clock + 1
+    assert(post() == 'Panam is ready. Close the phone to join.')
   `);
 });
 

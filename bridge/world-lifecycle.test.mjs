@@ -493,21 +493,18 @@ assert((stats.loads['diagnostics.lua'] or 0) == 1, 'the request file did not sta
 assert(files['runtime/diagnostic-response.txt'] == 'probe-1')
 `));
 
-test('phone invitation progress is always shown, the acknowledgement is Developer-only, and a failure waits for gameplay', () => run(`${phoneNoticeFixture}
+test('phone invitation progress shows after a long wait, the acknowledgement is Developer-only, and a failure waits for gameplay', () => run(`${phoneNoticeFixture}
 local function has(text) for _, line in ipairs(feedback()) do if line:find(text, 1, true) then return true end end return false end
--- Accepting posts only the progress line, after the notice delay; the acknowledgement is Developer-only.
-assert(early == 0, 'progress showed before the notice delay')
+-- A quick summon shows no progress; progress shows once the invitation has waited the long wait (10 s).
+assert(#feedback() == 0, 'progress showed before the long wait')
+clock = clock + 7; events.onUpdate(0)
 assert(#feedback() == 1 and has('Preparing Judy…') and not has('memory'))
 receipt('memory'); events.onUpdate(0)
 assert(#feedback() == 1)
 events.onUpdate(0); assert(#feedback() == 1)
--- A player sees Connecting and the ready line only after 3 s in that step (a step "joined" follows sooner is skipped).
+-- Connecting and the ready line have waited the long wait already, so each shows once the invitation reaches it.
 clock = clock + 4; receipt('connecting'); events.onUpdate(0)
-assert(#feedback() == 1, 'Connecting showed at once for a player')
-clock = clock + 4; receipt('connecting'); events.onUpdate(0)
-assert(#feedback() == 2 and has('Connecting Judy…'))
-clock = clock + 4; receipt('ready'); events.onUpdate(0)
-assert(#feedback() == 2, 'the ready line showed at once for a player')
+assert(#feedback() == 2 and has('Connecting Judy…'), 'Connecting did not show after the long wait')
 clock = clock + 4; receipt('ready'); events.onUpdate(0)
 assert(#feedback() == 3 and has('Close the phone to join'), 'the instruction to close the phone must be shown')
 assert(partyQueue.list()[1].state == 'ready-to-join')
@@ -528,18 +525,8 @@ local function feedback()
     for _, item in ipairs(stats.trace) do if item.kind == 'feedback' then out[#out + 1] = item.value end end
     return out
 end
-player.phoneOpen, player.phoneRequest = true, '+judy'
-events.onUpdate(0)
-clock = clock + 4; events.onUpdate(0)
-assert(#feedback() == 1 and feedback()[1] == 'Preparing Judy…')
-clock = clock + 4
-player.phoneRequest = '+johnny'; events.onUpdate(0)
-assert(#feedback() == 1, 'the second invitation showed progress inside the notice delay')
-clock = clock + 4; events.onUpdate(0)
-assert(#feedback() == 2 and feedback()[2] == 'Preparing Judy and Johnny…', feedback()[#feedback()])
-local request = json.decode(assert(files['runtime/companion-invitations.json']))
-assert(#request.invitations == 2)
 local function receipt(state)
+    local request = json.decode(assert(files['runtime/companion-invitations.json']))
     local rows = {}
     for _, job in ipairs(request.invitations) do
         rows[#rows + 1] = {id = job.id, revision = job.revision, modelKey = job.modelKey, profileKey = job.profileKey, state = state}
@@ -547,13 +534,26 @@ local function receipt(state)
     files['runtime/companion-invitations-state.json'] = json.encode({version = 1,
         worldToken = request.worldToken, generation = request.generation, updated = clock * 1000, bridgePid = 99, invitations = rows})
 end
-clock = clock + 4; receipt('connecting'); events.onUpdate(0)
-assert(#feedback() == 2, 'Connecting showed at once for a player')
-clock = clock + 4; receipt('connecting'); events.onUpdate(0)
+-- The bridge answers every two seconds: a receipt older than 2.5 s is ignored, and 15 s without one fails the preparation.
+local function answer(state, seconds)
+    for _ = 1, seconds / 2 do clock = clock + 2; receipt(state); events.onUpdate(0) end
+end
+player.phoneOpen, player.phoneRequest = true, '+judy'
+events.onUpdate(0)
+answer('memory', 4)
+assert(#feedback() == 0, 'progress showed inside the long wait')
+answer('memory', 8)
+assert(#feedback() == 1 and feedback()[1] == 'Preparing Judy…')
+player.phoneRequest = '+johnny'; events.onUpdate(0)
+receipt('memory'); events.onUpdate(0)
+assert(#feedback() == 1, 'the second invitation showed progress inside its own long wait')
+answer('memory', 12)
+assert(#feedback() == 2 and feedback()[2] == 'Preparing Judy and Johnny…', feedback()[#feedback()])
+local request = json.decode(assert(files['runtime/companion-invitations.json']))
+assert(#request.invitations == 2)
+answer('connecting', 4)
 assert(#feedback() == 3 and feedback()[3] == 'Connecting Judy and Johnny…')
-clock = clock + 4; receipt('ready'); events.onUpdate(0)
-assert(#feedback() == 3, 'the ready line showed at once for a player')
-clock = clock + 4; receipt('ready'); events.onUpdate(0)
+answer('ready', 4)
 assert(#feedback() == 4 and feedback()[4] == 'Judy and Johnny are ready. Close the phone to join.')
 events.onUpdate(0); assert(#feedback() == 4)
 `));

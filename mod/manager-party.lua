@@ -13,15 +13,15 @@ end
 -- one entry, and the board turns all of them into ONE compact notice that
 -- replaces the previous one: "Preparing Judy and Johnny...", then "Judy and
 -- Johnny joined your group.". A lone invitation keeps its original wording.
--- Visibility rules (the classes live in notices.lua, docs/NOTIFICATIONS.md): preparing,
--- connecting, ready and joined show, the routine "joining" step is Developer-mode
--- only, and every failure shows, together with the successes.
+-- Visibility rules (the classes live in notices.lua, docs/NOTIFICATIONS.md): "joined" and every
+-- failure show; the progress steps (preparing, connecting, ready) show to a player only after a long
+-- wait (LONG_WAIT_MS); the routine "joining" step is Developer-mode only.
 -- Calm rules, because each notice replaces the last one on screen:
--- * "Preparing" and "Connecting" (the memory check, voice conditioning and
---   connection start) show only once an invitation has been in flight for
---   SHOW_DELAY_MS, so a quick summon shows nothing to a player ("joined" closes a visible
---   wait only; developers always see it). The delay is
---   per invitation: a merged notice names only the ones already shown.
+-- * A normal invitation shows only its "joined" line. Progress (the memory check, voice conditioning,
+--   connection start, the ready line) shows to a player only once the invitation has been in flight
+--   for LONG_WAIT_MS, and is dropped when "joined" arrives first. Developers see progress after
+--   SHOW_DELAY_MS (ready at once). The wait is per invitation: a merged notice names only the ones
+--   that have waited long enough.
 -- * A posted notice stays up for at least MIN_SHOW_MS (FINAL_SHOW_MS after a
 --   final outcome, so a "joined" is never cut short): a change arriving sooner
 --   is held, and whatever is true when the time is up is posted instead
@@ -31,17 +31,16 @@ end
 --   going, the "joined" line waits up to JOIN_HOLD_MS for them, so the usual
 --   result is one merged "joined" instead of a partial notice. Meanwhile the
 --   progress notice keeps naming everyone it already named.
--- * A new failure is never delayed; only a new failure also skips the minimum time. For a player
---   "Connecting" and the "ready" lines show only after STAGE_DELAY_MS in that step, so a step that
---   "joined" follows within 3 s is skipped (developers see every step at once).
+-- * A new failure is never delayed; only a new failure also skips the minimum time.
 local MIN_SHOW_MS = 3000
 local FINAL_SHOW_MS = 5000
 local JOIN_HOLD_MS = 4000
+-- Developers see a progress step once the invitation has been in flight this long (ready at once).
 local SHOW_DELAY_MS = 1000
--- Connecting and ready (not Preparing) are short steps right before "joined": a player sees them only
--- once the invitation has stayed in that step this long, so a step that is followed by "joined" within
--- this time is never shown on its own and only "joined" appears. Developers see every step at once.
-local STAGE_DELAY_MS = 3000
+-- A player sees a progress step only after the invitation has been in flight this long. A normal
+-- invitation is joined well before that, so the player gets only "joined". A long wait (the voice
+-- model loading after a bridge restart can take minutes) still shows what it is waiting for.
+local LONG_WAIT_MS = 10000
 local MAX_LISTED = 3
 local RANKS = {memory = 1, connecting = 2, ready = 3, joining = 4}
 
@@ -94,8 +93,8 @@ function M.newBoard(options)
     local B = {}
     local now = options.now or newClock()
     local entries, burst, sequence = {}, newBurst(), 0
-    -- Tests may shorten the player's wait before Connecting and ready lines show.
-    local stageDelay = type(options.stageDelayMs) == 'number' and options.stageDelayMs or STAGE_DELAY_MS
+    -- Tests may shorten the player's long wait before any progress line shows.
+    local longWait = type(options.longWaitMs) == 'number' and options.longWaitMs or LONG_WAIT_MS
     local shownCore, shownGameplayCore, lastAt, lastWorld, lastHold
     -- Developer diagnosis: every posted notice (with each invitation's stage) and every
     -- ignored stage regression goes to the mod log when init.lua provides one.
@@ -145,7 +144,7 @@ function M.newBoard(options)
     -- Refresh every entry from the queue. Entries the queue no longer lists
     -- (joined, cancelled, removed) are finished; a failed one stays listed but
     -- is no longer in flight, its failure arrives as an event.
-    local function sample(worldReady, at)
+    local function sample(worldReady)
         local inflight = {}
         for index = #entries, 1, -1 do
             local entry = entries[index]
@@ -175,7 +174,6 @@ function M.newBoard(options)
                         note('Invitation ' .. tostring(entry.name) .. ' reported ' .. stage .. ' after ' .. entry.stage .. '; kept ' .. entry.stage)
                     end
                 else
-                    if entry.stage ~= stage then entry.stageAt = at end
                     entry.stage, entry.ignored = stage, nil
                 end
                 entry.sameRevision = entry.revision
@@ -186,27 +184,21 @@ function M.newBoard(options)
     end
 
     -- The invitations whose progress may be named now, each with the step it is named at
-    -- (entry.display). Preparing waits out SHOW_DELAY_MS from the start. For a player, Connecting
-    -- and the ready lines wait until the invitation has stayed in that step for the stage delay; until
-    -- then it keeps being named at the step already shown (an invitation that never showed one stays
-    -- hidden), so a step that "joined" follows within 3 s is skipped. Developers see every step at
-    -- once, and joining never waits.
+    -- (entry.display). A player sees a progress step (preparing, connecting, ready) only once the
+    -- invitation has been in flight for longWait; before that the invitation is hidden, so a normal
+    -- invitation that "joined" follows shows nothing but "joined". Developers see a step after
+    -- SHOW_DELAY_MS, the ready line at once. Joining is handled by progress().
     local function visible(inflight, at, developer)
         local shown = {}
         for _, entry in ipairs(inflight) do
             local stage = entry.stage
-            local started = at - (entry.startedAt or at) >= SHOW_DELAY_MS
+            local waited = at - (entry.startedAt or at)
             local want
-            if stage == 'memory' then
-                want = started and 'memory' or nil
-            elseif stage == 'connecting' then
-                if developer then want = started and 'connecting' or nil
-                elseif started and at - (entry.stageAt or entry.startedAt or at) >= stageDelay then want = 'connecting'
-                else want = entry.display end
-            elseif stage == 'ready' then
-                if developer or at - (entry.stageAt or entry.startedAt or at) >= stageDelay then want = 'ready'
-                else want = entry.display end
-            else
+            if stage == 'joining' then
+                want = stage
+            elseif developer then
+                if stage == 'ready' or waited >= SHOW_DELAY_MS then want = stage end
+            elseif waited >= longWait then
                 want = stage
             end
             entry.display = want
@@ -270,25 +262,16 @@ function M.newBoard(options)
     local function compose(inflight, developer, holding)
         local lines = {}
         if #burst.joined > 0 and not holding then
-            -- "Joined" closes a wait the player saw. After a quick summon (no Preparing, Connecting or
-            -- ready notice was shown for that invitation) players are not told; developers always are,
-            -- and a joined notice that carries a warning is never hidden.
-            local reported = {}
-            for _, item in ipairs(burst.joined) do
-                local gone = burst.gone[item.name]
-                if developer or item.warning or (gone and gone.shown) then reported[#reported + 1] = item end
-            end
-            if #reported > 0 then
-                local names = uniqueNames(reported)
-                local line = #names <= 1 and reported[1].message
-                    or ui.t('{names} joined your group.', {names = listNames(names)})
-                if #names > 1 then
-                    for _, item in ipairs(reported) do
-                        if item.warning then line = line .. ' ' .. item.warning; break end
-                    end
+            -- "Joined" is the one notice a normal invitation gives, so it is always shown.
+            local names = uniqueNames(burst.joined)
+            local line = #names <= 1 and burst.joined[1].message
+                or ui.t('{names} joined your group.', {names = listNames(names)})
+            if #names > 1 then
+                for _, item in ipairs(burst.joined) do
+                    if item.warning then line = line .. ' ' .. item.warning; break end
                 end
-                lines[#lines + 1] = line
             end
+            lines[#lines + 1] = line
         end
         for index, failure in ipairs(burst.failures) do
             if index > 2 then
@@ -308,7 +291,7 @@ function M.newBoard(options)
         worldReady = worldReady == true
         local developer = developerMode()
         local at = now()
-        local active = sample(worldReady, at)
+        local active = sample(worldReady)
         local inflight = visible(active, at, developer)
         local holding = holdingJoined(active, at)
         local text = compose(inflight, developer, holding)
@@ -489,7 +472,7 @@ function M.new(companions, readiness, options)
     function Q.board()
         if not noticeBoard then
             noticeBoard = M.newBoard({feedback = function(id) return Q.invitationFeedback(id) end,
-                developerMode = developerMode, stageDelayMs = options.stageDelayMs})
+                developerMode = developerMode, longWaitMs = options.longWaitMs})
         end
         return noticeBoard
     end

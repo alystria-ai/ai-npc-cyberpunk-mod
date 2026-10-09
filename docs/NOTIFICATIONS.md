@@ -21,8 +21,8 @@ CLOSE PHONE"), the character's spoken reply and subtitles (`ConvaiShowReply`), a
 
 ## What a player sees with Developer mode off
 
-Invitation: "Preparing {name}…" (only after a second, merged for several companions), "Connecting {name}…" and "{name} is ready to join when
-you return to the game." / "{name} is ready. Close the phone to join.", "{name} joined your group." (only when a Preparing, Connecting or ready notice was shown first for that invitation, so a quick summon says nothing), "{name} could not prepare/join: {reason}".
+Invitation: "{name} joined your group." when the companion arrives (every time, quick or slow). The progress lines "Preparing {name}…", "Connecting {name}…" and "{name} is ready to join when
+you return to the game." / "{name} is ready. Close the phone to join." show only once the invitation has been in flight for 10 s (a long wait, merged for several companions); a quick invitation shows just the joined line. "{name} could not prepare/join: {reason}".
 Talking: "Preparing connection to {name}…" (only while Auto-connect nearby characters is off and the character is not connected),
 "Connecting microphone - wait for Listening", "Listening - press {key} again to finish". Failures: the conversation service starting, missing
 its key, stopped or failed; no reply; the microphone unavailable or timed out; a companion action that was refused; a voice engine that fell
@@ -34,11 +34,11 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 
 | Id | Class | English text | Fires when | Window |
 | --- | --- | --- | --- | --- |
-| `invite-board` | Player | Preparing {name}… / Preparing {names}… | An invitation (manager or phone) has been preparing memory and voice for 1 s; replaced in place, on screen at least 3 s | board |
-| `invite-board` | Player | Connecting {name}… / Connecting {names}… | The invitation has stayed in its connecting step for 3 s. A player never sees it when "joined" follows sooner; developers see it at once | board |
-| `invite-board` | Player | {name} is ready to join when you return to the game. / {names} are ready to join when you return to the game. | Ready for 3 s while the menu is open (manager). Shorter than that, a player sees nothing and then "joined"; developers see it at once | board |
-| `invite-board` | Player | {name} is ready. Close the phone to join. / {names} are ready. Close the phone to join. | Ready for 3 s while the phone is open (same rule) | board |
-| `party-joined` | Player | {name} joined your group. / {names} joined your group. | The companion appeared after a wait the player saw (Preparing, Connecting or ready was shown for it). A quick summon shows nothing to a player; developers always see it, and a joined notice with a warning is never hidden. Several in a burst merge into one, shown 5 s | board |
+| `invite-board` | Player | Preparing {name}… / Preparing {names}… | An invitation (manager or phone) has been in flight for 10 s and is still preparing memory and voice; replaced in place, on screen at least 3 s | board |
+| `invite-board` | Player | Connecting {name}… / Connecting {names}… | The invitation has been in flight for 10 s and is connecting. A quick invitation never shows it: "joined" follows sooner. Developers see it after 1 s | board |
+| `invite-board` | Player | {name} is ready to join when you return to the game. / {names} are ready to join when you return to the game. | Ready, in flight for 10 s, while the menu is open (manager). A quicker invitation shows nothing and then "joined"; developers see it at once | board |
+| `invite-board` | Player | {name} is ready. Close the phone to join. / {names} are ready. Close the phone to join. | Ready, in flight for 10 s, while the phone is open (same rule) | board |
+| `party-joined` | Player | {name} joined your group. / {names} joined your group. | The companion appeared. Every joined notice shows to a player (quick or slow), and developers see it too. Several in a burst merge into one, shown 5 s | board |
 | `party-failed` | Player | {name} could not prepare: {reason} | Preparation failed (the player cancels and invites again) | once |
 | `party-failed` | Player | {name} could not join: {reason} | The game refused or lost the spawn | once |
 | `party-failed` | Player | {count} more companions also failed. | More than two failures in one burst | once |
@@ -96,6 +96,8 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 Apply voice-switch popup are Developer-only; identical hints and errors are rate-limited; three wordings were shortened (no log file names,
 no "bridge", no "eight metres"). Earlier: 248c14c, a20c7a1, e7e9760 (calmer invitation notices) and the 2026-10-07 settings review.
 
-2026-10-09 (later, user decision): "joined" is shown to a player only after a visible wait; key-press hints stay.
+2026-10-09 (later, user decision): "joined" is shown to a player only after a visible wait; key-press hints stay. (Superseded the same day, see below.)
 
 2026-10-09 (in-game feedback): the intermediate step and "joined" came back to back, so for a player "Connecting" and the "ready" lines now show only after the invitation has stayed in that step for 3 s (`STAGE_DELAY_MS` in `mod/manager-party.lua`). Until then the board keeps naming the step already shown (Preparing, if it was), and a step that "joined" follows sooner is skipped; the joined notice still replaces the previous toast in place, after that toast's 3 s minimum. "Preparing" keeps its one-second delay, so a genuinely long wait still shows. Developers see every step at once.
+
+2026-10-09 (invitation long wait): the first line a player saw was "Preparing", which had no stage delay (only Connecting and ready waited 3 s), and the 3 s minimum show time then held "joined" behind it. Progress now shows to a player only after the invitation has been in flight for 10 s (`LONG_WAIT_MS` in `mod/manager-party.lua`), so a normal invitation shows only "joined". "Joined" now shows for every companion that arrives, quick or slow, which supersedes the "joined only after a visible wait" decision above. Developers still see progress after 1 s and the ready line at once.

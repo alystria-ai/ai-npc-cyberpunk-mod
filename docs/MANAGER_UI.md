@@ -258,15 +258,14 @@ Direct phone invitations use the same rules.
 default Off). The player must see that a slow preparation is progressing, so
 these are always shown, for manager and phone invitations alike:
 
-- **Preparing {name}…** (the memory check, voice conditioning and connection start), once an
-  invitation has been in flight for a second: a quick summon shows no progress and, to a player, no
-  joined notice either;
-- **Connecting {name}…**, **ready to join when you return to the game** (manager) and **ready, close
-  the phone to join** (phone), but only once the invitation has stayed in that step for 3 s
-  (`STAGE_DELAY_MS`): a step that "joined" follows sooner is skipped, so the two never appear back to
-  back. Developers see every step at once;
-- **joined your group**, but only for an invitation whose Preparing, Connecting or ready notice was
-  shown first (the player waited; developers always see it, and a joined notice with a warning is never hidden);
+- **Preparing {name}…** (the memory check, voice conditioning and connection start),
+  **Connecting {name}…**, **ready to join when you return to the game** (manager) and **ready, close
+  the phone to join** (phone), but only once the invitation has been in flight for 10 s
+  (`LONG_WAIT_MS`, a long wait). A normal invitation shows no progress at all, so the player is not
+  told about a summon that arrives quickly. Developers see the progress steps after 1 s, and the
+  ready line at once;
+- **joined your group**, for every companion that arrives, quick or slow (developers see it too, and a
+  joined notice with a warning is never hidden);
 - every failure and error, including a driving failure and the reply to Stop trip.
 
 These are Developer mode only:
