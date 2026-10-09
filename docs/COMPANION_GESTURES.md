@@ -618,3 +618,28 @@ Not changed, open (needs live A/B, one agent at a time, with the controller paus
 - A slower enter blend for the idle workspot copies (vanilla 0.5 s) next to the vanilla ones, and a longer talk enter blend (2.5-3 s), to see whether the lurch's size follows the duration at all.
 - A bridge workspot per ambient stance (an entry sequence that plays the character's own locomotion idle clip and then blends into the stance loop inside the workspot, where clip blends are cross-fades), which removes the foot mismatch at the engine's enter.
 - Probing hygiene: the gesture probe runs next to the shipped controller and the companion actuator on the same companion (the probe's auto-unstick also releases the actuator's command); during the 03:20 IST tests Evelyn walked back and forth. Probe only with the controller paused for that companion (the face-stage kill switch covers staged copies only).
+
+## Round 5c (October 10, night): bridge workspots, the stance loop was the jolt
+
+Live A/B on face-staged copies (silenced follow, gestures and seating; the workspot driven directly on the staged copy; 34 fps captures; torso displacement by phase correlation, the largest vertical change inside any 0.2 s window around the play call):
+
+| Workspot entered on Lizzy Wizzy (same body) | Vertical jolt |
+|---|---|
+| `convai_talk_on_sides` (loop `stand__2h_on_sides__01`), two runs | 22 and 26 px |
+| `convai_idle_generic_hip` (Evelyn's own idle) | 17 px |
+| `convai_talk_woman_sides` (loop = her ambient `idle_stand`) | 4 and 5 px |
+| `convai_talk_on_hips` | 4 px |
+| `convai_idle_jackie_hips` | 5 px |
+| Panam on `on_sides` | 2 and 3 px |
+| live Evelyn: talk, hip idle | 24 and 11 px |
+
+A gesture jump from `idle_stand` to a clip is 8 px, a jump inside `on_sides` 1 px, exits 1-3 px everywhere. So the lurch is set by how far the stance loop's first pose is from the pose she stands in (the same enter blend, 0.5 s or 1.5 s, gives the same lurch), not by the character or the blend time, and a loop that is her own ambient idle enters without it. The 4 s re-entry guard and the 1 s settle (Round 5b) stay; this removes the lurch itself.
+
+**Bridge workspots** (archive; game restart; `mod/companion-gestures.lua`, CET reload): `on_sides` and `arms_crossed` carry `bridge: "idle_stand"` and the relaxed locomotion animset of each rig in their animset lists (`wa_gang`/`ma_gang`/`mb_gang`; Judy's `arms_crossed` uses `wa_judy`). The workspot has two looping sequences, the ambient `idle_stand` first (sequence 100) and the stance loop second (102); the controller:
+
+1. enters on the ambient loop (no lurch, same as `woman_sides`),
+2. once the enter blend is over (+ .15 s) jumps instantly to the stance loop (`bridge-in` in the log; clips wait another second),
+3. plays gestures from the stance loop as before (clips start and end in it),
+4. before any non-instant exit jumps back to the ambient loop (`bridge-out`), waits one second and only then sends the native fast exit; combat, transport and an unobserved tick still leave at once without crossing.
+
+Signature idles (`convai_idle_*`) are separate vanilla workspots and are not bridged: `convai_idle_generic_hip` still lurches 11-17 px on entry. Characters whose own ambient idle differs from the gang one (Panam, Rogue, Jackie, Takemura, Johnny, Kerry, River, Reed, Padre) bridge from the gang idle for now; their own loops exist as the `*_own` families and can get a bridge of their own the same way. To check live after the restart: the entry of the talk stance on Evelyn (the head should no longer drop; `bridge-in` and `bridge-out` lines in `probe.log`), the first gesture a second after the crossing, and no visible shift at the exit.

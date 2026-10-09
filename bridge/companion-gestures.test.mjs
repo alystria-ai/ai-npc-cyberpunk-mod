@@ -208,7 +208,7 @@ test('a long reply streamed phrase by phrase is judged by its text, and gestures
   -- each phrase reports only its own 2.5 s; the text says about 10 s
   speaking={knownEnd=2.5,at=0}
   local n=0
-  for i=1,100 do
+  for i=1,140 do
     step(.1)
     if speaking.at>=speaking.knownEnd and speaking.knownEnd<10 then speaking.knownEnd=speaking.knownEnd+2.5 end
   end
@@ -220,7 +220,7 @@ test('a long reply streamed phrase by phrase is judged by its text, and gestures
     if call.name=='jump' and durations[call.clip] then n=n+1;covered=covered+durations[call.clip] end
   end
   assert(count('play')==1,'entered once')
-  assert(n>=2 and covered>=6,'gestures '..n..' covering '..covered..' s of a 10 s reply')
+  assert(n>=2 and covered>=4.5,'gestures '..n..' covering '..covered..' s of a 10 s reply')
   c.replyText=function() return 'short reply here' end
 `));
 
@@ -231,13 +231,14 @@ test('a short reply split into phrases still does not gesture', () => run(`
 `));
 
 test('gesture jumps are instant; the return to the idle loop is queued at the clip end', () => run(`
-  speaking={knownEnd=14,at=0};step(6)
+  speaking={knownEnd=14,at=0};step(9)
   local cat=load(catalogSource)()
   local idle=cat.families.arms_crossed.idle.name
   local gestures,returns=0,0
   for _,call in ipairs(calls) do
     if call.name=='jump' then
-      if call.clip==idle then assert(not call.instant,'idle return waits for the clip');returns=returns+1
+      if call.clip==idle and call.instant then -- the crossing from her own idle to the stance loop
+      elseif call.clip==idle then returns=returns+1
       else assert(call.instant,'gesture jump is instant: '..call.clip);gestures=gestures+1 end
     end
   end
@@ -393,9 +394,10 @@ test('the stance is entered while V waits for the reply (thinking), and left aga
   assert(held,'entered on thinking')
   step(2)
   assert(count('play')==1 and last('play').component=='convai_talk_arms_crossed','Judy takes her stance before the first word')
-  assert(count('jump')==0,'no gestures while only thinking')
+  local gestures=0 for _,call in ipairs(calls) do if call.name=='jump' and call.clip~='stand__arms_crossed_front__01' then gestures=gestures+1 end end
+  assert(gestures==0,'no gestures while only thinking')
   c.thinking=function() return nil end
-  step(4)
+  step(5)
   assert(count('exit')==1 and lastLog('finished').fields.reason=='reply ended' and not held)
 `));
 
@@ -426,4 +428,45 @@ test('the signature idle stays away from the end of a reply', () => run(`
   step(120)
   local after=0 for _,l in ipairs(logs) do if l.kind=='flavour-begin' then after=after+1 end end
   assert(after>before,'it comes back later')
+`));
+
+test('a bridge family enters on her own idle, crosses to the stance loop, gestures after that, and crosses back before leaving', () => run(`
+  local cat=load(catalogSource)()
+  local fam=cat.families.arms_crossed
+  assert(fam.bridge and fam.bridge.name=='idle_stand' and fam.idle.sequenceId==fam.bridge.sequenceId+2,'catalog carries the bridge')
+  speaking={knownEnd=20,at=0};step(1.0)
+  assert(held and last('play') and count('jump')==0,'on the ambient idle first: no jump during the enter blend')
+  step(1.2)
+  assert(count('jump')==1 and last('jump').clip==fam.idle.name and last('jump').instant,'crosses to the stance loop')
+  assert(lastLog('bridge-in'),'logged')
+  step(.6)
+  assert(count('jump')==1,'no gesture while the crossing settles')
+  step(5)
+  assert(count('jump')>=2,'gestures follow the crossing')
+  speaking=nil;step(2.4)
+  assert(count('exit')==0 and not lastLog('bridge-out'),'still lingering')
+  step(.8)
+  assert(lastLog('bridge-out') and count('exit')==0,'crossed back to her own idle first')
+  assert(held and last('jump').clip==fam.bridge.name and last('jump').instant)
+  step(1.2)
+  assert(count('exit')==1 and not last('exit').instant,'then the native fast exit')
+  step(.5)
+  assert(not held and lastLog('finished').fields.reason=='reply ended')
+`));
+
+test('combat and transport leave a bridge stance at once, without crossing back', () => run(`
+  speaking={knownEnd=20,at=0};step(3.5)
+  assert(lastLog('bridge-in'))
+  context.combat=true;step(.3)
+  assert(count('exit')==1 and last('exit').instant and not lastLog('bridge-out'),'instant exit in combat')
+`));
+
+test('every family that carries a bridge has its own idle on every rig it plays on', () => run(`
+  local cat=load(catalogSource)()
+  for key,fam in pairs(cat.families) do
+    if fam.bridge then
+      for _,rig in ipairs(fam.rigs) do assert(fam.bridge.perRig[rig] and fam.idle.perRig[rig],key..' bridge and stance on '..rig) end
+    end
+  end
+  assert(cat.families.on_sides.bridge and cat.families.arms_crossed.bridge)
 `));

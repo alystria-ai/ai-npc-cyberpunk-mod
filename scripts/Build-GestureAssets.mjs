@@ -318,6 +318,14 @@ for (const [familyKey, family] of Object.entries(source.families)) {
         perRigClips[rigKey] = clipsOf(rigKey, family.animsets[rigKey]);
         if (!perRigClips[rigKey].has(family.idle)) fail(`${familyKey}: ${rigKey} has no idle clip ${family.idle}`);
         if (perRigClips[rigKey].get(family.idle).motion) fail(`${familyKey}: idle ${family.idle} moves on ${rigKey}`);
+        // A bridge family enters on the companion's own relaxed idle (a locomotion animset in the
+        // rig's list), crosses to the stance loop inside the workspot and back before the exit:
+        // entering the stance loop directly lurches the body (docs/COMPANION_GESTURES.md, Round 5b).
+        if (family.bridge) {
+            const ambient = perRigClips[rigKey].get(family.bridge);
+            if (!ambient) fail(`${familyKey}: ${rigKey} has no ambient clip ${family.bridge}`);
+            if (ambient.motion) fail(`${familyKey}: ambient ${family.bridge} moves on ${rigKey}`);
+        }
     }
     // Discover clips: family prefix, in place, not banned, categorised.
     const byName = new Map();
@@ -345,6 +353,8 @@ for (const [familyKey, family] of Object.entries(source.families)) {
         }
     }
     let nextId = 100;
+    const ambientId = family.bridge ? nextId : undefined;
+    if (family.bridge) nextId += 2;
     const idleId = nextId; nextId += 2;
     const clips = [...byName.values()].sort((a, b) => a.name.localeCompare(b.name)).map((clip) => {
         const { shapes = [], ...rest } = clip;
@@ -383,9 +393,9 @@ for (const [familyKey, family] of Object.entries(source.families)) {
     const keep = (type) => rootData.list.filter((node) => node.Data.$type === type);
     const templateClip = keep('workSequence')[0].Data.list[0].Data.list[0].Data;
     const animClip = (name, id) => ({ HandleId: '0', Data: { ...clone(templateClip), animName: cname(name), blendOutTime: (source.blend ?? {}).clipOut ?? 0.5, id: entryId(id) } });
-    const sequence = (id, list, loop) => ({ HandleId: '0', Data: {
+    const sequence = (id, list, loop, idleAnim = family.idle) => ({ HandleId: '0', Data: {
         $type: 'workSequence', category: 'Any', disableAutoTransition: 0, flags: 0, id: entryId(id),
-        idleAnim: cname(family.idle), list, loopInfinitely: loop ? 1 : 0, previousLoopInfinitely: 0 } });
+        idleAnim: cname(idleAnim), list, loopInfinitely: loop ? 1 : 0, previousLoopInfinitely: 0 } });
     // Template walk entries, exits and bumps belong to the hands-at-sides pose;
     // other stances keep only the fast exit. Crowd Fear reactions never stay.
     const entries = family.templateEntries ? [
@@ -394,6 +404,7 @@ for (const [familyKey, family] of Object.entries(source.families)) {
     const exits = family.templateEntries ? keep('workExitAnim') : [];
     rootData.list = [
         ...entries,
+        ...(family.bridge ? [sequence(ambientId, [animClip(family.bridge, ambientId + 1)], true, family.bridge)] : []),
         sequence(idleId, [animClip(family.idle, idleId + 1)], true),
         ...clips.map((clip) => sequence(clip.sequenceId, [animClip(clip.name, clip.clipId)], false)),
         ...exits, ...keep('workFastExit'),
@@ -421,6 +432,8 @@ for (const [familyKey, family] of Object.entries(source.families)) {
         component: family.component, workspot: family.workspot, rigs: rigKeys, blend: source.blend,
         idle: { name: family.idle, sequenceId: idleId, clipId: idleId + 1,
             perRig: Object.fromEntries(rigKeys.map((rigKey) => [rigKey, { duration: round(perRigClips[rigKey].get(family.idle).duration) }])) },
+        bridge: family.bridge ? { name: family.bridge, sequenceId: ambientId, clipId: ambientId + 1,
+            perRig: Object.fromEntries(rigKeys.map((rigKey) => [rigKey, { duration: round(perRigClips[rigKey].get(family.bridge).duration) }])) } : undefined,
         clips: clips.map(({ name, category, character, kind, fit, exclude, sequenceId, clipId, perRig }) =>
             ({ name, category, character, kind, fit, exclude, sequenceId, clipId, perRig })),
     };
