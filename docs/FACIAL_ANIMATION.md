@@ -4,6 +4,66 @@
 
 > **October 8: world NPCs, on demand.** The layer is no longer companion-only, but nothing is prepared at spawn (FPS): a running `face_rig` cannot change its graph in place, so when a conversation opens `init.lua` calls `NPCPuppet.ConvaiFaceRequest()` on the talk target. `ConvaiFaceService.RequestWorldFace` checks the running face without writing it, queues the NPC's current appearance name and rebuilds that same appearance (`ScheduleAppearanceChange`). The `Entity/Extract` callback prepares the matching appearance-only rebuild, the same seam that replaced Johnny's face on October 2. `ConvaiFaceReady()` then adopts the world NPC from its running graph path; a dynamic entity still needs the `CyberpunkConvaiCompanion` tag. At most two world NPCs keep the layer; a third request rebuilds the oldest back to vanilla. NPCs in a dialogue, quest-owned NPCs (`q###`, `sq###` or `mq###` in the appearance name or TweakDB record), quest-marked or non-autonomous ones, and scene NPCs that are neither vendor nor crowd are never rebuilt (October 9, after a Konpeki receptionist from `q004` was; on October 10 a scene alone stopped blocking vendors, see [WORLD_COMPANIONS.md](WORLD_COMPANIONS.md)). Measured live later on October 10: the same-name appearance change this relies on is a no-op, so no world NPC is prepared (see [WORLD_COMPANIONS.md](WORLD_COMPANIONS.md)). Every other NPC keeps the vanilla graph. In Lua, speech playback writes to whoever `speech.lua` is voicing (`speaker()`), and idle, thinking and listening faces stay on managed companions (`owns()`). Not yet proven in game: that a same-name appearance change really rebuilds `face_rig`, and that the rebuild is not visible. The vanilla graphs offer no zero-cost alternative: their only script input is the `AnimFeature_FacialReaction` mood preset, and vanilla lip sync comes from authored scene/VO animations. Statements below that the layer is for owned companions only date from before this change.
 
+## October 10: speech owns the mouth (the shut mouth that came and went)
+
+**Symptom.** Most replies open the mouth; now and then the jaw and lips stay shut although `speech-state.json`
+`face.expressions.lastSpeech` shows a written jaw (Evelyn: 517 frames, 377 open, peak .657; earlier 302 of 431, peak
+.612). It happened under a gesture workspot, but one live A/B sealed with no workspot at all, and moving every workspot to
+the neutral facial idle (gesture round 5) did not cure it.
+
+**Mechanism (read from the extracted graphs and the solver reconstruction).**
+
+- All nine graphs end in one `animAnimNode_Sermo`. Its input chain is the full pose: the Idle state machine (a looped
+  `idle__<emotion>__<sex>` facial clip, 39 such SkAnim clips in `woman_average_sermo`), a `FacialMixerSlot` for streamed
+  facial animation (scene, look-at), the `WORKSPOT` graph slot and the emotion state machines. A facial idle is always
+  playing; no workspot or scene is needed.
+- The Sermo solver (reconstructed in `vendor/reference-cp77-blender/.../facial/solver.py`) takes that pose's control
+  tracks as `output`, then runs, in order: envelopes, limits, influences, **`output *= lerp(1, <control>AnimOverrideWeight,
+  lipSyncEnvelope)`** (skipped when `lipSyncEnvelope` is 0), **`output = clip(output + <control>LipsyncPoseOutput)`**, then
+  the pose blend. Our layer wrote only the `LipsyncPoseOutput` tracks, with `lipSyncEnvelope` at 0 and the override weights at
+  their reference value 1, so the idle's value reached the solver at full weight and ours was only added: a jaw of .1 to .65
+  against `lips_together_up/dn` held at .7 to 1.0 (and `jaw_mid_close`, `lips_suck_dn`, purse, chin raise) by whatever the
+  idle clip is doing at that moment. The idle clips loop, so the seal comes and goes with the clip's phase, which is why
+  it is intermittent and why a neutral workspot idle (less closure, not none) only reduced it.
+- The game's own dialogue lipsync writes `lipSyncEnvelope` and `<control>AnimOverrideWeight` next to the pose, so the idle
+  does not add under its mouth. The gesture agent's suggestion (drive each override weight as 1 minus that control's
+  own pose) is not enough: a control whose own pose is 0 at that instant (lips together while a vowel opens the jaw) would
+  keep the idle's closure. The weight has to follow whether we are speaking, not each control's own value.
+- 86 controls have an override track (jaw 7, lips 48, cheeks 2, nose 2, tongue 16, neck 11); eyes, brows, lids and widen
+  have none, so blinks and the upper-face emotions are never touched.
+
+**Change.** `assets/facial/controls.json` gets an `owner` block; `scripts/Build-FacialGraphs.mjs` adds one more
+`ConvaiFace` float input, `speech_owner`, and 49 `FloatTrackModifier` nodes before the Sermo solver, all fed by that one
+input: `lipSyncEnvelope` **Add** (1 node) and, for the 48 jaw, lip and cheek controls in `owner.faded`,
+`<control>AnimOverrideWeight` **Subtract** (the sticky and cut-scene corner tracks, tongue, neck and nose are left alone).
+At 0 the graph is exactly the old one (envelope 0 skips the stage). At 1 the idle's jaw, lips and cheeks are zero and our
+deltas are the whole mouth. In between the idle is scaled by 1 - owner squared. The build refuses a graph whose solver
+lacks any of these tracks (`animSermoTestController` lists them; all nine have the same 86 overrides). `FaceFeature.reds`
+(generated) gains `speech_owner`; it is not a rig track, so `RequiredTracks()` is unchanged. `Verify-FacialGraphs.mjs`
+checks the 59 deltas, the 49 ownership nodes (Add on the envelope, Subtract on overrides, one shared input) and the 60
+inputs after the binary round trip.
+
+`mod/facial-playback.lua` writes `feature.speech_owner` from `applyFeature`: eased from 0 to 1 over .10 s while a reply is
+heard (phase `speaking`), scaled by the release ease on a pause or stall, easing back over .15 s once the idle writer has
+the face (so the idle's mouth returns smoothly and a gap between Omni phrases barely lets go), and 0 at once while blocked
+(combat, scene, native dialogue); a reset that bypasses the idle writer (a speaker without the expression layer) zeroes the
+feature. Speaking frames always write it; other phases
+write it only to hand it back. It is probed once like the extended controls, so an install without the field keeps the old
+behavior. `speech-state.json` `face.expressions.lastSpeech.ownedFrames` counts the frames with the idle mouth fully handed
+over (0 with `frames` above 0 means the field or the new archive is missing); `face.ownerFace` says whether the feature has
+the field. Cost: one float written per speaking frame and 49 extra float-track nodes in a prepared face graph; no new
+per-frame work outside the writer.
+
+**Install.** The archive, `FaceFeature.reds` and the Lua go together: **game restart** (redscript recompiles at launch),
+then the Lua is hot. A new archive with an old feature class leaves the input unwritten (no effect); a new feature class
+with the old archive writes a field nothing reads.
+
+**Not proven.** The solver's override stage is the Blender add-on's reconstruction, and `Subtract` is read as "track minus
+input" (at the endpoints 0 and 1 it also equals the swapped reading). Offline only so far: graph structure, the binary
+round trip and the Lua writer. The in-game check after the restart: a reply that used to seal the mouth under a gesture or
+an idle clip now opens it, the mouth does not pop at the start or the end of a reply, the neutral face when silent is
+unchanged, blinks and emotions still show.
+
 ## October 2: facial graph lifetime across appearance changes
 
 Johnny's seated reply delivered 186 facial applications and a reset, but the

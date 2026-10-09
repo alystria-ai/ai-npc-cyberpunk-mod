@@ -450,11 +450,11 @@ Fixes (archive; game restart):
   extracts every idle and sit workspot for it. `Verify-GestureAssets.mjs` fails
   the build unless every shipped workspot reads neutral, no key, after the
   binary round trip (21 workspots).
-- **Not fixed here, for the lip-sync layer:** even the neutral idle holds
-  `lips_together` up to .98 at times. The proper structural fix is to write
-  `<control>AnimOverrideWeight` = 1 - pose for the mouth controls next to the
-  `LipsyncPoseOutput` deltas in `scripts/Build-FacialGraphs.mjs`, as the game's
-  lipsync does (face-graph archive; separate rebuild).
+- **Fixed in the lip-sync layer (October 10, later; see `docs/FACIAL_ANIMATION.md`, "speech owns the mouth"):** even the
+  neutral idle holds `lips_together` up to .98 at times, and a per-control `1 - pose` override would not have helped
+  (a control whose own pose is 0 at that instant keeps the idle's closure). `speech_owner` now fades the idle's jaw, lip
+  and cheek controls through `lipSyncEnvelope` and `<control>AnimOverrideWeight` for as long as a reply is heard
+  (graph archive plus `FaceFeature.reds`: game restart).
 - To read `speech-state.json` `lastSpeech` next time: `jawPeak` and
   `openFrames` high with a shut mouth on screen during a workspot means this
   layer, not the writer.

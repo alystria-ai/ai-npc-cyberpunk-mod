@@ -1243,6 +1243,45 @@ test('the idle face holds until the reply is heard, on the phrase (Omni, Convai 
    cursor=0;holds('prepared',.5);speech.stop('cancelled');holds('cancelled before audio',1)`);
 });
 
+// October 10: the mouth that sometimes stayed shut under a streamed facial idle. While a reply is heard the writer
+// raises speech_owner, which makes the graph fade the idle's jaw and lip controls (assets/facial/controls.json
+// "owner"); it eases back to 0 once the idle writer takes over, and is 0 at once while blocked.
+test('a heard reply owns the mouth (speech_owner eased to 1) and hands it back eased; an older feature without it still works', () => {
+  const line = buildFacialTimeline({audio: wav(), mouthCuesFormat: 'rhubarb-phonetic-v1',
+    mouthCues: [{start: 0, end: .5, value: 'A'}, {start: .5, end: 1, value: 'G'}], expressionSignal: signal()}, owner);
+  delete line.motion;
+  const start = `tick(.1);speech.target=a
+   assert(speech.start(context,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=1},face=${literal(line)}}))`;
+  run(`${start}
+   assert(last(a).speech_owner==nil or last(a).speech_owner==0,'idle frames do not own the mouth')
+   cursor=.02;tick(1/60);local first=last(a).speech_owner
+   assert(first and first>0 and first<1,'eased in, not a step: '..tostring(first))
+   for i=1,12 do cursor=.02+i/60;tick(1/60) end
+   assert(last(a).speech_owner==1,'owned within ownRise: '..tostring(last(a).speech_owner))
+   assert(last(a).jaw_mid_open~=nil,'the same frame carries the jaw')
+   assert(face.ownerFace==true and face.status().expressions.lastSpeech.ownedFrames>0)
+   -- Blocked (combat, a scene, native dialogue): the idle face is the game's, the owner drops with every other delta.
+   cursor=.2;tick(1/60,{blocked=true});assert(last(a).speech_owner==0,'blocked frames never own the mouth: '..tostring(last(a).speech_owner))
+   cursor=.3;tick(1/60);assert(last(a).speech_owner<1,'ownership restarts eased after a block')
+   for i=1,12 do cursor=.3+i/60;tick(1/60) end
+   assert(last(a).speech_owner==1)
+   -- The reply ends: the idle writer (or the reset) hands the face back in the same call.
+   speech.stop('cancelled');tick(.05);local fading=last(a).speech_owner
+   assert(fading and fading>0 and fading<1,'the idle mouth returns eased, not as a pop: '..tostring(fading))
+   for _=1,6 do tick(.05) end;assert(last(a).speech_owner==0,'handed back: '..tostring(last(a).speech_owner))
+   local frames=#a.frames;tick(.05);assert(last(a).speech_owner==0 or last(a).speech_owner==nil)
+  `);
+  // An install whose FaceFeature lacks the field (older reds build) keeps speaking, without the field.
+  run(`NewObject=function() return setmetatable({},{__newindex=function(t,k,v)
+     if k=='speech_owner' then error('no such property '..k) end;rawset(t,k,v) end}) end
+   ${start}
+   for i=1,12 do cursor=.02+i/60;tick(1/60) end
+   assert(face.ownerFace==false,'not detected')
+   assert(rawget(last(a),'speech_owner')==nil and last(a).jaw_mid_open~=nil,'speech goes on without the field')
+   assert(face.error==nil and face.expressionError==nil,tostring(face.error)..tostring(face.expressionError))
+   speech.stop('cancelled');tick(.1)`);
+});
+
 // October 9 (evening): nine more native controls (brows pulled together, upper-lid lowering, inner squint, nose
 // wrinkle, chin raise) need the new FaceFeature.reds; an install whose feature lacks them keeps the base controls.
 test('extended controls are used when the feature has them, and an older feature keeps working without them', () => {

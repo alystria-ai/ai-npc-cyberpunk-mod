@@ -31,6 +31,11 @@ export function inspectGraph(document) {
 export function extendFacialGraph(original) {
   if (schema.version !== 1 || new Set(schema.tracks).size !== schema.tracks.length
       || schema.tracks.some(name => !/^[a-z][a-zA-Z0-9_]+$/.test(name))) throw new Error('Invalid face schema');
+  if (schema.owner && (!/^[a-z][a-zA-Z0-9_]+$/.test(schema.owner.input) || schema.tracks.includes(schema.owner.input)
+      || !/^[a-zA-Z][a-zA-Z0-9]+$/.test(schema.owner.envelope) || new Set(schema.owner.faded).size !== schema.owner.faded.length
+      || schema.owner.faded.some(name => !/^[a-z][a-zA-Z0-9_]+$/.test(name) || /^(eye|neck)_/.test(name)))) {
+    throw new Error('Invalid speech ownership schema');
+  }
   const document = structuredClone(original), root = document.Data?.RootChunk;
   if (root?.$type !== 'animAnimGraph') throw new Error('Expected an animation graph');
   const {handles, objects} = inspectGraph(document);
@@ -52,8 +57,44 @@ export function extendFacialGraph(original) {
     upstream = link('animPoseLink', modifier);
     added.push(ref(modifier.HandleId), ref(input.HandleId));
   }
-  // Add only speech deltas before the native Sermo solver. Zero inputs leave
-  // every existing pose, eye target, head rotation and animation link intact.
+  // Speech ownership (October 10). The deltas above are ADDED to whatever the graph already feeds the solver, and
+  // the graph always feeds it a facial idle: the Idle state machine plays a looped idle__<emotion>__<sex> clip (and a
+  // workspot, scene or look-at streams its own) whose lips_together / jaw_mid_close / lips_suck keys hold the mouth
+  // shut at times, so a written jaw of .1 to .65 sometimes cannot open it. The game's own dialogue lipsync does not
+  // add: it also writes <control>AnimOverrideWeight and the lipSyncEnvelope track, and the solver then scales the
+  // streamed value of each override-capable control by lerp(1, override, envelope) before adding the lipsync pose
+  // (the reconstruction in vendor/reference-cp77-blender .../facial/solver.py). One float input, speech_owner, drives
+  // both: envelope += owner and override -= owner, so the idle's mouth is faded by 1 - owner^2 and fully gone at 1,
+  // and the graph is unchanged at 0 (envelope 0 skips the stage). Eyes, brows and blinks have no override track.
+  const owner = schema.owner;
+  if (owner) {
+    const test = [...objects].find(node => node.$type === 'animSermoTestController');
+    if (!test) throw new Error('Sermo has no track list to check the override tracks against');
+    for (const track of [owner.envelope, ...owner.faded.map(name => `${name}AnimOverrideWeight`)]) {
+      if (test[track] === undefined) throw new Error(`The solver has no ${track} track`);
+    }
+    const input = alloc({...base('animAnimNode_FloatInput'), group: cname(schema.group),
+      name: cname(owner.input), debugInput: 0});
+    // The native JSON reader resolves a handle reference only after the handle's definition, in document order, and
+    // the outermost node of a chain comes first: the input is defined inline in the LAST node created and every
+    // earlier (deeper) one refers to it.
+    const ownerNodes = [];
+    const ownerNode = (target, operationType) => {
+      const modifier = alloc({...base('animAnimNode_FloatTrackModifier'), debugName: cname('Convai speech owner'),
+        floatInputNode: link('animFloatLink', {HandleRefId: input.HandleId}),
+        floatTrack: trackIndex(target), inputFloatTrack: trackIndex('None'),
+        operationType, poseInputNode: upstream});
+      upstream = link('animPoseLink', modifier);
+      ownerNodes.push(modifier);
+      added.push(ref(modifier.HandleId));
+    };
+    ownerNode(owner.envelope, 'Add');
+    for (const name of owner.faded) ownerNode(`${name}AnimOverrideWeight`, 'Subtract');
+    ownerNodes.at(-1).Data.floatInputNode = link('animFloatLink', input);
+    added.push(ref(input.HandleId));
+  }
+  // Speech deltas and ownership go in before the native Sermo solver. Zero inputs leave every existing pose, eye
+  // target, head rotation and animation link intact.
   solvers[0].inputLink = upstream;
   root.nodesToInit.push(...added);
   root.animFeatures.push({$type: 'animAnimFeatureEntry', className: cname(schema.feature),
@@ -66,7 +107,8 @@ export function featureSource() {
   return '// Generated from assets/facial/controls.json by Build-FacialGraphs.mjs.\n'
     + '// Zero values preserve the native face; this feature is applied only to owned copies.\n'
     + `public class ${schema.feature} extends AnimFeature {\n`
-    + schema.tracks.map(track => `  public let ${track}: Float;`).join('\n') + '\n}\n\n'
+    + schema.tracks.map(track => `  public let ${track}: Float;`).join('\n') + '\n'
+    + (schema.owner ? `  public let ${schema.owner.input}: Float;\n` : '') + '}\n\n'
     + 'public abstract class ConvaiFaceAssets {\n'
     + '  public static func Names() -> array<String> {\n    return ['
     + schema.graphs.map(name => `"${name}"`).join(', ') + '];\n  }\n'

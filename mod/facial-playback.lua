@@ -62,6 +62,34 @@ local function detectExtended(feature)
     M.extendedFace=extendedFace
     if extendedFace then for _,track in ipairs(extendedTracks) do expressionTracks[#expressionTracks+1]=track end end
 end
+-- October 10 (the mouth that sometimes stays shut): the graph feeds the face solver a facial idle at all times (a looped
+-- idle__<emotion> clip, a workspot's or a scene's), and the speech deltas are only ADDED to it, so an idle that holds
+-- lips_together or jaw_mid_close at that moment seals a written jaw. speech_owner (assets/facial/controls.json "owner",
+-- scripts/Build-FacialGraphs.mjs) makes the solver fade the idle's mouth, jaw and lip controls as the game's own dialogue
+-- lipsync does: 0 leaves the native face untouched, 1 hands the whole mouth to this writer. It is 1 only while a reply
+-- is being heard (eased in over ownRise, out with the release ease and over ownFall once the idle writer takes the
+-- face back), never while blocked. Eyes, brows and blinks are not faded. An install without the field (an older reds
+-- build) keeps the previous behavior; probed once like the extended controls.
+local ownRise,ownFall=.10,.15
+local ownerFace
+local function detectOwner(feature)
+    if ownerFace~=nil then return end
+    ownerFace=pcall(function() local value=feature.speech_owner;feature.speech_owner=type(value)=='number' and value or 0 end)
+    M.ownerFace=ownerFace
+end
+-- 1 while a reply is heard (eased in over ownRise, scaled by the release ease of a pause), easing back over ownFall
+-- once the idle writer has the face (a gap between Omni phrases barely lets go), 0 at once while blocked.
+local function ownerLevel(slot,phase,blocked)
+    local dt=M.expressionDelta or 0
+    local level=slot.ownLevel or 0
+    if blocked then level=0
+    elseif phase=='speaking' then level=math.min(1,level+dt/ownRise)
+    else level=math.max(0,level-dt/ownFall) end
+    slot.ownLevel=level
+    local release=M.release
+    if phase=='speaking' and release and release.level then return level*math.max(0,math.min(1,release.level)) end
+    return level
+end
 local negative = {anger=true,sadness=true,fear=true,disgust=true}
 local families = {
     joy='joy',happy='joy',happiness='joy',ecstasy='joy',serenity='joy',
@@ -666,6 +694,7 @@ local function blinkWeight(slot,phase,blocked,boundary,room)
 end
 local function applyFeature(actor,feature,entity,phase,provider,upper,mix,boundary,room)
     detectExtended(feature)
+    detectOwner(feature)
     local slot=expressionSlot(entity)
     local blocked=M.expressionBlocked or M.expressionPaused or not safeExpressionActor(actor)
     if blocked then slot.emotion,slot.family,slot.expiry=nil,nil,nil;slot.holdMix=nil end
@@ -677,6 +706,12 @@ local function applyFeature(actor,feature,entity,phase,provider,upper,mix,bounda
     -- A blink closes widened eyes too (they would hold the lids apart).
     if blink>0 and feature.eye_l_widen>0 then
         local open=1-blink;feature.eye_l_widen,feature.eye_r_widen=feature.eye_l_widen*open,feature.eye_r_widen*open
+    end
+    local owned=0
+    if ownerFace then
+        owned=ownerLevel(slot,phase,blocked)
+        -- Speaking frames always write it (a reused feature never keeps a stale 1); other phases only to hand it back.
+        if phase=='speaking' or owned>0 or slot.ownWritten then feature.speech_owner=owned;slot.ownWritten=owned>0 end
     end
     if faceTest then
         local ok,skip=pcall(faceTest.post,entity,feature,phase,blocked)
@@ -691,11 +726,13 @@ local function applyFeature(actor,feature,entity,phase,provider,upper,mix,bounda
         -- in-game reply shows the emotion label, scale and written values.
         local turn=M.lastSpeechExpression
         if not turn or turn.requestId~=slot.requestId or turn.entity~=entity then
-            turn={entity=entity,requestId=slot.requestId,frames=0,jawPeak=0,openFrames=0,peak=zeroExpression()}
+            turn={entity=entity,requestId=slot.requestId,frames=0,ownedFrames=0,jawPeak=0,openFrames=0,peak=zeroExpression()}
             M.lastSpeechExpression=turn
         end
         turn.emotion,turn.family,turn.scale,turn.blocked=slot.emotion,slot.family,slot.scale,blocked
         turn.frames=turn.frames+1
+        -- Frames with the idle mouth fully handed over (speech_owner at 1); 0 with frames > 0 means the field or the new archive is missing.
+        if owned>=.99 then turn.ownedFrames=(turn.ownedFrames or 0)+1 end
         -- What the writer actually gave the mouth this turn (October 10, "her mouth did not open even once"): the peak
         -- written jaw, the frames at or above .16 (Evelyn's lips part from there) and the jaw-lift curve in use, so a
         -- reply seen with no mouth shows at once whether the writer wrote an open jaw or never did.

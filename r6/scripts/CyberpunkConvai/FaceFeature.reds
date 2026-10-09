@@ -60,6 +60,7 @@ public class ConvaiFaceFeature extends AnimFeature {
   public let nose_l_snear: Float;
   public let nose_r_snear: Float;
   public let lips_chin_raise: Float;
+  public let speech_owner: Float;
 }
 
 public abstract class ConvaiFaceAssets {

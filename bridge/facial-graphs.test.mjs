@@ -1,14 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync, existsSync} from 'node:fs';
 import {extendFacialGraph, inspectGraph, schema, featureSource} from '../scripts/Build-FacialGraphs.mjs';
 
 const name = value => ({$type: 'CName', $storage: 'string', $value: value});
 const nativeFace = readFileSync(new URL('../r6/scripts/CyberpunkConvai/Face.reds', import.meta.url), 'utf8');
+// The solver's own track list (animSermoTestController, present in all nine shipped graphs) is what the builder
+// checks the override tracks against.
+const solverTracks = () => ({$type: 'animSermoTestController', [schema.owner.envelope]: 0,
+  ...Object.fromEntries(schema.owner.faded.map(track => [`${track}AnimOverrideWeight`, 1]))});
+// WolvenKit's JSON reader resolves a handle reference only after the handle's definition in document order (a forward
+// reference failed "convert deserialize" on October 10, after every structural check here had passed).
+function forwardReferences(document) {
+  const defined = new Set();
+  let forward = 0;
+  (function walk(value) {
+    if (!value || typeof value !== 'object') return;
+    if (value.HandleId !== undefined) defined.add(value.HandleId);
+    if (value.HandleRefId !== undefined && value.HandleRefId !== '-1' && !defined.has(value.HandleRefId)) forward++;
+    for (const child of Object.values(value)) walk(child);
+  })(document);
+  return forward;
+}
 function fixture() {
   return {Header: {}, Data: {RootChunk: {$type: 'animAnimGraph',
     rootNode: {HandleRefId: '0'}, animFeatures: [{name: name('Eyes'), className: name('AnimFeature_LookAt')}],
-    nodesToInit: [{HandleId: '0', Data: {$type: 'animAnimNode_Sermo',
+    nodesToInit: [{HandleId: '0', Data: {$type: 'animAnimNode_Sermo', testController: solverTracks(),
       inputLink: {$type: 'animPoseLink', node: {HandleId: '1', Data: {
         $type: 'animAnimNode_EyesTracksLookAt', existingEyeSetting: 0.375}}}}}, {HandleRefId: '1'}]}}};
 }
@@ -18,9 +35,10 @@ test('speech layer preserves the original graph and its complete gaze input', ()
   const result = extendFacialGraph(original);
   assert.equal(JSON.stringify(original), before);
   let input = result.Data.RootChunk.nodesToInit[0].Data.inputLink;
-  const seen = new Set();
+  const seen = new Set(), ownership = [];
   while (input.node.Data.$type === 'animAnimNode_FloatTrackModifier') {
     const node = input.node.Data;
+    if (node.debugName.$value === 'Convai speech owner') { ownership.push(node); input = node.poseInputNode; continue; }
     assert.equal(node.operationType, 'Add');
     assert.match(node.floatTrack.name.$value, /LipsyncPoseOutput$/);
     assert.equal(node.floatInputNode.node.Data.group.$value, 'ConvaiFace');
@@ -29,6 +47,8 @@ test('speech layer preserves the original graph and its complete gaze input', ()
     input = node.poseInputNode;
   }
   assert.deepEqual(seen, new Set(schema.tracks));
+  assert.equal(ownership.length, schema.owner.faded.length + 1);
+  assert.equal(forwardReferences(result), forwardReferences(original), 'the added nodes define every handle before it is referenced');
   assert.deepEqual(input, original.Data.RootChunk.nodesToInit[0].Data.inputLink);
   assert.deepEqual(result.Data.RootChunk.animFeatures[0], original.Data.RootChunk.animFeatures[0]);
   inspectGraph(result);
@@ -179,4 +199,72 @@ test('QuestBound recognizes quest appearance and record tokens and leaves crowd 
     assert.equal(run(name), true, name);
   for (const name of ['citizen__lowlife_ma__01', 'Character.Watson_Resident_Male', 'squad_7', 'iq100', 'aq123_b', 'Character.ma_q12'])
     assert.equal(run(name), false, name);
+});
+
+// October 10: the speech deltas were only ADDED to whatever facial idle the graph feeds the solver (a looped
+// idle__<emotion> clip, a workspot's, a scene's), and an idle holding lips_together or jaw_mid_close sealed a written
+// jaw, sometimes. The game's own dialogue lipsync also writes <control>AnimOverrideWeight and lipSyncEnvelope, and
+// the solver scales the streamed value by lerp(1, override, envelope) before adding the lipsync pose. One owner input
+// raises the envelope and lowers each override weight, so 0 is the native graph and 1 gives the mouth to the writer.
+test('speech ownership fades the idle mouth with one shared input and leaves eyes, brows and the rest alone', () => {
+  const result = extendFacialGraph(fixture()), {handles} = inspectGraph(result);
+  const idOf = data => [...handles].find(([, entry]) => entry.Data === data)[0];
+  const solver = result.Data.RootChunk.nodesToInit[0].Data;
+  const owners = [];
+  for (let at = solver.inputLink; at.node.Data.$type === 'animAnimNode_FloatTrackModifier'; at = at.node.Data.poseInputNode) {
+    if (at.node.Data.debugName.$value === 'Convai speech owner') owners.push(at.node.Data);
+  }
+  const envelope = owners.filter(node => node.floatTrack.name.$value === schema.owner.envelope);
+  assert.equal(envelope.length, 1);
+  assert.equal(envelope[0].operationType, 'Add');
+  const faded = owners.filter(node => node !== envelope[0]);
+  assert.deepEqual(faded.map(node => node.floatTrack.name.$value).sort(),
+    schema.owner.faded.map(track => `${track}AnimOverrideWeight`).sort());
+  for (const node of faded) {
+    assert.equal(node.operationType, 'Subtract', 'the override weight starts at 1 and falls with the owner');
+    assert.equal(node.inputFloatTrack.name.$value, 'None');
+  }
+  // One FloatInput, defined once and referenced by every ownership node.
+  const names = new Set(owners.map(node => {
+    const target = node.floatInputNode.node;
+    return (target.Data || handles.get(target.HandleRefId).Data).name.$value;
+  }));
+  assert.deepEqual([...names], [schema.owner.input]);
+  const definitions = [...handles.values()].filter(node => node.Data.$type === 'animAnimNode_FloatInput' && node.Data.name.$value === schema.owner.input);
+  assert.equal(definitions.length, 1);
+  const initialized = result.Data.RootChunk.nodesToInit.map(entry => entry.HandleRefId);
+  for (const id of [definitions[0].HandleId, ...owners.map(idOf)]) assert(initialized.includes(id), `node ${id} is initialized`);
+  // Ownership never touches the lids, brows, neck, tongue or nose, and the feature is not a rig track.
+  assert(schema.owner.faded.every(track => /^(jaw|lips|cheek)_/.test(track)), 'only jaw, lips and cheeks fade');
+  assert(schema.owner.faded.every(track => !/sticky|cutScene/.test(track)));
+  assert.equal(schema.tracks.includes(schema.owner.input), false);
+  for (const track of ['jaw_mid_open', 'jaw_mid_close', 'lips_together_up', 'lips_together_dn', 'lips_suck_dn', 'lips_l_purse', 'lips_chin_raise']) {
+    assert(schema.owner.faded.includes(track), `${track} fades`);
+  }
+  assert.equal(schema.owner.faded.some(track => /blink|brows|widen|squint/.test(track)), false);
+  assert.match(featureSource(), new RegExp(`public let ${schema.owner.input}: Float;`));
+  assert.equal(featureSource().includes(`n"${schema.owner.input}LipsyncPoseOutput"`), false, 'the owner is not a required rig track');
+});
+
+test('speech ownership is refused when the solver does not have the tracks it would write', () => {
+  const noList = fixture(); delete noList.Data.RootChunk.nodesToInit[0].Data.testController;
+  assert.throws(() => extendFacialGraph(noList), /no track list/);
+  const missing = fixture(); delete missing.Data.RootChunk.nodesToInit[0].Data.testController.jaw_mid_closeAnimOverrideWeight;
+  assert.throws(() => extendFacialGraph(missing), /jaw_mid_closeAnimOverrideWeight/);
+  const noEnvelope = fixture(); delete noEnvelope.Data.RootChunk.nodesToInit[0].Data.testController[schema.owner.envelope];
+  assert.throws(() => extendFacialGraph(noEnvelope), new RegExp(schema.owner.envelope));
+});
+
+const shipped = new URL('../runtime/facial-rig/json/woman_average_sermo.animgraph.json', import.meta.url);
+test('every extracted game graph exposes the ownership tracks', {skip: !existsSync(shipped)}, () => {
+  for (const graph of schema.graphs) {
+    const source = readFileSync(new URL(`../runtime/facial-rig/json/${graph}.animgraph.json`, import.meta.url), 'utf8');
+    const result = extendFacialGraph(JSON.parse(source.replace(/^﻿/, '')));
+    const {objects} = inspectGraph(result);
+    const owners = objects.filter(node => node.$type === 'animAnimNode_FloatTrackModifier' && node.debugName?.$value === 'Convai speech owner');
+    assert.equal(owners.length, schema.owner.faded.length + 1, graph);
+    const inputs = objects.filter(node => node.$type === 'animAnimNode_FloatInput' && node.group?.$value === 'ConvaiFace');
+    assert.equal(inputs.length, schema.tracks.length + 1, graph);
+    assert.equal(forwardReferences(result), 0, graph);
+  }
 });
