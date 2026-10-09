@@ -215,6 +215,8 @@ lines: requests, native call results, 4 Hz traces while active).
 
 ## Round 3 (October 7): visible gestures, own idles, all tier-1
 
+> Round 5 (below) superseded the idle table in this section: every tier-1 now has an idle of their own.
+
 - **Queued jumps were the "no gestures" cause.** `SendJumpToAnimEnt` with
   instant=false waits for the current clip; with a 22–25 s loop most requests
   never played. Gesture jumps are instant (the workspot still blends them);
@@ -386,3 +388,211 @@ lines in probe.log):
 6. Settled 1-2 minutes: Judy (hands on hips), Misty, River, Rogue, Reed,
    Hanako, Saul and Placide take their idle; a generic one for Viktor, Claire,
    Wakako; no walk-in step, no prop, a clean return to the vanilla idle.
+
+## Round 5 (October 10): variety across replies, the body twitch, an idle for every tier-1, the mouth sealed under a workspot
+
+User feedback after testing Evelyn: she did the same gesture twice; her body
+moves and twitches a bit as a gesture starts; her hip idle looks nice and every
+tier-1 should get a signature animation. A coordinator note the same day: on
+two OmniVoice and Pocket replies the mouth stayed shut although the Lua face
+writer wrote an open jaw (`speech-state.json` `face.expressions.lastSpeech`
+398 of 676 frames open, peak .54; later 302 of 431, peak .612), and both
+coincided with a gesture workspot.
+
+### The mouth under a workspot
+
+Mechanism (face graph `woman_average_sermo.animgraph`, extracted and read):
+
+- While any workspot runs, the NPC face graph's "Idle" state swaps its own
+  emotion idle for the `WORKSPOT` graph slot (`UpdateWorkspot.isActive`, node
+  expression `(UpdateWorkspot > 0) & less_or_equal(CoverStance, 0) &
+  less_or_equal(FacialReaction, 0)`). The slot plays the facial idle named on
+  the workspot's `animAnimNode_WorkspotHub` node (`facialIdleMaleAnimation`,
+  `facialIdleFemaleAnimation`, plus a key pose `facialIdleKey_*` at
+  `facialKeyWeight`).
+- Our generated talk workspots were cloned from
+  `big__stand_ground__stand_around__01.workspot`, whose hub names
+  **`idle__interested__female/male`** with the key pose `..__attentive`
+  (the generic idle workspots `generic`, `generic_arms_crossed`,
+  `generic_hips_big`, and `reed` carry `interested` + `focused`; `jackie` carries
+  a `neutral__default` key). Judy, Panam, Johnny, Kerry, Takemura and the rest
+  use `idle__neutral__*` with no key.
+- The speech layer only **adds** `<control>LipsyncPoseOutput` deltas before the
+  Sermo solver. The game's own dialogue also writes `<control>AnimOverrideWeight`
+  (keyed to `1 - pose`) to fade the idle under the lipsync; ours stays at 1, so
+  the facial idle plays at full weight under the mouth.
+- The facial idle clips (`generic_average_female_facial_idle.anims`, decoded
+  from the WolvenKit glTF `trackKeys`) hold the lips closed: `lips_together_up/dn`
+  mean .66/.73 with a 90th percentile of 1.0 for `idle__interested__female`,
+  against .32/.32 (p90 .79) for `idle__neutral__female`, plus `jaw_mid_close`,
+  `lips_suck_dn` .27, purse .28, chin raise .20. The `attentive`/`focused` key
+  poses add `lips_together`, purse and chin raise on top. A jaw of .1-.3 (the
+  speech median is .12, p95 .37) cannot open lips held at .7-1.0.
+- The gesture clips themselves carry no facial tracks (only rig `pla_*` float
+  tracks), and our workspots set no other facial field.
+
+Live check (Evelyn staged at .85 m, face-test `jaw` .5 written by the writer,
+12 frames over 3 s each, no Convai turn): no workspot open (one earlier run
+shut at that moment), the talk family (`interested`) **shut for the whole 3 s in
+one run and open in the next**, the neutral signature idle open. So the idle
+layer seals the lips intermittently with any facial idle; `interested` doubles
+the closure and its mean, which is why it showed on gesture replies. This is
+evidence of a contributing cause, not a proof that nothing else seals the mouth.
+
+Fixes (archive; game restart):
+
+- `scripts/Build-GestureAssets.mjs` sets the hub of every generated talk
+  workspot to `idle__neutral__male/female`, no key pose, and copies the five
+  vanilla idle workspots whose hub is not plain neutral (`generic`,
+  `generic_arms_crossed`, `generic_hips_big`, `reed`, `jackie`) to
+  `cyberpunk_convai\gestures\convai_face_<name>.workspot` with the same change
+  (vanilla files are never overridden, so ambient NPCs keep theirs). The ps1
+  extracts every idle and sit workspot for it. `Verify-GestureAssets.mjs` fails
+  the build unless every shipped workspot reads neutral, no key, after the
+  binary round trip (21 workspots).
+- **Not fixed here, for the lip-sync layer:** even the neutral idle holds
+  `lips_together` up to .98 at times. The proper structural fix is to write
+  `<control>AnimOverrideWeight` = 1 - pose for the mouth controls next to the
+  `LipsyncPoseOutput` deltas in `scripts/Build-FacialGraphs.mjs`, as the game's
+  lipsync does (face-graph archive; separate rebuild).
+- To read `speech-state.json` `lastSpeech` next time: `jawPeak` and
+  `openFrames` high with a shut mouth on screen during a workspot means this
+  layer, not the writer.
+
+### Why she repeated
+
+Memory was per companion and survives across replies, so the repeat was not a
+reset. The causes:
+
+- Clip weights grew linearly with hand reach (top-heavy), so a handful of the
+  30 neutral clips took most picks; emotion pools of two or three clips (a
+  happy reply has `what__happy` and `calm_down__happy`) were exhausted into
+  level 0 of the relaxation ladder, "not the previous clip", so a clip came back
+  after one other.
+- Nothing grouped look-alikes: `rh_flick`, `lh_flick`, `2h_flick` and the
+  `describe_*` moves read as the same small hand sketch from a few metres.
+- The pool per family and rig is not small (Evelyn: 62 usable clips, 30 calm,
+  29 at the neutral reach cap before this round), so the pool size was not the
+  bottleneck; the policy was.
+
+`mod/gesture-selection.lua` now: memory of the last 24 clips; a ladder of
+levels that first avoids anything in the last 12, any look-alike group
+(`flick`, `describe`, `talk`, `what`, `shrug`, `yes`, `head`, `calm`, `self`,
+`weigh`) in the last two picks, the previous kind and anything used in the last
+75 s, and only relaxes (last 8, last 4, last 2, the previous clip) when nothing
+fits, widening the mood's reach cap by 12 cm before the last two levels; reach
+weight `sqrt(reach/15)` capped at 2.2; kinds and groups used recently weigh
+less; the same hand as the previous clip weighs half; `fit: "open"` clips weigh
+.6; a mood's own clips are boosted inside the calm pool to about 60 % of picks
+instead of replacing it. 60 simulated companions, twelve 14 s replies each (about
+2.9 gestures per reply), Evelyn's family on `woman_base`, same grouping for
+both:
+
+| Mood | Same clip within 6 gestures | within 12 | Look-alike back to back | Distinct clips |
+|---|---|---|---|---|
+| neutral before / after | 11.7 % / 0 % | 40.2 % / 0 % | 18.1 % / 0 % | 29 / 36 |
+| joy before / after | 38.5 % / 0 % | 53.1 % / 0.1 % | 4.0 % / 0.1 % | 29 / 39 |
+| sadness before / after | 23.6 % / 0 % | 44.3 % / 0.1 % | 4.2 % / 0 % | 30 / 39 |
+
+Pool per tier-1 (`node scripts/Report-GesturePools.mjs`, the real policy and
+catalog; usable = conversation clips after bans, reach, leg gap and exclusions;
+calm = the filler categories; at mood = under the neutral reach cap):
+
+| Group (family, rig) | Usable before > after | Calm | Calm at mood | Kinds | Look-alike groups | Open clips |
+|---|---|---|---|---|---|---|
+| 14 women: Alt, Claire, Evelyn, Hanako, Lizzy, Mama Welles, Misty, Panam, Rogue, Meredith, Regina, Songbird, Alex, Wakako (on_sides, woman_base) | 62 > 69 | 30 > 37 | 29 > 36 | 18 > 19 | 12 | 10 |
+| Judy (arms_crossed, woman_base) | 79 > 75 | 41 > 41 | 41 > 41 | 19 > 18 | 12 | 1 |
+| 9 men on man_base: Johnny (2 records), Kerry, Takemura, Viktor, Mr. Hands, Padre, Mitch, Saul | 59 > 66 | 31 > 38 | 28 > 35 | 18 | 12 | 9 |
+| 5 big men: Jackie, River, Reed, Pepe, Placide | 61 > 69 | 30 > 37 | 28 > 35 | 18 > 19 | 12 | 10 |
+
+The pool grew by the 20-30 cm "open" class: a hand held out to the side by
+20-30 cm (a shrug, a "what", a flick; 16 clips such as `talk__neutral__03`,
+`what__neutral__05`, `shrug__01`) was excluded as directional at 20 cm; the side
+limit is now 30 cm and `fit: "open"` clips play at 0.6 weight. Judy's pool shrank
+by the body exclusion below.
+
+### The body twitch
+
+Measured offline (`scripts/Measure-GestureBody.py`, forward kinematics on the
+glTF exports, `assets/gestures/clip-body.json`): the clips that survive the
+other filters start and end in the stance loop pose (hips, spine, head, feet
+gap 0; the loop drifts at most 2 degrees over 10 s), so the clip pose itself is
+not the pop. What moves the body is:
+
+- **Blends around the clips and the stance.** Enter 1.1 s, exit 1.0 s, forced
+  exit 0.25 s, clip blend-out 0.7 s, and the first clip landing 0.1-0.4 s after
+  the reply starts, while the 1.1 s enter blend into the stance was still running.
+  Now: enter 1.5, natural exit 1.4, forced exit 0.5, auto transition 1.2, clip
+  blend-out 0.9 (`blend` in `gestures.json`, baked into the workspots), and the
+  controller (`mod/companion-gestures.lua`) passes `busyUntil` = active time +
+  the family's enter blend + .15 s, so the first clip waits for the end of the
+  enter blend; it then lands on the next phrase start.
+- **Clips that whip the torso or the hips.** Spine angular speed above 55 deg/s,
+  spine, neck or head above 150 deg/s, or the hips travelling more than 15 cm
+  inside the clip (stance shuffles, steps): excluded with fit `body`, 5-8 clips
+  per family and rig (about 7 %: `yes__happy__01` 67 deg/s, `what__angry__01`
+  166 deg/s, `calm_down__afraid__01`, `shuffle__02`, `crack_knuckles__angry__01`).
+  The thresholds are the top 10 % of the 1,391 measured clips, not calibrated by
+  eye.
+
+Not reproduced offline and not yet captured live: which of these the user saw.
+A live capture of a gesture start is the check.
+
+### Signature idles, all tier-1
+
+| Character | Idle workspot (stance) | Kind |
+|---|---|---|
+| Judy | `judy__stand_ground__stand_around__02` (hands on hips) | own |
+| Panam | `panam__stand__stand_around__01` (hand on hip) | own |
+| Evelyn | `generic__stand_ground__stand_around__10` (one hand on hip; the user liked it, kept) | generic |
+| Rogue | `sq031__rogue__stand__stand_around__01` | own workspot |
+| Misty | `misty__stand__stand_around__01` | own |
+| Alex | `q303__alex__stand__arms_crossed_front__01` | own workspot |
+| Songbird | `q304__songbird__stand__arms_crossed_front__01` | own workspot |
+| Hanako | `hanako__stand_ground__stand_around__01` (formal) | own |
+| Claire | `female__stand_ground__stand_around__02` (hands on hips) | generic |
+| Alt Cunningham | `q116__alt__stand__stand_around__02` (relaxed, her own 34.8 s loop, no break clips) | own |
+| Lizzy Wizzy | `q000__jackie_stand__2h_on_hips__01` (hands on hips, short loop) | generic |
+| Mama Welles | `panam__stand__stand_around__02` (hands on hips, 20 break clips) | own workspot |
+| Meredith | `bodyguard__stand_ground__2h_front__01` (formal, hands in front) | generic |
+| Regina | `generic__stand_ground__stand_around__08` (arms crossed, 8 break clips) | generic |
+| Wakako | `generic__stand_ground__stand_around__05` | generic |
+| Johnny | `johnny__stand_ground__stand_around__01` | own |
+| Kerry | `kerry__stand_ground_stand_around_01` (hands on hips) | own |
+| Takemura | `takemura__stand_ground__stand_around__01` (formal, hands at sides) | own |
+| Viktor | `ripperdoc__stand_ground_arms_crossed__talk__01` (arms crossed) | generic |
+| Mr. Hands | `bodyguard__stand_ground__2h_back__01` | generic |
+| Padre | `generic__stand_ground__stand_around__07` (hands raised and held in front) | generic |
+| Mitch | `generic__stand_ground_arms_crossed__stand_around__02` | generic |
+| Saul | `saul__stand_ground__stand_around__01` (arms crossed; the loop is the `angry` set, to be watched) | own |
+| Jackie | `jackie__stand_ground__stand_around__01` | own |
+| River | `q202__river__stand_ground__stand_around__01` | own workspot |
+| Reed | `ep1__reed__stand_ground__stand_around__01` | own |
+| Placide | `placide__stand_ground__stand_around__01` | own |
+| Pepe | `generic__stand_ground__stand_around__03` (hands on hips) | generic |
+
+No two characters share an idle now (the test `every tier-1 character has an
+idle of their own`; the two Johnny records share his). Eight workspots are new
+components (`alt`, `jackie_hips`, `panam_hips`, `bodyguard_front`,
+`bodyguard_back`, `generic_hold`, `ripperdoc_arms`, `generic_arms_crossed_b`),
+each checked on its rig by the idle audit (`idleSources`, enforced by the build:
+loop and break clips present in the rig's animsets, no motion extraction, no
+props). `generic_hold` (hands raised in front) is the one to look at: its pose
+was judged by name only. Alt's hook was added with her profile; this round gives
+her an idle of her own.
+
+### Install and checks
+
+Archive rebuilt into `runtime/gestures/package/convai_gestures.archive` (not
+installed): **game restart**. CET reload for `mod/gesture-selection.lua`,
+`mod/companion-gestures.lua`, `mod/gesture-catalog.lua`.
+
+1. A reply with a gesture workspot: the mouth moves (`speech-state.json`
+   `lastSpeech` `jawPeak`/`openFrames` and the screen agree) on Evelyn, Judy,
+   Johnny and a man_big.
+2. The first gesture of a reply starts after a settled stance, no visible
+   twitch; the same for later clips; stepping out of a gesture is smooth.
+3. Long replies on Evelyn: no clip twice within about six gestures, no two flicks
+   or describes back to back.
+4. Idles: Alt, Lizzy, Mama Welles, Meredith, Regina, Padre (hands raised),
+   Mr. Hands, Viktor, Pepe look natural and different from each other.
