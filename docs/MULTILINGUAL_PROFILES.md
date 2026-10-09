@@ -3,27 +3,25 @@
 Every character the mod has a Convai profile for (all 79 in `characters/roster.json`
 with an ID in `runtime/characters.json`, and the 44 generic NPC archetypes of
 `characters/archetype-roster.json`, keys `npc-*`) has a twin named "<name> Multilingual" in the
-same account, and so does each relationship variant. Today the only variants are the
-five romantic profiles (Judy, Panam, River, Kerry, Meredith), so there are 128 twins
-(84 named + romantic, 44 archetype).
+same account: 123 twins (79 named, 44 archetype). Each character has one profile and one
+twin. (Until 2026-10-09 the five romantic profiles of Judy, Panam, River, Kerry and
+Meredith had twins too, 128 in all; see "Retired romantic profiles" below.)
 The twins exist and are verified; the mod uses them while Settings > Conversations > Multilingual
 conversations is on (see "Multilingual conversations" below).
 Alt Cunningham is a tier-1 voice but has no Convai profile.
 
 ```powershell
 node scripts/Create-MultilingualProfiles.mjs --dry-run        # default: plan only, no remote calls
-node scripts/Create-MultilingualProfiles.mjs --apply          # create/adopt + verify all 128 (--roster all, the default)
+node scripts/Create-MultilingualProfiles.mjs --apply          # create/adopt + verify all 123 (--roster all, the default)
 node scripts/Create-MultilingualProfiles.mjs --roster archetypes --apply   # only the 44 npc-* archetypes
-node scripts/Create-MultilingualProfiles.mjs --roster named --apply        # only the named roster and romantic profiles
-node scripts/Create-MultilingualProfiles.mjs --apply --only judy-alvarez,judy-alvarez-romantic
+node scripts/Create-MultilingualProfiles.mjs --roster named --apply        # only the 79 named characters
+node scripts/Create-MultilingualProfiles.mjs --apply --only judy-alvarez,panam-palmer
 node --test bridge/multilingual-profiles.test.mjs
 ```
 
 The mapping is `runtime/multilingual-profiles.json` (ignored by Git, no secrets):
-per profile key (a roster key, or `<key>-romantic`) the original ID, twin ID, name, voice, language list, model,
-`verified`, `languageBoxField`, `languageBoxOff` and `notCloned`. Romantic twins are
-keyed `<key>-romantic` (the provider key used in `runtime/relationship-profiles.json`)
-and also record `variant: "romantic"` and `baseKey`. Only new characters are created;
+per roster key the original ID, twin ID, name, voice, language list, model,
+`verified`, `languageBoxField`, `languageBoxOff` and `notCloned`. Only new characters are created;
 originals are only read. A re-run adopts the mapped twin, or an existing twin found by
 exact name plus the exact marker line, and re-verifies it, so it never duplicates. An
 interrupted create with no matching character stops that profile instead of guessing.
@@ -36,14 +34,18 @@ Ownership markers (the exact backstory line that identifies a character as ours)
 | --- | --- |
 | Ordinary original | `[CyberpunkConvai profile v2:<key>]` |
 | Ordinary twin | `[CyberpunkConvai profile v2:<key>:multilingual]` |
-| Romantic original | `[CyberpunkConvai profile v2:<key>-romantic]` |
-| Romantic twin | `[CyberpunkConvai profile v2:<key>-romantic:multilingual]` |
 
-The romantic original has the same Convai display name as the ordinary profile (for
-example both are "Judy Alvarez"), so the ordinary twin and the romantic twin are both
-named "Judy Alvarez Multilingual". Tell them apart by character ID or marker, never by
-name. (The name can be changed on the twin later without affecting the script, which
-matches on name plus marker only to recover a lost create receipt.)
+The name of a twin can be changed later without affecting the script, which matches on
+name plus marker only to recover a lost create receipt.
+
+### Retired romantic profiles
+
+The five romantic profiles (`<key>-romantic`, marker `[CyberpunkConvai profile v2:<key>-romantic]`) and
+their five twins were retired on 2026-10-09; each character has one profile and one twin. The
+script no longer creates or accepts them (`--only` with a `-romantic` key is refused), the bridge
+ignores any `<key>-romantic` row left in `runtime/multilingual-profiles.json`, and the relationship
+setting (Auto / On / Off) only decides whether a romance block is added to the turn's dynamic context.
+Deleting the retired Convai characters is a separate manual step, see docs/ROMANCE_DYNAMIC_CONTEXT.md.
 
 ## Archetype twins (npc-*)
 
@@ -71,8 +73,7 @@ never matches its original's marker or another twin's), speaking style descripti
 sample dialogues, model (list readback), memory enabled, state of mind, verbosity,
 and every other compared setting (moderation, filters, guardrails, traits, listing,
 actions, narrative flag, temperature, and so on; any difference is listed in
-`notCloned`, all empty today). A romantic twin clones the romantic profile, including
-its added "CONVERSATION PROFILE" paragraph and affectionate style and samples.
+`notCloned`, all empty today).
 
 Different on purpose:
 
@@ -83,8 +84,7 @@ Different on purpose:
   of the match. Gender comes from the original Kokoro voice, falling back to the roster's
   `gender` field (the dry run lists any key that needed the fallback; none did, and the two
   sources agree for the whole roster). The mod mostly speaks with its own local voices, so
-  this matters only for Convai cloud voice. Romantic twins use the voice of the ordinary
-  profile of the same character.
+  this matters only for Convai cloud voice.
 - **Languages.** `languageCodes` is `['en-US']` only. With the language box off (next
   section) the character answers in whatever language the player uses, so the
   languages do not need to be listed. An earlier version listed ten interface
@@ -112,7 +112,7 @@ The box is the dashboard field `language_hardening_mode`: `default` means ticked
   `languageBoxOff: true`. After the box is set through the browser session, edit the
   mapping entry to `languageBoxOff: true` (the script preserves that flag on re-runs).
 
-Status (2026-10-07): all 84 twins (23 tier-1, 5 romantic, 56 for the rest of the roster)
+Status (2026-10-07): all 84 twins then existing (23 tier-1, 5 romantic since retired, 56 for the rest of the roster; 79 today)
 have the box off, set through the web session and verified by readback, and are marked
 `languageBoxOff: true` in the mapping.
 
@@ -120,7 +120,7 @@ have the box off, set through the web session and verified by readback, and are 
 
 Before 2026-10-08 every twin used one of two voices (Emma for women, Christopher for men). Each twin now has a
 voice chosen for its character. The choice lives in `characters/multilingual-voice-map.json` (per roster key: voice ID,
-voice name, one-line reason; romantic twins follow their base key), which `scripts/Create-MultilingualProfiles.mjs` reads.
+voice name, one-line reason), which `scripts/Create-MultilingualProfiles.mjs` reads.
 Emma and Christopher remain only as the fallback for a key with no entry.
 
 ### Which voices exist
@@ -210,15 +210,15 @@ and change `characters/multilingual-voice-map.json` where a voice is wrong.
 | Jim Jarry (`jim-jarry`) | Yunxiao | Mid-high male voice for a street-race organizer contact. |
 | Johnny Silverhand (`johnny-silverhand`) | Davis | Casual, expressive, slightly gritty male voice for a sardonic rockerboy. |
 | Joss Kutcher (`joss-kutcher`) | Ximena | Gentle, warm Spanish-native female voice for a mother of three. |
-| Judy Alvarez (+ romantic twin) (`judy-alvarez`) | Ava | Bright, engaging voice for a young braindance editor (romantic twin shares it). |
-| Kerry Eurodyne (+ romantic twin) (`kerry-eurodyne`) | Lewis | Higher, animated male voice for a flamboyant rock singer (romantic twin shares it). |
+| Judy Alvarez (`judy-alvarez`) | Ava | Bright, engaging voice for a young braindance editor. |
+| Kerry Eurodyne (`kerry-eurodyne`) | Lewis | Higher, animated male voice for a flamboyant rock singer. |
 | Liam Northom (`liam-northom`) | Ollie | Young British-native male voice for a smooth pop-star manager. |
 | Life Coach (`life-coach`) | Yunfan | Even, encouraging mid male voice for a coaching contact. |
 | Lina Malina (`lina-malina`) | Emma | Upbeat, forceful female voice for a braindance performer. |
 | Lizzy Wizzy (`lizzy-wizzy`) | Phoebe | Highest female register, theatrical, for a conceptual pop star. |
 | Mama Welles (`mama-welles`) | ShimmerTurbo | Low, warm, commanding female voice for a restaurant owner and mother. |
 | Mark Bana (`mark-bana`) | Macerio | Brazilian Portuguese-native male voice for a veteran of the Brazilian Intelligence Agency. |
-| Meredith Stout (+ romantic twin) (`meredith-stout`) | Evelyn | Mature, straightforward, believable voice for a senior Militech executive (romantic twin shares it). |
+| Meredith Stout (`meredith-stout`) | Evelyn | Mature, straightforward, believable voice for a senior Militech executive. |
 | Misty Olszewski (`misty-olszewski`) | Nancy | Calm, gentle female voice for a spiritual shopkeeper. |
 | Mitch Anderson (`mitch-anderson`) | Christopher | Low, steady voice for an older mechanic and war veteran. |
 | Mr. Hands (`mr-hands`) | Steffan | Mature, crisp, polished voice for a discreet fixer. |
@@ -230,13 +230,13 @@ and change `characters/multilingual-voice-map.json` where a voice is wrong.
 | Ozob Bozo (`ozob-bozo`) | Macerio | Brazilian Portuguese-native male voice for a Brazilian mercenary joker. |
 | Paco Torres (`paco-torres`) | Tristan | Spanish-native male voice for an eager Latino BARGHEST recruit. |
 | Padre Ibarra (`padre-ibarra`) | Andrew | Warm, empathetic male voice for an ex-counselor turned fixer. |
-| Panam Palmer (+ romantic twin) (`panam-palmer`) | NovaTurbo | Energetic, low-mid, slightly husky voice for a feisty nomad (romantic twin shares it). |
+| Panam Palmer (`panam-palmer`) | NovaTurbo | Energetic, low-mid, slightly husky voice for a feisty nomad. |
 | Pepe Najarro (`pepe-najarro`) | Brian | Casual, sincere voice for a worn-out family bartender. |
 | Placide (`placide`) | Lucien | Deep French-native male voice for a Haitian Voodoo Boy elder. |
 | R3n0 (`r3n0`) | Ada | Clear British-native female voice for a guarded netrunner. |
 | Rachel Casich (`rachel-casich`) | Jenny | Friendly, brisk American voice for a commercially minded braindance producer. |
 | Regina Jones (`regina-jones`) | Xiaochen | Confident, broadcast-style voice for a Chinese-heritage fixer and former reporter. |
-| River Ward (+ romantic twin) (`river-ward`) | Dustin | Soft-spoken, calm, trustworthy male voice for a detective (romantic twin shares it). |
+| River Ward (`river-ward`) | Dustin | Soft-spoken, calm, trustworthy male voice for a detective. |
 | Robert Wilson (`robert-wilson`) | Yunfan | Even, careful mid male voice for a meticulous gunsmith. |
 | Rogue Amendiares (`rogue-amendiares`) | Lola | Deep, weathered female voice for the Afterlife owner and legendary fixer. |
 | Sandra Dorsett (`sandra-dorsett`) | Seraphina | Cool, controlled German-native voice for a cautious corporate netrunner. |
@@ -319,7 +319,7 @@ Pitch is the median of the sample clip. The sample links are Convai's public WAV
 ```powershell
 node scripts/Create-MultilingualProfiles.mjs --dry-run                 # lists every twin with its voice
 node scripts/Create-MultilingualProfiles.mjs --apply --voices-only      # voice only, existing twins only
-node scripts/Create-MultilingualProfiles.mjs --apply --voices-only --only judy-alvarez,judy-alvarez-romantic
+node scripts/Create-MultilingualProfiles.mjs --apply --voices-only --only judy-alvarez,panam-palmer
 ```
 
 `--voices-only` reads each mapped twin, checks its ownership marker, and sends `/character/update` with `charID` and
@@ -329,11 +329,11 @@ written in this mode. It records the voice in the mapping's `voiceType`. Request
 
 ### Verification (2026-10-08)
 
-All 84 live twins were read before and after (`/character/get`), together with their 84 originals. Result: the voice of
+All 84 live twins then existing (79 today; the other five were the retired romantic twins) were read before and after (`/character/get`), together with their 84 originals. Result: the voice of
 all 84 twins equals the map (52 distinct voices; 80 twins changed, 4 already had their mapped voice: Alex, Lina Malina
 (Emma), Mitch Anderson, Solomon Reed (Christopher)); no other field of any twin changed (backstory, speaking style,
 `language_codes` `['en-US']`, model, memory, state of mind, verbosity and the rest all identical); no original changed;
-each romantic twin has its ordinary twin's voice; the mapping file changed only in `voiceType`. The credit-cost estimates
+the mapping file changed only in `voiceType`. The credit-cost estimates
 inside `memory_settings` (`kb_min_credit_cost_e8`, `ltm_min_credit_cost_e8`) flip between two reads of the same
 character, so the comparison ignores keys ending in `min_credit_cost_e8`; they are computed, not settings.
 
@@ -354,12 +354,13 @@ Settings > Conversations > **Multilingual conversations**, off by default (`mult
 
 - The bridge loads `runtime/multilingual-profiles.json` at start. A twin is used only when its entry is
   `verified: true`, `languageBoxOff: true` and its `originalCharacterId` equals the ID the mod uses today
-  (`runtime/characters.json`, or `relationship-profiles.json` for `<key>-romantic`); anything else stays on the
+  (`runtime/characters.json`); anything else stays on the
   original and is logged as "Multilingual profiles not used". No map is an English-only installation.
-- Each twin becomes provider key `<providerKey>-multilingual` (`judy-alvarez-multilingual`,
-  `judy-alvarez-romantic-multilingual`) in the original's family (`judy-alvarez`).
-- On, relationship routing first decides ordinary or romantic exactly as before (Auto / Romantic / Ordinary, the
-  same save facts), then the twin of THAT profile is used. A profile without a usable twin keeps its original.
+- Each twin becomes provider key `<providerKey>-multilingual` (`judy-alvarez-multilingual`)
+  in the original's family (`judy-alvarez`).
+- On, the twin of THE character's profile is used; the relationship style (Auto / Romantic / Ordinary, the same save
+  facts) no longer picks between two profiles, it only decides the romance block of the turn's context. A profile
+  without a usable twin keeps its original.
 - The setting commits at the same idle boundary as the relationship modes; every character with a twin is
   marked changed once, so its warm connections are replaced with the new character ID.
 
@@ -369,7 +370,7 @@ Settings > Conversations > **Multilingual conversations**, off by default (`mult
   original's, and switching the setting starts on the other profile's memories (nothing is copied; there is no
   memory-add API).
 - The twin keys are in the family map (`providerFamilies`) used by player memory, the Forget command and chat
-  history resets, so Forget for a character clears the original, the romantic profile and both twins, and Forget all
+  history resets, so Forget for a character clears the profile and its twin, and Forget all
   clears every twin the player talked to. The Memory screen shows the canonical character only.
 - `PlayerMemoryApi` checks each twin's own marker (`markerKeys`: `[CyberpunkConvai profile v2:<key>:multilingual]`);
   an original's marker on a twin ID, or the reverse, is refused (`NOT_MOD_OWNED`).

@@ -2,10 +2,10 @@
 //
 //   node scripts/Test-Multilingual.mjs <out-folder> [--render]
 //
-//   routing  RelationshipRouting with the twin map and the setting on or off, ordinary and romantic: provider key and
-//            Convai character ID of Judy's turn
-//   context  the blocks conversationContext() builds (relationship guidance, Natural speech and Expressive emotions
-//            notes for OmniVoice, the reply-language block)
+//   routing  RelationshipRouting with the twin map and the setting on or off: provider key and Convai character ID of
+//            Judy's turn (the relationship style never changes either; checked locally, no Convai call)
+//   context  the blocks the turn's dynamic context holds (romance block per the style, Natural speech and Expressive
+//            emotions notes for OmniVoice, the reply-language block)
 //   text     RealtimeHost.reply, the bridge's realtime client page, with a throwaway end-user ID; the reply language is
 //            checked with bridge/reply-language.mjs (on: the message's language; off: English)
 //   voice    --render: the OmniVoice worker renders Judy's lines in es/ja/de/en with the language (needs the Omni pack
@@ -23,7 +23,8 @@ import {chromium} from 'playwright';
 import {RealtimeHost} from '../bridge/realtime-host.mjs';
 import {MultilingualConversations, multilingualTwins} from '../bridge/multilingual.mjs';
 import {detectLanguage} from '../bridge/reply-language.mjs';
-import {RelationshipRouting, relationshipContext} from '../bridge/relationship-routing.mjs';
+import {RelationshipRouting} from '../bridge/relationship-routing.mjs';
+import {relationshipContext} from '../bridge/romance-context.mjs';
 import {NaturalSpeech} from '../bridge/natural-speech.mjs';
 import {ExpressiveEmotions} from '../bridge/expressive-emotions.mjs';
 import {PlayerMemoryApi} from '../bridge/player-memory-api.mjs';
@@ -38,13 +39,13 @@ await mkdir(out, {recursive: true});
 const read = async name => JSON.parse(await readFile(resolve(root, 'runtime', name), 'utf8'));
 const key = /^api-key\s*=\s*(\S+)\s*$/i.exec((await readFile(resolve(root, 'runtime/convai-key.txt'), 'utf8')).trim())?.[1];
 if (!key) throw Error('runtime/convai-key.txt has no key');
-const ids = await read('characters.json'), variants = await read('relationship-profiles.json');
-const {twins} = multilingualTwins(await read('multilingual-profiles.json'), {ordinaryIds: ids, variants});
-const registry = new RelationshipRouting({ordinaryIds: ids, variants, multilingual: twins});
+const ids = await read('characters.json');
+const {twins} = multilingualTwins(await read('multilingual-profiles.json'), {ordinaryIds: ids});
+const registry = new RelationshipRouting({ordinaryIds: ids, multilingual: twins});
 
 const boundary = {worldToken: 'multilingual-check', generation: 1};
 function route(multilingual, mode) {
-  const routes = new RelationshipRouting({ordinaryIds: ids, variants, multilingual: twins});
+  const routes = new RelationshipRouting({ordinaryIds: ids, multilingual: twins});
   routes.update({multilingualConversations: multilingual, relationshipModes: {'judy-alvarez': mode}}, undefined, {boundary});
   return routes.select('judy-alvarez', boundary);
 }
@@ -59,14 +60,26 @@ function context(selection, text, multilingual) {
 const cleanup = [], failures = [];
 const check = (ok, what) => { if (!ok) failures.push(what); return ok ? 'pass' : 'FAIL'; };
 
+// ---- Routing (local) ----
+// One profile per character: the relationship style (Off ordinary, On romantic) never changes the provider key or ID; only the
+// multilingual setting picks between the profile and its twin.
+for (const multilingual of [true, false]) {
+  const ordinary = route(multilingual, 'off'), romantic = route(multilingual, 'on');
+  const expected = multilingual && twins['judy-alvarez'] ? 'judy-alvarez-multilingual' : 'judy-alvarez';
+  console.log(JSON.stringify({routing: multilingual ? 'on' : 'off', provider: ordinary.providerProfileKey,
+    styles: [ordinary.style, romantic.style].join('/'),
+    result: check(ordinary.style === 'ordinary' && romantic.style === 'romantic'
+      && ordinary.providerProfileKey === expected && romantic.providerProfileKey === expected
+      && ordinary.characterId === romantic.characterId, 'routing ' + (multilingual ? 'on' : 'off'))}));
+}
+
 // ---- Text ----
 const messages = [['es', '¿Qué tal, Judy? ¿Qué vas a hacer esta noche?'], ['ja', 'こんにちは、ジュディ。今夜は何をする予定？'],
   ['de', 'Hallo Judy, wie geht es dir heute Abend?']];
 const textRows = [];
 const host = new RealtimeHost();
 try {
-  for (const [name, multilingual, mode] of [['on, ordinary', true, 'off'], ['on, romantic', true, 'on'],
-    ['off, ordinary', false, 'off'], ['off, romantic', false, 'on']]) {
+  for (const [name, multilingual, mode] of [['on', true, 'off'], ['off', false, 'off']]) {
     const selection = route(multilingual, mode);
     for (const [language, text] of messages) {
       const endUserId = randomUUID();

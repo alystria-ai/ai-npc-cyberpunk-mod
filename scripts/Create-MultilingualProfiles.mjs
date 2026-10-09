@@ -1,8 +1,9 @@
 // Creates a multilingual twin of every Convai character profile the mod has (the
 // named roster in characters/roster.json and the generic NPC archetypes in
-// characters/archetype-roster.json, each with an ID in runtime/characters.json) and
-// of each relationship variant (today the five romantic profiles, keyed
-// "<key>-romantic"). --roster named|archetypes|all (default all) picks which.
+// characters/archetype-roster.json, each with an ID in runtime/characters.json).
+// --roster named|archetypes|all (default all) picks which. Every character has one
+// profile and one twin; the five "<key>-romantic" profiles were retired on
+// 2026-10-09 and are no longer created, listed or accepted by --only.
 //
 // Only NEW characters are created. The original profile is read (list/get) and
 // never written. The twin is a faithful clone: same biography (with its own
@@ -49,11 +50,6 @@ export const TIER1_KEYS = Object.freeze([
   'padre-ibarra', 'panam-palmer', 'pepe-najarro', 'regina-jones', 'river-ward', 'rogue-amendiares',
   'solomon-reed', 'songbird', 'takemura', 'viktor-vektor', 'wakako-okada']);
 
-// The five characters that also have a romantic profile (runtime/relationship-profiles.json,
-// provider key "<key>-romantic", marker "[CyberpunkConvai profile v2:<key>-romantic]").
-export const ROMANCE_BASE_KEYS = Object.freeze(['judy-alvarez', 'panam-palmer', 'river-ward', 'kerry-eurodyne', 'meredith-stout']);
-export const romanceKey = baseKey => baseKey + '-romantic';
-
 // English only: with the language box off the character answers in any language.
 export const LANGUAGE_CODES = Object.freeze(['en-US']);
 // Dashboard field behind "Only reply in the selected languages" ("off" = unticked).
@@ -66,11 +62,11 @@ export const MULTILINGUAL_VOICES = Object.freeze({
   MALE: 'AZURE-MULTILINGUAL-3ea74315c9',     // Christopher Male Multilingual Voice
 });
 
-/** Voice for a profile key. Romantic twins use the base character's voice. Returns {voice, source}. */
-export function voiceFor({key, baseKey, gender, voiceMap}) {
-  const entry = voiceMap?.assignments?.[baseKey ?? key];
+/** Voice for a profile key. Returns {voice, source}. */
+export function voiceFor({key, gender, voiceMap}) {
+  const entry = voiceMap?.assignments?.[key];
   if (entry?.voice) {
-    if (!voiceMap.voices?.[entry.voice]) throw Error('Voice map assigns a voice it does not describe: ' + (baseKey ?? key));
+    if (!voiceMap.voices?.[entry.voice]) throw Error('Voice map assigns a voice it does not describe: ' + key);
     if (voiceMap.voices[entry.voice].gender !== gender) throw Error(`Voice map gender mismatch for ${key}: ${voiceMap.voices[entry.voice].gender} voice, ${gender} character`);
     return {voice: entry.voice, source: 'map'};
   }
@@ -161,7 +157,7 @@ export function needsLanguageBoxOff(mapping) {
 }
 
 /** Core flow, separated from I/O for tests.
- * rows: [{key, originalId, gender, voice?, baseKey?}] (baseKey set for romantic profiles; voice defaults to the gender fallback). api(endpoint, body, {create}) returns parsed JSON. */
+ * rows: [{key, originalId, gender, voice?}] (voice defaults to the gender fallback). api(endpoint, body, {create}) returns parsed JSON. */
 export async function createMultilingualProfiles({rows, mapping = {version: 1, characters: {}}, api, persist = async () => {}, log = () => {}, continueOnError = false}) {
   const next = clone(mapping);
   next.version = 1; next.characters ??= {};
@@ -170,7 +166,7 @@ export async function createMultilingualProfiles({rows, mapping = {version: 1, c
   const listed = new Map(cloud.characters.map(row => [row.character_id, row]));
   const modelOf = id => listed.get(id)?.personalised_prompt_config?.MODEL;
   const results = [], failures = [];
-  for (const {key, originalId, gender, baseKey, voice} of rows) {
+  for (const {key, originalId, gender, voice} of rows) {
     try {
       const entry = next.characters[key] ??= {};
       const source = await api('/character/get', {charID: originalId});
@@ -229,7 +225,6 @@ export async function createMultilingualProfiles({rows, mapping = {version: 1, c
       });
       // Fields of the retired "reply any language" approach.
       for (const legacy of ['replyAnyLanguageApplied', 'replyAnyLanguageField', 'manualUntickRequired']) delete entry[legacy];
-      if (baseKey) Object.assign(entry, {variant: 'romantic', baseKey});
       await persist(clone(next));
       results.push({key, id, created, languageBoxOff: entry.languageBoxOff, notCloned: entry.notCloned});
       log(`Verified ${payload.charName} (${id})`);
@@ -254,11 +249,11 @@ export function withoutCostEstimates(value) {
 
 /** Existing twins only: send the mapped voice (and nothing else) to every twin whose voice differs, then read each
  * twin back and require that the voice changed and that every other field is identical to before the update.
- * rows: [{key, voice, baseKey?}]. The original characters are never read or written here. */
+ * rows: [{key, voice}]. The original characters are never read or written here. */
 export async function applyTwinVoices({rows, mapping, api, persist = async () => {}, log = () => {}, continueOnError = false}) {
   const next = clone(mapping);
   const results = [], failures = [];
-  for (const {key, voice, baseKey} of rows) {
+  for (const {key, voice} of rows) {
     try {
       const entry = next.characters?.[key];
       const id = entry?.multilingualCharacterId;
@@ -280,7 +275,6 @@ export async function applyTwinVoices({rows, mapping, api, persist = async () =>
         log(`Voice of ${entry.name}: ${before.voice_type} -> ${voice}`);
       }
       entry.voiceType = voice;
-      if (baseKey) Object.assign(entry, {variant: 'romantic', baseKey});
       await persist(clone(next));
       results.push({key, id, changed});
     } catch (error) {
@@ -298,27 +292,29 @@ export const ROSTER_CHOICES = Object.freeze({
   all: ['characters/roster.json', 'characters/archetype-roster.json'],
 });
 
-/** The profiles to twin, in roster order, then the romantic variants: [{key, originalId, gender, voice, name, baseKey?}].
- * rosters: arrays of roster rows ({key, name, gender, voice}); ids: runtime/characters.json; relationships: runtime/relationship-profiles.json.
- * Gender is the original Kokoro voice's, else the roster's own gender field (listed in genderFallbacks). */
-export function buildRows({rosters, ids, genderOfVoice, relationships, voiceMap, only = null, withRomance = true}) {
+/** The profiles to twin, in roster order: [{key, originalId, gender, voice, name}].
+ * rosters: arrays of roster rows ({key, name, gender, voice}); ids: runtime/characters.json.
+ * Gender is the original Kokoro voice's, else the roster's own gender field (listed in genderFallbacks).
+ * only: a Set of keys; a retired "-romantic" key is rejected. */
+export function buildRows({rosters, ids, genderOfVoice, voiceMap, only = null}) {
   const roster = rosters.flat();
   const duplicate = roster.map(row => row.key).find((key, at, keys) => keys.indexOf(key) !== at);
   if (duplicate) throw Error('A key is in two rosters: ' + duplicate);
   const profiled = roster.map(row => row.key).filter(key => ids[key]);
-  const known = [...profiled, ...(withRomance ? ROMANCE_BASE_KEYS.map(romanceKey) : [])];
-  if (only && [...only].some(key => !known.includes(key))) throw Error('--only names a profile outside the selected roster and the romance profiles.');
+  const retired = only ? [...only].filter(key => key.endsWith('-romantic')) : [];
+  if (retired.length) throw Error('--only names a retired profile (' + retired.join(', ') + '): the romantic profiles were retired on 2026-10-09; every character has one profile.');
+  const known = profiled;
+  if (only && [...only].some(key => !known.includes(key))) throw Error('--only names a profile outside the selected roster.');
   const genderFallbacks = [], voiceFallbacks = [];
   const rows = known.filter(key => !only || only.has(key)).map(key => {
-    const baseKey = key.endsWith('-romantic') ? key.slice(0, -'-romantic'.length) : null;
-    const profile = roster.find(row => row.key === (baseKey ?? key));
+    const profile = roster.find(row => row.key === key);
     let gender = genderOfVoice.get(profile?.voice);
     if (!gender && ['MALE', 'FEMALE'].includes(profile?.gender)) { gender = profile.gender; genderFallbacks.push(key); }
-    const originalId = baseKey ? relationships.characters?.[baseKey]?.romanticCharacterId : ids[key];
+    const originalId = ids[key];
     if (!originalId || !gender) throw Error('Missing Convai ID or voice gender: ' + key);
-    const {voice, source} = voiceFor({key, baseKey, gender, voiceMap});
+    const {voice, source} = voiceFor({key, gender, voiceMap});
     if (source === 'fallback') voiceFallbacks.push(key);
-    return {key, originalId, gender, voice, name: profile.name, ...(baseKey && {baseKey})};
+    return {key, originalId, gender, voice, name: profile.name};
   });
   return {rows, genderFallbacks, voiceFallbacks};
 }
@@ -339,11 +335,8 @@ async function main() {
   for (const file of ROSTER_CHOICES[rosterChoice]) rosters.push(await read(resolve(root, file)));
   const kokoro = await read(resolve(root, 'characters/kokoro-voices.json'));
   const genderOfVoice = new Map(kokoro.voices.map(voice => [voice.voice_value, voice.gender]));
-  const relationships = await read(resolve(runtime, 'relationship-profiles.json'));
   const voiceMap = await read(resolve(root, 'characters/multilingual-voice-map.json'), {assignments: {}, voices: {}});
-  // The romantic variants belong to the named roster.
-  const {rows, genderFallbacks, voiceFallbacks} = buildRows({rosters, ids, genderOfVoice, relationships, voiceMap, only,
-    withRomance: rosterChoice !== 'archetypes'});
+  const {rows, genderFallbacks, voiceFallbacks} = buildRows({rosters, ids, genderOfVoice, voiceMap, only});
   const target = resolve(runtime, 'multilingual-profiles.json');
   const mapping = await read(target, {version: 1, characters: {}});
   if (!apply) {
