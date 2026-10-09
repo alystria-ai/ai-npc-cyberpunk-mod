@@ -20,7 +20,7 @@ const followUps = Number(option('--followup', 24));
 const only = option('--only');   // a probe label such as set3: only those replies (no older follow-up rows)
 
 const replies = [];
-const probeDir = resolve(root, 'runtime/emotion-probe');
+const probeDir = resolve(root, option('--probe-dir', 'runtime/emotion-probe'));
 for (const file of (await readdir(probeDir)).sort()) {
   if (!file.endsWith('.json')) continue;
   const data = JSON.parse(await readFile(resolve(probeDir, file), 'utf8'));

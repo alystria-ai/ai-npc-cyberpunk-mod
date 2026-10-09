@@ -13,7 +13,7 @@
 //     is exact), by stream position for Pocket (pauses in the mouth timeline, then a syllable estimate).
 //   - a reply with no marks, or the setting off, keeps the text-based plan.
 // Pure functions plus one small state holder: no I/O.
-import {EMOTION_NAMES} from './natural-speech.mjs';
+import {EMOTION_TAG_BLOCK} from './emotion-tags.mjs';
 
 // Tag name -> the emotion family it drives (the eight families of bridge/emotion-lexicon.mjs). calm -> null: back to
 // the character's resting face. warm is Trust, the gentle smile; interest is Anticipation, the attentive brow.
@@ -39,17 +39,10 @@ export function plannedMarks(marks, length = Infinity) {
 
 // ---- The dynamic context ---------------------------------------------------------------------------------------
 
-const TAGS = EMOTION_NAMES.map(name => `{${name}}`).join(', ');
-export const EXPRESSIVE_TEXT = 'Expressive emotions are on. Your face is animated from the feelings you mark inline. '
-  + `To mark a change of feeling, write one of these tags in curly braces right before the words it applies to: ${TAGS}. `
-  + 'The face moves to that feeling when those words are spoken and stays there until the next tag; {calm} returns it to '
-  + 'rest. Mark a feeling where it really shifts: several times in one reply if the text shifts, but not on every '
-  + 'sentence and not in every reply; a plain, even reply needs few or none. Be subtle: a tag on its own is a slight '
-  + 'expression, and ":strong" (for example {anger:strong}) is only for a real outburst. Choose by who you are: a '
-  + 'reserved, controlled or cold character shows little and rarely strongly; an open, warm or volatile one shows more. '
-  + 'These tags are for the face only: never say the feeling aloud, and use curly braces for nothing else (no asterisks, '
-  + 'parentheses or stage directions; square brackets are a different thing). Tags are removed from the subtitles and the voice. '
-  + 'Keep the same length and content you would give otherwise.';
+// The words of the block, and the syntax the parser reads, live in bridge/emotion-tags.mjs; the wording was measured against
+// real Convai characters (docs/EMOTION_TAGS.md). The October 7 wording asked for tags "only where the feeling really shifts"
+// and got {calm} on 41 % of the tags and {interest} on 29 %, neither of them right most of the time.
+export const EXPRESSIVE_TEXT = EMOTION_TAG_BLOCK;
 
 /**
  * The setting plus the two places it acts. `enabled` follows runtime/settings.json (a missing or unreadable file

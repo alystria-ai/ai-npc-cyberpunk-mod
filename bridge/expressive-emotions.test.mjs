@@ -50,10 +50,11 @@ test('the block offers the fixed tag set, several marks per reply, subtle by def
   assert.equal(emotions.contextFor({engine: 'pocket'}), EXPRESSIVE_TEXT);
   for (const name of EMOTION_NAMES) assert.ok(text.includes(`{${name}}`), `{${name}} is offered`);
   assert.deepEqual([...EMOTION_NAMES], ['joy', 'warm', 'interest', 'surprise', 'sadness', 'fear', 'anger', 'disgust', 'calm']);
-  for (const phrase of ['curly braces', 'right before the words it applies to', 'when those words are spoken', 'until the next tag',
-    '{calm} returns it to rest', 'several times in one reply', 'not on every sentence', 'not in every reply', 'Be subtle',
-    '":strong"', 'Choose by who you are', 'reserved, controlled or cold character shows little', 'for the face only',
-    'square brackets are a different thing', 'removed from the subtitles and the voice']) assert.ok(text.includes(phrase), phrase);
+  // The October 9 wording (docs/EMOTION_TAGS.md): an opening tag, one or two tags a reply, calm only for a really plain line,
+  // an outburst for :strong, the character's own manner, face only.
+  for (const phrase of ['curly braces', 'right before the words they apply to', 'until the next one', 'Begin the reply with ONE tag',
+    'one or two tags, three at most', '{calm} (a flat, plain, businesslike face)', ':strong', 'guarded, dry or controlled characters show less',
+    'for the face only', 'square brackets are a different thing']) assert.ok(text.includes(phrase), phrase);
   // Spoken turns on a local voice only: not the cloud voice (it would read the tags aloud), not text-only turns.
   assert.equal(emotions.contextFor({engine: 'convai'}), '');
   assert.equal(emotions.contextFor({engine: 'omni', spoken: false}), '');
@@ -99,10 +100,12 @@ test('stripSpeechTags removes emotion tags everywhere text is shown, stored or s
   assert.equal(stripSpeechTags('{joy}'), '');
   assert.equal(keepSpeechTags('Yeah {joy} [laughter] ok.', OMNI_TAGS), 'Yeah [laughter] ok.', 'an engine never receives an emotion tag');
   assert.equal(keepSpeechTags('Yeah {joy} ok.', []), 'Yeah ok.');
-  // Only the known names are tags; other braces are ordinary text and stay exactly as written.
-  const untouched = 'The {choomba} said {42} and {joyful} and { joy }.';
+  // Only emotion words are tags (the names, and the aliases a model might write instead); other braces are ordinary text
+  // and stay exactly as written.
+  const untouched = 'The {choomba} said {42} and {} and {I think}.';
   assert.equal(hasSpeechTags(untouched), false);
   assert.equal(stripSpeechTags(untouched), untouched);
+  assert.equal(stripSpeechTags('Fine {joyful} and { Joy } and {angry:2} then.'), 'Fine and and then.');
   // A half-written tag is held back while the text streams.
   assert.equal(displayText('Well {sad', false), 'Well');
   assert.equal(displayText('Well {sadness} then {an', false), 'Well then');

@@ -23,10 +23,11 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const bridge = process.env.PREVIOUS_BRIDGE ? pathToFileURL(resolve(process.env.PREVIOUS_BRIDGE) + '/').href : new URL('../bridge/', import.meta.url).href;
 const {selectEmotion, LABEL_OF} = await import(new URL('emotion-selector.mjs', bridge).href);
 const {phraseOffsets} = await import(new URL('emotion-analysis.mjs', bridge).href);
+const {emotionSpans} = await import(new URL('../bridge/emotion-tags.mjs', import.meta.url).href);
 const {splitSpeechText} = await import(new URL('speech-stream.mjs', bridge).href);
 
 const args = process.argv.slice(2);
-const which = args.find(arg => !arg.startsWith('--')) || 'all';
+const which = args.find((arg, at) => !arg.startsWith('--') && args[at - 1] !== '--gold' && args[at - 1] !== '--json' && args[at - 1] !== '--conditions') || 'all';
 const details = args.includes('--details'), jsonOut = args.includes('--json') ? args[args.indexOf('--json') + 1] : undefined;
 const VISIBLE = .2, CLEAR = .35;
 const NEGATIVE = new Set(['sadness', 'fear', 'anger', 'disgust']), SMILES = new Set(['joy', 'warm']);
@@ -35,18 +36,29 @@ const NEGATIVE = new Set(['sadness', 'fear', 'anger', 'disgust']), SMILES = new 
 // its reply's fields. Splits: `dev` is the first eight characters on the first 28 prompts (set1, what the picker was
 // tuned on); `holdout` is four other characters on the same prompts (set2) plus older follow-up probes; `fresh` is
 // twelve characters on 28 NEW prompts (set3), written and labelled after the picker was frozen, looked at once.
-const file = JSON.parse(await readFile(resolve(root, 'assets/emotion/segments-gold.json'), 'utf8'));
+const goldPath = args.includes('--gold') ? args[args.indexOf('--gold') + 1] : 'assets/emotion/segments-gold.json';
+const file = JSON.parse(await readFile(resolve(root, goldPath), 'utf8'));
 const split = unit => unit.set === 'set1' ? 'dev' : unit.set === 'set3' ? 'fresh' : unit.set === 'set4' ? 'fresh2' : 'holdout';
 const units = file.units.map(unit => ({...file.replies[unit.reply], ...unit, replyText: file.replies[unit.reply].text}))
-  .filter(unit => which === 'all' || split(unit) === which);
+  .filter(unit => which === 'all' || split(unit) === which || unit.set === which);
 const replies = new Map();
 for (const unit of units) { if (!replies.has(unit.reply)) replies.set(unit.reply, []); replies.get(unit.reply).push(unit); }
 
+// The tag parser's spans (bridge/emotion-tags.mjs) under three policies for what a tag may decide. A span with emotion null
+// is an untagged stretch: the picker fills it. 'all' trusts every tag ({calm} is an explicit neutral face); 'specific' hands
+// {calm} and {interest} stretches back to the picker (the two tags the character used by habit); 'notcalm' hands only {calm} back.
+const spansOf = (unit, policy) => emotionSpans(unit.marks.map(mark => ({...mark, intensity: mark.strength === 'strong' ? 2 : 1})), unit.replyText.length)
+  .map(span => policy === 'specific' && ['calm', 'interest'].includes(span.emotion) || policy === 'notcalm' && span.emotion === 'calm' ? {...span, emotion: null} : span);
+const withSpans = policy => unit => ({spans: spansOf(unit, policy), convai: unit.convai ? {...unit.convai, basis: 'ordered'} : undefined});
 const CONDITIONS = {
   game: unit => ({marks: unit.marks, convai: unit.convai ? {...unit.convai, basis: 'ordered'} : undefined}),
   'no-tags': unit => ({convai: unit.convai ? {...unit.convai, basis: 'ordered'} : undefined}),
   text: () => ({}),
+  'spans-all': withSpans('all'),
+  'spans-notcalm': withSpans('notcalm'),
+  'spans-specific': withSpans('specific'),
 };
+const chosen = args.includes('--conditions') ? args[args.indexOf('--conditions') + 1].split(',') : undefined;
 
 function shown(plan, unit) {
   const middle = (unit.from + unit.to) / 2;
@@ -57,6 +69,7 @@ function shown(plan, unit) {
 
 const report = {};
 for (const [condition, options] of Object.entries(CONDITIONS)) {
+  if (chosen && !chosen.includes(condition)) continue;
   const rows = [];
   for (const group of replies.values()) {
     const first = group[0], extra = options(first);

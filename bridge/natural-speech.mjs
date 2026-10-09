@@ -8,6 +8,9 @@
 //   - a short note of what the previous reply already used is added, so the model does not repeat a device.
 // Pure functions plus one small state holder: no I/O, so it can be tested without the bridge.
 import {talkLine} from './natural-speech-talk.mjs';
+import {EMOTION_NAMES, replaceEmotionTags, hasEmotionTag, heldFrom} from './emotion-tags.mjs';
+
+export {EMOTION_NAMES};
 
 // The non-verbal tags OmniVoice renders in English (vendor/reference-omnivoice-training/omnivoice/models/omnivoice.py,
 // _NONVERBAL_PATTERN). The listening test found them natural; the other tags in the pattern are for other languages.
@@ -27,19 +30,17 @@ export const MAX_VOICED_TAGS = 2;
 // digits or capitals, so it never matches. Matching is case-insensitive so "[Laughter]" is still cleaned up.
 const TAG = /\[([a-z]+(?:-[a-z]+)*)\]/gi;
 const TAG_PRESENT = /\[[a-z]+(?:-[a-z]+)*\]/i;
-// An emotion tag ("Expressive emotions", bridge/expressive-emotions.mjs) is one of a small fixed set in CURLY braces,
-// optionally with a strength: {joy}, {anger:strong}. The two syntaxes cannot collide: brackets are sounds for the
-// voice, braces are feelings for the face. Only the known names count; any other braces are ordinary text.
-export const EMOTION_NAMES = Object.freeze(['joy', 'warm', 'interest', 'surprise', 'sadness', 'fear', 'anger', 'disgust', 'calm']);
-const EMOTION = new RegExp(`\\{(${EMOTION_NAMES.join('|')})(?::(strong|subtle))?\\}`, 'gi');
-const EMOTION_PRESENT = new RegExp(EMOTION.source, 'i');
+// An emotion tag ("Expressive emotions"; bridge/emotion-tags.mjs owns its syntax) is a feeling word in CURLY braces, optionally
+// with a strength: {joy}, {anger:strong}. The two syntaxes cannot collide: brackets are sounds for the voice, braces are
+// feelings for the face. Only emotion words count (the names, and the aliases a model might write instead, such as {angry});
+// any other braces are ordinary text.
 const MARK = '\u0001';
 const PUNCTUATION_ONLY = /^[,.;:!?…]+$/;
 const CLAUSE_END = /[,.;:!?…]$/;
 const DASH_ONLY = /^(?:—|–|--?)$/;
 
-export const hasSpeechTags = text => typeof text === 'string' && (TAG_PRESENT.test(text) || EMOTION_PRESENT.test(text));
-export const hasEmotionTags = text => typeof text === 'string' && EMOTION_PRESENT.test(text);
+export const hasSpeechTags = text => typeof text === 'string' && (TAG_PRESENT.test(text) || hasEmotionTag(text));
+export const hasEmotionTags = hasEmotionTag;
 
 /**
  * Words of a reply with the voice tags and emotion tags that precede each word. Whitespace is normalized to single
@@ -49,9 +50,9 @@ export const hasEmotionTags = text => typeof text === 'string' && EMOTION_PRESEN
 export function parseTagged(text) {
   const words = [];
   let pending = [], pendingEmotions = [];
-  const marked = String(text)
-    .replace(TAG, (_, name) => ` ${MARK}v:${name.toLowerCase()}${MARK} `)
-    .replace(EMOTION, (_, name, strength) => ` ${MARK}e:${name.toLowerCase()}:${strength ? strength.toLowerCase() : ''}${MARK} `);
+  // Emotion tags first: a bracketed emotion word ([surprise]) is a feeling, not a voice sound (bridge/emotion-tags.mjs).
+  const felt = replaceEmotionTags(String(text), tag => ` ${MARK}e:${tag.name}:${tag.strength}${MARK} `);
+  const marked = felt.replace(TAG, (_, name) => ` ${MARK}v:${name.toLowerCase()}${MARK} `);
   for (const token of marked.split(/\s+/)) {
     if (!token) continue;
     if (token.startsWith(MARK) && token.endsWith(MARK) && token.length > 2) {
@@ -90,8 +91,8 @@ export function stripSpeechTags(text) {
 /** Streaming text for display: tags removed, and a tag still being written ("[laug") held back until it completes. */
 export function displayText(text, complete = true) {
   if (typeof text !== 'string') return text;
-  const held = complete ? text : text.replace(/\s*[\[{][a-z:-]*$/i, '');
-  return stripSpeechTags(held);
+  const cut = complete ? -1 : heldFrom(text);
+  return stripSpeechTags(cut >= 0 ? text.slice(0, cut).trimEnd() : text);
 }
 
 /** The text with only the tags in `allowed` kept (the rest removed). For an engine's own last line of defence. */
