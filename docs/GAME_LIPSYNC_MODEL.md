@@ -374,3 +374,35 @@ chin duck was hot-reloaded into the running game and is live). No bridge restart
 11:58 miss is not reproduced on any path tested; if it recurs on a Serenity or Joy line, the smile narrowing above is the
 only measured mouth-closing influence left, and a trace with `say` plus `face-trace` after the CET reload will show the
 exact written frames.
+
+### Fifth round: the corner depressors (coordinator: "the fix is only partial")
+
+The chin duck left Evelyn's sad lips only slightly parted at jaw .48 to .50 although jaw .35 alone is clearly open. Isolated on a
+staged Evelyn in writer mode (jaw .35 alone, then plus each control the sad, anger and disgust recipes write, one at a time, then the
+full recipes): **only two expression controls close the mouth opening, the chin raise (`lips_chin_raise`) and the corner depressors
+(`lips_l/r_corner_dn`)**, and they add up (either one narrows it, both together close it). Brow raise/lower/lateral, eye squint
+(outer and inner), `widen` (upper lid), cheek squint, nose snear and the blink droop leave the opening unchanged. There is no
+`lips_together` coming from the expression layer (it is written only by the speech model), and the expression layer writes no lip
+press, roll or funnel. The sadness, anger and disgust recipes all carry corner depressors (`dn` .75, .40 and .50), so the chin duck
+alone left them.
+
+Fix (`mod/facial-playback.lua`, `expressionPose`, same place as the chin duck): while a jaw-lifted head speaks, the written
+`lips_l_corner_dn` and `lips_r_corner_dn` are multiplied by `1 - clamp(jaw / .20)` (chin: `/ .10`). Gone at jaw .20 or more, back
+between words; brows, eyes and cheeks keep carrying the emotion. Judy and unknown heads untouched; two multiplies per written frame,
+no native read. Test: `corner depressors give way to an opening jaw while a lifted head speaks, the brows stay, Judy and a smile are
+untouched`. Evelyn before/after (sad, anger, joy; jaw .31 to .50, large crops): `runtime/face-captures/chin-corner-before-after.png`
+(before: closed or pouting lips; after: lips parted, teeth visible). man_average (Viktor Vektor): `chin-corner-before-after-viktor.png`;
+the scene is dark and the head is 3/4 turned at the side spot, so that sheet is low contrast and only shows a modest parting; the
+written values (trace) are what prove it there.
+
+**Smile left alone.** The corner pull of joy and serenity (`lips_*_corner_up`) widens the mouth and narrows the opening only
+geometrically (the corners move out and up, the lips stretch); there is no press or narrowing control in the smile. Ducking it would
+pump the smile with every syllable, so it stays (measured: the smile does not close the lips, it flattens the gap by about a third).
+
+**Test memory, for the record.** The scripted talk of the previous round went through the real bridge, so the exchanges are in the
+running bridge's anonymous-session history (scope = per-process UUID + world token; `identity.status` was not `verified`), not in a
+persistent end-user memory. The bridge has no dev override for the end-user id; this round used writer-mode tests only (no Convai
+turns). Exchanges (2026-10-09, local clock of the run): Evelyn Parker 12:24:27 and 12:26:11; Johnny Silverhand 12:37:59, 12:42:12 and
+12:43:29; Lizzy Wizzy 12:45:11; Kerry Eurodyne 12:46:31; Solomon Reed 12:47:45; Judy Alvarez 12:49:16; Mama Welles 12:50:42 (request ids in
+the saved `reply.json` files of the run). To drop all of them: restart the bridge (end the process in `runtimeridge-service.json`
+`bridgePid`; the supervisor starts a new one with a new session scope). Nothing was deleted.
