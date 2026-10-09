@@ -660,3 +660,33 @@ test('seating owns her for recovery from the walk to the seat until she stands c
   assert(seen.leaving==true or seen.standing==true,'owned while standing up')
   step(1);assert(not c.owns(party[1]),'released after she stood clear')
 `));
+
+// October 9 live runs: five sessions logged "No clear local walking route" and
+// nothing else, so the stage that refused (path, destination, ...) is logged now.
+test('a refused seat walk logs the actuator rejection stage and where she stood', () => run(`
+  couch(-.35,1.7);party={companion(1,3.5,1.5)}
+  sitV();step(.6)
+  for i=1,60 do
+    local rows={{entry=party[1],transport=false}}
+    c.tick(player,.1,rows)
+    local e=party[1]
+    e.motor.feedback={ticket=e.motor.ticket,failed=true,error='No clear local walking route',
+      rejection={stage='destination',group='Static',boxes=1,center={x=1,y=2,z=3}}}
+    c.steer(e,{combat=false,motion=e.motor.feedback})
+    c.observe(e,{combat=false})
+  end
+  local refused=lastLog('seat-walk-refused')
+  assert(refused,'refusal logged')
+  assert(refused.fields.stage=='destination' and refused.fields.group=='Static' and refused.fields.boxes==1,'stage logged')
+  assert(refused.fields.at and refused.fields.at.x and refused.fields.playerGap,'her position logged')
+  assert(refused.fields.center==nil,'no raw geometry in the log line')
+`));
+
+test('V in a mounted workspot starts no session and says so once', () => run(`
+  seat.mounted=true
+  sitV('base\\\\workspots\\\\vehicles\\\\player__sit_bench__sit_around__01.workspot','sit_bench')
+  step(3)
+  assert(not lastLog('player-sat'),'mounted workspot never seats anyone')
+  local n=0;for _,l in ipairs(logs) do if l.kind=='player-workspot-skipped' then n=n+1 end end
+  assert(n==1,'logged once, not every update: '..n)
+`));

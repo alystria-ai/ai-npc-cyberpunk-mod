@@ -567,7 +567,13 @@ function M.new(options)
             end
             return
         end
-        if seat.mounted then return end
+        if seat.mounted then
+            -- V is in a workspot but mounted to something (a car, a device): never
+            -- a seat. Logged once per sit so a missing session is explainable.
+            if self.lastMounted ~= true then self.lastMounted = true; note('player-workspot-skipped', {reason = 'mounted'}) end
+            return
+        end
+        self.lastMounted = nil
         local named = (seat.path and seat.path ~= '') or (seat.anim and seat.anim ~= '')
         local kind = M.classify(seat.path, seat.anim)
         local key = tostring(seat.path) .. '|' .. tostring(seat.anim)
@@ -1064,8 +1070,14 @@ function M.new(options)
             -- Arrived: retire the walk to a hold first, then the workspot takes the body.
             if (ours and motion.complete) or gap <= policy.arriveDistance then return arrive(s, toSeat, false, entry) end
             if failing >= policy.routeGrace or self.clock - s.since > policy.approachTimeout then
+                -- The actuator's own rejection (stage: navigation, stance, player,
+                -- destination, path, connector, motion) says why the route was refused.
+                local why = type(motion.rejection) == 'table' and motion.rejection or {}
                 note('seat-walk-refused', {serial = s.serial, try = s.tries, toSeat = toSeat,
-                    reason = motion.error or (ours and 'refused' or 'not taken')})
+                    reason = motion.error or (ours and 'refused' or 'not taken'),
+                    stage = why.stage, group = why.group, boxes = why.boxes, unavailable = why.unavailable,
+                    toGoal = gap < math.huge and gap or nil, playerGap = entry.playerGap,
+                    at = entry.position and {x = entry.position.x, y = entry.position.y, z = entry.position.z} or nil})
                 if toSeat <= policy.refusedSlide then return slideOrWait(s, entry) end
                 if nextApproach(s, entry) then
                     return {phase = 'seat-approach', reason = 'Walk to a seat beside V', operation = s.op, look = 'none'}
