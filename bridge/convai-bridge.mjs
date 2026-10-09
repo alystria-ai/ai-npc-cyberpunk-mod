@@ -450,7 +450,8 @@ const conversationContext = input => {
         worldToken: prepared.worldToken, generation: prepared.generation}) : '',
     admitted && prepared.route.channel === 'phone' ? phoneRecentConversationContext(prepared.input) : '',
     // Follow-up questions go before the voice notes: after "keep the same length and content" they lost most of their effect
-    // (scripts/Probe-FollowUp.mjs: a pull in 16 of 26 offered turns here, against 13 of 41 after them).
+    // (scripts/Probe-FollowUp.mjs: a pull in 16 of 26 offered turns here, against 13 of 41 after them). The one-sentence
+    // first-person reminder goes after the voice blocks, which pull a reply away from the base rule (docs/FIRST_PERSON_RULE.md).
     followUpContext(input), naturalSpeechContext(input), expressiveEmotionsContext(input), firstPersonReminder(input),
     // Multilingual conversations: the reply language, last so it outweighs the English notes above.
     multilingual.contextFor(input.reaction ? '' : input.text)]
