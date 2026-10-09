@@ -120,7 +120,7 @@ local traitTable={default={warmth=restSmile,gain=1,smile=defaultSmile,squint=def
 for _,key in ipairs({'panam-palmer','jackie-welles','kerry-eurodyne','misty-olszewski','mama-welles','river-ward',
     'claire-russell','dexter-deshawn','padre-ibarra','viktor-vektor'}) do traitTable[key]={warmth=.18,gain=1,smile=defaultSmile,squint=defaultSquint} end
 -- Judy's brows rest high (her idle arch): the lowering controls get a quarter more (browDown).
-traitTable['judy-alvarez']={warmth=.12,gain=1.6,browDown=1.25,smile=.7,squint=1}
+traitTable['judy-alvarez']={warmth=.12,gain=1.6,browDown=1.25,smile=.7,squint=1,jawLift=false}
 for _,key in ipairs({'johnny-silverhand','rogue-amendiares','takemura','saul-bright','meredith-stout','solomon-reed',
     'spider-murphy','r3n0','regina-jones'}) do traitTable[key]={warmth=.05,gain=1,smile=defaultSmile,squint=defaultSquint} end
 for _,key in ipairs({'adam-smasher','yorinobu-arasaka','hanako-arasaka','alan-noel','mr-hands'}) do traitTable[key]={warmth=0,gain=1,smile=defaultSmile,squint=defaultSquint} end
@@ -129,6 +129,30 @@ for _,key in ipairs({'adam-smasher','yorinobu-arasaka','hanako-arasaka','alan-no
 local moodHoldSeconds,moodCalmSeconds,moodEaseSeconds,moodThreshold=60,10,5,.2
 local function traitFor(profile) return traitTable[profile] or traitTable.default end
 local speechMouthFactor=.85
+-- October 9 (user: Evelyn and Johnny, with wider, thinner lips than Judy, "don't open the mouth on some words"):
+-- every speech source is calibrated on Judy's rig, where a jaw weight of .06 already parts her lips. Measured in game
+-- on 23 characters (docs/COMPANION_EXPRESSIONS.md, lip sync round): the shared woman_average heads (Evelyn, Alex, Claire,
+-- Lizzy, Mama Welles, Meredith, Misty, Panam, Regina, Rogue, Songbird, Wakako) keep their lips sealed until about .20,
+-- and the man_average / man_big / man_fat heads part them later and less than Judy. Typical speech sits at jaw .04-.15
+-- (median .12), so many words never broke the seal. The jaw weight is lifted by a concave curve that is steepest at 0 and
+-- exactly the identity at the validation ceiling, so the widest vowels are unchanged and silence stays closed:
+--   jaw' = .7 * (1 - (1 - jaw / .7) ^ q)       q = 2: .06 -> .115, .12 -> .22, .20 -> .36, .37 -> .55
+-- q is a constant per head type (the facial graph name, read once per reply, never per frame), or a per-character
+-- override (traitTable[profile].jawLift, false = none). Judy's graph (player_woman_photomode) has no entry: unchanged.
+local jawLimit=.7
+local jawLiftByGraph={woman_average=2,man_average=1.5,man_big=1.5,man_fat=1.5}
+local function jawLiftFor(actor,entity)
+    local slot=M.expressions[entity]
+    local trait=slot and traitTable[slot.profile]
+    if trait and trait.jawLift~=nil then return trait.jawLift or nil end
+    local ok,status=pcall(function() return actor:ConvaiFaceStatus() end)
+    local graph=ok and type(status)=='string' and status:match('^prepared:(.-)_sermo$') or nil
+    return graph and jawLiftByGraph[graph] or nil
+end
+local function liftJaw(value,lift)
+    local rest=1-value/jawLimit
+    return rest>0 and jawLimit*(1-rest^lift) or jawLimit
+end
 M.expressions, M.expressionClock, M.expressionFrame = {}, 0, 0
 -- Development-only visibility probe (mod/face-test.lua). It is absent from a
 -- normal install, inert until a runtime request file appears, and errors in it
@@ -744,6 +768,7 @@ local function clear()
     M.modelExpressions=nil
     M.expressionTrackKeys=nil
     M.blinkBoundaries,M.blinkBoundaryIndex=nil,nil
+    M.jawLift=nil
 end
 
 function M.abandon(reason)
@@ -817,6 +842,7 @@ function M.start(context, timeline, actor, duration, expectedSegment)
     M.source, M.articulation, M.error, M.applied, M.position = nil, nil, nil, 0, nil
     if not ok then M.error = tostring(err); return false end
     M.entity, M.generation, M.segment, M.feature = context.entity, context.generation, segment, feature
+    M.jawLift = jawLiftFor(actor, context.entity)
     M.requestId, M.timeline, M.index = context.requestId, timeline, 1
     M.source, M.active, M.state = timeline.source, true, 'waiting-for-audio'
     M.articulation = timeline.articulation
@@ -902,6 +928,7 @@ function M.updateContinuous(context, timeline, actor, duration)
         if not created or not feature then M.error = 'Native facial feature is unavailable'; return false end
         M.feature, M.index, M.applied = feature, 1, 0
         M.requestId, M.entity, M.generation = context.requestId, context.entity, context.generation
+        M.jawLift = jawLiftFor(actor, context.entity)
         M.active, M.continuous, M.state = true, true, 'waiting-for-audio'
         M.lastPosition, M.position, M.segment, M.restored = nil, nil, nil, false
         M.localPose, M.localPosePosition = nil, nil
@@ -966,8 +993,10 @@ function M.sync(actor, position, requestId)
         local alpha = math.max(0, math.min(1, (position - left[1]) / (right[1] - left[1])))
         local motionPosition = heardPosition + (M.segment and M.segment.startSeconds or 0)
         local motionElapsed = M.localPosePosition and math.max(0, motionPosition - M.localPosePosition) or 1 / 60
+        local lift = M.jawLift
         for i, track in ipairs(tracks) do
             local value = left[i + 1] + (right[i + 1] - left[i + 1]) * alpha
+            if lift and track == 'jaw_mid_open' then value = liftJaw(value, lift) end
             if M.localMotion then
                 -- Local acoustic shapes (Pocket and Omni) share this easing.
                 -- Retain the last applied pose across live phone revisions

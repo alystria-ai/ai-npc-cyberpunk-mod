@@ -519,6 +519,48 @@ test('face-stage probe: a freshly loaded probe never runs the stale request left
  assert(#moves>before and convaiFaceTest.stage,'a new request after the reload still runs')
 `));
 
+// October 9, lip sync on wider lips: the jaw weight is lifted per head type (the facial graph name), the identity at the
+// validation ceiling and at zero, never for Judy's graph or a head whose graph is unknown.
+const liftJaw = (value, q) => { const rest = 1 - value / .7; return rest > 0 ? .7 * (1 - rest ** q) : .7; };
+const jawBody = (status, jaw, check, extra = '') => `
+ ${status === undefined ? '' : `function a:ConvaiFaceStatus() return ${JSON.stringify(status)} end`}
+ ${extra}
+ face.beginExpressionFrame(.1,{actors=rows})
+ local timeline={version=1,requestId=context.requestId,entity=a.id,duration=1,source='local-jali',articulation='jali-audio-v1',
+  tracks={'jaw_mid_open','lips_together_up'},frames={{0,${jaw},0},{1,${jaw},0}}}
+ assert(face.start(context,timeline,a,1));face.beginExpressionFrame(.1,{actors=rows});face.sync(a,.3,context.requestId)
+ local jawValue=last(a).jaw_mid_open
+ ${check}`;
+test('jaw lift: woman_average opens low and mid jaw values (q 2), man heads moderately (q 1.5), the ceiling and zero are unchanged', () => {
+  for (const [graph, q] of [['woman_average', 2], ['man_average', 1.5], ['man_big', 1.5], ['man_fat', 1.5]]) {
+    for (const jaw of [0, .0381, .06, .12, .2, .37, .66, .7]) {
+      run(jawBody(`prepared:${graph}_sermo`, jaw, `assert(math.abs(jawValue-${liftJaw(jaw, q)})<1e-9,'${graph} ${jaw}: '..jawValue)`));
+    }
+  }
+  assert.ok(liftJaw(.12, 2) > .21 && liftJaw(.12, 2) < .23 && liftJaw(0, 2) === 0 && liftJaw(.7, 2) === .7);
+});
+test('jaw lift: Judy and an unknown or unreadable head keep the jaw exactly', () => {
+  for (const [status, extra] of [['prepared:player_woman_photomode_sermo', ''], ['unsupported-graph', ''], [undefined, ''],
+    ['prepared:woman_average_sermo', "rows[1].profileKey='judy-alvarez';face.beginExpressionFrame(.1,{actors=rows});face.updateExpressions({actors=rows})"]]) {
+    run(jawBody(status, .12, "assert(jawValue==.12,'unchanged: '..tostring(jawValue))", extra));
+  }
+});
+test('jaw lift: only the jaw is lifted, and the graph is read once per reply (no native read per frame)', () => {
+  run(`
+ local reads=0
+ function a:ConvaiFaceStatus() reads=reads+1;return 'prepared:woman_average_sermo' end
+ face.beginExpressionFrame(.1,{actors=rows})
+ local timeline={version=1,requestId=context.requestId,entity=a.id,duration=2,source='local-jali',articulation='jali-audio-v1',
+  tracks={'jaw_mid_open','lips_together_up','lips_l_funnel'},frames={{0,.12,.5,.3},{2,.12,.5,.3}}}
+ assert(face.start(context,timeline,a,2))
+ local position=0
+ for _=1,12 do face.beginExpressionFrame(.1,{actors=rows});position=position+.1;face.sync(a,position,context.requestId) end
+ assert(reads==1,'the graph is read once per reply: '..reads)
+ assert(math.abs(last(a).jaw_mid_open-${liftJaw(.12, 2)})<1e-9)
+ assert(last(a).lips_together_up==.5 and last(a).lips_l_funnel==.3,'only the jaw is lifted')
+`);
+});
+
 test('face-test probe: direct mode bypasses the writer with its own feature and logs the apply result', () => runProbe(`
  request('n2\\nface-test judy frown 2 direct');tick(.3)
  local count=#a.frames;tick(.1);assert(#a.frames==count+1,'one direct write per frame, writer skipped')
