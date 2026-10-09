@@ -76,6 +76,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/request-ownership.mjs',
   'bridge/resident-phone-analysis.mjs',
   'bridge/resident-voice.mjs',
+  'bridge/romance-context.mjs',
   'bridge/runtime-paths.mjs',
   'bridge/speech-audio.mjs',
   'bridge/speech-stream.mjs',

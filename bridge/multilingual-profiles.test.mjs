@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createMultilingualProfiles, applyTwinVoices, buildRows, ROSTER_CHOICES, settingUpdates, voiceFor, withoutCostEstimates, twinPayload, twinMarker, originalMarker, needsLanguageBoxOff, romanceKey, LANGUAGE_CODES, LANGUAGE_BOX_FIELD, MULTILINGUAL_VOICES, ROMANCE_BASE_KEYS, TIER1_KEYS} from '../scripts/Create-MultilingualProfiles.mjs';
+import {createMultilingualProfiles, applyTwinVoices, buildRows, ROSTER_CHOICES, settingUpdates, voiceFor, withoutCostEstimates, twinPayload, twinMarker, originalMarker, needsLanguageBoxOff, LANGUAGE_CODES, LANGUAGE_BOX_FIELD, MULTILINGUAL_VOICES, TIER1_KEYS} from '../scripts/Create-MultilingualProfiles.mjs';
 
 function fixture(keys = ['judy-alvarez', 'jackie-welles']) {
   const objects = new Map(), calls = [];
@@ -114,35 +114,20 @@ test('a twin whose language list drifted is put back to en-US only', async () =>
   assert.deepEqual(second.mapping.characters['judy-alvarez'].languageCodes, ['en-US']);
 });
 
-test('romantic twins carry their own marker, never the ordinary twin or the romantic original', async () => {
-  assert.deepEqual(ROMANCE_BASE_KEYS.map(romanceKey), ['judy-alvarez-romantic', 'panam-palmer-romantic', 'river-ward-romantic', 'kerry-eurodyne-romantic', 'meredith-stout-romantic']);
-  const key = romanceKey('judy-alvarez');
-  assert.equal(originalMarker(key), '[CyberpunkConvai profile v2:judy-alvarez-romantic]');
-  assert.equal(twinMarker(key), '[CyberpunkConvai profile v2:judy-alvarez-romantic:multilingual]');
-  // The ordinary twin and the romantic twin share a display name; only the marker tells them apart.
-  const f = fixture(['judy-alvarez', key]);
-  for (const id of ['orig-judy-alvarez', 'orig-' + key]) f.objects.get(id).character_name = 'Judy Alvarez';
-  const rows = [{key: 'judy-alvarez', originalId: 'orig-judy-alvarez', gender: 'FEMALE'},
-    {key, originalId: 'orig-' + key, gender: 'FEMALE', baseKey: 'judy-alvarez'}];
+test('a twin carries its own marker, a mapping entry has no relationship fields, and a re-run adopts it', async () => {
+  const key = 'judy-alvarez';
+  assert.equal(originalMarker(key), '[CyberpunkConvai profile v2:judy-alvarez]');
+  assert.equal(twinMarker(key), '[CyberpunkConvai profile v2:judy-alvarez:multilingual]');
+  const f = fixture([key]);
+  const rows = [{key, originalId: 'orig-' + key, gender: 'FEMALE'}];
   const result = await createMultilingualProfiles({rows, api: f.api});
-  const [ordinary, romantic] = ['judy-alvarez', key].map(k => result.mapping.characters[k]);
-  assert.notEqual(ordinary.multilingualCharacterId, romantic.multilingualCharacterId);
-  assert.ok(f.objects.get(romantic.multilingualCharacterId).backstory.split('\n').includes(twinMarker(key)));
-  assert.equal(f.objects.get(romantic.multilingualCharacterId).backstory.includes(twinMarker('judy-alvarez') + '\n'), false);
-  assert.deepEqual({variant: romantic.variant, baseKey: romantic.baseKey}, {variant: 'romantic', baseKey: 'judy-alvarez'});
-  // A re-run adopts both without creating anything.
+  const twin = result.mapping.characters[key];
+  assert.ok(f.objects.get(twin.multilingualCharacterId).backstory.split('\n').includes(twinMarker(key)));
+  assert.equal(twin.variant, undefined);
+  assert.equal(twin.baseKey, undefined);
   const before = f.calls.filter(call => call.endpoint === '/character/create').length;
   await createMultilingualProfiles({rows, mapping: result.mapping, api: f.api});
   assert.equal(f.calls.filter(call => call.endpoint === '/character/create').length, before);
-  // A lost receipt for the romantic twin is recovered by name plus marker, not confused with the ordinary twin.
-  const g = fixture(['judy-alvarez', key]);
-  for (const id of ['orig-judy-alvarez', 'orig-' + key]) g.objects.get(id).character_name = 'Judy Alvarez';
-  const mapping = (await createMultilingualProfiles({rows: rows.slice(0, 1), api: g.api})).mapping;
-  g.loseNext();
-  await assert.rejects(() => createMultilingualProfiles({rows, mapping, api: g.api}), /lost receipt/);
-  const recovered = await createMultilingualProfiles({rows, api: g.api, mapping});
-  assert.equal(recovered.results[1].created, false);
-  assert.equal(g.calls.filter(call => call.endpoint === '/character/create').length, 2);
 });
 
 test('continueOnError records a failing row and still processes the others', async () => {
@@ -199,27 +184,29 @@ test('every archetype has a gender-matched Azure voice that is not a main-cast v
   assert.match(voiceName('npc-corpo-security-male'), /^Steffan/u);
 });
 
-test('rosters: named, archetypes or both; every archetype with an ID becomes one twin row, romance rows stay with the named roster', () => {
+test('rosters: named, archetypes or both; every archetype with an ID becomes one twin row and no row is a romantic profile', () => {
   assert.deepEqual(Object.keys(ROSTER_CHOICES).sort(), ['all', 'archetypes', 'named']);
   const ids = Object.fromEntries([...rosterRows, ...archetypeRows].map(row => [row.key, 'id-' + row.key]));
-  const relationships = {characters: Object.fromEntries(ROMANCE_BASE_KEYS.map(key => [key, {romanticCharacterId: 'romantic-' + key}]))};
-  const common = {ids, genderOfVoice: new Map(), relationships, voiceMap};
-  const archetypes = buildRows({...common, rosters: [archetypeRows], withRomance: false});
+  const common = {ids, genderOfVoice: new Map(), voiceMap};
+  const archetypes = buildRows({...common, rosters: [archetypeRows]});
   assert.equal(archetypes.rows.length, 74);
-  assert.ok(archetypes.rows.every(row => row.key.startsWith('npc-') && row.originalId === 'id-' + row.key && !row.baseKey));
+  assert.ok(archetypes.rows.every(row => row.key.startsWith('npc-') && row.originalId === 'id-' + row.key));
   assert.deepEqual(archetypes.voiceFallbacks, [], 'every archetype has a mapped voice');
   assert.equal(archetypes.genderFallbacks.length, 74, 'with no Kokoro table the roster gender is used');
   assert.equal(archetypes.rows.find(row => row.key === 'npc-ncpd-female').gender, 'FEMALE');
   const all = buildRows({...common, rosters: [rosterRows, archetypeRows]});
-  assert.equal(all.rows.length, rosterRows.length + 74 + ROMANCE_BASE_KEYS.length);
-  assert.deepEqual(all.rows.filter(row => row.baseKey).map(row => row.key), ROMANCE_BASE_KEYS.map(romanceKey));
+  assert.equal(all.rows.length, rosterRows.length + 74);
+  assert.deepEqual(all.rows.filter(row => row.key.endsWith('-romantic') || 'baseKey' in row), [], 'no romantic row exists any more');
+  // A retired romantic key is rejected with a clear message, even when its base character is in the roster.
+  assert.throws(() => buildRows({...common, rosters: [rosterRows], only: new Set(['judy-alvarez-romantic'])}), /retired/);
+  assert.throws(() => buildRows({...common, rosters: [rosterRows, archetypeRows], only: new Set(['judy-alvarez', 'panam-palmer-romantic'])}), /romantic profiles were retired/);
   assert.deepEqual(buildRows({...common, rosters: [archetypeRows], only: new Set(['npc-homeless-male'])}).rows.map(row => row.key), ['npc-homeless-male']);
   // A profile of the other roster is refused rather than silently skipped.
   assert.throws(() => buildRows({...common, rosters: [archetypeRows], only: new Set(['judy-alvarez'])}), /--only/);
   assert.throws(() => buildRows({...common, rosters: [archetypeRows, archetypeRows]}), /two rosters/);
   // An archetype without an ID in runtime/characters.json is not twinned.
   const missing = {...ids}; delete missing['npc-homeless-male'];
-  assert.equal(buildRows({...common, ids: missing, rosters: [archetypeRows], withRomance: false}).rows.length, 73);
+  assert.equal(buildRows({...common, ids: missing, rosters: [archetypeRows]}).rows.length, 73);
 });
 
 test('an archetype twin is a faithful clone with memory off, en-US only and its own marker; readback is verified and a re-run adopts it', async () => {
@@ -265,10 +252,9 @@ test('memory follows the original in both directions: a twin with memory on is t
   assert.deepEqual(f.objects.get('orig-' + key), original);
 });
 
-test('voiceFor uses the map, lets the romantic twin follow its base, and falls back by gender', () => {
+test('voiceFor uses the map and falls back by gender', () => {
   const map = {voices: {'v-f': {gender: 'FEMALE'}, 'v-m': {gender: 'MALE'}}, assignments: {'judy-alvarez': {voice: 'v-f'}}};
   assert.deepEqual(voiceFor({key: 'judy-alvarez', gender: 'FEMALE', voiceMap: map}), {voice: 'v-f', source: 'map'});
-  assert.deepEqual(voiceFor({key: 'judy-alvarez-romantic', baseKey: 'judy-alvarez', gender: 'FEMALE', voiceMap: map}), {voice: 'v-f', source: 'map'});
   assert.deepEqual(voiceFor({key: 'jackie-welles', gender: 'MALE', voiceMap: map}), {voice: MULTILINGUAL_VOICES.MALE, source: 'fallback'});
   assert.throws(() => voiceFor({key: 'judy-alvarez', gender: 'MALE', voiceMap: map}), /gender mismatch/);
   assert.throws(() => voiceFor({key: 'judy-alvarez', gender: 'FEMALE', voiceMap: {voices: {}, assignments: {'judy-alvarez': {voice: 'v-x'}}}}), /does not describe/);

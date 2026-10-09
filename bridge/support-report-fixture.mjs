@@ -80,7 +80,7 @@ export async function plantedInstall() {
     connections: [{profile: 'bob-sagan', state: 'ready', sessionId: PLANTED.sessionId}]}));
   await f.put(join(f.runtime, 'party-connections.json'), JSON.stringify({updated: Date.now(), profiles: ['bob-sagan']}));
   await f.put(join(f.runtime, 'relationship-routing.json'), JSON.stringify({version: 1, routes: [
-    {profileKey: 'judy-alvarez', mode: 'auto', status: 'ready', variant: 'ordinary', reason: null}]}));
+    {profileKey: 'judy-alvarez', mode: 'auto', status: 'ready', style: 'ordinary', reason: null}]}));
   // Never part of a report: conversation text, audio, chat history, recordings.
   await f.put(join(f.runtime, 'last-input.json'), JSON.stringify({text: PLANTED.chat}));
   await f.put(join(f.runtime, 'phone-chat-output.json'), JSON.stringify({reply: PLANTED.chat}));

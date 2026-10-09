@@ -18,7 +18,7 @@ import {createHash} from 'node:crypto';
 import {mkdir, readdir, readFile, rename, rm, stat, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 
-export const MANAGED_FILES = Object.freeze(['characters.json', 'relationship-profiles.json', 'multilingual-profiles.json']);
+export const MANAGED_FILES = Object.freeze(['characters.json', 'multilingual-profiles.json']);
 export const POCKET_CONFIG = 'pocket-voices.autobest.json';
 export const OMNI_CONFIGS = Object.freeze({short: 'local-voices.autobest-short.json', long: 'local-voices.autobest-long.json'});
 const RECORD = 'package-defaults.json';

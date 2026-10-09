@@ -1,8 +1,9 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {RelationshipRouting, relationshipRegistry, parseRelationshipState, selectRelationshipProfile,
-  relationshipContext, RELATIONSHIP_FACTS, RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
+  RELATIONSHIP_FACTS, RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
 import {retireRelationshipConnections} from './relationship-routing.mjs';
+import {relationshipContext} from './romance-context.mjs';
 import {PartyConnections} from './party-connections.mjs';
 import {readFileSync} from 'node:fs';
 
@@ -10,9 +11,7 @@ const NOW = Date.parse('2026-10-01T12:00:00Z');
 const boundary = {worldToken: 'world-a', generation: 4};
 const ordinaryIds = Object.fromEntries([...Object.keys(RELATIONSHIP_PROFILES), 'rogue-amendiares']
   .map(profile => [profile, profile + '-ordinary-id']));
-const variants = {version: 1, characters: Object.fromEntries(Object.keys(RELATIONSHIP_PROFILES)
-  .map(profile => [profile, {ordinaryCharacterId: ordinaryIds[profile], romanticCharacterId: profile + '-romantic-id'}]))};
-const registry = relationshipRegistry(ordinaryIds, variants);
+const registry = relationshipRegistry(ordinaryIds);
 const fact = value => ({status: 'known', value, present: true, sourceId: 'native-quests-system',
   evidenceRefs: ['core-arcs.judy.committed']});
 const snapshot = facts => ({version: 1, status: 'ready', gameVersion: '2.31', ...boundary,
@@ -44,43 +43,45 @@ test('reviewed native relationship gates require every exact positive receipt', 
   for (const [profileKey, rule] of Object.entries(RELATIONSHIP_PROFILES)) {
     const names = rule.all || [rule.positive], facts = Object.fromEntries(names.map(name => [name, 1]));
     const result = selected(profileKey, facts);
-    assert.equal(result.variant, 'romantic', profileKey);
+    assert.equal(result.style, 'romantic', profileKey);
     assert.equal(result.evidenceRule, rule.rule);
-    assert.equal(result.characterId, variants.characters[profileKey].romanticCharacterId);
+    assert.equal(result.characterId, ordinaryIds[profileKey], 'the style never changes the provider ID');
+    assert.equal(result.providerProfileKey, profileKey);
     for (const name of names) {
       const missing = {...facts}; delete missing[name];
-      assert.equal(selected(profileKey, missing).variant, 'ordinary', name + ' absent');
-      for (const value of [-1, 0]) assert.equal(selected(profileKey, {...facts, [name]: value}).variant, 'ordinary');
-      if (rule.all) assert.equal(selected(profileKey, {...facts, [name]: 2}).variant, 'ordinary', name + ' exact');
-      else assert.equal(selected(profileKey, {...facts, [name]: 2}).variant, 'romantic', name + ' additive');
+      assert.equal(selected(profileKey, missing).style, 'ordinary', name + ' absent');
+      for (const value of [-1, 0]) assert.equal(selected(profileKey, {...facts, [name]: value}).style, 'ordinary');
+      if (rule.all) assert.equal(selected(profileKey, {...facts, [name]: 2}).style, 'ordinary', name + ' exact');
+      else assert.equal(selected(profileKey, {...facts, [name]: 2}).style, 'romantic', name + ' additive');
     }
   }
 });
 
 test('explicit contradictory Judy/Kerry branches suppress automatic romance', () => {
   assert.equal(selected('judy-alvarez', {sq030_11_romance: 1, sq030_judy_lover: 1,
-    sq030_romance: 1, sq030_friendship: 1}).variant, 'ordinary');
-  assert.equal(selected('kerry-eurodyne', {sq028_kerry_relationship: 1, sq028_kerry_dislike: 1}).variant, 'ordinary');
+    sq030_romance: 1, sq030_friendship: 1}).style, 'ordinary');
+  assert.equal(selected('kerry-eurodyne', {sq028_kerry_relationship: 1, sq028_kerry_dislike: 1}).style, 'ordinary');
 });
 
 test('quest completion, kissing, eligibility and Rogue/Johnny history cannot select V romance', () => {
-  assert.equal(selected('river-ward', {sq029_done: 1}).variant, 'ordinary');
-  assert.equal(selected('judy-alvarez', {sq030_romance: 1}).variant, 'ordinary');
-  assert.equal(selected('rogue-amendiares', {}).variant, 'ordinary');
-  assert.equal(selected('rogue-amendiares', {}, {mode: 'on'}).variant, 'ordinary');
+  assert.equal(selected('river-ward', {sq029_done: 1}).style, 'ordinary');
+  assert.equal(selected('judy-alvarez', {sq030_romance: 1}).style, 'ordinary');
+  assert.equal(selected('rogue-amendiares', {}).style, 'ordinary');
+  assert.equal(selected('rogue-amendiares', {}, {mode: 'on'}).style, 'ordinary');
   assert(!RELATIONSHIP_FACTS.includes('sq017_kerry_kiss'));
   assert(!RELATIONSHIP_FACTS.includes('sq031_rogue_lover'));
   assert(!RELATIONSHIP_FACTS.includes('q103_slept_with_panam'));
 });
 
-test('On and Off are explicit profile choices, not writes or invented canonical history', () => {
+test('On and Off are explicit style choices, not writes or invented canonical history', () => {
   const on = selected('judy-alvarez', {}, {mode: 'on', snapshot: null});
-  assert.equal(on.variant, 'romantic'); assert.equal(on.reason, 'explicit-on');
+  assert.equal(on.style, 'romantic'); assert.equal(on.reason, 'explicit-on');
   const off = selected('judy-alvarez', {sq030_11_romance: 1, sq030_judy_lover: 1,
     sq030_romance: 1}, {mode: 'off'});
-  assert.equal(off.variant, 'ordinary');
-  assert.match(relationshipContext(on), /does not establish that any game quest/);
-  assert.match(relationshipContext({...on, profileKey: 'meredith-stout', kind: 'casual-intimacy'}), /do not claim an ongoing romance/);
+  assert.equal(off.style, 'ordinary');
+  assert.equal(on.characterId, off.characterId, 'On and Off use the same single profile');
+  assert.match(relationshipContext(on), /does not\s+establish that any quest, kiss or intimate scene happened/);
+  assert.match(relationshipContext({...on, profileKey: 'meredith-stout', kind: 'casual-intimacy'}), /Never claim that you are V's partner/);
   assert.match(relationshipContext(on, 'group'), /Keep private relationship history/);
 });
 
@@ -121,7 +122,7 @@ test('unconfirmed On, an Invite, and a preceding speaker report cannot grant cur
   const options = groupOptions(undefined, {group: {id: 'relationship-round', index: 2, total: 2,
     audience: ['judy-alvarez', 'panam-palmer'], heard: [{speaker: 'Panam', text: 'Judy is dating V too.'}]}});
   const context = relationshipContext(on, 'group', options);
-  assert.match(context, /conversation preference does not establish/);
+  assert.match(context, /delivery choice; it does not\s+establish/);
   assert.match(context, /Keep private relationship history/);
   assert.doesNotMatch(context, /Current group relationship guidance|current save confirms your own/);
   assert.doesNotMatch(relationshipContext(selected('judy-alvarez', {}), 'group', groupOptions()), /Current group relationship guidance/);
@@ -130,12 +131,12 @@ test('unconfirmed On, an Invite, and a preceding speaker report cannot grant cur
 test('On and Off capture actual current-save history independently of the chosen delivery', () => {
   const on = selected('judy-alvarez', JUDY_FACTS, {mode: 'on'});
   const off = selected('judy-alvarez', JUDY_FACTS, {mode: 'off'});
-  assert.equal(on.reason, 'explicit-on'); assert.equal(off.variant, 'ordinary');
+  assert.equal(on.reason, 'explicit-on'); assert.equal(off.style, 'ordinary');
   assert.deepEqual(on.saveRelationship, off.saveRelationship);
   const context = relationshipContext(off, 'group', groupOptions());
   assert.match(context, /current save confirms your own relationship with V/);
-  assert.match(context, /Keep the selected ordinary delivery/);
-  assert.doesNotMatch(context, /dry little tease|affection understated/);
+  assert.match(context, /Keep your ordinary delivery/);
+  assert.doesNotMatch(context, /dry little tease|affection understated|sideways and quietly/);
 });
 
 test('one speaker never receives another partner\'s private history even when the other native receipt is confirmed', () => {
@@ -169,7 +170,7 @@ test('stale, other-save and contradictory evidence cannot become a group acknowl
     {snapshot: snapshot({...JUDY_FACTS, sq030_friendship: 1})}, {snapshot: null},
   ]) {
     const choice = selected('judy-alvarez', {}, {mode: 'on', ...change});
-    assert.equal(choice.variant, 'romantic'); assert.equal(choice.saveRelationship, undefined);
+    assert.equal(choice.style, 'romantic'); assert.equal(choice.saveRelationship, undefined);
     assert.doesNotMatch(relationshipContext(choice, 'group', groupOptions()), /Current group relationship guidance/);
   }
 });
@@ -192,34 +193,51 @@ test('River, Kerry and Meredith retain distinct group delivery and Meredith neve
   }
 });
 
-test('fresh current-world state is mandatory for configured Auto; save reload cannot reuse old evidence', () => {
+test('Auto needs a fresh current-world capture to be affectionate; otherwise it is ordinary and never blocks the conversation', () => {
   const good = parseRelationshipState(snapshot({sq028_kerry_relationship: 1}));
+  assert.equal(selectRelationshipProfile({profileKey: 'kerry-eurodyne', registry, boundary, now: NOW, snapshot: good}).style, 'romantic');
   for (const options of [
     {snapshot: null}, {snapshot: {...good, capturedAt: NOW - 5001}}, {snapshot: {...good, capturedAt: NOW + 1001}},
     {boundary: {...boundary, generation: 5}}, {boundary: {...boundary, worldToken: 'world-b'}}, {boundary: null},
-  ]) assert.equal(selectRelationshipProfile({profileKey: 'kerry-eurodyne', registry,
-    boundary, now: NOW, snapshot: good, ...options}).status, 'unavailable');
-  assert.equal(selected('kerry-eurodyne', {}).variant, 'ordinary');
+  ]) {
+    const choice = selectRelationshipProfile({profileKey: 'kerry-eurodyne', registry, boundary, now: NOW, snapshot: good, ...options});
+    assert.equal(choice.status, 'ready'); assert.equal(choice.style, 'ordinary');
+    assert.equal(choice.reason, 'relationship-state-unavailable');
+    assert.equal(choice.saveRelationship, undefined, 'no stale evidence becomes a receipt');
+    assert.equal(choice.characterId, ordinaryIds['kerry-eurodyne']);
+  }
+  assert.equal(selected('kerry-eurodyne', {}).style, 'ordinary');
+  assert.equal(selected('kerry-eurodyne', {}).reason, 'auto-unconfirmed');
+  // On and Off never need the capture.
+  assert.equal(selected('kerry-eurodyne', {}, {mode: 'on', snapshot: null}).style, 'romantic');
+  assert.equal(selected('kerry-eurodyne', {}, {mode: 'off', snapshot: null}).style, 'ordinary');
 });
 
-test('ordinary-only installs retain compatibility while explicit missing On fails', () => {
-  const basic = relationshipRegistry(ordinaryIds);
-  assert.equal(selected('judy-alvarez', {}, {registry: basic, snapshot: null}).variant, 'ordinary');
-  const on = selected('judy-alvarez', {}, {registry: basic, mode: 'on'});
-  assert.equal(on.status, 'unavailable'); assert.equal(on.reason, 'romantic-profile-unavailable');
+test('an old runtime/relationship-profiles.json is ignored: one profile per character and no romantic provider keys', () => {
+  assert.equal(registry.providerFamilies['judy-alvarez'], 'judy-alvarez');
+  for (const profile of Object.keys(RELATIONSHIP_PROFILES)) assert.equal(registry.providerIds[profile + '-romantic'], undefined);
+  assert.equal(Object.keys(registry.providerIds).length, Object.keys(ordinaryIds).length);
+  // A leftover `variants` option is simply not a thing any more.
+  const routes = new RelationshipRouting({ordinaryIds, variants: {version: 1, characters: {'judy-alvarez': {romanticCharacterId: 'old-romantic-id'}}}, now: () => NOW});
+  assert.equal(routes.providerIds['judy-alvarez-romantic'], undefined);
+  assert(!Object.values(routes.providerIds).includes('old-romantic-id'));
+  routes.update({relationshipModes: {'judy-alvarez': 'on'}}, snapshot({}), {boundary});
+  assert.equal(routes.select('judy-alvarez', boundary).characterId, ordinaryIds['judy-alvarez']);
 });
 
-test('registry preserves exact ordinary IDs and explicit unique provider families', () => {
+test('registry preserves exact ordinary IDs, and a multilingual twin joins its original family', () => {
   assert.equal(registry.providerIds['judy-alvarez'], ordinaryIds['judy-alvarez']);
-  assert.equal(registry.providerFamilies['judy-alvarez-romantic'], 'judy-alvarez');
-  assert(Object.isFrozen(registry.characters['judy-alvarez']));
-  for (const row of [
-    {version: 1, characters: {'judy-alvarez': {ordinaryCharacterId: 'changed-id', romanticCharacterId: 'r'}}},
-    {version: 1, characters: {'judy-alvarez': {romanticCharacterId: ordinaryIds['panam-palmer']}}},
-    {version: 1, characters: {'rogue-amendiares': {romanticCharacterId: 'rogue-romantic'}}},
-    {version: 1, characters: {'judy-alvarez': {romanticCharacterId: 'r', newPlayerId: 'wrong'}}},
-  ]) assert.throws(() => relationshipRegistry(ordinaryIds, row));
-  assert.throws(() => relationshipRegistry({...ordinaryIds, 'judy-alvarez-romantic': 'existing-alias'}, variants));
+  assert.equal(registry.providerFamilies['judy-alvarez'], 'judy-alvarez');
+  const withTwin = relationshipRegistry(ordinaryIds, {'judy-alvarez': 'judy-twin-id'});
+  assert.equal(withTwin.providerIds['judy-alvarez-multilingual'], 'judy-twin-id');
+  assert.equal(withTwin.providerFamilies['judy-alvarez-multilingual'], 'judy-alvarez');
+  assert.equal(withTwin.markerKeys['judy-alvarez-multilingual'], 'judy-alvarez:multilingual');
+  const twin = selected('judy-alvarez', {}, {registry: withTwin, multilingual: true});
+  assert.equal(twin.providerProfileKey, 'judy-alvarez-multilingual'); assert.equal(twin.characterId, 'judy-twin-id');
+  assert.equal(selected('judy-alvarez', {}, {registry: withTwin}).characterId, ordinaryIds['judy-alvarez']);
+  for (const twins of [{'judy-alvarez': ordinaryIds['panam-palmer']}, {'unknown-key': 'x'}, {'judy-alvarez-multilingual': 'x'}])
+    assert.throws(() => relationshipRegistry(ordinaryIds, twins));
+  assert.throws(() => relationshipRegistry({...ordinaryIds, 'panam-palmer': ordinaryIds['judy-alvarez']}), /DUPLICATE_PROVIDER_ID/);
 });
 
 test('native state parser rejects nonnative/malformed/unallowlisted observations', () => {
@@ -235,28 +253,29 @@ test('native state parser rejects nonnative/malformed/unallowlisted observations
   ]) {
     assert.equal(parseRelationshipState(bad), null);
     assert.equal(selectRelationshipProfile({profileKey: 'kerry-eurodyne', registry,
-      boundary, now: NOW, snapshot: bad}).status, 'unavailable');
+      boundary, now: NOW, snapshot: bad}).style, 'ordinary');
   }
   assert.equal(parseRelationshipState('x'.repeat(16385)), null);
 });
 
 test('committed modes and native updates wait for the active turn; selectors do not rewrite its frozen route', () => {
-  const routes = new RelationshipRouting({ordinaryIds, variants, now: () => NOW});
+  const routes = new RelationshipRouting({ordinaryIds, now: () => NOW});
   routes.update({relationshipModes: {'judy-alvarez': 'off'}}, snapshot({}), {boundary});
   const accepted = routes.select('judy-alvarez', boundary);
   routes.update({relationshipModes: {'judy-alvarez': 'on'}}, snapshot({}), {boundary, busy: true});
-  assert.equal(routes.select('judy-alvarez', boundary).variant, 'ordinary');
+  assert.equal(routes.select('judy-alvarez', boundary).style, 'ordinary');
   assert.deepEqual(routes.consumeRouteChanges(), []);
-  assert(routes.update(undefined, undefined, {boundary}));
-  assert.equal(routes.select('judy-alvarez', boundary).variant, 'romantic');
-  assert.deepEqual(routes.consumeRouteChanges(), ['judy-alvarez']);
+  // A style change never changes the provider, so it needs no connection retirement.
+  assert.equal(routes.update(undefined, undefined, {boundary}), false);
+  assert.equal(routes.select('judy-alvarez', boundary).style, 'romantic');
+  assert.deepEqual(routes.consumeRouteChanges(), []);
   assert.equal(accepted.characterId, ordinaryIds['judy-alvarez']);
   routes.update({relationshipModes: {'judy-alvarez': 'invalid'}}, snapshot({}), {boundary});
-  assert.equal(routes.select('judy-alvarez', boundary).variant, 'romantic');
+  assert.equal(routes.select('judy-alvarez', boundary).style, 'romantic');
 });
 
-test('invitation preparation uses captured provider ID even if the committed mode changes while awaiting it', async () => {
-  const routes = new RelationshipRouting({ordinaryIds, variants, now: () => NOW}), calls = [];
+test('invitation preparation uses the captured provider ID, which a style change never alters', async () => {
+  const routes = new RelationshipRouting({ordinaryIds, now: () => NOW}), calls = [];
   routes.update({relationshipModes: {'judy-alvarez': 'on'}}, snapshot({}), {boundary});
   const USER = 'bf5a7019-3e8c-47a2-9367-a9b6d179d89d';
   const memory = {
@@ -272,24 +291,25 @@ test('invitation preparation uses captured provider ID even if the committed mod
   await facade.prepareCharacter({profileKey: 'judy-alvarez', guard: captured.guard});
   facade.connectionRefreshRequired({profileKey: 'judy-alvarez', guard: captured.guard});
   facade.acknowledgeConnectionRefresh({profileKey: 'judy-alvarez', guard: captured.guard});
-  assert(calls.every(row => row.profileKey === 'judy-alvarez-romantic'));
+  assert(calls.every(row => row.profileKey === 'judy-alvarez'));
   assert(calls.every(row => row.guard.endUserId === USER));
   assert.throws(() => facade.prepareCharacter({profileKey: 'panam-palmer', guard: captured.guard}), /CHARACTER_MISMATCH/);
 });
 
-test('long microphone/group turns retain their chosen variant while fresh same-world heartbeats arrive', () => {
+test('long microphone/group turns retain their chosen style while fresh same-world heartbeats arrive', () => {
   let now = NOW;
-  const routes = new RelationshipRouting({ordinaryIds, variants, now: () => now});
+  const routes = new RelationshipRouting({ordinaryIds, now: () => now});
   routes.update({}, snapshot({sq028_kerry_relationship: 1}), {boundary});
-  assert.equal(routes.select('kerry-eurodyne', boundary).variant, 'romantic');
+  assert.equal(routes.select('kerry-eurodyne', boundary).style, 'romantic');
   now += 30000;
   routes.update({relationshipModes: {'kerry-eurodyne': 'off'}}, {...snapshot({}), capturedAt: now}, {boundary, busy: true});
-  assert.equal(routes.select('kerry-eurodyne', boundary).variant, 'romantic', 'heartbeat expiry cancelled a long admitted turn');
+  assert.equal(routes.select('kerry-eurodyne', boundary).style, 'romantic', 'heartbeat expiry cancelled a long admitted turn');
   routes.update(undefined, undefined, {boundary});
-  assert.equal(routes.select('kerry-eurodyne', boundary).variant, 'ordinary');
+  assert.equal(routes.select('kerry-eurodyne', boundary).style, 'ordinary');
   routes.update({}, {...snapshot({sq028_kerry_relationship: 1}), capturedAt: now}, {boundary});
   routes.update({}, {...snapshot({}), worldToken: 'world-b', capturedAt: now}, {boundary: {...boundary, worldToken: 'world-b'}, busy: true});
-  assert.equal(routes.select('kerry-eurodyne', {...boundary, worldToken: 'world-b'}).status, 'unavailable');
+  const otherWorld = routes.select('kerry-eurodyne', {...boundary, worldToken: 'world-b'});
+  assert.equal(otherWorld.style, 'ordinary'); assert.equal(otherWorld.reason, 'relationship-state-unavailable');
 });
 
 test('idle relationship retirement drops an affected completed exact-ID focus but preserves unrelated focus', async () => {

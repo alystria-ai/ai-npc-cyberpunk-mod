@@ -117,7 +117,7 @@
   "clientModules": ["continuous-pcm-player.mjs", "continuous-pcm-worklet.mjs", "continuous-pcm-core.mjs", "local-pcm-client.mjs"],
   "nodePackages": ["playwright", "playwright-core"],
   "releaseData": {
-    "managed": ["characters.json", "relationship-profiles.json", "multilingual-profiles.json"],
+    "managed": ["characters.json", "multilingual-profiles.json"],
     "archives": [
       {"source": "packaging/release-data/archives/convai_facial.archive", "target": "archive/pc/mod/convai_facial.archive"},
       {"source": "packaging/release-data/archives/convai_gestures.archive", "target": "archive/pc/mod/convai_gestures.archive"},

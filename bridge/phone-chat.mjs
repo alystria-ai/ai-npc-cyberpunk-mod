@@ -234,9 +234,9 @@ export class PhoneChat {
           endUserId = capture.endUserId; remoteGeneration = owner.remoteGeneration;
         }
         if (!await active.isCurrent()) return;
-        // The phone row identifies a logical character. Its selected ordinary
-        // or romantic provider ID belongs to the frozen prepared route, never
-        // to the constructor's ordinary contact catalog or a later setting.
+        // The phone row identifies a logical character. Its selected provider ID
+        // (the ordinary profile or its Multilingual twin) belongs to the frozen
+        // prepared route, never to the constructor's ordinary contact catalog or a later setting.
         const selectedCharacterId = active.playerContext?.characterId ?? contact.id;
         const routeSessionKey = active.playerContext?.sessionKey;
         const sessionKey = digest([scope || state.world, contact.profile, selectedCharacterId, 'phone', remoteGeneration,

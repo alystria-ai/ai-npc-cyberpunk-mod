@@ -10,34 +10,63 @@ const observation = (value, fields = {}) => ({status: 'known', value, sourceId: 
   evidenceRefs: ['capture:12:observation'], ...fields});
 const audience = (channel = 'private', profileKeys = ['judy-alvarez']) => ({channel, profileKeys});
 
-test('relationship routes freeze actual provider ID while canonical audience and current-world context stay unchanged', async () => {
-  let selection = {status: 'ready', profileKey: 'judy-alvarez', providerProfileKey: 'judy-alvarez-romantic',
-    characterId: 'judy-romantic-provider', variant: 'romantic', reason: 'explicit-on'};
+test('relationship routes freeze the selected style and keep one provider ID, session and memory profile across a style change', async () => {
+  let selection = {status: 'ready', profileKey: 'judy-alvarez', providerProfileKey: 'judy-alvarez',
+    characterId: 'judy-provider', style: 'romantic', reason: 'explicit-on'};
   const f = fixture({selectProfile: () => selection});
-  f.ids['judy-alvarez-romantic'] = 'judy-romantic-provider';
   const prepared = await f.router.prepare(f.input);
   assert.equal(prepared.sendAllowed, true);
-  assert.equal(prepared.guard.characterId, 'judy-romantic-provider');
+  assert.equal(prepared.guard.characterId, 'judy-provider');
   assert.equal(prepared.remoteConfig.endUserId, USER);
   assert.equal(prepared.route.profileKey, 'judy-alvarez');
+  assert.equal(prepared.route.providerProfileKey, 'judy-alvarez');
+  assert.equal(prepared.route.relationshipStyle, 'romantic');
+  assert.equal(prepared.relationship.style, 'romantic');
   assert.deepEqual(prepared.route.audience, ['judy-alvarez']);
-  assert.equal(f.routes[0].profileKey, 'judy-alvarez-romantic');
+  assert.equal(f.routes[0].profileKey, 'judy-alvarez');
   assert(Object.isFrozen(prepared.relationship));
-  const oldSession = prepared.sessionKey;
-  selection = {...selection, providerProfileKey: 'judy-alvarez', characterId: 'judy-provider', variant: 'ordinary'};
+  selection = {...selection, style: 'ordinary', reason: 'explicit-off'};
   assert.equal(await f.router.current(prepared), true, 'a settings change redirected/cancelled an admitted turn');
+  assert.equal(prepared.route.relationshipStyle, 'romantic', 'an admitted turn keeps its frozen style');
   const next = await f.router.prepare({...f.input, requestId: 'next-turn'});
-  assert.equal(next.guard.characterId, 'judy-provider');
-  assert.notEqual(next.sessionKey, oldSession);
+  assert.equal(next.route.relationshipStyle, 'ordinary');
+  assert.equal(next.relationship.style, 'ordinary');
+  // Only the delivery style changed: the same Convai character, conversation partition and memory profile continue.
+  assert.equal(next.guard.characterId, prepared.guard.characterId);
+  assert.equal(next.route.providerProfileKey, prepared.route.providerProfileKey);
+  assert.equal(next.sessionKey, prepared.sessionKey);
+  assert.equal(next.scope, prepared.scope);
   assert.equal(next.remoteConfig.endUserId, prepared.remoteConfig.endUserId);
+  assert.deepEqual(f.routes.map(route => route.profileKey), ['judy-alvarez', 'judy-alvarez']);
   assert.deepEqual(f.forbidden, []);
+});
+
+test('a multilingual selection routes to the twin profile in either style, never to a retired alternate profile', async () => {
+  let style = 'romantic';
+  const f = fixture({selectProfile: () => ({status: 'ready', profileKey: 'judy-alvarez',
+    providerProfileKey: 'judy-alvarez-multilingual', characterId: 'judy-twin-provider', style, multilingual: true,
+    reason: 'explicit-on'})});
+  f.ids['judy-alvarez-multilingual'] = 'judy-twin-provider';
+  const romantic = await f.router.prepare(f.input);
+  assert.equal(romantic.sendAllowed, true);
+  assert.equal(romantic.route.providerProfileKey, 'judy-alvarez-multilingual');
+  assert.equal(romantic.guard.characterId, 'judy-twin-provider');
+  style = 'ordinary';
+  const ordinary = await f.router.prepare({...f.input, requestId: 'next-turn'});
+  assert.equal(ordinary.route.providerProfileKey, 'judy-alvarez-multilingual');
+  assert.equal(ordinary.sessionKey, romantic.sessionKey);
+  assert.deepEqual(f.routes.map(route => route.profileKey), ['judy-alvarez-multilingual', 'judy-alvarez-multilingual']);
 });
 
 test('missing or mismatched selected relationship profiles fail before a send instead of borrowing another character', async () => {
   for (const selection of [
     {status: 'unavailable'},
-    {status: 'ready', profileKey: 'judy-alvarez', providerProfileKey: 'panam-palmer', characterId: 'panam-provider', variant: 'ordinary'},
-    {status: 'ready', profileKey: 'judy-alvarez', providerProfileKey: 'judy-alvarez', characterId: 'wrong-judy-provider', variant: 'ordinary'},
+    {status: 'ready', profileKey: 'judy-alvarez', providerProfileKey: 'panam-palmer', characterId: 'panam-provider', style: 'ordinary'},
+    {status: 'ready', profileKey: 'judy-alvarez', providerProfileKey: 'judy-alvarez', characterId: 'wrong-judy-provider', style: 'ordinary'},
+    // The retired alternate profile key is never a valid provider key any more, whatever the style.
+    {status: 'ready', profileKey: 'judy-alvarez', providerProfileKey: 'judy-alvarez-romantic', characterId: 'judy-provider', style: 'romantic'},
+    // A selection from before the rename (field `variant`) carries no `style` and is rejected.
+    {status: 'ready', profileKey: 'judy-alvarez', providerProfileKey: 'judy-alvarez', characterId: 'judy-provider', variant: 'ordinary'},
   ]) {
     const f = fixture({selectProfile: () => selection}), prepared = await f.router.prepare(f.input);
     assert.equal(prepared.sendAllowed, false); assert.equal(prepared.remoteConfig, null);

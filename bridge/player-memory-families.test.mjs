@@ -337,3 +337,79 @@ test('a new family cannot target a durable provider alias as though it were a lo
     characterFamilies: {'judy-new-mode': 'judy-romantic'}}), {code: 'INVALID_CONFIGURATION'});
   assert.equal(await fs.readFile(path, 'utf8'), before);
 });
+
+// The alternate affectionate profiles were retired: their provider keys are no longer configured, but rows contacted through them
+// stay in the durable registry. `retired(profileKey)` keeps those rows out of status() and out of a clear.
+const RETIRED = /-romantic(?:-multilingual)?$/;
+const retiredIds = Object.freeze({'judy-alvarez': 'fixture-judy-live', 'judy-alvarez-romantic': 'fixture-judy-retired',
+  'judy-alvarez-romantic-multilingual': 'fixture-judy-retired-multilingual', 'panam-palmer': 'fixture-panam-live',
+  'panam-palmer-romantic': 'fixture-panam-retired', 'kerry-eurodyne': 'fixture-kerry-live'});
+const retiredFamilies = Object.freeze({'judy-alvarez': 'judy-alvarez', 'judy-alvarez-romantic': 'judy-alvarez',
+  'judy-alvarez-romantic-multilingual': 'judy-alvarez', 'panam-palmer': 'panam-palmer', 'panam-palmer-romantic': 'panam-palmer',
+  'kerry-eurodyne': 'kerry-eurodyne'});
+const liveIds = Object.freeze({'judy-alvarez': 'fixture-judy-live', 'panam-palmer': 'fixture-panam-live', 'kerry-eurodyne': 'fixture-kerry-live'});
+const liveFamilies = Object.freeze({'judy-alvarez': 'judy-alvarez', 'panam-palmer': 'panam-palmer', 'kerry-eurodyne': 'kerry-eurodyne'});
+
+// Contacts made while the retired profiles were still configured, then the live-only configuration on the next start.
+async function afterRetirement(t, {retired} = {}) {
+  const {memory, open, calls, path} = await fixture(t, {characterIds: retiredIds, characterFamilies: retiredFamilies});
+  await talk(memory, 'judy-alvarez-romantic'); await talk(memory, 'judy-alvarez-romantic-multilingual');
+  await talk(memory, 'judy-alvarez'); await talk(memory, 'panam-palmer-romantic');
+  const identity = memory.route('judy-alvarez').endUserId;
+  await memory.close();
+  const reopened = await open({characterIds: liveIds, characterFamilies: liveFamilies, ...(retired ? {retired} : {})});
+  calls.length = 0;
+  return {memory: reopened, calls, identity, path};
+}
+
+test('retired provider rows stay durable but are not listed by status', async t => {
+  const {memory, identity, path} = await afterRetirement(t, {retired: key => RETIRED.test(key)});
+  const durable = JSON.parse(await fs.readFile(path, 'utf8')).characters;
+  for (const id of ['fixture-judy-retired', 'fixture-judy-retired-multilingual', 'fixture-panam-retired']) assert.equal(durable[id]?.contacted, true, id);
+  // Judy is listed once, through her live profile; Panam was only ever contacted through a retired key.
+  assert.deepEqual(memory.status().characters, [{profileKey: 'judy-alvarez', blocked: false}]);
+  assert.equal(memory.status().talkedToCount, 1);
+  assert.equal(memory.route('judy-alvarez').endUserId, identity, 'retirement never rotates the player identity');
+  assert.throws(() => memory.route('judy-alvarez-romantic'), {code: 'UNKNOWN_CHARACTER'});
+  // A character never contacted at all stays absent, as before.
+  assert.equal(memory.status().characters.some(row => row.profileKey === 'kerry-eurodyne'), false);
+});
+
+test('a clear targets only live profiles; retired rows are neither called nor block the result', async t => {
+  const {memory, calls} = await afterRetirement(t, {retired: key => RETIRED.test(key)});
+  const result = await memory.clearCharacter({profileKey: 'judy-alvarez', actionId: 'retired-skip'});
+  assert.equal(result.state, 'succeeded');
+  assert.deepEqual(calls.filter(row => row.kind === 'clear').map(row => [row.characterId, row.profileKey]),
+    [['fixture-judy-live', 'judy-alvarez']]);
+  // Judy keeps one listing (a clear does not forget the contact) and the retired rows never add another.
+  assert.deepEqual(memory.status().characters, [{profileKey: 'judy-alvarez', blocked: false}]);
+  assert.equal(memory.status().talkedToCount, 1);
+  assert.doesNotThrow(() => memory.route('judy-alvarez'), 'a succeeded clear leaves the live profile usable');
+});
+
+test('a character contacted only through a retired key is not listed and its clear deletes nothing', async t => {
+  const {memory, calls} = await afterRetirement(t, {retired: key => RETIRED.test(key)});
+  assert.equal(memory.status().characters.some(row => row.profileKey === 'panam-palmer'), false);
+  const result = await memory.clearCharacter({profileKey: 'panam-palmer', actionId: 'retired-only'});
+  assert.equal(result.state, 'succeeded');
+  assert.deepEqual(calls.filter(row => row.kind === 'clear'), []);
+  // Clear all also skips every retired row and reaches only the live Judy contact.
+  const {memory: all, calls: allCalls} = await afterRetirement(t, {retired: key => RETIRED.test(key)});
+  assert.equal((await all.clearAll({actionId: 'retired-all'})).state, 'succeeded');
+  assert.deepEqual(allCalls.filter(row => row.kind === 'clear').map(row => row.characterId), ['fixture-judy-live']);
+});
+
+test('without a retired predicate every durable row is listed and cleared as before', async t => {
+  const {memory, calls} = await afterRetirement(t);
+  assert.deepEqual(memory.status().characters, [{profileKey: 'judy-alvarez', blocked: false}, {profileKey: 'panam-palmer', blocked: false}]);
+  assert.equal(memory.status().talkedToCount, 2);
+  const result = await memory.clearCharacter({profileKey: 'judy-alvarez', actionId: 'no-retired'});
+  assert.equal(result.state, 'succeeded');
+  assert.deepEqual(new Set(calls.filter(row => row.kind === 'clear').map(row => row.characterId)),
+    new Set(['fixture-judy-live', 'fixture-judy-retired', 'fixture-judy-retired-multilingual']));
+});
+
+test('open rejects a retired option that is not a function', async t => {
+  const {open} = await fixture(t);
+  await assert.rejects(open({retired: 'judy-alvarez-romantic'}), {code: 'INVALID_CONFIGURATION'});
+});

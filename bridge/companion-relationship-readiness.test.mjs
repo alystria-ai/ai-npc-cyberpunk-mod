@@ -8,7 +8,7 @@ async function until(check) {
   for (let tries = 0; !check(); tries++) { if (tries > 100) throw Error('Expected stage not reached'); await flush(); }
 }
 function fixture() {
-  let selected = 'ordinary-id', available = true;
+  let selected = 'english-id', available = true;
   const memoryCalls = [], voiceCalls = [], warmCalls = [], ready = new Set(), memoryGates = new Map(), warmGates = new Map();
   const owner = {worldToken: 'world-a', generation: 3}, now = () => 100000;
   const memory = {
@@ -16,7 +16,7 @@ function fixture() {
       if (!available) throw Error('Fresh relationship state unavailable');
       return {endUserId: 'same-player', guard: {endUserId: 'same-player', characterId: selected, resetEpoch: 0, characterEpoch: 0}};
     },
-    isCurrent: guard => ['ordinary-id', 'romantic-id'].includes(guard.characterId),
+    isCurrent: guard => ['english-id', 'multilingual-id'].includes(guard.characterId),
     prepareCharacter: async options => {
       memoryCalls.push(options);
       await memoryGates.get(options.guard.characterId)?.promise; // Deliberately ignores abort.
@@ -46,35 +46,35 @@ function fixture() {
     state: () => invitations.snapshot().invitations[0]?.state};
 }
 
-test('a mode change during memory preparation replaces only the pending lane without changing its spawn ticket', async () => {
+test('a provider change (Multilingual Conversations) during memory preparation replaces only the pending lane without changing its spawn ticket', async () => {
   const f = fixture(), original = gate(), replacement = gate();
-  f.memoryGates.set('ordinary-id', original); f.memoryGates.set('romantic-id', replacement);
+  f.memoryGates.set('english-id', original); f.memoryGates.set('multilingual-id', replacement);
   f.invitations.ingest(f.ticket);
   await until(() => f.memoryCalls.length === 1);
-  f.select('romantic-id'); await f.invitations.poll();
+  f.select('multilingual-id'); await f.invitations.poll();
   await until(() => f.memoryCalls.length === 2);
   assert(f.memoryCalls[0].signal.aborted);
   original.resolve(); await flush();
   assert.notEqual(f.state(), 'ready'); assert.deepEqual(f.voiceCalls, []);
   replacement.resolve(); await until(() => f.warmCalls.length === 1); await flush();
-  assert.deepEqual(f.voiceCalls, ['romantic-id']); assert.deepEqual(f.warmCalls, ['romantic-id']);
+  assert.deepEqual(f.voiceCalls, ['multilingual-id']); assert.deepEqual(f.warmCalls, ['multilingual-id']);
   assert.equal(f.state(), 'ready');
   assert.equal(f.invitations.snapshot().invitations[0].id, 'queued:1');
   assert.equal(f.invitations.snapshot().invitations[0].revision, 1);
   await f.invitations.clear();
 });
 
-test('an old ignored-abort socket readiness cannot authorize a new selected variant', async () => {
+test('an old ignored-abort socket readiness cannot authorize a new selected provider ID', async () => {
   const f = fixture(), original = gate(), replacement = gate();
-  f.warmGates.set('ordinary-id', original); f.warmGates.set('romantic-id', replacement);
+  f.warmGates.set('english-id', original); f.warmGates.set('multilingual-id', replacement);
   f.invitations.ingest(f.ticket);
   await until(() => f.warmCalls.length === 1);
-  f.select('romantic-id');
+  f.select('multilingual-id');
   assert.notEqual(f.state(), 'ready');
   await f.invitations.poll(); await until(() => f.warmCalls.length === 2);
   original.resolve(); await flush();
-  assert.notEqual(f.state(), 'ready', 'stale ordinary readiness granted the romantic ticket');
-  assert.equal(f.memoryCalls[1].guard.characterId, 'romantic-id');
+  assert.notEqual(f.state(), 'ready', 'stale readiness of the previous provider ID granted the ticket of the new provider ID');
+  assert.equal(f.memoryCalls[1].guard.characterId, 'multilingual-id');
   replacement.resolve(); await flush();
   assert.equal(f.state(), 'ready');
   await f.invitations.clear();
@@ -95,21 +95,21 @@ test('changing a profile after a copy spawned does not cancel its old lane or re
   await until(() => f.state() === 'ready');
   f.ticket.invitations[0].phase = 'spawned'; f.invitations.ingest(f.ticket);
   const oldGuard = f.memoryCalls[0].guard, oldSignal = f.memoryCalls[0].signal;
-  f.select('romantic-id'); await f.invitations.poll();
+  f.select('multilingual-id'); await f.invitations.poll();
   assert.equal(f.memoryCalls.length, 1); assert.equal(oldSignal.aborted, false);
-  assert.equal(oldGuard.characterId, 'ordinary-id');
+  assert.equal(oldGuard.characterId, 'english-id');
   assert.equal(f.invitations.rows.get('queued:1').phase, 'spawned');
   await f.invitations.clear();
 });
 
 test('a native-state gap after awaited memory preparation resumes when its same selected route returns', async () => {
-  const f = fixture(), pending = gate(); f.memoryGates.set('ordinary-id', pending);
+  const f = fixture(), pending = gate(); f.memoryGates.set('english-id', pending);
   f.invitations.ingest(f.ticket); await until(() => f.memoryCalls.length === 1);
   f.unavailable(true); pending.resolve(); await flush();
   assert.equal(f.state(), 'memory'); assert.equal(f.warmCalls.length, 0);
   f.unavailable(false); await f.invitations.poll();
   await until(() => f.state() === 'ready');
-  assert.deepEqual(f.warmCalls, ['ordinary-id']);
+  assert.deepEqual(f.warmCalls, ['english-id']);
   assert.equal(f.memoryCalls[0].signal.aborted, false);
   await f.invitations.clear();
 });

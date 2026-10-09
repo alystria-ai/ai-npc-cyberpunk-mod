@@ -5,7 +5,7 @@ import {randomUUID} from 'node:crypto';
 /**
  * One local player's identity, independent of character, world, save and channel.
  *
- * open({path, characterIds, characterFamilies, provider, quiesce, timeoutMs}) is LOCAL ONLY.
+ * open({path, characterIds, characterFamilies, provider, quiesce, retired, timeoutMs}) is LOCAL ONLY.
  * characterFamilies explicitly maps provider profile keys to logical character
  * keys. No name/suffix inference is performed. Guards remain exact provider-ID
  * guards; Forget/status use logical keys and cover every durable/configured
@@ -13,6 +13,10 @@ import {randomUUID} from 'node:crypto';
  * route(profileKey, {channel, audience}) and isCurrent(guard) are synchronous,
  * read-only operations. They neither contact a profile nor call the provider.
  * The router owns channel/world/session scope; only identity reset epochs live here.
+ *
+ * retired(profileKey) -> boolean names provider profiles that were retired (the old affectionate profiles, whose remote
+ * characters are deleted). Their durable rows stay in the registry but are no longer listed by status() nor targeted by a
+ * clear; they can never be routed to because they are not in characterIds.
  *
  * Await prepareCharacter({profileKey,guard,signal}) when the player invites a
  * character, before warming a connection or spawning. It verifies the mod-owned
@@ -269,14 +273,15 @@ function commandView(action) {
 
 export class PlayerMemory {
   #files; #path; #anchorPath; #lockPath; #lockRaw; #anchorRaw; #diskRaw; #state; #ids; #families;
-  #provider; #quiesce; #timeoutMs; #mutation = Promise.resolve(); #closed = false; #fault = null;
+  #provider; #quiesce; #retired; #timeoutMs; #mutation = Promise.resolve(); #closed = false; #fault = null;
   #enables = new Map(); #verified = new Set(); #enableReceipts = new Map(); #enableUnknown = new Set(); #activeClears = new Map();
   #reconnectPending = new Set();
   #controllers = new Set(); #fences = new Set();
 
-  static async open({path, characterIds, characterFamilies, provider, quiesce, timeoutMs = 15000, fsImpl = fs} = {}) {
+  static async open({path, characterIds, characterFamilies, provider, quiesce, retired, timeoutMs = 15000, fsImpl = fs} = {}) {
     if (typeof path !== 'string' || !path.trim() || !Number.isInteger(timeoutMs) || timeoutMs < 10 || timeoutMs > 60000
-        || (provider !== undefined && !object(provider)) || (quiesce !== undefined && typeof quiesce !== 'function')) fail('INVALID_CONFIGURATION');
+        || (provider !== undefined && !object(provider)) || (quiesce !== undefined && typeof quiesce !== 'function')
+        || (retired !== undefined && typeof retired !== 'function')) fail('INVALID_CONFIGURATION');
     const ids = normalizeIds(characterIds), families = normalizeFamilies(characterFamilies);
     if (characterFamilies !== undefined && new Set(ids.values()).size !== ids.size) fail('INVALID_CONFIGURATION');
     const absolute = resolve(path), anchorPath = absolute + '.identity', lockPath = absolute + '.lock';
@@ -323,7 +328,7 @@ export class PlayerMemory {
         }
       }
       return new PlayerMemory(CONSTRUCT, {files: fsImpl, path: absolute, anchorPath, lockPath, lockRaw,
-        anchorRaw, diskRaw, state, ids, families, provider, quiesce, timeoutMs});
+        anchorRaw, diskRaw, state, ids, families, provider, quiesce, retired, timeoutMs});
     } catch (error) {
       if (lockRaw) await releaseLock(fsImpl, lockPath, lockRaw).catch(() => {});
       if (error instanceof PlayerMemoryError) throw error;
@@ -340,6 +345,7 @@ export class PlayerMemory {
       if (Object.hasOwn(row, 'familyKey')) this.#families.set(row.profileKey, row.familyKey);
     }
     this.#provider = options.provider; this.#quiesce = options.quiesce; this.#timeoutMs = options.timeoutMs;
+    this.#retired = options.retired ?? (() => false);
   }
   #ready() { if (this.#closed) fail('CLOSED'); if (this.#fault) fail(this.#fault); }
   #id(profileKey) {
@@ -618,7 +624,7 @@ export class PlayerMemory {
   #action(id) { return this.#state.actions.find(row => row.id === id); }
   status({actionId} = {}) {
     const contacted = new Map();
-    for (const [id, row] of Object.entries(this.#state.characters)) if (row.contacted) {
+    for (const [id, row] of Object.entries(this.#state.characters)) if (row.contacted && !this.#retired(row.profileKey)) {
       const family = storedFamily(row);
       contacted.set(family, {profileKey: family, blocked: contacted.get(family)?.blocked === true || this.#blocked(id)});
     }
@@ -652,7 +658,7 @@ export class PlayerMemory {
     if (this.#state.actions.length >= MAX_ACTIONS) fail('ACTION_LIMIT');
     if ((scope === 'all' && this.#activeClears.size > 0)
         || [...this.#activeClears.values()].some(active => active.scope === 'all')) fail('CLEAR_IN_PROGRESS');
-    const targets = Object.entries(this.#state.characters).filter(([, row]) => row.contacted && (scope === 'all' || storedFamily(row) === profileKey))
+    const targets = Object.entries(this.#state.characters).filter(([, row]) => row.contacted && !this.#retired(row.profileKey) && (scope === 'all' || storedFamily(row) === profileKey))
       .map(([id, row]) => ({characterId: id, profileKey: row.profileKey, state: 'pending', uncertain: false,
         mayHaveReachedProvider: false, providerEmptyObserved: false}));
     const fenced = scope === 'all' ? new Set([...this.#ids.values(), ...Object.keys(this.#state.characters)]) : this.#familyIds(profileKey);

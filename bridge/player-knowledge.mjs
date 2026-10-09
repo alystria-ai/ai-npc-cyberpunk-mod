@@ -140,13 +140,12 @@ export class PlayerKnowledge {
       const selection = this.selectProfile(route.profileKey, binding);
       if (selection?.status !== 'ready') return {route, reason: 'relationship-profile-unavailable'};
       if (selection.profileKey !== route.profileKey || !PROFILE.test(selection.providerProfileKey ?? '')
-          || !boundedId(selection.characterId) || !['ordinary', 'romantic'].includes(selection.variant)
-          || selection.providerProfileKey !== route.profileKey + (selection.variant === 'romantic' ? '-romantic' : '')
-            + (selection.multilingual === true ? '-multilingual' : '')) {
+          || !boundedId(selection.characterId) || !['ordinary', 'romantic'].includes(selection.style)
+          || selection.providerProfileKey !== route.profileKey + (selection.multilingual === true ? '-multilingual' : '')) {
         return {route, reason: 'invalid-relationship-profile'};
       }
       return freeze({route: {...route, providerProfileKey: selection.providerProfileKey,
-        relationshipVariant: selection.variant}, relationship: clone(selection)});
+        relationshipStyle: selection.style}, relationship: clone(selection)});
     } catch { return {route, reason: 'relationship-profile-unavailable'}; }
   }
 

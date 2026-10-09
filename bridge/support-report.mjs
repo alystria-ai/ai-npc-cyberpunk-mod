@@ -313,7 +313,7 @@ function companionProviders({settings, voice, routing, party}) {
     const route = routes.get(key);
     rows.push({profile: key, state: member.state, conversation: 'convai-realtime',
       voice: local && routed.has(key) ? local : 'convai',
-      relationshipVariant: route ? {mode: route.mode, variant: route.variant, status: route.status,
+      relationshipStyle: route ? {mode: route.mode, style: route.style ?? route.variant, status: route.status,
         ...(route.multilingual === true ? {multilingual: true} : {})} : undefined,
       conversationEnabled: settings?.enabledByKey ? settings.enabledByKey[key] !== false : undefined});
   }

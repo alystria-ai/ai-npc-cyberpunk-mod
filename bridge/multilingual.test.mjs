@@ -20,7 +20,7 @@ test('detects the language of conversation text by script and by function words'
   const cases = {
     en: ['Hey V, meet me at the Afterlife tonight and we will talk it over.', 'What do you need, choom?'],
     es: ['¿Qué tal, Judy? ¿Vamos al bar esta noche?', 'Claro que sí, nos vemos en el bar de Lizzie.', 'Hola', 'Gracias',
-      // A live reply of Judy's romantic twin (smoke test, 2026-10-07).
+      // A live reply of Judy's multilingual twin (smoke test, 2026-10-07).
       'Nada especial, solo pelearme con un par de pistas de audio que no quieren sincronizar. ¿Y tú? ¿Vienes a ayudarme o solo a distraerme?'],
     de: ['Ich habe keine Ahnung, was du meinst, aber wir können es versuchen.', 'Danke', 'Was machst du heute Abend?'],
     fr: ['Je ne sais pas ce que tu veux dire, mais nous pouvons essayer.', 'Bonjour', 'Salut, ça va?'],
@@ -120,33 +120,61 @@ test('the setting holder remembers the conversation language only while on', () 
 
 const ordinaryIds = Object.fromEntries([...Object.keys(RELATIONSHIP_PROFILES), 'rogue-amendiares']
   .map(profile => [profile, profile + '-ordinary-id']));
-const variants = {version: 1, characters: Object.fromEntries(Object.keys(RELATIONSHIP_PROFILES)
-  .map(profile => [profile, {ordinaryCharacterId: ordinaryIds[profile], romanticCharacterId: profile + '-romantic-id'}]))};
 const twinRow = (original, twin, extra = {}) => ({phase: 'verified', originalCharacterId: original, multilingualCharacterId: twin,
   verified: true, languageBoxOff: true, ...extra});
+// What an old runtime/multilingual-profiles.json still holds: rows of the retired affectionate profiles. Nothing routes to them.
+const romanticRows = () => Object.fromEntries(Object.keys(RELATIONSHIP_PROFILES).map(profile => [profile + '-romantic',
+  twinRow(profile + '-romantic-id', profile + '-romantic-twin-id', {variant: 'romantic', baseKey: profile})]));
 const twinDocument = () => ({version: 1, characters: {
   ...Object.fromEntries(Object.keys(ordinaryIds).map(profile => [profile, twinRow(ordinaryIds[profile], profile + '-twin-id')])),
-  ...Object.fromEntries(Object.keys(RELATIONSHIP_PROFILES).map(profile => [profile + '-romantic',
-    twinRow(profile + '-romantic-id', profile + '-romantic-twin-id', {variant: 'romantic', baseKey: profile})])),
+  ...romanticRows(),
 }});
 
 test('only verified twins with the language box off that still clone the current profile are used', () => {
   const document = twinDocument();
   document.characters['rogue-amendiares'].languageBoxOff = false;
   document.characters['river-ward'].originalCharacterId = 'an-older-river-id';
-  document.characters['kerry-eurodyne-romantic'].verified = false;
   document.characters['unknown-character'] = twinRow('x', 'y');
   document.characters['panam-palmer'].multilingualCharacterId = ordinaryIds['judy-alvarez'];
-  const {twins, skipped} = multilingualTwins(document, {ordinaryIds, variants});
-  assert.deepEqual(skipped.sort(), ['kerry-eurodyne-romantic', 'panam-palmer', 'river-ward', 'rogue-amendiares', 'unknown-character']);
+  const {twins, skipped} = multilingualTwins(document, {ordinaryIds});
+  assert.deepEqual(skipped.sort(), ['panam-palmer', 'river-ward', 'rogue-amendiares', 'unknown-character']);
+  assert.deepEqual(Object.keys(twins).sort(), ['judy-alvarez', 'kerry-eurodyne', 'meredith-stout']);
   assert.equal(twins['judy-alvarez'], 'judy-alvarez-twin-id');
-  assert.equal(twins['judy-alvarez-romantic'], 'judy-alvarez-romantic-twin-id');
-  assert.deepEqual(multilingualTwins(null, {ordinaryIds, variants}), {twins: {}, skipped: []});
-  assert.deepEqual(multilingualTwins({version: 2}, {ordinaryIds, variants}).skipped, ['invalid-document']);
+  assert.deepEqual(multilingualTwins(null, {ordinaryIds}), {twins: {}, skipped: []});
+  assert.deepEqual(multilingualTwins({version: 2}, {ordinaryIds}).skipped, ['invalid-document']);
 });
 
-const twins = multilingualTwins(twinDocument(), {ordinaryIds, variants}).twins;
-const registry = relationshipRegistry(ordinaryIds, variants, twins);
+test('twin rows of the retired romantic profiles are ignored silently, and an old relationship-profiles.json cannot matter', () => {
+  const rows = romanticRows();
+  assert.deepEqual(Object.keys(rows).sort(), ['judy-alvarez-romantic', 'kerry-eurodyne-romantic', 'meredith-stout-romantic',
+    'panam-palmer-romantic', 'river-ward-romantic']);
+  // Whatever state the row is in (verified, unverified, box on, a former original ID, even a twin row of the twin), it is not used
+  // and not reported as skipped: it is not a current profile at all.
+  const document = {version: 1, characters: {...twinDocument().characters, 'judy-alvarez-romantic-multilingual': twinRow('a', 'b')}};
+  document.characters['kerry-eurodyne-romantic'].verified = false;
+  document.characters['river-ward-romantic'].languageBoxOff = false;
+  document.characters['meredith-stout-romantic'].originalCharacterId = 'an-older-id';
+  const {twins, skipped} = multilingualTwins(document, {ordinaryIds});
+  assert.deepEqual(skipped, []);
+  assert.deepEqual(Object.keys(twins).sort(), Object.keys(ordinaryIds).sort());
+  for (const key of [...Object.keys(rows), 'judy-alvarez-romantic-multilingual']) assert.equal(Object.hasOwn(twins, key), false, key);
+  for (const twinId of Object.values(twins)) assert.doesNotMatch(twinId, /romantic/);
+  // Even with a legacy ordinaryIds map that still lists a romantic key (an old relationship-profiles.json merged in), the row is ignored.
+  const legacyIds = {...ordinaryIds, 'judy-alvarez-romantic': 'judy-alvarez-romantic-id'};
+  assert.deepEqual(multilingualTwins(document, {ordinaryIds: legacyIds}), {twins, skipped: []});
+  // An unrelated argument (the old "variants" option) is not read: the result is identical.
+  const oldVariants = {version: 1, characters: {'judy-alvarez': {ordinaryCharacterId: ordinaryIds['judy-alvarez'], romanticCharacterId: 'judy-alvarez-romantic-id'}}};
+  assert.deepEqual(multilingualTwins(document, {ordinaryIds, variants: oldVariants}), {twins, skipped: []});
+  // A document holding only retired rows yields nothing and complains about nothing.
+  assert.deepEqual(multilingualTwins({version: 1, characters: rows}, {ordinaryIds}), {twins: {}, skipped: []});
+  // The registry has no romantic provider keys either, and refuses a map that names one.
+  const built = relationshipRegistry(ordinaryIds, twins);
+  assert.deepEqual(Object.keys(built.providerIds).filter(key => /romantic/.test(key)), []);
+  assert.throws(() => relationshipRegistry(ordinaryIds, {'judy-alvarez-romantic': 'judy-alvarez-romantic-twin-id'}), {code: 'INVALID_MULTILINGUAL_PROFILE'});
+});
+
+const twins = multilingualTwins(twinDocument(), {ordinaryIds}).twins;
+const registry = relationshipRegistry(ordinaryIds, twins);
 const NOW = Date.parse('2026-10-01T12:00:00Z'), boundary = {worldToken: 'world-a', generation: 4};
 const fact = value => ({status: 'known', value, present: true, sourceId: 'native-quests-system', evidenceRefs: ['core-arcs.judy.committed']});
 const snapshot = facts => parseRelationshipState({version: 1, status: 'ready', gameVersion: '2.31', ...boundary, capturedAt: NOW,
@@ -154,50 +182,73 @@ const snapshot = facts => parseRelationshipState({version: 1, status: 'ready', g
 
 test('the registry adds each twin as "<providerKey>-multilingual" in the original family with its own marker', () => {
   assert.equal(registry.providerIds['judy-alvarez-multilingual'], 'judy-alvarez-twin-id');
-  assert.equal(registry.providerIds['judy-alvarez-romantic-multilingual'], 'judy-alvarez-romantic-twin-id');
-  for (const key of ['judy-alvarez', 'judy-alvarez-romantic', 'judy-alvarez-multilingual', 'judy-alvarez-romantic-multilingual'])
-    assert.equal(registry.providerFamilies[key], 'judy-alvarez', key);
+  for (const key of ['judy-alvarez', 'judy-alvarez-multilingual']) assert.equal(registry.providerFamilies[key], 'judy-alvarez', key);
   assert.equal(registry.markerKeys['judy-alvarez-multilingual'], 'judy-alvarez:multilingual');
-  assert.equal(registry.markerKeys['judy-alvarez-romantic-multilingual'], 'judy-alvarez-romantic:multilingual');
   assert.equal(twinMarkerKey('rogue-amendiares'), 'rogue-amendiares:multilingual');
   assert.equal(registry.markerKeys['judy-alvarez'], undefined, 'originals keep their own marker');
+  // One provider per character plus one twin: nothing else.
+  assert.deepEqual(Object.keys(registry.providerIds).sort(), [...Object.keys(ordinaryIds), ...Object.keys(twins).map(key => key + '-multilingual')].sort());
   // Invalid maps fail loudly instead of routing to a wrong character.
-  assert.throws(() => relationshipRegistry(ordinaryIds, variants, {nobody: 'x'}), {code: 'INVALID_MULTILINGUAL_PROFILE'});
-  assert.throws(() => relationshipRegistry(ordinaryIds, variants, {'judy-alvarez': ordinaryIds['panam-palmer']}), {code: 'DUPLICATE_PROVIDER_ID'});
-  assert.throws(() => relationshipRegistry(ordinaryIds, variants, {'judy-alvarez-multilingual': 'z'}), {code: 'INVALID_MULTILINGUAL_PROFILE'});
+  assert.throws(() => relationshipRegistry(ordinaryIds, {nobody: 'x'}), {code: 'INVALID_MULTILINGUAL_PROFILE'});
+  assert.throws(() => relationshipRegistry(ordinaryIds, {'judy-alvarez': ordinaryIds['panam-palmer']}), {code: 'DUPLICATE_PROVIDER_ID'});
+  assert.throws(() => relationshipRegistry(ordinaryIds, {'judy-alvarez-multilingual': 'z'}), {code: 'INVALID_MULTILINGUAL_PROFILE'});
   // No twin map: identical to the English-only registry.
-  assert.deepEqual(relationshipRegistry(ordinaryIds, variants).providerIds, relationshipRegistry(ordinaryIds, variants, {}).providerIds);
+  assert.deepEqual(relationshipRegistry(ordinaryIds).providerIds, relationshipRegistry(ordinaryIds, {}).providerIds);
+  assert.deepEqual(relationshipRegistry(ordinaryIds).providerIds, ordinaryIds);
 });
 
-test('multilingual selection picks the twin of exactly the profile relationship routing chose, romantic included', () => {
+test('multilingual selection picks the twin of exactly the profile chosen; On, Off and Auto styles all use the same twin', () => {
   const select = (profileKey, mode, facts, multilingual) => selectRelationshipProfile({profileKey, mode, registry, boundary, now: NOW,
     snapshot: snapshot(facts), multilingual});
   const committed = {sq030_judy_lover: 1, sq030_11_romance: 1, sq030_romance: 1};
-  // Romantic by verified save facts.
+  // Romantic style by verified save facts: still the one twin.
   let chosen = select('judy-alvarez', 'auto', committed, true);
-  assert.equal(chosen.providerProfileKey, 'judy-alvarez-romantic-multilingual'); assert.equal(chosen.variant, 'romantic');
-  assert.equal(chosen.characterId, 'judy-alvarez-romantic-twin-id'); assert.equal(chosen.multilingual, true);
-  // Ordinary when unconfirmed, explicit Off, or Off with confirmed facts.
-  assert.equal(select('judy-alvarez', 'auto', {}, true).providerProfileKey, 'judy-alvarez-multilingual');
-  assert.equal(select('judy-alvarez', 'off', committed, true).providerProfileKey, 'judy-alvarez-multilingual');
-  // Explicit On picks the romantic twin.
-  assert.equal(select('panam-palmer', 'on', {}, true).providerProfileKey, 'panam-palmer-romantic-multilingual');
+  assert.equal(chosen.providerProfileKey, 'judy-alvarez-multilingual'); assert.equal(chosen.style, 'romantic');
+  assert.equal(chosen.characterId, 'judy-alvarez-twin-id'); assert.equal(chosen.multilingual, true);
+  assert.equal(chosen.reason, 'verified-current-save');
+  // Ordinary style when unconfirmed, explicit Off, or Off with confirmed facts: the same twin.
+  chosen = select('judy-alvarez', 'auto', {}, true);
+  assert.equal(chosen.providerProfileKey, 'judy-alvarez-multilingual'); assert.equal(chosen.style, 'ordinary');
+  chosen = select('judy-alvarez', 'off', committed, true);
+  assert.equal(chosen.providerProfileKey, 'judy-alvarez-multilingual'); assert.equal(chosen.style, 'ordinary');
+  // Explicit On: romantic style, still the same twin (no romantic profile exists).
+  chosen = select('panam-palmer', 'on', {}, true);
+  assert.equal(chosen.providerProfileKey, 'panam-palmer-multilingual'); assert.equal(chosen.style, 'romantic');
+  assert.equal(chosen.characterId, 'panam-palmer-twin-id');
+  // Style never changes the provider: every mode and fact combination picks the same twin and the same original.
+  for (const profile of Object.keys(RELATIONSHIP_PROFILES)) {
+    for (const [mode, facts] of [['auto', {}], ['on', {}], ['off', {}], ['off', committed], ['auto', committed]]) {
+      assert.equal(select(profile, mode, facts, true).providerProfileKey, profile + '-multilingual', profile + ' ' + mode);
+      assert.equal(select(profile, mode, facts, true).characterId, profile + '-twin-id', profile + ' ' + mode);
+      assert.equal(select(profile, mode, facts, false).providerProfileKey, profile, profile + ' ' + mode);
+      assert.equal(select(profile, mode, facts, false).characterId, ordinaryIds[profile], profile + ' ' + mode);
+    }
+  }
+  // Auto without any fresh capture is still ready (never blocked), ordinary style, on the twin.
+  const unknown = selectRelationshipProfile({profileKey: 'judy-alvarez', mode: 'auto', registry, boundary, now: NOW, snapshot: null, multilingual: true});
+  assert.equal(unknown.status, 'ready'); assert.equal(unknown.style, 'ordinary'); assert.equal(unknown.reason, 'relationship-state-unavailable');
+  assert.equal(unknown.providerProfileKey, 'judy-alvarez-multilingual');
   // A character without relationships.
-  assert.equal(select('rogue-amendiares', 'auto', {}, true).characterId, 'rogue-amendiares-twin-id');
+  chosen = select('rogue-amendiares', 'auto', {}, true);
+  assert.equal(chosen.characterId, 'rogue-amendiares-twin-id'); assert.equal(chosen.style, 'ordinary');
   // Off: the originals, unchanged.
   chosen = select('judy-alvarez', 'auto', committed, false);
-  assert.equal(chosen.providerProfileKey, 'judy-alvarez-romantic'); assert.equal(chosen.multilingual, false);
+  assert.equal(chosen.providerProfileKey, 'judy-alvarez'); assert.equal(chosen.multilingual, false); assert.equal(chosen.style, 'romantic');
+  assert.equal(chosen.characterId, 'judy-alvarez-ordinary-id');
   assert.equal(select('rogue-amendiares', 'auto', {}, false).providerProfileKey, 'rogue-amendiares');
-  // A profile whose twin is missing keeps its original.
-  const partial = relationshipRegistry(ordinaryIds, variants, {'judy-alvarez': 'judy-alvarez-twin-id'});
-  const romantic = selectRelationshipProfile({profileKey: 'judy-alvarez', mode: 'on', registry: partial, boundary, now: NOW,
-    snapshot: snapshot({}), multilingual: true});
-  assert.equal(romantic.providerProfileKey, 'judy-alvarez-romantic'); assert.equal(romantic.multilingual, false);
+  // A profile whose twin is missing keeps its original, whatever the style.
+  const partial = relationshipRegistry(ordinaryIds, {'judy-alvarez': 'judy-alvarez-twin-id'});
+  for (const profile of ['judy-alvarez', 'panam-palmer']) {
+    const kept = selectRelationshipProfile({profileKey: profile, mode: 'on', registry: partial, boundary, now: NOW,
+      snapshot: snapshot({}), multilingual: true});
+    assert.equal(kept.providerProfileKey, profile === 'judy-alvarez' ? 'judy-alvarez-multilingual' : 'panam-palmer');
+    assert.equal(kept.multilingual, profile === 'judy-alvarez'); assert.equal(kept.style, 'romantic');
+  }
 });
 
 test('the setting commits at an idle boundary, retires every twinned character once and guards accept twin IDs', () => {
   let now = NOW;
-  const routes = new RelationshipRouting({ordinaryIds, variants, multilingual: twins, now: () => now});
+  const routes = new RelationshipRouting({ordinaryIds, multilingual: twins, now: () => now});
   const state = {version: 1, status: 'ready', gameVersion: '2.31', ...boundary, capturedAt: NOW, facts: {}};
   routes.update({}, state, {boundary});
   assert.equal(routes.select('rogue-amendiares', boundary).providerProfileKey, 'rogue-amendiares');
@@ -216,7 +267,44 @@ test('the setting commits at an idle boundary, retires every twinned character o
   // Unchanged settings: no route churn.
   assert.equal(routes.update({multilingualConversations: true}, state, {boundary}), false);
   assert.equal(routes.describe(boundary).find(row => row.profileKey === 'judy-alvarez').multilingual, true);
-  assert.equal(routes.markerKeys['judy-alvarez-romantic-multilingual'], 'judy-alvarez-romantic:multilingual');
+  assert.equal(routes.markerKeys['judy-alvarez-multilingual'], 'judy-alvarez:multilingual');
+  assert.equal(routes.providerIds['judy-alvarez-romantic'], undefined);
+});
+
+test('a relationship style change never changes the provider: no route change, no connection retirement; only the Multilingual setting does', () => {
+  const routes = new RelationshipRouting({ordinaryIds, multilingual: twins, now: () => NOW});
+  const state = {version: 1, status: 'ready', gameVersion: '2.31', ...boundary, capturedAt: NOW,
+    facts: {sq030_judy_lover: fact(1), sq030_11_romance: fact(1), sq030_romance: fact(1)}};
+  for (const multilingual of [false, true]) {
+    const modes = relationshipModes => ({multilingualConversations: multilingual, relationshipModes});
+    routes.update({multilingualConversations: multilingual}, {...state, facts: {}}, {boundary});
+    routes.consumeRouteChanges();
+    const providerOf = profile => routes.select(profile, boundary).providerProfileKey;
+    const before = providerOf('judy-alvarez');
+    assert.equal(before, multilingual ? 'judy-alvarez-multilingual' : 'judy-alvarez');
+    // Auto with no confirmed facts: ordinary. Auto with confirmed facts, On, Off: styles change, the route does not.
+    assert.equal(routes.select('judy-alvarez', boundary).style, 'ordinary');
+    for (const [settings, snapshotState, style] of [
+      [modes({'judy-alvarez': 'on'}), undefined, 'romantic'],
+      [modes({'judy-alvarez': 'off'}), undefined, 'ordinary'],
+      [modes({'judy-alvarez': 'auto'}), state, 'romantic'],
+      [modes({'judy-alvarez': 'off'}), state, 'ordinary'],
+      [modes({'judy-alvarez': 'auto'}), {...state, facts: {}}, 'ordinary'],
+      [modes({'judy-alvarez': 'on', 'panam-palmer': 'on', 'river-ward': 'off'}), undefined, 'romantic'],
+    ]) {
+      assert.equal(routes.update(settings, snapshotState, {boundary}), false);
+      assert.deepEqual(routes.consumeRouteChanges(), []);
+      assert.equal(routes.select('judy-alvarez', boundary).style, style);
+      assert.equal(providerOf('judy-alvarez'), before);
+    }
+  }
+  // The Multilingual setting is the only thing that moves the provider, for every twinned character at once.
+  routes.update({multilingualConversations: false, relationshipModes: {'judy-alvarez': 'on'}}, state, {boundary});
+  routes.consumeRouteChanges();
+  assert.equal(routes.update({multilingualConversations: true, relationshipModes: {'judy-alvarez': 'on'}}, state, {boundary}), true);
+  assert.deepEqual(routes.consumeRouteChanges().sort(), Object.keys(ordinaryIds).sort());
+  assert.equal(routes.select('judy-alvarez', boundary).providerProfileKey, 'judy-alvarez-multilingual');
+  assert.equal(routes.select('judy-alvarez', boundary).style, 'romantic');
 });
 
 // ---- Memory: a twin is its own character, and Forget clears both ------------------------------------------------
@@ -242,30 +330,35 @@ test('a twin keeps a separate memory identity but shares the player and the cano
   const original = memory.route('judy-alvarez'), twin = memory.route('judy-alvarez-multilingual');
   assert.equal(original.endUserId, twin.endUserId, 'one player');
   assert.notEqual(original.guard.characterId, twin.guard.characterId, 'separate Convai memory (character ID + player)');
-  await talk(memory, 'judy-alvarez-multilingual'); await talk(memory, 'judy-alvarez-romantic-multilingual');
+  await talk(memory, 'judy-alvarez-multilingual');
   await talk(memory, 'rogue-amendiares-multilingual');
   assert.deepEqual(memory.status().characters.map(row => row.profileKey).sort(), ['judy-alvarez', 'rogue-amendiares']);
   assert.ok(!JSON.stringify(memory.status()).includes('multilingual'), 'status shows canonical characters only');
 });
 
-test('Forget for one character clears the original, romantic and both twins; Forget all clears every twin', async t => {
+test('Forget for one character clears the original and its twin only; Forget all clears every twin', async t => {
   const {memory, calls} = await memoryFixture(t);
-  for (const key of ['judy-alvarez', 'judy-alvarez-romantic', 'judy-alvarez-multilingual', 'judy-alvarez-romantic-multilingual',
-    'rogue-amendiares-multilingual']) await talk(memory, key);
+  const talked = ['judy-alvarez', 'judy-alvarez-multilingual', 'panam-palmer', 'panam-palmer-multilingual', 'rogue-amendiares-multilingual'];
+  for (const key of talked) await talk(memory, key);
+  // No romantic provider exists to talk to or to clear.
+  assert.throws(() => memory.route('judy-alvarez-romantic'));
   // A command naming a twin's provider key is still the canonical family.
   const result = await memory.clearCharacter({profileKey: 'judy-alvarez-multilingual', actionId: 'forget-judy'});
   assert.equal(result.state, 'succeeded'); assert.equal(result.profileKey, 'judy-alvarez');
   const cleared = calls.filter(call => call.kind === 'clear').map(call => call.profileKey).sort();
-  assert.deepEqual(cleared, ['judy-alvarez', 'judy-alvarez-multilingual', 'judy-alvarez-romantic', 'judy-alvarez-romantic-multilingual']);
+  assert.deepEqual(cleared, ['judy-alvarez', 'judy-alvarez-multilingual'], 'another character and its twin are untouched');
   calls.length = 0;
   assert.equal((await memory.clearAll({actionId: 'forget-all'})).state, 'succeeded');
-  assert.ok(calls.some(call => call.kind === 'clear' && call.profileKey === 'rogue-amendiares-multilingual'
-    && call.characterId === 'rogue-amendiares-twin-id'));
+  const clearedAll = new Map(calls.filter(call => call.kind === 'clear').map(call => [call.profileKey, call.characterId]));
+  for (const key of ['panam-palmer', 'panam-palmer-multilingual', 'rogue-amendiares-multilingual'])
+    assert.equal(clearedAll.get(key), registry.providerIds[key], key);
+  assert.equal(clearedAll.get('rogue-amendiares-multilingual'), 'rogue-amendiares-twin-id');
+  assert.deepEqual([...clearedAll.keys()].filter(key => /romantic/.test(key)), []);
 });
 
-test('the Forget menu command for a character reaches the twins through the bridge family map', async t => {
+test('the Forget menu command for a character reaches its twin through the bridge family map', async t => {
   const {memory, calls} = await memoryFixture(t);
-  await talk(memory, 'panam-palmer-romantic-multilingual');
+  await talk(memory, 'panam-palmer-multilingual');
   const directory = await fs.mkdtemp(join(tmpdir(), 'multilingual-control-'));
   t.after(() => fs.rm(directory, {recursive: true, force: true}));
   const commandPath = join(directory, 'memory-command.json');
@@ -274,7 +367,7 @@ test('the Forget menu command for a character reaches the twins through the brid
   await fs.writeFile(commandPath, JSON.stringify({version: 1, id: 'forget-panam', action: 'clear', scope: 'character',
     profileKey: 'panam-palmer', issuedAt: Date.now()}));
   await control.poll(); await control.work;
-  assert.deepEqual(calls.filter(call => call.kind === 'clear').map(call => call.characterId), ['panam-palmer-romantic-twin-id']);
+  assert.deepEqual(calls.filter(call => call.kind === 'clear').map(call => call.characterId), ['panam-palmer-twin-id']);
   await control.close();
 });
 
@@ -293,10 +386,8 @@ test('the provider adapter accepts a twin only with its own exact marker', async
   const endUserId = '00000000-0000-4000-8000-000000000000';
   const clear = profileKey => api.clearMemory({profileKey, characterId: registry.providerIds[profileKey], endUserId});
   backstory['judy-alvarez-twin-id'] = 'Bio\n[CyberpunkConvai profile v2:judy-alvarez:multilingual]';
-  backstory['judy-alvarez-romantic-twin-id'] = 'Bio\n[CyberpunkConvai profile v2:judy-alvarez-romantic:multilingual]';
   backstory['judy-alvarez-ordinary-id'] = 'Bio\n[CyberpunkConvai profile v2:judy-alvarez]';
   assert.equal((await clear('judy-alvarez-multilingual')).accepted, true);
-  assert.equal((await clear('judy-alvarez-romantic-multilingual')).accepted, true);
   assert.equal((await clear('judy-alvarez')).accepted, true);
   // An original marker on a twin ID, or a twin marker on an original, is not ours to clear.
   backstory['judy-alvarez-twin-id'] = 'Bio\n[CyberpunkConvai profile v2:judy-alvarez]';
@@ -309,13 +400,13 @@ test('the provider adapter accepts a twin only with its own exact marker', async
 // ---- The installed map (skipped where the ignored runtime file is absent) ----------------------------------------
 
 const runtime = new URL('../runtime/', import.meta.url);
-const installed = ['multilingual-profiles.json', 'characters.json', 'relationship-profiles.json']
-  .every(name => existsSync(new URL(name, runtime)));
-test('the installed twin map covers every profiled character and romantic profile', {skip: !installed && 'runtime map absent'}, () => {
+const installed = ['multilingual-profiles.json', 'characters.json'].every(name => existsSync(new URL(name, runtime)));
+test('the installed twin map covers every profiled character; old romantic rows are retired and ignored', {skip: !installed && 'runtime map absent'}, () => {
   const read = name => JSON.parse(readFileSync(new URL(name, runtime), 'utf8'));
-  const ids = read('characters.json'), relationship = read('relationship-profiles.json');
-  const {twins: loaded, skipped} = multilingualTwins(read('multilingual-profiles.json'), {ordinaryIds: ids, variants: relationship});
+  const ids = read('characters.json');
   const document = read('multilingual-profiles.json');
+  // runtime/relationship-profiles.json (if still present) is no longer read: only the two files above feed the twin map.
+  const {twins: loaded, skipped} = multilingualTwins(document, {ordinaryIds: ids});
   // Every profile has a verified twin, the generic NPC archetypes (npc-*) included (docs/NPC_ARCHETYPES.md). A twin is
   // routed once its language box is marked off; a new batch may be waiting for that web-session step, and nothing else.
   for (const key of skipped) assert.equal(document.characters[key]?.verified === true && document.characters[key].languageBoxOff !== true, true, key + ' is skipped');
@@ -326,9 +417,19 @@ test('the installed twin map covers every profiled character and romantic profil
   }
   const unrouted = twinned.filter(key => !loaded[key]);
   assert.ok(unrouted.every(key => key.startsWith('npc-')), 'only a new archetype batch may wait for the language box');
-  for (const key of Object.keys(relationship.characters)) assert.ok(loaded[key + '-romantic'], key + '-romantic');
-  const routes = new RelationshipRouting({ordinaryIds: ids, variants: relationship, multilingual: loaded});
+  // Every profiled (relationship) character has its one twin routed.
+  for (const key of Object.keys(RELATIONSHIP_PROFILES)) {
+    assert.ok(Object.hasOwn(ids, key), key + ' is not in characters.json');
+    assert.ok(loaded[key], key + ' twin');
+  }
+  // Old "<key>-romantic" rows may remain in the file; they are retired: not used, not reported, and the ID file has none.
+  const retired = Object.keys(document.characters).filter(key => /-romantic(?:-multilingual)?$/.test(key));
+  for (const key of retired) { assert.equal(Object.hasOwn(loaded, key), false, key); assert.equal(skipped.includes(key), false, key); }
+  assert.deepEqual(Object.keys(ids).filter(key => /-romantic(?:-multilingual)?$/.test(key)), []);
+  assert.deepEqual(Object.keys(loaded).sort(), Object.keys(loaded).filter(key => Object.hasOwn(ids, key)).sort());
+  const routes = new RelationshipRouting({ordinaryIds: ids, multilingual: loaded});
   for (const key of twinned.filter(key => loaded[key])) assert.equal(routes.providerFamilies[key + '-multilingual'], key);
+  assert.deepEqual(Object.keys(routes.providerIds).filter(key => /romantic/.test(key)), []);
 });
 
 // ---- Archetypes (npc-*) route to their twins like named characters -----------------------------------------------
@@ -346,31 +447,31 @@ test('every archetype key and its twin key stay inside the profile-key limit use
 test('archetype twins are loaded under the same rules as named twins', () => {
   const ids = {...ordinaryIds, ...archetypeIds};
   const document = {version: 1, characters: {...twinDocument().characters, ...archetypeTwinDocument().characters}};
-  const loaded = multilingualTwins(document, {ordinaryIds: ids, variants});
+  const loaded = multilingualTwins(document, {ordinaryIds: ids});
   assert.deepEqual(loaded.skipped, []);
   for (const profile of archetypeKeys) assert.equal(loaded.twins[profile], profile + '-twin-id', profile);
   // Not routed until the language box is off, still verified, and only while it clones today's original.
   document.characters['npc-ncpd-male'].languageBoxOff = false;
   document.characters['npc-mox-female'].verified = false;
   document.characters['npc-homeless-male'].originalCharacterId = 'an-older-id';
-  assert.deepEqual(multilingualTwins(document, {ordinaryIds: ids, variants}).skipped.sort(), ['npc-homeless-male', 'npc-mox-female', 'npc-ncpd-male']);
+  assert.deepEqual(multilingualTwins(document, {ordinaryIds: ids}).skipped.sort(), ['npc-homeless-male', 'npc-mox-female', 'npc-ncpd-male']);
   // An archetype missing from the ID file has nothing to clone.
   const partial = {...ids}; delete partial['npc-ripperdoc-male'];
-  assert.deepEqual(multilingualTwins(document, {ordinaryIds: partial, variants}).skipped.includes('npc-ripperdoc-male'), true);
+  assert.deepEqual(multilingualTwins(document, {ordinaryIds: partial}).skipped.includes('npc-ripperdoc-male'), true);
 });
 
 test('with Multilingual on, an archetype goes to its twin; off, to the original; the twin keeps the archetype family and marker', () => {
   const ids = {...ordinaryIds, ...archetypeIds};
   const archetypeTwins = multilingualTwins({version: 1, characters: {...twinDocument().characters, ...archetypeTwinDocument().characters}},
-    {ordinaryIds: ids, variants}).twins;
-  const archetypeRegistry = relationshipRegistry(ids, variants, archetypeTwins);
+    {ordinaryIds: ids}).twins;
+  const archetypeRegistry = relationshipRegistry(ids, archetypeTwins);
   const choose = (profileKey, multilingual) => selectRelationshipProfile({profileKey, mode: 'auto', registry: archetypeRegistry, boundary, now: NOW,
     snapshot: snapshot({}), multilingual});
   for (const profile of archetypeKeys) {
     const on = choose(profile, true), off = choose(profile, false);
     assert.equal(on.status, 'ready'); assert.equal(on.multilingual, true);
     assert.equal(on.providerProfileKey, profile + '-multilingual', profile);
-    assert.equal(on.characterId, profile + '-twin-id'); assert.equal(on.variant, 'ordinary');
+    assert.equal(on.characterId, profile + '-twin-id'); assert.equal(on.style, 'ordinary');
     assert.equal(off.providerProfileKey, profile); assert.equal(off.characterId, archetypeIds[profile]); assert.equal(off.multilingual, false);
     assert.equal(archetypeRegistry.providerFamilies[profile + '-multilingual'], profile);
     assert.equal(archetypeRegistry.markerKeys[profile + '-multilingual'], profile + ':multilingual');
@@ -378,7 +479,7 @@ test('with Multilingual on, an archetype goes to its twin; off, to the original;
   }
   // A single missing twin keeps that archetype on its English original; the others still switch.
   const gap = {...archetypeTwins}; delete gap['npc-bartender-female'];
-  const gapRegistry = relationshipRegistry(ids, variants, gap);
+  const gapRegistry = relationshipRegistry(ids, gap);
   const route = (profileKey) => selectRelationshipProfile({profileKey, mode: 'auto', registry: gapRegistry, boundary, now: NOW, snapshot: snapshot({}), multilingual: true});
   assert.equal(route('npc-bartender-female').providerProfileKey, 'npc-bartender-female');
   assert.equal(route('npc-bartender-male').providerProfileKey, 'npc-bartender-male-multilingual');
@@ -387,8 +488,8 @@ test('with Multilingual on, an archetype goes to its twin; off, to the original;
 test('the setting retires every archetype route at the idle boundary, and guards accept an archetype twin ID', () => {
   const ids = {...ordinaryIds, ...archetypeIds};
   const archetypeTwins = multilingualTwins({version: 1, characters: {...twinDocument().characters, ...archetypeTwinDocument().characters}},
-    {ordinaryIds: ids, variants}).twins;
-  const routes = new RelationshipRouting({ordinaryIds: ids, variants, multilingual: archetypeTwins, now: () => NOW});
+    {ordinaryIds: ids}).twins;
+  const routes = new RelationshipRouting({ordinaryIds: ids, multilingual: archetypeTwins, now: () => NOW});
   const state = {version: 1, status: 'ready', gameVersion: '2.31', ...boundary, capturedAt: NOW, facts: {}};
   routes.update({}, state, {boundary});
   assert.equal(routes.select('npc-maelstrom-male', boundary).providerProfileKey, 'npc-maelstrom-male');
@@ -408,8 +509,8 @@ test('the setting retires every archetype route at the idle boundary, and guards
 
 test('an archetype twin has its own memory identity in the archetype family, and the provider adapter accepts only its marker', async t => {
   const ids = {...ordinaryIds, ...archetypeIds};
-  const archetypeTwins = multilingualTwins({version: 1, characters: archetypeTwinDocument().characters}, {ordinaryIds: ids, variants}).twins;
-  const archetypeRegistry = relationshipRegistry(ids, variants, archetypeTwins);
+  const archetypeTwins = multilingualTwins({version: 1, characters: archetypeTwinDocument().characters}, {ordinaryIds: ids}).twins;
+  const archetypeRegistry = relationshipRegistry(ids, archetypeTwins);
   const directory = await fs.mkdtemp(join(tmpdir(), 'multilingual-archetype-'));
   t.after(() => fs.rm(directory, {recursive: true, force: true}));
   const calls = [];
@@ -451,7 +552,10 @@ test('an archetype twin has its own memory identity in the archetype family, and
 test('the bridge loads the twins, gives memory their markers and decides the voice per turn', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /multilingualTwins\(JSON\.parse\(await readFile\(resolve\(stateDirectory, 'multilingual-profiles\.json'\)/);
-  assert.match(bridge, /new RelationshipRouting\(\{ordinaryIds: ids, variants: relationshipVariants,\s*multilingual: multilingualProfiles\.twins\}\)/);
+  assert.match(bridge, /new RelationshipRouting\(\{ordinaryIds: ids, multilingual: multilingualProfiles\.twins\}\)/);
+  // The retired alternate profiles are gone from the wiring: nothing reads relationship-profiles.json or passes variants.
+  const code = bridge.split('\n').filter(line => !/^\s*\/\//.test(line)).join('\n');
+  assert.doesNotMatch(code, /relationship-profiles\.json|relationshipVariants|variants:/);
   assert.match(bridge, /markerKeys: relationshipRoutes\.markerKeys/);
   assert.match(bridge, /characterFamilies: relationshipRoutes\.providerFamilies/);
   assert.match(bridge, /chatResetFamilies: relationshipRoutes\.providerFamilies/);

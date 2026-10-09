@@ -119,7 +119,9 @@ test('the report holds versions, settings, party, providers, recent errors and b
     const bob = summary.providers.companions.find(row => row.profile === 'bob-sagan');
     assert.equal(bob.voice, 'omni'); assert.equal(bob.conversation, 'convai-realtime');
     assert.equal(summary.providers.companions.find(row => row.profile === 'judy-alvarez').voice, 'convai');
-    assert.equal(summary.providers.companions.find(row => row.profile === 'judy-alvarez').relationshipVariant.variant, 'ordinary');
+    const judyRow = summary.providers.companions.find(row => row.profile === 'judy-alvarez');
+    assert.deepEqual(judyRow.relationshipStyle, {mode: 'auto', style: 'ordinary', status: 'ready'});
+    assert(!('relationshipVariant' in judyRow));
     assert(summary.providers.companions.find(row => row.profile === 'judy-alvarez').conversationEnabled === false);
     assert(summary.recentErrors.some(row => row.source === 'bridge-stderr' && /provider disconnected/.test(row.line)));
     assert(summary.recentErrors.some(row => row.source === 'redscript' && /Cannot resolve type/.test(row.line)));

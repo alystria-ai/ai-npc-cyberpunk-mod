@@ -124,11 +124,11 @@ test('state preparation fills install paths, follows managed defaults and keeps 
     assert.deepEqual(JSON.parse(await readFile(join(f.layout.state, 'voice-configs.json'), 'utf8')).omni,
       {short: 'local-voices.autobest-short.json', long: 'local-voices.autobest-long.json'});
     // A new package version updates untouched managed files but never an edited one.
-    await writeFile(join(f.layout.state, 'relationship-profiles.json'), '{"mine":true}');
+    await writeFile(join(f.layout.state, 'multilingual-profiles.json'), '{"mine":true}');
     for (const name of MANAGED_FILES) await writeFile(join(f.app, 'defaults', name), JSON.stringify({name, v: 2}));
     await prepareState(f.layout);
     assert.equal(JSON.parse(await readFile(join(f.layout.state, 'characters.json'), 'utf8')).v, 2);
-    assert.deepEqual(JSON.parse(await readFile(join(f.layout.state, 'relationship-profiles.json'), 'utf8')), {mine: true});
+    assert.deepEqual(JSON.parse(await readFile(join(f.layout.state, 'multilingual-profiles.json'), 'utf8')), {mine: true});
   } finally { await rm(f.root, {recursive: true, force: true}); }
 });
 

@@ -47,8 +47,9 @@ import {PlayerKnowledge} from './player-knowledge.mjs';
 import {PlayerPhoneKnowledge, playerPhoneGeneration} from './player-phone-knowledge.mjs';
 import {atomicFile as atomic} from './guarded-file.mjs';
 import {readWorldSession} from './world-session.mjs';
-import {RelationshipRouting, relationshipContext, retireRelationshipConnections} from './relationship-routing.mjs';
-import {MultilingualConversations, multilingualTwins, planTurnVoice, replyVoice} from './multilingual.mjs';
+import {RelationshipRouting, retireRelationshipConnections} from './relationship-routing.mjs';
+import {relationshipContext} from './romance-context.mjs';
+import {MultilingualConversations, RETIRED_PROVIDER_KEY, multilingualTwins, planTurnVoice, replyVoice} from './multilingual.mjs';
 import {CompanionActions} from './companion-actions.mjs';
 import {RequestFileOwner, fileIdentity} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel} from './dialogue-level.mjs';
@@ -67,19 +68,15 @@ const roster = [...JSON.parse(await readFile(resolve(project, 'characters/roster
     throw error;
   }))];
 const ids = JSON.parse(await readFile(resolve(stateDirectory, 'characters.json'), 'utf8'));
-const relationshipVariants = JSON.parse(await readFile(resolve(stateDirectory, 'relationship-profiles.json'), 'utf8').catch(error => {
-  if (error.code === 'ENOENT') return '{}';
-  throw error;
-}));
+// runtime/relationship-profiles.json (the retired alternate affectionate profiles) is no longer read: every character has one profile.
 // Multilingual twins (docs/MULTILINGUAL_PROFILES.md): used only while "Multilingual conversations" is on. A missing
 // map is an English-only installation; a twin that no longer clones the current profile is left out.
 const multilingualProfiles = multilingualTwins(JSON.parse(await readFile(resolve(stateDirectory, 'multilingual-profiles.json'), 'utf8').catch(error => {
   if (error.code === 'ENOENT') return 'null';
   throw error;
-})), {ordinaryIds: ids, variants: relationshipVariants});
+})), {ordinaryIds: ids});
 if (multilingualProfiles.skipped.length) console.error('[CyberpunkConvai] Multilingual profiles not used:', multilingualProfiles.skipped.join(', '));
-const relationshipRoutes = new RelationshipRouting({ordinaryIds: ids, variants: relationshipVariants,
-  multilingual: multilingualProfiles.twins});
+const relationshipRoutes = new RelationshipRouting({ordinaryIds: ids, multilingual: multilingualProfiles.twins});
 // Which voice configuration files are live is named by runtime/voice-configs.json (bridge/voice-config-paths.mjs):
 // the searched references for Pocket and for OmniVoice's short and long choices, each falling back to the base file.
 const voiceConfigPaths = resolveVoiceConfigPaths(stateDirectory);
@@ -152,7 +149,7 @@ const memoryProvider = new PlayerMemoryApi({key, characterIds: relationshipRoute
   historicalPairAllowed: ({profileKey, characterId}) => playerMemory?.hasContactedProviderPair(profileKey, characterId) === true});
 playerMemory = await PlayerMemory.open({path: resolve(stateDirectory, 'player-memory.json'),
   characterIds: relationshipRoutes.providerIds, characterFamilies: relationshipRoutes.providerFamilies,
-  provider: memoryProvider, quiesce: quiescePlayerMemory});
+  provider: memoryProvider, quiesce: quiescePlayerMemory, retired: providerKey => RETIRED_PROVIDER_KEY.test(providerKey)});
 const knowledgeRouter = new PlayerKnowledge({playerMemory, pack: knowledgePack, questCatalog,
   isWorldCurrent: worldCurrent, getBoundary: currentBoundary,
   selectProfile: (profile, boundary) => relationshipRoutes.select(profile, boundary)});
@@ -341,7 +338,7 @@ function logVoiceRoute(input, profile, reply, extra = {}) {
   try {
     // The local voice that speaks (a variant of an ambient profile, decided once per turn); the profile key otherwise.
     const voiceKey = ['pocket', 'omni'].includes(reply?.engine) && typeof voiceKeyFor === 'function' ? voiceKeyFor(input) : undefined;
-    // The Convai character the turn went to (the original, a romantic profile or a multilingual twin).
+    // The Convai character the turn went to (the original or its multilingual twin).
     let character;
     try {
       const route = routeFor(input), characterId = route?.guard?.characterId;

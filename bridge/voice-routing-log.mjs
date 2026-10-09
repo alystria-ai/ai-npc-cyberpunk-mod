@@ -3,7 +3,7 @@ import {dirname} from 'node:path';
 
 // One line per spoken reply saying which voice was asked for, which one actually spoke, and why they differ.
 // Routing facts only: no conversation text, no session IDs, no audio. The Convai character the turn went to is named
-// (provider key and character ID, so a multilingual twin or a romantic profile is visible); the support report hashes
+// (provider key and character ID, so a multilingual twin is visible); the support report hashes
 // character IDs like every other ID. The line goes to the bridge log and to a
 // small rolling file (runtime/voice-routing.log, the last ROUTING_LOG_MAX_LINES lines) that the support report includes.
 //

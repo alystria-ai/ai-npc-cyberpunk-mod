@@ -65,8 +65,8 @@ const durableWrite = (path, raw) => atomicFile(path, raw, {files:{open:async (..
  * First installation baselines old actions: an old Forget must not erase a newer
  * conversation. Once established, a missed successful result is replayed locally
  * after bridge/game restarts. Failed or uncertain clears never delete Chat data.
- * Keys identify displayed characters; ordinary/romantic provider variants must
- * supply one aggregate result after every contacted variant is confirmed empty.
+ * Keys identify displayed characters; a character's provider variants (its profile
+ * and its Multilingual twin) must supply one aggregate result after every contacted variant is confirmed empty.
  */
 export class ChatMemoryResets {
   static async open({path, status, profileFamilies, resetEpochFor, read = path => readFile(path, 'utf8'), write = durableWrite, now = Date.now}) {

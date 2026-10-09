@@ -1,8 +1,8 @@
 // "Multilingual conversations" (Settings > Conversations, off by default).
 //
 // On: every conversation goes to the character's multilingual twin, a full clone of its Convai profile that answers
-// in whatever language the player uses (docs/MULTILINGUAL_PROFILES.md). Relationship routing still decides ordinary
-// or romantic first; the twin of THAT profile is used (bridge/relationship-routing.mjs). A twin is its own
+// in whatever language the player uses (docs/MULTILINGUAL_PROFILES.md). The relationship block (bridge/romance-context.mjs)
+// is added to the twin's turns exactly as to the original's (bridge/relationship-routing.mjs). A twin is its own
 // character for memory: its memories are separate, and Forget clears both (the twin shares the original's family).
 //
 // Voices: Pocket TTS speaks only English, so turning the setting on moves Companion voices to OmniVoice (the optional
@@ -22,22 +22,24 @@ export const MULTILINGUAL_SUFFIX = '-multilingual';
 export const twinProviderKey = providerKey => providerKey + MULTILINGUAL_SUFFIX;
 // The ownership marker of a twin is "[CyberpunkConvai profile v2:<providerKey>:multilingual]".
 export const twinMarkerKey = providerKey => providerKey + ':multilingual';
+// Provider keys of the retired affectionate profiles ("judy-alvarez-romantic" and its twin "judy-alvarez-romantic-multilingual").
+// Old files and saved state may still name them; nothing routes to them.
+export const RETIRED_PROVIDER_KEY = /-romantic(?:-multilingual)?$/;
 
 /**
  * The usable twins from runtime/multilingual-profiles.json, as {providerKey: twinCharacterId}. A twin is used only
  * when it is verified with the language box off and still clones the profile the mod uses today (its recorded
- * original ID equals the current ordinary or romantic ID); anything else stays on its original, listed in `skipped`.
+ * original ID equals the current ordinary ID); anything else stays on its original, listed in `skipped`.
+ * Rows of the retired affectionate profiles ("<key>-romantic", which no longer exist as providers) are ignored silently.
  */
-export function multilingualTwins(document, {ordinaryIds = {}, variants = {}} = {}) {
+export function multilingualTwins(document, {ordinaryIds = {}} = {}) {
   const twins = {}, skipped = [];
   if (document == null) return {twins, skipped};
   if (!plain(document) || document.version !== 1 || !plain(document.characters)) return {twins, skipped: ['invalid-document']};
-  const romanticIds = plain(variants?.characters) ? Object.fromEntries(Object.entries(variants.characters)
-    .map(([profile, row]) => [profile + '-romantic', row?.romanticCharacterId])) : {};
-  const used = new Set([...Object.values(ordinaryIds), ...Object.values(romanticIds)]);
+  const used = new Set(Object.values(ordinaryIds));
   for (const [providerKey, row] of Object.entries(document.characters)) {
-    const current = Object.hasOwn(ordinaryIds, providerKey) ? ordinaryIds[providerKey]
-      : Object.hasOwn(romanticIds, providerKey) ? romanticIds[providerKey] : undefined;
+    if (RETIRED_PROVIDER_KEY.test(providerKey)) continue;
+    const current = Object.hasOwn(ordinaryIds, providerKey) ? ordinaryIds[providerKey] : undefined;
     if (!key(providerKey) || providerKey.endsWith(MULTILINGUAL_SUFFIX) || !plain(row) || !id(row.multilingualCharacterId)
         || row.verified !== true || row.languageBoxOff !== true || current === undefined
         || row.originalCharacterId !== current || used.has(row.multilingualCharacterId)

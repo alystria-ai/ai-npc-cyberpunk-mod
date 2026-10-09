@@ -1,6 +1,8 @@
-// Conversation profile selection only. This module reads reviewed native
-// relationship receipts; it never changes quests, sends dialogue, provisions
-// profiles, enables memory or copies one provider profile's memories to another.
+// Conversation style selection only. This module reads reviewed native
+// relationship receipts and decides, per character and turn, whether the delivery is affectionate
+// ("romantic") or ordinary; it never changes quests, sends dialogue, provisions profiles or enables memory.
+// Every character has ONE Convai profile (plus its Multilingual twin while that setting is on), so the choice only
+// decides whether bridge/romance-context.mjs adds its block to the turn's dynamic context. It never changes the provider ID.
 import {parseGroup} from './group-context.mjs';
 import {MULTILINGUAL_SUFFIX, twinMarkerKey, twinProviderKey} from './multilingual.mjs';
 
@@ -45,32 +47,15 @@ function freeze(value) {
   return value;
 }
 
-/** Preserve the existing ordinary mapping. Each additional ID has exactly one
- * internal provider key, while every visible/history/voice key stays canonical.
- * A missing variant file is a compatible ordinary-only installation.
- * `twins` ({providerKey: twinId}, from bridge/multilingual.mjs) adds each
- * multilingual twin as provider key "<providerKey>-multilingual" in the same
- * family, so memory guards, Forget and history treat it like the original's
- * sibling. A missing twin map is a compatible English-only installation. */
-export function relationshipRegistry(ordinaryIds, variants = {}, twins = {}) {
+/** The provider IDs of every character: the ordinary mapping, plus each multilingual twin (from bridge/multilingual.mjs,
+ * `twins` = {providerKey: twinId}) as provider key "<providerKey>-multilingual" in the same family, so memory guards, Forget and
+ * history treat it like the original's sibling. A missing twin map is a compatible English-only installation.
+ * Each character has exactly one ordinary ID. The old alternate affectionate profiles (runtime/relationship-profiles.json,
+ * provider keys "<key>-romantic") are retired: that file is no longer read. */
+export function relationshipRegistry(ordinaryIds, twins = {}) {
   if (!plain(ordinaryIds) || Object.keys(ordinaryIds).length > 256
       || Object.entries(ordinaryIds).some(([profile, value]) => !key(profile) || !id(value))) fail('INVALID_ORDINARY_IDS');
-  if (!plain(variants) || (Object.keys(variants).length && (variants.version !== 1 || !plain(variants.characters)))
-      || Object.keys(variants).some(field => !['version', 'characters'].includes(field))) fail('INVALID_VARIANT_REGISTRY');
   const providerIds = {...ordinaryIds}, providerFamilies = Object.fromEntries(Object.keys(ordinaryIds).map(profile => [profile, profile]));
-  const characters = {};
-  for (const [profile, row] of Object.entries(variants.characters || {})) {
-    if (!Object.hasOwn(RELATIONSHIP_PROFILES, profile) || !Object.hasOwn(ordinaryIds, profile) || !plain(row)
-        || Object.keys(row).some(field => !['ordinaryCharacterId', 'romanticCharacterId'].includes(field))
-        || (row.ordinaryCharacterId !== undefined && row.ordinaryCharacterId !== ordinaryIds[profile])
-        || !id(row.romanticCharacterId)) fail('INVALID_VARIANT_PROFILE');
-    const providerProfileKey = profile + '-romantic';
-    if (Object.hasOwn(providerIds, providerProfileKey) || !key(providerProfileKey)) fail('VARIANT_KEY_COLLISION');
-    providerIds[providerProfileKey] = row.romanticCharacterId;
-    providerFamilies[providerProfileKey] = profile;
-    characters[profile] = {ordinaryCharacterId: ordinaryIds[profile], romanticCharacterId: row.romanticCharacterId,
-      romanticProviderKey: providerProfileKey};
-  }
   if (!plain(twins) || Object.keys(twins).length > 512) fail('INVALID_MULTILINGUAL_REGISTRY');
   const multilingual = {}, markerKeys = {};
   for (const [providerKey, twinId] of Object.entries(twins)) {
@@ -83,7 +68,7 @@ export function relationshipRegistry(ordinaryIds, variants = {}, twins = {}) {
     providerIds[twinKey] = twins[providerKey]; providerFamilies[twinKey] = providerFamilies[providerKey];
   }
   if (new Set(Object.values(providerIds)).size !== Object.keys(providerIds).length) fail('DUPLICATE_PROVIDER_ID');
-  return freeze({providerIds, providerFamilies, characters, multilingual, markerKeys});
+  return freeze({providerIds, providerFamilies, multilingual, markerKeys});
 }
 
 export function parseRelationshipState(raw) {
@@ -134,49 +119,44 @@ export function selectRelationshipProfile({profileKey, mode = 'auto', snapshot, 
   multilingual = false} = {}) {
   if (!key(profileKey) || !MODES.has(mode) || !registry || !Object.hasOwn(registry.providerIds, profileKey)
       || !Number.isSafeInteger(now)) fail('INVALID_SELECTION');
-  const rule = RELATIONSHIP_PROFILES[profileKey], configured = registry.characters[profileKey];
+  const rule = RELATIONSHIP_PROFILES[profileKey];
   // Only the five relationship characters read save facts; every other character skips the parse.
   const observed = !rule || snapshot == null ? null : parseRelationshipState(snapshot);
-  // Ordinary-only installs continue operating while the optional profile bundle
-  // is prepared. Explicit On still fails visibly instead of ignoring the choice.
-  if (rule && mode === 'on' && !configured) return freeze({status: 'unavailable', profileKey, reason: 'romantic-profile-unavailable'});
-  if (rule && configured && mode === 'auto' && !fresh(observed, boundary, now)) {
-    return freeze({status: 'unavailable', profileKey, reason: 'relationship-state-unavailable'});
-  }
-  const romantic = !!rule && !!configured && (mode === 'on' || mode === 'auto' && confirmed(profileKey, observed));
-  const relationshipKey = romantic ? configured.romanticProviderKey : profileKey;
-  // Multilingual conversations: the twin of exactly the profile chosen above.
-  // A profile without a usable twin keeps its original (English-only) profile.
-  const twinKey = multilingual === true ? registry.multilingual?.[relationshipKey] : undefined;
-  const providerProfileKey = twinKey ?? relationshipKey;
-  // History and delivery are separate. On is never evidence, and Off does not
-  // erase a real event. Capture only this speaker's current-save receipt with
-  // the admitted selection; group prompts never receive other partners' facts.
-  const saveRelationship = rule && fresh(observed, boundary, now) && confirmed(profileKey, observed)
+  const current = !!rule && fresh(observed, boundary, now);
+  // The style is the whole decision: it never changes the provider ID. On is affectionate delivery; Off is ordinary delivery;
+  // Auto is affectionate only when a fresh capture of this world confirms the relationship. Without a fresh capture Auto is
+  // ordinary for this turn (the conversation is never blocked on it), and the next turn follows the capture once it arrives.
+  const romantic = !!rule && (mode === 'on' || mode === 'auto' && current && confirmed(profileKey, observed));
+  // Multilingual conversations: the twin of the profile. A profile without a usable twin keeps its original (English-only) profile.
+  const twinKey = multilingual === true ? registry.multilingual?.[profileKey] : undefined;
+  const providerProfileKey = twinKey ?? profileKey;
+  // Style and history are separate. On is never evidence, and Off does not erase a real event. Capture only this speaker's
+  // current-save receipt with the admitted selection; group prompts never receive other partners' facts.
+  const saveRelationship = current && confirmed(profileKey, observed)
     ? {status: 'confirmed', evidenceRule: rule.rule} : null;
   return freeze({status: 'ready', profileKey, providerProfileKey, characterId: registry.providerIds[providerProfileKey],
-    variant: romantic ? 'romantic' : 'ordinary', kind: rule?.kind ?? 'ordinary', mode, multilingual: !!twinKey,
+    style: romantic ? 'romantic' : 'ordinary', kind: rule?.kind ?? 'ordinary', mode, multilingual: !!twinKey,
     reason: !rule ? 'unsupported' : mode === 'on' ? 'explicit-on' : mode === 'off' ? 'explicit-off'
-      : !configured ? 'ordinary-only-install' : romantic ? 'verified-current-save' : 'auto-unconfirmed',
+      : romantic ? 'verified-current-save' : current ? 'auto-unconfirmed' : 'relationship-state-unavailable',
     ...(romantic && mode === 'auto' ? {evidenceRule: rule.rule} : {}),
     ...(saveRelationship ? {saveRelationship} : {}),
     ...(binding(boundary) ? {worldToken: boundary.worldToken, generation: boundary.generation} : {})});
 }
 
 /** Settings and native updates commit only at an idle turn boundary. A prepared
- * turn owns its frozen selection; a settings change never redirects its send. */
+ * turn owns its frozen selection; a settings change never alters its style or redirects its send. */
 export class RelationshipRouting {
-  constructor({ordinaryIds, variants, multilingual, now = Date.now} = {}) {
-    this.registry = relationshipRegistry(ordinaryIds, variants, multilingual);
+  constructor({ordinaryIds, multilingual, now = Date.now} = {}) {
+    this.registry = relationshipRegistry(ordinaryIds, multilingual);
     this.providerIds = this.registry.providerIds; this.providerFamilies = this.registry.providerFamilies;
     // Provider key -> the key in its ownership marker (only twins differ).
     this.markerKeys = this.registry.markerKeys;
     this.now = now; this.modes = relationshipModes(); this.snapshot = null; this.revision = 0;
     this.multilingual = false;
     this.pending = null; this.changes = new Set(); this.fingerprints = new Map();
-    // Every character whose route can change: the relationship characters and every character with a twin.
-    this.routedProfiles = [...new Set([...Object.keys(RELATIONSHIP_PROFILES).filter(profile => Object.hasOwn(this.providerIds, profile)),
-      ...Object.keys(this.registry.multilingual).map(providerKey => this.providerFamilies[providerKey])])];
+    // Every character whose provider can change: those with a twin. A style change (Auto/On/Off, a save fact) never changes
+    // the provider, so it needs no connection retirement.
+    this.routedProfiles = [...new Set(Object.keys(this.registry.multilingual).map(providerKey => this.providerFamilies[providerKey]))];
   }
   update(settings, rawSnapshot, {boundary, busy = false} = {}) {
     const modes = settings === undefined ? this.pending?.modes ?? this.modes : relationshipModes(settings?.relationshipModes);
@@ -219,7 +199,7 @@ export class RelationshipRouting {
       let selected;
       try { selected = this.select(profileKey, boundary); } catch { selected = {status: 'unavailable', reason: 'invalid-selection'}; }
       rows.push({profileKey, mode: this.modes[profileKey] ?? 'auto', status: selected.status,
-        variant: selected.variant ?? null, multilingual: selected.multilingual === true, reason: selected.reason ?? null,
+        style: selected.style ?? null, multilingual: selected.multilingual === true, reason: selected.reason ?? null,
         confirmedInSave: selected.saveRelationship?.status === 'confirmed'});
     }
     return rows;
@@ -255,54 +235,14 @@ export class RelationshipRouting {
   }
 }
 
-// Original portrayal guidance distilled from the reviewed roster and alternate
-// profile styles. These are delivery cues, not canonical dialogue or memories.
-const GROUP_DELIVERY = Object.freeze({
-  'judy-alvarez': 'Keep Judy\'s affection understated: a dry little tease, a practical offer, or one honest admission. Preserve her independence and avoid a public confession in every reply.',
-  'panam-palmer': 'Use Panam\'s direct, playful warmth and practical teamwork. Keep her agency and loyalties; a spirited tease need not become possessiveness or a competition.',
-  'river-ward': 'Use River\'s plainspoken warmth, a small dry joke or an ordinary kindness. Remain grounded; concern does not give him authority over V or the other companions.',
-  'kerry-eurodyne': 'Use Kerry\'s irreverent wit with a brief candid softening. Avoid a celebrity press statement, a generic romantic speech or turning the exchange into a rivalry.',
-  'meredith-stout': 'Keep Meredith\'s manner controlled, terse and knowing. Her confirmed encounter permits casual familiarity, never a claim that she is V\'s committed partner.',
-});
-
-function groupRelationshipContext(selection, options) {
-  const rule = RELATIONSHIP_PROFILES[selection.profileKey], group = parseGroup(options?.group);
-  const audience = options?.audience;
-  if (!group || !Array.isArray(audience) || audience.length < 2 || audience.length > 3
-      || audience.some(profile => !key(profile)) || new Set(audience).size !== audience.length
-      || !audience.includes(selection.profileKey)
-      || JSON.stringify([...group.audience].sort()) !== JSON.stringify([...audience].sort())
-      || !sameWorld(selection, options) || selection.saveRelationship?.status !== 'confirmed'
-      || selection.saveRelationship.evidenceRule !== rule.rule) return '';
-  const history = rule.kind === 'casual-intimacy'
-    ? 'The current save confirms your own casual intimate encounter with V, without establishing a continuing romance. You may acknowledge casual familiarity when relevant.'
-    : 'The current save confirms your own relationship with V. Treat this as the verified commitment history, not proof of later status or future promises. You may acknowledge that relationship naturally when relevant in this present group; no extra disclosure step is required for acknowledging your own commitment.';
-  return 'Current group relationship guidance: ' + history + ' '
-    + (selection.variant === 'ordinary'
-      ? 'Keep the selected ordinary delivery; this receipt supplies factual acknowledgement, not a switch to the affectionate profile. '
-      : GROUP_DELIVERY[selection.profileKey] + ' ')
-    + 'Respond to another present speaker\'s actually heard words with a brief character-specific reaction or banter when it fits. '
-    + 'This receipt belongs only to you. It does not tell you another companion\'s private relationship history, establish that they already know yours, or establish exclusivity, jealousy or consent. '
-    + 'Keep intimate scene details and earlier private conversations out of the group. Do not invent a shared scene or assume a group invitation proves a relationship. '
-    + 'Do not force a romantic topic into an unrelated reply. Preserve the current round\'s speaker order.';
-}
-
-export function relationshipContext(selection, channel = 'private', options) {
-  if (selection?.status !== 'ready' || !Object.hasOwn(RELATIONSHIP_PROFILES, selection.profileKey)) return '';
-  const ordinary = 'Use your ordinary conversation style. Do not assume a romance from friendliness, a party invitation, or earlier recalled reports; only the current save facts establish shared events.';
-  const group = channel === 'group' ? groupRelationshipContext(selection, options) : '';
-  if (selection.variant === 'ordinary') return [ordinary, group].filter(Boolean).join(' ');
-  const why = selection.reason === 'explicit-on'
-    ? 'The player explicitly selected your affectionate conversation profile. This conversation preference does not establish that any game quest, kiss or intimate scene occurred.'
-    : 'The current save confirms your reviewed relationship or intimate-history receipt; discuss only the actually supplied details, without inventing further shared events.';
-  const boundary = selection.kind === 'casual-intimacy'
-    ? 'For Meredith this is casual familiarity: do not claim an ongoing romance, exclusivity, devotion or a promise of another encounter.'
-    : 'Use character-specific affection naturally; do not make every reply romantic or treat affection as consent to a new intimate act.';
-  const privacy = channel === 'group'
-    ? group
-      ? 'Keep private intimate details and private conversations out of group dialogue unless explicit current-audience disclosure is supplied.'
-      : 'Keep private relationship history and private conversations out of group dialogue unless explicit current-audience disclosure is supplied.' : '';
-  return [why, boundary, privacy, group].filter(Boolean).join(' ');
+/** True when `selection` belongs to the exact admitted group of two or three distinct speakers in the same world. */
+export function groupAdmitted(selection, options) {
+  const group = parseGroup(options?.group), audience = options?.audience;
+  return !!group && Array.isArray(audience) && audience.length >= 2 && audience.length <= 3
+    && audience.every(profile => key(profile)) && new Set(audience).size === audience.length
+    && audience.includes(selection?.profileKey)
+    && JSON.stringify([...group.audience].sort()) === JSON.stringify([...audience].sort())
+    && sameWorld(selection, options);
 }
 
 /** Only call at an idle admission boundary. A completed request's exact config
