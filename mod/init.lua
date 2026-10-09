@@ -1973,6 +1973,14 @@ registerForEvent('onInit', function()
         if not ok then log('Interrupted driver cleanup initialization failed: '..tostring(error)) end
     end
     subtitles.install()
+    -- Free look while V sits (docs/COMPANION_SEATING.md): widens the TweakDB
+    -- workspot camera limits once. No setting and no per-frame work.
+    local lookLoaded, lookReport = pcall(function() return dofile('seated-look.lua').apply(TweakDB) end)
+    if not lookLoaded then
+        log('Seated free look failed: ' .. tostring(lookReport))
+    elseif #lookReport.failed > 0 then
+        log('Seated free look incomplete: ' .. table.concat(lookReport.failed, ', '))
+    end
     if convaiGameDialogue and not convaiGameDialogue:install() then log('Game dialogue capture unavailable') end
     lootObserver.configure({captureContext = captureLootContext})
     lootObserver.install()

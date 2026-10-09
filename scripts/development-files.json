@@ -206,6 +206,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-seating.lua"
     },
     {
+      "source": "mod/seated-look.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/seated-look.lua"
+    },
+    {
       "source": "mod/gesture-workspot.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/gesture-workspot.lua"
     },
