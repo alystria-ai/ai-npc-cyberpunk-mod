@@ -182,6 +182,20 @@ local function stageTick(context)
             current.npc:GetAIControllerComponent():SendCommand(command)
             stage.placed, stage.sendAt = stage.placed + 1, M.clock + STAGE_RESEND
         end
+        -- A walking companion keeps leaving the spot, so she is also told to hold position (re-sent every 5 s; the
+        -- command class is optional: if the game lacks it the stage still works, only less steadily).
+        if M.clock >= (stage.holdAt or 0) then
+            stage.holdAt = M.clock + 5
+            pcall(function()
+                local hold = NewObject('AIHoldPositionCommand')
+                if hold then
+                    hold.duration = math.max(1, stage.until_ - M.clock) + 1
+                    hold.ignoreInCombat = false
+                    hold.removeAfterCommandCompletion = true
+                    current.npc:GetAIControllerComponent():SendCommand(hold)
+                end
+            end)
+        end
     end)
     if not ok then stage.state, stage.error = 'failed', tostring(err) end
 end
