@@ -76,7 +76,8 @@ for (const label of ['Anger', 'Rage', 'Grief', 'Sadness', 'Fear', 'Disgust']) {
 test('emotions are visible: peaks follow the live face-test (smile reads at .35-.5, 1.0 is a grin)', () => {
   const peak = (emotion, scale) => expressionTarget({emotion: {emotion, scale}});
   const near = (value, wanted) => assert.ok(Math.abs(value - wanted) < .01, value + ' vs ' + wanted);
-  near(peak('Joy', 3).lips_l_corner_up, .45); near(peak('Joy', 2).lips_l_corner_up, .30);
+  // Joy only gets a mild lift on its weight (w x (1 + .5 x (1 - w))): scale 2 .45 x .67 x 1.165 = .351; scale 3 stays .45.
+  near(peak('Joy', 3).lips_l_corner_up, .45); near(peak('Joy', 2).lips_l_corner_up, .351);
   assert.ok(peak('Joy', 1).lips_l_corner_up < peak('Joy', 2).lips_l_corner_up);
   near(peak('Trust', 3).lips_l_corner_up, .35);
   // October 9 (later): frowns and brows nearly doubled after in-game captures (brows read from about .5),
@@ -244,8 +245,8 @@ test('resting warmth is a floor under every non-negative intent, with a per-char
   // Gain (full lips): corners x1.5, caps x1.3 at most; brows are untouched.
   const gained = expressionTarget({emotion: {emotion: 'Joy', scale: 3}, gain: 1.5});
   assert.equal(gained.lips_l_corner_up, Math.min(.45 * 1.5, R.cornerUpMax * R.gainCapMax));
-  assert.equal(expressionTarget({emotion: {emotion: 'Joy', scale: 2}, gain: 1.5}).lips_l_corner_up,
-    .45 * R.scaleStrength[1] * 1.5);
+  assert.ok(Math.abs(expressionTarget({emotion: {emotion: 'Joy', scale: 2}, gain: 1.5}).lips_l_corner_up
+    - .45 * R.scaleStrength[1] * (1 + R.smileLift * (1 - R.scaleStrength[1])) * 1.5) < 1e-9);
   assert.equal(gained.eye_l_brows_raise_out, expressionTarget({emotion: {emotion: 'Joy', scale: 3}}).eye_l_brows_raise_out);
   // The squint follows the smile (before mouth priority), capped, and exists only with a smile.
   const smile = expressionTarget({emotion: {emotion: 'Joy', scale: 3}});

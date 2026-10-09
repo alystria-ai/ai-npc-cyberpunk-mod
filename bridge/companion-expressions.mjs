@@ -37,7 +37,7 @@ export const EXPRESSION_POLICY = Object.freeze({
   // October 9 (later), in-game captures of Judy at conversation distance: every control reaches the rig, but
   // brows read only from about .5, corners down stay subtle on her rig even at 1, the squint and widened eyes
   // read from about .3. Frowns and brows nearly doubled, eyes added, caps raised; smiles unchanged.
-  version: 7, mixCurve: .6, restSmile: .12, squintMax: .5, widenMax: .7, squintPerSmile: .6, gainCapMax: 1.3, cornerUpMax: .80, cornerDownMax: .80, browRaiseMax: .90, browLowerMax: .90,
+  version: 8, mixCurve: .6, smileLift: .5, restSmile: .12, squintMax: .5, widenMax: .7, squintPerSmile: .6, gainCapMax: 1.3, cornerUpMax: .80, cornerDownMax: .80, browRaiseMax: .90, browLowerMax: .90,
   speechMouthFactor: .85, attackSeconds: .18, releaseSeconds: .55,
   // Categorical scale 1..3 (Convai) -> fraction of the family's full pose.
   scaleStrength: Object.freeze([.4, .67, 1]),
@@ -197,7 +197,8 @@ export function expressionTarget({emotion = null, phase = 'idle', speechPose = {
   const parsed = normalizeConvaiEmotion(emotion), family = parsed?.family;
   const strength = parsed ? EXPRESSION_POLICY.scaleStrength[parsed.scale - 1] : 0;
   switch (family) {
-    case 'joy': pair(out, 'corner_up', .45 * strength * smile); smileRaw = .45 * strength * squint; brows(out, 'raise_out', .30 * strength); break;
+    case 'joy': { const lift = 1 + EXPRESSION_POLICY.smileLift * (1 - strength);
+      pair(out, 'corner_up', .45 * strength * lift * smile); smileRaw = .45 * strength * lift * squint; brows(out, 'raise_out', .30 * strength); break; }
     case 'trust': pair(out, 'corner_up', .35 * strength * smile); smileRaw = .35 * strength * squint; break;
     case 'sadness': case 'anger': case 'fear': case 'disgust': case 'surprise':
       for (const [key, value] of Object.entries(FAMILY_POSES[family])) channel(out, key, value * strength);
@@ -275,8 +276,8 @@ export function mixTarget({weights, phase = 'idle', speechPose = {}, blocked = f
   const w = Array.isArray(weights) ? Object.fromEntries(MIX_FAMILIES.map((family, i) => [family, weights[i] || 0])) : (weights || {});
   // Frowns and brows show a weight w as w^mixCurve of the pose; the smile stays linear (its evidence gates were
   // tuned for that, and a curved smile turned weak, misread joy into visible smiles on sad or calm replies).
-  const curve = (value, key) => { const weight = clamp(value || 0); return weight > 0 && key !== 'up' ? weight ** EXPRESSION_POLICY.mixCurve : weight; };
-  const channel_ = key => softSum(MIX_FAMILIES.map(family => (FAMILY_POSES[family][key] || 0) * curve(w[family], key)));
+  const curve = (value, key, family) => { const weight = clamp(value || 0); return weight > 0 ? (key !== 'up' ? weight ** EXPRESSION_POLICY.mixCurve : family === 'joy' ? weight * (1 + EXPRESSION_POLICY.smileLift * (1 - weight)) : weight) : weight; };
+  const channel_ = key => softSum(MIX_FAMILIES.map(family => (FAMILY_POSES[family][key] || 0) * curve(w[family], key, family)));
   let up = channel_('up'), dn = channel_('dn'), rin = channel_('in'), rout = channel_('out'), low = channel_('low');
   let narrow = channel_('sq'), wide = channel_('wide');
   if (narrow > wide) { narrow -= .5 * wide; wide = 0; } else { wide -= .5 * narrow; narrow = 0; }

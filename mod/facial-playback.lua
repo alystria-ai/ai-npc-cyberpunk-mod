@@ -288,6 +288,10 @@ local familyPoses={joy={up=.45,out=.30},trust={up=.35},
 -- differ. The smile (key 'up') stays linear: the selector's smile evidence gates were tuned for it, and a curved
 -- smile made weak, misread joy visible on sad or calm replies. Mirrors EXPRESSION_POLICY.mixCurve.
 local mixCurve=.6
+-- Joy only (trust stays the gentle smile). The smile weight stays nearly linear (its evidence gates were tuned for that) but a typical tagged line (weight .5-.67)
+-- reached only 40-57 % of the captured joy while speaking, so a mild lift: w x (1 + .5 x (1 - w)): .2 -> .28, .48 -> .61,
+-- .67 -> .78, 1 -> 1. Mirrors EXPRESSION_POLICY.smileLift.
+local smileLift=.5
 -- Smile or frown is decided on the earlier corner balance (linear, joy .45 / trust .35 against sadness .40,
 -- anger .25, fear .15, disgust .30), so the bigger frown poses do not tip a joyful bittersweet line into a
 -- frown; the winner then shows at its own (bigger) pose. An even mix still leans sad.
@@ -299,7 +303,11 @@ local function mixChannel(weights,key,poses)
         local unit=(poses or familyPoses)[family][key]
         if unit then
             local weight=clamp(weights[index] or 0)
-            local value=(weight>0 and key~='up' and not poses) and unit*weight^mixCurve or unit*weight
+            local value=unit*weight
+            if not poses and weight>0 then
+                if key~='up' then value=unit*weight^mixCurve
+                elseif family=='joy' then value=unit*weight*(1+smileLift*(1-weight)) end
+            end
             if value>max then max=value end
             sum=sum+value
         end
@@ -425,7 +433,7 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     local function pair(stem,value) target['lips_l_'..stem]=value;target['lips_r_'..stem]=value end
     local function brows(stem,value) target['eye_l_brows_'..stem]=value;target['eye_r_brows_'..stem]=value end
     if weights then mixTargets(weights,target,phase,warmth,trait.smile,trait.squint)
-    elseif family=='joy' then pair('corner_up',.45*strength*(trait.smile or 1));brows('raise_out',.30*strength);target.smileRaw=.45*strength*(trait.squint or 1)
+    elseif family=='joy' then pair('corner_up',.45*strength*(1+smileLift*(1-strength))*(trait.smile or 1));brows('raise_out',.30*strength);target.smileRaw=.45*strength*(1+smileLift*(1-strength))*(trait.squint or 1)
     elseif family=='trust' then pair('corner_up',.35*strength*(trait.smile or 1));target.smileRaw=.35*strength*(trait.squint or 1)
     elseif familyPoses[family] then
         -- One reply-level label: the family's unit pose at the label's strength (linear, as before).

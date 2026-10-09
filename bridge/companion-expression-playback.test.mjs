@@ -529,7 +529,7 @@ test('track playback: the expression follows the heard audio position, blends be
  for p=2.6,3.4,.1 do at(p) end
  local sad=at(3.45)
  assert(sad.lips_l_corner_dn>.15 and sad.lips_l_corner_up==0 and sad.eye_l_brows_raise_in>.2,'phrase two is sad: '..sad.lips_l_corner_dn..' '..sad.eye_l_brows_raise_in)
- assert(sad.eye_l_oculi_squint_outer_lower<.02,'no squint without a smile')
+ assert(sad.eye_l_oculi_squint_outer_lower<.05,'no squint without a smile (the bigger joy squint is still easing out)')
 `));
 
 // October 8 (user): Judy keeps her light smile while idle, but never on a sad topic: the Evelyn conversation is
