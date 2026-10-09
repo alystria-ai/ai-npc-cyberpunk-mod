@@ -1,20 +1,22 @@
 # Multilingual Convai profiles (full roster)
 
-Every character the mod has a Convai profile for (all 79 in `characters/roster.json`
+Every character the mod has a Convai profile for (all 80 in `characters/roster.json`
 with an ID in `runtime/characters.json`, and the 44 generic NPC archetypes of
 `characters/archetype-roster.json`, keys `npc-*`) has a twin named "<name> Multilingual" in the
-same account: 123 twins (79 named, 44 archetype). Each character has one profile and one
+same account: 124 twins (80 named, 44 archetype). Each character has one profile and one
 twin. (Until 2026-10-09 the five romantic profiles of Judy, Panam, River, Kerry and
 Meredith had twins too, 128 in all; see "Retired romantic profiles" below.)
 The twins exist and are verified; the mod uses them while Settings > Conversations > Multilingual
 conversations is on (see "Multilingual conversations" below).
-Alt Cunningham is a tier-1 voice but has no Convai profile.
+Alt Cunningham (`alt-cunningham`, added 2026-10-10) has a profile and a twin like the rest. Her twin's language box is not yet recorded
+as unticked (`languageBoxOff` is false in `runtime/multilingual-profiles.json`): until that web-session step is done the
+bridge answers her with the original profile. See `needsLanguageBoxOff` in `scripts/Create-MultilingualProfiles.mjs`.
 
 ```powershell
 node scripts/Create-MultilingualProfiles.mjs --dry-run        # default: plan only, no remote calls
-node scripts/Create-MultilingualProfiles.mjs --apply          # create/adopt + verify all 123 (--roster all, the default)
+node scripts/Create-MultilingualProfiles.mjs --apply          # create/adopt + verify all 124 (--roster all, the default)
 node scripts/Create-MultilingualProfiles.mjs --roster archetypes --apply   # only the 44 npc-* archetypes
-node scripts/Create-MultilingualProfiles.mjs --roster named --apply        # only the 79 named characters
+node scripts/Create-MultilingualProfiles.mjs --roster named --apply        # only the 80 named characters
 node scripts/Create-MultilingualProfiles.mjs --apply --only judy-alvarez,panam-palmer
 node --test bridge/multilingual-profiles.test.mjs
 ```
@@ -112,7 +114,7 @@ The box is the dashboard field `language_hardening_mode`: `default` means ticked
   `languageBoxOff: true`. After the box is set through the browser session, edit the
   mapping entry to `languageBoxOff: true` (the script preserves that flag on re-runs).
 
-Status (2026-10-07): all 84 twins then existing (23 tier-1, 5 romantic since retired, 56 for the rest of the roster; 79 today)
+Status (2026-10-07): all 84 twins then existing (23 tier-1, 5 romantic since retired, 56 for the rest of the roster; 80 today)
 have the box off, set through the web session and verified by readback, and are marked
 `languageBoxOff: true` in the mapping.
 
@@ -329,7 +331,7 @@ written in this mode. It records the voice in the mapping's `voiceType`. Request
 
 ### Verification (2026-10-08)
 
-All 84 live twins then existing (79 today; the other five were the retired romantic twins) were read before and after (`/character/get`), together with their 84 originals. Result: the voice of
+All 84 live twins then existing (80 today; the other five were the retired romantic twins) were read before and after (`/character/get`), together with their 84 originals. Result: the voice of
 all 84 twins equals the map (52 distinct voices; 80 twins changed, 4 already had their mapped voice: Alex, Lina Malina
 (Emma), Mitch Anderson, Solomon Reed (Christopher)); no other field of any twin changed (backstory, speaking style,
 `language_codes` `['en-US']`, model, memory, state of mind, verbosity and the rest all identical); no original changed;

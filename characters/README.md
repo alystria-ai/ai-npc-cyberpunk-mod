@@ -34,3 +34,18 @@ Credentials, character IDs, API responses and backup snapshots stay in ignored `
 Private text uses the addressed identity. Group text uses that identity first, then at most two different nearby supported companions; duplicate copies count once. The input heading shows only the addressed name. Assign these actions in CET's Bindings; the mod does not impose particular keys. Characters unlocked later in the phone use the same mapping when they become available. Service contacts and unmapped drones do not become walking NPCs through conversation profiles.
 
 Source validation and API readback establish configuration correctness. They do not establish the quality of every in-game conversation, follower body, animation or voice. Those require live observations and are tracked in the [TODO list](../TODO.md).
+
+## Adding a tier-1 companion (worked example: Alt Cunningham, 2026-10-10)
+
+Alt has no phone contact and no vanilla follower role, so she is a model-plus-profile companion like Johnny and Smasher. The same steps apply to any new tier-1 character:
+
+1. Dossier `research/cyberpunk/dossiers/<key>.json` (validate with `validateResearch`), then a roster row built with `buildProfiles` from `research/cyberpunk/scripts/build_research.mjs` and written to `roster.json`, `profile-text/<key>.txt`, `research/cyberpunk/generated/profile-plan.json`, the build report and `coverage.json`. The full `build_research.mjs` run needs the evidence cache, which is an offloaded symlink on this machine; building one row with `intrinsicPacks: []` (for a character that is not an adopted native-intrinsic persona) reproduces an existing row byte for byte.
+2. Convai: `node scripts/Provision-Characters.mjs --apply --only <key>` and `node scripts/Create-MultilingualProfiles.mjs --apply --only <key>`; add the key to `TIER1_KEYS`, assign a twin voice in `multilingual-voice-map.json`, and copy the new ID rows into `packaging/release-data/`. The twin's language box is unticked by hand in the Convai web session (`languageBoxOff: true` in the map afterwards).
+3. Knowledge: add the key to `profileKeys` in `characters/world-knowledge.json` and its generated twin, or the knowledge service rejects the audience.
+4. Menu and spawn: the roster `records` entry registers the model; `manager-characters.json` documents it. A phone contact is only needed when the game has one.
+5. Auto-connect: `mod/auto-connect.lua` `M.TIER1`.
+6. Cold or warm manner lists: `bridge/emotion-analysis.mjs`, `bridge/text-emotion.mjs`, `bridge/emotion-selector.mjs` and the trait table in `mod/facial-playback.lua`.
+7. Voice: Pocket and Omni references and entries in the `runtime/*voices*` files, plus `packaging/release-plan.json` `voice.localProfiles` and `registry.preparedLocalProfiles` (sorted, `-` before `.`).
+8. Gestures: a `characters` row in `assets/gestures/gestures.json` and the generated `mod/gesture-catalog.lua`, and the tier-1 list in `bridge/companion-gestures.test.mjs`.
+
+A summoned Alt is the human-era model. The dossier keeps her as the entity beyond the Blackwall who is present through a mod presentation, and states that spawning her establishes no quest outcome.

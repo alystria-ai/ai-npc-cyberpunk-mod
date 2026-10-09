@@ -39,7 +39,7 @@ The endpoint and basic name/voice/backstory fields are described in the
 [Convai Character Base API](https://docs.convai.com/api-docs/api-reference/core-api-reference/character-crafting-apis/character-api).
 The two speaking-style request names above follow the integration example
 supplied on September 29, 2026. Their update/readback was verified against all
-79 existing mod profiles; the older public base-API examples omit them.
+80 existing mod profiles; the older public base-API examples omit them.
 
 Sample dialogues are examples of the words the character should speak. Do not
 prefix them with the character's name, `Character:`, or another speaker label,
@@ -86,7 +86,7 @@ Both entry points plan by default; `--apply` or `-Apply` performs remote writes.
 Generic NPC archetypes (docs/NPC_ARCHETYPES.md) use the same implementation with their own roster:
 `node scripts/Build-ArchetypeProfiles.mjs`, then
 `node scripts/Provision-Characters.mjs --roster archetypes [--only npc-...] --apply`. Their IDs share
-`runtime/characters.json` under `npc-*` keys; `characters/roster.json` stays the 79 named and ambient profiles.
+`runtime/characters.json` under `npc-*` keys; `characters/roster.json` stays the 80 named and ambient profiles.
 The PowerShell script delegates to the Node implementation so their payloads,
 ownership checks and readback cannot drift apart.
 
