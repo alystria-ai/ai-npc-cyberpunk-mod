@@ -135,6 +135,8 @@ end
 -- invited earlier and waits until each is really gone ('clearing'), so two characters never share a spot; the spot is
 -- also moved sideways when another owned companion stands on it, and nobody is ever placed on V (.85 m away).
 local STAGE_DISTANCE, STAGE_DEFAULT_HOLD, STAGE_MAX_HOLD, STAGE_SPAWN_WAIT, STAGE_PERIOD, STAGE_RESEND = .85, 60, 300, 75, .1, .25
+-- `face-stage distance <metres>` moves the spot closer for mouth captures (.45 to 1.2; .85 by default, reset by a reload).
+M.stageDistance = M.stageDistance or STAGE_DISTANCE
 M.spawned = M.spawned or {}
 M.leaving = M.leaving or {}
 
@@ -220,7 +222,7 @@ local function stageTarget()
     -- Yaw convention: forward = (-sin yaw, cos yaw), so the camera's yaw is atan2(-fx, fy); she turns the other way.
     local atan2 = math.atan2 or math.atan -- LuaJIT (the game) has atan2; Lua 5.3 takes two arguments in atan
     local yaw = math.deg(atan2(-fx, fy)) + 180
-    return {x = at.x + fx * STAGE_DISTANCE, y = at.y + fy * STAGE_DISTANCE, z = at.z, yaw = yaw, rx = -fy, ry = fx}
+    return {x = at.x + fx * M.stageDistance, y = at.y + fy * M.stageDistance, z = at.z, yaw = yaw, rx = -fy, ry = fx}
 end
 
 -- Probe-invited keys that were dismissed but still have a copy standing: the next stage waits for them to be gone.
@@ -365,7 +367,7 @@ end
 
 commands['face-stage'] = function(rest, context)
     local word, tail = rest:match('^(%S+)%s*(.*)$')
-    if not word then return false, 'usage: face-stage <key> [hold-seconds] | status | check | freeze | thaw | off | dismiss' end
+    if not word then return false, 'usage: face-stage <key> [hold-seconds] | status | check | distance <m> | look | freeze | thaw | off | dismiss' end
     if word == 'status' then
         local stage = M.stage
         if not stage then return true, {state = 'none', leaving = pendingLeaving(context)} end
@@ -407,6 +409,7 @@ commands['face-stage'] = function(rest, context)
             pcall(function() out.record = tostring(TDBID.ToStringDEBUG(row.npc:GetRecordID())) end)
             pcall(function() out.appearance = NameToString(row.npc:GetCurrentAppearanceName()) end)
             pcall(function() out.display = tostring(row.npc:GetDisplayName()) end)
+            pcall(function() out.graph = tostring(row.npc:ConvaiFaceStatus()) end)
             local screen = Game.GetCameraSystem():ProjectPoint(head)
             out.headX, out.headY, out.headZ = screen.x, screen.y, head.z - at.z
         end)
@@ -417,6 +420,11 @@ commands['face-stage'] = function(rest, context)
         out.steady = out.quiet >= 3 and out.off < .25 and out.turn < 12
         out.inFrame = out.headX ~= nil and math.abs(out.headX) < .6 and math.abs(out.headY) < .75
         return true, out
+    elseif word == 'distance' then
+        local metres = tonumber(tail)
+        if not metres then return true, {distance = M.stageDistance} end
+        M.stageDistance = math.max(.45, math.min(1.2, metres))
+        return true, {distance = M.stageDistance}
     elseif word == 'look' or word == 'unlook' then
         local stage = M.stage
         if not stage or stage.state ~= 'staged' then return false, 'no staged character' end
