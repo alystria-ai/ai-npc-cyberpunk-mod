@@ -123,7 +123,7 @@ for _,key in ipairs({'panam-palmer','jackie-welles','kerry-eurodyne','misty-olsz
 traitTable['judy-alvarez']={warmth=.12,gain=1.6,browDown=1.25,smile=.7,squint=1,jawLift=false}
 for _,key in ipairs({'johnny-silverhand','rogue-amendiares','takemura','saul-bright','meredith-stout','solomon-reed',
     'spider-murphy','r3n0','regina-jones'}) do traitTable[key]={warmth=.05,gain=1,smile=defaultSmile,squint=defaultSquint} end
-for _,key in ipairs({'adam-smasher','yorinobu-arasaka','hanako-arasaka','alan-noel','mr-hands'}) do traitTable[key]={warmth=0,gain=1,smile=defaultSmile,squint=defaultSquint} end
+for _,key in ipairs({'adam-smasher','alt-cunningham','yorinobu-arasaka','hanako-arasaka','alan-noel','mr-hands'}) do traitTable[key]={warmth=0,gain=1,smile=defaultSmile,squint=defaultSquint} end
 -- Mood hold after a negative turn: seconds of neutral rest, a shorter hold once a
 -- later turn was calm, and the ease back to the resting smile.
 local moodHoldSeconds,moodCalmSeconds,moodEaseSeconds,moodThreshold=60,10,5,.2

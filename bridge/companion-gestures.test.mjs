@@ -269,7 +269,7 @@ test('every tier-1 companion maps to a family on its own rig with plenty of visi
     'Character.Evelyn','Character.Lizzy_Wizzy','Character.Mama_Welles','Character.Stout','Character.reggie','Character.songbird',
     'Character.wakako_okada','Character.Silverhand','Character.Kerry','Character.Victor_Vector','Character.Takemura',
     'Character.mr_hands','Character.Padre','Character.Jackie','Character.Sobchak','Character.reed','Character.Elcoyote_Barman',
-    'Character.Hanako','Character.Saul','Character.Placide','Character.Mitch'}
+    'Character.Hanako','Character.Saul','Character.Placide','Character.Mitch','Character.Alt'}
   for _,record in ipairs(tier1) do
     local known=cat.characters[record]
     assert(known,'unmapped '..record)

@@ -49,7 +49,7 @@ const NEGATION = new Set(['not', 'no', 'never', "don't", 'dont', "isn't", "wasn'
 // Profiles whose resting manner is not warm: the face stays alert but flat
 // unless the text itself carries a feeling. Warm characters rest in a clearer
 // smile than everyone else (scale 2 vs 1 of the Trust pose).
-const COLD = new Set(['adam-smasher', 'yorinobu-arasaka', 'hanako-arasaka', 'alan-noel', 'mr-hands']);
+const COLD = new Set(['adam-smasher', 'alt-cunningham', 'yorinobu-arasaka', 'hanako-arasaka', 'alan-noel', 'mr-hands']);
 const WARM = new Set(['judy-alvarez', 'jackie-welles', 'panam-palmer', 'kerry-eurodyne', 'misty-olszewski',
   'mama-welles', 'river-ward', 'claire-russell', 'dexter-deshawn', 'padre-ibarra', 'viktor-vektor']);
 

@@ -249,6 +249,7 @@ test('catalogue prominence: tier-1 named, other named, generic residents and arc
   run(`
     local module = (function() ${source} end)()
     assert(module.prominence({key = 'judy-alvarez', kind = 'named'}) == 1)
+    assert(module.prominence({key = 'alt-cunningham', kind = 'named'}) == 1, 'Alt is tier 1')
     assert(module.prominence({key = 'dakota-smith', kind = 'named'}) == 2)
     assert(module.prominence({key = 'resident-male', kind = 'ambient'}) == 3)
     assert(module.prominence({key = 'fixer-generic', kind = 'archetype'}) == 3)

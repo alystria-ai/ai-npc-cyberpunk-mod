@@ -45,12 +45,12 @@ M.DEFAULTS = {
     partnerGrace = 30,   -- seconds the previous partner stays after V talks to someone else
 }
 
--- Tier-1 named characters (the 23 with a hand-reviewed profile and voice; scripts/Create-MultilingualProfiles.mjs).
+-- Tier-1 named characters (the 24 with a hand-reviewed profile and voice; scripts/Create-MultilingualProfiles.mjs).
 M.TIER1 = {}
-for _, key in ipairs({'alex', 'claire-russell', 'evelyn-parker', 'jackie-welles', 'johnny-silverhand', 'judy-alvarez',
-    'kerry-eurodyne', 'lizzy-wizzy', 'mama-welles', 'meredith-stout', 'misty-olszewski', 'mr-hands', 'padre-ibarra',
-    'panam-palmer', 'pepe-najarro', 'regina-jones', 'river-ward', 'rogue-amendiares', 'solomon-reed', 'songbird',
-    'takemura', 'viktor-vektor', 'wakako-okada'}) do M.TIER1[key] = true end
+for _, key in ipairs({'alex', 'alt-cunningham', 'claire-russell', 'evelyn-parker', 'jackie-welles', 'johnny-silverhand',
+    'judy-alvarez', 'kerry-eurodyne', 'lizzy-wizzy', 'mama-welles', 'meredith-stout', 'misty-olszewski', 'mr-hands',
+    'padre-ibarra', 'panam-palmer', 'pepe-najarro', 'regina-jones', 'river-ward', 'rogue-amendiares', 'solomon-reed',
+    'songbird', 'takemura', 'viktor-vektor', 'wakako-okada'}) do M.TIER1[key] = true end
 
 -- Prominence of a catalogue profile ({key, kind, tier}): 1 tier-1 named, 2 other named, 3 generic (a resident,
 -- an archetype or any other non-named kind). A profile's own `tier`/`prominence` field wins when present.

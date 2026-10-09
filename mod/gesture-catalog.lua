@@ -35046,6 +35046,16 @@ return {
             note = "Own-idle loops do not match any interactive-scene clip lower body (feet 15-46 cm apart in hip space), so blends crossed legs (Oct 8). Talk loops the family base pose; only clips whose feet stay within 8 cm of it play.",
             idleSource = "generic",
         },
+        ["Character.Alt"] = {
+            key = "alt",
+            rig = "woman_base",
+            talk = "on_sides",
+            idle = "generic_hip",
+            flavour = true,
+            fallback = "on_sides",
+            note = "Added Oct 10 for the Alt Cunningham companion: same woman_base rig as Evelyn (entity root component, h0_001_wa_c__alt face rig), generic hip idle; no character-specific idle was measured.",
+            idleSource = "generic",
+        },
         ["Character.Lizzy_Wizzy"] = {
             key = "lizzy",
             rig = "woman_base",

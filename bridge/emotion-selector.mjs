@@ -49,7 +49,7 @@ const MANNER_OF = new Map(Object.entries({
   reserved: ['johnny-silverhand', 'rogue-amendiares', 'takemura', 'saul-bright', 'meredith-stout', 'solomon-reed',
     'spider-murphy', 'r3n0', 'regina-jones', 'songbird', 'nix', 'judy-alvarez', 'river-ward', 'viktor-vektor', 'placide',
     'evelyn-parker', 'alex'],
-  cold: ['adam-smasher', 'yorinobu-arasaka', 'hanako-arasaka', 'alan-noel', 'mr-hands'],
+  cold: ['adam-smasher', 'alt-cunningham', 'yorinobu-arasaka', 'hanako-arasaka', 'alan-noel', 'mr-hands'],
 }).flatMap(([manner, keys]) => keys.map(key => [key, manner])));
 export function mannerFor(profile) { return MANNER_OF.get(profile) ?? 'open'; }
 

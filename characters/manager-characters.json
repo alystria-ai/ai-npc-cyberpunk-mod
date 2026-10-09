@@ -12,5 +12,12 @@
     "record": "Character.Smasher",
     "profileKey": "adam-smasher",
     "note": "Managed copy; boss rig and follower compatibility need live qualification."
+  },
+  {
+    "key": "alt-cunningham",
+    "name": "Alt Cunningham",
+    "record": "Character.Alt",
+    "profileKey": "alt-cunningham",
+    "note": "Managed physical copy of the human-era Alt (appearance alt_default); not the Blackwall entity. Needs live qualification: spawn, outfit, stray slot meshes."
   }
 ]

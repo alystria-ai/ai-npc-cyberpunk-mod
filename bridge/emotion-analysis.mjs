@@ -23,7 +23,7 @@ export const TRAITS = Object.freeze({
   dry: {baseline: {trust: .3}, range: .9, sarcasm: 1.15},
   cold: {baseline: {anticipation: .35}, range: .7},
 });
-const COLD = new Set(['adam-smasher', 'yorinobu-arasaka', 'hanako-arasaka', 'alan-noel', 'mr-hands']);
+const COLD = new Set(['adam-smasher', 'alt-cunningham', 'yorinobu-arasaka', 'hanako-arasaka', 'alan-noel', 'mr-hands']);
 const WARM = new Set(['judy-alvarez', 'jackie-welles', 'panam-palmer', 'kerry-eurodyne', 'misty-olszewski', 'mama-welles',
   'river-ward', 'claire-russell', 'dexter-deshawn', 'padre-ibarra', 'viktor-vektor']);
 const DRY = new Set(['johnny-silverhand', 'rogue-amendiares', 'takemura', 'saul-bright', 'meredith-stout', 'solomon-reed',
