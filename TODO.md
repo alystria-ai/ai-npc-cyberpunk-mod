@@ -113,6 +113,8 @@ The review is **complete** (2026-10-07; verdict and decisions are in the log). D
 
 ## Captain's log
 
+**2026-10-09: Face round closed (probe freeze and look-at, identity check).** Kill switch fixed (the probe rows had no serial, `54ceb4a`), dev-only body freeze and look-at for staged copies (`9dca1ca`, `3595a68`), identity readout confirmed Mama Welles, Regina, River and Rogue wear the game's own appearances (no definition change). Tier-1 sweep stopped at the user's request; Panam re-shot vanilla and looks right. Summary in `docs/COMPANION_EXPRESSIONS.md` (final summary of the face round). Needs a CET reload only if the game has not been restarted since `821323e`.
+
 **2026-10-09: Face round (smile, surprise, tier-1 sweep, probe fixes).** Default joy .74 with a joy-only lift, surprise brows .80/.90 and eyes .70 (`1b83e92`, `821323e`); face-stage probe dismisses and waits out the previous copy, holds position, reports steadiness, facing and head screen position (`ac58484`, `4b8ec84`), dev kill switch `convaiCompanions.devQuiet` (`3c9fa55`), identity readout in `check` and docs (`fb0e8bb`). Turn-away on anger is post-spawn AI settling, not a gameplay bug. All 23 tier-1 characters staged and captured; Panam pending until the appearance mods are removed.
 
 **2026-10-09: relationship wording fixed for the single-profile romance block.** Casual and Romantic descriptions in `mod/mcm.lua`, the 15 locales, `localization/en.json`, the UI extractor and the manager test now match the block (`f139ca4`, `f53d93e`).

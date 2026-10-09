@@ -1,5 +1,49 @@
 # Companion expressions
 
+## October 9 (final summary of the face round): what changed, what we found, how to use the probe
+
+**Global changes (product code, CET reload).** Default joy .74 (smile 1.65, squint 1.3, Judy .50) with a joy-only lift
+`w x (1 + .5 x (1 - w))`; surprise brows in .80 / out .90, eyes wide .70 (widen cap .7); resting smile and frowns
+unscaled. The real emotion path was measured first: brows and frowns reached 65-91% of the captured scale-3 pose at
+typical weights, the smile only 41-57%, which is why only joy got a lift. No other family was retuned.
+
+**Per-head findings** (all 23 tier-1 characters can be invited and staged; Johnny has no phone contact but stages; Takemura,
+Viktor and Wakako need the long spawn wait). Judged on `runtime/face-captures/check/*.png` and the earlier tier-1 sheets:
+- Read well: Mama Welles, Regina, River, Rogue, Mr Hands, Pepe, Meredith, Kerry, Jackie, Takemura, Wakako, Claire, Evelyn,
+  Alex, Panam (vanilla, frontal, readable although backlit).
+- Weaker, left as judgement calls: joy is mild on Regina, River and Rogue (the mouth corners barely move on those
+  heads; a per-head `smile` gain would fix it if wanted); Johnny and Viktor wear sunglasses (brows hidden, the mouth and
+  beard carry the emotion); Lizzy's chrome face reads weakly; Solomon, Songbird and Misty are dark because the room has a
+  bright window behind the characters (turn V so the window is behind the camera to light faces).
+- Identity (via `face-stage check`: record, appearance, display name): Mama Welles `Character.Mama_Welles` /
+  `gang__valentinos_wa__sq018__mama_welles`; Regina `Character.reggie` / `service__fixer_wa__regina_jones`; River
+  `Character.Sobchak` / `river_ward_default`; Rogue `Character.Rogue` / `rogue_rogue_old`. All are the game's own
+  appearances for those characters; no archive mod touches them (appearance archives exist only for Panam, now removed, and
+  Misty, kept on purpose). Our definitions are right; nothing was changed. Proof: `runtime/face-captures/identity-check.png`.
+- Turn-away on anger is not a gameplay bug: it was the copy's own AI settling in the first ~20 s after spawning (a
+  controlled neutral vs anger experiment turned away equally). Anger frames of Mr Hands, Pepe, Meredith and Kerry stand
+  steady, facing the camera.
+
+**The probe and the kill switch** (dev only; `mod/face-test.lua`, never in a player package, only `face-test.lua` can be
+hot-reloaded with `run face-test-reload`). `Send-FaceStage.ps1 -Character <key>` stages one character 0.85 m in front of V;
+`-Action check` returns off-spot distance, body turn, seconds since the last placement, the real head position on screen,
+`steady`, `inFrame`, `silenced`, `frozen`, `looking`, `faceDot` (how the head bone points against the camera, y near -1 is
+frontal) and the copy's record, appearance and display name; `-Action look` gives the staged copy a strong look-at on V's
+eyes (the vanilla idle looks around and down); `-Action freeze` slows the copy to 2% time (individual time dilation, finite
+30 s and refreshed every 15 s, so a reload or crash lets it run out) while the facial AnimFeature keeps updating (verified:
+smile and brows still appear), which stops the idle sway; `thaw`, `unlook`, `off` and `dismiss` undo them. The kill switch
+`convaiCompanions.devQuiet` (keyed by serial; set while a stage is held, cleared on off, dismiss or a CET reload; nil in the
+shipped mod) removes the staged copy from `M.update`'s `ready` list so none of our layers (follow, turning, body animation,
+gestures, look-at) touch her. Bug found and fixed on the way: the probe's context rows carry no `serial`, so the switch
+never engaged until the serial was resolved from the companion list (`54ceb4a`). A capture batch: stage, wait `steady`,
+`look`, `freeze` when `faceDot` y < -.96, then per pose send the face-test command, wait for a calm head, capture the crop
+around the projected head, re-check, retry at most 3 times, never re-shoot a character that passed.
+
+**Known limits.** Sunglasses hide brows; Lizzy's chrome face and dark faces against a bright window read weakly; the
+frozen body keeps whatever pose it had when frozen (the head is faced with the look-at first); time dilation also slows hair
+physics, so a stray strand can look stretched; the old `tier1-sheet-A..D.png` and `tier1/` frames were made with older code
+and mixed methods, so treat them as superseded by the `check/` sheets.
+
 ## October 9 (smile and surprise round): fuller default smile, a stronger surprise, a safer face-stage
 
 **Default smile.** Evelyn's joy at .585 barely read, Jackie's was modest and Panam's corners at .85 read as a clear
