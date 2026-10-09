@@ -284,3 +284,29 @@ from V's live camera every .1 s and a big capsule at .55 m pushed V, so both dri
 bodies (man_big, man_fat, unreadable graph) stand 1.3 m away, the hold aborts when V moves more than .3 m, a request left
 over from before a reload is ignored (the nonce is primed at load), and probe invites and dismissals are quiet (no
 joined/left notice, `mod/manager-party.lua`).
+
+### Second round: "sometimes her mouth does not open" (the floor)
+
+User: Evelyn's mouth generally opens now, but not around "and fill it with exactly what they need to hear" (an Omni reply,
+phrase 2 of 3). Offline diagnosis from the saved reply (`speech-stream.json`, the three phrase WAVs, and the model re-run
+on the audio): the track is not closed there and no hand-off, underrun or expression sealed it. Phrase 2 (5.48 s) starts
+with 0.2 s of lead-in silence, then "and fill it with ..." runs 0.2 to 2.3 s with a raw jaw of .05 to .29 (median .16),
+`lips_together` about 0 except an "f" contact (.38) at 0.4 s, corners open; the hand-off only zeroes the mouth between
+phrases (`face.hold`/`stop`, then the idle writer), and the next phrase's first frames follow the cursor. The weak spot is
+the low-jaw sounds: f, th, l, w and a short i come out of the model at .088 to .111, which the curve alone writes at .17 to
+.20. Measured on Evelyn with the jaw written raw: sealed at .08 to .10, a thin line at .12 to .14, teeth show from .16,
+clearly open from .20. So those frames sat right at the parting point: a barely visible gap, read as "did not open".
+(In that phrase 9 % of frames wrote under .17 and 20 % under .21; across the three phrases 22 % of speech frames wrote
+under .17.)
+
+Fix: the lift gets a floor per head type, `jaw' = max(curve, floor * smoothstep((jaw - .02) / .05))`, floor .21 for
+`woman_average` and .17 for `man_average`, `man_big` and `man_fat`. Below a model jaw of .02 (silence, the breath between
+words) nothing changes; closures stay with `lips_together`; Judy is untouched. Frames of that phrase now write at least
+.138 (9 % to 2 % under .17) and the sounds above write .21. `traitTable[profile].jawLift` now takes `{q=, floor=}` (or
+`false`). Tests: `jaw lift: low-jaw sounds in speech reach the floor, silence stays closed, and the map never dips`.
+
+Also found, not changed: every Omni phrase of that reply reports `lipText {lost: true, reason: 'behind'}`. The phrase WAV
+is pushed to the facial worker in 1 s slices at once, so the real-time guard in `FaceModelStream.guard` (queue lag over
+250 ms) drops the text-conditioned mouth for any phrase longer than about 1.5 s. Re-run offline with the text path
+kept, the jaw differs by under .03 for this phrase, so it is not the cause here, but phrase mode never really uses the
+text model.

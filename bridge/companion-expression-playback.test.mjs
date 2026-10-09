@@ -522,7 +522,11 @@ test('face-stage probe: a freshly loaded probe never runs the stale request left
 
 // October 9, lip sync on wider lips: the jaw weight is lifted per head type (the facial graph name), the identity at the
 // validation ceiling and at zero, never for Judy's graph or a head whose graph is unknown.
-const liftJaw = (value, q) => { const rest = 1 - value / .7; return rest > 0 ? .7 * (1 - rest ** q) : .7; };
+const HEADS = {woman_average: {q: 2, floor: .21}, man_average: {q: 1.5, floor: .17}, man_big: {q: 1.5, floor: .17}, man_fat: {q: 1.5, floor: .17}};
+const liftJaw = (value, {q, floor}) => {
+  const rest = 1 - value / .7, lifted = rest > 0 ? .7 * (1 - rest ** q) : .7, x = Math.min(1, (value - .02) / .05);
+  return x <= 0 ? lifted : Math.max(lifted, floor * x * x * (3 - 2 * x));
+};
 const jawBody = (status, jaw, check, extra = '') => `
  ${status === undefined ? '' : `function a:ConvaiFaceStatus() return ${JSON.stringify(status)} end`}
  ${extra}
@@ -533,12 +537,35 @@ const jawBody = (status, jaw, check, extra = '') => `
  local jawValue=last(a).jaw_mid_open
  ${check}`;
 test('jaw lift: woman_average opens low and mid jaw values (q 2), man heads moderately (q 1.5), the ceiling and zero are unchanged', () => {
-  for (const [graph, q] of [['woman_average', 2], ['man_average', 1.5], ['man_big', 1.5], ['man_fat', 1.5]]) {
+  for (const [graph, head] of Object.entries(HEADS)) {
     for (const jaw of [0, .0381, .06, .12, .2, .37, .66, .7]) {
-      run(jawBody(`prepared:${graph}_sermo`, jaw, `assert(math.abs(jawValue-${liftJaw(jaw, q)})<1e-9,'${graph} ${jaw}: '..jawValue)`));
+      run(jawBody(`prepared:${graph}_sermo`, jaw, `assert(math.abs(jawValue-${liftJaw(jaw, head)})<1e-9,'${graph} ${jaw}: '..jawValue)`));
     }
   }
-  assert.ok(liftJaw(.12, 2) > .21 && liftJaw(.12, 2) < .23 && liftJaw(0, 2) === 0 && liftJaw(.7, 2) === .7);
+  assert.ok(liftJaw(.12, HEADS.woman_average) > .21 && liftJaw(.12, HEADS.woman_average) < .23
+    && liftJaw(0, HEADS.woman_average) === 0 && liftJaw(.7, HEADS.woman_average) === .7);
+});
+// October 9, second round (Evelyn, "and fill it with exactly what they need to hear"): the model's jaw for f, th, l, w and
+// a short i is .088-.111, which the curve alone writes at .17-.20, the edge where her lips part. A speaking frame
+// is now written at the floor or above, silence is untouched, and the whole range never dips as the model's jaw rises.
+test('jaw lift: low-jaw sounds in speech reach the floor, silence stays closed, and the map never dips', () => {
+  const fillItWith = [.088, .096, .111, .099, .106];
+  for (const jaw of fillItWith) {
+    assert.ok(liftJaw(jaw, HEADS.woman_average) >= .21, `${jaw}: ${liftJaw(jaw, HEADS.woman_average)}`);
+    run(jawBody('prepared:woman_average_sermo', jaw, `assert(jawValue>=.21 and jawValue<.3,'fill it with '..jawValue)`));
+  }
+  for (const head of Object.values(HEADS)) {
+    let previous = -1;
+    for (let jaw = 0; jaw <= .7001; jaw += .0025) {
+      const value = liftJaw(jaw, head);
+      assert.ok(value >= previous - 1e-12 && value >= jaw - 1e-12 && value <= .7, `${jaw}: ${value}`);
+      previous = value;
+    }
+    assert.equal(liftJaw(0, head), 0); assert.ok(liftJaw(.02, head) < .045 && liftJaw(.03, head) < .08);
+    assert.ok(liftJaw(.07, head) >= head.floor - 1e-12 && liftJaw(.7, head) === .7);
+  }
+  run(jawBody('prepared:woman_average_sermo', .015, `assert(jawValue<.03,'silence: '..jawValue)`));
+  run(jawBody('prepared:player_woman_photomode_sermo', .09, `assert(jawValue==.09,'Judy: '..jawValue)`));
 });
 test('jaw lift: Judy and an unknown or unreadable head keep the jaw exactly', () => {
   for (const [status, extra] of [['prepared:player_woman_photomode_sermo', ''], ['unsupported-graph', ''], [undefined, ''],
@@ -557,7 +584,7 @@ test('jaw lift: only the jaw is lifted, and the graph is read once per reply (no
  local position=0
  for _=1,12 do face.beginExpressionFrame(.1,{actors=rows});position=position+.1;face.sync(a,position,context.requestId) end
  assert(reads==1,'the graph is read once per reply: '..reads)
- assert(math.abs(last(a).jaw_mid_open-${liftJaw(.12, 2)})<1e-9)
+ assert(math.abs(last(a).jaw_mid_open-${liftJaw(.12, HEADS.woman_average)})<1e-9)
  assert(last(a).lips_together_up==.5 and last(a).lips_l_funnel==.3,'only the jaw is lifted')
 `);
 });

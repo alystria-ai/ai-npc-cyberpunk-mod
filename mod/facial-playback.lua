@@ -137,10 +137,19 @@ local speechMouthFactor=.85
 -- (median .12), so many words never broke the seal. The jaw weight is lifted by a concave curve that is steepest at 0 and
 -- exactly the identity at the validation ceiling, so the widest vowels are unchanged and silence stays closed:
 --   jaw' = .7 * (1 - (1 - jaw / .7) ^ q)       q = 2: .06 -> .115, .12 -> .22, .20 -> .36, .37 -> .55
--- q is a constant per head type (the facial graph name, read once per reply, never per frame), or a per-character
--- override (traitTable[profile].jawLift, false = none). Judy's graph (player_woman_photomode) has no entry: unchanged.
+-- Same day, second round (user: Evelyn "sometimes does not open", e.g. "and fill it with exactly"): the curve alone is
+-- not enough for the low-jaw sounds (f, th, l, w, short i). The model gives them a jaw of only .08-.11, which the curve
+-- maps to .15-.20, right at the edge where Evelyn's lips part (measured in game, jaw written raw: sealed at .08-.10, a
+-- thin line at .12-.14, teeth show from .16, clearly open from .20). So speech also gets a floor: once the model's jaw
+-- says "speaking" (smoothstep from .02 to .07) the written jaw is at least `floor`, a per-head-type constant just above
+-- the parting point; below .02 (silence, the breath between words) nothing changes, and closures stay with
+-- lips_together. jaw' = max(curve, floor * smoothstep((jaw-.02)/.05)).
+-- q and floor are constants per head type (the facial graph name, read once per reply, never per frame), or a
+-- per-character override (traitTable[profile].jawLift = {q=,floor=}, false = none). Judy's graph
+-- (player_woman_photomode) has no entry: unchanged.
 local jawLimit=.7
-local jawLiftByGraph={woman_average=2,man_average=1.5,man_big=1.5,man_fat=1.5}
+local jawLiftByGraph={woman_average={q=2,floor=.21},man_average={q=1.5,floor=.17},man_big={q=1.5,floor=.17},
+    man_fat={q=1.5,floor=.17}}
 local function jawLiftFor(actor,entity)
     local slot=M.expressions[entity]
     local trait=slot and traitTable[slot.profile]
@@ -151,7 +160,12 @@ local function jawLiftFor(actor,entity)
 end
 local function liftJaw(value,lift)
     local rest=1-value/jawLimit
-    return rest>0 and jawLimit*(1-rest^lift) or jawLimit
+    local lifted=rest>0 and jawLimit*(1-rest^lift.q) or jawLimit
+    local x=(value-.02)/.05
+    if x<=0 then return lifted end
+    if x>1 then x=1 end
+    local floor=lift.floor*x*x*(3-2*x)
+    return lifted>floor and lifted or floor
 end
 M.expressions, M.expressionClock, M.expressionFrame = {}, 0, 0
 -- Development-only visibility probe (mod/face-test.lua). It is absent from a
