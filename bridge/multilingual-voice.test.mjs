@@ -45,7 +45,7 @@ test('while Multilingual is on, an OmniVoice choice that cannot run falls back t
   on.voice.update({voiceProvider: 'omni', multilingualConversations: true}, null, false);
   await on.voice.start().catch(() => {}); await tick();
   on.voice.update({voiceProvider: 'omni', multilingualConversations: true}, null, false);
-  assert.equal(on.voice.provider, 'convai'); assert.deepEqual(on.voice.fallback, {from: 'omni', to: 'convai'});
+  assert.equal(on.voice.provider, 'convai'); assert.deepEqual(on.voice.fallback, {from: 'omni', to: 'convai', temporary: true}); // Omni is retried in the background
   await on.voice.close();
 });
 

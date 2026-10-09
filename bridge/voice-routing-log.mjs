@@ -65,7 +65,9 @@ export function fallbackReason(voice, profile, {plan, engine} = {}) {
   if (multilingualWhy) return multilingualWhy;
   if (requested === 'omni') {
     if (voice.omniPack?.installed === false) return 'Omni pack missing';
-    if (voice.failedBackends?.has('omni')) return 'Omni worker unavailable';
+    // A failed or timed-out Omni is loaded again in the background (VoiceSelection.omniRetry); the speaker is the
+    // fallback only until that finishes.
+    if (voice.failedBackends?.has('omni')) return voice.omniRetry ? 'Omni still loading (retrying in the background)' : 'Omni worker unavailable';
     if (!voice.omniVariants?.[voice.omniReference]?.configured) return 'Omni not configured';
   }
   if (voice.failedBackends?.has(requested)) return `${requested === 'omni' ? 'Omni' : 'Pocket'} worker unavailable`;

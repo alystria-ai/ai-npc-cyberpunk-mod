@@ -524,6 +524,9 @@ def run_worker(registry):
         raise RuntimeError('The voice adapter does not belong to the application directory')
     if not torch.cuda.is_available():
         raise RuntimeError('OmniVoice requires CUDA in this installation')
+    # Progress marks. The bridge's startup limit restarts at every frame it receives, so a start that is slow
+    # (a throttled CPU while the game loads) is told apart from one that is stuck. Same frame, no protocol change.
+    send({'op': 'state', 'state': 'loading'})
     backend = tts_backend.get_backend_class('omnivoice')()
     graph = None
     original_cache_key = tts_backend._clone_prompt_key
@@ -539,11 +542,13 @@ def run_worker(registry):
             raise RuntimeError('OmniVoice did not load on CUDA')
         if backend.dtype != 'torch.float16':
             raise RuntimeError('OmniVoice did not load with the expected FP16 weights')
+        send({'op': 'state', 'state': 'loading'})
         if os.environ.get('CYBERPUNK_CONVAI_CUDA_GRAPH', '1') != '0':
             spec = importlib.util.spec_from_file_location('voice_cuda_graph', ROOT / 'bridge/voice-cuda-graph.py')
             replay = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(replay)
             graph = replay.VoiceGraph(backend._model).install()
+        send({'op': 'state', 'state': 'loading'})
         model_info = {'device': backend.execution_device, 'dtype': backend.dtype,
                       'runtime': 'pytorch', 'tensorrt': False, 'compiled': False}
         def memory_info():

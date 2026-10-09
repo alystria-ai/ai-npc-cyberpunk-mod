@@ -472,11 +472,16 @@ function M.omniPack()
 end
 
 -- The pending "chosen voice could not run" notice, once. The caller asks only
--- in gameplay so a paused menu cannot swallow it.
+-- in gameplay so a paused menu cannot swallow it. A temporary fallback (OmniVoice is being loaded again in the
+-- background and returns by itself, with no notice) says so instead of calling the voice unavailable.
 function M.takeVoiceFallbackNotice()
     local pending = voiceFallbackNotice
     voiceFallbackNotice = nil
     if not pending then return nil end
+    if pending.temporary then
+        return ui.t('{requested} is not ready yet. Companions are using {voice} for now.', {
+            requested = M.voiceLabel(pending.from, pending.steps, pending.reference), voice = M.voiceLabel(pending.to)})
+    end
     return ui.t('{requested} is unavailable. Companions are using {voice} instead.', {
         requested = M.voiceLabel(pending.from, pending.steps, pending.reference), voice = M.voiceLabel(pending.to)})
 end
@@ -701,11 +706,13 @@ local function updateLocalVoice()
     local fallback = state.fallback
     if fresh and type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket')
         and (fallback.to == 'pocket' or fallback.to == 'convai') then
-        local id = fallback.from .. '>' .. fallback.to
+        -- A temporary fallback and the permanent one it can turn into are announced separately, once each.
+        local temporary = fallback.temporary == true
+        local id = fallback.from .. '>' .. fallback.to .. (temporary and ':temporary' or '')
         if not voiceFallbackSeen[id] then
             voiceFallbackSeen[id] = true
-            voiceFallbackNotice = {from = fallback.from, to = fallback.to, steps = state.requestedOmniSteps,
-                reference = state.requestedOmniReference}
+            voiceFallbackNotice = {from = fallback.from, to = fallback.to, temporary = temporary,
+                steps = state.requestedOmniSteps, reference = state.requestedOmniReference}
         end
         signature = signature .. ':' .. id
     elseif fresh then

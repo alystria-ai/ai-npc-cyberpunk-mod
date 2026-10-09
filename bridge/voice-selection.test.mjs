@@ -510,8 +510,9 @@ test('an Omni worker that cannot start falls to Pocket once, and invitation read
   h.voice.update({},null,false);
   assert.deepEqual(await invited,{provider:'pocket',ready:true,profile:'johnny-silverhand'});
   assert.equal(h.voice.provider,'pocket');assert.equal(h.voice.requestedProvider,'omni');
-  assert.deepEqual(h.voice.fallback,{from:'omni',to:'pocket'});
-  assert.deepEqual(h.states.at(-1).fallback,{from:'omni',to:'pocket'});
+  // A failed Omni stays out of routing and is loaded again later in the background, so the fallback is temporary.
+  assert.deepEqual(h.voice.fallback,{from:'omni',to:'pocket',temporary:true});
+  assert.deepEqual(h.states.at(-1).fallback,{from:'omni',to:'pocket',temporary:true});
   assert.equal(h.workers.filter(worker=>worker.backend==='omni').length,1,'a failed Omni is not restarted in a loop');
   h.voice.update({},null,false);await tick();
   assert.equal(h.workers.filter(worker=>worker.backend==='omni').length,1);
@@ -527,7 +528,7 @@ test('a failure during an owned turn waits for the idle boundary before the rout
   await h.voice.start().catch(()=>{});await tick();
   assert.equal(h.voice.provider,'omni','the owned turn keeps its route');assert.equal(h.voice.pending,true);
   h.voice.update({},null,false);
-  assert.equal(h.voice.provider,'pocket');assert.deepEqual(h.voice.fallback,{from:'omni',to:'pocket'});
+  assert.equal(h.voice.provider,'pocket');assert.deepEqual(h.voice.fallback,{from:'omni',to:'pocket',temporary:true});
   await h.voice.close();
 });
 
@@ -540,7 +541,7 @@ test('Pocket failing, or both local voices failing, falls down to Convai',async(
   const both=dualFixture({fail:['omni','pocket'],start:'omni'});
   await both.voice.start().catch(()=>{});await tick();both.voice.update({},null,false);
   await both.voice.start().catch(()=>{});await tick();both.voice.update({},null,false);
-  assert.equal(both.voice.provider,'convai');assert.deepEqual(both.voice.fallback,{from:'omni',to:'convai'});
+  assert.equal(both.voice.provider,'convai');assert.deepEqual(both.voice.fallback,{from:'omni',to:'convai',temporary:true});
   await both.voice.close();
 });
 
@@ -680,4 +681,209 @@ test('Keep prepared voices defaults on and reaches the live worker and every new
   h.voice.update({voiceProvider:'omni',omniSteps:16,omniReference:'long',keepPreparedVoices:true},null,false);
   assert.equal(omni.keep,true);
   await h.voice.close();
+});
+
+// A slow or failed OmniVoice is not a lost one: Pocket serves meanwhile, Omni loads again in the background, and the
+// voice returns at an idle reply boundary. `omni` scripts each Omni attempt in order: 'fail', 'hold' (a gate the test
+// opens), or 'ok' (the default once the script runs out).
+function retryFixture({omni = []} = {}) {
+  const workers = [], states = [], logs = []; let now = 1000, live = 0, peak = 0;
+  const voices = {'johnny-silverhand': {reference: 'runtime/voice-references/johnny.wav', sha256: 'a'.repeat(64), transcript: 'Original line.'}};
+  const factory = backend => (config, hooks) => {
+    const attempt = workers.filter(worker => worker.backend === backend).length, mode = backend === 'omni' ? (omni[attempt] || 'ok') : 'ok';
+    const gate = defer(); let loaded = false, owned = false;
+    const worker = {backend, hooks, gate, mode, starts: 0, closes: 0, steps: 32, failure: undefined,
+      get loaded() { return loaded; }, hasProfile: key => Object.hasOwn(config.voices, key),
+      profileReady(key) { return loaded && this.hasProfile(key); }, setSteps(value) { this.steps = value; }, setKeepPrepared() {},
+      async start() {
+        this.starts++;
+        if (mode === 'fail') { this.failure = Error(backend + ' worker failed'); hooks.onState({state: 'error'}); throw this.failure; }
+        owned = true; live++; peak = Math.max(peak, live);
+        hooks.onState({state: 'loading', resident: false});
+        if (mode === 'hold') await gate.promise;
+        loaded = true; hooks.onState({state: 'ready', resident: true, engine: backend === 'omni' ? 'omnivoice' : 'pocket-tts'});
+      },
+      async prepareProfile(profile) { return {provider: backend, ready: true, profile}; },
+      async synthesize() { return {}; }, async synthesizeStream() { return {}; },
+      async close() { this.closes++; if (owned) live--; owned = loaded = false; hooks.onState({state: 'stopped', resident: false}); }};
+    workers.push(worker); return worker;
+  };
+  const voice = new VoiceSelection(pocketSettings(voices), {onState: value => states.push(value), onLog: line => logs.push(line),
+    factory: factory('pocket'), omniFactory: factory('omni'), clock: () => now,
+    omniConfig: {version: 2, provider: 'hybrid', engine: 'omnivoice', steps: 32, voices}});
+  const omniWorkers = () => workers.filter(worker => worker.backend === 'omni');
+  const settle = async () => { for (let i = 0; i < 6; i++) await tick(); };
+  return {voice, workers, states, logs, omniWorkers, settle, advance: ms => { now += ms; }, live: () => live, peak: () => peak,
+    pocket: () => workers.find(worker => worker.backend === 'pocket')};
+}
+
+test('an Omni that fails keeps Pocket for now, loads again in the background, and returns at an idle boundary, never mid-reply', async () => {
+  const h = retryFixture({omni: ['fail', 'hold']});
+  h.voice.update({voiceProvider: 'omni', omniSteps: 16}, null, false); await h.settle();
+  h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  assert.equal(h.voice.provider, 'pocket'); assert.deepEqual(h.voice.fallback, {from: 'omni', to: 'pocket', temporary: true});
+  assert.equal(h.states.at(-1).omniRetry.failures, 1); assert.equal(h.states.at(-1).omniRetry.loading, false);
+  assert.ok(h.states.at(-1).omniRetry.nextInMs > 0 && h.states.at(-1).omniRetry.nextInMs <= 45_000);
+  assert.equal(h.voice.profileReady('johnny-silverhand'), true, 'Pocket serves while Omni is away');
+  // Not due yet: nothing starts. Due, but a reply is in flight: still nothing.
+  h.advance(44_000); h.voice.update({}, null, false); await h.settle(); assert.equal(h.omniWorkers().length, 1);
+  h.advance(1000); h.voice.update({}, null, true); await h.settle(); assert.equal(h.omniWorkers().length, 1, 'no load during a reply');
+  // Idle: one background worker starts, at low priority, beside the live Pocket worker (Pocket uses no VRAM).
+  h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.omniWorkers().length, 2); const candidate = h.omniWorkers()[1];
+  assert.equal(candidate.starts, 1); assert.equal(candidate.hooks.lowPriority, true);
+  assert.equal(h.states.at(-1).omniRetry.loading, true);
+  assert.equal(h.voice.provider, 'pocket'); assert.equal(h.pocket().closes, 0); assert.equal(h.voice.profileReady('johnny-silverhand'), true);
+  h.voice.update({}, null, false); await h.settle(); assert.equal(h.omniWorkers().length, 2, 'a loading candidate is not started twice');
+  // It finishes while a reply is in flight: the reply keeps Pocket; routing is staged, not switched.
+  candidate.gate.resolve(); await h.settle();
+  assert.equal(h.voice.pending, true); assert.equal(h.voice.fallback, null); assert.equal(h.voice.omniRetry, null);
+  h.voice.update({}, null, true); await h.settle();
+  assert.equal(h.voice.provider, 'pocket'); assert.equal(h.pocket().closes, 0, 'the reply in flight keeps its worker');
+  // The next idle poll commits: Omni is the route, its loaded worker is adopted (not loaded again), Pocket is released.
+  assert.equal(h.voice.update({}, null, false), true); await h.voice.retiring; await h.settle();
+  assert.equal(h.voice.provider, 'omni'); assert.equal(h.voice.fallback, null);
+  assert.equal(h.omniWorkers().length, 2, 'no third Omni load'); assert.equal(h.pocket().closes, 1);
+  assert.equal(h.voice.client, candidate); assert.equal(h.voice.profileReady('johnny-silverhand'), true);
+  assert.equal(h.states.at(-1).omniRetry, null); assert.equal(h.states.at(-1).provider, 'omni');
+  assert.equal(candidate.steps, 16);
+  assert.ok(h.logs.some(line => /attempt 1 failed/.test(line)) && h.logs.some(line => /ready; it takes over/.test(line)));
+  assert.equal((await h.voice.prepareProfile('johnny-silverhand')).provider, 'omni');
+  await h.voice.close(); assert.equal(h.live(), 0);
+});
+
+test('Omni retries back off, give up after the last one, and choosing Omni again starts over', async () => {
+  const h = retryFixture({omni: ['fail', 'fail', 'fail', 'fail']});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+  h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  const waits = [];
+  for (const delay of [45_000, 180_000, 600_000]) {
+    waits.push(h.states.at(-1).omniRetry.nextInMs);
+    h.advance(delay - 1); h.voice.update({}, null, false); await h.settle();
+    assert.equal(h.omniWorkers().length, waits.length, 'not before the wait is over');
+    h.advance(1); h.voice.update({}, null, false); await h.settle();
+    assert.equal(h.omniWorkers().length, waits.length + 1);
+  }
+  assert.deepEqual(waits, [45_000, 180_000, 600_000]);
+  // The fourth failure ends it: a plain, permanent fallback.
+  assert.equal(h.voice.omniRetry, null); assert.deepEqual(h.voice.fallback, {from: 'omni', to: 'pocket'});
+  assert.equal(h.states.at(-1).omniRetry, null); assert.ok(h.logs.some(line => /giving up/.test(line)));
+  h.advance(86_400_000); h.voice.update({}, null, false); await h.settle(); assert.equal(h.omniWorkers().length, 4);
+  // The player chooses Omni again: the normal start path, with the retry story reset.
+  h.voice.update({voiceProvider: 'pocket'}, null, false); h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+  assert.equal(h.omniWorkers().length, 5); assert.equal(h.voice.provider, 'omni'); assert.equal(h.voice.fallback, null);
+  await h.voice.close();
+});
+
+test('a background Omni load is dropped when the player changes the voice, and when the service closes', async () => {
+  for (const ending of ['pocket', 'close']) {
+    const h = retryFixture({omni: ['fail', 'hold']});
+    h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+    h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+    h.advance(45_000); h.voice.update({}, null, false); await h.settle();
+    const candidate = h.omniWorkers()[1]; assert.ok(candidate && h.voice.candidate);
+    if (ending === 'pocket') { h.voice.update({voiceProvider: 'pocket'}, null, false); await h.settle(); }
+    else { await h.voice.close(); }
+    assert.equal(candidate.closes, 1); assert.equal(h.voice.candidate, null); assert.equal(h.voice.omniRetry, null);
+    candidate.gate.resolve(); await h.settle();
+    assert.equal(h.omniWorkers().length, 2, 'a dropped candidate is never adopted or replaced');
+    assert.notEqual(h.voice.provider, 'omni');
+    await h.voice.close(); assert.equal(h.live(), 0);
+  }
+});
+
+test('a failed background load is retried again after its worker has exited', async () => {
+  const h = retryFixture({omni: ['fail', 'fail', 'hold']});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+  h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  h.advance(45_000); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.omniWorkers().length, 2); assert.equal(h.omniWorkers()[1].closes, 1, 'the failed candidate is closed');
+  assert.equal(h.voice.candidate, null); assert.equal(h.voice.omniRetry.failures, 2); assert.equal(h.voice.fallback.temporary, true);
+  h.advance(180_000); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.omniWorkers().length, 3);
+  h.omniWorkers()[2].gate.resolve(); await h.settle(); h.voice.update({}, null, false); await h.voice.retiring; await h.settle();
+  assert.equal(h.voice.provider, 'omni'); assert.equal(h.voice.client, h.omniWorkers()[2]);
+  await h.voice.close();
+});
+
+test('with the real OmniVoice client, a silent start falls to Pocket, then a below-normal worker loads and takes over at idle', async () => {
+  const {EventEmitter} = await import('node:events');
+  const {PassThrough, Writable} = await import('node:stream');
+  const {constants} = await import('node:os');
+  const {VOICE_WORKER_LIMITS} = await import('./resident-voice.mjs');
+  // Fake timers for the worker (stall window, exit allowances) and a separate selection clock for the retry wait.
+  const jobs = new Map(); let time = 0, sequence = 0;
+  const timers = {set: (callback, delay) => { jobs.set(++sequence, {callback, at: time + delay}); return sequence; }, clear: id => jobs.delete(id),
+    advance(ms) {
+      const target = time + ms;
+      for (;;) {
+        const next = [...jobs].filter(([, job]) => job.at <= target).sort((a, b) => a[1].at - b[1].at)[0];
+        if (!next) break;
+        jobs.delete(next[0]); time = next[1].at; next[1].callback();
+      }
+      time = target;
+    }};
+  let now = 1000; const children = [], priorities = [];
+  const spawnImpl = () => {
+    const child = new EventEmitter(); child.pid = 4000 + children.length; child.stdout = new PassThrough(); child.stderr = new PassThrough();
+    child.stdin = new Writable({write(chunk, encoding, done) { done(); }});
+    child.kill = () => { queueMicrotask(() => child.emit('close', 1)); return true; };
+    children.push(child); return child;
+  };
+  const omniVoices = Object.fromEntries(LOCAL_VOICE_KEYS.map(key => [key, {reference: `runtime/voice-references/${key}.wav`,
+    sha256: 'a'.repeat(64), transcript: 'Ready when you are, V.'}]));
+  const pocketWorkers = [];
+  const voice = new VoiceSelection(pocketSettings(omniVoices), {project: process.cwd(), spawnImpl, setTimer: timers.set, clearTimer: timers.clear,
+    setPriority: (pid, level) => priorities.push([pid, level]), clock: () => now,
+    omniConfig: {provider: 'hybrid', engine: 'omnivoice', voices: omniVoices},
+    factory: (config, {onState}) => {
+      let loaded = false;
+      const worker = {get loaded() { return loaded; }, hasProfile: key => Object.hasOwn(config.voices, key), profileReady(key) { return loaded && this.hasProfile(key); },
+        async prepareProfile(profile) { return {provider: 'pocket', ready: true, profile}; },
+        async start() { loaded = true; onState({state: 'ready', resident: true}); },
+        async close() { loaded = false; this.closed = true; onState({state: 'stopped'}); }};
+      pocketWorkers.push(worker); return worker;
+    }});
+  const settle = async () => { for (let i = 0; i < 8; i++) await tick(); };
+  const ready = child => child.stdout.write(JSON.stringify({op: 'ready', profiles: LOCAL_VOICE_KEYS, device: 'cuda:0', dtype: 'torch.float16',
+    runtime: 'pytorch', tensorrt: false, compiled: false, cudaAllocatedMiB: 1800, cudaReservedMiB: 2208}) + '\n');
+  // The first OmniVoice start never says a word.
+  voice.update({voiceProvider: 'omni', omniSteps: 16}, null, false); await settle();
+  assert.equal(children.length, 1); assert.deepEqual(priorities, [], 'the first start keeps normal priority');
+  timers.advance(VOICE_WORKER_LIMITS.startupStallMs - 1); await settle(); assert.equal(voice.failedBackends.has('omni'), false);
+  timers.advance(1); await settle(); assert.equal(voice.failedBackends.has('omni'), true);
+  timers.advance(VOICE_WORKER_LIMITS.exitGraceMs); await settle();
+  voice.update({}, null, false); await voice.start(); await settle();
+  assert.equal(voice.provider, 'pocket'); assert.deepEqual(voice.fallback, {from: 'omni', to: 'pocket', temporary: true});
+  // 45 s later, with the game idle, a second worker loads at below-normal priority.
+  now += 45_000; voice.update({}, null, false); await settle();
+  assert.equal(children.length, 2); assert.deepEqual(priorities, [[4001, constants.priority.PRIORITY_BELOW_NORMAL]]);
+  assert.equal(voice.provider, 'pocket'); assert.equal(pocketWorkers[0].closed, undefined);
+  // It reports progress and finishes; the route stays on Pocket until the idle poll.
+  children[1].stdout.write(JSON.stringify({op: 'state', state: 'loading'}) + '\n'); await settle();
+  ready(children[1]); await settle();
+  assert.equal(voice.omniRetry, null); assert.equal(voice.provider, 'pocket');
+  assert.deepEqual(priorities.at(-1), [4001, constants.priority.PRIORITY_NORMAL], 'normal priority once ready');
+  voice.update({}, null, true); await settle(); assert.equal(voice.provider, 'pocket', 'never mid-reply');
+  voice.update({}, null, false); await voice.retiring; await settle();
+  assert.equal(voice.provider, 'omni'); assert.equal(voice.fallback, null); assert.equal(children.length, 2, 'the loaded worker is adopted');
+  assert.equal(pocketWorkers[0].closed, true); assert.equal(voice.profileReady('johnny-silverhand'), true);
+  assert.equal(voice.client.loaded, true); assert.equal(voice.client.child, children[1]);
+  const closed = voice.close(); children[1].emit('close', 0); await closed;
+});
+
+test('a loaded background Omni for a reference the player no longer wants is released, and the wanted one loads after its exit', async () => {
+  const h = retryFixture({omni: ['fail', 'hold']});
+  h.voice.update({voiceProvider: 'omni', omniReference: 'long'}, null, false); await h.settle();
+  h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  h.advance(45_000); h.voice.update({}, null, false); await h.settle();
+  const candidate = h.omniWorkers()[1]; candidate.gate.resolve(); await h.settle();
+  assert.equal(h.voice.candidate.loaded, true);
+  // A reply is in flight, so the commit waits; meanwhile the player picks the other reference set.
+  h.voice.update({omniReference: 'short'}, null, true); await h.settle();
+  assert.equal(candidate.closes, 1, 'the unwanted candidate is released'); assert.equal(h.voice.candidate, null);
+  h.voice.update({omniReference: 'short'}, null, false); await h.voice.retiring; await h.settle();
+  assert.equal(h.omniWorkers().length, 3); assert.equal(h.omniWorkers()[2].starts, 1);
+  assert.equal(h.voice.provider, 'omni'); assert.equal(h.voice.omniReference, 'short'); assert.equal(h.voice.client, h.omniWorkers()[2]);
+  await h.voice.close(); assert.equal(h.live(), 0);
 });

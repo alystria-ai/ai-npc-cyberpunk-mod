@@ -3281,6 +3281,35 @@ test('a voice that could not run is announced once in gameplay, again only after
   `);
 });
 
+test('a temporary fallback is announced once as not ready yet, the return to OmniVoice is silent, and giving up is announced separately', () => {
+  run(`${mcmFixture}${managerPopupFixture}
+    popupStep = 1 -- the voice state file goes stale after a few seconds
+    local state = {state = 'ready', provider = 'pocket', requestedProvider = 'omni', requestedOmniSteps = 16,
+      requestedOmniReference = 'short', omniSteps = 32, routedProfiles = {'johnny-silverhand'},
+      fallback = {from = 'omni', to = 'pocket', temporary = true}, updated = popupClock * 1000}
+    jsonFixtures['voice-runtime'] = state
+    files['runtime/local-voice-state.json'] = 'voice-runtime'
+    popupTick(false); popupTick(false)
+    assert(#popups == 0, 'a paused menu consumed the one fallback notice')
+    popupTick(true)
+    assert(#popups == 1 and popups[1] == 'OmniVoice · Balanced is not ready yet. Companions are using Pocket · Performance for now.', popups[1])
+    for _ = 1, 6 do popupTick(true) end
+    assert(#popups == 1, 'the same temporary fallback was announced again')
+    -- OmniVoice finished loading in the background and took over at an idle boundary: nothing is said.
+    state.fallback, state.provider, state.updated = nil, 'omni', popupClock * 1000
+    for _ = 1, 6 do popupTick(true) end
+    assert(#popups == 1, 'the silent return to OmniVoice posted a notice')
+    -- It fails again soon after (same text, inside the gate's repeat window), and finally the bridge gives up,
+    -- which is a different, permanent fallback and is said once.
+    state.fallback, state.provider, state.updated = {from = 'omni', to = 'pocket', temporary = true}, 'pocket', popupClock * 1000
+    for _ = 1, 3 do popupTick(true) end
+    assert(#popups == 1, 'the notice gate holds an identical text inside its repeat window')
+    state.fallback, state.updated = {from = 'omni', to = 'pocket'}, popupClock * 1000
+    for _ = 1, 3 do popupTick(true) end
+    assert(#popups == 2 and popups[2] == 'OmniVoice · Balanced is unavailable. Companions are using Pocket · Performance instead.', popups[2])
+  `);
+});
+
 test('Natural speech is off by default and a saved pairing with the Convai cloud voice cannot stand', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)

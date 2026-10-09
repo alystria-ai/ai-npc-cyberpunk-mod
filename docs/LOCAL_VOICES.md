@@ -171,9 +171,12 @@ A choice that cannot run falls to the next entry; Convai is always runnable.
 "Cannot run" means the backend is not configured, none of its references is
 available, or its worker failed (for example no CUDA GPU, OmniVoice failing to
 load, a crashed worker). A failed worker stays out of routing until the player
-chooses that provider again, and is not restarted in a loop. The fallback
+chooses that provider again, and is not restarted in a loop. The exception since
+October 10 is OmniVoice: it is loaded again in the background after 45 s, 3 min
+and 10 min, and takes its place back at an idle boundary ("Startup limit, background retry and switch back" below); Pocket
+and Convai failures are unchanged. The fallback
 commits at the next idle settings poll, like any routing change, so a turn in
-progress keeps its voice. The bridge publishes `fallback: {from, to}` in
+progress keeps its voice. The bridge publishes `fallback: {from, to}` (with `temporary: true` while OmniVoice is being retried) in
 `runtime/local-voice-state.json` (and the support report) once the lower voice
 is the committed route; the CET mod reads it and posts one gameplay notice per
 fallback ("OmniVoice · Balanced is unavailable. Companions are using Pocket ·
@@ -249,6 +252,41 @@ stream API, development setup and current runtime limitations. The original
 experimental exports and their receipts remain unchanged; user adoption is a
 separate local receipt.
 
+### Startup limit, background retry and switch back — October 10
+
+Cause of the morning's downgrade: OmniVoice startup had one fixed 180 s limit, and a start takes about 3 minutes on a
+CPU-throttled laptop (Windows Silent power mode) even with nothing else running; at game launch it also competes with the
+game's own loading. The worker timed out ("Local voice startup timed out"), the failed backend left routing for the rest of the
+session ("A failed worker stays out of routing until the player chooses that provider again"), and Pocket served every reply.
+
+- **Startup limit** (`VOICE_WORKER_LIMITS` in `bridge/resident-voice.mjs`). The worker restarts a **300 s stall window** with every
+  frame it sends (`resident-voice-worker.py` now reports a `loading` state at each stage: libraries imported, model loaded,
+  CUDA graph ready, then one `warming` frame per profile) and with every line its libraries log (weight-loading bars). Only
+  300 s of silence, or an absolute **900 s**, ends a start. A worker that is asked to stop while still loading gets 60 s.
+  A render keeps its 120 s limit.
+- **Failure is temporary.** When the chosen OmniVoice fails or times out (crash, no CUDA, stall), routing falls to the next voice
+  as before (`fallback: {from, to, temporary: true}` in `runtime/local-voice-state.json`), and `VoiceSelection` schedules a
+  background retry: after **45 s**, then **3 min**, then **10 min**. A fourth failure gives up: the plain fallback stays until
+  the player chooses OmniVoice again (as before). Choosing another voice, changing the reference set, the pack going missing or
+  closing the service drops a pending retry or a loading background worker.
+- **How the retry runs.** `omniRetry: {failures, loading, nextInMs}` is published. No timer and no loop: `VoiceSelection.update`
+  (the existing 500 ms settings poll) checks whether a retry is due. A due retry waits for a moment with no reply in flight and
+  for the failed worker's confirmed exit, then loads OmniVoice in a second, **below-normal-priority** worker
+  (`os.setPriority`; raised to normal once ready, because rendering is latency-sensitive) beside the live Pocket worker. The
+  load happens in the background and shows only as `omniRetry.loading`; a bridge log line `[OmniRetry] ...` records each step.
+- **Switch back.** When the background worker is ready, OmniVoice is routable again (`pending`), but the commit follows the normal
+  rule: the next idle settings poll, never while a reply is in flight. At that commit the provider returns to OmniVoice, the loaded
+  worker is **adopted** (the model is not loaded a second time), and the Pocket worker is released. Nothing is announced.
+- **Memory.** Pocket runs on the CPU (`CUDA_VISIBLE_DEVICES=-1`, 0 VRAM), so the loading OmniVoice worker never shares VRAM with
+  another model. While it loads, Pocket's CPU RAM (one 418 MiB student) and the loading worker are both resident; Pocket is
+  released at the switch. Only one OmniVoice worker exists at a time (the shared `resident-model.lock` still forbids two).
+- **What the player sees.** One gameplay notice when Pocket starts serving: "OmniVoice · Balanced is not ready yet. Companions are
+  using Pocket · Performance for now." (the same 600 s repeat window as the permanent text). Silence on the way back. If the retries
+  run out, the permanent "is unavailable" text follows. The Settings status line reads "Using Pocket, OmniVoice not ready yet".
+  See [NOTIFICATIONS.md](NOTIFICATIONS.md).
+- **Not covered.** Pocket's own startup (`POCKET_LIMITS.startupMs`, 180 s, CPU only) keeps its fixed limit, and a Pocket failure
+  still lands on Convai for the session.
+
 ## OmniVoice implementation and historical measurements
 
 The restored Omni choices use this accepted GPU implementation. Historical
@@ -299,8 +337,9 @@ opt-out. FP8 remains an isolated candidate, not the installed voice precision.
   playing while the model is released. None of these changes restart the game.
 - Only one GPU render runs at once. Cancelling a turn discards its audio, but
   retains ownership of the worker until that render finishes. Queued cancelled
-  work is skipped. Shutdown uses pipe EOF. Startup and a phrase render have
-  180-second and 120-second deadlines. After completion or timeout, shutdown
+  work is skipped. Shutdown uses pipe EOF. A phrase render has a 120-second
+  deadline; startup is progress-based (see "Startup limit, background retry and
+  switch back" below). After completion or timeout, shutdown
   allows 10 seconds for exit, then terminates only the owned child and waits
   5 seconds for confirmed exit. An unconfirmed exit blocks replacement workers.
 - WAV output has no added EQ, pitch/speed change, loudness normalization or

@@ -1,7 +1,7 @@
 import {PocketVoice, validatePocketConfig} from './pocket-voice.mjs';
 import {ResidentVoice} from './resident-voice.mjs';
 import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
-import {abortable, throwIfCancelled} from './transport-pool.mjs';
+import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs';
 import {omniTagsFor, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs';
 import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
@@ -18,6 +18,11 @@ export const canonicalOmniReference = value => OMNI_REFERENCES.includes(value) ?
 // runnable.
 export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket','convai']);
 const PACK_RECHECK_MS = 30_000;
+// A chosen OmniVoice that fails or times out is not given up on. Routing falls to the next voice at once, then Omni
+// is loaded again in the background after each of these waits (a first failure after 45 s, then 3 min, then 10 min);
+// a fourth failure ends the retries until the player chooses Omni again. Nothing here runs per frame: the retry is
+// due-checked from the 500 ms settings poll, and a due retry waits for a moment with no reply in flight.
+export const OMNI_RETRY_DELAYS_MS = Object.freeze([45_000, 180_000, 600_000]);
 const local = value => value === 'pocket' || value === 'omni';
 const equalSet = (a,b) => a.size===b.size&&[...a].every(key=>b.has(key));
 export class VoiceSelection {
@@ -55,6 +60,11 @@ export class VoiceSelection {
     this.phoneAnalysis=options.phoneAnalysis;
     this.factory = options.factory || ((settings, hooks) => new PocketVoice(settings, hooks));
     this.omniFactory=options.omniFactory||((settings,hooks)=>new ResidentVoice(settings,hooks));
+    // omniRetry: {failures, nextAt} while a failed Omni is to be loaded again; candidate: the background Omni worker
+    // loading beside the committed fallback (Pocket is CPU only, so the two never share VRAM). candidateExit
+    // chains each retired candidate's confirmed exit; a new worker starts only after it, like any replacement.
+    this.omniRetry=null;this.candidate=null;this.candidateExit=Promise.resolve();
+    this.omniRetryDelays=options.omniRetryDelays||OMNI_RETRY_DELAYS_MS;
     // "Keep prepared voices" (default on): Pocket saves each voice's prepared state to disk; Omni warms at the
     // selected steps while the companion joins.
     this.keepPrepared=options.keepPreparedVoices!==false;
@@ -110,6 +120,7 @@ export class VoiceSelection {
   setKeepPrepared(value){
     this.keepPrepared=value!==false;
     this.client?.setKeepPrepared?.(this.keepPrepared);
+    this.candidate?.client.setKeepPrepared?.(this.keepPrepared);
   }
   backendUsable(backend){
     return backend==='convai'||(!!this.configuredByBackend[backend]&&this.availabilities[backend].size>0
@@ -124,9 +135,12 @@ export class VoiceSelection {
   get resolvedProvider(){return this.resolve(this.requestedProvider);}
   // Set only once the fallback is the committed route, so the player is told
   // after the voice actually changed, never during a pending switch.
+  // `temporary` marks an Omni that is being loaded again in the background; the voice returns by itself.
   get fallback(){
     const want=this.resolvedProvider;
-    return want!==this.requestedProvider&&this.provider===want?{from:this.requestedProvider,to:want}:null;
+    if(want===this.requestedProvider||this.provider!==want)return null;
+    const value={from:this.requestedProvider,to:want};
+    return this.requestedProvider==='omni'&&this.omniRetry?{...value,temporary:true}:value;
   }
   // Why a character is on Convai: chosen, or the local voice cannot serve it.
   convaiReason(profile){
@@ -162,7 +176,11 @@ export class VoiceSelection {
     const chosen=canonicalVoiceProvider(settings?.voiceProvider);
     if (['pocket','omni','convai'].includes(chosen)){
       // Choosing a provider again retries it, even if it failed earlier.
-      if(chosen!==this.requestedProvider)this.failedBackends.delete(chosen);
+      if(chosen!==this.requestedProvider){
+        this.failedBackends.delete(chosen);
+        // Any change of or to Omni starts its retry story afresh (the normal start path takes over).
+        if(chosen==='omni'||this.requestedProvider==='omni')this.endOmniRetry();
+      }
       this.requestedProvider=chosen;
     }
     if ([16,32].includes(settings?.omniSteps))this.requestedOmniSteps=settings.omniSteps;
@@ -240,6 +258,7 @@ export class VoiceSelection {
     const previewChanged = this.setPreview(preview);
     const applied = this.applyWhenIdle(busy);
     this.reconcile();
+    this.maintainOmniRetry();
     if (previewChanged && !applied) this.publish();
     return applied;
   }
@@ -254,6 +273,7 @@ export class VoiceSelection {
       if(this.busy&&this.clientBackend===this.provider)return;
       this.retire();
     }
+    this.adoptCandidate(wanted);
     if(this.clientBackend==='omni'&&wanted==='omni')this.client?.setSteps(this.warmSteps);
     if(wanted)void this.start().catch(()=>{});
     else if(this.client&&!this.busy)this.retire();
@@ -270,6 +290,8 @@ export class VoiceSelection {
       keepPreparedVoices:this.keepPrepared,
       multilingual:this.multilingual,
       workerBackend:this.clientBackend,preparationQueued:this.targetBackend!==this.clientBackend,
+      omniRetry:this.omniRetry?{failures:this.omniRetry.failures,loading:!!this.candidate,
+        nextInMs:this.candidate?0:Math.max(0,this.omniRetry.nextAt-this.clock())}:null,
       configured: this.configured, bridgePid: process.pid,
       configuredProfiles: this.profileKeys,
       availabilityPending: this.availabilityPending, routeRevision: this.routeRevision,
@@ -327,7 +349,11 @@ export class VoiceSelection {
       if(this.busy&&this.clientBackend===this.provider)return this.starting||Promise.resolve();
       this.retire();
     }
+    // A background Omni that finished loading takes the empty slot: no second load of the same model.
+    if(this.adoptCandidate(backend))return this.starting;
     if (this.starting) return this.starting;
+    // A new Omni worker is about to load: a background one that could not be adopted (another reference) must exit first.
+    if(backend==='omni'&&this.candidate)void this.dropCandidate();
     let client;
     this.clientBackend=backend;
     this.clientReference=backend==='omni'?this.wantedReference:null;
@@ -344,7 +370,7 @@ export class VoiceSelection {
     if(backend==='omni')client.setSteps(this.warmSteps);
     client.setKeepPrepared?.(this.keepPrepared);
     this.publish(this.releasing ? 'releasing' : 'loading');
-    this.starting = this.retiring.then(async () => {
+    this.starting = Promise.all([this.retiring,this.candidateExit]).then(async () => {
       if (this.client !== client || this.closed) return;
       await client.start();
       this.stageAvailability(client,backend);
@@ -357,8 +383,106 @@ export class VoiceSelection {
   backendFailed(backend,client){
     if(this.closed||this.client!==client||this.failedBackends.has(backend))return;
     this.failedBackends.add(backend);
+    if(backend==='omni')this.scheduleOmniRetry(client.failure?.message);
     this.reconcile();
     this.publish();
+  }
+  log(message){try{this.options.onLog?.(`[OmniRetry] ${message}\n`);}catch{}}
+  // The next Omni attempt, if the player still wants Omni and attempts remain. `fallback.temporary` follows it.
+  scheduleOmniRetry(reason){
+    const failures=(this.omniRetry?.failures??0)+1,delay=this.omniRetryDelays[failures-1];
+    if(this.closed||this.requestedProvider!=='omni'||this.omniPack.installed===false||delay===undefined){
+      if(this.omniRetry||delay===undefined)this.log(`giving up after ${failures} failed attempts${reason?` (${reason})`:''}`);
+      this.omniRetry=null;return;
+    }
+    this.omniRetry={failures,nextAt:this.clock()+delay};
+    this.log(`attempt ${failures} failed${reason?` (${reason})`:''}; trying again in ${Math.round(delay/1000)} s`);
+  }
+  endOmniRetry(){this.omniRetry=null;void this.dropCandidate();}
+  // Due-checked from update() (the 500 ms settings poll): no timer, no loop. Waits for a moment with no reply in
+  // flight, so the load never competes with a reply's own work, and for the previous worker's confirmed exit.
+  maintainOmniRetry(){
+    if(this.closed)return;
+    // A background worker for a reference the player no longer wants (loading, or loaded and waiting for its idle
+    // commit) is released; the normal start path loads the wanted one after its confirmed exit.
+    if(this.candidate&&(this.requestedProvider!=='omni'||this.candidate.reference!==this.requestedOmniReference))void this.dropCandidate();
+    if(!this.omniRetry)return;
+    if(this.requestedProvider!=='omni'||this.omniPack.installed===false){this.endOmniRetry();return;}
+    if(this.candidate)return;
+    // A committed Omni (re)starting through the normal path is its own retry. No load while voice playback is off.
+    if(this.busy||this.playbackEnabled===false||this.clientBackend==='omni'||this.clock()<this.omniRetry.nextAt)return;
+    this.startCandidate();
+  }
+  startCandidate(){
+    const reference=this.requestedOmniReference,variant=this.omniVariants[reference];
+    if(!variant.configured){this.omniRetry=null;return;}
+    const entry={reference,client:null,loaded:false,lastState:null};
+    const hooks={...this.options,keepPreparedVoices:this.keepPrepared,configPath:variant.path,
+      pythonExecutable:this.options.omniPythonExecutable,lowPriority:true,onState:value=>{
+        if(this.closed)return;
+        if(this.candidate===entry){
+          entry.lastState=value;
+          if(value.state==='error')queueMicrotask(()=>this.candidateFailed(entry));
+          return;
+        }
+        // Adopted: from here on it is the committed worker and reports like any other.
+        if(this.client!==entry.client)return;
+        if(value.state==='error')queueMicrotask(()=>this.backendFailed('omni',entry.client));
+        if(value.state==='ready')this.stageAvailability(entry.client,'omni');
+        this.details=value;this.publish(value.state);
+      }};
+    entry.client=this.omniFactory(variant.snapshot,hooks);
+    entry.client.setSteps?.(this.requestedOmniSteps);
+    entry.client.setKeepPrepared?.(this.keepPrepared);
+    this.candidate=entry;
+    this.log(`loading OmniVoice in the background (retry ${this.omniRetry.failures})`);
+    entry.starting=Promise.all([this.retiring,this.candidateExit]).then(()=>{
+      if(this.candidate!==entry||this.closed)throw cancelled('Background voice load was dropped');
+      return entry.client.start();
+    }).then(()=>this.candidateReady(entry),()=>this.candidateFailed(entry));
+    this.publish();
+  }
+  candidateReady(entry){
+    if(this.candidate!==entry||this.closed)return;
+    entry.loaded=true;
+    const registry=this.omniVariants[entry.reference].registry;
+    this.verifiedAvailabilities.set(this.verifiedKey('omni',entry.reference),
+      new Set(registry.keys.filter(key=>entry.client.hasProfile(key))));
+    // Omni is routable again. The commit (provider back to Omni, the fallback worker retired, this one adopted)
+    // belongs to the next idle poll, never to this callback, so a reply in flight keeps its voice.
+    this.omniRetry=null;this.failedBackends.delete('omni');
+    this.log('OmniVoice is ready; it takes over at the next idle reply boundary');
+    this.publish();
+  }
+  candidateFailed(entry){
+    if(this.candidate!==entry||this.closed)return;
+    this.candidate=null;
+    // Also when it dies after finishing but before the idle commit: Omni leaves routing again, the fallback stays.
+    this.failedBackends.add('omni');
+    void this.retireCandidate(entry).catch(()=>{this.omniRetry=null;});
+    this.scheduleOmniRetry(entry.client.failure?.message);
+    this.publish();
+  }
+  retireCandidate(entry){
+    const closing=Promise.resolve().then(()=>entry.client.close());
+    this.candidateExit=this.candidateExit.then(()=>closing);
+    this.candidateExit.catch(()=>{});
+    return this.candidateExit;
+  }
+  dropCandidate(){
+    const entry=this.candidate;
+    if(entry){this.candidate=null;this.retireCandidate(entry);}
+    return this.candidateExit;
+  }
+  // The loaded background worker becomes the committed one once the fallback worker is gone.
+  adoptCandidate(wanted){
+    const entry=this.candidate;
+    if(!entry?.loaded||this.client||wanted!=='omni'||entry.reference!==this.wantedReference||entry.client.failure||entry.client.closing)return false;
+    this.candidate=null;
+    this.client=entry.client;this.clientBackend='omni';this.clientReference=entry.reference;
+    this.starting=Promise.resolve();
+    this.details=entry.lastState||this.details;
+    return true;
   }
   retire() {
     const client = this.client;
@@ -465,9 +589,9 @@ export class VoiceSelection {
   }
   close() {
     if (this.closed) return this.closing||this.retiring;
-    this.closed = true; this.preview = null;
+    this.closed = true; this.preview = null; this.omniRetry = null;
     for (const waiter of this.routingWaiters) waiter.reject(Error('Voice service is closed'));
     this.routingWaiters.clear();
-    return this.closing=Promise.all([this.retire(),this.phoneAnalysis?.close()]);
+    return this.closing=Promise.all([this.retire(),this.phoneAnalysis?.close(),this.dropCandidate()]);
   }
 }

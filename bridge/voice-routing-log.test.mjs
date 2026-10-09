@@ -98,6 +98,14 @@ test('fallback reasons: missing Omni pack, failed worker, Multilingual non-Engli
   failed.voice.failedBackends.add('pocket'); failed.voice.applyWhenIdle(false);
   assert.equal(route(failed, JUDY).fallback, 'Pocket worker unavailable');
 
+  // An Omni that failed is retried in the background, and the log says so until it gives up.
+  const loading = fixture({settings: {voiceProvider: 'omni', omniReference: 'short'}});
+  loading.voice.failedBackends.add('omni'); loading.voice.omniRetry = {failures: 1, nextAt: 0}; loading.voice.applyWhenIdle(false);
+  assert.equal(loading.voice.provider, 'pocket');
+  assert.equal(route(loading, JUDY).fallback, 'Omni still loading (retrying in the background)');
+  loading.voice.omniRetry = null;
+  assert.equal(route(loading, JUDY).fallback, 'Omni worker unavailable');
+
   // Multilingual on with a Pocket pairing: the turn plan sends a non-English reply to the cloud voice.
   const multi = fixture({settings: {voiceProvider: 'pocket', multilingualConversations: true}});
   const plan = planFor(multi.voice, 'judy-alvarez', {enabled: true, language: 'de'});

@@ -336,10 +336,13 @@ local function voiceServiceLabel(state)
     local fallback = state.fallback
     if type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket')
         and (fallback.to == 'pocket' or fallback.to == 'convai') then
-        return ui.t('{status} · Using {voice}, {requested} unavailable', {
+        local values = {
             status = ui.t(labels[state.state] or 'Waiting for voice service'),
             voice = manager.voiceLabel(fallback.to, state.omniSteps, state.omniReference),
-            requested = manager.voiceLabel(fallback.from, state.requestedOmniSteps, state.requestedOmniReference)})
+            requested = manager.voiceLabel(fallback.from, state.requestedOmniSteps, state.requestedOmniReference)}
+        -- A temporary fallback is an Omni being loaded again in the background: it is coming back, not unavailable.
+        if fallback.temporary == true then return ui.t('{status} · Using {voice}, {requested} not ready yet', values) end
+        return ui.t('{status} · Using {voice}, {requested} unavailable', values)
     end
     if state.preparationOnly and state.previewActive
         and (state.previewProvider == 'pocket' or state.previewProvider == 'omni') and state.state == 'ready' then

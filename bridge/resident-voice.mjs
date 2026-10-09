@@ -6,13 +6,20 @@ import {abortable, throwIfCancelled, cancelled} from './transport-pool.mjs';
 import {createVoiceProfileRegistry, LEGACY_LOCAL_VOICE_KEYS} from './voice-profile-registry.mjs';
 import {absoluteRuntimeOverride, OMNI_RUNTIME_PATHS, omniRuntimeOverrides} from './runtime-paths.mjs';
 import {realpathSync} from 'node:fs';
+import {constants as osConstants, setPriority as osSetPriority} from 'node:os';
 
 // Historical accepted-reference fixture/packaging list. Eligibility is always
 // read from the validated registry, never from this compatibility export.
 export const LOCAL_VOICE_KEYS = LEGACY_LOCAL_VOICE_KEYS;
 export const voiceSteps = value => value === 16 ? 16 : 32;
-export const VOICE_WORKER_LIMITS = Object.freeze({startupMs: 180_000, renderMs: 120_000,
-  exitGraceMs: 10_000, exitConfirmationMs: 5_000});
+// Startup is progress-based. Loading OmniVoice took about 3 minutes on a CPU-throttled laptop (Windows Silent
+// power mode) with nothing else running, and longer while the game itself is loading, so a fixed limit near that
+// figure downgraded the session. The worker reports a state frame at each loading stage and its libraries log
+// weight loading; any such output restarts the stall window, so a worker that keeps moving is never cut off.
+// Only silence for `startupStallMs`, or the absolute `startupMaxMs`, ends a start. `startupCloseMs` bounds the wait
+// for a worker that is still loading when its owner has already asked it to stop (nothing to preserve there).
+export const VOICE_WORKER_LIMITS = Object.freeze({startupStallMs: 300_000, startupMaxMs: 900_000,
+  startupCloseMs: 60_000, renderMs: 120_000, exitGraceMs: 10_000, exitConfirmationMs: 5_000});
 
 export class ResidentVoice {
   constructor(config = {}, {project, configPath, spawnImpl = spawn, onState = () => {}, onLog = () => {},
@@ -21,7 +28,8 @@ export class ResidentVoice {
     modelDirectory = process.env.CYBERPUNK_CONVAI_OMNI_MODEL,
     adapterDirectory = process.env.CYBERPUNK_CONVAI_OMNI_ADAPTER,
     referenceDirectory = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES,
-    cacheDirectory = process.env.CYBERPUNK_CONVAI_OMNI_CACHE} = {}) {
+    cacheDirectory = process.env.CYBERPUNK_CONVAI_OMNI_CACHE,
+    lowPriority = false, setPriority = osSetPriority} = {}) {
     this.pythonExecutable = absoluteRuntimeOverride(pythonExecutable, 'CYBERPUNK_CONVAI_PYTHON');
     this.workerEnvironment = omniRuntimeOverrides({modelDirectory, adapterDirectory, referenceDirectory, cacheDirectory});
     this.registry = createVoiceProfileRegistry(config);
@@ -33,18 +41,33 @@ export class ResidentVoice {
     this.prepared = new Set(); this.available = new Set(this.registry.keys);
     // "Keep prepared voices": the hidden warm-up render made while a companion joins uses the selected steps.
     this.keepPrepared = false;
+    // A background (re)start loads below normal priority so it does not compete with the game for CPU; it is
+    // raised to normal once ready, because rendering replies is latency-sensitive.
+    this.lowPriority = lowPriority === true; this.setPriority = setPriority;
   }
   setKeepPrepared(value) { this.keepPrepared = value === true; }
+  priority(level) {
+    if (!this.child?.pid) return;
+    try { this.setPriority(this.child.pid, level); } catch { /* A priority is an optimisation, never a failure. */ }
+  }
   schedule(callback, delay) {
     const timer = this.setTimer(callback, delay); timer?.unref?.(); return timer;
   }
-  clearPhase() { this.clearTimer(this.phaseTimer); this.phaseTimer = null; }
+  clearPhase() {
+    this.clearTimer(this.phaseTimer); this.clearTimer(this.capTimer);
+    this.phaseTimer = this.capTimer = this.phaseLabel = null;
+  }
   phaseDeadline(label, delay) {
-    this.clearPhase();
+    this.clearTimer(this.phaseTimer);
+    this.phaseLabel = label;
     this.phaseTimer = this.schedule(() => {
       this.phaseTimer = null;
       this.fail(Error(`Local voice ${label} timed out`));
     }, delay);
+  }
+  // Any output from a starting worker restarts the stall window (a few dozen re-arms in a whole start, none after it).
+  startupProgress() {
+    if (this.phaseLabel === 'startup' && !this.closing) this.phaseDeadline('startup', VOICE_WORKER_LIMITS.startupStallMs);
   }
   awaitExit() {
     if (!this.child || this.exitTimer || this.exitConfirmation) return;
@@ -122,7 +145,7 @@ export class ResidentVoice {
         catch (error) { this.fail(error); child.stdin.end(); return; }
       }
     });
-    child.stderr.on('data', part => { try { this.onLog(part.toString('utf8')); } catch {} });
+    child.stderr.on('data', part => { this.startupProgress(); try { this.onLog(part.toString('utf8')); } catch {} });
     child.stdin.on('error', error => this.fail(error));
     child.on('error', error => this.fail(error));
     this.exited = new Promise((done, reject) => {
@@ -141,11 +164,17 @@ export class ResidentVoice {
       });
     });
     this.exited.catch(() => {});
-    this.phaseDeadline('startup', VOICE_WORKER_LIMITS.startupMs);
+    if (this.lowPriority) this.priority(osConstants.priority.PRIORITY_BELOW_NORMAL);
+    this.phaseDeadline('startup', VOICE_WORKER_LIMITS.startupStallMs);
+    this.capTimer = this.schedule(() => {
+      this.capTimer = null;
+      this.fail(Error('Local voice startup timed out (took too long to load)'));
+    }, VOICE_WORKER_LIMITS.startupMaxMs);
     return this.ready;
   }
   receive(frame) {
     if (frame.op === 'state') {
+      this.startupProgress();
       if (!['loading', 'warming'].includes(frame.state)
           || (frame.state === 'warming' && !this.registry.has(frame.profile))) throw Error('Invalid local voice state');
       if (!this.closing) this.publish(frame.state, {profile: frame.profile});
@@ -193,6 +222,7 @@ export class ResidentVoice {
       this.protocolVersion = version; this.available = new Set(profiles); this.prepared = new Set(prepared);
       this.loaded = true;
       this.clearPhase();
+      if (this.lowPriority) this.priority(osConstants.priority.PRIORITY_NORMAL);
       this.details = {device: frame.device, dtype: frame.dtype, runtime: frame.runtime,
         tensorrt: frame.tensorrt, compiled: frame.compiled,
         acceleration: frame.acceleration || 'eager', cudaGraph: frame.cudaGraph,
@@ -336,6 +366,12 @@ export class ResidentVoice {
     // EOF is observed after the current inference finishes. A stuck process
     // receives the bounded owned-worker shutdown path rather than waiting forever.
     this.child.stdin.end();
+    // A worker that is still loading only reads EOF once loaded; nothing there is worth waiting for, so its
+    // deadline shortens to a minute (progress no longer extends it, and the absolute limit is dropped).
+    if (this.phaseLabel === 'startup') {
+      this.clearTimer(this.capTimer); this.capTimer = null;
+      this.phaseDeadline('startup', VOICE_WORKER_LIMITS.startupCloseMs);
+    }
     // An active render/warmup keeps its original deadline. Once it finishes,
     // only the short teardown allowance remains; idle close starts it now.
     if (!this.phaseTimer) this.awaitExit();

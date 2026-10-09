@@ -4,6 +4,7 @@ import {EventEmitter} from 'node:events';
 import {createHash} from 'node:crypto';
 import {PassThrough, Writable} from 'node:stream';
 import {resolve} from 'node:path';
+import {constants as osConstants} from 'node:os';
 import {ResidentVoice, LOCAL_VOICE_KEYS, VOICE_WORKER_LIMITS} from './resident-voice.mjs';
 import {silentWav} from './speech-audio.mjs';
 
@@ -273,7 +274,7 @@ test('an intentional shutdown rejects an unfinished render if the child exits wi
 test('startup timeout releases callers then bounds owned-worker retirement without overlapping a replacement', async () => {
   const timers = clock(), h = harness({autoReady: false, timers});
   const ready = assert.rejects(h.client.start(), /startup timed out/);
-  timers.advance(VOICE_WORKER_LIMITS.startupMs - 1); assert.equal(h.child.stdin.writableEnded, false);
+  timers.advance(VOICE_WORKER_LIMITS.startupStallMs - 1); assert.equal(h.child.stdin.writableEnded, false);
   timers.advance(1); await ready; assert.equal(h.child.stdin.writableEnded, true);
   assert.equal(h.child.kills, 0);
   const closed = h.client.close();
@@ -281,6 +282,77 @@ test('startup timeout releases callers then bounds owned-worker retirement witho
   timers.advance(1); assert.equal(h.child.kills, 1);
   h.finish(); await closed; assert.equal(timers.size(), 0);
   await assert.rejects(h.client.start(), /stopping/); assert.equal(h.starts(), 1);
+});
+
+test('startup is progress-based: output from a slow worker restarts the stall window, silence still ends it', async () => {
+  const timers = clock(), h = harness({autoReady: false, timers}), stall = VOICE_WORKER_LIMITS.startupStallMs;
+  let outcome = 'pending';
+  const ready = h.client.start().then(() => { outcome = 'ready'; }, error => { outcome = error.message; });
+  // Two stall windows' worth of time pass, but the worker keeps reporting (a stage frame, then library logging).
+  timers.advance(stall - 1000); h.send({op: 'state', state: 'loading'}); await tick();
+  timers.advance(stall - 1000); h.child.stderr.write('Loading weights: 44%'); await tick();
+  assert.equal(outcome, 'pending'); assert.equal(h.child.stdin.writableEnded, false);
+  assert.equal(h.client.state, 'loading');
+  // Then it goes silent for a whole window.
+  timers.advance(1000); await tick(); assert.equal(outcome, 'pending');
+  timers.advance(stall - 1000); await ready;
+  assert.match(outcome, /Local voice startup timed out/);
+  assert.equal(h.child.stdin.writableEnded, true);
+  const closed = h.client.close(); timers.advance(VOICE_WORKER_LIMITS.exitGraceMs); h.finish(); await closed;
+  assert.equal(timers.size(), 0);
+});
+
+test('a worker that keeps reporting is still cut off by the absolute startup limit, and a late start can still become ready', async () => {
+  const timers = clock(), h = harness({autoReady: false, timers});
+  let outcome = 'pending';
+  const ready = h.client.start().then(() => { outcome = 'ready'; }, error => { outcome = error.message; });
+  // Slower than the old 180 s fixed limit, with steady progress: still loading.
+  for (let elapsed = 0; elapsed < 600_000; elapsed += 60_000) { timers.advance(60_000); h.send({op: 'state', state: 'loading'}); await tick(); }
+  assert.equal(outcome, 'pending');
+  h.ready(); await ready; assert.equal(outcome, 'ready'); assert.equal(h.client.loaded, true);
+  assert.equal(timers.size(), 0, 'readiness clears the stall and absolute timers');
+  const closed = h.client.close(); h.finish(); await closed;
+  // Chattering without ever finishing ends at the absolute limit.
+  const stuck = clock(), g = harness({autoReady: false, timers: stuck});
+  let end = 'pending';
+  const never = g.client.start().then(() => { end = 'ready'; }, error => { end = error.message; });
+  for (let elapsed = 0; elapsed < VOICE_WORKER_LIMITS.startupMaxMs - 60_000; elapsed += 60_000) {
+    stuck.advance(60_000); g.send({op: 'state', state: 'loading'}); await tick();
+  }
+  assert.equal(end, 'pending'); stuck.advance(60_000); await never;
+  assert.match(end, /startup timed out/);
+  const closing = g.client.close(); stuck.advance(VOICE_WORKER_LIMITS.exitGraceMs); g.finish(); await closing;
+  assert.equal(stuck.size(), 0);
+});
+
+test('closing a worker that is still loading waits one short allowance, not the whole startup', async () => {
+  const timers = clock(), h = harness({autoReady: false, timers});
+  const ready = assert.rejects(h.client.start(), /cancelled/);
+  timers.advance(10_000);
+  const closed = h.client.close();
+  // Output from the dying worker no longer extends anything.
+  h.send({op: 'state', state: 'loading'}); await tick();
+  timers.advance(VOICE_WORKER_LIMITS.startupCloseMs - 1); assert.equal(h.child.kills, 0);
+  timers.advance(1); await ready;
+  timers.advance(VOICE_WORKER_LIMITS.exitGraceMs - 1); assert.equal(h.child.kills, 0);
+  timers.advance(1); assert.equal(h.child.kills, 1);
+  h.finish(); await closed; assert.equal(timers.size(), 0);
+});
+
+test('a background start loads below normal priority and returns to normal once ready; priority errors never fail a start', async () => {
+  const calls = [];
+  const low = harness({autoReady: false, workerOptions: {lowPriority: true, setPriority: (pid, level) => calls.push([pid, level])}});
+  const started = low.client.start(); await tick();
+  assert.deepEqual(calls, [[1234, osConstants.priority.PRIORITY_BELOW_NORMAL]]);
+  low.ready(); await started;
+  assert.deepEqual(calls.at(-1), [1234, osConstants.priority.PRIORITY_NORMAL]);
+  let closed = low.client.close(); low.finish(); await closed;
+  const refused = harness({workerOptions: {lowPriority: true, setPriority() { throw Error('access denied'); }}});
+  await refused.client.start(); assert.equal(refused.client.loaded, true);
+  closed = refused.client.close(); refused.finish(); await closed;
+  const normal = harness({workerOptions: {setPriority: () => calls.push('unexpected')}});
+  await normal.client.start(); closed = normal.client.close(); normal.finish(); await closed;
+  assert.equal(calls.includes('unexpected'), false, 'a normal start leaves the priority alone');
 });
 
 test('render timeout rejects queued work and discards a late WAV while waiting for physical exit', async () => {
