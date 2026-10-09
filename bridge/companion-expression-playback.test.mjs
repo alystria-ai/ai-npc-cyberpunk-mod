@@ -343,14 +343,25 @@ test('face-test probe: writer mode pushes an extreme smile through the single wr
  for _=1,25 do tick(.1) end;tick(.1);assert(last(a).lips_l_corner_up<.25,'probe ends and the real policy resumes (warmth floor)')
 `));
 
-// face-stage (mod/face-test.lua): a companion is put 1.1 m in front of V's camera facing it, one transform every .1 s for
-// the hold, created through the normal spawn path when absent, and dismissed on request (only probe-created copies).
-test('face-stage probe: reuses a present copy, spawns a missing one, places it in front of the camera facing it, releases and dismisses', () => runProbe(`
- Vector4={new=function(x,y,z,w) return {x=x,y=y,z=z,w=w} end}
- EulerAngles={new=function(p,r,y) return {pitch=p,roll=r,yaw=y} end}
+// face-stage (mod/face-test.lua): a companion is put .85 m in front of V's camera facing it with an AI teleport command (a
+// transform teleport is undone by her locomotion), only while she is off the spot, for the hold; the character is
+// invited through the party queue when absent, and dismissed on request (only probe-invited characters).
+test('face-stage probe: reuses a present copy, invites a missing one, places it in front of the camera facing it, releases and dismisses', () => runProbe(`
  local moves={}
+ local plain=NewObject
+ NewObject=function(name) if name=='AITeleportCommand' then return {} end;return plain(name) end
+ -- A copy answers its AI controller: a teleport command moves it exactly to the commanded spot and yaw.
+ local function body(npc,x,y,z,yaw)
+  npc.where={x=x,y=y,z=z};npc.yaw=yaw
+  function npc:GetWorldPosition() return self.where end
+  function npc:GetWorldYaw() return self.yaw end
+  function npc:GetAIControllerComponent() return {SendCommand=function(_,command)
+   moves[#moves+1]={npc=npc,position=command.position,yaw=command.rotation}
+   npc.where={x=command.position.x,y=command.position.y,z=command.position.z};npc.yaw=command.rotation;return true end} end
+ end
+ body(a,12,19,5,-30);body(b,0,0,0,0)
+ Vector4={new=function(x,y,z,w) return {x=x,y=y,z=z,w=w} end}
  Game.GetTargetingSystem=function() return {GetCrosshairData=function() return {x=10,y=20,z=6.7},{x=0,y=1,z=-.1} end} end
- Game.GetTeleportationFacility=function() return {Teleport=function(_,npc,position,angles) moves[#moves+1]={npc=npc,position=position,angles=angles} end} end
  function player:GetWorldPosition() return {x=10,y=20,z=5} end
  local spawned,dismissed,live
  convaiCompanions.list=function() return {} end
@@ -358,30 +369,33 @@ test('face-stage probe: reuses a present copy, spawns a missing one, places it i
   invite=function(key) spawned=key;live={{id='live:7',key=key}};return true,'preparing','queued:1' end,
   list=function() return live or {} end,
   dismiss=function(id) dismissed=id;return true,'leaving' end} end}
- -- A present copy is reused: no spawn, placed in front of the camera, facing it.
+ -- A present copy is reused: no invitation, placed in front of the camera, facing it.
  request('s1\\nface-stage judy 10');tick(.3)
  assert(files['runtime/face-test-response.txt']:find('ok=true',1,true) and spawned==nil,files['runtime/face-test-response.txt'])
  for _=1,10 do tick(.1) end
- request('sx\\nface-stage status');tick(.3);assert(#moves>=1 and #moves<=12,'one transform per .1 s: '..#moves..' '..tostring(files['runtime/face-test-response.txt']))
+ assert(#moves==1,'one AI teleport, then she stays: '..#moves)
  local m=moves[#moves]
- assert(m.npc==a and math.abs(m.position.x-10)<1e-6 and math.abs(m.position.y-21.1)<1e-6 and m.position.z==5,'in front, on V s floor')
- assert(math.abs(m.angles.yaw-180)<1e-6,'facing the camera: '..m.angles.yaw)
+ assert(m.npc==a and math.abs(m.position.x-10)<1e-6 and math.abs(m.position.y-20.85)<1e-6 and m.position.z==5,'in front, on V s floor')
+ assert(math.abs(m.yaw-180)<1e-6,'facing the camera: '..m.yaw)
+ -- Her own movement drags her off: she is put back, at most every .5 s.
+ a.where={x=12,y=22,z=5};for _=1,6 do tick(.1) end
+ assert(#moves==2,'put back once she is off the spot: '..#moves)
  -- off stops the hold.
  request('s2\\nface-stage off');tick(.3);local count=#moves
- for _=1,10 do tick(.1) end
- assert(#moves==count,'no transform after off')
- -- An absent character is created through the normal path, waited for, then staged and later dismissed.
+ a.where={x=12,y=22,z=5};for _=1,10 do tick(.1) end
+ assert(#moves==count,'no command after off')
+ -- An absent character is invited through the party queue, waited for, then staged and later dismissed.
  rows={{entity=a.id,npc=a,profileKey='judy-alvarez',name='Judy'}}
  request('s3\\nface-stage evelyn-parker 5');tick(.3)
  assert(spawned=='evelyn-parker')
  count=#moves;for _=1,5 do tick(.1) end;assert(#moves==count,'nothing is placed before the copy is ready')
- local c=actor('copy-c');rows[#rows+1]={entity=c.id,npc=c,profileKey='evelyn-parker',name='Evelyn Parker'}
+ local c=actor('copy-c');body(c,0,0,5,0);rows[#rows+1]={entity=c.id,npc=c,profileKey='evelyn-parker',name='Evelyn Parker'}
  for _=1,5 do tick(.1) end
  assert(moves[#moves].npc==c,'the new copy is staged')
  request('s4\\nface-stage dismiss');tick(.3)
  assert(dismissed=='live:7','dismisses what the probe invited')
  request('s5\\nface-stage judy 10');tick(.3);dismissed=nil;request('s6\\nface-stage dismiss');tick(.3)
- assert(dismissed==nil,'never a copy that was already there')
+ assert(dismissed==nil,'never a character that was already there')
 `));
 
 test('face-test probe: direct mode bypasses the writer with its own feature and logs the apply result', () => runProbe(`
