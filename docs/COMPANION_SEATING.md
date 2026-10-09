@@ -425,7 +425,7 @@ tier 3 camera limits). A sit is either a named workspot that classifies as a sea
 with the same `classify` the companion seating uses (couch, bench, chair, table
 chair, bar, stool; base set `WorkspotUnlocked`) or a scene sit: no workspot
 instance and scene tier 3 (base set `Tier3Scene`). For a sit it delays a
-`SetCameraParamsWithOverridesEvent` (yaw +-90, pitch -50..45, sensitivities 1) by
+`SetCameraParamsWithOverridesEvent` (yaw +-130, pitch -65..60, sensitivities 1) by
 0.4 s (never at once: when a scene ends the Workspot state flickers
 `OnForcedExit` / `OnEnter` a few milliseconds apart, seen live at tier 4, and the
 exit cancels the delayed copy, so no event can land on a standing V); while V
@@ -458,7 +458,7 @@ Unknowns that only a real sit can settle: that the later copy and the scene-rese
 hook win over the native parameters (the log lines `seated-look-enter` and
 `seated-look` with the tier say what fired, developer mode on); whether a vanilla dialogue
 while seated (scene tier) re-applies the narrow set afterwards; body or arm
-clipping at yaw 90; the pitch sign (positive is expected to be up).
+clipping at yaw 130 (the first version used 90, which the user confirmed live as working but wanted wider; 130 was chosen without a capture, because the camera cannot be turned without raw input; V's own shoulder or arm may enter the frame near the limit, and if it does, lower `M.limits` in `mod/seated-look.lua`); the pitch sign (positive is expected to be up).
 
 ## Cost
 
@@ -524,8 +524,9 @@ Install: **game restart** for the rebuilt `archive/pc/mod/convai_gestures.archiv
     sidebar's Behavior line does not name it.
 11. FPS while V stands and while seated: unchanged.
 12. Free look: sit on a street bench (a workspot, not the apartment couch). Turn
-    the camera left and right as far as it goes: it should reach roughly 90
-    degrees (before: about 15), and up and down about 45. Seat a companion
+    the camera left and right as far as it goes: it should reach roughly 130
+    degrees (before: about 15; first version 90), up about 60 and down about 65. Look
+    for V's shoulder or arm covering the view at the limit. Seat a companion
     beside V and look at her face. Repeat on a chair and a bar stool. Stand up
     and check you can look all the way around again. Check that a takedown or
     other locked workspot still holds the camera still. Developer mode on: one

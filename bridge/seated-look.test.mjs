@@ -49,7 +49,7 @@ for _,path in ipairs({BENCH,COUCH,'base\\\\workspots\\\\player\\\\chair\\\\playe
   assert(c.entered()==true,path)
   assert(#n.queued==0,'no event at once: a scene ending flickers the state')
   local l=n.delayed[1].limits
-  assert(l.yawMaxLeft==90 and l.yawMaxRight==-90 and l.pitchMax==45 and l.pitchMin==-50,'limits '..path)
+  assert(l.yawMaxLeft==130 and l.yawMaxRight==-130 and l.pitchMax==60 and l.pitchMin==-65,'limits '..path)
   assert(l.sensitivityMultX==1 and l.sensitivityMultY==1,'sensitivity must stay 1')
   assert(n.delayed[1].seconds==.4 and n.delayed[1].set=='WorkspotUnlocked','delayed copy on the plain workspot set')
 end
@@ -60,7 +60,7 @@ local n=fake({path=nil,anim=nil,tier=3,vehicle=0})
 local c=look.new(n)
 assert(c.entered()==true)
 assert(#n.queued==0 and n.delayed[1].set=='Tier3Scene','scene base set, delayed only')
-assert(n.delayed[1].limits.yawMaxLeft==90,'the couch had 60.9 left')
+assert(n.delayed[1].limits.yawMaxLeft==130,'the couch had 60.9 left')
 assert(c.sitting=='scene')
 local logged=n.logs[#n.logs-1]
 assert(logged.kind=='seated-look-enter' and logged.fields.tier==3)
@@ -125,7 +125,7 @@ local f=look.new(j);assert(f.entered()==true,'the delayed copy alone still count
 
 test('the limits reach a neighbour on the same bench and stay bounded', () => run(`
 local l=look.limits
-assert(l.yawMaxLeft>=90 and l.yawMaxRight<=-90 and l.yawMaxLeft<=120 and l.yawMaxRight>=-120)
+assert(l.yawMaxLeft>=90 and l.yawMaxRight<=-90 and l.yawMaxLeft<=135 and l.yawMaxRight>=-135)
 assert(l.pitchMin<0 and l.pitchMax>0 and l.pitchMin>=-80 and l.pitchMax<=80)
 assert(look.baseSet=='WorkspotUnlocked' and look.sceneSet=='Tier3Scene')
 `));

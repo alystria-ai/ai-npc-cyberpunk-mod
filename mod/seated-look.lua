@@ -28,10 +28,10 @@
 local M = {}
 
 M.limits = {
-    yawMaxLeft = 90,    -- degrees, positive is left (a neighbour on the bench is about 90 off)
-    yawMaxRight = -90,  -- negative is right
-    pitchMax = 45,      -- looking up
-    pitchMin = -50,     -- looking down
+    yawMaxLeft = 130,   -- degrees, positive is left (a neighbour on the bench is about 90 off; 130 reaches over the shoulder)
+    yawMaxRight = -130, -- negative is right
+    pitchMax = 60,      -- looking up
+    pitchMin = -65,     -- looking down
     sensitivityMultX = 1,
     sensitivityMultY = 1,
 }
