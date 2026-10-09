@@ -129,8 +129,8 @@ for _,key in ipairs({'adam-smasher','yorinobu-arasaka','hanako-arasaka','alan-no
 local moodHoldSeconds,moodCalmSeconds,moodEaseSeconds,moodThreshold=60,10,5,.2
 local function traitFor(profile) return traitTable[profile] or traitTable.default end
 local speechMouthFactor=.85
--- The jaw weight (as written) from which a speaking, jaw-lifted head carries no chin raise at all.
-local chinDuckJaw=.10
+-- The jaw weight (as written) from which a speaking, jaw-lifted head carries no chin raise / no corner depressors.
+local chinDuckJaw,cornerDuckJaw=.10,.20
 -- October 9 (user: Evelyn and Johnny, with wider, thinner lips than Judy, "don't open the mouth on some words"):
 -- every speech source is calibrated on Judy's rig, where a jaw weight of .06 already parts her lips. Measured in game
 -- on 23 characters (docs/COMPANION_EXPRESSIONS.md, lip sync round): the shared woman_average heads (Evelyn, Alex, Claire,
@@ -549,16 +549,23 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
             slot.pose.eye_l_brows_lower,slot.pose.eye_r_brows_lower=0,0
         end
     end
-    -- October 9 (night, Evelyn: the mouth barely parted on sad replies): the chin raise lifts the lower lip into the upper,
-    -- and on the wide-lipped heads .15 of it cancels a jaw of .2 (captured on Evelyn: jaw .35 with chin .3 reads as closed).
-    -- While one of those heads speaks, the chin raise gives way as the jaw opens and is gone from .10 up, so a sad, angry or
-    -- disgusted line still frowns between words and opens on them. Judy and unknown heads (no jaw lift) are untouched.
-    local chinDuck=1
-    if phase=='speaking' and M.jawLift then chinDuck=1-clamp((finite(feature.jaw_mid_open) and feature.jaw_mid_open or 0)/chinDuckJaw) end
+    -- October 9 (night, Evelyn: the mouth barely parted on sad replies). Two expression controls close the lips on the
+    -- wide-lipped heads, measured on Evelyn with the writer probe at jaw .35 (brows, lids, cheek squint, nose wrinkle, the
+    -- blink droop and a smile's corner pull do not: a smile only widens the gap): the chin raise lifts the lower lip into
+    -- the upper (.15 of it cancels a jaw of .2), and the corner depressors stretch the lips thin (.3 halves the gap, .55
+    -- with the chin raise seals it). While a jaw-lifted head speaks, each gives way as the jaw opens, the chin raise gone
+    -- from .10 and the corners from .20, and both return between words, so a sad, angry or disgusted line still frowns on
+    -- the brows, eyes and cheeks and in its pauses. Judy and unknown heads (no jaw lift) are untouched.
+    local chinDuck,cornerDuck=1,1
+    if phase=='speaking' and M.jawLift then
+        local jaw=finite(feature.jaw_mid_open) and feature.jaw_mid_open or 0
+        chinDuck,cornerDuck=1-clamp(jaw/chinDuckJaw),1-clamp(jaw/cornerDuckJaw)
+    end
     for _,track in ipairs(expressionTracks) do
         -- Hard closure/rounding suppression happens after smoothing, too.
         feature[track]=math.min(slot.pose[track],limitFor(track)*(track:sub(1,5)=='lips_' and budget or 1))
-        if track=='lips_chin_raise' then feature[track]=feature[track]*chinDuck end
+        if track=='lips_chin_raise' then feature[track]=feature[track]*chinDuck
+        elseif track=='lips_l_corner_dn' or track=='lips_r_corner_dn' then feature[track]=feature[track]*cornerDuck end
     end
     -- Voice-synchronous brows from the game-trained model (emphasis flashes,
     -- focused frowns). Already smooth and on the audio clock: combined by max

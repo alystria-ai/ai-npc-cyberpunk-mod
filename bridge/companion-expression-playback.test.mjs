@@ -651,6 +651,32 @@ test('chin raise gives way to an opening jaw while a lifted head speaks, and not
   run(chinBody('unsupported-graph', .2, "assert(chin>.1,'unknown head unchanged: '..chin)"));
 });
 
+// Same night: the corner depressors of a sad or angry mouth stretch the lips thin (.3 halves Evelyn's gap, with the chin raise
+// it seals it). They give way to the jaw (gone from .20), return between words, and Judy and unknown heads keep them.
+// The brows and the lids keep reading through the jaw, and a smile's corner pull is left alone (it only widens the mouth).
+test('corner depressors give way to an opening jaw while a lifted head speaks, the brows stay, Judy and a smile are untouched', () => {
+  const dnBody = (emotion, status, jaw, check) => `
+ function a:ConvaiFaceStatus() return ${JSON.stringify(status)} end
+ face.beginExpression(context,${literal(receipt(emotion, 3, 0))});face.expressionHeard(context)
+ for _=1,30 do tick(.1) end
+ local resting=last(a)
+ local rest={dn=resting.lips_l_corner_dn,up=resting.lips_l_corner_up,brow=resting.eye_l_brows_raise_in,lower=resting.eye_l_brows_lower}
+ local timeline={version=1,requestId=context.requestId,entity=a.id,duration=2,source='local-jali',articulation='jali-audio-v1',
+  tracks={'jaw_mid_open','lips_together_up'},frames={{0,${jaw},0},{2,${jaw},0}}}
+ assert(face.start(context,timeline,a,2),face.error)
+ local position=0
+ for _=1,14 do face.beginExpressionFrame(.1,{actors=rows});position=position+.1;face.sync(a,position,context.requestId) end
+ local f=last(a);local dn,jawValue=f.lips_l_corner_dn,f.jaw_mid_open
+ ${check}`;
+  run(dnBody('Sadness', 'prepared:woman_average_sermo', .2, "assert(rest.dn>.2 and jawValue>=.2 and dn==0 and f.lips_r_corner_dn==0,'open jaw, no corner depressors: '..dn..' of '..rest.dn); assert(f.eye_l_brows_raise_in>.5*rest.brow,'the inner brows still read: '..f.eye_l_brows_raise_in)"));
+  run(dnBody('Sadness', 'prepared:man_average_sermo', .3, "assert(dn==0,'man_average: '..dn)"));
+  run(dnBody('Sadness', 'prepared:woman_average_sermo', .0, "assert(dn>.5*rest.dn,'closed jaw keeps the corners: '..dn..' of '..rest.dn)"));
+  run(dnBody('Sadness', 'prepared:woman_average_sermo', .06, "assert(jawValue>.1 and dn>0 and dn<.7*rest.dn,'in between, partly: '..dn..' at jaw '..jawValue)"));
+  run(dnBody('Sadness', 'prepared:player_woman_photomode_sermo', .3, "assert(jawValue==.3 and dn>.5*rest.dn,'Judy unchanged: '..dn)"));
+  run(dnBody('Sadness', 'unsupported-graph', .3, "assert(dn>.5*rest.dn,'unknown head unchanged: '..dn)"));
+  run(dnBody('Joy', 'prepared:woman_average_sermo', .3, "assert(rest.up>.1 and f.lips_l_corner_up>.5*rest.up,'the smile keeps its corner pull: '..f.lips_l_corner_up..' of '..rest.up)"));
+});
+
 test('face-test probe: direct mode bypasses the writer with its own feature and logs the apply result', () => runProbe(`
  request('n2\\nface-test judy frown 2 direct');tick(.3)
  local count=#a.frames;tick(.1);assert(#a.frames==count+1,'one direct write per frame, writer skipped')
