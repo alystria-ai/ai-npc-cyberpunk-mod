@@ -1,5 +1,69 @@
 # Companion expressions
 
+## October 9 (smile and surprise round): fuller default smile, a stronger surprise, a safer face-stage
+
+**Default smile.** Evelyn's joy at .585 barely read, Jackie's was modest and Panam's corners at .85 read as a clear
+natural smile (`runtime/face-captures/smile-surprise-sheet.png`). The default multiplier `smile` in `traitTable`
+(`mod/facial-playback.lua`, mirrored by `expressionTarget`/`mixTarget` in `bridge/companion-expressions.mjs`) is now 1.65
+(was 1.3): joy 3 writes .45 x 1.65 = .74 on every default head (Evelyn, Jackie, Panam and the rest), trust 3 .58, and
+scale-2 trust while speaking about .33 (was .26). Judy stays .7 x gain 1.6 = .504. The resting smile (.12 default, .18
+warm, Judy .19) and the frowns are not scaled, so nobody grins at rest. A bigger mouth with the old .27 cheek squint looked
+mouth-only, so there is a second per-character factor `squint` (default 1.3, Judy 1): the Duchenne squint follows the
+emotion's raw smile times it (.27 -> .35 on default heads, Judy's .43 unchanged). Captures with the .75 corners and the .35
+squint (writer mode) on Evelyn, Jackie and Panam read as an open natural smile, not a grin.
+
+**Surprise.** The recipe is brows in .60 -> .80 (outer stays .90, at the brow cap) and widened eyes .55 -> .70 (the widen
+cap .6 -> .7). A jaw drop or lip part was not added: `jaw_mid_open` and the lip controls belong to the speech writer, and
+surprise is a one-second flick that mostly happens while a reply is being spoken, so a second owner of the mouth would
+fight lip sync. Surprise stays a momentary flick (full for 1 s, gone by 2 s). Important finding: the earlier "surprise is
+weak on every head" captures were partly an artefact of the probe, not only of the recipe: the policy probe was captured
+4 s after it started, when the flick had already faded. `face-test` now keeps the flick at its peak in policy mode, and
+at the peak the old recipe already lifted Jackie's brows visibly. The new recipe is clearly wider on Jackie and Evelyn
+(eyes open, brows high), and on Judy (her brows already rest high) it reads natural, not startled; none of the heads shows
+a distorted lid or brow. Panam's brows sit under her fringe, so on her only the eyes change much (and her look comes
+from installed appearance mods, so she is pending a re-capture after the next restart).
+
+**Tests** (`companion-expressions.test.mjs`, `companion-expression-playback.test.mjs`): surprise in .80 / out .90 / widen
+.70 and the widen cap .7; default joy .7425 with the squint .351 and Judy joy .504 through the real Lua writer;
+Trust 2 while speaking .29-.37.
+
+**Face-stage fixes after captures overlapped.** A raw sequence of invites could leave the previous probe copy standing
+on the spot while the next character was placed (Alex was stacked on another character). Now: `face-stage <key>` first
+dismisses the characters this probe invited earlier (except the one asked for) and waits until each is really gone
+(state `clearing`, `leaving` in the status); `Send-FaceStage.ps1 -Action dismiss` waits until they are gone too; the
+spot moves sideways by .8 m when another owned companion stands within .6 m of it; nobody is placed on V (the spot is
+.85 m ahead); only the current stage is held (a new stage replaces the old one) and its hold-position command lasts 8 s
+and is re-sent every 4 s, so it ends soon after the stage. A walking companion kept leaving the spot, which cost
+placements, so the stage also sends `AIHoldPositionCommand` (optional: a game without the class still stages). Tests: the
+`face-stage probe` case now covers the wait for the previous copy and the sidestep.
+
+**Joy lift (real emotion path).** Measured through the real writer: typical tagged weights reach about 65-91% of the
+captured scale-3 pose for brows and frowns, but the smile only 41-57% (the plan's `toWeight` score x .85 and the trait
+range, then the mix curve). Joy alone now gets `w x (1 + .5 x (1 - w))` (`smileLift` in both the Lua writer and the
+pure mirror, version 8); other families keep `w^mixCurve`, trust is unchanged, the resting smile and frowns are not
+scaled. A typical tagged joy line now reaches about two thirds of the captured smile. Needs a CET reload.
+
+**Dev kill switch for staged characters.** `convaiCompanions.devQuiet` (table keyed by companion serial, set only by
+`mod/face-test.lua` while a stage is held, cleared on unstage, dismiss and `off`) is read once per `M.update` in
+`mod/companions.lua` and removes those companions from the `ready` list, so the companion update stops steering,
+following and facing them while the probe has full control. Nil in the shipped mod, never persisted (a CET reload or
+crash leaves it off), no per-frame work beyond one table read and a loop over `ready` that only runs when it is set.
+Not yet verified in game (needs a CET reload); `face-stage check` reports `silenced`.
+
+**Face-stage check.** `face-stage check` (on request only) returns off-spot distance, body yaw error, seconds since the
+last placement, the real head bone projected to the screen (headX, headY, headZ), `steady`, `inFrame` and `silenced`,
+plus the record id, appearance name and display name of the copy (for identity checks). The capture batch crops on the
+projected head, waits for `steady`, re-checks after each frame and retries at most 3 times per pose, then logs
+`BAD-FRAME` and moves on; a character that passed is never re-shot.
+
+**Turn-away on anger.** Controlled experiment (`runtime/face-captures/turn/`, eight neutral and ten anger frames) shows
+the characters turned away just after spawning (the AI settles in the first ~20 s) and in neutral frames as often as in
+anger frames; no code path reacts to the anger pose with a turn (grep of the face and companion code). It is not a
+gameplay bug; the probe now waits for `steady` and holds position.
+
+**Judy spawning.** Only probe invitations (this session ran several stage batches that include Judy); the mod has no
+path that re-summons her, and the stage dismisses probe copies.
+
 ## October 9 (later): smile calibration per head, Evelyn, who gets what, and the face-stage probe
 
 **Smile (user: happy stretches Judy's smile).** Judy's joy wrote corners .45 x her gain 1.6 = .72, which the user

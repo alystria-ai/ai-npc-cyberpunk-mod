@@ -329,6 +329,10 @@ commands['face-stage'] = function(rest, context)
             local head = at
             local sok, _, t = pcall(function() local o, tr = row.npc:GetSlotComponent():GetSlotTransform(CName.new('Head')); return o, tr end)
             if sok and t then local pok, v = pcall(function() return t.Position:ToVector4() end); if pok and v then head = v end end
+            -- Identity as the game sees it: the record and the appearance this copy wears.
+            pcall(function() out.record = tostring(TDBID.ToStringDEBUG(row.npc:GetRecordID())) end)
+            pcall(function() out.appearance = NameToString(row.npc:GetCurrentAppearanceName()) end)
+            pcall(function() out.display = tostring(row.npc:GetDisplayName()) end)
             local screen = Game.GetCameraSystem():ProjectPoint(head)
             out.headX, out.headY, out.headZ = screen.x, screen.y, head.z - at.z
         end)
