@@ -690,3 +690,60 @@ test('V in a mounted workspot starts no session and says so once', () => run(`
   local n=0;for _,l in ipairs(logs) do if l.kind=='player-workspot-skipped' then n=n+1 end end
   assert(n==1,'logged once, not every update: '..n)
 `));
+
+// October 9 21:10Z: 8.7 m out, every walk-up point refused at the path stage and
+// she never moved: five tries and a 3 s stall took 19 s before the placement.
+test('a refused walk that leaves her where she stood goes straight to closing in, then placement out of view; V looking: no pop', () => run(`
+  couch(-.35,1.7);party={companion(1,3.5,5.5)};watching=true
+  sitV();step(.6)
+  local function refuse(seconds)
+    for i=1,math.floor(seconds/.1+.5) do
+      local rows={{entry=party[1],transport=false}}
+      clockNow=clockNow+.1
+      c.tick(player,.1,rows)
+      local e=party[1]
+      e.motor.feedback={ticket=e.motor.ticket,failed=true,error='No clear local walking route',rejection={stage='path',group='Static'}}
+      local d=c.steer(e,{combat=false,motion=e.motor.feedback})
+      if d and d.operation then e.motor.ticket,e.motor.kind=d.operation.ticket,d.operation.kind end
+      c.observe(e,{combat=false})
+    end
+  end
+  refuse(4)
+  local walks=0;for _,l in ipairs(logs) do if l.kind=='seat-walk' then walks=walks+1 end end
+  assert(walks==1,'one walk, not five: '..walks)
+  assert(lastLog('seat-walk-stuck'),'logged as stuck')
+  assert(lastLog('seat-closing'),'closes in at once')
+  refuse(3)
+  assert(lastLog('seat-placing'),'placement after the short stall, not 3 s later')
+  assert(count('teleport')==0,'never placed while V looks at her')
+  watching=false;cameraDir={x=0,y=-1}
+  refuse(2)
+  assert(count('teleport')==1,'placed once she is out of view')
+`));
+
+// October 9 20:53Z and 21:12Z: the seat ended by itself 95-105 s after she sat.
+test('she leaves the seat workspot on her own while V still sits: she steps out and sits again', () => run(`
+  couch(-.35,1.7);party={companion(1,1.5,1.5)}
+  sitV();step(2)
+  assert(lastLog('seat-seated'))
+  step(30)
+  party[1].npc.inside=false
+  step(.3)
+  assert(lastLog('seat-left-on-own') and lastLog('seat-left-on-own').fields.vSeated==true,'noted')
+  assert(not lastLog('seat-finished') or lastLog('seat-finished').fields.reason~='V stood up','not mistaken for V standing')
+  step(6)
+  assert(lastLog('seat-reseat'),'sits again')
+  local plays=count('play');assert(plays==2,'second sit: '..plays)
+  assert(held[1]==true,'seated again')
+  seat.inside=false;step(3)
+  assert(held[1]==false,'stands with V')
+`));
+
+test('a seat that ends within seconds of sitting is not retried', () => run(`
+  couch(-.35,1.7);party={companion(1,1.5,1.5)}
+  sitV();step(2)
+  party[1].npc.inside=false
+  step(8)
+  assert(not lastLog('seat-reseat'),'no loop of sit and stand')
+  assert(count('play')==1)
+`));

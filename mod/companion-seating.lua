@@ -49,6 +49,13 @@ M.policy = {
     -- best walk-up point the moment V's camera is off her and the spot.
     closeStall = 3,        -- closing in without closeProgress for this long: place her
     closeProgress = .3,
+    -- Live run 21:10Z: 8.7 m out, every walk-up point refused at the path stage
+    -- and she never moved: five tries and a 3 s stall took 19 s. A refusal
+    -- that leaves her where she stood is repeated by every other point: close
+    -- in for stuckStall instead, then place her out of view.
+    stuckMove = .5,        -- moved less than this since the walk began: the refusal left her where she was
+    closeStallStuck = 1.5, -- the closing-in stall after such a refusal (closeStall otherwise)
+    reseatAfter = 20,      -- she left the workspot on her own after at least this long seated: sit again
     lookEvery = .5,        -- the "is V looking" check, only while placement waits
     viewCone = 50,         -- degrees off the camera: she is out of view
     -- Live run 21:09Z: the walk-up spot beside V is almost always inside V's
@@ -518,6 +525,14 @@ function M.new(options)
         dropDevice(s)
         note('seat-' .. (HOLDING[s.phase] and 'finished' or 'abandoned'), {serial = s.serial, reason = reason})
         s.phase, s.seat, s.exitAt, s.lookStyle = 'off', nil, nil, nil
+        if s.reseat then
+            -- She stood up on her own while V is still seated: take a seat again.
+            s.reseat = nil
+            if session and session.id == s.session and reason == 'left the seat on its own' then
+                s.session, s.cooldownUntil = nil, self.clock + 1
+                note('seat-reseat', {serial = s.serial, reason = reason})
+            end
+        end
     end
     local function requestExit(s, reason, instant)
         if s.phase == 'approach' or s.phase == 'settling' or s.phase == 'blending' or s.phase == 'choosing'
@@ -739,6 +754,7 @@ function M.new(options)
         local point = table.remove(s.good, 1)
         if not point or s.tries >= policy.approachTries then return false end
         s.tries, s.since, s.failingSince = s.tries + 1, self.clock, nil
+        s.walkFrom = entry and entry.position and copy(entry.position) or nil
         s.seat.approach = {x = point.x, y = point.y, z = point.z}
         s.op = {ticket = nextTicket(s), kind = 'move', goal = copy(s.seat.approach), gait = 'Walk', finish = true, face = false}
         note('seat-walk', {serial = s.serial, try = s.tries, goal = s.seat.approach, straight = point.straight == true,
@@ -766,7 +782,9 @@ function M.new(options)
                 note('seat-closing', {serial = s.serial, toSeat = toSeat, tries = s.tries})
             end
             if toSeat < s.closeBest - policy.closeProgress then s.closeBest, s.closeBestAt = toSeat, self.clock end
-            if self.clock - s.closeBestAt >= policy.closeStall then return beginPlacing(s, entry) end
+            if self.clock - s.closeBestAt >= (s.stuck and policy.closeStallStuck or policy.closeStall) then
+                return beginPlacing(s, entry)
+            end
             return nil
         end
         s.phase = 'blending'
@@ -870,6 +888,7 @@ function M.new(options)
             entry.position, policy), 0, nil
         s.good, s.chooseUpdates, s.rejectedPoints, s.lastReject, s.stopChecking = {}, 0, 0, nil, nil
         s.fallback, s.closingSince = {}, nil
+        s.stuck, s.walkFrom = nil, nil
         local ok, id = nat.spawnDevice(best.root, session.orientation, template)
         if ok then s.deviceID = id else failNote('seat device: ' .. tostring(id)) end
         note('seat-assigned', {serial = s.serial, session = session.id, kind = session.kind, offset = best.offset,
@@ -1079,6 +1098,14 @@ function M.new(options)
                     toGoal = gap < math.huge and gap or nil, playerGap = entry.playerGap,
                     at = entry.position and {x = entry.position.x, y = entry.position.y, z = entry.position.z} or nil})
                 if toSeat <= policy.refusedSlide then return slideOrWait(s, entry) end
+                -- A refusal at the route stage that left her where she stood is the
+                -- same for every walk-up point (the route from where she stands).
+                local moved = entry.position and s.walkFrom and flat(entry.position, s.walkFrom) or math.huge
+                if why.stage == 'path' and moved < policy.stuckMove then
+                    s.stuck = true
+                    note('seat-walk-stuck', {serial = s.serial, try = s.tries, stage = why.stage, toSeat = toSeat})
+                    return slideOrWait(s, entry)
+                end
                 if nextApproach(s, entry) then
                     return {phase = 'seat-approach', reason = 'Walk to a seat beside V', operation = s.op, look = 'none'}
                 end
@@ -1140,7 +1167,20 @@ function M.new(options)
             if s.phase == 'seated' then
                 if context.combat then requestExit(s, 'combat', true); return end
                 if not session or session.id ~= s.session then requestExit(s, 'V stood up', false); return end
-                if nat.inWorkspot(npc) == false then release(s, 'left the seat on its own'); return end
+                if nat.inWorkspot(npc) == false then
+                    -- Live runs 20:53Z and 21:12Z: both seats ended by themselves
+                    -- 95-105 s after she sat, V still seated (the vanilla sit
+                    -- workspot runs out). Stand up cleanly, then sit again.
+                    local held = self.clock - (s.seatedAt or self.clock)
+                    note('seat-left-on-own', {serial = s.serial, after = held, vSeated = session ~= nil and session.id == s.session})
+                    if session and session.id == s.session and held >= policy.reseatAfter then
+                        s.phase, s.exitAt, s.exitReason, s.escalated, s.exitInstant, s.reseat =
+                            'exiting', self.clock, 'left the seat on its own', nil, false, true
+                    else
+                        release(s, 'left the seat on its own')
+                    end
+                    return
+                end
                 local style = context.selected and 'full' or 'side'
                 if s.lookStyle ~= style then
                     s.lookStyle = style
