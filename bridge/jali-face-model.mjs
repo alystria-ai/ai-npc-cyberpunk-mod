@@ -244,8 +244,12 @@ export class FaceModelStream extends FaceModelFrames {
   }
   // Real-time guard: a stream whose packets wait too long in the worker queue, or whose text path costs too much,
   // continues on the audio model alone (the mouth eases back over blendRows rows).
+  // Phrase mode (Omni) is not real time: the whole phrase WAV is already rendered and is pushed in 1 s slices at once, so
+  // slice N always waits for slices 1..N-1 in the worker queue (about .2 s of work each) and the lag guard fired on every
+  // phrase over about 1.5 s ("lost: behind" on all three phrases of a reply, October 9). Its rows are released at finish
+  // and speech starts only after the analysis, so neither check protects anything there: it is skipped.
   guard(sentAt) {
-    if (!this.text) return;
+    if (!this.text || this.text.mode === 'phrase') return;
     const lag = Number.isFinite(sentAt) ? performance.timeOrigin + performance.now() - sentAt : 0, audio = this.samples / 16000;
     if (lag > 250) this.text.lose('behind');
     else if (audio >= 2 && this.text.computeMs > audio * 1000 * .4) this.text.lose('budget');

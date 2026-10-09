@@ -134,6 +134,21 @@ test('lost confidence, a late worker and a failing text path all return the mout
     assert.deepEqual(Array.from(stream.values.subarray(0, stream.ready * stream.outputs)), plain);
   }
   {
+    // Phrase mode pushes a finished phrase at once, so a slice always waits behind the earlier ones: that is queue time,
+    // not a worker that fell behind real time, and it must not drop the text path (it did, on every phrase over ~1.5 s).
+    const {model, text} = setup(), long = speechLike(4, 16000);
+    const stream = new FaceModelStream(model, 16000, {text: text.session({mode: 'phrase', text: 'hello world no way'})});
+    const sentAt = performance.timeOrigin + performance.now() - 5000;
+    for (let at = 0; at < long.length; at += 16000) stream.push(long.slice(at, at + 16000), {sentAt});
+    stream.finish();
+    assert.equal(stream.text.lost, false); assert.equal(stream.text.info().lost, false);
+    assert.equal(stream.textFailed, undefined);
+    // The same lag on a real stream still falls back to the audio model.
+    const live = new FaceModelStream(model, 16000, {text: text.session({mode: 'stream', text: 'hello world no way'})});
+    live.push(long.slice(0, 1280), {sentAt});
+    assert.equal(live.text.info().reason, 'behind');
+  }
+  {
     const {model, text} = setup(), plain = run(model, audio, 1280).rows;
     for (const mode of ['stream', 'phrase']) {
       const session = text.session({mode, text: 'hello world'});
