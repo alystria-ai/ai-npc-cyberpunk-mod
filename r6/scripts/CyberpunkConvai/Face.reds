@@ -124,6 +124,14 @@ public class ConvaiFaceService extends ScriptableService {
     // blocks the rebuild. It still does for anyone who is not a crowd or vendor NPC,
     // i.e. every story character, who belong to quests.
     if inScene && !npc.IsVendor() && !npc.IsCrowd() { return "skipped:scene"; };
+    // Measured live on October 10: ScheduleAppearanceChange with the NPC's own current
+    // appearance name does nothing. No Entity/Extract fires and face_rig keeps the vanilla
+    // graph (a different name rebuilds at once, and the builder then carries face_rig, but
+    // the look changes; a second change in the same call is dropped). So the request below
+    // can never prepare a world NPC, and its pending name would only sit in the queue
+    // until an unrelated NPC with that appearance spawns and gets the heavier graph.
+    // Stop here until a rebuild that keeps the look exists.
+    if !ConvaiFaceService.WorldRebuildKeepsLook() { return "unavailable:same-name-rebuild-is-a-noop"; };
     npc.ConvaiFaceNoteWorkspot();
     if this.HasWorldRequest(appearance) { return "requested:" + NameToString(appearance); };
     this.ReleaseOldestWorld(npc, appearance);
@@ -132,6 +140,11 @@ public class ConvaiFaceService extends ScriptableService {
     this.RememberWorld(npc.GetEntityID());
     npc.ScheduleAppearanceChange(appearance);
     return "requested:" + NameToString(appearance);
+  }
+
+  // False while the only known trigger, a same-name appearance change, is a no-op.
+  public static func WorldRebuildKeepsLook() -> Bool {
+    return false;
   }
 
   // True for a quest token: "q", "sq" or "mq" right after "_" or "." or at the

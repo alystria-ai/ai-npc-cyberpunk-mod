@@ -140,6 +140,11 @@ test('world NPC faces are prepared on demand for the talk target only, never at 
   assert.match(request, /QuestBound\(NameToString\(appearance\)\)\s*\|\| ConvaiFaceService\.QuestBound\(TDBID\.ToStringDEBUG\(npc\.GetRecordID\(\)\)\)/);
   assert(request.indexOf('return "skipped:quest"') < request.indexOf('return "skipped:driven"'));
   assert.match(nativeFace, /public final func ConvaiFaceWorkspotNote\(\) -> String/);
+  // October 10 (live): a same-name appearance change is a no-op, so nothing may be queued or scheduled
+  // until a rebuild that keeps the look exists (WorldRebuildKeepsLook).
+  const gate = request.indexOf('if !ConvaiFaceService.WorldRebuildKeepsLook() { return "unavailable:same-name-rebuild-is-a-noop"; };');
+  assert(gate > request.indexOf('return "skipped:scene"') && gate < request.indexOf('ArrayPush(this.m_worldPending'), 'the no-op gate sits before the queue and the schedule');
+  assert(gate < rebuild);
   assert.doesNotMatch(request, /face\.graph =/);
   const release = nativeFace.slice(nativeFace.indexOf('private func ReleaseOldestWorld'),
     nativeFace.indexOf('private func PrepareFaceComponent'));
