@@ -223,9 +223,9 @@ test('October 8: speech without any intent rests neutral, and a text cue shows a
   -- No receipt: no smile while speaking (October 8: the idle smile releases into speech, none is added).
   local none=speak(${literal(line)},'none')
   assert(none.lips_l_corner_up<.02,none.lips_l_corner_up)
-  -- A Trust scale-2 cue: the gentle smile (October 9: Trust .35, was .25; .35 x .67 x speech .85 = .20).
+  -- A Trust scale-2 cue: the gentle smile (October 9: Trust .35, was .25; .35 x .67 x smile multiplier 1.3 x speech .85 = .26).
   local trust=speak(${literal(warm)},'trust')
-  assert(trust.lips_l_corner_up>=.17 and trust.lips_l_corner_up<=.22,'trust '..trust.lips_l_corner_up)
+  assert(trust.lips_l_corner_up>=.22 and trust.lips_l_corner_up<=.29,'trust '..trust.lips_l_corner_up)
   -- Interest lifts the brows only.
   local interest=speak(${literal(curious)},'interest')
   assert(interest.eye_l_brows_raise_out>=.05 and interest.eye_l_brows_raise_out<=.11 and interest.lips_l_corner_up<.02,'interest '..interest.eye_l_brows_raise_out..' '..interest.lips_l_corner_up)
@@ -386,9 +386,10 @@ test('Judy idles at about .19 with the corner gain, a cold character stays flat,
  assert(math.abs(judy.lips_l_corner_up-.192)<.005,'judy rests at .192: '..judy.lips_l_corner_up)
  assert(cold.lips_l_corner_up==0 and cold.eye_l_oculi_squint_outer_lower==0,'a cold face stays flat')
  assert(math.abs(judy.eye_l_oculi_squint_outer_lower-.115)<.005,'the squint follows the smile: '..judy.eye_l_oculi_squint_outer_lower)
- -- Joy at scale 3 on Judy: corners .45 x her gain 1.6, the squint .6 of that, brows ungained (.30 since October 9).
+ -- Joy at scale 3 on Judy: corners .45 x her smile multiplier .7 x her gain 1.6 = .504 (October 9, "stretched" at .72), the
+ -- squint .6 of the UNSCALED smile (.45 x 1.6, kept), brows ungained (.30 since October 9).
  face.beginExpression(context,${literal(receipt('Joy',3,0))});face.expressionHeard(context);for _=1,40 do tick(.1) end
- assert(math.abs(last(a).lips_l_corner_up-.72)<.01,'judy joy: '..last(a).lips_l_corner_up)
+ assert(math.abs(last(a).lips_l_corner_up-.504)<.01,'judy joy: '..last(a).lips_l_corner_up)
  assert(math.abs(last(a).eye_l_oculi_squint_outer_lower-.432)<.01)
  assert(math.abs(last(a).eye_l_brows_raise_out-.30)<.01)
  face.endExpression(context,false)
@@ -441,7 +442,7 @@ test('track playback: the expression follows the heard audio position, blends be
  for p=1.8,2.6,.02 do
   cursor=p;tick(.02);local frame=copy(last(a));local net=frame.lips_l_corner_up-frame.lips_l_corner_dn
   -- continuous: a signed corner axis crossing zero, never a jump
-  assert(math.abs(net-previous)<.08,'corner step at '..p..': '..tostring(net-previous))
+  assert(math.abs(net-previous)<.11,'corner step at '..p..': '..tostring(net-previous))
   previous=net
   if math.abs(p-2.0)<.011 then mid=frame end
  end
@@ -694,8 +695,8 @@ test('October 9: each tagged feeling moves Judy\'s brows, eyes and corners visib
     ['sadness', "Every day. I keep thinking about that call.", {lips_l_corner_dn: .2, eye_l_brows_raise_in: .25}, ['lips_l_corner_up']],
     ['anger', "That greedy little rat. I'll make her pay.", {eye_l_brows_lower: .25, lips_l_corner_dn: .12}, ['lips_l_corner_up']],
     ['fear', "Are you okay? Stay close to me tonight.", {eye_l_brows_raise_in: .25, eye_l_brows_raise_out: .15}, ['lips_l_corner_up']],
-    ['joy', "You're such a dork, V. Okay, okay, I'll admit it.", {lips_l_corner_up: .25, eye_l_oculi_squint_outer_lower: .15, eye_l_brows_raise_out: .1}, ['lips_l_corner_dn']],
-    ['warm', "Anytime. Whatever you need, I'm here.", {lips_l_corner_up: .18, eye_l_oculi_squint_outer_lower: .1}, ['lips_l_corner_dn']],
+    ['joy', "You're such a dork, V. Okay, okay, I'll admit it.", {lips_l_corner_up: .18, eye_l_oculi_squint_outer_lower: .15, eye_l_brows_raise_out: .1}, ['lips_l_corner_dn']],
+    ['warm', "Anytime. Whatever you need, I'm here.", {lips_l_corner_up: .14, eye_l_oculi_squint_outer_lower: .1}, ['lips_l_corner_dn']],
     ['surprise', "Wait, you found her? After all this time?", {eye_l_brows_raise_out: .3, eye_l_brows_raise_in: .2}, []],
     ['disgust', "Corpo errands for a sleazy fixer. Real classy.", {eye_l_brows_lower: .18, lips_l_corner_dn: .12}, ['lips_l_corner_up']],
   ];

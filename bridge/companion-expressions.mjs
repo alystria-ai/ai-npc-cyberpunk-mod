@@ -189,15 +189,16 @@ function mouthBudget(speechPose, phase) {
  * read only as conflict budgets and are never changed by this function.
  */
 export function expressionTarget({emotion = null, phase = 'idle', speechPose = {}, providerFrame, blocked = false,
-  warmth = EXPRESSION_POLICY.restSmile, gain = 1} = {}) {
+  warmth = EXPRESSION_POLICY.restSmile, gain = 1, smile = 1} = {}) {
   if (!['idle', 'listening', 'thinking', 'speaking'].includes(phase)) throw Error('Unknown expression phase');
   const out = zero();
   if (blocked) return out;
+  let smileRaw = 0; // the emotion's smile before the character's smile multiplier (the squint follows this one)
   const parsed = normalizeConvaiEmotion(emotion), family = parsed?.family;
   const strength = parsed ? EXPRESSION_POLICY.scaleStrength[parsed.scale - 1] : 0;
   switch (family) {
-    case 'joy': pair(out, 'corner_up', .45 * strength); brows(out, 'raise_out', .30 * strength); break;
-    case 'trust': pair(out, 'corner_up', .35 * strength); break;
+    case 'joy': pair(out, 'corner_up', .45 * strength * smile); smileRaw = .45 * strength; brows(out, 'raise_out', .30 * strength); break;
+    case 'trust': pair(out, 'corner_up', .35 * strength * smile); smileRaw = .35 * strength; break;
     case 'sadness': case 'anger': case 'fear': case 'disgust': case 'surprise':
       for (const [key, value] of Object.entries(FAMILY_POSES[family])) channel(out, key, value * strength);
       break;
@@ -224,18 +225,19 @@ export function expressionTarget({emotion = null, phase = 'idle', speechPose = {
   // October 9: listening and thinking keep the idle face too; only the audible reply changes it.
   if (phase !== 'speaking' && !negative.has(family) && family !== 'unknown' && !frowning
     && out.lips_l_corner_dn === 0)
-    pair(out, 'corner_up', Math.max(out.lips_l_corner_up, warmth));
-  return finishPose(out, {speechPose, phase, gain});
+  { pair(out, 'corner_up', Math.max(out.lips_l_corner_up, warmth)); smileRaw = Math.max(smileRaw, warmth); }
+  return finishPose(out, {speechPose, phase, gain, smileRaw});
 }
 
 // Per-character corner gain (full lips read weakly), the Duchenne squint that
 // follows the smile before mouth priority, then the mouth budget and the caps.
-function finishPose(out, {speechPose, phase, gain}) {
+function finishPose(out, {speechPose, phase, gain, smileRaw}) {
   const capScale = Math.min(Math.max(gain, 1), EXPRESSION_POLICY.gainCapMax);
   for (const track of ['lips_l_corner_up', 'lips_r_corner_up', 'lips_l_corner_dn', 'lips_r_corner_dn']) out[track] *= gain;
   // The smile's own squint (Duchenne) or the feeling's narrowed eyes, whichever is stronger.
+  const smileForSquint = smileRaw > 0 && out.lips_l_corner_up > 0 ? smileRaw * gain : out.lips_l_corner_up;
   const squint = Math.min(EXPRESSION_POLICY.squintMax,
-    Math.max(out.eye_l_oculi_squint_outer_lower, EXPRESSION_POLICY.squintPerSmile * out.lips_l_corner_up));
+    Math.max(out.eye_l_oculi_squint_outer_lower, EXPRESSION_POLICY.squintPerSmile * smileForSquint));
   out.eye_l_oculi_squint_outer_lower = squint; out.eye_r_oculi_squint_outer_lower = squint;
   const budget = mouthBudget(speechPose, phase);
   for (const track of EXPRESSION_TRACKS) {
@@ -266,7 +268,7 @@ const softSum = values => { const max = Math.max(0, ...values), sum = values.red
  * smile with sad brows) stay inside the same caps, and mouth priority is the
  * single-label rule (closure/rounding budget, speech keeps 85 %). */
 export function mixTarget({weights, phase = 'idle', speechPose = {}, blocked = false,
-  warmth = EXPRESSION_POLICY.restSmile, gain = 1} = {}) {
+  warmth = EXPRESSION_POLICY.restSmile, gain = 1, smile = 1} = {}) {
   if (!['idle', 'listening', 'thinking', 'speaking'].includes(phase)) throw Error('Unknown expression phase');
   const out = zero();
   if (blocked) return out;
@@ -284,12 +286,13 @@ export function mixTarget({weights, phase = 'idle', speechPose = {}, blocked = f
   else if (dnVote > 0) { dn *= 1 - .5 * upVote / dnVote; up = 0; } else { up = 0; dn = 0; }
   const clash = Math.min(Math.max(rin, rout), low);
   rin = Math.max(0, rin - .5 * clash); rout = Math.max(0, rout - .5 * clash); low = Math.max(0, low - .5 * clash);
-  if (phase !== 'speaking' && dn === 0) up = Math.max(up, warmth);
+  let smileRaw = up; up *= smile; // the character's smile multiplier scales the emotion's smile only
+  if (phase !== 'speaking' && dn === 0) { up = Math.max(up, warmth); smileRaw = Math.max(smileRaw, warmth); }
   pair(out, 'corner_up', up); pair(out, 'corner_dn', dn);
   brows(out, 'raise_in', rin); brows(out, 'raise_out', rout); brows(out, 'lower', low);
   channel(out, 'sq', narrow); channel(out, 'wide', wide);
   for (const key of ['lat', 'lid', 'sqi', 'snear', 'chin']) channel(out, key, channel_(key));
-  return finishPose(out, {speechPose, phase, gain});
+  return finishPose(out, {speechPose, phase, gain, smileRaw});
 }
 
 function validatedPose(pose) {
