@@ -136,6 +136,22 @@ The review is **complete** (2026-10-07; verdict and decisions are in the log). D
 
 ## Captain's log
 
+**2026-10-10 (end of night): installed in the closed game; live checks for the next session.**
+- **Installed from HEAD, game not relaunched:** `convai_gestures.archive` (`e38a8184`: bridge workspots and endless seats), `convai_facial.archive` (`5d8750c5`: speech owns the mouth), `FaceFeature.reds`, and Lua `companion-gestures`, `facial-playback`, `gesture-catalog`, `manager`, `mcm`. The bridge (third-person fix, own-key work, rebuilt voice client) loads with the game. Backups are in the session scratchpad `game-backup-1010-restart3`.
+- **To check live:**
+  - The mouth opens on every reply, with and without gestures; `lastSpeech.ownedFrames` is close to `frames`.
+  - No lurch on stance entry; `bridge-in` and `bridge-out` lines appear. Evelyn's hip idle still lurches about 11-17 px (signature idles are not bridged yet).
+  - She stays seated for 5+ minutes, with no `seat-left-on-own`.
+  - The seated look reaches about 130° on couch, chair and bench.
+  - Only "joined" shows.
+  - Settings > Development shows the own-key rows.
+  - Lift v2 boarding.
+  - Alt live.
+- **Open:**
+  - Run the test end-user cleanup: stop all probes, then `scratchpad/cleanup-test-end-users.mjs --apply --limit 1`, and check the LTM counter drops before running it on the rest.
+  - Bridge the signature idles.
+  - Ask Convai for launch headroom and the Gamer plan changes (`Downloads/Gamer Plan Asks.txt`).
+
 **2026-10-10 (night, later): gesture bridge workspots built; the lurch is the stance loop's start pose (archive rebuilt, NOT installed: game restart; CET reload for the Lua).** Live A/B on face-staged copies (kill switch, workspot driven directly): entering `on_sides` lurches 22-26 px on Lizzy and 24 px on Evelyn, her own ambient `idle_stand` loop (`woman_sides`) 4-5 px, `on_hips` 4 px, vanilla `jackie_hips` 5 px, Panam on `on_sides` 2-3 px; the enter blend time does not matter, exits are smooth. `on_sides` and `arms_crossed` now enter on the ambient idle, cross to the stance loop after the enter blend (`bridge-in`), gesture from it, and cross back (`bridge-out`, 1 s) before the fast exit; combat and transport still leave at once. Archive `runtime/gestures/package/convai_gestures.archive` sha256 e38a8184...e728d7 (25 workspots, both verify checks pass). Open: the signature idle workspots (`convai_idle_generic_hip` 11-17 px) are not bridged, and Panam, Rogue, Jackie, Takemura, Johnny, Kerry, River, Reed and Padre bridge from the gang idle, not their own; check live after the restart (Round 5c in `docs/COMPANION_GESTURES.md`).
 
 **2026-10-10 (driving preparing line): "Your companion is preparing to drive." is removed in every mode; a queued driving request posts no notice (Lua only; CET reload).**
