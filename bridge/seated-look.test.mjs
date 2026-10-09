@@ -40,18 +40,18 @@ local BENCH='base\\\\workspots\\\\player\\\\bench\\\\player__sit_bench_lean_back
 local COUCH='base\\\\workspots\\\\player\\\\couch\\\\player__sit_couch_lean_back__sit_around__01.workspot'
 `;
 
-test('a named seat workspot sends the wide limits at once and again after the settle delay', () => run(`
+test('a named seat workspot sends the wide limits after the settle delay, never at once', () => run(`
 for _,path in ipairs({BENCH,COUCH,'base\\\\workspots\\\\player\\\\chair\\\\player__sit_chair__sit_around__01.workspot',
   'base\\\\workspots\\\\player\\\\barstool\\\\player__sit_barstool__sit_around__01.workspot',
   'base\\\\workspots\\\\player\\\\bar\\\\player__sit_barstool_bar_lean_front__sit_around__01.workspot'}) do
   local n=fake({path=path,anim='sit_around',tier=1,vehicle=0})
   local c=look.new(n)
   assert(c.entered()==true,path)
-  local l=n.queued[1].limits
+  assert(#n.queued==0,'no event at once: a scene ending flickers the state')
+  local l=n.delayed[1].limits
   assert(l.yawMaxLeft==90 and l.yawMaxRight==-90 and l.pitchMax==45 and l.pitchMin==-50,'limits '..path)
   assert(l.sensitivityMultX==1 and l.sensitivityMultY==1,'sensitivity must stay 1')
-  assert(n.queued[1].set=='WorkspotUnlocked','plain workspot base set')
-  assert(n.delayed[1].seconds==.4 and n.delayed[1].set=='WorkspotUnlocked','second copy')
+  assert(n.delayed[1].seconds==.4 and n.delayed[1].set=='WorkspotUnlocked','delayed copy on the plain workspot set')
 end
 `));
 
@@ -59,8 +59,8 @@ test('a scene sit (tier 3, no workspot instance: every live chair and couch) is 
 local n=fake({path=nil,anim=nil,tier=3,vehicle=0})
 local c=look.new(n)
 assert(c.entered()==true)
-assert(n.queued[1].set=='Tier3Scene' and n.delayed[1].set=='Tier3Scene','scene base set')
-assert(n.queued[1].limits.yawMaxLeft==90,'the couch had 60.9 left')
+assert(#n.queued==0 and n.delayed[1].set=='Tier3Scene','scene base set, delayed only')
+assert(n.delayed[1].limits.yawMaxLeft==90,'the couch had 60.9 left')
 assert(c.sitting=='scene')
 local logged=n.logs[#n.logs-1]
 assert(logged.kind=='seated-look-enter' and logged.fields.tier==3)
@@ -86,14 +86,21 @@ assert(n.logs[#n.logs].kind=='seated-look-skip')
 local v=fake({tier=3,vehicle=1});assert(look.new(v).entered()==false and #v.queued==0)
 `));
 
+test('a scene ending flickers the state: the entry that follows an exit sends nothing that can outlive it', () => run(`
+local n=fake({tier=3,vehicle=0});local c=look.new(n)
+c.entered();c.left();c.entered();c.left()
+assert(#n.queued==0,'nothing sent at once')
+assert(count(n,'cancel')==2 and n.cancelled==2,'every delayed copy cancelled by the exit that follows it')
+`));
+
 test('the scene resending its narrow tier 3 limits while V sits gets the override behind it, and never after standing', () => run(`
 local n=fake({tier=3,vehicle=0});local c=look.new(n)
 assert(c.sceneCamera()==false and #n.queued==0,'before sitting: nothing')
 c.entered()
-assert(#n.queued==1)
-assert(c.sceneCamera()==true and #n.queued==2 and n.queued[2].set=='Tier3Scene','resent behind the scene camera')
+assert(#n.queued==0)
+assert(c.sceneCamera()==true and #n.queued==1 and n.queued[1].set=='Tier3Scene','resent behind the scene camera')
 c.left()
-assert(c.sceneCamera()==false and #n.queued==2,'after leaving: nothing')
+assert(c.sceneCamera()==false and #n.queued==1,'after leaving: nothing')
 `));
 
 test('leaving the state cancels the pending second copy, and only once', () => run(`

@@ -424,12 +424,13 @@ machine entering Workspot, once per sit), `OnExit` / `OnForcedExit`, and
 tier 3 camera limits). A sit is either a named workspot that classifies as a seat
 with the same `classify` the companion seating uses (couch, bench, chair, table
 chair, bar, stool; base set `WorkspotUnlocked`) or a scene sit: no workspot
-instance and scene tier 3 (base set `Tier3Scene`). For a sit it queues a
-`SetCameraParamsWithOverridesEvent` (yaw +-90, pitch -50..45, sensitivities 1) at
-once and a second copy 0.4 s later in case the native parameters land after the
-script hook; while V sits, each scene resend of the tier 3 camera limits gets the
-override queued behind it. Exit cancels the delayed copy so it cannot land on a
-standing V. Cars (vehicle PSM state or a car workspot), beds, the ground, bikes,
+instance and scene tier 3 (base set `Tier3Scene`). For a sit it delays a
+`SetCameraParamsWithOverridesEvent` (yaw +-90, pitch -50..45, sensitivities 1) by
+0.4 s (never at once: when a scene ends the Workspot state flickers
+`OnForcedExit` / `OnEnter` a few milliseconds apart, seen live at tier 4, and the
+exit cancels the delayed copy, so no event can land on a standing V); while V
+sits, each scene resend of the tier 3 camera limits gets the override queued
+behind it. After standing the camera returned to 180/-180/-80/80 on its own. Cars (vehicle PSM state or a car workspot), beds, the ground, bikes,
 the ripperdoc chair and takedowns are not sits and keep the game's limits. A scene
 at tier 3 where V stands (a conversation) is not touched because the Workspot
 state is never entered. A scene where V is in some other workspot at tier 3 with no

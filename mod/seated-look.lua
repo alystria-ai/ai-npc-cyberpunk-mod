@@ -19,10 +19,10 @@
 -- limits are the scene's own (60.9 left, -88.9 right, pitch -56.8..79.1 on the
 -- couch). So the gate is: the Workspot state was entered and either the
 -- workspot classifies as a seat (a named player workspot) or the scene tier
--- is 3 with no instance. The override goes out at the entry and again 0.4 s
--- later, and again whenever the scene resends its tier 3 camera limits while V
--- sits (DefaultTransition.QueueSetCameraParamsEvent_Tier3Scene). The delayed
--- copy is cancelled when the state exits. Nothing runs per frame: the hooks
+-- is 3 with no instance. The override goes out 0.4 s after the entry (a scene
+-- ending flickers the state in and out within milliseconds, and the exit
+-- cancels the delayed copy), and again whenever the scene resends its tier 3
+-- camera limits while V sits (DefaultTransition.QueueSetCameraParamsEvent_Tier3Scene). Nothing runs per frame: the hooks
 -- fire on state entry, exit and scene camera changes only.
 --
 local M = {}
@@ -47,13 +47,19 @@ function M.new(native)
         if native.log then pcall(native.log, kind, fields) end
     end
 
-    local function send(set, note)
-        local queued, queueError = pcall(native.queue, M.limits, set)
+    -- now = queue at once (behind a scene's own camera event); otherwise only the
+    -- delayed copy goes out. The Workspot state flickers OnForcedExit / OnEnter a
+    -- few milliseconds apart when a scene ends (live, tier 4), so an entry never
+    -- sends at once: the delayed copy is cancelled by the exit that follows, and
+    -- no stray event can land after V stands.
+    local function send(set, note, now)
+        local queued, queueError = true, nil
+        if now then queued, queueError = pcall(native.queue, M.limits, set) end
         local delayed, id = pcall(native.delay, M.limits, set, M.settle)
         if delayed then self.pending = id end
         log('seated-look', {kind = self.sitting, set = set, queued = queued, delayed = delayed, note = note,
             error = (not queued and tostring(queueError)) or (not delayed and tostring(id)) or nil})
-        return queued or delayed
+        return delayed or (now == true and queued)
     end
 
     -- The player state machine entered Workspot. V's sits are either a named
@@ -78,14 +84,14 @@ function M.new(native)
         self.sitting, self.set = kind, set
         self.widened = self.widened + 1
         log('seated-look-enter', {path = seat.path, anim = seat.anim, tier = seat.tier, kind = kind})
-        return send(set, 'enter')
+        return send(set, 'enter', false)
     end
 
     -- A scene sent its own tier 3 camera limits (the narrow ones) while V sits:
     -- the override goes in behind them.
     function self.sceneCamera()
         if not self.sitting then return false end
-        return send(self.set, 'scene camera')
+        return send(self.set, 'scene camera', true)
     end
 
     -- The state machine left Workspot: the second copy must not land on a V
