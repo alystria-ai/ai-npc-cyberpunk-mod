@@ -788,8 +788,8 @@ local function schema()
             -- The saved values stay auto / on / off; only the labels read Romantic (Casual for Meredith) / Ordinary.
             local casual = profile.key == 'meredith-stout'
             local description = casual
-                and 'Auto follows the completed encounter in this save. Casual uses the casual profile; Ordinary uses the ordinary profile. This does not imply an ongoing relationship.'
-                or 'Auto follows the relationship in this save. Romantic uses the romantic profile; Ordinary uses the ordinary profile. This changes conversations without changing game choices.'
+                and 'Auto follows the completed encounter in this save. Casual lets her speak with that familiarity; Ordinary keeps her usual manner. This does not imply an ongoing relationship.'
+                or 'Auto follows the relationship in this save. Romantic has them speak to V as a partner; Ordinary keeps their usual manner. This changes conversations without changing game choices.'
             rows[#rows + 1] = setting('relationship:' .. profile.key, profile.name, 'select',
                 mode == 'on' and 2 or mode == 'off' and 3 or 1, 1, description,
                 {'Auto', casual and 'Casual' or 'Romantic', 'Ordinary'})
