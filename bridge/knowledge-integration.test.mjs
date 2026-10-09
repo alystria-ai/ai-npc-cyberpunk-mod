@@ -12,6 +12,7 @@ const worldSource = source('world-knowledge');
 const historySource = source('journal-history');
 const invitationSource = source('invitation-readiness');
 const gameplayActionsSource = source('gameplay-actions');
+const seatedLookSource = source('seated-look');
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 
 const fixture = `
@@ -155,6 +156,8 @@ local modules={
   reset=noop,update=noop,status=function()return {state='idle'}end,closingWindow=noop,offer=noop}end},
  ['loot-observer.lua']={configure=noop,install=noop,reset=noop,update=noop,drain=function()return{}end},
  ['loot-reactions.lua']={new=function()return {reset=noop,update=noop,status=function()return {pending=0}end,offer=noop}end},
+ ['seated-look.lua']=(function()${seatedLookSource}end)(),
+ ['companion-seating.lua']={classify=function()return 'none'end,new=function()error('companion-seating is not loaded in this fixture')end},
  ['manager-party.lua']={},['mcm-entry.lua']={},['companion-locomotion.lua']={install=noop},
  ['composer-input.lua']={install=noop},['phone-input.lua']={install=noop},['movement-log.lua']={update=noop}}
 local speech=modules['speech.lua']
