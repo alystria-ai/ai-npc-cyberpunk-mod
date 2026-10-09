@@ -70,8 +70,8 @@
     "Another AutoDrive journey has control.": "Another AutoDrive journey has control.",
     "Ask a companion to drive to your selected map waypoint, then get into the passenger seat when they are ready.": "Ask a companion to drive to your selected map waypoint, then get into the passenger seat when they are ready.",
     "Auto": "Auto",
-    "Auto follows the completed encounter in this save. Casual uses the casual profile; Ordinary uses the ordinary profile. This does not imply an ongoing relationship.": "Auto follows the completed encounter in this save. Casual uses the casual profile; Ordinary uses the ordinary profile. This does not imply an ongoing relationship.",
-    "Auto follows the relationship in this save. Romantic uses the romantic profile; Ordinary uses the ordinary profile. This changes conversations without changing game choices.": "Auto follows the relationship in this save. Romantic uses the romantic profile; Ordinary uses the ordinary profile. This changes conversations without changing game choices.",
+    "Auto follows the completed encounter in this save. Casual lets her speak with that familiarity; Ordinary keeps her usual manner. This does not imply an ongoing relationship.": "Auto follows the completed encounter in this save. Casual lets her speak with that familiarity; Ordinary keeps her usual manner. This does not imply an ongoing relationship.",
+    "Auto follows the relationship in this save. Romantic has them speak to V as a partner; Ordinary keeps their usual manner. This changes conversations without changing game choices.": "Auto follows the relationship in this save. Romantic has them speak to V as a partner; Ordinary keeps their usual manner. This changes conversations without changing game choices.",
     "Auto-connect nearby characters": "Auto-connect nearby characters",
     "Automatic (game interface language)": "Automatic (game interface language)",
     "Automatic reactions": "Automatic reactions",
@@ -1008,8 +1008,8 @@
     ],
     "mcm.relationships": [
       "Auto",
-      "Auto follows the completed encounter in this save. Casual uses the casual profile; Ordinary uses the ordinary profile. This does not imply an ongoing relationship.",
-      "Auto follows the relationship in this save. Romantic uses the romantic profile; Ordinary uses the ordinary profile. This changes conversations without changing game choices.",
+      "Auto follows the completed encounter in this save. Casual lets her speak with that familiarity; Ordinary keeps her usual manner. This does not imply an ongoing relationship.",
+      "Auto follows the relationship in this save. Romantic has them speak to V as a partner; Ordinary keeps their usual manner. This changes conversations without changing game choices.",
       "Casual",
       "Ordinary",
       "Romantic"
@@ -1601,7 +1601,7 @@
         "mod/mcm.lua:908"
       ]
     },
-    "Auto follows the completed encounter in this save. Casual uses the casual profile; Ordinary uses the ordinary profile. This does not imply an ongoing relationship.": {
+    "Auto follows the completed encounter in this save. Casual lets her speak with that familiarity; Ordinary keeps her usual manner. This does not imply an ongoing relationship.": {
       "contexts": [
         "mcm.relationships"
       ],
@@ -1609,7 +1609,7 @@
         "mod/mcm.lua:791"
       ]
     },
-    "Auto follows the relationship in this save. Romantic uses the romantic profile; Ordinary uses the ordinary profile. This changes conversations without changing game choices.": {
+    "Auto follows the relationship in this save. Romantic has them speak to V as a partner; Ordinary keeps their usual manner. This changes conversations without changing game choices.": {
       "contexts": [
         "mcm.relationships"
       ],

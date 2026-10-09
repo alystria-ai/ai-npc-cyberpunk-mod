@@ -2082,7 +2082,7 @@ test('Relationships use their own MCM page and only applied selections reach sav
   local selected=row('relationship:judy-alvarez')
   assert(selected and selected.value==1 and selected.defaultValue==1)
   assert(selected.elements[1]=='Auto' and selected.elements[2]=='Romantic' and selected.elements[3]=='Ordinary')
-  assert(selected.description:find('Romantic uses the romantic profile',1,true) and not selected.description:find('Off uses',1,true))
+  assert(selected.description:find('Romantic has them speak to V as a partner',1,true) and not selected.description:find('Off uses',1,true))
   local meredith=row('relationship:meredith-stout')
   assert(meredith.elements[1]=='Auto' and meredith.elements[2]=='Casual' and meredith.elements[3]=='Ordinary')
   assert(meredith.description:find('does not imply an ongoing relationship',1,true))
