@@ -2769,7 +2769,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     }
   }
