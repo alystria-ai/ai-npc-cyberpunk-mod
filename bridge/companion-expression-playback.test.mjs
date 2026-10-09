@@ -371,10 +371,12 @@ test('face-stage probe: reuses a present copy, invites a missing one, places it 
   invite=function(key) spawned=key;live={{id='live:7',key=key}};return true,'preparing','queued:1' end,
   list=function() return live or {} end,
   dismiss=function(id) dismissed=id;return true,'leaving' end} end}
+ a.serial=7;if rows[1] then rows[1].serial=7 end
  -- A present copy is reused: no invitation, placed in front of the camera, facing it.
  request('s1\\nface-stage judy 10');tick(.3)
  assert(files['runtime/face-test-response.txt']:find('ok=true',1,true) and spawned==nil,files['runtime/face-test-response.txt'])
  for _=1,10 do tick(.1) end
+ assert(convaiCompanions.devQuiet and convaiCompanions.devQuiet[7],'the staged copy is silenced for the companion update')
  assert(#moves==1,'one AI teleport, then she stays: '..#moves)
  assert(holds==1 or holds==2,'told to hold position, re-sent only every 5 s: '..holds)
  local m=moves[#moves]
@@ -385,6 +387,7 @@ test('face-stage probe: reuses a present copy, invites a missing one, places it 
  assert(#moves==2,'put back once she is off the spot: '..#moves)
  -- off stops the hold.
  request('s2\\nface-stage off');tick(.3);local count=#moves
+ assert(convaiCompanions.devQuiet==nil,'off gives the copy back to the companion update')
  a.where={x=12,y=22,z=5};for _=1,10 do tick(.1) end
  assert(#moves==count,'no command after off')
  -- An absent character is invited through the party queue, waited for, then staged and later dismissed.

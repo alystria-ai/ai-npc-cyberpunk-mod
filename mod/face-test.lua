@@ -138,6 +138,28 @@ local STAGE_DISTANCE, STAGE_DEFAULT_HOLD, STAGE_MAX_HOLD, STAGE_SPAWN_WAIT, STAG
 M.spawned = M.spawned or {}
 M.leaving = M.leaving or {}
 
+-- Complete control while a character is staged (development only; nothing persists: convaiCompanions.devQuiet lives in
+-- the companion module, so a CET reload or a crash defaults back to off). The companion update then skips that copy
+-- entirely (follow, turning, unstick, body animation, gestures, look-at updates); only this probe moves her.
+local function setQuiet(stage, on)
+    if not stage or not stage.serial then return end
+    local companions = convaiCompanions
+    if type(companions) ~= 'table' then return end
+    if on then
+        companions.devQuiet = companions.devQuiet or {}
+        companions.devQuiet[stage.serial] = true
+    elseif companions.devQuiet then
+        companions.devQuiet[stage.serial] = nil
+        if next(companions.devQuiet) == nil then companions.devQuiet = nil end
+    end
+    stage.quiet = on == true
+end
+local function endStage(stage, state)
+    if not stage then return end
+    setQuiet(stage, false)
+    if state then stage.state = state end
+end
+
 local function stageTarget()
     local player = Game.GetPlayer()
     if not player then return nil, 'no player' end
@@ -230,17 +252,20 @@ local function stageTick(context)
     end
     local row = context and rowFor(context, stage.who)
     if stage.state == 'spawning' then
-        if row then stage.state, stage.entity, stage.name, stage.until_, stage.startedAt = 'staged', row.entity, row.name, M.clock + stage.hold, M.clock
+        if row then
+            stage.state, stage.entity, stage.name, stage.until_, stage.startedAt = 'staged', row.entity, row.name, M.clock + stage.hold, M.clock
+            stage.serial = row.serial
+            setQuiet(stage, true)
         elseif M.clock > stage.deadline then stage.state, stage.error = 'failed', 'the copy did not become ready in time'; return
         else return end
     end
-    if M.clock >= stage.until_ then stage.state = 'released'; log('stage-released', {who = stage.who, placed = stage.placed}); return end
+    if M.clock >= stage.until_ then endStage(stage, 'released'); log('stage-released', {who = stage.who, placed = stage.placed}); return end
     local current
     if row and row.entity == stage.entity then current = row
     else for _, other in ipairs(context and context.actors or {}) do if other.entity == stage.entity then current = other end end end
-    if not current then stage.state = 'lost'; log('stage-lost', {who = stage.who}); return end
+    if not current then endStage(stage, 'lost'); log('stage-lost', {who = stage.who}); return end
     local target, why = stageTarget()
-    if not target then stage.state, stage.error = 'failed', why; return end
+    if not target then endStage(stage, 'failed'); stage.error = why; return end
     target = freeSpot(context, target, current)
     if not target then stage.error = 'every spot in front of V is taken'; return end
     stage.error = nil
@@ -275,7 +300,7 @@ local function stageTick(context)
             end)
         end
     end)
-    if not ok then stage.state, stage.error = 'failed', tostring(err) end
+    if not ok then endStage(stage, 'failed'); stage.error = tostring(err) end
 end
 
 commands['face-stage'] = function(rest, context)
@@ -308,17 +333,18 @@ commands['face-stage'] = function(rest, context)
             out.headX, out.headY, out.headZ = screen.x, screen.y, head.z - at.z
         end)
         if not ok then return false, tostring(err) end
+        out.silenced = stage.quiet == true
         out.steady = out.quiet >= 3 and out.off < .25 and out.turn < 12
         out.inFrame = out.headX ~= nil and math.abs(out.headX) < .6 and math.abs(out.headY) < .75
         return true, out
     elseif word == 'off' then
-        if M.stage then M.stage.state = 'released' end
+        endStage(M.stage, 'released')
         return true, 'released'
     elseif word == 'dismiss' then
         -- Only characters this probe invited (their key was absent at the time): through the party queue's own
         -- dismissal, which removes the copy (or cancels a still pending invitation) at the next gameplay flush.
         local done = dismissSpawned()
-        if M.stage then M.stage.state = 'released' end
+        endStage(M.stage, 'released')
         return true, {dismissed = done, leaving = pendingLeaving(context)}
     end
     local hold = math.max(5, math.min(STAGE_MAX_HOLD, tonumber(tail) or STAGE_DEFAULT_HOLD))
@@ -326,6 +352,7 @@ commands['face-stage'] = function(rest, context)
     -- Earlier probe copies go first, and the new character waits until they are really gone ('clearing').
     local stage = {who = word, hold = hold, state = 'clearing', placed = 0, nextAt = 0, deadline = M.clock + 20}
     dismissSpawned(word)
+    endStage(M.stage) -- the previous stage no longer holds or silences anyone
     if pendingLeaving(context) == 0 then
         local ok, err = beginStage(stage, context)
         if not ok then return false, err end

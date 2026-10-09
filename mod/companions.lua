@@ -1926,6 +1926,11 @@ function M.update(player,delta,focusEntity)
             else ready[#ready+1]=entry end
         end
     end
+    -- Development only: mod/face-test.lua (not in a player package) sets M.devQuiet while its face-stage probe places a
+    -- character, and everything below (movement, turning, body animation, gestures, seated attention) then leaves that
+    -- copy alone. Nil in the shipped mod: one nil check per tick, nothing per copy.
+    local quiet=M.devQuiet
+    if quiet then for i=#ready,1,-1 do if quiet[ready[i].serial] then table.remove(ready,i) end end end
     -- Service empty fleets too: the last dismissal can leave a car waiting for
     -- native cancellation/empty-seat confirmation after walking has no frame.
     vehicles.update(fleet,player,ready,step,vehicleHooks)
