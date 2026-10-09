@@ -123,11 +123,11 @@ end
 -- ---------------------------------------------------------------------------
 -- face-stage: put a companion in front of V's camera, facing it, so a capture batch needs no manual framing.
 --   face-stage <key> [hold-seconds]   key = a companion definition / profile key (evelyn-parker, panam-palmer, an
---                                     archetype key). An already present copy is reused; otherwise one is created
---                                     with the normal spawn path (convaiCompanions.spawn) and waited for.
+--                                     archetype key). An already present copy is reused; otherwise one is invited
+--                                     through the party queue (the phone / manager path) and waited for.
 --   face-stage status                 {state, name, placed, ...}: spawning | staged | released | lost | failed
 --   face-stage off                    stop holding (her own movement takes over again)
---   face-stage dismiss                dismiss the copies this probe created (never one that was already there)
+--   face-stage dismiss                dismiss the characters this probe invited (never one that was already there)
 -- Dev only (this file is not in a player package). One transform every .1 s for at most the hold (default 60 s,
 -- limit 300 s), only while a stage is active; nothing otherwise. A visible placement is fine for a probe.
 local STAGE_DISTANCE, STAGE_DEFAULT_HOLD, STAGE_MAX_HOLD, STAGE_SPAWN_WAIT, STAGE_PERIOD = 1.1, 60, 300, 30, .1
@@ -185,10 +185,19 @@ commands['face-stage'] = function(rest, context)
         if M.stage then M.stage.state = 'released' end
         return true, 'released'
     elseif word == 'dismiss' then
+        -- Only characters this probe invited (their key was absent at the time): through the party queue's own
+        -- dismissal, which removes the copy (or cancels a still pending invitation) at the next gameplay flush.
         local done = {}
+        local queue = convaiManager and convaiManager.party and convaiManager.party()
         for index = #M.spawned, 1, -1 do
-            local ok, result = pcall(function() return convaiCompanions.dismiss(M.spawned[index]) end)
-            done[#done + 1] = {serial = M.spawned[index], ok = ok, result = ok and result or tostring(result)}
+            local key = M.spawned[index]
+            local ok, rows = pcall(function() return queue.list() end)
+            for _, member in ipairs(ok and rows or {}) do
+                if member.key == key then
+                    local called, accepted, message = pcall(queue.dismiss, member.id)
+                    done[#done + 1] = {key = key, id = member.id, ok = called and accepted == true, result = called and message or tostring(accepted)}
+                end
+            end
             table.remove(M.spawned, index)
         end
         if M.stage then M.stage.state = 'released' end
@@ -206,10 +215,13 @@ commands['face-stage'] = function(rest, context)
             if row.key == word or tostring(row.profileKey or '') == word then listed[#listed + 1] = row end
         end
         if #listed == 0 then
-            local created, serial, reason = pcall(convaiCompanions.spawn, word)
-            if not created or not serial then return false, 'spawn refused: ' .. tostring(created and reason or serial) end
-            M.spawned[#M.spawned + 1] = serial
-            stage.spawnedHere, stage.serial = true, serial
+            -- The real invitation path (manager-party queue): preparation, then the spawn on the next gameplay flush.
+            local queue = convaiManager and convaiManager.party and convaiManager.party()
+            if not queue then return false, 'the party queue is not available' end
+            local called, accepted, message = pcall(queue.invite, word)
+            if not called or not accepted then return false, 'invitation refused: ' .. tostring(called and message or accepted) end
+            M.spawned[#M.spawned + 1] = word
+            stage.spawnedHere = true
         end
     end
     M.stage = stage

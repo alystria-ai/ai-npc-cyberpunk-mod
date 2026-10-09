@@ -352,10 +352,12 @@ test('face-stage probe: reuses a present copy, spawns a missing one, places it i
  Game.GetTargetingSystem=function() return {GetCrosshairData=function() return {x=10,y=20,z=6.7},{x=0,y=1,z=-.1} end} end
  Game.GetTeleportationFacility=function() return {Teleport=function(_,npc,position,angles) moves[#moves+1]={npc=npc,position=position,angles=angles} end} end
  function player:GetWorldPosition() return {x=10,y=20,z=5} end
- local spawned,dismissed
+ local spawned,dismissed,live
  convaiCompanions.list=function() return {} end
- convaiCompanions.spawn=function(key) spawned=key;return 7 end
- convaiCompanions.dismiss=function(serial) dismissed=serial;return true end
+ convaiManager={party=function() return {
+  invite=function(key) spawned=key;live={{id='live:7',key=key}};return true,'preparing','queued:1' end,
+  list=function() return live or {} end,
+  dismiss=function(id) dismissed=id;return true,'leaving' end} end}
  -- A present copy is reused: no spawn, placed in front of the camera, facing it.
  request('s1\\nface-stage judy 10');tick(.3)
  assert(files['runtime/face-test-response.txt']:find('ok=true',1,true) and spawned==nil,files['runtime/face-test-response.txt'])
@@ -377,7 +379,7 @@ test('face-stage probe: reuses a present copy, spawns a missing one, places it i
  for _=1,5 do tick(.1) end
  assert(moves[#moves].npc==c,'the new copy is staged')
  request('s4\\nface-stage dismiss');tick(.3)
- assert(dismissed==7,'dismisses what the probe created')
+ assert(dismissed=='live:7','dismisses what the probe invited')
  request('s5\\nface-stage judy 10');tick(.3);dismissed=nil;request('s6\\nface-stage dismiss');tick(.3)
  assert(dismissed==nil,'never a copy that was already there')
 `));
