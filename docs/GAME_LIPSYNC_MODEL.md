@@ -225,3 +225,62 @@ cd scripts\lipsync; & ..\..\$py export_face_model.py ..\..\runtime\lipsync-model
 & $py scripts\lipsync\lipsync_eval.py --split runtime\lipsync-corpus2\split.json --model runtime\lipsync-model\model.npz
 node --test bridge/jali-face.test.mjs bridge/convai-jali-face.test.mjs
 ```
+
+## October 9: wide-lipped heads did not open on low and mid words (jaw lift per head type)
+
+Report: on Evelyn and Johnny (wider, thinner lips than Judy) "some words don't open the mouth", while Judy, on whom the
+speech was tuned, looks right.
+
+### Root cause
+
+The speech weights (`local-jali` model, and the Convai/Omni routes that feed the same writer) are trained on the game's
+curves as played on Judy's rig, and `M.sync` in `mod/facial-playback.lua` wrote them to every head unchanged (only
+`traitTable.gain` touches the mouth corners). Judy's lips part at a `jaw_mid_open` of about .06. A face-graph sweep of
+all 23 tier-1 characters (jaw ramp .00 to .50, plus ee and oo poses written straight to the writer, at .85 m, 1.3 m for
+the big bodies) showed the other heads part later:
+
+| Face graph (`ConvaiFaceStatus`) | Characters | Lips part at jaw | Lift q |
+|---|---|---|---|
+| `player_woman_photomode` | Judy | about .06 (the reference) | none |
+| `woman_average` | Evelyn, Alex, Claire, Lizzy, Mama Welles, Meredith, Misty, Panam, Regina, Rogue, Songbird, Wakako | about .20 | 2 |
+| `man_average` | Johnny, Kerry, Mr. Hands, Padre, Takemura, Viktor | about .12 to .20 | 1.5 |
+| `man_big` | Jackie, Pepe, River, Solomon | about .12 to .20 | 1.5 |
+
+Typical speech sits at jaw .04 to .15 (median .12, p95 .37, max .66), so on a `woman_average` head most words never
+broke the seal, which is exactly "some words don't open the mouth".
+
+### Fix
+
+The jaw weight is lifted with a concave curve that is steepest at 0 and exactly the identity at the validation ceiling
+(.7), so silence stays closed and the widest vowels are unchanged: `jaw' = .7 * (1 - (1 - jaw / .7) ^ q)`.
+
+| model jaw | q = 2 (woman_average) | q = 1.5 (men, big) |
+|---|---|---|
+| .06 | .115 | .088 |
+| .12 | .219 | .172 |
+| .20 | .343 | .277 |
+| .35 | .525 | .453 |
+| .66 | .698 | .690 |
+
+`mod/facial-playback.lua`: `jawLiftByGraph`, `jawLiftFor` (the graph is read once per reply in `M.start` and when a
+continuous stream changes owner, never per frame), `liftJaw` (one `^` on one track per written frame, no allocation).
+`traitTable[profile].jawLift` overrides per character (a number, or `false` for none); Judy has `jawLift=false`, and an
+unknown or unreadable graph gets no lift. Tests: three `jaw lift` tests in `bridge/companion-expression-playback.test.mjs`.
+
+### Proof
+
+`runtime/face-captures/lipsync-wide-lips-sheet.png`: Judy (control), Evelyn, Alex, Johnny, Jackie; each a BEFORE row
+(raw model weight written) and an AFTER row (the lifted value written) at jaw .06, .12, .20, .35. Per-character sheets for
+all 23 are in `runtime/face-captures/lipsync-check/<key>.png`. On every `woman_average` head the lips are now clearly
+parted at .12 and the mouth is a natural speaking opening at .35, with no gaping at .06 and nothing at .66; man heads open
+moderately; Judy has identical values before and after. The AFTER frames were produced by writing the mapped jaw value
+through the probe's direct writer (the in-game Lua was not hot-swapped), so the in-game real-path check needs a CET reload.
+Tier 2: every tier-2 NPC that shares one of these head types gets the lift for free (it is keyed on the graph).
+
+### Probe safety (same round)
+
+The staging probe (`mod/face-test.lua`, `face-stage`) once drove V through the floor: the old hold re-derived the spot
+from V's live camera every .1 s and a big capsule at .55 m pushed V, so both drifted. Now the spot is anchored once, big
+bodies (man_big, man_fat, unreadable graph) stand 1.3 m away, the hold aborts when V moves more than .3 m, a request left
+over from before a reload is ignored (the nonce is primed at load), and probe invites and dismissals are quiet (no
+joined/left notice, `mod/manager-party.lua`).
