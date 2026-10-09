@@ -1,5 +1,34 @@
 # Companion expressions
 
+## October 9 (morning): live run of the 59-control face on Judy, and a stronger anger
+
+Judy in V's apartment at conversation distance (1370 x 815 window, face about 130 px high), the installed 59-control
+archive, `face-test` probe (`policy` mode for the real scale-3 poses, `writer` mode for exact values),
+`scripts/Capture-GameWindow.py` crops, no other game input. Sheet: `runtime/face-captures/judy-59-sheet.png`
+(neutral, angry before and after, sad, worried, happy, surprised); single frames in `runtime/face-captures/live59/`.
+
+**Reads at that distance (strong poses):**
+- happy: yes (corners up with the cheek squint), unchanged.
+- surprised: yes (brows high, eyes wide); modest.
+- worried: yes (inner and outer brows up, widened eyes, small frown); reads as alarmed or worried, distinct from sad.
+- sad: yes (inner brows up, heavy lids, corners down, chin up); one eye looks half shut, partly the held droop
+  (.30) and possibly an idle blink in that frame.
+- angry: the knit and the lowered lids work (written strong anger: brows lower .90, together .875, upper lids .50,
+  inner squint .40, nose .15, chin .25, corners down .64, lower-lid squint .40). Clearly different from neutral, but
+  it read as stern or annoyed, not furious. Probing the headroom with `custom:` (B: lower 1.0, together 1.0, upper
+  lids .80, inner .60, nose .40, chin .35; C: everything .8-1.0 with nose .60) the face stays intact up to C (no
+  clipping, no lid through the eyeball, no asymmetry beyond her hair covering the right brow): B reads as a scowl,
+  C as bitter and heavy.
+- no breakage seen in any frame; her head turns slightly between captures (idle and look-at).
+
+**Change** (Lua and `companion-expressions.mjs`, so a CET reload and a bridge restart; no archive, no `.reds`):
+anger upper lids .50 to .80, inner squint .40 to .60, nose wrinkle .15 to .35, chin raise .25 to .35. Limits: the
+upper-lid and inner-squint controls get their own caps (.80, .60) instead of the shared squint cap .50 (the lower-lid
+smile squint keeps .50). On Judy (browDown 1.25) this writes strong anger as brows .90, together .875, lids .80, inner
+.60, nose .35, chin .35 (the "new strong" frame; the subtle-tag frame uses w^.6 of that, about .64). Tests updated;
+`companion-expressions.test.mjs` and `companion-expression-playback.test.mjs` pass. The new numbers were captured with
+the `writer` probe (the installed Lua was still the old recipe until a CET reload).
+
 ## October 9 (night): the whole upper face, nine more rig controls, and a sad gaze
 
 Review of the evening captures (user and coordinator): angry was indistinguishable from neutral, sad and worried
