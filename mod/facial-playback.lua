@@ -87,6 +87,8 @@ local function clamp(value,maximum) return math.max(0,math.min(maximum or 1,valu
 -- corners down stay subtle on her rig even at 1, corners up read from about .3, the squint and
 -- the widened eyes from about .3. Caps raised: corners .8, brows .9, squint .5, widen .6.
 local function expressionLimit(track)
+    if track:find('squint_outer_upper',1,true) then return .8 end
+    if track:find('squint_inner',1,true) then return .6 end
     if track:find('squint',1,true) then return .5 end
     if track:find('widen',1,true) then return .6 end
     if track:find('snear',1,true) then return .6 end
@@ -269,7 +271,7 @@ local mixFamilies={'joy','trust','sadness','anger','fear','disgust','surprise','
 -- wrinkle, chin = chin raise (extended controls), droop = a held partial lid close (the blink control, base rig).
 local familyPoses={joy={up=.45,out=.30},trust={up=.35},
     sadness={dn=.75,['in']=.85,lat=.35,droop=.30,chin=.35},
-    anger={dn=.40,low=.80,lat=.70,lid=.50,sq=.40,sqi=.40,snear=.15,chin=.25,droop=.25},
+    anger={dn=.40,low=.80,lat=.70,lid=.80,sq=.40,sqi=.60,snear=.35,chin=.35,droop=.25},
     fear={dn=.25,['in']=.80,out=.50,lat=.50,wide=.45},disgust={dn=.50,low=.60,snear=.60,sq=.25,chin=.20},
     surprise={['in']=.60,out=.90,wide=.55},anticipation={out=.15}}
 -- October 9 (user: "the expression barely changes, even with Expressive emotions on"): a family weight w moves

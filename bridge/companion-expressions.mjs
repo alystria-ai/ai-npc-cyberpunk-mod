@@ -58,7 +58,8 @@ export function ownedExpressionReceipt(signal, owner) {
     sequence: signal.sequence, emotion: parsed.emotion, scale: parsed.scale};
 }
 const limits = Object.freeze(Object.fromEntries(EXPRESSION_TRACKS.map(track => [track,
-  track.includes('squint') ? EXPRESSION_POLICY.squintMax
+  track.includes('squint_outer_upper') ? .8 : track.includes('squint_inner') ? .6
+  : track.includes('squint') ? EXPRESSION_POLICY.squintMax
   : track.includes('widen') ? EXPRESSION_POLICY.widenMax
   : track.includes('snear') ? .6 : track === 'lips_chin_raise' ? .5
   : track.includes('corner_up') ? EXPRESSION_POLICY.cornerUpMax
@@ -249,7 +250,7 @@ function finishPose(out, {speechPose, phase, gain}) {
 export const FAMILY_POSES = Object.freeze({
   joy: {up: .45, out: .30}, trust: {up: .35},
   sadness: {dn: .75, in: .85, lat: .35, droop: .30, chin: .35},
-  anger: {dn: .40, low: .80, lat: .70, lid: .50, sq: .40, sqi: .40, snear: .15, chin: .25, droop: .25},
+  anger: {dn: .40, low: .80, lat: .70, lid: .80, sq: .40, sqi: .60, snear: .35, chin: .35, droop: .25},
   fear: {dn: .25, in: .80, out: .50, lat: .50, wide: .45}, disgust: {dn: .50, low: .60, snear: .60, sq: .25, chin: .20},
   surprise: {in: .60, out: .90, wide: .55}, anticipation: {out: .15},
 });

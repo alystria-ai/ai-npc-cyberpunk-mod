@@ -85,14 +85,14 @@ test('emotions are visible: peaks follow the live face-test (smile reads at .35-
   near(peak('Anger', 3).eye_l_brows_lower, .80); near(peak('Anger', 3).lips_l_corner_dn, .40);
   near(peak('Anger', 3).eye_l_oculi_squint_outer_lower, .40);
   // October 9 (evening): anger knits the brows, lowers the upper lids and wrinkles the nose (extended controls).
-  near(peak('Anger', 3).eye_l_brows_lateral, .70); near(peak('Anger', 3).eye_l_oculi_squint_outer_upper, .50);
-  near(peak('Anger', 3).nose_l_snear, .15); near(peak('Disgust', 3).nose_l_snear, .60);
+  near(peak('Anger', 3).eye_l_brows_lateral, .70); near(peak('Anger', 3).eye_l_oculi_squint_outer_upper, .80); near(peak('Anger', 3).eye_l_oculi_squint_inner, .60);
+  near(peak('Anger', 3).nose_l_snear, .35); near(peak('Disgust', 3).nose_l_snear, .60);
   near(peak('Surprise', 3).eye_l_brows_raise_out, .90); near(peak('Surprise', 3).eye_l_widen, .55);
   assert.ok(peak('Interest', 2).eye_l_brows_raise_out >= .09 && peak('Interest', 2).eye_l_brows_raise_out <= .11, 'Interest is a brief flick, not a raise');
   // Caps: corners .8, brows .9, squint .5, widen .6; nothing exceeds them, and no pose is a grin (1.0).
   for (const name of ['Joy', 'Trust', 'Sadness', 'Anger', 'Fear', 'Disgust', 'Surprise', 'Interest'])
     for (const [track, value] of Object.entries(peak(name, 3)))
-      assert.ok(value <= (track.startsWith('lips_') ? .80 : track.includes('squint') ? .5 : track.includes('widen') ? .6 : .9), name + ' ' + track);
+      assert.ok(value <= (track.startsWith('lips_') ? .80 : track.includes('squint_outer_upper') ? .8 : track.includes('squint_inner') ? .6 : track.includes('squint') ? .5 : track.includes('widen') ? .6 : .9), name + ' ' + track);
   assert.equal(EXPRESSION_POLICY.cornerUpMax, .8); assert.equal(EXPRESSION_POLICY.browRaiseMax, .9);
   // Warm default (Trust scale 2) is about .23 and survives speech at 85 % (October 9: Trust .35, was .25).
   const warm = expressionTarget({emotion: {emotion: 'Trust', scale: 2}, phase: 'speaking'}).lips_l_corner_up;
