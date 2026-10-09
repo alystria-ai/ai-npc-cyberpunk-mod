@@ -1064,3 +1064,76 @@ visible threshold).
 the `spans` hook, and a floor on the gold set (tags + Convai at least 66 % acceptable, at most 36 % dead on lines that
 should show a feeling, text only at least 55 %, under 10 ms per reply). The Expressive-emotions prompt could still
 discourage the habitual `{calm}` opener and the blanket `{interest}` on questions; that belongs to the tag agent.
+
+## October 9 night: the eyebrow flicker (a neutral frame at every phrase hand-off)
+
+User, live with Evelyn: emotions fit and lip sync is fine, "sometimes the eyebrows flicker". The suspected cause was the
+phrase-to-phrase intensity step in a same-emotion reply (anger .54, .30, .47). It is a smaller effect than the real one.
+
+### Root cause
+
+Omni replies play as a stream of phrases (`speech-state.json` shows `streamVersion: 1`, one timeline per phrase, no
+`segment` block, so `M.hold` is not used). `mod/speech.lua` ends each phrase with `face.stop(actor, 'chunk-finished')`,
+and `M.stop` calls `reset()`, which is `ConvaiFaceReset()`: `Face.reds` applies a new, all-zero `ConvaiFaceFeature`
+through the same `ApplyFeature` the writer uses. `reset()` also marked the slot as written for that frame, so the idle
+writer skipped it. For that one frame the brows, upper-lid squint, droop, widen, nose and corners were all 0, and on the
+next frame the idle writer wrote the held pose back. Every phrase boundary, the end of every reply, a continuous stream
+underrun (`face.pause`) and a native phrase that started late (`face.pause` after 0.2 s at cursor 0) did this. Replies
+with one phrase flicker only at their end, which is why it is "sometimes".
+
+Nothing else in the list reproduces it. Checked by driving the real `speech.lua` and `facial-playback.lua` (a v1 stream,
+recording actor) and sampling every frame:
+
+- the writer's own eases (attack .18 s, release .55 s) never reverse inside a phrase, and the per-segment re-target
+  continues from `slot.pose`, not from zero;
+- `slot.holdMix` keeps the last mix between phrases, so there is no dip to rest (the idle writer writes the held emotion);
+- speech writes no brow or eye control (`allowed` is jaw, lips, tongue, cheeks only); the blink writes `eye_*_blink` and
+  scales the widen control for the length of a blink, never a brow control;
+- the surprise flick is a deliberate pop and is unchanged; the voice-synced emphasis raise is capped at .22 (.09 on an
+  angry face), at least 2.5 s apart, and was not touched. In the real trust to joy reply it never passes its dead zone.
+
+Smaller, real, and also fixed: the intensity steps. The raw anger plan moved the brow-down control .547, .389, .507
+(a .16 sag and a .12 climb inside 6 s). That is slow (at most 3 per second) and reads as a wave, not a twitch, but it is
+cheap to damp.
+
+### What changed
+
+- `mod/facial-playback.lua` `reset()`: for a managed copy (frame context present, game not paused, the writer's own
+  copy) the face is handed to the idle writer inside the same call: `applyFeature` with the slot's own feature (speech
+  fields stay 0, so the mouth is closed exactly as the reset gave) writes the smoothed expression, droop and blink
+  without a neutral frame. Anything else (a world speaker, a paused game, no frame context, a failed write) still calls
+  `ConvaiFaceReset()` as before. The idle writer is also no longer held off while `M.state == 'paused'`, so an underrun
+  keeps blinking and easing. Cost: runs at a phrase boundary or a pause, not per frame; the per-frame path gained one
+  string comparison and one local call, no allocation.
+- `bridge/emotion-selector.mjs` `settleCarriedFeelings` (after the reply summary is taken, so the cue is unchanged): a
+  feeling that is already showing and falls in the next phrase falls only half the way (`SETTLE = .5`: .535, .300, .467
+  becomes .535, .418, .467); a rise is taken in full; a feeling that starts, stops or changes family is untouched, so
+  anger to joy still reads at once; `tagged-span` phrases stay exact. Bridge-side, no per-frame work.
+
+### Numbers (offline, 60 fps, real writer; `[EmotionTimeline]` of the user's replies)
+
+| reply | | resets | worst one-frame step | one-frame spikes | brow-down reversal within 8 s |
+|---|---|---|---|---|---|
+| anger, 3 phrases (1.1, 3.6, 3.6 s) | before | 3 | 32.8 /s (brow .55 to 0 and back) | 2, depth .55 | .548 (the reset) |
+| | after | 0 | 2.9 /s | 0 | .076 (.547, .475, .507) |
+| trust then joy (the real timelines from `speech-stream.json`) | before | 2 | 13 /s (squint .22 to 0 and back) | 1, depth .22 | .217 |
+| | after | 0 | 1.1 /s | 0 | 0 |
+
+The same trace for the lateral pull (.48) and the upper lid (.55) matches the brow-down control. The corner-up control
+still drops to 0 for about 0.1 s on rounded or closed phonemes in the middle of a phrase: that is the deliberate mouth
+priority (closure and rounding zero the smile), not the brows.
+
+### Tests
+
+`bridge/companion-expression-playback.test.mjs`: no native reset and no control moving faster than 4 per second across
+phrase hand-offs, late native starts, long gaps and an underrun pause; the brows stay above .3 for the whole anger
+reply; an unmanaged speaker and a paused game still reset; no brow reversal over .09 within 8 s on the settled anger
+plan (the raw plan fails the same test at .16), none on trust to joy, and anger to joy still lowers the brow below .12
+and lifts the outer brow above .12 within 2.5 s. `bridge/emotion-selector.test.mjs`: the settle rules.
+
+### Needs
+
+Lua: copy `mod/facial-playback.lua` into the game folder and reload CET (Reload all mods). Bridge: restart for the settle
+pass (the Lua fix alone removes the flicker). No game restart. Not verified in game: no existing probe plays a
+multi-phrase Omni stream (the `speech-fixture` probe plays one paired timeline, the face-stage probe plays one
+expression).

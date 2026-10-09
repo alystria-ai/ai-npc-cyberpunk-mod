@@ -675,6 +675,11 @@ function M.expressionStatus(entity)
     return {version=1,phase=slot.phase,blocked=slot.blocked,applied=slot.applied or 0,
         emotionPresent=slot.emotion~=nil,active=slot.active==true,pose=pose,clock=M.expressionClock}
 end
+-- The idle writer's phase for a copy (also used by the hand-over in reset()).
+local function idlePhase(slot,entity)
+    return (slot.active and 'thinking') or (M.thinkingEntity==entity and 'thinking')
+        or (M.listeningEntity==entity and 'listening') or 'idle'
+end
 function M.updateExpressions(context)
     if type(context)~='table' or M.expressionPaused then return end
     if faceTest then pcall(faceTest.direct,context.actors,function() return NewObject('ConvaiFaceFeature') end) end
@@ -689,12 +694,10 @@ function M.updateExpressions(context)
                 slot.profile=row.profileKey
                 -- Speech owns the face from its first HEARD frame. Before that (a reply prepared, a stream
                 -- buffering, an Omni phrase loading) this idle writer keeps her idle face (October 9).
-                if slot.written==M.expressionFrame or (M.active and M.entity==entity and M.heardRequest==M.requestId) then return end
+                if slot.written==M.expressionFrame or (M.active and M.entity==entity and M.heardRequest==M.requestId and M.state~='paused') then return end
                 slot.feature=slot.feature or NewObject('ConvaiFaceFeature')
                 assert(slot.feature,'Native facial feature is unavailable')
-                local phase=(slot.active and 'thinking') or (M.thinkingEntity==entity and 'thinking')
-                    or (M.listeningEntity==entity and 'listening') or 'idle'
-                applyFeature(actor,slot.feature,entity,phase)
+                applyFeature(actor,slot.feature,entity,idlePhase(slot,entity))
             end)
             if not ok then M.expressionError=tostring(err);M.expressions[entity]=nil end
         end
@@ -749,12 +752,29 @@ local function blinkCursor(boundaries,position)
     while boundaries and boundaries[index] and boundaries[index]<=position do index=index+1 end
     return index
 end
+-- October 9 (user: "sometimes the eyebrows flicker"): every Omni phrase ended with face.stop -> ConvaiFaceReset, which
+-- zeroes the WHOLE feature. The idle writer is skipped for that frame, so the brows, lids, squints and corners showed
+-- one neutral frame and snapped back on the next (the same at a reply's end, a stream underrun and a late native
+-- start). A managed copy now hands the face to its idle writer inside the same call: the speech fields drop to zero
+-- (a closed mouth, exactly what the reset gave) while the smoothed expression, droop and blink carry on unbroken.
+-- Anything else (a world speaker, a paused game, no frame context yet) still gets the plain reset.
 local function reset(actor)
+    local handed
     local ok, done = pcall(function()
-        return speaker(actor) and actor:ConvaiFaceReset()
+        if not speaker(actor) then return false end
+        local entity=M.entity
+        local slot=entity and M.expressions[entity]
+        if slot and M.expressionManaged and not M.expressionPaused and owns(actor,entity) then
+            slot.feature=slot.feature or NewObject('ConvaiFaceFeature')
+            if slot.feature then
+                local wrote=pcall(applyFeature,actor,slot.feature,entity,idlePhase(slot,entity))
+                if wrote and slot.written==M.expressionFrame then handed=true;return true end
+            end
+        end
+        return actor:ConvaiFaceReset()
     end)
     M.restored = ok and done == true
-    if M.restored and M.entity and M.expressions[M.entity] then
+    if M.restored and not handed and M.entity and M.expressions[M.entity] then
         local slot=M.expressions[M.entity]
         slot.written,slot.appliedPose,slot.phase=M.expressionFrame,zeroExpression(),'released'
     end

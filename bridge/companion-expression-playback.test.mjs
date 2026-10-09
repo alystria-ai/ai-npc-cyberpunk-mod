@@ -5,8 +5,9 @@ import fengari from 'fengari';
 import {buildFacialTimeline, buildProviderFacialTimeline, SPEECH_TRACKS} from './facial-timeline.mjs';
 import {expressionTarget, ExpressionSmoother, ownedExpressionReceipt} from './companion-expressions.mjs';
 import {silentWav} from './speech-audio.mjs';
-import {selectEmotion} from './emotion-selector.mjs';
+import {selectEmotion, settleCarriedFeelings} from './emotion-selector.mjs';
 import {attachExpressionTrack} from './expression-timeline.mjs';
+import {planRange} from './emotion-analysis.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const faceSource = readFileSync(new URL('../mod/facial-playback.lua', import.meta.url), 'utf8');
@@ -1064,3 +1065,150 @@ test('a sad face drops its gaze a little below V, with hysteresis; other feeling
  face.expressionHeard(ctx);for _=1,20 do tick(.1) end
  assert(face.gazeDrop(a.id)==0,'anger holds the stare')
 `));
+
+// ---- October 9 (user: "sometimes the eyebrows flicker") ------------------------------------------------------------
+// Omni plays one phrase at a time. Each phrase ended with face.stop -> ConvaiFaceReset, which zeroes the whole feature
+// and (for that frame) kept the idle writer from writing: brows, lids, squints and corners showed ONE NEUTRAL FRAME and
+// snapped back. The same happened when a reply ended, when a continuous stream underran and when a native phrase
+// started late. A managed copy now hands over to its idle writer inside the same call.
+const BROW_KEYS = ['eye_l_brows_lower', 'eye_l_brows_lateral', 'eye_l_oculi_squint_outer_upper', 'eye_l_oculi_squint_outer_lower',
+  'eye_l_brows_raise_in', 'eye_l_brows_raise_out', 'eye_l_widen'];
+// Plays a reply phrase by phrase the way mod/speech.lua plays a v1 stream: face.start, a synced frame per game frame,
+// face.stop at the end of the phrase, `gapFrames` idle frames, then the next phrase. Returns the written brow controls
+// per game frame (the native layer keeps the last write) and the native reset count per frame.
+function playPhrases(plan, {gapFrames = 0, startFrames = 0, hold = 90, profile = 'evelyn-parker', fps = 30, pauseAt = 0, managed = true} = {}) {
+  const lines = plan.segments.map((segment, index) => {
+    const line = attachExpressionTrack(flatLine('steady', 'local-jali', segment.seconds), planRange(plan, segment.start, segment.end), {complete: true, decay: true});
+    return {...line, expression: index === 0 ? receipt('Anger', 2, 0) : undefined};
+  });
+  const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
+  try {
+    const status = lauxlib.luaL_dostring(vm, to_luastring(setup + `
+     rows[1].profileKey=${JSON.stringify(profile)}
+     local ctx={requestId='steady',entity=a.id,generation=4}
+     local keys=${literal(BROW_KEYS)}
+     local series={}
+     local dt=1/${fps}
+     local managed=${managed}
+     local function frame(play)
+      face.beginExpressionFrame(dt,managed and {actors=rows} or nil)
+      if play then play() end
+      if managed then face.updateExpressions({actors=rows}) end
+      local f=last(a) or {}
+      local row={a.resets}
+      for _,k in ipairs(keys) do row[#row+1]=string.format('%.5f',f[k] or 0) end
+      series[#series+1]=table.concat(row,',')
+     end
+     local lines=${literal(lines)}
+     face.beginExpressionFrame(0,managed and {actors=rows} or nil)
+     for index,line in ipairs(lines) do
+      assert(face.start(ctx,line,a,line.duration),face.error)
+      for _=1,${startFrames} do frame() end
+      local count=math.floor(line.duration*${fps})
+      for i=1,count do
+       frame(function() face.sync(a,i/${fps},ctx.requestId) end)
+       if ${pauseAt}>0 and index==2 and i==${pauseAt} then for _=1,6 do face.pause(a);frame() end end
+      end
+      frame(function() face.sync(a,line.duration,ctx.requestId) end)
+      face.stop(a,'chunk-finished')
+      if index<#lines then for _=1,${gapFrames} do frame() end end
+     end
+     face.endExpression(ctx,true)
+     for _=1,${hold} do frame() end
+     RESULT=table.concat(series,'\\n')`));
+    assert.equal(status, lua.LUA_OK, status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1)));
+    lua.lua_getglobal(vm, to_luastring('RESULT'));
+    const rows = to_jsstring(lua.lua_tostring(vm, -1)).split('\n').map(line => line.split(',').map(Number));
+    const series = {resets: rows.map(row => row[0]), dt: 1 / fps};
+    BROW_KEYS.forEach((key, i) => { series[key] = rows.map(row => row[i + 1]); });
+    return series;
+  } finally { lua.lua_close(vm); }
+}
+const planOf = list => ({baseline: {}, length: list.length * 10, segments: list.map(([family, weight, seconds], index) => ({
+  start: index * 10, end: index * 10 + 10, seconds, weights: {[family]: weight}, dominant: family, mixed: false, tags: ['llm-emotion']}))});
+// The fastest a control may move in one game frame (the writer's own attack is about 3 per second on a full brow).
+const slewPerSecond = (values, dt) => Math.max(0, ...values.slice(1).map((value, i) => Math.abs(value - values[i]) / dt));
+// The deepest down-and-up (or up-and-down) swing within `window` seconds, ignoring wiggles below `eps`.
+function deepestReversal(values, dt, window, eps = .02) {
+  const extremes = []; let high = 0, low = 0, mode = 0;
+  values.forEach((value, i) => {
+    if (value > values[high]) high = i;
+    if (value < values[low]) low = i;
+    if (mode >= 0 && values[high] - value > eps) { extremes.push([high, values[high]]); mode = -1; low = high = i; }
+    else if (mode <= 0 && value - values[low] > eps) { extremes.push([low, values[low]]); mode = 1; low = high = i; }
+  });
+  let best = 0;
+  for (let i = 2; i < extremes.length; i++) {
+    const [a, b, c] = [extremes[i - 2], extremes[i - 1], extremes[i]];
+    if ((c[0] - a[0]) * dt <= window) best = Math.max(best, Math.min(Math.abs(b[1] - a[1]), Math.abs(c[1] - b[1])));
+  }
+  return best;
+}
+
+test('October 9: a phrase hand-off, a late native start and the reply end keep the brows, lids and squints in place (no neutral frame)', () => {
+  // The user's three-phrase anger reply: 0.535, 0.300, 0.467.
+  const plan = planOf([['anger', .535, 1.1], ['anger', .3, 3.6], ['anger', .467, 3.6]]);
+  for (const options of [{gapFrames: 0}, {gapFrames: 6, startFrames: 5}, {gapFrames: 20, startFrames: 15}, {gapFrames: 3, pauseAt: 45}]) {
+    const series = playPhrases(plan, options), label = JSON.stringify(options);
+    assert.ok(series.resets.every(count => count === 0), `${label}: the native face was reset ${series.resets.at(-1)} time(s)`);
+    for (const key of BROW_KEYS) {
+      const values = series[key];
+      if (Math.max(...values) < .1) continue;
+      assert.ok(slewPerSecond(values, series.dt) < 4, `${label} ${key}: moved ${slewPerSecond(values, series.dt).toFixed(1)}/s in one frame`);
+    }
+    // Once the brows are down they stay down for the whole reply (the lowest point is a held brow, not a dip to 0).
+    const lower = series.eye_l_brows_lower, from = Math.round(1 / series.dt), until = from + Math.round(8 / series.dt);
+    assert.ok(Math.min(...lower.slice(from, until)) > .3, `${label}: brows dipped to ${Math.min(...lower.slice(from, until))}`);
+  }
+});
+
+test('October 9: without a frame context (an unmanaged speaker) the end of a phrase still resets the native face', () => {
+  const series = playPhrases(planOf([['anger', .5, 1], ['anger', .5, 1]]), {managed: false, hold: 10});
+  assert.ok(series.resets.at(-1) >= 2, `resets ${series.resets.at(-1)}`);
+});
+
+test('October 9: a continuous stream underrun (face.pause) keeps the held expression and the idle writer going', () => run(`
+ local line=${literal({...flatLine('expression-turn', 'convai-arkit61', 3), generation: owner.generation, continuous: true, complete: false})}
+ face.beginExpression(context,${literal(receipt('Anger', 3, 0))})
+ face.beginExpressionFrame(1/60,{actors=rows})
+ assert(face.updateContinuous(context,line,a,3),face.error)
+ for i=1,90 do face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,i/60,context.requestId);face.updateExpressions({actors=rows}) end
+ local held=last(a).eye_l_brows_lower;assert(held>.4,'angry brows '..held)
+ for i=1,60 do
+  face.beginExpressionFrame(1/60,{actors=rows});face.pause(a);face.updateExpressions({actors=rows})
+  assert(a.resets==0,'no native reset on an underrun')
+  assert(math.abs(last(a).eye_l_brows_lower-held)<.03 and (last(a).jaw_mid_open or 0)==0,'brows held, mouth closed: '..last(a).eye_l_brows_lower)
+ end
+ -- The game's menu pause is different: the clock stops and the plain reset applies.
+ face.beginExpressionFrame(1/60,{actors=rows});face.sync(a,95/60,context.requestId);assert(face.state=='playing',face.state)
+ face.beginExpressionFrame(1/60,{actors=rows,paused=true});face.pause(a);assert(a.resets==1,'a paused game resets: '..a.resets)
+`));
+
+test('October 9: a same-feeling stretch does not sag and lift the brows: no reversal over .09 within 8 s, while a change of feeling still reads', () => {
+  // The user's anger reply (phrases of 1.1, 3.6 and 3.6 s at .535, .300, .467). Raw, the brow-down control sags by
+  // .16 and climbs back by .12; planned through the selector's settle pass it moves by half as much.
+  const raw = planOf([['anger', .535, 1.1], ['anger', .3, 3.6], ['anger', .467, 3.6]]);
+  const settled = planOf([['anger', .535, 1.1], ['anger', .3, 3.6], ['anger', .467, 3.6]]);
+  settleCarriedFeelings(settled.segments);
+  const before = playPhrases(raw, {gapFrames: 3}), after = playPhrases(settled, {gapFrames: 3});
+  for (const key of ['eye_l_brows_lower', 'eye_l_brows_lateral', 'eye_l_oculi_squint_outer_upper']) {
+    const sag = deepestReversal(before[key], before.dt, 8), now = deepestReversal(after[key], after.dt, 8);
+    assert.ok(sag > .1, `${key}: the raw plan was expected to reverse by more than .1, got ${sag}`);
+    assert.ok(now <= .09, `${key}: reverses by ${now} within 8 s`);
+    assert.ok(slewPerSecond(after[key], after.dt) < 4);
+  }
+  // The level still follows the plan: the settled brow is lower in the mild phrase than in the first, and not flat.
+  const lower = after.eye_l_brows_lower, at = seconds => lower[Math.round(seconds / after.dt)];
+  assert.ok(at(8) < at(1.0) - .03 && at(8) > at(1.0) - .15, `mild phrase ${at(8)} vs first ${at(1.0)}`);
+  // Trust, then joy (the user's second reply): no reversal on any brow control.
+  const warmPlan = planOf([['trust', .168, 2.5], ['joy', .495, 2.95]]);
+  settleCarriedFeelings(warmPlan.segments);
+  const calm = playPhrases(warmPlan, {gapFrames: 3});
+  for (const key of BROW_KEYS) assert.ok(deepestReversal(calm[key], calm.dt, 8) <= .09, `${key} reverses`);
+  // Anger, then joy: the brows come up out of the frown and lift, within about 2.5 s of the second phrase.
+  const flip = planOf([['anger', .535, 2], ['joy', .5, 3]]);
+  settleCarriedFeelings(flip.segments);
+  const turn = playPhrases(flip, {gapFrames: 3}), later = Math.round((2 + 2.5) / turn.dt);
+  assert.ok(turn.eye_l_brows_lower[Math.round(1.9 / turn.dt)] > .4, 'angry before the change');
+  assert.ok(turn.eye_l_brows_lower[later] < .12 && turn.eye_l_brows_raise_out[later] > .12, `anger -> joy: lower ${turn.eye_l_brows_lower[later]} raise ${turn.eye_l_brows_raise_out[later]}`);
+});

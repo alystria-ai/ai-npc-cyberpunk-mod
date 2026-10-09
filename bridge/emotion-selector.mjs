@@ -419,7 +419,32 @@ export function selectEmotion({player = '', reply, profile, previous, convai, ma
   });
   const plan = {version: 2, selector: 'context', length: reply.length, trait: mannerName, baseline: {}, segments, evidence};
   plan.summary = summariseContext(plan);
+  settleCarriedFeelings(segments);
   return plan;
+}
+
+// October 9 (user: "sometimes the eyebrows flicker", an anger reply read .54, .30, .47 phrase by phrase): a feeling that
+// carries on into the next phrase should not fall by the whole gap and climb back; its brows, lids and squint would
+// sag and lift again within a few seconds, which reads as a twitch. A fall in a feeling that is already showing moves
+// only SETTLE of the way down (.54 -> .30 plans .42), a rise is taken in full, and a feeling that starts, stops or
+// changes family is untouched, so anger -> joy still reads at once. A deliberate span tag stays exact. The reply
+// summary (the cue when no label arrived) is taken from the raw phrases, before this pass.
+export const SETTLE = .5;
+export function settleCarriedFeelings(segments) {
+  let before = null;
+  for (const segment of segments) {
+    if (before && !segment.tags.includes('tagged-span')) {
+      let changed = false;
+      for (const [family, weight] of Object.entries(segment.weights)) {
+        const held = before.weights[family];
+        if (held === undefined || weight >= held) continue;
+        segment.weights[family] = round(held + (weight - held) * SETTLE);
+        changed = true;
+      }
+      if (changed) segment.dominant = Object.entries(segment.weights).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    }
+    before = segment;
+  }
 }
 
 /** Valid spans of a tagger ({start, end, emotion, intensity}), in order: the feeling's family (null for calm) and its weight. */

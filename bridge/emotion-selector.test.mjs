@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {selectEmotion, SELECTOR_LABEL, LABEL_OF, EmotionSelection, waitLateEmotion, restingFor, mannerFor, conversationContext, PREVIOUS_MS, providerPrior}
+import {selectEmotion, settleCarriedFeelings, SELECTOR_LABEL, LABEL_OF, EmotionSelection, waitLateEmotion, restingFor, mannerFor, conversationContext, PREVIOUS_MS, providerPrior}
   from './emotion-selector.mjs';
 import {mixTarget} from './companion-expressions.mjs';
 import {attachExpressionTrack, sampleTrack} from './expression-timeline.mjs';
@@ -307,4 +307,35 @@ test("spans in the tag parser's shape: intensity 1/2, a null emotion leaves the 
   assert.deepEqual(careful.weights, {anger: 1});
   const open = selectEmotion({reply: "Haha, nice one. Meet me at nine.", profile: "judy-alvarez", spans: [{start: 0, end: 32, emotion: null, intensity: 0}]});
   assert.ok(open.segments[0].weights.joy > 0, "a null span is untagged: the picker reads the laugh");
+});
+
+// October 9 (user: "sometimes the eyebrows flicker"; an anger reply planned .54, .30, .47 phrase by phrase): a feeling
+// that carries on into the next phrase falls only part of the way, so the brows do not sag and lift again.
+const phrases = list => list.map(([family, weight, tags = []]) => ({start: 0, end: 1, seconds: 2, weights: family ? {[family]: weight} : {},
+  dominant: family, mixed: false, tags}));
+test('a carried feeling settles halfway on a fall, rises in full, and a new or changed feeling is untouched', () => {
+  // The user's anger reply: .535, .300, .467 becomes .535, .418, .467.
+  const anger = phrases([['anger', .535], ['anger', .3], ['anger', .467]]);
+  settleCarriedFeelings(anger);
+  assert.deepEqual(anger.map(segment => segment.weights.anger), [.535, .418, .467]);
+  // A rise is taken in full, the next fall is settled against the level that was shown.
+  const build = phrases([['anger', .3], ['anger', .8], ['anger', .2]]);
+  settleCarriedFeelings(build);
+  assert.deepEqual(build.map(segment => segment.weights.anger), [.3, .8, .5]);
+  // A different family (anger -> joy), a feeling that stops and returns, and a neutral phrase all read as they were planned.
+  const change = phrases([['anger', .6], ['joy', .5], [null], ['joy', .2], ['joy', .1]]);
+  settleCarriedFeelings(change);
+  assert.deepEqual(change.map(segment => segment.weights), [{anger: .6}, {joy: .5}, {}, {joy: .2}, {joy: .15}]);
+  assert.deepEqual(change.map(segment => segment.dominant), ['anger', 'joy', null, 'joy', 'joy']);
+  // A deliberate span tag stays exact.
+  const spanned = phrases([['sadness', .7], ['sadness', .2, ['tagged-span']]]);
+  settleCarriedFeelings(spanned);
+  assert.equal(spanned[1].weights.sadness, .2);
+  // A mixed phrase: only the families that carry on are settled, and the dominant follows the weights.
+  const mixed = phrases([['sadness', .7], ['sadness', .3]]);
+  mixed[0].weights.fear = .2;
+  mixed[1].weights = {sadness: .3, anticipation: .25, fear: .1};
+  settleCarriedFeelings(mixed);
+  assert.deepEqual(mixed[1].weights, {sadness: .5, anticipation: .25, fear: .15});
+  assert.equal(mixed[1].dominant, 'sadness');
 });
