@@ -205,6 +205,14 @@ statement or a tease shows `no`).
 Install: bridge restart (`bridge/follow-up.mjs`, `bridge/convai-bridge.mjs`), CET reload (`mod/manager.lua`, `mod/mcm.lua`,
 `mod/locales/*.lua`). No game restart. The October 9 tuning changes only `bridge/follow-up.mjs`: a bridge restart.
 
+## October 10: the block must not make the character narrate
+
+A live turn ("why blue hair?" to Evelyn) came out as "I suspect she enjoys the way it makes people look twice": the block's
+"answer first, end on a hook, never invent facts about your life" kept the model from stopping to say whom it thought V meant, so it
+talked about another character without naming her. The block's sentence about facts now says you say it as "I" and that how you
+look is not one of those facts (V can see you), and every turn carries a first-person rule. Cause, numbers and the other changes:
+`docs/FIRST_PERSON_RULE.md`. The pull itself is unchanged (replies ending in a question 67 % then 94 % on that harness).
+
 ## History: the retired toggle (September 29 to October 5)
 
 The earlier **Follow-up questions** toggle told the character, on every ordinary reply, to "ask V one short, relevant

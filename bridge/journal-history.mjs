@@ -95,7 +95,17 @@ export function parseJournalHistory(input) {
 // Temporal words ("what did we do last?", "what next?") would otherwise match
 // titles such as "Gig: Last Login"; the recency and job sections answer those.
 const STOP = new Set(['what', 'where', 'when', 'which', 'have', 'been', 'with', 'about', 'that', 'this', 'there', 'they', 'your', 'our', 'the', 'and', 'for', 'how', 'are', 'you', 'can', 'did', 'does', 'quest', 'quests', 'job', 'jobs', 'objective', 'objectives',
-  'last', 'next', 'latest', 'recent', 'recently', 'should', 'take', 'together']);
+  'last', 'next', 'latest', 'recent', 'recently', 'should', 'take', 'together',
+  // Question and function words: "why" alone pulled "Find out why the NCPD dropped the investigation" into a conversation about hair
+  // (October 10, docs/FIRST_PERSON_RULE.md). A distinctive word ("blue") can still match; a word every sentence has cannot.
+  'why', 'who', 'whom', 'whose', 'was', 'were', 'had', 'has', 'will', 'would', 'could', 'may', 'might', 'must', 'not', 'but', 'its',
+  'his', 'her', 'she', 'him', 'them', 'then', 'than', 'also', 'too', 'very', 'just', 'into', 'over', 'out', 'any', 'all', 'one', 'get',
+  'got', 'let', 'say', 'said', 'tell', 'told', 'now', 'here', 'yes', 'yeah', 'okay', 'like', 'some', 'only', 'even', 'still', 'much',
+  'many', 'more', 'most', 'other', 'again', 'because', 'while', 'those', 'these', 'their', 'from', 'than', 'really', 'actually',
+  // Looks: a player who asks "why blue hair?" is talking about how someone looks, not about the quest "Every Breath You Take", whose
+  // objectives say "wait for Blue Moon". The name words of a quest ("moon") still match; a colour or a body word alone does not.
+  'blue', 'red', 'green', 'yellow', 'black', 'white', 'pink', 'purple', 'orange', 'grey', 'gray', 'gold', 'golden', 'silver', 'brown',
+  'hair', 'eyes', 'face', 'dress', 'jacket', 'color', 'colour', 'look', 'looks']);
 const words = value => [...new Set((String(value ?? '').toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).filter(word => word.length > 2 && !STOP.has(word)))].slice(0, 32);
 // Journal titles/objectives rarely change between turns. Their word sets are
 // pure functions of the text, so a bounded cache avoids re-tokenizing thousands

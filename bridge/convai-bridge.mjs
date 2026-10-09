@@ -18,7 +18,7 @@ import {RealtimeHost} from './realtime-host.mjs';
 import {MicrophoneSession} from './microphone-session.mjs';
 import {randomUUID} from 'node:crypto';
 import {conversationScope} from './group-context.mjs';
-import {conversationContext as baseConversationContext} from './quest-context.mjs';
+import {conversationContext as baseConversationContext, firstPersonReminder} from './quest-context.mjs';
 import {createIntrinsicConversationContext, loadIntrinsicCharacterContext} from './intrinsic-character-context.mjs';
 import {battleTrigger, reactionLeaseValid} from './battle-context.mjs';
 import {GroupPrefetch, parsedInputIdentity, parsePrewarm} from './group-prefetch.mjs';
@@ -439,7 +439,7 @@ const conversationContext = input => {
     admitted && prepared.route.channel === 'phone' ? phoneRecentConversationContext(prepared.input) : '',
     // Follow-up questions go before the voice notes: after "keep the same length and content" they lost most of their effect
     // (scripts/Probe-FollowUp.mjs: a pull in 16 of 26 offered turns here, against 13 of 41 after them).
-    followUpContext(input), naturalSpeechContext(input), expressiveEmotionsContext(input),
+    followUpContext(input), naturalSpeechContext(input), expressiveEmotionsContext(input), firstPersonReminder(input),
     // Multilingual conversations: the reply language, last so it outweighs the English notes above.
     multilingual.contextFor(input.reaction ? '' : input.text)]
     .filter(Boolean).join('\n\n');

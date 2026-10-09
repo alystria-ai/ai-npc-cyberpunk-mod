@@ -411,7 +411,8 @@ export class IntrinsicCharacterContext {
     if (!topic) return remember(empty());
     const pack = this.#packs.get(input.profileKey), selected = [];
     const header = 'Topic-limited intrinsic character history for this actual one-to-one conversation. '
-      + 'These quoted facts belong to the character; they do not establish that V knows them, witnessed their source scenes, or made a quest decision. '
+      + 'These quoted facts are about you, written about the character in the third person: when you use one, say it as yourself, with "I" and "my", never as "she" or "he". '
+      + 'They do not establish that V knows them, witnessed their source scenes, or made a quest decision. '
       + 'Current verified world/quest facts remain authoritative for this save. Do not invent missing dates, outcomes or relationship progress. '
       + 'Use at most one relevant detail at a time, with gradual disclosure; no biography dump or speaker-name prefix. '
       + "V’s intent takes priority over this history material. "

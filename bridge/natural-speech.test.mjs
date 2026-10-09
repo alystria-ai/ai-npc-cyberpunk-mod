@@ -461,7 +461,7 @@ test('the block names the Chinese and Japanese sounds only on a Chinese or Japan
   for (const language of ['zh', 'ja', undefined]) {
     const pocket = naturalSpeechContext({engine: 'pocket', language, profile: 'judy-alvarez', trait: 'warm'});
     assert.deepEqual([...pocket.matchAll(/\[([a-z-]+)\]/g)].map(match => match[1]), ['laughter', 'sigh']);
-    assert.ok(!pocket.includes('How Judy talks'), 'the per-character line is OmniVoice only');
+    assert.ok(!pocket.includes('How you talk'), 'the per-character line is OmniVoice only');
   }
 });
 
@@ -507,15 +507,17 @@ test('a tag is always its own word and never splits one', () => {
 
 test('each character gets a "how they talk" line on offered turns only; the setting off and un-offered turns are untouched', () => {
   const line = (profile, trait = 'neutral', name = profile) => talkLine({profile, name, trait});
-  assert.match(line('judy-alvarez'), /^How Judy talks: soft sighs.*nervous laugh.*"uh"/);
-  assert.match(line('panam-palmer'), /^How Panam talks: a short laugh when someone says something stupid.*sigh.*almost never an "uh"/);
-  assert.match(line('johnny-silverhand'), /^How Johnny talks: .*never an "uh".*never giggly.*dry scoff/);
+  assert.match(line('judy-alvarez'), /^How you talk: soft sighs.*nervous laugh.*"uh"/);
+  assert.match(line('panam-palmer'), /^How you talk: a short laugh when someone says something stupid.*sigh.*almost never an "uh"/);
+  assert.match(line('johnny-silverhand'), /^How you talk: .*never an "uh".*never giggly.*dry scoff/);
   assert.match(line('npc-street-resident-female'), /^How you talk: a tired local/);
-  // Everyone else: from the trait; a named profile uses its name, an unnamed archetype the second person.
+  // Everyone else: from the trait. Every line is addressed to the character ("you"): never "How Jackie Welles talks:", a narrator's
+  // description of the speaker by name (docs/FIRST_PERSON_RULE.md).
   for (const [trait, expected] of [['warm', /warm, easy laugh/], ['neutral', /short laugh when something is funny/],
     ['dry', /flat scoff or grunt.*never giggly/], ['cold', /almost never a sound/], ['mystery', /short laugh when something is funny/]]) {
-    assert.match(line('jackie-welles', trait, 'Jackie Welles'), /^How Jackie Welles talks: /, trait);
+    assert.match(line('jackie-welles', trait, 'Jackie Welles'), /^How you talk: /, trait);
     assert.match(line('jackie-welles', trait, 'Jackie Welles'), expected, trait);
+    assert.ok(!/Jackie|Welles|talks:/.test(line('jackie-welles', trait, 'Jackie Welles')), `${trait}: the character is never named`);
     assert.match(line('npc-maelstrom-male', trait, 'Maelstrom Ganger Male'), /^How you talk: /, trait);
   }
   assert.equal(talkLine({}), '');
@@ -532,7 +534,8 @@ test('each character gets a "how they talk" line on offered turns only; the sett
   assert.ok(offered.includes(line('judy-alvarez')));
   assert.equal(offered, naturalSpeechContext({engine: 'omni', profile: 'judy-alvarez', name: 'Judy Alvarez', trait: 'warm', place: 'mid'}));
   // The line sits after the tags and before the rules.
-  assert.ok(offered.indexOf('How Judy talks') > offered.indexOf('[dissatisfaction-hnn]') && offered.indexOf('How Judy talks') < offered.indexOf('Use at most one'));
+  assert.ok(offered.indexOf('How you talk') > offered.indexOf('[dissatisfaction-hnn]') && offered.indexOf('How you talk') < offered.indexOf('Use at most one'));
+  assert.ok(!/(she|he|her|his|Judy)/.test(offered), 'the whole block speaks to the character, never about her');
   // Not offered: still nothing, whoever it is.
   assert.equal(ask({profile: 'judy-alvarez', sessionId: 'c', random: NEVER}), '');
   // No profile known: the plain block, no line.

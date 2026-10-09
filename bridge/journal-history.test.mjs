@@ -187,6 +187,24 @@ const quest = (id, title, state = 'succeeded', text = 'Leave the room.') => ({id
 const snapshot = {version: 1, status: 'ready', generation: 1, worldToken: 'world-a', capturedAtMs: 1000000,
   tracked: {status: 'known', questId: '1', objectiveId: '101'}, coverage: {active: cover, history: cover},
   quests: [quest('1', 'Current Quest', 'active', 'Meet Hanako at Embers.'), quest('2', 'Pyramid Song'), quest('3', 'Other Old Quest')]};
+test('question and function words ("why", "who", "was") never pull a quest in; a distinctive word still can', () => {
+  const titled = structuredClone(snapshot);
+  titled.quests[2].title = 'Gig: Find Out Why'; titled.quests[2].objectives[0].text = 'Find out why the NCPD dropped the investigation.';
+  for (const query of ['why blue hair?', 'who was that, and why?', 'why do you dress like that']) {
+    const output = selectJournalHistory({snapshot: titled, generation: 1, worldToken: 'world-a', now: 1000000, profileKey: 'evelyn-parker', query});
+    assert.doesNotMatch(output.context, /NCPD dropped|Find Out Why/, query);
+  }
+  // A colour or a body word is about how someone looks ("why blue hair?" summoned "wait for Blue Moon"); the quest's own name still matches.
+  const moon = structuredClone(snapshot);
+  moon.quests[2].title = 'Every Breath You Take'; moon.quests[2].objectives[0].text = 'Go to the meeting spot and wait for Blue Moon.';
+  const ask = query => selectJournalHistory({snapshot: moon, generation: 1, worldToken: 'world-a', now: 1000000, profileKey: 'evelyn-parker', query}).context;
+  assert.doesNotMatch(ask('why blue hair?'), /Blue Moon/);
+  assert.doesNotMatch(ask('I like the red jacket and the green eyes'), /Blue Moon/);
+  assert.match(ask('what about Blue Moon?'), /Blue Moon/);
+  const distinctive = selectJournalHistory({snapshot: titled, generation: 1, worldToken: 'world-a', now: 1000000,
+    profileKey: 'evelyn-parker', query: 'did the NCPD drop that investigation?'});
+  assert.match(distinctive.context, /NCPD dropped/);
+});
 const select = (extra = {}) => selectJournalHistory({snapshot, generation: 1, worldToken: 'world-a', now: 1000000,
   profileKey: 'judy-alvarez', ...extra});
 

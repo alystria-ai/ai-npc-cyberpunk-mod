@@ -53,9 +53,11 @@ test('the block offers the fixed tag set, several marks per reply, subtle by def
   // The October 9 wording (docs/EMOTION_TAGS.md): an opening tag, one or two tags a reply, calm only for a really plain line,
   // an outburst for :strong, the character's own manner, face only.
   for (const phrase of ['curly braces', 'right before the words they apply to', 'until the next one', 'Begin the reply with ONE tag',
-    'one or two tags, three at most', '{calm} (a flat, plain, businesslike face)', ':strong', 'guarded, dry or controlled characters show less',
+    'one or two tags, three at most', '{calm} (a flat, plain, businesslike face)', ':strong', 'if you are guarded, dry or controlled, show less',
     'for the face only', 'square brackets are a different thing']) assert.ok(text.includes(phrase), phrase);
   // Spoken turns on a local voice only: not the cloud voice (it would read the tags aloud), not text-only turns.
+  // The block speaks to the character ("you"), never about "characters" in the third person (docs/FIRST_PERSON_RULE.md).
+  assert.ok(!/(?:the|this|an? \w+) character|characters|(?:she|he|her|his)/i.test(text), 'second person only');
   assert.equal(emotions.contextFor({engine: 'convai'}), '');
   assert.equal(emotions.contextFor({engine: 'omni', spoken: false}), '');
   assert.equal(emotions.contextFor({}), '');

@@ -9,6 +9,14 @@ import {availableQuestsContext, recentSharedContext} from './quest-overview.mjs'
 import {gameDialogueContext} from './game-dialogue.mjs';
 
 const unavailable = () => ({version: 1, status: 'unavailable'});
+
+// The same rule as SPOKEN_OUTPUT, in one sentence, for the END of the context. The voice blocks (Natural speech, Expressive
+// emotions) come after the base context and pull a reply away from it: with a quest row about "Blue Moon" in the context,
+// "why blue hair?" was answered about someone else in 9 of 10 replies with only the base rule, and in 1 of 10 with this reminder
+// last (docs/FIRST_PERSON_RULE.md). Not sent on an automatic reaction (a bark answers no remark of V's).
+export const FIRST_PERSON_REMINDER = 'Reminder for this reply: you are speaking as yourself, so say "I", "me" and "my"; when V remarks on '
+  + 'how you look, that is about you, and you answer for yourself, never about someone else.';
+export const firstPersonReminder = input => input?.reaction ? '' : FIRST_PERSON_REMINDER;
 const id = value => typeof value === 'string' && /^-?\d{1,12}$/.test(value);
 function label(value, limit) {
   if (typeof value !== 'string' || value.length > limit) return null;
@@ -66,7 +74,18 @@ const WORLD_UNAVAILABLE = 'Current-save world knowledge is unavailable for this 
 const HISTORY_UNAVAILABLE = "The broader current-save journal history is unavailable for this turn. Missing entries do not establish completion, failure or a character's past participation.";
 const CURRENT_AUTHORITY = 'Current verified save facts and the current tracked-quest snapshot override older journal observations and remembered claims from previous conversations or other saves. '
   + 'An unsupplied or unknown fact remains unknown; it is not proof of a negative outcome or a relationship.';
-const SPOKEN_OUTPUT = 'Speak only your own dialogue. Do not put a speaker name, role label, or script prefix before it.';
+// The one place that says WHO is speaking: the character's Convai profile is written about them in the third person ("Evelyn is a
+// Night City doll... she studies people"), the journal and quest blocks below are third-person game data, and a question that
+// presupposes a look the profile never mentions ("why blue hair?") has an easy wrong reading (an answer about someone else, or an
+// observer's remark with no antecedent). Without this line the Follow-up block turned exactly that question into a narrator's
+// "I suspect she enjoys the way it makes people look twice" (docs/FIRST_PERSON_RULE.md).
+const SPOKEN_OUTPUT = 'Speak only your own dialogue, in the first person, as the character and never as a narrator describing one: '
+  + 'say "I", "me" and "my" about yourself, never your own name or "she", "he" or "they", and never describe your own manner, '
+  + 'motives, looks or feelings from the outside ("she enjoys making people look twice" is wrong; "I like making people look twice" '
+  + 'is right). V is looking at you and talking to you. Whatever V says about how you look (your hair or its colour, your clothes, a '
+  + 'scar, a tattoo) is about you, even when your profile never mentions it: take it as true, never ask or guess whether V means '
+  + 'someone else, and never answer about another person unless V names them. Answer for yourself, with "I" and "my". '
+  + 'Do not put a speaker name, role label, or script prefix before it.';
 
 function contextIdentity(input) {
   try {

@@ -169,7 +169,7 @@ const deviceName = id => DEVICE_NAMES[id] ?? `[${id}]`;
 // ---- The dynamic context ---------------------------------------------------------------------------------------
 
 const CHOOSE = 'Choose by who you are. From your own profile and sample dialogue, work out what a realistic human with '
-  + 'this personality would actually do when talking, even if your sample dialogue contains no such sounds. '
+  + 'your personality would actually do when talking, even if your sample dialogue contains no such sounds. '
   + 'A fluent, confident speaker rarely hesitates; a cold, controlled or formal person rarely laughs or sighs; '
   + 'a nervous, warm or thoughtful person may hesitate, trail off or laugh more. When in doubt, use nothing.';
 // How often and where was measured against the real characters (scripts/Probe-NaturalSpeech.mjs, 20 varied prompts each,
@@ -218,7 +218,7 @@ const CJK_TAGS_TEXT = 'Because this reply is in Chinese or Japanese you also hav
   + 'moment is a surprise or a puzzled question.';
 const OMNI_PAUSES_TEXT = 'In plain words it can also voice a pause written as "..." or " — ", and a spoken hesitation such as '
   + '"hm", "uh" or "I mean" if that is how you would really talk.';
-const OMNI_RULES_TEXT = 'Use at most one in this reply, only if this exact moment and this character would really produce it; '
+const OMNI_RULES_TEXT = 'Use at most one in this reply, only if this exact moment and your personality would really produce it; '
   + 'if not, use none. Never the same device as in your previous replies, and never on a predictable pattern. ' + WHERE + ' '
   + CHOOSE + ' Write a tag exactly as shown, in square brackets, as its own word. A tag is a voice sound, not a stage '
   + 'direction: never use asterisks, parentheses or any other bracketed text, and never spell a laugh out as "haha" or "heh". '
@@ -229,7 +229,7 @@ const POCKET_TEXT = 'Natural speech is on, and this reply is a moment where ONE 
   + 'aloud as a word. So never write tags such as [laughter] or [sigh], and no "heh", "haha", "hmm" or "uh". The only '
   + 'device you have is ordinary punctuation: a dash ("—") or an ellipsis ("...") where a real person with your '
   + 'personality would break off a thought, pause to find the words, or trail off; your voice turns it into a real pause. '
-  + 'Use at most one in this reply, only if it truly fits this moment and this character; if not, speak plainly. Never '
+  + 'Use at most one in this reply, only if it truly fits this moment and your personality; if not, speak plainly. Never '
   + 'the same device as in your previous replies, never on a predictable pattern, and in the middle of a thought where a '
   + 'person would really pause, not as a habit at the start. ' + CHOOSE_SHORT + ' Keep the same length and content you '
   + 'would give otherwise.';

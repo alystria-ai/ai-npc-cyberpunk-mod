@@ -74,6 +74,11 @@ test('the block asks for a pull inside this one reply, in the character\'s voice
     'not the same question handed back', 'just listening', 'wrapping up']) {
     assert.ok(FOLLOW_UP_TEXT.includes(phrase), phrase);
   }
+  // The character always speaks as "I", and a question about how it looks is about it (docs/FIRST_PERSON_RULE.md): the block's own
+  // "never invent facts about your life" must not turn "why the blue hair?" into a remark about someone else.
+  for (const phrase of ['you say it as "I"', 'How you look is not one of those: V can see you', 'never as if they were asking about someone else'])
+    assert.ok(FOLLOW_UP_TEXT.includes(phrase), phrase);
+  assert.ok(!/(?:she|he|her|his)|the character/i.test(FOLLOW_UP_TEXT), 'second person only');
   // No tags, no brackets, no mention of the setting and no numeric length limit (a speech is discouraged: at most two extra sentences).
   assert.ok(!/[\[\]{}]/.test(FOLLOW_UP_TEXT));
   assert.ok(!/setting|seconds|minutes|[0-9]/i.test(FOLLOW_UP_TEXT), "no mention of the setting, no numbers: only the soft cap on the extra sentences");
@@ -310,7 +315,7 @@ test('the module cannot start a request, a timer or a turn: no timers, no networ
 test('the bridge wires it in as context only: before the reply-language line, no extra request, off adds nothing', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   assert.match(bridge, /import \{FollowUp\} from '\.\/follow-up\.mjs'/);
-  assert.match(bridge, /followUpContext\(input\), naturalSpeechContext\(input\), expressiveEmotionsContext\(input\),\n\s*\/\/ Multilingual conversations: the reply language, last/);
+  assert.match(bridge, /followUpContext\(input\), naturalSpeechContext\(input\), expressiveEmotionsContext\(input\), firstPersonReminder\(input\),\n\s*\/\/ Multilingual conversations: the reply language, last/);
   assert.match(bridge, /const followUpContext = input => \{\n\s*if \(!followUp\.enabled\) return '';/);
   assert.match(bridge, /const followUpChanged = followUp\.update\(settings\);/);
   assert.match(bridge, /speechChanged \|\| emotionsChanged \|\| multilingualChanged \|\| followUpChanged\) \{ dropPrefetch\(\)/);

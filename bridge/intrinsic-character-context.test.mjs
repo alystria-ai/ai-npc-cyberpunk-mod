@@ -245,6 +245,7 @@ test('actual protocol and PlayerKnowledge path preserves current-world authority
   const context = wrapped(prepared.input);
   assert.match(context, /no active tracked quest/);
   assert.match(context, /Topic-limited intrinsic character history/);
+  assert.match(context, /say it as yourself, with "I" and "my", never as "she" or "he"/);
   assert.doesNotMatch(context, /Forged biography|Cole|ceiling fan/);
   live = false;
   assert.doesNotMatch(wrapped(prepared.input), /Topic-limited intrinsic/);

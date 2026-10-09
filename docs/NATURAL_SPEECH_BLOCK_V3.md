@@ -17,8 +17,8 @@ Status: built and tested, measured offline against real Convai (text only). **No
      Johnny: fluent, never "uh", never giggly; a dry scoff, a grunt, very rarely a tired sigh. The local: a sigh about rent, a
      laugh at her own bad luck, a "well...".
    - Every other profile: a line from its trait (`traitFor`), written without pronouns so it fits any gender: warm, neutral,
-     dry or cold; named profiles get "How <name> talks:", archetypes (`npc-*`) "How you talk:". The bridge passes the profile
-     key and name it already has.
+     dry or cold. October 10: every line now starts "How you talk:" (it was "How <name> talks:" for named profiles, a narrator's
+     third-person description of the speaker; docs/FIRST_PERSON_RULE.md). The bridge passes the profile key and trait.
    - OmniVoice only. Pocket's block is unchanged (no sounds there).
 2. **Placement wording and a per-turn spot.**
    - The wording says a sound can come wherever a real person would make it: before a sentence, right after one ends, or in the

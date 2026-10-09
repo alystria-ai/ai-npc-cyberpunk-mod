@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
-import {parseJournal, journalContext, conversationContext, withConversationKnowledge} from './quest-context.mjs';
+import {parseJournal, journalContext, conversationContext, withConversationKnowledge, firstPersonReminder, FIRST_PERSON_REMINDER} from './quest-context.mjs';
 import {parseInput} from './protocol.mjs';
 import {inputIdentity} from './group-prefetch.mjs';
 import {PhoneChat, parsePhoneState} from './phone-chat.mjs';
@@ -42,6 +42,19 @@ test('quest changes invalidate prepared context and group instructions retain fi
   assert.match(journalContext({version: 1, status: 'unavailable'}), /Do not assume earlier quest progress/);
 });
 
+test('the first-person reminder goes last (before the reply-language line), is one sentence, and is not sent on an automatic reaction', () => {
+  assert.equal(firstPersonReminder({text: 'why blue hair?'}), FIRST_PERSON_REMINDER);
+  assert.equal(firstPersonReminder({text: 'x', group: {index: 1, total: 2, audience: [], heard: []}}), FIRST_PERSON_REMINDER);
+  assert.equal(firstPersonReminder({reaction: {kind: 'battle'}}), '');
+  assert.match(FIRST_PERSON_REMINDER, /you are speaking as yourself, so say "I", "me" and "my"/);
+  assert.match(FIRST_PERSON_REMINDER, /when V remarks on how you look, that is about you/);
+  assert.ok(!/\b(?:she|he|her|his)\b/i.test(FIRST_PERSON_REMINDER) && !/[\[\]{}]/.test(FIRST_PERSON_REMINDER));
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(bridge, /import \{conversationContext as baseConversationContext, firstPersonReminder\} from '\.\/quest-context\.mjs'/);
+  // After the voice blocks (they pull a reply away from the base rule), before the language line, which stays last.
+  assert.match(bridge, /expressiveEmotionsContext\(input\), firstPersonReminder\(input\),\s*\/\/[^\n]*\n\s*multilingual\.contextFor/);
+});
+
 test('ordinary turns neither require nor forbid questions, whatever the retired follow-up flag says', () => {
   for (const channel of ['private', 'phone']) for (const followUpQuestions of [undefined, false, true]) {
     const context = conversationContext({...input, channel, followUpQuestions});
@@ -49,6 +62,11 @@ test('ordinary turns neither require nor forbid questions, whatever the retired 
     assert.match(context, /Do not tack a question onto a reply out of habit/);
     assert.doesNotMatch(context, /follow-up question|Follow-up questions are|ask V one/i);
     assert.match(context, /Do not put a speaker name, role label, or script prefix/);
+    // The first-person rule is on every turn, whatever the settings (docs/FIRST_PERSON_RULE.md).
+    assert.match(context, /in the first person, as the character and never as a narrator/);
+    assert.match(context, /never your own name or "she", "he" or "they"/);
+    assert.match(context, /V is looking at you and talking to you\. Whatever V says about how you look .* is about you/);
+    assert.match(context, /never ask or guess whether V means someone else/);
   }
   for (const index of [1, 2, 3]) {
     const group = {index, total: 3, audience: ['judy', 'panam', 'alex'], heard: []};
