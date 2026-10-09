@@ -6,6 +6,20 @@ The single working document for development: open items first, then a dated log,
 
 Last consolidated 2026-10-07 (finished and superseded work moved to the Captain's log entry "open items consolidated"). Test sessions: install by copying only the intended files; Lua needs CET reload, `bridge/` needs a bridge restart, redscript and plugins need a game restart.
 
+### Release schedule (decided 2026-10-10)
+- **Main mod on Nexus: Sun 18 Oct 2026, about 11:00 UTC (16:30 IST).** That's two days before *Cyberpunk: Edgerunners 2* drops all 10 episodes on Netflix (Tue 20 Oct, likely about 07:00 UTC). This gives YouTubers time to include it in post-show mod videos and lets it build trending endorsements before the returning-player wave. Release-blocking bugs must be fixed by then.
+- **Add-on mod 1: Tue 20 Oct (show day).** A separate Nexus page that lists the main mod as a requirement, for a fresh spot on the New list.
+- **Add-on mod 2: Sun 25 Oct, about 11:00 UTC.** The first weekend after the binge, when returning players peak.
+- Add-on candidates (both TODO; order not chosen):
+  - **Talking gun, Skippy:** talks while V carries it; two personalities.
+  - **Talking car, Delamain-style:** talks while V drives; decide which cars count.
+  - Both are voice-only (no face, lip sync, gestures or seating) and reuse the bridge, voices and memory.
+- Players' conversations run on the project's Convai account with no per-player caps. The limits can be raised if usage gets high.
+- Timing facts:
+  - Cyberpunk on Nexus gets about 35 new mods a day, so a new mod stays on page 1 of New for about 12 to 14 hours.
+  - Nexus trending ranks mods first published within the game's trending window by endorsements.
+  - Steam peaks run about 13:00 to 14:00 UTC, and Sundays run about 10 to 20% above weekday peaks.
+
 ### In progress
 - **Lip-sync service pitch** (user idea): for studios with an existing game, characters and authored facial data who want Convai without the blendshape mapping work. We train on their data (per-game model by default, per-character optional; it's tiny, 2.7 MB) and serve inference by API, taking the dialogue text with the audio when they have it. Report: `Downloads/Cyberpunk Lipsync Report.html`; devslot folder: `Downloads/devslot handoff 2026-10-07 lipsync service/` (proposal, technical notes, code). Both refreshed with the research results on 2026-10-07 (see the Captain's log entry "lip-sync research finished"). The research itself is finished: `docs/LIPSYNC_IMPROVEMENTS_2026-10-07.md`.
 - **Reference search for the remaining 43 voices** (duration-based, same method as the user's 29; `scripts/clip-search/`, results in `E:/CyberpunkConvai-offload/work/clip-search/results/`). Pocket (new student + decoder v2) and Omni (short <=10 s and long <=18 s). The search skips voices with fewer than two candidate clips and the portable package takes a second plans folder, so it can run on Kaggle; it must use the combat-cleaned targets (score cache keyed by holdout set). Status of the runs: unclear. When it lands, drop the regenerated configs over the live names in `runtime/voice-configs.json` (`pocket-voices.autobest.json`, `local-voices.autobest-short.json`, `local-voices.autobest-long.json`) and rebuild with `scripts/Build-AutobestConfigs.mjs`. Voices with almost no clips: Adam Smasher (the user's 11 picks cover him), Lizzy Wizzy, Pepe Najarro and the minor voices listed in the 2026-10-06 pool entry in the log.
@@ -114,8 +128,20 @@ The review is **complete** (2026-10-07; verdict and decisions are in the log). D
 - Phone-free reference sets: dropped, phone clips sound normal (the phone filter stays unused).
 - Jackie constrained-reference variant: the user preferred the overnight best-length set.
 - A new Pocket teacher/student run: not needed per the user (the v2 student already meets the plan criteria).
+- Lip sync for vendors and ordinary world NPCs (2026-10-10). The only routes are an appearance hop, which flashes the outfit, or the heavier face graph on every vendor at spawn, which costs FPS. Companions and named characters keep full lip sync.
 
 ## Captain's log
+
+**2026-10-10 (evening): release schedule set; Alt's language box off; test memories confirmed gone; world-NPC lip sync dropped.**
+- **Release:** the main mod launches Sun 18 Oct 11:00 UTC, with add-on mods on Tue 20 Oct (Edgerunners 2 day) and Sun 25 Oct (see Open items > Release schedule).
+- **Research sources:**
+  - SteamCharts for app 1091500: 37.9k now, a 53k 24-hour peak, a 30-day peak of 59.7k.
+  - A count of the Nexus New list by date: about 35 new mods a day.
+  - The Nexus help article on trending.
+  - The CD PROJEKT RED press release for the Oct 20 premiere. All 10 episodes drop at once.
+- **Alt Cunningham:** the language box on the twin (`ed63747c-...`) was set to `language_hardening_mode: off` through the signed-in web session. Readback says `off`, and the original stays `default`. `languageBoxOff: true` is recorded in the mapping and the release data.
+- **Test memories:** the 21 test-agent memories are gone. The read-only `/memory/get` returns 502 for each, and a list scan shows none in the 12:20 to 12:55 UTC window for Judy (30 total), Solomon (1), Kerry (2), Lizzy (0) or Mama (0).
+- **World-NPC lip sync:** the user chose to leave vendors and lobby NPCs without it, so it is moved to Dropped.
 
 **2026-10-10 (later): the world-NPC face rebuild never worked; a same-name appearance change is a no-op (measured live; `Face.reds` gate, game restart).** Live result after `5fc398d`: the guards passed (lobby NPCs `10304956ULL`, `10275998ULL`: `Face request ... status=requested:citizen__corporat_wa_corporat_wa_13`, then `face=false/requested:...`, `workspot=in>in`). Probes on a crowd NPC (`10275999ULL`, `Character.CorpoWomanAfterWork`, appearance `corporat_wa_corporat_wa_06`, in a workspot, not in a scene) through `runtime/worldface.lua` (gesture-probe `run`), with CET `Observe` on `ConvaiFaceService.OnCompanionExtract`: (1) `ConvaiFaceRequest()` returned `requested:corporat_wa_corporat_wa_06`, and in the next 6 to 15 s no `Entity/Extract` event fired for that NPC (only unrelated vehicle and police builds) and `face_rig` kept `base\\animations\\facial\\_facial_graphs\\woman_average_sermo.animgraph`: `ScheduleAppearanceChange` with the NPC's own current name does nothing. (2) A schedule to a different existing name (`citizen__corporat_wa_corporat_wa_13`) fired `Entity/Extract` 7 ms later with `HasEntity=false`, entity ID `0ULL`, and the appearance's components including `face_rig`, exactly the shape the callback expects, so the callback would have prepared it; but the NPC's look changes. (3) Two schedules in one call: the second is dropped (only the first extract fired). (4) A name that does not exist for that record resolves to another appearance (`..._05`), so there are no spelling twins (`citizen__` prefix or not). (5) Writing `face.graph` on the running component from Lua read back unchanged. So the request could never prepare a world NPC, and each request left an appearance name pending, so the next unrelated NPC with that appearance to spawn would have got the heavier graph. Change: `RequestWorldFace` stops before the queue and the schedule with `unavailable:same-name-rebuild-is-a-noop` (`WorldRebuildKeepsLook()` is false); the quest, driven, dialogue and scene guards stay for when a rebuild exists. The look-keeping options still open: hop to another appearance of the same template and back (a visible outfit flash, a wait between the two changes; the alternative names can be read from the template's `appearances`, Codeware `EntityBuilderWrapper.GetTemplate().GetResource()`), prepare vendors only at spawn (heavier graph on every vendor all the time), or ship a lip-sync animation path that does not need the graph. Probe observers registered in the running game stay until a CET reload (they are inert; their log paths were replaced by directories). The lobby NPC `10275999ULL` was put back on `corporat_wa_corporat_wa_06` after the test.
 
