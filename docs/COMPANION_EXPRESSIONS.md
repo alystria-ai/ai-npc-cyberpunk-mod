@@ -976,3 +976,91 @@ backend response-correlation contract. Extending the local playback lease must
 therefore use observed, matching raw response identity; borrowing whichever
 request is active would be unsafe. No facial gains or speech timing were changed
 by this review, and no sentiment-classification fallback was added.
+
+## October 9 evening: why emotions looked dead, and the picker fix
+
+Scope note: the main path for emotions is now the character's own inline tags (`bridge/emotion-tags.mjs`, another
+agent). The local picker (`bridge/emotion-selector.mjs`) is the fallback for untagged stretches and for Convai voices,
+so this round kept it light and bridge-side only (no Lua, no per-frame work, no face recipe change).
+
+### Root cause
+
+With Expressive emotions on, the character LLM tagged `{calm}` on 56 % of its tags (116 of 224 real replies open with
+it) and `{interest}` on 24 %, whatever it felt. The selector treated any tag as authoritative: `{calm}` wiped the text,
+Convai's label and the conversation (the `calm 0.00` in the timeline), and `{interest}` became a flat `anticipation
+0.60` on every question. Measured against hand labels, a `{calm}` tag sits on a calm line 31 % of the time and an
+`{interest}` tag on an attentive one 13 %; specific tags (`{joy}`, `{anger}`, ...) are right 54-80 %. Behind that, Convai's
+late label was used at one flat strength (Annoyance on "Careful." stayed under the visible threshold), the player's line
+(a probing question) did not colour the answer, and defensive denials ("I have no idea what you are talking about.",
+"Who told you I was captured?") had no cue at all. Also: the lexicon's "i have" contraction broke one guarded-denial
+pattern, and the name Evelyn counted as grief even when Evelyn herself was the speaker.
+
+### What changed (bridge only; needs a bridge restart)
+
+- `{calm}` and `{interest}` are no longer evidence (they add a tag to the plan and nothing else); a specific tag names the
+  feeling, and the words only override it when they are decisive.
+- Convai's label is a reply-level prior (`providerPrior`) whose strength follows how informative the label is (strong
+  labels count, gentle ones like Interest or neutral stay under the visible threshold on their own).
+- The player's line is a quiet frame (kind, teasing, caring, probing, scornful, annoyed, bad news); a few dozen everyday
+  dialogue cues (guarded deflection, a stern warning, rhetorical challenge, echo question, teasing, pride, affection,
+  scorn, worry, wistful); topic or denied feelings are not felt ("Trust is earned", "I don't get paid to be scared");
+  a denial under a probing question reads wary.
+- Evidence of the same feeling combines (soft OR), the character's manner scales the intensity, and anything under .12 is
+  dropped, so non-neutral picks render visibly while truly flat lines stay neutral.
+- The hook for the tag agent: `selectEmotion({..., spans})` takes `[{start, end, emotion, intensity}]` over the clean
+  text (the shape `emotionSpans` in `bridge/emotion-tags.mjs` writes: intensity 1 subtle, 2 strong, or a 0-1 weight;
+  `emotion: null` means untagged). A segment inside a span takes the span's feeling exactly (`calm` is an explicit
+  neutral face); segments outside every span are picked as above; span edges are segment edges. The bridge does not pass
+  `spans` yet: that wiring belongs where `planFor` in `bridge/convai-bridge.mjs` calls the selector, with the parser's
+  `spans` for the reply.
+
+### Evaluation (2867 hand-labelled real segments)
+
+`assets/emotion/segments-gold.json`: real Convai replies (with the character's tags and Convai's late label), every
+segment labelled blind to the picker by separate writers (a model, so subjective). Probed with
+`scripts/Probe-EmotionReplies.mjs`, built with `scripts/Build-EmotionSegmentSet.mjs`, scored with
+`scripts/Evaluate-EmotionSegments.mjs [dev|holdout|fresh|fresh2|all]` (`PREVIOUS_BRIDGE=<dir>` scores an older copy).
+`dev` is what the picker was tuned on; `holdout` is other characters; `fresh` was looked at once; `fresh2` (967 segments,
+new prompts) was labelled after the code was frozen and is the honest check. "Acceptable" = the visible emotion is the
+label or one of its alternates; "dead" = nothing shown.
+
+| set, condition | acceptable before -> after | dead before -> after | over-emote on calm lines | wrong sign |
+|---|---|---|---|---|
+| all, game (tags + Convai) | 60.2 -> 70.8 | 51.2 -> 34.1 | 37.4 -> 38.9 | 2.2 -> 7.4 |
+| all, no tags (Convai + text) | 52.2 -> 68.1 | 6.5 -> 37.6 | 88.9 -> 36.4 | 9.1 -> 7.5 |
+| all, text only | 58.5 -> 61.3 | 58.4 -> 55.7 | 25.1 -> 27.4 | 5.8 -> 6.0 |
+| fresh2, game | 66.9 -> 75.6 | 53.2 -> 35.7 | 39.8 -> 36.6 | 1.7 -> 6.2 |
+| fresh2, no tags | 58.0 -> 73.7 | 5.1 -> 39.2 | 88.6 -> 32.5 | 7.0 -> 6.8 |
+| dev / holdout / fresh, game | 57.0 / 69.7 / 51.4 -> 70.5 / 74.7 / 64.4 | | | |
+
+Read it honestly: in the game condition the lines that should show a feeling and rendered nothing fell from 47.7 % to
+25.7 %, but wrong-sign picks (a smile on a frown line or the reverse) rose from 2.2 % to 7.4 % and over-emote stayed
+near 39 %. The old no-tags number looks "alive" only because it painted an emotion on 89 % of the lines that should be
+neutral. Text-only barely moves (the lexicon is the limit there). The labels are one model's judgment, and `dev` was
+tuned on; `fresh2` is the number to trust.
+
+### Ten lines (fresh2; was -> now)
+
+| character, line | tags / Convai | was | now |
+|---|---|---|---|
+| Evelyn: "As for the city itself, I think it is a very convincing lie." | calm, interest / Disgust | anticipation .60 | disgust .30 |
+| Evelyn: "but that does not make me one of them." | calm, interest / Interest | anticipation .60 | calm |
+| Jackie: "We figure it out together, or we go down swinging." | calm, warm, interest / Trust | anticipation .69 | warm .43 |
+| Jackie: "Just a bit of timing and knowing exactly where to hit 'em." | joy, interest / Joy | anticipation .69 | joy .43 |
+| Johnny: "Serious? I'm the most entertaining thing in your head." | interest, calm / Joy | anticipation .48 | joy .30 |
+| Judy: "or just leave some vague, creepy warning?" | surprise, calm / Surprise | calm 0 | fear .34 |
+| Judy: "Besides, I didn't do it for a thank you." | warm, calm / Serenity | calm 0 | warm .62 |
+| Kerry: "If it is, you're officially my favorite person in this city today." | joy, calm / Joy | calm 0 | joy .68 |
+| Rogue: "Now tell me why you're really here." | calm / Interest | calm 0 | interest .34 |
+| Viktor: "You will have to describe it to me." | interest / Interest | anticipation .48 | calm |
+
+The two reported cases: Evelyn's "I have no idea what you are talking about. Who told you I was captured?" now reads
+wary (fear about .34, not `calm 0.00`), and Alex's "Careful." under Convai Annoyance reads anger .5 (it was under the
+visible threshold).
+
+### Tests and caveats
+
+`bridge/emotion-selector.test.mjs` covers the tag semantics, `providerPrior`, the cases above, the speaker's own name,
+the `spans` hook, and a floor on the gold set (tags + Convai at least 66 % acceptable, at most 36 % dead on lines that
+should show a feeling, text only at least 55 %, under 10 ms per reply). The Expressive-emotions prompt could still
+discourage the habitual `{calm}` opener and the blanket `{interest}` on questions; that belongs to the tag agent.

@@ -21,8 +21,17 @@
 // The output is the same plan shape as `analyseReply`, so expression-timeline.mjs aligns it to the audio unchanged.
 import {FAMILIES} from './emotion-lexicon.mjs';
 import {segmentText, scoreSegment, syllables, analyseReply, baselineFromSignal, LABELS} from './emotion-analysis.mjs';
-import {plannedMarks} from './expressive-emotions.mjs';
+import {plannedMarks, EMOTION_FAMILY, MARK_WEIGHT} from './expressive-emotions.mjs';
 
+// Fusion constants, calibrated on the development half of assets/emotion/segments-gold.json
+// (scripts/Evaluate-EmotionSegments.mjs) and checked on characters and prompts the calibration never saw.
+//   providerScale: Convai's label as a reply mood (1 = the old flat .35/.5/.65, which painted every phrase of a pleasant
+//                  reply and put an emotion on over half of the segments the writers call neutral);
+//   frameScale / frameAlone: the player's line as a mood, in full under a phrase with a feeling of its own and at
+//                  frameAlone under one without;
+//   namedPrior: the reply mood under a phrase the character's own specific tag has already named;
+//   priorOther: ... under a phrase whose own words clearly say another family.
+const TUNE = Object.freeze({providerScale: .75, frameScale: 1.1, frameAlone: .4, namedPrior: .35, priorOther: .5});
 const clamp01 = value => Math.max(0, Math.min(1, value));
 const NEGATIVE = new Set(['sadness', 'anger', 'fear', 'disgust']);
 const round = value => Math.round(clamp01(value) * 1000) / 1000;
@@ -38,7 +47,8 @@ export const MANNERS = Object.freeze({
 const MANNER_OF = new Map(Object.entries({
   expressive: ['jackie-welles', 'kerry-eurodyne', 'mama-welles', 'dexter-deshawn', 'panam-palmer', 'lizzy-wizzy', 'ozob-bozo'],
   reserved: ['johnny-silverhand', 'rogue-amendiares', 'takemura', 'saul-bright', 'meredith-stout', 'solomon-reed',
-    'spider-murphy', 'r3n0', 'regina-jones', 'songbird', 'nix', 'judy-alvarez', 'river-ward', 'viktor-vektor', 'placide'],
+    'spider-murphy', 'r3n0', 'regina-jones', 'songbird', 'nix', 'judy-alvarez', 'river-ward', 'viktor-vektor', 'placide',
+    'evelyn-parker', 'alex'],
   cold: ['adam-smasher', 'yorinobu-arasaka', 'hanako-arasaka', 'alan-noel', 'mr-hands'],
 }).flatMap(([manner, keys]) => keys.map(key => [key, manner])));
 export function mannerFor(profile) { return MANNER_OF.get(profile) ?? 'open'; }
@@ -99,14 +109,66 @@ const PHRASES = [
   // Anger and defiance.
   [/\b(over my dead body|i'?ll (find|kill|make) (them|him|her|whoever)|make (them|him|her) (pay|regret|scrub)|they think they can|not while i'?m (breathing|alive|standing)|go to hell|al diablo|those (animals|bastards|pendejos)|with a (baseball )?bat|i'?m not (laughing|handing|letting|going to let)|like it'?s a joke|you'?re treating (it|this|me)|how dare|wouldn'?t know a real|i hate (this|them|him|her)\b|i hate that (guy|man|bastard|place|city|corpo)|(i'?ll|i will|i'?m gonna|i swear,? i'?ll) (sue|have his|have her|put (every|them|him|her)|bury|destroy|tear|rip|break|gut|skin|end)|unforgivable|i want (them|him|her|every \w+( \w+)? of them|every one of them) to (feel|pay|suffer|burn|bleed)|(want|make) them (to )?pay|don'?t ask me to let it go|greedy (little )?(rat|bastard|pig)|little rat|should have (his|her) (license|head)|murdered|after everything (they|he|she)'?ve? (taken|done)|are you kidding me\?|son of a bitch|piss(es)? me off|sick of|fed up)/, {anger: .6}],
 ];
+// ---- everyday dialogue cues (October 9 evening) --------------------------------------------------------------------
+// What a word list misses and a conversation is made of: guarded deflection, a stern warning, a rhetorical challenge,
+// an echo question, dry teasing, plain affection, scorn. Each is a common English idiom in spoken dialogue, kept
+// to the shape of the phrase, never to one character or one scene. Same units as PHRASES (lexicon-score weights).
+const PHRASES_EVERYDAY = [
+  // Guarded or defensive: deflecting a probing question. Reads as wary (worried brows), not blank.
+  [/\b(people say (a lot|all kinds|many things)|i (don'?t|do not) (know|remember) what you'?re (talking|getting)|i(?:'ve| have) no idea what you|who told you|where did you (hear|get) that|none of your (business|concern)|that'?s private|i'?m not (going to|gonna) (discuss|talk about|answer)|what makes you (say|think) that|why (do|would) you (ask|want to know)|why are you asking|i'?d rather not|not something i (discuss|share)|let'?s not (go|talk)|i don'?t owe you|i prefer to keep)\b/, {fear: .5, anticipation: .1}],
+  // A stern warning or a firm refusal: lowered brows.
+  [/(^|[.!?]\s+)(careful|watch it|watch yourself|easy now|easy there|enough\b|back off|don'?t (push|start|test|try|even|make me|do)|stop (guessing|that|it|talking|pretending)|i wouldn'?t if i were you|mind your|that'?s enough|not another word|drop it|leave it|you'?re starting to|do not (push|test|start))/, {anger: .55}],
+  [/\b(you think (this|that|it) (is|was)( a| some)? (joke|game|funny|cute|amusing)|think (that'?s|this is) funny|is this a joke|now you(?:'?re| are)? satisfied|happy now|you find (this|that|it) (funny|amusing)|mistake my \w+ for|test my patience|don'?t (waste|insult)|know your place|you'?re (not|no) (in|the one))/, {anger: .6}],
+  // An echo or a short startled question ("You what?", "A chainsaw?", "Proud?"): disbelief, brows up.
+  [/(^|[.!?]\s+)(?!(who|what|why|how|when|where|which|do|does|did|can|could|will|would|is|are|am|was|were|have|has|should|want|tell|any|anyone|got|ok|okay|alright|right|and|so|then|ready|need|mind|care|like|think|know|see)\b)[a-z']+( [a-z']+)?\?/, {surprise: .45}],
+  [/\b(you|hand you|look at|ask|do|mean|say|want|call it|did) what\?|\bwhat\?\s*$|\bwhat do you mean\b/, {surprise: .45}],
+  // Dry teasing and playful needling.
+  [/(^|[.!?,]\s+)(well, )?(at least|almost\b|that'?s almost|nice try|you wish|keep dreaming|good luck with that|bold of you|try me|don'?t flatter|is that a compliment|i'?m flattered|look on the bright side|you'?re (exaggerating|imagining|terrible|impossible|cute|funny)|don'?t tempt me|how (rude|dare you)\b|cute\b|aw+[,.! ])/, {joy: .5}],
+  [/(^|[.!?]\s+)(ha|heh|hah|hehe)[.,]|\b(i'?ll give you that|you could say that|fair enough|touch[eé]|point taken|you got me|lucky break|can'?t argue)\b/, {joy: .45}],
+  [/\b(proud of (you|us|myself)|well done|good work|nice work|good for you|about time|nice one|you earned|that'?s my \w+|thanks? for noticing|you'?re getting (too )?good|can'?t say i'?m not|i'?ll take it|i'?ll take the compliment|worth celebrating|called it|i win\b|told you so)\b/, {joy: .55}],
+  // Plain affection and togetherness.
+  [/\b(we'?re in this together|in this together|we have each other|you'?re not alone|good to have you|glad to have you|i care about|take your time|rest up|have a seat|sit with me|stay close|stick around|stay with me|look out for (our|each|my)|never (let|leave)|lean on me|you can count|i'?ll be there)\b/, {trust: .55}],
+  // Scorn and contempt for something or someone.
+  [/\b((?:is|'s) (usually |always |just )?a lie|that'?s a (lie|myth|fantasy)|just noise|playing with (gods|toys)|children playing|pretend(s|ed|ing)? (they|to|that)|spare me|save it|cry me a river|how (touching|original|convenient)|so what\b|whatever you say|rather than being|they think they own|think they own the|full of (it|shit|themselves)|couldn'?t care less|not my problem|their loss|waste of (time|space|breath))\b/, {disgust: .5}],
+  // Worry for the plan or for a person, short of alarm.
+  [/\b(keep (walking|moving|going)|don'?t look back|stay (down|low)|i don'?t like (the|our|these) odds|hope you have|hopefully|if (it|that|this) (goes|gets) (sideways|bad|wrong|ugly)|in one piece|stay alert|keep your head down|watch your back|they'?re (watching|following)|tailing us|not safe|backup\b|a way to recover|get out of here|get us out|before it'?s too late|just in case|too (risky|dangerous)|bad idea|that'?s a risk|can'?t afford)\b/, {fear: .4}],
+  // Wistful and tired: grief at a distance, nothing dramatic.
+  [/\b(i grew up|used to be|back then|when i was (a kid|young|little)|i miss\b|long time ago|don'?t talk about|tired of|worn out|nothing left|can'?t go back)\b/, {sadness: .4}],
+];
 // Scornful praise; matched on the whole reply because the praise and the giveaway are often separate sentences.
 const SARCASM = /\b(oh,? sure|yeah,? (sure|right)|sure,? because|because that always works|what could possibly go wrong|brilliant (plan|idea)\b(?!,? v\b)|absolutely (fucking )?brilliant|great idea,|i'?m so glad we have|thanks a lot|real (smart|clever|mature)|good job,? (genius|hero)|wow,? (thanks|really)|how (original|helpful|nice of)|as if\b|big surprise|no kidding)/;
+const ALL_PHRASES = [...PHRASES, ...PHRASES_EVERYDAY];
+const ABSTRACT_TRUST = /\btrust (is|isn't|takes|means|has|doesn't|can't|won't|must|gets|comes)\b|\b(earn|prove|demand|ask for|expect|deserve|lose|break|build|give|need) (my |your |their |his |her |any |that |the )?trust\b|\b(i|you|we|they) (don't|do not|didn't|can't|won't|wouldn't|never) trust\b/g;
+const ABSTRACT_AFFECT = [
+  [/\b(fear|dread|terror) (is|isn't|are|can|will|makes|has|doesn't|takes|means|keeps)\b|\b(not|never|no|don't|do not|won't|can't|isn't|aren't|wasn't|nothing|nobody)\b[a-z' ]{0,26}\b(scared|afraid|frightened|terrified|worried|nervous|anxious|spooked|fear)\b/g, 'fear', .6],
+  [/\b(anger|rage|hatred|hate) (is|isn't|are|can|will|makes|has|doesn't|takes|means|keeps)\b|\b(not|never|no|don't|do not|won't|can't|isn't|aren't|wasn't|nothing|nobody)\b[a-z' ]{0,26}\b(angry|mad|furious|pissed|upset|annoyed)\b/g, 'anger', .6],
+  [/\b(pain|grief|regret|guilt|shame|loss|sorrow) (is|isn't|are|can|will|makes|has|doesn't|takes|means|keeps)\b|\b(not|never|no|don't|do not|won't|can't|isn't|aren't|wasn't|nothing|nobody)\b[a-z' ]{0,26}\b(sad|lonely|heartbroken|hurt|sorry)\b/g, 'sadness', .6],
+];
+const DENIAL = /(^|[.!?,] )(i|we) (didn't|did not|am not|'m not|i'm not|do not|don't|never|wasn't|was not|haven't|have not|won't|can't|cannot|couldn't)\b/;
 // Weak positives that never make a smile on their own (they still count toward real joy evidence).
 const MILD_JOY = new Set(['good', 'nice', 'fine', 'sure', 'yeah', 'yes', 'cool', 'smart', 'calm', 'comfortable', 'welcome',
   'choice', 'finally', 'hope', 'relaxed', 'chill', 'content', 'party', 'win', 'best', 'gift', 'reward', 'bonus', 'clever']);
 
-function frameScores(text) {
-  const lower = ` ${normalise(text)} `.replace(DEATH_IDIOMS, ' ');
+// What the PLAYER's line asks of the character, as a quiet reply-level mood (October 9 evening). A character answers a
+// compliment, a tease, an apology, a probing question or a corpo rant in kind, even when no word of the reply says so
+// ("People say a lot of things." after "Is that true?" is guarded, not blank). Weights are deliberately low: they put
+// the mood on the face at a subtle, visible level and every phrase of the reply can still say more.
+// [pattern on the lower-case player message, {family: weight}, evidence name]
+const PLAYER_FRAMES = [
+  [/\b(you look (really |so |very |pretty )?(good|great|beautiful|amazing|handsome|stunning|nice|sharp)|not gonna lie|i missed you|i like you|i love you|you'?re (amazing|incredible|beautiful|the best)|proud of (you|how far)|(thank you|thanks) (for|so much)|i appreciate you|means a lot|glad you'?re (here|okay|ok|safe)|i trust you|made (you )?(breakfast|dinner|coffee)|got you (a|some)|picked up a little something|close your eyes|(you|it) means)\b/, {trust: .3, joy: .12}, 'kind-player'],
+  [/\b(lose a bet|snor(e|ed|ing)|like a chainsaw|fell for it|you actually fell|dumbest thing|nice outfit|don'?t laugh|jokes are terrible|haha|ha!|lol|kidding|messing with you|stole my \w+ and left|left a note|note that said|got promoted|drinks are on me|treat you)\b/, {joy: .3}, 'tease-player'],
+  [/\b(i'?m (so |really )?sorry|my fault|forgive me|i (messed|screwed) up|let me (look|help|check|fix)|are you (hurt|okay|ok)|you (got|are) hurt|you'?re bleeding|how'?s the (arm|leg|wound)|looked nasty|hold still)\b/, {trust: .3}, 'care-player'],
+  [/\b(is (that|it) true|who told you|what are you hiding|why did you lie|you lied|why do you always|dodge|i (do not|don'?t) trust you|prove me wrong|is this yours|found (something|this) in your|explain yourself|where were you|what'?s that supposed to mean|come clean|were you scared|read your file|bounty on your|ever going to tell me|talk your way out)\b/, {fear: .3}, 'probe-player'],
+  [/\b(corpos?|corporations?|corporate|arasaka|militech|netwatch|the rich)\b/, {disgust: .3}, 'scorn-player'],
+  [/\b(you'?re late|late again|late\.|you are late|complain|fed up|sick of|what the hell|are you insane|how could you|unbelievable that)\b/, {anger: .3}, 'annoyed-player'],
+  [/\b(drive-?by|almost (got us )?killed|bad news|he'?s dead|they found him|car (crash|exploded)|lost (the|our) (money|job|car))\b/, {sadness: .2, fear: .2}, 'bad-news-player'],
+];
+
+function frameScores(text, speaker = '') {
+  let lower = ` ${normalise(text)} `.replace(DEATH_IDIOMS, ' ');
+  // The speaker's own name is not a cue of loss (Evelyn asked about Evelyn is being questioned, not mourning).
+  const own = String(speaker).toLowerCase().split(/[^a-z]+/).filter(part => part && LOST.test(part));
+  if (own.length) lower = lower.replace(new RegExp('\\b(' + own.join('|') + ')\\b', 'g'), ' ');
   // "I'm sorry about Mitch": condolence for a named person (case matters: the name is capitalised).
   const condolence = /\bsorry (about|for) [A-Z][a-z]+/.test(text) ? 1 : 0;
   return {grief: GRIEF.filter(pattern => pattern.test(lower)).length + condolence, lost: LOST.test(lower), past: PAST.test(lower), sore: SORE.test(lower),
@@ -119,24 +181,34 @@ function frameScores(text) {
  * Returns the prior weights for the whole reply and the evidence used.
  */
 export function conversationContext({player = '', reply = '', previous, profile} = {}) {
-  const asked = frameScores(player), said = frameScores(reply);
+  const asked = frameScores(player, profile), said = frameScores(reply, profile);
   // A dead character named by either side, with the reply speaking in the past: one grief cue (never when the
   // speaker is that person: Jackie talking about himself).
   const lost = (asked.lost || said.lost) && said.past && !(typeof profile === 'string' && LOST.test(profile.replace(/-/g, ' '))) ? 1 : 0;
   const grief = asked.grief + said.grief + lost;
-  const prior = {}, evidence = [];
+  const prior = {}, frames = {}, evidence = [];
   if (grief) { prior.sadness = Math.min(.55, .3 + .1 * grief); evidence.push(`grief:${asked.grief}/${said.grief}`); }
   else if (asked.sore) { prior.sadness = .25; evidence.push('sore-question'); }
   if (asked.danger || said.danger >= 2) { prior.fear = .25; evidence.push('danger'); }
   if (asked.conflict) { prior.anger = .2; evidence.push('conflict'); }
   if (!grief && (asked.celebration || said.celebration)) { prior.joy = .3; evidence.push('celebration'); }
   if (!grief && asked.humor) { prior.joy = Math.max(prior.joy || 0, .2); evidence.push('humor'); }
+  // The player's line itself (a compliment, a tease, an apology, a probing question): only when no heavier frame is set.
+  if (!grief && !asked.sore && !prior.fear) {
+    const line = ` ${normalise(player)} `;
+    for (const [pattern, weights, name] of PLAYER_FRAMES) {
+      if (!pattern.test(line)) continue;
+      for (const [family, weight] of Object.entries(weights)) frames[family] = Math.max(frames[family] || 0, weight);
+      evidence.push(name);
+    }
+  }
   // A mood that outlasts one turn (a grief or a fight conversation) carries into a short follow-up question.
   if (previous && NEGATIVE.has(previous.family) && !asked.celebration && !asked.humor && previous.ageMs < PREVIOUS_MS) {
     const carried = .6 * clamp01(previous.weight ?? .4);
     if (carried > (prior[previous.family] || 0)) { prior[previous.family] = carried; evidence.push(`previous:${previous.family}`); }
   }
-  return {prior, grief: grief > 0 || asked.sore, evidence, celebration: asked.celebration || said.celebration, humor: asked.humor || said.humor};
+  return {prior, frames, grief: grief > 0 || asked.sore, evidence, celebration: asked.celebration || said.celebration, humor: asked.humor || said.humor,
+    probed: evidence.includes('probe-player') || evidence.includes('annoyed-player') || asked.conflict};
 }
 
 const CONTRACTIONS = [[/\bi am\b/g, "i'm"], [/\byou are\b/g, "you're"], [/\bit is\b/g, "it's"], [/\bthat is\b/g, "that's"],
@@ -151,7 +223,7 @@ export function normalise(text) {
 
 function phraseScores(lower) {
   const scores = {}, hits = [];
-  PHRASES.forEach(([pattern, weights], index) => {
+  ALL_PHRASES.forEach(([pattern, weights], index) => {
     if (!pattern.test(lower)) return;
     hits.push(index);
     for (const [family, weight] of Object.entries(weights)) scores[family] = (scores[family] || 0) + weight;
@@ -173,6 +245,18 @@ function scoreContextSegment(segment, text, context, manner) {
   if (idioms) scores.sadness = Math.max(0, scores.sadness - .6 * idioms);
   for (const [family, weight] of Object.entries(phrases.scores)) scores[family] = Math.max(0, scores[family] + weight);
   if (phrases.hits.length) tags.add('phrase');
+  // "Trust" as a topic or a thing to earn is not tenderness ("Trust is earned", "I don't need your trust").
+  const abstractTrust = (lower.match(ABSTRACT_TRUST) || []).length;
+  if (abstractTrust) { scores.trust = Math.max(0, scores.trust - .65 * abstractTrust); tags.add('abstract-trust'); }
+  // A feeling named as a topic ("Fear is a luxury") or denied beyond the lexicon's three-word negation reach ("I don't
+  // get paid to be scared", "nothing to be afraid of") is not the speaker's feeling.
+  for (const [pattern, family, amount] of ABSTRACT_AFFECT) {
+    const hits = (lower.match(pattern) || []).length;
+    if (hits) { scores[family] = Math.max(0, scores[family] - amount * hits); tags.add('not-felt'); }
+  }
+  // Answering a probing or hostile question with a first-person denial ("I didn't lie.", "I'm not dodging.") is
+  // defensive: wary brows, a little frown.
+  if (context.probed && DENIAL.test(lower)) { scores.fear += .45; scores.anger += .2; tags.add('denial'); }
   const laugh = tags.has('laugh') || phrases.scores.joy > 0;
   const strongJoy = scores.joy - .2 * mild;
   const exclaimed = segment.exclaims > 0;
@@ -191,38 +275,89 @@ function scoreContextSegment(segment, text, context, manner) {
   return {scores, tags, laugh};
 }
 
+// ---- Convai's own reply-level label ---------------------------------------------------------------------------------
+// One `bot-emotion` per reply (Plutchik-style label + scale 1-3). Measured on 993 hand-labelled segments
+// (assets/emotion/segments-gold.json): the strong labels (Joy, Anger, Disgust, Trust, Sadness at scale 2, Pensiveness,
+// Annoyance) name a segment's feeling 58-72 % of the time; the gentle ones (Interest, Acceptance, Anticipation, neutral,
+// Serenity at scale 1) mostly sit on calm or mildly pleasant replies (about 45 % calm); Distraction is mostly a smile
+// (46 % joy). So a label contributes its family at a strength that follows how informative it is, and the weakest
+// labels stay under the visible threshold on their own (they only support other evidence).
+export const PROVIDER_STRENGTH = Object.freeze([.35, .5, .65]);
+// A label at or above this weight (after scaling) is clear enough to damp the text feelings of other families.
+const CLEAR_LABEL = .22;
+// Below this a family weight is not planned at all (a faint, twitchy face under a phrase that has nothing to say).
+const WEAKEST = .12;
+const PROVIDER_FAMILIES = Object.freeze({
+  joy: {joy: 1}, happy: {joy: 1}, happiness: {joy: 1}, ecstasy: {joy: 1.1}, serenity: {trust: .8, joy: .3},
+  trust: {trust: 1}, acceptance: {trust: .6}, admiration: {trust: .9}, love: {trust: 1},
+  sadness: {sadness: 1}, sad: {sadness: 1}, grief: {sadness: 1.1}, pensiveness: {sadness: .9},
+  anger: {anger: 1}, angry: {anger: 1}, rage: {anger: 1.1}, annoyance: {anger: 1},
+  fear: {fear: 1}, terror: {fear: 1.1}, apprehension: {fear: .9}, anxiety: {fear: 1},
+  disgust: {disgust: 1}, loathing: {disgust: 1.1}, boredom: {disgust: .6},
+  surprise: {surprise: .9, joy: .2}, amazement: {surprise: 1}, distraction: {joy: .7, surprise: .4},
+  anticipation: {anticipation: .6}, interest: {anticipation: .45}, vigilance: {anticipation: .6},
+});
+/** Convai's signal as family weights (`{label, family, weights}`), or undefined when it is absent, ours, or neutral. */
+export function providerPrior(signal) {
+  if (!signal || !['ordered', 'response-id'].includes(signal.basis)) return undefined;
+  const label = String(signal.emotion || '').toLowerCase(), families = PROVIDER_FAMILIES[label];
+  if (!families) return undefined;
+  const strength = PROVIDER_STRENGTH[Math.max(0, Math.min(2, (signal.scale || 1) - 1))] * TUNE.providerScale, weights = {};
+  for (const [family, factor] of Object.entries(families)) weights[family] = Math.round(strength * factor * 1000) / 1000;
+  const family = Object.entries(weights).sort((a, b) => b[1] - a[1])[0][0];
+  return {label, family, weight: weights[family], weights};
+}
+// Two independent reasons for the same feeling add up (1 - (1-a)(1-b)); a single one stands alone.
+const softOr = (a, b) => 1 - (1 - a) * (1 - b);
+
 /**
  * The plan for one spoken reply.
  *   player: the player's message (what the reply answers); reply: the clean reply text;
  *   profile: the character key; previous: {family, weight, ageMs} of this character's last reply (optional);
  *   convai: Convai's own signal for this turn ({emotion, scale, basis ordered/response-id}); marks: the character's
  *   inline emotion tags (Expressive emotions); breaks: forced segment edges (Omni phrase starts).
+ *
+ * Evidence per segment, combined per family (October 9 evening; before, a tag replaced everything):
+ *   - a SPECIFIC tag ({joy}, {anger}, ...) names the feeling (right 54-80 % of the time on real replies) and wins unless
+ *     the phrase's own words clearly say something stronger;
+ *   - {calm} and {interest} are NOT evidence: on real replies the character opens 52 % of its replies with {calm} and
+ *     tags {interest} on 24 % of its sentences, whatever it feels (calm tags sit on a calm line 31 % of the time,
+ *     interest tags on an attentive one 13 %). They no longer silence the text, Convai's label or the conversation;
+ *   - Convai's label, the conversation frames and the previous mood are the reply's mood and fill phrases with no
+ *     feeling of their own; the phrase's own words and the reply's mood agreeing add up.
+ *
+ * `spans` is the hook for a deliberate tagger (the dynamic-context tag parser): [{start, end, emotion, intensity}] over
+ * `reply` (offsets into the stripped text, intensity 1/2 as the tag parser writes it, or a 0-1 weight; emotion null = untagged, the picker decides). Tags win, the picker fills the gaps: a segment inside a span
+ * takes the span's feeling at its intensity exactly ({calm} is an explicit neutral face); segments outside every span
+ * are picked from the evidence above. Span edges are segment edges.
  */
-export function selectEmotion({player = '', reply, profile, previous, convai, marks, breaks = []} = {}) {
+export function selectEmotion({player = '', reply, profile, previous, convai, marks, spans, breaks = []} = {}) {
   if (typeof reply !== 'string' || !reply.trim() || reply.length > 12000) return undefined;
   const mannerName = mannerFor(profile), manner = MANNERS[mannerName];
   const context = conversationContext({player: typeof player === 'string' ? player.slice(0, 4000) : '', reply, previous, profile});
   const evidence = [...context.evidence];
-  // Convai's own reply-level label is the next authority after the character's tags: it saw the whole conversation.
-  const provider = baselineFromSignal(convai, [.35, .5, .65]);
+  const provider = providerPrior(convai);
   const prior = {...context.prior};
   if (provider) {
     evidence.push(`convai:${provider.family}`);
     for (const family of Object.keys(prior)) prior[family] *= .5;
-    prior[provider.family] = Math.max(prior[provider.family] || 0, provider.weight);
+    for (const [family, weight] of Object.entries(provider.weights)) prior[family] = Math.max(prior[family] || 0, weight);
   }
   const placed = plannedMarks(marks, reply.length);
-  const raw = segmentText(reply, {breaks: placed.length ? [...breaks, ...placed.map(mark => mark.at)] : breaks});
+  const tagged = taggedSpans(spans, reply.length);
+  const edges = tagged.flatMap(span => [span.start, span.end]).filter(at => at > 0 && at < reply.length);
+  const raw = segmentText(reply, {breaks: placed.length || edges.length ? [...breaks, ...placed.map(mark => mark.at), ...edges] : breaks});
   if (!raw.length) return undefined;
-  const providerNegative = provider && NEGATIVE.has(provider.family);
+  const providerNegative = provider && provider.weight >= CLEAR_LABEL && NEGATIVE.has(provider.family);
   const sarcastic = SARCASM.test(normalise(reply));
   if (sarcastic) evidence.push('sarcasm');
   const segments = raw.map((segment, index) => {
+    const span = tagged.find(candidate => candidate.start <= (segment.start + segment.end) / 2 && (segment.start + segment.end) / 2 < candidate.end);
     const {scores, tags} = scoreContextSegment(segment, reply, context, manner);
     if (providerNegative) { scores.joy *= .4; scores.trust *= .6; }
     if (sarcastic) { scores.disgust += .35 * (scores.joy + scores.trust) + .3; scores.joy = 0; scores.trust *= .2; tags.add('sarcasm'); }
-    // Convai's own label saw the whole conversation: text feelings of other families count for less.
-    if (provider) for (const family of FAMILIES) if (family !== provider.family) scores[family] *= .7;
+    // A clear Convai label saw the whole conversation: text feelings of other families count for less.
+    if (provider && provider.weight >= CLEAR_LABEL) for (const family of FAMILIES) if (!(family in provider.weights)) scores[family] *= .7;
     let emphasis = 1;
     if (segment.contrastNext) { emphasis *= .6; tags.add('pre-contrast'); }
     if (segment.contrast) { emphasis *= 1.18; tags.add('contrast'); }
@@ -234,24 +369,46 @@ export function selectEmotion({player = '', reply, profile, previous, convai, ma
       if (weight >= .2) feelings[family] = weight;
     }
     const mark = placed.findLast(candidate => candidate.at <= segment.start);
-    // The tag picks the feeling; the phrase's own text can still make that same feeling stronger (October 9: one
-    // subtle tag used to hold a whole reply at one flat level, "Too late now" no sadder than "Every day").
+    let named = false;
     if (mark) {
-      feelings = mark.family ? {[mark.family]: Math.max(clamp01(mark.weight * manner.range), feelings[mark.family] || 0)} : {};
       tags.add('llm-emotion');
+      if (mark.family === null) tags.add('llm-calm');
+      else if (mark.family === 'anticipation') tags.add('llm-interest');
+      else {
+        // A specific tag picks the feeling; the phrase's own text can make it stronger, or a clearly stronger feeling
+        // of another family in the words themselves stays beside it.
+        const weight = clamp01(mark.weight * manner.range), kept = {};
+        for (const [family, value] of Object.entries(feelings)) {
+          // A frowning tag is overruled by a smile in the words only when the words are decisive.
+          const bar = NEGATIVE.has(mark.family) && (family === 'joy' || family === 'trust') ? Math.max(.7, weight) : Math.max(.5, weight);
+          if (family !== mark.family && value >= bar) kept[family] = value;
+        }
+        feelings = {...kept, [mark.family]: Math.max(weight, feelings[mark.family] || 0)};
+        named = true;
+      }
     }
-    // The reply's mood fills phrases with no feeling of their own and stays under weaker ones.
-    const own = Math.max(0, ...Object.values(feelings));
+    // The reply's mood fills phrases with no feeling of their own, stays under weaker ones, and adds to the same family.
+    const own = Math.max(0, ...Object.values(feelings)), top = Object.entries(feelings).sort((a, b) => b[1] - a[1])[0]?.[0];
     const weights = {};
     for (const family of FAMILIES) {
-      const fromPrior = mark ? 0 : (prior[family] || 0) * manner.range * (own >= .35 ? .5 : 1);
-      const total = Math.max(feelings[family] || 0, fromPrior);
-      if (total >= .08) weights[family] = round(total);
+      // The player's line colours a phrase that has a feeling of its own, and (less) one that has none.
+      const frame = (context.frames[family] || 0) * TUNE.frameScale * (own >= .2 || named ? 1 : TUNE.frameAlone);
+      let fromPrior = softOr((prior[family] || 0) * manner.range, frame * manner.range);
+      if (named) fromPrior *= TUNE.namedPrior;
+      else if (own >= .35 && family !== top) fromPrior *= TUNE.priorOther;
+      const total = softOr(feelings[family] || 0, fromPrior);
+      if (total >= WEAKEST) weights[family] = round(total);
     }
     // A clearly negative phrase leaves no smile under it (the Lua mix would otherwise cross-fade toward a smile).
     const negative = [...NEGATIVE].reduce((sum, family) => sum + (weights[family] || 0), 0);
     const ratio = context.grief ? .6 : 1.5;
     for (const family of ['joy', 'trust']) if (weights[family] && negative >= ratio * weights[family]) delete weights[family];
+    if (span) {   // a deliberate tag wins over everything above
+      for (const family of Object.keys(weights)) delete weights[family];
+      for (const family of Object.keys(feelings)) delete feelings[family];
+      if (span.family) { weights[span.family] = feelings[span.family] = span.weight; }
+      tags.clear(); tags.add('tagged-span');
+    }
     const words = segment.tokens.filter(token => token.word), syl = words.reduce((sum, token) => sum + syllables(token.raw), 0);
     const closing = [...segment.tokens].reverse().find(token => !token.word) ?? null;
     const closingEnds = closing && segment.tokens.at(-1) === closing ? closing : null;
@@ -263,6 +420,22 @@ export function selectEmotion({player = '', reply, profile, previous, convai, ma
   const plan = {version: 2, selector: 'context', length: reply.length, trait: mannerName, baseline: {}, segments, evidence};
   plan.summary = summariseContext(plan);
   return plan;
+}
+
+/** Valid spans of a tagger ({start, end, emotion, intensity}), in order: the feeling's family (null for calm) and its weight. */
+function taggedSpans(spans, length) {
+  if (!Array.isArray(spans)) return [];
+  const out = [];
+  for (const span of spans) {
+    if (!span || !Number.isFinite(span.start) || !Number.isFinite(span.end) || span.end <= span.start || span.start >= length) continue;
+    const name = String(span.emotion ?? '').toLowerCase();
+    const family = name in EMOTION_FAMILY ? EMOTION_FAMILY[name] : FAMILIES.includes(name) ? name : undefined;
+    if (family === undefined) continue;
+    // The tag parser counts 1 (subtle) and 2 (strong); a fraction is taken as the weight itself.
+    const level = span.intensity, weight = level === 2 ? MARK_WEIGHT.strong : level === 1 ? MARK_WEIGHT.subtle : Number.isFinite(level) ? clamp01(level) : MARK_WEIGHT.subtle;
+    out.push({start: Math.max(0, span.start), end: Math.min(length, span.end), family, weight: family === null ? 0 : round(weight)});
+  }
+  return out.sort((a, b) => a.start - b.start);
 }
 
 function pause(closing) {
@@ -349,8 +522,8 @@ export class EmotionSelection {
     let key, plan;
     const previous = this.previous(profile), mode = this.mode;
     return (text, signal) => {
-      const convai = signal ?? late?.signal, baseline = baselineFromSignal(convai);
-      const id = text + '\u0000' + (baseline ? baseline.family + baseline.weight : '');
+      const convai = signal ?? late?.signal, baseline = baselineFromSignal(convai), given = providerPrior(convai);
+      const id = text + '\u0000' + (mode === 'legacy' ? (baseline ? baseline.family + baseline.weight : '') : (given ? given.label + given.weight : ''));
       if (id !== key) {
         key = id;
         try {

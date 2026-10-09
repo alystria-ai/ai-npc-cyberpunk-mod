@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {selectEmotion, SELECTOR_LABEL, EmotionSelection, waitLateEmotion, restingFor, mannerFor, conversationContext, PREVIOUS_MS}
+import {selectEmotion, SELECTOR_LABEL, LABEL_OF, EmotionSelection, waitLateEmotion, restingFor, mannerFor, conversationContext, PREVIOUS_MS, providerPrior}
   from './emotion-selector.mjs';
 import {mixTarget} from './companion-expressions.mjs';
 import {attachExpressionTrack, sampleTrack} from './expression-timeline.mjs';
@@ -71,7 +71,7 @@ test('empathy, regret, concern, negation and sarcasm', () => {
   assert.equal(label({reply: "I've got your back, always. You're not alone in this.", profile: 'jackie-welles'}), 'warm');
 });
 
-test('priority: the character\'s own tags win, then Convai\'s label, then the text', () => {
+test('priority: a specific tag names the feeling; {calm} and {interest} are not evidence; then Convai\'s label and the text', () => {
   const reply = 'Haha, nice one. Anyway, the job is tomorrow.';
   // A {sadness} tag at the second sentence: that segment follows the tag, the first keeps the text reading.
   const at = reply.indexOf('Anyway');
@@ -80,10 +80,23 @@ test('priority: the character\'s own tags win, then Convai\'s label, then the te
   assert.deepEqual(Object.keys(marked.weights), ['sadness']);
   assert.ok(marked.tags.includes('llm-emotion'));
   assert.ok(tagged.segments[0].weights.joy > 0);
-  // {calm} returns to the neutral rest even under a Convai label.
+  // {calm} is the character's habitual opener (52 % of real replies): it no longer silences a clear Convai label or
+  // the text, and on a line with nothing to show it stays neutral.
   const calm = selectEmotion({reply, profile: 'judy-alvarez', marks: [{at: 0, name: 'calm'}],
     convai: {emotion: 'Joy', scale: 3, basis: 'ordered'}});
-  for (const segment of calm.segments) assert.deepEqual(segment.weights, {});
+  assert.ok(calm.segments[0].weights.joy > .3, 'a calm tag does not wipe Convai Joy/3');
+  assert.ok(calm.segments[0].tags.includes('llm-calm'));
+  const flat = selectEmotion({reply: 'Meet me at the Afterlife at nine.', profile: 'judy-alvarez', marks: [{at: 0, name: 'calm'}]});
+  for (const segment of flat.segments) assert.deepEqual(segment.weights, {});
+  // {interest} is not a flat anticipation .6 on every question either.
+  const interest = selectEmotion({reply: 'Meet me at the Afterlife at nine.', profile: 'judy-alvarez', marks: [{at: 0, name: 'interest', strength: 'subtle'}]});
+  assert.equal(SELECTOR_LABEL(interest), 'calm');
+  assert.ok(interest.segments[0].tags.includes('llm-interest'));
+  // A specific tag still names the feeling, strong ones more than subtle ones.
+  const subtle = selectEmotion({reply: 'Meet me at the Afterlife at nine.', profile: 'judy-alvarez', marks: [{at: 0, name: 'fear'}]});
+  const strong = selectEmotion({reply: 'Meet me at the Afterlife at nine.', profile: 'judy-alvarez', marks: [{at: 0, name: 'fear', strength: 'strong'}]});
+  assert.equal(SELECTOR_LABEL(subtle), 'fear');
+  assert.ok(strong.segments[0].weights.fear > subtle.segments[0].weights.fear);
   // Convai's label fills a reply the text cannot read, and damps a contradicting smile.
   const plain = selectEmotion({reply: 'Meet me at the Afterlife at nine.', profile: 'judy-alvarez',
     convai: {emotion: 'Sadness', scale: 2, basis: 'ordered'}});
@@ -196,4 +209,102 @@ test('labelled sets: accuracy floors, false smiles on sad/afraid/angry/disgusted
     if (chosen === item.label || item.accept.includes(chosen)) acceptable++;
   }
   assert.ok(acceptable / real.length >= .85, `real + Convai: ${acceptable}/${real.length}`);
+});
+
+test('the Convai label is a reply-level prior whose strength follows how informative it is', () => {
+  assert.equal(providerPrior({emotion: 'Neutral', scale: 1, basis: 'ordered'}), undefined);
+  assert.equal(providerPrior({emotion: 'Joy', scale: 3, basis: 'text'}), undefined, 'our own text cue is never Convai');
+  const joy = providerPrior({emotion: 'Joy', scale: 3, basis: 'ordered'});
+  assert.equal(joy.family, 'joy');
+  assert.ok(joy.weight >= .4);
+  assert.ok(providerPrior({emotion: 'Interest', scale: 1, basis: 'ordered'}).weight < .2, 'a gentle label alone stays under the visible threshold');
+  assert.equal(providerPrior({emotion: 'Annoyance', scale: 1, basis: 'ordered'}).family, 'anger');
+});
+
+test('guarded denials read wary, a stern one-word warning frowns, and plain logistics stay neutral', () => {
+  const question = "Evelyn Parker was captured by Maelstrom, wasn't she? What do you know?";
+  const denial = selectEmotion({player: question, profile: 'evelyn-parker', marks: [{at: 0, name: 'calm'}],
+    reply: 'I have no idea what you are talking about. Who told you I was captured?'});
+  assert.ok(denial.segments.every(segment => (segment.weights.fear || 0) >= .3), 'wary, not blank');
+  assert.ok(denial.segments.every(segment => !segment.weights.joy && !segment.weights.trust));
+  const careful = selectEmotion({player: 'You look like trouble.', reply: 'Careful.', profile: 'alex', convai: {emotion: 'Annoyance', scale: 1, basis: 'ordered'}});
+  assert.equal(SELECTOR_LABEL(careful), 'anger');
+  assert.ok(careful.segments[0].weights.anger >= .35, 'visible, not under the threshold');
+  for (const reply of ['The garage on Jig-Jig street. Nine sharp. Bring the cash.', 'It is on the third floor.']) {
+    assert.equal(label({player: 'Where do we meet?', reply, profile: 'alex', marks: [{at: 0, name: 'calm'}]}), 'calm', reply);
+  }
+});
+
+test('abstract trust and denied feelings are not the speaker feeling', () => {
+  assert.equal(label({player: 'Can I trust you?', reply: 'Trust is earned, not given. Keep that in mind.', profile: 'alex'}), 'calm');
+  assert.notEqual(label({reply: "I don't get paid to be scared.", profile: 'alex'}), 'fear');
+});
+
+test('the speaker own name is not a loss cue', () => {
+  const asked = selectEmotion({player: 'Tell me about Evelyn.', reply: 'It is a long story.', profile: 'evelyn-parker'});
+  assert.ok(!asked.evidence.some(item => item.startsWith('grief')));
+  const judy = selectEmotion({player: 'Tell me about Evelyn.', reply: 'She was kind, and she was mine.', profile: 'judy-alvarez'});
+  assert.ok(judy.evidence.some(item => item.startsWith('grief')));
+});
+
+test('spans from a tagger win, and the picker fills only the untagged stretches', () => {
+  const reply = 'Haha, nice one. Anyway, I do not like this. Meet me at nine.';
+  const from = reply.indexOf('Anyway'), to = reply.indexOf('Meet');
+  const plan = selectEmotion({reply, profile: 'judy-alvarez', spans: [{start: from, end: to, emotion: 'sadness', intensity: .7}]});
+  const inside = plan.segments.filter(segment => segment.start >= from && segment.end <= to);
+  assert.ok(inside.length >= 1);
+  for (const segment of inside) { assert.deepEqual(segment.weights, {sadness: .7}); assert.deepEqual(segment.tags, ['tagged-span']); }
+  // Outside the span the picker still reads the words (the laugh) and the closing line carries no sadness.
+  assert.ok(plan.segments[0].weights.joy > 0);
+  assert.ok(!plan.segments.at(-1).weights.sadness, 'the tagged sadness stops at the span');
+  // The span edges are segment edges even inside one sentence.
+  const edge = selectEmotion({reply: 'I really do not know what to say to that.', profile: 'judy-alvarez', spans: [{start: 0, end: 15, emotion: 'fear', intensity: 2}]});
+  assert.ok(edge.segments.length >= 2 && edge.segments[0].end <= 16);
+  // calm is an explicit neutral face that beats a Convai label; unknown names and bad spans are ignored.
+  const calm = selectEmotion({reply: 'Nice. Good to see you.', profile: 'judy-alvarez', spans: [{start: 0, end: 22, emotion: 'calm', intensity: 0}],
+    convai: {emotion: 'Joy', scale: 3, basis: 'ordered'}});
+  for (const segment of calm.segments) assert.deepEqual(segment.weights, {});
+  const ignored = selectEmotion({reply: 'Nice. Good to see you.', profile: 'judy-alvarez', spans: [{start: 5, end: 2, emotion: 'joy'}, {start: 0, end: 5, emotion: 'bogus'}, null]});
+  assert.ok(ignored.segments.every(segment => !segment.tags.includes('tagged-span')));
+});
+
+test('the labelled per-segment set (assets/emotion/segments-gold.json) holds the picker above its floors', () => {
+  const file = JSON.parse(readFileSync(new URL('../assets/emotion/segments-gold.json', import.meta.url), 'utf8'));
+  assert.ok(file.units.length >= 1500, 'a few thousand real labelled segments');
+  const rows = new Map();
+  for (const unit of file.units) { if (!rows.has(unit.reply)) rows.set(unit.reply, []); rows.get(unit.reply).push(unit); }
+  const run = withTags => {
+    let n = 0, ok = 0, emote = 0, deadEmote = 0;
+    const started = performance.now();
+    for (const [id, group] of rows) {
+      const reply = file.replies[id];
+      const plan = selectEmotion({player: reply.player, reply: reply.text, profile: reply.profile, marks: withTags ? reply.marks : undefined,
+        convai: withTags && reply.convai ? {...reply.convai, basis: 'ordered'} : undefined, breaks: group.slice(1).map(unit => unit.from)});
+      for (const unit of group) {
+        const middle = (unit.from + unit.to) / 2;
+        const segment = plan.segments.find(item => item.start <= middle && middle < item.end + 1) ?? plan.segments.at(-1);
+        const [family, weight] = Object.entries(segment.weights).sort((a, b) => b[1] - a[1])[0] ?? [];
+        const shown = family && weight >= .2 ? LABEL_OF[family] : 'calm';
+        n++;
+        if (shown === unit.label || unit.accept.includes(shown)) ok++;
+        if (unit.label !== 'calm') { emote++; if (shown === 'calm') deadEmote++; }
+      }
+    }
+    return {accuracy: ok / n, deadGivenEmoting: deadEmote / emote, ms: (performance.now() - started) / rows.size};
+  };
+  const game = run(true), text = run(false);
+  assert.ok(game.accuracy >= .66, 'tags + Convai: ' + game.accuracy);
+  assert.ok(game.deadGivenEmoting <= .36, 'dead on lines that should show a feeling: ' + game.deadGivenEmoting);
+  assert.ok(text.accuracy >= .55, 'text only: ' + text.accuracy);
+  assert.ok(game.ms < 10, game.ms + ' ms per reply');
+});
+
+test("spans in the tag parser's shape: intensity 1/2, a null emotion leaves the stretch to the picker", () => {
+  const text = "Nice one. Careful with that. Meet me at nine.";
+  const spans = [{start: 0, end: 10, emotion: null, intensity: 0}, {start: 10, end: 29, emotion: "anger", intensity: 2}, {start: 29, end: text.length, emotion: "calm", intensity: 1}];
+  const plan = selectEmotion({reply: text, profile: "judy-alvarez", spans});
+  const careful = plan.segments.find(segment => text.slice(segment.start, segment.end).includes("Careful"));
+  assert.deepEqual(careful.weights, {anger: 1});
+  const open = selectEmotion({reply: "Haha, nice one. Meet me at nine.", profile: "judy-alvarez", spans: [{start: 0, end: 32, emotion: null, intensity: 0}]});
+  assert.ok(open.segments[0].weights.joy > 0, "a null span is untagged: the picker reads the laugh");
 });

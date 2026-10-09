@@ -586,7 +586,7 @@ test('Natural speech: Pocket is handed only the clean text, whatever the reply c
 });
 
 const EMOTION_TEXT = 'We have a long enough original sentence to produce the first local phrase. Then we have another long enough sentence for the following phrase.';
-const EMOTION_MARKS = [{at: 0, name: 'interest', strength: 'subtle'},
+const EMOTION_MARKS = [{at: 0, name: 'joy', strength: 'subtle'},
   {at: EMOTION_TEXT.indexOf('Then'), name: 'sadness', strength: 'strong'}];
 
 test('Expressive emotions: OmniVoice plans each phrase from the character\'s own marks, and the text reading is the fallback',async()=>{
@@ -597,7 +597,7 @@ test('Expressive emotions: OmniVoice plans each phrase from the character\'s own
   const marked=await f.api.respond(f.input,f.profile,{current:async()=>true});
   const plan=marked.expressionPlan,second=EMOTION_TEXT.indexOf('Then');
   assert.ok(plan.segments.every(segment=>segment.tags.includes('llm-emotion')));
-  assert.equal(plan.segments.find(segment=>segment.start===0).dominant,'anticipation');
+  assert.equal(plan.segments.find(segment=>segment.start===0).dominant,'joy');
   assert.equal(plan.segments.find(segment=>segment.start===second).dominant,'sadness');
   assert.equal(marked.streamPlan.expressionPlan,plan,'the stream hands each phrase its own slice of this plan');
   assert.equal(marked.streamPlan.spans[1][0],second,'the second phrase opens at the sad mark');
