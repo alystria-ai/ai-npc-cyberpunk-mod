@@ -223,9 +223,9 @@ test('October 8: speech without any intent rests neutral, and a text cue shows a
   -- No receipt: no smile while speaking (October 8: the idle smile releases into speech, none is added).
   local none=speak(${literal(line)},'none')
   assert(none.lips_l_corner_up<.02,none.lips_l_corner_up)
-  -- A Trust scale-2 cue: the gentle smile (October 9: Trust .35, was .25; .35 x .67 x smile multiplier 1.3 x speech .85 = .26).
+  -- A Trust scale-2 cue: the gentle smile (October 9: Trust .35, was .25; .35 x .67 x smile multiplier 1.65 x speech .85 = .33; was 1.3 and .26 before the smile and surprise round).
   local trust=speak(${literal(warm)},'trust')
-  assert(trust.lips_l_corner_up>=.22 and trust.lips_l_corner_up<=.29,'trust '..trust.lips_l_corner_up)
+  assert(trust.lips_l_corner_up>=.29 and trust.lips_l_corner_up<=.37,'trust '..trust.lips_l_corner_up)
   -- Interest lifts the brows only.
   local interest=speak(${literal(curious)},'interest')
   assert(interest.eye_l_brows_raise_out>=.05 and interest.eye_l_brows_raise_out<=.11 and interest.lips_l_corner_up<.02,'interest '..interest.eye_l_brows_raise_out..' '..interest.lips_l_corner_up)
@@ -349,13 +349,15 @@ test('face-test probe: writer mode pushes an extreme smile through the single wr
 test('face-stage probe: reuses a present copy, invites a missing one, places it in front of the camera facing it, releases and dismisses', () => runProbe(`
  local moves={}
  local plain=NewObject
- NewObject=function(name) if name=='AITeleportCommand' then return {} end;return plain(name) end
+ NewObject=function(name) if name=='AITeleportCommand' or name=='AIHoldPositionCommand' then return {} end;return plain(name) end
+ local holds=0
  -- A copy answers its AI controller: a teleport command moves it exactly to the commanded spot and yaw.
  local function body(npc,x,y,z,yaw)
   npc.where={x=x,y=y,z=z};npc.yaw=yaw
   function npc:GetWorldPosition() return self.where end
   function npc:GetWorldYaw() return self.yaw end
   function npc:GetAIControllerComponent() return {SendCommand=function(_,command)
+   if not command.position then holds=holds+1;return true end
    moves[#moves+1]={npc=npc,position=command.position,yaw=command.rotation}
    npc.where={x=command.position.x,y=command.position.y,z=command.position.z};npc.yaw=command.rotation;return true end} end
  end
@@ -374,6 +376,7 @@ test('face-stage probe: reuses a present copy, invites a missing one, places it 
  assert(files['runtime/face-test-response.txt']:find('ok=true',1,true) and spawned==nil,files['runtime/face-test-response.txt'])
  for _=1,10 do tick(.1) end
  assert(#moves==1,'one AI teleport, then she stays: '..#moves)
+ assert(holds==1 or holds==2,'told to hold position, re-sent only every 5 s: '..holds)
  local m=moves[#moves]
  assert(m.npc==a and math.abs(m.position.x-10)<1e-6 and math.abs(m.position.y-20.85)<1e-6 and m.position.z==5,'in front, on V s floor')
  assert(math.abs(m.yaw-180)<1e-6,'facing the camera: '..m.yaw)
@@ -447,6 +450,12 @@ test('Judy idles at about .19 with the corner gain, a cold character stays flat,
  assert(math.abs(last(a).lips_l_corner_up-.504)<.01,'judy joy: '..last(a).lips_l_corner_up)
  assert(math.abs(last(a).eye_l_oculi_squint_outer_lower-.432)<.01)
  assert(math.abs(last(a).eye_l_brows_raise_out-.30)<.01)
+ face.endExpression(context,false)
+ -- A default head (smile multiplier 1.65, squint 1.3): joy .45 x 1.65 = .74, squint .6 x .45 x 1.3 = .35.
+ rows[1].profileKey='evelyn-parker';for _=1,60 do tick(.1) end
+ face.beginExpression(context,${literal(receipt('Joy',3,0))});face.expressionHeard(context);for _=1,40 do tick(.1) end
+ assert(math.abs(last(a).lips_l_corner_up-.7425)<.01,'default joy: '..last(a).lips_l_corner_up)
+ assert(math.abs(last(a).eye_l_oculi_squint_outer_lower-.351)<.01,'default squint: '..last(a).eye_l_oculi_squint_outer_lower)
  face.endExpression(context,false)
 `));
 

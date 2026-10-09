@@ -90,7 +90,7 @@ local function expressionLimit(track)
     if track:find('squint_outer_upper',1,true) then return .8 end
     if track:find('squint_inner',1,true) then return .6 end
     if track:find('squint',1,true) then return .5 end
-    if track:find('widen',1,true) then return .6 end
+    if track:find('widen',1,true) then return .7 end
     if track:find('snear',1,true) then return .6 end
     if track=='lips_chin_raise' then return .5 end
     if track:find('corner_',1,true) then return .80 end
@@ -112,15 +112,18 @@ local restSmile=.12
 -- rigs (docs/COMPANION_EXPRESSIONS.md, October 9 "smile calibration"): Judy's own head stretched at joy .45 x gain 1.6
 -- (.72), so she gets .7 (about .50 written); the shared *_average_sermo heads (Evelyn and the other named and crowd
 -- women, the men) barely smiled at .45 and read as natural at about .6, so every other character gets 1.3.
-local defaultSmile=1.3
-local traitTable={default={warmth=restSmile,gain=1,smile=defaultSmile}}
+local defaultSmile=1.65
+-- squint = the cheek/lower-lid squint follows the emotion's smile times this (Duchenne). A smile that grew with the
+-- multiplier needs a matching squint (.27 -> .35 at joy on the default heads, captures docs October 9); Judy keeps 1.
+local defaultSquint=1.3
+local traitTable={default={warmth=restSmile,gain=1,smile=defaultSmile,squint=defaultSquint}}
 for _,key in ipairs({'panam-palmer','jackie-welles','kerry-eurodyne','misty-olszewski','mama-welles','river-ward',
-    'claire-russell','dexter-deshawn','padre-ibarra','viktor-vektor'}) do traitTable[key]={warmth=.18,gain=1,smile=defaultSmile} end
+    'claire-russell','dexter-deshawn','padre-ibarra','viktor-vektor'}) do traitTable[key]={warmth=.18,gain=1,smile=defaultSmile,squint=defaultSquint} end
 -- Judy's brows rest high (her idle arch): the lowering controls get a quarter more (browDown).
-traitTable['judy-alvarez']={warmth=.12,gain=1.6,browDown=1.25,smile=.7}
+traitTable['judy-alvarez']={warmth=.12,gain=1.6,browDown=1.25,smile=.7,squint=1}
 for _,key in ipairs({'johnny-silverhand','rogue-amendiares','takemura','saul-bright','meredith-stout','solomon-reed',
-    'spider-murphy','r3n0','regina-jones'}) do traitTable[key]={warmth=.05,gain=1,smile=defaultSmile} end
-for _,key in ipairs({'adam-smasher','yorinobu-arasaka','hanako-arasaka','alan-noel','mr-hands'}) do traitTable[key]={warmth=0,gain=1,smile=defaultSmile} end
+    'spider-murphy','r3n0','regina-jones'}) do traitTable[key]={warmth=.05,gain=1,smile=defaultSmile,squint=defaultSquint} end
+for _,key in ipairs({'adam-smasher','yorinobu-arasaka','hanako-arasaka','alan-noel','mr-hands'}) do traitTable[key]={warmth=0,gain=1,smile=defaultSmile,squint=defaultSquint} end
 -- Mood hold after a negative turn: seconds of neutral rest, a shorter hold once a
 -- later turn was calm, and the ease back to the resting smile.
 local moodHoldSeconds,moodCalmSeconds,moodEaseSeconds,moodThreshold=60,10,5,.2
@@ -278,7 +281,7 @@ local familyPoses={joy={up=.45,out=.30},trust={up=.35},
     sadness={dn=.75,['in']=.85,lat=.35,droop=.30,chin=.35},
     anger={dn=.40,low=.80,lat=.70,lid=.80,sq=.40,sqi=.60,snear=.35,chin=.35,droop=.25},
     fear={dn=.25,['in']=.80,out=.50,lat=.50,wide=.45},disgust={dn=.50,low=.60,snear=.60,sq=.25,chin=.20},
-    surprise={['in']=.60,out=.90,wide=.55},anticipation={out=.15}}
+    surprise={['in']=.80,out=.90,wide=.70},anticipation={out=.15}}
 -- October 9 (user: "the expression barely changes, even with Expressive emotions on"): a family weight w moves
 -- the frowns and brows by w^.6 of its pose. Full feelings are unchanged (the caps hold); a subtle tag on a reserved
 -- character (.36) now shows about half its pose instead of a third, and phrases of different strength still
@@ -303,7 +306,7 @@ local function mixChannel(weights,key,poses)
     end
     return max+.4*(sum-max)
 end
-local function mixTargets(weights,target,phase,warmth,smile)
+local function mixTargets(weights,target,phase,warmth,smile,squint)
     local up,dn=mixChannel(weights,'up'),mixChannel(weights,'dn')
     local rin,rout,low=mixChannel(weights,'in'),mixChannel(weights,'out'),mixChannel(weights,'low')
     local narrow,wide=mixChannel(weights,'sq'),mixChannel(weights,'wide')
@@ -315,7 +318,7 @@ local function mixTargets(weights,target,phase,warmth,smile)
     rin=math.max(0,rin-.5*clash);rout=math.max(0,rout-.5*clash);low=math.max(0,low-.5*clash)
     -- The character's smile multiplier scales the emotion's smile only; the squint follows the unscaled smile.
     smile=smile or 1
-    target.smileRaw=up
+    target.smileRaw=up*(squint or 1)
     up=up*smile
     if phase~='speaking' and dn==0 then up=math.max(up,warmth);target.smileRaw=math.max(target.smileRaw,warmth) end
     target=target or {}
@@ -421,9 +424,9 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
     end
     local function pair(stem,value) target['lips_l_'..stem]=value;target['lips_r_'..stem]=value end
     local function brows(stem,value) target['eye_l_brows_'..stem]=value;target['eye_r_brows_'..stem]=value end
-    if weights then mixTargets(weights,target,phase,warmth,trait.smile)
-    elseif family=='joy' then pair('corner_up',.45*strength*(trait.smile or 1));brows('raise_out',.30*strength);target.smileRaw=.45*strength
-    elseif family=='trust' then pair('corner_up',.35*strength*(trait.smile or 1));target.smileRaw=.35*strength
+    if weights then mixTargets(weights,target,phase,warmth,trait.smile,trait.squint)
+    elseif family=='joy' then pair('corner_up',.45*strength*(trait.smile or 1));brows('raise_out',.30*strength);target.smileRaw=.45*strength*(trait.squint or 1)
+    elseif family=='trust' then pair('corner_up',.35*strength*(trait.smile or 1));target.smileRaw=.35*strength*(trait.squint or 1)
     elseif familyPoses[family] then
         -- One reply-level label: the family's unit pose at the label's strength (linear, as before).
         for key,value in pairs(familyPoses[family]) do singleChannel(target,key,value*strength) end
