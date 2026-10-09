@@ -105,16 +105,26 @@ public class ConvaiFaceService extends ScriptableService {
     let status = this.PrepareFaceComponent(face, true);
     if StrBeginsWith(status, "prepared:") { this.RememberWorld(npc.GetEntityID()); return status; };
     if !StrBeginsWith(status, "supported:") { return status; };
-    // Never rebuild an NPC a quest owns: one in a scene or dialogue, or one
-    // whose appearance or record belongs to a quest (q004, sq021, mq003...,
-    // e.g. the Konpeki receptionists of The Heist). Their voice still plays.
+    // Never rebuild an NPC a quest owns or a scene drives: one in a dialogue, one a
+    // quest marked or whose AI a quest or scene commands, or one whose appearance or
+    // record belongs to a quest (q004, sq021, mq003..., e.g. the Konpeki receptionists
+    // of The Heist). Their voice still plays.
     let scene = GameInstance.GetSceneSystem(npc.GetGame()).GetScriptInterface();
-    if IsDefined(scene) && (scene.IsEntityInScene(npc.GetEntityID()) || scene.IsEntityInDialogue(npc.GetEntityID())) {
-      return "skipped:scene";
+    let inScene = false;
+    if IsDefined(scene) {
+      if scene.IsEntityInDialogue(npc.GetEntityID()) { return "skipped:dialogue"; };
+      inScene = scene.IsEntityInScene(npc.GetEntityID());
     };
     let appearance = npc.GetCurrentAppearanceName();
     if ConvaiFaceService.QuestBound(NameToString(appearance))
       || ConvaiFaceService.QuestBound(TDBID.ToStringDEBUG(npc.GetRecordID())) { return "skipped:quest"; };
+    if npc.IsQuest() || !npc.IsOnAutonomousAI() { return "skipped:driven"; };
+    // IsEntityInScene is true for plenty of ordinary gameplay (vendors and other
+    // community NPCs at their workspots are scene actors), so a scene alone no longer
+    // blocks the rebuild. It still does for anyone who is not a crowd or vendor NPC,
+    // i.e. every story character, who belong to quests.
+    if inScene && !npc.IsVendor() && !npc.IsCrowd() { return "skipped:scene"; };
+    npc.ConvaiFaceNoteWorkspot();
     if this.HasWorldRequest(appearance) { return "requested:" + NameToString(appearance); };
     this.ReleaseOldestWorld(npc, appearance);
     if ArraySize(this.m_worldPending) >= 4 { ArrayErase(this.m_worldPending, 0); };
@@ -181,12 +191,20 @@ public class ConvaiFaceService extends ScriptableService {
       let old = GameInstance.FindEntityByID(next.GetGame(), id) as NPCPuppet;
       if IsDefined(old) && old.IsAttached() && !Equals(old.GetEntityID(), next.GetEntityID()) {
         let name = old.GetCurrentAppearanceName();
-        if !Equals(name, appearance) && !this.HasWorldRequest(name) {
+        if !Equals(name, appearance) && !this.HasWorldRequest(name) && !this.SceneOwns(old) {
           old.ConvaiFacePrepared(false, "released");
           old.ScheduleAppearanceChange(name);
         };
       };
     };
+  }
+
+  // A quest or dialogue may have taken an NPC since it was prepared. Its layer has
+  // zero inputs and does nothing, so such an NPC is only forgotten, never rebuilt
+  // under the scene.
+  private func SceneOwns(npc: ref<NPCPuppet>) -> Bool {
+    let scene = GameInstance.GetSceneSystem(npc.GetGame()).GetScriptInterface();
+    return !IsDefined(scene) || scene.IsEntityInDialogue(npc.GetEntityID()) || npc.IsQuest() || !npc.IsOnAutonomousAI();
   }
 
   private func PrepareFaceComponent(face: ref<AnimatedComponent>, opt check: Bool) -> String {
@@ -243,6 +261,24 @@ public final func ConvaiFacePrepared(ready: Bool, status: String, opt graphPath:
 
 @addField(NPCPuppet)
 private let m_convaiFaceGraphPath: String;
+
+// Whether the NPC stood in a workspot when its rebuild was requested ("in" or
+// "out"; empty when none was). One native read per request, never per frame.
+@addField(NPCPuppet)
+private let m_convaiFaceWorkspot: String;
+
+@addMethod(NPCPuppet)
+public final func ConvaiFaceNoteWorkspot() -> Void {
+  this.m_convaiFaceWorkspot = GameInstance.GetWorkspotSystem(this.GetGame()).IsActorInWorkspot(this) ? "in" : "out";
+}
+
+// "in>in" for a vendor that kept its workspot through the rebuild, "in>out" for one
+// that lost it, empty when this NPC was never rebuilt. Read once per reply for the log.
+@addMethod(NPCPuppet)
+public final func ConvaiFaceWorkspotNote() -> String {
+  if Equals(this.m_convaiFaceWorkspot, "") { return ""; };
+  return this.m_convaiFaceWorkspot + ">" + (GameInstance.GetWorkspotSystem(this.GetGame()).IsActorInWorkspot(this) ? "in" : "out");
+}
 
 @addMethod(NPCPuppet)
 public final func ConvaiFaceStatus() -> String {

@@ -122,18 +122,31 @@ test('world NPC faces are prepared on demand for the talk target only, never at 
   assert.match(request, /if dynamic\.IsManaged\(npc\.GetEntityID\(\)\) \{ return "managed"; \};/);
   assert.match(request, /this\.PrepareFaceComponent\(face, true\)/, 'the running component is only checked');
   assert(request.indexOf('this.ReleaseOldestWorld(npc, appearance)') < request.indexOf('npc.ScheduleAppearanceChange(appearance)'));
-  // October 9: a Konpeki receptionist (appearance ..._q004_...) was rebuilt. Quest-owned
-  // NPCs, and any NPC in a scene or dialogue, are never rebuilt.
+  // October 9: a Konpeki receptionist (appearance ..._q004_...) was rebuilt. Quest-owned NPCs and
+  // NPCs in a dialogue are never rebuilt. October 10: a scene alone no longer blocks it, because a
+  // vendor at its stall is a scene actor; a scene still blocks anyone who is neither crowd nor vendor,
+  // and an NPC a quest marked or whose AI is commanded (not autonomous) is skipped before any rebuild.
   const rebuild = request.indexOf('npc.ScheduleAppearanceChange(appearance)');
-  for (const guard of ['return "skipped:scene"', 'return "skipped:quest"']) {
+  for (const guard of ['return "skipped:dialogue"', 'return "skipped:quest"', 'return "skipped:driven"', 'return "skipped:scene"']) {
     assert(request.indexOf(guard) >= 0 && request.indexOf(guard) < rebuild, guard);
   }
-  assert.match(request, /scene\.IsEntityInScene\(npc\.GetEntityID\(\)\) \|\| scene\.IsEntityInDialogue\(npc\.GetEntityID\(\)\)/);
+  assert.match(request, /scene\.IsEntityInDialogue\(npc\.GetEntityID\(\)\) \{ return "skipped:dialogue"; \};/);
+  assert.match(request, /inScene = scene\.IsEntityInScene\(npc\.GetEntityID\(\)\)/);
+  assert.match(request, /if npc\.IsQuest\(\) \|\| !npc\.IsOnAutonomousAI\(\) \{ return "skipped:driven"; \};/);
+  assert.match(request, /if inScene && !npc\.IsVendor\(\) && !npc\.IsCrowd\(\) \{ return "skipped:scene"; \};/);
+  assert.doesNotMatch(request, /IsEntityInScene\(npc\.GetEntityID\(\)\) \|\|/, 'a scene alone must not skip an ambient NPC');
+  assert(request.indexOf('ConvaiFaceNoteWorkspot()') > request.indexOf('return "skipped:scene"') && request.indexOf('ConvaiFaceNoteWorkspot()') < rebuild,
+    'the workspot is noted once, right before a rebuild that will happen');
   assert.match(request, /QuestBound\(NameToString\(appearance\)\)\s*\|\| ConvaiFaceService\.QuestBound\(TDBID\.ToStringDEBUG\(npc\.GetRecordID\(\)\)\)/);
+  assert(request.indexOf('return "skipped:quest"') < request.indexOf('return "skipped:driven"'));
+  assert.match(nativeFace, /public final func ConvaiFaceWorkspotNote\(\) -> String/);
   assert.doesNotMatch(request, /face\.graph =/);
   const release = nativeFace.slice(nativeFace.indexOf('private func ReleaseOldestWorld'),
     nativeFace.indexOf('private func PrepareFaceComponent'));
   assert.match(release, /while ArraySize\(this\.m_worldPrepared\) >= 2/, 'at most two world NPCs keep the layer');
+  assert.match(release, /!this\.SceneOwns\(old\)/, 'an NPC a quest took since is forgotten, never rebuilt under the scene');
+  const sceneOwns = nativeFace.slice(nativeFace.indexOf('private func SceneOwns'), nativeFace.indexOf('private func PrepareFaceComponent'));
+  assert.match(sceneOwns, /IsEntityInDialogue\(npc\.GetEntityID\(\)\) \|\| npc\.IsQuest\(\) \|\| !npc\.IsOnAutonomousAI\(\)/);
   const adopt = nativeFace.slice(nativeFace.indexOf('private final func ConvaiFaceAdoptWorld'),
     nativeFace.indexOf('public final func ConvaiFaceRequest'));
   assert(adopt.includes('StrBeginsWith(path, "cyberpunk_convai\\\\facial\\\\")'));
@@ -141,7 +154,7 @@ test('world NPC faces are prepared on demand for the talk target only, never at 
     nativeFace.indexOf('public final func ConvaiFaceReset('));
   assert.match(apply, /if !this\.ConvaiFaceReady\(\) \|\| !IsDefined\(feature\) \{ return false; \};/);
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
-  assert.equal([...init.matchAll(/:ConvaiFaceRequest\(\)/g)].length, 3, 'composer, microphone and group speaker only');
+  assert.equal([...init.matchAll(/:ConvaiFaceRequest\(\)/g)].length, 4, 'composer, microphone, group speaker and the dev-only scripted talk only');
   const gaze = init.slice(init.indexOf('local function updateGaze'), init.indexOf('local function updateGaze') + 4000);
   assert.doesNotMatch(gaze, /ConvaiFaceRequest/, 'a glance never rebuilds an NPC');
 });

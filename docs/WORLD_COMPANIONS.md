@@ -84,6 +84,27 @@ When an adopted character joins, `convaiAutoConnect.promote(key)` (`mod/auto-con
 - A hidden original still has collision and its own AI while it is hidden.
 - "Wait here" is not a pause: the companions have no wait-in-place behaviour, so the model treats it as leaving only when V clearly means they part ways.
 
+## Lip sync for vendors and scene NPCs (`r6/scripts/CyberpunkConvai/Face.reds`)
+
+A world NPC V talks to has the vanilla face graph, which has no speech input. When a conversation opens, `RequestWorldFace` rebuilds the NPC's own current appearance once (`ScheduleAppearanceChange` with the same name), and the `Entity/Extract` callback gives the rebuilt `face_rig` the prepared `ConvaiFace` graph. It is not a respawn (the entity ID is unchanged, seen on the receptionist), and no workspot or scene call is made; whether the component rebuild disturbs a running workspot animation is unproven. At most two world NPCs keep the layer; nothing is prepared at spawn and nothing runs per frame.
+
+Which NPCs are rebuilt (October 10; before, any NPC in a scene was skipped, which also skipped every vendor):
+
+| Check | Status when it holds |
+| --- | --- |
+| In a dialogue (`IsEntityInDialogue`) | `skipped:dialogue` |
+| `q###`, `sq###` or `mq###` in the appearance name or TweakDB record | `skipped:quest` |
+| `IsQuest()` or not `IsOnAutonomousAI()` (a quest or scene commands its AI) | `skipped:driven` |
+| `IsEntityInScene` and neither a vendor nor a crowd NPC | `skipped:scene` |
+
+`IsEntityInScene` is true in ordinary gameplay, so it no longer blocks a vendor or crowd NPC on its own. Skipped NPCs still speak with voice and captions; only the mouth stays still.
+
+No option avoids the rebuild: the vanilla graphs take only the `AnimFeature_FacialReaction` mood preset, the game's scripts have no lipsync or facial-animation call for an NPC, and a running component's graph cannot be swapped. The one world rebuild tried in game so far (a Konpeki receptionist, October 8) did not show a failure either: her voice played and the face outcome was not logged. So the rebuild is unproven on any NPC, and the vendor case is the first live test.
+
+The reply log line shows the result: `Conversation result: ... face=true/prepared:world workspot=in>in`. `workspot=in>out` means the vendor lost its workspot through the rebuild (put vendors back into the skip), `face=false/requested:...` means the same-name change did not rebuild, and `skipped:driven` on a vendor means the autonomy test is too strict.
+
+Check with a street food vendor: the mouth moves on the first reply; no pop or pose reset when the composer opens; the vendor stays in its idle; the shop opens and trades as before; a second, different NPC works and the first goes back to the vanilla face.
+
 ## What to check in game
 
 Install: CET reload for `mod/companion-adoption.lua` (new), `init.lua`, `companions.lua`, `manager-party.lua`, `gameplay-actions.lua` and the 15 locales. Bridge restart for `bridge/companion-actions.mjs`, `protocol.mjs`, `convai-bridge.mjs` and the rebuilt `runtime/realtime-client.js` (`npm run build:voice`). `probe.log` lines start with `Adoption` and `Departure`.

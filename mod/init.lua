@@ -2347,6 +2347,9 @@ registerForEvent('onUpdate', function(delta)
                         local faceOk, faceReady, faceStatus = pcall(function()
                             return speech.actor:ConvaiFaceReady(), speech.actor:ConvaiFaceStatus() end)
                         faceState = faceOk and (tostring(faceReady) .. '/' .. tostring(faceStatus)) or 'unavailable'
+                        -- A rebuilt world NPC (a vendor at its stall): workspot before>after the rebuild, once per reply.
+                        local noteOk, note = pcall(function() return speech.actor:ConvaiFaceWorkspotNote() end)
+                        if noteOk and type(note) == 'string' and note ~= '' then faceState = faceState .. ' workspot=' .. note end
                     end
                     log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil)
                         .. ' speech=' .. tostring(speech.state) .. ' face=' .. faceState)
