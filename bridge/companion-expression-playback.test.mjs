@@ -625,6 +625,32 @@ test('jaw lift: only the jaw is lifted, and the graph is read once per reply (no
 `);
 });
 
+// October 9, night (Evelyn on a sad reply: the jaw was written at .3-.5 and the lips still barely parted): the chin raise of
+// sadness, anger and disgust lifts the lower lip into the upper. On a jaw-lifted head it now gives way as the jaw opens
+// (gone from .10), and returns between words; Judy and an unknown head keep it exactly.
+test('chin raise gives way to an opening jaw while a lifted head speaks, and not for Judy or an unknown head', () => {
+  const chinBody = (status, jaw, check, extra = '') => `
+ ${status === undefined ? '' : `function a:ConvaiFaceStatus() return ${JSON.stringify(status)} end`}
+ ${extra}
+ face.beginExpression(context,${literal(receipt('Anger', 3, 0))});face.expressionHeard(context)
+ for _=1,30 do tick(.1) end
+ local resting=last(a).lips_chin_raise
+ assert(resting>.1,'the chin raise holds at rest: '..tostring(resting))
+ local timeline={version=1,requestId=context.requestId,entity=a.id,duration=2,source='local-jali',articulation='jali-audio-v1',
+  tracks={'jaw_mid_open','lips_together_up'},frames={{0,${jaw},0},{2,${jaw},0}}}
+ assert(face.start(context,timeline,a,2),face.error)
+ local position=0
+ for _=1,14 do face.beginExpressionFrame(.1,{actors=rows});position=position+.1;face.sync(a,position,context.requestId) end
+ local chin,jawValue=last(a).lips_chin_raise,last(a).jaw_mid_open
+ ${check}`;
+  run(chinBody('prepared:woman_average_sermo', .2, "assert(jawValue>=.2 and chin==0,'open jaw, no chin raise: '..chin)"));
+  run(chinBody('prepared:man_average_sermo', .12, "assert(chin==0,'man_average open jaw: '..chin)"));
+  run(chinBody('prepared:woman_average_sermo', .0, "assert(chin>.1 and chin<=resting,'closed jaw keeps the frown: '..chin..' of '..resting)"));
+  run(chinBody('prepared:woman_average_sermo', .015, "assert(jawValue<.03 and chin>.5*resting,'silence keeps the frown: '..chin)"));
+  run(chinBody('prepared:player_woman_photomode_sermo', .2, "assert(jawValue==.2 and chin>.1,'Judy unchanged: '..chin)"));
+  run(chinBody('unsupported-graph', .2, "assert(chin>.1,'unknown head unchanged: '..chin)"));
+});
+
 test('face-test probe: direct mode bypasses the writer with its own feature and logs the apply result', () => runProbe(`
  request('n2\\nface-test judy frown 2 direct');tick(.3)
  local count=#a.frames;tick(.1);assert(#a.frames==count+1,'one direct write per frame, writer skipped')

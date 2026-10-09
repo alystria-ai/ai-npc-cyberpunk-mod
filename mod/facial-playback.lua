@@ -129,6 +129,8 @@ for _,key in ipairs({'adam-smasher','yorinobu-arasaka','hanako-arasaka','alan-no
 local moodHoldSeconds,moodCalmSeconds,moodEaseSeconds,moodThreshold=60,10,5,.2
 local function traitFor(profile) return traitTable[profile] or traitTable.default end
 local speechMouthFactor=.85
+-- The jaw weight (as written) from which a speaking, jaw-lifted head carries no chin raise at all.
+local chinDuckJaw=.10
 -- October 9 (user: Evelyn and Johnny, with wider, thinner lips than Judy, "don't open the mouth on some words"):
 -- every speech source is calibrated on Judy's rig, where a jaw weight of .06 already parts her lips. Measured in game
 -- on 23 characters (docs/COMPANION_EXPRESSIONS.md, lip sync round): the shared woman_average heads (Evelyn, Alex, Claire,
@@ -547,9 +549,16 @@ local function expressionPose(slot,phase,feature,provider,blocked,upper,mix)
             slot.pose.eye_l_brows_lower,slot.pose.eye_r_brows_lower=0,0
         end
     end
+    -- October 9 (night, Evelyn: the mouth barely parted on sad replies): the chin raise lifts the lower lip into the upper,
+    -- and on the wide-lipped heads .15 of it cancels a jaw of .2 (captured on Evelyn: jaw .35 with chin .3 reads as closed).
+    -- While one of those heads speaks, the chin raise gives way as the jaw opens and is gone from .10 up, so a sad, angry or
+    -- disgusted line still frowns between words and opens on them. Judy and unknown heads (no jaw lift) are untouched.
+    local chinDuck=1
+    if phase=='speaking' and M.jawLift then chinDuck=1-clamp((finite(feature.jaw_mid_open) and feature.jaw_mid_open or 0)/chinDuckJaw) end
     for _,track in ipairs(expressionTracks) do
         -- Hard closure/rounding suppression happens after smoothing, too.
         feature[track]=math.min(slot.pose[track],limitFor(track)*(track:sub(1,5)=='lips_' and budget or 1))
+        if track=='lips_chin_raise' then feature[track]=feature[track]*chinDuck end
     end
     -- Voice-synchronous brows from the game-trained model (emphasis flashes,
     -- focused frowns). Already smooth and on the audio clock: combined by max
