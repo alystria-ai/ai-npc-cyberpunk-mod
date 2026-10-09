@@ -204,8 +204,10 @@ function M.new(options)
         if drive then
             local called, accepted, reason = pcall(options.queue, admitted.offer.actor.serial,
                 copy(admitted.offer), admitted.entity)
-            report(called and accepted == true and 'queued' or 'rejected', called and reason or nil,
-                'The driving request could not be queued.')
+            -- A queued drive has no text of its own: the reason stays empty.
+            local driveQueued = called and accepted == true
+            report(driveQueued and 'queued' or 'rejected', called and reason or nil,
+                driveQueued and '' or 'The driving request could not be queued.')
             return
         end
         if follow or leave then

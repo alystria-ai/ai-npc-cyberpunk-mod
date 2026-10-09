@@ -397,7 +397,6 @@ return {
     ["Walking commands did not release in time."] = "보행 명령이 제시간에 해제되지 않았습니다.",
     ["Your car has no free passenger seat for V."] = "내 차에 V가 앉을 빈 승객 좌석이 없습니다.",
     ["Your companion is driving to the selected waypoint."] = "동료가 선택한 목표 지점을 향해 운전하고 있습니다.",
-    ["Your companion is preparing to drive."] = "동료가 운전을 준비하고 있습니다.",
     ["Your companion must step out before taking the driver seat."] = "동료가 운전석에 앉으려면 먼저 차에서 내려야 합니다.",
     ["Waiting for party to board"] = "파티 탑승 대기 중",
     ["Scenery or a vehicle is blocking the companion position."] = "주변 지형지물이나 차량이 동료의 위치를 막고 있습니다.",

@@ -372,7 +372,7 @@ local function privateConversation()
     end
     companions.queueChauffeur=function(serial,value,entity)
         nativeRead('chauffeur queue');stats.driveCalls[#stats.driveCalls+1]={serial=serial,offer=copy(value),entity=entity}
-        return true,'Your companion is preparing to drive.'
+        return true
     end
     companions.chauffeurSnapshot=function() return {active=false,phase='idle'} end
     return offer
@@ -835,6 +835,25 @@ files['runtime/companion-actions.json']=json.encode(drivePacket(input));events.o
 assert(#stats.driveCalls==1 and stats.driveCalls[1].serial==1 and stats.driveCalls[1].entity=='13ULL')
 assert(not convaiGameplayActions.inspect().pending)
 `));
+
+const drivePreparingNotice = (developer) => `
+events.onInit(); events.onUpdate(0); privateConversation()
+stats.developer = ${developer}
+local function notes()
+    local out = {}
+    for _, item in ipairs(stats.trace) do if item.kind == 'feedback' then out[#out + 1] = item.value end end
+    return out
+end
+hotkeys.cyberpunk_convai_text()
+player.composerOpen = false; player.submission = 'Drive me to my pin.'; events.onUpdate(0.1)
+local input = json.decode(assert(files['runtime/last-input.json']))
+replyFor(input); events.onUpdate(0.1)
+files['runtime/companion-actions.json'] = json.encode(drivePacket(input)); events.onUpdate(0.1); events.onUpdate(0.1)
+assert(#stats.driveCalls == 1, 'the driving request was not queued')
+assert(#notes() == 0, 'a queued drive posted a notice: ' .. table.concat(notes(), ' | '))
+`;
+test('a queued driving request posts no preparing notice with Developer mode off', () => run(drivePreparingNotice(false)));
+test('a queued driving request posts no preparing notice with Developer mode on', () => run(drivePreparingNotice(true)));
 
 test('actual new conversation, zero-delta menu, reply deadline and restored world each revoke late driving actions', () => run(`
 events.onInit();events.onUpdate(0);privateConversation()

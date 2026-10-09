@@ -136,7 +136,7 @@ function M.queue(s,player,entry,expected)
         playerId=sample.playerId,generation=s.generation,active=true,stopAttempts=0,brakeAttempts=0,
         destinationRevision=1,destinationAnchor=copy(sample.waypoint),driveRevision=0,retargets=0,backend='npc'}
     s.lastChauffeur=nil; s.phase='chauffeur'; s.error=nil
-    return true,'Your companion is preparing to drive.',copy(value)
+    return true,nil,copy(value)
 end
 local function stop(s,reason,outcome)
     local c=s.chauffeur

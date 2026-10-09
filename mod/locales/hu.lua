@@ -505,7 +505,6 @@ return {
     ["You moved away from the car. The trip was cancelled."] = "Eltávolodtál az autótól. Az út megszakadt.",
     ["Your car has no free passenger seat for V."] = "Az autóban nincs szabad utasülés V számára.",
     ["Your companion is driving to the selected waypoint."] = "A társad a kijelölt útpontra vezet.",
-    ["Your companion is preparing to drive."] = "A társad felkészül a vezetésre.",
     ["Your companion is ready. Get in the passenger seat to start the trip."] = "A társad készen áll. Ülj be az anyósülésre az út indításához.",
     ["Your companion must step out before taking the driver seat."] = "A társadnak ki kell szállnia, mielőtt a vezetőülésbe ülne.",
     ["Your companions, character models and conversation settings."] = "A társaid, a karaktermodellek és a beszélgetési beállítások.",

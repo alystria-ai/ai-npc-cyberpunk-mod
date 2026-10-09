@@ -397,7 +397,6 @@ return {
     ["Walking commands did not release in time."] = "歩行コマンドを時間内に解放できませんでした。",
     ["Your car has no free passenger seat for V."] = "自分の車にVが座れる空き乗客席がありません。",
     ["Your companion is driving to the selected waypoint."] = "コンパニオンが選択したウェイポイントに向かって運転しています。",
-    ["Your companion is preparing to drive."] = "コンパニオンが運転の準備をしています。",
     ["Your companion must step out before taking the driver seat."] = "コンパニオンは一度車から降りてから、運転席に座る必要があります。",
     ["Waiting for party to board"] = "パーティーの乗車待ち",
     ["Scenery or a vehicle is blocking the companion position."] = "地形や周囲の物体、または車両がコンパニオンの位置を塞いでいます。",

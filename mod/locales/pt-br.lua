@@ -397,7 +397,6 @@ return {
     ["Walking commands did not release in time."] = "Os comandos de caminhada não foram liberados a tempo.",
     ["Your car has no free passenger seat for V."] = "Seu carro não tem um banco de passageiro livre para V.",
     ["Your companion is driving to the selected waypoint."] = "Seu companheiro está dirigindo até o ponto marcado.",
-    ["Your companion is preparing to drive."] = "Seu companheiro está se preparando para dirigir.",
     ["Your companion must step out before taking the driver seat."] = "Seu companheiro precisa sair do carro antes de ocupar o banco do motorista.",
     ["Waiting for party to board"] = "Aguardando o grupo embarcar",
     ["Scenery or a vehicle is blocking the companion position."] = "Um elemento do cenário ou um veículo está bloqueando a posição do companheiro.",

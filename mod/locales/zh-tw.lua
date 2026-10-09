@@ -397,7 +397,6 @@ return {
     ["Walking commands did not release in time."] = "步行指令未能及時釋放。",
     ["Your car has no free passenger seat for V."] = "你的汽車沒有供 V 使用的空乘客座位。",
     ["Your companion is driving to the selected waypoint."] = "夥伴正駕車前往所選導航點。",
-    ["Your companion is preparing to drive."] = "夥伴正在準備駕駛。",
     ["Your companion must step out before taking the driver seat."] = "夥伴必須先下車，才能坐上駕駛座。",
     ["Waiting for party to board"] = "等待隊伍上車",
     ["Scenery or a vehicle is blocking the companion position."] = "場景物體或車輛擋住了夥伴的位置。",

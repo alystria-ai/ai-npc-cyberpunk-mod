@@ -233,9 +233,10 @@ gameplayActions = dofile('gameplay-actions.lua').new({
     developerMode = manager.developerMode,
     feedback = function(state, reason)
         local player = Game.GetPlayer()
+        -- A queued action with no text posts nothing: a queued drive has none.
+        if state == 'queued' and (reason == nil or reason == '') then return end
         if player then convaiNotices.send(player, state == 'queued' and 'action-queued' or 'action-rejected',
-            ui.t(reason or (state == 'queued'
-                and 'Your companion is preparing to drive.' or 'The driving request could not be queued.'))) end
+            ui.t(reason or 'The driving request could not be queued.')) end
     end})
 convaiGameplayActions = gameplayActions
 microphone.captureActions = function(context)

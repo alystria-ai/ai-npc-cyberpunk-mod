@@ -193,7 +193,7 @@ const reviewed = {
   // or init's localized gameplay-action feedback. Keep native wording intact;
   // raw exceptions, shutdown receipts and offer metadata are not UI copy.
   'chauffeur.feedback': [
-    'Your companion is preparing to drive.', 'The driving request could not be queued.',
+    'The driving request could not be queued.',
     'The driving request could not be cancelled.', 'Trip cancelled from Companion Manager.',
     'Choose a ready companion from your party.', 'That companion is no longer ready to drive.', 'Vehicle information is not ready.',
     'Step out of the driver seat before asking your companion to drive.',

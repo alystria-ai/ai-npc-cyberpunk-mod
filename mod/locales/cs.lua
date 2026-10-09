@@ -505,7 +505,6 @@ return {
     ["You moved away from the car. The trip was cancelled."] = "Jsi příliš daleko od auta. Jízda byla zrušena.",
     ["Your car has no free passenger seat for V."] = "Tvé auto nemá pro V volné sedadlo spolujezdce.",
     ["Your companion is driving to the selected waypoint."] = "Tvůj společník jede k vybranému bodu na mapě.",
-    ["Your companion is preparing to drive."] = "Tvůj společník se připravuje k řízení.",
     ["Your companion is ready. Get in the passenger seat to start the trip."] = "Tvůj společník je připraven. Nastup na sedadlo spolujezdce a jízda začne.",
     ["Your companion must step out before taking the driver seat."] = "Tvůj společník musí vystoupit, než zaujme místo řidiče.",
     ["Your companions, character models and conversation settings."] = "Tvoji společníci, modely postav a nastavení konverzací.",

@@ -397,7 +397,6 @@ return {
     ["Walking commands did not release in time."] = "Команды ходьбы не были освобождены вовремя.",
     ["Your car has no free passenger seat for V."] = "В вашей машине нет свободного пассажирского места для V.",
     ["Your companion is driving to the selected waypoint."] = "Напарник едет к выбранной метке на карте.",
-    ["Your companion is preparing to drive."] = "Напарник готовится вести машину.",
     ["Your companion must step out before taking the driver seat."] = "Напарник должен выйти, прежде чем занять водительское место.",
     ["Waiting for party to board"] = "Ожидание посадки группы",
     ["Scenery or a vehicle is blocking the companion position."] = "Объект окружения или машина блокирует место для напарника.",

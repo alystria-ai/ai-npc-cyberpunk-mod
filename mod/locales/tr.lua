@@ -505,7 +505,6 @@ return {
     ["You moved away from the car. The trip was cancelled."] = "Arabadan uzaklaştın. Yolculuk iptal edildi.",
     ["Your car has no free passenger seat for V."] = "Arabanda V için boş yolcu koltuğu yok.",
     ["Your companion is driving to the selected waypoint."] = "Yoldaşın seçili yol noktasına sürüyor.",
-    ["Your companion is preparing to drive."] = "Yoldaşın sürmeye hazırlanıyor.",
     ["Your companion is ready. Get in the passenger seat to start the trip."] = "Yoldaşın hazır. Yolculuğu başlatmak için yolcu koltuğuna bin.",
     ["Your companion must step out before taking the driver seat."] = "Yoldaşının sürücü koltuğuna geçmeden önce arabadan çıkması gerekiyor.",
     ["Your companions, character models and conversation settings."] = "Yoldaşların, karakter modelleri ve konuşma ayarları.",

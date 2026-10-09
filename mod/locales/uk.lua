@@ -505,7 +505,6 @@ return {
     ["You moved away from the car. The trip was cancelled."] = "Авто залишилося позаду. Поїздку скасовано.",
     ["Your car has no free passenger seat for V."] = "У твоєму авто немає вільного пасажирського місця для V.",
     ["Your companion is driving to the selected waypoint."] = "Компаньйон веде авто до вибраної мітки.",
-    ["Your companion is preparing to drive."] = "Компаньйон готується вести авто.",
     ["Your companion is ready. Get in the passenger seat to start the trip."] = "Компаньйон готовий. Сядь на пасажирське сидіння, щоб почати поїздку.",
     ["Your companion must step out before taking the driver seat."] = "Компаньйон має вийти, перш ніж сісти на водійське сидіння.",
     ["Your companions, character models and conversation settings."] = "Твої компаньйони, моделі персонажів і налаштування розмов.",

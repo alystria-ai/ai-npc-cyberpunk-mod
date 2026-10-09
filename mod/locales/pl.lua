@@ -505,7 +505,6 @@ return {
     ["You moved away from the car. The trip was cancelled."] = "Oddalenie się od samochodu anulowało przejazd.",
     ["Your car has no free passenger seat for V."] = "W twoim samochodzie nie ma wolnego miejsca pasażera dla V.",
     ["Your companion is driving to the selected waypoint."] = "Towarzysz jedzie do wybranego znacznika.",
-    ["Your companion is preparing to drive."] = "Towarzysz przygotowuje się do jazdy.",
     ["Your companion is ready. Get in the passenger seat to start the trip."] = "Towarzysz jest gotowy. Usiądź na miejscu pasażera, aby rozpocząć przejazd.",
     ["Your companion must step out before taking the driver seat."] = "Towarzysz musi wysiąść, zanim zajmie miejsce kierowcy.",
     ["Your companions, character models and conversation settings."] = "Twoi towarzysze, modele postaci i ustawienia rozmów.",
