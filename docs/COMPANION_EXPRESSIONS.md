@@ -1,5 +1,68 @@
 # Companion expressions
 
+## October 9 (later): smile calibration per head, Evelyn, who gets what, and the face-stage probe
+
+**Smile (user: happy stretches Judy's smile).** Judy's joy wrote corners .45 x her gain 1.6 = .72, which the user
+found stretched. Evelyn (woman_average_sermo, gain 1) was measured with the `writer` probe at corners .45 / .65 / .85
+(each with the .6 cheek squint): .45 is a faint, closed-mouth smile, .65 a natural smile, .85 a broad one
+(`runtime/face-captures/live59/ev-smile-*.png`). So the two heads need opposite corrections. New per-character
+`smile` multiplier in `traitTable` (`mod/facial-playback.lua`, mirrored as the `smile` parameter of `expressionTarget`
+and `mixTarget`): it scales only the EMOTION's smile, never the resting smile, frowns or the squint.
+Judy .7: joy .504 written (was .72), trust .39, warm tagged lines about .16 (was .19); her resting smile is
+unchanged (.192) and her cheek squint stays at .43 (it follows the unscaled smile). Everyone else 1.3: joy .585
+(was .45), trust .455 (was .35); their resting smile is unchanged. Tests changed accordingly (Judy joy .504, default
+trust .22-.29, Judy tagged joy at least .18, warm at least .14). Not yet verified in game: it needs a CET reload and
+the capture pair on Judy and Evelyn (see the face-stage probe below).
+
+**Evelyn.** She is a managed companion copy (the probes find her in the owned rows) with status
+`prepared:woman_average_sermo`, so the layer applies to her; the quest/scene skip (`547904e`, `RequestWorldFace`) only
+concerns world NPCs and returns "managed" for copies. All controls work on her (captures `ev-*.png` in
+`runtime/face-captures/live59/`: anger, sad, worried, surprise, joy all move her face). What looked "not great":
+- her native rest face has knitted, lowered brows and pressed dark lips, so her neutral already reads stern. Anger
+  and disgust gain little contrast against it, and brow raises (surprise, joy's brows) have to climb out of it. The
+  rig clamps pose inputs at 0, so this cannot be pulled below rest; the solution would be a per-rig raise gain, not
+  done (no measurement of a case that is wrong yet);
+- the smile at .45 was weak on her head (fixed above);
+- her sad pose is strong and reads clearly (inner brows up, heavy lids), anger now reads as a scowl.
+No evidence of a weaker blendshape response or a resting offset beyond that brow state; a different head (average
+woman) just needs a bigger smile than Judy's.
+
+**Do the improvements apply to every character?** From the code, not the docs:
+- Recipes and caps are global: `familyPoses`, `expressionLimit`, the mix curve, mouth budget, the blink and the sad
+  gaze are the same for every actor (`mod/facial-playback.lua`, `bridge/companion-expressions.mjs`).
+- Per-character data are only `traitTable` entries keyed by profile key: `warmth` (resting smile), `gain` (corner
+  gain, Judy 1.6, others 1), `browDown` (Judy 1.25 for her high resting brows, nobody else) and the new `smile`
+  (Judy .7, others 1.3), plus the bridge's manner (expressive, open, reserved, cold: intensity and evidence for a
+  smile). So the Judy-specific calibrations are her gain, her browDown and her smile .7; nobody else gets them, and
+  characters whose own rest brows are low (Evelyn) have no compensation.
+- Which actors get the 59-control graph: every companion copy the manager spawns (story companions and archetype or
+  pedestrian copies alike, all tagged `CyberpunkConvaiCompanion`) whose `face_rig` graph is one of the nine in
+  `assets/facial/controls.json`: `man_average`, `man_big`, `man_fat`, `woman_average`, `player_man_photomode`,
+  `player_woman_photomode` (Judy), the player paperdoll pair and `pma_paperdoll`. A copy on any other graph reports
+  `unsupported-graph` and keeps its native face. World NPCs get it only on demand when V talks to them (at most two,
+  never one in a scene or dialogue or a quest-bound record).
+- Male heads are covered by the archive (`man_average`, `man_big`, `man_fat`, same 59 controls); all 800 extracted
+  game lines carry the same 414 rig tracks, so the rig check passes for men too. A live male capture is pending the
+  stage probe (CET reload).
+
+**Face-stage probe** (`mod/face-test.lua`, `scripts/Send-FaceStage.ps1`; development only: `face-test.lua` is in
+`scripts/development-files.json` and in no player package, and the writer loads it only when the file exists).
+A capture batch never needs the user to frame anyone:
+```
+.\scripts\Send-FaceStage.ps1 -Character evelyn-parker          # waits until she stands in front of the camera
+.\scripts\Send-FaceTest.ps1 "face-test evelyn browsdown 20 policy"
+python scripts/Capture-GameWindow.py --hwnd ... --crop ...        # the face is about 1.1 m from the camera
+.\scripts\Send-FaceStage.ps1 -Action off | -Action dismiss | -Action status
+```
+`face-stage <key> [hold]` through the same request file as `face-test`: a present copy of that key is reused,
+otherwise one is created with the normal `convaiCompanions.spawn(key)` path and waited for (30 s); then every .1 s,
+for the hold (default 60 s, at most 300), one `TeleportationFacility:Teleport` puts her 1.1 m along V's camera
+direction (horizontal) on V's floor, rotated to face the camera (her own gaze on V is untouched). `off` releases her
+to her own movement, `dismiss` dismisses only the copies the probe created, `status` returns
+`spawning|staged|released|lost|failed`. One transform per .1 s only while a stage is active, nothing per frame
+otherwise, no new hooks. A CET reload is needed to load it. Test: `face-stage probe` in
+`companion-expression-playback.test.mjs` (geometry, reuse, spawn, off, dismiss of only its own copies).
+
 ## October 9 (morning): live run of the 59-control face on Judy, and a stronger anger
 
 Judy in V's apartment at conversation distance (1370 x 815 window, face about 130 px high), the installed 59-control

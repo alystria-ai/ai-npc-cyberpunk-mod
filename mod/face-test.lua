@@ -120,6 +120,103 @@ commands['face-test'] = function(rest, context)
     return true, {started = pose, mode = mode, seconds = M.run.duration, companion = row.name or row.profileKey}
 end
 
+-- ---------------------------------------------------------------------------
+-- face-stage: put a companion in front of V's camera, facing it, so a capture batch needs no manual framing.
+--   face-stage <key> [hold-seconds]   key = a companion definition / profile key (evelyn-parker, panam-palmer, an
+--                                     archetype key). An already present copy is reused; otherwise one is created
+--                                     with the normal spawn path (convaiCompanions.spawn) and waited for.
+--   face-stage status                 {state, name, placed, ...}: spawning | staged | released | lost | failed
+--   face-stage off                    stop holding (her own movement takes over again)
+--   face-stage dismiss                dismiss the copies this probe created (never one that was already there)
+-- Dev only (this file is not in a player package). One transform every .1 s for at most the hold (default 60 s,
+-- limit 300 s), only while a stage is active; nothing otherwise. A visible placement is fine for a probe.
+local STAGE_DISTANCE, STAGE_DEFAULT_HOLD, STAGE_MAX_HOLD, STAGE_SPAWN_WAIT, STAGE_PERIOD = 1.1, 60, 300, 30, .1
+M.spawned = M.spawned or {}
+
+local function stageTarget()
+    local player = Game.GetPlayer()
+    if not player then return nil, 'no player' end
+    local ok, _, forward = pcall(function() return Game.GetTargetingSystem():GetCrosshairData(player) end)
+    if not ok or not forward then forward = player:GetWorldForward() end
+    local length = forward and math.sqrt(forward.x * forward.x + forward.y * forward.y) or 0
+    if length < 1e-3 then return nil, 'no camera direction' end
+    local fx, fy = forward.x / length, forward.y / length
+    local at = player:GetWorldPosition()
+    -- Yaw convention: forward = (-sin yaw, cos yaw), so the camera's yaw is atan2(-fx, fy); she turns the other way.
+    local atan2 = math.atan2 or math.atan -- LuaJIT (the game) has atan2; Lua 5.3 takes two arguments in atan
+    local yaw = math.deg(atan2(-fx, fy)) + 180
+    return {x = at.x + fx * STAGE_DISTANCE, y = at.y + fy * STAGE_DISTANCE, z = at.z, yaw = yaw}
+end
+
+local function stageTick(context)
+    local stage = M.stage
+    if not stage or stage.state == 'released' or stage.state == 'lost' or stage.state == 'failed' then return end
+    if M.clock < stage.nextAt then return end
+    stage.nextAt = M.clock + STAGE_PERIOD
+    local row = context and rowFor(context, stage.who)
+    if stage.state == 'spawning' then
+        if row then stage.state, stage.entity, stage.name, stage.until_ = 'staged', row.entity, row.name, M.clock + stage.hold
+        elseif M.clock > stage.deadline then stage.state, stage.error = 'failed', 'the copy did not become ready in time'; return
+        else return end
+    end
+    if M.clock >= stage.until_ then stage.state = 'released'; log('stage-released', {who = stage.who, placed = stage.placed}); return end
+    local current
+    if row and row.entity == stage.entity then current = row
+    else for _, other in ipairs(context and context.actors or {}) do if other.entity == stage.entity then current = other end end end
+    if not current then stage.state = 'lost'; log('stage-lost', {who = stage.who}); return end
+    local target, why = stageTarget()
+    if not target then stage.state, stage.error = 'failed', why; return end
+    local ok, err = pcall(function()
+        Game.GetTeleportationFacility():Teleport(current.npc, Vector4.new(target.x, target.y, target.z, 1),
+            EulerAngles.new(0, 0, target.yaw))
+    end)
+    if ok then stage.placed = stage.placed + 1 else stage.state, stage.error = 'failed', tostring(err) end
+end
+
+commands['face-stage'] = function(rest, context)
+    local word, tail = rest:match('^(%S+)%s*(.*)$')
+    if not word then return false, 'usage: face-stage <key> [hold-seconds] | status | off | dismiss' end
+    if word == 'status' then
+        local stage = M.stage
+        if not stage then return true, {state = 'none'} end
+        return true, {state = stage.state, who = stage.who, name = stage.name, placed = stage.placed, error = stage.error,
+            spawnedHere = stage.spawnedHere, hold = stage.hold}
+    elseif word == 'off' then
+        if M.stage then M.stage.state = 'released' end
+        return true, 'released'
+    elseif word == 'dismiss' then
+        local done = {}
+        for index = #M.spawned, 1, -1 do
+            local ok, result = pcall(function() return convaiCompanions.dismiss(M.spawned[index]) end)
+            done[#done + 1] = {serial = M.spawned[index], ok = ok, result = ok and result or tostring(result)}
+            table.remove(M.spawned, index)
+        end
+        if M.stage then M.stage.state = 'released' end
+        return true, {dismissed = done}
+    end
+    local hold = math.max(5, math.min(STAGE_MAX_HOLD, tonumber(tail) or STAGE_DEFAULT_HOLD))
+    if not convaiCompanions then return false, 'companion runtime not loaded' end
+    local stage = {who = word, hold = hold, state = 'spawning', placed = 0, nextAt = 0, deadline = M.clock + STAGE_SPAWN_WAIT}
+    if rowFor(context, word) then
+        stage.state = 'spawning' -- picked up on the next tick; no new copy
+    else
+        local listed = {}
+        local ok, rows = pcall(convaiCompanions.list)
+        for _, row in ipairs(ok and rows or {}) do
+            if row.key == word or tostring(row.profileKey or '') == word then listed[#listed + 1] = row end
+        end
+        if #listed == 0 then
+            local created, serial, reason = pcall(convaiCompanions.spawn, word)
+            if not created or not serial then return false, 'spawn refused: ' .. tostring(created and reason or serial) end
+            M.spawned[#M.spawned + 1] = serial
+            stage.spawnedHere, stage.serial = true, serial
+        end
+    end
+    M.stage = stage
+    log('stage', {who = word, hold = hold, spawned = stage.spawnedHere == true})
+    return true, {staging = word, hold = hold, spawnedHere = stage.spawnedHere == true}
+end
+
 local function step(run)
     return run.steps[math.min(#run.steps, math.floor(run.elapsed / run.per) + 1)]
 end
@@ -128,6 +225,7 @@ end
 function M.poll(delta, context)
     delta = (type(delta) == 'number' and delta == delta and delta > 0 and delta < .5) and delta or 0
     M.clock = M.clock + delta
+    if M.stage then local ok, err = pcall(stageTick, context); if not ok then M.stage.state, M.stage.error = 'failed', tostring(err) end end
     local run = M.run
     if run then
         run.elapsed = run.elapsed + delta

@@ -343,6 +343,45 @@ test('face-test probe: writer mode pushes an extreme smile through the single wr
  for _=1,25 do tick(.1) end;tick(.1);assert(last(a).lips_l_corner_up<.25,'probe ends and the real policy resumes (warmth floor)')
 `));
 
+// face-stage (mod/face-test.lua): a companion is put 1.1 m in front of V's camera facing it, one transform every .1 s for
+// the hold, created through the normal spawn path when absent, and dismissed on request (only probe-created copies).
+test('face-stage probe: reuses a present copy, spawns a missing one, places it in front of the camera facing it, releases and dismisses', () => runProbe(`
+ Vector4={new=function(x,y,z,w) return {x=x,y=y,z=z,w=w} end}
+ EulerAngles={new=function(p,r,y) return {pitch=p,roll=r,yaw=y} end}
+ local moves={}
+ Game.GetTargetingSystem=function() return {GetCrosshairData=function() return {x=10,y=20,z=6.7},{x=0,y=1,z=-.1} end} end
+ Game.GetTeleportationFacility=function() return {Teleport=function(_,npc,position,angles) moves[#moves+1]={npc=npc,position=position,angles=angles} end} end
+ function player:GetWorldPosition() return {x=10,y=20,z=5} end
+ local spawned,dismissed
+ convaiCompanions.list=function() return {} end
+ convaiCompanions.spawn=function(key) spawned=key;return 7 end
+ convaiCompanions.dismiss=function(serial) dismissed=serial;return true end
+ -- A present copy is reused: no spawn, placed in front of the camera, facing it.
+ request('s1\\nface-stage judy 10');tick(.3)
+ assert(files['runtime/face-test-response.txt']:find('ok=true',1,true) and spawned==nil,files['runtime/face-test-response.txt'])
+ for _=1,10 do tick(.1) end
+ request('sx\\nface-stage status');tick(.3);assert(#moves>=1 and #moves<=12,'one transform per .1 s: '..#moves..' '..tostring(files['runtime/face-test-response.txt']))
+ local m=moves[#moves]
+ assert(m.npc==a and math.abs(m.position.x-10)<1e-6 and math.abs(m.position.y-21.1)<1e-6 and m.position.z==5,'in front, on V s floor')
+ assert(math.abs(m.angles.yaw-180)<1e-6,'facing the camera: '..m.angles.yaw)
+ -- off stops the hold.
+ request('s2\\nface-stage off');tick(.3);local count=#moves
+ for _=1,10 do tick(.1) end
+ assert(#moves==count,'no transform after off')
+ -- An absent character is created through the normal path, waited for, then staged and later dismissed.
+ rows={{entity=a.id,npc=a,profileKey='judy-alvarez',name='Judy'}}
+ request('s3\\nface-stage evelyn-parker 5');tick(.3)
+ assert(spawned=='evelyn-parker')
+ count=#moves;for _=1,5 do tick(.1) end;assert(#moves==count,'nothing is placed before the copy is ready')
+ local c=actor('copy-c');rows[#rows+1]={entity=c.id,npc=c,profileKey='evelyn-parker',name='Evelyn Parker'}
+ for _=1,5 do tick(.1) end
+ assert(moves[#moves].npc==c,'the new copy is staged')
+ request('s4\\nface-stage dismiss');tick(.3)
+ assert(dismissed==7,'dismisses what the probe created')
+ request('s5\\nface-stage judy 10');tick(.3);dismissed=nil;request('s6\\nface-stage dismiss');tick(.3)
+ assert(dismissed==nil,'never a copy that was already there')
+`));
+
 test('face-test probe: direct mode bypasses the writer with its own feature and logs the apply result', () => runProbe(`
  request('n2\\nface-test judy frown 2 direct');tick(.3)
  local count=#a.frames;tick(.1);assert(#a.frames==count+1,'one direct write per frame, writer skipped')
