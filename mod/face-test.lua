@@ -132,6 +132,82 @@ commands['face-test'] = function(rest, context)
 end
 
 -- ---------------------------------------------------------------------------
+-- say <who> <text>: V's private line to a present character, through the real reply path (mod/init.lua speech.devSay).
+-- face-trace on|off|dump [file]: a bounded ring (3600 frames, preallocated) of what the writer WROTE on this entity's
+-- face each frame (jaw, lips, phase, speech cursor, request, phrase index), dumped once to runtime/face-trace.json on
+-- request (the only file IO). Recording is dev-only and costs a few native reads per written frame while it is on.
+commands['say'] = function(rest, context)
+    local who, text = rest:match('^(%S+)%s+(.+)$')
+    if not who then return false, 'usage: say <who> <text>' end
+    local row = rowFor(context, who)
+    if not row then return false, 'no owned companion matching ' .. who .. ' in range' end
+    local speech, player = convaiSpeech, Game.GetPlayer()
+    if not speech or type(speech.devSay) ~= 'function' or not player then return false, 'speech adapter unavailable' end
+    local ok, sent, detail = pcall(speech.devSay, player, row.npc, text)
+    if not ok then return false, tostring(sent) end
+    log('say', {who = who, bytes = #text, sent = sent == true, detail = tostring(detail), entity = row.entity})
+    return sent == true, {requestId = sent and detail or nil, problem = (not sent) and detail or nil, entity = row.entity}
+end
+
+local TRACE_SIZE = 3600
+local TRACE_FIELDS = {'jaw_mid_open', 'lips_together_up', 'lips_together_dn', 'lips_l_funnel', 'lips_l_purse',
+    'lips_l_stretch', 'lips_l_corner_up'}
+local function traceReset(entity)
+    local ring = {entity = entity, n = 0, clock = {}, phase = {}, pos = {}, seg = {}, req = {}, state = {}}
+    for _, name in ipairs(TRACE_FIELDS) do ring[name] = {} end
+    M.trace = ring
+end
+commands['face-trace'] = function(rest, context)
+    local action, who, file = rest:match('^(%S+)%s*(%S*)%s*(%S*)$')
+    if action == 'off' then M.trace = nil; return true, 'trace off' end
+    if action == 'on' then
+        local row = rowFor(context, who ~= '' and who or 'first')
+        if not row then return false, 'no owned companion matching ' .. who end
+        traceReset(row.entity)
+        return true, {tracing = row.entity, size = TRACE_SIZE}
+    end
+    if action == 'dump' then
+        local ring = M.trace
+        if not ring then return false, 'no trace' end
+        local count = math.min(ring.n, TRACE_SIZE)
+        local first = ring.n - count
+        local rows = {}
+        for i = 1, count do
+            local at = (first + i - 1) % TRACE_SIZE + 1
+            local row = {math.floor(ring.clock[at] * 1000) / 1000, ring.phase[at], ring.state[at], math.floor((ring.pos[at] or -1) * 1000) / 1000,
+                ring.seg[at] or 0, ring.req[at] or ''}
+            for _, name in ipairs(TRACE_FIELDS) do row[#row + 1] = math.floor((ring[name][at] or 0) * 1000) / 1000 end
+            rows[i] = row
+        end
+        local name = who ~= '' and who or file
+        local path = 'runtime/' .. ((name ~= '' and name:match('^[%w_%-]+$')) and name or 'face-trace') .. '.json'
+        local out = io.open(path, 'wb')
+        if not out then return false, 'cannot write ' .. path end
+        out:write(encode({entity = ring.entity, frames = ring.n, fields = {'t', 'phase', 'state', 'position', 'segment', 'request', table.unpack(TRACE_FIELDS)}, rows = rows}))
+        out:close()
+        return true, {path = path, rows = count, frames = ring.n}
+    end
+    return false, 'usage: face-trace on <who> | off | dump [name]'
+end
+local function traceFrame(entity, feature, phase)
+    local ring = M.trace
+    if not ring or ring.entity ~= entity then return end
+    local at = ring.n % TRACE_SIZE + 1
+    ring.n = ring.n + 1
+    ring.clock[at], ring.phase[at] = M.clock, phase
+    local face = convaiFacialPlayback
+    if face then
+        ring.pos[at], ring.state[at] = face.position, face.state
+        ring.seg[at] = face.segment and face.segment.index or 0
+        ring.req[at] = face.requestId and tostring(face.requestId):sub(-12) or ''
+    end
+    for _, name in ipairs(TRACE_FIELDS) do
+        local ok, value = pcall(function() return feature[name] end)
+        ring[name][at] = ok and type(value) == 'number' and value or 0
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- face-stage: put a companion in front of V's camera, facing it, so a capture batch needs no manual framing.
 --   face-stage <key> [hold-seconds]   key = a companion definition / profile key (evelyn-parker, panam-palmer, an
 --                                     archetype key). An already present copy is reused; otherwise one is invited
@@ -609,6 +685,7 @@ end
 -- overwrites only the ten expression fields: no caps, no smoothing, mouth intact.
 -- Returns true when the write must be skipped (direct mode owns the actor).
 function M.post(entity, feature, phase, blocked)
+    if M.trace then pcall(traceFrame, entity, feature, phase) end
     local run = active(entity)
     if not run then
         -- Probe ended (off, finished, replaced): clear every leftover probe field

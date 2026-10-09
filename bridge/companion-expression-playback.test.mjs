@@ -345,6 +345,42 @@ test('face-test probe: writer mode pushes an extreme smile through the single wr
  for _=1,25 do tick(.1) end;tick(.1);assert(last(a).lips_l_corner_up<.25,'probe ends and the real policy resumes (warmth floor)')
 `));
 
+// October 9, scripted talk test: `say` submits V's line to a present character through the speech adapter's dev hook (the
+// composer's real path), and `face-trace` keeps a bounded ring of what the writer actually WROTE per frame.
+test('face-test probe: say submits through the speech adapter hook, face-trace records the written jaw in a bounded ring and dumps once', () => runProbe(`
+ local said
+ convaiSpeech=convaiSpeech or {}
+ convaiSpeech.devSay=function(who,npc,text) said={npc=npc,text=text,player=who};return true,'req-1' end
+ request('s1\\nsay judy hello there V');tick(.3)
+ assert(said and said.npc==a and said.text=='hello there V' and said.player==player,'the line reaches the adapter hook')
+ assert(files['runtime/face-test-response.txt']:find('ok=true',1,true) and files['runtime/face-test-response.txt']:find('req-1',1,true))
+ convaiSpeech.devSay=function() return false,'developer mode is off' end
+ request('s2\\nsay judy nope');tick(.3)
+ assert(files['runtime/face-test-response.txt']:find('ok=false',1,true) and files['runtime/face-test-response.txt']:find('developer mode',1,true))
+ request('s3\\nsay nobody hi');tick(.3);assert(files['runtime/face-test-response.txt']:find('ok=false',1,true))
+ function a:ConvaiFaceStatus() return 'prepared:woman_average_sermo' end
+ rows[1].profileKey='evelyn-parker';face.beginExpressionFrame(.1,{actors=rows});face.updateExpressions({actors=rows})
+ request('t1\\nface-trace on evelyn');tick(.3)
+ assert(files['runtime/face-test-response.txt']:find('ok=true',1,true) and face.faceTest.trace,'trace is on')
+ local timeline={version=1,requestId=context.requestId,entity=a.id,duration=100,source='local-jali',articulation='jali-audio-v1',
+  tracks={'jaw_mid_open','lips_together_up'},frames={{0,.12,0},{100,.12,.4}}}
+ face.beginExpressionFrame(.1,{actors=rows})
+ assert(face.start(context,timeline,a,100))
+ local position=0
+ for _=1,3700 do face.beginExpressionFrame(.02,{actors=rows});position=position+.02;face.sync(a,position,context.requestId) end
+ local ring=face.faceTest.trace
+ assert(ring.n>=3600 and #ring.clock==3600 and #ring.jaw_mid_open==3600,'the ring is preallocated at its bound and never grows: '..ring.n..' '..#ring.clock)
+ local at=(ring.n-1)%3600+1
+ assert(math.abs(ring.jaw_mid_open[at]-last(a).jaw_mid_open)<1e-9 and ring.jaw_mid_open[at]>.2,'it records the lifted value the writer wrote')
+ files['runtime/face-trace.json']=nil
+ request('t2\\nface-trace dump lipcase');tick(.3)
+ assert(files['runtime/lipcase.json'] and files['runtime/lipcase.json']:find('rows',1,true),'one dump file')
+ assert(files['runtime/face-test-response.txt']:find('rows=3600',1,true),files['runtime/face-test-response.txt'])
+ request('t3\\nface-trace off');tick(.3);assert(face.faceTest.trace==nil)
+ local before=ring.n;face.beginExpressionFrame(.02,{actors=rows});position=position+.02;face.sync(a,position,context.requestId)
+ assert(ring.n==before,'nothing is recorded once it is off')
+`));
+
 // face-stage (mod/face-test.lua): a companion is put .85 m in front of V's camera facing it with an AI teleport command (a
 // transform teleport is undone by her locomotion), only while she is off the spot, for the hold; the character is
 // invited through the party queue when absent, and dismissed on request (only probe-invited characters).
