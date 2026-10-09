@@ -1424,8 +1424,18 @@ end
 -- cancellation is pending, else whether it was sent.
 local function walkLeg(entry,walk,from)
     local gap=space.ground(from,walk.target)
-    -- Boarding hurries (V waits in the car); walking out keeps the old pace.
-    local gait=walk.purpose=='board' and passage.boardGait(gap) or gap>3 and 'Run' or 'Walk'
+    -- Boarding hurries (V waits in the car); walking out keeps the old pace. A
+    -- retry walks (it stops where it is told), and a native route to the doorway
+    -- never sprints: a sprint stops loosely at the navmesh edge, off the line
+    -- the straight leg into the car needs (live 2026-10-09 20:01Z).
+    local gait=walk.gait
+    if not gait then
+        if walk.purpose~='board' then gait=gap>3 and 'Run' or 'Walk'
+        else
+            gait=passage.boardGait(gap)
+            if gait=='Sprint' and (walk.navigate or walk.next) then gait='Run' end
+        end
+    end
     local sent=actuator.board(entry.motor,walk.target,{navigate=walk.navigate,gait=gait})
     if sent then
         stopPace(entry)
@@ -1473,7 +1483,7 @@ local function liftPassage(entry,player,v,rise,flat)
     if walk then
         local gap=space.ground(entry.position,walk.target)
         local level=math.abs(entry.position.z-walk.target.z)<.6
-        local reached=gap<(walk.navigate and .8 or .55) and level
+        local reached=gap<(walk.exact and .3 or walk.navigate and .8 or .55) and level
         if not reached and gap<walk.best-.3 then walk.best,walk.bestAt=gap,runtimeClock end
         local ended=entry.motor.kind=='board' and (entry.motor.feedback.failed or entry.motor.feedback.complete)
         -- Live 2026-10-08 20:26:05Z: the native walk to the doorway ended 0.8 m
@@ -1487,7 +1497,7 @@ local function liftPassage(entry,player,v,rise,flat)
             local clear,_,deferred=clearance.segment(entry.position,walk.next,entry.clearance)
             if deferred then return true end
             if clear then
-                local leg={purpose='board',target=walk.next,visit=walk.visit,final=true}
+                local leg={purpose='board',target=walk.next,visit=walk.visit,final=true,gait=walk.gait}
                 local sent=walkLeg(entry,leg,entry.position)
                 if sent==nil then return true end
                 if sent then entry.carWalk=leg; return true end
@@ -1513,12 +1523,17 @@ local function liftPassage(entry,player,v,rise,flat)
                 if not walk.retry then
                     local door=entry.carDoor
                     local legs={}
-                    if door and space.ground(entry.position,door)>.6 and space.ground(entry.position,door)<=separation.carDoorReach then
+                    -- Live 2026-10-09 20:01Z: she stopped 0.5 m from the doorway
+                    -- and the straight leg from there was blocked, so no door
+                    -- leg was tried (it had to be over 0.6 m) and she was given
+                    -- up. The door leg now goes exactly to the doorway foothold,
+                    -- from anywhere past 0.3 m, and every retry leg walks.
+                    if door and space.ground(entry.position,door)>.3 and space.ground(entry.position,door)<=separation.carDoorReach then
                         legs[#legs+1]={purpose='board',target=space.copy(door),next=space.copy(spot),spot=space.copy(spot),
-                            visit=walk.visit,retry=true}
+                            visit=walk.visit,retry=true,exact=true,gait='Walk'}
                     end
                     legs[#legs+1]={purpose='board',target=space.copy(spot),spot=space.copy(spot),visit=walk.visit,
-                        final=true,retry=true}
+                        final=true,retry=true,gait='Walk'}
                     entry.carRetry={legs=legs,index=1,visit=walk.visit,spot=spot}
                     return true
                 end

@@ -810,3 +810,30 @@ frame. The walk's give-up deadline still assumes 0.8 m/s, so it is only more
 generous. Tests: the gait table, and a boarding from 8 m back where every leg
 matches it. Needs a CET reload for `mod/companions.lua` and
 `mod/companion-passage.lua`.
+
+#### Follow-up: she did not get in at all (2026-10-09 20:01Z live)
+
+With `53af3d0` installed the log read `lift-boarding` `door-then-walk`
+(`swept` `blocked`, 13.8 m), `lift-board-walk-failed` (`walk` 0.5,
+`navigate` true, no retry yet), then `lift-boarding` `unseen-teleport`
+(`no-clear-retry`). Reading the code, that sequence means: the native walk to
+the doorway ended 0.5 m short of V's foothold, which counts as arrived; the
+straight leg into the car from that spot was blocked, so the leg was marked
+failed. The retry only tried a door leg when she was more than 0.6 m from the
+doorway, so at 0.5 m it had only the same blocked straight leg and fell back
+to the unseen placement, which waits for V to look away. Whether the sprint
+caused the loose stop is not provable offline (earlier today, before the gait
+change, the first leg also failed at 0.8 m, but the retry then had a door leg
+to try). The fix removes both weak points:
+
+- The retry's door leg is tried from anywhere past 0.3 m and goes exactly to
+  the foothold (arrival within 0.3 m), then the straight leg in.
+- Every retry leg walks (`gait` `Walk`), so a retry is a controlled short move.
+- A native route to the doorway never sprints (jog at most): the stop at the
+  navmesh edge is loose, and the straight leg needs her on the doorway line.
+  Straight legs still sprint beyond 5 m.
+
+Test: a wall forces the door-then-walk route, the route ends 0.5 m beside the
+doorway, a short wall blocks the straight leg from there only. It reproduces
+the log sequence above on `53af3d0` (fails) and passes now: she walks to the
+doorway exactly, walks in, and is never placed.

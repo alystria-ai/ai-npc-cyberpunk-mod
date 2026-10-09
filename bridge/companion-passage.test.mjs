@@ -683,3 +683,44 @@ test('she hurries onto the car floor: no leisurely walk beyond 1.5 m, sprint fro
   assert(logged('lift-boarded'),'she never boarded'..dump())
   assert(#teleports==0,'she was teleported although she could walk in'..dump())
 `));
+
+// Live 2026-10-09 20:01Z, after the boarding gait change: door-then-walk, the
+// native walk ended 0.5 m from the doorway foothold, the straight leg from
+// there was blocked, and with no door leg tried (the door was inside 0.6 m) the
+// retry found nothing clear and fell back to the unseen placement, so she never
+// got in while V watched. The door leg now goes exactly to the doorway, and
+// every retry leg walks.
+test('a native walk that stops beside the doorway is finished exactly at the doorway, then she walks in',()=>run(world+car+`
+  local sent={}
+  -- A wall across her straight line, so the native route to the doorway runs
+  -- first; a short wall that only blocks a start 0.5 m left of the doorway.
+  walls[#walls+1]={-8,-1,8,-1}
+  walls[#walls+1]={-3,6.5,-.5,6.5}
+  local plain=npc.ai.onSend
+  local stopped
+  npc.ai.onSend=function(cmd)
+    if cmd.kind=='AIMoveToCommand' then
+      local t=cmd.movementTarget.position
+      sent[#sent+1]={gait=cmd.movementType,navigate=not cmd.ignoreNavigation,x=t.x,y=t.y}
+      if not cmd.ignoreNavigation and not stopped and t.y>5 then
+        -- The route to the doorway (0,6) ends 0.5 m beside it instead of at it.
+        stopped=cmd.movementType
+        npc.pos=Vector4.new(t.x-.5,t.y,npc.pos.z)
+        cmd.kind='AIMoveToCommandIgnored'
+      end
+    end
+    return plain(cmd)
+  end
+  npc.pos=Vector4.new(-5,-6,0)
+  enterCar(); play(24)
+  assert(stopped,'the native walk to the doorway never ran'..dump())
+  assert(stopped=='Run','the native route to the doorway sprinted: '..tostring(stopped))
+  assert(logged('lift-board-walk-failed'),'the blocked leg was not noticed'..dump())
+  assert(logged('lift-boarded'),'she never got in on foot'..dump())
+  assert(#teleports==0,'she fell back to the placement'..dump())
+  assert(inCar(npc.pos.x,npc.pos.y),'she is not in the car'..dump())
+  -- The retry legs walk: to the doorway exactly, then in.
+  local retry={}
+  for _,s in ipairs(sent) do if not s.navigate and s.y>5.5 then retry[#retry+1]=s end end
+  assert(#retry>=2 and retry[1].gait=='Walk' and retry[2].gait=='Walk','the retry did not walk: '..#retry)
+`));
