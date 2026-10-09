@@ -255,17 +255,13 @@ manager-requested copy independently of the footer and other manager actions.
 Direct phone invitations use the same rules.
 
 **Which notices need Developer mode** (Settings → Development → Developer mode,
-default Off). The player must see that a slow preparation is progressing, so
-these are always shown, for manager and phone invitations alike:
+default Off). A player is told only that a companion joined, and about failures. The progress
+lines are Developer mode only, at any wait length, for manager and phone invitations alike:
 
 - **Preparing {name}…** (the memory check, voice conditioning and connection start),
-  **Connecting {name}…**, **ready to join when you return to the game** (manager) and **ready, close
-  the phone to join** (phone), but only once the invitation has been in flight for 10 s
-  (`LONG_WAIT_MS`, a long wait). A normal invitation shows no progress at all, so the player is not
-  told about a summon that arrives quickly. Developers see the progress steps after 1 s, and the
-  ready line at once;
-- **joined your group**, for every companion that arrives, quick or slow (developers see it too, and a
-  joined notice with a warning is never hidden);
+  **Connecting {name}…**, and **ready to join when you return to the game** (manager) or **ready,
+  close the phone to join** (phone). Developers see the first two after 1 s and the ready line at once;
+- **joined your group**, for every companion that arrives, quick or slow (developers see it too);
 - every failure and error, including a driving failure and the reply to Stop trip.
 
 These are Developer mode only:
@@ -345,7 +341,7 @@ banner, and the notice is posted once when gameplay resumes. An immediate
 failure posts its detailed notice at the same moment, and the phone no longer
 posts a second copy while it is open.
 A ticket already spawning reports **joining** (Developer mode only), and
-completed attachment uses the existing **joined your group** notice (shown after a visible wait, and always to developers). Cancelled,
+completed attachment uses the existing **joined your group** notice (shown to every player when the companion arrives, quick or slow). Cancelled,
 removed and reset tickets cannot replay preparation messages. Native calls run
 only from top-level update, never inside a native callback; same-frame
 failure/progress notices for one ticket are combined without duplicates.

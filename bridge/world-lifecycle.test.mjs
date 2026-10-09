@@ -493,32 +493,28 @@ assert((stats.loads['diagnostics.lua'] or 0) == 1, 'the request file did not sta
 assert(files['runtime/diagnostic-response.txt'] == 'probe-1')
 `));
 
-test('phone invitation progress shows after a long wait, the acknowledgement is Developer-only, and a failure waits for gameplay', () => run(`${phoneNoticeFixture}
-local function has(text) for _, line in ipairs(feedback()) do if line:find(text, 1, true) then return true end end return false end
--- A quick summon shows no progress; progress shows once the invitation has waited the long wait (10 s).
-assert(#feedback() == 0, 'progress showed before the long wait')
-clock = clock + 7; events.onUpdate(0)
-assert(#feedback() == 1 and has('Preparing Judy…') and not has('memory'))
-receipt('memory'); events.onUpdate(0)
-assert(#feedback() == 1)
-events.onUpdate(0); assert(#feedback() == 1)
--- Connecting and the ready line have waited the long wait already, so each shows once the invitation reaches it.
+test('a phone invitation shows a player no progress at any wait; the acknowledgement is Developer-only, and a failure waits for gameplay', () => run(`${phoneNoticeFixture}
+-- A player sees no progress, however long the invitation waits; the bridge answers every few seconds.
+assert(#feedback() == 0, 'progress showed to a player')
+clock = clock + 7; receipt('memory'); events.onUpdate(0)
+assert(#feedback() == 0, 'Preparing showed to a player after a long wait')
+events.onUpdate(0); assert(#feedback() == 0)
 clock = clock + 4; receipt('connecting'); events.onUpdate(0)
-assert(#feedback() == 2 and has('Connecting Judy…'), 'Connecting did not show after the long wait')
+assert(#feedback() == 0, 'Connecting showed to a player')
 clock = clock + 4; receipt('ready'); events.onUpdate(0)
-assert(#feedback() == 3 and has('Close the phone to join'), 'the instruction to close the phone must be shown')
+assert(#feedback() == 0, 'the ready line showed to a player')
 assert(partyQueue.list()[1].state == 'ready-to-join')
 -- Failure first seen while the phone is open: no popup, no consumed claim.
 receipt('error'); events.onUpdate(0); events.onUpdate(0); events.onUpdate(0)
-assert(partyQueue.list()[1].state == 'failed' and #feedback() == 3, 'the open phone consumed the failure notice')
+assert(partyQueue.list()[1].state == 'failed' and #feedback() == 0, 'the open phone consumed the failure notice')
 player.phoneOpen = false; events.onUpdate(0.1)
 local posted = feedback()
-assert(#posted == 4 and posted[4]:find('could not prepare', 1, true), 'gameplay did not post the single failure notice')
+assert(#posted == 1 and posted[1]:find('could not prepare', 1, true), 'gameplay did not post the single failure notice')
 for _ = 1, 3 do events.onUpdate(0.1); player.phoneOpen = true; events.onUpdate(0); player.phoneOpen = false end
-assert(#feedback() == 4 and stats.spawned == 0, 'the failed attempt notified again')
+assert(#feedback() == 1 and stats.spawned == 0, 'the failed attempt notified again')
 `));
 
-test('two phone invitations share one progress notice and one joined summary', () => run(`
+test('two phone invitations show a player no progress while they wait', () => run(`
 events.onInit(); events.onUpdate(0)
 local function feedback()
     local out = {}
@@ -541,21 +537,14 @@ end
 player.phoneOpen, player.phoneRequest = true, '+judy'
 events.onUpdate(0)
 answer('memory', 4)
-assert(#feedback() == 0, 'progress showed inside the long wait')
-answer('memory', 8)
-assert(#feedback() == 1 and feedback()[1] == 'Preparing Judy…')
 player.phoneRequest = '+johnny'; events.onUpdate(0)
 receipt('memory'); events.onUpdate(0)
-assert(#feedback() == 1, 'the second invitation showed progress inside its own long wait')
 answer('memory', 12)
-assert(#feedback() == 2 and feedback()[2] == 'Preparing Judy and Johnny…', feedback()[#feedback()])
-local request = json.decode(assert(files['runtime/companion-invitations.json']))
-assert(#request.invitations == 2)
+assert(#feedback() == 0, 'progress showed to a player while two invitations waited')
 answer('connecting', 4)
-assert(#feedback() == 3 and feedback()[3] == 'Connecting Judy and Johnny…')
 answer('ready', 4)
-assert(#feedback() == 4 and feedback()[4] == 'Judy and Johnny are ready. Close the phone to join.')
-events.onUpdate(0); assert(#feedback() == 4)
+assert(#feedback() == 0, 'the ready line showed to a player')
+events.onUpdate(0); assert(#feedback() == 0)
 `));
 
 const worldCharacterFixture = `

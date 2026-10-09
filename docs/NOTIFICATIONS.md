@@ -21,8 +21,8 @@ CLOSE PHONE"), the character's spoken reply and subtitles (`ConvaiShowReply`), a
 
 ## What a player sees with Developer mode off
 
-Invitation: "{name} joined your group." when the companion arrives (every time, quick or slow). The progress lines "Preparing {name}…", "Connecting {name}…" and "{name} is ready to join when
-you return to the game." / "{name} is ready. Close the phone to join." show only once the invitation has been in flight for 10 s (a long wait, merged for several companions); a quick invitation shows just the joined line. "{name} could not prepare/join: {reason}".
+Invitation: "{name} joined your group." when the companion arrives (every time, quick or slow), and "{name} could not prepare/join: {reason}" on a failure.
+Progress lines ("Preparing {name}…", "Connecting {name}…", "{name} is ready to join when you return to the game.", "{name} is ready. Close the phone to join.", "{name} is joining your party.") are Developer mode only, at any wait length, for manager, phone and party invitations alike: a player is never told about a wait.
 Talking: "Preparing connection to {name}…" (only while Auto-connect nearby characters is off and the character is not connected),
 "Connecting microphone - wait for Listening", "Listening - press {key} again to finish". Failures: the conversation service starting, missing
 its key, stopped or failed; no reply; the microphone unavailable or timed out; a companion action that was refused; a voice engine that fell
@@ -34,10 +34,10 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 
 | Id | Class | English text | Fires when | Window |
 | --- | --- | --- | --- | --- |
-| `invite-board` | Player | Preparing {name}… / Preparing {names}… | An invitation (manager or phone) has been in flight for 10 s and is still preparing memory and voice; replaced in place, on screen at least 3 s | board |
-| `invite-board` | Player | Connecting {name}… / Connecting {names}… | The invitation has been in flight for 10 s and is connecting. A quick invitation never shows it: "joined" follows sooner. Developers see it after 1 s | board |
-| `invite-board` | Player | {name} is ready to join when you return to the game. / {names} are ready to join when you return to the game. | Ready, in flight for 10 s, while the menu is open (manager). A quicker invitation shows nothing and then "joined"; developers see it at once | board |
-| `invite-board` | Player | {name} is ready. Close the phone to join. / {names} are ready. Close the phone to join. | Ready, in flight for 10 s, while the phone is open (same rule) | board |
+| `invite-board` | Player | Preparing {name}… / Preparing {names}… | Developer mode only: an invitation (manager or phone) still preparing memory and voice after 1 s; replaced in place, on screen at least 3 s. A player never sees it | board |
+| `invite-board` | Player | Connecting {name}… / Connecting {names}… | Developer mode only: the invitation is connecting, after 1 s. A player never sees it | board |
+| `invite-board` | Player | {name} is ready to join when you return to the game. / {names} are ready to join when you return to the game. | Developer mode only: ready while the menu is open (manager), at once. A player never sees it | board |
+| `invite-board` | Player | {name} is ready. Close the phone to join. / {names} are ready. Close the phone to join. | Developer mode only: ready while the phone is open, at once. A player never sees it | board |
 | `party-joined` | Player | {name} joined your group. / {names} joined your group. | The companion appeared. Every joined notice shows to a player (quick or slow), and developers see it too. Several in a burst merge into one, shown 5 s | board |
 | `party-failed` | Player | {name} could not prepare: {reason} | Preparation failed (the player cancels and invites again) | once |
 | `party-failed` | Player | {name} could not join: {reason} | The game refused or lost the spawn | once |
@@ -104,3 +104,5 @@ no "bridge", no "eight metres"). Earlier: 248c14c, a20c7a1, e7e9760 (calmer invi
 2026-10-09 (invitation long wait): the first line a player saw was "Preparing", which had no stage delay (only Connecting and ready waited 3 s), and the 3 s minimum show time then held "joined" behind it. Progress now shows to a player only after the invitation has been in flight for 10 s (`LONG_WAIT_MS` in `mod/manager-party.lua`), so a normal invitation shows only "joined". "Joined" now shows for every companion that arrives, quick or slow, which supersedes the "joined only after a visible wait" decision above. Developers still see progress after 1 s and the ready line at once.
 
 2026-10-10 (voice startup): a slow OmniVoice start no longer ends the session on Pocket. The fixed 180 s startup limit is replaced by a progress-based one (`docs/LOCAL_VOICES.md`, "Startup limit, background retry and switch back"), and a failed or timed-out OmniVoice is retried in the background. While that is pending the fallback notice reads "{requested} is not ready yet. Companions are using {voice} for now." (once, same 600 s window); the return to OmniVoice is deliberately silent because nothing is being waited on. The permanent "is unavailable" text remains for a voice that cannot run at all. The Settings status line says "not ready yet" instead of "unavailable" for the temporary case.
+
+2026-10-10 (follow-up): a join that was still pending after 10 s (a voice model loading after a bridge restart) still showed "Preparing", "Connecting" or the ready line to a player. All progress now shows in Developer mode only, at any wait length; the phone acknowledgement of an accepted invitation is Developer-only even when the board does not follow it. A player sees only "joined" and failures. `LONG_WAIT_MS` is removed.

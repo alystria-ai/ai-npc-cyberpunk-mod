@@ -1841,23 +1841,22 @@ local function processPhoneAction(player)
         local accepted, message, invitationId = queue.invite(key)
         log(accepted and ('Phone preparation requested for ' .. key)
             or ('Phone join failed for ' .. key .. ': ' .. tostring(message)))
-        local tracked = false
         if accepted then
             local party = queue.list()
             for index = #party, 1, -1 do
                 if party[index].key == key and not party[index].serial then
                     local board = type(queue.board) == 'function' and queue.board() or nil
-                    if board then board.track(party[index].id, 'phone'); tracked = true end
+                    if board then board.track(party[index].id, 'phone') end
                     break
                 end
             end
         end
-        -- The acknowledgement of an invitation the notice board follows repeats the phone's own
-        -- "invite queued" and the board's progress notice, so it is a Developer-mode popup. A refusal
-        -- is always shown, except a failed preparation: that is queued as the single gameplay notice
-        -- for the attempt, so it is not posted again here while the phone is open.
+        -- An accepted invitation is acknowledged in Developer mode only: its text is a progress line
+        -- ("Preparing ...", "... ready"), and a player is told only when the companion joins. A refusal
+        -- is always shown, except a failed preparation: that is queued as the single gameplay notice for
+        -- the attempt, so it is not posted again here while the phone is open.
         if not accepted and invitationId then return end
-        convaiNotices.send(player, (accepted and tracked) and 'phone-invite-ack' or 'phone-invite-reply', tostring(message))
+        convaiNotices.send(player, accepted and 'phone-invite-ack' or 'phone-invite-reply', tostring(message))
         return
     end
     -- One copy per request: the queue picks it by the character it speaks as.

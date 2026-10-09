@@ -13,15 +13,10 @@ end
 -- one entry, and the board turns all of them into ONE compact notice that
 -- replaces the previous one: "Preparing Judy and Johnny...", then "Judy and
 -- Johnny joined your group.". A lone invitation keeps its original wording.
--- Visibility rules (the classes live in notices.lua, docs/NOTIFICATIONS.md): "joined" and every
--- failure show; the progress steps (preparing, connecting, ready) show to a player only after a long
--- wait (LONG_WAIT_MS); the routine "joining" step is Developer-mode only.
+-- Visibility rules (the classes live in notices.lua, docs/NOTIFICATIONS.md): a player sees only
+-- "joined" and failures. The progress steps (preparing, connecting, ready) and the routine "joining"
+-- step are Developer-mode only, at any wait length.
 -- Calm rules, because each notice replaces the last one on screen:
--- * A normal invitation shows only its "joined" line. Progress (the memory check, voice conditioning,
---   connection start, the ready line) shows to a player only once the invitation has been in flight
---   for LONG_WAIT_MS, and is dropped when "joined" arrives first. Developers see progress after
---   SHOW_DELAY_MS (ready at once). The wait is per invitation: a merged notice names only the ones
---   that have waited long enough.
 -- * A posted notice stays up for at least MIN_SHOW_MS (FINAL_SHOW_MS after a
 --   final outcome, so a "joined" is never cut short): a change arriving sooner
 --   is held, and whatever is true when the time is up is posted instead
@@ -37,10 +32,6 @@ local FINAL_SHOW_MS = 5000
 local JOIN_HOLD_MS = 4000
 -- Developers see a progress step once the invitation has been in flight this long (ready at once).
 local SHOW_DELAY_MS = 1000
--- A player sees a progress step only after the invitation has been in flight this long. A normal
--- invitation is joined well before that, so the player gets only "joined". A long wait (the voice
--- model loading after a bridge restart can take minutes) still shows what it is waiting for.
-local LONG_WAIT_MS = 10000
 local MAX_LISTED = 3
 local RANKS = {memory = 1, connecting = 2, ready = 3, joining = 4}
 
@@ -93,8 +84,6 @@ function M.newBoard(options)
     local B = {}
     local now = options.now or newClock()
     local entries, burst, sequence = {}, newBurst(), 0
-    -- Tests may shorten the player's long wait before any progress line shows.
-    local longWait = type(options.longWaitMs) == 'number' and options.longWaitMs or LONG_WAIT_MS
     local shownCore, shownGameplayCore, lastAt, lastWorld, lastHold
     -- Developer diagnosis: every posted notice (with each invitation's stage) and every
     -- ignored stage regression goes to the mod log when init.lua provides one.
@@ -184,22 +173,16 @@ function M.newBoard(options)
     end
 
     -- The invitations whose progress may be named now, each with the step it is named at
-    -- (entry.display). A player sees a progress step (preparing, connecting, ready) only once the
-    -- invitation has been in flight for longWait; before that the invitation is hidden, so a normal
-    -- invitation that "joined" follows shows nothing but "joined". Developers see a step after
-    -- SHOW_DELAY_MS, the ready line at once. Joining is handled by progress().
+    -- (entry.display). Only Developer mode names progress: a player is never told about a wait, at
+    -- any length, so the only invitation notices a player gets are "joined" and failures. Developers
+    -- see a step after SHOW_DELAY_MS, the ready line and the joining step at once.
     local function visible(inflight, at, developer)
         local shown = {}
         for _, entry in ipairs(inflight) do
-            local stage = entry.stage
-            local waited = at - (entry.startedAt or at)
             local want
-            if stage == 'joining' then
-                want = stage
-            elseif developer then
-                if stage == 'ready' or waited >= SHOW_DELAY_MS then want = stage end
-            elseif waited >= longWait then
-                want = stage
+            if developer then
+                local waited = at - (entry.startedAt or at)
+                if entry.stage == 'ready' or entry.stage == 'joining' or waited >= SHOW_DELAY_MS then want = entry.stage end
             end
             entry.display = want
             if want then shown[#shown + 1] = entry end
@@ -472,7 +455,7 @@ function M.new(companions, readiness, options)
     function Q.board()
         if not noticeBoard then
             noticeBoard = M.newBoard({feedback = function(id) return Q.invitationFeedback(id) end,
-                developerMode = developerMode, longWaitMs = options.longWaitMs})
+                developerMode = developerMode})
         end
         return noticeBoard
     end
