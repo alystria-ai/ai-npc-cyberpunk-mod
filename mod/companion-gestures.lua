@@ -9,7 +9,7 @@ local workspot = dofile('gesture-workspot.lua')
 local selection = dofile('gesture-selection.lua')
 local M = {}
 local HOLDING = {spawning = true, starting = true, active = true, exiting = true, recovering = true}
-M.policy = {firstClipMargin = .15, linger = 2.5, patience = 3, giveUp = 6, unsettled = .8, playerMoved = .75, playerRunning = 2.5,
+M.policy = {firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourAfterTalk = 45, linger = 2.5, patience = 3, giveUp = 6, unsettled = .8, playerMoved = .75, playerRunning = 2.5,
     nearStart = 4.0, nearKeep = 4.5, socialPhases = {settled = true, attend = true},
     wedgeAfter = 1.5, healthWindow = 10, recoveryHold = .9, recoveryLimit = 2, failureCooldown = 30, minimumSpeech = 5,
     -- Signature idle flavour (characters marked flavour in the catalog only):
@@ -182,6 +182,14 @@ function M.new(options)
         note(s, 'finished', {reason = reason, exitLatency = s.exitAt and self.clock - s.exitAt})
         s.phase, s.clip, s.exitAt, s.lingerUntil, s.recovery = 'off', nil, nil, nil, nil
         s.healthFrom, s.wedgedSince = self.clock, nil
+        -- Every stance entry is a visible pose shuffle (the ambient legs differ from the
+        -- stance by 15-30 cm). Do not re-enter at once after being pushed out by
+        -- movement or a guard (the 21:48Z thrash: four enters in ten seconds), and keep the
+        -- hand-on-hip idle away from the end of a reply (Oct 10 live).
+        if reason ~= 'reply ended' and reason ~= 'conversation' and reason ~= 'flavour ended' and reason ~= 'disabled' then
+            s.talkNotBefore = self.clock + policy.reenterDelay
+        end
+        if not s.flavour then s.nextFlavourAt = math.max(s.nextFlavourAt or 0, self.clock + policy.flavourAfterTalk) end
     end
     local function fail(s, reason)
         note(s, 'failed', {reason = reason})
@@ -287,7 +295,7 @@ function M.new(options)
             elseif self.clock >= s.flavourUntil then requestExit(s, 'flavour ended', false) end
             return
         end
-        if mode == 'speaking' or mode == 'listening' then s.lingerUntil = self.clock + policy.linger
+        if mode == 'speaking' or mode == 'listening' or mode == 'thinking' then s.lingerUntil = self.clock + policy.linger
         elseif self.clock >= (s.lingerUntil or 0) and not s.clip then requestExit(s, 'reply ended', false); return end
         if s.clip and self.clock >= s.clip.ends - .2 then
             native.jump(npc, s.family.idle.name, false)
@@ -354,7 +362,10 @@ function M.new(options)
                 else s.settledSince = nil end
                 if not self.enabled() then return end
                 local flavour = false
-                if mode ~= 'speaking' and mode ~= 'listening' then
+                -- Thinking counts: the stance is entered while V waits for the reply, so the
+                -- entry shuffle is over before the first word.
+                local talking = mode == 'speaking' or mode == 'listening' or mode == 'thinking'
+                if not talking then
                     local known = characterOf(entry)
                     if mode ~= nil or not known or not known.flavour or not known.idle
                         or not self.catalog.idleComponents[known.idle] or not s.settledSince then return end
@@ -363,6 +374,8 @@ function M.new(options)
                     flavour = true
                 end
                 if self.clock < (s.cooldownUntil or 0) then return end
+                if talking and (not s.settledSince or self.clock - s.settledSince < policy.talkSettled
+                    or self.clock < (s.talkNotBefore or 0)) then return end
                 if not (context.idle and context.settled) or context.combat then return end
                 -- Only beside V, in a social stance: never for a copy left behind.
                 if (tonumber(entry.playerGap) or math.huge) > policy.nearStart then return end

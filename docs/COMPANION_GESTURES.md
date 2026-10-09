@@ -596,3 +596,25 @@ installed): **game restart**. CET reload for `mod/gesture-selection.lua`,
    or describes back to back.
 4. Idles: Alt, Lizzy, Mama Welles, Meredith, Regina, Padre (hands raised),
    Mr. Hands, Viktor, Pepe look natural and different from each other.
+
+## Round 5b (October 10, evening): the twitch is the stance entry
+
+After the round-5 archive was installed the user still saw a twitch at the start of a reply and just before the hand-on-hip idle, and an abrupt shift from the idle to the talk stance. Live captures (Evelyn, 34 fps crop of her upper body, the head's blue hair and the dress hem tracked frame by frame; probes `start evelyn component=talk|idle`, no Convai turn) and the controller's own log:
+
+- **Entering a mod workspot makes the whole body lurch.** About 0.1 s after the play call the head drops 15-19 px (about 6-8 cm) and the hem 16-30 px in 0.15-0.2 s, the torso swings 8-20 px to the side and back, and the pose is calm again after about 0.5 s, back at the original height. It happens for the talk family (enter blend 1.5 s: head 19 px, hem 30 px, side swing up to 16 px) and for the vanilla hand-on-hip idle (enter blend 0.5 s: head 15 px, hem 16 px). Both look alike in time, so the engine's enter inertialization duration is not what sets it; a 3x longer blend did not make it gentler.
+- **The exit is not the problem.** The talk exit is smooth (head under 1 px, nothing visible); the idle exit looked abrupt only because Evelyn walked off (the companion follow resumed).
+- **Why Evelyn most: the legs.** Offline foot positions in the hips frame, her ambient locomotion idle (`evelyn_purse_locomotion` `idle_stand`) against the stance loops: 27 cm average per foot against `on_sides`, 24 against `on_hip`; the generic woman's ambient idle is 5-9 cm from the same loops, Rogue 12, Judy 24, Panam 29, Johnny's group 6-13. A 25-30 cm foot and hip reposition inside half a second is the shuffle you see. No stance family in the archives is closer to her purse stance than 24 cm.
+- **The real controller repeated it.** The log at 21:48Z shows the talk stance entered four times in ten seconds (begin, `exit movement` 1-4 s later, begin again: V and the follower were moving), and every flavour idle in the last minutes was left within 2-5 s for `movement`. Each begin is one lurch, each exit another. The stance also started again right after every reply ended when the hand-on-hip idle came due (one second after the exit).
+
+Changed (Lua only, CET reload; `mod/companion-gestures.lua`):
+
+1. The talk stance needs 1.0 s of being settled beside V (`policy.talkSettled`).
+2. After an exit that was not the normal end (movement, too far, a guard, transport, recovery) no re-entry for 4 s (`reenterDelay`), so a moving V no longer produces a begin/exit loop.
+3. The hand-on-hip signature idle waits 45 s after a talk stance ended (`flavourAfterTalk`), so it never follows the reply by a second.
+4. The stance is entered while V waits for the reply ('thinking', and it lingers through it), so the entry shuffle is over before the first word. A reply that turns out shorter than 5 s leaves again after the 2.5 s linger.
+
+Not changed, open (needs live A/B, one agent at a time, with the controller paused for the probed companion):
+
+- A slower enter blend for the idle workspot copies (vanilla 0.5 s) next to the vanilla ones, and a longer talk enter blend (2.5-3 s), to see whether the lurch's size follows the duration at all.
+- A bridge workspot per ambient stance (an entry sequence that plays the character's own locomotion idle clip and then blends into the stance loop inside the workspot, where clip blends are cross-fades), which removes the foot mismatch at the engine's enter.
+- Probing hygiene: the gesture probe runs next to the shipped controller and the companion actuator on the same companion (the probe's auto-unstick also releases the actuator's command); during the 03:20 IST tests Evelyn walked back and forth. Probe only with the controller paused for that companion (the face-stage kill switch covers staged copies only).

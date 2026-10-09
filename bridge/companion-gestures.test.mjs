@@ -68,6 +68,8 @@ local function step(seconds,observe)
   end
 end
 local function lastLog(kind) for i=#logs,1,-1 do if logs[i].kind==kind then return logs[i] end end end
+-- Settled beside V for a while before anything happens (the talk stance waits for it).
+step(1.2);seed=7
 `;
 
 test('off by default setting, idle and short replies never enter a stance', () => run(`
@@ -193,7 +195,7 @@ test('never starts for a copy left behind or not in a social stance; leaves when
   assert(count('play')==0,'no flavour idle for a copy left behind')
   entry.record='Character.Judy';entry.playerGap=1.8;context.phase='catch_up';step(1)
   assert(count('play')==0,'not while catching up')
-  context.phase='attend';step(.6)
+  context.phase='attend';step(1.5)
   assert(count('play')==1 and held)
   entry.playerGap=5;step(.1)
   assert(count('exit')==1 and lastLog('exit').fields.reason=='too far')
@@ -383,4 +385,45 @@ test('with phrase timing from the face timeline, gestures start on phrase starts
     for _,span in ipairs(speaking.phrases) do if span.start<=at+1e-9 then latest=span.start end end
     assert(at-latest<=.8,'gesture '..(at-latest)..' s into a phrase')
   end
+`));
+
+test('the stance is entered while V waits for the reply (thinking), and left again when nothing comes', () => run(`
+  c.thinking=function() return '77' end
+  step(.3)
+  assert(held,'entered on thinking')
+  step(2)
+  assert(count('play')==1 and last('play').component=='convai_talk_arms_crossed','Judy takes her stance before the first word')
+  assert(count('jump')==0,'no gestures while only thinking')
+  c.thinking=function() return nil end
+  step(4)
+  assert(count('exit')==1 and lastLog('finished').fields.reason=='reply ended' and not held)
+`));
+
+test('after movement pushes her out, the stance is not re-entered at once; it waits to be settled again', () => run(`
+  speaking={knownEnd=60,at=0};step(.8)
+  assert(held and count('play')==1)
+  for i=1,6 do player.pos={x=i*.15,y=0,z=0};step(.1) end
+  step(.5)
+  assert(lastLog('exit').fields.reason=='movement' and not held)
+  step(1.5)
+  assert(not held and count('play')==1,'no re-entry during the delay')
+  step(5)
+  assert(held and count('play')==2,'re-entered once settled')
+`));
+
+test('the signature idle stays away from the end of a reply', () => run(`
+  entry.record='Character.Silverhand';entry.serial=2;calls={};logs={}
+  step(1.5)
+  speaking={knownEnd=8,at=0};step(.5)
+  assert(held)
+  step(10)
+  speaking=nil;step(4)
+  assert(lastLog('finished').fields.reason=='reply ended')
+  local before=0 for _,l in ipairs(logs) do if l.kind=='flavour-begin' then before=before+1 end end
+  step(35)
+  local mid=0 for _,l in ipairs(logs) do if l.kind=='flavour-begin' then mid=mid+1 end end
+  assert(mid==before,'no hand-on-hip entry within 45 s of the reply')
+  step(120)
+  local after=0 for _,l in ipairs(logs) do if l.kind=='flavour-begin' then after=after+1 end end
+  assert(after>before,'it comes back later')
 `));
