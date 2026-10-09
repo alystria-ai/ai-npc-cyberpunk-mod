@@ -97,9 +97,10 @@ affected phone sends until persistence succeeds; it does not turn partial cloud
 success into permission to erase the shared Chat.
 
 See [CHAT_MEMORY_RESET.md](CHAT_MEMORY_RESET.md) for family/alias handling,
-archives, durable request epochs and storage-failure recovery. Ordinary and
-relationship profiles retain separate provider memories; their displayed local
-Chat is shared by character.
+archives, durable request epochs and storage-failure recovery. A character's ordinary profile
+and its Multilingual twin retain separate provider memories (the former romantic
+profiles are gone, so the relationship setting never splits memory); their
+displayed local Chat is shared by character.
 
 ## Vendor memory
 

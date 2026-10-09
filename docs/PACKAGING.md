@@ -94,7 +94,7 @@ they ignore any Python installed on the machine.
 
 - **Generated, refreshed every start:** `pocket-voices.autobest.json` (absolute paths for this
   install), the two OmniVoice configs (with the pack), `voice-configs.json`, `lipsync-model/`.
-- **Managed until edited:** `characters.json`, `relationship-profiles.json`,
+- **Managed until edited:** `characters.json` and
   `multilingual-profiles.json` follow the package; once the player edits one it is kept
   (`package-defaults.json` remembers what was written).
 - **Player-owned, never touched:** memories, sessions, phone history, settings, logs, and an own

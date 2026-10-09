@@ -6,7 +6,7 @@ Phone Chat stores the complete local transcript and unsent drafts across game la
 
 The Memory page's confirmed Forget action owns both cloud memory reset and matching local Chat cleanup:
 
-- Forget one displayed character clears all of that character's **contacted** ordinary/romantic provider variants. Its shared local Chat and drafts are removed only after the aggregate reset succeeds.
+- Forget one displayed character clears all of that character's **contacted** provider profiles (the ordinary profile and its Multilingual twin; the retired romantic profiles are ignored). Its shared local Chat and drafts are removed only after the aggregate reset succeeds.
 - Forget all removes every local Chat and draft only after the full cloud reset succeeds. Archived structured buckets and opaque legacy data are included.
 - Failed, cancelled, or uncertain cloud resets preserve local Chat data. Affected conversations remain fenced whenever the memory owner reports them blocked. Other characters' local Chat is preserved.
 

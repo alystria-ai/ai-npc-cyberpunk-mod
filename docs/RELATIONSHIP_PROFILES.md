@@ -1,11 +1,23 @@
-# Relationship conversation profiles
+# Relationship conversations
 
-The mod can route a supported character to an ordinary or affectionate Convai
-profile without changing the character's game model, voice reference, quests,
-animations, or displayed name. Each character has an independent Auto / On / Off
-choice, defaulting to Auto. Saved settings take effect at the next idle
-conversation boundary; a reply already in progress retains its selected profile.
-There is no separate Apply-button step in the player instructions.
+A supported character (Judy, Panam, River, Kerry, Meredith) has **one** Convai
+profile, the same one for every conversation, and an independent Auto / On / Off
+choice, defaulting to Auto. The choice does not select a profile. It decides
+whether one short paragraph, the *relationship block*, is added to the dynamic
+context of that turn: affectionate delivery when it is, the ordinary note when it
+is not. The character's game model, voice reference, quests, animations and
+displayed name are untouched, and so is the Convai profile ID.
+
+Until 2026-10-09 each of the five had a second, affectionate Convai profile (and a
+Multilingual twin of it) that Auto/On selected. Convai's long-term memory is scoped
+per character ID, so everything V said to Judy in her affectionate profile was
+unknown to her ordinary profile and the other way round. With one profile there is
+one continuous memory. How the block was measured against the old profiles is in
+[ROMANCE_DYNAMIC_CONTEXT.md](ROMANCE_DYNAMIC_CONTEXT.md).
+
+Saved settings take effect at the next idle conversation boundary; a reply already
+in progress keeps the style it was admitted with. There is no separate
+Apply-button step in the player instructions.
 
 ## Supported characters and evidence
 
@@ -32,23 +44,62 @@ as Judy's partner but Auto chose the ordinary profile. Her knowledge rule still
 waits for all three facts; routing does not.
 
 Meredith's receipt establishes a completed casual intimate encounter. Her
-alternate profile must not claim a continuing romance, exclusivity, devotion,
+affectionate delivery must not claim a continuing romance, exclusivity, devotion,
 cohabitation or another promised encounter. Rogue is excluded: her drive-in
 sequence concerns Johnny using V's body, and she interrupts their intimacy.
 It does not establish a V/Rogue partnership.
 
 Completed quests, invitations, room sharing, flirting, kissing and eligibility
 alone do not qualify. Unknown/absent/zero facts do not assert rejection or
-friendship. Missing current-save evidence uses ordinary style when the fresh
-capture is available but unconfirmed. A missing/stale/wrong-world capture blocks
-configured Auto preparation until a fresh current capture arrives.
+friendship. Missing current-save evidence gives ordinary delivery. If the capture
+is missing, stale or from another world, Auto is simply ordinary for that turn
+(`reason: relationship-state-unavailable`); the conversation is never held up, and
+the next turn follows the capture once a fresh one arrives. (Before 2026-10-09 this
+blocked the turn, because the choice also chose the provider ID.)
 
-On explicitly selects the affectionate conversation profile. It changes
-conversation style without asserting that a canonical kiss, intimate scene or
-quest took place. Off explicitly selects the ordinary profile even if native
-relationship history is present. Off changes delivery; it does not erase an
-actually confirmed relationship when V asks about it. Neither option writes
-game facts.
+On makes the delivery affectionate. It changes style without asserting that a
+canonical kiss, intimate scene or quest took place. Off makes the delivery ordinary
+even if native relationship history is present. Off changes delivery; it does not
+erase an actually confirmed relationship: if V asks, the character acknowledges it
+plainly and in her ordinary voice. Neither option writes game facts.
+
+## The relationship block
+
+`bridge/romance-context.mjs` builds the block from the selection frozen when the
+turn was admitted (`relationshipContext(selection, channel, options)`). It is pure:
+no I/O, no state, no request of its own, and no per-frame work anywhere. It fills
+the same slot in the per-turn dynamic context that the old relationship note did,
+after vendor memory and before the phone, follow-up, natural-speech and
+multilingual blocks, so it adds no request, timer or Lua code.
+
+| Style | What the turn gets | Size |
+| --- | --- | --- |
+| Affectionate (Auto confirmed, or On) | the verified fact (or, for On, a statement that this is a delivery choice and proves no event); a per-character cue in the character's own manner; how to use it; limits | about 1.7 to 1.9 KB |
+| Ordinary, nothing confirmed | "use your ordinary conversation style; do not assume a romance" | about 0.2 KB |
+| Ordinary, relationship confirmed (Off, or no fresh capture of a confirmed save) | the same, plus: the save confirms your own relationship with V, keep your usual manner, never mention that your manner was chosen, acknowledge it plainly and honestly if asked | about 0.6 KB |
+
+The cues are original guidance distilled from each character's reviewed biography
+and speaking style, not sample lines:
+
+| Character | Affectionate delivery |
+| --- | --- |
+| Judy | Understated: a dry tease, a practical offer, one honest admission that costs her something; she keeps her independence. |
+| Panam | Direct and playful: teases, pushes V to rest, worry comes out sharp before soft; keeps her pride and her Aldecaldos. |
+| River | Quiet, earnest, a little awkward: ordinary kindness, a small joke at his own expense, one plain sentence of care. |
+| Kerry | Flirting by habit: vain little teases, compliments disguised as complaints, then one short unguarded sentence; no speeches. |
+| Meredith | Her manner does not warm. A casual, knowing familiarity: a dry remark, an admission that the night was good. No consoling, no tenderness. |
+
+The shared rules, all kept deliberately short:
+
+- Affection colors the reply and shows most when the moment is personal; a
+  practical or unrelated question is answered in the ordinary voice first, with
+  at most a few words of warmth.
+- Sincerity is answered first, in the character's own words, never with a boast,
+  a dismissal or a joke at V's expense.
+- Never add a declaration, a pet name or a romantic speech unprompted; do not
+  invent shared scenes, dates, gifts or promises; affection is not consent to a
+  new intimate act.
+- Meredith: never a partner, exclusivity, devotion or a promised second encounter.
 
 ## Native and settings contracts
 
@@ -104,35 +155,31 @@ boundary applies the latest native state and committed settings.
 
 ## Provider identities and memory
 
-Existing `runtime/characters.json` canonical-to-ordinary-ID mappings remain
-unchanged. Optional `runtime/relationship-profiles.json` contains independently
-verified mod-owned alternate IDs:
+`runtime/characters.json` maps each canonical character to its one Convai ID.
+Optional `runtime/multilingual-profiles.json` adds the Multilingual twin of a
+profile (see [MULTILINGUAL_PROFILES.md](MULTILINGUAL_PROFILES.md)). Those are the
+only two provider IDs a character can have, and the Auto / On / Off choice never
+moves a conversation between them: only the Multilingual conversations setting
+does. Visible settings, actor copies, phone Chat, local voice references and
+knowledge audiences all use the canonical key.
 
-```json
-{
-  "version": 1,
-  "characters": {
-    "judy-alvarez": {
-      "ordinaryCharacterId": "existing-ordinary-profile-id",
-      "romanticCharacterId": "alternate-affectionate-profile-id"
-    }
-  }
-}
-```
+An old `runtime/relationship-profiles.json` (the five alternate IDs) is no longer
+read, and `<key>-romantic` rows of `runtime/multilingual-profiles.json` are ignored.
+The bridge lists no `-romantic` provider key, so Forget, the memory page and the
+support report never see one. `scripts/Delete-RetiredRomanceProfiles.mjs` removes
+the retired Convai characters themselves (below).
 
-The bridge compiles explicit internal provider keys (canonical ordinary key and
-`canonical-romantic`) and an explicit provider-key-to-canonical-family map.
-Each provider ID appears exactly once. Visible settings, actor copies, phone
-Chat, local voice references and knowledge audiences retain canonical keys.
-No suffix-based inference grants reset ownership.
+The same persistent player UUID is supplied to every profile. Convai natural LTM is
+scoped by character ID and end-user ID, so with one profile per character there is
+one memory for V and that character, whatever the setting. A Multilingual twin is a
+separate Convai character and still has its own memory. See
+`research/cyberpunk/PLAYER_MEMORY_API.md` for the qualified provider contract.
 
-The same persistent player UUID is supplied to both profiles and all other
-characters. **Two character IDs still have separate provider memories.** Convai
-natural LTM is scoped by character ID and end-user ID. Selecting a profile does
-not copy, merge or seed those memories. The current save facts, configured style,
-and existing actual audience-scoped conversation context supply continuity;
-there is no fabricated cross-profile dialogue or bulk history injection.
-See `research/cyberpunk/PLAYER_MEMORY_API.md` for the qualified provider contract.
+Memories that exist only in a retired romantic profile (V's conversations with it)
+do not move to the ordinary profile; nothing is copied or seeded. The current save
+facts, the configured style and the ordinary profile's own memory supply
+continuity. `runtime/player-memory.json` may still hold durable rows for retired
+keys: they stay in the file as history, are not listed and are not cleared.
 
 For phone Chat, the current contact can supply at most six actual prior rows,
 bounded to 2,400 UTF-8 bytes, captured before appending the new message. These
@@ -142,10 +189,10 @@ Forget fences old pending requests and pre-clear history even across a bridge
 restart. Group dialogue already supplies only the preceding replies actually
 heard by that audience. There is no new general private-voice transcript ledger.
 
-Character Forget fences both variants and clears all contacted provider targets
-in that explicitly registered family, including authorized historical targets.
-The canonical local Chat is cleared only after aggregate success. Partial or
-uncertain remote deletion preserves local Chat and remains fenced. Forget All
+Character Forget fences the character and clears every contacted live provider
+target in its family (the profile and its twin), including authorized historical
+targets. The canonical local Chat is cleared only after aggregate success. Partial
+or uncertain remote deletion preserves local Chat and remains fenced. Forget All
 uses the same aggregate boundary. Neither operation replaces the player UUID.
 
 Group guidance keeps intimate scene details and private conversation history
@@ -156,105 +203,69 @@ between private/group memories for one character ID.
 
 ## Group acknowledgement and banter
 
-At admission, the profile selection captures only this speaker's confirmed
-current-save relationship receipt. It uses the same exact native predicate,
-conflict checks, five-second freshness limit and world binding as Auto routing.
-The receipt is independent of the style choice: On alone cannot create it; Off
-does not remove real history. No extra provider call, memory seed or persistent
-relationship ledger is added.
+At admission, the selection captures only this speaker's confirmed current-save
+relationship receipt. It uses the same exact native predicate, conflict checks,
+five-second freshness limit and world binding as Auto. The receipt is independent
+of the style choice: On alone cannot create it; Off does not remove real history.
+No extra provider call, memory seed or persistent relationship ledger is added.
 
-Group guidance requires the selected speaker to be in the exact admitted group
-of two or three distinct identities, with the same world token and generation.
-Private and phone turns do not receive this group guidance. The receipt is
-captured with the turn, so later settings changes cannot redirect or rewrite
-its admitted provider selection.
+Group guidance requires the selected speaker to be in the exact admitted group of
+two or three distinct identities, with the same world token and generation.
+Private and phone turns do not receive it. The receipt is captured with the turn,
+so later settings changes cannot rewrite its admitted selection.
 
-Each speaker can acknowledge **their own** confirmed relationship when relevant.
-If two confirmed partners are present, each qualifies independently. Another
-partner's native facts are never injected into their prompt. They can react to
-the preceding words actually heard by the current audience; an Invite, On
-selection, or a reported claim does not establish another character's private
-history or prove that everyone already knew about a relationship. No joint
-intimate scene, exclusivity, automatic jealousy or consent is invented.
-The commitment receipt establishes that decision in the save; it does not
-establish unsupplied later developments or future promises.
+- Each speaker can acknowledge **their own** confirmed relationship when relevant.
+  If two confirmed partners are present, each qualifies independently. Another
+  partner's native facts are never injected into their prompt.
+- Speakers can react to the preceding words actually heard by the current
+  audience; an Invite, an On selection or a reported claim does not establish
+  another character's private history or prove that everyone already knew.
+- No joint intimate scene, exclusivity, automatic jealousy or consent is invented.
+  The commitment receipt establishes that decision in the save; it does not
+  establish unsupplied later developments or future promises.
+- Affectionate delivery in a group uses short per-character wording (Judy
+  understated, Panam direct and playful, River plainspoken, Kerry irreverent with
+  a brief candid softening, Meredith controlled with casual familiarity and never a
+  committed-partner claim). Ordinary delivery keeps the factual acknowledgement
+  and no affectionate cue.
+- Banter stays optional and relevant to the player's topic. It must not add a
+  romantic speech to every reply, assume rivalry or exclusivity, change the
+  speaker order or bypass the final-speaker follow-up setting.
 
-Affectionate delivery uses original cues grounded in the reviewed character
-roster and alternate-profile styles:
+This is prompt context for a real player conversation. It sends no separate
+memory-building message and does not create a new player ID.
 
-| Character | Group delivery |
-| --- | --- |
-| Judy | Understated affection, a dry tease, practical offer or brief honest admission. |
-| Panam | Direct, playful warmth and practical teamwork with independent agency. |
-| River | Plainspoken warmth, a small dry joke or ordinary kindness. |
-| Kerry | Irreverent wit and brief candor without a celebrity speech or rivalry. |
-| Meredith | Controlled, terse casual familiarity; no committed-partner claim. |
+## Invitations and routing ownership
 
-Ordinary mode retains ordinary delivery while permitting factual acknowledgement
-of a confirmed relationship. Guidance never forces romance into an unrelated
-reply and preserves the group's existing speaker and follow-up question policy.
+Invitation preparation captures the exact provider ID (the profile, or its twin
+when Multilingual conversations is on) before verifying memory. Canonical local
+voice conditioning and the matching socket must be ready before actor creation.
+Because the Auto / On / Off choice does not change the provider ID, changing it
+during a pending invitation no longer replaces or restarts anything; only a
+Multilingual change does. Already-spawned copies are never recreated by a style
+change.
 
-## Preparation and routing ownership
-
-Invitation preparation captures an exact selected provider ID before verifying
-memory. Canonical local voice conditioning and the matching socket must be ready
-before actor creation. A mode/Auto change during a pending invitation replaces
-only its cancellable preparation lane and retains the same copy ticket/revision.
-Late completion from the old memory/socket lane cannot authorize spawn.
-Already-spawned copies are not recreated on a profile selection change.
-
-Each admitted turn owns its selected actual ID and memory/reset guard. Changing
-settings cannot redirect its send. Phone session lookup uses the prepared
-selected ID rather than the contact's ordinary default. World/session partitions
-include the actual provider ID. Relationship page retirement has a separate
-reservation from TTS-provider/voice-quality changes and closes only affected
-idle routes. A completed request's retained old-ID focus is withdrawn first.
+Each admitted turn owns its selected ID, its frozen style and its memory/reset
+guard. Changing settings cannot redirect its send or rewrite its block. Phone
+session lookup uses the prepared selected ID. World/session partitions include the
+actual provider ID. Only a Multilingual change retires idle routes (a style change
+retires nothing); a completed request's retained old-ID focus is withdrawn first.
 
 The existing memory-clear quiesce currently retires all live transports even
 for a scoped character clear. Local Chat deletion is scoped, but unrelated
 pending remote replies may be cancelled; no automatic resend is attempted.
 
-## Local payload preparation
+## Retiring the old Convai characters
 
-`scripts/relationship-profile-payloads.mjs` exports
-`buildRelationshipProfilePayloads(roster)`. It prepares five local Core API
-payloads without performing network operations. The parent provisioning flow
-is responsible for actual creation/update and readback verification.
-
-Each alternate profile retains the source biography, model and voice setting,
-has its own exact mod ownership marker, and uses three separate Core fields:
-`backstory`, `speaking_style_description`, and
-`speaking_style_sample_dialogues`. Affectionate delivery and original examples
-are character-specific. Samples contain spoken words only, with no speaker-name
-prefixes. API provisioning must compare the current ordinary provider's model
-and voice configuration before accepting the source payload as authoritative.
-
-## Group conversations
-
-The group behavior is already wired into the bridge's admitted conversation
-context. It uses the selection captured for that turn, its exact current-world
-binding, and the admitted audience. It does not collect or send a combined list
-of everyone's relationships.
-
-- A confirmed partner may acknowledge **their own** current-save relationship
-  when it is relevant. Judy uses understated, dry warmth; Panam direct playful
-  warmth; River plainspoken kindness; Kerry irreverent wit; Meredith controlled,
-  casual familiarity without a claim of commitment.
-- Selecting On supplies affectionate delivery, not relationship evidence.
-  Selecting Off preserves ordinary delivery while allowing acknowledgement of
-  an actually confirmed relationship.
-- Other speakers can react to words actually heard in this round. They do not
-  receive another character's private relationship receipts, previous private
-  chat, or intimate scene details. A remark heard in the group is not itself a
-  verified quest fact.
-- Banter stays optional and relevant to the player's topic. It must not add a
-  romantic speech to every reply, assume rivalry or exclusivity, change the
-  speaker order, or bypass the existing final-speaker follow-up setting.
-
-This is prompt context for a real player conversation. It sends no separate
-memory-building message and does not create a new player ID or copy memories
-between ordinary and affectionate provider profiles. The existing canonical
-character family continues to own its Chat history and explicit Forget scope.
+`node scripts/Delete-RetiredRomanceProfiles.mjs` with no argument only prints the
+plan (ten characters: the five alternate profiles and their five Multilingual
+twins, with the IDs taken from `runtime/relationship-profiles.json` and the
+`<key>-romantic` rows of `runtime/multilingual-profiles.json`) and makes no
+request. `--verify` asks Convai for each one (read-only) and checks the mod
+ownership marker; `--apply` verifies all of them first, then deletes them one by
+one and tidies the two local files. Deleting a Convai character also deletes its
+long-term memories of every user. Nothing in the bridge depends on the deletion
+having run.
 
 ## Native evidence audit (October 5)
 
@@ -269,8 +280,8 @@ sq027/sq028/sq029/sq030/q003 scenes):
   wrapper, none of which the release quest closure reaches.
 - No native writer ever clears or lowers any of these facts, and no consumer
   (default dialogs, mq055 gifts/messages, q114, q201/q203 epilogue, Phantom
-  Liberty q302/q307) reads them as a breakup. Once true, Auto stays on the
-  alternate profile for the life of the save; use Off to opt out.
+  Liberty q302/q307) reads them as a breakup. Once true, Auto stays
+  affectionate for the life of the save; use Off to opt out.
 - The game's own "has a romance partner" check (`persistent_content_bugfixing`)
   is `judy_lover >= 1 and sq030_done >= 1`, or the Kerry, Panam and River
   equivalents. The mod's predicates are equal or earlier by at most the rest of
@@ -301,46 +312,34 @@ waits for the clothes pickup.
 
 `runtime/relationship-routing.json` (in the game's mod `runtime` folder) lists,
 for each supported character, the mode, the decision (`ready` or `unavailable`),
-the variant, the reason and whether the save confirms the relationship. It is
-rewritten only when a decision changes and holds no provider IDs.
-`runtime/bridge-latency.json` and `runtime/player-memory.json` show which
-provider profile (`<profile>-romantic`) has actually been contacted.
+the `style` (`romantic` or `ordinary`), the reason and whether the save confirms
+the relationship. It is rewritten only when a decision changes and holds no
+provider IDs. (Older files call the style `variant`; the support report reads both.)
+`runtime/bridge-latency.json` and `runtime/player-memory.json` show which provider
+profile has actually been contacted.
 
 ## Verification
 
 Focused tests cover exact/missing/conflicting receipts, explicit overrides,
-wrong-world/expired evidence, distinct provider sessions with one UUID, malformed
-registries, phone selected-ID ownership, pending invitation replacement,
-ignored-abort stale readiness, shared family reset completion and separate
-payload fields. Tests do not establish audible or live-game acceptance.
+wrong-world and expired evidence (ordinary, never blocked), one provider ID and
+session across every style, an ignored old `relationship-profiles.json`, retired
+rows in the memory registry, phone selected-ID ownership, the block text per
+character, Meredith's limits, group receipts and the Forget family:
 
-The October 3 group additions also cover own-relationship acknowledgement,
-distinct character delivery, explicit-On non-evidence, Off/history separation,
-stale/conflicting/other-save rejection, exact audience/world matching and prompt
-invariance when another partner's private native facts are added. Existing
-family tests qualify one UUID, exact provider guards and aggregate Forget
-fences without making real provider deletion requests.
-
-New test files for this implementation:
-
+- `bridge/romance-context.test.mjs`
 - `bridge/relationship-routing.test.mjs`
-- `bridge/relationship-profile-payloads.test.mjs`
+- `bridge/relationship-channels.test.mjs`
 - `bridge/companion-relationship-readiness.test.mjs`
+- `bridge/player-memory-families.test.mjs`, `bridge/player-knowledge.test.mjs`,
+  `bridge/support-report.test.mjs`
 
-The integration also extends the existing PlayerKnowledge tests. No game
-deployment or live relationship acceptance is implied by these offline checks.
-
-On October 1 the parent provisioning pass created and verified all five alternate
-profiles through `scripts/Provision-RelationshipProfiles.mjs`. It preserves the
-79 ordinary mappings and player identity, journals uncertain create outcomes,
-and publishes the separate runtime registry only after complete readback.
-Memory setup remains an Invite-time action; provisioning sends no conversation
-or memory-seeding requests. The actual current-save Auto choice still needs
-installed verification.
+These do not establish audible or live-game acceptance. The quality of the block
+itself was measured against the old profiles with real Convai replies, scored
+blind: see [ROMANCE_DYNAMIC_CONTEXT.md](ROMANCE_DYNAMIC_CONTEXT.md).
 
 Live acceptance remaining: on a save with a verified supported relationship,
-inspect the actual provider selected by Auto, On and Off while confirming that
-the persistent player UUID remains unchanged. Then use group chat with present
+confirm in the game that Auto, On and Off change only the delivery (the same
+character, voice and memory every time). Then use group chat with present
 companions and ask a relevant question: the confirmed partner should acknowledge
 their own relationship in character, without revealing private scene/chat
 details or asserting an unconfirmed relationship for another participant. This
@@ -348,4 +347,3 @@ is a conversation test, not a requirement to clear real memory or modify quests.
 
 For preparation errors and explicit retries after a profile change, see
 [invitation preparation failures](COMPANION_INVITATIONS.md#invitation-preparation-failures).
-
