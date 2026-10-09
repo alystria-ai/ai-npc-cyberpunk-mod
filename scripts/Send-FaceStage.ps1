@@ -1,6 +1,6 @@
 param(
     [string]$Character,
-    [ValidateSet('stage', 'status', 'off', 'dismiss')][string]$Action = 'stage',
+    [ValidateSet('stage', 'status', 'off', 'dismiss', 'where', 'check')][string]$Action = 'stage',
     [int]$Hold = 60,
     [switch]$NoWait,
     [int]$TimeoutSeconds = 45,

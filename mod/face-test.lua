@@ -134,7 +134,7 @@ end
 -- one, and its hold-position command lasts 8 s at most). Starting a stage first dismisses every character this probe
 -- invited earlier and waits until each is really gone ('clearing'), so two characters never share a spot; the spot is
 -- also moved sideways when another owned companion stands on it, and nobody is ever placed on V (.85 m away).
-local STAGE_DISTANCE, STAGE_DEFAULT_HOLD, STAGE_MAX_HOLD, STAGE_SPAWN_WAIT, STAGE_PERIOD, STAGE_RESEND = .85, 60, 300, 30, .1, .25
+local STAGE_DISTANCE, STAGE_DEFAULT_HOLD, STAGE_MAX_HOLD, STAGE_SPAWN_WAIT, STAGE_PERIOD, STAGE_RESEND = .85, 60, 300, 75, .1, .25
 M.spawned = M.spawned or {}
 M.leaving = M.leaving or {}
 
@@ -230,7 +230,7 @@ local function stageTick(context)
     end
     local row = context and rowFor(context, stage.who)
     if stage.state == 'spawning' then
-        if row then stage.state, stage.entity, stage.name, stage.until_ = 'staged', row.entity, row.name, M.clock + stage.hold
+        if row then stage.state, stage.entity, stage.name, stage.until_, stage.startedAt = 'staged', row.entity, row.name, M.clock + stage.hold, M.clock
         elseif M.clock > stage.deadline then stage.state, stage.error = 'failed', 'the copy did not become ready in time'; return
         else return end
     end
@@ -258,6 +258,7 @@ local function stageTick(context)
             command.doNavTest = false
             current.npc:GetAIControllerComponent():SendCommand(command)
             stage.placed, stage.sendAt = stage.placed + 1, M.clock + STAGE_RESEND
+            stage.lastSend = M.clock
         end
         -- A walking companion keeps leaving the spot, so she is also told to hold position (8 s long, re-sent every 4 s so it ends soon after the stage; the
         -- command class is optional: if the game lacks it the stage still works, only less steadily).
@@ -285,6 +286,31 @@ commands['face-stage'] = function(rest, context)
         if not stage then return true, {state = 'none', leaving = pendingLeaving(context)} end
         return true, {state = stage.state, who = stage.who, name = stage.name, placed = stage.placed, error = stage.error,
             spawnedHere = stage.spawnedHere, hold = stage.hold, leaving = pendingLeaving(context)}
+    elseif word == 'check' then
+        -- On request only: is the staged character where and how she should be? Used by the capture batch to retry a
+        -- frame instead of keeping a bad one: distance to the spot, body yaw error against the camera, seconds since the
+        -- last placement command (a character still being moved is not steady), and where the real head bone is on
+        -- screen (normalised -1..1, from the camera projection) so the crop follows the head, not a fixed height.
+        local stage = M.stage
+        local row = stage and rowFor(context, stage.who)
+        if not stage or not row or stage.state ~= 'staged' then return false, 'no staged character (' .. tostring(stage and stage.state) .. ')' end
+        local target = stageTarget()
+        if not target then return false, 'no camera direction' end
+        local out = {name = row.name, quiet = M.clock - (stage.lastSend or stage.startedAt or M.clock)}
+        local ok, err = pcall(function()
+            local at = row.npc:GetWorldPosition()
+            out.off = math.sqrt((at.x - target.x) ^ 2 + (at.y - target.y) ^ 2)
+            out.turn = math.abs((row.npc:GetWorldYaw() - target.yaw + 180) % 360 - 180)
+            local head = at
+            local sok, _, t = pcall(function() local o, tr = row.npc:GetSlotComponent():GetSlotTransform(CName.new('Head')); return o, tr end)
+            if sok and t then local pok, v = pcall(function() return t.Position:ToVector4() end); if pok and v then head = v end end
+            local screen = Game.GetCameraSystem():ProjectPoint(head)
+            out.headX, out.headY, out.headZ = screen.x, screen.y, head.z - at.z
+        end)
+        if not ok then return false, tostring(err) end
+        out.steady = out.quiet >= 3 and out.off < .25 and out.turn < 12
+        out.inFrame = out.headX ~= nil and math.abs(out.headX) < .6 and math.abs(out.headY) < .75
+        return true, out
     elseif word == 'off' then
         if M.stage then M.stage.state = 'released' end
         return true, 'released'
