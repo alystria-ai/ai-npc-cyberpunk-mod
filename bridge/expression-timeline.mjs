@@ -151,3 +151,24 @@ export function sampleTrack(track, t) {
   const a = keys[i], b = keys[i + 1], f = Math.max(0, Math.min(1, (t - a[0]) / (b[0] - a[0]))), s = f * f * (3 - 2 * f);
   return a.slice(1).map((value, k) => value + (b[k + 1] - value) * s);
 }
+
+// One record per reply for the operator (scripts/Show-EmotionTimeline.mjs): each segment's text, the emotion and
+// intensity planned for it, its audio start when the track is aligned, and Convai's own label when one was admitted.
+// The bridge writes it as one `[EmotionTimeline] {...}` line, once per reply. Pure: no I/O.
+export const TIMELINE_PREFIX = '[EmotionTimeline] ';
+export function timelineRecord({requestId, speaker, profile, provider, reply, plan, face, signal, at = Date.now()} = {}) {
+  if (typeof reply !== 'string' || !Array.isArray(plan?.segments) || !plan.segments.length) return undefined;
+  const track = face?.expressionTrack?.segments;
+  const segments = plan.segments.map((segment, i) => {
+    const aligned = Array.isArray(track) && track.length === plan.segments.length && track[i]?.from === segment.start;
+    const dominant = segment.dominant ?? null;
+    return {from: segment.start, to: segment.end,
+      start: aligned && Number.isFinite(track[i].start) ? rounded(track[i].start) : null,
+      emotion: dominant, intensity: dominant ? rounded(segment.weights?.[dominant] ?? 0) : 0,
+      tags: Array.isArray(segment.tags) ? segment.tags : [], text: reply.slice(segment.start, segment.end)};
+  });
+  const convai = signal && (signal.basis === 'ordered' || signal.basis === 'response-id')
+    ? {emotion: signal.emotion, scale: signal.scale ?? null, basis: signal.basis} : null;
+  return {at: new Date(at).toISOString(), requestId: requestId ?? null, speaker: speaker ?? null, profile: profile ?? null,
+    provider: provider ?? null, selector: plan.selector ?? null, summary: plan.summary ?? null, convai, segments};
+}

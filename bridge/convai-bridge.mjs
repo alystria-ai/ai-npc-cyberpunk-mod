@@ -5,6 +5,7 @@ import {archetypeContext, isAmbientProfile, parseInput, profileFor} from './prot
 import {audioReady} from './speech-audio.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
+import {timelineRecord, TIMELINE_PREFIX} from './expression-timeline.mjs';
 import {PhoneticLipsync} from './phonetic-lipsync.mjs';
 import {JaliFace} from './jali-face.mjs';
 import {textExpressionSignal} from './text-emotion.mjs';
@@ -804,6 +805,7 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
   const ahead = current.ahead;
   const speech = new ConvaiContinuousSpeech({input, profile, current, signal,
     planExpression: emotionSelection.planner({player, profile: input.profileKey, marks, late}),
+    onTimeline: timeline => logEmotionTimeline(input, profile, {provider: local ? 'pocket' : 'convai', ...timeline}),
     ...(local ? {faceBuilder: ownedPocketFace} : {jaliFace}),
     // A look-ahead turn buffers silently until the game submits it. Once its
     // complete text is known (and it is no longer held), the next group speaker
@@ -874,6 +876,15 @@ async function respond(input, profile, {signal, prepared, current} = {}) {
   return {...await realtime.reply({...realtimeConfig(input), ttsEnabled: false}, {signal}), transport: 'realtime'};
 }
 
+// One compact line per reply for scripts/Show-EmotionTimeline.mjs (bridge/expression-timeline.mjs). Diagnostic only.
+function logEmotionTimeline(input, profile, {provider, text, plan, face, signal} = {}) {
+  try {
+    const record = timelineRecord({requestId: input.requestId, speaker: profile?.name, profile: profile?.key, provider,
+      reply: text, plan, face, signal});
+    if (record) console.error(TIMELINE_PREFIX + JSON.stringify(record));
+  } catch { /* logging never affects speech */ }
+}
+
 async function publishResult(input, profile, result, current = async () => true, signal) {
   if (!await current()) return false;
   // The language of this exchange predicts the next turn without text (reactions, warm connections).
@@ -926,6 +937,8 @@ async function publishResult(input, profile, result, current = async () => true,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audio, face, audioError,
     stream:stream?.descriptor(),updated: Date.now()}), {signal, isCurrent: current, isCurrentSync: current.sync});
   if (!committed || !await current()) { stream?.closeQueue(); return false; }
+  logEmotionTimeline(input, profile, {provider: result.timing?.voiceProvider ?? null, text: result.text,
+    plan: result.expressionPlan, face, signal: result.expressionSignal});
   (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);
   if (result.transport === 'realtime') connections.used(input, result.timing);
   prefetch.published(input, result.text);

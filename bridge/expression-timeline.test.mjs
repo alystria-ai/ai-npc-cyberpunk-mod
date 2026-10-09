@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {analyseReply, planRange, phraseOffsets, FAMILIES} from './emotion-analysis.mjs';
 import {speechActivity, findPauses, alignSegments, buildTrack, attachExpressionTrack, sampleTrack,
-  LEAD_SECONDS, BLEND_SECONDS, TRACK_FORMAT} from './expression-timeline.mjs';
+  LEAD_SECONDS, BLEND_SECONDS, TRACK_FORMAT, timelineRecord} from './expression-timeline.mjs';
 import {SpeechStream, SpeechSlots} from './speech-stream.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
 import {silentWav} from './speech-audio.mjs';
@@ -185,4 +185,41 @@ test('continuous streams attach a track from the received text and audio, re-pla
   const second = documents.at(-1).face;
   assert.ok(second.expressionTrack.segments.length >= 3, 'more phrases as more text arrives');
   assert.ok(planned.length >= 2 && planned[0][0] !== planned[1][0]);
+  // The reply's timeline is reported once, when its text and audio source are both complete.
+  const timelines = [];
+  const finishing = new ConvaiContinuousSpeech({input, profile: {key: 'some-fixer'}, current: Object.assign(async () => true, {sync: () => true}),
+    signal: undefined, faceBuilder: (snapshot) => face(speechRanges, snapshot.duration, {complete: snapshot.complete}),
+    planExpression: value => analyseReply(value, {profile: 'some-fixer'}), readControl: async () => '{}', writeState: async () => true,
+    writeReply: async () => true, onText: () => {}, onTimeline: timeline => timelines.push(timeline)});
+  const done = {...base, token: finishing.token, text, receivedFrames: 24000 * 8, positionSeconds: 3, textComplete: true, sourceComplete: true};
+  await finishing.frame({...done, sourceComplete: false, positionSeconds: 2});
+  assert.equal(timelines.length, 0, 'not reported while the source is still arriving');
+  await finishing.frame(done);
+  await finishing.frame(done);
+  assert.equal(timelines.length, 1, 'reported exactly once per reply');
+  assert.equal(timelines[0].text, text);
+  assert.ok(timelines[0].plan.segments.length >= 3 && timelines[0].face.expressionTrack, 'with the plan and the aligned face');
+});
+
+test('timeline record: each planned part with its text, emotion, intensity and aligned start; provider label only when admitted', () => {
+  const reply = 'Fine. We leave now, and you shut up.';
+  const plan = {selector: 'context', summary: {family: 'anger', label: 'Anger', weight: .5, basis: 'text', scale: 2},
+    segments: [
+      {start: 0, end: 6, dominant: 'trust', weights: {trust: .4}, tags: ['llm-emotion']},
+      {start: 6, end: 21, dominant: 'anger', weights: {anger: .55, sadness: .2}, tags: []},
+      {start: 21, end: 36, dominant: null, weights: {}, tags: []}]};
+  const face = {expressionTrack: {segments: [{from: 0, start: 0}, {from: 6, start: .8}, {from: 21, start: 2.1}]}};
+  const record = timelineRecord({requestId: 'r1', speaker: 'Judy Alvarez', profile: 'judy-alvarez', provider: 'omni',
+    reply, plan, face, signal: {emotion: 'Anger', scale: 2, basis: 'ordered'}, at: Date.UTC(2026, 9, 9)});
+  assert.equal(record.at, '2026-10-09T00:00:00.000Z');
+  assert.equal(record.speaker, 'Judy Alvarez');
+  assert.deepEqual(record.convai, {emotion: 'Anger', scale: 2, basis: 'ordered'});
+  assert.deepEqual(record.segments.map(s => [s.text, s.emotion, s.intensity, s.start]),
+    [[reply.slice(0, 6), 'trust', .4, 0], [reply.slice(6, 21), 'anger', .55, .8], [reply.slice(21, 36), null, 0, 2.1]]);
+  // A text-only or unadmitted signal is not the provider's emotion.
+  assert.equal(timelineRecord({reply, plan, signal: {emotion: 'Joy', scale: 1, basis: 'text'}}).convai, null);
+  // A track that does not line up with the plan leaves the starts unknown rather than wrong.
+  const misaligned = timelineRecord({reply, plan, face: {expressionTrack: {segments: [{from: 0, start: 0}]}}});
+  assert.ok(misaligned.segments.every(s => s.start === null));
+  assert.equal(timelineRecord({reply: 'x', plan: {segments: []}}), undefined);
 });

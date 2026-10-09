@@ -30,12 +30,12 @@ export class ConvaiContinuousSpeech {
   // when it changes; the state file carries faceRevision. The game then decodes
   // ~100 KB a few times per utterance instead of on every 40 ms state poll.
   constructor({input, profile, current, signal, readControl, writeState, writeReply, writeFace, faceFile,
-    onPublished = async () => {}, onStarted = async () => {}, onGenerated = async () => {},
+    onPublished = async () => {}, onStarted = async () => {}, onGenerated = async () => {}, onTimeline = () => {},
     // hold(): true while this turn is a look-ahead that must keep buffering and
     // publish nothing. onText(text, userText): the complete reply text is known.
     hold = () => false, onHeld = () => {}, onText = () => {},
     now = Date.now, token = randomUUID(), faceBuilder, jaliFace, planExpression}) {
-    this.planExpression = planExpression;
+    this.planExpression = planExpression; this.onTimeline = onTimeline;
     this.input = input; this.profile = profile; this.current = current; this.signal = signal;
     this.readControl = readControl; this.writeState = writeState; this.writeReply = writeReply;
     this.writeFace = writeFace; this.faceFile = faceFile; this.faceRevision = 0; this.faceWritten = 0;
@@ -256,11 +256,21 @@ export class ConvaiContinuousSpeech {
     }
     if (!this.generated && snapshot.textComplete && snapshot.sourceComplete) {
       await this.onGenerated(snapshot.text); this.generated = true;
+      this.reportTimeline(snapshot);
     }
     this.last = document;
     if (snapshot.ended) { this.ended = true; this.model?.close(); return quiet(); }
     if (!await this.valid()) throw Error('Continuous speech owner changed');
     return this.control();
+  }
+
+  // Once per reply, when its text and audio source are both complete: the plan and face this stream ends with (the
+  // planner caches by text, so this is the plan the last poll already used). Diagnostic only; never throws.
+  reportTimeline(snapshot) {
+    try {
+      const plan = this.planExpression?.(snapshot.text, snapshot.expressionSignal);
+      this.onTimeline({text: snapshot.text, plan, face: this.face, signal: snapshot.expressionSignal});
+    } catch { /* the timeline is optional */ }
   }
 
   // Audio-aligned subtitle cues for the published text. Recomputed when the
