@@ -405,25 +405,43 @@ yawMaxRight, pitchMax, pitchMin, sensitivityMultX/Y) sets any limits at once
 and `CancelDelay(id)` stops it. Resetting with a `SetCameraParamsEvent` for
 "Default" restores walking limits.
 
-**The change** (`mod/seated-look.lua`, installed from `onInit` in
-`init.lua`): `ObserveAfter('WorkspotEvents', 'OnEnter')`, the player state
-machine entering its Workspot state, once per sit. If V's workspot instance
-classifies as a seat with the same `classify` the companion seating uses
-(couch, bench, chair, table chair, bar, stool), it queues a
-`SetCameraParamsWithOverridesEvent` (base set `WorkspotUnlocked`, yaw +-90,
-pitch -50..45, sensitivities 1) and a second copy 0.4 s later in case the native
-parameters land after the script hook. `OnExit` and `OnForcedExit` cancel the
-delayed copy so it cannot land on a standing V. Cars, beds, the ground, bikes,
-the ripperdoc chair, takedowns and every locked workspot are not classified as
-seats and keep the game's limits, and V's apartment couch (a scene, no
-workspot instance) is left to the scene sets that already allow +-90. So the
-change is limited to sitting workspots. No setting (same decision as "Sit with
-you": a pure comfort fix, and a setting would touch the manager, the MCM and 15
-locales); the numbers are constants at the top of the module.
+**Second live finding (user sits, October 10): the sits are scenes.** The
+first override version only acted on a readable workspot path and logged
+`seated-look-skip: no workspot instance` on every chair and the apartment couch.
+V's sits are scene sits (`GetWorkspotInstance` nil, PSM SceneTier 3, HighLevel 3,
+Locomotion 9, IsInWorkspot 1, `player-workspot` "unnamed: classify by the
+furniture"), and their camera limits are the scene's own, not the Workspot set:
+on the couch V's camera read yawMaxLeft 60.9, yawMaxRight -88.9, pitch -56.8..79.1,
+headingLocked true, so the left side (where she often sits) was out of reach. Sent
+while V was seated, `SetCameraParamsWithOverridesEvent` with base set
+`Tier3Scene` and 90/-90/-50/45 changed the camera to exactly those values and
+they stayed.
 
-Cost: nothing per frame. Three Observe hooks that run only when the state
-machine enters or leaves Workspot, and a handful of native calls per sit
-(workspot instance read, two event sends, one cancel).
+**The change** (`mod/seated-look.lua`, installed from `onInit` in
+`init.lua`): `ObserveAfter` hooks on `WorkspotEvents.OnEnter` (the player state
+machine entering Workspot, once per sit), `OnExit` / `OnForcedExit`, and
+`DefaultTransition.QueueSetCameraParamsEvent_Tier3Scene` (the scene sending its
+tier 3 camera limits). A sit is either a named workspot that classifies as a seat
+with the same `classify` the companion seating uses (couch, bench, chair, table
+chair, bar, stool; base set `WorkspotUnlocked`) or a scene sit: no workspot
+instance and scene tier 3 (base set `Tier3Scene`). For a sit it queues a
+`SetCameraParamsWithOverridesEvent` (yaw +-90, pitch -50..45, sensitivities 1) at
+once and a second copy 0.4 s later in case the native parameters land after the
+script hook; while V sits, each scene resend of the tier 3 camera limits gets the
+override queued behind it. Exit cancels the delayed copy so it cannot land on a
+standing V. Cars (vehicle PSM state or a car workspot), beds, the ground, bikes,
+the ripperdoc chair and takedowns are not sits and keep the game's limits. A scene
+at tier 3 where V stands (a conversation) is not touched because the Workspot
+state is never entered. A scene where V is in some other workspot at tier 3 with no
+readable path would also be widened (no way to tell from the state alone); that
+only frees the camera. No setting (same decision as "Sit with you": a pure comfort
+fix, and a setting would touch the manager, the MCM and 15 locales); the numbers
+are constants at the top of the module.
+
+Cost: nothing per frame. Four Observe hooks that run only when the state machine
+enters or leaves Workspot or a scene resends its tier 3 camera limits, and a
+handful of native calls per sit (blackboard read, workspot instance read, two event
+sends, one cancel).
 
 Community prior art (web search October 10, little found): none of the "sit
 anywhere" or first-person camera mods found documents seated yaw limits. Sit
@@ -435,10 +453,9 @@ while walking. No source was found for the `fppCameraParamSets` names or the
 overrides event; they come from the local `tweakdb.bin`, `final.redscripts`
 and the live reads above.
 
-Unknowns that only a real sit can settle: that `WorkspotEvents.OnEnter` fires
-once per sit and the instance path is readable there (the log line
-`seated-look` or `seated-look-skip` with the path says so, developer mode on);
-that the later copy wins over the native parameters; whether a vanilla dialogue
+Unknowns that only a real sit can settle: that the later copy and the scene-resend
+hook win over the native parameters (the log lines `seated-look-enter` and
+`seated-look` with the tier say what fired, developer mode on); whether a vanilla dialogue
 while seated (scene tier) re-applies the narrow set afterwards; body or arm
 clipping at yaw 90; the pitch sign (positive is expected to be up).
 

@@ -14,15 +14,17 @@
 -- does work is the game's own SetCameraParamsWithOverridesEvent: queued on
 -- the player with the four limits, it lands in the camera component at once.
 --
--- So this module reacts to the state machine entering Workspot (an Observe on
--- WorkspotEvents.OnEnter, once per sit) and, when the workspot is a seat,
--- queues that event right away and once more 0.4 s later in case the native
--- parameters land after the script hook. The delayed copy is cancelled on exit.
--- Cost: nothing per frame; a few native calls per sit.
+-- Live finding 2 (October 10, user sits): V's chairs and couches are scene
+-- sits at scene tier 3 with no readable workspot instance, and their camera
+-- limits are the scene's own (60.9 left, -88.9 right, pitch -56.8..79.1 on the
+-- couch). So the gate is: the Workspot state was entered and either the
+-- workspot classifies as a seat (a named player workspot) or the scene tier
+-- is 3 with no instance. The override goes out at the entry and again 0.4 s
+-- later, and again whenever the scene resends its tier 3 camera limits while V
+-- sits (DefaultTransition.QueueSetCameraParamsEvent_Tier3Scene). The delayed
+-- copy is cancelled when the state exits. Nothing runs per frame: the hooks
+-- fire on state entry, exit and scene camera changes only.
 --
--- Only seats are touched (couch, bench, chair, bar stool, free stool: the same
--- classification the companion seating uses): locked workspots (takedowns,
--- trunk disposal), beds, cars and scenes are never changed.
 local M = {}
 
 M.limits = {
@@ -33,73 +35,102 @@ M.limits = {
     sensitivityMultX = 1,
     sensitivityMultY = 1,
 }
-M.baseSet = 'WorkspotUnlocked' -- named set the overrides apply to
+M.baseSet = 'WorkspotUnlocked' -- named set the overrides apply to in a plain workspot
+M.sceneSet = 'Tier3Scene'      -- ... and in a scene (scene tier 3)
 M.settle = .4                  -- seconds until the second copy of the event
 
--- native: {seat() -> path, anim, queue(limits), delay(limits, seconds) -> id,
+-- native: {seat() -> {path, anim, tier, vehicle}, queue(limits, set), delay(limits, set, seconds) -> id,
 --   cancel(id), classify(path, anim) -> kind or nil, log(kind, fields)}.
 function M.new(native)
-    local self = {native = native, pending = nil, sits = 0, widened = 0}
+    local self = {native = native, pending = nil, sitting = nil, sits = 0, widened = 0}
     local function log(kind, fields)
         if native.log then pcall(native.log, kind, fields) end
     end
 
-    -- The player state machine entered Workspot.
-    function self.entered()
-        self.sits = self.sits + 1
-        local ok, path, anim = pcall(native.seat)
-        if not ok then log('seated-look-error', {stage = 'seat', error = tostring(path)}); return false end
-        local classified, kind = pcall(native.classify, path, anim)
-        kind = classified and kind or nil
-        if not kind then
-            log('seated-look-skip', {path = path, anim = anim, reason = path and 'not a seat' or 'no workspot instance'})
-            return false
-        end
-        local queued, queueError = pcall(native.queue, M.limits)
-        local delayed, id = pcall(native.delay, M.limits, M.settle)
+    local function send(set, note)
+        local queued, queueError = pcall(native.queue, M.limits, set)
+        local delayed, id = pcall(native.delay, M.limits, set, M.settle)
         if delayed then self.pending = id end
-        self.widened = self.widened + 1
-        log('seated-look', {path = path, anim = anim, kind = kind, queued = queued, delayed = delayed,
+        log('seated-look', {kind = self.sitting, set = set, queued = queued, delayed = delayed, note = note,
             error = (not queued and tostring(queueError)) or (not delayed and tostring(id)) or nil})
         return queued or delayed
+    end
+
+    -- The player state machine entered Workspot. V's sits are either a named
+    -- workspot (path readable, classified like the companion seating does) or
+    -- a scene sit at scene tier 3 with no workspot instance at all (every chair
+    -- and couch in the October 10 live runs).
+    function self.entered()
+        self.sits = self.sits + 1
+        self.sitting = nil
+        local ok, seat = pcall(native.seat)
+        if not ok or type(seat) ~= 'table' then log('seated-look-error', {stage = 'seat', error = tostring(seat)}); return false end
+        if seat.vehicle and seat.vehicle ~= 0 then log('seated-look-skip', {reason = 'in a vehicle'}); return false end
+        local classified, kind = pcall(native.classify, seat.path, seat.anim)
+        kind = classified and kind or nil
+        local set = M.baseSet
+        if not kind and not seat.path and seat.tier == 3 then kind, set = 'scene', M.sceneSet end
+        if not kind then
+            log('seated-look-skip', {path = seat.path, anim = seat.anim, tier = seat.tier,
+                reason = seat.path and 'not a seat' or 'no workspot instance outside scene tier 3'})
+            return false
+        end
+        self.sitting, self.set = kind, set
+        self.widened = self.widened + 1
+        log('seated-look-enter', {path = seat.path, anim = seat.anim, tier = seat.tier, kind = kind})
+        return send(set, 'enter')
+    end
+
+    -- A scene sent its own tier 3 camera limits (the narrow ones) while V sits:
+    -- the override goes in behind them.
+    function self.sceneCamera()
+        if not self.sitting then return false end
+        return send(self.set, 'scene camera')
     end
 
     -- The state machine left Workspot: the second copy must not land on a V
     -- who already stands.
     function self.left()
         local id = self.pending
-        self.pending = nil
+        self.pending, self.sitting = nil, nil
         if id ~= nil then pcall(native.cancel, id) end
     end
 
     return self
 end
 
--- Game wiring: one Observe pair on the player's Workspot state. Returns the
--- controller, or nil and a reason (the class or hook missing in this build).
+-- Game wiring: Observe hooks on the player's Workspot state and on the scene
+-- camera parameters. Returns the controller, or nil and a reason (the class or
+-- hook missing in this build).
 function M.install(options)
     options = options or {}
-    local classify = options.classify
-    local native = {classify = classify, log = options.log}
+    local native = {classify = options.classify, log = options.log}
     function native.seat()
         local player = Game.GetPlayer()
-        local instance = Game.GetWorkspotSystem():GetWorkspotInstance(player:GetEntityID())
-        if not instance then return nil, nil end
-        local path, anim
-        pcall(function() anim = NameToString(instance.idleAnim) .. ' ' .. NameToString(instance.animName) end)
-        pcall(function() path = ResRef.ToString(instance.resource.path) end)
-        if not path or path == '' then pcall(function() path = tostring(instance.resource.path) end) end
-        return path, anim
+        local seat = {}
+        pcall(function()
+            local defs = Game.GetAllBlackboardDefs().PlayerStateMachine
+            local board = Game.GetBlackboardSystem():GetLocalInstanced(player:GetEntityID(), defs)
+            seat.tier, seat.vehicle = board:GetInt(defs.SceneTier), board:GetInt(defs.Vehicle)
+        end)
+        pcall(function()
+            local instance = Game.GetWorkspotSystem():GetWorkspotInstance(player:GetEntityID())
+            if not instance then return end
+            pcall(function() seat.anim = NameToString(instance.idleAnim) .. ' ' .. NameToString(instance.animName) end)
+            pcall(function() seat.path = ResRef.ToString(instance.resource.path) end)
+            if not seat.path or seat.path == '' then pcall(function() seat.path = tostring(instance.resource.path) end) end
+        end)
+        return seat
     end
-    local function event(limits)
+    local function event(limits, set)
         local ev = SetCameraParamsWithOverridesEvent.new()
-        ev.paramsName = CName.new(M.baseSet)
+        ev.paramsName = CName.new(set)
         for key, value in pairs(limits) do ev[key] = value end
         return ev
     end
-    function native.queue(limits) Game.GetPlayer():QueueEvent(event(limits)) end
-    function native.delay(limits, seconds)
-        return Game.GetDelaySystem():DelayEvent(Game.GetPlayer(), event(limits), seconds, false)
+    function native.queue(limits, set) Game.GetPlayer():QueueEvent(event(limits, set)) end
+    function native.delay(limits, set, seconds)
+        return Game.GetDelaySystem():DelayEvent(Game.GetPlayer(), event(limits, set), seconds, false)
     end
     function native.cancel(id) Game.GetDelaySystem():CancelDelay(id) end
     local controller = M.new(native)
@@ -107,6 +138,7 @@ function M.install(options)
         ObserveAfter('WorkspotEvents', 'OnEnter', function() controller.entered() end)
         ObserveAfter('WorkspotEvents', 'OnExit', function() controller.left() end)
         ObserveAfter('WorkspotEvents', 'OnForcedExit', function() controller.left() end)
+        ObserveAfter('DefaultTransition', 'QueueSetCameraParamsEvent_Tier3Scene', function() controller.sceneCamera() end)
     end)
     if not hooked then return nil, tostring(reason) end
     return controller
