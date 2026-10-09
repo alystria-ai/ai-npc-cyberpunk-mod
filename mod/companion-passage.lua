@@ -24,7 +24,20 @@ M.policy={
     -- at most carQueries physics queries per update; the car floor must lie
     -- within carFloor of V's feet.
     carRings={.95,1.3},carQueries=24,carFloor=.3,
+    -- Boarding gait: V waits inside the car, so she hurries. Walk only for the
+    -- last boardWalk metres (a straight move with no navmesh must not overshoot),
+    -- jog (Run) beyond, sprint beyond boardSprint; the follow pace sprints from
+    -- 5 m too (companion-behavior.lua pace).
+    boardWalk=1.5,boardSprint=5,
 }
+
+-- Movement type for a walk onto a lift car floor, by metres still to go.
+function M.boardGait(gap)
+    local policy=M.policy
+    if gap<=policy.boardWalk then return 'Walk' end
+    if gap>policy.boardSprint then return 'Sprint' end
+    return 'Run'
+end
 
 local function ground(a,b) return math.sqrt((a.x-b.x)^2+(a.y-b.y)^2) end
 local function copy(p) return {x=p.x,y=p.y,z=p.z} end

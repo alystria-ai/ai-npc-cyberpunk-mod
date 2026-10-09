@@ -649,3 +649,37 @@ test('furniture refusing every route beside her: a short step, then an out-of-vi
   local spot=teleports[1].spot
   assert(math.sqrt((spot.x-player.pos.x)^2+(spot.y-player.pos.y)^2)<6,'not placed near V')
 `));
+
+// Live 2026-10-10: "she walks too slowly into the lift" while V waited in the
+// car. The walk onto the car floor was a Walk for the last 3 m; it now jogs,
+// sprints from 5 m, and walks only for the last 1.5 m (no overshoot).
+test('boarding gait: walk when very close, jog in between, sprint from afar',()=>run(companionEngine+`
+  local passage=dofile('companion-passage.lua')
+  assert(passage.boardGait(0.5)=='Walk' and passage.boardGait(1.5)=='Walk')
+  assert(passage.boardGait(1.6)=='Run' and passage.boardGait(3)=='Run' and passage.boardGait(5)=='Run')
+  assert(passage.boardGait(5.1)=='Sprint' and passage.boardGait(10)=='Sprint')
+`));
+
+test('she hurries onto the car floor: no leisurely walk beyond 1.5 m, sprint from afar',()=>run(world+car+`
+  local sent={}
+  local plain=npc.ai.onSend
+  npc.ai.onSend=function(cmd)
+    if cmd.kind=='AIMoveToCommand' and cmd.ignoreNavigation then
+      sent[#sent+1]={gait=cmd.movementType,gap=space.ground(npc.pos,cmd.movementTarget.position)}
+    end
+    return plain(cmd)
+  end
+  -- She stands 8 m back from the doors when V steps into the car.
+  npc.pos=Vector4.new(0,-6,0)
+  enterCar(); play(14)
+  assert(#sent>=1,'she never walked onto the car floor'..dump())
+  for _,leg in ipairs(sent) do
+    local want=leg.gap<=1.5 and 'Walk' or leg.gap>5 and 'Sprint' or 'Run'
+    assert(leg.gait==want,'gait '..tostring(leg.gait)..' for '..leg.gap..' m, wanted '..want)
+  end
+  local fast=0
+  for _,leg in ipairs(sent) do if leg.gait~='Walk' then fast=fast+1 end end
+  assert(fast>=1,'every leg onto the car floor was a walk')
+  assert(logged('lift-boarded'),'she never boarded'..dump())
+  assert(#teleports==0,'she was teleported although she could walk in'..dump())
+`));

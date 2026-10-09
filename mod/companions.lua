@@ -1424,7 +1424,9 @@ end
 -- cancellation is pending, else whether it was sent.
 local function walkLeg(entry,walk,from)
     local gap=space.ground(from,walk.target)
-    local sent=actuator.board(entry.motor,walk.target,{navigate=walk.navigate,gait=gap>3 and 'Run' or 'Walk'})
+    -- Boarding hurries (V waits in the car); walking out keeps the old pace.
+    local gait=walk.purpose=='board' and passage.boardGait(gap) or gap>3 and 'Run' or 'Walk'
+    local sent=actuator.board(entry.motor,walk.target,{navigate=walk.navigate,gait=gait})
     if sent then
         stopPace(entry)
         walk.deadline=runtimeClock+gap/separation.carWalkSpeed+3

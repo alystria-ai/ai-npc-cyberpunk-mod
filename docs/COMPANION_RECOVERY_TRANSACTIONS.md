@@ -782,3 +782,31 @@ The fixes:
 Test: a U of furniture 0.75 m around her, open away from V. She takes the
 short step, then rejoins near V by the `stance` rule. This fails on
 `a977f09`.
+
+### She walked too slowly into the lift (2026-10-10, live)
+
+The user: "She walks too slowly into the lift." The boarding walk
+(`walkLeg` in `mod/companions.lua` into `actuator.board`, an
+`AIMoveToCommand`) chose its movement type by the metres still to go:
+`Run` beyond 3 m, `Walk` otherwise. The straight leg into the car is short,
+and so is the last leg after the native walk to the doorway, so she walked
+(about 1.5 m/s) the last 3 m of every boarding while V waited in the car.
+
+Now (`passage.boardGait(gap)`, `mod/companion-passage.lua`, policy
+`boardWalk` 1.5 and `boardSprint` 5):
+
+| Metres to go | Movement type | About |
+| --- | --- | --- |
+| up to 1.5 | `Walk` | 1.5 m/s, no overshoot on a floor with no navmesh |
+| 1.5 to 5 | `Run` (jog) | 3.6 m/s |
+| over 5 | `Sprint` | 5.4 m/s |
+
+The sprint distance is the follow pace's (`companion-behavior.lua` `pace`
+sprints from 5 m). Boarding only runs while V is inside a stopped car, so V is
+always waiting. Walking out after V (`purpose` `exit`) keeps the old rule.
+Nothing else changed: the 10 m walk limit, the retry, the unseen placement and
+the hidden ride are as before, and the choice is made once per leg, not per
+frame. The walk's give-up deadline still assumes 0.8 m/s, so it is only more
+generous. Tests: the gait table, and a boarding from 8 m back where every leg
+matches it. Needs a CET reload for `mod/companions.lua` and
+`mod/companion-passage.lua`.
