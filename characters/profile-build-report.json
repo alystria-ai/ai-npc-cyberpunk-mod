@@ -1,6 +1,6 @@
 {
-  "profiles": 79,
-  "named": 77,
+  "profiles": 80,
+  "named": 78,
   "ambient": 2,
   "profileRevision": 5,
   "model": "fast-gemma-4-31b-it",
@@ -1876,6 +1876,15 @@
       "voice": "Anna (Expressive Young-Adult American Female)",
       "sources": 10,
       "researchRevision": "3a2a2569ffa7f1797b027b6ca31a9d8319721e728ba81041d7b619c2f44b7f39"
+    },
+    {
+      "key": "alt-cunningham",
+      "words": 677,
+      "speakingStyleWords": 239,
+      "sampleDialogueWords": 162,
+      "voice": "Megan (Neutral Adult American Female)",
+      "sources": 8,
+      "researchRevision": "4dcd9f38a76f14c6794b13c7f01609e76f42f44eaa2893fd5905e47a9f36e977"
     },
     {
       "key": "ana-friedman",

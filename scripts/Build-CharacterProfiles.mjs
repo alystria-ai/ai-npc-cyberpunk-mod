@@ -30,7 +30,7 @@ const cast = {
   Sarah:['meredith-stout','dakota-smith','carol-emeka','rogue-amendiares','regina-jones','t-bug','spider-murphy'],
   Emily:['blue-moon','cynthia-najarro','resident-female','r3n0'],
   Katie:['panam-palmer','claire-russell','iris-tanner'],
-  Laura:['lina-malina'], Linda:['mama-welles','wakako-okada'],
+  Laura:['lina-malina'], Megan:['alt-cunningham'], Linda:['mama-welles','wakako-okada'],
   Julia:['judy-alvarez','lizzy-wizzy','rachel-casich','8ug8ear','evelyn-parker'],
   Helen:['misty-olszewski','joss-kutcher'],
   Noah:['jackie-welles','coach-fred','muamar-reyes','jefferson-peralez'],

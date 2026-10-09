@@ -293,6 +293,11 @@
    "voiceName": "Emma",
    "reason": "Cheerful, adaptable voice for an operative who plays roles (keeps the old default)."
   },
+  "alt-cunningham": {
+   "voice": "AZURE-MULTILINGUAL-8f3af70863",
+   "voiceName": "Evelyn",
+   "reason": "Level, composed female voice for a detached netrunner construct who weighs her words."
+  },
   "ana-friedman": {
    "voice": "AZURE-MULTILINGUAL-fa9bf5ee42",
    "voiceName": "Thalita",

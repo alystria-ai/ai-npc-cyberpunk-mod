@@ -416,7 +416,9 @@ test('the installed twin map covers every profiled character; old romantic rows 
     assert.ok(loaded[key] || skipped.includes(key), key);
   }
   const unrouted = twinned.filter(key => !loaded[key]);
-  assert.ok(unrouted.every(key => key.startsWith('npc-')), 'only a new archetype batch may wait for the language box');
+  // Alt Cunningham (added 2026-10-10) waits here until her twin's language box is unticked in the web session; delete the
+  // alt-cunningham clause once the map records languageBoxOff: true for her.
+  assert.ok(unrouted.every(key => key.startsWith('npc-') || key === 'alt-cunningham'), 'only a new archetype batch (or Alt, pending her web-session step) may wait for the language box');
   // Every profiled (relationship) character has its one twin routed.
   for (const key of Object.keys(RELATIONSHIP_PROFILES)) {
     assert.ok(Object.hasOwn(ids, key), key + ' is not in characters.json');

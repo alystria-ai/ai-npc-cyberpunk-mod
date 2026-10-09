@@ -720,6 +720,7 @@
       "adam-smasher",
       "alan-noel",
       "alex",
+      "alt-cunningham",
       "ana-friedman",
       "arthur-jenkins",
       "babs-okoye",
@@ -809,7 +810,7 @@
       "additionalProfileStatus": "source-qualified activation; listening not required by user",
       "sourceQualifiedActivation": true,
       "subjectiveListeningRequired": false,
-      "preparedLocalProfiles": 75,
+      "preparedLocalProfiles": 76,
       "fallbackProfiles": 4
     },
     "startupProfiles": [

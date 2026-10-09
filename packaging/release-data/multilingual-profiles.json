@@ -2753,6 +2753,24 @@
       "languageBoxField": "language_hardening_mode",
       "languageBoxOff": true,
       "notCloned": []
+    },
+    "alt-cunningham": {
+      "phase": "verified",
+      "originalCharacterId": "c7718ca4-c41a-11f1-95fc-42010a7be02f",
+      "startedAt": "2026-10-09T19:52:11.788Z",
+      "key": "alt-cunningham",
+      "name": "Alt Cunningham Multilingual",
+      "multilingualCharacterId": "ed63747c-c41a-11f1-a4d2-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-09T19:52:17.453Z",
+      "voiceType": "AZURE-MULTILINGUAL-8f3af70863",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
     }
   }
 }

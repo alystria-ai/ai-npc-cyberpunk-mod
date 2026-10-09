@@ -42,13 +42,13 @@ import {randomUUID} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {apiCharacterName} from './character-payload.mjs';
 
-// The 23 tier-1 characters with a Convai profile (the 24th tier-1 voice, Alt
-// Cunningham, has no profile in this mod). Keys are runtime/characters.json keys.
+// The 24 tier-1 characters with a Convai profile (Alt Cunningham joined on 2026-10-10 as the
+// 24th). Keys are runtime/characters.json keys.
 export const TIER1_KEYS = Object.freeze([
-  'alex', 'claire-russell', 'evelyn-parker', 'jackie-welles', 'johnny-silverhand', 'judy-alvarez',
-  'kerry-eurodyne', 'lizzy-wizzy', 'mama-welles', 'meredith-stout', 'misty-olszewski', 'mr-hands',
-  'padre-ibarra', 'panam-palmer', 'pepe-najarro', 'regina-jones', 'river-ward', 'rogue-amendiares',
-  'solomon-reed', 'songbird', 'takemura', 'viktor-vektor', 'wakako-okada']);
+  'alex', 'alt-cunningham', 'claire-russell', 'evelyn-parker', 'jackie-welles', 'johnny-silverhand',
+  'judy-alvarez', 'kerry-eurodyne', 'lizzy-wizzy', 'mama-welles', 'meredith-stout', 'misty-olszewski',
+  'mr-hands', 'padre-ibarra', 'panam-palmer', 'pepe-najarro', 'regina-jones', 'river-ward',
+  'rogue-amendiares', 'solomon-reed', 'songbird', 'takemura', 'viktor-vektor', 'wakako-okada']);
 
 // English only: with the language box off the character answers in any language.
 export const LANGUAGE_CODES = Object.freeze(['en-US']);

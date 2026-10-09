@@ -39,9 +39,9 @@ function fixture(keys = ['judy-alvarez', 'jackie-welles']) {
   return {api, calls, rows, objects, loseNext: () => { lose = true; }};
 }
 
-test('tier-1 roster has 23 unique profile keys', () => {
-  assert.equal(TIER1_KEYS.length, 23);
-  assert.equal(new Set(TIER1_KEYS).size, 23);
+test('tier-1 roster has 24 unique profile keys', () => {
+  assert.equal(TIER1_KEYS.length, 24);
+  assert.equal(new Set(TIER1_KEYS).size, 24);
 });
 
 test('twin payload keeps the biography, swaps only the marker, and picks a gender-matched multilingual voice', () => {
@@ -307,4 +307,30 @@ test('computed credit-cost estimates that flip between reads do not count as a c
   };
   const result = await applyTwinVoices({rows: [{key: 'judy-alvarez', voice: 'v-new'}], mapping: made.mapping, api: flipping});
   assert.equal(result.results[0].changed, true);
+});
+
+test('Alt Cunningham is wired as a tier-1 companion end to end (roster, twin, voice, menu, auto-connect, release data)', () => {
+  const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8').replace(/^﻿/, '');
+  const json = path => JSON.parse(read(path));
+  const key = 'alt-cunningham';
+  assert.ok(TIER1_KEYS.includes(key));
+  const entry = json('characters/roster.json').find(row => row.key === key);
+  assert.ok(entry, 'roster row');
+  assert.equal(entry.gender, 'FEMALE');
+  assert.deepEqual(entry.records, ['Character.Alt']);
+  assert.ok(json('research/cyberpunk/dossiers/alt-cunningham.json').profile.backstory.length > 200, 'dossier');
+  assert.ok(read('characters/profile-text/alt-cunningham.txt').includes('BACKSTORY'), 'profile text');
+  const voiceMap = json('characters/multilingual-voice-map.json');
+  assert.equal(voiceMap.voices[voiceMap.assignments[key]?.voice]?.gender, 'FEMALE', 'twin voice assignment');
+  assert.ok(json('characters/world-knowledge.json').profileKeys.includes(key), 'world knowledge audience');
+  assert.ok(json('characters/manager-characters.json').some(row => row.profileKey === key && row.record === 'Character.Alt'), 'manager menu record');
+  assert.ok(/'alt-cunningham'/.test(read('mod/auto-connect.lua')), 'auto-connect tier-1 list');
+  assert.ok(json('assets/gestures/gestures.json').characters['Character.Alt'], 'gesture family');
+  const plan = json('packaging/release-plan.json');
+  assert.ok(plan.voice.localProfiles.includes(key), 'release voice list');
+  const originalId = json('packaging/release-data/characters.json')[key];
+  const twin = json('packaging/release-data/multilingual-profiles.json').characters[key];
+  assert.match(originalId, /^[0-9a-f-]{36}$/);
+  assert.match(twin.multilingualCharacterId, /^[0-9a-f-]{36}$/);
+  assert.equal(twin.originalCharacterId, originalId);
 });
