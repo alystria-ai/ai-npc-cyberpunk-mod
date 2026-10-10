@@ -478,15 +478,87 @@ test('ambient nearby characters and partners warm through their entity route wit
   assert.throws(() => f.connections.setNearby(['resident-male'], {'resident-male': {key: 'k'}}), /Invalid submitted connection route/);
 });
 
-test('with a single-session plan an invited companion counts as ready without a pre-opened connection', async () => {
+test('with a single-session plan background maintenance pre-opens nothing', async () => {
   let single = true;
-  const f = fixture({canWarm: () => !single, deferWarm: () => single});
-  f.heartbeat(['alex']); await f.step(0); await f.step(500);
-  assert.equal(f.calls.length, 0, 'nothing is pre-opened');
+  const f = fixture({deferWarm: () => single});
+  f.heartbeat(['alex', 'judy']); await f.step(0); await f.step(500); await f.step(500);
+  assert.equal(f.calls.length, 0, 'nothing is pre-opened for the party');
   assert.deepEqual(await f.connections.invitationReadiness('alex'), {present: true, ready: true, busy: false, deferred: true});
-  assert.deepEqual(await f.connections.invitationReadiness('judy'), {present: false, ready: false, busy: false}, 'an unknown companion is still not ready');
+  assert.deepEqual(await f.connections.invitationReadiness('nobody'), {present: false, ready: false, busy: false}, 'an unknown companion is still not ready');
   single = false; await f.step(500);
   assert.ok(f.calls.length >= 1, 'connections are pre-opened again on the shared key');
   assert.notEqual((await f.connections.invitationReadiness('alex')).deferred, true);
+  await f.connections.clear();
+});
+
+test('with a single-session plan an invitation opens the joining companion connection before she is ready', async () => {
+  const f = fixture({deferWarm: () => true});
+  await f.connections.setInvitations(['judy']);
+  const status = await f.connections.warmInvitation('judy');
+  assert.equal(status.ready, true);
+  assert.deepEqual(f.calls.map(call => call.profile), ['judy'], 'the joining companion is connected, nobody else');
+  assert.ok(f.live.has(connectionKey('judy', 'private')), 'her page is open when the invitation reports ready');
+  assert.equal(f.connections.entries.get(connectionKey('judy', 'private')).state, 'ready');
+  await f.connections.clear();
+});
+
+test('with a single-session plan the invitation waits while the connection is still opening', async () => {
+  const f = fixture({deferWarm: () => true});
+  f.host.defer = true;
+  await f.connections.setInvitations(['judy']);
+  let settled = false;
+  const warming = f.connections.warmInvitation('judy').then(value => { settled = true; return value; });
+  await flush();
+  assert.equal(settled, false, 'ready is not reported before the page is open');
+  assert.equal(f.connections.entries.get(connectionKey('judy', 'private')).state, 'connecting');
+  f.pending[0].resolve();
+  assert.equal((await warming).ready, true);
+  assert.equal(f.calls.length, 1);
+  await f.connections.clear();
+});
+
+test('with a single-session plan two invitations connect one after the other and probing never swaps them', async () => {
+  const f = fixture({deferWarm: () => true});
+  f.host.defer = true;
+  await f.connections.setInvitations(['alex', 'judy']);
+  const first = f.connections.warmInvitation('alex'); await flush();
+  assert.equal((await f.connections.warmInvitation('judy')).gated, true, 'one page opens at a time');
+  assert.equal(f.calls.length, 1);
+  f.pending[0].resolve(); assert.equal((await first).ready, true);
+  f.host.defer = false;
+  await f.step(500); // starts are spaced 500 ms apart
+  assert.equal((await f.connections.warmInvitation('judy')).ready, true);
+  assert.deepEqual(f.calls.map(call => call.profile), ['alex', 'judy']);
+  // Probes and maintenance after both are ready open nothing and report ready for both.
+  for (let round = 0; round < 3; round++) {
+    await f.step(500);
+    assert.equal((await f.connections.invitationReadiness('alex')).ready, true);
+    assert.equal((await f.connections.invitationReadiness('judy')).ready, true);
+  }
+  assert.equal(f.calls.length, 2, 'no page was reopened');
+  await f.connections.clear();
+});
+
+test('with a single-session plan a failed connection never fails the invitation', async () => {
+  const f = fixture({deferWarm: () => true});
+  f.host.fail = true;
+  await f.connections.setInvitations(['judy']);
+  const status = await f.connections.warmInvitation('judy');
+  assert.equal(status.ready, true, 'the first conversation connects on demand');
+  assert.equal(f.connections.entries.get(connectionKey('judy', 'private')).state, 'retrying');
+  assert.equal((await f.connections.warmInvitation('judy')).ready, true, 'a cooling-down entry does not hold the invitation back');
+  assert.equal(f.calls.length, 1);
+  await f.connections.clear();
+});
+
+test('with a single-session plan a busy conversation holds the invitation until it can connect', async () => {
+  let busy = true;
+  const f = fixture({canWarm: () => !busy, deferWarm: () => true});
+  await f.connections.setInvitations(['judy']);
+  assert.equal((await f.connections.warmInvitation('judy')).gated, true);
+  assert.equal(f.calls.length, 0);
+  busy = false;
+  assert.equal((await f.connections.warmInvitation('judy')).ready, true);
+  assert.equal(f.calls.length, 1);
   await f.connections.clear();
 });

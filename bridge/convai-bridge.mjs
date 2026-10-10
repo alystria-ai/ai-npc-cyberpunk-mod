@@ -517,7 +517,8 @@ const ambientWarmConfig = (profile, entity) => {
     sessionId: realtimeSessions.get(route.sessionKey), ttsEnabled: warmUsesConvaiVoice(profile)}) : null;
 };
 const connections = new PartyConnections({host: realtime,
-  canWarm: () => !stopped && !memoryQuiescing && !active && !mic.current && !micPolling && !lookahead.busy && !singleSession(),
+  canWarm: () => !stopped && !memoryQuiescing && !active && !mic.current && !micPolling && !lookahead.busy,
+  // A single-session plan (own key) warms nothing in the background; only an invitation opens its companion's connection.
   deferWarm: singleSession,
   isKnown: profile => Object.hasOwn(ids, profile) && !!warmRoute(profile, 'private'),
   configFor: (profile, scope) => {

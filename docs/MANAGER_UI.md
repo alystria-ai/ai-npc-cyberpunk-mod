@@ -229,6 +229,8 @@ dismissal actions describe their queued work instead of the stock "Completed"
 text. Other providers and failure messages retain MCM's ordinary rendering.
 No MCM source or saved preferences are modified.
 
+An invitation is ready, and the companion spawns and is announced as joined, only once her Convai connection is open. On a player's own Convai key (one connection at a time) the invitation opens her connection alone, one invitation at a time; the other party members' connections open when V talks to them, which is when the `Preparing connection to {name}…` notice can show. The notice never shows from looking at a character.
+
 While an invitation prepares with the manager open, the status banner shows nothing for it: the progress lines (**Preparing**, **Connecting**, **ready to join**) are removed in every mode. A preparation failure still shows there (**{name}: preparation failed. Cancel and invite again.**). The banner tracks the latest requested pending copy and revision; cancelling that copy, spawning it or resetting the world clears it, and it does not restore an older copy's banner after cancellation. Memory, dismissal and trip results keep priority over the banner.
 
 `manager-party.lua` exposes this as a read-only preparation snapshot, separate

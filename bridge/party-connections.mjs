@@ -45,7 +45,9 @@ export function parsePartyConnections(value, now = Date.now()) {
 // connection. Setup follows Dawnwalker's two-at-once, staggered lifecycle.
 export class PartyConnections {
   // deferWarm(): true while the plan allows only one conversation connection at a time (a player's own free Convai
-  // key). Nothing is pre-opened then; an invitation counts as ready and its first conversation connects on demand.
+  // key). Background maintenance pre-opens nothing then (it would swap one companion's connection for another's, over
+  // and over). Only an invitation opens its own companion's connection, once, before she joins (warmSingle); a failure
+  // there does not fail the invitation, and every other connection opens on demand when V talks.
   constructor({host, configFor, isKnown, onState = () => {}, now = Date.now, staleMs = 6500, canWarm = () => true,
     deferWarm = () => false}) {
     Object.assign(this, {host, configFor, isKnown, onState, now, staleMs, canWarm, deferWarm});
@@ -237,7 +239,7 @@ export class PartyConnections {
     }
     // A cancelled/busy retirement may outlive its invitation. Complete that
     // exact disposal before maintenance can reuse any pre-enable connection.
-    if (!this.paused && this.canWarm()) for (const [profile, debt] of this.retirementDebt) {
+    if (!this.paused && this.canWarm() && !this.deferWarm()) for (const [profile, debt] of this.retirementDebt) {
       if (!this.retiring.has(profile) && now >= debt.retryAt) void this.retireInvitation(profile).catch(() => {});
     }
     if (this.paused || now < this.nextStart || [...this.entries.values()].filter(entry => entry.state === 'connecting').length >= 2) return;
@@ -245,13 +247,14 @@ export class PartyConnections {
       .find(row => !this.retiring.has(row.profile) && !this.needsRetirement(row.profile)
         && (row.state === 'waiting' || (['retrying', 'cooldown'].includes(row.state) && now >= row.retryAt)));
     if (!entry) return;
-    if (!this.canWarm()) return;
+    if (!this.canWarm() || this.deferWarm()) return;
     this.startWarm(entry);
   }
-  startWarm(entry) {
+  // explicit: an invitation opening its own companion's connection, allowed on a single-session plan (warmSingle).
+  startWarm(entry, {explicit = false} = {}) {
     if (entry.state === 'connecting' && entry.pending) return entry.pending;
     if (this.entries.get(entry.identity) !== entry || this.paused || this.retiring.has(entry.profile) || this.needsRetirement(entry.profile)
-        || !this.canWarm() || this.now() < this.nextStart
+        || !this.canWarm() || (this.deferWarm() && !explicit) || this.now() < this.nextStart
         || (['retrying', 'cooldown'].includes(entry.state) && this.now() < entry.retryAt)
         || [...this.entries.values()].filter(row => row.state === 'connecting').length >= 2) return null;
     const now = this.now();
@@ -298,6 +301,7 @@ export class PartyConnections {
       if (this.isKnown(profile) && this.invitations.includes(profile)) return {present: false, ready: false, gated: true};
       throw Error('The invitation has no retained private connection');
     }
+    if (this.deferWarm()) return this.warmSingle(entry, signal);
     const status = await this.invitationReadiness(profile);
     throwIfCancelled(signal);
     if (this.entries.get(entry.identity) !== entry) throw Object.assign(Error('The invitation connection was replaced'),
@@ -317,6 +321,24 @@ export class PartyConnections {
       {code: 'INVITATION_CONNECTION_REPLACED'});
     if (entry.state !== 'ready') throw entry.error || Error('The companion connection did not become ready');
     return this.invitationReadiness(profile);
+  }
+  // A single-session plan (a player's own free key) holds one connection, so the page is opened for the companion who is
+  // joining and for nobody else: the last invited one stays open and the others connect when V talks to them. The
+  // invitation is ready once this page is open, or at once when it cannot be (a failed or cooling-down attempt never
+  // fails the invitation here). Later probes keep answering "ready" (invitationReadiness), so probing never swaps one
+  // companion's page for another's. Only one page opens at a time.
+  async warmSingle(entry, signal) {
+    const ready = {present: true, ready: true, busy: false, deferred: true};
+    const gated = {present: false, ready: false, busy: false, gated: true};
+    if (entry.state === 'ready' || ['retrying', 'cooldown'].includes(entry.state)) return ready;
+    if (!this.canWarm() || [...this.entries.values()].some(row => row !== entry && row.state === 'connecting')) return gated;
+    const pending = this.startWarm(entry, {explicit: true});
+    if (!pending) return gated;
+    await abortable(pending, signal);
+    throwIfCancelled(signal);
+    if (this.entries.get(entry.identity) !== entry) throw Object.assign(Error('The invitation connection was replaced'),
+      {code: 'INVITATION_CONNECTION_REPLACED'});
+    return ready;
   }
   async retireInvitation(profile, {signal} = {}) {
     throwIfCancelled(signal);
