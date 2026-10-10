@@ -139,6 +139,13 @@ The review is **complete** (2026-10-07; verdict and decisions are in the log). D
 
 **2026-10-10 (wait notice back): "Preparing connection to {name}…" shows again with Auto-connect nearby characters on as well as off (silent with it on since 2026-10-07); Lua only, CET reload.**
 
+**2026-10-10: appearance in the Convai bios is live for 72 characters (originals and twins).**
+- `characters/appearance.json`: pose, lighting and backdrop sentences removed (alt-cunningham's cigarette, steven-santos and t-bug's folded or crossed arms, bob-sagan, cassidy-righter, dennis-cranmer, coach-fred). `aaron` kept (native codex entry "Aaron Waines", title `87733`). `jesse` cleared, source `unconfirmed`: the native contact is `stud`, "Flaming Crotch Man", and `research/cyberpunk/native-reviews/wave3-independent-public-b.md` says "Jesse Johnson" is not independently established. Its image paths point to `characters/appearance-images/`, which does not exist.
+- Evidence loader: `diskLoader` in `research/cyberpunk/scripts/intrinsic_character_claims.mjs` accepts a junction into `E:\CyberpunkConvai-offload\` (recorded hashes still checked) and still rejects other escaping targets; tests cover both (commit `a14612d`).
+- Builder: `buildProfiles` adds a "Your appearance:" section before the ownership marker; `buildResearch` reads `characters/appearance.json`. Rebuilt: only `backstory` and `backstoryWords` changed, 72 rows (commits `7352345`, `ba301aa`). `scripts/Probe-ThirdPerson.mjs` loads the roster and takes `--identity` (commit `a14612d`).
+- Upload: 72 originals and 72 twins verified (no creates, no failures, no language-box items). Memory settings unchanged apart from server-computed credit estimates. Read-back of aaron, nele-springer, yorinobu-arasaka and nix: original equals roster, twin equals original apart from its marker.
+- Probe (evelyn-parker, fixed end user `appearance-probe-fixed`, two independent sessions): "Why blue hair?" and "Nice jacket, where's it from?". Both answers are in the first person, neither names another character, and neither contradicts the description. Memories wiped; zero remain. Replies in `runtime/third-person-probe/appearance-evelyn-*.json`.
+
 **2026-10-10 (end of night): installed in the closed game; live checks for the next session.**
 - **Installed from HEAD, game not relaunched:** `convai_gestures.archive` (`e38a8184`: bridge workspots and endless seats), `convai_facial.archive` (`5d8750c5`: speech owns the mouth), `FaceFeature.reds`, and Lua `companion-gestures`, `facial-playback`, `gesture-catalog`, `manager`, `mcm`. The bridge (third-person fix, own-key work, rebuilt voice client) loads with the game. Backups are in the session scratchpad `game-backup-1010-restart3`.
 - **To check live:**
