@@ -244,6 +244,28 @@ local function occupiedPositions(except)
     return result
 end
 
+-- A fresh copy is placed on the navmesh, which in some interiors stands 20-30 cm above the real floor (V's apartment:
+-- navmesh 49.4-49.5, floor 49.2). An idle copy then stays at that height until she walks or leaves a workspot, so a
+-- talk stance played in the meantime floated her up and dropped her at the exit (Round 5g, live). Lower her to the
+-- floor once, at attach, before she is first drawn. Only a small drop (5-35 cm, the ground tolerance above), and
+-- only when a Static surface is found directly below. Returns the drop in metres or nil. One raycast per spawn,
+-- charged to the shared spatial budget; returns false (not nil) when the frame's budget is spent, so the caller defers.
+local function lowerToFloor(npc, actual)
+    if not clearance.take(1) then return false end
+    local ok, drop = pcall(function()
+        local hit, trace = Game.GetSpatialQueriesSystem():SyncRaycastByCollisionGroup(
+            Vector4.new(actual.x, actual.y, actual.z + .6, 1), Vector4.new(actual.x, actual.y, actual.z - .8, 1),
+            CName.new('Static'), false, false)
+        if hit ~= true or not trace or not trace.position then return nil end
+        local drop = actual.z - trace.position.z
+        if drop < .05 or drop > .35 then return nil end
+        Game.GetTeleportationFacility():Teleport(npc, Vector4.new(actual.x, actual.y, trace.position.z, 1),
+            npc:GetWorldOrientation():ToEulerAngles())
+        return drop
+    end)
+    return ok and drop or nil
+end
+
 local function attachFollower(entry, player)
     local npc = entry.system:GetEntity(entry.entityID)
     if not npc or not npc:IsAttached() then return nil, 'Awaiting entity attachment' end
@@ -257,6 +279,9 @@ local function attachFollower(entry, player)
     local fits,clearanceError,deferred=placement.verify(player,actual,occupiedPositions(entry),entry.clearance)
     if deferred then return nil,nil,true end
     if not fits then return false,clearanceError end
+    local lowered = lowerToFloor(npc, actual)
+    if lowered == false then return nil, nil, true end
+    entry.loweredBy = lowered
     local ai = npc:GetAIControllerComponent()
     if not ai then return false, 'This model has no companion-compatible AI controller.' end
     local current = ai:GetAIRole()
@@ -780,7 +805,7 @@ function M.list()
             stopID=groupFrame and groupFrame.stop or 0,
             npcSpeed=e.speed,maxNpcSpeed=e.maxSpeed,maxPlayerSpeed=e.maxPlayerSpeed,
             distanceToPlayer=e.playerGap,distanceToSeat=e.targetGap,facingErrorDegrees=e.facingError,
-            actualSpawnZ=e.spawnActual and e.spawnActual.z,spawnZ=e.spawnPosition.z,
+            actualSpawnZ=e.spawnActual and e.spawnActual.z,spawnZ=e.spawnPosition.z,loweredBy=e.loweredBy,
             npcZ=e.position and e.position.z,playerZ=groupFrame and groupFrame.position.z,
             phantomControllersDisabled=e.phantomControllersDisabled,
             equipment=equipment.snapshot(e.equipment),

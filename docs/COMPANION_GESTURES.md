@@ -708,3 +708,15 @@ Changed (archive, game restart, then a CET reload; `assets/gestures/gestures.jso
 3. Tests: the bridge tests are replaced by one that checks a stance is entered directly, gestures come after the enter blend and the exit is the plain fast exit, and that no family has a bridge.
 
 To check live after the restart: send a message to a companion standing still; she should keep her place and only her arms settle into the stance (no downward drift, no second shift about 2 s later).
+
+## Round 5g (October 11): a fresh copy hovers 30 cm above the floor until she moves, so the stance floated
+
+Live report with the Round 5f archive (bridge removed): when V spoke to a freshly invited Evelyn she floated up and came back down once her reply was done.
+
+Cause, from `movement-trace.ndjson` and a live floor query (no capture needed for the cause): the entity z of a fresh copy is the navmesh height, not the floor. In V's apartment the navmesh at her spot is 49.4-49.5 and the Static floor is 49.2 (raycast down from Evelyn and from V, 49.200). Evelyn and Blue Moon both attached at z = 49.50 (V stands at 49.20). A copy that only holds, attends or sits in a workspot keeps that height; Blue Moon dropped to 49.20 the moment she walked (`attend_step`), and Evelyn's z went 49.50 (before and during the whole stance, 18:58:30 to 18:59:07 UTC) to 49.30 right after the workspot exit and 49.24 a moment later. The workspot never moved her: the entity z is constant through the stance (the device is placed at her entity position). So the stance did not raise her, it kept her up and the exit let her settle. A live check on a staged Evelyn standing at the floor (z 49.20): a stance enter and exit shows no rise (a few px, no float).
+
+Changed (Lua only, CET reload; `mod/companions.lua`): at attach, before she is first drawn, one Static raycast straight down from 60 cm above her to 80 cm below; when the floor is 5-35 cm below her feet she is teleported straight down onto it (same x, y and yaw). It is charged to the shared spatial budget (one query per spawn) and defers the attach when the frame's budget is spent. Anything else (no floor found, already on it, a bigger gap) is left alone. The navmesh is not used as ground: here it is the wrong height. `loweredBy` appears in the companion diagnostics dump.
+
+Tests: a copy 30 cm high is lowered once at attach and keeps her yaw; one 1 cm high is left alone; the query-budget test now counts the one extra ray per attach (144 to 152).
+
+To check live (needs a fresh invite: Leave V's Party, then follow again, or a restart): the new copy stands on the floor at once (movement trace z = floor, no 0.3 higher value), and a stance neither lifts her nor drops her at the exit.
