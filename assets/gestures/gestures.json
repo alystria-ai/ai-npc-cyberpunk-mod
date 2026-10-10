@@ -398,7 +398,7 @@
     "Character.Judy": {
       "key": "judy",
       "rig": "woman_base",
-      "talk": "arms_crossed",
+      "talk": "judy_own",
       "idle": "judy",
       "flavour": true,
       "fallback": "on_sides",
