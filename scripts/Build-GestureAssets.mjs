@@ -238,21 +238,33 @@ const neutralFace = (workspot, what) => {
 const faceNeutral = (workspot) => hubsOf(workspot).every((hub) =>
     hub.facialIdleMaleAnimation?.$value === 'idle__neutral__male' && hub.facialIdleFemaleAnimation?.$value === 'idle__neutral__female'
     && hub.facialIdleKey_MaleAnimation?.$value === 'None' && hub.facialIdleKey_FemaleAnimation?.$value === 'None');
-// Vanilla idle and sit workspots whose facial idle is not plain neutral are
-// copied under the mod's own path (vanilla files are never overridden), so
-// ambient NPCs keep theirs.
+// Every vanilla idle workspot the mod plays is copied under the mod's own path
+// (vanilla files are never overridden, so ambient NPCs keep theirs), with the
+// plain neutral facial idle and without its walk-to-stand entry clips. Those
+// entry clips (walk_0__to__stand__...__turn*) are picked by the engine on every
+// play and land straight in the stance: live on Evelyn (Oct 10, 34 fps, torso
+// displacement) a workspot with them lurches the body 15-19 px at the play call,
+// one without them (on_hips, jackie_hips, a loop of her own ambient idle) 2-5 px.
+const withoutEntries = (workspot, what) => {
+    const list = workspot.Data.RootChunk.workspotTree.Data.rootEntry.Data.list;
+    const kept = list.filter((node) => node.Data.$type !== 'workEntryAnim');
+    workspot.Data.RootChunk.workspotTree.Data.rootEntry.Data.list = kept;
+    return list.length - kept.length;
+};
+const report = [];
 const outputs = [];
 const faceCopies = new Map();
 for (const [what, depot] of Object.entries(source.idleWorkspots).map(([key, d]) => [`${key} idle`, d])) {
     const json = jsonFor(depot);
     if (!json) fail(`${what} workspot was not extracted: ${depot}`);
-    if (faceNeutral(json)) continue;
     const copy = clone(json);
-    neutralFace(copy, what);
-    const target = `cyberpunk_convai\\gestures\\convai_face_${base(depot)}`;
+    if (!faceNeutral(copy)) neutralFace(copy, what);
+    const dropped = withoutEntries(copy, what);
+    const target = `cyberpunk_convai\\gestures\\convai_idle_${base(depot)}`;
     copy.Header.ArchiveFileName = target;
-    outputs.push([`convai_face_${base(depot)}.json`, copy]);
+    outputs.push([`convai_idle_${base(depot)}.json`, copy]);
     faceCopies.set(depot, target);
+    report.push(`idle: ${base(depot)} copied to ${target} without ${dropped} entry clip(s)`);
 }
 const playable = (depot) => faceCopies.get(depot) ?? depot;
 
@@ -308,8 +320,15 @@ function collectHandles(node, into) {
 }
 
 const catalogFamilies = {};
-const report = [];
-for (const [familyKey, family] of Object.entries(source.families)) {
+const aliases = [];
+const resolved = (family) => {
+    if (!family.like) return family;
+    const parent = source.families[family.like];
+    if (!parent || parent.like) fail(`family variant of ${family.like}: the parent must be a plain family`);
+    return { ...clone(parent), ...family, animsets: family.animsets ?? clone(parent.animsets) };
+};
+for (const [familyKey, familySource] of Object.entries(source.families)) {
+    const family = resolved(familySource);
     const rigKeys = Object.keys(family.animsets);
     const perRigClips = {};
     for (const rigKey of rigKeys) {
@@ -353,8 +372,9 @@ for (const [familyKey, family] of Object.entries(source.families)) {
         }
     }
     let nextId = 100;
+    // A variant of another family (like) keeps that family's sequence ids, bridge or not, so its clip list is identical.
     const ambientId = family.bridge ? nextId : undefined;
-    if (family.bridge) nextId += 2;
+    if (family.bridge || family.like) nextId += 2;
     const idleId = nextId; nextId += 2;
     const clips = [...byName.values()].sort((a, b) => a.name.localeCompare(b.name)).map((clip) => {
         const { shapes = [], ...rest } = clip;
@@ -396,11 +416,12 @@ for (const [familyKey, family] of Object.entries(source.families)) {
     const sequence = (id, list, loop, idleAnim = family.idle) => ({ HandleId: '0', Data: {
         $type: 'workSequence', category: 'Any', disableAutoTransition: 0, flags: 0, id: entryId(id),
         idleAnim: cname(idleAnim), list, loopInfinitely: loop ? 1 : 0, previousLoopInfinitely: 0 } });
-    // Template walk entries, exits and bumps belong to the hands-at-sides pose;
-    // other stances keep only the fast exit. Crowd Fear reactions never stay.
+    // Template exits and bumps belong to the hands-at-sides pose; other stances keep only the
+    // fast exit. Crowd Fear reactions never stay. The template's walk-to-stand entry clips are
+    // never kept: the engine plays one on every enter and it lands straight in the stance,
+    // which lurched the body 15-19 px (Round 5d, live), and it skipped the bridge's ambient loop.
     const entries = family.templateEntries ? [
-        ...keep('workReactionSequence').filter((node) => JSON.stringify(node).includes('bump')),
-        ...keep('workEntryAnim')] : [];
+        ...keep('workReactionSequence').filter((node) => JSON.stringify(node).includes('bump'))] : [];
     const exits = family.templateEntries ? keep('workExitAnim') : [];
     rootData.list = [
         ...entries,
@@ -437,6 +458,11 @@ for (const [familyKey, family] of Object.entries(source.families)) {
         clips: clips.map(({ name, category, character, kind, fit, exclude, sequenceId, clipId, perRig }) =>
             ({ name, category, character, kind, fit, exclude, sequenceId, clipId, perRig })),
     };
+    if (family.like) {
+        // Same clips as the parent family: share the Lua table instead of writing it out again.
+        if (JSON.stringify(catalogFamilies[familyKey].clips) !== JSON.stringify(catalogFamilies[family.like]?.clips)) fail(`${familyKey}: clip list differs from ${family.like}`);
+        aliases.push([familyKey, family.like]);
+    }
 }
 
 // Entity: a gameObject with only workspot components (no collider/visuals).
@@ -497,7 +523,9 @@ const catalog = {
     seatComponents: Object.fromEntries(Object.keys(seatWorkspots).map((key) => [key, `convai_sit_${key}`])),
     characters: source.characters,
 };
-fs.writeFileSync(catalogOut, `-- Generated by scripts/Build-GestureAssets.mjs from assets/gestures/gestures.json\n-- and the game's extracted animsets. Do not edit by hand.\nreturn ${lua(catalog)}\n`);
-for (const [depot, target] of faceCopies) report.push(`face: ${base(depot)} copied to ${target} with a neutral facial idle`);
+for (const [key] of aliases) delete catalog.families[key].clips;
+const aliasLines = aliases.map(([key, parent]) => `catalog.families.${key}.clips = catalog.families.${parent}.clips`);
+const aliasBlock = aliasLines.length ? `-- Variants of another family share its clip list.\n${aliasLines.join('\n')}\n` : '';
+fs.writeFileSync(catalogOut, `-- Generated by scripts/Build-GestureAssets.mjs from assets/gestures/gestures.json\n-- and the game's extracted animsets. Do not edit by hand.\nlocal catalog = ${lua(catalog)}\n${aliasBlock}return catalog\n`);
 for (const line of report) console.log(`gesture build: ${line}`);
 console.log(`gesture build: ${Object.keys(catalogFamilies).length} families, ${components.length} workspot components`);

@@ -62,6 +62,14 @@ for (const name of workspots) {
             `${name} must use the neutral facial idle with no key pose`);
     }
 }
+// No stance or idle workspot keeps the template's walk-to-stand entry clips: the engine plays
+// one on every enter, it lands straight in the stance and lurches the body 15-19 px
+// (docs/COMPANION_GESTURES.md, Round 5d). Seat workspots keep their own entries.
+for (const name of workspots.filter((file) => !file.startsWith('convai_seat_'))) {
+    let entries = 0;
+    walk(read(roundtrip, name).Data.RootChunk.workspotTree, (node) => { if (node.$type === 'workEntryAnim') entries++; });
+    check(entries === 0, `${name} keeps ${entries} workEntryAnim clip(s); the enter must start on its first sequence`);
+}
 // Sit workspots must never end by themselves (a vanilla one runs 4-9 fidgets
 // and leaves after 60-105 s): every random list needs a clip count that is
 // never reached and its sequence must repeat; the entity must play only these.
@@ -88,7 +96,10 @@ let clipTotal = 0;
 for (const name of workspots) {
     const workspot = summarizeWorkspot(read(roundtrip, name));
     check(workspot.slot === 'WORKSPOT', `${name} must target the WORKSPOT graph slot`);
-    check(workspot.clips.length >= 2, `${name} has no clips`);
+    // A vanilla idle copy can be a bare idle loop (q000 jackie hips) with no clip nodes of its own.
+    let sequences = 0;
+    walk(read(roundtrip, name).Data.RootChunk.workspotTree, (node) => { if (node.$type === 'workSequence') sequences++; });
+    check(name.startsWith('convai_idle_') ? sequences >= 1 : workspot.clips.length >= 2, `${name} has no clips`);
     clipTotal += workspot.clips.length;
 }
 check(entity.components.length >= workspots.length, 'every workspot needs a device component');

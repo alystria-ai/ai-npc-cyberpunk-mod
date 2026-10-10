@@ -138,6 +138,12 @@
         ]
       }
     },
+    "on_sides_plain": {
+      "like": "on_sides",
+      "bridge": null,
+      "component": "convai_talk_on_sides_plain",
+      "workspot": "cyberpunk_convai\\gestures\\convai_talk_on_sides_plain.workspot"
+    },
     "arms_crossed": {
       "component": "convai_talk_arms_crossed",
       "workspot": "cyberpunk_convai\\gestures\\convai_talk_arms_crossed.workspot",

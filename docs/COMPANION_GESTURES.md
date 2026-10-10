@@ -643,3 +643,28 @@ A gesture jump from `idle_stand` to a clip is 8 px, a jump inside `on_sides` 1 p
 4. before any non-instant exit jumps back to the ambient loop (`bridge-out`), waits one second and only then sends the native fast exit; combat, transport and an unobserved tick still leave at once without crossing.
 
 Signature idles (`convai_idle_*`) are separate vanilla workspots and are not bridged: `convai_idle_generic_hip` still lurches 11-17 px on entry. Characters whose own ambient idle differs from the gang one (Panam, Rogue, Jackie, Takemura, Johnny, Kerry, River, Reed, Padre) bridge from the gang idle for now; their own loops exist as the `*_own` families and can get a bridge of their own the same way. To check live after the restart: the entry of the talk stance on Evelyn (the head should no longer drop; `bridge-in` and `bridge-out` lines in `probe.log`), the first gesture a second after the crossing, and no visible shift at the exit.
+
+## Round 5d (October 10, night): the entry clips were the lurch, not the ambient idle
+
+After the Round 5c archive was installed the mouth was fine but Evelyn's body still twitched when V sent a typed message (the stance is entered on 'thinking'). `probe.log` showed the bridge running as designed (`begin`, `bridge-in` two seconds later, `bridge-out` at the end), so the lurch sat at the begin itself. The first guess was that her real ambient idle is not the gang `idle_stand` the bridge starts from (her entity lists `evelyn_purse_locomotion`, 24-28 cm from the stance loops offline). A live A/B on Evelyn (her own copy adopted under the face-stage kill switch, workspots driven directly, 34 fps captures, largest vertical torso change in the 0.2 s around the play call) says otherwise:
+
+| Workspot entered on Evelyn | Entry clips in the workspot | Vertical jolt |
+|---|---|---|
+| `convai_talk_on_sides` (the bridge; gang ambient first), two runs | yes | 18 and 15 px |
+| `convai_idle_generic_hip` (vanilla hip idle copy) | yes | 19 px |
+| `convai_talk_woman_sides` (loop = gang `idle_stand`), two runs | no | 2-5 px |
+| `convai_talk_judy` (wa_judy ambient) / `panam` / `rogue` | no | 1.5 / 6.5 / 3.5 px |
+| `convai_talk_on_hips`, `convai_idle_jackie_hips` | no | 4.5, 2.5 px |
+
+- **The jump to the stance inside the bridge is 1 px**, because she is already in the stance by then: the installed `on_sides` bridge never started on its ambient loop. `on_sides` keeps the template's `workEntryAnim` clips (`walk_0__to__stand__2h_on_sides__01__turn*`); the engine plays one of them on every enter and it lands straight in the stance, that is the 15-19 px lurch. The same clips are in every vanilla idle workspot that has them (the hip idle).
+- The gang `idle_stand` is close enough to her real pose (2-5 px), so per-character ambients (Evelyn's purse loop, Panam, Rogue, Jackie, River, Reed, Takemura) are not needed for the entry. `legs.py`'s offline foot distance is not a predictor of the jolt.
+- Exits are small everywhere (1-5 px).
+
+Changed (archive; game restart; the catalog is regenerated, CET reload):
+
+1. No stance family keeps the template's `workEntryAnim` clips (bumps and exits stay), so a bridge family now really starts on its first sequence, the ambient loop.
+2. Every vanilla idle workspot the mod plays is a mod-owned copy `convai_idle_<name>` (same component names) with the neutral facial idle and without its entry clips. The signature idles therefore enter like `jackie_hips` (2-5 px) with no controller change.
+3. `on_sides_plain` (`convai_talk_on_sides_plain`, no bridge, no entry clips, same clips and ids, the catalog shares `on_sides`'s clip table) for a live A/B against the bridge. If the plain entry is as quiet (2-5 px) the bridge and its crossing delays can go: map `characters[...].talk` to `on_sides_plain` in `assets/gestures/gestures.json` (Lua catalog only).
+4. `Verify-GestureAssets.mjs` fails the build if any stance or idle workspot keeps an entry clip.
+
+To check live after the restart: the entry of the talk stance on Evelyn when V sends a typed message (the head should no longer drop; `bridge-in`/`bridge-out` in `probe.log`), the hand-on-hip idle's entry, and the A/B of `convai_talk_on_sides` against `convai_talk_on_sides_plain` on a staged copy.

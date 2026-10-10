@@ -470,3 +470,11 @@ test('every family that carries a bridge has its own idle on every rig it plays 
   end
   assert(cat.families.on_sides.bridge and cat.families.arms_crossed.bridge)
 `));
+
+test('the plain on_sides variant has the same clips and ids as on_sides but no bridge', () => run(`
+  local cat=load(catalogSource)()
+  local a,b=cat.families.on_sides,cat.families.on_sides_plain
+  assert(b and not b.bridge and a.bridge,'plain variant has no bridge')
+  assert(b.clips==a.clips or #b.clips==#a.clips,'same clip list')
+  assert(b.idle.sequenceId==a.idle.sequenceId and b.component~=a.component,'same ids, own component')
+`));
