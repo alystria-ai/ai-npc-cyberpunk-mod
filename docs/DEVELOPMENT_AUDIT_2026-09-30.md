@@ -29,7 +29,7 @@ separately.
 - Keep the accepted native MCM page: default-red labels on a common left edge,
   white section headings with cyan rules, cyan option controls, a separate Memory page, and accepted Esc
   returning to gameplay. Preserve MCM's unsaved-draft guard.
-- Follow-up questions default **Off**. An explicitly saved On choice survives
+- Follow-up questions default **Off** (the retired toggle; the current Follow-up questions setting, `followUpInterest`, is On by default since 2026-10-11). An explicitly saved On choice survives
   updates. Only the last remaining group speaker may ask when enabled; automatic
   battle/loot comments never prolong the exchange with a question.
 - A close approach by V must not order a settled companion to back away.

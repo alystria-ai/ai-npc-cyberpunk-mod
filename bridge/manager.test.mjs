@@ -213,7 +213,7 @@ test('MCM settings apply as one saved transaction and leave playback unchanged o
     assert(manager.applySettings(player, {battleReactions = false}))
     assert(not manager.battleReactions() and saved.battleReactions == false)
     assert(manager.applySettings(player, {battleReactions = 'on'}) == false)
-    assert(manager.applySettings(player, {voice = false, subtitleStyle = 'overhead', voiceProvider = 'convai', enabledByKey = {['johnny-silverhand'] = false}}))
+    assert(manager.applySettings(player, {voice = false, subtitleStyle = 'overhead', voiceProvider = 'convai', expressiveEmotions = false, enabledByKey = {['johnny-silverhand'] = false}}))
     assert(player.voice == false and saved.omniSteps == 16 and not manager.profileEnabled('johnny-silverhand'))
     assert(saved.disappearingMessages == nil)
     assert(saved.followUpQuestions == nil)
@@ -398,7 +398,7 @@ test('subtitle style defaults to dialogue and preserves explicit overhead, Conva
 test('subtitle style accepts only exact public values and rejects the whole settings transaction', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.snapshot(player)
-    assert(manager.applySettings(player, {subtitleStyle = 'dialogue', voiceProvider = 'convai', subtitles = false}))
+    assert(manager.applySettings(player, {subtitleStyle = 'dialogue', voiceProvider = 'convai', expressiveEmotions = false, subtitles = false}))
     for _, invalid in ipairs({'Above speaker', 'hud', 'Dialogue', 'overhead ', '', 1, false, {}}) do
       local before = saved
       assert(manager.applySettings(player, {subtitleStyle = invalid, voiceProvider = 'hybrid', subtitles = true}) == false)
@@ -642,7 +642,7 @@ test('voice selector arrows stay within their displayed direction and use effect
 test('local voice previews carry the effective six-choice draft and cancel on Revert, Apply or leaving the page', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
-    assert(manager.applySettings(player, {voiceProvider = 'convai'}))
+    assert(manager.applySettings(player, {voiceProvider = 'convai', expressiveEmotions = false}))
     local committed = saved
     local preview = (function() ${voicePreviewSource} end)().new({now = function() return 1000 end})
     -- Select order: 1 Pocket Performance, 2 Omni Balanced (16 short), 3 Omni Quality (16 long), 4 Omni High Quality (32 short), 5 Omni Ultra Quality (32 long), 6 Convai Cloud voice.
@@ -700,7 +700,7 @@ test('local voice previews carry the effective six-choice draft and cancel on Re
       'Pocket preview retained stale Omni quality')
     effective, pending = 3, false; changed(); assert(not update().active)
     assert(manager.snapshot(player).settings.voiceProvider == 'omni' and manager.snapshot(player).settings.omniSteps == 16)
-    assert(manager.applySettings(player, {voiceProvider = 'convai'})); pending = true; changed()
+    assert(manager.applySettings(player, {voiceProvider = 'convai', expressiveEmotions = false})); pending = true; changed()
     effective = 1
     lease = update(); assert(lease.active and lease.provider == 'pocket')
     assert(not update(false).active and manager.snapshot(player).settings.voiceProvider == 'convai')
@@ -1090,7 +1090,7 @@ test('with Auto Apply every setting waits for an explicit Apply: the automatic a
     assert(snapshotOf() == before and #fileWrites == writes and files['runtime/voice-preview.json'] == nil)
     -- The person presses Apply later: all of it commits at once.
     clock = clock + 2
-    local applied = registered.applyBatch('manager', {{id = 'voiceProvider', value = 6}, {id = 'subtitles', value = false},
+    local applied = registered.applyBatch('manager', {{id = 'voiceProvider', value = 6}, {id = 'expressiveEmotions', value = false}, {id = 'subtitles', value = false},
       {id = 'developerMode', value = true}, {id = 'eyeContactHeight', value = 5}, {id = 'enabled:person-1', value = false}})
     assert(applied.ok and applied.atomic)
     local after = manager.snapshot(player).settings
@@ -1929,8 +1929,8 @@ test('without the optional OmniVoice pack Omni entries say what they need and ca
       assert(saved.voiceProvider == before)
     end
     assert(not manager.applySettings(player, {voiceProvider = 'omni'}))
-    -- Pocket and Convai stay selectable.
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 6}}).ok and saved.voiceProvider == 'convai')
+    -- Pocket and Convai stay selectable (Expressive emotions, on by default, would move the cloud voice back to Pocket).
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 6}, {id = 'expressiveEmotions', value = false}}).ok and saved.voiceProvider == 'convai')
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 1}}).ok and saved.voiceProvider == 'pocket')
     -- The pack appears (installed while the game runs): the entries become plain labels and can be applied.
     clock = clock + 20
@@ -2149,7 +2149,9 @@ test('the Characters sidebar shows the settings in effect for each character, no
   local function reload() loaded = registered.loadMod('manager') end
   assert(invoke('tab:characters').ok)
   reload()
-  -- Nothing is on and nobody is in the party: the description, the voice and the conversation, and no advice text.
+  -- Nothing is on (Expressive emotions, Follow-up questions and Body gestures are on by default, so they are switched off first)
+  -- and nobody is in the party: the description, the voice and the conversation, and no advice text.
+  assert(manager.applySettings(player, {expressiveEmotions = false, followUpInterest = false, bodyGestures = false})); reload()
   local plain = description('viktor-vektor')
   assert(plain == 'A ripperdoc.\\n\\nVoice: Convai voice\\nConversation: On', plain)
   assert(not plain:find('Invitations create', 1, true) and not plain:find('phone contacts', 1, true) and not plain:find('Memory and connection', 1, true))
@@ -2376,8 +2378,8 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(not manager.lootReactions())
     assert(registered.applyBatch('manager', {{id = 'battleReactions', value = false}}).ok)
     assert(not manager.battleReactions())
-    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = 6}, {id = 'subtitleStyle', value = 2}})
-    assert(applied.ok and applied.atomic and #applied.appliedIds == 3 and saved.omniSteps == 16)
+    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'voiceProvider', value = 6}, {id = 'subtitleStyle', value = 2}, {id = 'expressiveEmotions', value = false}})
+    assert(applied.ok and applied.atomic and #applied.appliedIds == 4 and saved.omniSteps == 16)
     assert(saved.voiceProvider == 'convai')
     loaded = registered.loadMod('manager')
     assert(manager.subtitleStyle() == 'overhead' and row('subtitleStyle').value == 2)
@@ -2422,7 +2424,7 @@ test('settings review wording: short voice description, experimental gestures, f
     assert(voices.description:find('about 0.2 s', 1, true) and voices.description:find('1 to 2.5 s', 1, true))
     assert(not voices.description:find('%', 1, true), 'no listening percentages in the voice description')
     assert(not voices.description:find(string.char(10), 1, true) and utf8.len(voices.description) < 600, 'the voice description stays short')
-    assert(row('bodyGestures').label == 'Body gestures (experimental)' and row('bodyGestures').defaultValue == false)
+    assert(row('bodyGestures').label == 'Body gestures (experimental)' and row('bodyGestures').defaultValue == true and row('bodyGestures').value == true)
     assert(row('sitWithYou') == nil, 'companions always sit with V: there is no Sit with you setting')
     assert(row('autoConnectNearby').defaultValue == true and row('keepPreparedVoices').defaultValue == true)
     local developer = row('developerMode').description
@@ -3378,6 +3380,8 @@ test('Natural speech applies with the voice in one Apply: the cloud voice is swi
       for _, change in ipairs({...}) do changes[#changes + 1] = {id = change[1], value = change[2]} end
       return registered.applyBatch('manager', changes)
     end
+    -- Expressive emotions is on by default and has the same cloud-voice rule: switch it off so only Natural speech is judged here.
+    assert(apply({'expressiveEmotions', false}).ok)
     -- On with a local voice: nothing else changes and nothing is announced.
     local result = apply({'naturalSpeech', true})
     assert(result.ok and manager.naturalSpeech() and saved.naturalSpeech == true and saved.voiceProvider == 'pocket')
@@ -3451,21 +3455,39 @@ test('Natural speech sits in the Voices category and Auto Apply cannot commit it
   `);
 });
 
-test('Expressive emotions is off by default and a saved pairing with the Convai cloud voice cannot stand', () => {
+test('Expressive emotions is on by default (2026-10-11), a saved choice is kept, and a saved pairing with the Convai cloud voice cannot stand', () => {
   run(`${managerFixture}
+    -- A new install (no settings file): Pocket, Expressive emotions, Follow-up questions and Body gestures on, no voice switch,
+    -- no notice and no feedback on the first load.
     manager.configure(api, profiles); manager.prepare(player)
-    assert(saved.expressiveEmotions == false and manager.expressiveEmotions() == false)
-    assert(manager.snapshot(player).settings.expressiveEmotions == false)
-    for _, case in ipairs({{'missing', 'convai'}, {true, 'convai'}, {true, 'pocket'}, {true, 'omni'}, {false, 'convai'}, {'yes', 'convai'}}) do
+    assert(saved.expressiveEmotions == true and manager.expressiveEmotions() == true)
+    assert(manager.snapshot(player).settings.expressiveEmotions == true)
+    assert(saved.voiceProvider == 'pocket' and saved.followUpInterest == true and saved.bodyGestures == true)
+    assert(saved.naturalSpeech == false and saved.multilingualConversations == false)
+    assert(manager.takeNaturalSpeechNotice() == nil and (manager.snapshot(player).feedback or '') == '', 'no voice switch notice on first load')
+    -- A missing key is the default (on) except beside an explicitly saved cloud voice, which is kept (the default never moves
+    -- the voice); a non-boolean is a missing key; a saved true with the cloud voice is the old rule (moved to Pocket TTS).
+    for _, case in ipairs({{'missing', 'convai'}, {'missing', 'pocket'}, {'missing', 'omni'}, {true, 'convai'}, {true, 'pocket'},
+        {true, 'omni'}, {false, 'convai'}, {false, 'pocket'}, {'yes', 'convai'}, {'yes', 'pocket'}}) do
       seed = {version = 2, voiceProvider = case[2], enabledByKey = {}, future = {keep = 'unchanged'}}
       if case[1] ~= 'missing' then seed.expressiveEmotions = case[1] end
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
-      local on = case[1] == true
-      assert(manager.expressiveEmotions() == on and saved.expressiveEmotions == on, tostring(case[1]))
+      local on
+      if case[1] == true or case[1] == false then on = case[1] else on = case[2] ~= 'convai' end
+      local label = tostring(case[1]) .. ' / ' .. case[2]
+      assert(manager.expressiveEmotions() == on and saved.expressiveEmotions == on, label)
       local expected = (on and case[2] == 'convai') and 'pocket' or case[2]
-      assert(saved.voiceProvider == expected and manager.snapshot(player).settings.voiceProvider == expected)
+      assert(saved.voiceProvider == expected and manager.snapshot(player).settings.voiceProvider == expected, label)
       assert(saved.future.keep == 'unchanged')
+    end
+    -- Multilingual conversations on: the existing rule still drops the tag settings with the cloud voice (a Pocket voice moves to
+    -- the cloud voice first), and an OmniVoice choice keeps Expressive emotions on.
+    for _, case in ipairs({{'pocket', 'convai', false}, {'convai', 'convai', false}, {'omni', 'omni', true}}) do
+      seed = {version = 2, voiceProvider = case[1], multilingualConversations = true, enabledByKey = {}}
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      assert(saved.voiceProvider == case[2] and saved.expressiveEmotions == case[3] and manager.expressiveEmotions() == case[3], case[1])
     end
   `);
 });
@@ -3479,13 +3501,14 @@ test('Expressive emotions needs a local voice too: the cloud voice is switched t
     convaiNotices.configure(function() return true end) -- this popup is Developer-only (docs/NOTIFICATIONS.md)
     assert(invoke('tab:settings').ok)
     local entry = row('expressiveEmotions')
-    assert(entry and entry.type == 'bool' and entry.value == false and entry.defaultValue == false, 'off by default')
+    assert(entry and entry.type == 'bool' and entry.value == true and entry.defaultValue == true, 'on by default')
     local owner
     for _, category in ipairs(loaded.categories) do
       for _, item in ipairs(category.settings) do if item.id == 'expressiveEmotions' then owner = category end end
     end
     assert(owner and owner.id == 'voices' and entry.label == 'Expressive emotions')
-    assert(entry.description:find('Off by default', 1, true) and entry.description:find('local voice', 1, true))
+    assert(entry.description:find('On by default', 1, true) and not entry.description:find('Off by default', 1, true)
+        and entry.description:find('local voice', 1, true))
     local EMOTIONS = 'Expressive emotions need a local voice, so Companion voices was switched to ' .. manager.voiceLabel('pocket') .. '.'
     local SPEECH = 'Natural speech needs a local voice, so Companion voices was switched to ' .. manager.voiceLabel('pocket') .. '.'
     local CLOUD, OMNI
@@ -3499,7 +3522,9 @@ test('Expressive emotions needs a local voice too: the cloud voice is switched t
       for _, change in ipairs({...}) do changes[#changes + 1] = {id = change[1], value = change[2]} end
       return registered.applyBatch('manager', changes)
     end
-    -- On with a local voice: nothing else changes and nothing is announced.
+    -- On by default with Pocket; switching it off and on again with a local voice changes nothing else and announces nothing.
+    assert(manager.expressiveEmotions() and saved.voiceProvider == 'pocket' and saved.expressiveEmotions == true)
+    assert(apply({'expressiveEmotions', false}).ok and not manager.expressiveEmotions())
     local result = apply({'expressiveEmotions', true})
     assert(result.ok and manager.expressiveEmotions() and saved.expressiveEmotions == true and saved.voiceProvider == 'pocket')
     assert(result.schemaChanged == false and manager.takeNaturalSpeechNotice() == nil and not manager.naturalSpeech())
@@ -3554,37 +3579,40 @@ test('Auto Apply cannot commit Expressive emotions before the person chooses App
     nativeApi.unsubscribe = function() return true end
     mcm.shutdown(); mcm.install()
     for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = 1}) end
-    local refused = registered.applyBatch('manager', {{id = 'expressiveEmotions', value = true}})
+    local refused = registered.applyBatch('manager', {{id = 'expressiveEmotions', value = false}})
     assert(refused.ok == false and refused.error:find('Change pending', 1, true))
-    assert(not manager.expressiveEmotions() and saved.expressiveEmotions == false)
+    assert(manager.expressiveEmotions() and saved.expressiveEmotions == true)
     clock = clock + 2
-    assert(registered.applyBatch('manager', {{id = 'expressiveEmotions', value = true}}).ok and manager.expressiveEmotions())
+    assert(registered.applyBatch('manager', {{id = 'expressiveEmotions', value = false}}).ok and not manager.expressiveEmotions())
   `);
 });
 
-test('Follow-up questions is off by default, works with any voice and is independent of the retired followUpQuestions key', () => {
+test('Follow-up questions is on by default (2026-10-11), a saved choice is kept, it works with any voice and is independent of the retired followUpQuestions key', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
-    assert(saved.followUpInterest == false and manager.followUpInterest() == false)
-    assert(manager.snapshot(player).settings.followUpInterest == false)
+    assert(saved.followUpInterest == true and manager.followUpInterest() == true)
+    assert(manager.snapshot(player).settings.followUpInterest == true)
     assert(manager.followUpQuestions == nil, 'the retired setting has no accessor')
     for _, case in ipairs({{'missing', 'convai'}, {true, 'convai'}, {true, 'pocket'}, {true, 'omni'}, {false, 'convai'}, {'yes', 'pocket'}}) do
       seed = {version = 2, voiceProvider = case[2], enabledByKey = {}, future = {keep = 'unchanged'}}
       if case[1] ~= 'missing' then seed.followUpInterest = case[1] end
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
-      local on = case[1] == true
+      local on = case[1] ~= false -- a missing or non-boolean value is the default, on
       assert(manager.followUpInterest() == on and saved.followUpInterest == on, tostring(case[1]))
       -- Unlike Natural speech it needs no local voice: the saved voice is never moved because of it.
       assert(saved.voiceProvider == case[2] and manager.snapshot(player).settings.voiceProvider == case[2])
       assert(saved.future.keep == 'unchanged')
     end
-    -- A saved value of the retired setting neither turns the new one on nor survives.
-    seed = {version = 2, voiceProvider = 'pocket', followUpQuestions = true, enabledByKey = {}}
-    files['runtime/settings.json'], saved = 'seed', nil
-    manager.configure(api, profiles); manager.prepare(player)
-    assert(manager.followUpInterest() == false and saved.followUpQuestions == nil and saved.followUpInterest == false)
+    -- A saved value of the retired setting neither turns the new one off nor survives: the new one gets its default (on).
+    for _, retired in ipairs({true, false}) do
+      seed = {version = 2, voiceProvider = 'pocket', followUpQuestions = retired, enabledByKey = {}}
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      assert(manager.followUpInterest() == true and saved.followUpQuestions == nil and saved.followUpInterest == true)
+    end
     -- Apply keeps the choice, rejects anything but a boolean, and leaves the voice alone.
+    assert(manager.applySettings(player, {followUpInterest = false}) and not manager.followUpInterest() and saved.followUpInterest == false)
     assert(manager.applySettings(player, {followUpInterest = true}) and manager.followUpInterest() and saved.followUpInterest == true)
     assert(saved.voiceProvider == 'pocket')
     assert(manager.applySettings(player, {followUpInterest = 'yes'}) == false and manager.followUpInterest())
@@ -3603,7 +3631,9 @@ test('Follow-up questions sits in the Voices category after Expressive emotions,
       end
     end
     assert(owner and owner.id == 'voices' and row('followUpInterest').label == 'Follow-up questions')
-    assert(row('followUpInterest').description:find('Off by default', 1, true) and row('followUpInterest').description:find('now and then', 1, true))
+    assert(row('followUpInterest').value == true and row('followUpInterest').defaultValue == true)
+    assert(row('followUpInterest').description:find('On by default', 1, true) and not row('followUpInterest').description:find('Off by default', 1, true)
+        and row('followUpInterest').description:find('now and then', 1, true))
     local at = {}
     for index, id in ipairs(order) do at[id] = index end
     assert(at.naturalSpeech < at.expressiveEmotions and at.expressiveEmotions < at.followUpInterest, 'next to the other two speech settings')
@@ -3614,12 +3644,12 @@ test('Follow-up questions sits in the Voices category after Expressive emotions,
     nativeApi.unsubscribe = function() return true end
     mcm.shutdown(); mcm.install()
     for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = 1}) end
-    local refused = registered.applyBatch('manager', {{id = 'followUpInterest', value = true}})
+    local refused = registered.applyBatch('manager', {{id = 'followUpInterest', value = false}})
     assert(refused.ok == false and refused.error:find('Change pending', 1, true))
-    assert(not manager.followUpInterest() and saved.followUpInterest == false)
+    assert(manager.followUpInterest() and saved.followUpInterest == true)
     clock = clock + 2
     local voiceBefore = manager.snapshot(player).settings.voiceProvider
-    assert(registered.applyBatch('manager', {{id = 'followUpInterest', value = true}}).ok and manager.followUpInterest())
+    assert(registered.applyBatch('manager', {{id = 'followUpInterest', value = false}}).ok and not manager.followUpInterest())
     assert(manager.snapshot(player).settings.voiceProvider == voiceBefore, 'no voice switch, no notice')
     assert(manager.takeNaturalSpeechNotice() == nil)
   `);

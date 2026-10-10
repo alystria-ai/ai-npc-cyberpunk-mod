@@ -399,7 +399,8 @@ local function loadSettings()
     if type(settings.useOwnConvaiKey) ~= 'boolean' then settings.useOwnConvaiKey, settingsNeedSave = false, true end
     if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = true, true end
     if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = true, true end
-    if type(settings.bodyGestures) ~= 'boolean' then settings.bodyGestures, settingsNeedSave = false, true end
+    -- On by default (a missing key); an explicitly saved choice is kept.
+    if type(settings.bodyGestures) ~= 'boolean' then settings.bodyGestures, settingsNeedSave = true, true end
     -- On by default (a missing key); an explicitly saved choice is kept.
     if type(settings.autoConnectNearby) ~= 'boolean' then settings.autoConnectNearby, settingsNeedSave = true, true end
     -- On by default: recent subtitled game dialogue is attached to the next manual turn (mod/game-dialogue.lua).
@@ -423,11 +424,15 @@ local function loadSettings()
     if type(settings.archetypeConversations) ~= 'boolean' then settings.archetypeConversations, settingsNeedSave = true, true end
     -- Off by default. A saved pairing with the Convai cloud voice cannot stand: the voice moves to Pocket TTS.
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
-    -- Expressive emotions (the character marks its own feelings; off by default) needs a local voice for the same reason.
-    if type(settings.expressiveEmotions) ~= 'boolean' then settings.expressiveEmotions, settingsNeedSave = false, true end
-    -- Follow-up questions (off by default, key followUpInterest: the retired followUpQuestions key above is a different, dropped
+    -- Expressive emotions (the character marks its own feelings; on by default) needs a local voice for the same reason.
+    -- A missing key defaults to on, except beside an explicitly saved Convai cloud voice: that choice is kept, so the default
+    -- never moves the voice (the new-install default voice is Pocket, so a new install gets it on).
+    if type(settings.expressiveEmotions) ~= 'boolean' then
+        settings.expressiveEmotions, settingsNeedSave = settings.voiceProvider ~= 'convai', true
+    end
+    -- Follow-up questions (on by default, key followUpInterest: the retired followUpQuestions key above is a different, dropped
     -- setting): characters sometimes show interest in the player. Works with any voice.
-    if type(settings.followUpInterest) ~= 'boolean' then settings.followUpInterest, settingsNeedSave = false, true end
+    if type(settings.followUpInterest) ~= 'boolean' then settings.followUpInterest, settingsNeedSave = true, true end
     -- Multilingual conversations (off by default): conversations go to each character's multilingual twin. Pocket TTS
     -- speaks only English, so a saved pairing with it cannot stand (Apply never makes one): the voice moves to the cloud
     -- voice, which every installation can run. With the cloud voice, Multilingual wins over the two tag settings.
@@ -557,14 +562,14 @@ function M.naturalSpeech()
     return settings.naturalSpeech == true
 end
 
--- Off by default: a local voice's face follows our text-based reading of the reply. On, the character marks where its
--- feeling changes and the face follows those marks, timed to the voice. Needs a local voice, like Natural speech.
+-- On by default. On, the character marks where its feeling changes and the face follows those marks, timed to the voice;
+-- off, a local voice's face follows our text-based reading of the reply. Needs a local voice, like Natural speech.
 function M.expressiveEmotions()
     loadSettings()
     return settings.expressiveEmotions == true
 end
 
--- Off by default. On, the conversation service sometimes asks each character to show interest in you inside the reply it
+-- On by default. On, the conversation service sometimes asks each character to show interest in you inside the reply it
 -- is already giving (a question about what you said, a follow-up, a thought that invites an answer). Any voice works.
 function M.followUpInterest()
     loadSettings()

@@ -127,13 +127,14 @@ export function endsWithQuestion(text) {
 /**
  * The setting plus a little per-conversation memory, keyed by the conversation (the bridge passes its route session key,
  * which exists from the first turn). `enabled` follows runtime/settings.json (a missing or unreadable file leaves it as
- * it was). Off, no state is kept and `contextFor` returns '' without reading anything.
+ * it was). On by default, like mod/manager.lua: a settings file without the key counts as on; only a saved `false` turns
+ * it off. Off, no state is kept and `contextFor` returns '' without reading anything.
  */
 export class FollowUp {
-  constructor() { this.enabled = false; this.state = new Map(); this.decisions = new Map(); }
+  constructor() { this.enabled = true; this.state = new Map(); this.decisions = new Map(); }
   update(settings) {
     if (!settings || typeof settings !== 'object') return false;
-    const next = settings.followUpInterest === true, changed = next !== this.enabled;
+    const next = settings.followUpInterest !== false, changed = next !== this.enabled;
     this.enabled = next;
     if (!next) { this.state.clear(); this.decisions.clear(); }
     return changed;

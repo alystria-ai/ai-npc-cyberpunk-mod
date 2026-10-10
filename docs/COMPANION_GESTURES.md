@@ -4,8 +4,9 @@ Companions use the game's own conversation gestures while they speak a longer
 reply, nod while V talks to them, and now and then take a signature idle while
 settled (their own vanilla idle where one exists, a labelled generic stance
 otherwise; see Round 4). The
-**Body gestures** setting (Companion behavior) is **Off by default** until it
-is qualified in game. `mod/companion-gestures.lua` is the controller; the
+**Body gestures** setting (Companion behavior) was Off by default until it was
+qualified in game; it is **On by default since October 11, 2026** (a missing
+`bodyGestures` key means on, a saved choice is kept). `mod/companion-gestures.lua` is the controller; the
 Stage 0 probe (`mod/gesture-probe.lua`) remains a development tool.
 
 ## What the game offers (October 6 research)
@@ -256,7 +257,7 @@ lines: requests, native call results, 4 Hz traces while active).
 0. Probe — done for start, slide, clips, face/gaze, guard, wedge/recovery;
    still open: clean walk-away with native exit, suspend variant, long hold,
    signature idles, missing clip, vehicle.
-1. Controller behind the setting (default Off) — built (`companion-gestures.lua`,
+1. Controller behind the setting (default Off until October 11, 2026, then On) — built (`companion-gestures.lua`,
    `gesture-workspot.lua`, fixture tests `bridge/companion-gestures.test.mjs`).
 2. Emotion/intensity mapping, stance families, character clips — built.
 3. Listening nods (V speaking) and signature idle flavour — built; group-chat

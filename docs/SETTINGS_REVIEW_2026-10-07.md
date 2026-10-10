@@ -65,7 +65,7 @@ Revert to discard it."
 |---|---|---|---|---|---|
 | Eye contact height | select | **Default** (0 cm). manager.lua:339-341 (`0`); mcm.lua:785 index 3 | 10 cm lower; 5 cm lower; Default; 5 cm higher; 10 cm higher (values -0.10, -0.05, 0, 0.05, 0.10; manager.lua:25) | "Raise or lower the point companions look at on V. Default uses V's usual eye contact target." | `eyeContactHeight` (metres) |
 | Head tracking strength | select | **Gentle (default)** (1.0). manager.lua:342-344 (`1`); mcm.lua:788 index 3 | Eyes only (0); Less (0.5); Gentle (default) (1.0); More (1.5) (manager.lua:26) | "Choose how much companions turn their heads during eye contact. Eyes only relies on eye movement." | `headFollowStrength` |
-| Body gestures | toggle | **Off**. manager.lua:337 (`false`); mcm.lua:791 | On / Off | "Companions gesture with their body while they speak longer replies and nod while you talk to them, using the game's own animations in their usual stance. They stop at once when anyone moves or a fight starts." | `bodyGestures` |
+| Body gestures | toggle | **Off** when reviewed; **On since 2026-10-11** (see the note at the end). manager.lua:337 (`false`); mcm.lua:791 | On / Off | "Companions gesture with their body while they speak longer replies and nod while you talk to them, using the game's own animations in their usual stance. They stop at once when anyone moves or a fight starts." | `bodyGestures` |
 
 ### Voices
 
@@ -222,7 +222,7 @@ Back to settings (action). Three categories plus the log list. No stored setting
 | Keep prepared voices | Settings, Voices | On | 9868a0a |
 | Omni pack detection row and greyed-out Omni entries | Settings, Voices | n/a | f256d2b (entries are labelled, not disabled: Apply refuses them) |
 | Auto-connect nearby characters | Settings, Conversations | Off | a655725 |
-| Body gestures | Settings, Companion behavior | Off | built, "Off by default until it is qualified in game" (docs/COMPANION_GESTURES.md:6) |
+| Body gestures | Settings, Companion behavior | Off (On since 2026-10-11) | built, "Off by default until it is qualified in game" (docs/COMPANION_GESTURES.md:6) |
 | Eye contact height; Head tracking strength | Settings, Companion behavior | Default; Gentle | committed |
 | Subtitles; Subtitle display | Settings, Subtitles | On; Dialogue HUD | committed |
 | React to battles; React to collected loot | Settings, Automatic reactions | On; On | committed |
@@ -484,3 +484,25 @@ as before. The tables above describe the code before this change.
   TODO.md. Changes: auto-connect notices removed; the phone dismissal confirmation is
   Developer-only. Already gated and left alone: the support-report "saved" popup (Developer mode
   only), routine party and driving popups, gameplay-action acknowledgements.
+
+## Note, 2026-10-11: launch defaults
+
+Three settings that this review lists as Off by default are On by default for launch: **Expressive emotions**
+(`expressiveEmotions`), **Follow-up questions** (`followUpInterest`; the retired `followUpQuestions` key is still dropped) and
+**Body gestures (experimental)** (`bodyGestures`). A default applies only when the key is missing from
+`runtime/settings.json`; a player's saved choice is kept.
+
+- `loadSettings` (`mod/manager.lua`) sets the three defaults to On. The one exception: a missing `expressiveEmotions` key
+  beside an explicitly saved Convai cloud voice defaults to Off, so a default never moves a voice the player chose. A new
+  install (no file) therefore ends on Pocket with all three On, with no voice switch, notice or feedback on first load.
+- With Multilingual conversations on, the existing rule is unchanged: with the cloud voice the tag settings are dropped
+  (Expressive emotions off); with an OmniVoice choice Expressive emotions stays on.
+- Choosing the Convai cloud voice in Settings while Expressive emotions is on still ends on Pocket TTS with the notice
+  ("Expressive emotions need a local voice..."). Because Expressive emotions is now on by default, a player who wants the cloud
+  voice turns Expressive emotions off first (or in the same Apply).
+- The bridge (`bridge/expressive-emotions.mjs`, `bridge/follow-up.mjs`) treats a missing key as On (only a saved `false`
+  turns it off), so it agrees with Lua before the Lua side has rewritten the file.
+- The settings page (`mod/mcm.lua`) marks the three as default On (reset to default turns them On). The descriptions of Expressive
+  emotions and Follow-up questions end "On by default." (15 locales updated: the last sentence of each translation, and the
+  string key). Natural speech, Multilingual conversations and the other Off-by-default settings are unchanged.
+- Packaging ships no settings file, so nothing there carries these keys.

@@ -5,8 +5,9 @@ what the block now says.
 
 ## What exists
 
-The feature is the **Expressive emotions** setting (Settings > Voices, off by default, `expressiveEmotions` in the settings
-file). Nothing new was added for the player. On a spoken turn the dynamic context carries a short block that asks the character
+The feature is the **Expressive emotions** setting (Settings > Voices, **on by default since October 11, 2026**, `expressiveEmotions` in the settings
+file; it was off by default until then. A missing key means on, except beside an explicitly saved Convai cloud voice, which is
+kept: nothing is switched and no notice is shown. A saved choice is always kept). Nothing new was added for the player. On a spoken turn the dynamic context carries a short block that asks the character
 to write feeling tags inline; the bridge removes them from every text a player or an engine sees and keeps only where each one
 sits, and the face follows those marks.
 

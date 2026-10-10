@@ -46,13 +46,14 @@ export const EXPRESSIVE_TEXT = EMOTION_TAG_BLOCK;
 
 /**
  * The setting plus the two places it acts. `enabled` follows runtime/settings.json (a missing or unreadable file
- * leaves it as it was).
+ * leaves it as it was). On by default, like mod/manager.lua: a settings file without the key counts as on; only a saved
+ * `false` turns it off. (Without a local voice nothing is asked for, whatever this says.)
  */
 export class ExpressiveEmotions {
-  constructor() { this.enabled = false; }
+  constructor() { this.enabled = true; }
   update(settings) {
     if (!settings || typeof settings !== 'object') return false;
-    const next = settings.expressiveEmotions === true, changed = next !== this.enabled;
+    const next = settings.expressiveEmotions !== false, changed = next !== this.enabled;
     this.enabled = next;
     return changed;
   }

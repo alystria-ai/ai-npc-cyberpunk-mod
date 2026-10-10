@@ -29,7 +29,7 @@ no longer open it.
   without conversation support, which join as followers and do not talk.
 - **Settings:** conversation participation, Memory and Relationships submenus,
   **Auto-connect nearby characters** (on by default and silent, see below), eye contact height, head tracking strength
-  (Eyes only / Subtle / Gentle (default) / Strong), **Body gestures (experimental)** (off by default), voice playback,
+  (Eyes only / Subtle / Gentle (default) / Strong), **Body gestures (experimental)** (on by default since 2026-10-11), voice playback,
   **Keep prepared voices** (on by default), subtitles, automatic reactions, interface language and
   Developer mode (routine popups, a movement trace file, gesture logs and the setting in support reports; leave it off
   for normal play). The global voice choices are **Pocket · Performance (the default), OmniVoice · Balanced,

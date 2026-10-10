@@ -262,6 +262,7 @@ test('the block: every tag, the rules the measurements called for, compact enoug
 
 test('gating: the block goes out only when Expressive emotions is on and a local voice speaks the turn', () => {
   const off = new ExpressiveEmotions(), on = new ExpressiveEmotions();
+  off.update({expressiveEmotions: false});
   on.update({expressiveEmotions: true});
   for (const engine of ['omni', 'pocket', 'convai', undefined]) assert.equal(off.contextFor({engine, spoken: true}), '', `off / ${engine}`);
   assert.notEqual(on.contextFor({engine: 'omni', spoken: true}), '');

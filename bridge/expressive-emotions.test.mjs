@@ -10,15 +10,21 @@ import {splitSpeechText} from './speech-stream.mjs';
 
 const RAW = '{interest} Hey V, [sigh] you made it. {sadness:strong} But Jackie is gone, and I miss him. {calm} Let us go {joy} and celebrate.';
 
-// ---- the setting: off by default -----------------------------------------------------------------------------
+// ---- the setting: on by default (2026-10-11) -----------------------------------------------------------------------------
 
-test('Expressive emotions is off by default: no block, and a reply keeps no emotion marks', () => {
+test('Expressive emotions is on by default: a missing key counts as on, only a saved false turns it off (no block, and a reply keeps no emotion marks)', () => {
+  const fresh = new ExpressiveEmotions();
+  assert.equal(fresh.enabled, true, 'on before any settings file is read');
+  for (const engine of ['omni', 'pocket']) assert.equal(fresh.contextFor({engine, spoken: true}), EXPRESSIVE_TEXT);
+  for (const engine of ['convai', undefined]) assert.equal(fresh.contextFor({engine, spoken: true}), '', 'still only on a local voice');
+  assert.equal(fresh.update(undefined), false, 'a missing or unreadable settings file leaves it as it was');
+  assert.equal(fresh.update({voice: true}), false, 'a settings file without the key stays on');
+  assert.equal(fresh.update({expressiveEmotions: 'yes'}), false, 'an odd value is the default (the Lua side resets it to on)');
+  assert.equal(fresh.enabled, true);
   const emotions = new ExpressiveEmotions();
+  assert.equal(emotions.update({expressiveEmotions: false}), true, 'an explicitly saved false is kept');
   assert.equal(emotions.enabled, false);
   for (const engine of ['omni', 'pocket', 'convai', undefined]) assert.equal(emotions.contextFor({engine, spoken: true}), '');
-  assert.equal(emotions.update(undefined), false, 'a missing or unreadable settings file leaves it as it was');
-  assert.equal(emotions.update({voice: true}), false);
-  assert.equal(emotions.update({expressiveEmotions: 'yes'}), false, 'only an explicit true turns it on');
   const reply = {text: 'Hey V.', emotionMarks: [{at: 0, name: 'joy', strength: 'subtle'}], sessionID: 's'};
   const kept = emotions.process(reply);
   assert.equal(kept.emotionMarks, undefined, 'off: the text-based plan is used');
@@ -30,9 +36,12 @@ test('Expressive emotions is off by default: no block, and a reply keeps no emot
 
 test('the setting follows runtime/settings.json, is independent of Natural speech, and a change is reported once', () => {
   const emotions = new ExpressiveEmotions(), speech = new NaturalSpeech();
-  assert.equal(emotions.update({expressiveEmotions: true}), true);
-  assert.equal(emotions.update({expressiveEmotions: true}), false);
+  assert.equal(emotions.update({expressiveEmotions: true}), false, 'already on by default');
+  assert.equal(emotions.update({expressiveEmotions: false}), true);
+  assert.equal(emotions.update({expressiveEmotions: false}), false);
   assert.equal(emotions.update(undefined), false);
+  assert.equal(emotions.enabled, false);
+  assert.equal(emotions.update({expressiveEmotions: true}), true);
   assert.equal(emotions.enabled, true);
   assert.equal(speech.update({expressiveEmotions: true}), false, 'Natural speech does not read this setting');
   assert.equal(speech.enabled, false);

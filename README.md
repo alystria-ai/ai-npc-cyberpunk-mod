@@ -195,7 +195,9 @@ Open **Companion Manager → Settings** to change options. Memory, Relationships
 | Relationship choices | Auto |
 | Eye contact height | Default |
 | Head tracking strength | Gentle |
-| Body gestures (experimental) | Off |
+| Body gestures (experimental) | On |
+| Expressive emotions | On (needs a local voice; with an explicitly saved Convai cloud voice it stays Off) |
+| Follow-up questions | On |
 | Auto-connect nearby characters | On (silent) |
 | Keep prepared voices | On |
 | Who can talk (character conversations) | Enabled |

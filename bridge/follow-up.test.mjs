@@ -8,6 +8,7 @@ import {MultilingualConversations} from './multilingual.mjs';
 // back-to-back roll (>= .25) and passes the rate roll of every trait except cold (< .6, .5, .3), like a usual "no second turn".
 const ALWAYS = () => 0, NEVER = () => .999, BLOCKED = () => .3;
 const on = () => { const followUp = new FollowUp(); followUp.update({followUpInterest: true}); return followUp; };
+const off = () => { const followUp = new FollowUp(); followUp.update({followUpInterest: false}); return followUp; };
 let serial = 0;
 // One conversation turn: decide, then (as the bridge does after the reply) record whether the reply ended in a question.
 const turn = (followUp, options = {}) => {
@@ -18,10 +19,18 @@ const turn = (followUp, options = {}) => {
   return {block, reason: followUp.reasonFor(id)};
 };
 
-// ---- the setting: off by default, and then nothing changes ---------------------------------------------------
+// ---- the setting: on by default (2026-10-11); off, nothing changes ---------------------------------------------------
 
-test('Follow-up questions is off by default: no block, no state, and a missing or odd settings value leaves it off', () => {
+test('Follow-up questions is on by default: a missing key counts as on; saved false means no block, no state', () => {
+  const fresh = new FollowUp();
+  assert.equal(fresh.enabled, true, 'on before any settings file is read');
+  assert.equal(fresh.update(undefined), false, 'a missing or unreadable settings file leaves it as it was');
+  assert.equal(fresh.update({voice: true}), false, 'a settings file without the key stays on');
+  assert.equal(fresh.update({followUpInterest: 'yes'}), false, 'an odd value is the default (the Lua side resets it to on)');
+  assert.equal(fresh.update({followUpQuestions: false}), false, 'the retired followUpQuestions key means nothing');
+  assert.equal(fresh.enabled, true);
   const followUp = new FollowUp();
+  assert.equal(followUp.update({followUpInterest: false}), true, 'an explicitly saved false is kept');
   assert.equal(followUp.enabled, false);
   for (const trait of ['warm', 'neutral', 'dry', 'cold']) {
     assert.equal(followUp.contextFor({sessionId: 's', turn: 't', trait, text: 'hello', random: ALWAYS}), '');
@@ -29,16 +38,14 @@ test('Follow-up questions is off by default: no block, no state, and a missing o
   assert.equal(followUp.record('s', 'How are you?'), true, 'the answer is still computed for a log line');
   assert.equal(followUp.state.size, 0);
   assert.equal(followUp.decisions.size, 0);
-  assert.equal(followUp.update(undefined), false, 'a missing or unreadable settings file leaves it as it was');
-  assert.equal(followUp.update({voice: true}), false);
-  assert.equal(followUp.update({followUpInterest: 'yes'}), false, 'only an explicit true turns it on');
-  assert.equal(followUp.update({followUpQuestions: true}), false, 'the retired followUpQuestions key means nothing');
+  assert.equal(followUp.update(undefined), false);
+  assert.equal(followUp.update({followUpInterest: false, followUpQuestions: true}), false, 'the retired followUpQuestions key means nothing');
   assert.equal(followUp.enabled, false);
 });
 
 test('the setting follows runtime/settings.json, a change is reported once, and turning it off forgets the conversations', () => {
   const followUp = new FollowUp();
-  assert.equal(followUp.update({followUpInterest: true}), true);
+  assert.equal(followUp.update({followUpInterest: true}), false, 'already on by default');
   assert.equal(followUp.update({followUpInterest: true}), false);
   turn(followUp);
   assert.ok(followUp.state.size && followUp.decisions.size);
@@ -54,7 +61,7 @@ test('off, the context the bridge builds is byte-identical to the one without th
   languageBlock.update({multilingualConversations: true});
   for (const language of [new MultilingualConversations(), languageBlock]) {
     const without = [...base, language.contextFor('hola, cómo estás')].filter(Boolean).join('\n\n');
-    const withOff = [...base, new FollowUp().contextFor({sessionId: 's', turn: 't', trait: 'warm', text: 'hola', random: ALWAYS}),
+    const withOff = [...base, off().contextFor({sessionId: 's', turn: 't', trait: 'warm', text: 'hola', random: ALWAYS}),
       language.contextFor('hola, cómo estás')].filter(Boolean).join('\n\n');
     assert.equal(withOff, without);
   }
@@ -268,7 +275,7 @@ test('a reply "ends with a question" when its last mark is a question mark, in a
 });
 
 test('record returns whether the reply ended in a question, and keeps that only while the setting is on', () => {
-  const followUp = new FollowUp();
+  const followUp = off();
   assert.equal(followUp.record('s', 'Why?'), true);
   assert.equal(followUp.state.size, 0);
   followUp.update({followUpInterest: true});

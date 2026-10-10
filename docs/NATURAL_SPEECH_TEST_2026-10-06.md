@@ -166,7 +166,7 @@ Built as decided: the model chooses, the bridge never inserts a device. Off by d
 
 ### Expressive emotions (second setting, 2026-10-07)
 
-Off by default (Settings > Voices > Expressive emotions). The character marks its own feelings inline and the face follows them instead of the text-based reading (`bridge/text-emotion.mjs`, `bridge/emotion-analysis.mjs`), which stays as the fallback for any reply without marks.
+Off by default when written (On by default since 2026-10-11) (Settings > Voices > Expressive emotions). The character marks its own feelings inline and the face follows them instead of the text-based reading (`bridge/text-emotion.mjs`, `bridge/emotion-analysis.mjs`), which stays as the fallback for any reply without marks.
 
 - Tags: `{joy}`, `{warm}` (Trust), `{interest}` (Anticipation), `{surprise}`, `{sadness}`, `{fear}`, `{anger}`, `{disgust}`, `{calm}` (back to the resting face), optionally `{anger:strong}`. Curly braces, so they cannot collide with the bracketed voice tags of Natural speech; both settings can be on together. Subtle by default (weight .45 of the family's pose, strong .8, scaled by the character's range), several per reply where the text shifts, chosen by personality (the block says reserved or cold characters show little).
 - Stripped like the voice tags: where the reply leaves Convai (`RealtimeHost` `transformReply`), so subtitles, `reply.json`, the stream manifest, memory, group rows, phone chat and every engine's input see clean text; the Lua subtitle splitter and the Convai continuous snapshot also drop them. Only the character offsets of the tags survive, as `emotionMarks`.

@@ -936,7 +936,7 @@ local function schema()
             setting('headFollowStrength', 'Head tracking strength', 'select', strengthIndex, 3,
                 'Choose how much companions turn their heads during eye contact. Eyes only relies on eye movement.',
                 {'Eyes only', 'Subtle', 'Gentle (default)', 'Strong'}),
-            setting('bodyGestures', 'Body gestures (experimental)', 'bool', snapshot.settings.bodyGestures, false,
+            setting('bodyGestures', 'Body gestures (experimental)', 'bool', snapshot.settings.bodyGestures, true,
                 'Companions gesture with their body while they speak longer replies and nod while you talk to them, using the game’s own animations in their usual stance. They stop at once when anyone moves or a fight starts.'),
         })
         local voiceStatus = voiceStatusText(snapshot)
@@ -962,10 +962,10 @@ local function schema()
                 'Remember each companion’s prepared voice so summoning them again is quicker. Pocket TTS saves one small file per character (about 5 to 15 MB) in the mod’s runtime folder; OmniVoice does a short hidden warm-up at your chosen quality while a companion joins. Turn this off to save nothing on disk. The change applies without a restart.'),
             setting('naturalSpeech', 'Natural speech', 'bool', snapshot.settings.naturalSpeech, false,
                 'Let companions speak the way a real person with their personality would: now and then a pause, a hesitation, a laugh or a sigh. Each character decides when it fits, and it stays rare; a fluent, confident speaker will hardly use it. OmniVoice can voice laughs and sighs; Pocket TTS uses only pauses in the sentence. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. Off by default.'),
-            setting('expressiveEmotions', 'Expressive emotions', 'bool', snapshot.settings.expressiveEmotions, false,
-                'Let each character mark its own feelings as it speaks, so the face changes when that part is spoken instead of being guessed from the words. Subtle by default, chosen by personality, and only where the feeling really shifts. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. A reply without marks uses the usual text-based expression. Off by default.'),
-            setting('followUpInterest', 'Follow-up questions', 'bool', snapshot.settings.followUpInterest, false,
-                'Characters sometimes show interest in you and keep the conversation going: they ask about something you just said, pick up something from earlier or share a thought that invites an answer. It happens now and then, never on every reply, and never while you are leaving, giving an order or fighting. Works with any voice. Off by default.'),
+            setting('expressiveEmotions', 'Expressive emotions', 'bool', snapshot.settings.expressiveEmotions, true,
+                'Let each character mark its own feelings as it speaks, so the face changes when that part is spoken instead of being guessed from the words. Subtle by default, chosen by personality, and only where the feeling really shifts. It needs a local voice, so applying it while Convai cloud voice is chosen switches Companion voices to Pocket TTS. A reply without marks uses the usual text-based expression. On by default.'),
+            setting('followUpInterest', 'Follow-up questions', 'bool', snapshot.settings.followUpInterest, true,
+                'Characters sometimes show interest in you and keep the conversation going: they ask about something you just said, pick up something from earlier or share a thought that invites an answer. It happens now and then, never on every reply, and never while you are leaving, giving an order or fighting. Works with any voice. On by default.'),
             readonly('voice-pack', 'OmniVoice pack', pack.known and (pack.installed and 'Installed' or 'Not installed') or 'Waiting for voice service',
                 'OmniVoice is an optional add-on for computers with a capable GPU. Pocket TTS needs nothing extra.'),
             readonly('voice-status', 'Voice status', voiceStatus,

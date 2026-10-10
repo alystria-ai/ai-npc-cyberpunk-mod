@@ -4,8 +4,9 @@ October 8 and 9, 2026. A new, optional setting that makes a conversation feel tw
 in V and drives the conversation a little, like a tug where each side keeps the other engaged. It replaces the retired
 toggle of the same name (see "History" at the end), which asked every reply to end with a question.
 
-**Companion Manager > Settings > Voices > Follow-up questions**, next to Natural speech and Expressive emotions. Off by
-default. Unlike those two it needs no local voice: it works with Pocket, OmniVoice and the Convai cloud voice, in private
+**Companion Manager > Settings > Voices > Follow-up questions**, next to Natural speech and Expressive emotions. **On by
+default since October 11, 2026** (a missing `followUpInterest` key means on, a saved choice is kept; it was off by default
+until then). Unlike those two it needs no local voice: it works with Pocket, OmniVoice and the Convai cloud voice, in private
 text and microphone conversations and in phone Chat.
 
 October 9 (live test with Judy: "follow-up seems fine", and the user wants her to lean toward driving, so that V also has
