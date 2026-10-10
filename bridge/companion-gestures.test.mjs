@@ -34,6 +34,8 @@ function native.spawnDevice(n,t) calls[#calls+1]={name='spawn',template=t};retur
 local deviceReady=true
 function native.deviceEntity(id) if deviceReady then return {device=true} end;return nil end
 function native.moveDevice() calls[#calls+1]={name='move'};return true end
+local placedFlag=true
+function native.devicePlaced() return placedFlag end
 function native.deleteDevice() calls[#calls+1]={name='delete'};return true end
 function native.sweep() calls[#calls+1]={name='sweep'};return true end
 function native.play(d,n,component) calls[#calls+1]={name='play',component=component};n.entering=true;return true end
@@ -477,4 +479,30 @@ test('the plain on_sides variant has the same clips and ids as on_sides but no b
   assert(b and not b.bridge and a.bridge,'plain variant has no bridge')
   assert(b.clips==a.clips or #b.clips==#a.clips,'same clip list')
   assert(b.idle.sequenceId==a.idle.sequenceId and b.component~=a.component,'same ids, own component')
+`));
+
+test('a kept device that has not followed her yet is not played; a device that never follows is replaced', () => run(`
+  speaking={knownEnd=14,at=0};step(.5)
+  assert(count('play')==1 and count('spawn')==1,'first stance on a fresh device')
+  speaking=nil;step(4)
+  assert(count('exit')==1 and not npc.inside,'left after the reply')
+  local plays,spawns=count('play'),count('spawn')
+  placedFlag=false
+  speaking={knownEnd=14,at=0};step(1)
+  assert(count('play')==plays,'no play while the old device is somewhere else')
+  assert(count('move')>=1,'the device is moved to her')
+  assert(held,'she is held (no walking) while the device catches up')
+  step(1)
+  assert(lastLog('device-replaced') and count('delete')>=1 and count('spawn')==spawns+1,'a device that does not follow is replaced by a new one')
+  assert(count('play')==plays,'still not played')
+  placedFlag=true;step(.5)
+  assert(count('play')==plays+1,'plays once the device is at her pose')
+`));
+
+test('the talk stance waits until she has turned toward V (placed at her pose and yaw)', () => run(`
+  entry.facingError=70
+  speaking={knownEnd=14,at=0};step(2.5)
+  assert(count('play')==0,'still turning: no stance')
+  entry.facingError=10;step(.5)
+  assert(count('play')==1,'turned: stance')
 `));

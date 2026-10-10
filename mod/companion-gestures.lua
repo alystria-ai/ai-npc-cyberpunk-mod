@@ -10,7 +10,7 @@ local selection = dofile('gesture-selection.lua')
 local M = {}
 local HOLDING = {spawning = true, starting = true, active = true, leaving = true, exiting = true, recovering = true}
 M.policy = {bridgeBlend = 1.0, bridgeLead = 1.0, firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourAfterTalk = 45, linger = 2.5, patience = 3, giveUp = 6, unsettled = .8, playerMoved = .75, playerRunning = 2.5,
-    nearStart = 4.0, nearKeep = 4.5, socialPhases = {settled = true, attend = true},
+    nearStart = 4.0, nearKeep = 4.5, socialPhases = {settled = true, attend = true}, faceWithin = 35, deviceSettle = 1.5, deviceRetry = .4,
     wedgeAfter = 1.5, healthWindow = 10, recoveryHold = .9, recoveryLimit = 2, failureCooldown = 30, minimumSpeech = 5,
     -- Signature idle flavour (characters marked flavour in the catalog only):
     -- after this long settled, now and then, for a short while.
@@ -150,19 +150,39 @@ function M.new(options)
         return words / self.wordsPerSecond
     end
 
+    -- The workspot plays at the device's transform, and a teleport of the device lands a frame
+    -- or more after the call: a play right behind a move pulled the companion to the device's
+    -- previous spot and yaw (Alex, Oct 10: turned toward V by her attention, then entered with
+    -- the old yaw, and once 12 m back to where the stance had last been). The device is
+    -- therefore moved, then checked against her actual pose, and played only once it matches;
+    -- a device that does not follow is replaced by a new one spawned at her spot.
     local function deviceFor(s, npc)
         if s.deviceID then
             local entity = native.deviceEntity(s.deviceID)
             if entity == false then s.deviceID, s.device = nil, nil
             elseif entity then
-                if not s.deviceMoved then native.moveDevice(entity, npc); s.deviceMoved = true end
-                return entity
+                if not s.deviceMoved then
+                    native.moveDevice(entity, npc)
+                    s.deviceMoved, s.deviceMovedAt, s.deviceTriedAt = true, self.clock, self.clock
+                end
+                local placed = native.devicePlaced and native.devicePlaced(entity, npc)
+                if native.devicePlaced == nil or placed == true then return entity end
+                if placed == nil and self.clock - s.deviceMovedAt >= .3 then return entity end -- not measurable: give it a moment
+                if self.clock - s.deviceMovedAt > policy.deviceSettle then
+                    note(s, 'device-replaced', {})
+                    native.deleteDevice(s.deviceID)
+                    s.deviceID, s.device, s.deviceMoved = nil, nil, false
+                elseif self.clock - s.deviceTriedAt >= policy.deviceRetry then
+                    native.moveDevice(entity, npc); s.deviceTriedAt = self.clock
+                    return nil
+                else return nil end
             else return nil end
         end
         if not s.deviceID then
             local ok, id = native.spawnDevice(npc, self.catalog.device)
             if not ok then return nil, tostring(id) end
-            s.deviceID, s.deviceMoved = id, true
+            -- Spawned exactly at her pose; the check above still runs before the play.
+            s.deviceID, s.deviceMoved, s.deviceMovedAt, s.deviceTriedAt = id, true, self.clock, self.clock
         end
         return nil
     end
@@ -403,6 +423,9 @@ function M.new(options)
                 if self.clock < (s.cooldownUntil or 0) then return end
                 if talking and (not s.settledSince or self.clock - s.settledSince < policy.talkSettled
                     or self.clock < (s.talkNotBefore or 0)) then return end
+                -- The stance is placed at her pose and yaw: not while she is still turning toward V
+                -- (her attention turn runs for a second or two after V looks at her).
+                if talking and (tonumber(entry.facingError) or 0) > policy.faceWithin then return end
                 if not (context.idle and context.settled) or context.combat then return end
                 -- Only beside V, in a social stance: never for a copy left behind.
                 if (tonumber(entry.playerGap) or math.huge) > policy.nearStart then return end

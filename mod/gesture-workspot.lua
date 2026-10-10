@@ -46,6 +46,22 @@ function M.moveDevice(device, npc)
     end)
 end
 
+-- Has the device actually reached the companion's pose? A teleport of the device lands a frame
+-- or more after the call and the workspot plays at the device's transform, so the controller
+-- plays only once this is true. true / false; nil when the poses cannot be read.
+function M.devicePlaced(device, npc, maxDistance, maxYaw)
+    local ok, value = call(function()
+        local a, b = device:GetWorldPosition(), npc:GetWorldPosition()
+        local dx, dy, dz = a.x - b.x, a.y - b.y, a.z - b.z
+        if math.sqrt(dx * dx + dy * dy + dz * dz) > (maxDistance or .12) then return false end
+        local ya = device:GetWorldOrientation():ToEulerAngles().yaw
+        local yb = npc:GetWorldOrientation():ToEulerAngles().yaw
+        return math.abs((ya - yb + 180) % 360 - 180) <= (maxYaw or 8)
+    end)
+    if not ok then return nil end
+    return value == true
+end
+
 function M.deleteDevice(id)
     return call(function()
         local system = Game.GetDynamicEntitySystem()

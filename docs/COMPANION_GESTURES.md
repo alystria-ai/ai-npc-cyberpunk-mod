@@ -668,3 +668,20 @@ Changed (archive; game restart; the catalog is regenerated, CET reload):
 4. `Verify-GestureAssets.mjs` fails the build if any stance or idle workspot keeps an entry clip.
 
 To check live after the restart: the entry of the talk stance on Evelyn when V sends a typed message (the head should no longer drop; `bridge-in`/`bridge-out` in `probe.log`), the hand-on-hip idle's entry, and the A/B of `convai_talk_on_sides` against `convai_talk_on_sides_plain` on a staged copy.
+
+## Round 5e (October 10, night): the device was moved and played in the same tick
+
+Live report on Alex after the Round 5d archive: (1) V looked at her, she turned toward V, but when V sent a message she talked facing elsewhere; (2) V walked about 12 m, turned and asked again: she "spawned behind, walked a bit backwards and then back in position". `probe.log` and `movement-trace.ndjson` (companion brain phase, command, speed, position and gap per sample; the trace clock runs about 0.88 of wall time, anchored on the 09:03:09Z `stranded` line = trace clock 226.0):
+
+- Alex's gesture device was kept from her earlier stance and flavour idle. At every later begin the controller called `moveDevice` (a teleport of the device) and, in the same tick, `PlayInDevice`. The workspot plays at the device's transform and the teleport lands a frame or more later, so the play used the device's previous spot and yaw.
+- (1) The device had been placed at her pre-turn yaw (the 09:01:17Z flavour idle); her attention turn ran afterwards; the 09:02:15Z begin entered with the old yaw.
+- (2) V had walked 12 m, Alex followed and was in `attend` (trace 241.2, gap 1.3 m) when the 09:03:30Z begin played at the device's last spot, 12.3 m back at (-1603.9, 354.0), her old stance spot (trace 244.4, gap 12.3 m, command `follow` enqueued); `exit too far` in the same second, a `stranded` recovery at 09:03:32Z, then she walked back (trace 245.5-253.9). That is the visible teleport plus the walk back.
+- A separate, earlier relocation at 09:03:09Z (trace 226.0: Alex 6 m back while catching up, `Companion recovery stranded gap 13.5`) happened with no gesture state for her (none since 09:02:34Z): it is `companions.lua` recovery after V moved 12 m fast, not this change.
+
+Changed (Lua only, CET reload; `mod/companion-gestures.lua`, `mod/gesture-workspot.lua`):
+
+1. **The device is placed, checked, then played.** After the move the controller compares the device's world position (0.12 m) and yaw (8 degrees) with hers (`gesture-workspot.devicePlaced`) every tick and plays only when it matches; it re-sends the move every 0.4 s and, if it has not followed after 1.5 s, deletes the device and spawns a new one at her pose (`device-replaced` in the log). She stays held, not walking, for that second. Nothing runs per frame outside an entry in progress.
+2. **The talk stance waits until she has turned.** A begin needs `facingError` (her angle to V, the same value the attention behaviour uses) at most 35 degrees; while she is still in her attention turn the stance does not start, and the stance is then placed at her pose and yaw. Walking and unsettled states were already refused (`idle`, `settled`, social phases only), and a begin is refused beyond 4 m.
+3. Tests: a kept device that has not followed is not played, a device that never follows is replaced, and the stance waits for the turn.
+
+To check live: V looks at a companion who had a stance or idle earlier, she turns, V sends a message: she stays facing V in the stance (`probe.log` `begin` then `play`, no `device-replaced` normally); V walks off 10 m and asks again: no relocation at the begin.
