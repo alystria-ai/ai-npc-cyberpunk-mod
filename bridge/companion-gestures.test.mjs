@@ -572,3 +572,32 @@ test('the talk stance waits until she has turned toward V (placed at her pose an
   entry.facingError=10;step(.5)
   assert(count('play')==1,'turned: stance')
 `));
+
+// Live 2026-10-11: GetBodyType returns a CName, and tostring() of one is not the name.
+const workspotSource = readFileSync(new URL('../mod/gesture-workspot.lua', import.meta.url), 'utf8');
+test('the real body type read understands a CName (NameToString, or the name inside tostring)', () => {
+  const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
+  const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
+  const code = `
+    ws=load([==[${workspotSource}]==])()
+    local raw='ToCName{ hash_lo = 0x02871D38, hash_hi = 0xA1219CE9 --[[ WomanAverage --]] }'
+    local function cname() return setmetatable({}, {__tostring=function() return raw end}) end
+    local function npcOf(v) return {GetBodyType=function() return v end} end
+    -- 1. NameToString resolves it
+    NameToString=function() return 'WomanAverage' end
+
+    assert(ws.bodyType(npcOf(cname()))=='womanaverage', 'NameToString path')
+    -- 2. NameToString unusable: the comment inside tostring
+    NameToString=function() return 'None' end
+    assert(ws.bodyType(npcOf(cname()))=='womanaverage', 'comment path')
+    NameToString=nil
+    assert(ws.bodyType(npcOf(cname()))=='womanaverage', 'no NameToString')
+    -- 3. plain strings and failures
+    assert(ws.bodyType(npcOf('ManBig'))=='manbig')
+    assert(ws.bodyType(npcOf(nil))==nil)
+    assert(ws.bodyType({GetBodyType=function() error('x') end})==nil)
+  `;
+  const result = lauxlib.luaL_dostring(vm, to_luastring(code));
+  const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1));
+  lua.lua_close(vm); assert.equal(result, lua.LUA_OK, error);
+});

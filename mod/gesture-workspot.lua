@@ -17,8 +17,23 @@ end
 function M.bodyType(npc)
     local ok, value = call(function() return npc:GetBodyType() end)
     if not ok or value == nil then return nil end
-    local text = tostring(value):lower():gsub('[^a-z0-9]', '')
-    if text == '' then return nil end
+    -- GetBodyType returns a CName: tostring() of one prints 'ToCName{ hash_lo = ..., hash_hi = ... --[[ WomanAverage --]] }'
+    -- (live 2026-10-11, the first generic-fallback test read nothing useful), so resolve it with NameToString and
+    -- fall back to the name inside that comment.
+    local text
+    if type(value) == 'string' then text = value
+    else
+        if type(NameToString) == 'function' then
+            local okName, name = pcall(NameToString, value)
+            if okName and type(name) == 'string' and name ~= '' and name ~= 'None' then text = name end
+        end
+        if not text then
+            local raw = tostring(value)
+            text = raw:match('%-%-%[%[%s*(.-)%s*%-%-%]%]') or raw
+        end
+    end
+    text = text:lower():gsub('[^a-z0-9]', '')
+    if text == '' or text == 'none' then return nil end
     return text
 end
 
