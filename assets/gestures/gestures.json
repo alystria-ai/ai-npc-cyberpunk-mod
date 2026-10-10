@@ -710,7 +710,8 @@
     "exitNatural": 1.4,
     "exitForced": 0.5,
     "transition": 1.2,
-    "clipOut": 0.9
+    "clipOut": 0.9,
+    "ambientOut": 2.4
   },
   "seatWorkspots": {
     "couch": "base\\workspots\\common\\couch\\generic__sit_couch__sit_around__02.workspot",

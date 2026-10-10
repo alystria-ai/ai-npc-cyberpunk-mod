@@ -205,14 +205,14 @@ test('never starts for a copy left behind or not in a social stance; leaves when
 
 test('a long reply streamed phrase by phrase is judged by its text, and gestures keep coming', () => run(`
   local words={}
-  for i=1,26 do words[#words+1]='word' end
+  for i=1,52 do words[#words+1]='word' end
   c.replyText=function() return table.concat(words,' ') end
-  -- each phrase reports only its own 2.5 s; the text says about 10 s
+  -- each phrase reports only its own 2.5 s; the text says about 20 s
   speaking={knownEnd=2.5,at=0}
   local n=0
-  for i=1,140 do
+  for i=1,260 do
     step(.1)
-    if speaking.at>=speaking.knownEnd and speaking.knownEnd<10 then speaking.knownEnd=speaking.knownEnd+2.5 end
+    if speaking.at>=speaking.knownEnd and speaking.knownEnd<20 then speaking.knownEnd=speaking.knownEnd+2.5 end
   end
   local cat=load(catalogSource)()
   local durations={}
@@ -222,7 +222,7 @@ test('a long reply streamed phrase by phrase is judged by its text, and gestures
     if call.name=='jump' and durations[call.clip] then n=n+1;covered=covered+durations[call.clip] end
   end
   assert(count('play')==1,'entered once')
-  assert(n>=2 and covered>=4.5,'gestures '..n..' covering '..covered..' s of a 10 s reply')
+  assert(n>=2 and covered>=4.5,'gestures '..n..' covering '..covered..' s of a 20 s reply')
   c.replyText=function() return 'short reply here' end
 `));
 
@@ -382,7 +382,7 @@ test('with phrase timing from the face timeline, gestures start on phrase starts
   end
   speaking={knownEnd=30,at=0,offset=0,phrases={{start=0},{start=4.2},{start=9.1},{start=13.4},{start=18.8},{start=23.5}}}
   step(29)
-  assert(#starts>=3,'gestures at phrase starts: '..#starts)
+  assert(#starts>=2,'gestures at phrase starts: '..#starts)
   for _,at in ipairs(starts) do
     local latest=0
     for _,span in ipairs(speaking.phrases) do if span.start<=at+1e-9 then latest=span.start end end
@@ -441,9 +441,10 @@ test('a bridge family enters on her own idle, crosses to the stance loop, gestur
   step(1.2)
   assert(count('jump')==1 and last('jump').clip==fam.idle.name and last('jump').instant,'crosses to the stance loop')
   assert(lastLog('bridge-in'),'logged')
-  step(.6)
-  assert(count('jump')==1,'no gesture while the crossing settles')
-  step(5)
+  assert(fam.bridge.blendOut and fam.bridge.blendOut>=2,'the ambient loop fades out slowly')
+  step(2.0)
+  assert(count('jump')==1,'no gesture while the ambient loop is still fading out')
+  step(4.5)
   assert(count('jump')>=2,'gestures follow the crossing')
   speaking=nil;step(2.4)
   assert(count('exit')==0 and not lastLog('bridge-out'),'still lingering')

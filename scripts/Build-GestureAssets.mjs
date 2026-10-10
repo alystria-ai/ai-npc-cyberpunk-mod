@@ -412,7 +412,10 @@ for (const [familyKey, familySource] of Object.entries(source.families)) {
     const rootData = tree.rootEntry.Data;
     const keep = (type) => rootData.list.filter((node) => node.Data.$type === type);
     const templateClip = keep('workSequence')[0].Data.list[0].Data.list[0].Data;
-    const animClip = (name, id) => ({ HandleId: '0', Data: { ...clone(templateClip), animName: cname(name), blendOutTime: (source.blend ?? {}).clipOut ?? 0.5, id: entryId(id) } });
+    const animClip = (name, id, out = (source.blend ?? {}).clipOut ?? 0.5) => ({ HandleId: '0', Data: { ...clone(templateClip), animName: cname(name), blendOutTime: out, id: entryId(id) } });
+    // The ambient loop of a bridge family fades out slowly: the crossing to the stance (feet 10-15 cm, head 3 cm up) is a
+    // visible glide of about 0.7-0.9 s, the length of the clip's blend-out (Round 5f).
+    const ambientOut = (source.blend ?? {}).ambientOut ?? (source.blend ?? {}).clipOut ?? 0.5;
     const sequence = (id, list, loop, idleAnim = family.idle) => ({ HandleId: '0', Data: {
         $type: 'workSequence', category: 'Any', disableAutoTransition: 0, flags: 0, id: entryId(id),
         idleAnim: cname(idleAnim), list, loopInfinitely: loop ? 1 : 0, previousLoopInfinitely: 0 } });
@@ -425,7 +428,7 @@ for (const [familyKey, familySource] of Object.entries(source.families)) {
     const exits = family.templateEntries ? keep('workExitAnim') : [];
     rootData.list = [
         ...entries,
-        ...(family.bridge ? [sequence(ambientId, [animClip(family.bridge, ambientId + 1)], true, family.bridge)] : []),
+        ...(family.bridge ? [sequence(ambientId, [animClip(family.bridge, ambientId + 1, ambientOut)], true, family.bridge)] : []),
         sequence(idleId, [animClip(family.idle, idleId + 1)], true),
         ...clips.map((clip) => sequence(clip.sequenceId, [animClip(clip.name, clip.clipId)], false)),
         ...exits, ...keep('workFastExit'),
@@ -453,7 +456,7 @@ for (const [familyKey, familySource] of Object.entries(source.families)) {
         component: family.component, workspot: family.workspot, rigs: rigKeys, blend: source.blend,
         idle: { name: family.idle, sequenceId: idleId, clipId: idleId + 1,
             perRig: Object.fromEntries(rigKeys.map((rigKey) => [rigKey, { duration: round(perRigClips[rigKey].get(family.idle).duration) }])) },
-        bridge: family.bridge ? { name: family.bridge, sequenceId: ambientId, clipId: ambientId + 1,
+        bridge: family.bridge ? { name: family.bridge, sequenceId: ambientId, clipId: ambientId + 1, blendOut: ambientOut,
             perRig: Object.fromEntries(rigKeys.map((rigKey) => [rigKey, { duration: round(perRigClips[rigKey].get(family.bridge).duration) }])) } : undefined,
         clips: clips.map(({ name, category, character, kind, fit, exclude, sequenceId, clipId, perRig }) =>
             ({ name, category, character, kind, fit, exclude, sequenceId, clipId, perRig })),

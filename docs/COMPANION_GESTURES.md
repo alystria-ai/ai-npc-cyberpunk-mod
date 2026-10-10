@@ -685,3 +685,17 @@ Changed (Lua only, CET reload; `mod/companion-gestures.lua`, `mod/gesture-worksp
 3. Tests: a kept device that has not followed is not played, a device that never follows is replaced, and the stance waits for the turn.
 
 To check live: V looks at a companion who had a stance or idle earlier, she turns, V sends a message: she stays facing V in the stance (`probe.log` `begin` then `play`, no `device-replaced` normally); V walks off 10 m and asks again: no relocation at the begin.
+
+## Round 5f (October 10, night): the slide when a message is sent is the ambient-to-stance crossing
+
+Live report on Lizzy after Round 5e (she now faces V and stays facing V, no pop after walking): when V sends a message she "goes back a bit smoothly, like she is sliding, just a bit".
+
+Cause, checked against `movement-trace.ndjson` and `probe.log` (last 15 min): it is not a translation. Her entity position is constant across the begin in the trace, there is no `device-replaced` line, and the device placement check passes at once. What moves is the animation: the bridge starts on the ambient `idle_stand` and jumps to the stance loop two seconds later (`bridge-in`). Offline the two poses differ by feet midpoint z 9.3 vs 2.9 cm (per-foot up to 15.5 cm, mean 9.7), hips 1.8 cm higher, head about 3.4 cm forward and 3 cm up, and the old `lz3` capture shows it as a smooth 9 px horizontal and 7 px vertical shift over about 0.7 s. That is the "slide": a smooth ambient-to-stance glide, inherent to any stance (offsetting the device would only move the whole body instead).
+
+Changed (assets + Lua; needs the archive installed, a game restart and a CET reload; nothing was installed):
+
+1. **Slower ambient fade-out.** The ambient clip in the bridge sequence now blends out over 2.4 s (`blend.ambientOut` in `assets/gestures/gestures.json`, emitted as `bridge.blendOut` in the catalog) instead of 0.9 s. The hypothesis is that the length of the jump blend follows the departing clip's blend-out time, so the crossing is spread over a longer time and reads as a settle rather than a slide. This is unverified live.
+2. **Longer settle before the first gesture.** After `bridge-in` the controller waits `max(bridgeBlend, blendOut + 0.2)` (2.6 s) before the first gesture so that gestures do not stack on the crossing.
+3. Tests: the bridge test checks the slow fade-out and that no gesture plays during it; the two reply-length tests run longer reply windows because the first gesture comes about 1.6 s later.
+
+To check live (needs a go-ahead and a staged copy): capture the torso over the begin with the new archive; if the crossing does not lengthen, A/B against the `on_sides_plain` family (no bridge, enter inertialization 1.5 s).

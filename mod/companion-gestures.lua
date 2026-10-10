@@ -245,6 +245,13 @@ function M.new(options)
     -- gesture landing 0.1-0.4 s into the blend read as a body twitch (Oct 10).
     local function enterBlend(s) return (s.family and s.family.blend and tonumber(s.family.blend.enter)) or 1.1 end
 
+    -- After the bridge-in jump the ambient loop is still fading out (the crossing is a visible glide of the
+    -- feet); gestures wait until it is over.
+    local function bridgeSettle(s)
+        local bridge = s.family and s.family.bridge
+        return math.max(policy.bridgeBlend, (bridge and tonumber(bridge.blendOut) or 0) + .2)
+    end
+
     local function clipDuration(clip, rig) return clip.perRig and clip.perRig[rig] and clip.perRig[rig].duration or 3 end
 
     local function advance(s, context, mode, info)
@@ -353,7 +360,7 @@ function M.new(options)
                 total = info and info.total, reply = info and info.requestId, phraseAt = info and info.phraseAt,
                 phraseAge = info and info.phraseAge, clips = s.family.clips,
                 busyUntil = math.max((s.activeAt or 0) + enterBlend(s) + policy.firstClipMargin,
-                    s.bridgedAt and s.bridgedAt + policy.bridgeBlend or 0)})
+                    s.bridgedAt and s.bridgedAt + bridgeSettle(s) or 0)})
             if pick then
                 -- Instant jump (still blended by the workspot's inertialization):
                 -- a queued jump waits for the 22-25 s idle loop to end (Oct 7 capture).

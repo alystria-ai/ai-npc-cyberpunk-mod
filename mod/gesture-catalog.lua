@@ -18,6 +18,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "stand__2h_on_sides__01",
@@ -39,6 +40,7 @@ local catalog = {
                 name = "idle_stand",
                 sequenceId = 100,
                 clipId = 101,
+                blendOut = 2.4,
                 perRig = {
                     woman_base = {
                         duration = 12.333,
@@ -4779,6 +4781,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "stand__2h_on_sides__01",
@@ -4811,6 +4814,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "stand__arms_crossed_front__01",
@@ -4832,6 +4836,7 @@ local catalog = {
                 name = "idle_stand",
                 sequenceId = 100,
                 clipId = 101,
+                blendOut = 2.4,
                 perRig = {
                     woman_base = {
                         duration = 2.667,
@@ -8704,6 +8709,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "stand__2h_on_hip__01",
@@ -9732,6 +9738,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "kerry__stand__2h_on_hip__01",
@@ -10054,6 +10061,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "takemura__stand__2h_on_sides__01",
@@ -10200,6 +10208,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "johnny__stand__lh_pocket__01",
@@ -10474,6 +10483,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "idle_stand",
@@ -12600,6 +12610,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "idle_stand",
@@ -15181,6 +15192,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "idle_stand",
@@ -17819,6 +17831,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "idle_stand",
@@ -20156,6 +20169,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "idle_stand",
@@ -22737,6 +22751,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "idle_stand",
@@ -25074,6 +25089,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "idle_stand",
@@ -27411,6 +27427,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "idle_stand",
@@ -29992,6 +30009,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "idle_stand",
@@ -32517,6 +32535,7 @@ local catalog = {
                 exitForced = 0.5,
                 transition = 1.2,
                 clipOut = 0.9,
+                ambientOut = 2.4,
             },
             idle = {
                 name = "idle_stand",
