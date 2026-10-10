@@ -129,13 +129,14 @@ test('an engine shift into a prop within the old two metre tolerance is rejected
   assert(entities[1]==nil and companions.list()[1].state=='failed')
 `));
 
-test('a fresh copy standing 30 cm above the real floor (navmesh height) is lowered to the floor once, at attach',()=>run(`${companionEngine}
+test('a fresh copy standing 30 cm above the real floor (navmesh height) is lowered a moment after attach, and re-checked once',()=>run(`${companionEngine}
   assert(companions.spawn('judy-alvarez'))
   local npc=entities[1]
   local floor=npc.pos.z
   npc.pos=Vector4.new(npc.pos.x,npc.pos.y,floor+.3)
   function npc:GetWorldOrientation() return {ToEulerAngles=function() return {roll=0,pitch=0,yaw=0} end} end
   local rays,moves=0,{}
+  local undone=true
   Game.GetSpatialQueriesSystem=function() return {Overlap=function() return false,{} end,
     SyncRaycastByCollisionGroup=function(_,from,to,group)
       rays=rays+1
@@ -145,9 +146,34 @@ test('a fresh copy standing 30 cm above the real floor (navmesh height) is lower
   Game.GetTeleportationFacility=function() return {Teleport=function(_,who,at,angles) moves[#moves+1]=at; who.pos=at; assert(angles.yaw==0,'keeps her facing') end} end
   companions.update(player,.5)
   assert(companions.list()[1].state=='ready','still attached')
-  assert(rays==1 and #moves==1 and math.abs(moves[1].z-floor)<1e-6,'lowered to the floor: '..#moves)
+  assert(#moves==0,'nothing inside attachFollower: the AI setup that follows would undo it')
   companions.update(player,.5)
-  assert(rays==1 and #moves==1,'only at attach')
+  assert(#moves==1 and math.abs(moves[1].z-floor)<1e-6,'lowered to the floor after attach: '..#moves)
+  -- the engine puts her back on the navmesh once: a second lowering, then it stops
+  npc.pos=Vector4.new(npc.pos.x,npc.pos.y,floor+.3)
+  companions.update(player,.5); companions.update(player,.5)
+  assert(#moves==2,'one re-check lowers her again: '..#moves)
+  npc.pos=Vector4.new(npc.pos.x,npc.pos.y,floor+.3)
+  for i=1,6 do companions.update(player,.5) end
+  assert(#moves==2 and companions.list()[1].loweredBy~=nil,'at most two lowerings: '..#moves)
+`));
+
+test('a copy that holds on the floor after the first lowering is not touched again',()=>run(`${companionEngine}
+  assert(companions.spawn('judy-alvarez'))
+  local npc=entities[1]
+  local floor=npc.pos.z
+  npc.pos=Vector4.new(npc.pos.x,npc.pos.y,floor+.3)
+  function npc:GetWorldOrientation() return {ToEulerAngles=function() return {roll=0,pitch=0,yaw=0} end} end
+  local rays,moves=0,0
+  Game.GetSpatialQueriesSystem=function() return {Overlap=function() return false,{} end,
+    SyncRaycastByCollisionGroup=function(_,from)
+      rays=rays+1
+      return true,{position=Vector4.new(from.x,from.y,floor,1)}
+    end} end
+  Game.GetTeleportationFacility=function() return {Teleport=function(_,who,at) moves=moves+1; who.pos=at end} end
+  for i=1,10 do companions.update(player,.5) end
+  assert(moves==1,'one lowering: '..moves)
+  assert(rays==2,'one lowering ray and one confirming ray, then no more: '..rays)
 `));
 
 test('a fresh copy already on the floor, or with no floor found, is left where it is',()=>run(`${companionEngine}

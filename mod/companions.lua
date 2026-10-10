@@ -259,10 +259,13 @@ end
 
 -- A fresh copy is placed on the navmesh, which in some interiors stands 20-30 cm above the real floor (V's apartment:
 -- navmesh 49.4-49.5, floor 49.2). An idle copy then stays at that height until she walks or leaves a workspot, so a
--- talk stance played in the meantime floated her up and dropped her at the exit (Round 5g, live). Lower her to the
--- floor once, at attach, before she is first drawn. Only a small drop (5-35 cm, the ground tolerance above), and
--- only when a Static surface is found directly below. Returns the drop in metres or nil. One raycast per spawn,
--- charged to the shared spatial budget; returns false (not nil) when the frame's budget is spent, so the caller defers.
+-- talk stance played in the meantime floated her up and dropped her at the exit (Round 5g, live). Lower her onto the
+-- floor. Only a small drop (5-35 cm, the ground tolerance above), and only when a Static surface is found directly
+-- below. Returns the drop in metres or nil. One raycast per call, charged to the shared spatial budget; returns false
+-- (not nil) when the frame's budget is spent, so the caller retries on a later tick.
+-- Live 2026-10-11 (Alt): a teleport made inside attachFollower is undone, because the AI role and `ai:OnAttach()` that
+-- follow it put the copy back on the navmesh; she stayed at 49.50 for six seconds, then settled by herself when she
+-- first turned. So the lowering runs a moment after attach (settleOnFloor), once the AI is set up.
 local function lowerToFloor(npc, actual)
     if not clearance.take(1) then return false end
     local ok, drop = pcall(function()
@@ -279,6 +282,26 @@ local function lowerToFloor(npc, actual)
     return ok and drop or nil
 end
 
+-- After attach (AI role set, OnAttach done) bring a copy that hovers above the floor down onto it: first try 0.5 s after
+-- attach, one more 1 s later if she was moved and is still high; then stop. No work once finished (entry.floorFix nil).
+local floorSettle = {first = .5, again = 1.0, tries = 2}
+local function settleOnFloor(entry)
+    local fix = entry.floorFix
+    if not fix or runtimeClock < fix.at then return end
+    local npc = entry.npc
+    if not npc then entry.floorFix = nil; return end
+    local lowered = lowerToFloor(npc, npc:GetWorldPosition())
+    if lowered == false then return end
+    fix.tries = fix.tries + 1
+    if lowered and fix.tries < floorSettle.tries then
+        entry.loweredBy = (entry.loweredBy or 0) + lowered
+        fix.at = runtimeClock + floorSettle.again
+    else
+        if lowered then entry.loweredBy = (entry.loweredBy or 0) + lowered end
+        entry.floorFix = nil
+    end
+end
+
 local function attachFollower(entry, player)
     local npc = entry.system:GetEntity(entry.entityID)
     if not npc or not npc:IsAttached() then return nil, 'Awaiting entity attachment' end
@@ -292,9 +315,6 @@ local function attachFollower(entry, player)
     local fits,clearanceError,deferred=placement.verify(player,actual,occupiedPositions(entry),entry.clearance)
     if deferred then return nil,nil,true end
     if not fits then return false,clearanceError end
-    local lowered = lowerToFloor(npc, actual)
-    if lowered == false then return nil, nil, true end
-    entry.loweredBy = lowered
     local ai = npc:GetAIControllerComponent()
     if not ai then return false, 'This model has no companion-compatible AI controller.' end
     local current = ai:GetAIRole()
@@ -312,6 +332,7 @@ local function attachFollower(entry, player)
     entry.npc = npc
     entry.role = role
     entry.state = 'ready'
+    entry.floorFix = {at = runtimeClock + floorSettle.first, tries = 0}
     entry.motor = actuator.new(npc,entry.clearance)
     entry.equipment = equipment.new(npc)
     entry.person = behavior.new(entry.serial)
@@ -1998,6 +2019,7 @@ function M.update(player,delta,focusEntity)
         if not ticked then M.bodyAnimationError=tostring(tickError) end
     end
     for _,entry in ipairs(ready) do
+        if entry.floorFix then pcall(settleOnFloor,entry) end
         if vehicles.owns(fleet,entry.serial) then stopPace(entry) end
         if vehicles.allowsSeatedAttention(fleet,entry.serial) then
             seatedAttention(entry,player,focusEntity,gazeSettings,step)

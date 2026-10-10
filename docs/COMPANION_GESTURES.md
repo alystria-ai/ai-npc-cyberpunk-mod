@@ -777,3 +777,7 @@ All 29 catalogued characters were checked live (staged under the kill switch, ta
 - **Saul, Johnny**: the shifts seen on the exit of their own idles were pose changes (arms crossed to arms down), not slides. Both rest at the pre-play spot (area 1.00-1.02, cx within 1 px). No change.
 - **Alt**: clean once her data was installed (talk area 1.03, idle 1.00, exit 0.99).
 - Evelyn keeps `generic_hip` in her rotation by decision. No character needed the step-back or weight-shift fallback.
+
+### Round 5g follow-up (October 11): the attach snap did not hold for Alt
+
+Live on a fresh invite of Alt (V and the Static floor at z 49.200): the attach snap ran (`loweredBy` 0.30 for both Evelyn and Alt, read through a read-only probe), yet `movement-trace.ndjson` shows Alt at z 49.500 from her first sample, 49.359 and 49.254 over the next 6 s as she turned (`attend_turn`), 49.241 and 49.200 at her first `attend_step`, and then 49.200 for good. The teleport inside `attachFollower` is undone by what follows it (`SetAIRole`, `ai:OnAttach()` put the copy back on the navmesh). The lowering now runs 0.5 s after attach (`settleOnFloor` in `mod/companions.lua`, called from the update loop only while `entry.floorFix` exists), re-checks 1 s later if she was moved, and stops after two tries; tests in `bridge/companion-placement.test.mjs`.
