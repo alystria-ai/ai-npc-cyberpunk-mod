@@ -767,3 +767,13 @@ Changed (Lua, catalog, no archive change beyond the Blue Moon idle component):
 Signature-idle survey of the Top 11 (workspot and animset names by quest id, offline; extracted to `E:\CyberpunkConvai-offload\work\signature-tier2\`): only Blue Moon has a prop-free standing idle of her own (US Cracks, sq017). Yorinobu (q113: fallen, sitting on the ground), T-Bug (q005 sitting), Spider Murphy (q101: cyberdeck, q304: aiming a gun), Joss (sq021: at the microwave), Rachel (sq023: leaning on a car), Lina (mq303: chair), Shank (mq303: mop, bar, cell), Carol (sq027/q202: chair, tablet), Aaron (mq306: seated, lying in a chair) and Coach Fred (no workspot found) have none that stands without a prop or a piece of furniture, so they keep the generic fallback and its pool.
 
 To check live (archive and Lua installed, game restarted): Blue Moon enters the talk stance without sliding back, takes an idle about 1.5 s after she settles beside V and five seconds after each reply, and the idle never repeats twice in a row.
+
+### Round 6b follow-up (October 11): per-character check, Judy, Alex, Saul, Johnny, Alt
+
+All 29 catalogued characters were checked live (staged under the kill switch, talk entry, signature idle and one pool idle driven directly, torso tracked at 36 fps, then where she rests 3.5 s after each exit against the 0.3 s before the play). Every talk entry, idle and exit is clean except as noted:
+
+- **Judy**: her `arms_crossed` talk loop moved her about 15 % closer to V and 22 px sideways on entry; her own-ambient family `judy_own` (`convai_talk_judy`, loop `idle_stand`) measures 0-3 px on entry and exit and rests at area 0.99, cx -1. Catalog only.
+- **Alex**: `on_sides` left her about 24 px off with area 0.88 after the exit; `arms_crossed` and `woman_sides` moved her about 21-23 px; `on_hips` put her hands on her hips. `judy_own` measures area 1.00, cx +3 on entry, cx -1 on exit, rests at cx +1, and keeps her arms-crossed look. Talk is now `judy_own` (catalog only).
+- **Saul, Johnny**: the shifts seen on the exit of their own idles were pose changes (arms crossed to arms down), not slides. Both rest at the pre-play spot (area 1.00-1.02, cx within 1 px). No change.
+- **Alt**: clean once her data was installed (talk area 1.03, idle 1.00, exit 0.99).
+- Evelyn keeps `generic_hip` in her rotation by decision. No character needed the step-back or weight-shift fallback.

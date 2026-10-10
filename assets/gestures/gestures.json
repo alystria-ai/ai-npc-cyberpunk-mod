@@ -438,7 +438,7 @@
     "Character.alex": {
       "key": "alex",
       "rig": "woman_base",
-      "talk": "on_sides",
+      "talk": "judy_own",
       "idle": "alex",
       "flavour": true,
       "fallback": "on_sides",
