@@ -601,4 +601,8 @@ return {
     ["Your key: not accepted"] = "Tvůj klíč: nepřijat",
     ["Your key: plan limit reached"] = "Tvůj klíč: limit plánu dosažen",
     ["Your own key"] = "Vlastní klíč",
+    ["Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key."] = "Tvůj plán Convai nemůže udržet paměť, kterou tyto rozhovory potřebují. Uvolni jednoho uživatele paměti ve svém účtu Convai nebo použij jiný klíč.",
+    ["Your Convai plan has no room for conversation memory, so companions will not remember past talks."] = "Tvůj plán Convai nemá místo pro paměť rozhovorů, takže si společníci nebudou pamatovat minulé rozhovory.",
+    ["Your key: no room for memory"] = "Tvůj klíč: není místo pro paměť",
+    ["Your own key, without memory"] = "Vlastní klíč, bez paměti",
 }

@@ -3876,3 +3876,48 @@ test('Development offers the own Convai key: off by default, free-key wording, t
     assert(not manager.applySettings({useOwnConvaiKey = 'yes'}))
   `);
 });
+
+test('Development says when the player key runs without memory or cannot hold the conversations at all', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    local function state(value, tag)
+      local token = 'own-state-' .. tag
+      jsonFixtures[token] = value
+      files['runtime/own-key-state.json'] = token
+      assert(invoke('own-key:paste').ok) -- a command resets the status read
+    end
+    assert(invoke('tab:settings').ok)
+    state({saved = true, tail = 'wxyz', active = 'player', memory = 'on'}, 'on')
+    assert(row('own-key-using').value == 'Your own key')
+    state({saved = true, tail = 'wxyz', active = 'player', memory = 'off'}, 'off')
+    assert(row('own-key-using').value == 'Your own key, without memory')
+    assert(manager.ownKey().memoryOff == true)
+    state({saved = true, tail = 'wxyz', active = 'player', memory = 'off', limit = {state = 'memory-needed', own = true}}, 'needed')
+    assert(row('own-key-using').value == 'Your key: no room for memory')
+    -- A speaker limit is not a used-up plan: only a real usage limit says that.
+    state({saved = true, tail = 'wxyz', active = 'player', memory = 'off'}, 'again')
+    assert(row('own-key-using').value ~= 'Your key: plan limit reached' and row('own-key-using').value ~= 'Shared plan: limit used up')
+    state({saved = false, active = 'shared', memory = 'on'}, 'shared')
+    assert(row('own-key-using').value == 'The shared plan' and manager.ownKey().memoryOff == false)
+  `);
+});
+
+test('the reply notices for the key: a used-up plan, a refused key, memory off or needed, and nothing for an ordinary reply', () => {
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  const start = init.indexOf('local function keyNoticeText'), end = init.indexOf('local function reactionCanDeliver');
+  assert(start > 0 && end > start, 'the key notice functions moved');
+  run(`
+    local ui = {t = function(text) return text end}
+    ${init.slice(start, end)}
+    local function notice(reply) local id, text = keyReplyNotice(reply); return id, text end
+    local id, text = notice({errorCode = 'quota-shared'})
+    assert(id == 'quota-exhausted' and text:find('free API key at convai.com', 1, true) and text:find('Settings > Development', 1, true))
+    assert(not text:lower():find('embedded', 1, true) and not text:lower():find('shipped', 1, true))
+    id, text = notice({errorCode = 'quota-own'}); assert(id == 'quota-exhausted' and text:find('plan limit', 1, true))
+    id, text = notice({errorCode = 'key-rejected'}); assert(id == 'quota-exhausted' and text:find('did not accept', 1, true))
+    id, text = notice({errorCode = 'key-memory-needed'}); assert(id == 'quota-exhausted' and text:find('memory', 1, true))
+    id, text = notice({errorCode = 'key-memory', error = 'x'}); assert(id == 'key-memory' and text:find('will not remember', 1, true))
+    id, text = notice({keyNotice = 'memory-off', text = 'Hello'}); assert(id == 'key-memory')
+    assert(notice({text = 'Hello'}) == nil and notice({error = 'plain failure'}) == nil and notice({keyNotice = 'other'}) == nil)
+  `);
+});

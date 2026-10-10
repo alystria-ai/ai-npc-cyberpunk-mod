@@ -634,6 +634,8 @@ local function ownKeyRows(snapshot)
     if own.limit == 'used-up' and own.limitOwn then using = ui.t('Your key: plan limit reached')
     elseif own.limit == 'used-up' then using = ui.t('Shared plan: limit used up')
     elseif own.limit == 'rejected' then using = ui.t('Your key: not accepted')
+    elseif own.limit == 'memory-needed' then using = ui.t('Your key: no room for memory')
+    elseif own.active == 'player' and own.memoryOff then using = ui.t('Your own key, without memory')
     elseif own.active == 'player' then using = ui.t('Your own key')
     else using = ui.t('The shared plan') end
     return {
@@ -1503,7 +1505,7 @@ function M.update(currentPlayer, worldReady)
             -- The key status page changes when the bridge answers a Paste or Remove, or reports a used-up plan.
             local own = snapshot.ownKey
             signature[#signature + 1] = table.concat({'key', tostring(own.saved), own.tail or '', own.active, tostring(own.pending),
-                own.result or '', own.limit or '', tostring(own.limitOwn)}, '|')
+                own.result or '', own.limit or '', tostring(own.limitOwn), tostring(own.memoryOff)}, '|')
         end
         signature = table.concat(signature, '\n')
         if signature ~= lastSignature then lastSignature, refreshQueued = signature, true end

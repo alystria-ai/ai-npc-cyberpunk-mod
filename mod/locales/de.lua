@@ -601,4 +601,8 @@ return {
     ["Your key: not accepted"] = "Dein Schlüssel: nicht akzeptiert",
     ["Your key: plan limit reached"] = "Dein Schlüssel: Tarif-Limit erreicht",
     ["Your own key"] = "Eigener Schlüssel",
+    ["Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key."] = "Dein Convai-Tarif reicht nicht für den Speicher, den diese Gespräche brauchen. Gib in deinem Convai-Konto einen Speicher-Nutzer frei oder verwende einen anderen Schlüssel.",
+    ["Your Convai plan has no room for conversation memory, so companions will not remember past talks."] = "Dein Convai-Tarif bietet keinen Platz für Gesprächsspeicher, daher werden sich Begleiter nicht an frühere Gespräche erinnern.",
+    ["Your key: no room for memory"] = "Dein Schlüssel: kein Platz für Speicher",
+    ["Your own key, without memory"] = "Eigener Schlüssel, ohne Speicher",
 }

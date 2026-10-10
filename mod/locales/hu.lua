@@ -601,4 +601,8 @@ return {
     ["Your key: not accepted"] = "A kulcsod: nem fogadta el",
     ["Your key: plan limit reached"] = "A kulcsod: elérte a csomag keretét",
     ["Your own key"] = "Saját kulcs",
+    ["Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key."] = "A Convai csomagod nem tudja tárolni azt a memóriát, amelyre ezeknek a beszélgetéseknek szükségük van. Szabadíts fel egy memóriahasználót a Convai-fiókodban, vagy használj másik kulcsot.",
+    ["Your Convai plan has no room for conversation memory, so companions will not remember past talks."] = "A Convai csomagodban nincs hely a beszélgetések memóriájának, ezért a társak nem fogják emlékezni a korábbi beszélgetésekre.",
+    ["Your key: no room for memory"] = "A kulcsod: nincs hely a memóriának",
+    ["Your own key, without memory"] = "Saját kulcs, memória nélkül",
 }

@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, keyTail, parseKeyCommand, parseKeyText, readClipboardText, validateKey}
-  from './convai-key.mjs';
-import {QuotaWatch} from './convai-quota.mjs';
+import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, keyTail, memoryRecovery, parseKeyCommand, parseKeyText, readClipboardText,
+  validateKey, withoutIdentity} from './convai-key.mjs';
+import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 
 // Fake keys only: long enough to pass the shape check, never a real credential.
 const SHARED = 'shared-fixture-key-0000000000000000';
@@ -196,4 +196,59 @@ test('key validation lists characters with the key header only, and treats netwo
   assert.equal(seen[0].url, 'https://api.convai.com/character/list');
   assert.equal(seen[0].options.headers['CONVAI-API-KEY'], PLAYER);
   assert.ok(!seen[0].url.includes(PLAYER), 'the key is never put in a URL');
+});
+
+function playerKeys() {
+  const keys = new ConvaiKeys({sharedKey: SHARED, playerKeyPath: 'own', readText: async () => `api-key=${PLAYER}\n`});
+  return keys.load().then(() => { keys.setPreference(true); keys.apply(); return keys; });
+}
+const identified = {key: PLAYER, characterId: 'c1', scope: 'private', endUserId: 'user-1', endUserMetadata: {name: 'V'},
+  sessionId: 'identified-session', ttsEnabled: true};
+
+test('the request without identity drops the end user and, when asked, the identified session', () => {
+  assert.deepEqual(withoutIdentity(identified), {key: PLAYER, characterId: 'c1', scope: 'private', sessionId: 'identified-session', ttsEnabled: true});
+  assert.deepEqual(withoutIdentity(identified, {fresh: true}), {key: PLAYER, characterId: 'c1', scope: 'private', ttsEnabled: true});
+  assert.ok(!('sessionId' in withoutIdentity({endUserId: 'x', scope: 's'})));
+  assert.equal(withoutIdentity(null), null);
+});
+
+test('only a player\'s key can switch memory off; a different key brings it back and the notice comes once', async () => {
+  const shared = new ConvaiKeys({sharedKey: SHARED});
+  assert.equal(shared.blockMemory(), false); assert.equal(shared.memoryBlocked, false);
+  const keys = await playerKeys();
+  assert.equal(keys.blockMemory(), true); assert.equal(keys.blockMemory(), false);
+  assert.equal(keys.takeNotice(), 'memory-off'); assert.equal(keys.takeNotice(), undefined);
+  keys.setPreference(false); keys.apply();
+  assert.equal(keys.memoryBlocked, false, 'the shared key starts with memory on');
+  keys.setPreference(true); keys.apply();
+  assert.equal(keys.memoryBlocked, false);
+});
+
+test('a speaker limit on a player\'s key is answered by one anonymous retry; nothing else is', async () => {
+  const keys = await playerKeys();
+  let blocked = 0;
+  const recover = memoryRecovery({keys, classify: classifyFailure, onBlocked: () => blocked++});
+  const retry = recover(Error('LTM speaker limit reached'), identified);
+  assert.deepEqual(retry, {key: PLAYER, characterId: 'c1', scope: 'private', ttsEnabled: true});
+  assert.equal(blocked, 1); assert.equal(keys.memoryBlocked, true);
+  // A second refusal does not announce it again, and an anonymous request has nothing to drop.
+  assert.ok(recover(Error('speaker limit reached'), identified)); assert.equal(blocked, 1);
+  assert.equal(recover(Error('LTM speaker limit reached'), retry), undefined);
+  for (const text of ['Convai usage limit reached [convai-quota:interaction]', 'Concurrency limit reached', 'Invalid API key', 'HTTP 500', '']) {
+    assert.equal(recover(Error(text), identified), undefined, text);
+  }
+  const shared = new ConvaiKeys({sharedKey: SHARED});
+  assert.equal(memoryRecovery({keys: shared, classify: classifyFailure})(Error('LTM speaker limit reached'), identified), undefined);
+});
+
+test('the published status says whether memory is on, and never holds the key', async () => {
+  const keys = await playerKeys();
+  const published = [];
+  const instance = new OwnKeyControl({keys, commandPath: 'cmd', publish: async value => { published.push(JSON.stringify(value)); },
+    read: async () => { throw Error('missing'); }});
+  await instance.open();
+  assert.equal(JSON.parse(published.at(-1)).memory, 'on');
+  keys.blockMemory(); await instance.publishStatus();
+  assert.equal(JSON.parse(published.at(-1)).memory, 'off');
+  assert.ok(published.every(text => !text.includes(PLAYER)));
 });

@@ -98,7 +98,9 @@ export class RealtimeHost {
   // player's own free Convai key), so a request first closes every other idle connection, here and in the peer hosts,
   // and a "Concurrency limit reached" answer is retried once after retryMs while the old session is released.
   // onFailure(error) / onSuccess(): observers of a finished request (the bridge reads plan-limit failures from them).
-  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess,
+  // recover(error, config): may return a changed config for one more attempt (a player's key whose plan has no room for
+  // another memory user retries without an end-user identity), or nothing.
+  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess, recover,
     browserExecutable = process.env.CYBERPUNK_CONVAI_BROWSER,
     clientAssetsDirectory = process.env.CYBERPUNK_CONVAI_CLIENT_ASSETS,
     launchBrowser = options => chromium.launch(options)} = {}) {
@@ -109,7 +111,7 @@ export class RealtimeHost {
     this.disconnects = new WeakMap(); this.disconnectTimeoutMs = disconnectTimeoutMs;
     this.onCompanionAction = onCompanionAction;
     this.transformReply = typeof transformReply === 'function' ? transformReply : result => result;
-    this.exclusive = exclusive; this.onFailure = onFailure; this.onSuccess = onSuccess;
+    this.exclusive = exclusive; this.onFailure = onFailure; this.onSuccess = onSuccess; this.recover = recover;
   }
   // Single-session plans: close the idle connections of this host (except `key`) and of its peers.
   async yieldOtherSessions(key) {
@@ -292,11 +294,20 @@ export class RealtimeHost {
   }
   run(config, method, options = {}) {
     const attempt = async () => {
-      try { return await this.runOnce(config, method, options); }
-      catch (error) {
-        if (!this.exclusive?.enabled?.() || !/concurrency limit/i.test(String(error?.message)) || options.signal?.aborted) throw error;
-        await abortable(new Promise(resolve => setTimeout(resolve, this.exclusive.retryMs ?? 1500)), options.signal);
-        return this.runOnce(config, method, options);
+      let current = config, waited = false;
+      for (let retries = 0; ; retries++) {
+        try { return await this.runOnce(current, method, options); }
+        catch (error) {
+          if (retries >= 2 || options.signal?.aborted) throw error;
+          if (!waited && this.exclusive?.enabled?.() && /concurrency limit/i.test(String(error?.message))) {
+            waited = true;
+            await abortable(new Promise(resolve => setTimeout(resolve, this.exclusive.retryMs ?? 1500)), options.signal);
+            continue;
+          }
+          let changed; try { changed = this.recover?.(error, current); } catch { changed = undefined; }
+          if (!changed) throw error;
+          current = changed;
+        }
       }
     };
     return this.observe(attempt(), method !== 'warm');

@@ -35,6 +35,7 @@ M.catalog = {
     ['service-blocked'] = {class = PLAYER, repeatS = 15},
     ['conversation-timeout'] = {class = PLAYER, repeatS = 15},
     ['reply-error'] = {class = PLAYER, repeatS = 15},
+    ['key-memory'] = {class = PLAYER, repeatS = 86400},   -- a player's Convai plan has no room for conversation memory: companions go on without it
     ['quota-exhausted'] = {class = PLAYER, repeatS = 86400}, -- the plan is used up or the player's own key is refused: once per game session
     -- Starting a conversation
     ['talk-no-target'] = {class = PLAYER, repeatS = 20},

@@ -601,4 +601,8 @@ return {
     ["Your key: not accepted"] = "你的密钥：未被接受",
     ["Your key: plan limit reached"] = "你的密钥：已达套餐上限",
     ["Your own key"] = "你自己的密钥",
+    ["Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key."] = "你的 Convai 套餐无法容纳这些对话所需的记忆。请在你的 Convai 账户中释放一个记忆用户，或改用其他密钥。",
+    ["Your Convai plan has no room for conversation memory, so companions will not remember past talks."] = "你的 Convai 套餐没有对话记忆的余量，因此同伴不会记住过去的交谈。",
+    ["Your key: no room for memory"] = "你的密钥：没有记忆余量",
+    ["Your own key, without memory"] = "你自己的密钥，无记忆",
 }

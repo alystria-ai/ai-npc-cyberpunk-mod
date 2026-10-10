@@ -10,7 +10,9 @@ Yes, with no setup by the player. Evidence:
 - Convai's realtime `/connect` answers for a character that belongs to the key's account, or a character whose listing is public or unlisted, and answers 404 otherwise. This comes from reading the service code, which is private and not reproduced here. A connection with a made-up key answers 401 `{"detail":"Invalid API key"}` (probed once, zero cost).
 - The plan, the interaction count and the speakers (memory users) are charged to the key's account, not to the character's owner. That is why a player key spends the player's allowance.
 
-Not verified, because it needs a real free key: whether the free plan's long-term-memory flag changes memory behaviour, and whether the free plan's one allowed speaker produces `429 LTM speaker limit reached` for an account that already has another speaker. Both are classified as a plan limit and shown with the own-key limit notice.
+Not verified, because it needs a real free key: whether the free plan's long-term-memory flag changes memory behaviour.
+
+Found in the first live test (October 10, bridge log): the first conversation on a real free key failed with `LTM speaker limit reached`. That is a plan limit on how many people the plan may remember, not a used-up plan: the free plan allows one long-term-memory speaker (a speaker is one end-user id; the mod uses one per install) and Convai counts every speaker the account was active with in the last 30 days, so an account that already used memory elsewhere has no room for a new one. The first version of this feature wrongly showed it as "plan limit reached". It is now handled as described under "Plan without room for memory".
 
 Plan facts used by the design: Free is 100 interactions a month with one concurrent connection and no multilingual support. The Gamer plan is 4000 interactions a month with one concurrent connection and a long-term-memory speaker limit of 5.
 
@@ -19,9 +21,21 @@ Plan facts used by the design: Free is 100 interactions a month with one concurr
 - At session start and every 15 seconds the service checks the quota. When it is used up it sends one data-channel message inside a server message, then closes the session:
   `{"type":"usage-limit-reached","quota_type":"interaction"|"tts"|"error","message":"..."}`.
   `quota_type: "error"` is a service configuration fault and is not treated as a used-up plan.
-- At connect time: 401 invalid key, 429 `Concurrency limit reached`, 429 `LTM speaker limit reached` or `speaker limit reached`, 403 realtime access not allowed, 404 character not found.
+- At connect time: 401 invalid key, 429 `Concurrency limit reached`, 429 `LTM speaker limit reached` or `speaker limit reached` (503 `LTM speaker allowance is not configured for this plan` is treated the same), 403 realtime access not allowed, 404 character not found, and 400 `Missing end_user_id` when a memory-enabled character is connected without an end user.
 
-`bridge/realtime-client.mjs` turns the usage-limit message into the failure text `Convai usage limit reached [convai-quota:interaction|tts|plan]`. `bridge/convai-quota.mjs` classifies failures (`quota`, `plan`, `rejected`, `busy`) and remembers the last limit for the settings page.
+`bridge/realtime-client.mjs` turns the usage-limit message into the failure text `Convai usage limit reached [convai-quota:interaction|tts|plan]`. `bridge/convai-quota.mjs` classifies failures by their text: `quota` (interactions used up), `speaker` (the memory-user limit), `memory` (an identity is required and unavailable), `rejected` (key or realtime access refused) and `busy` (concurrency). Only `quota` is shown as "limit used up"; the others have their own wording.
+
+## Plan without room for memory
+
+Every conversation of the mod carries the player's end-user id so Convai can keep long-term memory. When a player's key hits the speaker limit, the bridge repeats that one request without the end-user id and runs the rest of the key's conversations the same way (`withoutIdentity`, `memoryRecovery` in `bridge/convai-key.mjs`, the host's `recover` hook). What is reduced, and nothing else:
+
+- Companions do not keep long-term memory of conversations on that key.
+- Offered companion actions that need an identified session (for example asking the companion to drive) are not offered in conversations.
+- Sessions and phone threads started under the identity start afresh; the visible transcript stays.
+
+The game says so once per session (`key-memory`, shown with the first reply that ran without memory) and the settings line reads "Your own key, without memory". A different key, or switching the setting off and on, starts again with memory on. Voice turns cannot be repeated midway: the first voice turn shows the same notice and the next turn runs without memory.
+
+If the anonymous request is refused too (`Missing end_user_id`, which depends on how each character's memory mode is set up on the developer's side and is not verified), the key cannot hold the conversations at all; the game says to free a memory user in the Convai account or use another key (`quota-exhausted`, shown once) and tries the identified request again next time.
 
 ## What the player sees
 

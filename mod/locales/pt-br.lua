@@ -601,4 +601,8 @@ return {
     ["Your key: not accepted"] = "Sua chave: não aceita",
     ["Your key: plan limit reached"] = "Sua chave: limite do plano atingido",
     ["Your own key"] = "Sua própria chave",
+    ["Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key."] = "Seu plano do Convai não comporta a memória que estas conversas precisam. Libere um usuário de memória na sua conta do Convai ou use outra chave.",
+    ["Your Convai plan has no room for conversation memory, so companions will not remember past talks."] = "Seu plano do Convai não tem espaço para memória de conversas, então os companheiros não vão lembrar as conversas anteriores.",
+    ["Your key: no room for memory"] = "Sua chave: sem espaço para memória",
+    ["Your own key, without memory"] = "Sua própria chave, sem memória",
 }

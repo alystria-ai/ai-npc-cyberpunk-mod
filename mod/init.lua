@@ -1695,8 +1695,9 @@ local function updateBattles(player, elapsed, worldReady)
     else cancelAutomatic('request-write-failed') end
 end
 
--- The bridge adds errorCode to a failed reply when Convai refused it for the plan or the key (bridge/convai-quota.mjs). The
--- text says what to do; it never names where the shared key comes from.
+-- The bridge adds errorCode to a failed reply when Convai refused it for the plan or the key (bridge/convai-quota.mjs), and
+-- keyNotice to the first reply that ran without long-term memory on a limited plan (bridge/convai-key.mjs). The text says
+-- what to do; it never names where the shared key comes from.
 local function keyNoticeText(code)
     if code == 'quota-shared' then
         return ui.t('The conversation limit has been reached. Get a free API key at convai.com, then add it in Settings > Development.')
@@ -1704,7 +1705,19 @@ local function keyNoticeText(code)
         return ui.t('Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Development.')
     elseif code == 'key-rejected' then
         return ui.t('Convai did not accept your API key. Check it in Settings > Development.')
+    elseif code == 'key-memory-needed' then
+        return ui.t('Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.')
     end
+    return nil
+end
+
+-- id and text of the notice a reply calls for, or nil for an ordinary reply.
+local function keyReplyNotice(reply)
+    if reply.errorCode == 'key-memory' or reply.keyNotice == 'memory-off' then
+        return 'key-memory', ui.t('Your Convai plan has no room for conversation memory, so companions will not remember past talks.')
+    end
+    local text = keyNoticeText(reply.errorCode)
+    if text then return 'quota-exhausted', text end
     return nil
 end
 
@@ -2348,10 +2361,16 @@ registerForEvent('onUpdate', function(delta)
                 local shown = pcall(function()
                     if reply.error then
                         gameplayActions.revoke('reply-error', pending.requestId)
-                        local keyText = keyNoticeText(reply.errorCode)
-                        if keyText then convaiNotices.send(player, 'quota-exhausted', keyText)
+                        local keyId, keyText = keyReplyNotice(reply)
+                        if keyId == 'key-memory' then convaiNotices.send(player, 'key-memory', keyText)
+                        elseif keyId then convaiNotices.send(player, 'quota-exhausted', keyText)
                         elseif not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end
-                    else speech.start(pending, reply) end
+                    else
+                        -- The first reply that runs without memory on a limited plan says so once.
+                        local keyId, keyText = keyReplyNotice(reply)
+                        if keyId == 'key-memory' then convaiNotices.send(player, 'key-memory', keyText) end
+                        speech.start(pending, reply)
+                    end
                 end)
                 if shown then
                     local _, listeners = groupAudience(player)

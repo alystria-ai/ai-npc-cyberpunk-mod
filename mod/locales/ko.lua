@@ -601,4 +601,8 @@ return {
     ["Your key: not accepted"] = "내 키: 허용되지 않음",
     ["Your key: plan limit reached"] = "내 키: 플랜 한도 도달",
     ["Your own key"] = "내 키",
+    ["Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key."] = "Convai 플랜으로는 이 대화들에 필요한 메모리를 담을 수 없습니다. Convai 계정에서 메모리 사용자 한 명을 해제하거나 다른 키를 사용하세요.",
+    ["Your Convai plan has no room for conversation memory, so companions will not remember past talks."] = "Convai 플랜에는 대화 메모리를 위한 여유가 없어서, 동료들은 지난 대화를 기억하지 못합니다.",
+    ["Your key: no room for memory"] = "내 키: 메모리 여유 없음",
+    ["Your own key, without memory"] = "내 키, 메모리 없음",
 }

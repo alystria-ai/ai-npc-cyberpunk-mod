@@ -308,7 +308,7 @@ function M.ownKey()
     local limit = type(state.limit) == 'table' and state.limit or nil
     return {saved = state.saved == true, tail = type(state.tail) == 'string' and state.tail or nil,
         active = state.active == 'player' and 'player' or 'shared', pending = state.pending == true,
-        result = type(result) == 'string' and result or nil,
+        result = type(result) == 'string' and result or nil, memoryOff = state.memory == 'off',
         limit = limit and limit.state or nil, limitOwn = limit and limit.own == true or false}
 end
 

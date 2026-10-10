@@ -59,6 +59,27 @@ async function writePrivate(path, text) {
   } catch (error) { await rm(temporary, {force: true}).catch(() => {}); throw error; }
 }
 
+/** The same request without the player's identity: an anonymous conversation, so Convai creates no memory user for it
+ * (and forms no long-term memory). `fresh` also drops the session id: an identified session belongs to the identity that
+ * made it and cannot continue anonymously. */
+export function withoutIdentity(config, {fresh = false} = {}) {
+  if (!config || typeof config !== 'object') return config;
+  const {endUserId, endUserMetadata, sessionId, ...rest} = config;
+  return fresh || sessionId === undefined ? rest : {...rest, sessionId};
+}
+
+/** The host's recover(error, config) hook for a player's key: when Convai refuses a new memory user ("speaker limit"),
+ * switch memory off for this key (once) and return the same request without an identity. Anything else, an anonymous
+ * request, or the shared key returns nothing, so the failure surfaces as before. `classify(error)` is
+ * classifyFailure from convai-quota.mjs; `onBlocked()` runs when memory was switched off by this call. */
+export function memoryRecovery({keys, classify, onBlocked = () => {}}) {
+  return (error, config) => {
+    if (keys.source !== 'player' || classify(error) !== 'speaker' || config?.endUserId == null) return undefined;
+    if (keys.blockMemory()) onBlocked();
+    return withoutIdentity(config, {fresh: true});
+  };
+}
+
 /** Which key conversations use. `requested` follows the setting and the saved key; `applied` is what connections use. */
 export class ConvaiKeys {
   constructor({sharedKey, playerKeyPath, readText = path => readFile(path, 'utf8'), writeText = writePrivate,
@@ -67,6 +88,22 @@ export class ConvaiKeys {
     Object.assign(this, {sharedKey, playerKeyPath, readText, writeText, removeFile});
     this.player = null; this.preference = false;
     this.applied = {source: 'shared', key: sharedKey};
+    // On a player's key whose plan has no room for another memory user (Convai's free plan allows one), conversations
+    // run anonymously: no long-term memory, and no offered companion actions (those need an identified session).
+    this.memoryBlocked = false; this.noticePending = false;
+  }
+  /** Returns true when this changed anything. Only a player's key can be limited this way. */
+  blockMemory() {
+    if (this.applied.source !== 'player' || this.memoryBlocked) return false;
+    this.memoryBlocked = true; this.noticePending = true;
+    return true;
+  }
+  unblockMemory() { const had = this.memoryBlocked; this.memoryBlocked = this.noticePending = false; return had; }
+  /** 'memory-off' once after memory was switched off, so the game says so with the first reply that runs without it. */
+  takeNotice() {
+    if (!this.noticePending) return undefined;
+    this.noticePending = false;
+    return 'memory-off';
   }
   /** Reads the saved player key. A missing or malformed file means none. */
   async load() {
@@ -81,7 +118,12 @@ export class ConvaiKeys {
   }
   get pending() { return this.requested.key !== this.applied.key; }
   /** Adopts the requested key; call only at an idle boundary. Returns whether the key in use changed. */
-  apply() { const changed = this.pending; this.applied = this.requested; return changed; }
+  apply() {
+    const changed = this.pending;
+    this.applied = this.requested;
+    if (changed) this.unblockMemory(); // a different key is a different plan
+    return changed;
+  }
   current() { return this.applied.key; }
   get source() { return this.applied.source; }
   /** A player key has a free plan's single-session allowance: one conversation connection at a time. */
@@ -124,7 +166,7 @@ export class OwnKeyControl {
   status() {
     const quota = this.quota?.snapshot() ?? null;
     return {version: 1, updated: this.now(), preference: this.keys.preference, saved: !!this.keys.player,
-      tail: this.keys.tail, active: this.keys.source, pending: this.keys.pending,
+      tail: this.keys.tail, active: this.keys.source, pending: this.keys.pending, memory: this.keys.memoryBlocked ? 'off' : 'on',
       ...(this.result ? {result: this.result} : {}), ...(quota ? {limit: quota} : {})};
   }
   publishStatus() {

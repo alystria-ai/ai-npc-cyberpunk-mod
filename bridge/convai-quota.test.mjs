@@ -10,7 +10,10 @@ test('failures are classified by their message only', () => {
     ['Convai usage limit reached [convai-quota:tts]', 'quota'],
     ['Convai usage limit reached [convai-quota:plan]', 'quota'],
     ['You have exceeded usage limits for your plan', 'quota'],
-    ['LTM speaker limit reached', 'plan'], ['speaker limit reached', 'plan'],
+    ['LTM speaker limit reached', 'speaker'], ['speaker limit reached', 'speaker'],
+    ['LTM speaker allowance is not configured for this plan', 'speaker'],
+    ['Missing end_user_id. end_user_id is required when the character has Long Term Memory enabled. Provide end_user_id or disable Long Term Memory.', 'memory'],
+    ['Realtime access not allowed', 'rejected'],
     ['Concurrency limit reached', 'busy'],
     ['Invalid API key', 'rejected'],
     ['HTTP 404', null], ['Invalid Convai data message', null], ['', null], [undefined, null],
@@ -61,4 +64,30 @@ test('the limit is remembered for the settings page until a reply succeeds or th
   watch.clear(); watch.clear();
   assert.equal(watch.snapshot(), null);
   assert.equal(changes.length, 4, 'one change per real transition');
+});
+
+test('a speaker limit is never reported as a used-up plan', () => {
+  for (const source of ['shared', 'player']) {
+    const changes = [];
+    const watch = new QuotaWatch({keys: keys(source), onChange: () => changes.push(1)});
+    const error = Error('LTM speaker limit reached');
+    assert.equal(watch.observe(error), 'speaker');
+    assert.equal(watch.snapshot(), null, 'the settings page must not say the plan is used up');
+    assert.equal(changes.length, 0);
+    assert.notEqual(watch.codeFor(error), 'quota-own'); assert.notEqual(watch.codeFor(error), 'quota-shared');
+  }
+  // An unrecovered speaker limit on a player's key says memory, on the shared key nothing special.
+  assert.equal(new QuotaWatch({keys: keys('player')}).codeFor(Error('LTM speaker limit reached')), 'key-memory');
+  assert.equal(new QuotaWatch({keys: keys('shared')}).codeFor(Error('LTM speaker limit reached')), undefined);
+});
+
+test('a key that needs an identity it cannot have is its own state and code', () => {
+  const watch = new QuotaWatch({keys: keys('player')});
+  const error = Error('Missing end_user_id. end_user_id is required when the character has Long Term Memory enabled.');
+  assert.equal(watch.observe(error), 'memory');
+  assert.deepEqual(watch.snapshot(), {state: 'memory-needed', own: true});
+  assert.equal(watch.codeFor(error), 'key-memory-needed');
+  watch.succeeded();
+  assert.equal(watch.snapshot(), null);
+  assert.equal(new QuotaWatch({keys: keys('shared')}).codeFor(error), undefined);
 });

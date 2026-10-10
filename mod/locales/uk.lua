@@ -601,4 +601,8 @@ return {
     ["Your key: not accepted"] = "Твій ключ: не прийнято",
     ["Your key: plan limit reached"] = "Твій ключ: досягнуто ліміт тарифу",
     ["Your own key"] = "Твій ключ",
+    ["Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key."] = "Твій тариф Convai не може вмістити пам'ять, яка потрібна цим розмовам. Звільни одного користувача пам'яті в обліковому записі Convai або використай інший ключ.",
+    ["Your Convai plan has no room for conversation memory, so companions will not remember past talks."] = "У твоєму тарифі Convai немає місця для пам'яті розмов, тож супутники не пам'ятатимуть попередні бесіди.",
+    ["Your key: no room for memory"] = "Твій ключ: немає місця для пам'яті",
+    ["Your own key, without memory"] = "Твій ключ, без пам'яті",
 }

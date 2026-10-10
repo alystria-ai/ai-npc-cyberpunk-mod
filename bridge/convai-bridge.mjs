@@ -55,8 +55,8 @@ import {CompanionActions} from './companion-actions.mjs';
 import {RequestFileOwner, fileIdentity} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel} from './dialogue-level.mjs';
 import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, settingDelay} from './audio-delay.mjs';
-import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE} from './convai-key.mjs';
-import {QuotaWatch} from './convai-quota.mjs';
+import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, memoryRecovery, withoutIdentity} from './convai-key.mjs';
+import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -136,6 +136,7 @@ const quota = new QuotaWatch({keys});
 const currentKey = () => keys.current();
 // A player's key is a free plan with one conversation connection at a time: no look-ahead, no pre-opened connections.
 const singleSession = () => keys.singleSession;
+const keyNotice = () => { const keyNotice = keys.takeNotice(); return keyNotice ? {keyNotice} : {}; };
 const keyFailure = error => { const errorCode = quota.codeFor(error); return errorCode ? {errorCode} : {}; };
 
 const knowledgePack = JSON.parse(await readFile(resolve(project, 'characters/world-knowledge.json'), 'utf8'));
@@ -177,8 +178,25 @@ const emotionSelection = new EmotionSelection();
 const cleanReply = result => expressiveEmotions.process(naturalSpeech.process(result));
 // "Multilingual conversations": the setting and the language the conversation was last in (bridge/multilingual.mjs).
 const multilingual = new MultilingualConversations();
+// A player's free plan allows one memory user. When Convai refuses a new one ("LTM speaker limit reached") the turn is
+// repeated once without an end-user identity, and conversations on this key go on without long-term memory. Nothing is
+// guessed: only that exact refusal switches memory off, and a different key starts again with it on.
+const memoryPolicy = config => keys.memoryBlocked && config ? withoutIdentity(config) : config;
+function memoryBlocked() {
+  // Sessions opened under the identity belong to it; the transcript the phone shows is not touched.
+  sessions.clear(); realtimeSessions.clear();
+  void phone.forgetSessions().catch(() => {});
+  console.error('[CyberpunkConvai] The key\'s plan has no room for another memory user: conversations continue without long-term memory');
+  void ownKeyControl.publishStatus().catch(() => {});
+}
 const keyHostOptions = peers => ({exclusive: {enabled: singleSession, peers, retryMs: 1500},
-  onFailure: error => quota.observe(error), onSuccess: () => quota.succeeded()});
+  onFailure: error => {
+    const kind = quota.observe(error);
+    if (kind === 'speaker' && keys.blockMemory()) memoryBlocked(); // a path that cannot retry (a voice turn): its next turn runs anonymously
+    else if (kind === 'memory' && keys.unblockMemory()) void ownKeyControl.publishStatus().catch(() => {});
+  },
+  onSuccess: () => quota.succeeded(),
+  recover: memoryRecovery({keys, classify: classifyFailure, onBlocked: () => memoryBlocked()})});
 const phoneRealtime = new RealtimeHost({transformReply: cleanReply, ...keyHostOptions(() => [realtime])});
 const knowledgeTurns = new Map();
 function rememberKnowledgeTurn(prepared) {
@@ -250,11 +268,11 @@ const phone = new PhoneChat({
     if (!await knowledgeRouter.current(prepared)) throw Error('Phone world changed');
     rememberKnowledgeTurn(prepared);
     void companionActions.revoke();
-    const result = await phoneRealtime.reply({key: currentKey(), characterId: options.characterId,
+    const result = await phoneRealtime.reply(memoryPolicy({key: currentKey(), characterId: options.characterId,
       sessionId: admitted.reconnectRequired ? undefined : options.sessionId,
       scope: prepared.scope, ...remote,
       context: conversationContext(prepared.input),
-      text: options.input.text, ttsEnabled: false}, {signal: options.signal});
+      text: options.input.text, ttsEnabled: false}), {signal: options.signal});
     if (!await knowledgeRouter.current(prepared)) throw Error('Phone world changed');
     await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
     stagedKnowledgeTurn(prepared);
@@ -465,7 +483,7 @@ const routeFor = input => preparedInputs.get(input)
 const sessionKey = input => routeFor(input)?.sessionKey || JSON.stringify(['unavailable', input.profileKey, input.requestId]);
 const completeContext = input => JSON.stringify([conversationContext(input), routeFor(input)?.guard?.characterId, realtimeSessions.get(sessionKey(input)) || null,
   turnUsesLocal(input) ? 'local' : 'convai']);
-const realtimeConfig = input => ({key: currentKey(), characterId: routeFor(input)?.guard?.characterId, sessionId: realtimeSessions.get(sessionKey(input)),
+const realtimeConfig = input => memoryPolicy({key: currentKey(), characterId: routeFor(input)?.guard?.characterId, sessionId: realtimeSessions.get(sessionKey(input)),
   scope: routeFor(input)?.scope || conversationScope(input), ...(routeFor(input)?.remoteConfig || {}),
   context: conversationContext(input), text: battleTrigger(input), reaction: input.reaction,
   companionAction: companionActions.configFor(input),
@@ -478,8 +496,8 @@ const warmRoute = (profile, scope) => memoryQuiescing ? null : knowledgeRouter.c
 const ambientWarmConfig = (profile, entity) => {
   if (memoryQuiescing || !isAmbientProfile(profile) || typeof entity !== 'string') return null;
   const route = knowledgeRouter.configFor(profile, 'private', {entity, worldToken: worldSession?.token, generation: worldSession?.generation});
-  return route ? {key: currentKey(), characterId: route.guard.characterId, scope: route.scope, ...(route.remoteConfig || {}),
-    sessionId: realtimeSessions.get(route.sessionKey), ttsEnabled: warmUsesConvaiVoice(profile)} : null;
+  return route ? memoryPolicy({key: currentKey(), characterId: route.guard.characterId, scope: route.scope, ...(route.remoteConfig || {}),
+    sessionId: realtimeSessions.get(route.sessionKey), ttsEnabled: warmUsesConvaiVoice(profile)}) : null;
 };
 const connections = new PartyConnections({host: realtime,
   canWarm: () => !stopped && !memoryQuiescing && !active && !mic.current && !micPolling && !lookahead.busy && !singleSession(),
@@ -488,8 +506,8 @@ const connections = new PartyConnections({host: realtime,
   configFor: (profile, scope) => {
     const route = warmRoute(profile, scope);
     if (!route) throw Error('No current world for conversation warmup');
-    return {key: currentKey(), characterId: route.guard.characterId, scope: route.scope, ...(route.remoteConfig || {}),
-      sessionId: realtimeSessions.get(route.sessionKey), ttsEnabled: warmUsesConvaiVoice(profile)};
+    return memoryPolicy({key: currentKey(), characterId: route.guard.characterId, scope: route.scope, ...(route.remoteConfig || {}),
+      sessionId: realtimeSessions.get(route.sessionKey), ttsEnabled: warmUsesConvaiVoice(profile)});
   },
   onState: state => {
     connectionMetricsWriting = connectionMetricsWriting.catch(() => {}).then(() => atomic(resolve(runtime, 'party-connection-state.json'), JSON.stringify(state)));
@@ -835,7 +853,7 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     writeState: value => atomic(resolve(runtime, 'continuous-speech.json'), JSON.stringify(value), options),
     writeFace: value => atomic(resolve(runtime, 'continuous-face.json'), JSON.stringify(value), options),
     faceFile: async () => (await readSpeechState()).continuousFaceFile === true,
-    writeReply: value => atomic(replyPath, JSON.stringify(value), options),
+    writeReply: value => atomic(replyPath, JSON.stringify({...value, ...keyNotice()}), options),
     onPublished: timing => measure(input, {...timing, stream: {mode: local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}),
     onStarted: timing => measure(input, {...timing, continuousPlaybackObserved: true}),
     onGenerated: async text => {
@@ -950,7 +968,7 @@ async function publishResult(input, profile, result, current = async () => true,
   lookahead.setSource({input, text: result.text, userText: result.userText, current: current.sourceValid || current});
   const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audio, face, audioError,
-    stream:stream?.descriptor(),updated: Date.now()}), {signal, isCurrent: current, isCurrentSync: current.sync});
+    stream:stream?.descriptor(),updated: Date.now(), ...keyNotice()}), {signal, isCurrent: current, isCurrentSync: current.sync});
   if (!committed || !await current()) { stream?.closeQueue(); return false; }
   logEmotionTimeline(input, profile, {provider: result.timing?.voiceProvider ?? null, text: result.text,
     plan: result.expressionPlan, face, signal: result.expressionSignal});

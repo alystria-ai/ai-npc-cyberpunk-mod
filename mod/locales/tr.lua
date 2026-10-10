@@ -601,4 +601,8 @@ return {
     ["Your key: not accepted"] = "Anahtarın: kabul edilmedi",
     ["Your key: plan limit reached"] = "Anahtarın: plan limitine ulaşıldı",
     ["Your own key"] = "Kendi anahtarın",
+    ["Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key."] = "Convai planın, bu konuşmaların ihtiyaç duyduğu belleği barındıramıyor. Convai hesabında bir bellek kullanıcısını serbest bırak ya da başka bir anahtar kullan.",
+    ["Your Convai plan has no room for conversation memory, so companions will not remember past talks."] = "Convai planında konuşma belleği için yer yok, bu yüzden yoldaşlar geçmiş konuşmaları hatırlamayacak.",
+    ["Your key: no room for memory"] = "Anahtarın: bellek için yer yok",
+    ["Your own key, without memory"] = "Kendi anahtarın, bellek olmadan",
 }
