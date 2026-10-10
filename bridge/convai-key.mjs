@@ -9,9 +9,11 @@
 // that was opened with one key is never reused under the other.
 import {readFile, writeFile, rename, rm} from 'node:fs/promises';
 import {execFile} from 'node:child_process';
-import {randomBytes} from 'node:crypto';
+import {createHash, randomBytes} from 'node:crypto';
 
 export const PLAYER_KEY_FILE = 'player-convai-key.txt';
+// The end-user id adopted for the player's key (ConvaiKeys.adoptUser). Holds no key, only a one-way tag of it.
+export const PLAYER_USER_FILE = 'player-convai-user.json';
 // Convai keys are long opaque tokens; anything shorter, or containing a space, is not one.
 const KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{15,199}$/;
 const COMMAND_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$/;
@@ -51,6 +53,33 @@ export async function validateKey(key, {fetchImpl = globalThis.fetch, timeoutMs 
   } catch { return 'unknown'; }
 }
 
+/** The memory users (end users) of the account behind `key`, most recently active first: [{id, lastActive}]. Read-only
+ * (POST /user/end-users/list, not a conversation turn). Null when the list could not be read. */
+export async function listEndUsers(key, {fetchImpl = globalThis.fetch, timeoutMs = 10000} = {}) {
+  try {
+    const users = [];
+    let cursor = null;
+    for (let page = 0; page < 5; page++) {
+      const response = await fetchImpl('https://api.convai.com/user/end-users/list', {method: 'POST',
+        headers: {'Content-Type': 'application/json', 'CONVAI-API-KEY': key},
+        body: JSON.stringify(cursor ? {cursor} : {}), signal: AbortSignal.timeout(timeoutMs)});
+      if (!response.ok) { try { await response.body?.cancel(); } catch { /* already closed */ } return null; }
+      const body = await response.json();
+      for (const row of Array.isArray(body?.end_users) ? body.end_users : []) {
+        const id = row?.end_user_id;
+        if (typeof id !== 'string' || !id.trim() || id.length > 256) continue;
+        const stamps = [row.last_ltm_usage_ts, row.last_active_ts].map(value => Date.parse(`${value}Z`)).filter(Number.isFinite);
+        users.push({id, lastActive: stamps.length ? Math.max(...stamps) : 0});
+      }
+      cursor = body?.has_more === true && typeof body.next_cursor === 'string' ? body.next_cursor : null;
+      if (!cursor) break;
+    }
+    return users.sort((a, b) => b.lastActive - a.lastActive);
+  } catch { return null; }
+}
+
+const keyTag = key => createHash('sha256').update('convai-player-user:' + key).digest('hex').slice(0, 32);
+
 async function writePrivate(path, text) {
   const temporary = `${path}.${randomBytes(4).toString('hex')}.tmp`;
   try {
@@ -72,9 +101,16 @@ export function withoutIdentity(config, {fresh = false} = {}) {
  * switch memory off for this key (once) and return the same request without an identity. Anything else, an anonymous
  * request, or the shared key returns nothing, so the failure surfaces as before. `classify(error)` is
  * classifyFailure from convai-quota.mjs; `onBlocked()` runs when memory was switched off by this call. */
-export function memoryRecovery({keys, classify, onBlocked = () => {}}) {
-  return (error, config) => {
+export function memoryRecovery({keys, classify, onBlocked = () => {}, onAdopted = () => {}, list}) {
+  return async (error, config) => {
     if (keys.source !== 'player' || classify(error) !== 'speaker' || config?.endUserId == null) return undefined;
+    // First choice: a memory user the account already has (Convai's free plan allows very few), reused for everything.
+    const adopted = await keys.adoptUser({refused: config.endUserId, list}).catch(() => null);
+    if (adopted) {
+      onAdopted(adopted);
+      const {sessionId, ...rest} = config; // an identified session belongs to the identity that made it
+      return {...rest, endUserId: adopted};
+    }
     if (keys.blockMemory()) onBlocked();
     return withoutIdentity(config, {fresh: true});
   };
@@ -82,11 +118,14 @@ export function memoryRecovery({keys, classify, onBlocked = () => {}}) {
 
 /** Which key conversations use. `requested` follows the setting and the saved key; `applied` is what connections use. */
 export class ConvaiKeys {
-  constructor({sharedKey, playerKeyPath, readText = path => readFile(path, 'utf8'), writeText = writePrivate,
-    removeFile = path => rm(path, {force: true})} = {}) {
+  constructor({sharedKey, playerKeyPath, playerUserPath, readText = path => readFile(path, 'utf8'), writeText = writePrivate,
+    removeFile = path => rm(path, {force: true}), listUsers = listEndUsers} = {}) {
     if (typeof sharedKey !== 'string' || !sharedKey) throw Error('A conversation key is required');
-    Object.assign(this, {sharedKey, playerKeyPath, readText, writeText, removeFile});
+    Object.assign(this, {sharedKey, playerKeyPath, playerUserPath, readText, writeText, removeFile, listUsers});
     this.player = null; this.preference = false;
+    // The one end-user id every conversation on the player's key carries, once the account refused a new one and an
+    // existing memory user was adopted (saved in playerUserPath, bound to the key). Null: the mod's own id is used.
+    this.memoryUser = null; this.triedUsers = new Set(); this.userCandidates = null; this.adopting = null;
     this.applied = {source: 'shared', key: sharedKey};
     // On a player's key whose plan has no room for another memory user (Convai's free plan allows one), conversations
     // run anonymously: no long-term memory, and no offered companion actions (those need an identified session).
@@ -105,11 +144,55 @@ export class ConvaiKeys {
     this.noticePending = false;
     return 'memory-off';
   }
-  /** Reads the saved player key. A missing or malformed file means none. */
+  /** The request as the player's key must send it: its adopted memory user replaces the mod's own end-user id (anonymous
+   * requests and the shared key are left alone). */
+  identify(config) {
+    if (this.applied.source !== 'player' || !this.memoryUser || typeof config?.endUserId !== 'string'
+        || config.endUserId === this.memoryUser) return config;
+    return {...config, endUserId: this.memoryUser};
+  }
+  /** A reply was completed: a later refusal starts a fresh look at the account. */
+  settled() { this.triedUsers.clear(); this.userCandidates = null; }
+  /** After Convai refused `refused`: picks the next memory user of the account that was not tried yet, saves it as the
+   * player's id for this key and returns it; null when there is none (or the list could not be read). Concurrent calls
+   * share one lookup. Only a player's key adopts. */
+  adoptUser({refused, list = this.listUsers} = {}) {
+    if (this.applied.source !== 'player' || !this.player) return Promise.resolve(null);
+    const key = this.player;
+    this.adopting ??= (async () => {
+      try {
+        if (typeof refused === 'string') this.triedUsers.add(refused);
+        if (refused === this.memoryUser) await this.#dropUser();
+        this.userCandidates ??= (await list(key))?.toSorted((a, b) => b.lastActive - a.lastActive) ?? null;
+        if (key !== this.player || this.applied.key !== key) return null;
+        const next = (this.userCandidates ?? []).find(user => !this.triedUsers.has(user.id));
+        if (!next) return null;
+        this.triedUsers.add(next.id);
+        this.memoryUser = next.id;
+        if (this.playerUserPath) {
+          await this.writeText(this.playerUserPath, JSON.stringify({version: 1, tag: keyTag(key), endUserId: next.id}) + '\n').catch(() => {});
+        }
+        return next.id;
+      } finally { this.adopting = null; }
+    })();
+    return this.adopting;
+  }
+  async #dropUser() {
+    this.memoryUser = null;
+    if (this.playerUserPath) await this.removeFile(this.playerUserPath).catch(() => {});
+  }
+  /** Reads the saved player key and its adopted memory user. A missing or malformed file means none. */
   async load() {
-    this.player = null;
+    this.player = null; this.memoryUser = null; this.settled();
     if (!this.playerKeyPath) return this;
     try { this.player = parseKeyText(await this.readText(this.playerKeyPath)); } catch { /* none saved */ }
+    if (this.player && this.playerUserPath) {
+      try {
+        const saved = JSON.parse(await this.readText(this.playerUserPath));
+        if (saved?.version === 1 && saved.tag === keyTag(this.player) && typeof saved.endUserId === 'string'
+            && saved.endUserId.trim() && saved.endUserId.length <= 256) this.memoryUser = saved.endUserId;
+      } catch { /* none adopted */ }
+    }
     return this;
   }
   setPreference(on) { const next = on === true, changed = next !== this.preference; this.preference = next; return changed; }
@@ -133,9 +216,10 @@ export class ConvaiKeys {
   get tail() { return keyTail(this.player); }
   async save(key) {
     await this.writeText(this.playerKeyPath, `api-key=${key}\n`);
-    this.player = key;
+    if (key !== this.player) await this.#dropUser(); // another key is another account
+    this.player = key; this.settled();
   }
-  async remove() { await this.removeFile(this.playerKeyPath); this.player = null; }
+  async remove() { await this.removeFile(this.playerKeyPath); this.player = null; await this.#dropUser(); this.settled(); }
 }
 
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);

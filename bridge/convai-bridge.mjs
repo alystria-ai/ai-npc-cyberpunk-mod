@@ -55,7 +55,7 @@ import {CompanionActions} from './companion-actions.mjs';
 import {RequestFileOwner, fileIdentity} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel} from './dialogue-level.mjs';
 import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, settingDelay} from './audio-delay.mjs';
-import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, memoryRecovery, withoutIdentity} from './convai-key.mjs';
+import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryRecovery, withoutIdentity} from './convai-key.mjs';
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -131,7 +131,8 @@ if (!key) throw Error('Local Convai key file must contain api-key=...');
 await mkdir(runtime, {recursive: true});
 // The key conversations use: the one this installation provides, or the player's own (docs/OWN_CONVAI_KEY.md). It changes
 // only at an idle boundary (applyKeyChoice). `quota` remembers a used-up plan for the settings page and the in-game notice.
-const keys = await new ConvaiKeys({sharedKey: key, playerKeyPath: resolve(stateDirectory, PLAYER_KEY_FILE)}).load();
+const keys = await new ConvaiKeys({sharedKey: key, playerKeyPath: resolve(stateDirectory, PLAYER_KEY_FILE),
+  playerUserPath: resolve(stateDirectory, PLAYER_USER_FILE)}).load();
 const quota = new QuotaWatch({keys});
 const currentKey = () => keys.current();
 // A player's key is a free plan with one conversation connection at a time: no look-ahead, no pre-opened connections.
@@ -178,25 +179,41 @@ const emotionSelection = new EmotionSelection();
 const cleanReply = result => expressiveEmotions.process(naturalSpeech.process(result));
 // "Multilingual conversations": the setting and the language the conversation was last in (bridge/multilingual.mjs).
 const multilingual = new MultilingualConversations();
-// A player's free plan allows one memory user. When Convai refuses a new one ("LTM speaker limit reached") the turn is
-// repeated once without an end-user identity, and conversations on this key go on without long-term memory. Nothing is
-// guessed: only that exact refusal switches memory off, and a different key starts again with it on.
-const memoryPolicy = config => keys.memoryBlocked && config ? withoutIdentity(config) : config;
-function memoryBlocked() {
-  // Sessions opened under the identity belong to it; the transcript the phone shows is not touched.
+// A player's free plan allows very few memory users. When Convai refuses a new one ("LTM speaker limit reached") the
+// turn is repeated with a memory user the account already has, which becomes the player's one id on that key
+// (convai-key.mjs, adoptUser; saved, so later sessions reuse it). Only when the account has none to adopt does the turn
+// repeat without an end-user identity and the key's conversations go on without long-term memory (a Convai character
+// with memory on may refuse those too: "Missing end_user_id"). Nothing is guessed: only that exact refusal does any of
+// this, and a different key starts again.
+const memoryPolicy = config => keys.memoryBlocked && config ? withoutIdentity(config) : keys.identify(config);
+// Sessions opened under another identity belong to it; the transcript the phone shows is not touched.
+function retireIdentifiedSessions() {
   sessions.clear(); realtimeSessions.clear();
   void phone.forgetSessions().catch(() => {});
+}
+function memoryAdopted() {
+  retireIdentifiedSessions();
+  console.error('[CyberpunkConvai] The key\'s plan has no room for another memory user: conversations use the memory user the account already has');
+}
+// A path that cannot retry (a voice turn) was refused: the next turn uses the account's memory user, or runs anonymously.
+async function adoptOrBlockMemory() {
+  const adopted = await keys.adoptUser({refused: keys.memoryUser ?? undefined}).catch(() => null);
+  if (adopted) memoryAdopted();
+  else if (keys.blockMemory()) memoryBlocked();
+}
+function memoryBlocked() {
+  retireIdentifiedSessions();
   console.error('[CyberpunkConvai] The key\'s plan has no room for another memory user: conversations continue without long-term memory');
   void ownKeyControl.publishStatus().catch(() => {});
 }
 const keyHostOptions = peers => ({exclusive: {enabled: singleSession, peers, retryMs: 1500},
   onFailure: error => {
     const kind = quota.observe(error);
-    if (kind === 'speaker' && keys.blockMemory()) memoryBlocked(); // a path that cannot retry (a voice turn): its next turn runs anonymously
+    if (kind === 'speaker') void adoptOrBlockMemory(); // a path that cannot retry (a voice turn): its next turn uses the account's memory user
     else if (kind === 'memory' && keys.unblockMemory()) void ownKeyControl.publishStatus().catch(() => {});
   },
-  onSuccess: () => quota.succeeded(),
-  recover: memoryRecovery({keys, classify: classifyFailure, onBlocked: () => memoryBlocked()})});
+  onSuccess: () => { quota.succeeded(); keys.settled(); },
+  recover: memoryRecovery({keys, classify: classifyFailure, onBlocked: () => memoryBlocked(), onAdopted: () => memoryAdopted()})});
 const phoneRealtime = new RealtimeHost({transformReply: cleanReply, ...keyHostOptions(() => [realtime])});
 const knowledgeTurns = new Map();
 function rememberKnowledgeTurn(prepared) {

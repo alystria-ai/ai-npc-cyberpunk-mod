@@ -27,15 +27,26 @@ Plan facts used by the design: Free is 100 interactions a month with one concurr
 
 ## Plan without room for memory
 
-Every conversation of the mod carries the player's end-user id so Convai can keep long-term memory. When a player's key hits the speaker limit, the bridge repeats that one request without the end-user id and runs the rest of the key's conversations the same way (`withoutIdentity`, `memoryRecovery` in `bridge/convai-key.mjs`, the host's `recover` hook). What is reduced, and nothing else:
+Every conversation of the mod carries one end-user id so Convai can keep long-term memory. The id is the mod's own (a UUID in `player-memory.json`) for the installation's key. Convai's plan counts memory users (end users) per account, and the free plan allows very few (the first live test: an account that already held two users, made in Convai's own playground, refused the mod's new id). So a player's key does not insist on a new user:
+
+1. When the key's account refuses the id ("LTM speaker limit reached"), the bridge lists the account's end users (read-only `POST /user/end-users/list`), takes the most recently active one that was not tried yet, and repeats the request with it. `ConvaiKeys.adoptUser` and `memoryRecovery` in `bridge/convai-key.mjs`, the host's (async) `recover` hook.
+2. That id becomes the player's one id on that key: every request on the key carries it from then on (`ConvaiKeys.identify`, applied by `memoryPolicy` in `bridge/convai-bridge.mjs` to the realtime, phone and microphone configurations), and it is saved in `player-convai-user.json` in the bridge state folder, tagged with a one-way hash of the key, never with the key. The next session reuses it without a lookup. Pasting another key, or removing the key, forgets it. The local identity (`player-memory.json`, its guards and epochs) is unchanged; only the id sent to Convai is replaced, and only on the player's key. The installation's key keeps the mod's id.
+3. Sessions and phone threads opened under the old id start afresh once (the visible transcript stays). The player sees no notice: memory works.
+4. An adopted id that the account refuses later is dropped and the next user is tried. Only when there is none (an empty account, or the list cannot be read) does the bridge fall back to the anonymous request below.
+
+Because the adopted id is a user the account already had, its memories are shared with whatever else used it (for example the Convai playground chats). To use a clean id instead, delete the account's end users in Convai first and let the mod create its own.
+
+### Anonymous fallback
+
+Only when no memory user can be adopted, the bridge repeats that one request without the end-user id and runs the rest of the key's conversations the same way (`withoutIdentity`). What is reduced, and nothing else:
 
 - Companions do not keep long-term memory of conversations on that key.
 - Offered companion actions that need an identified session (for example asking the companion to drive) are not offered in conversations.
 - Sessions and phone threads started under the identity start afresh; the visible transcript stays.
 
-The game says so once per session (`key-memory`, shown with the first reply that ran without memory) and the settings line reads "Your own key, without memory". A different key, or switching the setting off and on, starts again with memory on. Voice turns cannot be repeated midway: the first voice turn shows the same notice and the next turn runs without memory.
+The game says so once per session (`key-memory`, shown with the first reply that ran without memory) and the settings line reads "Your own key, without memory". A different key, or switching the setting off and on, starts again with memory on. Voice turns cannot be repeated midway: the first voice turn adopts or switches memory off and the next turn uses the result.
 
-If the anonymous request is refused too (`Missing end_user_id`, which depends on how each character's memory mode is set up on the developer's side and is not verified), the key cannot hold the conversations at all; the game says to free a memory user in the Convai account or use another key (`quota-exhausted`, shown once) and tries the identified request again next time.
+The anonymous request is refused too for the characters of this mod: they are shipped with long-term memory on, and Convai answers 400 `Missing end_user_id. end_user_id is required when the character has Long Term Memory enabled.` (seen in the bridge log, October 10). Then the key cannot hold the conversations at all; the game says to free a memory user in the Convai account or use another key (`quota-exhausted`, shown once) and tries the identified request again next time. That is why adopting an existing user is the primary answer.
 
 ## What the player sees
 

@@ -99,7 +99,7 @@ export class RealtimeHost {
   // and a "Concurrency limit reached" answer is retried once after retryMs while the old session is released.
   // onFailure(error) / onSuccess(): observers of a finished request (the bridge reads plan-limit failures from them).
   // recover(error, config): may return a changed config for one more attempt (a player's key whose plan has no room for
-  // another memory user retries without an end-user identity), or nothing.
+  // another memory user retries with the account's existing memory user, or without an identity), or nothing. It may be async.
   constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess, recover,
     browserExecutable = process.env.CYBERPUNK_CONVAI_BROWSER,
     clientAssetsDirectory = process.env.CYBERPUNK_CONVAI_CLIENT_ASSETS,
@@ -304,7 +304,7 @@ export class RealtimeHost {
             await abortable(new Promise(resolve => setTimeout(resolve, this.exclusive.retryMs ?? 1500)), options.signal);
             continue;
           }
-          let changed; try { changed = this.recover?.(error, current); } catch { changed = undefined; }
+          let changed; try { changed = await this.recover?.(error, current); } catch { changed = undefined; }
           if (!changed) throw error;
           current = changed;
         }

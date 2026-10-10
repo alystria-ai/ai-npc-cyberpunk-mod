@@ -101,3 +101,14 @@ test('the final outcome after recovery reaches the observers once', async () => 
   await host.run({endUserId: 'user-1'}, 'reply');
   assert.deepEqual(seen, {success: 1, failures: []}, 'the recovered refusal is not a failure');
 });
+
+test('an async recover hook is awaited, and a rejecting one never hides the real failure', async () => {
+  const host = new RealtimeHost({recover: async (error, config) => { await new Promise(resolve => setTimeout(resolve, 5)); return {...config, endUserId: 'adopted'}; }});
+  const attempts = [];
+  host.runOnce = async config => { attempts.push(config.endUserId); if (config.endUserId !== 'adopted') throw Error('LTM speaker limit reached'); return {text: 'ok'}; };
+  assert.deepEqual(await host.run({endUserId: 'user-1'}, 'reply'), {text: 'ok'});
+  assert.deepEqual(attempts, ['user-1', 'adopted']);
+  const rejecting = new RealtimeHost({recover: async () => { throw Error('hook'); }});
+  rejecting.runOnce = async () => { throw Error('real'); };
+  await assert.rejects(rejecting.run({}, 'reply'), /real/);
+});
